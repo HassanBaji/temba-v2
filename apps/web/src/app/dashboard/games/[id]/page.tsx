@@ -26,7 +26,6 @@ import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overf
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameBookedBlock } from "~/components/games/game-booked-block";
-import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
 import { GameLineupSection } from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
@@ -39,6 +38,10 @@ import { GameScoreSection } from "~/components/games/game-score-section";
 import { TournamentHome } from "~/components/games/tournament-home";
 import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
+import {
+  gameInviteSubtitle,
+  InviteDoorDialog,
+} from "~/components/invites/invite-door-dialog";
 import type { LookupUserSearchRow } from "@repo/api/types";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -80,7 +83,7 @@ import {
 } from "@repo/domain/game-edit-save";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
-import { gameInviteAccess, lookupInviteSentToast } from "@repo/domain/invites";
+import { gameInviteAccess } from "@repo/domain/invites";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
@@ -210,10 +213,6 @@ export default function GameHomePage({
     string | undefined
   >();
   const [roundCount, setRoundCount] = React.useState<number | null>(null);
-  const [lookupQuery, setLookupQuery] = React.useState("");
-  const [lookupRefused, setLookupRefused] = React.useState<
-    { name: string; message: string }[] | null
-  >(null);
   const [editOpen, setEditOpen] = React.useState(false);
   const justSavedEditSectionsRef = React.useRef(new Set<GameEditSection>());
   const [invitesOpen, setInvitesOpen] = React.useState(false);
@@ -557,39 +556,28 @@ export default function GameHomePage({
     },
   });
 
-  const sendLookupInvite = api.games.sendLookupInvite.useMutation({
-    onSuccess: async (result) => {
-      setLookupRefused(result.refused);
-      if (result.sent.length > 0) {
-        toast.success(lookupInviteSentToast(result.sent.length));
-      }
-      await utils.games.listLookupInvites.invalidate({ gameId: id });
-      await utils.games.searchLookupUsers.invalidate({ gameId: id });
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
+  function inviteShareText(url: string) {
+    const row = game.data;
+    return gameInviteClipboardText({
+      format: row?.format ?? "",
+      registrationMode: row?.registrationMode ?? "",
+      shortUrl: url,
+      roster: row
+        ? {
+            venueName: row.venue?.name ?? "Venue",
+            courtName: row.matches[0]?.courtName ?? null,
+            windowStart: row.windowStart,
+            windowEnd: row.windowEnd,
+            sides: row.sides,
+            shortUrl: url,
+          }
+        : null,
+    });
+  }
 
   const createInviteLink = api.games.createInviteLink.useMutation({
     onSuccess: async (result) => {
-      const url = result.shortUrl ?? result.inviteUrl;
-      const row = game.data;
-      const text = gameInviteClipboardText({
-        format: row?.format ?? "",
-        registrationMode: row?.registrationMode ?? "",
-        shortUrl: url,
-        roster: row
-          ? {
-              venueName: row.venue?.name ?? "Venue",
-              courtName: row.matches[0]?.courtName ?? null,
-              windowStart: row.windowStart,
-              windowEnd: row.windowEnd,
-              sides: row.sides,
-              shortUrl: url,
-            }
-          : null,
-      });
+      const text = inviteShareText(result.shortUrl ?? result.inviteUrl);
       await shareLinkWithFeedback({ text }, "Invite link copied");
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
@@ -643,10 +631,6 @@ export default function GameHomePage({
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
   const canManageGameInvites = inviteAccess.canManage;
   const canSendGameLookup = inviteAccess.canSendLookup;
-  const lookupSearch = api.games.searchLookupUsers.useQuery(
-    { gameId: id, query: lookupQuery },
-    { enabled: invitesOpen && canSendGameLookup },
-  );
   const canPartnerPick = Boolean(
     data &&
       (data.canRegister || data.canWaitlist) &&
@@ -656,10 +640,6 @@ export default function GameHomePage({
   const partnerSearch = api.games.searchPartnerUsers.useQuery(
     { gameId: id, query: partnerQuery },
     { enabled: canPartnerPick },
-  );
-  const inviteLink = api.games.getInviteLink.useQuery(
-    { gameId: id },
-    { enabled: canManageGameInvites },
   );
 
   React.useEffect(() => {
@@ -1477,30 +1457,22 @@ export default function GameHomePage({
       ) : null}
 
       {canManageGameInvites ? (
-        <GameInvitesDialog
-          open={invitesOpen}
-          onOpenChange={(next) => {
-            setInvitesOpen(next);
-            if (!next) {
-              setLookupQuery("");
-              setLookupRefused(null);
-            }
+        <InviteDoorDialog
+          door={{
+            kind: "game",
+            gameId: id,
+            canLookup: canSendGameLookup,
+            canLink: true,
+            subtitle: gameInviteSubtitle({
+              windowStart: data.windowStart,
+              courtName: data.matches[0]?.courtName ?? null,
+              venueName: data.venue?.name ?? null,
+              sides: data.sides,
+            }),
+            shareMessage: inviteShareText,
           }}
-          canSendLookup={canSendGameLookup}
-          canCopyInviteLink
-          inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
-          sendPending={sendLookupInvite.isPending}
-          copyPending={createInviteLink.isPending}
-          sendError={sendLookupInvite.error}
-          searchQuery={lookupQuery}
-          onSearchQueryChange={setLookupQuery}
-          searchResults={lookupSearch.data}
-          searchPending={lookupSearch.isFetching}
-          refused={lookupRefused}
-          onSendLookup={(userIds) =>
-            sendLookupInvite.mutate({ gameId: id, userIds })
-          }
-          onCopyInviteLink={() => createInviteLink.mutate({ gameId: id })}
+          open={invitesOpen}
+          onOpenChange={setInvitesOpen}
         />
       ) : null}
 

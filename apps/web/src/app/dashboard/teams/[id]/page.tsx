@@ -19,7 +19,7 @@ import { MemberRow } from "~/components/common/member-row";
 import { RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { InvitesDialog } from "~/components/invites/invites-dialog";
+import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -42,7 +42,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { lookupInviteSentToast } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import {
@@ -61,8 +60,6 @@ import {
   TEAM_UNLINK_LABEL,
   teamDissolveConfirm,
   teamHomeView,
-  teamInviteDescription,
-  teamInviteSeatsLeft,
   teamLeaveConfirm,
   teamLookupNote,
   teamUnlinkConfirm,
@@ -91,93 +88,9 @@ export default function TeamHomePage({
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [lookupQuery, setLookupQuery] = useState("");
-  const [lookupRefused, setLookupRefused] = useState<
-    { name: string; message: string }[] | null
-  >(null);
   const [linkOpen, setLinkOpen] = useState(false);
 
   const team = api.teams.byId.useQuery({ id });
-
-  const inviteLink = api.teams.getInviteLink.useQuery(
-    { teamId: id },
-    { enabled: Boolean(team.data?.canInvite) },
-  );
-  const pendingInvites = api.teams.listInAppInvites.useQuery(
-    { teamId: id },
-    { enabled: inviteOpen && Boolean(team.data?.canInvite) },
-  );
-  const lookupSearch = api.teams.searchLookupUsers.useQuery(
-    { teamId: id, query: lookupQuery },
-    { enabled: inviteOpen && Boolean(team.data?.canInvite) },
-  );
-
-  const refreshInvites = async () => {
-    await utils.teams.byId.invalidate({ id });
-    await utils.teams.listInAppInvites.invalidate({ teamId: id });
-    await utils.teams.searchLookupUsers.invalidate({ teamId: id });
-  };
-
-  const inviteInApp = api.teams.inviteInApp.useMutation();
-
-  const sendPartnerInvite = (userId: string) => {
-    inviteInApp.mutate(
-      { teamId: id, userId },
-      {
-        onSuccess: () => {
-          setLookupRefused([]);
-          toast.success("Lookup invite sent");
-          void refreshInvites();
-        },
-        onError: (error) => {
-          toastGlobalFormError(error);
-        },
-      },
-    );
-  };
-
-  const sendSquadInvites = async (userIds: string[]) => {
-    const refused: { name: string; message: string }[] = [];
-    let sent = 0;
-    for (const userId of userIds) {
-      try {
-        await inviteInApp.mutateAsync({ teamId: id, userId });
-        sent += 1;
-      } catch (error) {
-        refused.push({
-          name:
-            lookupSearch.data?.find((row) => row.id === userId)?.name ?? "User",
-          message: error instanceof Error ? error.message : "Could not invite",
-        });
-      }
-    }
-    setLookupRefused(refused);
-    if (sent > 0) {
-      toast.success(lookupInviteSentToast(sent));
-      await refreshInvites();
-    }
-  };
-
-  const revokeInvite = api.teams.revokeInAppInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite revoked");
-      await refreshInvites();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const createInviteLink = api.teams.createInviteLink.useMutation({
-    onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite link copied");
-      await utils.teams.getInviteLink.invalidate({ teamId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
@@ -465,52 +378,19 @@ export default function TeamHomePage({
       />
 
       {data.canInvite ? (
-        <InvitesDialog
+        <InviteDoorDialog
+          door={{
+            kind: "team",
+            teamId: id,
+            squad: view.squad,
+            roster: data.roster,
+            canLookup: true,
+            canLink: true,
+            subtitle: teamLookupNote(view.squad),
+          }}
           open={inviteOpen}
-          onOpenChange={(next) => {
-            setInviteOpen(next);
-            if (!next) {
-              setLookupQuery("");
-              setLookupRefused(null);
-            }
-          }}
+          onOpenChange={setInviteOpen}
           restoreFocusRef={menuTriggerRef}
-          description={teamInviteDescription(view.squad)}
-          lookup={{
-            note: teamLookupNote(view.squad),
-            lookupInvites: pendingInvites.data,
-            canSend: pendingInvites.data
-              ? teamInviteSeatsLeft(data.roster, pendingInvites.data.length) > 0
-              : true,
-            sendPending: inviteInApp.isPending,
-            revokePendingId: revokeInvite.isPending
-              ? revokeInvite.variables?.inviteId
-              : undefined,
-            sendError: inviteInApp.error,
-            searchQuery: lookupQuery,
-            onSearchQueryChange: setLookupQuery,
-            searchResults: lookupSearch.data,
-            searchPending: lookupSearch.isFetching,
-            refused: lookupRefused,
-            selection: view.squad ? "multiple" : "single",
-            onSendUserIds: (userIds) => {
-              if (view.squad) {
-                void sendSquadInvites(userIds);
-                return;
-              }
-              const userId = userIds[0];
-              if (!userId) {
-                return;
-              }
-              sendPartnerInvite(userId);
-            },
-            onRevokeLookup: (inviteId) => revokeInvite.mutate({ inviteId }),
-          }}
-          link={{
-            inviteUrl: inviteLink.data?.inviteUrl,
-            copyPending: createInviteLink.isPending,
-            onCopy: () => createInviteLink.mutate({ teamId: id }),
-          }}
         />
       ) : null}
 

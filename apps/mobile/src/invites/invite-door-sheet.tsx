@@ -8,6 +8,14 @@ import {
   assembleE164,
   DEFAULT_CALLING_COUNTRY_ISO,
 } from "@repo/domain/phone-number";
+import {
+  inviteModes,
+  inviteSheetTitle,
+  rowWithPhone,
+  textMessageUrl,
+  type InviteMode,
+  type LookupResultRow,
+} from "@repo/domain/invite-door";
 import { teamLookupNote } from "@repo/domain/teams";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useRef, useState } from "react";
@@ -21,14 +29,8 @@ import {
   gameInviteSubtitle,
   gameShareMessage,
   groupShareMessage,
-  inviteModes,
-  inviteSheetTitle,
-  rowWithPhone,
-  textMessageUrl,
   whatsAppUrl,
   type GameShareContext,
-  type InviteMode,
-  type LookupResultRow,
 } from "./invites-model";
 import { InviteSheetView, type PendingLookupRow } from "./invite-sheet-view";
 import type { Slot } from "../home/home-model";
