@@ -1,24 +1,30 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { colors, radii, sizes } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
 import {
   groupMemberOrganizerActionLabel,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
-import { ChevronRight } from "lucide-react-native";
+import {
+  GROUP_MEMBERS_DEFAULT_SORT,
+  GROUP_MEMBERS_NO_MATCH_COPY,
+  groupMembersLegend,
+  groupPendingInvitesTitle,
+  type GroupMembersSort,
+} from "@repo/domain/group-members-table";
+import { ChevronRight, EllipsisVertical } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
-import { FormSlot } from "../primitives/form-slot";
+import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { hairline } from "../primitives/hairline-width";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
+import { SearchField } from "../primitives/search-field";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { TextField } from "../primitives/text-field";
 import {
   MEMBERS_EMPTY_COPY,
-  MEMBERS_NO_MATCH_COPY,
-  MEMBERS_SET_LEVEL_HINT,
   memberIsRemovable,
   memberList,
   memberOrganizerAction,
@@ -29,97 +35,254 @@ import { LevelCell } from "./level-cell";
 import { MemberSheet } from "./member-sheet";
 import { Notice } from "./notice";
 
-const MARK_WIDTH = 16;
+const STAT_WIDTH = 38;
+const LEVEL_WIDTH = 44;
+const ACTION_WIDTH = 44;
+const ROW_PADDING_LEFT = 16;
+const ROW_PADDING_RIGHT = 10;
 
-function MemberRowContent({
-  row,
-  showLevel,
-}: {
-  row: MemberRowView;
-  showLevel: boolean;
-}) {
+const SORT_COLUMNS: {
+  sort: GroupMembersSort;
+  label: string;
+  title: string;
+  width: number;
+}[] = [
+  { sort: "played", label: "P", title: "Games played", width: STAT_WIDTH },
+  { sort: "won", label: "W", title: "Matches won", width: STAT_WIDTH },
+  { sort: "level", label: "LVL", title: "Level", width: LEVEL_WIDTH },
+];
+
+function YouMark() {
   return (
-    <>
-      <Avatar name={row.name} uri={row.imageUri} size="lg" />
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text weight={row.isViewer ? "semibold" : "regular"} numberOfLines={1}>
-          {row.isViewer ? "You" : row.name}
-        </Text>
-        {row.unclaimed ? <NotOnTembaMark /> : null}
-        {row.caption ? (
-          <Text size="meta" tone="muted" numberOfLines={1}>
-            {row.caption}
-          </Text>
-        ) : null}
-      </View>
-      <View style={{ flexDirection: "row", gap: 3 }}>
-        {row.formMarks.map((mark, index) => (
-          <View key={index} style={{ width: MARK_WIDTH }}>
-            <FormSlot variant={mark} compact />
-          </View>
-        ))}
-      </View>
-      {showLevel ? <LevelCell view={row.level} level={row.levelText} /> : null}
-    </>
+    <View
+      style={{
+        borderWidth: hairline,
+        borderColor: colors.ink,
+        borderRadius: radii.slot - 1,
+        paddingHorizontal: 4,
+      }}
+    >
+      <Text size="eyebrow" mono>
+        YOU
+      </Text>
+    </View>
   );
 }
 
 function MemberRow({
   row,
   showLevel,
-  onSelect,
+  managing,
   onOpen,
+  onManage,
 }: {
   row: MemberRowView;
   showLevel: boolean;
-  onSelect: () => void;
-  onOpen?: (userId: string) => void;
+  managing: boolean;
+  onOpen?: () => void;
+  onManage?: () => void;
 }) {
+  const content = (
+    <>
+      <Avatar name={row.name} uri={row.imageUri} />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+          <Text weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {row.name}
+          </Text>
+          {row.isViewer ? <YouMark /> : null}
+        </View>
+        {row.unclaimed ? <NotOnTembaMark /> : null}
+        {row.caption ? (
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {row.caption}
+          </Text>
+        ) : null}
+      </View>
+      <Text
+        width="expanded"
+        weight="bold"
+        style={{ width: STAT_WIDTH, textAlign: "center" }}
+      >
+        {row.played}
+      </Text>
+      {managing ? null : (
+        <Text
+          size="meta"
+          tone="muted"
+          style={{ width: STAT_WIDTH, textAlign: "center" }}
+        >
+          {row.wins}
+        </Text>
+      )}
+      {showLevel ? (
+        <View style={{ width: LEVEL_WIDTH, alignItems: "center" }}>
+          <LevelCell view={row.level} />
+        </View>
+      ) : null}
+    </>
+  );
   const style = {
-    minHeight: 64,
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: spacing.surface,
-    paddingVertical: 12,
+    gap: 8,
+    paddingLeft: ROW_PADDING_LEFT,
+    paddingRight: managing ? 0 : ROW_PADDING_RIGHT,
+    paddingVertical: 8,
   } as const;
 
-  if (!row.selectable && onOpen) {
+  if (managing) {
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View
+          accessible
+          accessibilityLabel={row.accessibilityLabel}
+          style={{ ...style, flex: 1 }}
+        >
+          {content}
+        </View>
+        {onManage ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Manage ${row.name}`}
+            onPress={onManage}
+            style={({ pressed }) => ({
+              width: ACTION_WIDTH,
+              height: sizes.touchTarget,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <EllipsisVertical size={sizes.iconAction} color={colors.ink} />
+          </Pressable>
+        ) : (
+          <View style={{ width: ACTION_WIDTH }} />
+        )}
+      </View>
+    );
+  }
+
+  if (onOpen) {
     return (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={row.accessibilityLabel}
         accessibilityHint="Opens their Player profile"
-        onPress={() => onOpen(row.key)}
+        onPress={onOpen}
         style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
       >
-        <MemberRowContent row={row} showLevel={showLevel} />
+        {content}
       </Pressable>
     );
   }
 
-  if (!row.selectable) {
-    return (
-      <View
-        accessible
-        accessibilityLabel={row.accessibilityLabel}
-        style={style}
-      >
-        <MemberRowContent row={row} showLevel={showLevel} />
-      </View>
-    );
-  }
+  return (
+    <View accessible accessibilityLabel={row.accessibilityLabel} style={style}>
+      {content}
+    </View>
+  );
+}
 
+function TableHeader({
+  sort,
+  onSort,
+  managing,
+  showLevel,
+}: {
+  sort: GroupMembersSort;
+  onSort: (sort: GroupMembersSort) => void;
+  managing: boolean;
+  showLevel: boolean;
+}) {
+  const columns = SORT_COLUMNS.filter(
+    (column) =>
+      (column.sort !== "won" || !managing) &&
+      (column.sort !== "level" || showLevel),
+  );
+  return (
+    <View
+      style={{
+        height: 40,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingLeft: ROW_PADDING_LEFT,
+        paddingRight: managing ? 0 : ROW_PADDING_RIGHT,
+        backgroundColor: colors.wash,
+      }}
+    >
+      <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
+        Member
+      </Text>
+      {columns.map((column) => {
+        const active = column.sort === sort;
+        return (
+          <Pressable
+            key={column.sort}
+            accessibilityRole="button"
+            accessibilityLabel={`Sort by ${column.title}`}
+            accessibilityState={{ selected: active }}
+            onPress={() => onSort(column.sort)}
+            style={{
+              width: column.width,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              size="eyebrow"
+              mono
+              tone={active ? "default" : "muted"}
+              style={{
+                textDecorationLine: active ? "underline" : "none",
+              }}
+            >
+              {column.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+      {managing ? <View style={{ width: ACTION_WIDTH }} /> : null}
+    </View>
+  );
+}
+
+function PendingInvitesCard({
+  names,
+  onOpen,
+}: {
+  names: string[];
+  onOpen: () => void;
+}) {
+  const title = groupPendingInvitesTitle(names.length);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={row.accessibilityLabel}
-      accessibilityHint="Opens the member sheet"
-      onPress={onSelect}
-      style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
+      accessibilityLabel={`${title}. ${names.join(", ")}`}
+      onPress={onOpen}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+        borderRadius: radii.card,
+        borderWidth: hairline,
+        borderColor: colors.rule,
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
-      <MemberRowContent row={row} showLevel={showLevel} />
-      <ChevronRight size={sizes.iconAction} color={colors.muted} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text weight="semibold">{title}</Text>
+        <Text size="eyebrow" tone="muted" numberOfLines={1}>
+          {names.join(", ")}
+        </Text>
+      </View>
+      <ChevronRight size={sizes.iconRow + 2} color={colors.dim} />
     </Pressable>
   );
 }
@@ -138,6 +301,8 @@ export function MembersTab({
   onRemoveUnclaimed,
   canAppointOrganizers = false,
   onOrganizerAction,
+  pendingInviteNames = [],
+  onOpenInvites,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
@@ -155,8 +320,17 @@ export function MembersTab({
     member: { userId: string; name: string },
     action: GroupMemberOrganizerAction,
   ) => void;
+  /** Lookup invites not yet accepted; only an inviter is given them. */
+  pendingInviteNames?: string[];
+  onOpenInvites?: () => void;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [sort, setSort] = useState<GroupMembersSort>(
+    GROUP_MEMBERS_DEFAULT_SORT,
+  );
+  const [managing, setManaging] = useState(false);
+  const canManage = canSetLevel || canAddPlayers || canAppointOrganizers;
+  const isManaging = canManage && managing;
   const list = memberList(
     leaderboard,
     query,
@@ -164,6 +338,7 @@ export function MembersTab({
     canSetLevel,
     canAddPlayers,
     canAppointOrganizers,
+    sort,
   );
   const selected = leaderboard.find(
     (entry) =>
@@ -182,38 +357,76 @@ export function MembersTab({
   }
 
   return (
-    <View style={{ gap: spacing.compact }}>
-      {list.showSearch ? (
-        <TextField
-          label="Search members"
-          value={query}
-          onChangeText={onQueryChange}
-          placeholder="Search members"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
+    <View style={{ gap: 14 }}>
+      {list.showSearch || canManage ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {list.showSearch ? (
+              <SearchField
+                value={query}
+                onChangeText={onQueryChange}
+                placeholder="Search members"
+                accessibilityLabel="Search members"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+            ) : null}
+          </View>
+          {canManage ? (
+            <Button
+              label={isManaging ? "Done" : "Manage"}
+              variant={isManaging ? "default" : "outline"}
+              selected={isManaging}
+              onPress={() => setManaging((current) => !current)}
+            />
+          ) : null}
+        </View>
       ) : null}
-      {list.rows.length === 0 ? (
-        <Text tone="muted">{MEMBERS_NO_MATCH_COPY}</Text>
-      ) : (
-        <Surface padded={false} style={{ overflow: "hidden" }}>
-          {list.rows.map((row, index) => (
+      <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
+        <TableHeader
+          sort={sort}
+          onSort={setSort}
+          managing={isManaging}
+          showLevel={showLevel}
+        />
+        {list.rows.length === 0 ? (
+          <>
+            <Hairline />
+            <Text
+              size="meta"
+              tone="muted"
+              style={{ paddingHorizontal: 18, paddingVertical: 22 }}
+            >
+              {GROUP_MEMBERS_NO_MATCH_COPY}
+            </Text>
+          </>
+        ) : (
+          list.rows.map((row) => (
             <View key={row.key}>
-              {index > 0 ? <Hairline /> : null}
+              <Hairline />
               <MemberRow
                 row={row}
                 showLevel={showLevel}
-                onSelect={() => setSelectedUserId(row.key)}
-                onOpen={onOpenMember}
+                managing={isManaging}
+                onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
+                onManage={
+                  row.selectable ? () => setSelectedUserId(row.key) : undefined
+                }
               />
             </View>
-          ))}
-        </Surface>
-      )}
-      {canSetLevel ? (
-        <Text size="meta" tone="muted">
-          {MEMBERS_SET_LEVEL_HINT}
+          ))
+        )}
+        <Hairline />
+        <Text
+          size="eyebrow"
+          tone="muted"
+          style={{ paddingHorizontal: 18, paddingVertical: 12 }}
+        >
+          {groupMembersLegend({ managing: isManaging, showLevel })}
         </Text>
+      </Surface>
+      {pendingInviteNames.length > 0 && onOpenInvites ? (
+        <PendingInvitesCard names={pendingInviteNames} onOpen={onOpenInvites} />
       ) : null}
       <MemberSheet
         member={selected ? memberSheetView(selected) : null}

@@ -165,11 +165,31 @@ describe("memberList", () => {
     expect(memberList(many, "nobody", ORIGIN).rows).toEqual([]);
   });
 
-  it("captions the Organizer and keeps the latest four form marks", () => {
+  it("captions the Organizer and carries Games played and Matches won", () => {
     const ada = memberList(leaderboard, "", ORIGIN).rows[0]!;
     expect(ada.caption).toBe("Organizer");
-    expect(ada.formMarks).toHaveLength(4);
+    expect(ada.played).toBe(7);
+    expect(ada.wins).toBe(6);
+    expect(ada.accessibilityLabel).toContain("7 Games played. 6 Matches won");
     expect(memberList([], "", ORIGIN).isEmpty).toBe(true);
+  });
+
+  it("sorts by the picked column", () => {
+    const names = (sort: "played" | "won" | "level") =>
+      memberList(
+        [...leaderboard].reverse(),
+        "",
+        ORIGIN,
+        false,
+        false,
+        false,
+        sort,
+      ).rows.map((row) => row.key);
+    expect(names("played")).toEqual(["ada", "kim", "viewer", "elin"]);
+    expect(names("level")).toEqual(["ada", "kim", "viewer", "elin"]);
+    expect(
+      memberList([...leaderboard].reverse(), "", ORIGIN).rows[0]!.key,
+    ).toBe("elin");
   });
 });
 
@@ -202,7 +222,7 @@ describe("memberList for a Level setter", () => {
     const [, , row] = memberList(members, "", ORIGIN, true).rows;
     expect(row!.caption).toContain("Set by Sara K");
     expect(memberList(members, "", ORIGIN).rows[2]!.caption).toBe(
-      "Member since Feb",
+      "Last Fri 7 Mar",
     );
   });
 

@@ -86,6 +86,8 @@ export type GroupHomeViewProps = {
   onCloseConfirm: () => void;
   memberQuery: string;
   onMemberQueryChange: (query: string) => void;
+  /** Names on the Group's pending lookup invites, for an inviter. */
+  pendingInviteNames?: string[];
   onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
   saved: SavedLevel | null;
@@ -353,6 +355,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           onRemoveUnclaimed={props.onRemoveUnclaimed}
           canAppointOrganizers={data.canAppointOrganizers}
           onOrganizerAction={props.onOrganizerAction}
+          pendingInviteNames={props.pendingInviteNames}
+          onOpenInvites={onInvite}
         />
       ) : null}
 

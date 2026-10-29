@@ -37,6 +37,7 @@ function entry(
     ratedMatchCount: played,
     levelOverride: null,
     formMarks: [],
+    lastPlayedAt: played > 0 ? new Date("2025-03-07T18:00:00Z") : null,
     joinedAt: new Date("2025-02-11T12:00:00Z"),
     unclaimed: false,
     phoneMasked: null,
