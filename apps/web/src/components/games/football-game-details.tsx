@@ -28,7 +28,10 @@ import { PoolGrid, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
-import { GameInvitesDialog } from "~/components/games/game-invites-dialog";
+import {
+  gameInviteSubtitle,
+  InviteDoorDialog,
+} from "~/components/invites/invite-door-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
@@ -37,7 +40,6 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
-import { shareLinkWithFeedback } from "~/lib/share-link";
 import {
   bibNames,
   footballHeroLines,
@@ -83,7 +85,7 @@ import {
   type GameKickTarget,
 } from "@repo/domain/game-kick-confirm";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
-import { gameInviteAccess, lookupInviteSentToast } from "@repo/domain/invites";
+import { gameInviteAccess } from "@repo/domain/invites";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
 import {
   filsToMajorInput,
@@ -123,10 +125,6 @@ export function FootballGameDetails({
   const [kickConfirm, setKickConfirm] = React.useState<GameKickTarget | null>(
     null,
   );
-  const [lookupQuery, setLookupQuery] = React.useState("");
-  const [lookupRefused, setLookupRefused] = React.useState<
-    { name: string; message: string }[] | null
-  >(null);
   const [windowDay, setWindowDay] = React.useState("");
   const [windowStartTime, setWindowStartTime] = React.useState("");
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
@@ -297,47 +295,22 @@ export function FootballGameDetails({
     registrationMode: game.registrationMode,
     partnerRequired: false,
   });
-  const lookupSearch = api.games.searchLookupUsers.useQuery(
-    { gameId, query: lookupQuery },
-    { enabled: invitesOpen && inviteAccess.canSendLookup },
-  );
-  const inviteLink = api.games.getInviteLink.useQuery(
-    { gameId },
-    { enabled: inviteAccess.canManage },
-  );
-  const sendLookupInvite = api.games.sendLookupInvite.useMutation({
-    onSuccess: async (result) => {
-      setLookupRefused(result.refused);
-      if (result.sent.length > 0) {
-        toast.success(lookupInviteSentToast(result.sent.length));
-      }
-      await utils.games.listLookupInvites.invalidate({ gameId });
-      await utils.games.searchLookupUsers.invalidate({ gameId });
-    },
-    onError,
-  });
-  const createInviteLink = api.games.createInviteLink.useMutation({
-    onSuccess: async (result) => {
-      const url = result.shortUrl ?? result.inviteUrl;
-      const text = gameInviteClipboardText({
-        format: game.format,
-        registrationMode: game.registrationMode,
+  function inviteShareText(url: string) {
+    return gameInviteClipboardText({
+      format: game.format,
+      registrationMode: game.registrationMode,
+      shortUrl: url,
+      sport: game.sport,
+      roster: {
+        venueName: game.venue?.name ?? "Venue",
+        courtName: game.recordedCourts[0]?.name ?? null,
+        windowStart: game.windowStart,
+        windowEnd: game.windowEnd,
+        sides: [],
         shortUrl: url,
-        sport: game.sport,
-        roster: {
-          venueName: game.venue?.name ?? "Venue",
-          courtName: game.recordedCourts[0]?.name ?? null,
-          windowStart: game.windowStart,
-          windowEnd: game.windowEnd,
-          sides: [],
-          shortUrl: url,
-        },
-      });
-      await shareLinkWithFeedback({ text }, "Invite link copied");
-      await utils.games.getInviteLink.invalidate({ gameId });
-    },
-    onError,
-  });
+      },
+    });
+  }
 
   React.useEffect(() => {
     if (openJoin && !autoJoined.current && model.cta?.kind === "join") {
@@ -902,30 +875,22 @@ export function FootballGameDetails({
       ) : null}
 
       {inviteAccess.canManage ? (
-        <GameInvitesDialog
-          open={invitesOpen}
-          onOpenChange={(next) => {
-            setInvitesOpen(next);
-            if (!next) {
-              setLookupQuery("");
-              setLookupRefused(null);
-            }
+        <InviteDoorDialog
+          door={{
+            kind: "game",
+            gameId,
+            canLookup: inviteAccess.canSendLookup,
+            canLink: true,
+            subtitle: gameInviteSubtitle({
+              windowStart: game.windowStart,
+              courtName: game.recordedCourts[0]?.name ?? null,
+              venueName: game.venue?.name ?? null,
+              sides: [],
+            }),
+            shareMessage: inviteShareText,
           }}
-          canSendLookup={inviteAccess.canSendLookup}
-          canCopyInviteLink
-          inviteUrl={inviteLink.data?.shortUrl ?? inviteLink.data?.inviteUrl}
-          sendPending={sendLookupInvite.isPending}
-          copyPending={createInviteLink.isPending}
-          sendError={sendLookupInvite.error}
-          searchQuery={lookupQuery}
-          onSearchQueryChange={setLookupQuery}
-          searchResults={lookupSearch.data}
-          searchPending={lookupSearch.isFetching}
-          refused={lookupRefused}
-          onSendLookup={(userIds) =>
-            sendLookupInvite.mutate({ gameId, userIds })
-          }
-          onCopyInviteLink={() => createInviteLink.mutate({ gameId })}
+          open={invitesOpen}
+          onOpenChange={setInvitesOpen}
         />
       ) : null}
 

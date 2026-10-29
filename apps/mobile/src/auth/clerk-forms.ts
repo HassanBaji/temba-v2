@@ -152,16 +152,6 @@ export function buildContinuePayload(
   return { ok: true, payload };
 }
 
-export const CODE_LENGTH = 6;
-
-export function isCodeComplete(code: string): boolean {
-  return code.length === CODE_LENGTH;
-}
-
-export function sanitizeCode(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, CODE_LENGTH);
-}
-
 export function fieldError(
   split: SplitFormError | null,
   ...keys: string[]

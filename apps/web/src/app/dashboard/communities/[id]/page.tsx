@@ -25,7 +25,7 @@ import { CommunityTeamsTab } from "~/components/communities/community-teams-tab"
 import { CommunityVenueBlock } from "~/components/communities/community-venue-block";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { InvitesDialog } from "~/components/invites/invites-dialog";
+import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
@@ -64,7 +64,6 @@ import {
 } from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { lookupInviteSentToast } from "@repo/domain/invites";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
@@ -93,10 +92,6 @@ export default function CommunityHomePage({
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [linkVenueOpen, setLinkVenueOpen] = useState(false);
-  const [lookupQuery, setLookupQuery] = useState("");
-  const [lookupRefused, setLookupRefused] = useState<
-    { name: string; message: string }[] | null
-  >(null);
   const [venueQuery, setVenueQuery] = React.useState("");
 
   const community = api.communities.byId.useQuery({ id });
@@ -133,58 +128,6 @@ export default function CommunityHomePage({
       toast.success(COMMUNITY_REQUEST_REJECTED_TOAST);
       await utils.communities.listJoinRequests.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const inviteLink = api.communities.getInviteLink.useQuery(
-    { communityId: id },
-    { enabled: Boolean(community.data?.canManageInviteLinks) },
-  );
-  const lookupInvites = api.communities.listLookupInvites.useQuery(
-    { communityId: id },
-    { enabled: Boolean(community.data?.canManageLookupInvites) },
-  );
-
-  const lookupSearch = api.communities.searchLookupUsers.useQuery(
-    { communityId: id, query: lookupQuery },
-    {
-      enabled: invitesOpen && Boolean(community.data?.canManageLookupInvites),
-    },
-  );
-
-  const sendLookupInvite = api.communities.sendLookupInvite.useMutation({
-    onSuccess: async (result) => {
-      setLookupRefused(result.refused);
-      if (result.sent.length > 0) {
-        toast.success(lookupInviteSentToast(result.sent.length));
-      }
-      await utils.communities.listLookupInvites.invalidate({ communityId: id });
-      await utils.communities.searchLookupUsers.invalidate({
-        communityId: id,
-      });
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-  const revokeLookupInvite = api.communities.revokeLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success("Lookup invite revoked");
-      await utils.communities.listLookupInvites.invalidate({ communityId: id });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const createInviteLink = api.communities.createInviteLink.useMutation({
-    onSuccess: async (result) => {
-      await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("Invite link copied");
-      await utils.communities.getInviteLink.invalidate({ communityId: id });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -684,47 +627,17 @@ export default function CommunityHomePage({
         }}
       />
 
-      <InvitesDialog
-        open={invitesOpen}
-        onOpenChange={(next) => {
-          setInvitesOpen(next);
-          if (!next) {
-            setLookupQuery("");
-            setLookupRefused(null);
-          }
+      <InviteDoorDialog
+        door={{
+          kind: "community",
+          communityId: id,
+          canLookup: data.canManageLookupInvites,
+          canLink: data.canManageInviteLinks,
+          subtitle: COMMUNITY_LOOKUP_NOTE,
         }}
+        open={invitesOpen}
+        onOpenChange={setInvitesOpen}
         restoreFocusRef={menuTriggerRef}
-        lookup={
-          data.canManageLookupInvites
-            ? {
-                note: COMMUNITY_LOOKUP_NOTE,
-                lookupInvites: lookupInvites.data,
-                sendPending: sendLookupInvite.isPending,
-                revokePendingId: revokeLookupInvite.isPending
-                  ? revokeLookupInvite.variables?.inviteId
-                  : undefined,
-                sendError: sendLookupInvite.error,
-                searchQuery: lookupQuery,
-                onSearchQueryChange: setLookupQuery,
-                searchResults: lookupSearch.data,
-                searchPending: lookupSearch.isFetching,
-                refused: lookupRefused,
-                onSendUserIds: (userIds) =>
-                  sendLookupInvite.mutate({ communityId: id, userIds }),
-                onRevokeLookup: (inviteId) =>
-                  revokeLookupInvite.mutate({ inviteId }),
-              }
-            : null
-        }
-        link={
-          data.canManageInviteLinks
-            ? {
-                inviteUrl: inviteLink.data?.inviteUrl,
-                copyPending: createInviteLink.isPending,
-                onCopy: () => createInviteLink.mutate({ communityId: id }),
-              }
-            : null
-        }
       />
 
       {canShowCreateClubGroup ? (
