@@ -4,13 +4,17 @@ import {
   remainingSeconds,
   resendAccessibleName,
 } from "@repo/domain/resend-countdown";
-import { useEffect, useState } from "react";
+import {
+  arrivedWhole,
+  extractVerificationCode,
+  isVerificationCodeComplete,
+} from "@repo/domain/verification-code";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
-import { isCodeComplete, sanitizeCode } from "./clerk-forms";
 import { FormErrorSummary } from "./form-error-summary";
 
 function ResendCountdown(props: {
@@ -92,7 +96,17 @@ export type CodeFormProps = {
 };
 
 export function CodeForm(props: CodeFormProps) {
-  const ready = isCodeComplete(props.code);
+  const ready = isVerificationCodeComplete(props.code);
+  const autoVerify = useRef(false);
+  const { code, pending, onVerify } = props;
+
+  useEffect(() => {
+    if (!autoVerify.current || !ready || pending) {
+      return;
+    }
+    autoVerify.current = false;
+    onVerify();
+  }, [code, ready, pending, onVerify]);
 
   return (
     <View style={{ gap: 20 }}>
@@ -117,9 +131,12 @@ export function CodeForm(props: CodeFormProps) {
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
-        maxLength={6}
         value={props.code}
-        onChangeText={(value) => props.onCodeChange(sanitizeCode(value))}
+        onChangeText={(value) => {
+          const next = extractVerificationCode(value);
+          autoVerify.current = arrivedWhole(props.code, next);
+          props.onCodeChange(next);
+        }}
         onSubmitEditing={() => {
           if (ready && !props.pending) {
             props.onVerify();
