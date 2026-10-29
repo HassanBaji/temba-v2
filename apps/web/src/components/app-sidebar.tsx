@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  Gauge,
   House,
   Mail,
   MapPin,
@@ -73,6 +74,12 @@ const operatorGroupsNav = {
   icon: ShieldCheck,
 };
 
+const operatorLevelsNav = {
+  title: "Player Levels",
+  url: "/dashboard/operator/levels",
+  icon: Gauge,
+};
+
 const consoleOrigin = process.env.NEXT_PUBLIC_CONSOLE_ORIGIN;
 
 /** The Venue console is its own App (ADR-0031); the entry is an external link. */
@@ -98,7 +105,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navItems = [
     ...items,
     ...(managesVenue && consoleNav ? [consoleNav] : []),
-    ...(isOperator ? [venuesNav, operatorGroupsNav] : []),
+    ...(isOperator ? [venuesNav, operatorGroupsNav, operatorLevelsNav] : []),
   ];
 
   return (
