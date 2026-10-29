@@ -1,6 +1,7 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
+import { groupsTabFromQuery } from "@repo/domain/groups-tab";
 import {
   DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
   publicGroupSportFilterInput,
@@ -19,7 +20,10 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function GroupsScreen() {
   const router = useRouter();
-  const [tab, setTab] = useState<GroupsTab>("mine");
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const tab = groupsTabFromQuery(params.tab);
+  const setTab = (next: GroupsTab) =>
+    router.setParams({ tab: next === "mine" ? undefined : next });
   const [sportFilter, setSportFilter] = useState<PublicGroupSportFilter>(
     DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
   );

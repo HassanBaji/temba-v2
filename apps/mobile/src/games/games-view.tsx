@@ -23,13 +23,8 @@ import {
   SPORT_FILTERS,
   type SportFilter,
 } from "@repo/domain/football-hub";
-import {
-  hubItems,
-  historyEmptyCopy,
-  myGamesEmptyCopy,
-  tabCount,
-  type GamesTab,
-} from "./games-model";
+import { hubItems, tabCount, type GamesTab } from "./games-model";
+import { PlayedEmpty, UpcomingEmpty } from "./games-empty";
 import { HistoryCard } from "./history-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
@@ -61,6 +56,7 @@ export type GamesViewProps = {
   football: Omit<FootballCardActions, "onOpen" | "onJoinWaitlist">;
   onLoadMore: () => void;
   onCreate: () => void;
+  onFindGroup: () => void;
   onRetry: () => void;
 };
 
@@ -82,30 +78,6 @@ function Failure({
       <View style={{ flexDirection: "row", marginTop: 4 }}>
         <Button label="Try again" variant="outline" onPress={onRetry} />
       </View>
-    </Surface>
-  );
-}
-
-function Empty({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <Surface style={{ gap: 4 }}>
-      <Text size="lead" weight="semibold">
-        {title}
-      </Text>
-      <Text size="meta" tone="muted">
-        {description}
-      </Text>
-      {action ? (
-        <View style={{ flexDirection: "row", marginTop: 12 }}>{action}</View>
-      ) : null}
     </Surface>
   );
 }
@@ -339,9 +311,10 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
   const rows = filterBySport(myGames.value, props.sportFilter);
   if (rows.length === 0) {
     return (
-      <Empty
-        {...myGamesEmptyCopy()}
-        action={<Button label="Create Game" onPress={props.onCreate} />}
+      <UpcomingEmpty
+        sportFilter={props.sportFilter}
+        onCreate={props.onCreate}
+        onFindGroup={props.onFindGroup}
       />
     );
   }
@@ -420,7 +393,7 @@ function HistoryList(props: GamesViewProps) {
     return <Failure message={history.message} onRetry={props.onRetry} />;
   }
   if (history.value.length === 0) {
-    return <Empty {...historyEmptyCopy()} />;
+    return <PlayedEmpty />;
   }
   return (
     <View style={{ gap: LIST_GAP }}>

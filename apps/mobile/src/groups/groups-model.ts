@@ -98,14 +98,3 @@ export function publicGroupRowView(
     sportLabel: sportLabel(row.sport),
   };
 }
-
-export function myGroupsEmptyCopy() {
-  return {
-    title: "No Groups yet",
-    description: "Groups are where you play and where your Standing lives.",
-  };
-}
-
-export function publicGroupsEmptyCopy() {
-  return { title: "No public Groups to join right now", description: null };
-}

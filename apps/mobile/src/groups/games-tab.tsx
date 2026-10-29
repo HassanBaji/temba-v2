@@ -25,10 +25,10 @@ import {
 } from "../games/games-model";
 import { TournamentCard } from "../games/tournament-cards";
 import { mediaUrl } from "../lib/media-url";
+import { NotSetCell } from "../lib/not-set-cell";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
-import { hairline as hairlineWidth } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { ResultMark } from "../primitives/result-mark";
 import { Section } from "../primitives/section";
@@ -63,27 +63,6 @@ export type GamesTabProps = {
 };
 
 const SEAT_SIZE = 32;
-
-function NotSetCell({ label, divided }: { label: string; divided: boolean }) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        paddingHorizontal: spacing.surface,
-        paddingVertical: 14,
-        gap: 2,
-        borderLeftWidth: divided ? hairlineWidth : 0,
-        borderLeftColor: colors.rule,
-      }}
-    >
-      <Hatch bordered={false} radius={0} />
-      <Text size="eyebrow" tone="muted">
-        {label}
-      </Text>
-      <Text weight="semibold">Not set</Text>
-    </View>
-  );
-}
 
 /**
  * Design "Group empty states" 02: the first Game drawn as a placeholder card,

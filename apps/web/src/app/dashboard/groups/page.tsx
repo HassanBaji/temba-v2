@@ -1,16 +1,18 @@
 "use client";
 
-import { Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import {
+  MyGroupsEmpty,
+  PublicGroupsEmpty,
+} from "~/components/groups/groups-list-empty";
 import {
   PendingInvitesSection,
   type PendingInviteRow,
@@ -312,6 +314,7 @@ export default function GroupsIndexPage({
 
   const groupRows = groups.data ?? [];
   const showGroups = groupRows.length > 0;
+  const showNoGroups = groups.data != null && groupRows.length === 0;
 
   return (
     <DashboardShell
@@ -342,6 +345,10 @@ export default function GroupsIndexPage({
 
             {showGroups ? <GroupRows groups={groupRows} /> : null}
 
+            {showNoGroups ? (
+              <MyGroupsEmpty onBrowsePublic={() => setTab("public")} />
+            ) : null}
+
             <PendingInvitesSection
               variant="card"
               invites={invites.data?.map((invite) =>
@@ -357,7 +364,7 @@ export default function GroupsIndexPage({
               }}
             />
 
-            <StartAGroupCard />
+            {showNoGroups ? null : <StartAGroupCard />}
           </div>
         </TabsContent>
 
@@ -411,10 +418,7 @@ export default function GroupsIndexPage({
             {!publicGroups.isLoading &&
             !publicGroups.error &&
             publicGroups.data?.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                title="No public Groups to join right now"
-              />
+              <PublicGroupsEmpty sportFilter={sportFilter} />
             ) : null}
           </div>
         </TabsContent>
