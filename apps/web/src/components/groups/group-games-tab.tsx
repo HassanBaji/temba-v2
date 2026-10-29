@@ -10,6 +10,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
+import { NotSetCell } from "~/components/temba/not-set-cell";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
 import { Button } from "~/components/ui/button";
 import {
@@ -46,15 +47,6 @@ type GroupMemberSeat = {
   image?: string | null;
   isViewer: boolean;
 };
-
-function NotSetCell({ label }: { label: string }) {
-  return (
-    <div className="hatch flex flex-col gap-0.5 px-5 py-3.5 [--hatch-inset:transparent]">
-      <dt className="text-eyebrow text-muted-foreground">{label}</dt>
-      <dd className="text-body font-semibold">Not set</dd>
-    </div>
-  );
-}
 
 /**
  * Design "Group empty states" 02: the first Game drawn as a placeholder card,

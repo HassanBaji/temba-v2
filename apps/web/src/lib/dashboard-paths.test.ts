@@ -122,6 +122,13 @@ describe("Player profile paths", () => {
     assert.equal(playerProfilePath(userId), `/dashboard/players/${userId}`);
   });
 
+  it("opens the Player profile on a sport when given", () => {
+    assert.equal(
+      playerProfilePath(userId, "football"),
+      `/dashboard/players/${userId}?sport=football`,
+    );
+  });
+
   it("builds the Last 10 path, with the Match to open", () => {
     assert.equal(
       playerMatchesPath(userId),

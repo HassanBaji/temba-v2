@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createPlayerProfileFixtures } from "@repo/domain/player-profile-fixtures";
 
-import { playerProfileModel, playerProfileState } from "./player-profile-model";
+import type { RouterOutputs } from "../trpc/react";
+import {
+  footballProfileModel,
+  footballProfileState,
+  playerProfileModel,
+  playerProfileState,
+} from "./player-profile-model";
 
 const ORIGIN = "https://api.example.com";
 const fixtures = createPlayerProfileFixtures();
@@ -126,5 +132,105 @@ describe("playerProfileState", () => {
     expect(
       playerProfileState({ data: undefined, error: null }, ORIGIN),
     ).toEqual({ status: "loading" });
+  });
+});
+
+const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
+  player: {
+    id: "player-1",
+    name: "Ali Hasan",
+    image: "/media/users/ali.jpg",
+    isViewer: false,
+  },
+  sports: ["football"],
+  venue: { name: "Riffa Pitch" },
+  rating: {
+    level: "C+ 3.6",
+    levelBand: "C1",
+    provisional: true,
+    ratedMatchCount: 0,
+    ratedMatchesRemaining: 5,
+    levelValue: 3.6,
+  },
+  role: { role: "outfield", position: "fwd" },
+  overall: { played: 2, won: 1, lost: 0, drawn: 1, goals: 3 },
+  streaks: {
+    current: 0,
+    best: 1,
+    bestReachedAt: new Date("2026-10-17T17:00:00.000Z"),
+  },
+  lastMatches: [
+    {
+      matchId: "match-2",
+      gameId: "game-2",
+      playedAt: "2026-10-24T17:00:00.000Z",
+      outcome: "draw",
+      score: { us: 2, them: 2 },
+      goals: 0,
+      game: { name: "Thursday 5s", groupName: null, venueName: "Riffa Pitch" },
+      canOpenGame: false,
+    },
+    {
+      matchId: "match-1",
+      gameId: "game-1",
+      playedAt: "2026-10-17T17:00:00.000Z",
+      outcome: "won",
+      score: { us: 5, them: 3 },
+      goals: 3,
+      game: {
+        name: "Thursday 5s",
+        groupName: "Riffa Ballers",
+        venueName: "Riffa Pitch",
+      },
+      canOpenGame: true,
+    },
+  ],
+};
+
+describe("footballProfileModel", () => {
+  it("builds the football header, Level, position and Overall", () => {
+    const model = footballProfileModel(FOOTBALL, ORIGIN);
+    expect(model.subtitle).toBe("Football, plays at Riffa Pitch");
+    expect(model.imageUri).toBe(`${ORIGIN}/media/users/ali.jpg`);
+    expect(model.level).toMatchObject({
+      kind: "rated",
+      displayBand: "C+",
+      lines: ["Starting Level", "Football games don't move it yet"],
+    });
+    expect(model.trend).toBeNull();
+    expect(model.role).toEqual({ label: "Forward", code: "FWD" });
+    expect(model.overall.tiles.map((tile) => tile.value)).toEqual([
+      "2",
+      "1",
+      "50%",
+      "3",
+    ]);
+  });
+
+  it("lists every football Match in the Last 10, with no See all", () => {
+    const model = footballProfileModel(FOOTBALL, ORIGIN);
+    expect(model.lastTen.record).toBe("1 won, 0 lost, 1 drawn");
+    expect(model.lastTen.seeAll).toBeNull();
+    expect(
+      model.matches.map((row) => [row.title, row.score, row.goals]),
+    ).toEqual([
+      ["Thursday 5s", "2\u20132", null],
+      ["Riffa Ballers", "5\u20133", "3 goals"],
+    ]);
+  });
+});
+
+describe("footballProfileState", () => {
+  it("reads NOT_FOUND as the refused state", () => {
+    const error = { message: "Player not found", data: { code: "NOT_FOUND" } };
+    expect(footballProfileState({ data: undefined, error }, ORIGIN)).toEqual({
+      status: "refused",
+    });
+  });
+
+  it("is ready once data arrives", () => {
+    expect(
+      footballProfileState({ data: FOOTBALL, error: null }, ORIGIN).status,
+    ).toBe("ready");
   });
 });

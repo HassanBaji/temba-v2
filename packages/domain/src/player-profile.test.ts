@@ -5,6 +5,7 @@ import {
   overallView,
   playedSideView,
   playerHeaderSubtitle,
+  profileSport,
   streaksView,
 } from "./player-profile";
 import { createPlayerProfileFixtures } from "./player-profile-fixtures";
@@ -20,6 +21,30 @@ describe("playerHeaderSubtitle", () => {
 
   it("reads Padel without one", () => {
     expect(playerHeaderSubtitle(fixtures.newPlayer.venue)).toBe("Padel");
+  });
+
+  it("names the sport shown", () => {
+    expect(playerHeaderSubtitle({ name: "Riffa Pitch" }, "football")).toBe(
+      "Football, plays at Riffa Pitch",
+    );
+    expect(playerHeaderSubtitle(null, "football")).toBe("Football");
+  });
+});
+
+describe("profileSport", () => {
+  it("opens on the sport asked for", () => {
+    expect(profileSport("football", ["padel"])).toBe("football");
+    expect(profileSport("padel", undefined)).toBe("padel");
+  });
+
+  it("opens on padel unless the player plays football only", () => {
+    expect(profileSport(undefined, ["padel", "football"])).toBe("padel");
+    expect(profileSport(null, ["football"])).toBe("football");
+    expect(profileSport("squash", ["football"])).toBe("football");
+  });
+
+  it("waits for the player's Sports played when nothing was asked for", () => {
+    expect(profileSport(undefined, undefined)).toBeNull();
   });
 });
 

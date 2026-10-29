@@ -30,6 +30,12 @@ describe("playerPath", () => {
     );
   });
 
+  it("opens on a sport when given", () => {
+    expect(playerPath(["(app)", "games", "[id]"], USER, "football")).toBe(
+      `/games/players/${USER}?sport=football`,
+    );
+  });
+
   it("falls back to the Home stack outside a tab", () => {
     expect(playerPath([], USER)).toBe(`/players/${USER}`);
   });

@@ -12,7 +12,10 @@ export function PlayerHeader({
   model,
   fallback,
 }: {
-  model: PlayerProfileModel;
+  model: Pick<
+    PlayerProfileModel,
+    "name" | "imageUri" | "subtitle" | "level" | "trend"
+  >;
   fallback: Href;
 }) {
   return (

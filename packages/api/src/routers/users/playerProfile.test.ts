@@ -502,6 +502,7 @@ describe("loadPlayerProfile", () => {
           image: null,
           isViewer: true,
         },
+        sports: ["padel"],
         venue: null,
         rating: null,
         overall: {

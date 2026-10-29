@@ -1,17 +1,18 @@
 "use client";
 
-import { Calendar, Trophy } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
+import {
+  GamesHubPlayedEmpty,
+  GamesHubUpcomingEmpty,
+} from "~/components/games/games-hub-empty";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
 import {
   TournamentMatchCard,
@@ -562,18 +563,7 @@ export default function GamesHubPage({
               void myGames.refetch();
             }}
             games={myGames.data}
-            emptyState={
-              <EmptyState
-                icon={Calendar}
-                title="No Games yet"
-                description="Games you create or join show up here."
-                action={
-                  <Button asChild>
-                    <Link href="/dashboard/games/new">Create Game</Link>
-                  </Button>
-                }
-              />
-            }
+            emptyState={<GamesHubUpcomingEmpty sportFilter={sportFilter} />}
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}
@@ -597,13 +587,7 @@ export default function GamesHubPage({
             onLoadMore={() => {
               void history.fetchNextPage();
             }}
-            emptyState={
-              <EmptyState
-                icon={Trophy}
-                title="No Match history yet"
-                description="Completed Games you played in show up here."
-              />
-            }
+            emptyState={<GamesHubPlayedEmpty />}
           />
         </TabsContent>
       </Tabs>

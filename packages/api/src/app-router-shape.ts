@@ -216,6 +216,7 @@ type ExpectedUsers =
   | "onboardingState"
   | "profileStats"
   | "playerProfile"
+  | "footballProfile"
   | "setPreferredPosition"
   | "completeOnboarding"
   | "renameUnclaimedPlayer";

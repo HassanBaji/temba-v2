@@ -38,6 +38,7 @@ import {
   type PlayerMatchPlayer,
 } from "@repo/domain/player-profile-matches";
 import { setWinsForGames } from "@repo/domain/set-wins-for-games";
+import { sportsPlayed } from "@repo/domain/sport";
 import { bestWinStreak, currentWinStreak } from "@repo/domain/win-streak";
 
 const VENUE_WINDOW = 10;
@@ -92,7 +93,7 @@ export async function mayViewPlayer(
   return sharedGame != null;
 }
 
-type CountedMatch = {
+export type CountedMatch = {
   matchId: string;
   gameId: string;
   createdAt: Date;
@@ -114,10 +115,11 @@ function newestFirst(left: CountedMatch, right: CountedMatch) {
   return right.createdAt.getTime() - left.createdAt.getTime();
 }
 
-/** Completed padel Matches the User sat on, in any format, newest first. */
-async function loadCountedMatches(
+/** Completed Matches of one sport the User sat on, in any format, newest first. */
+export async function loadCountedMatches(
   database: DbClient,
   userId: string,
+  sport: GameSportEnum,
 ): Promise<CountedMatch[]> {
   const seats = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),
@@ -185,7 +187,7 @@ async function loadCountedMatches(
   const counted: CountedMatch[] = [];
   for (const row of rows) {
     const game = row.game;
-    if (game.cancelledAt != null || game.sport === GameSportEnum.Football) {
+    if (game.cancelledAt != null || game.sport !== sport) {
       continue;
     }
     const userSlot = userSlotOnMatch(row, teamIds);
@@ -229,7 +231,7 @@ async function loadCountedMatches(
  * The most frequent Venue over the newest Matches. A tie goes to the Venue
  * played more recently; fewer than two Matches there is no habit yet.
  */
-function usualVenue(newest: readonly CountedMatch[]) {
+export function usualVenue(newest: readonly Pick<CountedMatch, "venue">[]) {
   const tally = new Map<string, { name: string; count: number }>();
   for (const match of newest.slice(0, VENUE_WINDOW)) {
     const entry = tally.get(match.venue.id);
@@ -362,7 +364,7 @@ async function ratingChanges(
   );
 }
 
-async function openableGameIds(
+export async function openableGameIds(
   database: DbClient,
   viewerId: string,
   gameIds: readonly string[],
@@ -475,7 +477,9 @@ function overallFrom(counted: readonly CountedMatch[]) {
   };
 }
 
-function streaksFrom(newest: readonly CountedMatch[]) {
+export function streaksFrom(
+  newest: readonly Pick<CountedMatch, "userSlot" | "sets" | "displayTime">[],
+) {
   const results = newest.map((match) => ({
     won:
       outcomeForSlot(match.userSlot, matchOutcome(match.sets).result) === "won",
@@ -503,12 +507,13 @@ function playedSideCounts(counted: readonly CountedMatch[]) {
   return { recordedCount: leftCount + rightCount, leftCount, rightCount };
 }
 
-async function padelRating(database: DbClient, userId: string, now: Date) {
+export async function sportRating(
+  database: DbClient,
+  args: { userId: string; sport: GroupSportEnum; now: Date },
+) {
+  const { userId, sport, now } = args;
   const row = await database.query.ratings.findFirst({
-    where: and(
-      eq(ratings.userId, userId),
-      eq(ratings.sport, GroupSportEnum.PADEL),
-    ),
+    where: and(eq(ratings.userId, userId), eq(ratings.sport, sport)),
   });
   if (!row) {
     return null;
@@ -516,12 +521,7 @@ async function padelRating(database: DbClient, userId: string, now: Date) {
   const [events] = await database
     .select({ ratedMatchCount: count() })
     .from(ratingEvents)
-    .where(
-      and(
-        eq(ratingEvents.userId, userId),
-        eq(ratingEvents.sport, GroupSportEnum.PADEL),
-      ),
-    );
+    .where(and(eq(ratingEvents.userId, userId), eq(ratingEvents.sport, sport)));
   const view = youRatingViewAfterIdle(row, now);
   return {
     level: view.level,
@@ -542,7 +542,13 @@ export async function loadPlayerProfile(
   }
   const player = await database.query.user.findFirst({
     where: eq(user.id, args.playerId),
-    columns: { id: true, name: true, image: true, preferredPosition: true },
+    columns: {
+      id: true,
+      name: true,
+      image: true,
+      preferredPosition: true,
+      sports: true,
+    },
   });
   if (!player) {
     throw notFound();
@@ -550,8 +556,12 @@ export async function loadPlayerProfile(
 
   const now = args.now ?? new Date();
   const [rating, counted] = await Promise.all([
-    padelRating(database, player.id, now),
-    loadCountedMatches(database, player.id),
+    sportRating(database, {
+      userId: player.id,
+      sport: GroupSportEnum.PADEL,
+      now,
+    }),
+    loadCountedMatches(database, player.id, GameSportEnum.PADEL),
   ]);
   const lastMatches = await lastMatchesFrom(
     database,
@@ -566,6 +576,7 @@ export async function loadPlayerProfile(
       image: player.image,
       isViewer: player.id === args.viewerId,
     },
+    sports: sportsPlayed(player.sports),
     venue: usualVenue(counted),
     rating,
     trend: trendFrom(lastMatches),
