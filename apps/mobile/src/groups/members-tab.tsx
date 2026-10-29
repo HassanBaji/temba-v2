@@ -1,5 +1,9 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
+import {
+  groupMemberOrganizerActionLabel,
+  type GroupMemberOrganizerAction,
+} from "@repo/domain/group-home-chrome";
 import { ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -17,6 +21,7 @@ import {
   MEMBERS_SET_LEVEL_HINT,
   memberIsRemovable,
   memberList,
+  memberOrganizerAction,
   memberSheetView,
   type MemberRowView,
 } from "./group-home-model";
@@ -131,6 +136,8 @@ export function MembersTab({
   canAddPlayers = false,
   onRenameUnclaimed,
   onRemoveUnclaimed,
+  canAppointOrganizers = false,
+  onOrganizerAction,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
@@ -143,6 +150,11 @@ export function MembersTab({
   canAddPlayers?: boolean;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
   onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
+  canAppointOrganizers?: boolean;
+  onOrganizerAction?: (
+    member: { userId: string; name: string },
+    action: GroupMemberOrganizerAction,
+  ) => void;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const list = memberList(
@@ -151,13 +163,19 @@ export function MembersTab({
     apiOrigin,
     canSetLevel,
     canAddPlayers,
+    canAppointOrganizers,
   );
   const selected = leaderboard.find(
     (entry) =>
       entry.userId === selectedUserId &&
       !entry.isViewer &&
-      (canSetLevel || memberIsRemovable(entry, canAddPlayers)),
+      (canSetLevel ||
+        memberIsRemovable(entry, canAddPlayers) ||
+        memberOrganizerAction(entry, canAppointOrganizers) != null),
   );
+  const organizerAction = selected
+    ? memberOrganizerAction(selected, canAppointOrganizers)
+    : null;
 
   if (list.isEmpty) {
     return <Notice {...MEMBERS_EMPTY_COPY} />;
@@ -217,6 +235,22 @@ export function MembersTab({
                   setSelectedUserId(null);
                   onOpenMember(selected.userId);
                 }
+              }
+            : undefined
+        }
+        organizerLabel={
+          organizerAction
+            ? groupMemberOrganizerActionLabel(organizerAction)
+            : undefined
+        }
+        onOrganizerAction={
+          selected && organizerAction && onOrganizerAction
+            ? () => {
+                setSelectedUserId(null);
+                onOrganizerAction(
+                  { userId: selected.userId, name: selected.name ?? "Member" },
+                  organizerAction,
+                );
               }
             : undefined
         }

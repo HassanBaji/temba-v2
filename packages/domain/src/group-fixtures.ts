@@ -28,6 +28,7 @@ function entry(
     position,
     isViewer: false,
     isOrganizer: false,
+    isAppointedOrganizer: false,
     wins: record.wins,
     losses: record.losses,
     levelBand: "C2",
@@ -246,6 +247,7 @@ export function createGroupFixtures(now = new Date()) {
     canDecideJoinRequests: false,
     canManageImage: false,
     canAddPlayers: false,
+    canAppointOrganizers: false,
     canDelete: false,
     viewerCanSetLevel: false,
     venueCommunity: null,
@@ -262,6 +264,7 @@ export function createGroupFixtures(now = new Date()) {
     canDecideJoinRequests: true,
     canManageImage: true,
     canAddPlayers: true,
+    canAppointOrganizers: true,
   };
 
   const joinRequests: GroupJoinRequestData[] = [

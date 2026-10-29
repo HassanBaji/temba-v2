@@ -42,6 +42,7 @@ export type GroupLeaderboardEntryData = {
   position: number;
   isViewer: boolean;
   isOrganizer: boolean;
+  isAppointedOrganizer: boolean;
   wins: number;
   losses: number;
   levelBand: LevelBand | null;
@@ -101,6 +102,7 @@ export type GroupHomeData = {
   canDecideJoinRequests: boolean;
   canManageImage: boolean;
   canAddPlayers: boolean;
+  canAppointOrganizers: boolean;
   canDelete: boolean;
   viewerCanSetLevel: boolean;
 };

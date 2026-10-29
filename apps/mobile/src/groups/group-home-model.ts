@@ -17,6 +17,7 @@ import {
   groupStandingRecordLabel,
   levelCellView,
   type LevelCellView,
+  groupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
   groupDisplayName,
@@ -237,11 +238,19 @@ export function memberIsRemovable(
   return canAddPlayers && entry.unclaimed && !entry.isViewer;
 }
 
+export function memberOrganizerAction(
+  entry: GroupLeaderboardEntryData,
+  canAppointOrganizers: boolean,
+) {
+  return canAppointOrganizers ? groupMemberOrganizerAction(entry) : null;
+}
+
 export function memberRowView(
   entry: GroupLeaderboardEntryData,
   apiOrigin: string,
   canSetLevel = false,
   canAddPlayers = false,
+  canAppointOrganizers = false,
 ): MemberRowView {
   const name = entry.name ?? "Member";
   const caption = [
@@ -266,7 +275,8 @@ export function memberRowView(
     levelText: entry.level,
     selectable:
       (canSetLevel && !entry.isViewer) ||
-      memberIsRemovable(entry, canAddPlayers),
+      memberIsRemovable(entry, canAddPlayers) ||
+      memberOrganizerAction(entry, canAppointOrganizers) != null,
     accessibilityLabel: [
       entry.isViewer ? `${name}, you` : name,
       entry.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
@@ -284,9 +294,16 @@ export function memberList(
   apiOrigin: string,
   canSetLevel = false,
   canAddPlayers = false,
+  canAppointOrganizers = false,
 ) {
   const members = leaderboard.map((entry) =>
-    memberRowView(entry, apiOrigin, canSetLevel, canAddPlayers),
+    memberRowView(
+      entry,
+      apiOrigin,
+      canSetLevel,
+      canAddPlayers,
+      canAppointOrganizers,
+    ),
   );
   const showSearch = groupHomeShowsMemberSearch(members.length);
   return {

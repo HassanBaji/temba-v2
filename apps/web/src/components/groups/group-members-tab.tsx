@@ -26,7 +26,10 @@ import {
   filterGroupMembersByName,
   groupHomeShowsMemberSearch,
   groupMemberFormMarks,
+  groupMemberOrganizerAction,
+  groupMemberOrganizerActionLabel,
   groupMemberRoleCaption,
+  type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
@@ -48,6 +51,7 @@ type GroupMember = {
   image: string | null;
   isViewer: boolean;
   isOrganizer: boolean;
+  isAppointedOrganizer: boolean;
   joinedAt: Date | string | null;
   formMarks: ResultMarkVariant[];
   levelBand: LevelBand | null;
@@ -126,12 +130,16 @@ function MemberActionsMenu({
   name,
   setLevelHref,
   profileHref,
+  organizerAction,
+  onOrganizerAction,
   onRename,
   onRemove,
 }: {
   name: string;
   setLevelHref?: string;
   profileHref?: string;
+  organizerAction?: GroupMemberOrganizerAction;
+  onOrganizerAction?: () => void;
   onRename?: () => void;
   onRemove?: () => void;
 }) {
@@ -147,6 +155,11 @@ function MemberActionsMenu({
           <Link href={profileHref}>View profile</Link>
         </ActionMenuItem>
       ) : null}
+      {organizerAction && onOrganizerAction ? (
+        <ActionMenuItem onSelect={onOrganizerAction}>
+          {groupMemberOrganizerActionLabel(organizerAction)}
+        </ActionMenuItem>
+      ) : null}
       {onRename ? (
         <ActionMenuItem onSelect={onRename}>
           {RENAME_UNCLAIMED_PLAYER_ACTION}
@@ -154,7 +167,7 @@ function MemberActionsMenu({
       ) : null}
       {onRemove ? (
         <>
-          {setLevelHref || profileHref || onRename ? (
+          {setLevelHref || profileHref || organizerAction || onRename ? (
             <ActionMenuSeparator />
           ) : null}
           <ActionMenuItem variant="destructive" onSelect={onRemove}>
@@ -172,6 +185,8 @@ function GroupMemberRow({
   showLevel,
   setLevelHref,
   profileHref,
+  organizerAction,
+  onOrganizerAction,
   onRename,
   onRemove,
 }: {
@@ -180,10 +195,16 @@ function GroupMemberRow({
   showLevel: boolean;
   setLevelHref?: string;
   profileHref?: string;
+  organizerAction?: GroupMemberOrganizerAction;
+  onOrganizerAction?: () => void;
   onRename?: () => void;
   onRemove?: () => void;
 }) {
-  const managed = setLevelHref != null || onRename != null || onRemove != null;
+  const managed =
+    setLevelHref != null ||
+    onOrganizerAction != null ||
+    onRename != null ||
+    onRemove != null;
   return (
     <MemberRow
       size="lg"
@@ -199,6 +220,8 @@ function GroupMemberRow({
             name={member.name}
             setLevelHref={setLevelHref}
             profileHref={profileHref}
+            organizerAction={organizerAction}
+            onOrganizerAction={onOrganizerAction}
             onRename={onRename}
             onRemove={onRemove}
           />
@@ -256,9 +279,16 @@ export function GroupMembersTab({
   onAddPlayer,
   onRenameUnclaimed,
   onRemoveUnclaimed,
+  canAppointOrganizers = false,
+  onOrganizerAction,
   showLevel = true,
 }: {
   showLevel?: boolean;
+  canAppointOrganizers?: boolean;
+  onOrganizerAction?: (
+    member: { userId: string; name: string },
+    action: GroupMemberOrganizerAction,
+  ) => void;
   canAddPlayers?: boolean;
   onAddPlayer?: () => void;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
@@ -328,40 +358,55 @@ export function GroupMembersTab({
         </p>
       ) : (
         <RowList variant="card">
-          {visible.map((member) => (
-            <GroupMemberRow
-              key={member.userId}
-              member={member}
-              canSetLevel={canSetLevel}
-              showLevel={showLevel}
-              setLevelHref={
-                canSetLevel && !member.isViewer
-                  ? groupMemberSetLevelHref(groupId, member.userId)
-                  : undefined
-              }
-              profileHref={
-                linkToPlayers ? playerProfilePath(member.userId) : undefined
-              }
-              onRename={
-                canAddPlayers && member.unclaimed && onRenameUnclaimed
-                  ? () =>
-                      onRenameUnclaimed({
-                        userId: member.userId,
-                        name: member.name,
-                      })
-                  : undefined
-              }
-              onRemove={
-                canAddPlayers && member.unclaimed && onRemoveUnclaimed
-                  ? () =>
-                      onRemoveUnclaimed({
-                        userId: member.userId,
-                        name: member.name,
-                      })
-                  : undefined
-              }
-            />
-          ))}
+          {visible.map((member) => {
+            const organizerAction = canAppointOrganizers
+              ? (groupMemberOrganizerAction(member) ?? undefined)
+              : undefined;
+            return (
+              <GroupMemberRow
+                key={member.userId}
+                member={member}
+                canSetLevel={canSetLevel}
+                showLevel={showLevel}
+                setLevelHref={
+                  canSetLevel && !member.isViewer
+                    ? groupMemberSetLevelHref(groupId, member.userId)
+                    : undefined
+                }
+                profileHref={
+                  linkToPlayers ? playerProfilePath(member.userId) : undefined
+                }
+                organizerAction={organizerAction}
+                onOrganizerAction={
+                  organizerAction && onOrganizerAction
+                    ? () =>
+                        onOrganizerAction(
+                          { userId: member.userId, name: member.name },
+                          organizerAction,
+                        )
+                    : undefined
+                }
+                onRename={
+                  canAddPlayers && member.unclaimed && onRenameUnclaimed
+                    ? () =>
+                        onRenameUnclaimed({
+                          userId: member.userId,
+                          name: member.name,
+                        })
+                    : undefined
+                }
+                onRemove={
+                  canAddPlayers && member.unclaimed && onRemoveUnclaimed
+                    ? () =>
+                        onRemoveUnclaimed({
+                          userId: member.userId,
+                          name: member.name,
+                        })
+                    : undefined
+                }
+              />
+            );
+          })}
         </RowList>
       )}
 
