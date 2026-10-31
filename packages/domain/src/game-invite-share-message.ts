@@ -1,5 +1,9 @@
 import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
-import { isRosterRegistrationGame } from "./game-shape";
+import {
+  isFootballGame,
+  isRosterRegistrationGame,
+  sideSizeLabel,
+} from "./game-shape";
 import { showsFriendlyRoster } from "./game-summary-cta";
 
 export type GameInviteShareOccupant = {
@@ -19,6 +23,13 @@ export type GameInviteShareMessageInput = {
   windowEnd: Date | string | null | undefined;
   sides: readonly GameInviteShareSide[];
   shortUrl: string;
+  football?: GameInviteShareFootball;
+};
+
+export type GameInviteShareFootball = {
+  sideSize: number | null;
+  playersAllowed: number | null;
+  players: readonly { name: string }[];
 };
 
 function occupantLabel(occupant: GameInviteShareOccupant) {
@@ -40,18 +51,26 @@ function sideSeats(
   };
 }
 
-export function formatGameInviteShareMessage(
+function whereAndWhenLines(
   input: GameInviteShareMessageInput,
+  courtEmoji: string,
 ) {
   const start = input.windowStart ?? input.windowEnd ?? new Date();
   const lines = [`📍 ${input.venueName}`];
   if (input.courtName) {
-    lines.push(`🎾 ${input.courtName}`);
+    lines.push(`${courtEmoji} ${input.courtName}`);
   }
   lines.push(`📅 ${formatRelativeDay(start)}`);
   lines.push(
     `🕗 ${formatGameTimeWindow(input.windowStart, input.windowEnd, start)}`,
   );
+  return lines;
+}
+
+export function formatGameInviteShareMessage(
+  input: GameInviteShareMessageInput,
+) {
+  const lines = whereAndWhenLines(input, "🎾");
   lines.push("");
   const team1 = sideSeats(input.sides, 1);
   const team2 = sideSeats(input.sides, 2);
@@ -68,6 +87,33 @@ export function formatGameInviteShareMessage(
   return lines.join("\n");
 }
 
+/** Numbered up to the cap so players can paste the list back with their name in an Open slot. */
+export function formatFootballInviteShareMessage(
+  input: GameInviteShareMessageInput,
+  football: GameInviteShareFootball,
+) {
+  const lines = whereAndWhenLines(input, "⚽");
+  if (football.sideSize) {
+    lines.push(`👥 ${sideSizeLabel(football.sideSize)}`);
+  }
+  lines.push("");
+  const names = football.players.map((player) => occupantLabel(player));
+  const cap = football.playersAllowed ?? 0;
+  lines.push(
+    cap > 0
+      ? `👕 Players (${names.length}/${cap})`
+      : `👕 Players (${names.length})`,
+  );
+  const slots = Math.max(cap, names.length);
+  for (let index = 0; index < slots; index += 1) {
+    lines.push(`${index + 1}. ${names[index] ?? "Open"}`);
+  }
+  lines.push("");
+  lines.push("🔗 Join:");
+  lines.push(input.shortUrl);
+  return lines.join("\n");
+}
+
 export function gameInviteClipboardText(input: {
   format: string;
   sport?: string | null;
@@ -75,6 +121,16 @@ export function gameInviteClipboardText(input: {
   shortUrl: string;
   roster: GameInviteShareMessageInput | null;
 }) {
+  if (
+    input.format === "friendly_game" &&
+    isFootballGame(input) &&
+    input.roster?.football
+  ) {
+    return formatFootballInviteShareMessage(
+      input.roster,
+      input.roster.football,
+    );
+  }
   if (
     isRosterRegistrationGame(input) ||
     !showsFriendlyRoster(input.format, input.registrationMode) ||
