@@ -2,14 +2,21 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
 import {
+  CommunityRoleEnum,
   gameInviteLinkConsents,
   gamePlayers,
   gameWaitlist,
+  groupMembers,
+  groups,
   teamMembers,
   teams,
 } from "@repo/db";
 
 import { type db } from "#src/db";
+import { admit as admitCommunityMember } from "#src/community-membership";
+import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
+import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
+import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   type GameRow,
@@ -63,6 +70,62 @@ export async function assertInviteeAllowedOnGame(
     }
     return;
   }
+}
+
+/**
+ * A Game Invite link is an Organizer's invitation, so on a Group Game it also
+ * opens the Group door: a non-member joins the Group (and the Community on a
+ * Club Group) as they register. A blocked User is refused on a private Game and
+ * registers without joining on a public one.
+ */
+export async function admitInviteeToGroup(
+  database: Tx,
+  game: GameRow,
+  userId: string,
+): Promise<{ joined: boolean }> {
+  if (!game.groupId) {
+    return { joined: false };
+  }
+  if (await isGroupMember(database, game.groupId, userId)) {
+    return { joined: false };
+  }
+  if (await isBlockedFromGroup(database, game.groupId, userId)) {
+    if (game.isPublic) {
+      return { joined: false };
+    }
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You can't join this Group",
+    });
+  }
+  const group = await database.query.groups.findFirst({
+    where: eq(groups.id, game.groupId),
+    columns: { id: true, communityId: true, createdBy: true },
+  });
+  if (!group) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+  }
+  if (group.communityId) {
+    const admitted = await admitCommunityMember(database, {
+      communityId: group.communityId,
+      userId,
+      role: CommunityRoleEnum.MEMBER,
+    });
+    if (!admitted.ok && admitted.reason !== "already_member") {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Community not found",
+      });
+    }
+  }
+  await database.insert(groupMembers).values({ groupId: group.id, userId });
+  await notifyGroupJoined(database, { group, joinerUserId: userId });
+  await markPendingGroupJoinRequestApproved(database, {
+    groupId: group.id,
+    userId,
+    decidedBy: userId,
+  });
+  return { joined: true };
 }
 
 async function userAlreadyOnGame(

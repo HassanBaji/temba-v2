@@ -164,6 +164,12 @@ describe("toasts", () => {
       "Waiting for your Team partner to accept",
     );
     expect(inviteLinkAcceptToast("game", "waitlisted")).toBe("Joined waitlist");
+    expect(inviteLinkAcceptToast("game", "registered", true)).toBe(
+      "Joined Game and its Group",
+    );
+    expect(inviteLinkAcceptToast("game", "waitlisted", true)).toBe(
+      "Joined waitlist and the Group",
+    );
   });
 
   it("counts sent Lookup invites", () => {
