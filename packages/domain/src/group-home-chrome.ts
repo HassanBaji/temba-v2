@@ -98,6 +98,23 @@ export function filterGroupMembersByName<T extends { name: string }>(
 export type GroupMemberOrganizerAction = "appoint" | "dismiss";
 
 /**
+ * A Group approver may remove any player but the Organizers by role: the
+ * Group creator and, on a Club Group, Community Owner and Admin. An Appointed
+ * Organizer is removable like any other member. Nobody removes themself here;
+ * that is Leave.
+ */
+export function groupMemberIsRemovable(member: {
+  isViewer: boolean;
+  isOrganizer: boolean;
+  isAppointedOrganizer: boolean;
+}) {
+  if (member.isViewer) {
+    return false;
+  }
+  return !member.isOrganizer || member.isAppointedOrganizer;
+}
+
+/**
  * Only an Appointed Organizer can be dismissed: the Group creator and
  * Community Owner and Admin are Organizers by role, and an Unclaimed player
  * cannot sign in to organize.

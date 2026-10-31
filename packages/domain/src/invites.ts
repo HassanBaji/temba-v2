@@ -34,9 +34,9 @@ export const INVITE_LINK_COPY_FAILED_TOAST = "Couldn't copy the link";
 export const LOOKUP_INVITE_REVOKED_TOAST = "Lookup invite revoked";
 
 export const GROUP_LOOSE_LOOKUP_NOTE =
-  "Only you can invite people here. Invites don't expire.";
+  "You and the Group's Organizers can invite people here. Invites don't expire.";
 export const GROUP_CLUB_LOOKUP_NOTE =
-  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator can invite Community Members.";
+  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator and Organizers can invite Community Members.";
 
 export function groupLookupNote(isLoose: boolean) {
   return isLoose ? GROUP_LOOSE_LOOKUP_NOTE : GROUP_CLUB_LOOKUP_NOTE;

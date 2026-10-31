@@ -1,14 +1,20 @@
 import { TRPCError } from "@trpc/server";
 
 import { isStaffRole } from "#src/games/access";
+import { isAppointedOrganizer } from "#src/groups/helpers/appointed-organizers";
 import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { requireLiveClubCommunity } from "#src/groups/helpers/require-live-club-community";
-import { requireLooseCreator } from "#src/groups/helpers/require-loose-creator";
+import { requireLooseInviter } from "#src/groups/helpers/require-loose-inviter";
 import { type db } from "#src/db";
 
 type DbClient = typeof db;
 
+/**
+ * Who may send a Group Lookup invite: the creator and Appointed Organizers on
+ * any Group, plus Community Owner and Admin on a Club Group. Only staff may
+ * invite someone who is not yet a Community Member, which auto-admits them.
+ */
 export async function requireGroupLookupSender(
   database: DbClient,
   groupId: string,
@@ -17,7 +23,7 @@ export async function requireGroupLookupSender(
   const group = await requireGroup(database, groupId);
 
   if (!group.communityId) {
-    await requireLooseCreator(database, groupId, callerId);
+    await requireLooseInviter(database, groupId, callerId);
     return { group, canAutoAdmit: false as const };
   }
 
@@ -30,12 +36,16 @@ export async function requireGroupLookupSender(
   );
   const isStaff = isStaffRole(callerMembership?.role);
   const isCreator = group.createdBy === callerId;
+  const isOrganizer =
+    !isStaff &&
+    !isCreator &&
+    (await isAppointedOrganizer(database, group, callerId));
 
-  if (!isStaff && !isCreator) {
+  if (!isStaff && !isCreator && !isOrganizer) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
-        "Only Owner, Admin, or this Group's creator can send Lookup invites",
+        "Only Owner, Admin, this Group's creator, or an Organizer can send Lookup invites",
     });
   }
 

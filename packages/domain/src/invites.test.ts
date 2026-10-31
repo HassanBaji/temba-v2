@@ -272,7 +272,7 @@ describe("gameInviteLinkStage", () => {
 
 describe("groupLookupNote", () => {
   it("differs for Loose and Club Groups", () => {
-    expect(groupLookupNote(true)).toContain("Only you");
+    expect(groupLookupNote(true)).toContain("Organizers");
     expect(groupLookupNote(false)).toContain("Owners and Admins");
   });
 });

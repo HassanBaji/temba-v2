@@ -262,6 +262,24 @@ describe("memberList with an Unclaimed player", () => {
     expect(memberIsRemovable(leaderboard[0]!, true)).toBe(false);
   });
 
+  it("lets a Group approver remove any member but the Organizers by role", () => {
+    const claimed = { ...leaderboard[1]!, unclaimed: false };
+    expect(memberIsRemovable(claimed, true)).toBe(true);
+    expect(
+      memberIsRemovable(
+        { ...claimed, isOrganizer: true, isAppointedOrganizer: false },
+        true,
+      ),
+    ).toBe(false);
+    expect(
+      memberIsRemovable(
+        { ...claimed, isOrganizer: true, isAppointedOrganizer: true },
+        true,
+      ),
+    ).toBe(true);
+    expect(memberIsRemovable({ ...claimed, isViewer: true }, true)).toBe(false);
+  });
+
   it("marks the Standing row", () => {
     expect(standingRowView(unclaimed).unclaimed).toBe(true);
     expect(standingRowView(leaderboard[0]!).unclaimed).toBe(false);

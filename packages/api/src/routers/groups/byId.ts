@@ -52,7 +52,10 @@ import {
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
 import { groupIsVerified } from "#src/groups/group-is-verified";
-import { appointedOrganizerUserIds } from "#src/groups/helpers/appointed-organizers";
+import {
+  appointedOrganizerUserIds,
+  isAppointedOrganizer,
+} from "#src/groups/helpers/appointed-organizers";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
 import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -366,15 +369,23 @@ export async function groupById(
   const canJoinClubPublic = joinMode === "join" && isClubPublic;
   const canJoinLoosePublic = joinMode === "join" && isLoosePublic;
   const canJoin = joinMode === "join";
+  const viewerIsAppointedOrganizer = await isAppointedOrganizer(
+    database,
+    group,
+    args.userId,
+  );
   const canManageLookupInvites =
-    ((isLoosePublic || isLoosePrivate) && group.createdBy === args.userId) ||
+    ((isLoosePublic || isLoosePrivate) &&
+      (group.createdBy === args.userId || viewerIsAppointedOrganizer)) ||
     ((isClubPublic || isClubPrivate) &&
       !archive.freeze("host") &&
       Boolean(communityMembership) &&
       (isStaffRole(communityMembership?.role) ||
-        group.createdBy === args.userId));
+        group.createdBy === args.userId ||
+        viewerIsAppointedOrganizer));
   const canManageInviteLinks =
-    ((isLoosePublic || isLoosePrivate) && group.createdBy === args.userId) ||
+    ((isLoosePublic || isLoosePrivate) &&
+      (group.createdBy === args.userId || viewerIsAppointedOrganizer)) ||
     ((isClubPublic || isClubPrivate) &&
       !archive.freeze("host") &&
       isStaffRole(communityMembership?.role));
@@ -856,6 +867,7 @@ export async function groupById(
     canCreateGame,
     canManageImage: isApprover,
     canAddPlayers: isApprover,
+    canRemovePlayers: isApprover,
     canAppointOrganizers: isApprover,
     viewerCanSetLevel,
     memberUserIds,

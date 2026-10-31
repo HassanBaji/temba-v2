@@ -241,13 +241,13 @@ export function addGroupPlayerDoneToast(result: {
     : addPlayerAddedToast(result.name);
 }
 
-export const REMOVE_UNCLAIMED_PLAYER_ACTION = "Remove from Group";
+export const REMOVE_PLAYER_ACTION = "Remove from Group";
 
-export function removeUnclaimedPlayerConfirmLine(name: string) {
+export function removePlayerConfirmLine(name: string) {
   return `Remove ${name} from this Group? Their Games stay in history.`;
 }
 
-export function removeUnclaimedPlayerToast(name: string) {
+export function removePlayerToast(name: string) {
   return `${name} removed`;
 }
 

@@ -249,6 +249,7 @@ export function createGroupFixtures(now = new Date()) {
     joinRequestsApprovedToday: 0,
     canManageImage: false,
     canAddPlayers: false,
+    canRemovePlayers: false,
     canAppointOrganizers: false,
     canDelete: false,
     viewerCanSetLevel: false,
@@ -266,6 +267,7 @@ export function createGroupFixtures(now = new Date()) {
     canDecideJoinRequests: true,
     canManageImage: true,
     canAddPlayers: true,
+    canRemovePlayers: true,
     canAppointOrganizers: true,
   };
 

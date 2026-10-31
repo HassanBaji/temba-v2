@@ -194,16 +194,10 @@ describe("groups.setOrganizer", () => {
     }
   });
 
-  it("refuses anyone who is not a Group approver, including an Appointed Organizer", async () => {
+  it("refuses a plain member, and lets an Appointed Organizer appoint and dismiss others", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedLoose(db);
-      await setOrganizer(db, {
-        groupId: f.groupId,
-        approverUserId: f.creator,
-        userId: f.member,
-        organizer: true,
-      });
 
       const error = await rejection(
         setOrganizer(db, {
@@ -214,11 +208,42 @@ describe("groups.setOrganizer", () => {
         }),
       );
       expect(error.code).toBe("FORBIDDEN");
-      const home = await groupById(db, {
+      expect(
+        (await groupById(db, { groupId: f.groupId, userId: f.member }))
+          .canAppointOrganizers,
+      ).toBe(false);
+
+      await setOrganizer(db, {
         groupId: f.groupId,
+        approverUserId: f.creator,
         userId: f.member,
+        organizer: true,
       });
-      expect(home.canAppointOrganizers).toBe(false);
+      expect(
+        (await groupById(db, { groupId: f.groupId, userId: f.member }))
+          .canAppointOrganizers,
+      ).toBe(true);
+
+      await expect(
+        setOrganizer(db, {
+          groupId: f.groupId,
+          approverUserId: f.member,
+          userId: f.other,
+          organizer: true,
+        }),
+      ).resolves.toMatchObject({ ok: true, organizer: true });
+      await expect(
+        setOrganizer(db, {
+          groupId: f.groupId,
+          approverUserId: f.other,
+          userId: f.member,
+          organizer: false,
+        }),
+      ).resolves.toMatchObject({ ok: true, organizer: false });
+      expect(
+        (await groupById(db, { groupId: f.groupId, userId: f.member }))
+          .canAppointOrganizers,
+      ).toBe(false);
     } finally {
       await close();
     }
