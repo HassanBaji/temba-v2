@@ -164,15 +164,34 @@ function Kickoff({
   );
 }
 
-function Place({ lead, rest }: { lead: string; rest: string | null }) {
+function Headline({
+  title,
+  detail,
+  icon: Icon,
+}: {
+  title: string;
+  detail: string | null;
+  icon?: LucideIcon;
+}) {
   return (
-    <p className="flex min-w-0 items-center gap-2">
-      <MapPin aria-hidden="true" className="text-dim size-3.5 shrink-0" />
-      <span className="min-w-0 truncate">
-        <span className="font-semibold">{lead}</span>
-        {rest ? <span className="text-dim">{`  ${rest}`}</span> : null}
-      </span>
-    </p>
+    <div className="flex min-w-0 flex-col gap-1">
+      <p
+        dir="auto"
+        className="text-lead line-clamp-2 text-left font-semibold leading-snug"
+      >
+        {title}
+      </p>
+      {detail ? (
+        <p className="text-meta text-dim flex min-w-0 items-center gap-1.5">
+          {Icon ? (
+            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+          ) : null}
+          <span dir="auto" className="min-w-0 truncate">
+            {detail}
+          </span>
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -204,7 +223,7 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
         actions={<CardAction primary href={href} label={label} />}
       >
         <Kickoff startsAt={startsAt} endsAt={null} />
-        <Place lead={row.title} rest={subline} />
+        <Headline title={row.title} detail={subline} />
       </HeroFrame>
     );
   }
@@ -226,6 +245,12 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
       : homeNextGameStatus(game.phase, startsAt, now);
   const title = game.name ?? game.groupName ?? game.venue?.name ?? "Game";
   const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
+  const venueLine = [
+    game.venue?.name === title ? null : game.venue?.name,
+    game.courtName,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <HeroFrame
@@ -249,7 +274,7 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Place lead={title} rest={place && place !== title ? place : null} />
+      <Headline title={title} detail={venueLine || null} icon={MapPin} />
       {game.rated ? null : (
         <p className="text-meta font-semibold">{UNRATED_LABEL}</p>
       )}
