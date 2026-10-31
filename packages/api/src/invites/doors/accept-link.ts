@@ -223,7 +223,7 @@ export async function acceptLink(
   const link = await database.query.gameInviteLinks.findFirst({
     where: eq(gameInviteLinks.token, args.token),
   });
-  if (!link || !isInviteLinkLive(link.expiresAt)) {
+  if (!link) {
     return { ok: false, reason: "not_found" };
   }
   const host = { kind: "game" as const, id: link.gameId };

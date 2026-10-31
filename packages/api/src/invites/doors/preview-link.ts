@@ -104,7 +104,7 @@ export async function previewLink(
   const link = await database.query.gameInviteLinks.findFirst({
     where: eq(gameInviteLinks.token, token),
   });
-  if (!link || !isInviteLinkLive(link.expiresAt)) {
+  if (!link) {
     return { ok: true, status: "invalid" };
   }
   const open = await assertInviteOpen(
