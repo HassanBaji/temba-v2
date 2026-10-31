@@ -1,6 +1,7 @@
 import "~/styles/globals.css";
 
 import { ClerkProvider } from "@clerk/nextjs";
+import { type Appearance } from "@clerk/ui";
 import { shadcn } from "@clerk/ui/themes";
 import { type Metadata } from "next";
 
@@ -25,15 +26,15 @@ const clerkAppearance = {
     colorPrimary: "#0A0A0A",
     colorPrimaryForeground: "#FFFFFF",
     colorBackground: "#FFFFFF",
-    colorInputBackground: "#FFFFFF",
-    colorInput: "#171717",
-    colorText: "#171717",
-    colorTextSecondary: "#404040",
+    colorInput: "#FFFFFF",
+    colorInputForeground: "#171717",
+    colorForeground: "#171717",
+    colorMutedForeground: "#404040",
     colorDanger: "#DC2626",
     colorNeutral: "#636363",
     borderRadius: "0.625rem",
   },
-} as const;
+} satisfies Appearance;
 
 export default function RootLayout({
   children,
