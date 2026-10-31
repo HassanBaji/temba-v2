@@ -9,6 +9,10 @@ import {
   splitGameWindow,
 } from "@repo/domain/game-window";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
+import {
+  GAME_CUSTOM_NAME_MAX_LENGTH,
+  gameCustomName,
+} from "@repo/domain/game-custom-name";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import {
   LEVEL_BAND_SELECT_NONE,
@@ -31,14 +35,20 @@ import { TextField } from "../primitives/text-field";
 
 const SCROLL_MAX_HEIGHT = 420;
 
-export type EditSection = "menu" | "window" | "price" | "level" | "court";
+export type EditSection =
+  | "menu"
+  | "name"
+  | "window"
+  | "price"
+  | "level"
+  | "court";
 
 export type CourtChoice = { id: string; name: string; venueName: string };
 
 export type OrganizerSheetsProps = {
   section: EditSection | null;
   onSection: (section: EditSection | null) => void;
-  game: {
+  game: NameFormGame & {
     windowStart: Date | null;
     windowEnd: Date | null;
     pricePerPlayerFils: number | null;
@@ -48,13 +58,21 @@ export type OrganizerSheetsProps = {
   courtId: string | null;
   courts: Slot<CourtChoice[]>;
   now: Date;
-  pending: { window: boolean; price: boolean; level: boolean; court: boolean };
+  pending: {
+    name: boolean;
+    window: boolean;
+    price: boolean;
+    level: boolean;
+    court: boolean;
+  };
   errors: {
+    name: string | null;
     window: string | null;
     price: string | null;
     level: string | null;
     court: string | null;
   };
+  onSaveName: (customName: string | null) => void;
   onSaveWindow: (
     input: NonNullable<ReturnType<typeof gameWindowSaveInput>>,
   ) => void;
@@ -80,6 +98,44 @@ export function SaveRow({
       <Button label="Back" variant="outline" onPress={onBack} />
       <Button label="Save" pending={pending} onPress={onSave} />
     </View>
+  );
+}
+
+type NameFormGame = { name: string | null; hasCustomName?: boolean };
+
+export function NameForm({
+  game,
+  pending,
+  error,
+  onSave,
+  onBack,
+}: {
+  game: NameFormGame;
+  pending: boolean;
+  error: string | null;
+  onSave: (customName: string | null) => void;
+  onBack: () => void;
+}) {
+  const [text, setText] = useState(() => gameCustomName(game) ?? "");
+  return (
+    <>
+      <TextField
+        label="Game name"
+        value={text}
+        maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
+        onChangeText={setText}
+        error={error ?? undefined}
+      />
+      <Text size="meta" tone="muted">
+        Shown on the Game and at the top of the invite message. Leave blank to
+        use the day and time.
+      </Text>
+      <SaveRow
+        pending={pending}
+        onSave={() => onSave(text.trim() || null)}
+        onBack={onBack}
+      />
+    </>
   );
 }
 
@@ -330,6 +386,11 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
     <>
       <Sheet visible={section === "menu"} onClose={close} title="Edit Game">
         <Button
+          label="Name"
+          variant="outline"
+          onPress={() => onSection("name")}
+        />
+        <Button
           label="Window"
           variant="outline"
           onPress={() => onSection("window")}
@@ -344,6 +405,17 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
           variant="outline"
           onPress={() => onSection("level")}
         />
+      </Sheet>
+      <Sheet visible={section === "name"} onClose={back} title="Name">
+        {section === "name" ? (
+          <NameForm
+            game={game}
+            pending={props.pending.name}
+            error={props.errors.name}
+            onSave={props.onSaveName}
+            onBack={back}
+          />
+        ) : null}
       </Sheet>
       <Sheet visible={section === "window"} onClose={back} title="Window">
         {section === "window" ? (

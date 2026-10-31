@@ -15,6 +15,7 @@ import type { CreateVenuePicker } from "@repo/domain/create-game-flow";
 import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
 import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
+import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import { SPORT_LABELS } from "@repo/domain/sport";
 import {
   groupsThenKnockoutReviewValue,
@@ -100,6 +101,30 @@ function PriceField({
   );
 }
 
+function CustomNameField({ state, errors, dispatch }: StepProps) {
+  return (
+    <StepSection title="Name" note="Optional">
+      <TextField
+        label="Game name"
+        value={state.draft.customName}
+        maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
+        onChangeText={(customName) =>
+          dispatch({ kind: "setCustomName", customName })
+        }
+        error={errors.customName}
+      />
+      <HelperNote>
+        Shown on the Game and at the top of the invite message.
+      </HelperNote>
+    </StepSection>
+  );
+}
+
+function customNameReviewRows(customName: string): ReviewRow[] {
+  const trimmed = customName.trim();
+  return trimmed ? [{ label: "Name", value: trimmed }] : [];
+}
+
 export function FootballDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
@@ -112,10 +137,12 @@ export function FootballDetailsStep(props: DetailsProps) {
 
   return (
     <View style={{ gap: spacing.section }}>
+      <CustomNameField {...props} />
       <FootballSizeFields {...props} />
       <PriceField {...props} />
       <ReviewCard
         rows={[
+          ...customNameReviewRows(draft.customName),
           { label: "Group", value: groupName ?? "Group" },
           { label: "Sport", value: SPORT_LABELS.football },
           {
@@ -142,11 +169,13 @@ export function GameDetailsStep(props: DetailsProps) {
 
   return (
     <View style={{ gap: spacing.section }}>
+      <CustomNameField {...props} />
       <LevelRangeField {...props} />
       <PriceField {...props} />
       {groupVerified ? null : <HelperNote>{UNRATED_GROUP_LINE}</HelperNote>}
       <ReviewCard
         rows={[
+          ...customNameReviewRows(draft.customName),
           { label: "Group", value: groupName ?? "Group" },
           {
             label: "Venue",

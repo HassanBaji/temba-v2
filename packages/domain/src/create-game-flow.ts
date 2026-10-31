@@ -249,6 +249,7 @@ export const CREATE_FLOW_FIELD_IDS: Record<string, string> = {
   qualifiersPerPool: "tournament-qualifiers-per-pool",
   matchMinutes: "tournament-match-minutes",
   name: "tournament-name",
+  customName: "game-custom-name",
   sideSize: "game-side-size",
   playersAllowed: "game-players-allowed",
 };
@@ -964,7 +965,7 @@ export function resetCreateBranch(
       allowSoloRegister: true,
     };
   }
-  return { ...draft, courtId: "none" };
+  return { ...draft, courtId: "none", customName: "" };
 }
 
 export function changeCreateDay<

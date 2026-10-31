@@ -6,6 +6,7 @@ import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import {
+  NameForm,
   PriceForm,
   SaveRow,
   WindowForm,
@@ -13,12 +14,14 @@ import {
 } from "./organizer-sheets";
 import { FieldError } from "../create-game/chips";
 
-export type FootballEditSection = "menu" | "window" | "price" | "cap";
+export type FootballEditSection = "menu" | "name" | "window" | "price" | "cap";
 
 export type FootballOrganizerSheetsProps = {
   section: FootballEditSection | null;
   onSection: (section: FootballEditSection | null) => void;
   game: {
+    name: string | null;
+    hasCustomName?: boolean;
     windowStart: Date | null;
     windowEnd: Date | null;
     pricePerPlayerFils: number | null;
@@ -26,8 +29,14 @@ export type FootballOrganizerSheetsProps = {
   };
   capBounds: { min: number; max: number } | null;
   now: Date;
-  pending: { window: boolean; price: boolean; cap: boolean };
-  errors: { window: string | null; price: string | null; cap: string | null };
+  pending: { name: boolean; window: boolean; price: boolean; cap: boolean };
+  errors: {
+    name: string | null;
+    window: string | null;
+    price: string | null;
+    cap: string | null;
+  };
+  onSaveName: (customName: string | null) => void;
   onSaveWindow: OrganizerSheetsProps["onSaveWindow"];
   onSavePrice: (fils: number | null) => void;
   onSaveCap: (playersAllowed: number) => void;
@@ -83,6 +92,11 @@ export function FootballOrganizerSheets(props: FootballOrganizerSheetsProps) {
       <Sheet visible={section === "menu"} onClose={close} title="Edit Game">
         <View style={{ gap: 8 }}>
           <Button
+            label="Name"
+            variant="outline"
+            onPress={() => onSection("name")}
+          />
+          <Button
             label="Window"
             variant="outline"
             onPress={() => onSection("window")}
@@ -98,6 +112,17 @@ export function FootballOrganizerSheets(props: FootballOrganizerSheetsProps) {
             onPress={() => onSection("cap")}
           />
         </View>
+      </Sheet>
+      <Sheet visible={section === "name"} onClose={back} title="Name">
+        {section === "name" ? (
+          <NameForm
+            game={game}
+            pending={props.pending.name}
+            error={props.errors.name}
+            onSave={props.onSaveName}
+            onBack={back}
+          />
+        ) : null}
       </Sheet>
       <Sheet visible={section === "window"} onClose={back} title="Window">
         {section === "window" ? (

@@ -38,7 +38,12 @@ async function updateGameWindowOnGame(
   const now = new Date();
   await database
     .update(games)
-    .set({ windowStart, windowEnd, name, updatedAt: now })
+    .set({
+      windowStart,
+      windowEnd,
+      name: game.hasCustomName ? game.name : name,
+      updatedAt: now,
+    })
     .where(eq(games.id, game.id));
 
   if (game.format === "friendly_game") {

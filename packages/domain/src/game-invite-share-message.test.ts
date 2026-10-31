@@ -71,6 +71,34 @@ describe("formatGameInviteShareMessage", () => {
     expect(message).toContain("- Right: Open");
     expect(message).toContain(shortUrl);
   });
+
+  it("opens with the Game's custom name when it has one", () => {
+    const windowStart = new Date();
+    const message = formatGameInviteShareMessage({
+      customName: "  Thursday Smash ",
+      venueName: "Padel Club",
+      courtName: null,
+      windowStart,
+      windowEnd: windowStart,
+      sides: [],
+      shortUrl,
+    });
+    expect(message.startsWith("Thursday Smash\n\n📍 Padel Club\n")).toBe(true);
+  });
+
+  it("skips a blank custom name", () => {
+    const windowStart = new Date();
+    const message = formatGameInviteShareMessage({
+      customName: "   ",
+      venueName: "Padel Club",
+      courtName: null,
+      windowStart,
+      windowEnd: windowStart,
+      sides: [],
+      shortUrl,
+    });
+    expect(message.startsWith("📍 Padel Club\n")).toBe(true);
+  });
 });
 
 describe("gameInviteClipboardText", () => {
@@ -134,5 +162,25 @@ describe("gameInviteClipboardText", () => {
         },
       }),
     ).toBe(shortUrl);
+  });
+
+  it("puts the custom name above the link when only the link is copied", () => {
+    expect(
+      gameInviteClipboardText({
+        format: "friendly_game",
+        sport: "football",
+        registrationMode: "individual",
+        shortUrl,
+        roster: {
+          customName: "Friday Five",
+          venueName: "Pitch Club",
+          courtName: null,
+          windowStart: new Date(),
+          windowEnd: new Date(),
+          sides: [],
+          shortUrl,
+        },
+      }),
+    ).toBe(`Friday Five\n${shortUrl}`);
   });
 });

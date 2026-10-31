@@ -61,6 +61,7 @@ import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
+import { updateName } from "./updateName";
 import { updatePricePerPlayer } from "./updatePricePerPlayer";
 import { updateRoundCount } from "./updateRoundCount";
 import { updateWindow } from "./updateWindow";
@@ -97,6 +98,7 @@ export const gamesRouter = createTRPCRouter({
   cancel,
   cancelMatch,
   updateWindow,
+  updateName,
   updatePricePerPlayer,
   updateLevelRange,
   updateRoundCount,

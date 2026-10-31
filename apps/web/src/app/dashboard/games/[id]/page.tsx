@@ -122,6 +122,7 @@ import {
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
 import { splitGameWindow } from "@repo/domain/game-window";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
@@ -193,6 +194,7 @@ export default function GameHomePage({
     "left" | "right"
   >("left");
   const [teamId, setTeamId] = React.useState("");
+  const [customName, setCustomName] = React.useState("");
   const [windowDay, setWindowDay] = React.useState("");
   const [windowStartTime, setWindowStartTime] = React.useState("");
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
@@ -452,6 +454,17 @@ export default function GameHomePage({
     },
   });
 
+  const updateName = api.games.updateName.useMutation({
+    onSuccess: async () => {
+      justSavedEditSectionsRef.current.add("name");
+      toast.success("Name saved");
+      await refreshGame();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const updatePricePerPlayer = api.games.updatePricePerPlayer.useMutation({
     onSuccess: async () => {
       justSavedEditSectionsRef.current.add("price");
@@ -564,6 +577,7 @@ export default function GameHomePage({
       shortUrl: url,
       roster: row
         ? {
+            customName: gameCustomName(row),
             venueName: row.venue?.name ?? "Venue",
             courtName: row.matches[0]?.courtName ?? null,
             windowStart: row.windowStart,
@@ -576,15 +590,23 @@ export default function GameHomePage({
   }
 
   const createInviteLink = api.games.createInviteLink.useMutation({
-    onSuccess: async (result) => {
-      const text = inviteShareText(result.shortUrl ?? result.inviteUrl);
-      await shareLinkWithFeedback({ text }, "Invite link copied");
+    onSuccess: async () => {
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
     onError: (error) => {
       toastGlobalFormError(error);
     },
   });
+
+  function shareInviteLink() {
+    const text = createInviteLink
+      .mutateAsync({ gameId: id })
+      .then((result) => ({
+        text: inviteShareText(result.shortUrl ?? result.inviteUrl),
+      }))
+      .catch(() => null);
+    void shareLinkWithFeedback(text, "Invite link copied");
+  }
 
   const data = game.data;
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
@@ -657,6 +679,9 @@ export default function GameHomePage({
       justSaved: justSavedEditSectionsRef.current,
     });
     justSavedEditSectionsRef.current.clear();
+    if (sections.includes("name")) {
+      setCustomName(gameCustomName(data) ?? "");
+    }
     if (sections.includes("window")) {
       const gameWindow = splitGameWindow(data.windowStart, data.windowEnd);
       setWindowDay(gameWindow.day);
@@ -819,7 +844,7 @@ export default function GameHomePage({
     onCloseRegistration: () => closeRegistration.mutate({ gameId: id }),
     onReopenRegistration: () => reopenRegistration.mutate({ gameId: id }),
     onInvite: () => setInvitesOpen(true),
-    onShare: () => createInviteLink.mutate({ gameId: id }),
+    onShare: shareInviteLink,
     onLeaveWaitlist: () => setLeaveWaitlistOpen(true),
   };
   const mobileOverflow =
@@ -1038,11 +1063,7 @@ export default function GameHomePage({
               onUndo={async () => {
                 await undoPoolDraw.mutateAsync({ gameId: id });
               }}
-              onShare={
-                canManageGameInvites
-                  ? () => createInviteLink.mutate({ gameId: id })
-                  : undefined
-              }
+              onShare={canManageGameInvites ? shareInviteLink : undefined}
               onInvite={
                 canManageGameInvites ? () => setInvitesOpen(true) : undefined
               }
@@ -1384,6 +1405,17 @@ export default function GameHomePage({
           levelSummaryRef={levelSummaryRef}
           levelPending={updateLevelRange.isPending}
           onSaveLevelRange={saveLevelRange}
+          customName={
+            data.format === "friendly_game"
+              ? {
+                  value: customName,
+                  onChange: setCustomName,
+                  error: updateName.error,
+                  pending: updateName.isPending,
+                  onSave: () => updateName.mutate({ gameId: id, customName }),
+                }
+              : undefined
+          }
           rounds={
             roundsPlan
               ? {

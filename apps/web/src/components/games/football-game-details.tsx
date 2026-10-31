@@ -93,6 +93,7 @@ import {
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
 import { splitGameWindow } from "@repo/domain/game-window";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type FootballGame = RouterOutputs["games"]["byId"];
@@ -125,6 +126,7 @@ export function FootballGameDetails({
   const [kickConfirm, setKickConfirm] = React.useState<GameKickTarget | null>(
     null,
   );
+  const [customName, setCustomName] = React.useState("");
   const [windowDay, setWindowDay] = React.useState("");
   const [windowStartTime, setWindowStartTime] = React.useState("");
   const [windowFinishTime, setWindowFinishTime] = React.useState("");
@@ -169,10 +171,12 @@ export function FootballGameDetails({
   );
 
   const { windowStart, windowEnd, pricePerPlayerFils } = game;
+  const savedCustomName = gameCustomName(game);
   React.useEffect(() => {
     if (editOpen) {
       return;
     }
+    setCustomName(savedCustomName ?? "");
     const gameWindow = splitGameWindow(windowStart, windowEnd);
     setWindowDay(gameWindow.day);
     setWindowStartTime(gameWindow.startTime);
@@ -182,6 +186,7 @@ export function FootballGameDetails({
     setCapDraft(game.playersAllowed ?? 0);
   }, [
     editOpen,
+    savedCustomName,
     windowStart,
     windowEnd,
     pricePerPlayerFils,
@@ -264,6 +269,13 @@ export function FootballGameDetails({
     },
     onError,
   });
+  const updateName = api.games.updateName.useMutation({
+    onSuccess: async () => {
+      toast.success("Name saved");
+      await refreshGame();
+    },
+    onError,
+  });
   const updatePrice = api.games.updatePricePerPlayer.useMutation({
     onSuccess: async () => {
       toast.success("Price per player saved");
@@ -302,6 +314,7 @@ export function FootballGameDetails({
       shortUrl: url,
       sport: game.sport,
       roster: {
+        customName: savedCustomName,
         venueName: game.venue?.name ?? "Venue",
         courtName: game.recordedCourts[0]?.name ?? null,
         windowStart: game.windowStart,
@@ -860,6 +873,15 @@ export function FootballGameDetails({
           levelPending={false}
           onSaveLevelRange={noop}
           rounds={null}
+          customName={{
+            value: customName,
+            onChange: setCustomName,
+            error: updateName.error,
+            pending: updateName.isPending,
+            onSave: () => {
+              updateName.mutate({ gameId, customName });
+            },
+          }}
           playersAllowed={{
             value: capDraft,
             min: organizer.capBounds.min,

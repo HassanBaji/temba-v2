@@ -1,4 +1,5 @@
 export const GAME_EDIT_SECTIONS = [
+  "name",
   "window",
   "price",
   "level",
