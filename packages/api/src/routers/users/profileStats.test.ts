@@ -10,6 +10,7 @@ import {
   gameTeamPlayers,
   gameTeams,
   games,
+  matchGoals,
   matchSets,
   matches,
   user,
@@ -63,8 +64,10 @@ async function insertGame(
     createdBy: string;
     venueId: string;
     cancelledAt?: Date | null;
+    sport?: "padel" | "football";
   },
 ) {
+  const football = args.sport === "football";
   const [row] = await database
     .insert(games)
     .values({
@@ -74,11 +77,13 @@ async function insertGame(
       venueId: args.venueId,
       createdBy: args.createdBy,
       isPublic: false,
-      playersAllowed: 4,
+      playersAllowed: football ? 10 : 4,
       teamsAllowed: 2,
       windowStart: T1,
       windowEnd: T4,
       cancelledAt: args.cancelledAt ?? null,
+      sport: args.sport ?? "padel",
+      sideSize: football ? 5 : null,
     })
     .returning();
   if (!row) {
@@ -204,12 +209,14 @@ async function playMatch(
     startTime: Date;
     cancelledAt?: Date | null;
     status?: (typeof MatchStatusEnum)[keyof typeof MatchStatusEnum];
+    sport?: "padel" | "football";
   },
 ) {
   const seeded = await insertGame(database, {
     createdBy: args.createdBy,
     venueId: args.venueId,
     cancelledAt: args.cancelledAt,
+    sport: args.sport,
   });
   await seatCompletedMatch(database, {
     gameId: seeded.game.id,
@@ -240,12 +247,93 @@ describe("loadProfileStats", () => {
         matchesPlayed: 0,
         matchesWon: 0,
         matchesLost: 0,
+        matchesDrawn: 0,
         setsWon: 0,
         setsLost: 0,
+        goalsScored: 0,
         longestWinStreak: 0,
         mostPlayedPartner: null,
         firstMatchAt: null,
       });
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps each sport to its own Matches and counts football goals", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "profile-stats-sport-v@example.com");
+      const partner = await insertUser(db, "profile-stats-sport-p@example.com");
+      const teammate = await insertUser(
+        db,
+        "profile-stats-sport-t@example.com",
+        "Omar Khalid",
+      );
+      const oppLeft = await insertUser(
+        db,
+        "profile-stats-sport-ol@example.com",
+      );
+      const oppRight = await insertUser(
+        db,
+        "profile-stats-sport-or@example.com",
+      );
+      const venue = await insertVenue(db);
+
+      await playMatch(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: WIN,
+        startTime: T1,
+      });
+      const first = await playMatch(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        slot1: { left: viewer, right: teammate },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 3, slot2GamesWon: 1 }],
+        startTime: T2,
+        sport: "football",
+      });
+      const second = await playMatch(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        slot1: { left: oppLeft, right: oppRight },
+        slot2: { left: viewer, right: teammate },
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 2 }],
+        startTime: T3,
+        sport: "football",
+      });
+      await db.insert(matchGoals).values([
+        { matchId: first.match.id, userId: viewer.id, goals: 2 },
+        { matchId: second.match.id, userId: viewer.id, goals: 1 },
+        { matchId: first.match.id, userId: teammate.id, goals: 1 },
+      ]);
+
+      const [padel, football, all] = await Promise.all([
+        loadProfileStats(db, { userId: viewer.id, sport: "padel" }),
+        loadProfileStats(db, { userId: viewer.id, sport: "football" }),
+        loadProfileStats(db, { userId: viewer.id }),
+      ]);
+
+      expect(padel.matchesPlayed).toBe(1);
+      expect(padel.goalsScored).toBe(0);
+      expect(padel.mostPlayedPartner?.userId).toBe(partner.id);
+      expect(padel.firstMatchAt).toEqual(T1);
+
+      expect(football.matchesPlayed).toBe(2);
+      expect(football.matchesWon).toBe(1);
+      expect(football.matchesDrawn).toBe(1);
+      expect(football.goalsScored).toBe(3);
+      expect(football.mostPlayedPartner).toEqual({
+        userId: teammate.id,
+        name: "Omar Khalid",
+      });
+      expect(football.firstMatchAt).toEqual(T2);
+
+      expect(all.matchesPlayed).toBe(3);
     } finally {
       await close();
     }

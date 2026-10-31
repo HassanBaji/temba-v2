@@ -9,6 +9,7 @@ import {
 } from "@repo/domain/home-recent-form";
 import { FormSlot } from "~/components/home/home-recent-form-row";
 import { Skeleton } from "~/components/ui/skeleton";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 export function ProfileFormCard({ bars }: { bars: RecentFormBar[] }) {
@@ -51,9 +52,10 @@ function ProfileFormSkeleton() {
   );
 }
 
-export function ProfileForm() {
+export function ProfileForm({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
   const history = api.games.listMyMatchHistory.useQuery({
     limit: RECENT_FORM_MATCH_COUNT,
+    sport,
   });
 
   if (history.isLoading) {

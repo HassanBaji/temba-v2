@@ -4,33 +4,40 @@ import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { profileAllTimeView } from "@repo/domain/profile-all-time";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 export function ProfileAllTimeCard({
+  sport = DEFAULT_SPORT,
   matchesPlayed,
   matchesWon,
   matchesLost,
   setsWon,
   setsLost,
+  goalsScored = 0,
   longestWinStreak,
   mostPlayedPartnerName,
   firstMatchAt,
 }: {
+  sport?: Sport;
   matchesPlayed: number;
   matchesWon: number;
   matchesLost: number;
   setsWon: number;
   setsLost: number;
+  goalsScored?: number;
   longestWinStreak: number;
   mostPlayedPartnerName: string | null;
   firstMatchAt: Date | string | null;
 }) {
   const view = profileAllTimeView({
+    sport,
     matchesPlayed,
     matchesWon,
     matchesLost,
     setsWon,
     setsLost,
+    goalsScored,
     longestWinStreak,
     mostPlayedPartnerName,
     firstMatchAt,
@@ -65,8 +72,10 @@ export function ProfileAllTimeCard({
       </div>
       <div className="border-rule divide-rule divide-y border-t">
         <div className="flex items-center justify-between px-5 py-[14px]">
-          <p className="text-meta text-muted-foreground">Sets</p>
-          <p className="text-body font-semibold tabular-nums">{view.sets}</p>
+          <p className="text-meta text-muted-foreground">{view.tally.label}</p>
+          <p className="text-body font-semibold tabular-nums">
+            {view.tally.value}
+          </p>
         </div>
         <div className="flex items-center justify-between px-5 py-[14px]">
           <p className="text-meta text-muted-foreground">Longest streak</p>
@@ -75,7 +84,7 @@ export function ProfileAllTimeCard({
           </p>
         </div>
         <div className="flex items-center justify-between px-5 py-[14px]">
-          <p className="text-meta text-muted-foreground">Most played partner</p>
+          <p className="text-meta text-muted-foreground">{view.partnerLabel}</p>
           <p className="text-body truncate pl-3 font-semibold">
             {view.mostPlayedPartner}
           </p>
@@ -114,8 +123,8 @@ function ProfileAllTimeSkeleton() {
   );
 }
 
-export function ProfileAllTime() {
-  const stats = api.users.profileStats.useQuery();
+export function ProfileAllTime({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
+  const stats = api.users.profileStats.useQuery({ sport });
 
   if (stats.isLoading) {
     return <ProfileAllTimeSkeleton />;
@@ -142,11 +151,13 @@ export function ProfileAllTime() {
 
   return (
     <ProfileAllTimeCard
+      sport={sport}
       matchesPlayed={data.matchesPlayed}
       matchesWon={data.matchesWon}
       matchesLost={data.matchesLost}
       setsWon={data.setsWon}
       setsLost={data.setsLost}
+      goalsScored={data.goalsScored}
       longestWinStreak={data.longestWinStreak}
       mostPlayedPartnerName={data.mostPlayedPartner?.name ?? null}
       firstMatchAt={data.firstMatchAt}

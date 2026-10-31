@@ -8,9 +8,11 @@ import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { profileLevelView } from "@repo/domain/profile-level";
+import { DEFAULT_SPORT, SPORT_LABELS, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 export function ProfileLevelCard({
+  sport = DEFAULT_SPORT,
   band,
   level,
   provisional,
@@ -19,6 +21,7 @@ export function ProfileLevelCard({
   progressPercent,
   history,
 }: {
+  sport?: Sport;
   band: LevelBand;
   level: string;
   provisional: boolean;
@@ -33,6 +36,7 @@ export function ProfileLevelCard({
   }, []);
 
   const view = profileLevelView({
+    sport,
     band,
     level,
     provisional,
@@ -44,7 +48,7 @@ export function ProfileLevelCard({
 
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile" meta="Padel">
+      <SurfaceLabel inset="profile" meta={SPORT_LABELS[sport]}>
         Level
       </SurfaceLabel>
       <div className="px-5 pb-5">
@@ -112,8 +116,8 @@ function ProfileLevelSkeleton() {
   );
 }
 
-export function ProfileLevel() {
-  const me = api.ratings.me.useQuery();
+export function ProfileLevel({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
+  const me = api.ratings.me.useQuery({ sport });
 
   if (me.isLoading) {
     return <ProfileLevelSkeleton />;
@@ -139,12 +143,13 @@ export function ProfileLevel() {
 
   if (!me.data.rating) {
     return me.data.canSelfDeclare ? (
-      <HomeDeclareLevel surface="profile" />
+      <HomeDeclareLevel surface="profile" sport={sport} />
     ) : null;
   }
 
   return (
     <ProfileLevelCard
+      sport={sport}
       band={me.data.rating.levelBand}
       level={me.data.rating.level}
       provisional={me.data.rating.provisional}
