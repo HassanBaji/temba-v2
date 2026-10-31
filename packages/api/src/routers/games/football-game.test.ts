@@ -24,6 +24,7 @@ import { createGame } from "#src/routers/games/create";
 import { createTournament } from "#src/routers/games/createTournament";
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
+import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 import { gameById } from "#src/routers/games/byId";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
@@ -438,6 +439,110 @@ describe("roster registration on a football Game", () => {
       expect(view.sideSize).toBe(5);
       expect(view.roster).toMatchObject({ count: 1, cap: 10 });
       expect(view.roster?.users.map((row) => row.id)).toEqual([joiner.id]);
+    });
+  });
+
+  it("joins through an Invite link as the keeper or player they chose", async () => {
+    await withFootball(async (f) => {
+      const game = await createFootball(f);
+      const link = await createInviteLink(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        origin: "https://temba.test",
+      });
+      const token = link.inviteUrl.split("/").pop()!;
+      const roleOf = async (userId: string) =>
+        f.db.query.gamePlayers.findFirst({
+          where: and(
+            eq(gamePlayers.gameId, game.id),
+            eq(gamePlayers.userId, userId),
+          ),
+          columns: { footballRole: true, footballPosition: true },
+        });
+
+      const defender = await insertMember(f, "Dana Def");
+      await acceptInviteLink(f.db, {
+        token,
+        userId: defender.id,
+        football: { role: "outfield", position: "def" },
+      });
+      expect(await roleOf(defender.id)).toEqual({
+        footballRole: "outfield",
+        footballPosition: "def",
+      });
+
+      for (const name of ["Kim Keeper", "Kai Keeper"]) {
+        const keeper = await insertMember(f, name);
+        await acceptInviteLink(f.db, {
+          token,
+          userId: keeper.id,
+          football: { role: "keeper", position: "mid" },
+        });
+        expect((await roleOf(keeper.id))?.footballRole).toBe("keeper");
+      }
+
+      const late = await insertMember(f, "late");
+      await expect(
+        acceptInviteLink(f.db, {
+          token,
+          userId: late.id,
+          football: { role: "keeper", position: "mid" },
+        }),
+      ).rejects.toThrow("Both keeper seats are taken");
+      expect(await roleOf(late.id)).toBeUndefined();
+    });
+  });
+
+  it("previews the roster and the joiner's preferred role until they join", async () => {
+    await withFootball(async (f) => {
+      const game = await createFootball(f);
+      const link = await createInviteLink(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        origin: "https://temba.test",
+      });
+      const token = link.inviteUrl.split("/").pop()!;
+      const keeper = await insertMember(f, "Kim Keeper");
+      await acceptInviteLink(f.db, {
+        token,
+        userId: keeper.id,
+        football: { role: "keeper", position: "mid" },
+      });
+      const joiner = await insertMember(f, "joiner");
+      await f.db
+        .update(user)
+        .set({
+          preferredFootballRole: "outfield",
+          preferredFootballPosition: "fwd",
+        })
+        .where(eq(user.id, joiner.id));
+
+      const signedOut = await previewInviteLink(f.db, { token });
+      expect(signedOut.status === "ready" && signedOut.football).toBeNull();
+
+      const before = await previewInviteLink(f.db, {
+        token,
+        userId: joiner.id,
+      });
+      expect(before.status === "ready" && before.football).toEqual({
+        players: [{ name: "Kim Keeper", role: "keeper", position: "mid" }],
+        sideSize: 5,
+        playersAllowed: 10,
+        pricePerPlayerFils: null,
+        teamsSet: false,
+        preferred: { role: "outfield", position: "fwd" },
+      });
+
+      await acceptInviteLink(f.db, {
+        token,
+        userId: joiner.id,
+        football: { role: "outfield", position: "fwd" },
+      });
+      const after = await previewInviteLink(f.db, {
+        token,
+        userId: joiner.id,
+      });
+      expect(after.status === "ready" && after.football).toBeNull();
     });
   });
 

@@ -1,14 +1,25 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { gameInviteLinks } from "@repo/db";
+import { gameInviteLinks, gamePlayers } from "@repo/db";
+
+import {
+  type FootballPosition,
+  type FootballRole,
+} from "@repo/domain/football-lineup";
+import { isFootballGame } from "@repo/domain/game-shape";
+import {
+  footballPositionSchema,
+  footballRoleSchema,
+} from "@repo/validators/football";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
+import { assertKeeperSeatOpen } from "#src/games/football-lineup";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import {
   assertGameInviteDoorsOpen,
@@ -31,6 +42,7 @@ export async function acceptInviteLink(
     userId: string;
     sideIndex?: number;
     position?: "left" | "right";
+    football?: { role: FootballRole; position: FootballPosition };
   },
 ) {
   const link = await database.query.gameInviteLinks.findFirst({
@@ -46,6 +58,13 @@ export async function acceptInviteLink(
   assertPoolDrawNotPosted(game);
   await assertGameInviteDoorsOpen(database, game);
   await assertInviteeAllowedOnGame(database, game, args.userId);
+
+  if (args.football && !isFootballGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Only a football Game takes a role and position",
+    });
+  }
 
   if (await userAlreadyOnGame(database, game.id, args.userId)) {
     return {
@@ -67,6 +86,10 @@ export async function acceptInviteLink(
       code: "FORBIDDEN",
       message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
     });
+  }
+
+  if (args.football?.role === "keeper") {
+    await assertKeeperSeatOpen(database, game.id);
   }
 
   const accepted = await acceptLink(database, "game", {
@@ -99,6 +122,21 @@ export async function acceptInviteLink(
       waitlisted: false as const,
     };
   }
+  if (args.football && !accepted.waitlisted) {
+    await database
+      .update(gamePlayers)
+      .set({
+        footballRole: args.football.role,
+        footballPosition: args.football.position,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(gamePlayers.gameId, game.id),
+          eq(gamePlayers.userId, args.userId),
+        ),
+      );
+  }
   return {
     gameId: game.id,
     outcome: accepted.waitlisted
@@ -114,6 +152,12 @@ export const acceptInviteLinkProcedure = protectedProcedure
       token: z.string().min(1).max(64),
       sideIndex: z.number().int().min(1).optional(),
       position: z.enum(["left", "right"]).optional(),
+      football: z
+        .object({
+          role: footballRoleSchema,
+          position: footballPositionSchema,
+        })
+        .optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -123,5 +167,6 @@ export const acceptInviteLinkProcedure = protectedProcedure
       userId: appUser.id,
       sideIndex: input.sideIndex,
       position: input.position,
+      football: input.football,
     });
   });

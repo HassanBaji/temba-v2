@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
 import {
@@ -14,6 +15,11 @@ import {
 } from "~/components/invites/invite-outcome";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { footballInviteJoinSubtitle } from "@repo/domain/football-board";
+import {
+  type FootballPosition,
+  type FootballRole,
+} from "@repo/domain/football-lineup";
 import {
   gameInviteSeatCopy,
   gameInviteLinkStage,
@@ -27,6 +33,7 @@ import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
 } from "@repo/domain/level-range";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   PARTNER_REQUIRED_INVITE_LANDING_COPY,
@@ -45,6 +52,7 @@ export function AcceptGameInviteLink({
   returnPath: string;
 }) {
   const router = useRouter();
+  const [footballOpen, setFootballOpen] = React.useState(true);
   const preview = api.games.previewInviteLink.useQuery({ token });
   const requestLevelRange = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
@@ -63,8 +71,10 @@ export function AcceptGameInviteLink({
       }
       router.replace(`/dashboard/games/${result.gameId}`);
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (error, variables) => {
+      if (!variables.football) {
+        toast.error(error.message);
+      }
       void preview.refetch();
     },
   });
@@ -74,6 +84,8 @@ export function AcceptGameInviteLink({
   const blockedByLevelRange = stage === "level_range";
   const partnerRequiredJoin = stage === "partner";
   const needsSeatPick = stage === "seat_pick";
+  const footballJoin = stage === "football";
+  const football = ready?.football ?? null;
   const sides = ready?.sides ?? [];
   const vacantSeats = ready?.vacantSeats ?? [];
   const seatState = gameInviteSeatState({
@@ -85,6 +97,7 @@ export function AcceptGameInviteLink({
   const canJoinVacant = isSignedIn && !joinFrozen && !waitlistOnly;
   const seatRaceError =
     needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
+  const footballJoinError = footballJoin && accept.isError;
   const sideNoun = "Team";
   const rangeLabel = formatLevelRangeLabel(
     ready?.levelMinTenths,
@@ -109,7 +122,11 @@ export function AcceptGameInviteLink({
     if (accept.isPending || accept.isSuccess || accept.isError) {
       return;
     }
-    if (preview.data.partnerRequiredJoin || preview.data.needsSeatPick) {
+    if (
+      preview.data.partnerRequiredJoin ||
+      preview.data.needsSeatPick ||
+      preview.data.football
+    ) {
       return;
     }
     accept.mutate({ token });
@@ -124,6 +141,13 @@ export function AcceptGameInviteLink({
       sideIndex,
       position,
     });
+  }
+
+  function onJoinFootball(role: FootballRole, position: FootballPosition) {
+    if (accept.isPending) {
+      return;
+    }
+    accept.mutate({ token, football: { role, position } });
   }
 
   function onJoinWaitlist() {
@@ -169,7 +193,7 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (accept.isError && !seatRaceError) {
+  if (accept.isError && !seatRaceError && !footballJoinError) {
     return (
       <ErrorState
         title="Could not join"
@@ -296,6 +320,39 @@ export function AcceptGameInviteLink({
             className="flex flex-wrap gap-2"
           />
         )}
+      </div>
+    );
+  }
+
+  if (footballJoin && football && !accept.isSuccess) {
+    const subtitle = footballInviteJoinSubtitle(football);
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="text-title font-semibold">
+            Join {ready?.gameName ?? "Game"}
+          </h1>
+          <p className="text-body text-muted-foreground">{subtitle}</p>
+          <p className="text-body text-muted-foreground">
+            Pick player or keeper, and the position you prefer.
+          </p>
+        </div>
+        <Button className="min-h-11" onClick={() => setFootballOpen(true)}>
+          Choose how you play
+        </Button>
+        <FootballJoinDialog
+          open={footballOpen}
+          onOpenChange={setFootballOpen}
+          mode="join"
+          subtitle={subtitle}
+          players={football.players}
+          viewer={football.preferred}
+          price={formatPricePerPlayerFils(football.pricePerPlayerFils)}
+          teamsLine={football.teamsSet ? "Set" : "Made by the organizer"}
+          pending={accept.isPending}
+          error={accept.error?.message ?? null}
+          onSubmit={onJoinFootball}
+        />
       </div>
     );
   }

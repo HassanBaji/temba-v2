@@ -6,7 +6,7 @@ import {
   keeperSub,
   keepersIn,
   seatSummary,
-  type BoardPlayer,
+  type JoinPlayer,
 } from "@repo/domain/football-board";
 import {
   FOOTBALL_POSITION_CHOICES,
@@ -107,7 +107,7 @@ export function FootballJoinDialog({
   onOpenChange: (open: boolean) => void;
   mode: "join" | "edit";
   subtitle: string;
-  players: readonly BoardPlayer[];
+  players: readonly JoinPlayer[];
   viewer: { role: FootballRole | null; position: FootballPosition | null };
   price: string | null;
   teamsLine: string;
@@ -116,8 +116,9 @@ export function FootballJoinDialog({
   onSubmit: (role: FootballRole, position: FootballPosition) => void;
 }) {
   const others = players.filter((player) => !player.isViewer);
+  const alreadyKeeper = mode === "edit" && viewer.role === "keeper";
   const keeperLocked =
-    keeperSeatsLeft(keepersIn(others)) === 0 && viewer.role !== "keeper";
+    keeperSeatsLeft(keepersIn(others)) === 0 && !alreadyKeeper;
   const [role, setRole] = React.useState<FootballRole>(
     viewer.role ?? "outfield",
   );
