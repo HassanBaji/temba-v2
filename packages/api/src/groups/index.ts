@@ -7,7 +7,7 @@ export { requireGroup } from "#src/groups/helpers/require-group";
 export { requireGroupInviteLinkMinter } from "#src/groups/helpers/require-group-invite-link-minter";
 export { requireGroupLookupSender } from "#src/groups/helpers/require-group-lookup-sender";
 export { requireLiveClubCommunity } from "#src/groups/helpers/require-live-club-community";
-export { requireLooseCreator } from "#src/groups/helpers/require-loose-creator";
+export { requireLooseInviter } from "#src/groups/helpers/require-loose-inviter";
 export { requireStaff } from "#src/groups/helpers/require-staff";
 export {
   groupFormMarks,

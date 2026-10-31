@@ -184,6 +184,7 @@ type ExpectedGroups =
   | "previewPlayerByPhone"
   | "addPlayerByPhone"
   | "removeUnclaimedPlayer"
+  | "removePlayer"
   | "setOrganizer";
 
 type ExpectedNotifications =

@@ -1,8 +1,8 @@
 import {
-  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  REMOVE_PLAYER_ACTION,
   addGroupPlayerIsFootball,
-  removeUnclaimedPlayerConfirmLine,
-  removeUnclaimedPlayerToast,
+  removePlayerConfirmLine,
+  removePlayerToast,
 } from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
@@ -142,7 +142,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     onSettled: () => setConfirm(null),
   });
 
-  const removeUnclaimedPlayer = api.groups.removeUnclaimedPlayer.useMutation({
+  const removePlayer = api.groups.removePlayer.useMutation({
     onError: (error) => toast.show(error.message),
     onSettled: () => setConfirm(null),
   });
@@ -295,17 +295,17 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onInvite={() => setInviteOpen(true)}
         onAddPlayer={() => setAddPlayerOpen(true)}
         onRenameUnclaimed={setRenaming}
-        onRemoveUnclaimed={(member) =>
+        onRemovePlayer={(member) =>
           setConfirm({
-            title: REMOVE_UNCLAIMED_PLAYER_ACTION,
-            description: removeUnclaimedPlayerConfirmLine(member.name),
+            title: REMOVE_PLAYER_ACTION,
+            description: removePlayerConfirmLine(member.name),
             confirmLabel: "Remove",
             onConfirm: () =>
-              removeUnclaimedPlayer.mutate(
+              removePlayer.mutate(
                 { groupId, userId: member.userId },
                 {
                   onSuccess: () => {
-                    toast.show(removeUnclaimedPlayerToast(member.name));
+                    toast.show(removePlayerToast(member.name));
                     void utils.groups.byId.invalidate({ id: groupId });
                   },
                 },
@@ -375,7 +375,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         confirmPending={
           leave.isPending ||
           unlinkFromVenue.isPending ||
-          removeUnclaimedPlayer.isPending ||
+          removePlayer.isPending ||
           admin.deletePending ||
           linkRequest.confirmPending
         }

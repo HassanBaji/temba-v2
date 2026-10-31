@@ -65,7 +65,7 @@ export type GroupHomeViewProps = {
   onInvite: () => void;
   onAddPlayer: () => void;
   onRenameUnclaimed: (member: { userId: string; name: string }) => void;
-  onRemoveUnclaimed: (member: { userId: string; name: string }) => void;
+  onRemovePlayer: (member: { userId: string; name: string }) => void;
   onOrganizerAction: (
     member: { userId: string; name: string },
     action: GroupMemberOrganizerAction,
@@ -328,7 +328,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           onSetLevel={props.onSetLevel}
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
-          onRemoveUnclaimed={props.onRemoveUnclaimed}
+          canRemovePlayers={data.canRemovePlayers}
+          onRemovePlayer={props.onRemovePlayer}
           canAppointOrganizers={data.canAppointOrganizers}
           onOrganizerAction={props.onOrganizerAction}
           pendingInviteNames={props.pendingInviteNames}

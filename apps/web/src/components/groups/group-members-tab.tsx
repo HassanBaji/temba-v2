@@ -37,6 +37,7 @@ import {
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   type GroupMemberOrganizerAction,
+  groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
 import {
   GROUP_MEMBERS_DEFAULT_SORT,
@@ -52,7 +53,7 @@ import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
 import {
   ADD_PLAYER_ACTION,
-  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  REMOVE_PLAYER_ACTION,
   RENAME_UNCLAIMED_PLAYER_ACTION,
 } from "@repo/domain/add-player-by-phone";
 import {
@@ -196,7 +197,7 @@ function MemberActionsMenu({
             <ActionMenuSeparator />
           ) : null}
           <ActionMenuItem variant="destructive" onSelect={onRemove}>
-            {REMOVE_UNCLAIMED_PLAYER_ACTION}
+            {REMOVE_PLAYER_ACTION}
           </ActionMenuItem>
         </>
       ) : null}
@@ -487,7 +488,8 @@ export function GroupMembersTab({
   canAddPlayers = false,
   onAddPlayer,
   onRenameUnclaimed,
-  onRemoveUnclaimed,
+  canRemovePlayers = false,
+  onRemovePlayer,
   canAppointOrganizers = false,
   onOrganizerAction,
   showLevel = true,
@@ -506,7 +508,8 @@ export function GroupMembersTab({
   canAddPlayers?: boolean;
   onAddPlayer?: () => void;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
-  onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
+  canRemovePlayers?: boolean;
+  onRemovePlayer?: (member: { userId: string; name: string }) => void;
   groupId: string;
   members: GroupMember[];
   linkToPlayers: boolean;
@@ -534,7 +537,8 @@ export function GroupMembersTab({
   const saved = canSetLevel
     ? savedLevelOf(members.find((member) => member.userId === savedUserId))
     : null;
-  const canManage = canSetLevel || canAppointOrganizers || canAddPlayers;
+  const canManage =
+    canSetLevel || canAppointOrganizers || canAddPlayers || canRemovePlayers;
   const isManaging = canManage && managing;
   const showSearch = groupHomeShowsMemberSearch(members.length);
   const visible = sortGroupMembers(
@@ -604,8 +608,8 @@ export function GroupMembersTab({
         ? () => onRenameUnclaimed(target)
         : undefined;
     const onRemove =
-      canAddPlayers && member.unclaimed && onRemoveUnclaimed
-        ? () => onRemoveUnclaimed(target)
+      canRemovePlayers && groupMemberIsRemovable(member) && onRemovePlayer
+        ? () => onRemovePlayer(target)
         : undefined;
     if (
       !setLevelHref &&

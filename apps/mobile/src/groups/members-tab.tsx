@@ -306,7 +306,8 @@ export function MembersTab({
   onOpenMember,
   canAddPlayers = false,
   onRenameUnclaimed,
-  onRemoveUnclaimed,
+  canRemovePlayers = false,
+  onRemovePlayer,
   canAppointOrganizers = false,
   onOrganizerAction,
   pendingInviteNames = [],
@@ -325,7 +326,8 @@ export function MembersTab({
   onOpenMember?: (userId: string) => void;
   canAddPlayers?: boolean;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
-  onRemoveUnclaimed?: (member: { userId: string; name: string }) => void;
+  canRemovePlayers?: boolean;
+  onRemovePlayer?: (member: { userId: string; name: string }) => void;
   canAppointOrganizers?: boolean;
   onOrganizerAction?: (
     member: { userId: string; name: string },
@@ -346,14 +348,15 @@ export function MembersTab({
     GROUP_MEMBERS_DEFAULT_SORT,
   );
   const [managing, setManaging] = useState(false);
-  const canManage = canSetLevel || canAddPlayers || canAppointOrganizers;
+  const canManage =
+    canSetLevel || canAddPlayers || canRemovePlayers || canAppointOrganizers;
   const isManaging = canManage && managing;
   const list = memberList(
     leaderboard,
     query,
     apiOrigin,
     canSetLevel,
-    canAddPlayers,
+    canRemovePlayers,
     canAppointOrganizers,
     sort,
   );
@@ -362,7 +365,8 @@ export function MembersTab({
       entry.userId === selectedUserId &&
       !entry.isViewer &&
       (canSetLevel ||
-        memberIsRemovable(entry, canAddPlayers) ||
+        (canAddPlayers && entry.unclaimed) ||
+        memberIsRemovable(entry, canRemovePlayers) ||
         memberOrganizerAction(entry, canAppointOrganizers) != null),
   );
   const organizerAction = selected
@@ -501,9 +505,7 @@ export function MembersTab({
             : undefined
         }
         onRename={
-          selected &&
-          onRenameUnclaimed &&
-          memberIsRemovable(selected, canAddPlayers)
+          selected && onRenameUnclaimed && canAddPlayers && selected.unclaimed
             ? () => {
                 setSelectedUserId(null);
                 onRenameUnclaimed({
@@ -515,11 +517,11 @@ export function MembersTab({
         }
         onRemove={
           selected &&
-          onRemoveUnclaimed &&
-          memberIsRemovable(selected, canAddPlayers)
+          onRemovePlayer &&
+          memberIsRemovable(selected, canRemovePlayers)
             ? () => {
                 setSelectedUserId(null);
-                onRemoveUnclaimed({
+                onRemovePlayer({
                   userId: selected.userId,
                   name: selected.name ?? "Member",
                 });

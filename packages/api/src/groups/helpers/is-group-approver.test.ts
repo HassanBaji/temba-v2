@@ -5,6 +5,8 @@ import {
   communities,
   communityMembers,
   CommunityRoleEnum,
+  groupMembers,
+  GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
   user,
@@ -67,6 +69,14 @@ async function seat(
   await database.insert(communityMembers).values({ communityId, userId, role });
 }
 
+async function appoint(database: TestDatabase, groupId: string, userId: string) {
+  await database.insert(groupMembers).values({
+    groupId,
+    userId,
+    role: GroupMemberRoleEnum.ORGANIZER,
+  });
+}
+
 async function expectParity(
   database: TestDatabase,
   group: typeof groups.$inferSelect,
@@ -109,7 +119,7 @@ async function clubFixture(database: TestDatabase) {
 }
 
 describe("groupApproverUserIds", () => {
-  it("is the creator alone on a Loose Group", async () => {
+  it("is the creator alone on a Loose Group without Appointed Organizers", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const creator = await insertUser(db, "parity-loose-creator@example.com");
@@ -118,6 +128,53 @@ describe("groupApproverUserIds", () => {
 
       expect(await groupApproverUserIds(db, group)).toEqual([creator]);
       await expectParity(db, group, [creator, other]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("includes an Appointed Organizer on a Loose Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "parity-loose-creator@example.com");
+      const organizer = await insertUser(db, "parity-loose-organizer@example.com");
+      const other = await insertUser(db, "parity-loose-other@example.com");
+      const group = await insertGroup(db, { createdBy: creator });
+      await appoint(db, group.id, organizer);
+      await db.insert(groupMembers).values({ groupId: group.id, userId: other });
+
+      expect((await groupApproverUserIds(db, group)).sort()).toEqual(
+        [creator, organizer].sort(),
+      );
+      await expectParity(db, group, [creator, organizer, other]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("includes an Appointed Organizer on a Club Group only while they hold a seat", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const fixture = await clubFixture(db);
+      await appoint(db, fixture.group.id, fixture.member);
+
+      expect(await groupApproverUserIds(db, fixture.group)).toContain(
+        fixture.member,
+      );
+      await expectParity(db, fixture.group, fixture.everyone);
+
+      await db
+        .delete(communityMembers)
+        .where(
+          and(
+            eq(communityMembers.communityId, fixture.communityId),
+            eq(communityMembers.userId, fixture.member),
+          ),
+        );
+      expect(await groupApproverUserIds(db, fixture.group)).not.toContain(
+        fixture.member,
+      );
+      await expectParity(db, fixture.group, fixture.everyone);
     } finally {
       await close();
     }

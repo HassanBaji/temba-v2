@@ -31,6 +31,7 @@ import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./invit
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { rejectJoinRequestProcedure as rejectJoinRequest } from "./rejectJoinRequest";
+import { removePlayerProcedure as removePlayer } from "./removePlayer";
 import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
 import { requestJoinProcedure as requestJoin } from "./requestJoin";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
@@ -83,5 +84,6 @@ export const groupsRouter = createTRPCRouter({
   previewPlayerByPhone,
   addPlayerByPhone,
   removeUnclaimedPlayer,
+  removePlayer,
   setOrganizer,
 });

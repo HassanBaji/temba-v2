@@ -43,10 +43,10 @@ import { groupMembersTabHref } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
-  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  REMOVE_PLAYER_ACTION,
   addGroupPlayerIsFootball,
-  removeUnclaimedPlayerConfirmLine,
-  removeUnclaimedPlayerToast,
+  removePlayerConfirmLine,
+  removePlayerToast,
 } from "@repo/domain/add-player-by-phone";
 import {
   groupHomeCanManageInvites,
@@ -356,7 +356,7 @@ export default function GroupHomePage({
     ]);
   }
 
-  const removeUnclaimedPlayer = api.groups.removeUnclaimedPlayer.useMutation({
+  const removePlayer = api.groups.removePlayer.useMutation({
     onSuccess: async () => {
       await utils.groups.byId.invalidate({ id });
     },
@@ -768,7 +768,8 @@ export default function GroupHomePage({
                 canAddPlayers={data.canAddPlayers}
                 onAddPlayer={() => setAddPlayerOpen(true)}
                 onRenameUnclaimed={setRenaming}
-                onRemoveUnclaimed={setRemoving}
+                canRemovePlayers={data.canRemovePlayers}
+                onRemovePlayer={setRemoving}
                 canAppointOrganizers={data.canAppointOrganizers}
                 pendingInvites={
                   data.canManageLookupInvites
@@ -984,19 +985,19 @@ export default function GroupHomePage({
             setRemoving(null);
           }
         }}
-        title={REMOVE_UNCLAIMED_PLAYER_ACTION}
+        title={REMOVE_PLAYER_ACTION}
         description={
-          removing ? removeUnclaimedPlayerConfirmLine(removing.name) : undefined
+          removing ? removePlayerConfirmLine(removing.name) : undefined
         }
         confirmLabel="Remove"
-        pending={removeUnclaimedPlayer.isPending}
+        pending={removePlayer.isPending}
         onConfirm={async () => {
           if (removing) {
-            await removeUnclaimedPlayer.mutateAsync({
+            await removePlayer.mutateAsync({
               groupId: id,
               userId: removing.userId,
             });
-            toast.success(removeUnclaimedPlayerToast(removing.name));
+            toast.success(removePlayerToast(removing.name));
           }
         }}
       />
