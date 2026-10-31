@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { UserAvatar } from "~/components/common/user-avatar";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
@@ -10,20 +8,7 @@ import type { PlayerLevelCardView } from "@repo/domain/player-profile-level";
 import { PlayerLevelCard } from "./player-level-card";
 
 export function PlayerBackButton({ surface }: { surface: "ink" | "paper" }) {
-  const router = useRouter();
-  return (
-    <BackButton
-      variant="boxed"
-      surface={surface}
-      onClick={() => {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.push("/dashboard");
-        }
-      }}
-    />
-  );
+  return <BackButton variant="boxed" surface={surface} href="/dashboard" />;
 }
 
 export function PlayerHeader({
