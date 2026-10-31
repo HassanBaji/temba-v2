@@ -150,6 +150,7 @@ function NewGameForm() {
   const [name, setName] = React.useState(() =>
     friendlyTournamentDefaultName(earliestCreateDay(session.now)),
   );
+  const [customName, setCustomName] = React.useState("");
   const [preferLevelRange, setPreferLevelRange] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(false);
   const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
@@ -186,6 +187,7 @@ function NewGameForm() {
     setMatchMinutesInput(next.matchMinutes);
     setName(next.name);
     setNameTouched(next.nameTouched);
+    setCustomName(next.customName);
     setIsPublic(next.isPublic);
     setAllowSoloRegister(next.allowSoloRegister);
     setSideSize(next.sideSize);
@@ -285,6 +287,7 @@ function NewGameForm() {
     matchMinutes: matchMinutesInput,
     name,
     nameTouched,
+    customName,
     isPublic,
     allowSoloRegister,
     sideSize,
@@ -650,6 +653,7 @@ function NewGameForm() {
           pricePerPlayer,
           sideSize,
           playersAllowed,
+          customName,
         },
         session.now,
       );
@@ -671,6 +675,7 @@ function NewGameForm() {
         pricePerPlayer,
         levelMin,
         levelMax,
+        customName,
       },
       session.now,
     );
@@ -1200,6 +1205,15 @@ function NewGameForm() {
               onPrice={(next) => {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerFils");
+              }}
+              customName={customName}
+              customNameError={
+                errors.customName ??
+                fieldErrorMessage(createGame.error, "customName")
+              }
+              onCustomName={(next) => {
+                setCustomName(next);
+                clearField("customName");
               }}
               reviewGroup={reviewGroupName}
               groupVerified={groupVerified}

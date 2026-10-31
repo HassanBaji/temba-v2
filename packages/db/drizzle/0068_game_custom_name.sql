@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "has_custom_name" boolean DEFAULT false NOT NULL;

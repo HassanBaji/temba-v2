@@ -108,6 +108,7 @@ type ExpectedGames =
   | "cancel"
   | "cancelMatch"
   | "updateWindow"
+  | "updateName"
   | "updatePricePerPlayer"
   | "updateLevelRange"
   | "updateRoundCount"

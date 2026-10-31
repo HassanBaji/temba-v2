@@ -23,11 +23,13 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { Input } from "~/components/ui/input";
 import {
   fieldErrorMessage,
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
 import { EDIT_GAME_ACTION } from "@repo/domain/game-copy";
+import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
@@ -47,6 +49,14 @@ export type GameEditRounds = {
   overruns: boolean;
   error: EditFormError | null;
   summaryRef: React.RefObject<HTMLDivElement | null>;
+  pending: boolean;
+  onSave: () => void;
+};
+
+export type GameEditCustomName = {
+  value: string;
+  onChange: (value: string) => void;
+  error: EditFormError | null;
   pending: boolean;
   onSave: () => void;
 };
@@ -109,6 +119,7 @@ export function GameEditDialog({
   onSaveLevelRange,
   rounds,
   playersAllowed,
+  customName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -142,7 +153,11 @@ export function GameEditDialog({
   onSaveLevelRange: () => void;
   rounds: GameEditRounds | null;
   playersAllowed?: GameEditPlayersAllowed;
+  customName?: GameEditCustomName;
 }) {
+  const nameError = customName
+    ? fieldErrorMessage(customName.error, "customName")
+    : undefined;
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
@@ -155,6 +170,49 @@ export function GameEditDialog({
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
+          {customName ? (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (customName.pending) {
+                  return;
+                }
+                customName.onSave();
+              }}
+            >
+              <FormErrorSummary
+                message={globalFormErrorMessage(customName.error)}
+              />
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="edit-custom-name">Name</FieldLabel>
+                  <Input
+                    id="edit-custom-name"
+                    value={customName.value}
+                    maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
+                    onChange={(event) =>
+                      customName.onChange(event.target.value)
+                    }
+                    aria-invalid={nameError ? true : undefined}
+                    aria-describedby={
+                      nameError
+                        ? "edit-custom-name-error"
+                        : "edit-custom-name-copy"
+                    }
+                  />
+                  <FieldDescription id="edit-custom-name-copy">
+                    Optional. Shown on the Game and at the top of the invite
+                    message. Leave empty to use the day and time.
+                  </FieldDescription>
+                  <FieldError id="edit-custom-name-error">
+                    {nameError}
+                  </FieldError>
+                </Field>
+              </FieldGroup>
+              <SectionSaveButton pending={customName.pending} section="name" />
+            </form>
+          ) : null}
           <form
             className="space-y-3"
             onSubmit={(event) => {

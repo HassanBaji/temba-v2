@@ -7,14 +7,14 @@ describe("gameEditSectionsToReseed", () => {
   it("reseeds every section while the Edit game dialog is closed", () => {
     assert.deepEqual(
       gameEditSectionsToReseed({ dialogOpen: false, justSaved: new Set() }),
-      ["window", "price", "level", "rounds"],
+      ["name", "window", "price", "level", "rounds"],
     );
     assert.deepEqual(
       gameEditSectionsToReseed({
         dialogOpen: false,
         justSaved: new Set(["price"]),
       }),
-      ["window", "price", "level", "rounds"],
+      ["name", "window", "price", "level", "rounds"],
     );
   });
 

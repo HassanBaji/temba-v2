@@ -1,4 +1,5 @@
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import type { FriendlyGameDetails } from "@repo/domain/friendly-game-details";
 import {
   isPartnerVacantSideRace,
@@ -442,6 +443,7 @@ export function GameDetailsScreen({
             canLookup: inviteAccess.canSendLookup,
             canLink: true,
             share: {
+              customName: gameCustomName(data),
               format: data.format,
               registrationMode: data.registrationMode,
               venueName: data.venue?.name ?? null,

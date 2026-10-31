@@ -1,4 +1,5 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
@@ -216,6 +217,13 @@ export function FootballGameDetails({
   const updateWindow = api.games.updateWindow.useMutation({
     onSuccess: () => {
       toast.show("Window saved");
+      setSection("menu");
+    },
+    onSettled: refresh,
+  });
+  const updateName = api.games.updateName.useMutation({
+    onSuccess: () => {
+      toast.show("Name saved");
       setSection("menu");
     },
     onSettled: refresh,
@@ -633,6 +641,7 @@ export function FootballGameDetails({
             canLookup: inviteAccess.canSendLookup,
             canLink: true,
             share: {
+              customName: gameCustomName(game),
               format: game.format,
               sport: game.sport,
               registrationMode: game.registrationMode,
@@ -693,14 +702,20 @@ export function FootballGameDetails({
           capBounds={model.organizer.capBounds}
           now={now}
           pending={{
+            name: updateName.isPending,
             window: updateWindow.isPending,
             price: updatePrice.isPending,
             cap: updateCaps.isPending,
           }}
           errors={{
+            name: updateName.error?.message ?? null,
             window: updateWindow.error?.message ?? null,
             price: updatePrice.error?.message ?? null,
             cap: updateCaps.error?.message ?? null,
+          }}
+          onSaveName={(customName) => {
+            updateName.reset();
+            updateName.mutate({ gameId, customName });
           }}
           onSaveWindow={(window) => {
             updateWindow.reset();

@@ -82,6 +82,7 @@ export type FriendlyGameDetailsBooking = {
 export type FriendlyGameDetails = {
   id: string;
   name: string | null;
+  hasCustomName?: boolean;
   format: string;
   registrationMode: string;
   sport: string | null;
