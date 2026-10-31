@@ -576,15 +576,23 @@ export default function GameHomePage({
   }
 
   const createInviteLink = api.games.createInviteLink.useMutation({
-    onSuccess: async (result) => {
-      const text = inviteShareText(result.shortUrl ?? result.inviteUrl);
-      await shareLinkWithFeedback({ text }, "Invite link copied");
+    onSuccess: async () => {
       await utils.games.getInviteLink.invalidate({ gameId: id });
     },
     onError: (error) => {
       toastGlobalFormError(error);
     },
   });
+
+  function shareInviteLink() {
+    const text = createInviteLink
+      .mutateAsync({ gameId: id })
+      .then((result) => ({
+        text: inviteShareText(result.shortUrl ?? result.inviteUrl),
+      }))
+      .catch(() => null);
+    void shareLinkWithFeedback(text, "Invite link copied");
+  }
 
   const data = game.data;
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
@@ -819,7 +827,7 @@ export default function GameHomePage({
     onCloseRegistration: () => closeRegistration.mutate({ gameId: id }),
     onReopenRegistration: () => reopenRegistration.mutate({ gameId: id }),
     onInvite: () => setInvitesOpen(true),
-    onShare: () => createInviteLink.mutate({ gameId: id }),
+    onShare: shareInviteLink,
     onLeaveWaitlist: () => setLeaveWaitlistOpen(true),
   };
   const mobileOverflow =
@@ -1038,11 +1046,7 @@ export default function GameHomePage({
               onUndo={async () => {
                 await undoPoolDraw.mutateAsync({ gameId: id });
               }}
-              onShare={
-                canManageGameInvites
-                  ? () => createInviteLink.mutate({ gameId: id })
-                  : undefined
-              }
+              onShare={canManageGameInvites ? shareInviteLink : undefined}
               onInvite={
                 canManageGameInvites ? () => setInvitesOpen(true) : undefined
               }
