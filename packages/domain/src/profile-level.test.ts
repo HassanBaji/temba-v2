@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  FOOTBALL_STARTING_LEVEL_CAPTION,
   confirmationFraction,
   confirmationProgressCaption,
   lastMatchMovement,
@@ -94,6 +95,27 @@ describe("profileLevelView", () => {
     });
     assert.equal(view.fillPercent, 60);
     assert.equal(view.caption, "3 of about 5 rated games to confirm");
+  });
+
+  it("reads an unrated football Level as the starting one", () => {
+    const view = profileLevelView({
+      ...base,
+      sport: "football",
+      provisional: true,
+      ratedMatchCount: 0,
+      ratedMatchesRemaining: 5,
+      history: ["3.1", "3.4"],
+    });
+    assert.equal(view.displayBand, "C");
+    assert.equal(view.provisional, true);
+    assert.equal(view.movement, null);
+    assert.equal(view.fillPercent, 0);
+    assert.equal(view.caption, FOOTBALL_STARTING_LEVEL_CAPTION);
+  });
+
+  it("reads a rated football Level like a padel one", () => {
+    const view = profileLevelView({ ...base, sport: "football" });
+    assert.equal(view.caption, "16% of the way to C+");
   });
 
   it("clamps the fill into 0 to 100", () => {

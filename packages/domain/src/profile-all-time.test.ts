@@ -28,9 +28,33 @@ describe("profileAllTimeView", () => {
     const view = profileAllTimeView(base);
     assert.equal(view.record, "2–1");
     assert.equal(view.sets, "5–3");
+    assert.deepEqual(view.tally, { label: "Sets", value: "5–3" });
     assert.equal(view.longestStreak, "2 wins");
+    assert.equal(view.partnerLabel, "Most played partner");
     assert.equal(view.mostPlayedPartner, "Sam C");
     assert.equal(view.sinceLabel, "Since 2024");
+  });
+
+  it("tallies goals and names a teammate for football", () => {
+    const view = profileAllTimeView({
+      ...base,
+      sport: "football",
+      goalsScored: 7,
+    });
+    assert.deepEqual(view.tally, { label: "Goals", value: "7" });
+    assert.equal(view.partnerLabel, "Most played teammate");
+  });
+
+  it("reads football goals as empty before a match", () => {
+    const view = profileAllTimeView({
+      ...base,
+      sport: "football",
+      matchesPlayed: 0,
+      matchesWon: 0,
+      matchesLost: 0,
+      goalsScored: 0,
+    });
+    assert.deepEqual(view.tally, { label: "Goals", value: "—" });
   });
 
   it("reads as empty for a User with no matches", () => {

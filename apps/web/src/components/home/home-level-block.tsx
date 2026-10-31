@@ -7,13 +7,16 @@ import { Button } from "~/components/ui/button";
 import { DeclareLevelDialog } from "~/components/you/declare-level-dialog";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { type SelfDeclareChoice } from "@repo/domain/level-bands";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 export function HomeDeclareLevel({
   surface = "home",
+  sport = DEFAULT_SPORT,
 }: {
   surface?: "home" | "profile";
+  sport?: Sport;
 }) {
   const declareButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -38,7 +41,7 @@ export function HomeDeclareLevel({
     >
       <p className="text-lead font-semibold">Declare your Level</p>
       <p className="text-muted-foreground text-meta mt-1">
-        Place yourself on the padel ladder. You can do this once, before you
+        Place yourself on the {sport} ladder. You can do this once, before you
         have a Rated Match.
       </p>
       <Button
@@ -55,10 +58,11 @@ export function HomeDeclareLevel({
       <DeclareLevelDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        sport={sport}
         pending={selfDeclare.isPending}
         error={selfDeclare.error}
         onDeclare={(choice: SelfDeclareChoice) => {
-          selfDeclare.mutate({ sport: "padel", choice });
+          selfDeclare.mutate({ sport, choice });
         }}
         restoreFocusRef={declareButtonRef}
       />
