@@ -3,6 +3,14 @@ import {
   nextDistinctDisplayRung,
   type LevelBand,
 } from "./level-bands";
+import type { Sport } from "./sport";
+
+/**
+ * Football Games are Unrated, so a football Level stays the self-placed
+ * starting one until a football Match rates.
+ */
+export const FOOTBALL_STARTING_LEVEL_CAPTION =
+  "Starting Level. Football games don’t move it yet";
 
 export function confirmationFraction(
   ratedMatchCount: number,
@@ -49,6 +57,8 @@ export function lastMatchMovement(
 }
 
 export type ProfileLevelInput = {
+  /** Padel unless asked. */
+  sport?: Sport;
   band: LevelBand;
   level: string;
   provisional: boolean;
@@ -69,6 +79,17 @@ export type ProfileLevelView = {
 };
 
 export function profileLevelView(input: ProfileLevelInput): ProfileLevelView {
+  if (input.sport === "football" && input.ratedMatchCount === 0) {
+    return {
+      displayBand: displayLabelFromStoredBand(input.band),
+      level: input.level,
+      provisional: true,
+      movement: null,
+      atTopBand: false,
+      fillPercent: 0,
+      caption: FOOTBALL_STARTING_LEVEL_CAPTION,
+    };
+  }
   const displayNext = nextDistinctDisplayRung(input.band);
   const fillPercent = clampPercent(
     input.provisional

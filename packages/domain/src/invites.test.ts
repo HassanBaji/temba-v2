@@ -164,6 +164,12 @@ describe("toasts", () => {
       "Waiting for your Team partner to accept",
     );
     expect(inviteLinkAcceptToast("game", "waitlisted")).toBe("Joined waitlist");
+    expect(inviteLinkAcceptToast("game", "registered", true)).toBe(
+      "Joined Game and its Group",
+    );
+    expect(inviteLinkAcceptToast("game", "waitlisted", true)).toBe(
+      "Joined waitlist and the Group",
+    );
   });
 
   it("counts sent Lookup invites", () => {
@@ -272,7 +278,7 @@ describe("gameInviteLinkStage", () => {
 
 describe("groupLookupNote", () => {
   it("differs for Loose and Club Groups", () => {
-    expect(groupLookupNote(true)).toContain("Only you");
+    expect(groupLookupNote(true)).toContain("Organizers");
     expect(groupLookupNote(false)).toContain("Owners and Admins");
   });
 });

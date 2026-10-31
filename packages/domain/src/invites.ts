@@ -34,9 +34,9 @@ export const INVITE_LINK_COPY_FAILED_TOAST = "Couldn't copy the link";
 export const LOOKUP_INVITE_REVOKED_TOAST = "Lookup invite revoked";
 
 export const GROUP_LOOSE_LOOKUP_NOTE =
-  "Only you can invite people here. Invites don't expire.";
+  "You and the Group's Organizers can invite people here. Invites don't expire.";
 export const GROUP_CLUB_LOOKUP_NOTE =
-  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator can invite Community Members.";
+  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator and Organizers can invite Community Members.";
 
 export function groupLookupNote(isLoose: boolean) {
   return isLoose ? GROUP_LOOSE_LOOKUP_NOTE : GROUP_CLUB_LOOKUP_NOTE;
@@ -210,6 +210,7 @@ export function inviteLinkJoinLabel(name: string, requiresApproval = false) {
 export function inviteLinkAcceptToast(
   kind: InviteKind,
   outcome?: GameInviteLinkOutcome,
+  joinedGroup = false,
 ) {
   if (kind !== "game") {
     return `Joined ${inviteKindLabel(kind)}`;
@@ -218,12 +219,14 @@ export function inviteLinkAcceptToast(
     return "Waiting for your Team partner to accept";
   }
   if (outcome === "waitlisted") {
-    return GAME_TOAST.joinedWaitlist;
+    return joinedGroup
+      ? `${GAME_TOAST.joinedWaitlist} and the Group`
+      : GAME_TOAST.joinedWaitlist;
   }
   if (outcome === "already") {
     return "Already on this Game";
   }
-  return GAME_TOAST.joined;
+  return joinedGroup ? `${GAME_TOAST.joined} and its Group` : GAME_TOAST.joined;
 }
 
 export function lookupInviteSentToast(sentCount: number) {

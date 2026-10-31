@@ -5,6 +5,10 @@ import { communities, communityMembers, type groups } from "@repo/db";
 import { eq } from "drizzle-orm";
 
 import { isStaffRole } from "#src/games/access";
+import {
+  appointedOrganizerUserIds,
+  isAppointedOrganizer,
+} from "#src/groups/helpers/appointed-organizers";
 import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { consult } from "#src/soft-archive";
 
@@ -34,18 +38,29 @@ export async function isGroupApprover(
     if (isStaffRole(membership?.role)) {
       return true;
     }
-    return group.createdBy === userId && membership != null;
+    if (group.createdBy === userId && membership != null) {
+      return true;
+    }
+    return isAppointedOrganizer(database, group, userId);
   }
 
-  return group.createdBy === userId;
+  if (group.createdBy === userId) {
+    return true;
+  }
+  return isAppointedOrganizer(database, group, userId);
 }
 
 export async function groupApproverUserIds(
   database: DbOrTx,
-  group: Pick<typeof groups.$inferSelect, "communityId" | "createdBy">,
+  group: Pick<typeof groups.$inferSelect, "id" | "communityId" | "createdBy">,
 ): Promise<string[]> {
   if (!group.communityId) {
-    return [group.createdBy];
+    return [
+      ...new Set([
+        group.createdBy,
+        ...(await appointedOrganizerUserIds(database, group)),
+      ]),
+    ];
   }
   const community = await database.query.communities.findFirst({
     where: eq(communities.id, group.communityId),
@@ -66,6 +81,9 @@ export async function groupApproverUserIds(
     if (isStaffRole(membership.role) || membership.userId === group.createdBy) {
       approverIds.add(membership.userId);
     }
+  }
+  for (const userId of await appointedOrganizerUserIds(database, group)) {
+    approverIds.add(userId);
   }
   return [...approverIds];
 }

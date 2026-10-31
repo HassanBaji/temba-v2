@@ -1,5 +1,5 @@
 import {
-  REMOVE_UNCLAIMED_PLAYER_ACTION,
+  REMOVE_PLAYER_ACTION,
   RENAME_UNCLAIMED_PLAYER_ACTION,
 } from "@repo/domain/add-player-by-phone";
 import { View } from "react-native";
@@ -107,7 +107,7 @@ export function MemberSheet({
           ) : null}
           {onRemove ? (
             <Button
-              label={REMOVE_UNCLAIMED_PLAYER_ACTION}
+              label={REMOVE_PLAYER_ACTION}
               size="lg"
               variant="outline"
               onPress={onRemove}

@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
 
+import { isAppointedOrganizer } from "#src/groups/helpers/appointed-organizers";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { type db } from "#src/db";
 
 type DbClient = typeof db;
 
-export async function requireLooseCreator(
+export async function requireLooseInviter(
   database: DbClient,
   groupId: string,
   callerId: string,
@@ -19,10 +20,13 @@ export async function requireLooseCreator(
     });
   }
 
-  if (group.createdBy !== callerId) {
+  if (
+    group.createdBy !== callerId &&
+    !(await isAppointedOrganizer(database, group, callerId))
+  ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator can manage invites for this Group",
+      message: "Only the creator or an Organizer can manage invites for this Group",
     });
   }
 

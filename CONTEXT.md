@@ -93,15 +93,15 @@ An App list of live Public Groups of any sport the User is not in, filterable by
 _Avoid_: Directory, Group directory, marketplace, feed
 
 **Club Group Public**:
-A Club Group listed on the Public Groups list. A Community Member may join (or request if Require approval is on). A non-Member may send a Group join request; approving it also creates the Community membership. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
+A Club Group listed on the Public Groups list. A Community Member may join (or request if Require approval is on). A non-Member may send a Group join request; approving it also creates the Community membership. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator and Appointed Organizers may Lookup-invite existing Members only and cannot mint Invite links.
 _Avoid_: open Group (when you mean Club Group Public)
 
 **Club Group Private**:
-A Club Group joinable by Lookup invite or Invite link. Owner or Admin may invite any User (accept auto-admits as Member then joins the Group). The Group creator may Lookup-invite existing Members only and cannot mint Invite links.
+A Club Group joinable by Lookup invite or Invite link. Owner or Admin may invite any User (accept auto-admits as Member then joins the Group). The Group creator and Appointed Organizers may Lookup-invite existing Members only and cannot mint Invite links.
 _Avoid_: secret Group (when you mean Club Group Private)
 
 **Loose Group Public**:
-A Loose Group listed on the Public Groups list. Any authenticated User with the Group URL may join, unless Require approval is on. The creator may also send Lookup invites and mint Invite links.
+A Loose Group listed on the Public Groups list. Any authenticated User with the Group URL may join, unless Require approval is on. The creator and Appointed Organizers may also send Lookup invites and mint Invite links.
 _Avoid_: listed Group, Invite link (that is a different door from Group URL)
 
 **Require approval**:
@@ -117,11 +117,11 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove Unclaimed players, and make or unmake Appointed Organizers. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers. On a Loose Group, the creator and Appointed Organizers. On a Club Group, Community Owner or Admin, the Group creator while still a Community Member, and Appointed Organizers while still Community Members. Nobody while the Club Group's Community is Soft-archived. Removing a player never removes the Group creator, nor Community Owner or Admin from a Club Group; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
 _Avoid_: Group owner, organizer (when you mean this write permission), group admin
 
 **Loose Group Private**:
-A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it.
+A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it or one of its Appointed Organizers.
 _Avoid_: secret Loose Group
 
 **Lookup invite**:
@@ -133,7 +133,7 @@ Retired as a product door. Do not send named invitations bound to an email addre
 _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Community, Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on Community (Public and Private), every Group type, incomplete Team, and Game. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Community and Team stay token-path only.
+A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Community, Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on Community (Public and Private), every Group type, incomplete Team, and Game. Accepting a Group Game's Invite link also joins the Group (and the Community on a Club Group) when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Community and Team stay token-path only.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Invite doors**:
@@ -430,7 +430,7 @@ Of a Group Game: that Group’s creator, its Appointed Organizers, and for a Clu
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
-A Group member a Group approver made an Organizer of that Group's Games. Stored as the member's Group role. Not a Group approver: they cannot decide join requests, add or remove Group players, appoint others, or change, unlink or delete the Group. Never the Group creator, a Community Owner or Admin (already Organizers), or an Unclaimed player. On a Club Group only a Community Member can be appointed, and the appointment lapses while they are not one. Leaving the Group ends it.
+A Group member a Group approver made an Organizer of that Group's Games and, in turn, a Group approver (ADR-0047). Stored as the member's Group role. Holds the Group creator's powers: Lookup invites, Group join requests, adding and removing players, appointing and dismissing other Organizers, and on a Loose Group minting Invite links. Cannot remove the creator, unlink or delete the Group, or, on a Club Group, mint Invite links or invite non-Members. Never the Group creator, a Community Owner or Admin (already Organizers), or an Unclaimed player. On a Club Group only a Community Member can be appointed, and the appointment lapses while they are not one. Leaving the Group ends it.
 _Avoid_: co-organizer, co-host, Group admin, moderator
 
 **Game admins**:

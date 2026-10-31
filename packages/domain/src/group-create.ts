@@ -19,7 +19,7 @@ export const GROUP_CREATE_COPY = {
     publicHelp:
       "Any Community Member can join, or ask to join if you require approval.",
     privateHelp:
-      "Owners and Admins can invite anyone. The Group's creator can invite Community Members.",
+      "Owners and Admins can invite anyone. The Group's creator and Organizers can invite Community Members.",
     approvalHelp:
       "Community Members ask to join. You approve or reject them on Group home.",
     submit: "Create Club Group",

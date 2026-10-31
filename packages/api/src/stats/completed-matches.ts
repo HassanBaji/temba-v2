@@ -12,6 +12,7 @@ import {
   type CompletedMatchForStats,
   type CompletedMatchSlotPlayer,
 } from "@repo/domain/completed-matches";
+import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { gameListTime } from "#src/home/upcoming-games";
 
 function playersOnSlot(team: MatchSlotTeam): CompletedMatchSlotPlayer[] {
@@ -21,9 +22,11 @@ function playersOnSlot(team: MatchSlotTeam): CompletedMatchSlotPlayer[] {
   }));
 }
 
+/** Every sport unless one is asked for. */
 export async function loadCompletedMatchesForUser(
   database: DbClient,
   userId: string,
+  sport?: Sport,
 ): Promise<CompletedMatchForStats[]> {
   const myPlayerRows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),
@@ -66,6 +69,7 @@ export async function loadCompletedMatchesForUser(
           id: true,
           groupId: true,
           cancelledAt: true,
+          sport: true,
           windowStart: true,
           windowEnd: true,
           createdAt: true,
@@ -126,6 +130,9 @@ export async function loadCompletedMatchesForUser(
   for (const match of completedMatches) {
     const game = match.game;
     if (!game || game.cancelledAt != null) {
+      continue;
+    }
+    if (sport && sportOrDefault(game.sport) !== sport) {
       continue;
     }
     const userSlot = userSlotOnMatch(match, teamIds);

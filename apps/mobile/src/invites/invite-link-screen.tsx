@@ -196,7 +196,9 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   });
   const acceptGame = api.games.acceptInviteLink.useMutation({
     onSuccess: async (result) => {
-      toast.show(inviteLinkAcceptToast("game", result.outcome));
+      toast.show(
+        inviteLinkAcceptToast("game", result.outcome, result.joinedGroup),
+      );
       if (result.outcome === "waiting_for_partner") {
         setWaitingForPartner(true);
         return;

@@ -105,6 +105,7 @@ export type GroupHomeData = {
   joinRequestsApprovedToday: number;
   canManageImage: boolean;
   canAddPlayers: boolean;
+  canRemovePlayers: boolean;
   canAppointOrganizers: boolean;
   canDelete: boolean;
   viewerCanSetLevel: boolean;

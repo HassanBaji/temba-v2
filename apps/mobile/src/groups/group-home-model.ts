@@ -15,6 +15,7 @@ import {
   levelCellView,
   type LevelCellView,
   groupMemberOrganizerAction,
+  groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
 import {
   groupDisplayName,
@@ -226,9 +227,9 @@ function levelSpokenLabel(view: LevelCellView, levelText: string | null) {
 
 export function memberIsRemovable(
   entry: GroupLeaderboardEntryData,
-  canAddPlayers: boolean,
+  canRemovePlayers: boolean,
 ) {
-  return canAddPlayers && entry.unclaimed && !entry.isViewer;
+  return canRemovePlayers && groupMemberIsRemovable(entry);
 }
 
 export function memberOrganizerAction(
@@ -242,7 +243,7 @@ export function memberRowView(
   entry: GroupLeaderboardEntryData,
   apiOrigin: string,
   canSetLevel = false,
-  canAddPlayers = false,
+  canRemovePlayers = false,
   canAppointOrganizers = false,
 ): MemberRowView {
   const name = entry.name ?? "Member";
@@ -269,7 +270,7 @@ export function memberRowView(
     levelText: entry.level,
     selectable:
       (canSetLevel && !entry.isViewer) ||
-      memberIsRemovable(entry, canAddPlayers) ||
+      memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null,
     accessibilityLabel: [
       entry.isViewer ? `${name}, you` : name,
@@ -289,7 +290,7 @@ export function memberList(
   query: string,
   apiOrigin: string,
   canSetLevel = false,
-  canAddPlayers = false,
+  canRemovePlayers = false,
   canAppointOrganizers = false,
   sort?: GroupMembersSort,
 ) {
@@ -299,7 +300,7 @@ export function memberList(
       entry,
       apiOrigin,
       canSetLevel,
-      canAddPlayers,
+      canRemovePlayers,
       canAppointOrganizers,
     ),
   );
