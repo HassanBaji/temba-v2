@@ -25,6 +25,12 @@ export async function acceptInviteLink(
         message: "You are already a member of this Group",
       });
     }
+    if (accepted.reason === "blocked") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "You can't join this Group",
+      });
+    }
     if (accepted.reason === "frozen") {
       throwInviteFrozen({ kind: "group", id: "" }, "accept", "frozen");
     }
@@ -37,6 +43,7 @@ export async function acceptInviteLink(
   return {
     groupId: accepted.hostId,
     alreadyMember: accepted.alreadyMember,
+    requested: accepted.requested ?? false,
   };
 }
 

@@ -8,6 +8,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
+import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { consult, refuseIfFrozen } from "#src/soft-archive";
@@ -31,6 +32,13 @@ export async function joinClubPublic(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Club Group Private cannot be joined without an invite",
+    });
+  }
+
+  if (await isBlockedFromGroup(database, group.id, args.userId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You can't join this Group",
     });
   }
 

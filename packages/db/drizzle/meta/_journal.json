@@ -470,6 +470,13 @@
       "when": 1793190643363,
       "tag": "0066_group_member_role",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793351268786,
+      "tag": "0067_group_join_request_block_and_source",
+      "breakpoints": true
     }
   ]
 }

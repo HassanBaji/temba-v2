@@ -4,6 +4,7 @@ import {
   type InviteLinkPath,
   type InviteLinkPreview,
 } from "@repo/domain/invites";
+import { groupJoinToast } from "@repo/domain/group-join";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
@@ -168,7 +169,11 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   });
   const acceptGroup = api.groups.acceptInviteLink.useMutation({
     onSuccess: async (result) => {
-      toast.show(inviteLinkAcceptToast("group"));
+      toast.show(
+        result.requested
+          ? groupJoinToast("requestJoin")
+          : inviteLinkAcceptToast("group"),
+      );
       await Promise.all([
         utils.groups.mine.invalidate(),
         utils.communities.mine.invalidate(),

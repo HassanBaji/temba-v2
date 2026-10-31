@@ -22,6 +22,7 @@ export type ScreenProps = {
   footer?: React.ReactNode;
   /** Fill of the fixed band behind the status bar; match an ink `header`. */
   statusBarTone?: "paper" | "ink";
+  scrollRef?: React.Ref<ScrollView>;
 };
 
 const FOOTER_PADDING_Y = 14;
@@ -38,6 +39,7 @@ export function Screen({
   bleedHeader = false,
   footer,
   statusBarTone = "paper",
+  scrollRef,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const registry = useMemo(
@@ -79,6 +81,7 @@ export function Screen({
       >
         {scroll ? (
           <ScrollView
+            ref={scrollRef}
             style={{ backgroundColor: colors.paper }}
             contentContainerStyle={header ? undefined : content}
             keyboardShouldPersistTaps="handled"
@@ -119,9 +122,7 @@ export function Screen({
             {body}
           </ScrollView>
         ) : header ? (
-          <View style={{ flex: 1, backgroundColor: colors.paper }}>
-            {body}
-          </View>
+          <View style={{ flex: 1, backgroundColor: colors.paper }}>{body}</View>
         ) : (
           <View style={[{ flex: 1, backgroundColor: colors.paper }, content]}>
             {children}

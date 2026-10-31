@@ -1,10 +1,22 @@
-import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import {
   communities,
   communityMembers,
   games,
+  groupJoinRequests,
+  GroupJoinRequestStatusEnum,
   groupLinkRequests,
   GroupLinkRequestStatusEnum,
   groupMembers,
@@ -65,6 +77,7 @@ import {
   isGameLive,
 } from "#src/home/upcoming-games";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { startOfProductDay } from "@repo/domain/product-timezone";
 import { consult } from "#src/soft-archive";
 import {
   sortStandingMembers,
@@ -380,6 +393,25 @@ export async function groupById(
   const canSetRequiresApproval =
     isApprover && group.type === GroupTypeEnum.PUBLIC;
   const canDecideJoinRequests = canSetRequiresApproval;
+  const joinRequestsApprovedToday = canDecideJoinRequests
+    ? ((
+        await database
+          .select({ value: count() })
+          .from(groupJoinRequests)
+          .where(
+            and(
+              eq(groupJoinRequests.groupId, group.id),
+              eq(groupJoinRequests.status, GroupJoinRequestStatusEnum.APPROVED),
+              isNotNull(groupJoinRequests.decidedBy),
+              ne(groupJoinRequests.decidedBy, groupJoinRequests.userId),
+              gte(
+                groupJoinRequests.updatedAt,
+                startOfProductDay(args.now ?? new Date()),
+              ),
+            ),
+          )
+      )[0]?.value ?? 0)
+    : 0;
 
   const memberRows = await database.query.groupMembers.findMany({
     where: eq(groupMembers.groupId, group.id),
@@ -816,6 +848,7 @@ export async function groupById(
     pendingLinkRequestCount,
     canUnlinkFromVenue,
     canDecideJoinRequests,
+    joinRequestsApprovedToday,
     canSetRequiresApproval,
     canManageLookupInvites,
     canManageInviteLinks,

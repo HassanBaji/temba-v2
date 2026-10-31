@@ -11,14 +11,20 @@ import {
   groupPendingInvitesTitle,
   type GroupMembersSort,
 } from "@repo/domain/group-members-table";
-import { ChevronRight, EllipsisVertical } from "lucide-react-native";
-import { useState } from "react";
+import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
+import {
+  ChevronRight,
+  EllipsisVertical,
+  UserRoundPlus,
+} from "lucide-react-native";
+import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
+import { Hatch } from "../primitives/hatch";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { SearchField } from "../primitives/search-field";
 import { Surface } from "../primitives/surface";
@@ -273,9 +279,11 @@ function PendingInvitesCard({
         borderRadius: radii.card,
         borderWidth: hairline,
         borderColor: colors.rule,
+        overflow: "hidden",
         opacity: pressed ? 0.6 : 1,
       })}
     >
+      <Hatch bordered={false} radius={radii.card} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold">{title}</Text>
         <Text size="eyebrow" tone="muted" numberOfLines={1}>
@@ -303,6 +311,9 @@ export function MembersTab({
   onOrganizerAction,
   pendingInviteNames = [],
   onOpenInvites,
+  onAddPlayer,
+  top,
+  afterTable,
 }: {
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
@@ -323,6 +334,12 @@ export function MembersTab({
   /** Lookup invites not yet accepted; only an inviter is given them. */
   pendingInviteNames?: string[];
   onOpenInvites?: () => void;
+  /** Shown only while managing. */
+  onAddPlayer?: () => void;
+  /** Above the search row, e.g. the join requests banner. */
+  top?: ReactNode;
+  /** Between the table and the pending invites card. */
+  afterTable?: ReactNode;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [sort, setSort] = useState<GroupMembersSort>(
@@ -353,11 +370,18 @@ export function MembersTab({
     : null;
 
   if (list.isEmpty) {
-    return <Notice {...MEMBERS_EMPTY_COPY} />;
+    return (
+      <View style={{ gap: 14 }}>
+        {top}
+        <Notice {...MEMBERS_EMPTY_COPY} />
+        {afterTable}
+      </View>
+    );
   }
 
   return (
     <View style={{ gap: 14 }}>
+      {top}
       {list.showSearch || canManage ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -381,6 +405,14 @@ export function MembersTab({
             />
           ) : null}
         </View>
+      ) : null}
+      {isManaging && canAddPlayers && onAddPlayer ? (
+        <Button
+          label={ADD_PLAYER_ACTION}
+          variant="outline"
+          icon={<UserRoundPlus size={sizes.iconRow} color={colors.ink} />}
+          onPress={onAddPlayer}
+        />
       ) : null}
       <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
         <TableHeader
@@ -425,6 +457,7 @@ export function MembersTab({
           {groupMembersLegend({ managing: isManaging, showLevel })}
         </Text>
       </Surface>
+      {afterTable}
       {pendingInviteNames.length > 0 && onOpenInvites ? (
         <PendingInvitesCard names={pendingInviteNames} onOpen={onOpenInvites} />
       ) : null}

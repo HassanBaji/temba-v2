@@ -25,7 +25,14 @@ import {
 } from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
-import { GroupApproverControls } from "~/components/groups/group-join-requests-section";
+import {
+  JoinRequestsBanner,
+  JoinRequestsCard,
+  RejectRequestDialog,
+  WhoCanJoinDialog,
+  type JoinRequest,
+} from "~/components/groups/group-join-requests-section";
+import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
@@ -73,8 +80,9 @@ import {
   GROUP_DELETED_TOAST,
   GROUP_IMAGE_REMOVED_TOAST,
   GROUP_IMAGE_SAVED_TOAST,
-  GROUP_REQUEST_APPROVED_TOAST,
-  GROUP_REQUEST_REJECTED_TOAST,
+  GROUP_JOIN_REQUEST_UNDO_LABEL,
+  groupJoinRequestDecidedToast,
+  type GroupJoinRequestDecision,
   groupDeleteConfirm,
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
@@ -120,6 +128,10 @@ export default function GroupHomePage({
   const [removeImageOpen, setRemoveImageOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+  const [requestJoinOpen, setRequestJoinOpen] = useState(false);
+  const [whoCanJoinOpen, setWhoCanJoinOpen] = useState(false);
+  const [rejecting, setRejecting] = useState<JoinRequest | null>(null);
+  const joinRequestsRef = useRef<HTMLElement>(null);
   const [removing, setRemoving] = useState<{
     userId: string;
     name: string;
@@ -172,6 +184,7 @@ export default function GroupHomePage({
 
   const requestJoin = api.groups.requestJoin.useMutation({
     onSuccess: async () => {
+      setRequestJoinOpen(false);
       toast.success(groupJoinToast("requestJoin"));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
@@ -184,6 +197,7 @@ export default function GroupHomePage({
 
   const setRequiresApproval = api.groups.setRequiresApproval.useMutation({
     onSuccess: async () => {
+      setWhoCanJoinOpen(false);
       await utils.groups.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -196,42 +210,60 @@ export default function GroupHomePage({
     { enabled: Boolean(group.data?.canDecideJoinRequests) },
   );
 
+  async function refreshJoinRequests() {
+    await Promise.all([
+      utils.groups.byId.invalidate({ id }),
+      utils.groups.mine.invalidate(),
+      utils.groups.listJoinRequests.invalidate({ groupId: id }),
+      group.data?.communityId
+        ? utils.communities.byId.invalidate({
+            id: group.data.communityId,
+          })
+        : Promise.resolve(),
+      group.data?.communityId
+        ? utils.communities.mine.invalidate()
+        : Promise.resolve(),
+      group.data?.communityId
+        ? utils.communities.listJoinRequests.invalidate({
+            communityId: group.data.communityId,
+          })
+        : Promise.resolve(),
+    ]);
+  }
+
+  const undoJoinRequestDecision =
+    api.groups.undoJoinRequestDecision.useMutation({
+      onSettled: refreshJoinRequests,
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    });
+
+  function toastJoinRequestDecided(
+    request: JoinRequest,
+    decision: GroupJoinRequestDecision,
+  ) {
+    toast.success(
+      groupJoinRequestDecidedToast(request.user.name ?? "User", decision),
+      {
+        action: {
+          label: GROUP_JOIN_REQUEST_UNDO_LABEL,
+          onClick: () =>
+            undoJoinRequestDecision.mutate({ requestId: request.id }),
+        },
+      },
+    );
+  }
+
   const approveJoinRequest = api.groups.approveJoinRequest.useMutation({
-    onSuccess: async () => {
-      toast.success(GROUP_REQUEST_APPROVED_TOAST);
-      await Promise.all([
-        utils.groups.byId.invalidate({ id }),
-        utils.groups.mine.invalidate(),
-        utils.groups.listJoinRequests.invalidate({ groupId: id }),
-        group.data?.communityId
-          ? utils.communities.byId.invalidate({
-              id: group.data.communityId,
-            })
-          : Promise.resolve(),
-        group.data?.communityId
-          ? utils.communities.mine.invalidate()
-          : Promise.resolve(),
-        group.data?.communityId
-          ? utils.communities.listJoinRequests.invalidate({
-              communityId: group.data.communityId,
-            })
-          : Promise.resolve(),
-      ]);
-    },
+    onSettled: refreshJoinRequests,
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
   const rejectJoinRequest = api.groups.rejectJoinRequest.useMutation({
-    onSuccess: async () => {
-      toast.success(GROUP_REQUEST_REJECTED_TOAST);
-      await Promise.all([
-        utils.groups.byId.invalidate({ id }),
-        utils.groups.mine.invalidate(),
-        utils.groups.listJoinRequests.invalidate({ groupId: id }),
-      ]);
-    },
+    onSettled: refreshJoinRequests,
     onError: (error) => {
       toast.error(error.message);
     },
@@ -425,7 +457,7 @@ export default function GroupHomePage({
   function onJoin() {
     const door = group.data ? groupHomeJoinDoor(group.data) : null;
     if (door === "requestJoin") {
-      requestJoin.mutate({ groupId: id });
+      setRequestJoinOpen(true);
     } else if (door === "joinLoosePublic") {
       joinLoosePublic.mutate({ groupId: id });
     } else if (door === "joinClubPublic") {
@@ -701,41 +733,6 @@ export default function GroupHomePage({
           </TabsContent>
           <TabsContent value="members" forceMount className={TAB_PANEL}>
             <div className="flex flex-col gap-[26px]">
-              <GroupApproverControls
-                canSetRequiresApproval={data.canSetRequiresApproval}
-                requiresApproval={data.requiresApproval}
-                requiresApprovalPending={setRequiresApproval.isPending}
-                onRequiresApprovalChange={(next) =>
-                  setRequiresApproval.mutate({
-                    groupId: id,
-                    requiresApproval: next,
-                  })
-                }
-                canDecideJoinRequests={data.canDecideJoinRequests}
-                joinRequests={joinRequests.data}
-                joinLoading={joinRequests.isLoading}
-                joinError={joinRequests.error?.message}
-                onRetryJoin={() => {
-                  void joinRequests.refetch();
-                }}
-                approvePendingId={
-                  approveJoinRequest.isPending
-                    ? approveJoinRequest.variables?.requestId
-                    : undefined
-                }
-                rejectPendingId={
-                  rejectJoinRequest.isPending
-                    ? rejectJoinRequest.variables?.requestId
-                    : undefined
-                }
-                onApprove={(requestId) =>
-                  approveJoinRequest.mutate({ requestId })
-                }
-                onReject={(requestId) =>
-                  rejectJoinRequest.mutate({ requestId })
-                }
-                communityName={data.community?.name ?? null}
-              />
               <GroupMembersTab
                 groupId={id}
                 canSetLevel={
@@ -790,6 +787,61 @@ export default function GroupHomePage({
                 onRevokeInvite={(inviteId) =>
                   revokeLookupInvite.mutate({ inviteId })
                 }
+                top={
+                  data.canDecideJoinRequests ? (
+                    <JoinRequestsBanner
+                      count={joinRequests.data?.length ?? 0}
+                      onReview={() => {
+                        joinRequestsRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                        joinRequestsRef.current?.focus({
+                          preventScroll: true,
+                        });
+                      }}
+                    />
+                  ) : null
+                }
+                afterTable={
+                  data.canDecideJoinRequests ? (
+                    <JoinRequestsCard
+                      ref={joinRequestsRef}
+                      requests={joinRequests.data}
+                      loading={joinRequests.isLoading}
+                      error={joinRequests.error?.message}
+                      onRetry={() => {
+                        void joinRequests.refetch();
+                      }}
+                      requiresApproval={data.requiresApproval}
+                      approvedToday={data.joinRequestsApprovedToday}
+                      communityName={data.community?.name ?? null}
+                      showLevel={groupShowsLevel(data.sport)}
+                      linkToProfiles={groupMemberRowsLink(data.membership)}
+                      approvePendingId={
+                        approveJoinRequest.isPending
+                          ? approveJoinRequest.variables?.requestId
+                          : undefined
+                      }
+                      rejectPendingId={
+                        rejectJoinRequest.isPending
+                          ? rejectJoinRequest.variables?.requestId
+                          : undefined
+                      }
+                      onApprove={(request) =>
+                        approveJoinRequest.mutate(
+                          { requestId: request.id },
+                          {
+                            onSuccess: () =>
+                              toastJoinRequestDecided(request, "approved"),
+                          },
+                        )
+                      }
+                      onAskReject={setRejecting}
+                      onChangePolicy={() => setWhoCanJoinOpen(true)}
+                    />
+                  ) : null
+                }
                 onOrganizerAction={(member, action) =>
                   setOrganizer.mutate(
                     {
@@ -811,6 +863,63 @@ export default function GroupHomePage({
           </TabsContent>
         </div>
       </Tabs>
+
+      <RequestJoinDialog
+        open={requestJoinOpen}
+        onOpenChange={setRequestJoinOpen}
+        pending={requestJoin.isPending}
+        onSend={(note) =>
+          requestJoin.mutate({ groupId: id, note: note.trim() || undefined })
+        }
+      />
+      {data.canDecideJoinRequests ? (
+        <>
+          <RejectRequestDialog
+            request={rejecting}
+            communityName={data.community?.name ?? null}
+            pending={
+              rejectJoinRequest.isPending
+                ? rejectJoinRequest.variables?.block
+                  ? "block"
+                  : "reject"
+                : null
+            }
+            onOpenChange={(open) => {
+              if (!open) {
+                setRejecting(null);
+              }
+            }}
+            onReject={(block) => {
+              if (!rejecting) {
+                return;
+              }
+              const request = rejecting;
+              rejectJoinRequest.mutate(
+                { requestId: request.id, block },
+                {
+                  onSuccess: () => {
+                    setRejecting(null);
+                    toastJoinRequestDecided(
+                      request,
+                      block ? "blocked" : "rejected",
+                    );
+                  },
+                },
+              );
+            }}
+          />
+          <WhoCanJoinDialog
+            open={whoCanJoinOpen}
+            onOpenChange={setWhoCanJoinOpen}
+            requiresApproval={data.requiresApproval}
+            communityName={data.community?.name ?? null}
+            pending={setRequiresApproval.isPending}
+            onSave={(requiresApproval) =>
+              setRequiresApproval.mutate({ groupId: id, requiresApproval })
+            }
+          />
+        </>
+      ) : null}
 
       <ConfirmDialog
         open={leaveOpen}

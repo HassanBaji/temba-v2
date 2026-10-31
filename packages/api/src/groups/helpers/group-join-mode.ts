@@ -10,6 +10,7 @@ import {
   type groups,
 } from "@repo/db";
 
+import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
 import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { consult } from "#src/soft-archive";
 
@@ -36,6 +37,10 @@ export async function groupJoinMode(
   });
   if (membership) {
     return "member";
+  }
+
+  if (await isBlockedFromGroup(database, group.id, userId)) {
+    return "none";
   }
 
   if (group.communityId) {

@@ -39,6 +39,7 @@ import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvit
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
+import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./undoJoinRequestDecision";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
 
 export const groupsRouter = createTRPCRouter({
@@ -56,6 +57,7 @@ export const groupsRouter = createTRPCRouter({
   listJoinRequests,
   approveJoinRequest,
   rejectJoinRequest,
+  undoJoinRequestDecision,
   setRequiresApproval,
   leave,
   delete: deleteProcedure,

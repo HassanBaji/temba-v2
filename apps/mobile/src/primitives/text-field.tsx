@@ -13,6 +13,7 @@ import { hairline } from "./hairline-width";
 import { Text } from "./text";
 
 const FIELD_HEIGHT = 48;
+const MULTILINE_MIN_HEIGHT = 96;
 
 export function inputType(size: number, width: TextWidth) {
   return {
@@ -58,7 +59,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             {...props}
             style={{
               flex: 1,
-              height: FIELD_HEIGHT,
+              height: props.multiline ? undefined : FIELD_HEIGHT,
+              minHeight: props.multiline ? MULTILINE_MIN_HEIGHT : undefined,
+              paddingTop: props.multiline ? 12 : undefined,
+              paddingBottom: props.multiline ? 12 : undefined,
+              textAlignVertical: props.multiline ? "top" : undefined,
               paddingHorizontal: spacing.compact - 4,
               borderRadius: radii.md,
               borderWidth: invalid ? 2 : hairline,

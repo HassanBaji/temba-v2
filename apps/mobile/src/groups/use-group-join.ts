@@ -1,5 +1,5 @@
 import { groupJoinToast, type GroupJoinDoor } from "@repo/domain/group-join";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
@@ -33,9 +33,16 @@ export function useGroupJoin() {
   const joinClubPublic = api.groups.joinClubPublic.useMutation(
     options("joinClubPublic"),
   );
-  const requestJoin = api.groups.requestJoin.useMutation(
-    options("requestJoin"),
+  const [requestingGroupId, setRequestingGroupId] = useState<string | null>(
+    null,
   );
+  const requestJoin = api.groups.requestJoin.useMutation({
+    ...options("requestJoin"),
+    onSuccess: () => {
+      setRequestingGroupId(null);
+      toast.show(groupJoinToast("requestJoin"));
+    },
+  });
 
   const pendingGroupId =
     (joinLoosePublic.isPending ? joinLoosePublic.variables?.groupId : null) ??
@@ -46,15 +53,31 @@ export function useGroupJoin() {
   const join = useCallback(
     (groupId: string, door: GroupJoinDoor) => {
       if (door === "requestJoin") {
-        requestJoin.mutate({ groupId });
+        setRequestingGroupId(groupId);
       } else if (door === "joinClubPublic") {
         joinClubPublic.mutate({ groupId });
       } else {
         joinLoosePublic.mutate({ groupId });
       }
     },
-    [joinClubPublic, joinLoosePublic, requestJoin],
+    [joinClubPublic, joinLoosePublic],
   );
 
-  return { join, pendingGroupId };
+  return {
+    join,
+    pendingGroupId,
+    requestSheet: {
+      visible: requestingGroupId != null,
+      pending: requestJoin.isPending,
+      onSend: (note: string) => {
+        if (requestingGroupId) {
+          requestJoin.mutate({
+            groupId: requestingGroupId,
+            note: note.trim() || undefined,
+          });
+        }
+      },
+      onClose: () => setRequestingGroupId(null),
+    },
+  };
 }

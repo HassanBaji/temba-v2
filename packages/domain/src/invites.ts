@@ -202,6 +202,10 @@ export type GameInviteLinkOutcome =
   | "already"
   | "waiting_for_partner";
 
+export function inviteLinkJoinLabel(name: string, requiresApproval = false) {
+  return requiresApproval ? `Request to join ${name}` : `Join ${name}`;
+}
+
 export function inviteLinkAcceptToast(
   kind: InviteKind,
   outcome?: GameInviteLinkOutcome,
@@ -262,7 +266,13 @@ export type GameInviteLinkReady = {
 
 export type InviteLinkPreview =
   | { status: "invalid" | "unavailable" }
-  | { status: "ready"; kind: "community" | "group" | "team"; name: string }
+  | {
+      status: "ready";
+      kind: "community" | "group" | "team";
+      name: string;
+      /** A Group whose Organizers approve new members: accepting sends a request. */
+      requiresApproval?: boolean;
+    }
   | { status: "ready"; kind: "game"; game: GameInviteLinkReady };
 
 export const LEVEL_RANGE_REQUEST_PENDING_NOTE =

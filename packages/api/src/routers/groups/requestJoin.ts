@@ -14,7 +14,7 @@ type DbClient = typeof db;
 
 export async function requestJoin(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; note?: string | null },
 ) {
   const group = await requireGroup(database, args.groupId);
   const mode = await groupJoinMode(database, group, args.userId);
@@ -50,12 +50,21 @@ export async function requestJoin(
     ),
   });
 
+  const details = {
+    note: args.note ?? null,
+    source: group.communityId
+      ? ("community" as const)
+      : ("group_page" as const),
+    invitedBy: null,
+  };
+
   if (existing?.status === "rejected" || existing?.status === "approved") {
     const [updated] = await database
       .update(groupJoinRequests)
       .set({
         status: GroupJoinRequestStatusEnum.PENDING,
         decidedBy: null,
+        ...details,
         updatedAt: new Date(),
       })
       .where(eq(groupJoinRequests.id, existing.id))
@@ -77,6 +86,7 @@ export async function requestJoin(
       groupId: group.id,
       userId: args.userId,
       status: GroupJoinRequestStatusEnum.PENDING,
+      ...details,
     })
     .returning();
 
@@ -91,11 +101,22 @@ export async function requestJoin(
 }
 
 export const requestJoinProcedure = protectedProcedure
-  .input(z.object({ groupId: z.string().uuid() }))
+  .input(
+    z.object({
+      groupId: z.string().uuid(),
+      note: z
+        .string()
+        .trim()
+        .max(280)
+        .optional()
+        .transform((note) => (note === undefined || note === "" ? null : note)),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     return requestJoin(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      note: input.note,
     });
   });
