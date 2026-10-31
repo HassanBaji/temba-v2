@@ -9,7 +9,7 @@ import {
   type Slot,
 } from "~/components/invites/invite-dialog-view";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { COPY_LINK_FAILED_MESSAGE } from "~/lib/share-link";
+import { COPY_LINK_FAILED_MESSAGE, copyTextWhenReady } from "~/lib/share-link";
 import { api } from "~/trpc/react";
 import {
   formatGameClock,
@@ -325,26 +325,35 @@ export function InviteDoorDialog({
   }
 
   async function shareLink() {
+    if (typeof navigator.share !== "function") {
+      await copyLink();
+      return;
+    }
     const message = await mintMessage();
     if (!message) {
       return;
     }
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ text: message });
+    try {
+      await navigator.share({ text: message });
+      return;
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
         return;
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
       }
     }
     await copyMessage(message);
   }
 
   async function copyLink() {
-    const message = await mintMessage();
-    if (message && (await copyMessage(message))) {
+    let wrote: boolean;
+    try {
+      wrote = await copyTextWhenReady(mintMessage());
+    } catch {
+      toast.error(COPY_LINK_FAILED_MESSAGE);
+      return;
+    }
+    if (wrote) {
+      toast.success(INVITE_LINK_COPIED_TOAST);
       setCopied(true);
       if (copiedTimer.current) {
         clearTimeout(copiedTimer.current);
