@@ -5,6 +5,7 @@ import {
   gameInviteSeatCopy,
   gameInviteSeatState,
   inviteKindLabel,
+  inviteLinkJoinLabel,
   levelRangeGateAction,
   type GameInviteLinkReady,
   type InviteKind,
@@ -101,11 +102,13 @@ function Hero({
 function SimpleReady({
   kind,
   name,
+  requiresApproval,
   pending,
   onAccept,
 }: {
   kind: InviteKind;
   name: string;
+  requiresApproval?: boolean;
   pending: boolean;
   onAccept: InviteLinkViewProps["onAccept"];
 }) {
@@ -114,7 +117,7 @@ function SimpleReady({
       <Hero kind={kind} name={name} />
       <View style={{ flexDirection: "row" }}>
         <Button
-          label={`Join ${name}`}
+          label={inviteLinkJoinLabel(name, requiresApproval)}
           size="lg"
           pending={pending}
           onPress={() => onAccept()}
@@ -282,6 +285,7 @@ export function InviteLinkView(props: InviteLinkViewProps) {
     <SimpleReady
       kind={value.kind}
       name={value.name}
+      requiresApproval={value.requiresApproval}
       pending={props.acceptPending}
       onAccept={props.onAccept}
     />

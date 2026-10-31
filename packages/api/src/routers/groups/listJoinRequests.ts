@@ -1,7 +1,14 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupJoinRequests, GroupJoinRequestStatusEnum } from "@repo/db";
+import {
+  groupJoinRequests,
+  GroupJoinRequestStatusEnum,
+  ratings,
+} from "@repo/db";
+
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import type { LevelBand } from "@repo/domain/level-bands";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,7 +22,7 @@ type DbClient = typeof db;
 
 export async function listJoinRequests(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; now?: Date },
 ) {
   const group = await requireGroup(database, args.groupId);
 
@@ -38,9 +45,35 @@ export async function listJoinRequests(
       user: {
         columns: { id: true, name: true, image: true },
       },
+      invitedBy: {
+        columns: { id: true, name: true },
+      },
     },
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
+
+  const now = args.now ?? new Date();
+  const requesterIds = rows.map((row) => row.userId);
+  const levelByUserId = new Map<
+    string,
+    { levelBand: LevelBand; provisional: boolean; level: string }
+  >();
+  if (group.sport && requesterIds.length > 0) {
+    const ratingRows = await database.query.ratings.findMany({
+      where: and(
+        eq(ratings.sport, group.sport),
+        inArray(ratings.userId, requesterIds),
+      ),
+    });
+    for (const row of ratingRows) {
+      const view = youRatingViewAfterIdle(row, now);
+      levelByUserId.set(row.userId, {
+        levelBand: view.levelBand,
+        provisional: view.provisional,
+        level: view.level,
+      });
+    }
+  }
 
   return Promise.all(
     rows.map(async (row) => {
@@ -62,6 +95,12 @@ export async function listJoinRequests(
         isCommunityMember: group.communityId
           ? Boolean(communityMembership)
           : null,
+        note: row.note,
+        source: row.source,
+        invitedBy: row.invitedBy
+          ? { id: row.invitedBy.id, name: row.invitedBy.name }
+          : null,
+        level: levelByUserId.get(row.userId) ?? null,
       };
     }),
   );

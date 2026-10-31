@@ -15,6 +15,7 @@ import {
   ResponsiveDialog,
   ResponsiveDialogContent,
   ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
@@ -358,7 +359,7 @@ function PendingInvitesCard({
     <button
       type="button"
       onClick={onOpen}
-      className="border-rule rounded-card hover:border-ink flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-current"
+      className="border-rule rounded-card hover:border-ink hatch flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-current"
     >
       <span className="min-w-0">
         <span className="text-body block font-semibold">
@@ -382,12 +383,14 @@ function PendingInvitesDialog({
   invites,
   revokePendingId,
   onRevoke,
+  onInviteMore,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invites: GroupPendingInvite[];
   revokePendingId?: string;
   onRevoke: (inviteId: string) => void;
+  onInviteMore?: () => void;
 }) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -421,17 +424,33 @@ function PendingInvitesDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="icon-sm"
                   pending={revokePendingId === invite.id}
                   disabled={revokePendingId != null}
                   onClick={() => onRevoke(invite.id)}
                   aria-label={`Cancel the invite to ${invite.name}`}
                 >
-                  Cancel
+                  <X aria-hidden="true" />
                 </Button>
               </li>
             ))}
           </ul>
+        ) : null}
+        {onInviteMore ? (
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              size="lg"
+              onClick={() => {
+                onOpenChange(false);
+                onInviteMore();
+              }}
+              className="w-full font-semibold"
+            >
+              <UserPlus aria-hidden="true" />
+              Invite someone else
+            </Button>
+          </ResponsiveDialogFooter>
         ) : null}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
@@ -475,6 +494,8 @@ export function GroupMembersTab({
   pendingInvites = [],
   revokeInvitePendingId,
   onRevokeInvite,
+  top,
+  afterTable,
 }: {
   showLevel?: boolean;
   canAppointOrganizers?: boolean;
@@ -499,6 +520,10 @@ export function GroupMembersTab({
   pendingInvites?: GroupPendingInvite[];
   revokeInvitePendingId?: string;
   onRevokeInvite?: (inviteId: string) => void;
+  /** Above the search row, e.g. the join requests banner. */
+  top?: ReactNode;
+  /** Between the table and the pending invites card. */
+  afterTable?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<GroupMembersSort>(
@@ -549,12 +574,14 @@ export function GroupMembersTab({
   if (members.length === 0) {
     return (
       <div className="flex flex-col gap-[26px]">
+        {top}
         <EmptyState
           icon={Users}
           title="No members yet"
           description="People who join this Group will show up here."
         />
         {addPlayerButton}
+        {afterTable}
         {canInvite ? <InviteBlock onInvite={onInvite} /> : null}
       </div>
     );
@@ -609,7 +636,7 @@ export function GroupMembersTab({
   return (
     <div className="flex flex-col gap-[26px]">
       {saved ? <SavedBanner saved={saved} onDismiss={onDismissSaved} /> : null}
-      {addPlayerButton}
+      {top}
 
       <div className="flex flex-col gap-3.5">
         {showSearch || manageButton ? (
@@ -629,6 +656,7 @@ export function GroupMembersTab({
             {manageButton}
           </div>
         ) : null}
+        {isManaging ? addPlayerButton : null}
 
         <div className={cardFrame}>
           <table className="w-full table-fixed border-collapse">
@@ -690,6 +718,8 @@ export function GroupMembersTab({
           </p>
         </div>
 
+        {afterTable}
+
         {pendingInvites.length > 0 && onRevokeInvite ? (
           <PendingInvitesCard
             invites={pendingInvites}
@@ -705,6 +735,7 @@ export function GroupMembersTab({
           invites={pendingInvites}
           revokePendingId={revokeInvitePendingId}
           onRevoke={onRevokeInvite}
+          onInviteMore={canInvite ? onInvite : undefined}
         />
       ) : null}
     </div>

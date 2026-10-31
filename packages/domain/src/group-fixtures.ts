@@ -246,6 +246,7 @@ export function createGroupFixtures(now = new Date()) {
     verified: true,
     canSetRequiresApproval: false,
     canDecideJoinRequests: false,
+    joinRequestsApprovedToday: 0,
     canManageImage: false,
     canAddPlayers: false,
     canAppointOrganizers: false,
@@ -274,12 +275,20 @@ export function createGroupFixtures(now = new Date()) {
       createdAt: new Date(now.getTime() - 2 * DAY_MS),
       user: { id: "nora", name: "Nora Berg", image: null },
       isCommunityMember: null,
+      note: "Play Fridays with Ali, can bring one more if you are short.",
+      source: "invite_link",
+      invitedBy: { id: "ali", name: "Ali Haji" },
+      level: { levelBand: "C1", provisional: false, level: "3.4" },
     },
     {
       id: "request-sam",
       createdAt: new Date(now.getTime() - 10 * DAY_MS),
       user: { id: "sam", name: "Sam Ek", image: null },
       isCommunityMember: false,
+      note: null,
+      source: "community",
+      invitedBy: null,
+      level: null,
     },
   ];
 

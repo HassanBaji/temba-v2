@@ -147,10 +147,17 @@ describe("preview normalisers", () => {
     expect(
       communityPreview({ status: "ready", communityName: "Södermalm" }),
     ).toEqual({ status: "ready", kind: "community", name: "Södermalm" });
-    expect(groupPreview({ status: "ready", groupName: "Bromma" })).toEqual({
+    expect(
+      groupPreview({
+        status: "ready",
+        groupName: "Bromma",
+        requiresApproval: true,
+      }),
+    ).toEqual({
       status: "ready",
       kind: "group",
       name: "Bromma",
+      requiresApproval: true,
     });
     expect(teamPreview({ status: "ready", teamName: "Sam & you" })).toEqual({
       status: "ready",

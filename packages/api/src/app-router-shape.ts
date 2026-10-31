@@ -157,6 +157,7 @@ type ExpectedGroups =
   | "listJoinRequests"
   | "approveJoinRequest"
   | "rejectJoinRequest"
+  | "undoJoinRequestDecision"
   | "setRequiresApproval"
   | "leave"
   | "delete"

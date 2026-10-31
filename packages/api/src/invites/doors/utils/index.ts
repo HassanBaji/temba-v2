@@ -80,7 +80,7 @@ export type MintLinkResult =
 export type PreviewLinkResult =
   | { ok: true; status: "invalid" }
   | { ok: true; status: "unavailable" }
-  | { ok: true; status: "ready"; name: string };
+  | { ok: true; status: "ready"; name: string; requiresApproval?: boolean };
 
 export type AcceptLinkResult =
   | {
@@ -88,6 +88,7 @@ export type AcceptLinkResult =
       alreadyMember: boolean;
       waitlisted?: boolean;
       waitingForPartner?: boolean;
+      requested?: boolean;
       hostId: string;
     }
   | {
@@ -97,5 +98,6 @@ export type AcceptLinkResult =
         | "frozen"
         | "unavailable"
         | "already_member"
-        | "seat_required";
+        | "seat_required"
+        | "blocked";
     };

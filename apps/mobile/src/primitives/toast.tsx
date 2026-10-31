@@ -11,13 +11,18 @@ import {
 import { AccessibilityInfo, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Button } from "./button";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
 import { Text } from "./text";
 
 const VISIBLE_MS = 3000;
+// Long enough to reach for Undo after reading the message.
+const ACTION_VISIBLE_MS = 6000;
 
-type ToastApi = { show: (message: string) => void };
+export type ToastAction = { label: string; onPress: () => void };
+
+type ToastApi = { show: (message: string, action?: ToastAction) => void };
 
 const ToastContext = createContext<ToastApi | null>(null);
 
@@ -31,16 +36,30 @@ export function useToast(): ToastApi {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
-  const [message, setMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    action?: ToastAction;
+  } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const show = useCallback((next: string) => {
+  const show = useCallback((message: string, action?: ToastAction) => {
     if (timer.current) {
       clearTimeout(timer.current);
     }
-    setMessage(next);
-    AccessibilityInfo.announceForAccessibility(next);
-    timer.current = setTimeout(() => setMessage(null), VISIBLE_MS);
+    setToast({ message, action });
+    AccessibilityInfo.announceForAccessibility(message);
+    timer.current = setTimeout(
+      () => setToast(null),
+      action ? ACTION_VISIBLE_MS : VISIBLE_MS,
+    );
+  }, []);
+
+  const runAction = useCallback((action: ToastAction) => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+    }
+    setToast(null);
+    action.onPress();
   }, []);
 
   useEffect(
@@ -57,11 +76,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {message ? (
+      {toast ? (
         <View
-          pointerEvents="none"
+          pointerEvents={toast.action ? "box-none" : "none"}
           accessibilityLiveRegion="polite"
           style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
             position: "absolute",
             left: spacing.compact,
             right: spacing.compact,
@@ -74,7 +96,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           }}
         >
           <SurfaceToneContext.Provider value="paper">
-            <Text weight="medium">{message}</Text>
+            <Text weight="medium" style={{ flex: 1 }}>
+              {toast.message}
+            </Text>
+            {toast.action ? (
+              <Button
+                label={toast.action.label}
+                size="sm"
+                variant="outline"
+                onPress={() => {
+                  if (toast.action) {
+                    runAction(toast.action);
+                  }
+                }}
+              />
+            ) : null}
           </SurfaceToneContext.Provider>
         </View>
       ) : null}

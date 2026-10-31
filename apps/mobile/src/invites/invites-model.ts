@@ -147,7 +147,12 @@ export function communityPreview(
 
 export function groupPreview(data: GroupPreviewData): InviteLinkPreview {
   return data.status === "ready"
-    ? { status: "ready", kind: "group", name: data.groupName }
+    ? {
+        status: "ready",
+        kind: "group",
+        name: data.groupName,
+        requiresApproval: data.requiresApproval,
+      }
     : { status: data.status };
 }
 

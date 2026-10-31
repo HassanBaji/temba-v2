@@ -5,8 +5,11 @@ import {
   CommunityRoleEnum,
   gameInviteLinks,
   groupInviteLinks,
+  groupJoinRequests,
+  GroupJoinRequestStatusEnum,
   groupMembers,
   groups,
+  GroupTypeEnum,
   teamInviteLinks,
   teamMembers,
 } from "@repo/db";
@@ -19,6 +22,7 @@ import {
   recordTeamInviteLinkConsent,
 } from "#src/games/invites";
 import { isIndividualSeatGame } from "#src/games/seats";
+import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { writeDb } from "#src/invites/doors/helpers/write-db";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
@@ -32,6 +36,39 @@ import type {
 } from "#src/invites/doors/utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function requestGroupJoinFromLink(
+  database: InviteDb,
+  args: { groupId: string; userId: string; invitedBy: string },
+) {
+  const existing = await database.query.groupJoinRequests.findFirst({
+    where: and(
+      eq(groupJoinRequests.groupId, args.groupId),
+      eq(groupJoinRequests.userId, args.userId),
+    ),
+    columns: { id: true, status: true },
+  });
+  if (existing?.status === GroupJoinRequestStatusEnum.PENDING) {
+    return;
+  }
+  const details = {
+    status: GroupJoinRequestStatusEnum.PENDING,
+    decidedBy: null,
+    note: null,
+    source: "invite_link" as const,
+    invitedBy: args.invitedBy,
+  };
+  if (existing) {
+    await writeDb(database)
+      .update(groupJoinRequests)
+      .set({ ...details, updatedAt: new Date() })
+      .where(eq(groupJoinRequests.id, existing.id));
+    return;
+  }
+  await writeDb(database)
+    .insert(groupJoinRequests)
+    .values({ groupId: args.groupId, userId: args.userId, ...details });
+}
 
 export async function acceptLink(
   database: InviteDb,
@@ -82,7 +119,13 @@ export async function acceptLink(
     }
     const group = await database.query.groups.findFirst({
       where: eq(groups.id, host.id),
-      columns: { id: true, communityId: true, createdBy: true },
+      columns: {
+        id: true,
+        communityId: true,
+        createdBy: true,
+        type: true,
+        requiresApproval: true,
+      },
     });
     if (!group) {
       return { ok: false, reason: "not_found" };
@@ -101,6 +144,22 @@ export async function acceptLink(
         decidedBy: args.userId,
       });
       return { ok: false, reason: "already_member" };
+    }
+    if (await isBlockedFromGroup(database, host.id, args.userId)) {
+      return { ok: false, reason: "blocked" };
+    }
+    if (group.type === GroupTypeEnum.PUBLIC && group.requiresApproval) {
+      await requestGroupJoinFromLink(database, {
+        groupId: host.id,
+        userId: args.userId,
+        invitedBy: link.createdBy,
+      });
+      return {
+        ok: true,
+        alreadyMember: false,
+        requested: true,
+        hostId: host.id,
+      };
     }
     if (group.communityId) {
       const admitted = await admitCommunityMember(database, {
@@ -122,7 +181,12 @@ export async function acceptLink(
       userId: args.userId,
       decidedBy: args.userId,
     });
-    return { ok: true, alreadyMember: false, hostId: host.id };
+    return {
+      ok: true,
+      alreadyMember: false,
+      requested: false,
+      hostId: host.id,
+    };
   }
 
   if (hostKind === "team") {

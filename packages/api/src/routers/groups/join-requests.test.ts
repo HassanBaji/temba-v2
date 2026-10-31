@@ -596,7 +596,7 @@ describe("group join requests", () => {
     }
   });
 
-  it("marks a pending Group join request approved after Lookup invite or Invite link accept", async () => {
+  it("marks a pending Group join request approved after Lookup invite, and keeps it pending after Invite link accept", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const creator = await insertUser(db, "invite-creator@example.com");
@@ -660,14 +660,23 @@ describe("group join requests", () => {
       if (!link) {
         throw new Error("Failed to mint Invite link");
       }
-      await acceptInviteLink(db, {
+      const accepted = await acceptInviteLink(db, {
         token: link.token,
         userId: linkUser.id,
       });
+      expect(accepted.requested).toBe(true);
       const linkRow = await db.query.groupJoinRequests.findFirst({
         where: eq(groupJoinRequests.id, linkRequest.id),
       });
-      expect(linkRow?.status).toBe(GroupJoinRequestStatusEnum.APPROVED);
+      expect(linkRow?.status).toBe(GroupJoinRequestStatusEnum.PENDING);
+      expect(
+        await db.query.groupMembers.findFirst({
+          where: and(
+            eq(groupMembers.groupId, linkGroup.id),
+            eq(groupMembers.userId, linkUser.id),
+          ),
+        }),
+      ).toBeUndefined();
     } finally {
       await close();
     }

@@ -1,5 +1,4 @@
 import { spacing } from "@repo/design-tokens";
-import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import {
@@ -21,6 +20,7 @@ import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { groupManageActions } from "@repo/domain/group-admin";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
+import { useRef } from "react";
 import { View } from "react-native";
 
 import {
@@ -35,10 +35,9 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { GamesTab, type GamesTabProps } from "./games-tab";
-import {
-  GroupApproverView,
-  type GroupApproverProps,
-} from "./group-approver-view";
+import { JoinRequestsBanner, JoinRequestsCard } from "./group-approver-view";
+import { RejectRequestSheet, WhoCanJoinSheet } from "./join-request-sheets";
+import type { GroupApproverHandlers } from "./use-group-admin";
 import { groupBanner, groupHomeHeader, groupJoinCta } from "./group-home-model";
 import { MembersTab } from "./members-tab";
 import { SavedLevelBanner } from "./saved-level-banner";
@@ -47,17 +46,7 @@ import { StandingTab } from "./standing-tab";
 import type { GroupLinkRequestRow } from "./use-group-link-request";
 
 export type GroupAdminHandlers = {
-  approver: Pick<
-    GroupApproverProps,
-    | "requests"
-    | "requiresApprovalPending"
-    | "onRequiresApprovalChange"
-    | "approvePendingId"
-    | "rejectPendingId"
-    | "onApprove"
-    | "onReject"
-    | "onRetry"
-  >;
+  approver: GroupApproverHandlers;
   imagePending: boolean;
   onChangeImage: () => void;
   onRemoveImage: () => void;
@@ -117,6 +106,8 @@ export type GroupHomeViewProps = {
   venueRequestPendingId: string | null;
   onAcceptVenueRequest: (request: GroupLinkRequestRow) => void;
   onDeclineVenueRequest: (request: GroupLinkRequestRow) => void;
+  /** Scrolls the screen so `target` is in view. */
+  onScrollTo: (target: View | null) => void;
 };
 
 const TABS: { key: GroupHomeTab; label: string }[] = [
@@ -136,6 +127,11 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const createGameHref = groupHomeCanShowCreateGame(data)
     ? ({ pathname: "/games/new", params: { groupId: data.id } } as const)
     : undefined;
+  const requestsRef = useRef<View>(null);
+  const { approver } = props.admin;
+  const requestCount =
+    approver.requests.status === "ready" ? approver.requests.value.length : 0;
+  const communityName = data.community?.name ?? null;
 
   return (
     <View style={{ gap: spacing.compact }}>
@@ -155,9 +151,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         </View>
       </ScreenHeader>
 
-      {data.membership ||
-      groupHomeCanManageInvites(data) ||
-      data.canAddPlayers ? (
+      {data.membership || groupHomeCanManageInvites(data) ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {groupHomeCanManageInvites(data) ? (
             <Button
@@ -165,14 +159,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               size="sm"
               variant="outline"
               onPress={props.onInvite}
-            />
-          ) : null}
-          {data.canAddPlayers ? (
-            <Button
-              label={ADD_PLAYER_ACTION}
-              size="sm"
-              variant="outline"
-              onPress={props.onAddPlayer}
             />
           ) : null}
           {data.membership ? (
@@ -327,16 +313,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         />
       ) : null}
       {props.tab === "members" ? (
-        <GroupApproverView
-          {...props.admin.approver}
-          canSetRequiresApproval={data.canSetRequiresApproval}
-          requiresApproval={data.requiresApproval}
-          canDecideJoinRequests={data.canDecideJoinRequests}
-          communityName={data.community?.name ?? null}
-          apiOrigin={props.apiOrigin}
-        />
-      ) : null}
-      {props.tab === "members" ? (
         <MembersTab
           leaderboard={data.standing.leaderboard}
           query={props.memberQuery}
@@ -357,7 +333,50 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           onOrganizerAction={props.onOrganizerAction}
           pendingInviteNames={props.pendingInviteNames}
           onOpenInvites={onInvite}
+          onAddPlayer={props.onAddPlayer}
+          top={
+            data.canDecideJoinRequests ? (
+              <JoinRequestsBanner
+                count={requestCount}
+                onReview={() => props.onScrollTo(requestsRef.current)}
+              />
+            ) : null
+          }
+          afterTable={
+            data.canDecideJoinRequests ? (
+              <JoinRequestsCard
+                ref={requestsRef}
+                requests={approver.requests}
+                requiresApproval={data.requiresApproval}
+                approvedToday={data.joinRequestsApprovedToday}
+                communityName={communityName}
+                apiOrigin={props.apiOrigin}
+                showLevel={groupShowsLevel(data.sport)}
+                approvePendingId={approver.approvePendingId}
+                rejectPendingId={approver.rejectPendingId}
+                onApprove={approver.onApprove}
+                onAskReject={approver.onAskReject}
+                onOpenProfile={props.onOpenMember}
+                onChangePolicy={approver.onChangePolicy}
+                onRetry={approver.onRetry}
+              />
+            ) : null
+          }
         />
+      ) : null}
+      {data.canDecideJoinRequests ? (
+        <>
+          <RejectRequestSheet
+            {...approver.rejectSheet}
+            communityName={communityName}
+            apiOrigin={props.apiOrigin}
+          />
+          <WhoCanJoinSheet
+            {...approver.whoCanJoinSheet}
+            requiresApproval={data.requiresApproval}
+            communityName={communityName}
+          />
+        </>
       ) : null}
 
       <SeatPickerSheet

@@ -7,6 +7,7 @@ import {
   games,
   groupInviteLinks,
   groups,
+  GroupTypeEnum,
   teamInviteLinks,
   teams,
 } from "@repo/db";
@@ -67,9 +68,15 @@ export async function previewLink(
     }
     const group = await database.query.groups.findFirst({
       where: eq(groups.id, link.groupId),
-      columns: { name: true },
+      columns: { name: true, type: true, requiresApproval: true },
     });
-    return { ok: true, status: "ready", name: group?.name ?? "Group" };
+    return {
+      ok: true,
+      status: "ready",
+      name: group?.name ?? "Group",
+      requiresApproval:
+        group?.type === GroupTypeEnum.PUBLIC && group.requiresApproval,
+    };
   }
 
   if (hostKind === "team") {
