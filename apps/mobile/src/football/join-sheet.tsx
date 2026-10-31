@@ -24,7 +24,7 @@ import {
   keeperSub,
   keepersIn,
   seatSummary,
-  type BoardPlayer,
+  type JoinPlayer,
 } from "@repo/domain/football-board";
 
 const CHOICE_HEIGHT = 52;
@@ -102,7 +102,7 @@ export type FootballJoinSheetProps = {
   visible: boolean;
   mode: "join" | "edit";
   subtitle: string;
-  players: readonly BoardPlayer[];
+  players: readonly JoinPlayer[];
   viewer: { role: FootballRole | null; position: FootballPosition | null };
   price: string | null;
   teamsLine: string;
@@ -119,8 +119,9 @@ export type FootballJoinSheetProps = {
  */
 export function FootballJoinSheet(props: FootballJoinSheetProps) {
   const others = props.players.filter((player) => !player.isViewer);
+  const alreadyKeeper = props.mode === "edit" && props.viewer.role === "keeper";
   const keeperLocked =
-    keeperSeatsLeft(keepersIn(others)) === 0 && props.viewer.role !== "keeper";
+    keeperSeatsLeft(keepersIn(others)) === 0 && !alreadyKeeper;
   const [role, setRole] = useState<FootballRole>(
     props.viewer.role ?? "outfield",
   );

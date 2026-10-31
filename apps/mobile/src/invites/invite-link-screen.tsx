@@ -5,6 +5,10 @@ import {
   type InviteLinkPreview,
 } from "@repo/domain/invites";
 import { groupJoinToast } from "@repo/domain/group-join";
+import {
+  type FootballPosition,
+  type FootballRole,
+} from "@repo/domain/football-lineup";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
@@ -204,8 +208,10 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       ]);
       land(result.gameId);
     },
-    onError: (e) => {
-      toast.show(e.message);
+    onError: (e, variables) => {
+      if (!variables.football) {
+        toast.show(e.message);
+      }
       void game.refetch();
     },
   });
@@ -232,6 +238,12 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     }
   }
 
+  function acceptFootball(role: FootballRole, position: FootballPosition) {
+    if (token) {
+      acceptGame.mutate({ token, football: { role, position } });
+    }
+  }
+
   const acceptPending =
     acceptCommunity.isPending ||
     acceptGroup.isPending ||
@@ -245,9 +257,11 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
         kind={kind}
         preview={preview}
         acceptPending={acceptPending}
+        acceptError={acceptGame.error?.message ?? null}
         requestPending={requestLevel.isPending}
         waitingForPartner={waitingForPartner}
         onAccept={accept}
+        onAcceptFootball={acceptFootball}
         onRequestLevel={(gameId) =>
           token && requestLevel.mutate({ gameId, inviteToken: token })
         }

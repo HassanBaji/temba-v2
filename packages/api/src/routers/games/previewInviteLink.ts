@@ -1,7 +1,9 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { gameInviteLinks } from "@repo/db";
+import { gameInviteLinks, gamePlayers, user } from "@repo/db";
+
+import { isFootballGame } from "@repo/domain/game-shape";
 
 import { publicProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -10,7 +12,10 @@ import {
   getRegistrationStatus,
   isGameOrganizer,
   requireGame,
+  type GameRow,
 } from "#src/games/access";
+import { footballSides } from "#src/games/football-lineup";
+import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { viewerLevelRangeFields } from "#src/games/level-range-requests";
 import {
   isIndividualSeatGame,
@@ -23,6 +28,52 @@ import { tournamentInvitePreviewNeedsSeatPick } from "@repo/domain/tournament-jo
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db;
+
+/**
+ * What a signed-in joiner needs to pick keeper or player and a preferred
+ * position before accepting. Null when they are already on the Game.
+ */
+async function footballJoinPreview(
+  database: DbClient,
+  game: GameRow,
+  userId: string,
+) {
+  if (await userAlreadyOnGame(database, game.id, userId)) {
+    return null;
+  }
+  const roster = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.gameId, game.id),
+    columns: { footballRole: true, footballPosition: true },
+    with: { user: { columns: { name: true } } },
+    orderBy: asc(gamePlayers.createdAt),
+  });
+  const viewer = await database.query.user.findFirst({
+    where: eq(user.id, userId),
+    columns: { preferredFootballRole: true, preferredFootballPosition: true },
+  });
+  const sides = await footballSides(database, game.id);
+  return {
+    players: roster.flatMap((row) =>
+      row.user
+        ? [
+            {
+              name: row.user.name,
+              role: row.footballRole,
+              position: row.footballPosition,
+            },
+          ]
+        : [],
+    ),
+    sideSize: game.sideSize,
+    playersAllowed: game.playersAllowed,
+    pricePerPlayerFils: game.pricePerPlayerFils,
+    teamsSet: sides.slot1 != null && sides.slot2 != null,
+    preferred: {
+      role: viewer?.preferredFootballRole ?? null,
+      position: viewer?.preferredFootballPosition ?? null,
+    },
+  };
+}
 
 export async function previewInviteLink(
   database: DbClient,
@@ -57,6 +108,10 @@ export async function previewInviteLink(
     partnerRequired: partnerRequiredJoin,
   });
   const sides = needsSeatPick ? await listGameSides(database, gameRow) : [];
+  const football =
+    args.userId && isFootballGame(gameRow) && !blockedByLevelRange
+      ? await footballJoinPreview(database, gameRow, args.userId)
+      : null;
   return {
     status: "ready" as const,
     gameId: gameRow.id,
@@ -77,6 +132,7 @@ export async function previewInviteLink(
     viewerPassesLevelRange: levelFields?.viewerPassesLevelRange ?? null,
     levelRangeRequest: levelFields?.levelRangeRequest ?? null,
     canRequestLevelRange: levelFields?.canRequestLevelRange ?? false,
+    football,
   };
 }
 

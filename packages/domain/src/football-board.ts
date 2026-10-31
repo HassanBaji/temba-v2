@@ -62,8 +62,8 @@ export function shortName(name: string) {
  * Every registration is a seat up to players allowed: substitutes register
  * like anyone else and the teams are made from everyone.
  */
-export function poolLayout(
-  players: readonly BoardPlayer[],
+export function poolLayout<Player>(
+  players: readonly Player[],
   sideSize: number | null,
   playersAllowed: number | null,
 ) {
@@ -79,7 +79,14 @@ export function keepersIn(players: readonly Pick<BoardPlayer, "role">[]) {
   return players.filter((player) => player.role === "keeper").length;
 }
 
-export function keeperNote(players: readonly BoardPlayer[]) {
+/** A player as the join choice reads them: the viewer is left out. */
+export type JoinPlayer = Pick<BoardPlayer, "name" | "role" | "position"> & {
+  isViewer?: boolean;
+};
+
+export function keeperNote(
+  players: readonly Pick<JoinPlayer, "name" | "role">[],
+) {
   const first = players.find((player) => player.role === "keeper");
   const lead = `One keeper per team, so ${KEEPERS_PER_GAME} per game.`;
   return first
@@ -87,7 +94,7 @@ export function keeperNote(players: readonly BoardPlayer[]) {
     : `${lead} Nobody has claimed one yet.`;
 }
 
-export function keeperSub(players: readonly BoardPlayer[]) {
+export function keeperSub(players: readonly Pick<BoardPlayer, "role">[]) {
   const left = keeperSeatsLeft(keepersIn(players));
   if (left === 0) {
     return "both taken";
@@ -111,6 +118,25 @@ export function joinActionLabel(
       ? "Join as keeper"
       : `Join as ${footballPositionCode(position)}`;
   return price && price !== "Free" ? `${lead}, ${price}` : lead;
+}
+
+/** The line under the join choice reached from an Invite link. */
+export function footballInviteJoinSubtitle(football: {
+  players: readonly unknown[];
+  sideSize: number | null;
+  playersAllowed: number | null;
+}) {
+  const { openSeats } = poolLayout(
+    football.players,
+    football.sideSize,
+    football.playersAllowed,
+  );
+  return [
+    football.sideSize ? `${football.sideSize}-a-side` : null,
+    `${openSeats} seats open`,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export function bibNames(bibs: Bibs) {

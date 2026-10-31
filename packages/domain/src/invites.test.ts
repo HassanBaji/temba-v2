@@ -244,6 +244,25 @@ describe("gameInviteLinkStage", () => {
     expect(gameInviteLinkStage(ready, true)).toBe("accept");
   });
 
+  it("asks a signed-in joiner of a football Game how they play", () => {
+    const football = {
+      players: [],
+      sideSize: 5,
+      playersAllowed: 10,
+      pricePerPlayerFils: null,
+      teamsSet: false,
+      preferred: { role: null, position: null },
+    };
+    expect(gameInviteLinkStage({ ...ready, football }, true)).toBe("football");
+    expect(gameInviteLinkStage({ ...ready, football }, false)).toBe("accept");
+    expect(
+      gameInviteLinkStage(
+        { ...ready, football, viewerPassesLevelRange: false },
+        true,
+      ),
+    ).toBe("level_range");
+  });
+
   it("does not gate a signed-out visitor on Level range", () => {
     expect(
       gameInviteLinkStage({ ...ready, viewerPassesLevelRange: false }, false),

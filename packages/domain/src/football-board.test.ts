@@ -4,6 +4,7 @@ import {
   addGoal,
   confirmationLine,
   draftSummary,
+  footballInviteJoinSubtitle,
   initialTeamsDraft,
   joinActionLabel,
   keeperNote,
@@ -71,6 +72,16 @@ describe("join sheet copy", () => {
       "Join as MID, 1.500 BD",
     );
     expect(joinActionLabel("keeper", "mid", "Free")).toBe("Join as keeper");
+  });
+
+  it("sums up side size and open seats for an Invite link joiner", () => {
+    expect(
+      footballInviteJoinSubtitle({
+        players: [player("a"), player("b")],
+        sideSize: 5,
+        playersAllowed: 10,
+      }),
+    ).toBe("5-a-side, 8 seats open");
   });
 
   it("shortens a name to first name and last initial", () => {
