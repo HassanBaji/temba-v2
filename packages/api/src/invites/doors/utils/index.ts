@@ -71,7 +71,7 @@ export type MintLinkResult =
         id: string;
         token: string;
         createdAt: Date;
-        expiresAt: Date;
+        expiresAt: Date | null;
         shortCode?: string;
       };
     }
