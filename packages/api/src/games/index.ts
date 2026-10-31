@@ -38,6 +38,7 @@ export { updateTournamentMatch } from "#src/games/update-tournament-match";
 export {
   admitCompleteTeam,
   admitIndividualUser,
+  admitInviteeToGroup,
   assertGameInviteDoorsOpen,
   assertInviteeAllowedOnGame,
   eligibleCompleteTeamsForUser,

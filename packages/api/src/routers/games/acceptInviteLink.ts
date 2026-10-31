@@ -22,8 +22,8 @@ import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted"
 import { assertKeeperSeatOpen } from "#src/games/football-lineup";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import {
+  admitInviteeToGroup,
   assertGameInviteDoorsOpen,
-  assertInviteeAllowedOnGame,
 } from "#src/games/invites";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { acceptLink, throwInviteFrozen } from "#src/invites/doors";
@@ -57,7 +57,6 @@ export async function acceptInviteLink(
   const game = await requireGame(database, link.gameId);
   assertPoolDrawNotPosted(game);
   await assertGameInviteDoorsOpen(database, game);
-  await assertInviteeAllowedOnGame(database, game, args.userId);
 
   if (args.football && !isFootballGame(game)) {
     throw new TRPCError({
@@ -71,6 +70,7 @@ export async function acceptInviteLink(
       gameId: game.id,
       outcome: "already" as const,
       waitlisted: false as const,
+      joinedGroup: false,
     };
   }
 
@@ -92,50 +92,55 @@ export async function acceptInviteLink(
     await assertKeeperSeatOpen(database, game.id);
   }
 
-  const accepted = await acceptLink(database, "game", {
-    token: args.token,
-    userId: args.userId,
-    seat:
-      args.sideIndex != null && args.position
-        ? { sideIndex: args.sideIndex, position: args.position }
-        : undefined,
-  });
-  if (!accepted.ok) {
-    if (accepted.reason === "seat_required") {
+  const { accepted, joinedGroup } = await database.transaction(async (tx) => {
+    const group = await admitInviteeToGroup(tx, game, args.userId);
+    const accepted = await acceptLink(tx, "game", {
+      token: args.token,
+      userId: args.userId,
+      seat:
+        args.sideIndex != null && args.position
+          ? { sideIndex: args.sideIndex, position: args.position }
+          : undefined,
+    });
+    if (!accepted.ok) {
+      if (accepted.reason === "seat_required") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Pick a vacant Position",
+        });
+      }
+      if (accepted.reason === "frozen") {
+        throwInviteFrozen({ kind: "game", id: game.id }, "accept", "frozen");
+      }
       throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Pick a vacant Position",
+        code: "NOT_FOUND",
+        message: "Invite link is invalid or expired",
       });
     }
-    if (accepted.reason === "frozen") {
-      throwInviteFrozen({ kind: "game", id: game.id }, "accept", "frozen");
+    if (args.football && !accepted.waitingForPartner && !accepted.waitlisted) {
+      await tx
+        .update(gamePlayers)
+        .set({
+          footballRole: args.football.role,
+          footballPosition: args.football.position,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(gamePlayers.gameId, game.id),
+            eq(gamePlayers.userId, args.userId),
+          ),
+        );
     }
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Invite link is invalid or expired",
-    });
-  }
+    return { accepted, joinedGroup: group.joined };
+  });
   if (accepted.waitingForPartner) {
     return {
       gameId: game.id,
       outcome: "waiting_for_partner" as const,
       waitlisted: false as const,
+      joinedGroup,
     };
-  }
-  if (args.football && !accepted.waitlisted) {
-    await database
-      .update(gamePlayers)
-      .set({
-        footballRole: args.football.role,
-        footballPosition: args.football.position,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(gamePlayers.gameId, game.id),
-          eq(gamePlayers.userId, args.userId),
-        ),
-      );
   }
   return {
     gameId: game.id,
@@ -143,6 +148,7 @@ export async function acceptInviteLink(
       ? ("waitlisted" as const)
       : ("registered" as const),
     waitlisted: accepted.waitlisted ?? false,
+    joinedGroup,
   };
 }
 

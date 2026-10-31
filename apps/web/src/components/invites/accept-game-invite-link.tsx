@@ -65,7 +65,9 @@ export function AcceptGameInviteLink({
   });
   const accept = api.games.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success(inviteLinkAcceptToast("game", result.outcome));
+      toast.success(
+        inviteLinkAcceptToast("game", result.outcome, result.joinedGroup),
+      );
       if (result.outcome === "waiting_for_partner") {
         return;
       }

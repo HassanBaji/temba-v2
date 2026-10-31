@@ -210,6 +210,7 @@ export function inviteLinkJoinLabel(name: string, requiresApproval = false) {
 export function inviteLinkAcceptToast(
   kind: InviteKind,
   outcome?: GameInviteLinkOutcome,
+  joinedGroup = false,
 ) {
   if (kind !== "game") {
     return `Joined ${inviteKindLabel(kind)}`;
@@ -218,12 +219,14 @@ export function inviteLinkAcceptToast(
     return "Waiting for your Team partner to accept";
   }
   if (outcome === "waitlisted") {
-    return GAME_TOAST.joinedWaitlist;
+    return joinedGroup
+      ? `${GAME_TOAST.joinedWaitlist} and the Group`
+      : GAME_TOAST.joinedWaitlist;
   }
   if (outcome === "already") {
     return "Already on this Game";
   }
-  return GAME_TOAST.joined;
+  return joinedGroup ? `${GAME_TOAST.joined} and its Group` : GAME_TOAST.joined;
 }
 
 export function lookupInviteSentToast(sentCount: number) {
