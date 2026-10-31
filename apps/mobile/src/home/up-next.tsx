@@ -204,14 +204,32 @@ function Kickoff({
   );
 }
 
-function Place({ lead, rest }: { lead: string; rest: string | null }) {
+function Headline({
+  title,
+  detail,
+  pin = false,
+}: {
+  title: string;
+  detail: string | null;
+  pin?: boolean;
+}) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <MapPin size={PIN_ICON} color={colors.dim} />
-      <Text numberOfLines={1} style={{ flexShrink: 1 }}>
-        <Text weight="semibold">{lead}</Text>
-        {rest ? <Text style={{ color: colors.dim }}>{`  ${rest}`}</Text> : null}
+    <View style={{ gap: 4 }}>
+      <Text size="lead" weight="semibold" numberOfLines={2}>
+        {title}
       </Text>
+      {detail ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {pin ? <MapPin size={PIN_ICON} color={colors.dim} /> : null}
+          <Text
+            size="meta"
+            numberOfLines={1}
+            style={{ flexShrink: 1, color: colors.dim }}
+          >
+            {detail}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -278,7 +296,7 @@ function BookingHero({
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Place lead={booking.venue.name} rest={booking.court.name} />
+      <Headline title={booking.venue.name} detail={booking.court.name} pin />
     </HeroFrame>
   );
 }
@@ -327,7 +345,7 @@ function GameHero({
         }
       >
         <Kickoff startsAt={startsAt} endsAt={null} />
-        <Place lead={row.title} rest={subline} />
+        <Headline title={row.title} detail={subline} />
       </HeroFrame>
     );
   }
@@ -349,6 +367,12 @@ function GameHero({
       : homeNextGameStatus(game.phase, startsAt, now);
   const title = game.name ?? game.groupName ?? game.venue?.name ?? "Game";
   const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
+  const venueLine = [
+    game.venue?.name === title ? null : game.venue?.name,
+    game.courtName,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <HeroFrame
@@ -374,7 +398,7 @@ function GameHero({
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Place lead={title} rest={place && place !== title ? place : null} />
+      <Headline title={title} detail={venueLine || null} pin />
       {game.rated ? null : (
         <Text size="meta" weight="semibold">
           {UNRATED_LABEL}
