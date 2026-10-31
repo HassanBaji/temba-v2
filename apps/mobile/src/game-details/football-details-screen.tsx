@@ -650,6 +650,11 @@ export function FootballGameDetails({
               windowStart: game.windowStart,
               windowEnd: game.windowEnd,
               sides: [],
+              football: {
+                sideSize: game.sideSize,
+                playersAllowed: game.playersAllowed,
+                players,
+              },
             },
           }}
         />

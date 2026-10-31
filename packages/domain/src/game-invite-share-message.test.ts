@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
 import {
+  formatFootballInviteShareMessage,
   formatGameInviteShareMessage,
   gameInviteClipboardText,
 } from "./game-invite-share-message";
@@ -145,7 +146,68 @@ describe("gameInviteClipboardText", () => {
     ).toBe(shortUrl);
   });
 
-  it("copies just the link for a football Friendly game, which has no teams or seats", () => {
+  it("copies the football details and numbered player list for a football Friendly game", () => {
+    const windowStart = bahrainDayFromToday(1, 20);
+    const windowEnd = bahrainDayFromToday(1, 21);
+    const message = gameInviteClipboardText({
+      format: "friendly_game",
+      sport: "football",
+      registrationMode: "individual",
+      shortUrl,
+      roster: {
+        venueName: "Pitch Club",
+        courtName: "Pitch 1",
+        windowStart,
+        windowEnd,
+        sides: [],
+        shortUrl,
+        football: {
+          sideSize: 2,
+          playersAllowed: 5,
+          players: [{ name: "Ada" }, { name: "Lin" }],
+        },
+      },
+    });
+
+    expect(message).toBe(
+      [
+        "📍 Pitch Club",
+        "⚽ Pitch 1",
+        `📅 ${formatRelativeDay(windowStart)}`,
+        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart)}`,
+        "👥 2-a-side",
+        "",
+        "👕 Players (2/5)",
+        "1. Ada",
+        "2. Lin",
+        "3. Open",
+        "4. Open",
+        "5. Open",
+        "",
+        "🔗 Join:",
+        shortUrl,
+      ].join("\n"),
+    );
+  });
+
+  it("lists every football player when there is no cap", () => {
+    const message = formatFootballInviteShareMessage(
+      {
+        venueName: "Pitch Club",
+        courtName: null,
+        windowStart: new Date(),
+        windowEnd: new Date(),
+        sides: [],
+        shortUrl,
+      },
+      { sideSize: null, playersAllowed: null, players: [{ name: "Ada" }] },
+    );
+    expect(message).not.toContain("⚽");
+    expect(message).not.toContain("👥");
+    expect(message).toContain("👕 Players (1)\n1. Ada\n\n🔗 Join:");
+  });
+
+  it("copies just the link for a football Friendly game without its player list", () => {
     expect(
       gameInviteClipboardText({
         format: "friendly_game",

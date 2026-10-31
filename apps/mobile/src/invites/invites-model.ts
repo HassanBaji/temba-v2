@@ -1,4 +1,7 @@
-import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
+import {
+  gameInviteClipboardText,
+  type GameInviteShareFootball,
+} from "@repo/domain/game-invite-share-message";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { openSeatCount } from "@repo/domain/invite-door";
@@ -91,6 +94,7 @@ export type GameShareContext = {
     left: { name: string } | null;
     right: { name: string } | null;
   }[];
+  football?: GameInviteShareFootball;
 };
 
 export function gameShareMessage(
@@ -111,6 +115,7 @@ export function gameShareMessage(
       windowEnd: game.windowEnd,
       sides: game.sides,
       shortUrl: url,
+      football: game.football,
     },
   });
 }

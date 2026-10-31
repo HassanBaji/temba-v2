@@ -321,6 +321,11 @@ export function FootballGameDetails({
         windowEnd: game.windowEnd,
         sides: [],
         shortUrl: url,
+        football: {
+          sideSize: game.sideSize,
+          playersAllowed: game.playersAllowed,
+          players,
+        },
       },
     });
   }
