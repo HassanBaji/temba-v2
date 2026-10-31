@@ -1,5 +1,5 @@
 {
-  "id": "46d01865-d2a5-47c6-a72a-5a4534e7e625",
+  "id": "cd03fa0f-a404-44bc-9d7a-84fd3a005a66",
   "prevId": "23a72246-1798-4a11-b787-caf78481a983",
   "version": "7",
   "dialect": "postgresql",
@@ -2770,6 +2770,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "has_custom_name": {
+          "name": "has_custom_name",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "format": {
           "name": "format",
           "type": "game_format",
@@ -4253,7 +4260,7 @@
           "name": "expires_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",

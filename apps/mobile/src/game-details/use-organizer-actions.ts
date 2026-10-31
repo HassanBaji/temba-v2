@@ -129,6 +129,13 @@ export function useOrganizerActions({
     },
     onSettled: refresh,
   });
+  const updateName = api.games.updateName.useMutation({
+    onSuccess: () => {
+      toast.show("Name saved");
+      setSection("menu");
+    },
+    onSettled: refresh,
+  });
   const updatePrice = api.games.updatePricePerPlayer.useMutation({
     onSuccess: () => {
       toast.show("Price per player saved");
@@ -274,16 +281,22 @@ export function useOrganizerActions({
     courts: slotOf(courts),
     now,
     pending: {
+      name: updateName.isPending,
       window: updateWindow.isPending,
       price: updatePrice.isPending,
       level: updateLevel.isPending,
       court: updateMatch.isPending,
     },
     errors: {
+      name: updateName.error?.message ?? null,
       window: updateWindow.error?.message ?? null,
       price: updatePrice.error?.message ?? null,
       level: updateLevel.error?.message ?? null,
       court: updateMatch.error?.message ?? null,
+    },
+    onSaveName: (customName) => {
+      updateName.reset();
+      updateName.mutate({ gameId, customName });
     },
     onSaveWindow: (input) => {
       updateWindow.reset();

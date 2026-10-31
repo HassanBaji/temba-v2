@@ -36,6 +36,7 @@ export const games = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }),
+    hasCustomName: boolean("has_custom_name").notNull().default(false),
     format: gameFormats("format")
       .notNull()
       .default(GameFormatEnum.FRIENDLY_GAME),

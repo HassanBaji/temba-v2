@@ -71,6 +71,7 @@ export type CreateAction =
   | { kind: "setQualifiers"; qualifiersPerPool: number }
   | { kind: "setMatchMinutes"; minutes: string }
   | { kind: "setName"; name: string }
+  | { kind: "setCustomName"; customName: string }
   | { kind: "setPublic"; isPublic: boolean }
   | { kind: "setAllowSolo"; allowSoloRegister: boolean };
 
@@ -225,6 +226,8 @@ export function createReducer(
       return patch(state, { matchMinutes: action.minutes });
     case "setName":
       return patch(state, { name: action.name, nameTouched: true });
+    case "setCustomName":
+      return patch(state, { customName: action.customName });
     case "setPublic":
       return patch(state, { isPublic: action.isPublic });
     case "setAllowSolo":
