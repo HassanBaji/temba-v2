@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import { type Metadata } from "next";
 
+import { NavigationTrail } from "~/components/navigation-trail";
 import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
@@ -52,6 +53,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
+        <NavigationTrail />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

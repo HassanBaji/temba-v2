@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, X, type LucideIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
-import type { MouseEventHandler } from "react";
+import type { MouseEvent, MouseEventHandler } from "react";
 
 import { buttonVariants } from "~/components/ui/button";
+import { currentBackSteps, isDashboardPath } from "~/lib/navigation-trail";
 import { cn } from "~/lib/utils";
 
 const navIconButtonVariants = cva("shrink-0", {
@@ -96,13 +100,56 @@ function NavIconButton({
   );
 }
 
+function opensElsewhere(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  );
+}
+
+/**
+ * On Dashboard pages `href` is only the fallback: the button returns to the
+ * page the player came from, and replaces the entry with `href` when there is
+ * no such page (opened from a shared link or a new tab).
+ */
 export function BackButton({ label = "Back", ...props }: NavIconButtonProps) {
+  const router = useRouter();
+  const style = {
+    icon: ArrowLeft,
+    iconClassName: "rtl:-scale-x-100",
+    label,
+  };
+
+  if (props.href === undefined) {
+    return <NavIconButton {...style} {...props} />;
+  }
+
+  const { href, onClick, ...rest } = props;
   return (
     <NavIconButton
-      icon={ArrowLeft}
-      iconClassName="rtl:-scale-x-100"
-      label={label}
-      {...props}
+      {...style}
+      {...rest}
+      href={href}
+      onClick={(event) => {
+        onClick?.(event);
+        if (
+          event.defaultPrevented ||
+          opensElsewhere(event) ||
+          !isDashboardPath(window.location.pathname)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        const steps = currentBackSteps();
+        if (steps) {
+          window.history.go(-steps);
+        } else {
+          router.replace(href);
+        }
+      }}
     />
   );
 }
