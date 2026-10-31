@@ -36,7 +36,7 @@ export async function createInviteLink(
       ? gameInviteShortUrl(args.origin, minted.link.shortCode)
       : null,
     createdAt: minted.link.createdAt,
-    expiresAt: minted.link.expiresAt,
+    expiresAt: game.windowEnd,
   };
 }
 

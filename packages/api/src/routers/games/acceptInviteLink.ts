@@ -16,7 +16,6 @@ import {
 } from "#src/games/invites";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { acceptLink, throwInviteFrozen } from "#src/invites/doors";
-import { isInviteLinkLive } from "#src/invites/invite-link-expiry";
 import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 import {
   isPartnerRequiredGame,
@@ -37,7 +36,7 @@ export async function acceptInviteLink(
   const link = await database.query.gameInviteLinks.findFirst({
     where: eq(gameInviteLinks.token, args.token),
   });
-  if (!link || !isInviteLinkLive(link.expiresAt)) {
+  if (!link) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: "Invite link is invalid or expired",

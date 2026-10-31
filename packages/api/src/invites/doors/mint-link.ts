@@ -26,7 +26,7 @@ type ShortCodeLinkRow = {
   token: string;
   shortCode: string | null;
   createdAt: Date;
-  expiresAt: Date;
+  expiresAt: Date | null;
 };
 
 async function insertLinkWithShortCode(
@@ -138,6 +138,7 @@ export async function mintLink(
         token: createOpaqueToken(),
         shortCode,
         gameId: host.id,
+        expiresAt: null,
       })
       .returning();
     return created;

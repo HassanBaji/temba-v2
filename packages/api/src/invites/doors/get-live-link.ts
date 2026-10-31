@@ -39,10 +39,7 @@ export async function getLiveLink(database: InviteDb, host: InviteHost) {
     });
   }
   return database.query.gameInviteLinks.findFirst({
-    where: and(
-      eq(gameInviteLinks.gameId, host.id),
-      gt(gameInviteLinks.expiresAt, now),
-    ),
+    where: eq(gameInviteLinks.gameId, host.id),
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
 }

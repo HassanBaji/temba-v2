@@ -3,7 +3,11 @@ import { z } from "zod";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGameOrganizer, requireGame } from "#src/games/access";
+import {
+  assertGameOrganizer,
+  isRegistrationOpen,
+  requireGame,
+} from "#src/games/access";
 import { getLiveLink } from "#src/invites/doors";
 import { gameInviteLinkUrl, gameInviteShortUrl } from "#src/invites/tokens";
 
@@ -15,6 +19,9 @@ export async function getInviteLink(
 ) {
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.userId);
+  if (!isRegistrationOpen(game, new Date())) {
+    return null;
+  }
   const newest = await getLiveLink(database, { kind: "game", id: game.id });
   if (!newest) {
     return null;
@@ -27,7 +34,7 @@ export async function getInviteLink(
         ? gameInviteShortUrl(args.origin, newest.shortCode)
         : null,
     createdAt: newest.createdAt,
-    expiresAt: newest.expiresAt,
+    expiresAt: game.windowEnd,
   };
 }
 

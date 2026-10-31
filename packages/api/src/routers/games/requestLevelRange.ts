@@ -22,7 +22,6 @@ import {
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { userAlreadyWaitlisted } from "#src/games/helpers/user-already-waitlisted";
 import { asRequestStatus } from "#src/games/level-range-requests";
-import { isInviteLinkLive } from "#src/invites/invite-link-expiry";
 import {
   displayedLevelPassesRange,
   displayedLevelTenthsForUser,
@@ -48,19 +47,16 @@ async function hasUnusedLookupInvite(
   return Boolean(invite);
 }
 
-async function liveInviteTokenMatchesGame(
+async function inviteTokenMatchesGame(
   database: DbClient,
   gameId: string,
   inviteToken: string,
 ) {
   const link = await database.query.gameInviteLinks.findFirst({
     where: eq(gameInviteLinks.token, inviteToken),
-    columns: { gameId: true, expiresAt: true },
+    columns: { gameId: true },
   });
-  if (link?.gameId !== gameId) {
-    return false;
-  }
-  return isInviteLinkLive(link.expiresAt);
+  return link?.gameId === gameId;
 }
 
 async function canAuthorizeLevelRangeRequest(
@@ -76,7 +72,7 @@ async function canAuthorizeLevelRangeRequest(
     return true;
   }
   if (inviteToken) {
-    return liveInviteTokenMatchesGame(database, game.id, inviteToken);
+    return inviteTokenMatchesGame(database, game.id, inviteToken);
   }
   return false;
 }

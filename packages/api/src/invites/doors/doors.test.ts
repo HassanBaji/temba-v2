@@ -477,7 +477,7 @@ describe("Invite doors", () => {
     }
   });
 
-  it("recopies a new token and short code while older doors still admit until they expire", async () => {
+  it("recopies a new Game token and short code while older doors still admit", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "doors-recopy-owner@example.com");
@@ -525,45 +525,34 @@ describe("Invite doors", () => {
     }
   });
 
-  it("keeps expired short codes on their row and treats them as a dead Invite", async () => {
+  it("ignores a stored expiry on a Game Invite link row", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "doors-expired-code@example.com");
+      const owner = await insertUser(db, "doors-stale-expiry@example.com");
       const game = await insertFriendlyGame(db, owner.id);
-      const host = { kind: "game" as const, id: game.id };
-      const minted = await mintLink(db, host, { createdBy: owner.id });
+      const minted = await mintLink(
+        db,
+        { kind: "game", id: game.id },
+        { createdBy: owner.id },
+      );
       expect(minted.ok).toBe(true);
       if (!minted.ok) {
         return;
       }
+      expect(minted.link.expiresAt).toBeNull();
       await db
         .update(gameInviteLinks)
         .set({ expiresAt: new Date(Date.now() - 1000) })
         .where(eq(gameInviteLinks.id, minted.link.id));
 
-      const newer = await mintLink(db, host, { createdBy: owner.id });
-      expect(newer.ok).toBe(true);
-      if (!newer.ok) {
-        return;
-      }
-      expect(newer.link.shortCode).not.toBe(minted.link.shortCode);
-
-      const expiredRow = await db.query.gameInviteLinks.findFirst({
-        where: eq(gameInviteLinks.id, minted.link.id),
-      });
-      expect(expiredRow?.shortCode).toBe(minted.link.shortCode);
-      expect(await previewLink(db, "game", minted.link.token)).toEqual({
+      expect(await previewLink(db, "game", minted.link.token)).toMatchObject({
         ok: true,
-        status: "invalid",
+        status: "ready",
       });
       expect(
         (await findGameInviteLinkByShortCode(db, minted.link.shortCode!))
           ?.token,
       ).toBe(minted.link.token);
-      expect(await previewLink(db, "game", newer.link.token)).toMatchObject({
-        ok: true,
-        status: "ready",
-      });
     } finally {
       await close();
     }

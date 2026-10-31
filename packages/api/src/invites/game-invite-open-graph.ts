@@ -15,7 +15,6 @@ import {
   previewLink,
   type InviteDb,
 } from "#src/invites/doors";
-import { isInviteLinkLive } from "#src/invites/invite-link-expiry";
 
 function writeDb(database: InviteDb): typeof db {
   return database as typeof db;
@@ -26,7 +25,7 @@ export async function loadGameInviteOpenGraph(
   rawCode: string,
 ) {
   const link = await findGameInviteLinkByShortCode(database, rawCode);
-  if (!link || !isInviteLinkLive(link.expiresAt)) {
+  if (!link) {
     return GENERIC_TEMBA_OPEN_GRAPH;
   }
   const previewed = await previewLink(database, "game", link.token);

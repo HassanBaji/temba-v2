@@ -15,7 +15,8 @@ export const gameInviteLinks = pgTable("game_invite_links", {
     .notNull(),
   token: varchar("token", { length: 64 }).notNull().unique(),
   shortCode: varchar("short_code", { length: 8 }).unique(),
-  expiresAt: timestamp("expires_at").notNull(),
+  // Null: the link lives as long as the Game is open for registration.
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
