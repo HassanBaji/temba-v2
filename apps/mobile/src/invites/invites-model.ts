@@ -78,6 +78,7 @@ export function groupShareMessage(input: {
 }
 
 export type GameShareContext = {
+  customName?: string | null;
   format: string;
   sport?: string | null;
   registrationMode: string;
@@ -103,6 +104,7 @@ export function gameShareMessage(
     registrationMode: game.registrationMode,
     shortUrl: url,
     roster: {
+      customName: game.customName,
       venueName: game.venueName ?? "Venue",
       courtName: game.courtName,
       windowStart: game.windowStart,

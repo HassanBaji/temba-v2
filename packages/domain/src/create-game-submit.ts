@@ -10,6 +10,7 @@ import {
   type CreateFlowStep,
   type CreateTournamentShape,
 } from "./create-game-flow";
+import { normalizeGameCustomName } from "./game-custom-name";
 import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
@@ -46,9 +47,10 @@ type GameFields = {
   pricePerPlayer: string;
   levelMin: LevelBandSelectValue;
   levelMax: LevelBandSelectValue;
+  customName?: string;
 };
 
-type TournamentFields = Omit<GameFields, "courtId"> & {
+type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
   courtIds: readonly string[];
   teamCount: number;
   tournamentShape: CreateTournamentShape;
@@ -60,6 +62,11 @@ type TournamentFields = Omit<GameFields, "courtId"> & {
   isPublic: boolean;
   allowSoloRegister: boolean;
 };
+
+function customNameInput(draft: Pick<GameFields, "customName">) {
+  const customName = normalizeGameCustomName(draft.customName);
+  return customName ? { customName } : {};
+}
 
 function issueAtStep(
   issue: CreateFlowFieldIssue,
@@ -169,6 +176,7 @@ export function validateFriendlyGameSubmit(draft: GameFields, now: Date) {
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
+      ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
@@ -234,6 +242,7 @@ export function validateFootballGameSubmit(
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       sideSize: draft.sideSize,
       playersAllowed: draft.playersAllowed,
+      ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
     },
   };

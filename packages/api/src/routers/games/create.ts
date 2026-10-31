@@ -32,6 +32,10 @@ import {
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
+import {
+  GAME_CUSTOM_NAME_MAX_LENGTH,
+  normalizeGameCustomName,
+} from "@repo/domain/game-custom-name";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,6 +49,7 @@ const createFormatSchema = z.enum([
 export const createGameInputSchema = z
   .object({
     name: z.string().trim().max(255).optional(),
+    customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).optional(),
     groupId: z.string().uuid({ message: "Pick a Group" }),
     isPublic: z.boolean(),
     format: createFormatSchema.default("friendly_game"),
@@ -159,6 +164,15 @@ export const createGameInputSchema = z
     }
   });
 
+function friendlyGameNameFields(
+  input: Pick<CreateGameInput, "name" | "customName">,
+) {
+  const customName = normalizeGameCustomName(input.customName);
+  return customName
+    ? { name: customName, hasCustomName: true }
+    : { name: input.name, hasCustomName: false };
+}
+
 async function createFootballGameOnGroup(
   database: DbClient,
   input: CreateGameInput,
@@ -178,7 +192,7 @@ async function createFootballGameOnGroup(
   const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
   const created = await createFootballGame(database, {
     createdBy: input.createdBy,
-    name: input.name,
+    ...friendlyGameNameFields(input),
     groupId: input.groupId,
     venueId: input.venueId,
     courtId: input.courtId,
@@ -206,7 +220,7 @@ export async function createGame(database: DbClient, input: CreateGameInput) {
   if (!isAmericano && !isTournament) {
     const created = await createFriendlyGame(database, {
       createdBy: input.createdBy,
-      name: input.name,
+      ...friendlyGameNameFields(input),
       groupId: input.groupId,
       venueId: input.venueId,
       courtId: input.courtId,

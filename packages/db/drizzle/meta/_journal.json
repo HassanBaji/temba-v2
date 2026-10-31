@@ -477,6 +477,13 @@
       "when": 1793351268786,
       "tag": "0067_group_join_request_block_and_source",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793461334898,
+      "tag": "0068_game_custom_name",
+      "breakpoints": true
     }
   ]
 }

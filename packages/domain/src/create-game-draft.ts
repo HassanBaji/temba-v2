@@ -40,6 +40,7 @@ export type CreateGameDraft = {
   matchMinutes: string;
   name: string;
   nameTouched: boolean;
+  customName: string;
   isPublic: boolean;
   allowSoloRegister: boolean;
   sideSize: number;
@@ -81,6 +82,7 @@ export function initialCreateGameDraft(now: Date): CreateGameDraft {
     matchMinutes: String(DEFAULT_MATCH_MINUTES),
     name: friendlyTournamentDefaultName(day),
     nameTouched: false,
+    customName: "",
     isPublic: false,
     allowSoloRegister: true,
     sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
@@ -114,6 +116,7 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     matchMinutes: draft.matchMinutes,
     name: draft.name,
     nameTouched: draft.nameTouched,
+    customName: draft.customName,
     isPublic: draft.isPublic,
     allowSoloRegister: draft.allowSoloRegister,
     sideSize: draft.sideSize,
@@ -166,6 +169,7 @@ export function parseCreateGameDraft(
     record.playersAllowed === undefined
       ? 2 * DEFAULT_FOOTBALL_SIDE_SIZE
       : record.playersAllowed;
+  const customName = record.customName === undefined ? "" : record.customName;
   const strings = [
     "groupId",
     "venueId",
@@ -198,6 +202,7 @@ export function parseCreateGameDraft(
     !isCount(qualifiersPerPool) ||
     !isFootballSideSize(sideSize) ||
     !isCount(playersAllowed) ||
+    typeof customName !== "string" ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -222,6 +227,7 @@ export function parseCreateGameDraft(
     matchMinutes: record.matchMinutes as string,
     name: record.name as string,
     nameTouched: record.nameTouched as boolean,
+    customName,
     isPublic: record.isPublic as boolean,
     allowSoloRegister: record.allowSoloRegister as boolean,
     sideSize,

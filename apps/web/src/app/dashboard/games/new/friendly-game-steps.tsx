@@ -18,12 +18,14 @@ import { ChoiceChip } from "~/components/temba/choice-chip";
 import { StepperField } from "~/components/games/stepper-field";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { FieldDescription, FieldError } from "~/components/ui/field";
+import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   LEVEL_BAND_SELECT_NONE,
   LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
+import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   CREATE_FLOW_DURATIONS,
   CREATE_FLOW_PRICE_CHIPS,
@@ -102,6 +104,9 @@ export function FriendlyGameSteps({
   price,
   priceError,
   onPrice,
+  customName,
+  customNameError,
+  onCustomName,
   reviewGroup,
   reviewVenue,
   groupVerified,
@@ -151,6 +156,9 @@ export function FriendlyGameSteps({
   price: string;
   priceError?: string;
   onPrice: (price: string) => void;
+  customName: string;
+  customNameError?: string;
+  onCustomName: (customName: string) => void;
   reviewGroup: string;
   reviewVenue: string;
   groupVerified: boolean;
@@ -441,6 +449,36 @@ export function FriendlyGameSteps({
 
       {step === 4 ? (
         <>
+          <section className="flex flex-col gap-3">
+            <SectionHeading
+              id="game-custom-name-label"
+              title="Name"
+              meta="Optional"
+            />
+            <Input
+              id="game-custom-name"
+              value={customName}
+              maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
+              placeholder={football ? "Friday five-a-side" : "Thursday smash"}
+              aria-labelledby="game-custom-name-label"
+              aria-invalid={customNameError ? true : undefined}
+              aria-describedby={
+                customNameError
+                  ? "game-custom-name-error"
+                  : "game-custom-name-copy"
+              }
+              onChange={(event) => {
+                onCustomName(event.target.value);
+              }}
+            />
+            <FieldDescription id="game-custom-name-copy">
+              Shown on the Game and at the top of the invite message.
+            </FieldDescription>
+            <FieldError id="game-custom-name-error">
+              {customNameError}
+            </FieldError>
+          </section>
+
           {football ? (
             <>
               <section className="flex flex-col gap-3">
@@ -657,6 +695,9 @@ export function FriendlyGameSteps({
           )}
 
           <div className="border-rule rounded-card overflow-hidden border">
+            {customName.trim() ? (
+              <ReviewRow label="Name" value={customName.trim()} />
+            ) : null}
             <ReviewRow label="Group" value={reviewGroup} />
             <ReviewRow label="Venue" value={reviewVenue} />
             <ReviewRow

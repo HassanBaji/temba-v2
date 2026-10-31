@@ -13,6 +13,7 @@ export type GameInviteShareSide = {
 };
 
 export type GameInviteShareMessageInput = {
+  customName?: string | null;
   venueName: string;
   courtName: string | null;
   windowStart: Date | string | null | undefined;
@@ -44,7 +45,12 @@ export function formatGameInviteShareMessage(
   input: GameInviteShareMessageInput,
 ) {
   const start = input.windowStart ?? input.windowEnd ?? new Date();
-  const lines = [`📍 ${input.venueName}`];
+  const lines: string[] = [];
+  const customName = input.customName?.trim();
+  if (customName) {
+    lines.push(customName, "");
+  }
+  lines.push(`📍 ${input.venueName}`);
   if (input.courtName) {
     lines.push(`🎾 ${input.courtName}`);
   }
@@ -80,7 +86,8 @@ export function gameInviteClipboardText(input: {
     !showsFriendlyRoster(input.format, input.registrationMode) ||
     input.roster == null
   ) {
-    return input.shortUrl;
+    const customName = input.roster?.customName?.trim();
+    return customName ? `${customName}\n${input.shortUrl}` : input.shortUrl;
   }
   return formatGameInviteShareMessage(input.roster);
 }

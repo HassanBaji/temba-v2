@@ -71,6 +71,7 @@ export async function createFootballGame(
       .insert(games)
       .values({
         name: input.name && input.name.length > 0 ? input.name : null,
+        hasCustomName: input.hasCustomName ?? false,
         format: GameFormatEnum.FRIENDLY_GAME,
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         groupId: input.groupId,
@@ -165,6 +166,7 @@ export async function createFriendlyGame(
       .insert(games)
       .values({
         name: input.name && input.name.length > 0 ? input.name : null,
+        hasCustomName: input.hasCustomName ?? false,
         format: GameFormatEnum.FRIENDLY_GAME,
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         groupId: input.groupId,

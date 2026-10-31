@@ -620,6 +620,7 @@ export async function gameById(
   return {
     id: game.id,
     name: game.name,
+    hasCustomName: game.hasCustomName,
     format: game.format,
     registrationMode: game.registrationMode,
     allowSoloRegister: game.allowSoloRegister,

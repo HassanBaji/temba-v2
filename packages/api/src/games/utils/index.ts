@@ -149,6 +149,7 @@ export type CreateFriendlyDb = DbClient | DbTx;
 export type CreateFriendlyGameInput = {
   createdBy: string;
   name?: string | null;
+  hasCustomName?: boolean;
   /** Null only for a Booking Game. */
   groupId: string | null;
   venueId: string;
@@ -167,6 +168,7 @@ export type CreateFriendlyGameInput = {
 export type CreateFootballGameInput = {
   createdBy: string;
   name?: string | null;
+  hasCustomName?: boolean;
   /** Null only for a Booking Game. */
   groupId: string | null;
   venueId: string;
@@ -186,6 +188,7 @@ export type CreateFriendlyGameResult = {
 export type CreateGameInput = {
   createdBy: string;
   name?: string;
+  customName?: string;
   groupId: string;
   isPublic: boolean;
   format: "friendly_game" | "americano" | "friendly_tournament";
