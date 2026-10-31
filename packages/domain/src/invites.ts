@@ -1,3 +1,4 @@
+import type { FootballPosition, FootballRole } from "./football-lineup";
 import { friendlyGameCanMintInvite } from "./friendly-game-cta";
 import { gameJoinToast, GAME_TOAST } from "./game-copy";
 import type { InviteHostLabel } from "./invite-outcome-copy";
@@ -248,6 +249,19 @@ export function gameInviteAccess(game: {
   return { canManage, canSendLookup };
 }
 
+export type GameInviteFootball = {
+  players: {
+    name: string;
+    role: FootballRole | null;
+    position: FootballPosition | null;
+  }[];
+  sideSize: number | null;
+  playersAllowed: number | null;
+  pricePerPlayerFils: number | null;
+  teamsSet: boolean;
+  preferred: { role: FootballRole | null; position: FootballPosition | null };
+};
+
 export type GameInviteLinkReady = {
   gameId: string;
   gameName: string | null;
@@ -262,6 +276,8 @@ export type GameInviteLinkReady = {
   viewerPassesLevelRange: boolean | null;
   levelRangeRequest: { status: string } | null;
   canRequestLevelRange: boolean;
+  /** Set for a signed-in viewer who can still join a football Game. */
+  football: GameInviteFootball | null;
 };
 
 export type InviteLinkPreview =
@@ -304,6 +320,7 @@ export type GameInviteLinkStage =
   | "level_range"
   | "partner"
   | "seat_pick"
+  | "football"
   | "accept";
 
 export function gameInviteLinkStage(
@@ -311,6 +328,7 @@ export function gameInviteLinkStage(
     viewerPassesLevelRange: boolean | null;
     partnerRequiredJoin: boolean;
     needsSeatPick: boolean;
+    football?: GameInviteFootball | null;
   },
   isSignedIn: boolean,
 ): GameInviteLinkStage {
@@ -324,6 +342,9 @@ export function gameInviteLinkStage(
   }
   if (preview.needsSeatPick) {
     return "seat_pick";
+  }
+  if (isSignedIn && preview.football) {
+    return "football";
   }
   return "accept";
 }

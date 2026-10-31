@@ -1,4 +1,5 @@
 import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
+import { KEEPERS_PER_GAME } from "./football-lineup";
 import {
   isFootballGame,
   isRosterRegistrationGame,
@@ -30,7 +31,7 @@ export type GameInviteShareMessageInput = {
 export type GameInviteShareFootball = {
   sideSize: number | null;
   playersAllowed: number | null;
-  players: readonly { name: string }[];
+  players: readonly { name: string; role?: string | null }[];
 };
 
 function occupantLabel(occupant: GameInviteShareOccupant) {
@@ -93,7 +94,25 @@ export function formatGameInviteShareMessage(
   return lines.join("\n");
 }
 
-/** Numbered up to the cap so players can paste the list back with their name in an Open slot. */
+function numberedSlots(
+  title: string,
+  names: readonly string[],
+  cap: number | null,
+) {
+  const lines = [title];
+  const slots = Math.max(cap ?? 0, names.length);
+  for (let index = 0; index < slots; index += 1) {
+    const name = names[index];
+    lines.push(name ? `${index + 1}- ${name}` : `${index + 1}-`);
+  }
+  return lines;
+}
+
+/**
+ * Numbered up to the cap so players can paste the list back with their name
+ * on an empty line. Keepers count toward players allowed, so the outfield
+ * list gets what is left after the keeper seats.
+ */
 export function formatFootballInviteShareMessage(
   input: GameInviteShareMessageInput,
   football: GameInviteShareFootball,
@@ -102,18 +121,23 @@ export function formatFootballInviteShareMessage(
   if (football.sideSize) {
     lines.push(`👥 ${sideSizeLabel(football.sideSize)}`);
   }
+  const named = (role: "keeper" | "outfield") =>
+    football.players
+      .filter((player) => (player.role === "keeper") === (role === "keeper"))
+      .map((player) => player.name.trim());
+  const keepers = named("keeper");
+  const outfield = named("outfield");
+  const cap = football.playersAllowed;
   lines.push("");
-  const names = football.players.map((player) => occupantLabel(player));
-  const cap = football.playersAllowed ?? 0;
   lines.push(
-    cap > 0
-      ? `👕 Players (${names.length}/${cap})`
-      : `👕 Players (${names.length})`,
+    ...numberedSlots(
+      "👕 Players",
+      outfield,
+      cap ? Math.max(0, cap - KEEPERS_PER_GAME) : null,
+    ),
   );
-  const slots = Math.max(cap, names.length);
-  for (let index = 0; index < slots; index += 1) {
-    lines.push(`${index + 1}. ${names[index] ?? "Open"}`);
-  }
+  lines.push("");
+  lines.push(...numberedSlots("🧤 Keepers", keepers, KEEPERS_PER_GAME));
   lines.push("");
   lines.push("🔗 Join:");
   lines.push(input.shortUrl);

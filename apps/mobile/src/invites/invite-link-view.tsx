@@ -1,4 +1,9 @@
 import { spacing } from "@repo/design-tokens";
+import { footballInviteJoinSubtitle } from "@repo/domain/football-board";
+import {
+  type FootballPosition,
+  type FootballRole,
+} from "@repo/domain/football-lineup";
 import {
   INVITE_JOIN_WAITLIST_LABEL,
   gameInviteLinkStage,
@@ -20,12 +25,15 @@ import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
 } from "@repo/domain/level-range";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
   PARTNER_REQUIRED_INVITE_LANDING_COPY,
   PARTNER_REQUIRED_INVITE_LANDING_CTA,
 } from "@repo/domain/tournament-join";
+import { useState } from "react";
 import { View } from "react-native";
 
+import { FootballJoinSheet } from "../football/join-sheet";
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
 import { Avatar } from "../primitives/avatar";
@@ -39,9 +47,11 @@ export type InviteLinkViewProps = {
   kind: InviteKind;
   preview: Slot<InviteLinkPreview>;
   acceptPending: boolean;
+  acceptError: string | null;
   requestPending: boolean;
   waitingForPartner: boolean;
   onAccept: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
+  onAcceptFootball: (role: FootballRole, position: FootballPosition) => void;
   onRequestLevel: (gameId: string) => void;
   onPickPartner: (gameId: string) => void;
   onGoHome: () => void;
@@ -123,6 +133,44 @@ function SimpleReady({
           onPress={() => onAccept()}
         />
       </View>
+    </View>
+  );
+}
+
+function FootballReady({
+  name,
+  football,
+  props,
+}: {
+  name: string;
+  football: NonNullable<GameInviteLinkReady["football"]>;
+  props: InviteLinkViewProps;
+}) {
+  const [open, setOpen] = useState(true);
+  const subtitle = footballInviteJoinSubtitle(football);
+  return (
+    <View style={{ gap: spacing.compact }}>
+      <Hero kind="game" name={name} note={subtitle} />
+      <View style={{ flexDirection: "row" }}>
+        <Button
+          label="Choose how you play"
+          size="lg"
+          onPress={() => setOpen(true)}
+        />
+      </View>
+      <FootballJoinSheet
+        visible={open}
+        mode="join"
+        subtitle={subtitle}
+        players={football.players}
+        viewer={football.preferred}
+        price={formatPricePerPlayerFils(football.pricePerPlayerFils)}
+        teamsLine={football.teamsSet ? "Set" : "Made by the organizer"}
+        pending={props.acceptPending}
+        error={props.acceptError}
+        onClose={() => setOpen(false)}
+        onSubmit={props.onAcceptFootball}
+      />
     </View>
   );
 }
@@ -225,6 +273,10 @@ function GameReady({
         ) : null}
       </View>
     );
+  }
+
+  if (stage === "football" && game.football) {
+    return <FootballReady name={name} football={game.football} props={props} />;
   }
 
   return (
