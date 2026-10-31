@@ -146,7 +146,7 @@ describe("gameInviteClipboardText", () => {
     ).toBe(shortUrl);
   });
 
-  it("copies the football details and numbered player list for a football Friendly game", () => {
+  it("copies the football details with players and keepers listed apart for a football Friendly game", () => {
     const windowStart = bahrainDayFromToday(1, 20);
     const windowEnd = bahrainDayFromToday(1, 21);
     const message = gameInviteClipboardText({
@@ -163,8 +163,12 @@ describe("gameInviteClipboardText", () => {
         shortUrl,
         football: {
           sideSize: 2,
-          playersAllowed: 5,
-          players: [{ name: "Ada" }, { name: "Lin" }],
+          playersAllowed: 6,
+          players: [
+            { name: "Ada", role: "outfield" },
+            { name: "Kai", role: "keeper" },
+            { name: "Lin", role: "outfield" },
+          ],
         },
       },
     });
@@ -177,12 +181,15 @@ describe("gameInviteClipboardText", () => {
         `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart)}`,
         "👥 2-a-side",
         "",
-        "👕 Players (2/5)",
-        "1. Ada",
-        "2. Lin",
-        "3. Open",
-        "4. Open",
-        "5. Open",
+        "👕 Players",
+        "1- Ada",
+        "2- Lin",
+        "3-",
+        "4-",
+        "",
+        "🧤 Keepers",
+        "1- Kai",
+        "2-",
         "",
         "🔗 Join:",
         shortUrl,
@@ -204,7 +211,9 @@ describe("gameInviteClipboardText", () => {
     );
     expect(message).not.toContain("⚽");
     expect(message).not.toContain("👥");
-    expect(message).toContain("👕 Players (1)\n1. Ada\n\n🔗 Join:");
+    expect(message).toContain(
+      "👕 Players\n1- Ada\n\n🧤 Keepers\n1-\n2-\n\n🔗 Join:",
+    );
   });
 
   it("copies just the link for a football Friendly game without its player list", () => {
