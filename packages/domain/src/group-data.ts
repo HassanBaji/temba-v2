@@ -102,6 +102,7 @@ export type GroupHomeData = {
   canUnlinkFromVenue: boolean;
   canSetRequiresApproval: boolean;
   canDecideJoinRequests: boolean;
+  joinRequestsApprovedToday: number;
   canManageImage: boolean;
   canAddPlayers: boolean;
   canAppointOrganizers: boolean;
@@ -109,9 +110,15 @@ export type GroupHomeData = {
   viewerCanSetLevel: boolean;
 };
 
+export type GroupJoinRequestSource = "invite_link" | "community" | "group_page";
+
 export type GroupJoinRequestData = {
   id: string;
   createdAt: Date | string;
   user: { id: string; name: string | null; image: string | null };
   isCommunityMember: boolean | null;
+  note: string | null;
+  source: GroupJoinRequestSource | null;
+  invitedBy: { id: string; name: string } | null;
+  level: { levelBand: LevelBand; provisional: boolean; level: string } | null;
 };

@@ -27,7 +27,8 @@ import {
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { ScrollView, View } from "react-native";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { RenamePlayerSheet } from "../game-details/rename-player-sheet";
@@ -47,6 +48,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { GroupAddPlayerSheet } from "./group-add-player-sheet";
+import { RequestJoinSheet } from "./request-join-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
 import { Notice } from "./notice";
@@ -66,6 +68,8 @@ type OlderPages = {
   games: GroupHomeData["gameHistory"];
   exhausted: boolean;
 };
+
+const SCROLL_TARGET_INSET = 16;
 
 export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const router = useRouter();
@@ -101,7 +105,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const linkRequests = api.groups.pendingLinkRequests.useQuery(undefined, {
     enabled: (group.data?.pendingLinkRequestCount ?? 0) > 0,
   });
-  const { join: joinGroup, pendingGroupId } = useGroupJoin();
+  const { join: joinGroup, pendingGroupId, requestSheet } = useGroupJoin();
   const { join: joinGame, pendingGameId } = useGameJoin();
 
   const leave = api.groups.leave.useMutation({
@@ -222,6 +226,21 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
       }),
     [router],
   );
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollTo = useCallback((target: View | null) => {
+    const scroll = scrollRef.current;
+    // React Native types the inner content node as `any`; it is a host node.
+    const content = scroll?.getInnerViewNode() as number | null | undefined;
+    if (!target || !scroll || content == null) {
+      return;
+    }
+    target.measureLayout(content, (_x, y) =>
+      scroll.scrollTo({
+        y: Math.max(0, y - SCROLL_TARGET_INSET),
+        animated: true,
+      }),
+    );
+  }, []);
 
   const header = <ScreenHeader nav="back" fallback="/groups" />;
 
@@ -264,8 +283,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const name = groupHomeHeader(data, apiOrigin).name;
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh} scrollRef={scrollRef}>
       <GroupHomeView
+        onScrollTo={scrollTo}
         data={data}
         apiOrigin={apiOrigin}
         tab={tab}
@@ -399,6 +419,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
           onRegister: (gameId) => joinGame(registerRequest(gameId)),
         }}
       />
+      <RequestJoinSheet {...requestSheet} />
       {data.canAddPlayers ? (
         <RenamePlayerSheet
           player={renaming}

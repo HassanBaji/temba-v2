@@ -1,4 +1,11 @@
-import { pgTable, uuid, timestamp, pgEnum, unique } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  timestamp,
+  pgEnum,
+  unique,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./user";
 import { groups } from "./groups";
@@ -7,13 +14,24 @@ export const groupJoinRequestStatuses = pgEnum("group_join_request_status", [
   "pending",
   "approved",
   "rejected",
+  "blocked",
 ]);
 
 export enum GroupJoinRequestStatusEnum {
   PENDING = "pending",
   APPROVED = "approved",
   REJECTED = "rejected",
+  BLOCKED = "blocked",
 }
+
+export const groupJoinRequestSources = pgEnum("group_join_request_source", [
+  "invite_link",
+  "community",
+  "group_page",
+]);
+
+export type GroupJoinRequestSource =
+  (typeof groupJoinRequestSources.enumValues)[number];
 
 export const groupJoinRequests = pgTable(
   "group_join_requests",
@@ -31,6 +49,11 @@ export const groupJoinRequests = pgTable(
       .notNull()
       .default(GroupJoinRequestStatusEnum.PENDING),
     decidedBy: uuid("decided_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    note: varchar("note", { length: 280 }),
+    source: groupJoinRequestSources(),
+    invitedBy: uuid("invited_by").references(() => user.id, {
       onDelete: "set null",
     }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -54,6 +77,11 @@ export const groupJoinRequestRelations = relations(
     user: one(user, {
       fields: [groupJoinRequests.userId],
       references: [user.id],
+    }),
+    invitedBy: one(user, {
+      fields: [groupJoinRequests.invitedBy],
+      references: [user.id],
+      relationName: "groupJoinRequestInviter",
     }),
   }),
 );

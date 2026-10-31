@@ -2,18 +2,45 @@ import {
   GROUP_DELETED_TOAST,
   GROUP_IMAGE_REMOVED_TOAST,
   GROUP_IMAGE_SAVED_TOAST,
-  GROUP_REQUEST_APPROVED_TOAST,
-  GROUP_REQUEST_REJECTED_TOAST,
+  GROUP_JOIN_REQUEST_UNDO_LABEL,
+  groupJoinRequestDecidedToast,
+  type GroupJoinRequestDecision,
 } from "@repo/domain/group-admin";
-import type { GroupHomeData } from "@repo/domain/group-data";
-import { useCallback } from "react";
+import type {
+  GroupHomeData,
+  GroupJoinRequestData,
+} from "@repo/domain/group-data";
+import { useCallback, useState } from "react";
 
+import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { pickGroupImage } from "./pick-group-image";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
+
+export type GroupApproverHandlers = {
+  requests: Slot<GroupJoinRequestData[]>;
+  approvePendingId: string | null;
+  rejectPendingId: string | null;
+  onApprove: (request: GroupJoinRequestData) => void;
+  onAskReject: (request: GroupJoinRequestData) => void;
+  onRetry: () => void;
+  onChangePolicy: () => void;
+  rejectSheet: {
+    request: GroupJoinRequestData | null;
+    pending: "reject" | "block" | null;
+    onReject: (block: boolean) => void;
+    onClose: () => void;
+  };
+  whoCanJoinSheet: {
+    visible: boolean;
+    pending: boolean;
+    onSave: (requiresApproval: boolean) => void;
+    onClose: () => void;
+  };
+};
 
 export function useGroupAdmin(
   groupId: string,
@@ -43,31 +70,51 @@ export function useGroupAdmin(
 
   const onError = (error: { message: string }) => toast.show(error.message);
 
+  const [rejecting, setRejecting] = useState<GroupJoinRequestData | null>(null);
+  const [whoCanJoinOpen, setWhoCanJoinOpen] = useState(false);
+
   const setRequiresApproval = api.groups.setRequiresApproval.useMutation({
-    onSuccess: () => utils.groups.byId.invalidate({ id: groupId }),
+    onSuccess: async () => {
+      setWhoCanJoinOpen(false);
+      await utils.groups.byId.invalidate({ id: groupId });
+    },
     onError,
   });
 
-  const approve = api.groups.approveJoinRequest.useMutation({
-    onSuccess: async () => {
-      toast.show(GROUP_REQUEST_APPROVED_TOAST);
-      await Promise.all([
+  const refreshRequests = useCallback(
+    () =>
+      Promise.all([
         refreshGroup(),
         utils.groups.listJoinRequests.invalidate({ groupId }),
         utils.communities.mine.invalidate(),
-      ]);
-    },
+      ]),
+    [refreshGroup, utils, groupId],
+  );
+
+  const undo = api.groups.undoJoinRequestDecision.useMutation({
+    onSettled: refreshRequests,
+    onError,
+  });
+
+  const showDecided = (
+    request: GroupJoinRequestData,
+    decision: GroupJoinRequestDecision,
+  ) =>
+    toast.show(
+      groupJoinRequestDecidedToast(request.user.name ?? "User", decision),
+      {
+        label: GROUP_JOIN_REQUEST_UNDO_LABEL,
+        onPress: () => undo.mutate({ requestId: request.id }),
+      },
+    );
+
+  const approve = api.groups.approveJoinRequest.useMutation({
+    onSettled: refreshRequests,
     onError,
   });
 
   const reject = api.groups.rejectJoinRequest.useMutation({
-    onSuccess: async () => {
-      toast.show(GROUP_REQUEST_REJECTED_TOAST);
-      await Promise.all([
-        refreshGroup(),
-        utils.groups.listJoinRequests.invalidate({ groupId }),
-      ]);
-    },
+    onSettled: refreshRequests,
     onError,
   });
 
@@ -137,19 +184,52 @@ export function useGroupAdmin(
   return {
     approver: {
       requests: slotOf(requests),
-      requiresApprovalPending: setRequiresApproval.isPending,
-      onRequiresApprovalChange: (next: boolean) =>
-        setRequiresApproval.mutate({ groupId, requiresApproval: next }),
       approvePendingId: approve.isPending
         ? (approve.variables?.requestId ?? null)
         : null,
       rejectPendingId: reject.isPending
         ? (reject.variables?.requestId ?? null)
         : null,
-      onApprove: (requestId: string) => approve.mutate({ requestId }),
-      onReject: (requestId: string) => reject.mutate({ requestId }),
+      onApprove: (request) =>
+        approve.mutate(
+          { requestId: request.id },
+          { onSuccess: () => showDecided(request, "approved") },
+        ),
+      onAskReject: setRejecting,
       onRetry: () => void requests.refetch(),
-    },
+      onChangePolicy: () => setWhoCanJoinOpen(true),
+      rejectSheet: {
+        request: rejecting,
+        pending: reject.isPending
+          ? reject.variables?.block
+            ? "block"
+            : "reject"
+          : null,
+        onReject: (block) => {
+          if (!rejecting) {
+            return;
+          }
+          const request = rejecting;
+          reject.mutate(
+            { requestId: request.id, block },
+            {
+              onSuccess: () => {
+                setRejecting(null);
+                showDecided(request, block ? "blocked" : "rejected");
+              },
+            },
+          );
+        },
+        onClose: () => setRejecting(null),
+      },
+      whoCanJoinSheet: {
+        visible: whoCanJoinOpen,
+        pending: setRequiresApproval.isPending,
+        onSave: (requiresApproval) =>
+          setRequiresApproval.mutate({ groupId, requiresApproval }),
+        onClose: () => setWhoCanJoinOpen(false),
+      },
+    } satisfies GroupApproverHandlers,
     imagePending: uploadImage.isPending || clearImage.isPending,
     changeImage,
     clearImage: () => clearImage.mutate({ groupId }),

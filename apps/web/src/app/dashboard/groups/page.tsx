@@ -46,6 +46,7 @@ import {
   publicGroupSportFilterLabel,
   type PublicGroupSportFilter,
 } from "@repo/domain/sport";
+import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
 
@@ -292,8 +293,12 @@ export default function GroupsIndexPage({
     },
   });
 
+  const [requestingGroupId, setRequestingGroupId] = useState<string | null>(
+    null,
+  );
   const requestJoin = api.groups.requestJoin.useMutation({
     onSuccess: async () => {
+      setRequestingGroupId(null);
       toast.success(groupJoinToast("requestJoin"));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
@@ -409,9 +414,7 @@ export default function GroupsIndexPage({
                   }
                   joinLoosePublic.mutate({ groupId: group.id });
                 }}
-                onRequest={(groupId) => {
-                  requestJoin.mutate({ groupId });
-                }}
+                onRequest={setRequestingGroupId}
               />
             ) : null}
 
@@ -423,6 +426,23 @@ export default function GroupsIndexPage({
           </div>
         </TabsContent>
       </Tabs>
+      <RequestJoinDialog
+        open={requestingGroupId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRequestingGroupId(null);
+          }
+        }}
+        pending={requestJoin.isPending}
+        onSend={(note) => {
+          if (requestingGroupId) {
+            requestJoin.mutate({
+              groupId: requestingGroupId,
+              note: note.trim() || undefined,
+            });
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

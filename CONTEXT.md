@@ -105,12 +105,16 @@ A Loose Group listed on the Public Groups list. Any authenticated User with the 
 _Avoid_: listed Group, Invite link (that is a different door from Group URL)
 
 **Require approval**:
-A flag on a Public Group (Loose or Club). When it is on, the Group URL join becomes a Group join request instead of an immediate admit. Off by default. Private Groups have no open join door, so the flag does not apply. Turning it off does not admit pending requests.
+A flag on a Public Group (Loose or Club). When it is on, the Group URL join and accepting a Group Invite link both become a Group join request instead of an immediate admit. Off by default. The UI calls it "Who can join": Organizers approve, or Anyone with the link. Private Groups have no open join door, so the flag does not apply. Turning it off does not admit pending requests.
 _Avoid_: closed Group, moderated Group (when you mean this flag)
 
 **Group join request**:
-A User asking a Group approver to admit them to a Public Group that requires approval. No message. No expiry. A rejected or leftover approved row may be reset to pending (same as a Community join request). Distinct from a Community join request and from a Game Level range request.
+A User asking a Group approver to admit them to a Public Group that requires approval. May carry a short note (up to 280 characters) and records where it came from: an Invite link (and who minted it), the Community, or the Group page. No expiry. A rejected or leftover approved row may be reset to pending (same as a Community join request). A Group approver may undo a decision, which puts the request back to pending; undoing an approval removes the new member only while they have played no Game in the Group and are not an Appointed Organizer. Distinct from a Community join request and from a Game Level range request.
 _Avoid_: invitation, Invite, Community join request (when you mean this Group request)
+
+**Group block**:
+A Group join request a Group approver rejected with "Reject and block". A blocked User cannot request to join, join through the Group URL, or accept that Group's Invite links, whether or not Require approval is on. Lookup invites and adding by phone still reach them, since a Group approver chose them. Undoing the decision lifts the block.
+_Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
 Who may set Require approval, decide Group join requests, add players by phone, remove Unclaimed players, and make or unmake Appointed Organizers. On a Loose Group, the creator. On a Club Group, Community Owner or Admin, or the Group creator while still a Community Member. Nobody while the Club Group's Community is Soft-archived. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.

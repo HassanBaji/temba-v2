@@ -12,7 +12,11 @@ export async function previewInviteLink(
 ) {
   const previewed = await previewLink(database, "group", args.token);
   if (previewed.status === "ready") {
-    return { status: "ready" as const, groupName: previewed.name };
+    return {
+      status: "ready" as const,
+      groupName: previewed.name,
+      requiresApproval: previewed.requiresApproval ?? false,
+    };
   }
   return { status: previewed.status };
 }

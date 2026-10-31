@@ -15,7 +15,7 @@ type DbClient = typeof db;
 
 export async function rejectJoinRequest(
   database: DbClient,
-  args: { requestId: string; userId: string },
+  args: { requestId: string; userId: string; block?: boolean },
 ) {
   const request = await database.query.groupJoinRequests.findFirst({
     where: eq(groupJoinRequests.id, args.requestId),
@@ -50,7 +50,9 @@ export async function rejectJoinRequest(
   const [updated] = await database
     .update(groupJoinRequests)
     .set({
-      status: GroupJoinRequestStatusEnum.REJECTED,
+      status: args.block
+        ? GroupJoinRequestStatusEnum.BLOCKED
+        : GroupJoinRequestStatusEnum.REJECTED,
       decidedBy: args.userId,
       updatedAt: new Date(),
     })
@@ -68,11 +70,17 @@ export async function rejectJoinRequest(
 }
 
 export const rejectJoinRequestProcedure = protectedProcedure
-  .input(z.object({ requestId: z.string().uuid() }))
+  .input(
+    z.object({
+      requestId: z.string().uuid(),
+      block: z.boolean().optional().default(false),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     return rejectJoinRequest(ctx.db, {
       requestId: input.requestId,
       userId: appUser.id,
+      block: input.block,
     });
   });

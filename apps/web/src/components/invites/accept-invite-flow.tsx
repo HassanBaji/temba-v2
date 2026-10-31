@@ -14,7 +14,11 @@ import {
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import type { InviteHostKind } from "@repo/api/types";
-import { inviteLinkAcceptToast } from "@repo/domain/invites";
+import { groupJoinToast } from "@repo/domain/group-join";
+import {
+  inviteLinkAcceptToast,
+  inviteLinkJoinLabel,
+} from "@repo/domain/invites";
 
 export function AcceptInviteFlow({
   kind,
@@ -53,7 +57,11 @@ export function AcceptInviteFlow({
   });
   const groupAccept = api.groups.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success(inviteLinkAcceptToast("group"));
+      toast.success(
+        result.requested
+          ? groupJoinToast("requestJoin")
+          : inviteLinkAcceptToast("group"),
+      );
       router.replace(`/dashboard/groups/${result.groupId}`);
     },
     onError: (error) => {
@@ -94,6 +102,11 @@ export function AcceptInviteFlow({
         ? (readyPreview.groupName ?? "Group")
         : readyPreview.teamName
     : entityLabel;
+  const requiresApproval = Boolean(
+    readyPreview &&
+      "requiresApproval" in readyPreview &&
+      readyPreview.requiresApproval,
+  );
 
   React.useEffect(() => {
     if (!isSignedIn) {
@@ -141,7 +154,9 @@ export function AcceptInviteFlow({
         <div className="flex items-start gap-3">
           <EntityMonogram name={entityName} size="lg" />
           <div className="min-w-0 space-y-1">
-            <h1 className="text-title font-semibold">Join {entityName}</h1>
+            <h1 className="text-title font-semibold">
+              {inviteLinkJoinLabel(entityName, requiresApproval)}
+            </h1>
             <p className="text-meta text-muted-foreground">{entityLabel}</p>
             <p className="text-body text-muted-foreground">
               Sign in or create an account to join {entityName}.

@@ -14,6 +14,7 @@ import { Screen } from "../primitives/screen";
 import { api } from "../trpc/react";
 import { groupPath, type GroupsTab } from "./groups-model";
 import { GroupsView } from "./groups-view";
+import { RequestJoinSheet } from "./request-join-sheet";
 import { useGroupJoin } from "./use-group-join";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -28,7 +29,7 @@ export function GroupsScreen() {
     DEFAULT_PUBLIC_GROUP_SPORT_FILTER,
   );
   const [refreshing, setRefreshing] = useState(false);
-  const { join, pendingGroupId } = useGroupJoin();
+  const { join, pendingGroupId, requestSheet } = useGroupJoin();
 
   const mine = api.groups.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const publicGroups = api.groups.listPublic.useQuery(
@@ -72,6 +73,7 @@ export function GroupsScreen() {
         onRetry={() => void refetchActive()}
         onCreate={() => router.push("/groups/new")}
       />
+      <RequestJoinSheet {...requestSheet} />
     </Screen>
   );
 }
