@@ -14,6 +14,7 @@ import {
   gameTeams,
   gameWaitlist,
   games,
+  groupJoinRequests,
   groupMembers,
   groups,
   levelOverrides,
@@ -673,6 +674,34 @@ describe("mergeIntoAccount", () => {
           where: eq(gameWaitlist.gameId, gameId),
         }),
       ).toHaveLength(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("points an Invite-link join request minted by the Unclaimed player at the account", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const groupId = await insertGroup(db, people);
+      await db.insert(groupJoinRequests).values({
+        groupId,
+        userId: people.partner.id,
+        source: "invite_link",
+        invitedBy: people.unclaimed.id,
+      });
+
+      await merge(db, people);
+
+      const requests = await db.query.groupJoinRequests.findMany({
+        where: eq(groupJoinRequests.groupId, groupId),
+      });
+      expect(requests).toHaveLength(1);
+      expect(requests[0]).toMatchObject({
+        userId: people.partner.id,
+        source: "invite_link",
+        invitedBy: people.survivor.id,
+      });
     } finally {
       await close();
     }
