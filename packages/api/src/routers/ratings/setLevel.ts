@@ -8,6 +8,7 @@ import { levelSetterProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { notify } from "#src/notifications/notify";
 import {
   applyLevelOverride,
   assertLevelTenths,
@@ -81,13 +82,24 @@ export async function setMemberLevel(
     });
   }
 
-  return applyLevelOverride(database, {
-    sport,
-    setterUserId: args.setterUserId,
-    targetUserId: args.targetUserId,
-    groupId: group.id,
-    levelTenths: args.levelTenths,
-    reason: args.reason,
+  return database.transaction(async (tx) => {
+    const result = await applyLevelOverride(tx, {
+      sport,
+      setterUserId: args.setterUserId,
+      targetUserId: args.targetUserId,
+      groupId: group.id,
+      levelTenths: args.levelTenths,
+      reason: args.reason,
+    });
+    await notify(tx, {
+      type: "level_set",
+      recipients: [{ userId: args.targetUserId, audience: "player" }],
+      excludeUserIds: [args.setterUserId],
+      actorUserId: args.setterUserId,
+      groupId: group.id,
+      levelOverrideId: result.overrideId,
+    });
+    return result;
   });
 }
 
