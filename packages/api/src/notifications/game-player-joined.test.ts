@@ -391,6 +391,7 @@ describe("Game joined Notifications", () => {
         gameId: game.id,
         outcome: "registered",
         waitlisted: false,
+        joinedGroup: true,
       });
       const rows = await joinedRows(db);
       expect(recipients(rows)).toEqual(club.admins);
