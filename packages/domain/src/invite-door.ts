@@ -117,7 +117,13 @@ export function rowWithPhone(
   );
 }
 
-export const INVITE_LINK_TTL_NOTE = "Each link works for 6 hours.";
+/** A Game link has no clock of its own; the other doors' links last 6 hours. */
+export function inviteLinkLifetimeNote(kind: InviteDoorKind) {
+  return kind === "game"
+    ? "Works until the Game ends or registration closes."
+    : "Each link works for 6 hours.";
+}
+
 export const INVITE_LINK_EMPTY_NOTE = "A new link is made when you share it.";
 
 export function inviteLinkNote(kind: InviteDoorKind) {
