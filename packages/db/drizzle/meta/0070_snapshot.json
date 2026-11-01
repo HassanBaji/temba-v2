@@ -1,5 +1,5 @@
 {
-  "id": "67ed0303-9258-4545-9649-821be8a98a8c",
+  "id": "52f93cd6-9a19-4b6c-9c55-a28a754cee52",
   "prevId": "5b31d96f-c0f2-4e7f-8790-4461ace6b661",
   "version": "7",
   "dialect": "postgresql",
@@ -4626,18 +4626,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_by": {
-          "name": "deleted_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4687,19 +4675,6 @@
           "tableTo": "user",
           "columnsFrom": [
             "verified_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "groups_deleted_by_user_id_fk": {
-          "name": "groups_deleted_by_user_id_fk",
-          "tableFrom": "groups",
-          "tableTo": "user",
-          "columnsFrom": [
-            "deleted_by"
           ],
           "columnsTo": [
             "id"
@@ -7228,6 +7203,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "level_override_id": {
+          "name": "level_override_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "via_waitlist": {
           "name": "via_waitlist",
           "type": "boolean",
@@ -7399,6 +7380,19 @@
           "tableTo": "games",
           "columnsFrom": [
             "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notifications_level_override_id_level_overrides_id_fk": {
+          "name": "notifications_level_override_id_level_overrides_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "level_overrides",
+          "columnsFrom": [
+            "level_override_id"
           ],
           "columnsTo": [
             "id"
@@ -7756,7 +7750,8 @@
         "game_player_left",
         "game_finished",
         "game_seated_by_organizer",
-        "history_linked"
+        "history_linked",
+        "level_set"
       ]
     }
   },
