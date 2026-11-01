@@ -18,4 +18,4 @@ Deleting a Group used to be a hard delete allowed only while the Group had no Ga
 - `canDelete` is true for every Group an owner opens, so the web Group page now offers Delete on Groups with Games; it calls the same Soft-delete.
 - `mine`, `mineLoose`, `listPublic`, `listForOperator`, `listCreateGroups`, the Community and Venue Group lists, Group link requests, the home carousel and the Invite link doors all filter `deleted_at`.
 - The Group name is capped at 40 characters on the new screens and in `groups.edit`; the create doors keep their older limit for the web form.
-- A new Drizzle migration (`0070_group_soft_delete`) adds the two columns.
+- A new Drizzle migration (`0071_group_soft_delete`) adds the two columns.
