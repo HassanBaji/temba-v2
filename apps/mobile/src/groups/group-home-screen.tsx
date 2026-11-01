@@ -14,11 +14,13 @@ import {
   groupLeaveToast,
 } from "@repo/domain/group-join";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
-import {
-  groupDeleteConfirm,
-  groupRemoveImageConfirm,
-} from "@repo/domain/group-admin";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
+import {
+  groupMenuItems,
+  groupMenuRoleLine,
+  groupOwnerLeaveCopy,
+  type GroupMenuItem,
+} from "@repo/domain/group-settings";
 import { groupMemberOrganizerToast } from "@repo/domain/group-home-chrome";
 import {
   groupLeaveVenueConfirm,
@@ -48,18 +50,22 @@ import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { GroupAddPlayerSheet } from "./group-add-player-sheet";
+import { groupEditPath } from "./group-edit-model";
 import { RequestJoinSheet } from "./request-join-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
 import { Notice } from "./notice";
+import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
   savedLevelFromParams,
   setLevelPath,
   type SavedLevelParams,
 } from "./set-level-model";
 import { useGroupAdmin } from "./use-group-admin";
+import { useGroupInviteLink } from "./use-group-invite-link";
 import { useGroupJoin } from "./use-group-join";
 import { useGroupLinkRequest } from "./use-group-link-request";
+import { useGroupTransfer } from "./use-group-transfer";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -84,6 +90,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [renaming, setRenaming] = useState<{
     userId: string;
@@ -162,14 +169,12 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   );
 
   const data = group.data;
-  const admin = useGroupAdmin(groupId, data, () => {
-    setConfirm(null);
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/groups");
-    }
-  });
+  const admin = useGroupAdmin(groupId, data);
+  const inviteLink = useGroupInviteLink(
+    groupId,
+    Boolean(data?.canManageInviteLinks),
+  );
+  const transfer = useGroupTransfer(groupId, data?.name);
   const currentOlder =
     data && older?.source === data.gameHistory ? older : null;
   const playedGames = useMemo(
@@ -281,6 +286,41 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   }
 
   const name = groupHomeHeader(data, apiOrigin).name;
+  const isMember = data.membership != null;
+  const viewerEntry = data.standing.leaderboard.find((entry) => entry.isViewer);
+  const askLeave = () =>
+    setConfirm({
+      ...groupLeaveConfirm(name),
+      onConfirm: () => leave.mutate({ groupId }),
+    });
+  const askOwnerLeave = () =>
+    setConfirm({
+      ...groupOwnerLeaveCopy(data.name),
+      onConfirm: () => {
+        setConfirm(null);
+        transfer.setOpen(true);
+      },
+    });
+  const pickMenuItem = (item: GroupMenuItem) => {
+    setMenuOpen(false);
+    switch (item) {
+      case "edit":
+        router.push(groupEditPath(groupId));
+        return;
+      case "invite":
+        setInviteOpen(true);
+        return;
+      case "copy_link":
+        void inviteLink.copy();
+        return;
+      case "leave":
+        if (data.isOwner && data.isLoose) {
+          askOwnerLeave();
+        } else {
+          askLeave();
+        }
+    }
+  };
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh} scrollRef={scrollRef}>
@@ -327,12 +367,24 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             },
           )
         }
-        onLeave={() =>
-          setConfirm({
-            ...groupLeaveConfirm(name),
-            onConfirm: () => leave.mutate({ groupId }),
-          })
-        }
+        menu={{
+          visible: menuOpen,
+          items: groupMenuItems({
+            isMember,
+            canEdit: data.canEdit,
+            canInvite: groupHomeCanManageInvites(data),
+            canCopyLink: data.canManageInviteLinks,
+          }),
+          roleLine: groupMenuRoleLine({
+            isOwner: data.isOwner,
+            isOrganizer: viewerEntry?.isOrganizer ?? false,
+            isMember,
+          }),
+          copyPending: inviteLink.copyPending,
+          onOpen: () => setMenuOpen(true),
+          onPick: pickMenuItem,
+          onClose: () => setMenuOpen(false),
+        }}
         onLeaveVenue={() => {
           const copy = groupLeaveVenueConfirm(
             name,
@@ -347,24 +399,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             onConfirm: () => unlinkFromVenue.mutate({ groupId }),
           });
         }}
-        admin={{
-          approver: admin.approver,
-          imagePending: admin.imagePending,
-          onChangeImage: () => void admin.changeImage(),
-          onRemoveImage: () =>
-            setConfirm({
-              ...groupRemoveImageConfirm(name),
-              onConfirm: () => {
-                setConfirm(null);
-                admin.clearImage();
-              },
-            }),
-          onDelete: () =>
-            setConfirm({
-              ...groupDeleteConfirm(name),
-              onConfirm: admin.deleteGroup,
-            }),
-        }}
+        admin={{ approver: admin.approver }}
         venueRequests={(linkRequests.data ?? []).filter(
           (request) => request.groupId === groupId,
         )}
@@ -376,7 +411,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
           leave.isPending ||
           unlinkFromVenue.isPending ||
           removePlayer.isPending ||
-          admin.deletePending ||
           linkRequest.confirmPending
         }
         onCloseConfirm={() => {
@@ -420,6 +454,17 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         }}
       />
       <RequestJoinSheet {...requestSheet} />
+      {data.canTransferOwnership ? (
+        <TransferOwnershipSheet
+          visible={transfer.open}
+          groupName={data.name}
+          members={data.standing.leaderboard}
+          apiOrigin={apiOrigin}
+          pending={transfer.pending}
+          onTransfer={transfer.transfer}
+          onClose={() => transfer.setOpen(false)}
+        />
+      ) : null}
       {data.canAddPlayers ? (
         <RenamePlayerSheet
           player={renaming}

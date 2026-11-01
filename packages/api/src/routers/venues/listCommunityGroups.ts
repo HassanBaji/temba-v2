@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -52,7 +52,9 @@ export async function listCommunityGroups(
           sport: groups.sport,
         })
         .from(groups)
-        .where(eq(groups.communityId, community.id))
+        .where(
+          and(eq(groups.communityId, community.id), isNull(groups.deletedAt)),
+        )
         .orderBy(asc(groups.name), asc(groups.id))
     : [];
 

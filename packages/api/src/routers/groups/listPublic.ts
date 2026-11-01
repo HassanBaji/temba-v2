@@ -1,5 +1,5 @@
 import type { DbClient } from "@repo/db";
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { GroupTypeEnum, groupMembers, groups } from "@repo/db";
@@ -47,6 +47,7 @@ export async function listPublic(
   const candidates = await database.query.groups.findMany({
     where: and(
       eq(groups.type, GroupTypeEnum.PUBLIC),
+      isNull(groups.deletedAt),
       args.sport ? eq(groups.sport, args.sport) : undefined,
       memberGroupIds.length > 0
         ? notInArray(groups.id, memberGroupIds)

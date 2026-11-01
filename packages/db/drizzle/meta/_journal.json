@@ -491,6 +491,13 @@
       "when": 1793464704860,
       "tag": "0069_game_invite_link_no_expiry",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1793503925440,
+      "tag": "0070_group_soft_delete",
+      "breakpoints": true
     }
   ]
 }

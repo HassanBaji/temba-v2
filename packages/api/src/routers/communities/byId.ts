@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -231,7 +231,7 @@ export async function communityById(
   }
 
   const clubGroups = await database.query.groups.findMany({
-    where: eq(groups.communityId, community.id),
+    where: and(eq(groups.communityId, community.id), isNull(groups.deletedAt)),
     orderBy: (table, { asc }) => [asc(table.name)],
   });
 

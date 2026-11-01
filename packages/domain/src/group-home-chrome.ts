@@ -140,6 +140,14 @@ export function groupMemberOrganizerActionLabel(
   return action === "appoint" ? "Make Organizer" : "Remove as Organizer";
 }
 
+export function groupMemberOrganizerActionHint(
+  action: GroupMemberOrganizerAction,
+) {
+  return action === "appoint"
+    ? "Can create Games, set teams and add players"
+    : "Loses the right to create Games, set teams and add players";
+}
+
 export function groupMemberOrganizerToast(
   action: GroupMemberOrganizerAction,
   name: string,

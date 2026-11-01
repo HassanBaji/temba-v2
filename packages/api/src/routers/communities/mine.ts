@@ -1,5 +1,5 @@
 import type { DbClient } from "@repo/db";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   communityMembers,
@@ -75,7 +75,10 @@ export async function mine(database: DbClient, args: { userId: string }) {
   const [clubGroups, memberCountByCommunity, logoByVenue] = await Promise.all([
     communityIds.length > 0
       ? database.query.groups.findMany({
-          where: inArray(groups.communityId, communityIds),
+          where: and(
+            inArray(groups.communityId, communityIds),
+            isNull(groups.deletedAt),
+          ),
           orderBy: (table, { asc }) => [asc(table.name)],
         })
       : Promise.resolve([]),

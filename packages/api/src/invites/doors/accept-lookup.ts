@@ -131,7 +131,7 @@ export async function acceptLookup(
 
   if (host.kind === "group") {
     const group = await database.query.groups.findFirst({
-      where: eq(groups.id, host.id),
+      where: and(eq(groups.id, host.id), isNull(groups.deletedAt)),
       columns: { id: true, communityId: true, createdBy: true },
     });
     if (!group) {

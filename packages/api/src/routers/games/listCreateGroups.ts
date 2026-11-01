@@ -1,5 +1,5 @@
 import type { DbClient, DbTx } from "@repo/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { communityMembers, CommunityRoleEnum, groups } from "@repo/db";
 
@@ -25,7 +25,7 @@ export async function listCreateGroups(
   args: { userId: string },
 ): Promise<CreateGroupOption[]> {
   const createdRows = await database.query.groups.findMany({
-    where: eq(groups.createdBy, args.userId),
+    where: and(eq(groups.createdBy, args.userId), isNull(groups.deletedAt)),
     with: {
       community: {
         columns: { name: true },
@@ -51,7 +51,10 @@ export async function listCreateGroups(
     staffCommunityIds.length === 0
       ? []
       : await database.query.groups.findMany({
-          where: inArray(groups.communityId, staffCommunityIds),
+          where: and(
+            inArray(groups.communityId, staffCommunityIds),
+            isNull(groups.deletedAt),
+          ),
           with: {
             community: {
               columns: { name: true },
@@ -67,7 +70,10 @@ export async function listCreateGroups(
     appointedGroupIds.length === 0
       ? []
       : await database.query.groups.findMany({
-          where: inArray(groups.id, appointedGroupIds),
+          where: and(
+            inArray(groups.id, appointedGroupIds),
+            isNull(groups.deletedAt),
+          ),
           with: {
             community: {
               columns: { name: true },

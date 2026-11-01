@@ -18,7 +18,11 @@ export async function mineLoose(database: DbClient, args: { userId: string }) {
   });
 
   return memberships
-    .filter((membership) => membership.group.communityId === null)
+    .filter(
+      (membership) =>
+        membership.group.communityId === null &&
+        membership.group.deletedAt === null,
+    )
     .map((membership) => ({
       id: membership.group.id,
       name: membership.group.name,

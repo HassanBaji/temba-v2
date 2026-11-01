@@ -199,7 +199,7 @@ async function organizerGroupIdsForViewer(
   userId: string,
 ): Promise<Set<string>> {
   const created = await database.query.groups.findMany({
-    where: eq(groups.createdBy, userId),
+    where: and(eq(groups.createdBy, userId), isNull(groups.deletedAt)),
     columns: { id: true },
   });
   const staffMemberships = await database.query.communityMembers.findMany({
@@ -213,7 +213,10 @@ async function organizerGroupIdsForViewer(
     staffCommunityIds.length === 0
       ? []
       : await database.query.groups.findMany({
-          where: inArray(groups.communityId, staffCommunityIds),
+          where: and(
+            inArray(groups.communityId, staffCommunityIds),
+            isNull(groups.deletedAt),
+          ),
           columns: { id: true },
         });
   return new Set([

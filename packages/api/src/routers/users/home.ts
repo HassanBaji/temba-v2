@@ -43,12 +43,14 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
   const pendingInviteCount =
     communityInvites.length + groupInvites.length + teamInvites.length;
 
-  const myGroupMemberships = await database.query.groupMembers.findMany({
-    where: eq(groupMembers.userId, args.userId),
-    with: {
-      group: true,
-    },
-  });
+  const myGroupMemberships = (
+    await database.query.groupMembers.findMany({
+      where: eq(groupMembers.userId, args.userId),
+      with: {
+        group: true,
+      },
+    })
+  ).filter((membership) => membership.group.deletedAt === null);
 
   const groupIds = myGroupMemberships.map((row) => row.groupId);
 

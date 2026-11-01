@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   communityInviteLinks,
@@ -118,7 +118,7 @@ export async function acceptLink(
         : { ok: false, reason: "not_found" };
     }
     const group = await database.query.groups.findFirst({
-      where: eq(groups.id, host.id),
+      where: and(eq(groups.id, host.id), isNull(groups.deletedAt)),
       columns: {
         id: true,
         communityId: true,
