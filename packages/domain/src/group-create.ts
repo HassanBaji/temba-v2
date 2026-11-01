@@ -52,3 +52,25 @@ export function groupCreateDoor(
 }
 
 export type GroupCreateDoor = ReturnType<typeof groupCreateDoor>;
+
+/** The Create Group screen (design "Group create and edit flow" 01). */
+export const GROUP_CREATE_SCREEN = {
+  title: "Create Group",
+  cancel: "Cancel",
+  description: {
+    loose:
+      "A Group is your regulars: one sport, one standing, as many Games as you like.",
+    club: "A Group inside your Community: one sport, one standing, as many Games as you like.",
+  },
+  photo: "Photo",
+  photoHelp: "Optional photo, JPEG or PNG",
+  nameLabel: "Group name",
+  namePlaceholder: "e.g. Tuesday Padel Crew",
+  sportLabel: "Sport",
+  visibilityLabel: "Visibility",
+  footnote: "You can change all of this later.",
+} as const;
+
+export function groupCreateCanSubmit(name: string) {
+  return name.trim().length > 0;
+}

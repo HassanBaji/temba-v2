@@ -142,6 +142,7 @@ const plainUserReferences: PgColumn[] = [
   games.createdBy,
   groups.createdBy,
   groups.verifiedBy,
+  groups.deletedBy,
   communities.createdBy,
   teams.createdBy,
   coach.addedBy,

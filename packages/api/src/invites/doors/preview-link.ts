@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   communities,
@@ -67,9 +67,12 @@ export async function previewLink(
       return { ok: true, status: "unavailable" };
     }
     const group = await database.query.groups.findFirst({
-      where: eq(groups.id, link.groupId),
+      where: and(eq(groups.id, link.groupId), isNull(groups.deletedAt)),
       columns: { name: true, type: true, requiresApproval: true },
     });
+    if (!group) {
+      return { ok: true, status: "unavailable" };
+    }
     return {
       ok: true,
       status: "ready",

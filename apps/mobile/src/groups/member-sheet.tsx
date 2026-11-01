@@ -4,19 +4,26 @@ import {
 } from "@repo/domain/add-player-by-phone";
 import { View } from "react-native";
 
+import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Sheet } from "../primitives/sheet";
+import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import type { MemberSheetView } from "./group-home-model";
 
+/**
+ * The row menu on the Members tab in Manage mode (design "Group members" 2b):
+ * who this is, then the doors the viewer holds on them.
+ */
 export function MemberSheet({
   member,
   onClose,
   onSetLevel,
   onViewProfile,
   organizerLabel,
+  organizerHint,
   onOrganizerAction,
   onRename,
   onRemove,
@@ -26,93 +33,129 @@ export function MemberSheet({
   onSetLevel?: () => void;
   onViewProfile?: () => void;
   organizerLabel?: string;
+  organizerHint?: string;
   onOrganizerAction?: () => void;
   onRename?: () => void;
   onRemove?: () => void;
 }) {
+  const rows = member
+    ? [
+        onViewProfile ? (
+          <SheetMenuRow
+            key="profile"
+            label="View profile"
+            trailing="chevron"
+            onPress={onViewProfile}
+          />
+        ) : null,
+        onSetLevel ? (
+          <SheetMenuRow
+            key="level"
+            label="Set Level"
+            hint={member.provisionalNote ? "Still Provisional" : null}
+            trailing="chevron"
+            onPress={onSetLevel}
+          />
+        ) : null,
+        organizerLabel && onOrganizerAction ? (
+          <SheetMenuRow
+            key="organizer"
+            label={organizerLabel}
+            hint={organizerHint}
+            onPress={onOrganizerAction}
+          />
+        ) : null,
+        onRename ? (
+          <SheetMenuRow
+            key="rename"
+            label={RENAME_UNCLAIMED_PLAYER_ACTION}
+            onPress={onRename}
+          />
+        ) : null,
+        onRemove ? (
+          <SheetMenuRow
+            key="remove"
+            label={REMOVE_PLAYER_ACTION}
+            onPress={onRemove}
+          />
+        ) : null,
+      ]
+    : [];
+
   return (
-    <Sheet visible={member != null} onClose={onClose} title={member?.name}>
+    <Sheet visible={member != null} onClose={onClose}>
       {member ? (
-        <View style={{ gap: 14 }}>
-          {member.unclaimed ? (
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <NotOnTembaMark />
-              {member.phoneMasked ? (
+        <View style={{ gap: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Avatar name={member.name} uri={member.imageUri} size="lg" />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text size="lead" weight="semibold" accessibilityRole="header">
+                {member.name}
+              </Text>
+              {member.unclaimed ? (
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <NotOnTembaMark />
+                  {member.phoneMasked ? (
+                    <Text size="meta" tone="muted">
+                      {member.phoneMasked}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : (
+                <Text size="meta" tone="muted" numberOfLines={1}>
+                  {member.caption ?? member.summary}
+                </Text>
+              )}
+            </View>
+          </View>
+          {onSetLevel ? (
+            <Surface radius="card" style={{ gap: 8 }}>
+              <View
+                accessible
+                accessibilityLabel={
+                  member.letter
+                    ? `Level ${member.letter} ${member.level ?? ""}`.trim()
+                    : "No Level yet"
+                }
+                style={{
+                  flexDirection: "row",
+                  alignItems: "baseline",
+                  gap: 12,
+                }}
+              >
+                <Text size="statTotal" width="expanded" weight="bold">
+                  {member.letter ?? "–"}
+                </Text>
+                {member.level ? (
+                  <Text size="title" width="expanded" weight="bold">
+                    {member.level}
+                  </Text>
+                ) : null}
+                <Text size="meta" tone="muted" style={{ flex: 1 }}>
+                  {member.summary}
+                </Text>
+              </View>
+              {member.provisionalNote ? (
                 <Text size="meta" tone="muted">
-                  {member.phoneMasked}
+                  {member.provisionalNote}
                 </Text>
               ) : null}
-            </View>
-          ) : null}
-          <Text size="meta" tone="muted">
-            {member.summary}
-          </Text>
-          <View
-            accessible
-            accessibilityLabel={
-              member.letter
-                ? `Level ${member.letter} ${member.level ?? ""}`.trim()
-                : "No Level yet"
-            }
-            style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
-          >
-            <Text size="levelBand" width="expanded" weight="bold">
-              {member.letter ?? "–"}
-            </Text>
-            {member.level ? (
-              <Text size="title" width="expanded" weight="bold">
-                {member.level}
-              </Text>
-            ) : null}
-          </View>
-          {member.provisionalNote ? (
-            <Text tone="muted">{member.provisionalNote}</Text>
-          ) : null}
-          {member.latestSet ? (
-            <Surface radius="md" style={{ gap: 2 }}>
-              <Text size="meta" tone="muted">
-                Latest Level set
-              </Text>
-              <Text>{member.latestSet}</Text>
+              {member.latestSet ? (
+                <Text size="meta" tone="muted">
+                  {`Latest Level set: ${member.latestSet}`}
+                </Text>
+              ) : null}
             </Surface>
           ) : null}
-          {onSetLevel ? (
-            <Button label="Set Level" size="lg" onPress={onSetLevel} />
-          ) : null}
-          {onViewProfile ? (
-            <Button
-              label="View profile"
-              size="lg"
-              variant="outline"
-              onPress={onViewProfile}
-            />
-          ) : null}
-          {organizerLabel && onOrganizerAction ? (
-            <Button
-              label={organizerLabel}
-              size="lg"
-              variant="outline"
-              onPress={onOrganizerAction}
-            />
-          ) : null}
-          {onRename ? (
-            <Button
-              label={RENAME_UNCLAIMED_PLAYER_ACTION}
-              size="lg"
-              variant="outline"
-              onPress={onRename}
-            />
-          ) : null}
-          {onRemove ? (
-            <Button
-              label={REMOVE_PLAYER_ACTION}
-              size="lg"
-              variant="outline"
-              onPress={onRemove}
-            />
-          ) : null}
+          {rows.some(Boolean) ? <SheetMenu>{rows}</SheetMenu> : null}
+          <Button
+            label="Cancel"
+            size="lg"
+            variant="outline"
+            onPress={onClose}
+          />
         </View>
       ) : null}
     </Sheet>

@@ -1,83 +1,66 @@
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupEmailInvites, groupInviteLinks, groups } from "@repo/db";
+import { games, groups, MatchStatusEnum } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { groupHasGames } from "#src/groups/helpers/group-has-games";
-import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
+import { cancelGameRecord } from "#src/games/helpers/cancel-game-record";
+import { assertGroupOwnerOrStaff } from "#src/groups/helpers/group-owner";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { requireStaff } from "#src/groups/helpers/require-staff";
-import { removeGroupImageObject } from "#src/storage/group-images";
+import { gameListTime } from "#src/home/upcoming-games";
 
 type DbClient = typeof db;
 
 /**
- * Delete a Group that has only the creator and no Games.
- * Club Group: Owner or Admin. Loose Group: creator only.
- * Community is never hard-deleted here.
+ * Soft-delete a Group: the owner (or Owner and Admin on a Club Group) hides it
+ * for everyone. Memberships, the standing and the Games are kept, so a played
+ * Game stays in each player's history. Games that have not started yet are
+ * cancelled; nobody is notified.
  */
 export async function deleteGroup(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; now?: Date },
 ) {
   const group = await requireGroup(database, args.groupId);
+  await assertGroupOwnerOrStaff(
+    database,
+    group,
+    args.userId,
+    group.communityId
+      ? "Only Owner or Admin can delete a Club Group"
+      : "Only the Group owner can delete this Group",
+  );
 
-  if (group.communityId) {
-    await requireStaff(
-      database,
-      group.communityId,
-      args.userId,
-      "Only Owner or Admin can delete a Club Group",
-    );
-  } else if (group.createdBy !== args.userId) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only the creator can delete this Group",
-    });
-  }
-
-  if (await groupHasGames(database, group.id)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot delete a Group that has Games",
-    });
-  }
-
-  if (await groupHasNonCreatorMembers(database, group.id, group.createdBy)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot delete a Group that has members besides the creator",
-    });
-  }
-
-  if (group.imageUrl) {
-    try {
-      await removeGroupImageObject(group.id);
-    } catch {
-      // Storage failure must not trap empty-Group delete.
-    }
-  }
+  const now = args.now ?? new Date();
+  const liveGames = await database.query.games.findMany({
+    where: and(eq(games.groupId, group.id), isNull(games.cancelledAt)),
+    with: {
+      matches: { columns: { status: true, startTime: true } },
+    },
+  });
+  const upcoming = liveGames.filter(
+    (game) =>
+      gameListTime(game).getTime() > now.getTime() &&
+      !game.matches.some((match) => match.status === MatchStatusEnum.COMPLETED),
+  );
 
   await database.transaction(async (tx) => {
-    // Email invites and Invite links restrict on group delete — clear first.
+    for (const game of upcoming) {
+      await cancelGameRecord(tx, game);
+    }
     await tx
-      .delete(groupEmailInvites)
-      .where(eq(groupEmailInvites.groupId, group.id));
-    await tx
-      .delete(groupInviteLinks)
-      .where(eq(groupInviteLinks.groupId, group.id));
-    // group_members and group_member_invites cascade from groups.
-    await tx.delete(groups).where(eq(groups.id, group.id));
+      .update(groups)
+      .set({ deletedAt: now, deletedBy: args.userId, updatedAt: now })
+      .where(eq(groups.id, group.id));
   });
 
   return {
     ok: true as const,
     groupId: group.id,
     communityId: group.communityId,
+    cancelledGameCount: upcoming.length,
   };
 }
 

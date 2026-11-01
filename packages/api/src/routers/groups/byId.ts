@@ -57,7 +57,7 @@ import {
   isAppointedOrganizer,
 } from "#src/groups/helpers/appointed-organizers";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
-import { groupHasNonCreatorMembers } from "#src/groups/helpers/group-has-non-creator-members";
+import { isGroupOwnerOrStaff } from "#src/groups/helpers/group-owner";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
 import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
@@ -101,41 +101,6 @@ const gameHistoryPageInput = z.object({
 });
 
 export type GroupGameHistoryPage = z.infer<typeof gameHistoryPageInput>;
-
-async function mayDeleteEmptyGroup(args: {
-  database: DbClient;
-  group: Awaited<ReturnType<typeof requireGroup>>;
-  callerId: string;
-}) {
-  if (args.group.communityId) {
-    const membership = await requireCommunityMembership(
-      args.database,
-      args.group.communityId,
-      args.callerId,
-    );
-    if (!membership || !isStaffRole(membership.role)) {
-      return false;
-    }
-  } else if (args.group.createdBy !== args.callerId) {
-    return false;
-  }
-
-  if (await groupHasGames(args.database, args.group.id)) {
-    return false;
-  }
-
-  if (
-    await groupHasNonCreatorMembers(
-      args.database,
-      args.group.id,
-      args.group.createdBy,
-    )
-  ) {
-    return false;
-  }
-
-  return true;
-}
 
 /** A Match slot as the Game teams seat it — `null` before the draw. */
 type GroupSlotTeam = {
@@ -390,11 +355,9 @@ export async function groupById(
       !archive.freeze("host") &&
       isStaffRole(communityMembership?.role));
 
-  const canDelete = await mayDeleteEmptyGroup({
-    database,
-    group,
-    callerId: args.userId,
-  });
+  const canEdit = await isGroupOwnerOrStaff(database, group, args.userId);
+  const canDelete = canEdit;
+  const canChangeSport = canEdit && !(await groupHasGames(database, group.id));
   const canCreateGame = await mayCreateGameOnGroup(
     database,
     group,
@@ -404,6 +367,19 @@ export async function groupById(
   const canSetRequiresApproval =
     isApprover && group.type === GroupTypeEnum.PUBLIC;
   const canDecideJoinRequests = canSetRequiresApproval;
+  const pendingJoinRequestCount = canDecideJoinRequests
+    ? ((
+        await database
+          .select({ value: count() })
+          .from(groupJoinRequests)
+          .where(
+            and(
+              eq(groupJoinRequests.groupId, group.id),
+              eq(groupJoinRequests.status, GroupJoinRequestStatusEnum.PENDING),
+            ),
+          )
+      )[0]?.value ?? 0)
+    : 0;
   const joinRequestsApprovedToday = canDecideJoinRequests
     ? ((
         await database
@@ -864,6 +840,11 @@ export async function groupById(
     canManageLookupInvites,
     canManageInviteLinks,
     canDelete,
+    isOwner: group.createdBy === args.userId,
+    canEdit,
+    canTransferOwnership: canEdit,
+    canChangeSport,
+    pendingJoinRequestCount,
     canCreateGame,
     canManageImage: isApprover,
     canAddPlayers: isApprover,

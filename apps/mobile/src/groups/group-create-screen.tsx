@@ -1,5 +1,4 @@
 import {
-  GROUP_CREATE_COPY,
   GROUP_CREATED_TOAST,
   groupCreateDoor,
   groupCreateRequiresApproval,
@@ -13,9 +12,6 @@ import { useState } from "react";
 
 import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
-import { Surface } from "../primitives/surface";
-import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { GroupCreateView } from "./group-create-view";

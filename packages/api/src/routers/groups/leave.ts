@@ -11,6 +11,10 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
+/** A Loose Group needs its owner; a Club Group has Owner and Admin behind it. */
+export const OWNER_CANNOT_LEAVE_MESSAGE =
+  "Transfer ownership to another member before leaving, or delete the Group";
+
 export async function leaveGroup(
   database: DbClient,
   args: { groupId: string; userId: string },
@@ -28,6 +32,13 @@ export async function leaveGroup(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "You are not a member of this Group",
+    });
+  }
+
+  if (!group.communityId && group.createdBy === args.userId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: OWNER_CANNOT_LEAVE_MESSAGE,
     });
   }
 

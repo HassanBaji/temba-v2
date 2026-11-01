@@ -47,6 +47,10 @@ export const groups = pgTable("groups", {
   verifiedBy: uuid("verified_by").references(() => user.id, {
     onDelete: "set null",
   }),
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: uuid("deleted_by").references(() => user.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -109,6 +109,14 @@ export type GroupHomeData = {
   canAppointOrganizers: boolean;
   canDelete: boolean;
   viewerCanSetLevel: boolean;
+  type: "public" | "private" | null;
+  /** The viewer is the Group creator, who owns it. */
+  isOwner: boolean;
+  canEdit: boolean;
+  canTransferOwnership: boolean;
+  /** Sport is locked once the Group has a Game. */
+  canChangeSport: boolean;
+  pendingJoinRequestCount: number;
 };
 
 export type GroupJoinRequestSource = "invite_link" | "community" | "group_page";

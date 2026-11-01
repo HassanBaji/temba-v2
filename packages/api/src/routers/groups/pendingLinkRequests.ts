@@ -35,6 +35,7 @@ export async function pendingLinkRequests(
         eq(groupLinkRequests.status, GroupLinkRequestStatusEnum.PENDING),
         eq(groups.createdBy, args.userId),
         isNull(groups.communityId),
+        isNull(groups.deletedAt),
         isNull(venues.archivedAt),
       ),
     )
