@@ -1,5 +1,4 @@
 import {
-  GROUP_DELETED_TOAST,
   GROUP_IMAGE_REMOVED_TOAST,
   GROUP_IMAGE_SAVED_TOAST,
   GROUP_JOIN_REQUEST_UNDO_LABEL,
@@ -45,7 +44,6 @@ export type GroupApproverHandlers = {
 export function useGroupAdmin(
   groupId: string,
   data: GroupHomeData | undefined,
-  onDeleted: () => void,
 ) {
   const toast = useToast();
   const utils = api.useUtils();
@@ -144,24 +142,6 @@ export function useGroupAdmin(
     onError,
   });
 
-  const deleteGroup = api.groups.delete.useMutation({
-    onSuccess: async (result) => {
-      toast.show(GROUP_DELETED_TOAST);
-      await Promise.all([
-        utils.groups.mine.invalidate(),
-        utils.users.home.invalidate(),
-        result.communityId
-          ? utils.communities.byId.invalidate({ id: result.communityId })
-          : Promise.resolve(),
-        result.communityId
-          ? utils.communities.mine.invalidate()
-          : Promise.resolve(),
-      ]);
-      onDeleted();
-    },
-    onError,
-  });
-
   const changeImage = useCallback(async () => {
     if (uploadImage.isPending) {
       return;
@@ -233,8 +213,6 @@ export function useGroupAdmin(
     imagePending: uploadImage.isPending || clearImage.isPending,
     changeImage,
     clearImage: () => clearImage.mutate({ groupId }),
-    deletePending: deleteGroup.isPending,
-    deleteGroup: () => deleteGroup.mutate({ groupId }),
     refetchRequests: () =>
       data?.canDecideJoinRequests ? requests.refetch() : Promise.resolve(),
   };

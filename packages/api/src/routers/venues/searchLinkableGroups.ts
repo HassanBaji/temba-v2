@@ -67,6 +67,7 @@ export async function searchLinkableGroups(
     .where(
       and(
         isNull(groups.communityId),
+        isNull(groups.deletedAt),
         eq(groups.type, GroupTypeEnum.PUBLIC),
         ilike(groups.name, `%${args.query}%`),
         pendingGroupIds.length > 0

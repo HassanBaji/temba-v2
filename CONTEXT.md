@@ -118,7 +118,19 @@ _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
 Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers. On a Loose Group, the creator and Appointed Organizers. On a Club Group, Community Owner or Admin, the Group creator while still a Community Member, and Appointed Organizers while still Community Members. Nobody while the Club Group's Community is Soft-archived. Removing a player never removes the Group creator, nor Community Owner or Admin from a Club Group; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
-_Avoid_: Group owner, organizer (when you mean this write permission), group admin
+_Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
+
+**Group owner**:
+The one User a Group belongs to: its creator, until ownership is transferred. Who may edit the Group (name, sport until the first Game, visibility, Require approval, photo, Invite link reset), transfer ownership and delete it. On a Club Group, Community Owner and Admin hold the same doors beside the owner, and the owner holds them only while a Community Member and the Community is not Soft-archived. The owner of a Loose Group cannot Leave; they transfer ownership or delete the Group first. A Group approver is not an owner.
+_Avoid_: creator (in UI copy), admin
+
+**Transfer ownership**:
+The Group owner hands the Group to another member who is on Temba (never an Unclaimed player, and on a Club Group a Community Member). The new owner becomes the creator for every door; the previous owner stays a member and becomes an Appointed Organizer. Nobody else is notified.
+_Avoid_: handover, reassign
+
+**Group delete**:
+A Soft-delete by the Group owner (or Owner and Admin on a Club Group), confirmed by typing the Group name. The Group disappears from every list, door and Invite link for everyone; memberships, the standing and played Games are kept, so each player's history still shows them. Games that had not started are cancelled. Nobody is notified. Not a Soft-archive: there is no undo door.
+_Avoid_: archive, remove (when you mean the whole Group)
 
 **Loose Group Private**:
 A Loose Group that is not listed; joinable by Lookup invite or Invite link from the User who created it or one of its Appointed Organizers.
@@ -502,7 +514,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, that a Level setter set their Level, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notifications page**:

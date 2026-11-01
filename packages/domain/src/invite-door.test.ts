@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  inviteLinkLifetimeNote,
   inviteLinkNote,
   inviteModes,
   inviteSheetTitle,
@@ -87,6 +88,16 @@ describe("invite sheet copy", () => {
   it("describes the link for each door", () => {
     expect(inviteLinkNote("game")).toContain("take a seat");
     expect(inviteLinkNote("community")).toContain("join the Community");
+  });
+
+  it("gives a Game link no clock and the other doors 6 hours", () => {
+    expect(inviteLinkLifetimeNote("game")).toBe(
+      "Works until the Game ends or registration closes.",
+    );
+    expect(inviteLinkLifetimeNote("group")).toBe(
+      "Each link works for 6 hours.",
+    );
+    expect(inviteLinkLifetimeNote("team")).toBe("Each link works for 6 hours.");
   });
 });
 

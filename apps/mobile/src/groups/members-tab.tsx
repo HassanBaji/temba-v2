@@ -1,6 +1,7 @@
 import { colors, radii, sizes } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
 import {
+  groupMemberOrganizerActionHint,
   groupMemberOrganizerActionLabel,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
@@ -466,7 +467,7 @@ export function MembersTab({
         <PendingInvitesCard names={pendingInviteNames} onOpen={onOpenInvites} />
       ) : null}
       <MemberSheet
-        member={selected ? memberSheetView(selected) : null}
+        member={selected ? memberSheetView(selected, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
         onSetLevel={
           canSetLevel
@@ -491,6 +492,11 @@ export function MembersTab({
         organizerLabel={
           organizerAction
             ? groupMemberOrganizerActionLabel(organizerAction)
+            : undefined
+        }
+        organizerHint={
+          organizerAction
+            ? groupMemberOrganizerActionHint(organizerAction)
             : undefined
         }
         onOrganizerAction={

@@ -256,6 +256,12 @@ export function createGroupFixtures(now = new Date()) {
     venueCommunity: null,
     pendingLinkRequestCount: 0,
     canUnlinkFromVenue: false,
+    type: "public",
+    isOwner: false,
+    canEdit: false,
+    canTransferOwnership: false,
+    canChangeSport: false,
+    pendingJoinRequestCount: 0,
   };
 
   const creator: GroupHomeData = {
@@ -269,6 +275,11 @@ export function createGroupFixtures(now = new Date()) {
     canAddPlayers: true,
     canRemovePlayers: true,
     canAppointOrganizers: true,
+    isOwner: true,
+    canEdit: true,
+    canTransferOwnership: true,
+    canDelete: true,
+    pendingJoinRequestCount: 2,
   };
 
   const joinRequests: GroupJoinRequestData[] = [
@@ -305,7 +316,14 @@ export function createGroupFixtures(now = new Date()) {
     creator,
     requiresApproval: { ...creator, requiresApproval: true },
     noImage: { ...creator, imageUrl: null },
-    deletable: { ...creator, canDelete: true },
+    deletable: creator,
+    organizer: {
+      ...creator,
+      isOwner: false,
+      canEdit: false,
+      canTransferOwnership: false,
+      canDelete: false,
+    },
     club: {
       ...creator,
       communityId: "community-sodermalm",

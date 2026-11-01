@@ -14,6 +14,7 @@ import { createLoosePrivateProcedure as createLoosePrivate } from "./createLoose
 import { createLoosePublicProcedure as createLoosePublic } from "./createLoosePublic";
 import { declineLinkRequestProcedure as declineLinkRequest } from "./declineLinkRequest";
 import { deleteProcedure } from "./delete";
+import { editProcedure as edit } from "./edit";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { joinClubPublicProcedure as joinClubPublic } from "./joinClubPublic";
 import { joinLoosePublicProcedure as joinLoosePublic } from "./joinLoosePublic";
@@ -34,11 +35,13 @@ import { rejectJoinRequestProcedure as rejectJoinRequest } from "./rejectJoinReq
 import { removePlayerProcedure as removePlayer } from "./removePlayer";
 import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
 import { requestJoinProcedure as requestJoin } from "./requestJoin";
+import { resetInviteLinkProcedure as resetInviteLink } from "./resetInviteLink";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
+import { transferOwnershipProcedure as transferOwnership } from "./transferOwnership";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./undoJoinRequestDecision";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
@@ -62,6 +65,8 @@ export const groupsRouter = createTRPCRouter({
   setRequiresApproval,
   leave,
   delete: deleteProcedure,
+  edit,
+  transferOwnership,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,
@@ -70,6 +75,7 @@ export const groupsRouter = createTRPCRouter({
   acceptLookupInvite,
   getInviteLink,
   createInviteLink,
+  resetInviteLink,
   inviteLinkByShortCode,
   previewInviteLink,
   acceptInviteLink,

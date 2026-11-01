@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { groups } from "@repo/db";
 
@@ -24,7 +24,7 @@ export async function loadGroupInviteOpenGraph(
     return GENERIC_TEMBA_OPEN_GRAPH;
   }
   const group = await database.query.groups.findFirst({
-    where: eq(groups.id, link.groupId),
+    where: and(eq(groups.id, link.groupId), isNull(groups.deletedAt)),
     columns: { name: true, sport: true },
   });
   if (!group) {

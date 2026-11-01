@@ -314,6 +314,8 @@ export function memberList(
 
 export type MemberSheetView = {
   name: string;
+  imageUri: string | null;
+  caption: string | null;
   unclaimed: boolean;
   phoneMasked: string | null;
   summary: string;
@@ -333,6 +335,7 @@ function matchCountLabel(count: number) {
 
 export function memberSheetView(
   entry: GroupLeaderboardEntryData,
+  apiOrigin = "",
 ): MemberSheetView {
   const name = entry.name ?? "Member";
   const override = entry.levelOverride;
@@ -341,6 +344,8 @@ export function memberSheetView(
     : "";
   return {
     name,
+    imageUri: mediaUrl(entry.image, apiOrigin),
+    caption: groupMemberTableCaption(entry),
     unclaimed: entry.unclaimed,
     phoneMasked: entry.phoneMasked,
     summary: [

@@ -51,16 +51,18 @@ export async function mine(
 ) {
   const now = args.now ?? new Date();
 
-  const memberships = await database.query.groupMembers.findMany({
-    where: eq(groupMembers.userId, args.userId),
-    with: {
-      group: {
-        with: {
-          community: true,
+  const memberships = (
+    await database.query.groupMembers.findMany({
+      where: eq(groupMembers.userId, args.userId),
+      with: {
+        group: {
+          with: {
+            community: true,
+          },
         },
       },
-    },
-  });
+    })
+  ).filter((membership) => membership.group.deletedAt === null);
 
   if (memberships.length === 0) {
     return [];

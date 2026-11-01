@@ -1,4 +1,4 @@
-import { asc, ilike } from "drizzle-orm";
+import { and, asc, ilike, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { groups, type DbClient } from "@repo/db";
@@ -18,7 +18,10 @@ export async function listForOperator(
   const query = args.query?.trim();
 
   const rows = await database.query.groups.findMany({
-    where: query ? ilike(groups.name, `%${query}%`) : undefined,
+    where: and(
+      isNull(groups.deletedAt),
+      query ? ilike(groups.name, `%${query}%`) : undefined,
+    ),
     columns: {
       id: true,
       name: true,

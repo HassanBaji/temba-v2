@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   copyLinkLabel,
   INVITE_LINK_EMPTY_NOTE,
-  INVITE_LINK_TTL_NOTE,
+  inviteLinkLifetimeNote,
   INVITE_MODE_LABELS,
   inviteButtonLabel,
   inviteLinkNote,
@@ -305,7 +305,9 @@ function LinkMode({ link }: { link: LinkModeProps }) {
             <p className="select-all truncate font-mono">{link.currentUrl}</p>
           ) : null}
           <Eyebrow>
-            {link.currentUrl ? INVITE_LINK_TTL_NOTE : INVITE_LINK_EMPTY_NOTE}
+            {link.currentUrl
+              ? inviteLinkLifetimeNote(link.kind)
+              : INVITE_LINK_EMPTY_NOTE}
           </Eyebrow>
         </div>
         <Button

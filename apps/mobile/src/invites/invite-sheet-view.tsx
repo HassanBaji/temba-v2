@@ -13,7 +13,7 @@ import { Pressable, View } from "react-native";
 import {
   copyLinkLabel,
   INVITE_LINK_EMPTY_NOTE,
-  INVITE_LINK_TTL_NOTE,
+  inviteLinkLifetimeNote,
   INVITE_MODE_LABELS,
   inviteButtonLabel,
   inviteLinkNote,
@@ -374,7 +374,9 @@ function LinkMode({ link }: { link: LinkModeProps }) {
             </Text>
           ) : null}
           <Text size="eyebrow" tone="muted">
-            {link.currentUrl ? INVITE_LINK_TTL_NOTE : INVITE_LINK_EMPTY_NOTE}
+            {link.currentUrl
+              ? inviteLinkLifetimeNote(link.kind)
+              : INVITE_LINK_EMPTY_NOTE}
           </Text>
         </View>
         <Button

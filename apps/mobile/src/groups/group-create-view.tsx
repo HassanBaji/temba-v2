@@ -1,24 +1,30 @@
-import { spacing } from "@repo/design-tokens";
-import { ENTITY_IMAGE_HELP } from "@repo/domain/entity-image-file";
+import { colors, spacing } from "@repo/design-tokens";
 import {
-  GROUP_CREATE_CLUB_DESCRIPTION,
   GROUP_CREATE_COPY,
-  GROUP_CREATE_LOOSE_DESCRIPTION,
+  GROUP_CREATE_SCREEN,
+  groupCreateCanSubmit,
   type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
-import { GROUP_REQUIRE_APPROVAL_LABEL } from "@repo/domain/group-admin";
+import {
+  GROUP_JOINING_COPY,
+  groupJoiningFooter,
+} from "@repo/domain/group-settings";
 import type { Sport } from "@repo/domain/sport";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
-import { ChoiceRow } from "../lib/choice-row";
-import { SportChoiceRow } from "../lib/sport-choice-row";
-import { ToggleRow } from "../lib/toggle-row";
-import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
-import { TextField } from "../primitives/text-field";
+import {
+  FORM_GAP,
+  FormBlock,
+  GroupNameField,
+  PhotoTile,
+  SportSegment,
+  ToggleCard,
+  VisibilityCards,
+} from "./group-form-parts";
 
 export type GroupCreateViewProps = {
   context: GroupCreateContext;
@@ -45,115 +51,131 @@ export type GroupCreateViewProps = {
 
 export function GroupCreateView(props: GroupCreateViewProps) {
   const copy = GROUP_CREATE_COPY[props.context];
-  const choices = [
-    { value: "public" as const, label: copy.publicLabel },
-    { value: "private" as const, label: copy.privateLabel },
-  ];
+  const canSubmit = groupCreateCanSubmit(props.name) && !props.pending;
 
   return (
-    <View style={{ gap: spacing.compact }}>
-      <View style={{ gap: 4 }}>
-        <ScreenHeader nav="close" fallback="/groups" title={copy.submit} />
-        <Text size="meta" tone="muted">
-          {props.context === "club"
-            ? GROUP_CREATE_CLUB_DESCRIPTION
-            : GROUP_CREATE_LOOSE_DESCRIPTION}
+    <View style={{ gap: spacing.section }}>
+      <ScreenHeader
+        nav="back"
+        fallback="/groups"
+        onNav={props.onCancel}
+        title={GROUP_CREATE_SCREEN.title}
+        actions={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={GROUP_CREATE_SCREEN.cancel}
+            disabled={props.pending}
+            onPress={props.onCancel}
+            hitSlop={10}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Text>{GROUP_CREATE_SCREEN.cancel}</Text>
+          </Pressable>
+        }
+      >
+        <Text tone="muted" style={{ marginTop: -12 }}>
+          {GROUP_CREATE_SCREEN.description[props.context]}
         </Text>
-      </View>
+      </ScreenHeader>
+
       {props.formError ? (
         <Text size="meta" weight="medium" accessibilityRole="alert">
           {props.formError}
         </Text>
       ) : null}
-      <TextField
-        label="Name"
-        value={props.name}
-        onChangeText={props.onNameChange}
-        error={props.nameError ?? undefined}
-        maxLength={255}
-        editable={!props.pending}
-        returnKeyType="done"
-      />
-      {props.showSportPicker ? (
-        <View style={{ gap: 6 }}>
-          <Text weight="medium">Sport</Text>
-          <SportChoiceRow
-            sports={props.sports}
-            value={props.sport}
-            onSelect={props.onSportChange}
-            disabled={props.pending}
-          />
-        </View>
-      ) : null}
-      <View style={{ gap: 6 }}>
-        <Text weight="medium">Type</Text>
-        <ChoiceRow
-          label="Type"
-          choices={choices}
-          value={props.type}
-          onSelect={props.onTypeChange}
-          disabled={props.pending}
-        />
-        <Text size="meta" tone="muted">
-          {props.type === "private" ? copy.privateHelp : copy.publicHelp}
-        </Text>
-      </View>
-      {props.type === "public" ? (
-        <ToggleRow
-          label={GROUP_REQUIRE_APPROVAL_LABEL}
-          help={copy.approvalHelp}
-          value={props.requiresApproval}
-          onChange={props.onRequiresApprovalChange}
-          disabled={props.pending}
-        />
-      ) : null}
-      <View style={{ gap: 6 }}>
-        <Text weight="medium">Image</Text>
-        {props.imageUri ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Avatar
-              name="Selected Group image"
+
+      <View style={{ gap: FORM_GAP }}>
+        <View
+          style={{ flexDirection: "row", gap: 14, alignItems: "flex-start" }}
+        >
+          <View style={{ gap: 6, alignItems: "center" }}>
+            <PhotoTile
               uri={props.imageUri}
-              size="xl"
-            />
-            <Button
-              label="Clear"
-              variant="outline"
+              name={props.name || "Group"}
+              label={props.imageUri ? "Change" : GROUP_CREATE_SCREEN.photo}
               disabled={props.pending}
-              onPress={props.onClearImage}
+              onPress={props.onPickImage}
             />
+            {props.imageUri ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
+                disabled={props.pending}
+                onPress={props.onClearImage}
+                hitSlop={8}
+              >
+                <Text size="eyebrow" tone="muted">
+                  Remove
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
-        ) : null}
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label={props.imageUri ? "Choose another image" : "Add image"}
-            variant="outline"
+          <GroupNameField
+            label={GROUP_CREATE_SCREEN.nameLabel}
+            value={props.name}
+            onChangeText={props.onNameChange}
+            placeholder={GROUP_CREATE_SCREEN.namePlaceholder}
+            help={props.imageError ?? GROUP_CREATE_SCREEN.photoHelp}
+            error={props.nameError}
             disabled={props.pending}
-            onPress={props.onPickImage}
           />
         </View>
-        {props.imageError ? (
-          <Text size="meta" weight="medium" accessibilityRole="alert">
-            {props.imageError}
-          </Text>
-        ) : (
-          <Text size="meta" tone="muted">
-            {ENTITY_IMAGE_HELP}
-          </Text>
-        )}
+
+        {props.showSportPicker ? (
+          <FormBlock label={GROUP_CREATE_SCREEN.sportLabel}>
+            <SportSegment
+              sports={props.sports}
+              value={props.sport}
+              onSelect={props.onSportChange}
+              disabled={props.pending}
+            />
+          </FormBlock>
+        ) : null}
+
+        <FormBlock label={GROUP_CREATE_SCREEN.visibilityLabel}>
+          <VisibilityCards
+            context={props.context}
+            value={props.type}
+            onSelect={props.onTypeChange}
+            disabled={props.pending}
+          />
+          {props.context === "club" ? (
+            <Text size="eyebrow" tone="muted">
+              {props.type === "private" ? copy.privateHelp : copy.publicHelp}
+            </Text>
+          ) : null}
+        </FormBlock>
+
+        {props.type === "public" ? (
+          <FormBlock label={GROUP_JOINING_COPY.label}>
+            <ToggleCard
+              title={GROUP_JOINING_COPY.toggle}
+              help={GROUP_JOINING_COPY.toggleHelp}
+              footer={groupJoiningFooter({
+                visibility: props.type,
+                requiresApproval: props.requiresApproval,
+              })}
+              value={props.requiresApproval}
+              onChange={props.onRequiresApprovalChange}
+              disabled={props.pending}
+            />
+          </FormBlock>
+        ) : null}
       </View>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <Button
-          label={copy.submit}
-          pending={props.pending}
-          onPress={props.onSubmit}
-        />
-        <Button
-          label="Cancel"
-          variant="outline"
-          disabled={props.pending}
-          onPress={props.onCancel}
-        />
+
+      <View style={{ gap: 10, alignItems: "center" }}>
+        <View style={{ alignSelf: "stretch" }}>
+          <Button
+            label={copy.submit}
+            size="lg"
+            pending={props.pending}
+            disabled={!canSubmit}
+            onPress={props.onSubmit}
+          />
+        </View>
+        <Text size="eyebrow" style={{ color: colors.muted }}>
+          {GROUP_CREATE_SCREEN.footnote}
+        </Text>
       </View>
     </View>
   );

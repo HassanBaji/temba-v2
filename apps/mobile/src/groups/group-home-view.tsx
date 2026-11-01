@@ -17,9 +17,10 @@ import {
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
-import { groupManageActions } from "@repo/domain/group-admin";
 import type { GroupJoinDoor } from "@repo/domain/group-join";
+import type { GroupMenuItem } from "@repo/domain/group-settings";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
+import { EllipsisVertical, UserRoundPlus } from "lucide-react-native";
 import { useRef } from "react";
 import { View } from "react-native";
 
@@ -31,11 +32,12 @@ import type { GameCardActions } from "../games/game-card";
 import { SeatPickerSheet } from "../games/seat-picker-sheet";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
-import { ScreenHeader } from "../primitives/screen-header";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { GamesTab, type GamesTabProps } from "./games-tab";
 import { JoinRequestsBanner, JoinRequestsCard } from "./group-approver-view";
+import { GroupMenuSheet } from "./group-menu-sheet";
 import { RejectRequestSheet, WhoCanJoinSheet } from "./join-request-sheets";
 import type { GroupApproverHandlers } from "./use-group-admin";
 import { groupBanner, groupHomeHeader, groupJoinCta } from "./group-home-model";
@@ -47,10 +49,16 @@ import type { GroupLinkRequestRow } from "./use-group-link-request";
 
 export type GroupAdminHandlers = {
   approver: GroupApproverHandlers;
-  imagePending: boolean;
-  onChangeImage: () => void;
-  onRemoveImage: () => void;
-  onDelete: () => void;
+};
+
+export type GroupMenuProps = {
+  visible: boolean;
+  items: GroupMenuItem[];
+  roleLine: string | null;
+  copyPending: boolean;
+  onOpen: () => void;
+  onPick: (item: GroupMenuItem) => void;
+  onClose: () => void;
 };
 
 export type GroupHomeViewProps = {
@@ -60,9 +68,9 @@ export type GroupHomeViewProps = {
   onTabChange: (tab: GroupHomeTab) => void;
   joinPending: boolean;
   onJoin: (door: GroupJoinDoor) => void;
-  onLeave: () => void;
   onLeaveVenue: () => void;
   onInvite: () => void;
+  menu: GroupMenuProps;
   onAddPlayer: () => void;
   onRenameUnclaimed: (member: { userId: string; name: string }) => void;
   onRemovePlayer: (member: { userId: string; name: string }) => void;
@@ -122,7 +130,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const cta = groupJoinCta(data, props.joinPending);
   const banner = groupBanner(data);
   const door = cta?.door;
-  const manage = groupManageActions(data);
   const onInvite = groupHomeCanManageInvites(data) ? props.onInvite : undefined;
   const createGameHref = groupHomeCanShowCreateGame(data)
     ? ({ pathname: "/games/new", params: { groupId: data.id } } as const)
@@ -135,7 +142,30 @@ export function GroupHomeView(props: GroupHomeViewProps) {
 
   return (
     <View style={{ gap: spacing.compact }}>
-      <ScreenHeader nav="back" fallback="/groups">
+      <ScreenHeader
+        nav="back"
+        fallback="/groups"
+        actions={
+          <>
+            {groupHomeCanManageInvites(data) ? (
+              <HeaderIconButton
+                framed
+                icon={UserRoundPlus}
+                accessibilityLabel="Invite players"
+                onPress={props.onInvite}
+              />
+            ) : null}
+            {props.menu.items.length > 0 ? (
+              <HeaderIconButton
+                framed
+                icon={EllipsisVertical}
+                accessibilityLabel="More"
+                onPress={props.menu.onOpen}
+              />
+            ) : null}
+          </>
+        }
+      >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Avatar name={header.name} uri={header.imageUri} size="xl" />
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -150,58 +180,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           </View>
         </View>
       </ScreenHeader>
-
-      {data.membership || groupHomeCanManageInvites(data) ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {groupHomeCanManageInvites(data) ? (
-            <Button
-              label="Invite"
-              size="sm"
-              variant="outline"
-              onPress={props.onInvite}
-            />
-          ) : null}
-          {data.membership ? (
-            <Button
-              label="Leave Group"
-              size="sm"
-              variant="outline"
-              onPress={props.onLeave}
-            />
-          ) : null}
-        </View>
-      ) : null}
-
-      {manage.length > 0 ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {manage.includes("change_image") ? (
-            <Button
-              label="Change image"
-              size="sm"
-              variant="outline"
-              pending={props.admin.imagePending}
-              onPress={props.admin.onChangeImage}
-            />
-          ) : null}
-          {manage.includes("remove_image") ? (
-            <Button
-              label="Remove image"
-              size="sm"
-              variant="outline"
-              disabled={props.admin.imagePending}
-              onPress={props.admin.onRemoveImage}
-            />
-          ) : null}
-          {manage.includes("delete") ? (
-            <Button
-              label="Delete Group"
-              size="sm"
-              variant="outline"
-              onPress={props.admin.onDelete}
-            />
-          ) : null}
-        </View>
-      ) : null}
 
       {data.venueCommunity ? (
         <Text size="meta" tone="muted">
@@ -393,6 +371,15 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         request={props.confirm}
         pending={props.confirmPending}
         onClose={props.onCloseConfirm}
+      />
+      <GroupMenuSheet
+        visible={props.menu.visible}
+        name={header.name}
+        roleLine={props.menu.roleLine}
+        items={props.menu.items}
+        copyPending={props.menu.copyPending}
+        onPick={props.menu.onPick}
+        onClose={props.menu.onClose}
       />
     </View>
   );

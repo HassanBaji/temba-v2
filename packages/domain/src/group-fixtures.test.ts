@@ -48,8 +48,9 @@ describe("administration fixtures", () => {
   const fixtures = createGroupFixtures(new Date("2026-03-10T12:00:00Z"));
 
   it("offers Delete only where the server allows it", () => {
-    expect(fixtures.administration.creator.canDelete).toBe(false);
+    expect(fixtures.administration.creator.canDelete).toBe(true);
     expect(fixtures.administration.deletable.canDelete).toBe(true);
+    expect(fixtures.administration.organizer.canDelete).toBe(false);
     expect(fixtures.administration.member.canDelete).toBe(false);
   });
 
