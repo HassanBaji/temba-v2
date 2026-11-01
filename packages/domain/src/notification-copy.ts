@@ -1,6 +1,11 @@
 import { formatDayMonth } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
+import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+import {
+  levelOverrideReasonLabel,
+  type LevelOverrideReason,
+} from "./level-slider";
 import { productDaysBetween, zonedParts } from "./product-timezone";
 
 export type NotificationTitlePart = { text: string; strong: boolean };
@@ -20,6 +25,13 @@ export type NotificationCopyInput = {
   group: { name: string | null } | null;
   game?: NotificationGame | null;
   gameCount?: number | null;
+  levelSet?: NotificationLevelSet | null;
+};
+
+type NotificationLevelSet = {
+  level: string;
+  levelBand: LevelBand;
+  reason: LevelOverrideReason | null;
 };
 
 type NotificationGame = {
@@ -155,6 +167,21 @@ export function notificationCopy(
         plain(" played under your number"),
       ],
       subline: null,
+    };
+  }
+  if (
+    item.type === "level_set" &&
+    item.audience === "player" &&
+    item.levelSet
+  ) {
+    const { level, levelBand, reason } = item.levelSet;
+    return {
+      title: [
+        strong(actorName(item.actor)),
+        plain(" set your Level to "),
+        strong(`${displayLabelFromStoredBand(levelBand)} ${level}`),
+      ],
+      subline: reason ? levelOverrideReasonLabel(reason) : null,
     };
   }
   if (item.type === "game_finished" && item.game) {
