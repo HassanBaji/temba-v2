@@ -126,7 +126,7 @@ export function DeclareLevelDialog({
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
-          <div className="space-y-4 px-4 pb-4 md:px-0 md:pb-0">
+          <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 pb-4 md:px-0 md:pb-0">
             <FormErrorSummary
               ref={summaryRef}
               message={globalFormErrorMessage(error)}
