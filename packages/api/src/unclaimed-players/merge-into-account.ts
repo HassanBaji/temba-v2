@@ -162,6 +162,7 @@ const plainUserReferences: PgColumn[] = [
   teamInviteLinks.createdBy,
   communityJoinRequests.decidedBy,
   groupJoinRequests.decidedBy,
+  groupJoinRequests.invitedBy,
   gameLevelRangeRequests.decidedBy,
   groupLinkRequests.requestedBy,
   groupLinkRequests.decidedBy,
