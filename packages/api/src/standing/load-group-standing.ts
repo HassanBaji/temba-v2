@@ -1,13 +1,21 @@
 import type { DbClient } from "@repo/db";
 import { inArray } from "drizzle-orm";
 
-import { games, groupMembers } from "@repo/db";
+import { games, groupMembers, groupSeasons } from "@repo/db";
 
 import {
-  groupMemberStandingRecords,
-  type GroupStandingMatch,
-  type MemberStandingRecord,
-} from "#src/standing/group-standing";
+  defaultSeasonLens,
+  groupSeasonStatus,
+  isInSeasonWindow,
+  type GroupSeasonData,
+} from "@repo/domain/group-season";
+import {
+  seasonStandingTable,
+  standingDiffUnit,
+  type SeasonStandingMatch,
+  type SeasonStandingRow,
+} from "@repo/domain/season-standing";
+import { MATCH_STATUS } from "@repo/domain/match-status";
 
 type SlotTeam = {
   players: readonly {
@@ -15,7 +23,7 @@ type SlotTeam = {
   }[];
 } | null;
 
-function slotUserIds(team: SlotTeam): string[] {
+export function slotUserIds(team: SlotTeam): string[] {
   const userIds: string[] = [];
   for (const link of team?.players ?? []) {
     const userId = link.gamePlayer?.userId;
@@ -26,39 +34,138 @@ function slotUserIds(team: SlotTeam): string[] {
   return userIds;
 }
 
-export type GroupStandingMember = MemberStandingRecord & {
-  userId: string;
-  name: string;
+export type StandingGameRow = {
+  groupId: string | null;
+  cancelledAt: Date | null;
+  windowStart: Date | null;
+  createdAt: Date;
+  matches: readonly {
+    status: string | null;
+    startTime: Date | null;
+    createdAt: Date;
+    sets: readonly {
+      slot1GamesWon: number | null;
+      slot2GamesWon: number | null;
+    }[];
+    slot1GameTeam: SlotTeam;
+    slot2GameTeam: SlotTeam;
+  }[];
 };
 
 /**
- * Standing members per Group, derived on every read from the completed
- * Matches of each Group's Games, Rated or Unrated: only a Level is limited to
- * Rated Games (ADR-0045). The one loader behind Group home, the Groups
- * list and Home, so the three cannot disagree. Two reads whatever the number
- * of Groups.
+ * The Matches a Standing reads, from the Group's Games with a cancelled Game
+ * already dropped. A Match is placed in time by its own start, else the
+ * Game's, else when it was created.
  */
-export async function loadGroupStandingMembers(
+export function standingMatchesFromGames(
+  gameRows: readonly StandingGameRow[],
+): SeasonStandingMatch[] {
+  const list: SeasonStandingMatch[] = [];
+  for (const game of gameRows) {
+    if (game.cancelledAt !== null) {
+      continue;
+    }
+    for (const match of game.matches) {
+      list.push({
+        status: match.status,
+        playedAt: match.startTime ?? game.windowStart ?? match.createdAt,
+        sets: match.sets,
+        slot1UserIds: slotUserIds(match.slot1GameTeam),
+        slot2UserIds: slotUserIds(match.slot2GameTeam),
+      });
+    }
+  }
+  return list;
+}
+
+export type GroupSeasonRow = GroupSeasonData & {
+  status: "upcoming" | "active" | "closed";
+};
+
+export function toSeasonRow(
+  season: typeof groupSeasons.$inferSelect,
+  now: Date,
+): GroupSeasonRow {
+  return {
+    id: season.id,
+    name: season.name,
+    startsOn: season.startsOn,
+    endsOn: season.endsOn,
+    closedAt: season.closedAt,
+    status: groupSeasonStatus(season, now),
+  };
+}
+
+/** The Matches inside the lens: a Season's window, or all of them. */
+export function matchesInLens(
+  matches: readonly SeasonStandingMatch[],
+  season: GroupSeasonData | null,
+): SeasonStandingMatch[] {
+  if (!season) {
+    return [...matches];
+  }
+  return matches.filter((match) => isInSeasonWindow(season, match.playedAt));
+}
+
+export function countCompletedMatches(matches: readonly SeasonStandingMatch[]) {
+  return matches.filter((match) => match.status === MATCH_STATUS.COMPLETED)
+    .length;
+}
+
+export type GroupStandingMember = {
+  userId: string;
+  name: string;
+  image: string | null;
+};
+
+export type GroupStanding = {
+  /** The Season the rows read; `null` for all-time. */
+  seasonId: string | null;
+  rows: SeasonStandingRow<GroupStandingMember>[];
+  gamesCounted: number;
+  seasons: GroupSeasonRow[];
+};
+
+/**
+ * Standing per Group for its default lens (the active Season, else the next,
+ * else the latest closed, else all-time), derived on every read from the
+ * Matches of the Group's Games, Rated or Unrated: only a Level is limited to
+ * Rated Games (ADR-0045). The one loader behind Group home, the Groups list
+ * and Home, so the three cannot disagree. Three reads whatever the number of
+ * Groups.
+ */
+export async function loadGroupStandings(
   database: DbClient,
   groupIds: readonly string[],
-): Promise<Map<string, GroupStandingMember[]>> {
-  const byGroup = new Map<string, GroupStandingMember[]>();
+  now: Date = new Date(),
+): Promise<Map<string, GroupStanding>> {
+  const byGroup = new Map<string, GroupStanding>();
   if (groupIds.length === 0) {
     return byGroup;
   }
 
-  const [memberRows, gameRows] = await Promise.all([
+  const [memberRows, seasonRows, gameRows] = await Promise.all([
     database.query.groupMembers.findMany({
       where: inArray(groupMembers.groupId, [...groupIds]),
       columns: { groupId: true, userId: true },
-      with: { user: { columns: { name: true } } },
+      with: { user: { columns: { name: true, image: true } } },
+    }),
+    database.query.groupSeasons.findMany({
+      where: inArray(groupSeasons.groupId, [...groupIds]),
     }),
     database.query.games.findMany({
       where: inArray(games.groupId, [...groupIds]),
-      columns: { id: true, groupId: true, cancelledAt: true },
+      columns: {
+        id: true,
+        groupId: true,
+        cancelledAt: true,
+        windowStart: true,
+        createdAt: true,
+      },
       with: {
+        group: { columns: { sport: true } },
         matches: {
-          columns: { status: true },
+          columns: { status: true, startTime: true, createdAt: true },
           with: {
             sets: {
               columns: { slot1GamesWon: true, slot2GamesWon: true },
@@ -87,45 +194,52 @@ export async function loadGroupStandingMembers(
     }),
   ]);
 
-  const matchesByGroup = new Map<string, GroupStandingMatch[]>();
+  const gamesByGroup = new Map<string, typeof gameRows>();
+  const sportByGroup = new Map<string, string | null>();
   for (const game of gameRows) {
-    if (game.groupId === null || game.cancelledAt !== null) {
+    if (game.groupId === null) {
       continue;
     }
-    const list = matchesByGroup.get(game.groupId) ?? [];
-    for (const match of game.matches) {
-      list.push({
-        gameId: game.id,
-        status: match.status,
-        sets: match.sets,
-        slot1UserIds: slotUserIds(match.slot1GameTeam),
-        slot2UserIds: slotUserIds(match.slot2GameTeam),
-      });
-    }
-    matchesByGroup.set(game.groupId, list);
+    const list = gamesByGroup.get(game.groupId) ?? [];
+    list.push(game);
+    gamesByGroup.set(game.groupId, list);
+    sportByGroup.set(game.groupId, game.group?.sport ?? null);
   }
 
-  const membersByGroup = new Map<string, typeof memberRows>();
+  const membersByGroup = new Map<string, GroupStandingMember[]>();
   for (const row of memberRows) {
     const list = membersByGroup.get(row.groupId) ?? [];
-    list.push(row);
+    list.push({
+      userId: row.userId,
+      name: row.user.name,
+      image: row.user.image,
+    });
     membersByGroup.set(row.groupId, list);
   }
 
+  const seasonsByGroup = new Map<string, GroupSeasonRow[]>();
+  for (const row of seasonRows) {
+    const list = seasonsByGroup.get(row.groupId) ?? [];
+    list.push(toSeasonRow(row, now));
+    seasonsByGroup.set(row.groupId, list);
+  }
+
   for (const groupId of groupIds) {
-    const members = membersByGroup.get(groupId) ?? [];
-    const records = groupMemberStandingRecords(
-      matchesByGroup.get(groupId) ?? [],
-      members.map((row) => row.userId),
+    const seasons = seasonsByGroup.get(groupId) ?? [];
+    const seasonId = defaultSeasonLens(seasons, now);
+    const season = seasons.find((row) => row.id === seasonId) ?? null;
+    const matches = matchesInLens(
+      standingMatchesFromGames(gamesByGroup.get(groupId) ?? []),
+      season,
     );
-    byGroup.set(
-      groupId,
-      members.map((row) => ({
-        userId: row.userId,
-        name: row.user.name,
-        ...records.get(row.userId)!,
-      })),
-    );
+    byGroup.set(groupId, {
+      seasonId,
+      rows: seasonStandingTable(matches, membersByGroup.get(groupId) ?? [], {
+        diffUnit: standingDiffUnit(sportByGroup.get(groupId)),
+      }),
+      gamesCounted: countCompletedMatches(matches),
+      seasons,
+    });
   }
   return byGroup;
 }

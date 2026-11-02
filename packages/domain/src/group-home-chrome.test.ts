@@ -102,21 +102,11 @@ describe("groupHomeMetaLine", () => {
 
 describe("groupHomeHasStandingResults", () => {
   it("is false when every member is still at zero", () => {
-    assert.equal(
-      groupHomeHasStandingResults([
-        { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 0 },
-      ]),
-      false,
-    );
+    assert.equal(groupHomeHasStandingResults([{ played: 0 }]), false);
   });
 
-  it("is true when anyone has sets, points, or Games", () => {
-    assert.equal(
-      groupHomeHasStandingResults([
-        { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 1 },
-      ]),
-      true,
-    );
+  it("is true when anyone has played", () => {
+    assert.equal(groupHomeHasStandingResults([{ played: 1 }]), true);
   });
 });
 

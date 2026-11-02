@@ -12,6 +12,11 @@ import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { NotSetCell } from "~/components/temba/not-set-cell";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
+import {
+  seasonBoundaryLabel,
+  seasonForDate,
+  type GroupSeasonData,
+} from "@repo/domain/group-season";
 import { Button } from "~/components/ui/button";
 import {
   GROUP_ARCHIVE_GAMES_COPY,
@@ -156,12 +161,14 @@ export function GroupGamesTab({
   onRegister,
   sport,
   members,
+  seasons = [],
   isMember,
   canInvite,
   onInvite,
 }: {
   sport: string | null;
   members: GroupMemberSeat[];
+  seasons?: GroupSeasonData[];
   isMember: boolean;
   canInvite: boolean;
   onInvite: () => void;
@@ -379,9 +386,40 @@ export function GroupGamesTab({
         ) : (
           <>
             <ul className={cardFrame}>
-              {playedGames.map((game) => (
-                <GroupPlayedRow key={game.id} game={game} />
-              ))}
+              {playedGames.map((game, index) => {
+                const season = seasonForDate(seasons, game.displayTime);
+                const previous = playedGames[index - 1];
+                const previousSeason = previous
+                  ? seasonForDate(seasons, previous.displayTime)
+                  : null;
+                const boundary =
+                  index > 0 && season && season.id !== previousSeason?.id
+                    ? season
+                    : null;
+                return (
+                  <React.Fragment key={game.id}>
+                    {boundary ? (
+                      <li
+                        aria-label={boundary.name}
+                        className="text-eyebrow text-muted-foreground flex items-center gap-3 px-5 py-2 tracking-[0.06em]"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="bg-rule h-px flex-1"
+                        />
+                        <span className="shrink-0 font-mono">
+                          {seasonBoundaryLabel(boundary)}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="bg-rule h-px flex-1"
+                        />
+                      </li>
+                    ) : null}
+                    <GroupPlayedRow game={game} />
+                  </React.Fragment>
+                );
+              })}
             </ul>
             {canLoadMore ? (
               <div className="mt-3 flex flex-col items-center gap-2">

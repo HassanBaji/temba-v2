@@ -522,8 +522,12 @@ The Web App page at `/dashboard/notifications`, opened from the bell, listing th
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
-A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
+A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with fewer than three results in the lens is listed Unranked, below the ranked rows, without a position. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
+
+**Season**:
+An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days, which scopes the Standing to the Matches played inside it. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day and locks the Standing from that instant. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
+_Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:
 A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.

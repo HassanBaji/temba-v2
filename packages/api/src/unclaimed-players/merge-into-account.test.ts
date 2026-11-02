@@ -30,7 +30,7 @@ import {
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 import {
   mergeIntoAccount,
@@ -441,10 +441,10 @@ describe("mergeIntoAccount", () => {
         rows.filter((row) => row.userId === people.survivor.id),
       ).toMatchObject([{ id: survivorMembership!.id }]);
       const standing =
-        (await loadGroupStandingMembers(db, [groupId])).get(groupId) ?? [];
+        (await loadGroupStandings(db, [groupId])).get(groupId)?.rows ?? [];
       expect(
         standing.find((row) => row.userId === people.survivor.id),
-      ).toMatchObject({ totalGamesPlayed: 2, totalSetsWon: 2 });
+      ).toMatchObject({ played: 2, wins: 2, points: 6 });
     } finally {
       await close();
     }

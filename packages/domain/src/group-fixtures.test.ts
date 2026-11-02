@@ -14,11 +14,17 @@ describe("createGroupFixtures", () => {
     ]);
   });
 
-  it("orders each leaderboard by position", () => {
+  it("orders each leaderboard by position, ranked rows first", () => {
     for (const home of Object.values(fixtures.home)) {
-      expect(home.standing.leaderboard.map((row) => row.position)).toEqual(
-        home.standing.leaderboard.map((_, index) => index + 1),
+      const ranked = home.standing.leaderboard.filter((row) => row.ranked);
+      expect(ranked.map((row) => row.position)).toEqual(
+        ranked.map((_, index) => index + 1),
       );
+      expect(
+        home.standing.leaderboard
+          .filter((row) => !row.ranked)
+          .every((row) => row.position === null),
+      ).toBe(true);
     }
   });
 

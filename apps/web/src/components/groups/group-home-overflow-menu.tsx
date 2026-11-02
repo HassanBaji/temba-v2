@@ -10,6 +10,7 @@ import {
 } from "~/components/common/action-menu";
 import { groupLeaveVenueActionLabel } from "@repo/domain/group-link-request";
 import type { GroupHomeOverflowItem } from "@repo/domain/group-home-cta";
+import { groupSeasonsHref } from "~/lib/dashboard-paths";
 
 export function GroupHomeOverflowMenu({
   items,
@@ -97,6 +98,11 @@ export function GroupHomeOverflowMenu({
             {item === "remove_image" ? (
               <ActionMenuItem onSelect={onRemoveImage}>
                 Remove image
+              </ActionMenuItem>
+            ) : null}
+            {item === "seasons" ? (
+              <ActionMenuItem asChild>
+                <Link href={groupSeasonsHref(groupId)}>Seasons</Link>
               </ActionMenuItem>
             ) : null}
             {item === "leave_venue_community" && venueName ? (

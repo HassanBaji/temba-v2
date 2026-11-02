@@ -92,18 +92,18 @@ describe("standing rows", () => {
     ]);
   });
 
-  it("names the viewer You and shows W-L", () => {
+  it("names the viewer You and carries the 3/1/0 record", () => {
     expect(rows[2]).toMatchObject({
       name: "You",
-      record: "3-3",
+      played: 6,
+      wins: 3,
+      draws: 0,
+      losses: 3,
+      points: 9,
       isViewer: true,
     });
-  });
-
-  it("hatches a Provisional or missing Level and labels a settled one", () => {
-    expect(rows[0]!.level).toEqual({ kind: "label", label: "B+" });
-    expect(rows[2]!.level.kind).toBe("provisional");
-    expect(rows[3]!.accessibilityLabel).toContain("Level still Provisional");
+    expect(rows[2]!.form).toHaveLength(5);
+    expect(rows[2]!.accessibilityLabel).toContain("3–0–3 won drawn lost");
   });
 
   it("counts played Games and Games awaiting a score", () => {
@@ -165,31 +165,19 @@ describe("memberList", () => {
     expect(memberList(many, "nobody", ORIGIN).rows).toEqual([]);
   });
 
-  it("captions the Organizer and carries Games played and Matches won", () => {
+  it("captions the Organizer and speaks the Level", () => {
     const ada = memberList(leaderboard, "", ORIGIN).rows[0]!;
     expect(ada.caption).toBe("Organizer");
-    expect(ada.played).toBe(7);
-    expect(ada.wins).toBe(6);
-    expect(ada.accessibilityLabel).toContain("7 Games played. 6 Matches won");
+    expect(ada.accessibilityLabel).toContain("Level B+");
     expect(memberList([], "", ORIGIN).isEmpty).toBe(true);
   });
 
-  it("sorts by the picked column", () => {
-    const names = (sort: "played" | "won" | "level") =>
-      memberList(
-        [...leaderboard].reverse(),
-        "",
-        ORIGIN,
-        false,
-        false,
-        false,
-        sort,
-      ).rows.map((row) => row.key);
-    expect(names("played")).toEqual(["ada", "kim", "viewer", "elin"]);
-    expect(names("level")).toEqual(["ada", "kim", "viewer", "elin"]);
+  it("orders by Level, highest first", () => {
     expect(
-      memberList([...leaderboard].reverse(), "", ORIGIN).rows[0]!.key,
-    ).toBe("elin");
+      memberList([...leaderboard].reverse(), "", ORIGIN).rows.map(
+        (row) => row.key,
+      ),
+    ).toEqual(["ada", "viewer", "kim", "elin"]);
   });
 });
 

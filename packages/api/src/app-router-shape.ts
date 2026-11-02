@@ -188,7 +188,11 @@ type ExpectedGroups =
   | "addPlayerByPhone"
   | "removeUnclaimedPlayer"
   | "removePlayer"
-  | "setOrganizer";
+  | "setOrganizer"
+  | "listSeasons"
+  | "createSeason"
+  | "closeSeason"
+  | "seasonStanding";
 
 type ExpectedNotifications =
   | "list"

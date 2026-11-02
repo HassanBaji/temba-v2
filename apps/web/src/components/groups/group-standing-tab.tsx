@@ -1,175 +1,530 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { Plus, UserRoundPlus, Users } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Lock, Plus, UserRoundPlus, Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
 import { UserAvatar } from "~/components/common/user-avatar";
-import { LevelCell } from "~/components/temba/level-cell";
-import { NotOnTembaTag } from "~/components/temba/seat";
+import { ResultMark } from "~/components/temba/result-mark";
+import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
-import { groupStandingRecordLabel } from "@repo/domain/group-home-chrome";
+import { Skeleton } from "~/components/ui/skeleton";
+import { Surface } from "~/components/ui/surface";
 import { groupStandingState } from "@repo/domain/group-join";
 import {
   groupStandingEmptyFooter,
   groupStandingOpenSeats,
 } from "@repo/domain/group-empty-states";
-import type { LevelBand } from "@repo/domain/level-bands";
-import { playerProfilePath } from "~/lib/dashboard-paths";
+import {
+  formatSeasonRange,
+  seasonGamesCountedLine,
+  seasonLensChips,
+  seasonLockedLine,
+  seasonProgress,
+  seasonProgressLine,
+  seasonStartsLine,
+  type GroupSeasonData,
+  type GroupSeasonStatus,
+} from "@repo/domain/group-season";
+import type { ResultMarkVariant } from "@repo/domain/result-mark";
+import {
+  paddedForm,
+  standingDiffUnit,
+  standingRecordLabel,
+  standingRulesLine,
+  unrankedNote,
+} from "@repo/domain/season-standing";
+import { groupSeasonsHref, playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
-type StandingEntry = {
+export type StandingEntry = {
   userId: string;
   name: string | null;
   image?: string | null;
-  totalSetsWon: number;
-  totalPointsWon: number;
-  totalGamesPlayed: number;
-  position: number;
-  isViewer: boolean;
+  position: number | null;
+  ranked: boolean;
+  played: number;
   wins: number;
+  draws: number;
   losses: number;
-  levelBand: LevelBand | null;
-  levelProvisional: boolean;
+  points: number;
+  form: ResultMarkVariant[];
+  isViewer: boolean;
   unclaimed: boolean;
 };
 
+export type StandingSeason = GroupSeasonData & { status: GroupSeasonStatus };
+
 /**
- * Column geometry from design 06a: 26px position, flexible Player, 54px W-L,
- * 56px Level. The outer columns carry the card's 20px gutter inside their
- * width, so `table-fixed` lands the rule-to-rule widths the design draws.
- * Without Level (football), W-L is the outer column and carries the gutter.
+ * Column geometry from design "Seasons" 1a: 40px position, flexible Player,
+ * four 30px count columns and a 44px PTS column. The outer columns carry the
+ * card's gutter inside their width so `table-fixed` lands the rule-to-rule
+ * widths the design draws.
  */
-const COL_POSITION = "w-[46px] pl-5 pr-0 text-left";
+const COL_POSITION = "w-[52px] pl-4 pr-0 text-left";
 const COL_PLAYER = "px-0 text-left";
-const COL_RECORD = "w-[54px] px-0 text-right";
-const COL_RECORD_LAST = "w-[74px] pl-0 pr-5 text-right";
-const COL_LEVEL = "w-[76px] pl-0 pr-5 text-right";
-const HEAD_CELL = "py-3.5 font-normal";
-const BODY_CELL = "py-4";
+const COL_COUNT = "w-[30px] px-0 text-center";
+const COL_POINTS = "w-[56px] pl-0 pr-4 text-right";
+const HEAD_CELL = "py-3 font-normal";
+const BODY_CELL = "py-3";
+
+function FormStrip({
+  form,
+  decorative = true,
+}: {
+  form: readonly ResultMarkVariant[];
+  decorative?: boolean;
+}) {
+  return (
+    <span className="mt-1 flex gap-[3px]" aria-hidden={decorative || undefined}>
+      {paddedForm(form).map((mark, index) => (
+        <ResultMark key={index} variant={mark} decorative className="size-3" />
+      ))}
+    </span>
+  );
+}
+
+function PlayerCell({
+  entry,
+  linkToPlayers,
+  muted = false,
+}: {
+  entry: StandingEntry;
+  linkToPlayers: boolean;
+  muted?: boolean;
+}) {
+  const name = entry.name ?? "Member";
+  const label = (
+    <span
+      className={cn(
+        "text-body block min-w-0 truncate",
+        entry.isViewer && "font-semibold",
+        muted && "text-muted-foreground",
+      )}
+    >
+      {name}
+    </span>
+  );
+  return (
+    <span className="flex min-w-0 flex-col">
+      <span className="flex min-w-0 items-center gap-1.5">
+        {linkToPlayers ? (
+          <Link
+            href={playerProfilePath(entry.userId)}
+            className="block min-w-0 truncate outline-none focus-visible:underline"
+          >
+            {label}
+          </Link>
+        ) : (
+          label
+        )}
+        {entry.isViewer ? <YouTag /> : null}
+        {entry.unclaimed ? <NotOnTembaTag /> : null}
+      </span>
+      <FormStrip form={entry.form} />
+    </span>
+  );
+}
+
+function CountCells({
+  entry,
+  muted,
+}: {
+  entry: StandingEntry;
+  muted: boolean;
+}) {
+  const count = cn(
+    COL_COUNT,
+    BODY_CELL,
+    "text-body tabular-nums",
+    muted ? "text-muted-foreground" : "text-dim",
+  );
+  return (
+    <>
+      <td className={count}>{entry.played}</td>
+      <td className={count}>{entry.wins}</td>
+      <td className={count}>{entry.draws}</td>
+      <td className={count}>{entry.losses}</td>
+      <td
+        className={cn(
+          COL_POINTS,
+          BODY_CELL,
+          "font-expanded text-[18px] tabular-nums",
+          muted && "text-muted-foreground",
+        )}
+      >
+        {entry.points}
+      </td>
+    </>
+  );
+}
+
+function StandingRow({
+  entry,
+  linkToPlayers,
+}: {
+  entry: StandingEntry;
+  linkToPlayers: boolean;
+}) {
+  const href = linkToPlayers ? playerProfilePath(entry.userId) : undefined;
+  const className = cn(
+    "border-rule border-t",
+    entry.isViewer && "bg-wash",
+    href && "hover:bg-wash",
+  );
+  const cells = (
+    <>
+      <td className={cn(COL_POSITION, BODY_CELL)}>
+        {entry.ranked ? (
+          <span className="font-expanded block text-[20px] tabular-nums">
+            {entry.position}
+          </span>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="hatch block size-[22px] rounded-[6px]"
+          />
+        )}
+      </td>
+      <td className={cn(COL_PLAYER, BODY_CELL)}>
+        <PlayerCell
+          entry={entry}
+          linkToPlayers={linkToPlayers}
+          muted={!entry.ranked}
+        />
+      </td>
+      <CountCells entry={entry} muted={!entry.ranked} />
+    </>
+  );
+  return href ? (
+    <LinkedTableRow href={href} className={className}>
+      {cells}
+    </LinkedTableRow>
+  ) : (
+    <tr className={className}>{cells}</tr>
+  );
+}
+
+/** Design 1b: before the Season's first result every cell is hatched. */
+function NotPlayedRow({
+  entry,
+  linkToPlayers,
+}: {
+  entry: StandingEntry;
+  linkToPlayers: boolean;
+}) {
+  const hatched = (
+    <span
+      aria-hidden="true"
+      className="hatch mx-auto block size-3.5 rounded-[4px]"
+    />
+  );
+  return (
+    <tr className="border-rule border-t">
+      <td className={cn(COL_POSITION, BODY_CELL)}>
+        <span
+          aria-hidden="true"
+          className="hatch block size-[22px] rounded-[6px]"
+        />
+      </td>
+      <td className={cn(COL_PLAYER, BODY_CELL)}>
+        <PlayerCell entry={entry} linkToPlayers={linkToPlayers} muted />
+      </td>
+      <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
+      <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
+      <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
+      <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
+      <td className={cn(COL_POINTS, BODY_CELL)}>
+        <span
+          aria-hidden="true"
+          className="hatch ml-auto block size-3.5 rounded-[4px]"
+        />
+      </td>
+    </tr>
+  );
+}
 
 function StandingTable({
-  leaderboard,
+  rows,
   linkToPlayers,
-  showLevel,
+  notPlayedYet,
+  footer,
 }: {
-  leaderboard: StandingEntry[];
+  rows: StandingEntry[];
   linkToPlayers: boolean;
-  showLevel: boolean;
+  /** The lens has no result yet: rows hatch instead of counting. */
+  notPlayedYet: boolean;
+  footer: string;
 }) {
-  const colRecord = showLevel ? COL_RECORD : COL_RECORD_LAST;
+  const ranked = rows.filter((row) => row.ranked);
+  const unranked = rows.filter((row) => !row.ranked);
+  const head = cn(HEAD_CELL, "text-eyebrow text-muted-foreground");
   return (
     <div className={cardFrame}>
       <table className="w-full table-fixed">
-        <thead>
-          <tr className="border-rule text-muted-foreground text-eyebrow border-b">
-            <th scope="col" className={cn(COL_POSITION, HEAD_CELL)}>
-              #
+        <thead className="bg-wash">
+          <tr>
+            <th scope="col" className={cn(COL_POSITION, head)}>
+              <span className="sr-only">Position</span>
             </th>
-            <th scope="col" className={cn(COL_PLAYER, HEAD_CELL)}>
+            <th scope="col" className={cn(COL_PLAYER, head)}>
               Player
             </th>
-            <th scope="col" className={cn(colRecord, HEAD_CELL)}>
-              W-L
+            <th scope="col" title="Played" className={cn(COL_COUNT, head)}>
+              P
             </th>
-            {showLevel ? (
-              <th scope="col" className={cn(COL_LEVEL, HEAD_CELL)}>
-                Level
-              </th>
-            ) : null}
+            <th scope="col" title="Won" className={cn(COL_COUNT, head)}>
+              W
+            </th>
+            <th scope="col" title="Drawn" className={cn(COL_COUNT, head)}>
+              D
+            </th>
+            <th scope="col" title="Lost" className={cn(COL_COUNT, head)}>
+              L
+            </th>
+            <th
+              scope="col"
+              title="Points"
+              className={cn(
+                COL_POINTS,
+                HEAD_CELL,
+                "text-eyebrow text-ink font-semibold",
+              )}
+            >
+              PTS
+            </th>
           </tr>
         </thead>
         <tbody>
-          {leaderboard.map((entry) => (
-            <StandingTableRow
-              key={entry.userId}
-              href={linkToPlayers ? playerProfilePath(entry.userId) : undefined}
-              className={cn(
-                "border-rule border-t",
-                entry.isViewer && "bg-ink text-paper",
-              )}
-            >
+          {notPlayedYet
+            ? rows.map((entry) => (
+                <NotPlayedRow
+                  key={entry.userId}
+                  entry={entry}
+                  linkToPlayers={linkToPlayers}
+                />
+              ))
+            : null}
+          {notPlayedYet
+            ? null
+            : ranked.map((entry) => (
+                <StandingRow
+                  key={entry.userId}
+                  entry={entry}
+                  linkToPlayers={linkToPlayers}
+                />
+              ))}
+          {!notPlayedYet && unranked.length > 0 ? (
+            <tr className="border-rule bg-wash border-t">
               <td
-                className={cn(
-                  COL_POSITION,
-                  BODY_CELL,
-                  "font-expanded text-[18px]",
-                )}
+                colSpan={7}
+                className="text-eyebrow text-muted-foreground flex items-center justify-between px-4 py-2 uppercase tracking-[0.06em]"
               >
-                {entry.position}
-              </td>
-              <td className={cn(COL_PLAYER, BODY_CELL)}>
-                <span className="flex min-w-0 items-center gap-2">
-                  {linkToPlayers ? (
-                    <Link
-                      href={playerProfilePath(entry.userId)}
-                      className={cn(
-                        "text-body block min-w-0 truncate",
-                        entry.isViewer && "font-semibold",
-                      )}
-                    >
-                      {entry.isViewer ? "You" : (entry.name ?? "Member")}
-                    </Link>
-                  ) : (
-                    <span
-                      className={cn(
-                        "text-body block min-w-0 truncate",
-                        entry.isViewer && "font-semibold",
-                      )}
-                    >
-                      {entry.isViewer ? "You" : (entry.name ?? "Member")}
-                    </span>
-                  )}
-                  {entry.unclaimed ? <NotOnTembaTag /> : null}
+                <span>Unranked</span>
+                <span className="normal-case tracking-normal">
+                  {unrankedNote()}
                 </span>
               </td>
-              <td
-                className={cn(
-                  colRecord,
-                  BODY_CELL,
-                  "font-expanded text-body tabular-nums",
-                )}
-              >
-                {groupStandingRecordLabel(entry.wins, entry.losses)}
-              </td>
-              {showLevel ? (
-                <td className={cn(COL_LEVEL, BODY_CELL)}>
-                  <LevelCell
-                    band={entry.levelBand}
-                    provisional={entry.levelProvisional}
-                    onInk={entry.isViewer}
-                  />
-                </td>
-              ) : null}
-            </StandingTableRow>
-          ))}
+            </tr>
+          ) : null}
+          {!notPlayedYet
+            ? unranked.map((entry) => (
+                <StandingRow
+                  key={entry.userId}
+                  entry={entry}
+                  linkToPlayers={linkToPlayers}
+                />
+              ))
+            : null}
         </tbody>
       </table>
-      {showLevel ? (
-        <p className="border-rule text-eyebrow text-muted-foreground border-t px-5 py-3.5">
-          Hatched level means the Rating is still Provisional
-        </p>
-      ) : null}
+      <p className="border-rule text-meta text-muted-foreground border-t px-4 py-3.5">
+        {footer}
+      </p>
     </div>
   );
 }
 
-function StandingTableRow({
-  href,
-  className,
-  children,
+/** Design 1c: the closed Season's top three, locked at close. */
+function Podium({
+  rows,
+  season,
 }: {
-  href?: string;
-  className: string;
-  children: ReactNode;
+  rows: StandingEntry[];
+  season: StandingSeason;
 }) {
-  return href ? (
-    <LinkedTableRow href={href} className={className}>
-      {children}
-    </LinkedTableRow>
-  ) : (
-    <tr className={className}>{children}</tr>
+  const top = rows.filter((row) => row.ranked).slice(0, 3);
+  if (top.length === 0) {
+    return null;
+  }
+  return (
+    <section
+      aria-label="Final top three"
+      className="border-ink rounded-card overflow-hidden border-[1.5px]"
+    >
+      <ol>
+        {top.map((entry) => (
+          <li
+            key={entry.userId}
+            className={cn(
+              "border-rule flex items-center gap-3.5 border-t px-4 py-3 first:border-t-0",
+              entry.isViewer && "bg-wash",
+            )}
+          >
+            <span className="font-expanded w-8 text-[28px] tabular-nums leading-none">
+              {entry.position}
+            </span>
+            <span className="flex min-w-0 flex-1 items-center gap-1.5">
+              <span
+                className={cn(
+                  "text-body truncate",
+                  entry.isViewer && "font-semibold",
+                )}
+              >
+                {entry.name ?? "Member"}
+              </span>
+              {entry.isViewer ? <YouTag /> : null}
+            </span>
+            <span className="text-meta text-muted-foreground tabular-nums">
+              {standingRecordLabel(entry)}
+            </span>
+            <span className="font-expanded text-[18px] tabular-nums">
+              {entry.points}
+              <span className="text-eyebrow text-muted-foreground ml-0.5 font-normal tracking-normal">
+                pts
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="border-rule text-eyebrow text-muted-foreground flex items-center justify-between border-t px-4 py-2.5">
+        <span>{seasonLockedLine(season)}</span>
+        <Lock aria-hidden="true" className="size-3.5" />
+      </p>
+    </section>
+  );
+}
+
+function SeasonHeader({
+  season,
+  gamesCounted,
+  now,
+}: {
+  season: StandingSeason;
+  gamesCounted: number;
+  now: Date;
+}) {
+  const title = (
+    <h2 className="font-expanded text-display uppercase leading-none tracking-[-0.03em]">
+      {season.name}
+    </h2>
+  );
+  const range = (
+    <span className="text-meta text-muted-foreground shrink-0 tabular-nums">
+      {formatSeasonRange(season)}
+    </span>
+  );
+
+  if (season.status === "upcoming") {
+    return (
+      <Surface tone="ink" radius="card" className="px-5 py-4">
+        <div className="flex items-end justify-between gap-3">
+          {title}
+          <span className="text-meta text-paper/70 shrink-0 tabular-nums">
+            {formatSeasonRange(season)}
+          </span>
+        </div>
+        <p className="text-body mt-2">{seasonStartsLine(season)}</p>
+      </Surface>
+    );
+  }
+
+  if (season.status === "closed") {
+    return (
+      <div className={cn(cardFrame, "px-5 py-4")}>
+        <div className="flex items-end justify-between gap-3">
+          {title}
+          {range}
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="border-ink text-eyebrow rounded-[4px] border px-1.5 py-px font-semibold uppercase tracking-[0.06em]">
+            Final
+          </span>
+          <span className="text-eyebrow text-muted-foreground tabular-nums">
+            {seasonGamesCountedLine(gamesCounted)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-end justify-between gap-3">
+        {title}
+        {range}
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Season progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(seasonProgress(season, now) * 100)}
+        className="bg-rule mt-3 h-[3px] w-full overflow-hidden rounded-full"
+      >
+        <div
+          className="bg-ink h-full rounded-full"
+          style={{ width: `${Math.round(seasonProgress(season, now) * 100)}%` }}
+        />
+      </div>
+      <div className="text-eyebrow text-muted-foreground mt-2 flex items-center justify-between tabular-nums">
+        <span>{seasonProgressLine(season, now)}</span>
+        <span>{seasonGamesCountedLine(gamesCounted)}</span>
+      </div>
+    </div>
+  );
+}
+
+function LensChips({
+  seasons,
+  lensId,
+  onPick,
+}: {
+  seasons: StandingSeason[];
+  lensId: string | null;
+  onPick: (seasonId: string | null) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Season"
+      className="border-rule -mx-1 flex gap-1 overflow-x-auto border-b px-1"
+    >
+      {seasonLensChips(seasons).map((chip) => {
+        const selected = chip.seasonId === lensId;
+        return (
+          <button
+            key={chip.seasonId ?? "all-time"}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onPick(chip.seasonId)}
+            className={cn(
+              "text-body -mb-px shrink-0 border-b-2 px-2 py-2.5 outline-none focus-visible:underline",
+              selected
+                ? "border-ink text-ink font-semibold"
+                : "text-muted-foreground border-transparent",
+            )}
+          >
+            {chip.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -178,7 +533,7 @@ const PREVIEW_ROW =
 
 /**
  * Design "Group empty states" 01: before the first result the Standing draws
- * every member at 0-0 and pads to four rows with open seats to invite into.
+ * every member at 0 points and pads to four rows with open seats to invite into.
  */
 function StandingPreview({
   leaderboard,
@@ -201,10 +556,10 @@ function StandingPreview({
       >
         <span>#</span>
         <span>Player</span>
-        <span>W-L</span>
+        <span>PTS</span>
       </div>
       <ol>
-        {leaderboard.map((entry) => {
+        {leaderboard.map((entry, index) => {
           const name = entry.isViewer ? "You" : (entry.name ?? "Member");
           return (
             <li
@@ -216,7 +571,7 @@ function StandingPreview({
                 linkToPlayers && "relative",
               )}
             >
-              <span className="font-expanded text-lead">{entry.position}</span>
+              <span className="font-expanded text-lead">{index + 1}</span>
               <span className="flex min-w-0 items-center gap-2.5">
                 <UserAvatar
                   name={entry.name ?? "Member"}
@@ -250,7 +605,7 @@ function StandingPreview({
                 {entry.unclaimed ? <NotOnTembaTag /> : null}
               </span>
               <span className="font-expanded text-body tabular-nums">
-                {groupStandingRecordLabel(entry.wins, entry.losses)}
+                {entry.points}
               </span>
             </li>
           );
@@ -330,31 +685,81 @@ function StatPair({
   );
 }
 
+function TableSkeleton() {
+  return (
+    <div aria-busy="true" className={cn(cardFrame, "flex flex-col gap-px p-4")}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <Skeleton key={index} className="h-12 w-full" />
+      ))}
+    </div>
+  );
+}
+
+function ManageSeasonsLink({
+  groupId,
+  hasSeasons,
+}: {
+  groupId: string;
+  hasSeasons: boolean;
+}) {
+  return (
+    <Button asChild variant="outline" className="w-full font-semibold">
+      <Link href={groupSeasonsHref(groupId)}>
+        {hasSeasons ? "Manage seasons" : "Set up seasons"}
+      </Link>
+    </Button>
+  );
+}
+
 export function GroupStandingTab({
   isMember,
   linkToPlayers,
   leaderboard,
+  seasons,
+  defaultSeasonId,
+  gamesCounted,
+  sport,
   groupId,
   canShowCreateGame,
   hasGames,
   totalGamesPlayed,
   awaitingScoreCount,
-  showLevel = true,
   canInvite = false,
   onInvite,
+  canManageSeasons = false,
+  now = new Date(),
 }: {
-  showLevel?: boolean;
   canInvite?: boolean;
   onInvite?: () => void;
   isMember: boolean;
   linkToPlayers: boolean;
+  /** The default lens: the active Season, else the next, else all-time. */
   leaderboard: StandingEntry[];
+  seasons: StandingSeason[];
+  defaultSeasonId: string | null;
+  gamesCounted: number;
+  sport: string | null;
   groupId: string;
   canShowCreateGame: boolean;
   hasGames: boolean;
   totalGamesPlayed: number;
   awaitingScoreCount: number;
+  canManageSeasons?: boolean;
+  now?: Date;
 }) {
+  const [lensId, setLensId] = useState<string | null>(defaultSeasonId);
+  const lensIsDefault = lensId === defaultSeasonId;
+  const lens = api.groups.seasonStanding.useQuery(
+    { groupId, seasonId: lensId },
+    { enabled: isMember && !lensIsDefault },
+  );
+  const rows: StandingEntry[] = lensIsDefault
+    ? leaderboard
+    : (lens.data?.rows ?? []);
+  const counted = lensIsDefault ? gamesCounted : (lens.data?.gamesCounted ?? 0);
+  const season = seasons.find((row) => row.id === lensId) ?? null;
+  const footer = standingRulesLine(standingDiffUnit(sport));
+
   const state = groupStandingState({
     isMember,
     hasGames,
@@ -371,15 +776,11 @@ export function GroupStandingTab({
   }
 
   const showCreateFirstGame = canShowCreateGame && state.showCreateFirstGame;
-  const createFirstGame = showCreateFirstGame ? (
-    <Button asChild variant="outline">
-      <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        Create the first Game
-      </Link>
-    </Button>
+  const manageSeasons = canManageSeasons ? (
+    <ManageSeasonsLink groupId={groupId} hasSeasons={seasons.length > 0} />
   ) : null;
 
-  if (state.showNoResultsNotice && state.showTable) {
+  if (seasons.length === 0 && state.showNoResultsNotice && state.showTable) {
     const invite = canInvite && onInvite ? onInvite : null;
     return (
       <div className="flex flex-col gap-[22px]">
@@ -421,33 +822,68 @@ export function GroupStandingTab({
           awaitingScoreCount={awaitingScoreCount}
           muted
         />
+        {manageSeasons}
       </div>
     );
   }
 
+  let table: ReactNode;
+  if (!lensIsDefault && lens.isLoading) {
+    table = <TableSkeleton />;
+  } else if (!lensIsDefault && lens.error) {
+    table = (
+      <EmptyState
+        icon={Users}
+        title="Standing could not be loaded"
+        description={lens.error.message}
+      />
+    );
+  } else if (rows.length === 0) {
+    table = (
+      <EmptyState
+        icon={Users}
+        title="Standings appear after the first result"
+        action={
+          showCreateFirstGame ? (
+            <Button asChild variant="outline">
+              <Link href={`/dashboard/games/new?groupId=${groupId}`}>
+                Create the first Game
+              </Link>
+            </Button>
+          ) : null
+        }
+      />
+    );
+  } else {
+    table = (
+      <StandingTable
+        rows={rows}
+        linkToPlayers={linkToPlayers}
+        notPlayedYet={counted === 0}
+        footer={footer}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-[26px]">
-      {state.showNoResultsNotice ? (
-        <EmptyState
-          icon={Users}
-          title="Standings appear after the first result"
-          action={createFirstGame}
+    <div className="flex flex-col gap-5">
+      {season ? (
+        <SeasonHeader season={season} gamesCounted={counted} now={now} />
+      ) : null}
+      {seasons.length > 0 ? (
+        <LensChips seasons={seasons} lensId={lensId} onPick={setLensId} />
+      ) : null}
+      {season?.status === "closed" && !lens.isLoading ? (
+        <Podium rows={rows} season={season} />
+      ) : null}
+      {table}
+      {seasons.length === 0 ? (
+        <StatPair
+          totalGamesPlayed={totalGamesPlayed}
+          awaitingScoreCount={awaitingScoreCount}
         />
       ) : null}
-
-      {state.showTable ? (
-        <>
-          <StandingTable
-            leaderboard={leaderboard}
-            linkToPlayers={linkToPlayers}
-            showLevel={showLevel}
-          />
-          <StatPair
-            totalGamesPlayed={totalGamesPlayed}
-            awaitingScoreCount={awaitingScoreCount}
-          />
-        </>
-      ) : null}
+      {manageSeasons}
     </div>
   );
 }
