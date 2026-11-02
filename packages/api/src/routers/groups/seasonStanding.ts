@@ -81,6 +81,7 @@ export async function seasonStanding(
       columns: {
         id: true,
         groupId: true,
+        seasonId: true,
         cancelledAt: true,
         windowStart: true,
         createdAt: true,

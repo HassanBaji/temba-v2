@@ -1,5 +1,6 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { gameCustomName } from "@repo/domain/game-custom-name";
+import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
@@ -61,10 +62,8 @@ import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
-import {
-  FootballOrganizerSheets,
-  type FootballEditSection,
-} from "./football-organizer-sheets";
+import { GameEditSheet } from "./game-edit-sheet";
+import { useGameEdit } from "./use-game-edit";
 
 type FootballGame = RouterOutputs["games"]["byId"];
 
@@ -112,7 +111,7 @@ export function FootballGameDetails({
   const utils = api.useUtils();
   const now = useNow();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
-  const [section, setSection] = useState<FootballEditSection | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [joinMode, setJoinMode] = useState<"join" | "edit" | null>(null);
@@ -213,33 +212,20 @@ export function FootballGameDetails({
     onError: failure,
     onSettled: refresh,
   });
-  const updateWindow = api.games.updateWindow.useMutation({
-    onSuccess: () => {
-      toast.show("Window saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
+  const editSections = gameEditSectionsFor({
+    format: game.format,
+    sport: game.sport,
+    groupId: game.groupId,
+    tournamentRounds: false,
   });
-  const updateName = api.games.updateName.useMutation({
-    onSuccess: () => {
-      toast.show("Name saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
-  });
-  const updatePrice = api.games.updatePricePerPlayer.useMutation({
-    onSuccess: () => {
-      toast.show("Price per player saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
-  });
-  const updateCaps = api.games.updateCaps.useMutation({
-    onSuccess: () => {
-      toast.show("Players allowed saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
+  const edit = useGameEdit({
+    gameId,
+    game,
+    sections: editSections,
+    seasons: game.groupSeasons,
+    open: editOpen,
+    onSaved: refresh,
+    onClose: () => setEditOpen(false),
   });
 
   useEffect(() => {
@@ -345,6 +331,7 @@ export function FootballGameDetails({
 
   const infoRows: InfoRow[] = [
     ...(game.groupName ? [{ label: "Group", value: game.groupName }] : []),
+    ...(game.season ? [{ label: "Season", value: game.season.name }] : []),
     ...(price
       ? [
           {
@@ -614,8 +601,8 @@ export function FootballGameDetails({
                   model.organizer?.registration === "reopen"
                     ? reopenRegistration.mutate({ gameId })
                     : closeRegistration.mutate({ gameId }),
-                onChangeCap: () => setSection("cap"),
-                onEdit: () => setSection("menu"),
+                onChangeCap: () => setEditOpen(true),
+                onEdit: () => setEditOpen(true),
                 onCancel: askCancel,
                 onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
                 onAddPlayer: organizerCanAddPlayer(game)
@@ -696,39 +683,18 @@ export function FootballGameDetails({
         />
       ) : null}
       {model.organizer ? (
-        <FootballOrganizerSheets
-          section={section}
-          onSection={setSection}
-          game={game}
-          capBounds={model.organizer.capBounds}
-          now={now}
-          pending={{
-            name: updateName.isPending,
-            window: updateWindow.isPending,
-            price: updatePrice.isPending,
-            cap: updateCaps.isPending,
-          }}
-          errors={{
-            name: updateName.error?.message ?? null,
-            window: updateWindow.error?.message ?? null,
-            price: updatePrice.error?.message ?? null,
-            cap: updateCaps.error?.message ?? null,
-          }}
-          onSaveName={(customName) => {
-            updateName.reset();
-            updateName.mutate({ gameId, customName });
-          }}
-          onSaveWindow={(window) => {
-            updateWindow.reset();
-            updateWindow.mutate({ gameId, ...window });
-          }}
-          onSavePrice={(fils) => {
-            updatePrice.reset();
-            updatePrice.mutate({ gameId, pricePerPlayerFils: fils });
-          }}
-          onSaveCap={(playersAllowed) => {
-            updateCaps.reset();
-            updateCaps.mutate({ gameId, playersAllowed });
+        <GameEditSheet
+          visible={editOpen}
+          onClose={() => setEditOpen(false)}
+          edit={edit}
+          sections={editSections}
+          context={{
+            venueName: game.venue?.name ?? null,
+            courtName: game.recordedCourts[0]?.name ?? null,
+            groupName: game.groupName,
+            joined: game.registeredUserCount,
+            seasons: game.groupSeasons,
+            canChangeSeason: game.canChangeSeason,
           }}
         />
       ) : null}

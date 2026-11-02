@@ -580,14 +580,15 @@ describe("roster registration on a football Game", () => {
 });
 
 describe("games.updateCaps on a football Game", () => {
-  it("edits players allowed within bounds and not below registered", async () => {
+  it("edits players allowed within bounds", async () => {
     await withFootball(async (f) => {
       const game = await createFootball(f);
-      await updateGameCaps(f.db, {
+      const result = await updateGameCaps(f.db, {
         gameId: game.id,
         userId: f.organizer.id,
         playersAllowed: 14,
       });
+      expect(result).toEqual({ ok: true, movedToWaitlist: [] });
       const row = await f.db.query.games.findFirst({
         where: eq(games.id, game.id),
       });
@@ -599,17 +600,98 @@ describe("games.updateCaps on a football Game", () => {
           playersAllowed: 9,
         }),
       ).rejects.toThrow("between 10 and 40");
+    });
+  });
+
+  it("moves the latest joiners to the Waitlist when the cap drops under them", async () => {
+    await withFootball(async (f) => {
+      const game = await createFootball(f, { playersAllowed: 12 });
+      const players = [];
       for (let index = 0; index < 12; index += 1) {
         const player = await insertMember(f, `cap${index}`);
-        await register(f.db, { gameId: game.id, userId: player.id });
+        await f.db.insert(gamePlayers).values({
+          gameId: game.id,
+          userId: player.id,
+          createdAt: new Date(Date.UTC(2026, 10, 1, 10, index)),
+        });
+        players.push(player);
       }
+      const late = await insertMember(f, "late");
+      await register(f.db, { gameId: game.id, userId: late.id });
+      expect(
+        await f.db.query.gameWaitlist.findMany({
+          where: eq(gameWaitlist.gameId, game.id),
+        }),
+      ).toHaveLength(1);
+
+      const result = await updateGameCaps(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        playersAllowed: 10,
+      });
+      expect(result.movedToWaitlist).toEqual([
+        players[11]!.id,
+        players[10]!.id,
+      ]);
+
+      const registered = await f.db.query.gamePlayers.findMany({
+        where: eq(gamePlayers.gameId, game.id),
+      });
+      expect(registered.map((row) => row.userId).sort()).toEqual(
+        players
+          .slice(0, 10)
+          .map((player) => player.id)
+          .sort(),
+      );
+      const queue = await f.db.query.gameWaitlist.findMany({
+        where: eq(gameWaitlist.gameId, game.id),
+        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+      });
+      expect(queue.map((row) => row.userId)).toEqual([
+        players[10]!.id,
+        players[11]!.id,
+        late.id,
+      ]);
+
+      await leaveGame(f.db, { gameId: game.id, userId: players[0]!.id });
+      const after = await f.db.query.gamePlayers.findMany({
+        where: and(
+          eq(gamePlayers.gameId, game.id),
+          eq(gamePlayers.userId, players[10]!.id),
+        ),
+      });
+      expect(after).toHaveLength(1);
+    });
+  });
+
+  it("changes the side size and lifts the cap with it", async () => {
+    await withFootball(async (f) => {
+      const game = await createFootball(f, { sideSize: 5, playersAllowed: 10 });
+      await updateGameCaps(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        sideSize: 7,
+        playersAllowed: 14,
+      });
+      const row = await f.db.query.games.findFirst({
+        where: eq(games.id, game.id),
+      });
+      expect(row?.sideSize).toBe(7);
+      expect(row?.playersAllowed).toBe(14);
       await expect(
         updateGameCaps(f.db, {
           gameId: game.id,
           userId: f.organizer.id,
-          playersAllowed: 10,
+          sideSize: 8,
         }),
-      ).rejects.toThrow("below the current registered count");
+      ).rejects.toThrow("between 16 and 40");
+      await expect(
+        updateGameCaps(f.db, {
+          gameId: game.id,
+          userId: f.organizer.id,
+          sideSize: 10,
+        }),
+      ).rejects.toThrow("Side size");
     });
   });
 });

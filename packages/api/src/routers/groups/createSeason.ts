@@ -12,6 +12,7 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { linkUnlinkedGamesToSeason } from "#src/games/season-link";
 import { assertCanManageSeasons } from "#src/groups/helpers/season-access";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { toSeasonRow } from "#src/standing/load-group-standing";
@@ -30,7 +31,8 @@ export const createSeasonInput = z.object({
 /**
  * Opens a Season on the Group (design "Seasons" 1k). The window may not
  * overlap another Season's, and a Season closed early keeps the shortened
- * window it closed with, so the next one may start the day after.
+ * window it closed with, so the next one may start the day after. Games of
+ * the Group already on its days, and linked nowhere, join it.
  */
 export async function createSeason(
   database: DbClient,
@@ -67,6 +69,7 @@ export async function createSeason(
       message: "Failed to create the season",
     });
   }
+  await linkUnlinkedGamesToSeason(database, created);
   return toSeasonRow(created, now);
 }
 

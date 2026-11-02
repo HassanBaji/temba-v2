@@ -82,6 +82,9 @@ import {
   wrongScoreReversalEligibility,
   type WrongScoreReversalEligibility,
 } from "#src/games/wrong-score-reversal";
+import { groupSeasonRows } from "#src/games/season-link";
+import { toSeasonRow } from "#src/standing/load-group-standing";
+import { MATCH_STATUS } from "@repo/domain/match-status";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
@@ -276,6 +279,14 @@ export async function gameById(
         columns: { id: true, name: true },
       })
     : null;
+  const seasonRows = game.groupId
+    ? await groupSeasonRows(database, game.groupId)
+    : [];
+  const groupSeasons = seasonRows.map((row) => toSeasonRow(row, now));
+  const season = groupSeasons.find((row) => row.id === game.seasonId) ?? null;
+  const scoreConfirmed = matchRows.some(
+    (match) => match.status === MATCH_STATUS.COMPLETED,
+  );
 
   const venue = await database.query.venues.findFirst({
     where: eq(venues.id, game.venueId),
@@ -628,6 +639,10 @@ export async function gameById(
     rated: game.rated,
     groupId: game.groupId,
     groupName: group?.name ?? null,
+    seasonId: game.seasonId,
+    season,
+    groupSeasons,
+    canChangeSeason: organizer && !game.cancelledAt && !scoreConfirmed,
     venueId: game.venueId,
     venue: venue
       ? {

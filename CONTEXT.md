@@ -305,7 +305,7 @@ A Game admit that occupies a count against players allowed and no Position. Used
 _Avoid_: pool registration (a Pool is a tournament stage), open registration (registration is open or closed on every Game), seatless
 
 **Side size**:
-On a football Game, how many play on each side at once: 5, 6, 7, 8, 9 or 11. Players allowed is at least twice the Side size and at most 40; the rest are substitutes. Shown as "5-a-side".
+On a football Game, how many play on each side at once: 5, 6, 7, 8, 9 or 11. Players allowed is at least twice the Side size and at most 40; the rest are substitutes. Shown as "5-a-side". An Organizer may change it in Edit game until the Football sides are published; growing it lifts players allowed to two full sides.
 
 **Football role**:
 How a registered User plays a football Game: keeper or outfield, with a **Preferred football position** (defender, midfield or forward) for outfield. Chosen when joining and changeable until the Score is in. A preference, never a promise. A football Game has two keeper seats, one a side.
@@ -418,7 +418,7 @@ A Game format with exactly one Match, created with the Game.
 _Avoid_: Single, Friendly tournament, Americano
 
 **Waitlist**:
-The queue to join a Game after its cap is reached.
+The queue to join a Game after its cap is reached, first come first served. When an Organizer drops players allowed under the number joined, the latest joiners move here, latest first, keeping the moment they joined as their place, so they lead anyone who waitlisted after them and get a spot back as soon as one opens.
 _Avoid_: player (when you mean someone waitlisted), guest
 
 **Game admit**:
@@ -438,7 +438,7 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator, its Appointed Organizers, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit window and price per player and Game Level range, decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
+Of a Group Game: that Group’s creator, its Appointed Organizers, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
@@ -534,7 +534,7 @@ A User's position among the other Users of one Group, shown as position and memb
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
 
 **Season**:
-An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days, which scopes the Standing to the Matches played inside it. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day and locks the Standing from that instant. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
+An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0050); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games on later days. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:

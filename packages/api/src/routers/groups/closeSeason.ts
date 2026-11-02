@@ -10,6 +10,7 @@ import { productDayKey } from "@repo/domain/product-timezone";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { relinkGamesAfterSeasonClose } from "#src/games/season-link";
 import { assertCanManageSeasons } from "#src/groups/helpers/season-access";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { toSeasonRow } from "#src/standing/load-group-standing";
@@ -21,7 +22,8 @@ export const SEASON_NOT_ACTIVE_MESSAGE = "Only an active season can be closed";
 /**
  * Closes the active Season today (design "Seasons" 1l): its last day becomes
  * today and the closing instant is stamped, so the Standing stops reading
- * Matches from there on and a new Season may open tomorrow.
+ * Matches from there on and a new Season may open tomorrow. Games linked to
+ * it on later days move to the Season that holds their day, or go friendly.
  */
 export async function closeSeason(
   database: DbClient,
@@ -60,6 +62,7 @@ export async function closeSeason(
       message: "Failed to close the season",
     });
   }
+  await relinkGamesAfterSeasonClose(database, closed, now);
   return toSeasonRow(closed, now);
 }
 

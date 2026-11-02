@@ -105,6 +105,7 @@ export function GameWindowFields({
   startError,
   finishError,
   includeFinish = true,
+  description,
 }: {
   dayId: string;
   startId: string;
@@ -118,6 +119,7 @@ export function GameWindowFields({
   startError?: string;
   finishError?: string;
   includeFinish?: boolean;
+  description?: string;
 }) {
   const [dayOpen, setDayOpen] = React.useState(false);
   const dayButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -262,9 +264,10 @@ export function GameWindowFields({
         ) : null}
       </div>
       <FieldDescription id={`${dayId}-description`}>
-        {includeFinish
-          ? "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed."
-          : "Day and start time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed."}
+        {description ??
+          (includeFinish
+            ? "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed."
+            : "Day and start time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed.")}
       </FieldDescription>
     </div>
   );
