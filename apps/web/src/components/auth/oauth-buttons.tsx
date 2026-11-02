@@ -6,8 +6,14 @@ import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { GoogleIcon } from "~/components/ui/icons/google";
-import { authCompleteUrl, ssoCallbackUrl } from "~/lib/auth-redirect";
+import {
+  authCompleteUrl,
+  signUpCompleteUrl,
+  ssoCallbackUrl,
+} from "~/lib/auth-redirect";
 import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
+import type { SurfaceTone } from "@repo/domain/surface-tone";
+import { cn } from "~/lib/utils";
 
 /**
  * OAuth providers actually enabled on this Clerk instance
@@ -26,10 +32,12 @@ export function OauthButtons({
   flow,
   redirectUrl,
   disabled = false,
+  surface = "paper",
 }: {
   flow: "sign-in" | "sign-up";
   redirectUrl: string | null;
   disabled?: boolean;
+  surface?: SurfaceTone;
 }) {
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
@@ -50,6 +58,7 @@ export function OauthButtons({
       redirectUrl,
     );
     const complete = authCompleteUrl(redirectUrl);
+    const signUpComplete = signUpCompleteUrl(redirectUrl);
     try {
       if (flow === "sign-in") {
         if (!signIn) {
@@ -70,7 +79,7 @@ export function OauthButtons({
       await signUp.authenticateWithRedirect({
         strategy,
         redirectUrl: redirectCallback,
-        redirectUrlComplete: complete,
+        redirectUrlComplete: signUpComplete,
         legalAccepted: true,
       });
     } catch (err) {
@@ -79,12 +88,21 @@ export function OauthButtons({
     }
   }
 
+  const onInk = surface === "ink";
+
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-3.5">
-        <div className="bg-rule h-px flex-1" />
-        <span className="text-eyebrow text-muted-foreground font-mono">OR</span>
-        <div className="bg-rule h-px flex-1" />
+        <div className={cn("h-px flex-1", onInk ? "bg-dimrule" : "bg-rule")} />
+        <span
+          className={cn(
+            "text-eyebrow font-mono",
+            onInk ? "text-dim" : "text-muted-foreground",
+          )}
+        >
+          OR
+        </span>
+        <div className={cn("h-px flex-1", onInk ? "bg-dimrule" : "bg-rule")} />
       </div>
       {error ? <FormErrorSummary message={error} /> : null}
       {ENABLED_OAUTH_PROVIDERS.map(({ strategy, label, Icon }) => (
@@ -92,10 +110,13 @@ export function OauthButtons({
           key={strategy}
           type="button"
           size="lg"
-          variant="outline"
+          variant={onInk ? "outline-inverse" : "outline"}
           aria-busy={pending}
           disabled={!loaded || pending || disabled}
-          className="border-rule bg-paper text-body hover:bg-wash w-full font-semibold"
+          className={cn(
+            "text-body w-full font-semibold",
+            onInk ? "" : "border-rule bg-paper hover:bg-wash",
+          )}
           onClick={() => {
             void start(strategy);
           }}

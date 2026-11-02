@@ -1,10 +1,6 @@
 import { type Metadata } from "next";
-import Link from "next/link";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
-import { Button } from "~/components/ui/button";
-import { authCrossLinkUrl } from "~/lib/auth-redirect";
-import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 import {
   TERMS_SECTIONS,
   TERMS_UPDATED,
@@ -35,35 +31,15 @@ function Clause({ clause }: { clause: TermsClause }) {
   );
 }
 
-export default async function TermsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ from?: string; redirect_url?: string }>;
-}) {
-  const params = await searchParams;
-  const fromSignUp = params.from === "signup";
-  const redirectUrl = safeInternalRedirect(params.redirect_url);
-  const signUpHref = authCrossLinkUrl("/signup", redirectUrl);
-
+export default function TermsPage() {
   return (
     <AuthScreen
       wide
-      backHref={fromSignUp ? signUpHref : "/"}
+      backHref="/"
       backLabel="Back"
       eyebrow={`Last updated ${TERMS_UPDATED}`}
       title="Terms and Conditions"
       description="What you agree to when you create an account or use Temba."
-      footer={
-        fromSignUp ? (
-          <Button asChild size="lg" className="w-full font-semibold">
-            <Link
-              href={`${signUpHref}${signUpHref.includes("?") ? "&" : "?"}terms=accepted`}
-            >
-              Agree and continue
-            </Link>
-          </Button>
-        ) : undefined
-      }
     >
       <div className="flex flex-col gap-7">
         {TERMS_SECTIONS.map((section) => (

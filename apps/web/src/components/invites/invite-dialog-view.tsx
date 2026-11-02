@@ -208,7 +208,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
           type="search"
           value={players.query}
           onChange={(event) => players.onQueryChange(event.target.value)}
-          placeholder="Name or username"
+          placeholder="Name or phone number"
           aria-label="Search players"
           autoComplete="off"
         />

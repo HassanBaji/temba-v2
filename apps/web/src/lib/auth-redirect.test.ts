@@ -5,6 +5,7 @@ import {
   authAppPathUrl,
   authCompleteUrl,
   authCrossLinkUrl,
+  signUpCompleteUrl,
   ssoCallbackUrl,
 } from "./auth-redirect";
 
@@ -48,6 +49,19 @@ describe("authCompleteUrl", () => {
   });
 });
 
+describe("signUpCompleteUrl", () => {
+  it("lands a new account on the fresh Profile checklist", () => {
+    assert.equal(signUpCompleteUrl(null), "/onboarding?fresh=1");
+  });
+
+  it("carries redirect_url so Later, show me games ends where the User was going", () => {
+    assert.equal(
+      signUpCompleteUrl("/dashboard/games/x"),
+      "/onboarding?fresh=1&redirect_url=%2Fdashboard%2Fgames%2Fx",
+    );
+  });
+});
+
 describe("ssoCallbackUrl", () => {
   it("builds the callback path without a query when redirectUrl is null", () => {
     assert.equal(ssoCallbackUrl("/login", null), "/login/sso-callback");
@@ -74,22 +88,14 @@ describe("ssoCallbackUrl", () => {
 });
 
 describe("authAppPathUrl", () => {
-  it("builds login recovery paths without a query when redirectUrl is null", () => {
-    assert.equal(
-      authAppPathUrl("/login/reset-password", null),
-      "/login/reset-password",
-    );
+  it("builds the second factor path without a query when redirectUrl is null", () => {
     assert.equal(
       authAppPathUrl("/login/factor-two", null),
       "/login/factor-two",
     );
   });
 
-  it("threads redirect_url through recovery paths", () => {
-    assert.equal(
-      authAppPathUrl("/login/reset-password", "/dashboard/games/x"),
-      "/login/reset-password?redirect_url=%2Fdashboard%2Fgames%2Fx",
-    );
+  it("threads redirect_url through the second factor path", () => {
     assert.equal(
       authAppPathUrl("/login/factor-two", "/dashboard/you"),
       "/login/factor-two?redirect_url=%2Fdashboard%2Fyou",

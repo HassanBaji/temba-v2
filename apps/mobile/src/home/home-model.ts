@@ -6,6 +6,7 @@ import {
   type RecentFormView,
 } from "@repo/domain/home-recent-form";
 import type { HomeStandingRow } from "@repo/domain/home-standing";
+import type { ProfileChecklist } from "@repo/domain/profile-checklist";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 
 import type { RouterOutputs } from "../trpc/react";
@@ -20,10 +21,14 @@ export type HomeLevel =
   | { kind: "rated"; input: HomeLevelInput }
   | { kind: "none" };
 
+/** The Profile checklist card: absent while loading or once every task is done. */
+export type HomeChecklist = { list: ProfileChecklist; skipped: boolean };
+
 export type HomeModel = {
   name: string;
   imageUri: string | null;
   pendingInviteCount: number;
+  checklist: HomeChecklist | null;
   upNext: Slot<UpNextItem[]>;
   noGamesAction: HomeNoGamesCreateAction;
   venueCounts: Record<Sport, number | null>;
@@ -67,6 +72,13 @@ export function standingInSport(
   sport: Sport,
 ): HomeStandingRow[] {
   return rows.filter((row) => sportOrDefault(row.sport) === sport);
+}
+
+export function homeChecklist(
+  list: ProfileChecklist | null,
+  skipped: boolean,
+): HomeChecklist | null {
+  return list && !list.complete ? { list, skipped } : null;
 }
 
 export function standingCountLabel(count: number): string {

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildContinuePayload,
   fieldError,
+  hasClerkErrorCode,
   nextSignUpStep,
-  resolveSignInIdentifier,
-  splitSignInError,
+  resolvePhone,
 } from "./clerk-forms";
 
 function clerkError(code: string, message: string, paramName?: string) {
@@ -15,37 +15,16 @@ function clerkError(code: string, message: string, paramName?: string) {
   };
 }
 
-describe("resolveSignInIdentifier", () => {
-  it("trims a username", () => {
-    expect(
-      resolveSignInIdentifier({
-        mode: "username",
-        username: "  hassan ",
-        countryIso: "BH",
-        national: "",
-      }),
-    ).toEqual({ ok: true, identifier: "hassan" });
-  });
-
+describe("resolvePhone", () => {
   it("assembles a phone number to E.164", () => {
-    expect(
-      resolveSignInIdentifier({
-        mode: "phone",
-        username: "",
-        countryIso: "BH",
-        national: "3612 4408",
-      }),
-    ).toEqual({ ok: true, identifier: "+97336124408" });
+    expect(resolvePhone("BH", "3612 4408", "identifier")).toEqual({
+      ok: true,
+      e164: "+97336124408",
+    });
   });
 
   it("uses the web format message for a short number", () => {
-    const result = resolveSignInIdentifier({
-      mode: "phone",
-      username: "",
-      countryIso: "BH",
-      national: "361",
-    });
-    expect(result).toEqual({
+    expect(resolvePhone("BH", "361", "identifier")).toEqual({
       ok: false,
       split: {
         fieldErrors: {
@@ -58,32 +37,16 @@ describe("resolveSignInIdentifier", () => {
   });
 });
 
-describe("splitSignInError", () => {
-  it("moves an unknown identifier to the summary", () => {
-    expect(
-      splitSignInError(
-        clerkError("form_identifier_not_found", "x", "identifier"),
-      ),
-    ).toEqual({
-      fieldErrors: {},
-      globalMessage:
-        "No account matches that. Try a different one, or create an account.",
-    });
+describe("hasClerkErrorCode", () => {
+  it("finds the code among a Clerk error's items", () => {
+    const err = clerkError("form_identifier_not_found", "x", "identifier");
+    expect(hasClerkErrorCode(err, "form_identifier_not_found")).toBe(true);
+    expect(hasClerkErrorCode(err, "form_password_incorrect")).toBe(false);
   });
 
-  it("keeps a wrong password on the password field", () => {
-    expect(
-      splitSignInError(clerkError("form_password_incorrect", "x", "password")),
-    ).toEqual({
-      fieldErrors: { password: "That password is incorrect." },
-      globalMessage: null,
-    });
-  });
-
-  it("falls back to the generic message", () => {
-    expect(splitSignInError(new Error("boom")).globalMessage).toBe(
-      "Something went wrong. Try again.",
-    );
+  it("is false for anything that is not a Clerk error", () => {
+    expect(hasClerkErrorCode(new Error("boom"), "x")).toBe(false);
+    expect(hasClerkErrorCode(null, "x")).toBe(false);
   });
 });
 
@@ -109,7 +72,7 @@ describe("nextSignUpStep", () => {
       nextSignUpStep({
         status: "missing_requirements",
         createdSessionId: null,
-        missingFields: ["username"],
+        missingFields: ["first_name"],
         unverifiedFields: ["email_address"],
       }),
     ).toEqual({ kind: "fields" });
@@ -124,19 +87,20 @@ describe("nextSignUpStep", () => {
 
 describe("buildContinuePayload", () => {
   const values = {
-    username: " sam ",
     emailAddress: "",
     password: "",
-    firstName: "",
+    firstName: " Sam ",
     lastName: "",
     countryIso: "BH",
     national: "36124408",
   };
 
   it("sends only the missing fields", () => {
-    expect(buildContinuePayload(["username", "phone_number"], values)).toEqual({
+    expect(
+      buildContinuePayload(["first_name", "phone_number"], values),
+    ).toEqual({
       ok: true,
-      payload: { username: "sam", phoneNumber: "+97336124408" },
+      payload: { firstName: "Sam", phoneNumber: "+97336124408" },
     });
   });
 

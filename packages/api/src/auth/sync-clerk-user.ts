@@ -3,6 +3,7 @@ import { and, countDistinct, eq, ne } from "drizzle-orm";
 import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 
 import { gamePlayers, user } from "@repo/db";
+import { userDisplayName } from "@repo/domain/user-display-name";
 
 import { type db } from "#src/db";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
@@ -112,17 +113,20 @@ async function seatedGameCount(database: ClerkUserSyncDb, userId: string) {
   return row?.count ?? 0;
 }
 
+function clerkName(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function displayName(
+  names: { firstName: string | null; lastName: string | null },
   clerkUser: ClerkUserPayload,
   email: string | null,
   phoneNumber: string | null,
 ) {
-  const fromNames = [clerkUser.first_name, clerkUser.last_name]
-    .filter(Boolean)
-    .join(" ");
   return (
-    (fromNames.length > 0 ? fromNames : null) ??
-    clerkUser.username ??
+    userDisplayName(names) ??
+    clerkUsername(clerkUser.username) ??
     email ??
     phoneNumber ??
     "Player"
@@ -163,7 +167,14 @@ export async function upsertUserFromClerk(
   }
 
   const clerkId = clerkUser.id;
-  const name = displayName(clerkUser, email, phoneNumber);
+  const firstName = clerkName(clerkUser.first_name);
+  const lastName = clerkName(clerkUser.last_name);
+  const name = displayName(
+    { firstName, lastName },
+    clerkUser,
+    email,
+    phoneNumber,
+  );
   const username = clerkUsername(clerkUser.username);
   const emailVerified = primaryEmail
     ? primaryEmail.verification?.status === "verified"
@@ -235,6 +246,8 @@ export async function upsertUserFromClerk(
         .set({
           clerkId,
           name,
+          firstName,
+          lastName,
           email,
           emailVerified,
           username: nextUsername,
@@ -270,6 +283,8 @@ export async function upsertUserFromClerk(
     .values({
       clerkId,
       name,
+      firstName,
+      lastName,
       email,
       emailVerified,
       username: insertUsername,

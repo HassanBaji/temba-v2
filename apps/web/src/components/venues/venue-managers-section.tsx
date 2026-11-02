@@ -118,7 +118,7 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
           id="venue-manager-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name, username, email or phone"
+          placeholder="Search by name, phone or email"
           maxLength={100}
           autoComplete="off"
         />

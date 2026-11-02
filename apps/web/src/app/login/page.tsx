@@ -1,4 +1,4 @@
-import { SignInForm } from "~/components/auth/sign-in-form";
+import { PhoneAuthForm } from "~/components/auth/phone-auth-form";
 import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function LoginPage({
@@ -9,5 +9,5 @@ export default async function LoginPage({
   const params = await searchParams;
   const redirectUrl = safeInternalRedirect(params.redirect_url);
 
-  return <SignInForm redirectUrl={redirectUrl} />;
+  return <PhoneAuthForm redirectUrl={redirectUrl} />;
 }

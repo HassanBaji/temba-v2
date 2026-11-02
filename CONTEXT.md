@@ -474,8 +474,16 @@ A User an Organizer or Group approver added by phone and name, with no Temba acc
 _Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
-The questions a new User answers after Clerk sign-up and before Home, at Route `/onboarding` on web. It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **Not sure** (which starts padel at D+) as the low-commitment answers. Users who predate it are complete without answering.
+The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.
 _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
+
+**Profile checklist**:
+The list of what a User can still add after sign-up: the required name when an account predates it, then the optional Profile tasks (profile photo, verified email, the Onboarding questionnaire). It is the "You're in" screen after sign-up, at Route `/onboarding` on web and `/complete-profile` on mobile, and a card under the Home header until every task is done or the User skips it on that device. Phone and name count as its first two steps ("2 OF 5"). Pure in `@repo/domain/profile-checklist` (ADR-0049).
+_Avoid_: onboarding (bare), setup wizard, progress tracker, todo list
+
+**Profile task**:
+One row of the Profile checklist. Each saves on its own and returns to the list. The name task is required and never hidden by Skip for now; the others are optional.
+_Avoid_: step (when you mean a task), onboarding step, action item
 
 **Sports played**:
 The sports a User told the Onboarding questionnaire they play: padel, football or both. It decides which questions they answer. A User with none recorded onboarded before the question existed and is read as padel only.

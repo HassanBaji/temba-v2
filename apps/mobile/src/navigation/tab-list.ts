@@ -21,6 +21,9 @@ export function visibleTabs(): TabEntry[] {
 }
 
 export function tabBarHidden(segments: readonly string[]): boolean {
+  if (segments.includes("complete-profile")) {
+    return true;
+  }
   const games = segments.indexOf("games");
   if (games !== -1 && segments[games + 1] !== undefined) {
     return true;

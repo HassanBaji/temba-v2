@@ -80,6 +80,7 @@ export function ProfileView({
         savingPosition={savingPosition}
         teamCount={model.teamCount}
         pendingInviteCount={model.pendingInviteCount}
+        checklistIncomplete={model.checklistIncomplete}
         signingOut={signingOut}
         onSelectPosition={onSelectPosition}
         onOpen={onOpen}

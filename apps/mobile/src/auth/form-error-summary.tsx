@@ -1,9 +1,11 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { View } from "react-native";
 
+import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
 export function FormErrorSummary({ message }: { message?: string | null }) {
+  const palette = useTonePalette();
   if (!message) {
     return null;
   }
@@ -13,7 +15,7 @@ export function FormErrorSummary({ message }: { message?: string | null }) {
       accessibilityLiveRegion="assertive"
       style={{
         borderWidth: 2,
-        borderColor: colors.ink,
+        borderColor: palette.foreground,
         borderRadius: radii.md,
         padding: 12,
       }}

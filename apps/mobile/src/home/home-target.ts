@@ -1,9 +1,14 @@
 import type { HomeTarget } from "@repo/domain/home-next-game";
 import type { HomeNoGamesCreateAction } from "@repo/domain/home-no-games";
+import type { ProfileTaskId } from "@repo/domain/profile-checklist";
 import type { Sport } from "@repo/domain/sport";
 
 import { bookingGamePath, bookingPath } from "../booking/booking-model";
 import { sportQuery } from "../booking/book-sport";
+import {
+  COMPLETE_PROFILE_PATH,
+  profileTaskPath,
+} from "../profile-tasks/profile-tasks-model";
 
 export type HomeNavTarget =
   | HomeTarget
@@ -14,7 +19,9 @@ export type HomeNavTarget =
   | { kind: "booking-payment"; bookingId: string }
   | { kind: "booking-game"; bookingId: string }
   | { kind: "book"; sport: Sport }
-  | { kind: "invites" };
+  | { kind: "invites" }
+  | { kind: "profile-task"; task: ProfileTaskId }
+  | { kind: "complete-profile" };
 
 export function homePath(target: HomeNavTarget): string {
   switch (target.kind) {
@@ -42,5 +49,9 @@ export function homePath(target: HomeNavTarget): string {
     }
     case "invites":
       return "/profile/invites";
+    case "profile-task":
+      return profileTaskPath(target.task);
+    case "complete-profile":
+      return COMPLETE_PROFILE_PATH;
   }
 }

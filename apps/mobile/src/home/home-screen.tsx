@@ -6,8 +6,10 @@ import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { Screen } from "../primitives/screen";
+import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
 import {
+  homeChecklist,
   levelFromApi,
   recentFormFromHistory,
   standingInSport,
@@ -17,6 +19,7 @@ import {
 import { homePath, type HomeNavTarget } from "./home-target";
 import { HomeView } from "./home-view";
 import { upNextItems } from "./up-next-model";
+import { useChecklistSkipped } from "./use-checklist-skipped";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 const UP_NEXT_BOOKING_LIMIT = 20;
@@ -43,8 +46,13 @@ export function HomeScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
+  const { skipped, setChecklistSkipped } = useChecklistSkipped();
 
   const home = api.users.home.useQuery(undefined, REFETCH_ON_FOREGROUND);
+  const onboarding = api.users.onboardingState.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
   const bookings = api.bookings.listMine.useQuery(
     { scope: "upcoming", limit: UP_NEXT_BOOKING_LIMIT },
     REFETCH_ON_FOREGROUND,
@@ -83,6 +91,7 @@ export function HomeScreen() {
     name: user?.fullName ?? user?.firstName ?? user?.username ?? "You",
     imageUri: user?.imageUrl ?? null,
     pendingInviteCount: home.data?.pendingInviteCount ?? 0,
+    checklist: homeChecklist(checklistFrom(user, onboarding.data), skipped),
     upNext: slotOf(upNextSource, (data) =>
       upNextItems(data.games, data.bookings),
     ),
@@ -107,8 +116,10 @@ export function HomeScreen() {
         rating.refetch(),
         history.refetch(),
         createGroups.refetch(),
+        onboarding.refetch(),
+        user?.reload(),
       ]),
-    [home, bookings, rating, history, createGroups],
+    [home, bookings, rating, history, createGroups, onboarding, user],
   );
 
   const onRefresh = useCallback(async () => {
@@ -132,6 +143,8 @@ export function HomeScreen() {
         onNavigate={onNavigate}
         onSport={setSport}
         onRetry={() => void refetchAll()}
+        onSkipChecklist={() => setChecklistSkipped(true)}
+        onShowChecklist={() => setChecklistSkipped(false)}
       />
     </Screen>
   );

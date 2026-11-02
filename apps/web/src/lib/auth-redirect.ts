@@ -1,6 +1,6 @@
 export type AuthCrossLinkTarget = "/" | "/login" | "/signup";
 export type AuthSsoCallbackBase = "/login" | "/signup";
-export type AuthAppPath = "/login/reset-password" | "/login/factor-two";
+export type AuthAppPath = "/login/factor-two";
 
 function withRedirectQuery(path: string, redirectUrl: string | null): string {
   if (!redirectUrl) {
@@ -18,6 +18,19 @@ export function authCrossLinkUrl(
 
 export function authCompleteUrl(redirectUrl: string | null): string {
   return redirectUrl ?? "/dashboard";
+}
+
+/**
+ * Where a finished sign-up lands: the Profile checklist's "You're in" screen,
+ * which carries the `redirect_url` so "Later, show me games" ends where the
+ * User was going.
+ */
+export function signUpCompleteUrl(redirectUrl: string | null): string {
+  const search = new URLSearchParams({ fresh: "1" });
+  if (redirectUrl) {
+    search.set("redirect_url", redirectUrl);
+  }
+  return `/onboarding?${search.toString()}`;
 }
 
 export function ssoCallbackUrl(

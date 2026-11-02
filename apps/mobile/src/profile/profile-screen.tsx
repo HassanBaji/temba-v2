@@ -1,7 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
 import type { PreferredPosition } from "@repo/domain/preferred-position";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
@@ -10,16 +9,18 @@ import { splitTrpcFormError } from "../lib/form-error";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
+import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
-import { imageDataUri, photoErrorMessage } from "./photo";
 import {
   allTimeFromApi,
   levelFromApi,
   positionFromApi,
+  profileDestinationPath,
+  type ProfileDestination,
   type ProfileModel,
 } from "./profile-model";
 import { ProfileView } from "./profile-view";
-import type { ProfileDestination } from "./settings";
+import { useProfilePhoto } from "./use-profile-photo";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -29,8 +30,8 @@ export function ProfileScreen() {
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
+  const { pickPhoto, savePhoto, pending: changingPhoto } = useProfilePhoto();
   const [refreshing, setRefreshing] = useState(false);
-  const [changingPhoto, setChangingPhoto] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [optimistic, setOptimistic] = useState<PreferredPosition | undefined>();
 
@@ -106,6 +107,8 @@ export function ProfileScreen() {
       (groupInvites.data?.length ?? 0) +
       (teamInvites.data?.length ?? 0),
     teamCount: teams.data?.length ?? 0,
+    checklistIncomplete:
+      checklistFrom(user, onboarding.data)?.complete === false,
   };
 
   const refetchAll = useCallback(
@@ -144,40 +147,23 @@ export function ProfileScreen() {
   }, [refetchAll]);
 
   const changePhoto = useCallback(async () => {
-    if (!user) {
+    const picked = await pickPhoto("library");
+    if (!picked.ok) {
+      toast.show(picked.message);
       return;
     }
-    setChangingPhoto(true);
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-        base64: true,
-      });
-      const asset = result.canceled ? null : result.assets[0];
-      if (!asset) {
-        return;
-      }
-      if (!asset.base64) {
-        toast.show("That photo could not be read. Try another one.");
-        return;
-      }
-      await user.setProfileImage({
-        file: imageDataUri(asset.base64, asset.mimeType),
-      });
-      await user.reload();
-    } catch (error) {
-      toast.show(photoErrorMessage(error));
-    } finally {
-      setChangingPhoto(false);
+    if (!picked.value) {
+      return;
     }
-  }, [user, toast]);
+    const saved = await savePhoto(picked.value);
+    if (!saved.ok) {
+      toast.show(saved.message);
+    }
+  }, [pickPhoto, savePhoto, toast]);
 
   const onOpen = useCallback(
     (destination: ProfileDestination) =>
-      router.push(`/profile/${destination}` as Href),
+      router.push(profileDestinationPath(destination) as Href),
     [router],
   );
 

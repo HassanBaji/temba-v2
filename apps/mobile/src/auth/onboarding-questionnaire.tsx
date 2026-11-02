@@ -1,4 +1,3 @@
-import { useAuth, useUser } from "@clerk/expo";
 import { colors, radii } from "@repo/design-tokens";
 import {
   FOOTBALL_POSITION_CHOICES,
@@ -15,41 +14,33 @@ import {
   SPORT_CHOICES,
   initialOnboardingAnswers,
   onboardingSubmission,
-  onboardingSummary,
   type OnboardingAnswers,
 } from "@repo/domain/onboarding-answers";
 import {
   adjacentQuestion,
-  findGamesLabel,
   onboardingProgress,
   sportsContinueLabel,
   type OnboardingQuestion,
 } from "@repo/domain/onboarding-flow";
 import { type Sport } from "@repo/domain/sport";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { splitTrpcFormError } from "../lib/form-error";
-import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
-import { Hairline } from "../primitives/hairline";
-import { Skeleton } from "../primitives/skeleton";
+import { sportsTaskMeta } from "../profile-tasks/profile-tasks-model";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { api, type RouterOutputs } from "../trpc/react";
-import { AuthLoading } from "./auth-loading";
 import { AuthScreen } from "./auth-screen";
 import { FormErrorSummary } from "./form-error-summary";
 import { RowChoices, TileChoices } from "./onboarding-choices";
-import {
-  PROVISIONING_POLL_MS,
-  PROVISIONING_TIMEOUT_MS,
-  onboardingPhaseFromState,
-} from "./onboarding-step";
 
 type OnboardingState = RouterOutputs["users"]["onboardingState"];
+
+const SAVE_LABEL = "Save sports";
 
 function SectionLabel(props: { label: string; hint?: string }) {
   return (
@@ -81,25 +72,60 @@ function LevelAlreadySet(props: { sport: string }) {
   );
 }
 
-function Questions({ state }: { state: OnboardingState }) {
+/**
+ * The sports and level questions, as the "Pick your sports and level"
+ * Profile task. The last sport screen saves and calls `onDone`; there is no
+ * summary step any more.
+ */
+export function SportsQuestionnaire({
+  state,
+  onDone,
+  onBack,
+}: {
+  state: OnboardingState;
+  onDone: () => void;
+  onBack: () => void;
+}) {
   const utils = api.useUtils();
-  const { user } = useUser();
   const [question, setQuestion] = useState<OnboardingQuestion>("sports");
   const [answers, setAnswers] = useState(() => initialOnboardingAnswers(state));
   const complete = api.users.completeOnboarding.useMutation({
-    onSuccess: () => utils.users.onboardingState.invalidate(),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.users.onboardingState.invalidate(),
+        utils.users.home.invalidate(),
+      ]);
+      onDone();
+    },
   });
 
-  const progress = onboardingProgress(answers.picked, question);
+  const progress = sportsTaskMeta(onboardingProgress(answers.picked, question));
+  const saving = complete.isPending || complete.isSuccess;
+  const split = complete.error ? splitTrpcFormError(complete.error) : null;
   const update = (patch: Partial<OnboardingAnswers>) =>
     setAnswers((current) => ({ ...current, ...patch }));
-  const go = (direction: "next" | "back") => {
-    const target = adjacentQuestion(answers.picked, question, direction);
-    if (target) {
+  const lastQuestion =
+    adjacentQuestion(answers.picked, question, "next") === "ready";
+  const next = (patch?: Partial<OnboardingAnswers>) => {
+    const merged = { ...answers, ...patch };
+    if (patch) {
+      setAnswers(merged);
+    }
+    const target = adjacentQuestion(merged.picked, question, "next");
+    if (target === "ready") {
+      complete.mutate(onboardingSubmission(merged));
+    } else if (target) {
       setQuestion(target);
     }
   };
-  const back = () => go("back");
+  const back = () => {
+    const target = adjacentQuestion(answers.picked, question, "back");
+    if (target) {
+      setQuestion(target);
+    } else {
+      onBack();
+    }
+  };
   const togglePicked = (sport: Sport) =>
     update({ picked: { ...answers.picked, [sport]: !answers.picked[sport] } });
 
@@ -107,6 +133,7 @@ function Questions({ state }: { state: OnboardingState }) {
     const nonePicked = !answers.picked.padel && !answers.picked.football;
     return (
       <AuthScreen
+        onBack={onBack}
         progress={progress}
         title="What do you play?"
         description="Pick one or both. Each sport keeps its own Level and its own Games list."
@@ -115,7 +142,7 @@ function Questions({ state }: { state: OnboardingState }) {
             label={sportsContinueLabel(answers.picked)}
             size="lg"
             disabled={nonePicked}
-            onPress={() => go("next")}
+            onPress={() => next()}
           />
         }
       >
@@ -146,7 +173,7 @@ function Questions({ state }: { state: OnboardingState }) {
     const levelSet = state.hasRating;
     return (
       <AuthScreen
-        onBack={back}
+        onBack={saving ? undefined : back}
         progress={progress}
         eyebrow="Padel"
         title="Where would you place yourself?"
@@ -155,23 +182,28 @@ function Questions({ state }: { state: OnboardingState }) {
           <>
             <Button
               label={
-                levelSet || answers.padelLevel ? "Continue" : "Pick a Level"
+                levelSet || answers.padelLevel
+                  ? lastQuestion
+                    ? SAVE_LABEL
+                    : "Continue"
+                  : "Pick a Level"
               }
               size="lg"
+              pending={saving}
               disabled={!levelSet && answers.padelLevel === ""}
-              onPress={() => go("next")}
+              onPress={() => next()}
             />
             {levelSet ? null : (
               <Pressable
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => {
-                  update({
+                disabled={saving}
+                onPress={() =>
+                  next({
                     padelLevel: PADEL_NOT_SURE_LEVEL,
                     padelSide: "either",
-                  });
-                  go("next");
-                }}
+                  })
+                }
                 style={{ minHeight: 44, justifyContent: "center" }}
               >
                 <Text
@@ -188,6 +220,7 @@ function Questions({ state }: { state: OnboardingState }) {
           </>
         }
       >
+        <FormErrorSummary message={split?.globalMessage} />
         {levelSet ? (
           <LevelAlreadySet sport="padel" />
         ) : (
@@ -221,15 +254,21 @@ function Questions({ state }: { state: OnboardingState }) {
     const keeper = answers.footballRole === "keeper";
     return (
       <AuthScreen
-        onBack={back}
+        onBack={saving ? undefined : back}
         progress={progress}
         eyebrow="Football"
         title="How do you line up?"
         description="Organizers use this to balance teams. You can change it per Game."
         action={
-          <Button label="Continue" size="lg" onPress={() => go("next")} />
+          <Button
+            label={lastQuestion ? SAVE_LABEL : "Continue"}
+            size="lg"
+            pending={saving}
+            onPress={() => next()}
+          />
         }
       >
+        <FormErrorSummary message={split?.globalMessage} />
         <View style={{ gap: 10 }}>
           <SectionLabel label="Usually join as" />
           <TileChoices
@@ -319,179 +358,5 @@ function Questions({ state }: { state: OnboardingState }) {
     );
   }
 
-  const split = complete.error ? splitTrpcFormError(complete.error) : null;
-  const pending = complete.isPending || complete.isSuccess;
-  const name = user?.fullName ?? user?.username ?? "You";
-  const phone = user?.primaryPhoneNumber?.phoneNumber ?? null;
-  const summary = onboardingSummary(answers);
-  return (
-    <AuthScreen
-      onBack={pending ? undefined : back}
-      progress={progress}
-      title="You’re set."
-      description="Here’s how organizers will see you. Your side and football role can change later; your Levels move with results."
-      action={
-        <Button
-          label={findGamesLabel(answers.picked)}
-          size="lg"
-          pending={pending}
-          onPress={() => complete.mutate(onboardingSubmission(answers))}
-        />
-      }
-    >
-      <FormErrorSummary message={split?.globalMessage} />
-      <View style={{ gap: 10 }}>
-        <SectionLabel label="Your profile so far" />
-        <View
-          style={{
-            borderWidth: hairline,
-            borderColor: colors.rule,
-            borderRadius: radii.card,
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 18,
-            }}
-          >
-            <Avatar name={name} uri={user?.imageUrl} size="lg" />
-            <View style={{ flex: 1 }}>
-              <Text weight="semibold" numberOfLines={1}>
-                {name}
-              </Text>
-              {phone ? (
-                <Text size="meta" tone="muted">
-                  {phone}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-          {summary.map((row) => (
-            <View key={row.sport}>
-              <Hairline />
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  paddingVertical: 14,
-                  paddingHorizontal: 18,
-                }}
-              >
-                <Text weight="semibold">{row.sport}</Text>
-                <Text
-                  size="meta"
-                  tone="muted"
-                  style={{ flexShrink: 1, textAlign: "right" }}
-                >
-                  {row.line}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-    </AuthScreen>
-  );
-}
-
-export function OnboardingQuestionnaire() {
-  const { signOut } = useAuth();
-  const state = api.users.onboardingState.useQuery(undefined, {
-    refetchInterval: (query) =>
-      query.state.data?.provisioning ? PROVISIONING_POLL_MS : false,
-  });
-  const [provisioningStalled, setProvisioningStalled] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
-  const phase = onboardingPhaseFromState(state.data);
-
-  useEffect(() => {
-    if (phase !== "provisioning" || provisioningStalled) {
-      return undefined;
-    }
-    const id = setTimeout(
-      () => setProvisioningStalled(true),
-      PROVISIONING_TIMEOUT_MS,
-    );
-    return () => clearTimeout(id);
-  }, [provisioningStalled, phase]);
-
-  function onSignOut() {
-    setSigningOut(true);
-    signOut().catch(() => setSigningOut(false));
-  }
-
-  const signOutButton = (
-    <Button
-      label="Sign out"
-      variant="outline"
-      pending={signingOut}
-      onPress={onSignOut}
-    />
-  );
-
-  if (state.error && !state.data) {
-    return (
-      <AuthScreen
-        title="Setup could not be loaded"
-        description={state.error.message}
-      >
-        <Button
-          label="Try again"
-          size="lg"
-          onPress={() => void state.refetch()}
-        />
-        {signOutButton}
-      </AuthScreen>
-    );
-  }
-
-  if (phase === "loading") {
-    return <AuthLoading />;
-  }
-
-  if (phase === "provisioning" && provisioningStalled) {
-    return (
-      <AuthScreen
-        title="Setup is taking longer than usual"
-        description="Your Temba account is still being created. Try again, or sign out and come back later."
-      >
-        <Button
-          label="Try again"
-          size="lg"
-          onPress={() => {
-            setProvisioningStalled(false);
-            void state.refetch();
-          }}
-        />
-        {signOutButton}
-      </AuthScreen>
-    );
-  }
-
-  if (phase === "provisioning" || !state.data) {
-    return (
-      <AuthScreen title="Setting up your account">
-        <Text tone="muted" accessibilityLiveRegion="polite">
-          Your Temba account is still being created. This only takes a moment
-          after sign-up, and the questions open on their own.
-        </Text>
-        <Skeleton height={96} />
-        {signOutButton}
-      </AuthScreen>
-    );
-  }
-
-  if (phase === "complete") {
-    return <AuthLoading />;
-  }
-
-  return <Questions state={state.data} />;
+  return null;
 }
