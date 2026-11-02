@@ -21,6 +21,7 @@ import {
   createFootballGame,
   createFriendlyGame,
 } from "#src/games/create-friendly";
+import { linkNewGameToSeason } from "#src/games/season-link";
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import type { CreateGameInput } from "#src/games/utils";
@@ -206,6 +207,16 @@ async function createFootballGameOnGroup(
 }
 
 export async function createGame(database: DbClient, input: CreateGameInput) {
+  const created = await createGameOnGroup(database, input);
+  await linkNewGameToSeason(database, {
+    id: created.id,
+    groupId: input.groupId,
+    windowStart: input.windowStart,
+  });
+  return created;
+}
+
+async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
   const group = await requireGroup(database, input.groupId);
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
 

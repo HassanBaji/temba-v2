@@ -436,7 +436,7 @@ export function StepperCard({
   );
 }
 
-function StepperButton({
+export function StepperButton({
   label,
   icon: Icon,
   size = STEPPER_BUTTON_SIZE,

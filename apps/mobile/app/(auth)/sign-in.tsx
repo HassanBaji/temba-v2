@@ -37,9 +37,14 @@ import { Surface } from "../../src/primitives/surface";
 import { Text } from "../../src/primitives/text";
 import { TextField } from "../../src/primitives/text-field";
 
-type Step = "phone" | "code" | "name" | "password";
-/** Which Clerk object the code step verifies: a known number or a new one. */
-type Door = "sign-in" | "sign-up";
+/**
+ * A known number signs in with its password; a new one gets a code, then a
+ * name and a new password (ADR-0049, ADR-0050). The code is sent only on
+ * sign-up.
+ */
+type Step = "phone" | "password" | "code" | "name" | "new-password";
+
+const SIGN_UP_STEPS: readonly Step[] = ["code", "name", "new-password"];
 
 type SessionOutcome = {
   status: string | null;
@@ -54,13 +59,10 @@ export default function SignIn() {
   const isLoaded = signInApi.isLoaded && signUpApi.isLoaded;
 
   const [step, setStep] = useState<Step>("phone");
-  const [door, setDoor] = useState<Door>("sign-in");
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
   const [national, setNational] = useState("");
-  const [phoneNumberId, setPhoneNumberId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [startedAt, setStartedAt] = useState(() => Date.now());
-  const [usePassword, setUsePassword] = useState(false);
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -71,10 +73,8 @@ export default function SignIn() {
 
   function backToPhone() {
     setStep("phone");
-    setDoor("sign-in");
     setSplit(null);
     setCode("");
-    setUsePassword(false);
     setPassword("");
   }
 
@@ -84,7 +84,7 @@ export default function SignIn() {
       outcome.createdSessionId &&
       setActive
     ) {
-      if (door === "sign-up") {
+      if (SIGN_UP_STEPS.includes(step)) {
         setPostAuthTarget(FRESH_ACCOUNT_TARGET);
       }
       await setActive({ session: outcome.createdSessionId });
@@ -100,13 +100,12 @@ export default function SignIn() {
     }
     await signUp.create({ phoneNumber: e164, legalAccepted: true });
     await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
-    setDoor("sign-up");
     setCode("");
     setStartedAt(Date.now());
     setStep("code");
   }
 
-  async function onSendCode() {
+  async function onContinue() {
     if (pending || !signIn) {
       return;
     }
@@ -119,22 +118,19 @@ export default function SignIn() {
     setSplit(null);
     try {
       const attempt = await signIn.create({ identifier: phone.e164 });
-      const factor = attempt.supportedFirstFactors?.find(
-        (item) => item.strategy === "phone_code",
+      const hasPassword = attempt.supportedFirstFactors?.some(
+        (item) => item.strategy === "password",
       );
-      if (!factor) {
-        setSplit(SOMETHING_WENT_WRONG);
+      if (!hasPassword) {
+        setSplit({
+          fieldErrors: {},
+          globalMessage:
+            "This account has no password. Sign in with Google instead.",
+        });
         return;
       }
-      await signIn.prepareFirstFactor({
-        strategy: "phone_code",
-        phoneNumberId: factor.phoneNumberId,
-      });
-      setPhoneNumberId(factor.phoneNumberId);
-      setDoor("sign-in");
-      setCode("");
-      setStartedAt(Date.now());
-      setStep("code");
+      setPassword("");
+      setStep("password");
     } catch (err) {
       if (hasClerkErrorCode(err, "form_identifier_not_found")) {
         try {
@@ -151,19 +147,12 @@ export default function SignIn() {
   }
 
   async function onResend() {
-    if (pending || !signIn || !signUp) {
+    if (pending || !signUp) {
       return;
     }
     setPending(true);
     try {
-      if (door === "sign-up") {
-        await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
-      } else if (phoneNumberId) {
-        await signIn.prepareFirstFactor({
-          strategy: "phone_code",
-          phoneNumberId,
-        });
-      }
+      await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
       setStartedAt(Date.now());
     } catch (err) {
       setSplit(splitClerkAuthError(err));
@@ -173,27 +162,12 @@ export default function SignIn() {
   }
 
   async function onVerifyCode() {
-    if (pending || !signIn || !signUp) {
+    if (pending || !signUp) {
       return;
     }
     setPending(true);
     setSplit(null);
     try {
-      if (door === "sign-in") {
-        const result = await signIn.attemptFirstFactor({
-          strategy: "phone_code",
-          code,
-        });
-        if (await activate(result)) {
-          return;
-        }
-        if (result.status === "needs_second_factor") {
-          router.push("/factor-two");
-          return;
-        }
-        setSplit(SOMETHING_WENT_WRONG);
-        return;
-      }
       const result = await signUp.attemptPhoneNumberVerification({ code });
       if (await activate(result)) {
         return;
@@ -251,7 +225,7 @@ export default function SignIn() {
       if (await activate(result)) {
         return;
       }
-      setStep("password");
+      setStep("new-password");
     } catch (err) {
       setSplit(splitClerkAuthError(err));
     } finally {
@@ -275,6 +249,53 @@ export default function SignIn() {
     } finally {
       setPending(false);
     }
+  }
+
+  if (step === "password") {
+    return (
+      <AuthScreen
+        onBack={backToPhone}
+        title="Enter your password"
+        description={`For ${formattedPhone}.`}
+        action={
+          <Button
+            label="Sign in"
+            size="lg"
+            pending={pending}
+            disabled={password.length === 0}
+            onPress={() => void onSignInWithPassword()}
+          />
+        }
+      >
+        <FormErrorSummary message={split?.globalMessage} />
+        <PasswordField
+          label="Password"
+          autoFocus
+          autoComplete="current-password"
+          textContentType="password"
+          placeholder="Enter your password"
+          value={password}
+          onChangeText={setPassword}
+          onSubmitEditing={() => void onSignInWithPassword()}
+          editable={!pending}
+          error={fieldError(split, "password")}
+        />
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={8}
+          disabled={pending}
+          onPress={backToPhone}
+          style={{ minHeight: 44, justifyContent: "center" }}
+        >
+          <Text
+            tone="muted"
+            style={{ textAlign: "center", textDecorationLine: "underline" }}
+          >
+            Change number
+          </Text>
+        </Pressable>
+      </AuthScreen>
+    );
   }
 
   if (step === "code") {
@@ -302,45 +323,6 @@ export default function SignIn() {
           globalMessage={split?.globalMessage ?? null}
           codeError={fieldError(split, "code")}
         />
-        {door === "sign-in" ? (
-          usePassword ? (
-            <View style={{ gap: 12 }}>
-              <PasswordField
-                label="Password"
-                autoComplete="current-password"
-                textContentType="password"
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
-                onSubmitEditing={() => void onSignInWithPassword()}
-                editable={!pending}
-                error={fieldError(split, "password")}
-              />
-              <Button
-                label="Sign in with password"
-                size="lg"
-                variant="outline"
-                pending={pending}
-                disabled={password.length === 0}
-                onPress={() => void onSignInWithPassword()}
-              />
-            </View>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={() => setUsePassword(true)}
-              style={{ minHeight: 44, justifyContent: "center" }}
-            >
-              <Text
-                tone="muted"
-                style={{ textAlign: "center", textDecorationLine: "underline" }}
-              >
-                Sign in with password instead
-              </Text>
-            </Pressable>
-          )
-        ) : null}
       </AuthScreen>
     );
   }
@@ -416,7 +398,7 @@ export default function SignIn() {
     );
   }
 
-  if (step === "password") {
+  if (step === "new-password") {
     return (
       <AuthScreen
         onBack={() => {
@@ -463,7 +445,7 @@ export default function SignIn() {
     <AuthScreen
       onBack={goBackOrWelcome}
       title="What's your number?"
-      description="We text a six digit code to confirm it's you. If the number is new to us, we create your account."
+      description="Known numbers sign in with a password. If the number is new to us, we text a six digit code and create your account."
       footer={
         <Text size="meta" tone="muted">
           Invited to a Group? Open your invite link.
@@ -481,11 +463,11 @@ export default function SignIn() {
         disabled={pending}
       />
       <Button
-        label="Send code"
+        label="Continue"
         size="lg"
         pending={pending}
         disabled={!isLoaded}
-        onPress={() => void onSendCode()}
+        onPress={() => void onContinue()}
       />
       <TermsMicrocopy lead="Standard SMS rates may apply." />
       <OauthButtons disabled={pending} />

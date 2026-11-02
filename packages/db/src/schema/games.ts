@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  index,
   integer,
   pgTable,
   timestamp,
@@ -11,6 +12,7 @@ import { relations, sql } from "drizzle-orm";
 
 import { user } from "./user";
 import { groups } from "./groups";
+import { groupSeasons } from "./group-seasons";
 import { venues } from "./venues";
 import { gamePlayers } from "./game-players";
 import { gameTeams } from "./game-teams";
@@ -46,6 +48,9 @@ export const games = pgTable(
     groupId: uuid("group_id").references(() => groups.id, {
       onDelete: "restrict",
     }),
+    seasonId: uuid("season_id").references(() => groupSeasons.id, {
+      onDelete: "set null",
+    }),
     venueId: uuid("venue_id")
       .notNull()
       .references(() => venues.id, { onDelete: "restrict" }),
@@ -78,6 +83,7 @@ export const games = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => ({
+    seasonIdx: index("games_season_id_idx").on(table.seasonId),
     sideSizeCheck: check(
       "games_side_size_check",
       sql`${table.sideSize} is null or ${table.sideSize} in (5, 6, 7, 8, 9, 11)`,
@@ -92,6 +98,10 @@ export const games = pgTable(
 export const gameRelations = relations(games, ({ one, many }) => ({
   createdBy: one(user, { fields: [games.createdBy], references: [user.id] }),
   group: one(groups, { fields: [games.groupId], references: [groups.id] }),
+  season: one(groupSeasons, {
+    fields: [games.seasonId],
+    references: [groupSeasons.id],
+  }),
   venue: one(venues, { fields: [games.venueId], references: [venues.id] }),
   gameCourts: many(gameCourts),
   matches: many(matches),

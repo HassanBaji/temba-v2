@@ -24,7 +24,7 @@ import {
 } from "~/components/games/football-info-rows";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
-import { PoolGrid, SeatBar } from "~/components/games/football-pool-grid";
+import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
@@ -35,10 +35,9 @@ import {
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
-import {
-  focusFormFailure,
-  toastGlobalFormError,
-} from "~/lib/form-mutation-error";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { useGameEdit } from "~/components/games/use-game-edit";
+import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import {
   bibNames,
@@ -54,7 +53,6 @@ import {
 } from "@repo/domain/football-game-details";
 import {
   footballTeamsMethodLabel,
-  keepersInLine,
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
@@ -73,7 +71,6 @@ import {
   gameJoinToast,
   kickedToast,
 } from "@repo/domain/game-copy";
-import { gameWindowSaveInput } from "@repo/domain/game-edit-save";
 import {
   ADD_PLAYER_ACTION,
   organizerCanAddPlayer,
@@ -86,21 +83,11 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import { gameInviteAccess } from "@repo/domain/invites";
-import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
-import {
-  filsToMajorInput,
-  formatPricePerPlayerFils,
-  parseOptionalPricePerPlayerFils,
-} from "@repo/domain/price-per-player";
-import { splitGameWindow } from "@repo/domain/game-window";
+import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type FootballGame = RouterOutputs["games"]["byId"];
-
-function noop() {
-  return undefined;
-}
 
 export function FootballGameDetails({
   gameId,
@@ -115,7 +102,6 @@ export function FootballGameDetails({
 }) {
   const utils = api.useUtils();
   const router = useRouter();
-  const priceSummaryRef = React.useRef<HTMLDivElement>(null);
   const [now] = React.useState(() => new Date());
   const [editOpen, setEditOpen] = React.useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
@@ -126,15 +112,6 @@ export function FootballGameDetails({
   const [kickConfirm, setKickConfirm] = React.useState<GameKickTarget | null>(
     null,
   );
-  const [customName, setCustomName] = React.useState("");
-  const [windowDay, setWindowDay] = React.useState("");
-  const [windowStartTime, setWindowStartTime] = React.useState("");
-  const [windowFinishTime, setWindowFinishTime] = React.useState("");
-  const [pricePerPlayer, setPricePerPlayer] = React.useState("");
-  const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
-    string | undefined
-  >();
-  const [capDraft, setCapDraft] = React.useState(game.playersAllowed ?? 0);
   const [joinMode, setJoinMode] = React.useState<"join" | "edit" | null>(null);
   const [selected, setSelected] = React.useState<BoardPlayer | null>(null);
   const [renaming, setRenaming] = React.useState<{
@@ -170,28 +147,7 @@ export function FootballGameDetails({
     now,
   );
 
-  const { windowStart, windowEnd, pricePerPlayerFils } = game;
   const savedCustomName = gameCustomName(game);
-  React.useEffect(() => {
-    if (editOpen) {
-      return;
-    }
-    setCustomName(savedCustomName ?? "");
-    const gameWindow = splitGameWindow(windowStart, windowEnd);
-    setWindowDay(gameWindow.day);
-    setWindowStartTime(gameWindow.startTime);
-    setWindowFinishTime(gameWindow.finishTime);
-    setPricePerPlayer(filsToMajorInput(pricePerPlayerFils));
-    setPricePerPlayerError(undefined);
-    setCapDraft(game.playersAllowed ?? 0);
-  }, [
-    editOpen,
-    savedCustomName,
-    windowStart,
-    windowEnd,
-    pricePerPlayerFils,
-    game.playersAllowed,
-  ]);
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id: gameId });
@@ -262,40 +218,20 @@ export function FootballGameDetails({
     },
     onError,
   });
-  const updateWindow = api.games.updateWindow.useMutation({
-    onSuccess: async () => {
-      toast.success("Window saved");
-      await refreshGame();
-    },
-    onError,
+  const editSections = gameEditSectionsFor({
+    format: game.format,
+    sport: game.sport,
+    groupId: game.groupId,
+    tournamentRounds: false,
   });
-  const updateName = api.games.updateName.useMutation({
-    onSuccess: async () => {
-      toast.success("Name saved");
-      await refreshGame();
-    },
-    onError,
-  });
-  const updatePrice = api.games.updatePricePerPlayer.useMutation({
-    onSuccess: async () => {
-      toast.success("Price per player saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-      focusFormFailure(
-        error,
-        { pricePerPlayerFils: "edit-price-per-player" },
-        priceSummaryRef.current,
-      );
-    },
-  });
-  const updateCaps = api.games.updateCaps.useMutation({
-    onSuccess: async () => {
-      toast.success("Players allowed saved");
-      await refreshGame();
-    },
-    onError,
+  const edit = useGameEdit({
+    gameId,
+    game,
+    sections: editSections,
+    seasons: game.groupSeasons,
+    open: editOpen,
+    onSaved: refreshGame,
+    onClose: () => setEditOpen(false),
   });
 
   const inviteAccess = gameInviteAccess({
@@ -350,31 +286,6 @@ export function FootballGameDetails({
     );
   }
 
-  function saveWindow() {
-    const save = gameWindowSaveInput(
-      windowDay,
-      windowStartTime,
-      windowFinishTime,
-    );
-    if (save) {
-      updateWindow.mutate({ gameId, ...save });
-    }
-  }
-
-  function savePrice() {
-    if (updatePrice.isPending) {
-      return;
-    }
-    setPricePerPlayerError(undefined);
-    const parsed = parseOptionalPricePerPlayerFils(pricePerPlayer);
-    if (!parsed.ok) {
-      setPricePerPlayerError(parsed.message);
-      document.getElementById("edit-price-per-player")?.focus();
-      return;
-    }
-    updatePrice.mutate({ gameId, pricePerPlayerFils: parsed.fils });
-  }
-
   const kickCopy = kickConfirm
     ? gameKickConfirmCopy(kickConfirm, {
         partnerRequired: false,
@@ -418,6 +329,7 @@ export function FootballGameDetails({
     .join(", ");
   const infoRows: FootballInfoRow[] = [
     ...(game.groupName ? [{ label: "Group", value: game.groupName }] : []),
+    ...(game.season ? [{ label: "Season", value: game.season.name }] : []),
     ...(price
       ? [
           {
@@ -678,22 +590,10 @@ export function FootballGameDetails({
             aria-labelledby="football-players-heading"
             className="space-y-3"
           >
-            <div className="flex items-baseline justify-between gap-3">
-              <h2
-                id="football-players-heading"
-                className="text-title font-semibold tracking-[-0.01em]"
-              >
-                Players
-              </h2>
-              <p className="text-muted-foreground text-meta">
-                {keepersInLine(
-                  players.filter((player) => player.role === "keeper").length,
-                )}
-              </p>
-            </div>
-            <PoolGrid
+            <PoolSections
               players={layout.pool}
-              open={layout.openSeats}
+              seats={layout.seats}
+              headingId="football-players-heading"
               onOpenPlayer={pressPlayer}
             />
             <p className="text-muted-foreground text-meta">
@@ -847,56 +747,16 @@ export function FootballGameDetails({
         <GameEditDialog
           open={editOpen}
           onOpenChange={setEditOpen}
-          format={game.format}
-          windowDay={windowDay}
-          windowStartTime={windowStartTime}
-          windowFinishTime={windowFinishTime}
-          onDayChange={setWindowDay}
-          onStartTimeChange={setWindowStartTime}
-          onFinishTimeChange={setWindowFinishTime}
-          windowError={updateWindow.error}
-          windowPending={updateWindow.isPending}
-          onSaveWindow={saveWindow}
-          pricePerPlayer={pricePerPlayer}
-          onPricePerPlayerChange={(value) => {
-            setPricePerPlayer(value);
-            setPricePerPlayerError(undefined);
-          }}
-          pricePerPlayerError={pricePerPlayerError}
-          priceError={updatePrice.error}
-          priceSummaryRef={priceSummaryRef}
-          pricePending={updatePrice.isPending}
-          onSavePrice={savePrice}
-          levelMin={LEVEL_BAND_SELECT_NONE}
-          onLevelMinChange={noop}
-          levelMax={LEVEL_BAND_SELECT_NONE}
-          onLevelMaxChange={noop}
-          levelMinError={undefined}
-          levelMaxError={undefined}
-          levelError={null}
-          levelSummaryRef={priceSummaryRef}
-          levelPending={false}
-          onSaveLevelRange={noop}
-          rounds={null}
-          customName={{
-            value: customName,
-            onChange: setCustomName,
-            error: updateName.error,
-            pending: updateName.isPending,
-            onSave: () => {
-              updateName.mutate({ gameId, customName });
-            },
-          }}
-          playersAllowed={{
-            value: capDraft,
-            min: organizer.capBounds.min,
-            max: organizer.capBounds.max,
-            onChange: setCapDraft,
-            error: updateCaps.error,
-            pending: updateCaps.isPending,
-            onSave: () => {
-              updateCaps.mutate({ gameId, playersAllowed: capDraft });
-            },
+          edit={edit}
+          sections={editSections}
+          context={{
+            venueName: game.venue?.name ?? null,
+            courtName: game.recordedCourts[0]?.name ?? null,
+            groupName: game.groupName,
+            joined: game.registeredUserCount,
+            seasons: game.groupSeasons,
+            canChangeSeason: game.canChangeSeason,
+            rounds: null,
           }}
         />
       ) : null}

@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { games } from "@repo/db";
+import { gamePlayers, gameWaitlist, games } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,26 +16,72 @@ import {
   requireGame,
   type GameRow,
 } from "#src/games/access";
+import { footballSides } from "#src/games/football-lineup";
 import { highestOccupiedSideIndex } from "#src/games/seats";
 import {
   footballPlayersAllowedBounds,
   isFootballGame,
+  isFootballSideSize,
 } from "@repo/domain/game-shape";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-async function updateFootballPlayersAllowed(
+export const SIDES_SET_MESSAGE =
+  "The sides are set, so the shape of the Game can't change";
+
+/**
+ * Dropping players allowed under the joined count moves the latest joiners
+ * to the Waitlist, latest first. Each keeps the moment they joined as their
+ * place in the queue, so they are ahead of anyone who waitlisted after them
+ * and get a spot back as soon as one opens.
+ */
+async function moveLatestJoinersToWaitlist(
+  database: DbClient,
+  gameId: string,
+  count: number,
+) {
+  if (count <= 0) {
+    return [];
+  }
+  const latest = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.gameId, gameId),
+    columns: { id: true, userId: true, createdAt: true },
+    orderBy: [desc(gamePlayers.createdAt), desc(gamePlayers.id)],
+    limit: count,
+  });
+  for (const player of latest) {
+    await database.delete(gamePlayers).where(eq(gamePlayers.id, player.id));
+    if (player.userId) {
+      await database.insert(gameWaitlist).values({
+        gameId,
+        userId: player.userId,
+        createdAt: player.createdAt,
+      });
+    }
+  }
+  return latest.flatMap((player) => (player.userId ? [player.userId] : []));
+}
+
+async function updateFootballShape(
   database: DbClient,
   game: GameRow,
-  playersAllowed: number | undefined,
+  input: { playersAllowed?: number; sideSize?: number },
 ) {
-  if (playersAllowed == null || game.sideSize == null) {
+  const sideSize = input.sideSize ?? game.sideSize;
+  const playersAllowed = input.playersAllowed ?? game.playersAllowed;
+  if (sideSize == null || playersAllowed == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Set players allowed",
     });
   }
-  const bounds = footballPlayersAllowedBounds(game.sideSize);
+  if (!isFootballSideSize(sideSize)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Side size must be 5, 6, 7, 8, 9 or 11",
+    });
+  }
+  const bounds = footballPlayersAllowedBounds(sideSize);
   if (playersAllowed < bounds.min || playersAllowed > bounds.max) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -43,23 +89,30 @@ async function updateFootballPlayersAllowed(
     });
   }
   const userCount = await registeredUserCount(database, game.id);
-  if (playersAllowed < userCount) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Cannot lower cap below the current registered count",
-    });
+  const sidesSet = await footballSides(database, game.id);
+  if (
+    (sidesSet.slot1 || sidesSet.slot2) &&
+    (sideSize !== game.sideSize || playersAllowed < userCount)
+  ) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: SIDES_SET_MESSAGE });
   }
+  const movedToWaitlist = await moveLatestJoinersToWaitlist(
+    database,
+    game.id,
+    userCount - playersAllowed,
+  );
   await database
     .update(games)
-    .set({ playersAllowed, updatedAt: new Date() })
+    .set({ playersAllowed, sideSize, updatedAt: new Date() })
     .where(eq(games.id, game.id));
+  return movedToWaitlist;
 }
 
 async function updateGameCapsOnGame(
   database: DbClient,
   game: GameRow,
-  input: { playersAllowed?: number; teamsAllowed?: number },
-) {
+  input: { playersAllowed?: number; teamsAllowed?: number; sideSize?: number },
+): Promise<string[]> {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -67,8 +120,13 @@ async function updateGameCapsOnGame(
     });
   }
   if (isFootballGame(game) && game.format === "friendly_game") {
-    await updateFootballPlayersAllowed(database, game, input.playersAllowed);
-    return;
+    return updateFootballShape(database, game, input);
+  }
+  if (input.sideSize != null) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Only a football Game has a side size",
+    });
   }
   if (game.format === "friendly_game") {
     throw new TRPCError({
@@ -98,7 +156,7 @@ async function updateGameCapsOnGame(
       .update(games)
       .set({ teamsAllowed: nextTeams, updatedAt: new Date() })
       .where(eq(games.id, game.id));
-    return;
+    return [];
   }
 
   if (nextPlayers == null || nextPlayers < FRIENDLY_PLAYERS_ALLOWED) {
@@ -135,24 +193,29 @@ async function updateGameCapsOnGame(
     .update(games)
     .set({ playersAllowed: nextPlayers, updatedAt: new Date() })
     .where(eq(games.id, game.id));
+  return [];
 }
 
 export async function updateGameCaps(
-  database: DbClient,
+  database: typeof db,
   args: {
     gameId: string;
     userId: string;
     playersAllowed?: number;
     teamsAllowed?: number;
+    sideSize?: number;
   },
 ) {
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.userId);
-  await updateGameCapsOnGame(database, game, {
-    playersAllowed: args.playersAllowed,
-    teamsAllowed: args.teamsAllowed,
-  });
-  return { ok: true as const };
+  const movedToWaitlist = await database.transaction((tx) =>
+    updateGameCapsOnGame(tx, game, {
+      playersAllowed: args.playersAllowed,
+      teamsAllowed: args.teamsAllowed,
+      sideSize: args.sideSize,
+    }),
+  );
+  return { ok: true as const, movedToWaitlist };
 }
 
 export const updateCaps = protectedProcedure
@@ -162,12 +225,14 @@ export const updateCaps = protectedProcedure
         gameId: z.string().uuid(),
         playersAllowed: z.number().int().optional(),
         teamsAllowed: z.number().int().optional(),
+        sideSize: z.number().int().optional(),
       })
       .refine(
         (value) =>
           value.playersAllowed !== undefined ||
-          value.teamsAllowed !== undefined,
-        { message: "Set players allowed or teams allowed" },
+          value.teamsAllowed !== undefined ||
+          value.sideSize !== undefined,
+        { message: "Set players allowed, teams allowed or side size" },
       ),
   )
   .mutation(async ({ ctx, input }) => {
@@ -177,5 +242,6 @@ export const updateCaps = protectedProcedure
       userId: appUser.id,
       playersAllowed: input.playersAllowed,
       teamsAllowed: input.teamsAllowed,
+      sideSize: input.sideSize,
     });
   });

@@ -707,7 +707,7 @@ export function GameDetailsScreen({
       {sheets}
       {organizer.plan ? (
         <>
-          <OrganizerSheets {...organizer.sheets} game={details} />
+          <OrganizerSheets {...organizer.sheets} />
           <AddPlayerSheet
             visible={organizer.addPlayer.open}
             onClose={organizer.addPlayer.onClose}

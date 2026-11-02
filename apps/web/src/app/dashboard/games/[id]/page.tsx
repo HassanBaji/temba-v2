@@ -46,14 +46,9 @@ import type { LookupUserSearchRow } from "@repo/api/types";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import {
-  focusFormFailure,
-  toastGlobalFormError,
-} from "~/lib/form-mutation-error";
-import {
-  gameEditSectionsToReseed,
-  type GameEditSection,
-} from "@repo/domain/game-edit-sections";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { useGameEdit } from "~/components/games/use-game-edit";
+import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
   CANCEL_GAME_ACTION,
   CANCEL_MATCH_ACTION,
@@ -77,10 +72,6 @@ import {
   teamRegisterToast,
   kickedToast,
 } from "@repo/domain/game-copy";
-import {
-  gameLevelRangeSaveInput,
-  gameWindowSaveInput,
-} from "@repo/domain/game-edit-save";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import { gameInviteAccess } from "@repo/domain/invites";
@@ -121,21 +112,25 @@ import {
   isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
-import { splitGameWindow } from "@repo/domain/game-window";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
-import {
-  LEVEL_BAND_SELECT_NONE,
-  tenthsToLevelBandSelectValue,
-  type LevelBandSelectValue,
-} from "@repo/domain/level-range";
-import {
-  filsToMajorInput,
-  parseOptionalPricePerPlayerFils,
-} from "@repo/domain/price-per-player";
 import { api } from "~/trpc/react";
+
+const EMPTY_EDIT_SOURCE = {
+  name: null,
+  hasCustomName: false,
+  windowStart: null,
+  windowEnd: null,
+  pricePerPlayerFils: null,
+  playersAllowed: null,
+  sideSize: null,
+  levelMinTenths: null,
+  levelMaxTenths: null,
+  roundCount: null,
+  seasonId: null,
+};
 
 export default function GameHomePage({
   params,
@@ -170,9 +165,6 @@ export default function GameHomePage({
     });
   }
   const game = api.games.byId.useQuery({ id });
-  const priceSummaryRef = React.useRef<HTMLDivElement>(null);
-  const levelSummaryRef = React.useRef<HTMLDivElement>(null);
-  const roundsSummaryRef = React.useRef<HTMLDivElement>(null);
   const resultsSectionRef = React.useRef<HTMLDivElement>(null);
   const focusResultsSection = React.useCallback(() => {
     const section = resultsSectionRef.current;
@@ -194,29 +186,7 @@ export default function GameHomePage({
     "left" | "right"
   >("left");
   const [teamId, setTeamId] = React.useState("");
-  const [customName, setCustomName] = React.useState("");
-  const [windowDay, setWindowDay] = React.useState("");
-  const [windowStartTime, setWindowStartTime] = React.useState("");
-  const [windowFinishTime, setWindowFinishTime] = React.useState("");
-  const [pricePerPlayer, setPricePerPlayer] = React.useState("");
-  const [pricePerPlayerError, setPricePerPlayerError] = React.useState<
-    string | undefined
-  >();
-  const [levelMin, setLevelMin] = React.useState<LevelBandSelectValue>(
-    LEVEL_BAND_SELECT_NONE,
-  );
-  const [levelMax, setLevelMax] = React.useState<LevelBandSelectValue>(
-    LEVEL_BAND_SELECT_NONE,
-  );
-  const [levelMinError, setLevelMinError] = React.useState<
-    string | undefined
-  >();
-  const [levelMaxError, setLevelMaxError] = React.useState<
-    string | undefined
-  >();
-  const [roundCount, setRoundCount] = React.useState<number | null>(null);
   const [editOpen, setEditOpen] = React.useState(false);
-  const justSavedEditSectionsRef = React.useRef(new Set<GameEditSection>());
   const [invitesOpen, setInvitesOpen] = React.useState(false);
   const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
   const [renaming, setRenaming] = React.useState<{
@@ -443,79 +413,6 @@ export default function GameHomePage({
     },
   });
 
-  const updateWindow = api.games.updateWindow.useMutation({
-    onSuccess: async () => {
-      justSavedEditSectionsRef.current.add("window");
-      toast.success("Window saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
-  const updateName = api.games.updateName.useMutation({
-    onSuccess: async () => {
-      justSavedEditSectionsRef.current.add("name");
-      toast.success("Name saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
-
-  const updatePricePerPlayer = api.games.updatePricePerPlayer.useMutation({
-    onSuccess: async () => {
-      justSavedEditSectionsRef.current.add("price");
-      toast.success("Price per player saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-      focusFormFailure(
-        error,
-        { pricePerPlayerFils: "edit-price-per-player" },
-        priceSummaryRef.current,
-      );
-    },
-  });
-
-  const updateLevelRange = api.games.updateLevelRange.useMutation({
-    onSuccess: async () => {
-      justSavedEditSectionsRef.current.add("level");
-      toast.success("Level range saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-      focusFormFailure(
-        error,
-        {
-          levelMinTenths: "edit-level-min",
-          levelMaxTenths: "edit-level-max",
-        },
-        levelSummaryRef.current,
-      );
-    },
-  });
-
-  const updateRoundCount = api.games.updateRoundCount.useMutation({
-    onSuccess: async () => {
-      justSavedEditSectionsRef.current.add("rounds");
-      toast.success("Rounds saved");
-      await refreshGame();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-      focusFormFailure(
-        error,
-        { roundCount: "edit-round-count" },
-        roundsSummaryRef.current,
-      );
-    },
-  });
-
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: async () => {
       toast.success("Match updated");
@@ -609,6 +506,21 @@ export default function GameHomePage({
   }
 
   const data = game.data;
+  const editSections = gameEditSectionsFor({
+    format: data?.format ?? "friendly_game",
+    sport: data?.sport,
+    groupId: data?.groupId ?? null,
+    tournamentRounds: data?.format === "friendly_tournament",
+  });
+  const edit = useGameEdit({
+    gameId: id,
+    game: data ?? EMPTY_EDIT_SOURCE,
+    sections: editSections,
+    seasons: data?.groupSeasons ?? [],
+    open: editOpen,
+    onSaved: refreshGame,
+    onClose: () => setEditOpen(false),
+  });
   const firstEligibleTeam = data?.eligibleTeams[0]?.id ?? "";
   const courts = api.games.listCourts.useQuery(
     { gameId: id },
@@ -669,39 +581,6 @@ export default function GameHomePage({
       setTeamId(firstEligibleTeam);
     }
   }, [firstEligibleTeam, teamId.length]);
-
-  React.useEffect(() => {
-    if (!data) {
-      return;
-    }
-    const sections = gameEditSectionsToReseed({
-      dialogOpen: editOpen,
-      justSaved: justSavedEditSectionsRef.current,
-    });
-    justSavedEditSectionsRef.current.clear();
-    if (sections.includes("name")) {
-      setCustomName(gameCustomName(data) ?? "");
-    }
-    if (sections.includes("window")) {
-      const gameWindow = splitGameWindow(data.windowStart, data.windowEnd);
-      setWindowDay(gameWindow.day);
-      setWindowStartTime(gameWindow.startTime);
-      setWindowFinishTime(gameWindow.finishTime);
-    }
-    if (sections.includes("price")) {
-      setPricePerPlayer(filsToMajorInput(data.pricePerPlayerFils));
-      setPricePerPlayerError(undefined);
-    }
-    if (sections.includes("level")) {
-      setLevelMin(tenthsToLevelBandSelectValue(data.levelMinTenths));
-      setLevelMax(tenthsToLevelBandSelectValue(data.levelMaxTenths));
-      setLevelMinError(undefined);
-      setLevelMaxError(undefined);
-    }
-    if (sections.includes("rounds")) {
-      setRoundCount(data.roundCount);
-    }
-  }, [data, editOpen]);
 
   React.useEffect(() => {
     if (!tournamentInviteLandingOpensPartnerSheet(joinParam) || !data) {
@@ -797,7 +676,7 @@ export default function GameHomePage({
     ? friendlyGameHomeTitle(data.groupId, data.groupName)
     : "Game";
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
-  const roundsPlan = tournamentRoundsPlan(data, roundCount);
+  const roundsPlan = tournamentRoundsPlan(data, edit.draft.roundCount);
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
@@ -914,57 +793,6 @@ export default function GameHomePage({
       ) : null}
     </ActionMenu>
   ) : null;
-
-  function saveWindow() {
-    const input = gameWindowSaveInput(
-      windowDay,
-      windowStartTime,
-      windowFinishTime,
-    );
-    if (!input) {
-      return;
-    }
-    updateWindow.mutate({ gameId: id, ...input });
-  }
-
-  function savePrice() {
-    if (updatePricePerPlayer.isPending) {
-      return;
-    }
-    setPricePerPlayerError(undefined);
-    const parsedPrice = parseOptionalPricePerPlayerFils(pricePerPlayer);
-    if (!parsedPrice.ok) {
-      setPricePerPlayerError(parsedPrice.message);
-      document.getElementById("edit-price-per-player")?.focus();
-      return;
-    }
-    updatePricePerPlayer.mutate({
-      gameId: id,
-      pricePerPlayerFils: parsedPrice.fils,
-    });
-  }
-
-  function saveLevelRange() {
-    if (updateLevelRange.isPending) {
-      return;
-    }
-    setLevelMinError(undefined);
-    setLevelMaxError(undefined);
-    const save = gameLevelRangeSaveInput(levelMin, levelMax);
-    if (!save.ok) {
-      setLevelMinError(save.message);
-      document.getElementById("edit-level-min")?.focus();
-      return;
-    }
-    updateLevelRange.mutate({ gameId: id, ...save.input });
-  }
-
-  function saveRounds() {
-    if (updateRoundCount.isPending) {
-      return;
-    }
-    updateRoundCount.mutate({ gameId: id, roundCount });
-  }
 
   function openJoinPicker(seat?: FriendlyGameJoinSeat) {
     setJoinPickerSeat(seat ?? null);
@@ -1369,67 +1197,22 @@ export default function GameHomePage({
         <GameEditDialog
           open={editOpen}
           onOpenChange={setEditOpen}
-          format={data.format}
-          windowDay={windowDay}
-          windowStartTime={windowStartTime}
-          windowFinishTime={windowFinishTime}
-          onDayChange={setWindowDay}
-          onStartTimeChange={setWindowStartTime}
-          onFinishTimeChange={setWindowFinishTime}
-          windowError={updateWindow.error}
-          windowPending={updateWindow.isPending}
-          onSaveWindow={saveWindow}
-          pricePerPlayer={pricePerPlayer}
-          onPricePerPlayerChange={(value) => {
-            setPricePerPlayer(value);
-            setPricePerPlayerError(undefined);
-          }}
-          pricePerPlayerError={pricePerPlayerError}
-          priceError={updatePricePerPlayer.error}
-          priceSummaryRef={priceSummaryRef}
-          pricePending={updatePricePerPlayer.isPending}
-          onSavePrice={savePrice}
-          levelMin={levelMin}
-          onLevelMinChange={(value) => {
-            setLevelMin(value);
-            setLevelMinError(undefined);
-          }}
-          levelMax={levelMax}
-          onLevelMaxChange={(value) => {
-            setLevelMax(value);
-            setLevelMaxError(undefined);
-          }}
-          levelMinError={levelMinError}
-          levelMaxError={levelMaxError}
-          levelError={updateLevelRange.error}
-          levelSummaryRef={levelSummaryRef}
-          levelPending={updateLevelRange.isPending}
-          onSaveLevelRange={saveLevelRange}
-          customName={
-            data.format === "friendly_game"
-              ? {
-                  value: customName,
-                  onChange: setCustomName,
-                  error: updateName.error,
-                  pending: updateName.isPending,
-                  onSave: () => updateName.mutate({ gameId: id, customName }),
-                }
-              : undefined
-          }
-          rounds={
-            roundsPlan
+          edit={edit}
+          sections={{ ...editSections, rounds: roundsPlan != null }}
+          context={{
+            venueName: data.venue?.name ?? null,
+            courtName: data.recordedCourts[0]?.name ?? null,
+            groupName: data.groupName,
+            joined: data.registeredUserCount,
+            seasons: data.groupSeasons,
+            canChangeSeason: data.canChangeSeason,
+            rounds: roundsPlan
               ? {
                   poolSizes: roundsPlan.poolSizes,
-                  roundCount,
-                  onRoundCountChange: setRoundCount,
                   overruns: roundsPlan.overruns,
-                  error: updateRoundCount.error,
-                  summaryRef: roundsSummaryRef,
-                  pending: updateRoundCount.isPending,
-                  onSave: saveRounds,
                 }
-              : null
-          }
+              : null,
+          }}
         />
       ) : null}
 

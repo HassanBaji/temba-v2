@@ -104,7 +104,7 @@ describe("footballGameDetailsModel", () => {
     assert.equal(over.statusLabel, "Played");
   });
 
-  it("offers the Organizer kick on everyone but themselves, and cap bounds above the count", () => {
+  it("offers the Organizer kick on everyone but themselves, and cap bounds from the side size", () => {
     const model = footballGameDetailsModel(
       game({
         isOrganizer: true,
@@ -117,7 +117,7 @@ describe("footballGameDetailsModel", () => {
       NOW,
     );
     assert.ok(model.organizer);
-    assert.deepEqual(model.organizer.capBounds, { min: 12, max: 40 });
+    assert.deepEqual(model.organizer.capBounds, { min: 10, max: 40 });
     assert.equal(model.organizer.registration, "close");
     assert.equal(
       model.rosterRows.every((row) => row.kickable),

@@ -6,7 +6,6 @@ import { games, groupMembers, groupSeasons } from "@repo/db";
 import {
   defaultSeasonLens,
   groupSeasonStatus,
-  isInSeasonWindow,
   type GroupSeasonData,
 } from "@repo/domain/group-season";
 import {
@@ -36,6 +35,7 @@ export function slotUserIds(team: SlotTeam): string[] {
 
 export type StandingGameRow = {
   groupId: string | null;
+  seasonId: string | null;
   cancelledAt: Date | null;
   windowStart: Date | null;
   createdAt: Date;
@@ -52,21 +52,28 @@ export type StandingGameRow = {
   }[];
 };
 
+export type StandingMatch = SeasonStandingMatch & {
+  /** The Season the Game is linked to; a friendly carries `null`. */
+  seasonId: string | null;
+};
+
 /**
  * The Matches a Standing reads, from the Group's Games with a cancelled Game
  * already dropped. A Match is placed in time by its own start, else the
- * Game's, else when it was created.
+ * Game's, else when it was created, and counts toward the Season its Game
+ * links to.
  */
 export function standingMatchesFromGames(
   gameRows: readonly StandingGameRow[],
-): SeasonStandingMatch[] {
-  const list: SeasonStandingMatch[] = [];
+): StandingMatch[] {
+  const list: StandingMatch[] = [];
   for (const game of gameRows) {
     if (game.cancelledAt !== null) {
       continue;
     }
     for (const match of game.matches) {
       list.push({
+        seasonId: game.seasonId,
         status: match.status,
         playedAt: match.startTime ?? game.windowStart ?? match.createdAt,
         sets: match.sets,
@@ -96,15 +103,15 @@ export function toSeasonRow(
   };
 }
 
-/** The Matches inside the lens: a Season's window, or all of them. */
+/** The Matches inside the lens: the Games linked to a Season, or all of them. */
 export function matchesInLens(
-  matches: readonly SeasonStandingMatch[],
-  season: GroupSeasonData | null,
-): SeasonStandingMatch[] {
+  matches: readonly StandingMatch[],
+  season: Pick<GroupSeasonData, "id"> | null,
+): StandingMatch[] {
   if (!season) {
     return [...matches];
   }
-  return matches.filter((match) => isInSeasonWindow(season, match.playedAt));
+  return matches.filter((match) => match.seasonId === season.id);
 }
 
 export function countCompletedMatches(matches: readonly SeasonStandingMatch[]) {
@@ -158,6 +165,7 @@ export async function loadGroupStandings(
       columns: {
         id: true,
         groupId: true,
+        seasonId: true,
         cancelledAt: true,
         windowStart: true,
         createdAt: true,

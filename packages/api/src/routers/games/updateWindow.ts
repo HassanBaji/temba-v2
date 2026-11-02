@@ -12,6 +12,7 @@ import {
   requireGame,
   type GameRow,
 } from "#src/games/access";
+import { resolveGameSeasonLink } from "#src/games/season-link";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -21,6 +22,7 @@ async function updateGameWindowOnGame(
   windowStart: Date,
   windowEnd: Date,
   name: string,
+  seasonId: string | null,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -36,12 +38,21 @@ async function updateGameWindowOnGame(
   }
 
   const now = new Date();
+  const linked = game.groupId
+    ? await resolveGameSeasonLink(database, {
+        game,
+        seasonId,
+        windowStart,
+        now,
+      })
+    : null;
   await database
     .update(games)
     .set({
       windowStart,
       windowEnd,
       name: game.hasCustomName ? game.name : name,
+      seasonId: linked?.id ?? null,
       updatedAt: now,
     })
     .where(eq(games.id, game.id));
@@ -71,6 +82,8 @@ export async function updateGameWindow(
     windowStart: Date;
     windowEnd: Date;
     name: string;
+    /** Omitted keeps the Game's Season; `null` unlinks it. */
+    seasonId?: string | null;
   },
 ) {
   const game = await requireGame(database, args.gameId);
@@ -82,6 +95,7 @@ export async function updateGameWindow(
       args.windowStart,
       args.windowEnd,
       args.name,
+      args.seasonId === undefined ? game.seasonId : args.seasonId,
     );
   });
   return { ok: true as const };
@@ -95,6 +109,7 @@ export const updateWindow = protectedProcedure
         name: z.string().trim().min(1).max(255),
         windowStart: z.coerce.date(),
         windowEnd: z.coerce.date(),
+        seasonId: z.string().uuid().nullable().optional(),
       })
       .refine(
         (value) => value.windowEnd.getTime() >= value.windowStart.getTime(),
@@ -112,5 +127,6 @@ export const updateWindow = protectedProcedure
       windowStart: input.windowStart,
       windowEnd: input.windowEnd,
       name: input.name,
+      seasonId: input.seasonId,
     });
   });
