@@ -133,6 +133,7 @@ export function ResponsiveDialogContent({
           "outline-none motion-reduce:transition-opacity motion-reduce:duration-100",
           className,
         )}
+        showCloseButton={showCloseButton}
         onOpenAutoFocus={handleOpenAutoFocus}
         onCloseAutoFocus={handleCloseAutoFocus}
         {...props}

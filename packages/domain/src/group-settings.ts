@@ -145,7 +145,9 @@ export const GROUP_EDIT_COPY = {
   deleteTitle: "Delete Group",
   deleteHint: "Removes the Group. Games stay in each player's history.",
   save: "Save changes",
+  discard: "Discard",
   nothingChanged: "Nothing changed yet.",
+  unsavedChanges: "Unsaved changes.",
   savedToast: "Changes saved",
 } as const;
 

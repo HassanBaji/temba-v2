@@ -2,10 +2,8 @@ import {
   GROUP_MENU_LABELS,
   type GroupMenuItem,
 } from "@repo/domain/group-settings";
-import { Link, LogOut, Pencil, UserRoundPlus, X } from "lucide-react-native";
-import { View } from "react-native";
+import { Link, LogOut, Pencil, UserRoundPlus } from "lucide-react-native";
 
-import { HeaderIconButton } from "../primitives/screen-header";
 import { Sheet } from "../primitives/sheet";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 
@@ -42,43 +40,36 @@ export function GroupMenuSheet({
       onClose={onClose}
       title={name}
       subtitle={roleLine}
-      action={
-        <HeaderIconButton
-          framed
-          icon={X}
-          accessibilityLabel="Close"
-          onPress={onClose}
-        />
-      }
+      titleSize="lead"
+      closeButton
     >
-      <View style={{ gap: 12 }}>
-        {actions.length > 0 ? (
-          <SheetMenu>
-            {actions.map((item) => (
-              <SheetMenuRow
-                key={item}
-                label={GROUP_MENU_LABELS[item]}
-                icon={ICONS[item]}
-                trailing="chevron"
-                pending={item === "copy_link" && copyPending}
-                onPress={() => onPick(item)}
-              />
-            ))}
-          </SheetMenu>
-        ) : null}
-        {canLeave ? (
-          <SheetMenu>
-            {[
-              <SheetMenuRow
-                key="leave"
-                label={GROUP_MENU_LABELS.leave}
-                icon={LogOut}
-                onPress={() => onPick("leave")}
-              />,
-            ]}
-          </SheetMenu>
-        ) : null}
-      </View>
+      {actions.length > 0 ? (
+        <SheetMenu>
+          {actions.map((item) => (
+            <SheetMenuRow
+              key={item}
+              label={GROUP_MENU_LABELS[item]}
+              icon={ICONS[item]}
+              trailing="chevron"
+              pending={item === "copy_link" && copyPending}
+              onPress={() => onPick(item)}
+            />
+          ))}
+        </SheetMenu>
+      ) : null}
+      {canLeave ? (
+        <SheetMenu>
+          {[
+            <SheetMenuRow
+              key="leave"
+              label={GROUP_MENU_LABELS.leave}
+              icon={LogOut}
+              tone="danger"
+              onPress={() => onPick("leave")}
+            />,
+          ]}
+        </SheetMenu>
+      ) : null}
     </Sheet>
   );
 }

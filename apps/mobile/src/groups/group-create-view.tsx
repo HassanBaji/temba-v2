@@ -1,8 +1,9 @@
-import { colors, spacing } from "@repo/design-tokens";
+import { spacing } from "@repo/design-tokens";
 import {
   GROUP_CREATE_COPY,
   GROUP_CREATE_SCREEN,
   groupCreateCanSubmit,
+  groupCreateSubmitLabel,
   type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
@@ -45,13 +46,12 @@ export type GroupCreateViewProps = {
   onPickImage: () => void;
   onClearImage: () => void;
   pending: boolean;
-  onSubmit: () => void;
   onCancel: () => void;
 };
 
+/** The form of design "Group create and edit flow" 01; the footer is pinned. */
 export function GroupCreateView(props: GroupCreateViewProps) {
   const copy = GROUP_CREATE_COPY[props.context];
-  const canSubmit = groupCreateCanSubmit(props.name) && !props.pending;
 
   return (
     <View style={{ gap: spacing.section }}>
@@ -67,9 +67,12 @@ export function GroupCreateView(props: GroupCreateViewProps) {
             disabled={props.pending}
             onPress={props.onCancel}
             hitSlop={10}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            style={({ pressed }) => ({
+              paddingHorizontal: 6,
+              opacity: pressed ? 0.6 : 1,
+            })}
           >
-            <Text>{GROUP_CREATE_SCREEN.cancel}</Text>
+            <Text tone="muted">{GROUP_CREATE_SCREEN.cancel}</Text>
           </Pressable>
         }
       >
@@ -162,21 +165,36 @@ export function GroupCreateView(props: GroupCreateViewProps) {
           </FormBlock>
         ) : null}
       </View>
+    </View>
+  );
+}
 
-      <View style={{ gap: 10, alignItems: "center" }}>
-        <View style={{ alignSelf: "stretch" }}>
-          <Button
-            label={copy.submit}
-            size="lg"
-            pending={props.pending}
-            disabled={!canSubmit}
-            onPress={props.onSubmit}
-          />
-        </View>
-        <Text size="eyebrow" style={{ color: colors.muted }}>
-          {GROUP_CREATE_SCREEN.footnote}
-        </Text>
+export function GroupCreateFooter({
+  context,
+  name,
+  pending,
+  onSubmit,
+}: {
+  context: GroupCreateContext;
+  name: string;
+  pending: boolean;
+  onSubmit: () => void;
+}) {
+  const canSubmit = groupCreateCanSubmit(name) && !pending;
+  return (
+    <View style={{ flex: 1, gap: 8, alignItems: "center" }}>
+      <View style={{ alignSelf: "stretch" }}>
+        <Button
+          label={groupCreateSubmitLabel(context, name)}
+          size="lg"
+          pending={pending}
+          disabled={!canSubmit}
+          onPress={onSubmit}
+        />
       </View>
+      <Text size="eyebrow" tone="muted">
+        {GROUP_CREATE_SCREEN.footnote}
+      </Text>
     </View>
   );
 }

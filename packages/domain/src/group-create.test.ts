@@ -4,6 +4,7 @@ import {
   GROUP_CREATE_COPY,
   groupCreateDoor,
   groupCreateRequiresApproval,
+  groupCreateSubmitLabel,
 } from "./group-create";
 
 describe("groupCreateRequiresApproval", () => {
@@ -27,5 +28,15 @@ describe("GROUP_CREATE_COPY", () => {
   it("names the submit action per context", () => {
     expect(GROUP_CREATE_COPY.loose.submit).toBe("Create Group");
     expect(GROUP_CREATE_COPY.club.submit).toBe("Create Club Group");
+  });
+});
+
+describe("groupCreateSubmitLabel", () => {
+  it("names the Group once it has a name", () => {
+    expect(groupCreateSubmitLabel("loose", "")).toBe("Create Group");
+    expect(groupCreateSubmitLabel("club", "  ")).toBe("Create Club Group");
+    expect(groupCreateSubmitLabel("loose", " Tuesday Padel Crew ")).toBe(
+      "Create Tuesday Padel Crew",
+    );
   });
 });

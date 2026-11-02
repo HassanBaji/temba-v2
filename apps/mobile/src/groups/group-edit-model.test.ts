@@ -46,8 +46,8 @@ describe("edit screen chrome", () => {
     );
   });
 
-  it("explains the disabled Save button only while nothing changed", () => {
+  it("states under Save whether anything changed", () => {
     expect(groupEditSaveFooter(false)).toBe("Nothing changed yet.");
-    expect(groupEditSaveFooter(true)).toBeNull();
+    expect(groupEditSaveFooter(true)).toBe("Unsaved changes.");
   });
 });

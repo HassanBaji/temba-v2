@@ -34,7 +34,7 @@ import { Button } from "../primitives/button";
 import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
-import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Sheet } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
@@ -651,13 +651,7 @@ function AnotherWaySheet({
       subtitle={
         countdown ? `${price}. Your slot stays held for ${countdown}.` : price
       }
-      action={
-        <HeaderIconButton
-          icon={X}
-          accessibilityLabel="Close"
-          onPress={onClose}
-        />
-      }
+      closeButton
     >
       <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
         {methods.map((entry) => {
