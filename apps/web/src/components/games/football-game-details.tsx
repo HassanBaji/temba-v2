@@ -24,7 +24,7 @@ import {
 } from "~/components/games/football-info-rows";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
-import { PoolGrid, SeatBar } from "~/components/games/football-pool-grid";
+import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
@@ -54,7 +54,6 @@ import {
 } from "@repo/domain/football-game-details";
 import {
   footballTeamsMethodLabel,
-  keepersInLine,
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
@@ -678,22 +677,10 @@ export function FootballGameDetails({
             aria-labelledby="football-players-heading"
             className="space-y-3"
           >
-            <div className="flex items-baseline justify-between gap-3">
-              <h2
-                id="football-players-heading"
-                className="text-title font-semibold tracking-[-0.01em]"
-              >
-                Players
-              </h2>
-              <p className="text-muted-foreground text-meta">
-                {keepersInLine(
-                  players.filter((player) => player.role === "keeper").length,
-                )}
-              </p>
-            </div>
-            <PoolGrid
+            <PoolSections
               players={layout.pool}
-              open={layout.openSeats}
+              seats={layout.seats}
+              headingId="football-players-heading"
               onOpenPlayer={pressPlayer}
             />
             <p className="text-muted-foreground text-meta">

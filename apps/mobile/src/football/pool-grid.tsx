@@ -10,6 +10,7 @@ import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
 import {
   levelLabel,
+  poolSections,
   shortName,
   slotCode,
   type BoardPlayer,
@@ -169,6 +170,60 @@ export function PoolGrid({
           ))}
         </View>
       ))}
+    </View>
+  );
+}
+
+function PoolHeading({ title, meta }: { title: string; meta: string }) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 12,
+      }}
+    >
+      <Text size="title" weight="semibold" accessibilityRole="header">
+        {title}
+      </Text>
+      <Text size="meta" tone="muted">
+        {meta}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * The pool in two blocks: Keepers with a hatched cell per keeper seat still
+ * open, then Players with the rest of the open seats.
+ */
+export function PoolSections({
+  players,
+  seats,
+  onOpenPlayer,
+}: {
+  players: readonly BoardPlayer[];
+  seats: number;
+  onOpenPlayer?: (userId: string) => void;
+}) {
+  const sections = poolSections(players, seats);
+  return (
+    <View style={{ gap: 12 }}>
+      <PoolHeading title="Keepers" meta={sections.keepersLine} />
+      <PoolGrid
+        players={sections.keepers}
+        open={sections.keeperOpenSeats}
+        onOpenPlayer={onOpenPlayer}
+      />
+      <View style={{ paddingTop: 8 }}>
+        <PoolHeading title="Players" meta={sections.outfieldLine} />
+      </View>
+      <PoolGrid
+        players={sections.outfield}
+        open={sections.outfieldOpenSeats}
+        onOpenPlayer={onOpenPlayer}
+      />
     </View>
   );
 }

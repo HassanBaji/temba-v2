@@ -6,7 +6,6 @@ import {
 } from "@repo/domain/football-game-details";
 import {
   footballTeamsMethodLabel,
-  keepersInLine,
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
@@ -43,7 +42,7 @@ import {
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { PlayerSheet } from "../football/player-sheet";
-import { PoolGrid } from "../football/pool-grid";
+import { PoolSections } from "../football/pool-grid";
 import { FootballScoreCard } from "../football/score-card";
 import { TeamColumns } from "../football/team-columns";
 import { useNow } from "../games/use-now";
@@ -550,20 +549,17 @@ export function FootballGameDetails({
           ) : null}
           {!teams ? (
             <View style={{ gap: 12 }}>
-              <SectionHead
-                title="Players"
-                meta={keepersInLine(
-                  players.filter((row) => row.role === "keeper").length,
-                )}
-              />
               {players.length === 0 && layout.openSeats === 0 ? (
-                <Text size="meta" tone="muted">
-                  Nobody has joined yet.
-                </Text>
+                <>
+                  <SectionHead title="Players" />
+                  <Text size="meta" tone="muted">
+                    Nobody has joined yet.
+                  </Text>
+                </>
               ) : (
-                <PoolGrid
+                <PoolSections
                   players={layout.pool}
-                  open={layout.openSeats}
+                  seats={layout.seats}
                   onOpenPlayer={onPressPlayer}
                 />
               )}

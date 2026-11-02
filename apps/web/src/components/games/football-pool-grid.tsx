@@ -2,6 +2,7 @@
 
 import {
   levelLabel,
+  poolSections,
   shortName,
   slotCode,
   type BoardPlayer,
@@ -103,6 +104,61 @@ export function PoolGrid({
         </li>
       ))}
     </ul>
+  );
+}
+
+function PoolHeading({
+  id,
+  title,
+  meta,
+}: {
+  id?: string;
+  title: string;
+  meta: string;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <h2 id={id} className="text-title font-semibold tracking-[-0.01em]">
+        {title}
+      </h2>
+      <p className="text-muted-foreground text-meta">{meta}</p>
+    </div>
+  );
+}
+
+/**
+ * The pool in two blocks: Keepers with a hatched cell per keeper seat still
+ * open, then Players with the rest of the open seats.
+ */
+export function PoolSections({
+  players,
+  seats,
+  headingId,
+  onOpenPlayer,
+}: {
+  players: readonly BoardPlayer[];
+  seats: number;
+  headingId?: string;
+  onOpenPlayer?: (userId: string) => void;
+}) {
+  const sections = poolSections(players, seats);
+  return (
+    <div className="space-y-3">
+      <PoolHeading id={headingId} title="Keepers" meta={sections.keepersLine} />
+      <PoolGrid
+        players={sections.keepers}
+        open={sections.keeperOpenSeats}
+        onOpenPlayer={onOpenPlayer}
+      />
+      <div className="pt-2">
+        <PoolHeading title="Players" meta={sections.outfieldLine} />
+      </div>
+      <PoolGrid
+        players={sections.outfield}
+        open={sections.outfieldOpenSeats}
+        onOpenPlayer={onOpenPlayer}
+      />
+    </div>
   );
 }
 
