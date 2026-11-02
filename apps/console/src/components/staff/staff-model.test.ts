@@ -2,45 +2,29 @@ import { describe, expect, it } from "vitest";
 
 import {
   candidateManagers,
-  isViewer,
   MANAGER_CAPABILITIES,
   managerSubtitle,
 } from "./staff-model";
 
-describe("isViewer", () => {
-  it("matches on username, ignoring case and whitespace", () => {
-    expect(isViewer({ username: "Noor" }, { username: " noor " })).toBe(true);
-  });
-
-  it("is false when either side has no username", () => {
-    expect(isViewer({ username: null }, { username: "noor" })).toBe(false);
-    expect(isViewer({ username: "noor" }, { username: null })).toBe(false);
-    expect(isViewer({ username: "noor" }, null)).toBe(false);
-    expect(isViewer({ username: "" }, { username: "" })).toBe(false);
-  });
-
-  it("is false for different usernames", () => {
-    expect(isViewer({ username: "noor" }, { username: "reem" })).toBe(false);
-  });
-});
-
 describe("managerSubtitle", () => {
-  it("shows the handle for another manager", () => {
-    expect(managerSubtitle({ username: "reem" }, { username: "noor" })).toBe(
+  it("shows the handle for another manager who has one", () => {
+    expect(managerSubtitle({ username: "reem", isViewer: false })).toBe(
       "@reem",
     );
   });
 
-  it("appends ', you' for the signed-in manager", () => {
-    expect(managerSubtitle({ username: "noor" }, { username: "noor" })).toBe(
+  it("appends ', you' for the signed-in manager with a handle", () => {
+    expect(managerSubtitle({ username: "noor", isViewer: true })).toBe(
       "@noor, you",
     );
   });
 
-  it("is empty when there is no handle and no match", () => {
-    expect(managerSubtitle({ username: null }, { username: "noor" })).toBe(
-      null,
-    );
+  it("says 'you' for the signed-in manager without a username", () => {
+    expect(managerSubtitle({ username: null, isViewer: true })).toBe("you");
+  });
+
+  it("is empty for another manager without a username", () => {
+    expect(managerSubtitle({ username: null, isViewer: false })).toBe(null);
   });
 });
 

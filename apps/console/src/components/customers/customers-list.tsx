@@ -56,7 +56,7 @@ export function CustomersList({ venueId }: { venueId: string }) {
           <input
             type="search"
             aria-label="Search Customers"
-            placeholder="Name, username or phone"
+            placeholder="Name or phone"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="text-foreground placeholder:text-muted-foreground h-full w-full min-w-0 bg-transparent text-[13px] outline-none"
@@ -99,7 +99,7 @@ export function CustomersList({ venueId }: { venueId: string }) {
           title={query ? "No Customers match" : "No Customers yet"}
           description={
             query
-              ? "Try another name, username or phone."
+              ? "Try another name or phone."
               : "Anyone who books here, in the app or at the desk, appears in this list."
           }
         />

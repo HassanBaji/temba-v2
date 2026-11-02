@@ -509,8 +509,15 @@
     {
       "idx": 72,
       "version": "7",
-      "when": 1793620000000,
-      "tag": "0072_user_first_last_name",
+      "when": 1793606727654,
+      "tag": "0072_group_seasons",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793606787654,
+      "tag": "0073_user_first_last_name",
       "breakpoints": true
     }
   ]

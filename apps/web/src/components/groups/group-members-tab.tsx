@@ -40,14 +40,12 @@ import {
   groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
 import {
-  GROUP_MEMBERS_DEFAULT_SORT,
   GROUP_MEMBERS_NO_MATCH_COPY,
   groupMemberTableCaption,
   groupMembersLegend,
   groupPendingInviteCaption,
   groupPendingInvitesTitle,
   sortGroupMembers,
-  type GroupMembersSort,
 } from "@repo/domain/group-members-table";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
@@ -72,8 +70,6 @@ type GroupMember = {
   isAppointedOrganizer: boolean;
   joinedAt: Date | string | null;
   lastPlayedAt: Date | string | null;
-  totalGamesPlayed: number;
-  wins: number;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
@@ -205,54 +201,8 @@ function MemberActionsMenu({
   );
 }
 
-const COL_STAT = "w-[38px] px-0 text-center";
-const COL_LEVEL = "w-11 px-0";
+const COL_LEVEL = "w-14 px-0";
 const COL_ACTION = "w-11 px-0";
-
-const SORT_COLUMNS: {
-  sort: GroupMembersSort;
-  label: string;
-  title: string;
-  className: string;
-}[] = [
-  { sort: "played", label: "P", title: "Games played", className: COL_STAT },
-  { sort: "won", label: "W", title: "Matches won", className: COL_STAT },
-  { sort: "level", label: "LVL", title: "Level", className: COL_LEVEL },
-];
-
-function SortHeader({
-  column,
-  sort,
-  onSort,
-}: {
-  column: (typeof SORT_COLUMNS)[number];
-  sort: GroupMembersSort;
-  onSort: (sort: GroupMembersSort) => void;
-}) {
-  const active = column.sort === sort;
-  return (
-    <th
-      scope="col"
-      aria-sort={active ? "descending" : "none"}
-      className={column.className}
-    >
-      <button
-        type="button"
-        title={column.title}
-        aria-label={`Sort by ${column.title}`}
-        onClick={() => onSort(column.sort)}
-        className={cn(
-          "h-10 w-full font-mono text-[11px] font-normal outline-none focus-visible:ring-2 focus-visible:ring-current",
-          active
-            ? "text-ink underline underline-offset-[3px]"
-            : "text-muted-foreground",
-        )}
-      >
-        {column.label}
-      </button>
-    </th>
-  );
-}
 
 function GroupMemberRow({
   member,
@@ -305,24 +255,6 @@ function GroupMemberRow({
           </span>
         </span>
       </td>
-      <td
-        className={cn(
-          COL_STAT,
-          "font-expanded text-body font-bold tabular-nums tracking-[-0.03em]",
-        )}
-      >
-        {member.totalGamesPlayed}
-      </td>
-      {managing ? null : (
-        <td
-          className={cn(
-            COL_STAT,
-            "text-meta text-muted-foreground tabular-nums",
-          )}
-        >
-          {member.wins}
-        </td>
-      )}
       {showLevel ? (
         <td className={COL_LEVEL}>
           <LevelCell
@@ -529,9 +461,6 @@ export function GroupMembersTab({
   afterTable?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<GroupMembersSort>(
-    GROUP_MEMBERS_DEFAULT_SORT,
-  );
   const [managing, setManaging] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const saved = canSetLevel
@@ -543,14 +472,9 @@ export function GroupMembersTab({
   const showSearch = groupHomeShowsMemberSearch(members.length);
   const visible = sortGroupMembers(
     showSearch ? filterGroupMembersByName(members, query) : members,
-    sort,
   );
-  const sortColumns = SORT_COLUMNS.filter(
-    (column) =>
-      (column.sort !== "won" || !isManaging) &&
-      (column.sort !== "level" || showLevel),
-  );
-  const columnCount = 1 + sortColumns.length + (isManaging ? 1 : 0);
+  const columnCount = 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
+  const legend = groupMembersLegend({ showLevel });
   const addPlayerButton =
     canAddPlayers && onAddPlayer ? (
       <Button
@@ -673,14 +597,18 @@ export function GroupMembersTab({
                 >
                   Member
                 </th>
-                {sortColumns.map((column) => (
-                  <SortHeader
-                    key={column.sort}
-                    column={column}
-                    sort={sort}
-                    onSort={setSort}
-                  />
-                ))}
+                {showLevel ? (
+                  <th
+                    scope="col"
+                    title="Level"
+                    className={cn(
+                      COL_LEVEL,
+                      "text-eyebrow text-muted-foreground h-10 text-center font-normal",
+                    )}
+                  >
+                    LVL
+                  </th>
+                ) : null}
                 {isManaging ? (
                   <th scope="col" className={COL_ACTION}>
                     <span className="sr-only">Actions</span>
@@ -717,9 +645,11 @@ export function GroupMembersTab({
               )}
             </tbody>
           </table>
-          <p className="border-rule text-eyebrow text-muted-foreground border-t px-[18px] py-3">
-            {groupMembersLegend({ managing: isManaging, showLevel })}
-          </p>
+          {legend ? (
+            <p className="border-rule text-eyebrow text-muted-foreground border-t px-[18px] py-3">
+              {legend}
+            </p>
+          ) : null}
         </div>
 
         {afterTable}

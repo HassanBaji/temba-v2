@@ -152,11 +152,7 @@ export type GroupStandingState =
 export function groupStandingState(input: {
   isMember: boolean;
   hasGames: boolean;
-  leaderboard: readonly {
-    totalSetsWon: number;
-    totalPointsWon: number;
-    totalGamesPlayed: number;
-  }[];
+  leaderboard: readonly { played: number }[];
 }): GroupStandingState {
   if (!input.isMember) {
     return { kind: "not-member" };

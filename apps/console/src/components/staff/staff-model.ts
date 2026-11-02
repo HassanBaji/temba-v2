@@ -2,11 +2,8 @@ export type ManagerPerson = {
   userId: string;
   name: string;
   username: string | null;
+  isViewer: boolean;
 };
-
-export type ViewerIdentity = {
-  username?: string | null;
-} | null;
 
 /** The glossary's Venue manager scope (CONTEXT.md); Temba has one manager role today. */
 export const MANAGER_CAPABILITIES = [
@@ -22,25 +19,15 @@ export const MANAGER_CAPABILITIES = [
 ] as const;
 
 /**
- * Managers carry the app user id while the viewer is a Clerk user, so the
- * only shared handle is the username. Without one on either side we cannot
- * tell, and say nothing.
+ * `venues.managedById` marks the signed-in manager's own row, so the viewer
+ * is known even for a User with no username (ADR-0049). The handle is only a
+ * second line when the User still has one.
  */
-export function isViewer(
-  manager: Pick<ManagerPerson, "username">,
-  viewer: ViewerIdentity,
-): boolean {
-  const mine = viewer?.username?.trim().toLowerCase();
-  const theirs = manager.username?.trim().toLowerCase();
-  return Boolean(mine && theirs && mine === theirs);
-}
-
 export function managerSubtitle(
-  manager: Pick<ManagerPerson, "username">,
-  viewer: ViewerIdentity,
+  manager: Pick<ManagerPerson, "username" | "isViewer">,
 ): string | null {
   const handle = manager.username ? `@${manager.username}` : null;
-  if (!isViewer(manager, viewer)) {
+  if (!manager.isViewer) {
     return handle;
   }
   return handle ? `${handle}, you` : "you";

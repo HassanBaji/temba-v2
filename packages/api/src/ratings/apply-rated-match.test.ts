@@ -22,7 +22,7 @@ import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { gameById } from "#src/routers/games/byId";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { scoreSet } from "#src/routers/games/scoreSet";
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { loadCompletedMatchesForUser } from "#src/stats/completed-matches";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -236,9 +236,9 @@ describe("Unrated Games", () => {
         matchId: unrated.matchId,
         userId: unrated.a.id,
       });
-      const standing = await loadGroupStandingMembers(db, [unrated.groupId]);
+      const standing = await loadGroupStandings(db, [unrated.groupId]);
       const byUserId = new Map(
-        (standing.get(unrated.groupId) ?? []).map((member) => [
+        (standing.get(unrated.groupId)?.rows ?? []).map((member) => [
           member.userId,
           member,
         ]),
@@ -246,16 +246,18 @@ describe("Unrated Games", () => {
       expect(byUserId.size).toBe(4);
       for (const winner of [unrated.a, unrated.b]) {
         expect(byUserId.get(winner.id)).toMatchObject({
-          totalSetsWon: 1,
-          totalPointsWon: 6,
-          totalGamesPlayed: 1,
+          played: 1,
+          wins: 1,
+          points: 3,
+          diff: 1,
         });
       }
       for (const loser of [unrated.c, unrated.d]) {
         expect(byUserId.get(loser.id)).toMatchObject({
-          totalSetsWon: 0,
-          totalPointsWon: 2,
-          totalGamesPlayed: 1,
+          played: 1,
+          losses: 1,
+          points: 0,
+          diff: -1,
         });
       }
       expect(
@@ -277,11 +279,9 @@ describe("Unrated Games", () => {
         matchId: rated.matchId,
         userId: rated.a.id,
       });
-      const standing = await loadGroupStandingMembers(db, [rated.groupId]);
-      const members = standing.get(rated.groupId) ?? [];
-      expect(members.every((member) => member.totalGamesPlayed === 1)).toBe(
-        true,
-      );
+      const standing = await loadGroupStandings(db, [rated.groupId]);
+      const members = standing.get(rated.groupId)?.rows ?? [];
+      expect(members.every((member) => member.played === 1)).toBe(true);
     } finally {
       await close();
     }

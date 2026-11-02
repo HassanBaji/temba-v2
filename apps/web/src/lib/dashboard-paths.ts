@@ -55,6 +55,12 @@ export function titleFromPath(pathname: string) {
   if (pathname.startsWith("/dashboard/games/new")) {
     return "Create Game";
   }
+  if (/^\/dashboard\/groups\/[^/]+\/seasons\/new/.test(pathname)) {
+    return "New season";
+  }
+  if (/^\/dashboard\/groups\/[^/]+\/seasons/.test(pathname)) {
+    return "Seasons";
+  }
   if (pathname.startsWith("/dashboard/groups/")) {
     return "Group";
   }
@@ -133,6 +139,14 @@ export function detailBackHref(
     return "/dashboard/games";
   }
   return undefined;
+}
+
+export function groupSeasonsHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/seasons`;
+}
+
+export function groupNewSeasonHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/seasons/new`;
 }
 
 export function groupMemberSetLevelHref(groupId: string, userId: string) {

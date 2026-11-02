@@ -24,7 +24,7 @@ import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { setFootballRole } from "#src/routers/games/setFootballRole";
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 
 const HOUR = 60 * 60 * 1000;
@@ -572,7 +572,11 @@ describe("an Organizer's football Score confirmation (ADR-0044)", () => {
 });
 
 describe("an agreed football Score in the Group Standing", () => {
-  async function agreeScore(f: Fixture, slot1Goals: number, slot2Goals: number) {
+  async function agreeScore(
+    f: Fixture,
+    slot1Goals: number,
+    slot2Goals: number,
+  ) {
     const match = await f.db.query.matches.findFirst({
       where: eq(matches.gameId, f.gameId),
     });
@@ -600,16 +604,16 @@ describe("an agreed football Score in the Group Standing", () => {
       where: eq(games.id, f.gameId),
       columns: { groupId: true },
     });
-    const standing = await loadGroupStandingMembers(f.db, [game!.groupId!]);
+    const standing = await loadGroupStandings(f.db, [game!.groupId!]);
     return new Map(
-      (standing.get(game!.groupId!) ?? []).map((member) => [
+      (standing.get(game!.groupId!)?.rows ?? []).map((member) => [
         member.userId,
         member,
       ]),
     );
   }
 
-  it("counts a win as a Set and goals as points, and rates nobody", async () => {
+  it("counts a win as three points with the goal difference, and rates nobody", async () => {
     await withFootballGame(async (f) => {
       const [a, b, c, d] = await addPlayers(f, 4);
       await publish(f, [a!, b!], [c!, d!]);
@@ -618,16 +622,18 @@ describe("an agreed football Score in the Group Standing", () => {
       const standing = await standingByUserId(f);
       for (const winner of [a!, b!]) {
         expect(standing.get(winner.id)).toMatchObject({
-          totalSetsWon: 1,
-          totalPointsWon: 3,
-          totalGamesPlayed: 1,
+          played: 1,
+          wins: 1,
+          points: 3,
+          diff: 2,
         });
       }
       for (const loser of [c!, d!]) {
         expect(standing.get(loser.id)).toMatchObject({
-          totalSetsWon: 0,
-          totalPointsWon: 1,
-          totalGamesPlayed: 1,
+          played: 1,
+          losses: 1,
+          points: 0,
+          diff: -2,
         });
       }
       expect(
@@ -638,7 +644,7 @@ describe("an agreed football Score in the Group Standing", () => {
     });
   });
 
-  it("counts a draw as played with no Set won", async () => {
+  it("counts a draw as one point each", async () => {
     await withFootballGame(async (f) => {
       const [a, b, c, d] = await addPlayers(f, 4);
       await publish(f, [a!, b!], [c!, d!]);
@@ -647,9 +653,10 @@ describe("an agreed football Score in the Group Standing", () => {
       const standing = await standingByUserId(f);
       for (const player of [a!, b!, c!, d!]) {
         expect(standing.get(player.id)).toMatchObject({
-          totalSetsWon: 0,
-          totalPointsWon: 2,
-          totalGamesPlayed: 1,
+          played: 1,
+          draws: 1,
+          points: 1,
+          diff: 0,
         });
       }
     });

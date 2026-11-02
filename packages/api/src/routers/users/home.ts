@@ -11,11 +11,8 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { listHomeCarouselGames } from "#src/home/carousel-games";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { loadCompletedMatchesForUser } from "#src/stats/completed-matches";
-import {
-  sortStandingMembers,
-  standingPosition,
-} from "@repo/domain/compare-standing";
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { seasonStandingPosition } from "@repo/domain/season-standing";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 
 /**
  * Home metrics, carousel Games, and per-Group standing for the signed-in User.
@@ -54,20 +51,19 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
 
   const groupIds = myGroupMemberships.map((row) => row.groupId);
 
-  const peersByGroup = await loadGroupStandingMembers(database, groupIds);
+  const standingByGroup = await loadGroupStandings(database, groupIds, now);
 
   const standing = myGroupMemberships
     .map((membership) => {
-      const peers = peersByGroup.get(membership.groupId) ?? [];
-      const sorted = sortStandingMembers(peers);
-      const position = standingPosition(sorted, args.userId);
+      const groupStanding = standingByGroup.get(membership.groupId);
+      const rows = groupStanding?.rows ?? [];
 
       return {
         groupId: membership.group.id,
         groupName: membership.group.name,
         sport: membership.group.sport as GroupSportEnum | null,
-        position: position ?? 1,
-        memberCount: peers.length,
+        position: seasonStandingPosition(rows, args.userId) ?? 1,
+        memberCount: rows.length,
       };
     })
     .sort((a, b) =>

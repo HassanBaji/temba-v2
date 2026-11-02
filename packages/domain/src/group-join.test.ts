@@ -178,12 +178,8 @@ describe("groupHomeBanner", () => {
 });
 
 describe("groupStandingState", () => {
-  const played = {
-    totalSetsWon: 1,
-    totalPointsWon: 6,
-    totalGamesPlayed: 1,
-  };
-  const unplayed = { totalSetsWon: 0, totalPointsWon: 0, totalGamesPlayed: 0 };
+  const played = { played: 1 };
+  const unplayed = { played: 0 };
   const member = { isMember: true, hasGames: true };
 
   it("asks a non-member to join", () => {
