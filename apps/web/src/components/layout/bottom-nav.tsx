@@ -3,17 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useCreateAccess } from "~/components/create-access-gate";
-import {
-  isNavItemActive,
-  visibleAppNavItems,
-} from "~/components/layout/app-nav";
+import { isNavItemActive, APP_NAV_ITEMS } from "~/components/layout/app-nav";
 import { cn } from "~/lib/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { isLoaded, hasCreateAccess } = useCreateAccess();
-  const items = visibleAppNavItems(isLoaded && hasCreateAccess);
+  const items = APP_NAV_ITEMS;
 
   return (
     <nav

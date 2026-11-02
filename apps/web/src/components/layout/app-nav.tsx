@@ -1,6 +1,7 @@
-import { Building2, CircleUser, House, Users } from "lucide-react";
+import { CircleUser, House, Users } from "lucide-react";
 import { Field } from "../ui/icons/field";
-import { type AppNavSlot, visibleAppNavSlots } from "./app-nav-visibility";
+
+export type AppNavSlot = "home" | "games" | "groups" | "you";
 
 export type AppNavItem = {
   title: string;
@@ -10,7 +11,7 @@ export type AppNavItem = {
   slot: AppNavSlot;
 };
 
-export const APP_NAV_SLOTS: AppNavItem[] = [
+export const APP_NAV_ITEMS: AppNavItem[] = [
   {
     title: "Home",
     href: "/dashboard",
@@ -40,13 +41,6 @@ export const APP_NAV_SLOTS: AppNavItem[] = [
     slot: "groups",
   },
   {
-    title: "Communities",
-    href: "/dashboard/communities",
-    icon: <Building2 className="size-[21px]" aria-hidden="true" />,
-    match: "prefix",
-    slot: "communities",
-  },
-  {
     title: "Profile",
     href: "/dashboard/you",
     icon: <CircleUser className="size-[21px]" aria-hidden="true" />,
@@ -54,11 +48,6 @@ export const APP_NAV_SLOTS: AppNavItem[] = [
     slot: "you",
   },
 ];
-
-export function visibleAppNavItems(hasCreateAccess: boolean) {
-  const slots = new Set(visibleAppNavSlots(hasCreateAccess));
-  return APP_NAV_SLOTS.filter((item) => slots.has(item.slot));
-}
 
 export function isNavItemActive(pathname: string, item: AppNavItem) {
   if (item.match === "exact") {
