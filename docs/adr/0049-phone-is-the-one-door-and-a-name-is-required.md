@@ -1,6 +1,6 @@
 # Phone is the one door, a name is required, and onboarding is a checklist
 
-**Status:** accepted. Amends ADR-0012 and ADR-0041: the Onboarding questionnaire no longer gates Home.
+**Status:** accepted. Amends ADR-0012 and ADR-0041: the Onboarding questionnaire no longer gates Home. Amended by ADR-0050: a known number signs in with its password and the SMS code is sent only on sign-up.
 
 Sign-up asked for a username, a phone number and a password; sign-in took a password with a phone or username; the Onboarding questionnaire then blocked Home until it was answered. Nobody was asked their name, so a new User showed up as `@handle` wherever `user.name` had nothing better.
 
