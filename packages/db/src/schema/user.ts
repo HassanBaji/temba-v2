@@ -38,7 +38,10 @@ export const user = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     clerkId: text("clerk_id"),
+    /** "First Last", or the username / email / phone fallback a legacy account has (ADR-0049). */
     name: text("name").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
     email: text("email").unique(),
     username: text("username").unique(),
     displayUsername: text("display_username"),

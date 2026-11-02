@@ -233,6 +233,7 @@ type ExpectedUsers =
   | "playerProfile"
   | "footballProfile"
   | "setPreferredPosition"
+  | "setName"
   | "completeOnboarding"
   | "renameUnclaimedPlayer";
 

@@ -7,6 +7,7 @@ import {
 import {
   Calendar,
   ChevronRight,
+  CircleUserRound,
   FileText,
   Mail,
   Users,
@@ -20,10 +21,10 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Section } from "../primitives/section";
 import { Text } from "../primitives/text";
-import type { PositionSetting } from "./profile-model";
+import type { PositionSetting, ProfileDestination } from "./profile-model";
 import type { Slot } from "../home/home-model";
 
-export type ProfileDestination = "bookings" | "teams" | "invites" | "terms";
+export type { ProfileDestination } from "./profile-model";
 
 function LinkRow({
   icon,
@@ -80,6 +81,7 @@ export function ProfileSettings({
   savingPosition,
   teamCount,
   pendingInviteCount,
+  checklistIncomplete,
   signingOut,
   onSelectPosition,
   onOpen,
@@ -91,6 +93,7 @@ export function ProfileSettings({
   savingPosition: boolean;
   teamCount: number;
   pendingInviteCount: number;
+  checklistIncomplete: boolean;
   signingOut: boolean;
   onSelectPosition: (value: PreferredPosition) => void;
   onOpen: (destination: ProfileDestination) => void;
@@ -132,6 +135,19 @@ export function ProfileSettings({
         )}
       </Block>
       <Card>
+        {checklistIncomplete ? (
+          <>
+            <LinkRow
+              icon={
+                <CircleUserRound size={sizes.iconAction} color={colors.ink} />
+              }
+              title="Complete your profile"
+              subtitle="Photo, email, sports and level"
+              onPress={() => onOpen("complete-profile")}
+            />
+            <Hairline />
+          </>
+        ) : null}
         <LinkRow
           icon={<Calendar size={sizes.iconAction} color={colors.ink} />}
           title="My bookings"

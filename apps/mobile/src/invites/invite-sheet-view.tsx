@@ -248,7 +248,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
       <SearchField
         value={players.query}
         onChangeText={players.onQueryChange}
-        placeholder="Name or username"
+        placeholder="Name or phone number"
         accessibilityLabel="Search players"
       />
       {players.refused && players.refused.length > 0 ? (

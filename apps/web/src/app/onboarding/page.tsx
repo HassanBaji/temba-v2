@@ -1,28 +1,32 @@
 import { type Metadata } from "next";
 
-import { OnboardingQuestionnaire } from "~/components/onboarding/onboarding-questionnaire";
+import { ProfileChecklistScreen } from "~/components/onboarding/profile-checklist-screen";
 import { onboardingRedirectTarget } from "~/lib/onboarding-step";
+import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export const metadata: Metadata = {
-  title: "Set up your account",
+  title: "Complete your profile",
 };
 
 /**
- * The Onboarding questionnaire runs here — outside `/dashboard` and outside
- * `DashboardShell`, so there is no tab bar while a new User answers the two
- * questions. `middleware.ts` protects the route, so a signed-out visitor is
- * sent to login before this renders.
+ * The Profile checklist runs here — outside `/dashboard` and outside
+ * `DashboardShell`, so there is no tab bar on the "You're in" screen after
+ * sign-up (`?fresh=1`). `middleware.ts` protects the route, so a signed-out
+ * visitor is sent to login before this renders.
  */
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirect_url?: string }>;
+  searchParams: Promise<{ redirect_url?: string; fresh?: string }>;
 }) {
   const params = await searchParams;
+  const redirectUrl = safeInternalRedirect(params.redirect_url);
 
   return (
-    <OnboardingQuestionnaire
-      redirectTo={onboardingRedirectTarget(params.redirect_url)}
+    <ProfileChecklistScreen
+      fresh={params.fresh === "1"}
+      redirectUrl={redirectUrl}
+      redirectTo={onboardingRedirectTarget(redirectUrl)}
     />
   );
 }

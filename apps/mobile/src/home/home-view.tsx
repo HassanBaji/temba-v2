@@ -6,6 +6,7 @@ import { HomeHeader } from "./home-header";
 import type { HomeModel } from "./home-model";
 import type { HomeNavTarget } from "./home-target";
 import { LevelCard } from "./level-card";
+import { ProfileChecklistCard } from "./profile-checklist-card";
 import { RecentFormCard } from "./recent-form-card";
 import { Block } from "./slot-block";
 import { StandingCard } from "./standing-card";
@@ -22,11 +23,15 @@ export function HomeView({
   onNavigate,
   onSport,
   onRetry,
+  onSkipChecklist,
+  onShowChecklist,
 }: {
   model: HomeModel;
   onNavigate: (target: HomeNavTarget) => void;
   onSport: (sport: Sport) => void;
   onRetry: () => void;
+  onSkipChecklist: () => void;
+  onShowChecklist: () => void;
 }) {
   const now = useNow();
   const { upNext } = model;
@@ -39,6 +44,15 @@ export function HomeView({
         pendingInviteCount={model.pendingInviteCount}
         onInvites={() => onNavigate({ kind: "invites" })}
       />
+      {model.checklist ? (
+        <ProfileChecklistCard
+          list={model.checklist.list}
+          skipped={model.checklist.skipped}
+          onNavigate={onNavigate}
+          onSkip={onSkipChecklist}
+          onShow={onShowChecklist}
+        />
+      ) : null}
       <View style={{ gap: HEADING_GAP }}>
         <UpNextHeading
           label={

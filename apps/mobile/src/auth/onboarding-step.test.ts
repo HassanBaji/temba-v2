@@ -16,7 +16,7 @@ describe("onboardingPhaseFromState", () => {
     ).toBe("provisioning");
   });
 
-  it("asks the questions until onboarding is complete", () => {
+  it("reports open questions until onboarding is complete", () => {
     expect(
       onboardingPhaseFromState({
         provisioning: false,
@@ -25,13 +25,24 @@ describe("onboardingPhaseFromState", () => {
     ).toBe("questions");
   });
 
-  it("lets a complete User reach the tabs", () => {
-    const phase = onboardingPhaseFromState({
-      provisioning: false,
-      onboardingCompletedAt: new Date(),
-    });
-    expect(phase).toBe("complete");
-    expect(canReachTabs(phase)).toBe(true);
-    expect(canReachTabs("questions")).toBe(false);
+  it("reports complete once the questionnaire was saved", () => {
+    expect(
+      onboardingPhaseFromState({
+        provisioning: false,
+        onboardingCompletedAt: new Date(),
+      }),
+    ).toBe("complete");
+  });
+});
+
+describe("canReachTabs", () => {
+  it("lets a User through with or without the questionnaire answered", () => {
+    expect(canReachTabs("complete")).toBe(true);
+    expect(canReachTabs("questions")).toBe(true);
+  });
+
+  it("holds only loading and provisioning", () => {
+    expect(canReachTabs("loading")).toBe(false);
+    expect(canReachTabs("provisioning")).toBe(false);
   });
 });

@@ -101,7 +101,7 @@ export default function OperatorLevelsPage() {
             id="operator-player-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Name, username, email or phone"
+            placeholder="Name, phone or email"
             maxLength={100}
             autoComplete="off"
           />
@@ -125,7 +125,7 @@ export default function OperatorLevelsPage() {
             title="No players found"
             description={
               debouncedQuery
-                ? "Try a different name, username, email or phone."
+                ? "Try a different name, phone or email."
                 : "Players will show up here once they sign up."
             }
           />

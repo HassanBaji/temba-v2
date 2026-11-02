@@ -19,6 +19,10 @@ import {
 import { CodeForm } from "../../src/auth/code-form";
 import { FormErrorSummary } from "../../src/auth/form-error-summary";
 import { PhoneField } from "../../src/auth/phone-field";
+import {
+  FRESH_ACCOUNT_TARGET,
+  setPostAuthTarget,
+} from "../../src/auth/post-auth-target";
 import { type SplitFormError } from "../../src/lib/form-error";
 import { Button } from "../../src/primitives/button";
 import { Text } from "../../src/primitives/text";
@@ -33,7 +37,6 @@ function backToWelcome() {
 export default function Continue() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const [step, setStep] = useState<Step>("fields");
-  const [username, setUsername] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
   const [national, setNational] = useState("");
@@ -53,6 +56,7 @@ export default function Continue() {
       return;
     }
     if (next.kind === "complete") {
+      setPostAuthTarget(FRESH_ACCOUNT_TARGET);
       await setActive({ session: next.sessionId });
       return;
     }
@@ -77,7 +81,6 @@ export default function Continue() {
       return;
     }
     const built = buildContinuePayload(missing, {
-      username,
       emailAddress,
       password,
       firstName,
@@ -171,9 +174,9 @@ export default function Continue() {
         description="Finish creating your account, or start from the beginning."
       >
         <Button
-          label="Create account"
+          label="Continue with phone"
           size="lg"
-          onPress={() => router.replace("/sign-up")}
+          onPress={() => router.replace("/sign-in")}
         />
       </AuthScreen>
     );
@@ -248,19 +251,6 @@ export default function Continue() {
           onChangeText={setLastName}
           editable={!pending}
           error={fieldError(split, "last_name", "lastName")}
-        />
-      ) : null}
-      {isMissing("username") ? (
-        <TextField
-          label="Username"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="username-new"
-          placeholder="Choose a username"
-          value={username}
-          onChangeText={setUsername}
-          editable={!pending}
-          error={fieldError(split, "username")}
         />
       ) : null}
       {isMissing("email_address") ? (

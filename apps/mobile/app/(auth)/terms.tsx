@@ -10,13 +10,7 @@ export default function Terms() {
     <TermsScreen
       onBack={goBackOrWelcome}
       onAgree={
-        from === "sign-up"
-          ? () =>
-              router.navigate({
-                pathname: "/sign-up",
-                params: { terms: "accepted" },
-              })
-          : undefined
+        from === "sign-up" ? () => router.navigate("/sign-in") : undefined
       }
     />
   );

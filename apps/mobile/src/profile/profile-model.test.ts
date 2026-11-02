@@ -5,6 +5,7 @@ import { createProfileFixtures } from "@repo/domain/profile-fixtures";
 import {
   allTimeFromApi,
   positionFromApi,
+  profileDestinationPath,
   profileModelFromFixture,
 } from "./profile-model";
 
@@ -72,5 +73,15 @@ describe("profileModelFromFixture", () => {
     assert.equal(model.allTime.status, "ready");
     assert.equal(model.recentForm.status, "ready");
     assert.equal(model.position.status, "ready");
+  });
+});
+
+describe("profileDestinationPath", () => {
+  it("routes Profile sub-screens under the tab and the checklist under Home", () => {
+    assert.equal(profileDestinationPath("bookings"), "/profile/bookings");
+    assert.equal(
+      profileDestinationPath("complete-profile"),
+      "/complete-profile",
+    );
   });
 });

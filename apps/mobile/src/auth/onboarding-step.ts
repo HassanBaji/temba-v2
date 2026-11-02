@@ -24,6 +24,10 @@ export function onboardingPhaseFromState(
   return state.onboardingCompletedAt ? "complete" : "questions";
 }
 
+/**
+ * Only the webhook race holds a User at the door. The questionnaire is a
+ * Profile task now, so unanswered questions never block the tabs (ADR-0049).
+ */
 export function canReachTabs(phase: OnboardingPhase): boolean {
-  return phase === "complete";
+  return phase === "questions" || phase === "complete";
 }

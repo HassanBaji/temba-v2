@@ -26,6 +26,13 @@ describe("tabBarHidden", () => {
     ).toBe(true);
   });
 
+  it("hides the tab bar on the Profile checklist and its tasks", () => {
+    expect(tabBarHidden(["(app)", "(home)", "complete-profile"])).toBe(true);
+    expect(tabBarHidden(["(app)", "(home)", "complete-profile", "photo"])).toBe(
+      true,
+    );
+  });
+
   it("keeps the tab bar elsewhere", () => {
     expect(tabBarHidden(["(app)", "games"])).toBe(false);
     expect(tabBarHidden(["(app)", "groups", "new"])).toBe(false);

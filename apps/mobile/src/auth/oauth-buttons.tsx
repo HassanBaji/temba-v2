@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
-import { Button } from "../primitives/button";
+import { Button, type ButtonVariant } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 import { SOMETHING_WENT_WRONG } from "./clerk-forms";
@@ -17,7 +17,15 @@ type OAuthOutcome = {
   cancelled?: boolean;
 };
 
-export function OauthButtons({ disabled = false }: { disabled?: boolean }) {
+export function OauthButtons({
+  disabled = false,
+  variant = "outline",
+  divider = true,
+}: {
+  disabled?: boolean;
+  variant?: ButtonVariant;
+  divider?: boolean;
+}) {
   const { startSSOFlow } = useSSO();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,22 +58,24 @@ export function OauthButtons({ disabled = false }: { disabled?: boolean }) {
 
   return (
     <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <View style={{ flex: 1 }}>
-          <Hairline />
+      {divider ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ flex: 1 }}>
+            <Hairline />
+          </View>
+          <Text size="eyebrow" tone="muted" mono>
+            OR
+          </Text>
+          <View style={{ flex: 1 }}>
+            <Hairline />
+          </View>
         </View>
-        <Text size="eyebrow" tone="muted" mono>
-          OR
-        </Text>
-        <View style={{ flex: 1 }}>
-          <Hairline />
-        </View>
-      </View>
+      ) : null}
       <FormErrorSummary message={error} />
       <Button
         label="Continue with Google"
         size="lg"
-        variant="outline"
+        variant={variant}
         pending={pending}
         disabled={pending || disabled}
         onPress={() => {

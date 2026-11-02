@@ -1,15 +1,87 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
-import { SPORTS, SPORT_LABELS } from "@repo/domain/sport";
 import { router } from "expo-router";
+import { Phone } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SportGlyph } from "../../src/lib/sport-glyph";
+import { OauthButtons } from "../../src/auth/oauth-buttons";
+import { TermsMicrocopy } from "../../src/auth/terms-microcopy";
 import { Button } from "../../src/primitives/button";
 import { hairline } from "../../src/primitives/hairline-width";
+import { Hatch } from "../../src/primitives/hatch";
 import { ResultMark } from "../../src/primitives/result-mark";
 import { SurfaceToneContext } from "../../src/primitives/surface-context";
 import { Text } from "../../src/primitives/text";
+
+const TILE = 36;
+const PHONE_ICON = 18;
+/** Fixed decorative content: a Game tonight with one seat open. */
+const TONIGHT = {
+  label: "Tonight, Karbabad 9:00 PM",
+  players: ["MK", "AH", "SR"],
+  open: "1 open",
+};
+
+function PlayerTile({ initials }: { initials: string }) {
+  return (
+    <View
+      style={{
+        width: TILE,
+        height: TILE,
+        borderRadius: radii.sm,
+        borderWidth: hairline,
+        borderColor: colors.dimrule,
+        backgroundColor: colors.raised,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text size="eyebrow" weight="semibold">
+        {initials}
+      </Text>
+    </View>
+  );
+}
+
+function TonightStrip() {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        gap: 12,
+        padding: 14,
+        borderRadius: radii.card,
+        borderWidth: hairline,
+        borderColor: colors.dimrule,
+      }}
+    >
+      <Text size="eyebrow" tone="muted" mono uppercase>
+        {TONIGHT.label}
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        {TONIGHT.players.map((initials) => (
+          <PlayerTile key={initials} initials={initials} />
+        ))}
+        <View
+          style={{
+            height: TILE,
+            paddingHorizontal: 12,
+            borderRadius: radii.sm,
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+          }}
+        >
+          <Hatch radius={radii.sm} />
+          <Text size="eyebrow" weight="medium">
+            {TONIGHT.open}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function Welcome() {
   const insets = useSafeAreaInsets();
@@ -45,58 +117,21 @@ export default function Welcome() {
             Level that follows your results.
           </Text>
         </View>
-        <View style={{ marginTop: 32, flexDirection: "row", gap: 8 }}>
-          {SPORTS.map((sport) => (
-            <View
-              key={sport}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 14,
-                height: 36,
-                borderRadius: radii.md,
-                borderWidth: hairline,
-                borderColor: colors.dimrule,
-                backgroundColor: colors.raised,
-              }}
-            >
-              <SportGlyph sport={sport} color={colors.paper} size={16} />
-              <Text size="meta" weight="medium">
-                {SPORT_LABELS[sport]}
-              </Text>
-            </View>
-          ))}
+        <View style={{ marginTop: 32 }}>
+          <TonightStrip />
         </View>
         <View style={{ flex: 1 }} />
         <View style={{ gap: 10 }}>
           <Button
-            label="Create account"
+            label="Continue with phone"
             size="lg"
-            onPress={() => router.push("/sign-up")}
-          />
-          <Button
-            label="Sign in"
-            size="lg"
-            variant="outline-inverse"
+            icon={<Phone size={PHONE_ICON} color={colors.ink} />}
             onPress={() => router.push("/sign-in")}
           />
-          <Text
-            size="eyebrow"
-            tone="muted"
-            style={{ marginTop: 8, textAlign: "center" }}
-          >
-            By continuing you agree to the{" "}
-            <Text
-              size="eyebrow"
-              accessibilityRole="link"
-              onPress={() => router.push("/terms")}
-              style={{ textDecorationLine: "underline" }}
-            >
-              Terms and Conditions
-            </Text>
-            .
-          </Text>
+          <OauthButtons variant="outline-inverse" divider={false} />
+          <View style={{ marginTop: 8 }}>
+            <TermsMicrocopy />
+          </View>
         </View>
       </View>
     </SurfaceToneContext.Provider>

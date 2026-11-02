@@ -30,11 +30,12 @@ export type TextFieldProps = Omit<TextInputProps, "style"> & {
   error?: string;
   mono?: boolean;
   leading?: React.ReactNode;
+  trailing?: React.ReactNode;
 };
 
 export const TextField = forwardRef<TextInput, TextFieldProps>(
   function TextField(
-    { label, error, mono = false, leading, editable, ...props },
+    { label, error, mono = false, leading, trailing, editable, ...props },
     ref,
   ) {
     const invalid = Boolean(error);
@@ -79,6 +80,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
               fontSize: typeScale.lead.size,
             }}
           />
+          {trailing}
         </View>
         {error ? (
           <Text size="meta" weight="medium" accessibilityLiveRegion="polite">

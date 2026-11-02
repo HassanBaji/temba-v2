@@ -8,7 +8,7 @@ import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
  * pages remain for `sso-callback` and `continue`. Named leftovers —
  * `factor-one`, `factor-two`, `verify-email-address`, `verify-phone-number`,
  * `reset-password`, `reset-password-success`, `verify`, `create` — redirect
- * to `/signup` so none 404. `redirect_url` is preserved.
+ * to the one phone door on `/login` so none 404. `redirect_url` is preserved.
  */
 export default async function RetiredSignupPathPage({
   searchParams,
@@ -17,6 +17,6 @@ export default async function RetiredSignupPathPage({
 }) {
   const params = await searchParams;
   redirect(
-    authCrossLinkUrl("/signup", safeInternalRedirect(params.redirect_url)),
+    authCrossLinkUrl("/login", safeInternalRedirect(params.redirect_url)),
   );
 }

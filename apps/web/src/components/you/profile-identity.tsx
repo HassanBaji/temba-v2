@@ -1,11 +1,12 @@
 "use client";
 
-import { useClerk, useUser } from "@clerk/nextjs";
 import { Camera } from "lucide-react";
+import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { AvatarBadge } from "~/components/ui/avatar";
 import { Skeleton } from "~/components/ui/skeleton";
+import { profileTaskHref } from "~/lib/onboarding-step";
 import { playingSinceLine } from "@repo/domain/profile-all-time";
 import { preferredPositionProfileLine } from "@repo/domain/preferred-position";
 import { api } from "~/trpc/react";
@@ -22,19 +23,13 @@ function ProfileIdentityAvatar({
   hasImage: boolean;
   imageUrl: string;
 }) {
-  const clerk = useClerk();
-  const { user } = useUser();
   const photoLabel = hasImage ? "Edit profile photo" : "Add profile photo";
 
   return (
-    <button
-      type="button"
+    <Link
+      href={profileTaskHref("photo", "/dashboard/you")}
       aria-label={photoLabel}
-      className="focus-visible:ring-ring/50 rounded-card relative size-[72px] shrink-0 outline-none focus-visible:ring-[3px]"
-      onClick={() => {
-        clerk.openUserProfile();
-        void user?.reload();
-      }}
+      className="focus-visible:ring-ring/50 rounded-card relative block size-[72px] shrink-0 outline-none focus-visible:ring-[3px]"
     >
       <UserAvatar
         name={displayName}
@@ -44,7 +39,7 @@ function ProfileIdentityAvatar({
       <AvatarBadge aria-hidden="true" className="size-3 [&>svg]:size-2">
         <Camera />
       </AvatarBadge>
-    </button>
+    </Link>
   );
 }
 
