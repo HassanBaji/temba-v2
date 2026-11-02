@@ -505,6 +505,13 @@
       "when": 1793523576395,
       "tag": "0071_group_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793606727654,
+      "tag": "0072_group_seasons",
+      "breakpoints": true
     }
   ]
 }

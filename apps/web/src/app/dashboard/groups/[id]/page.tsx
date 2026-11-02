@@ -563,6 +563,7 @@ export default function GroupHomePage({
     isMember: data.membership != null,
     canDelete: data.canDelete,
     canLeaveVenueCommunity: data.canUnlinkFromVenue,
+    canManageSeasons: data.canManageSeasons,
   });
   const leaveConfirm = groupLeaveConfirm(groupName);
   const leaveVenueConfirm = groupLeaveVenueConfirm(groupName, venueName);
@@ -702,14 +703,18 @@ export default function GroupHomePage({
               isMember={Boolean(data.membership)}
               linkToPlayers={groupMemberRowsLink(data.membership)}
               leaderboard={data.standing.leaderboard}
+              seasons={data.seasons}
+              defaultSeasonId={data.standing.seasonId}
+              gamesCounted={data.standing.gamesCounted}
+              sport={data.sport ?? null}
               groupId={id}
               canShowCreateGame={canShowCreateGame}
               hasGames={groupHasGames(data)}
               totalGamesPlayed={data.totalGamesPlayed}
               awaitingScoreCount={data.standing.awaitingScoreCount}
-              showLevel={groupShowsLevel(data.sport)}
               canInvite={canManageInvites}
               onInvite={() => setInvitesOpen(true)}
+              canManageSeasons={data.canManageSeasons}
             />
           </TabsContent>
           <TabsContent value="games" forceMount className={TAB_PANEL}>
@@ -726,6 +731,7 @@ export default function GroupHomePage({
               onRegister={onRegisterGame}
               sport={data.sport ?? null}
               members={data.standing.leaderboard}
+              seasons={data.seasons}
               isMember={Boolean(data.membership)}
               canInvite={canManageInvites}
               onInvite={() => setInvitesOpen(true)}
@@ -752,8 +758,6 @@ export default function GroupHomePage({
                   isAppointedOrganizer: entry.isAppointedOrganizer,
                   joinedAt: entry.joinedAt,
                   lastPlayedAt: entry.lastPlayedAt,
-                  totalGamesPlayed: entry.totalGamesPlayed,
-                  wins: entry.wins,
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
                   level: entry.level,

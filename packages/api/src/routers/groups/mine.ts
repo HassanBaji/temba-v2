@@ -10,12 +10,8 @@ import {
   type GroupFormMatch,
 } from "@repo/domain/member-form-marks";
 import { nextGameStartTimeByGroup } from "#src/groups/next-game";
-import {
-  sortStandingMembers,
-  standingPosition,
-} from "@repo/domain/compare-standing";
-import { hasStandingResults } from "#src/standing/group-standing";
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { seasonStandingPosition } from "@repo/domain/season-standing";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 
 type SlotTeam = {
   players: readonly {
@@ -71,7 +67,7 @@ export async function mine(
   const groupIds = memberships.map((membership) => membership.groupId);
   const groupIdSet = new Set(groupIds);
 
-  const membersByGroup = await loadGroupStandingMembers(database, groupIds);
+  const standingByGroup = await loadGroupStandings(database, groupIds, now);
 
   const gameRows = await database.query.games.findMany({
     where: inArray(games.groupId, groupIds),
@@ -149,16 +145,8 @@ export async function mine(
   return memberships.map((membership) => {
     const group = membership.group;
     const community = group.community;
-    const members = membersByGroup.get(group.id) ?? [];
-
-    // A member who has not played yet holds no standing position: they sort
-    // by name below everyone with results, which is not a rank worth reading.
-    const viewerRecord = members.find((row) => row.userId === args.userId);
-    const viewerHasResults = viewerRecord
-      ? hasStandingResults(viewerRecord)
-      : false;
-
-    const sortedStanding = sortStandingMembers(members);
+    const standing = standingByGroup.get(group.id);
+    const members = standing?.rows ?? [];
 
     return {
       id: group.id,
@@ -175,9 +163,9 @@ export async function mine(
           }
         : null,
       memberCount: members.length,
-      standingPosition: viewerHasResults
-        ? standingPosition(sortedStanding, args.userId)
-        : null,
+      // Unranked until the member has played enough in the lens: no rank
+      // worth reading before then.
+      standingPosition: seasonStandingPosition(members, args.userId),
       nextGameStartTime: nextGameByGroup.get(group.id) ?? null,
       formMarks: groupFormMarks(
         formMatchesByGroup.get(group.id) ?? [],

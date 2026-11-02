@@ -20,6 +20,7 @@ import { groupMemberInvites } from "./group-member-invites";
 import { groupEmailInvites } from "./group-email-invites";
 import { groupInviteLinks } from "./group-invite-links";
 import { groupJoinRequests } from "./group-join-requests";
+import { groupSeasons } from "./group-seasons";
 
 export {
   groupSports,
@@ -66,4 +67,5 @@ export const groupRelations = relations(groups, ({ one, many }) => ({
   emailInvites: many(groupEmailInvites),
   inviteLinks: many(groupInviteLinks),
   joinRequests: many(groupJoinRequests),
+  seasons: many(groupSeasons),
 }));

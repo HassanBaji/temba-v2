@@ -7,11 +7,13 @@ import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhon
 import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoinRequest";
 import { byId } from "./byId";
 import { clearImageProcedure as clearImage } from "./clearImage";
+import { closeSeasonProcedure as closeSeason } from "./closeSeason";
 import { createClubPrivateProcedure as createClubPrivate } from "./createClubPrivate";
 import { createClubPublicProcedure as createClubPublic } from "./createClubPublic";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createLoosePrivateProcedure as createLoosePrivate } from "./createLoosePrivate";
 import { createLoosePublicProcedure as createLoosePublic } from "./createLoosePublic";
+import { createSeasonProcedure as createSeason } from "./createSeason";
 import { declineLinkRequestProcedure as declineLinkRequest } from "./declineLinkRequest";
 import { deleteProcedure } from "./delete";
 import { editProcedure as edit } from "./edit";
@@ -23,6 +25,7 @@ import { listJoinRequestsProcedure as listJoinRequests } from "./listJoinRequest
 import { listForOperatorProcedure as listForOperator } from "./listForOperator";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
 import { listPublicProcedure as listPublic } from "./listPublic";
+import { listSeasonsProcedure as listSeasons } from "./listSeasons";
 import { mineProcedure as mine } from "./mine";
 import { mineLooseProcedure as mineLoose } from "./mineLoose";
 import { pendingLinkRequestsProcedure as pendingLinkRequests } from "./pendingLinkRequests";
@@ -38,6 +41,7 @@ import { requestJoinProcedure as requestJoin } from "./requestJoin";
 import { resetInviteLinkProcedure as resetInviteLink } from "./resetInviteLink";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
+import { seasonStandingProcedure as seasonStanding } from "./seasonStanding";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
@@ -92,4 +96,8 @@ export const groupsRouter = createTRPCRouter({
   removeUnclaimedPlayer,
   removePlayer,
   setOrganizer,
+  listSeasons,
+  createSeason,
+  closeSeason,
+  seasonStanding,
 });

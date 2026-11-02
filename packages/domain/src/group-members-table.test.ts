@@ -9,39 +9,19 @@ import {
 } from "./group-members-table";
 
 const members = [
-  { name: "Yousif", totalGamesPlayed: 2, wins: 0, level: "3.4" },
-  { name: "Ali", totalGamesPlayed: 5, wins: 3, level: "4.1" },
-  { name: "Jassim", totalGamesPlayed: 0, wins: 0, level: null },
-  { name: "Aradi", totalGamesPlayed: 5, wins: 2, level: "3.0" },
-  { name: "Mahdi", totalGamesPlayed: 3, wins: 3, level: "4.1" },
+  { name: "Yousif", level: "3.4" },
+  { name: "Ali", level: "4.1" },
+  { name: "Jassim", level: null },
+  { name: "Aradi", level: "3.0" },
+  { name: "Mahdi", level: "4.1" },
 ];
 
 const names = (rows: readonly { name: string }[]) =>
   rows.map((row) => row.name);
 
 describe("sortGroupMembers", () => {
-  it("sorts by Games played, then Matches won, then name", () => {
-    expect(names(sortGroupMembers(members, "played"))).toEqual([
-      "Ali",
-      "Aradi",
-      "Mahdi",
-      "Yousif",
-      "Jassim",
-    ]);
-  });
-
-  it("sorts by Matches won, then Games played", () => {
-    expect(names(sortGroupMembers(members, "won"))).toEqual([
-      "Ali",
-      "Mahdi",
-      "Aradi",
-      "Yousif",
-      "Jassim",
-    ]);
-  });
-
-  it("sorts by Level with no Level last", () => {
-    expect(names(sortGroupMembers(members, "level"))).toEqual([
+  it("sorts by Level, ties by name, with no Level last", () => {
+    expect(names(sortGroupMembers(members))).toEqual([
       "Ali",
       "Mahdi",
       "Yousif",
@@ -52,7 +32,7 @@ describe("sortGroupMembers", () => {
 
   it("leaves the input untouched", () => {
     const before = names(members);
-    sortGroupMembers(members, "won");
+    sortGroupMembers(members);
     expect(names(members)).toEqual(before);
   });
 });
@@ -97,13 +77,11 @@ describe("groupMemberTableCaption", () => {
 });
 
 describe("groupMembersLegend", () => {
-  it("drops W in manage mode and the hatch note without Levels", () => {
-    expect(groupMembersLegend({ managing: false, showLevel: true })).toBe(
-      "P Games played, W Matches won in this Group. Hatched Levels are still Provisional.",
+  it("explains the hatch only on a Group with Levels", () => {
+    expect(groupMembersLegend({ showLevel: true })).toBe(
+      "Hatched Levels are still Provisional.",
     );
-    expect(groupMembersLegend({ managing: true, showLevel: false })).toBe(
-      "P Games played in this Group.",
-    );
+    expect(groupMembersLegend({ showLevel: false })).toBeNull();
   });
 });
 

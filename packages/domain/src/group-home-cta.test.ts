@@ -172,6 +172,10 @@ describe("groupHomeOverflowItems", () => {
       groupHomeOverflowItems({ ...base, canLeaveVenueCommunity: true }),
       ["leave_venue_community", "leave"],
     );
+    assert.deepEqual(
+      groupHomeOverflowItems({ ...base, canManageSeasons: true }),
+      ["seasons", "leave"],
+    );
   });
 
   it("hides overflow when nothing is available", () => {

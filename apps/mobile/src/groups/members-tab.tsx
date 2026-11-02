@@ -6,11 +6,9 @@ import {
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
-  GROUP_MEMBERS_DEFAULT_SORT,
   GROUP_MEMBERS_NO_MATCH_COPY,
   groupMembersLegend,
   groupPendingInvitesTitle,
-  type GroupMembersSort,
 } from "@repo/domain/group-members-table";
 import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import {
@@ -42,22 +40,10 @@ import { LevelCell } from "./level-cell";
 import { MemberSheet } from "./member-sheet";
 import { Notice } from "./notice";
 
-const STAT_WIDTH = 38;
-const LEVEL_WIDTH = 44;
+const LEVEL_WIDTH = 52;
 const ACTION_WIDTH = 44;
 const ROW_PADDING_LEFT = 16;
 const ROW_PADDING_RIGHT = 10;
-
-const SORT_COLUMNS: {
-  sort: GroupMembersSort;
-  label: string;
-  title: string;
-  width: number;
-}[] = [
-  { sort: "played", label: "P", title: "Games played", width: STAT_WIDTH },
-  { sort: "won", label: "W", title: "Matches won", width: STAT_WIDTH },
-  { sort: "level", label: "LVL", title: "Level", width: LEVEL_WIDTH },
-];
 
 function YouMark() {
   return (
@@ -106,22 +92,6 @@ function MemberRow({
           </Text>
         ) : null}
       </View>
-      <Text
-        width="expanded"
-        weight="bold"
-        style={{ width: STAT_WIDTH, textAlign: "center" }}
-      >
-        {row.played}
-      </Text>
-      {managing ? null : (
-        <Text
-          size="meta"
-          tone="muted"
-          style={{ width: STAT_WIDTH, textAlign: "center" }}
-        >
-          {row.wins}
-        </Text>
-      )}
       {showLevel ? (
         <View style={{ width: LEVEL_WIDTH, alignItems: "center" }}>
           <LevelCell view={row.level} />
@@ -193,21 +163,12 @@ function MemberRow({
 }
 
 function TableHeader({
-  sort,
-  onSort,
   managing,
   showLevel,
 }: {
-  sort: GroupMembersSort;
-  onSort: (sort: GroupMembersSort) => void;
   managing: boolean;
   showLevel: boolean;
 }) {
-  const columns = SORT_COLUMNS.filter(
-    (column) =>
-      (column.sort !== "won" || !managing) &&
-      (column.sort !== "level" || showLevel),
-  );
   return (
     <View
       style={{
@@ -223,35 +184,17 @@ function TableHeader({
       <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
         Member
       </Text>
-      {columns.map((column) => {
-        const active = column.sort === sort;
-        return (
-          <Pressable
-            key={column.sort}
-            accessibilityRole="button"
-            accessibilityLabel={`Sort by ${column.title}`}
-            accessibilityState={{ selected: active }}
-            onPress={() => onSort(column.sort)}
-            style={{
-              width: column.width,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text
-              size="eyebrow"
-              mono
-              tone={active ? "default" : "muted"}
-              style={{
-                textDecorationLine: active ? "underline" : "none",
-              }}
-            >
-              {column.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {showLevel ? (
+        <Text
+          size="eyebrow"
+          tone="muted"
+          mono
+          accessibilityLabel="Level"
+          style={{ width: LEVEL_WIDTH, textAlign: "center" }}
+        >
+          LVL
+        </Text>
+      ) : null}
       {managing ? <View style={{ width: ACTION_WIDTH }} /> : null}
     </View>
   );
@@ -345,13 +288,11 @@ export function MembersTab({
   afterTable?: ReactNode;
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [sort, setSort] = useState<GroupMembersSort>(
-    GROUP_MEMBERS_DEFAULT_SORT,
-  );
   const [managing, setManaging] = useState(false);
   const canManage =
     canSetLevel || canAddPlayers || canRemovePlayers || canAppointOrganizers;
   const isManaging = canManage && managing;
+  const legend = groupMembersLegend({ showLevel });
   const list = memberList(
     leaderboard,
     query,
@@ -359,7 +300,6 @@ export function MembersTab({
     canSetLevel,
     canRemovePlayers,
     canAppointOrganizers,
-    sort,
   );
   const selected = leaderboard.find(
     (entry) =>
@@ -420,12 +360,7 @@ export function MembersTab({
         />
       ) : null}
       <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
-        <TableHeader
-          sort={sort}
-          onSort={setSort}
-          managing={isManaging}
-          showLevel={showLevel}
-        />
+        <TableHeader managing={isManaging} showLevel={showLevel} />
         {list.rows.length === 0 ? (
           <>
             <Hairline />
@@ -453,14 +388,18 @@ export function MembersTab({
             </View>
           ))
         )}
-        <Hairline />
-        <Text
-          size="eyebrow"
-          tone="muted"
-          style={{ paddingHorizontal: 18, paddingVertical: 12 }}
-        >
-          {groupMembersLegend({ managing: isManaging, showLevel })}
-        </Text>
+        {legend ? (
+          <>
+            <Hairline />
+            <Text
+              size="eyebrow"
+              tone="muted"
+              style={{ paddingHorizontal: 18, paddingVertical: 12 }}
+            >
+              {legend}
+            </Text>
+          </>
+        ) : null}
       </Surface>
       {afterTable}
       {pendingInviteNames.length > 0 && onOpenInvites ? (

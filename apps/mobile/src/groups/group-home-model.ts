@@ -2,6 +2,7 @@ import type {
   GroupHomeData,
   GroupLeaderboardEntryData,
   GroupPlayedGameData,
+  GroupStandingRowData,
 } from "@repo/domain/group-data";
 import {
   filterGroupMembersByName,
@@ -11,7 +12,6 @@ import {
   groupPlayedOpponentLine,
   groupPlayedScoreLine,
   groupPlayedTeamLabel,
-  groupStandingRecordLabel,
   levelCellView,
   type LevelCellView,
   groupMemberOrganizerAction,
@@ -30,7 +30,6 @@ import {
 import {
   groupMemberTableCaption,
   sortGroupMembers,
-  type GroupMembersSort,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
@@ -40,6 +39,7 @@ import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 
 import { mediaUrl } from "../lib/media-url";
 
@@ -96,36 +96,38 @@ export function groupBanner(data: GroupHomeData): GroupHomeBanner | null {
 
 export type StandingRowView = {
   key: string;
-  position: number;
+  position: number | null;
+  ranked: boolean;
   name: string;
-  record: string;
-  level: LevelCellView;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  form: ResultMarkVariant[];
   isViewer: boolean;
   unclaimed: boolean;
   accessibilityLabel: string;
 };
 
-export function standingRowView(
-  entry: GroupLeaderboardEntryData,
-): StandingRowView {
+export function standingRowView(entry: GroupStandingRowData): StandingRowView {
   const name = entry.isViewer ? "You" : (entry.name ?? "Member");
-  const record = groupStandingRecordLabel(entry.wins, entry.losses);
-  const level = levelCellView(entry.levelBand, entry.levelProvisional);
   return {
     key: entry.userId,
     position: entry.position,
+    ranked: entry.ranked,
     name,
-    record,
-    level,
+    played: entry.played,
+    wins: entry.wins,
+    draws: entry.draws,
+    losses: entry.losses,
+    points: entry.points,
+    form: paddedForm(entry.form),
     isViewer: entry.isViewer,
     unclaimed: entry.unclaimed,
-    accessibilityLabel: `${entry.position}. ${name}${
+    accessibilityLabel: `${entry.ranked ? `${entry.position}. ` : "Unranked. "}${name}${
       entry.unclaimed ? `, ${NOT_ON_TEMBA_YET_LABEL}` : ""
-    }. ${record} wins and losses. ${
-      level.kind === "label"
-        ? `Level ${level.label}`
-        : "Level still Provisional"
-    }`,
+    }. ${entry.played} played, ${standingRecordLabel(entry)} won drawn lost, ${entry.points} points.`,
   };
 }
 
@@ -208,8 +210,6 @@ export type MemberRowView = {
   isViewer: boolean;
   unclaimed: boolean;
   caption: string | null;
-  played: number;
-  wins: number;
   level: LevelCellView;
   levelText: string | null;
   selectable: boolean;
@@ -264,8 +264,6 @@ export function memberRowView(
     isViewer: entry.isViewer,
     unclaimed: entry.unclaimed,
     caption: caption || null,
-    played: entry.totalGamesPlayed,
-    wins: entry.wins,
     level,
     levelText: entry.level,
     selectable:
@@ -276,8 +274,6 @@ export function memberRowView(
       entry.isViewer ? `${name}, you` : name,
       entry.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
       caption || null,
-      `${entry.totalGamesPlayed} ${entry.totalGamesPlayed === 1 ? "Game" : "Games"} played`,
-      `${entry.wins} ${entry.wins === 1 ? "Match" : "Matches"} won`,
       levelSpokenLabel(level, entry.level),
     ]
       .filter(Boolean)
@@ -292,10 +288,8 @@ export function memberList(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
-  sort?: GroupMembersSort,
 ) {
-  const ordered = sort ? sortGroupMembers(leaderboard, sort) : leaderboard;
-  const members = ordered.map((entry) =>
+  const members = sortGroupMembers(leaderboard).map((entry) =>
     memberRowView(
       entry,
       apiOrigin,

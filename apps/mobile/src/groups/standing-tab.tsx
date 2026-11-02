@@ -4,74 +4,137 @@ import {
   groupStandingEmptyFooter,
   groupStandingOpenSeats,
 } from "@repo/domain/group-empty-states";
-import { groupShowsLevel } from "@repo/domain/group-home-chrome";
 import { groupHasGames, groupStandingState } from "@repo/domain/group-join";
+import {
+  formatSeasonRange,
+  seasonGamesCountedLine,
+  seasonLensChips,
+  seasonLockedLine,
+  seasonProgress,
+  seasonProgressLine,
+  seasonStartsLine,
+  type GroupSeasonData,
+  type GroupSeasonStatus,
+} from "@repo/domain/group-season";
+import {
+  standingDiffUnit,
+  standingRecordLabel,
+  standingRulesLine,
+  unrankedNote,
+} from "@repo/domain/season-standing";
 import { useRouter, type Href } from "expo-router";
-import { Plus, UserPlus } from "lucide-react-native";
-import { Pressable, View } from "react-native";
+import { Lock, Plus, UserPlus } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
-import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { hairline as hairlineWidth } from "../primitives/hairline-width";
+import { ResultMark } from "../primitives/result-mark";
+import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { api } from "../trpc/react";
 import {
-  LEVEL_PROVISIONAL_NOTE,
   STANDING_NOT_MEMBER_COPY,
   STANDING_NO_RESULTS_COPY,
   standingRowView,
   standingStats,
   type StandingRowView,
 } from "./group-home-model";
-import { LevelCell } from "./level-cell";
 import { Notice } from "./notice";
 
-const POSITION_WIDTH = 28;
-const RECORD_WIDTH = 48;
-const LEVEL_WIDTH = 56;
-const SEAT_SIZE = 32;
+type Season = GroupSeasonData & { status: GroupSeasonStatus };
 
-function HeaderCell({ label, width }: { label: string; width?: number }) {
+const POSITION_WIDTH = 30;
+const COUNT_WIDTH = 24;
+const POINTS_WIDTH = 36;
+const SEAT_SIZE = 32;
+const MARK_SIZE = 11;
+
+function HeaderCell({
+  label,
+  width,
+  strong = false,
+  align = "center",
+}: {
+  label: string;
+  width?: number;
+  strong?: boolean;
+  align?: "left" | "center" | "right";
+}) {
   return (
     <Text
       size="eyebrow"
-      tone="muted"
+      tone={strong ? "default" : "muted"}
+      weight={strong ? "semibold" : "regular"}
       mono
-      uppercase
-      style={{ width, flex: width ? undefined : 1 }}
+      style={{ width, flex: width ? undefined : 1, textAlign: align }}
     >
       {label}
     </Text>
   );
 }
 
-function RowBody({
-  row,
-  linked,
-  showLevel,
-  leading,
-}: {
-  row: StandingRowView;
-  linked: boolean;
-  showLevel: boolean;
-  leading?: React.ReactNode;
-}) {
+function FormStrip({ form }: { form: StandingRowView["form"] }) {
   return (
     <View
-      accessible={!linked}
-      accessibilityLabel={linked ? undefined : row.accessibilityLabel}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ flexDirection: "row", gap: 3, marginTop: 3 }}
+    >
+      {form.map((mark, index) => (
+        <ResultMark key={index} variant={mark} size={MARK_SIZE} decorative />
+      ))}
+    </View>
+  );
+}
+
+function HatchedCell({ width, size = 12 }: { width: number; size?: number }) {
+  return (
+    <View style={{ width, alignItems: "center" }}>
+      <View style={{ width: size, height: size }}>
+        <Hatch radius={3} />
+      </View>
+    </View>
+  );
+}
+
+function StandingRow({
+  row,
+  notPlayedYet,
+  onOpen,
+}: {
+  row: StandingRowView;
+  notPlayedYet: boolean;
+  onOpen?: (userId: string) => void;
+}) {
+  const muted = notPlayedYet || !row.ranked;
+  const count = (value: number) => (
+    <Text
+      size="body"
+      tone="muted"
+      style={{ width: COUNT_WIDTH, textAlign: "center" }}
+    >
+      {value}
+    </Text>
+  );
+  const body = (
+    <View
+      accessible={onOpen == null}
+      accessibilityLabel={onOpen ? undefined : row.accessibilityLabel}
       style={{
         minHeight: 56,
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 6,
         paddingHorizontal: spacing.surface,
-        paddingVertical: 12,
+        paddingVertical: 10,
+        backgroundColor: row.isViewer ? colors.wash : undefined,
       }}
     >
       <View
@@ -79,76 +142,60 @@ function RowBody({
         importantForAccessibility="no-hide-descendants"
         style={{ width: POSITION_WIDTH }}
       >
-        <Text size="lead" width="expanded" weight="bold">
-          {row.position}
-        </Text>
+        {row.ranked && !notPlayedYet ? (
+          <Text size="lead" width="expanded" weight="bold">
+            {row.position}
+          </Text>
+        ) : (
+          <View style={{ width: 20, height: 20 }}>
+            <Hatch radius={5} />
+          </View>
+        )}
       </View>
-      {leading}
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={{ flex: 1, minWidth: 0, gap: 2 }}
+        style={{ flex: 1, minWidth: 0 }}
       >
-        <Text weight={row.isViewer ? "semibold" : "regular"} numberOfLines={1}>
+        <Text
+          weight={row.isViewer ? "semibold" : "regular"}
+          tone={muted ? "muted" : "default"}
+          numberOfLines={1}
+        >
           {row.name}
         </Text>
-        {row.unclaimed ? <NotOnTembaMark /> : null}
+        <FormStrip form={row.form} />
       </View>
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{ width: RECORD_WIDTH, alignItems: "flex-end" }}
-      >
-        <Text width="expanded">{row.record}</Text>
-      </View>
-      {showLevel ? (
+      {notPlayedYet ? (
+        <>
+          <HatchedCell width={COUNT_WIDTH} />
+          <HatchedCell width={COUNT_WIDTH} />
+          <HatchedCell width={COUNT_WIDTH} />
+          <HatchedCell width={COUNT_WIDTH} />
+          <HatchedCell width={POINTS_WIDTH} />
+        </>
+      ) : (
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
-          style={{ width: LEVEL_WIDTH, alignItems: "flex-end" }}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
         >
-          <LevelCell view={row.level} />
+          {count(row.played)}
+          {count(row.wins)}
+          {count(row.draws)}
+          {count(row.losses)}
+          <Text
+            size="lead"
+            width="expanded"
+            weight="bold"
+            tone={muted ? "muted" : "default"}
+            style={{ width: POINTS_WIDTH, textAlign: "right" }}
+          >
+            {row.points}
+          </Text>
         </View>
-      ) : null}
+      )}
     </View>
-  );
-}
-
-function StandingRow({
-  row,
-  showLevel,
-  onOpen,
-  avatar,
-}: {
-  row: StandingRowView;
-  showLevel: boolean;
-  onOpen?: (userId: string) => void;
-  avatar?: { name: string; uri: string | null };
-}) {
-  const leading = avatar ? (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Avatar name={avatar.name} uri={avatar.uri} radius={radii.sm} />
-    </View>
-  ) : undefined;
-  const body = row.isViewer ? (
-    <Surface tone="ink" padded={false} radius="md">
-      <RowBody
-        row={row}
-        linked={onOpen != null}
-        showLevel={showLevel}
-        leading={leading}
-      />
-    </Surface>
-  ) : (
-    <RowBody
-      row={row}
-      linked={onOpen != null}
-      showLevel={showLevel}
-      leading={leading}
-    />
   );
 
   if (!onOpen) {
@@ -169,13 +216,17 @@ function StandingRow({
 
 function StandingTable({
   rows,
-  showLevel,
+  notPlayedYet,
+  footer,
   onOpenMember,
 }: {
   rows: StandingRowView[];
-  showLevel: boolean;
+  notPlayedYet: boolean;
+  footer: string;
   onOpenMember?: (userId: string) => void;
 }) {
+  const ranked = notPlayedYet ? rows : rows.filter((row) => row.ranked);
+  const unranked = notPlayedYet ? [] : rows.filter((row) => !row.ranked);
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View
@@ -183,33 +234,328 @@ function StandingTable({
         importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
-          gap: 8,
+          alignItems: "center",
+          gap: 6,
           paddingHorizontal: spacing.surface,
-          paddingVertical: 12,
+          paddingVertical: 10,
+          backgroundColor: colors.wash,
         }}
       >
-        <HeaderCell label="#" width={POSITION_WIDTH} />
-        <HeaderCell label="Player" />
-        <HeaderCell label="W-L" width={RECORD_WIDTH} />
-        {showLevel ? <HeaderCell label="Level" width={LEVEL_WIDTH} /> : null}
+        <View style={{ width: POSITION_WIDTH }} />
+        <HeaderCell label="Player" align="left" />
+        <HeaderCell label="P" width={COUNT_WIDTH} />
+        <HeaderCell label="W" width={COUNT_WIDTH} />
+        <HeaderCell label="D" width={COUNT_WIDTH} />
+        <HeaderCell label="L" width={COUNT_WIDTH} />
+        <HeaderCell label="PTS" width={POINTS_WIDTH} strong align="right" />
       </View>
-      {rows.map((row) => (
+      {ranked.map((row) => (
         <View key={row.key}>
           <Hairline />
-          <StandingRow row={row} showLevel={showLevel} onOpen={onOpenMember} />
+          <StandingRow
+            row={row}
+            notPlayedYet={notPlayedYet}
+            onOpen={onOpenMember}
+          />
         </View>
       ))}
-      {showLevel ? (
+      {unranked.length > 0 ? (
         <>
           <Hairline />
-          <View style={{ padding: spacing.surface }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              paddingHorizontal: spacing.surface,
+              paddingVertical: 6,
+              backgroundColor: colors.wash,
+            }}
+          >
             <Text size="eyebrow" tone="muted" mono uppercase>
-              {LEVEL_PROVISIONAL_NOTE}
+              Unranked
+            </Text>
+            <Text size="eyebrow" tone="muted">
+              {unrankedNote()}
             </Text>
           </View>
         </>
       ) : null}
+      {unranked.map((row) => (
+        <View key={row.key}>
+          <Hairline />
+          <StandingRow row={row} notPlayedYet={false} onOpen={onOpenMember} />
+        </View>
+      ))}
+      <Hairline />
+      <View style={{ padding: spacing.surface }}>
+        <Text size="meta" tone="muted">
+          {footer}
+        </Text>
+      </View>
     </Surface>
+  );
+}
+
+function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
+  const palette = useTonePalette();
+  const top = rows.filter((row) => row.ranked).slice(0, 3);
+  if (top.length === 0) {
+    return null;
+  }
+  return (
+    <View
+      accessibilityLabel="Final top three"
+      style={{
+        borderWidth: 1.5,
+        borderColor: colors.ink,
+        borderRadius: radii.card,
+        overflow: "hidden",
+      }}
+    >
+      {top.map((row, index) => (
+        <View key={row.key}>
+          {index > 0 ? <Hairline /> : null}
+          <View
+            accessible
+            accessibilityLabel={row.accessibilityLabel}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              paddingHorizontal: spacing.surface,
+              paddingVertical: 10,
+              backgroundColor: row.isViewer ? colors.wash : undefined,
+            }}
+          >
+            <Text
+              size="h1"
+              width="expanded"
+              weight="bold"
+              style={{ width: 32 }}
+            >
+              {row.position}
+            </Text>
+            <Text
+              weight={row.isViewer ? "semibold" : "regular"}
+              numberOfLines={1}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {row.name}
+            </Text>
+            <Text size="meta" tone="muted">
+              {standingRecordLabel(row)}
+            </Text>
+            <Text size="lead" width="expanded" weight="bold">
+              {row.points}
+              <Text size="eyebrow" tone="muted">
+                {" pts"}
+              </Text>
+            </Text>
+          </View>
+        </View>
+      ))}
+      <Hairline />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: spacing.surface,
+          paddingVertical: 8,
+        }}
+      >
+        <Text size="eyebrow" tone="muted">
+          {seasonLockedLine(season)}
+        </Text>
+        <Lock size={14} color={palette.muted} />
+      </View>
+    </View>
+  );
+}
+
+function SeasonHeader({
+  season,
+  gamesCounted,
+  now,
+}: {
+  season: Season;
+  gamesCounted: number;
+  now: Date;
+}) {
+  if (season.status === "upcoming") {
+    return (
+      <Surface tone="ink" radius="card">
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <Text size="display" width="expanded" weight="bold" uppercase>
+            {season.name}
+          </Text>
+          <Text size="meta" tone="muted">
+            {formatSeasonRange(season)}
+          </Text>
+        </View>
+        <Text style={{ marginTop: 8 }}>{seasonStartsLine(season)}</Text>
+      </Surface>
+    );
+  }
+
+  if (season.status === "closed") {
+    return (
+      <Surface radius="card">
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <Text size="display" width="expanded" weight="bold" uppercase>
+            {season.name}
+          </Text>
+          <Text size="meta" tone="muted">
+            {formatSeasonRange(season)}
+          </Text>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 12,
+          }}
+        >
+          <View
+            style={{
+              borderWidth: hairlineWidth,
+              borderColor: colors.ink,
+              borderRadius: 4,
+              paddingHorizontal: 6,
+              paddingVertical: 1,
+            }}
+          >
+            <Text size="eyebrow" weight="semibold" mono uppercase>
+              Final
+            </Text>
+          </View>
+          <Text size="eyebrow" tone="muted">
+            {seasonGamesCountedLine(gamesCounted)}
+          </Text>
+        </View>
+      </Surface>
+    );
+  }
+
+  const progress = Math.round(seasonProgress(season, now) * 100);
+  return (
+    <View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text size="display" width="expanded" weight="bold" uppercase>
+          {season.name}
+        </Text>
+        <Text size="meta" tone="muted">
+          {formatSeasonRange(season)}
+        </Text>
+      </View>
+      <View
+        accessibilityRole="progressbar"
+        accessibilityLabel="Season progress"
+        accessibilityValue={{ min: 0, max: 100, now: progress }}
+        style={{
+          height: 3,
+          marginTop: 12,
+          borderRadius: 2,
+          backgroundColor: colors.rule,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            width: `${progress}%`,
+            height: "100%",
+            backgroundColor: colors.ink,
+          }}
+        />
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginTop: 8,
+        }}
+      >
+        <Text size="eyebrow" tone="muted">
+          {seasonProgressLine(season, now)}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {seasonGamesCountedLine(gamesCounted)}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function LensChips({
+  seasons,
+  lensId,
+  onPick,
+}: {
+  seasons: Season[];
+  lensId: string | null;
+  onPick: (seasonId: string | null) => void;
+}) {
+  return (
+    <View
+      style={{
+        borderBottomWidth: hairlineWidth,
+        borderBottomColor: colors.rule,
+      }}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 4 }}
+      >
+        {seasonLensChips(seasons).map((chip) => {
+          const selected = chip.seasonId === lensId;
+          return (
+            <Pressable
+              key={chip.seasonId ?? "all-time"}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              onPress={() => onPick(chip.seasonId)}
+              style={{
+                paddingHorizontal: 8,
+                paddingVertical: 10,
+                marginBottom: -hairlineWidth,
+                borderBottomWidth: 2,
+                borderBottomColor: selected ? colors.ink : "transparent",
+              }}
+            >
+              <Text
+                weight={selected ? "semibold" : "regular"}
+                tone={selected ? "default" : "muted"}
+              >
+                {chip.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -271,7 +617,7 @@ function OpenSeatRow({
 
 /**
  * Design "Group empty states" 01: before the first result the Standing draws
- * every member at 0-0 and pads to four rows with open seats to invite into.
+ * every member at 0 points and pads to four rows with open seats to invite into.
  */
 function StandingPreview({
   data,
@@ -297,24 +643,73 @@ function StandingPreview({
           paddingVertical: 12,
         }}
       >
-        <HeaderCell label="#" width={POSITION_WIDTH} />
-        <HeaderCell label="Player" />
-        <HeaderCell label="W-L" width={RECORD_WIDTH} />
+        <HeaderCell label="#" width={POSITION_WIDTH} align="left" />
+        <HeaderCell label="Player" align="left" />
+        <HeaderCell label="PTS" width={POINTS_WIDTH} align="right" />
       </View>
-      {leaderboard.map((entry) => (
-        <View key={entry.userId}>
-          <Hairline />
-          <StandingRow
-            row={standingRowView(entry)}
-            showLevel={false}
-            onOpen={onOpenMember}
-            avatar={{
-              name: entry.name ?? "Member",
-              uri: mediaUrl(entry.image, apiOrigin),
+      {leaderboard.map((entry, index) => {
+        const row = standingRowView(entry);
+        const body = (
+          <View
+            accessible={onOpenMember == null}
+            accessibilityLabel={row.accessibilityLabel}
+            style={{
+              minHeight: 56,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingHorizontal: spacing.surface,
+              paddingVertical: 12,
             }}
-          />
-        </View>
-      ))}
+          >
+            <View style={{ width: POSITION_WIDTH }}>
+              <Text size="lead" width="expanded" weight="bold">
+                {index + 1}
+              </Text>
+            </View>
+            <Avatar
+              name={entry.name ?? "Member"}
+              uri={mediaUrl(entry.image, apiOrigin)}
+              radius={radii.sm}
+            />
+            <Text
+              weight={row.isViewer ? "semibold" : "regular"}
+              numberOfLines={1}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {row.name}
+            </Text>
+            <Text
+              width="expanded"
+              weight="bold"
+              style={{ width: POINTS_WIDTH, textAlign: "right" }}
+            >
+              {row.points}
+            </Text>
+          </View>
+        );
+        return (
+          <View key={entry.userId}>
+            <Hairline />
+            {row.isViewer ? (
+              <Surface tone="ink" padded={false} radius="md">
+                {body}
+              </Surface>
+            ) : onOpenMember ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={row.accessibilityLabel}
+                onPress={() => onOpenMember(entry.userId)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              >
+                {body}
+              </Pressable>
+            ) : (
+              body
+            )}
+          </View>
+        );
+      })}
       {groupStandingOpenSeats(leaderboard.length).map((position) => (
         <View key={position}>
           <Hairline />
@@ -391,6 +786,16 @@ function StatPair({
   );
 }
 
+function TableSkeleton() {
+  return (
+    <Surface padded={false} style={{ padding: spacing.surface, gap: 8 }}>
+      {[0, 1, 2, 3].map((index) => (
+        <Skeleton key={index} height={44} />
+      ))}
+    </Surface>
+  );
+}
+
 export function StandingTab({
   data,
   apiOrigin,
@@ -405,15 +810,34 @@ export function StandingTab({
   createGameHref?: Href;
 }) {
   const router = useRouter();
+  const now = new Date();
+  const seasons = data.seasons;
+  const defaultLens = data.standing.seasonId;
+  const [lensId, setLensId] = useState<string | null>(defaultLens);
+  const lensIsDefault = lensId === defaultLens;
+  const isMember = data.membership != null;
+  const lens = api.groups.seasonStanding.useQuery(
+    { groupId: data.id, seasonId: lensId },
+    { enabled: isMember && !lensIsDefault },
+  );
+  const rows = (
+    lensIsDefault ? data.standing.leaderboard : (lens.data?.rows ?? [])
+  ).map(standingRowView);
+  const counted = lensIsDefault
+    ? data.standing.gamesCounted
+    : (lens.data?.gamesCounted ?? 0);
+  const season = seasons.find((row) => row.id === lensId) ?? null;
+  const footer = standingRulesLine(standingDiffUnit(data.sport));
+
   const state = groupStandingState({
-    isMember: data.membership != null,
+    isMember,
     hasGames: groupHasGames(data),
     leaderboard: data.standing.leaderboard,
   });
   if (state.kind === "not-member") {
     return <Notice {...STANDING_NOT_MEMBER_COPY} />;
   }
-  if (state.showNoResultsNotice && state.showTable) {
+  if (seasons.length === 0 && state.showNoResultsNotice && state.showTable) {
     const firstGameHref = state.showCreateFirstGame
       ? createGameHref
       : undefined;
@@ -449,21 +873,43 @@ export function StandingTab({
       </View>
     );
   }
+
+  let table: React.ReactNode;
+  if (!lensIsDefault && lens.isLoading) {
+    table = <TableSkeleton />;
+  } else if (!lensIsDefault && lens.error) {
+    table = (
+      <Notice
+        title="Standing could not be loaded"
+        description={lens.error.message}
+      />
+    );
+  } else if (rows.length === 0) {
+    table = <Notice {...STANDING_NO_RESULTS_COPY} />;
+  } else {
+    table = (
+      <StandingTable
+        rows={rows}
+        notPlayedYet={counted === 0}
+        footer={footer}
+        onOpenMember={onOpenMember}
+      />
+    );
+  }
+
   return (
     <View style={{ gap: spacing.compact }}>
-      {state.showNoResultsNotice ? (
-        <Notice {...STANDING_NO_RESULTS_COPY} />
+      {season ? (
+        <SeasonHeader season={season} gamesCounted={counted} now={now} />
       ) : null}
-      {state.showTable ? (
-        <>
-          <StandingTable
-            rows={data.standing.leaderboard.map(standingRowView)}
-            showLevel={groupShowsLevel(data.sport)}
-            onOpenMember={onOpenMember}
-          />
-          <StatPair data={data} />
-        </>
+      {seasons.length > 0 ? (
+        <LensChips seasons={seasons} lensId={lensId} onPick={setLensId} />
       ) : null}
+      {season?.status === "closed" && !lens.isLoading ? (
+        <Podium rows={rows} season={season} />
+      ) : null}
+      {table}
+      {seasons.length === 0 ? <StatPair data={data} /> : null}
     </View>
   );
 }
