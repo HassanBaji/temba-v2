@@ -15,7 +15,7 @@ import { BibPicker } from "~/components/games/football-bibs";
 import { FootballGameCard } from "~/components/games/football-game-card";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
-import { PoolGrid, SeatBar } from "~/components/games/football-pool-grid";
+import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { Button } from "~/components/ui/button";
@@ -244,7 +244,11 @@ export function FootballPreviewStates() {
             </Button>
           </div>
         </FootballGameHeroCard>
-        <PoolGrid players={pool} open={3} onOpenPlayer={() => undefined} />
+        <PoolSections
+          players={pool}
+          seats={pool.length + 3}
+          onOpenPlayer={() => undefined}
+        />
       </Block>
 
       <Block title="F3 bibs">

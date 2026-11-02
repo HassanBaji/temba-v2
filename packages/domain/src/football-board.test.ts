@@ -12,6 +12,7 @@ import {
   moveAcross,
   placeOn,
   poolLayout,
+  poolSections,
   removeGoal,
   scorersNote,
   scorersPayload,
@@ -49,6 +50,40 @@ describe("poolLayout", () => {
 
   it("falls back to both sides' seats without a cap", () => {
     expect(poolLayout([player("a")], 7, null).openSeats).toBe(13);
+  });
+});
+
+describe("poolSections", () => {
+  it("splits keepers from outfield and hatches a seat for each missing keeper", () => {
+    const pool = [player("a", { role: "keeper" }), player("b"), player("c")];
+    const sections = poolSections(pool, 10);
+    expect(sections.keepers.map((row) => row.userId)).toEqual(["a"]);
+    expect(sections.outfield.map((row) => row.userId)).toEqual(["b", "c"]);
+    expect(sections.keeperOpenSeats).toBe(1);
+    expect(sections.outfieldOpenSeats).toBe(6);
+    expect(sections.keepersLine).toBe("1 keeper, one more needed");
+    expect(sections.outfieldLine).toBe("2 of 8 in");
+  });
+
+  it("shows no keeper cells once both keepers are in", () => {
+    const pool = [
+      player("a", { role: "keeper" }),
+      player("b", { role: "keeper" }),
+    ];
+    const sections = poolSections(pool, 10);
+    expect(sections.keeperOpenSeats).toBe(0);
+    expect(sections.outfieldOpenSeats).toBe(8);
+    expect(sections.outfieldLine).toBe("0 of 8 in");
+  });
+
+  it("never hatches more cells than seats are open", () => {
+    const pool = Array.from({ length: 10 }, (_, index) =>
+      player(String(index)),
+    );
+    const sections = poolSections(pool, 10);
+    expect(sections.keeperOpenSeats).toBe(0);
+    expect(sections.outfieldOpenSeats).toBe(0);
+    expect(sections.outfieldLine).toBe("10 of 10 in");
   });
 });
 

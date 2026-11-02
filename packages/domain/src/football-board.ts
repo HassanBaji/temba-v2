@@ -8,6 +8,7 @@ import {
   footballSlotCode,
   keeperSeatsLeft,
   KEEPERS_PER_GAME,
+  keepersInLine,
   type FootballBib,
   type FootballPosition,
   type FootballRole,
@@ -77,6 +78,30 @@ export function poolLayout<Player>(
 
 export function keepersIn(players: readonly Pick<BoardPlayer, "role">[]) {
   return players.filter((player) => player.role === "keeper").length;
+}
+
+/**
+ * The pool reads in two blocks: Keepers, then Players. Keeper seats are not
+ * carved out of the total, so the hatched keeper cells never exceed the
+ * seats still open.
+ */
+export function poolSections<Player extends Pick<BoardPlayer, "role">>(
+  pool: readonly Player[],
+  seats: number,
+) {
+  const keepers = pool.filter((player) => player.role === "keeper");
+  const outfield = pool.filter((player) => player.role !== "keeper");
+  const openSeats = Math.max(0, seats - pool.length);
+  const keeperOpenSeats = Math.min(keeperSeatsLeft(keepers.length), openSeats);
+  const outfieldSeats = seats - keepers.length - keeperOpenSeats;
+  return {
+    keepers,
+    outfield,
+    keeperOpenSeats,
+    outfieldOpenSeats: openSeats - keeperOpenSeats,
+    keepersLine: keepersInLine(keepers.length),
+    outfieldLine: `${outfield.length} of ${Math.max(outfieldSeats, outfield.length)} in`,
+  };
 }
 
 /** A player as the join choice reads them: the viewer is left out. */
