@@ -35,10 +35,9 @@ import type { SplitFormError } from "~/lib/form-mutation-error";
 import { isPasswordLongEnough, PASSWORD_HINT } from "~/lib/password-strength";
 import {
   PHONE_AUTH_TITLES,
-  phoneCodeFactor,
+  hasPasswordFactor,
   previousPhoneAuthStep,
   signUpStepProgress,
-  type PhoneAuthMode,
   type PhoneAuthStep,
 } from "~/lib/phone-auth-flow";
 import { cn } from "~/lib/utils";
@@ -65,7 +64,6 @@ const FIELD_IDS = {
   lastName: "phone-auth-last-name",
   password: "phone-auth-password",
   passwordHint: "phone-auth-password-hint",
-  signInPassword: "phone-auth-sign-in-password",
 };
 
 function fieldElementId(param: string): string | undefined {
@@ -144,9 +142,10 @@ function PreviewCard({ name, phone }: { name: string | null; phone: string }) {
 }
 
 /**
- * The one door: phone → code, then for a new number a name and a password
- * (ADR-0049). `signIn.create` decides which it is: `form_identifier_not_found`
- * switches to a sign-up on the same number.
+ * The one door: phone, then a password for a known number, or a code, a name
+ * and a new password for a new one (ADR-0049, ADR-0050). `signIn.create`
+ * decides which it is: `form_identifier_not_found` switches to a sign-up on
+ * the same number. The code is sent only on sign-up.
  */
 export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   const router = useRouter();
@@ -158,7 +157,6 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   const isLoaded = signInLoaded && signUpLoaded;
 
   const [step, setStep] = React.useState<PhoneAuthStep>("phone");
-  const [mode, setMode] = React.useState<PhoneAuthMode>("sign-in");
   const [countryIso, setCountryIso] = React.useState(
     DEFAULT_CALLING_COUNTRY_ISO,
   );
@@ -168,7 +166,6 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [passwordRevealed, setPasswordRevealed] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [split, setSplit] = React.useState<SplitFormError | null>(null);
 
@@ -199,7 +196,6 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     if (previous === "phone") {
       setCode("");
       setPassword("");
-      setPasswordRevealed(false);
     }
     goTo(previous);
   }
@@ -235,24 +231,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     return false;
   }
 
-  async function sendSignInCode() {
-    if (!signIn) {
-      throw new Error("Sign in is not ready");
-    }
-    const factor = phoneCodeFactor(signIn.supportedFirstFactors);
-    if (!factor) {
-      setSplit({
-        fieldErrors: {},
-        globalMessage:
-          "This number cannot receive a code right now. Try again later.",
-      });
-      return false;
-    }
-    await signIn.prepareFirstFactor(factor);
-    return true;
-  }
-
-  async function onSendCode(event: React.FormEvent<HTMLFormElement>) {
+  async function onContinue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !signIn || !signUp) {
       return;
@@ -266,12 +245,20 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     setSplit(null);
     try {
       try {
-        await signIn.create({ identifier: assembled.e164 });
-        if (!(await sendSignInCode())) {
+        const attempt = await signIn.create({ identifier: assembled.e164 });
+        if (!hasPasswordFactor(attempt.supportedFirstFactors)) {
+          setSplit({
+            fieldErrors: {},
+            globalMessage:
+              "This account has no password. Sign in with Google instead.",
+          });
           setPending(false);
           return;
         }
-        setMode("sign-in");
+        setPassword("");
+        goTo("password");
+        setPending(false);
+        return;
       } catch (err) {
         if (!hasClerkErrorCode(err, "form_identifier_not_found")) {
           throw err;
@@ -281,10 +268,8 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
           legalAccepted: true,
         });
         await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
-        setMode("sign-up");
       }
       setCode("");
-      setPasswordRevealed(false);
       setStartedAt(Date.now());
       goTo("code");
       setPending(false);
@@ -295,24 +280,12 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   }
 
   async function onVerify() {
-    if (pending || !signIn || !signUp) {
+    if (pending || !signUp) {
       return;
     }
     setPending(true);
     setSplit(null);
     try {
-      if (mode === "sign-in") {
-        const result = await signIn.attemptFirstFactor({
-          strategy: "phone_code",
-          code,
-        });
-        if (await finishSignIn(result)) {
-          return;
-        }
-        setSplit(GENERIC_SPLIT);
-        setPending(false);
-        return;
-      }
       const result = await signUp.attemptPhoneNumberVerification({ code });
       if (await finishSignUpIfComplete(result)) {
         return;
@@ -326,19 +299,12 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   }
 
   async function onResend() {
-    if (pending || !signIn || !signUp) {
+    if (pending || !signUp) {
       return;
     }
     setPending(true);
     try {
-      if (mode === "sign-in") {
-        if (!(await sendSignInCode())) {
-          setPending(false);
-          return;
-        }
-      } else {
-        await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
-      }
+      await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
       setStartedAt(Date.now());
       setPending(false);
     } catch (err) {
@@ -391,7 +357,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
         return;
       }
       setPassword("");
-      goTo("password");
+      goTo("new-password");
       setPending(false);
     } catch (err) {
       setSplit(splitClerkAuthError(err));
@@ -426,8 +392,75 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   const formattedPhone = formatInternationalNumber(countryIso, national);
   const title = PHONE_AUTH_TITLES[step];
 
-  if (step === "code") {
+  if (step === "password") {
     const passwordError = split?.fieldErrors.password;
+    return (
+      <AuthScreen
+        onBack={back}
+        backLabel="Back"
+        title={title}
+        description={`For ${formattedPhone}.`}
+      >
+        <form
+          className="flex flex-col gap-[18px]"
+          onSubmit={onSignInWithPassword}
+          noValidate
+        >
+          <FormErrorSummary ref={summaryRef} message={split?.globalMessage} />
+          <Field>
+            <FieldLabel
+              htmlFor={FIELD_IDS.password}
+              className="text-meta text-muted-foreground"
+            >
+              Password
+            </FieldLabel>
+            <PasswordField
+              id={FIELD_IDS.password}
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              invalid={Boolean(passwordError)}
+              describedBy={
+                passwordError ? `${FIELD_IDS.password}-error` : undefined
+              }
+              disabled={pending}
+            />
+            {passwordError ? (
+              <FieldError id={`${FIELD_IDS.password}-error`}>
+                {passwordError}
+              </FieldError>
+            ) : null}
+          </Field>
+          <Button
+            type="submit"
+            size="lg"
+            pending={pending}
+            pendingLabel="Signing in…"
+            disabled={password.length === 0}
+            className="w-full font-semibold"
+          >
+            Sign in
+          </Button>
+          <p className="text-center">
+            <button
+              type="button"
+              className={cn(
+                touchHitArea,
+                "text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]",
+              )}
+              disabled={pending}
+              onClick={back}
+            >
+              Change number
+            </button>
+          </p>
+        </form>
+      </AuthScreen>
+    );
+  }
+
+  if (step === "code") {
     return (
       <AuthScreen
         onBack={back}
@@ -454,87 +487,11 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
           }}
           startedAt={startedAt}
           pending={pending}
-          globalMessage={
-            passwordRevealed ? null : (split?.globalMessage ?? null)
-          }
+          globalMessage={split?.globalMessage ?? null}
           codeError={split?.fieldErrors.code}
           codeInputId={FIELD_IDS.code}
-          summaryRef={passwordRevealed ? undefined : summaryRef}
-          helper={
-            mode === "sign-in"
-              ? "Button unlocks at six digits. Known numbers go straight to Home."
-              : "Button unlocks at six digits."
-          }
+          summaryRef={summaryRef}
         />
-        {mode === "sign-in" ? (
-          passwordRevealed ? (
-            <form
-              className="border-rule mt-6 flex flex-col gap-[18px] border-t pt-6"
-              onSubmit={onSignInWithPassword}
-              noValidate
-            >
-              <FormErrorSummary
-                ref={summaryRef}
-                message={split?.globalMessage}
-              />
-              <Field>
-                <FieldLabel
-                  htmlFor={FIELD_IDS.signInPassword}
-                  className="text-meta text-muted-foreground"
-                >
-                  Password
-                </FieldLabel>
-                <PasswordField
-                  id={FIELD_IDS.signInPassword}
-                  value={password}
-                  onChange={setPassword}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  invalid={Boolean(passwordError)}
-                  describedBy={
-                    passwordError
-                      ? `${FIELD_IDS.signInPassword}-error`
-                      : undefined
-                  }
-                  disabled={pending}
-                />
-                {passwordError ? (
-                  <FieldError id={`${FIELD_IDS.signInPassword}-error`}>
-                    {passwordError}
-                  </FieldError>
-                ) : null}
-              </Field>
-              <Button
-                type="submit"
-                size="lg"
-                variant="outline"
-                pending={pending}
-                pendingLabel="Signing in…"
-                disabled={password.length === 0}
-                className="border-rule bg-paper hover:bg-wash w-full font-semibold"
-              >
-                Sign in with password
-              </Button>
-            </form>
-          ) : (
-            <p className="mt-5 text-center">
-              <button
-                type="button"
-                className={cn(
-                  touchHitArea,
-                  "text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]",
-                )}
-                disabled={pending}
-                onClick={() => {
-                  setSplit(null);
-                  setPasswordRevealed(true);
-                }}
-              >
-                Sign in with password instead
-              </button>
-            </p>
-          )
-        ) : null}
       </AuthScreen>
     );
   }
@@ -633,7 +590,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     );
   }
 
-  if (step === "password") {
+  if (step === "new-password") {
     const passwordError = split?.fieldErrors.password;
     const describedBy = [
       FIELD_IDS.passwordHint,
@@ -705,7 +662,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       backHref={authCrossLinkUrl("/", redirectUrl)}
       backLabel="Back"
       title={title}
-      description="We text a six digit code to confirm it's you. If the number is new to us, we create your account."
+      description="Known numbers sign in with a password. If the number is new to us, we text a six digit code and create your account."
       footer={
         <p className="text-meta text-muted-foreground flex items-baseline justify-between gap-3">
           <span>Invited to a Group?</span>
@@ -715,7 +672,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     >
       <form
         className="flex flex-col gap-[18px]"
-        onSubmit={onSendCode}
+        onSubmit={onContinue}
         noValidate
       >
         <FormErrorSummary ref={summaryRef} message={split?.globalMessage} />
@@ -748,11 +705,11 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
           type="submit"
           size="lg"
           pending={pending}
-          pendingLabel="Sending code…"
+          pendingLabel="Checking…"
           disabled={!isLoaded}
           className="w-full font-semibold"
         >
-          Send code
+          Continue
         </Button>
         <AuthTermsNote lead="Standard SMS rates may apply." />
         <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
