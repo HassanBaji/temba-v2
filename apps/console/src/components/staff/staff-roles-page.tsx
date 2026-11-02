@@ -42,7 +42,6 @@ export function StaffRolesPage() {
         <ManagersTable
           venueId={venue.id}
           managers={venue.managers}
-          viewer={user ? { username: user.username } : null}
           canRemove={isOperator}
         />
         <ManagerCapabilitiesCard />

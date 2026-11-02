@@ -15,7 +15,7 @@ import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import { PersonMonogram } from "./person-monogram";
-import { managerSubtitle, type ViewerIdentity } from "./staff-model";
+import { managerSubtitle } from "./staff-model";
 
 type Manager = {
   id: string;
@@ -23,6 +23,7 @@ type Manager = {
   name: string;
   username: string | null;
   image: string | null;
+  isViewer: boolean;
 };
 
 const rowGrid = "grid grid-cols-[1.6fr_120px_40px] items-center gap-3";
@@ -30,12 +31,10 @@ const rowGrid = "grid grid-cols-[1.6fr_120px_40px] items-center gap-3";
 export function ManagersTable({
   venueId,
   managers,
-  viewer,
   canRemove,
 }: {
   venueId: string;
   managers: readonly Manager[];
-  viewer: ViewerIdentity;
   canRemove: boolean;
 }) {
   const utils = api.useUtils();
@@ -76,7 +75,7 @@ export function ManagersTable({
 
         <ul className="divide-border divide-y">
           {managers.map((manager) => {
-            const subtitle = managerSubtitle(manager, viewer);
+            const subtitle = managerSubtitle(manager);
             return (
               <li
                 key={manager.id}
