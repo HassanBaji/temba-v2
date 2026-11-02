@@ -22,22 +22,43 @@ import {
   gameKickTarget,
   type GameKickRequest,
 } from "@repo/domain/game-kick-confirm";
+import {
+  gameEditSectionsFor,
+  type GameEditSource,
+} from "@repo/domain/game-edit-form";
 import { useMemo, useState } from "react";
 
 import { slotOf } from "../lib/slot-of";
 import { useToast } from "../primitives/toast";
-import { api } from "../trpc/react";
+import { api, type RouterOutputs } from "../trpc/react";
 import type { ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import type { OrganizerHandlers } from "./organizer-card";
 import type { EditSection, OrganizerSheetsProps } from "./organizer-sheets";
+import { useGameEdit } from "./use-game-edit";
+
+type EditGame = RouterOutputs["games"]["byId"];
 
 type Options = {
   gameId: string;
-  game: FriendlyGameOrganizerInput | null;
+  game: (FriendlyGameOrganizerInput & EditGame) | null;
   partnerRequired: boolean;
   refresh: () => Promise<unknown>;
   setConfirm: (request: ConfirmRequest | null) => void;
+};
+
+const EMPTY_EDIT_SOURCE: GameEditSource = {
+  name: null,
+  hasCustomName: false,
+  windowStart: null,
+  windowEnd: null,
+  pricePerPlayerFils: null,
+  playersAllowed: null,
+  sideSize: null,
+  levelMinTenths: null,
+  levelMaxTenths: null,
+  roundCount: null,
+  seasonId: null,
 };
 
 export function useOrganizerActions({
@@ -51,11 +72,25 @@ export function useOrganizerActions({
   const utils = api.useUtils();
   const [section, setSection] = useState<EditSection | null>(null);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
-  const [now] = useState(() => new Date());
   const plan = useMemo(
     () => (game ? friendlyGameOrganizerPlan(game) : null),
     [game],
   );
+  const editSections = gameEditSectionsFor({
+    format: game?.format ?? "friendly_game",
+    sport: game?.sport,
+    groupId: game?.groupId ?? null,
+    tournamentRounds: false,
+  });
+  const edit = useGameEdit({
+    gameId,
+    game: game ?? EMPTY_EDIT_SOURCE,
+    sections: editSections,
+    seasons: game?.groupSeasons ?? [],
+    open: section === "edit",
+    onSaved: refresh,
+    onClose: () => setSection(null),
+  });
 
   const refreshRatings = async () => {
     await utils.ratings.me.invalidate();
@@ -122,34 +157,6 @@ export function useOrganizerActions({
     onError: failure,
     onSettled: refresh,
   });
-  const updateWindow = api.games.updateWindow.useMutation({
-    onSuccess: () => {
-      toast.show("Window saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
-  });
-  const updateName = api.games.updateName.useMutation({
-    onSuccess: () => {
-      toast.show("Name saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
-  });
-  const updatePrice = api.games.updatePricePerPlayer.useMutation({
-    onSuccess: () => {
-      toast.show("Price per player saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
-  });
-  const updateLevel = api.games.updateLevelRange.useMutation({
-    onSuccess: () => {
-      toast.show("Level range saved");
-      setSection("menu");
-    },
-    onSettled: refresh,
-  });
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: () => {
       toast.show("Match updated");
@@ -204,7 +211,7 @@ export function useOrganizerActions({
     }
     switch (kind) {
       case "edit":
-        setSection("menu");
+        setSection("edit");
         return true;
       case "cancel_game":
         setConfirm({
@@ -272,44 +279,25 @@ export function useOrganizerActions({
     onAddPlayer: () => setAddPlayerOpen(true),
   };
 
-  const sheets: Omit<OrganizerSheetsProps, "game"> = {
+  const sheets: OrganizerSheetsProps = {
     section,
     onSection: setSection,
+    edit,
+    editSections,
+    editContext: {
+      venueName: game?.venue?.name ?? null,
+      courtName: game?.recordedCourts[0]?.name ?? null,
+      groupName: game?.groupName ?? null,
+      joined: game?.registeredUserCount ?? 0,
+      seasons: game?.groupSeasons ?? [],
+      canChangeSeason: game?.canChangeSeason ?? false,
+    },
     courtId:
       game?.matches.find((match) => match.id === plan?.court?.matchId)
         ?.courtId ?? null,
     courts: slotOf(courts),
-    now,
-    pending: {
-      name: updateName.isPending,
-      window: updateWindow.isPending,
-      price: updatePrice.isPending,
-      level: updateLevel.isPending,
-      court: updateMatch.isPending,
-    },
-    errors: {
-      name: updateName.error?.message ?? null,
-      window: updateWindow.error?.message ?? null,
-      price: updatePrice.error?.message ?? null,
-      level: updateLevel.error?.message ?? null,
-      court: updateMatch.error?.message ?? null,
-    },
-    onSaveName: (customName) => {
-      updateName.reset();
-      updateName.mutate({ gameId, customName });
-    },
-    onSaveWindow: (input) => {
-      updateWindow.reset();
-      updateWindow.mutate({ gameId, ...input });
-    },
-    onSavePrice: (fils) => {
-      updatePrice.reset();
-      updatePrice.mutate({ gameId, pricePerPlayerFils: fils });
-    },
-    onSaveLevel: (input) => {
-      updateLevel.reset();
-      updateLevel.mutate({ gameId, ...input });
-    },
+    courtPending: updateMatch.isPending,
+    courtError: updateMatch.error?.message ?? null,
     onChooseCourt: (courtId) => {
       const matchId = plan?.court?.matchId;
       if (matchId) {

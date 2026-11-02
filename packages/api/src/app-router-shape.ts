@@ -112,6 +112,7 @@ type ExpectedGames =
   | "updatePricePerPlayer"
   | "updateLevelRange"
   | "updateRoundCount"
+  | "updateSeason"
   | "requestLevelRange"
   | "listLevelRangeRequests"
   | "approveLevelRangeRequest"

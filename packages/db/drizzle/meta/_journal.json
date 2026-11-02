@@ -519,6 +519,13 @@
       "when": 1793606787654,
       "tag": "0073_user_first_last_name",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793623644685,
+      "tag": "0074_game_season_link",
+      "breakpoints": true
     }
   ]
 }

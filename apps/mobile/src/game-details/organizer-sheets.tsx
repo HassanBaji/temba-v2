@@ -1,29 +1,4 @@
-import {
-  gameLevelRangeSaveInput,
-  gameWindowSaveInput,
-} from "@repo/domain/game-edit-save";
-import {
-  formatDayLabel,
-  formatTimeSlotLabel,
-  gameEditWindowChoices,
-  splitGameWindow,
-} from "@repo/domain/game-window";
-import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
-import {
-  GAME_CUSTOM_NAME_MAX_LENGTH,
-  gameCustomName,
-} from "@repo/domain/game-custom-name";
-import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
-import {
-  LEVEL_BAND_SELECT_NONE,
-  tenthsToLevelBandSelectValue,
-  type LevelBandSelectValue,
-} from "@repo/domain/level-range";
-import {
-  filsToMajorInput,
-  parseOptionalPricePerPlayerFils,
-} from "@repo/domain/price-per-player";
-import { useState } from "react";
+import type { GameEditSections } from "@repo/domain/game-edit-form";
 import { ScrollView, View } from "react-native";
 
 import { ChipGrid, FieldError } from "../create-game/chips";
@@ -31,303 +6,27 @@ import type { Slot } from "../home/home-model";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
-import { TextField } from "../primitives/text-field";
+import { GameEditSheet, type GameEditContext } from "./game-edit-sheet";
+import type { GameEditController } from "./use-game-edit";
 
 const SCROLL_MAX_HEIGHT = 420;
 
-export type EditSection =
-  | "menu"
-  | "name"
-  | "window"
-  | "price"
-  | "level"
-  | "court";
+export type EditSection = "edit" | "court";
 
 export type CourtChoice = { id: string; name: string; venueName: string };
 
 export type OrganizerSheetsProps = {
   section: EditSection | null;
   onSection: (section: EditSection | null) => void;
-  game: NameFormGame & {
-    windowStart: Date | null;
-    windowEnd: Date | null;
-    pricePerPlayerFils: number | null;
-    levelMinTenths: number | null;
-    levelMaxTenths: number | null;
-  };
+  edit: GameEditController;
+  editSections: GameEditSections;
+  editContext: GameEditContext;
   courtId: string | null;
   courts: Slot<CourtChoice[]>;
-  now: Date;
-  pending: {
-    name: boolean;
-    window: boolean;
-    price: boolean;
-    level: boolean;
-    court: boolean;
-  };
-  errors: {
-    name: string | null;
-    window: string | null;
-    price: string | null;
-    level: string | null;
-    court: string | null;
-  };
-  onSaveName: (customName: string | null) => void;
-  onSaveWindow: (
-    input: NonNullable<ReturnType<typeof gameWindowSaveInput>>,
-  ) => void;
-  onSavePrice: (fils: number | null) => void;
-  onSaveLevel: (input: {
-    levelMinTenths: number | null;
-    levelMaxTenths: number | null;
-  }) => void;
+  courtPending: boolean;
+  courtError: string | null;
   onChooseCourt: (courtId: string | null) => void;
 };
-
-export function SaveRow({
-  pending,
-  onSave,
-  onBack,
-}: {
-  pending: boolean;
-  onSave: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <View style={{ flexDirection: "row", gap: 8 }}>
-      <Button label="Back" variant="outline" onPress={onBack} />
-      <Button label="Save" pending={pending} onPress={onSave} />
-    </View>
-  );
-}
-
-type NameFormGame = { name: string | null; hasCustomName?: boolean };
-
-export function NameForm({
-  game,
-  pending,
-  error,
-  onSave,
-  onBack,
-}: {
-  game: NameFormGame;
-  pending: boolean;
-  error: string | null;
-  onSave: (customName: string | null) => void;
-  onBack: () => void;
-}) {
-  const [text, setText] = useState(() => gameCustomName(game) ?? "");
-  return (
-    <>
-      <TextField
-        label="Game name"
-        value={text}
-        maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
-        onChangeText={setText}
-        error={error ?? undefined}
-      />
-      <Text size="meta" tone="muted">
-        Shown on the Game and at the top of the invite message. Leave blank to
-        use the day and time.
-      </Text>
-      <SaveRow
-        pending={pending}
-        onSave={() => onSave(text.trim() || null)}
-        onBack={onBack}
-      />
-    </>
-  );
-}
-
-export function WindowForm({
-  game,
-  now,
-  pending,
-  error,
-  onSave,
-  onBack,
-}: {
-  game: Pick<OrganizerSheetsProps["game"], "windowStart" | "windowEnd">;
-  now: Date;
-  pending: boolean;
-  error: string | null;
-  onSave: OrganizerSheetsProps["onSaveWindow"];
-  onBack: () => void;
-}) {
-  const [draft, setDraft] = useState(() =>
-    splitGameWindow(game.windowStart, game.windowEnd),
-  );
-  const [localError, setLocalError] = useState<string | null>(null);
-  const choices = gameEditWindowChoices(draft, now);
-
-  function save() {
-    const input = gameWindowSaveInput(
-      draft.day,
-      draft.startTime,
-      draft.finishTime,
-    );
-    if (!input) {
-      setLocalError("Pick a day, a start time and a finish time");
-      return;
-    }
-    setLocalError(null);
-    onSave(input);
-  }
-
-  return (
-    <>
-      <ScrollView style={{ maxHeight: SCROLL_MAX_HEIGHT }}>
-        <View style={{ gap: 12 }}>
-          <Text weight="medium">Day</Text>
-          <ChipGrid
-            label="Day"
-            columns={3}
-            chips={choices.days.map((day) => ({
-              value: day,
-              label: formatDayLabel(day) ?? day,
-            }))}
-            isSelected={(day) => day === draft.day}
-            onSelect={(day) => setDraft({ ...draft, day })}
-          />
-          <Text weight="medium">Start time</Text>
-          <ChipGrid
-            label="Start time"
-            columns={3}
-            chips={choices.startSlots.map((slot) => ({
-              value: slot,
-              label: formatTimeSlotLabel(slot),
-            }))}
-            isSelected={(slot) => slot === draft.startTime}
-            onSelect={(startTime) => setDraft({ ...draft, startTime })}
-          />
-          <Text weight="medium">Finish time</Text>
-          <ChipGrid
-            label="Finish time"
-            columns={3}
-            chips={choices.finishSlots.map((slot) => ({
-              value: slot,
-              label: formatTimeSlotLabel(slot),
-            }))}
-            isSelected={(slot) => slot === draft.finishTime}
-            onSelect={(finishTime) => setDraft({ ...draft, finishTime })}
-          />
-        </View>
-      </ScrollView>
-      <FieldError message={localError ?? error ?? undefined} />
-      <SaveRow pending={pending} onSave={save} onBack={onBack} />
-    </>
-  );
-}
-
-export function PriceForm({
-  fils,
-  pending,
-  error,
-  onSave,
-  onBack,
-}: {
-  fils: number | null;
-  pending: boolean;
-  error: string | null;
-  onSave: (fils: number | null) => void;
-  onBack: () => void;
-}) {
-  const [text, setText] = useState(() => filsToMajorInput(fils));
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  function save() {
-    const parsed = parseOptionalPricePerPlayerFils(text);
-    if (!parsed.ok) {
-      setLocalError(parsed.message);
-      return;
-    }
-    setLocalError(null);
-    onSave(parsed.fils);
-  }
-
-  return (
-    <>
-      <TextField
-        label="Price in BD"
-        value={text}
-        keyboardType="decimal-pad"
-        onChangeText={(next) => {
-          setText(next);
-          setLocalError(null);
-        }}
-        error={localError ?? error ?? undefined}
-      />
-      <Text size="meta" tone="muted">
-        Leave blank to remove the price. Zero means free.
-      </Text>
-      <SaveRow pending={pending} onSave={save} onBack={onBack} />
-    </>
-  );
-}
-
-function LevelForm({
-  minTenths,
-  maxTenths,
-  pending,
-  error,
-  onSave,
-  onBack,
-}: {
-  minTenths: number | null;
-  maxTenths: number | null;
-  pending: boolean;
-  error: string | null;
-  onSave: OrganizerSheetsProps["onSaveLevel"];
-  onBack: () => void;
-}) {
-  const [min, setMin] = useState<LevelBandSelectValue>(() =>
-    tenthsToLevelBandSelectValue(minTenths),
-  );
-  const [max, setMax] = useState<LevelBandSelectValue>(() =>
-    tenthsToLevelBandSelectValue(maxTenths),
-  );
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  const bands = (bound: "min" | "max") => [
-    { value: LEVEL_BAND_SELECT_NONE, label: "Any", disabled: false },
-    ...ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
-      value: band,
-      label: band,
-      disabled: isLevelBoundDisabled(bound, band, bound === "min" ? max : min),
-    })),
-  ];
-
-  function save() {
-    const result = gameLevelRangeSaveInput(min, max);
-    if (!result.ok) {
-      setLocalError(result.message);
-      return;
-    }
-    setLocalError(null);
-    onSave(result.input);
-  }
-
-  return (
-    <>
-      <Text weight="medium">Minimum Level</Text>
-      <ChipGrid
-        label="Minimum Level"
-        chips={bands("min")}
-        isSelected={(value) => value === min}
-        onSelect={(value) => setMin(value)}
-      />
-      <Text weight="medium">Maximum Level</Text>
-      <ChipGrid
-        label="Maximum Level"
-        chips={bands("max")}
-        isSelected={(value) => value === max}
-        onSelect={(value) => setMax(value)}
-      />
-      <FieldError message={localError ?? error ?? undefined} />
-      <SaveRow pending={pending} onSave={save} onBack={onBack} />
-    </>
-  );
-}
 
 const NO_COURT = "none";
 
@@ -378,91 +77,25 @@ function CourtForm({
 }
 
 export function OrganizerSheets(props: OrganizerSheetsProps) {
-  const { section, onSection, game } = props;
+  const { section, onSection } = props;
   const close = () => onSection(null);
-  const back = () => onSection("menu");
 
   return (
     <>
-      <Sheet visible={section === "menu"} onClose={close} title="Edit Game">
-        <Button
-          label="Name"
-          variant="outline"
-          onPress={() => onSection("name")}
-        />
-        <Button
-          label="Window"
-          variant="outline"
-          onPress={() => onSection("window")}
-        />
-        <Button
-          label="Price per player"
-          variant="outline"
-          onPress={() => onSection("price")}
-        />
-        <Button
-          label="Level range"
-          variant="outline"
-          onPress={() => onSection("level")}
-        />
-      </Sheet>
-      <Sheet visible={section === "name"} onClose={back} title="Name">
-        {section === "name" ? (
-          <NameForm
-            game={game}
-            pending={props.pending.name}
-            error={props.errors.name}
-            onSave={props.onSaveName}
-            onBack={back}
-          />
-        ) : null}
-      </Sheet>
-      <Sheet visible={section === "window"} onClose={back} title="Window">
-        {section === "window" ? (
-          <WindowForm
-            game={game}
-            now={props.now}
-            pending={props.pending.window}
-            error={props.errors.window}
-            onSave={props.onSaveWindow}
-            onBack={back}
-          />
-        ) : null}
-      </Sheet>
-      <Sheet
-        visible={section === "price"}
-        onClose={back}
-        title="Price per player"
-      >
-        {section === "price" ? (
-          <PriceForm
-            fils={game.pricePerPlayerFils}
-            pending={props.pending.price}
-            error={props.errors.price}
-            onSave={props.onSavePrice}
-            onBack={back}
-          />
-        ) : null}
-      </Sheet>
-      <Sheet visible={section === "level"} onClose={back} title="Level range">
-        {section === "level" ? (
-          <LevelForm
-            minTenths={game.levelMinTenths}
-            maxTenths={game.levelMaxTenths}
-            pending={props.pending.level}
-            error={props.errors.level}
-            onSave={props.onSaveLevel}
-            onBack={back}
-          />
-        ) : null}
-      </Sheet>
+      <GameEditSheet
+        visible={section === "edit"}
+        onClose={close}
+        edit={props.edit}
+        sections={props.editSections}
+        context={props.editContext}
+      />
       <Sheet visible={section === "court"} onClose={close} title="Court">
         {section === "court" ? (
           <CourtForm
             courtId={props.courtId}
             courts={props.courts}
-            pending={props.pending.court}
-            error={props.errors.court}
+            pending={props.courtPending}
+            error={props.courtError}
             onChoose={props.onChooseCourt}
             onBack={close}
           />

@@ -234,10 +234,7 @@ export function footballGameDetailsModel(
     organizer: organizerActive
       ? {
           registration: input.registrationClosedAt ? "reopen" : "close",
-          capBounds: {
-            min: Math.max(bounds.min, input.roster.count),
-            max: FOOTBALL_PLAYERS_ALLOWED_MAX,
-          },
+          capBounds: { min: bounds.min, max: FOOTBALL_PLAYERS_ALLOWED_MAX },
           cancelLabel: CANCEL_GAME_ACTION,
         }
       : null,
