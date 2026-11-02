@@ -158,6 +158,7 @@ export async function managedVenueById(
       name: row.user.name,
       username: row.user.username,
       image: row.user.image,
+      isViewer: row.userId === args.userId,
       createdAt: row.createdAt,
     })),
   };

@@ -112,10 +112,16 @@ describe("Venue manager doors", () => {
     try {
       const venue = await insertVenue(db, "Club A");
       const manager = await insertUser(db, "Manager");
+      const colleague = await insertUser(db, "Colleague");
       const stranger = await insertUser(db, "Stranger");
       await addManager(db, {
         venueId: venue.id,
         userId: manager.id,
+        grantedByUserId: null,
+      });
+      await addManager(db, {
+        venueId: venue.id,
+        userId: colleague.id,
         grantedByUserId: null,
       });
 
@@ -127,7 +133,12 @@ describe("Venue manager doors", () => {
       expect(result.acceptingBookings).toBe(false);
       expect(result.slotMinutes).toBe(30);
       expect(result.durationOptionsMinutes).toEqual([60, 90]);
-      expect(result.managers.map((row) => row.userId)).toEqual([manager.id]);
+      expect(
+        result.managers.map((row) => [row.userId, row.username, row.isViewer]),
+      ).toEqual([
+        [manager.id, null, true],
+        [colleague.id, null, false],
+      ]);
 
       await expect(
         managedVenueById(db, {

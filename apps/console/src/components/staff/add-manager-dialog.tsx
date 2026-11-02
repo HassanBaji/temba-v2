@@ -72,8 +72,8 @@ export function AddManagerDialog({
         <DialogHeader>
           <DialogTitle>Add manager</DialogTitle>
           <DialogDescription>
-            Search Temba Users by name, username, email or phone. They manage
-            this Venue with the account they play with.
+            Search Temba Users by name, email or phone. They manage this Venue
+            with the account they play with.
           </DialogDescription>
         </DialogHeader>
 
@@ -86,7 +86,7 @@ export function AddManagerDialog({
             aria-label="Search Users"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, username, email or phone"
+            placeholder="Search by name, email or phone"
             maxLength={100}
             autoComplete="off"
             autoFocus
