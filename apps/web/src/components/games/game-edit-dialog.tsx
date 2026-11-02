@@ -160,7 +160,10 @@ export function GameEditDialog({
     : undefined;
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
+      <ResponsiveDialogContent
+        restoreFocusRef={restoreFocusRef}
+        className="md:max-h-[calc(100dvh-4rem)] md:grid-rows-[auto_minmax(0,1fr)]"
+      >
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>{EDIT_GAME_ACTION}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
@@ -169,7 +172,7 @@ export function GameEditDialog({
               : "Venue cannot change. Update the window, optional price per player, and optional Level range. Each section saves on its own."}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <div className="space-y-8 px-4 pb-4 md:px-0 md:pb-0">
+        <div className="min-h-0 space-y-8 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-0 md:pb-0">
           {customName ? (
             <form
               className="space-y-3"

@@ -28,7 +28,9 @@ export function groupEditSubtitle(data: GroupHomeData) {
 }
 
 export function groupEditSaveFooter(dirty: boolean) {
-  return dirty ? null : GROUP_EDIT_COPY.nothingChanged;
+  return dirty
+    ? GROUP_EDIT_COPY.unsavedChanges
+    : GROUP_EDIT_COPY.nothingChanged;
 }
 
 export const GROUP_EDIT_NOT_FOUND_COPY = {

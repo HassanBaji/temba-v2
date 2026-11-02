@@ -5,7 +5,6 @@ import {
   groupTransferConfirmLabel,
   groupTransferOwnershipCopy,
 } from "@repo/domain/group-settings";
-import { X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -13,7 +12,6 @@ import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
-import { HeaderIconButton } from "../primitives/screen-header";
 import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -71,14 +69,7 @@ export function TransferOwnershipSheet({
       subtitle={copy.description}
       tall={tall}
       footer={tall ? confirm : undefined}
-      action={
-        <HeaderIconButton
-          framed
-          icon={X}
-          accessibilityLabel="Close"
-          onPress={onClose}
-        />
-      }
+      closeButton
     >
       <View style={{ gap: 14 }}>
         {candidates.length === 0 ? (

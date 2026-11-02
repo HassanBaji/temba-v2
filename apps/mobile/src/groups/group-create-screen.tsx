@@ -14,7 +14,7 @@ import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import { GroupCreateView } from "./group-create-view";
+import { GroupCreateFooter, GroupCreateView } from "./group-create-view";
 import { groupPath } from "./groups-model";
 import { pickGroupImage } from "./pick-group-image";
 import type { PickedImage } from "./group-image";
@@ -151,7 +151,16 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   }
 
   return (
-    <Screen>
+    <Screen
+      footer={
+        <GroupCreateFooter
+          context={context}
+          name={name}
+          pending={submitting}
+          onSubmit={() => void submit()}
+        />
+      }
+    >
       <GroupCreateView
         context={context}
         name={name}
@@ -179,7 +188,6 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
           setImageError(null);
         }}
         pending={submitting}
-        onSubmit={() => void submit()}
         onCancel={() => router.back()}
       />
     </Screen>

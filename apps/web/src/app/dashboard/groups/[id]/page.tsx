@@ -15,6 +15,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
 import { GroupAddPlayerDialog } from "~/components/groups/group-add-player-dialog";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
 import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
@@ -83,9 +84,12 @@ import {
   GROUP_JOIN_REQUEST_UNDO_LABEL,
   groupJoinRequestDecidedToast,
   type GroupJoinRequestDecision,
-  groupDeleteConfirm,
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
+import {
+  groupMenuRoleLine,
+  groupSeasonCount,
+} from "@repo/domain/group-settings";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -564,10 +568,16 @@ export default function GroupHomePage({
     canDelete: data.canDelete,
     canLeaveVenueCommunity: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
+    canEdit: data.canEdit,
   });
   const leaveConfirm = groupLeaveConfirm(groupName);
   const leaveVenueConfirm = groupLeaveVenueConfirm(groupName, venueName);
-  const deleteConfirm = groupDeleteConfirm(groupName);
+  const viewerEntry = data.standing.leaderboard.find((entry) => entry.isViewer);
+  const menuRoleLine = groupMenuRoleLine({
+    isOwner: data.isOwner,
+    isOrganizer: viewerEntry?.isOrganizer ?? false,
+    isMember: data.membership != null,
+  });
   const removeImageConfirm = groupRemoveImageConfirm(groupName);
   const restoreFocusRef =
     restoreFocus === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef;
@@ -576,6 +586,8 @@ export default function GroupHomePage({
     <GroupHomeOverflowMenu
       items={overflowItems}
       groupId={id}
+      groupName={groupName}
+      roleLine={menuRoleLine}
       communityId={data.community?.id ?? null}
       communityName={data.community?.name ?? null}
       venueName={data.venueCommunity?.venueName ?? null}
@@ -956,17 +968,16 @@ export default function GroupHomePage({
         }}
       />
 
-      <ConfirmDialog
+      <DeleteGroupSheet
         open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title={deleteConfirm.title}
-        description={deleteConfirm.description}
-        confirmLabel={deleteConfirm.confirmLabel}
+        name={data.name}
+        gameCount={data.totalGamesPlayed}
+        memberCount={data.standing.memberCount}
+        seasonCount={groupSeasonCount(data.createdAt)}
         pending={deleteGroup.isPending}
         restoreFocusRef={restoreFocusRef}
-        onConfirm={async () => {
-          await deleteGroup.mutateAsync({ groupId: id });
-        }}
+        onDelete={() => deleteGroup.mutate({ groupId: id })}
+        onOpenChange={setDeleteOpen}
       />
 
       <ConfirmDialog

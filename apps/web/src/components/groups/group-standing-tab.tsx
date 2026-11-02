@@ -322,12 +322,12 @@ function StandingTable({
             <tr className="border-rule bg-wash border-t">
               <td
                 colSpan={7}
-                className="text-eyebrow text-muted-foreground flex items-center justify-between px-4 py-2 uppercase tracking-[0.06em]"
+                className="text-eyebrow text-muted-foreground px-4 py-2"
               >
-                <span>Unranked</span>
-                <span className="normal-case tracking-normal">
-                  {unrankedNote()}
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="uppercase tracking-[0.06em]">Unranked</span>
+                  <span>{unrankedNote()}</span>
+                </div>
               </td>
             </tr>
           ) : null}

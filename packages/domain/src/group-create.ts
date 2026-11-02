@@ -74,3 +74,12 @@ export const GROUP_CREATE_SCREEN = {
 export function groupCreateCanSubmit(name: string) {
   return name.trim().length > 0;
 }
+
+/** The Create button names the Group once it has a name. */
+export function groupCreateSubmitLabel(
+  context: GroupCreateContext,
+  name: string,
+) {
+  const trimmed = name.trim();
+  return trimmed ? `Create ${trimmed}` : GROUP_CREATE_COPY[context].submit;
+}

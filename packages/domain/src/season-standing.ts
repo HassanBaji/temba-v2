@@ -270,9 +270,12 @@ export function seasonStandingTable<
   ];
 }
 
-/** `"Fewer than 3 games"`, the UNRANKED divider's note. */
+/** `"No games yet"` or `"Fewer than 3 games"`, the UNRANKED divider's note. */
 export function unrankedNote(minRankedGames = SEASON_MIN_RANKED_GAMES) {
-  return `Fewer than ${minRankedGames} ${minRankedGames === 1 ? "game" : "games"}`;
+  if (minRankedGames <= 1) {
+    return "No games yet";
+  }
+  return `Fewer than ${minRankedGames} games`;
 }
 
 /** The footer under the table, by sport. */
@@ -282,7 +285,13 @@ export function standingRulesLine(
 ) {
   const difference =
     diffUnit === "sets" ? "set difference" : "score difference";
-  return `Win ${SEASON_POINTS.win}, draw ${SEASON_POINTS.draw}, loss ${SEASON_POINTS.loss}, to every player on the team. Only games with a confirmed final score count. Ties: wins, then head-to-head, then ${difference}, then fewer games played. Play ${minRankedGames} games to be ranked.`;
+  return `Win ${SEASON_POINTS.win}, draw ${SEASON_POINTS.draw}, loss ${SEASON_POINTS.loss}, to every player on the team. Only games with a confirmed final score count. Ties: wins, then head-to-head, then ${difference}, then fewer games played. ${rankedAfterLine(minRankedGames)}`;
+}
+
+function rankedAfterLine(minRankedGames: number) {
+  return minRankedGames <= 1
+    ? "One game ranks you."
+    : `Play ${minRankedGames} games to be ranked.`;
 }
 
 /** `"5–2–1"`: wins, draws, losses. */

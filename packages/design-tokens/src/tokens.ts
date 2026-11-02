@@ -14,6 +14,8 @@ export const colors = {
   // faint (#9a9a9a) is deliberately absent: 2.56:1 on wash
   hatchStroke: "#dcdcdc",
   hatchStrokeOnInk: "#333333",
+  // The one colour outside black and white: a destructive action, never chrome.
+  danger: "#b42318",
 } as const;
 
 export const spacing = {
@@ -29,6 +31,7 @@ export const radii = {
   lg: 12,
   card: 14,
   surface: 16,
+  sheet: 20,
 } as const;
 
 export const typeScale = {
