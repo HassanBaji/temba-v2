@@ -275,6 +275,11 @@ describe("standing copy", () => {
   it("reads the record, the unranked note and the rules", () => {
     expect(standingRecordLabel({ wins: 5, draws: 2, losses: 1 })).toBe("5–2–1");
     expect(unrankedNote(3)).toBe("Fewer than 3 games");
+    expect(unrankedNote(1)).toBe("No games yet");
+    expect(standingRulesLine("sets", 3)).toContain(
+      "Play 3 games to be ranked.",
+    );
+    expect(standingRulesLine("sets", 1)).toContain("One game ranks you.");
     expect(standingRulesLine("sets")).toContain("set difference");
     expect(standingRulesLine("games")).toContain("score difference");
   });

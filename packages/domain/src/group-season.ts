@@ -21,8 +21,8 @@ export const SEASON_NAME_MAX_LENGTH = 40;
 /** Points per game: win, draw, loss. */
 export const SEASON_POINTS = { win: 3, draw: 1, loss: 0 } as const;
 
-/** Games a member plays in the lens before they hold a rank. */
-export const SEASON_MIN_RANKED_GAMES = 3;
+/** Games a member plays in the lens before they hold a rank: one result is enough. */
+export const SEASON_MIN_RANKED_GAMES = 1;
 
 export type GroupSeasonStatus = "upcoming" | "active" | "closed";
 

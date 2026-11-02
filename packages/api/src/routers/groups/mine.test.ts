@@ -491,7 +491,7 @@ describe("Standing agrees across Group home, the Groups list and Home", () => {
       }
 
       const before = await positions();
-      // Nobody holds a rank before three results; Home reads a first place
+      // Nobody holds a rank before a result; Home reads a first place
       // for a member with none.
       expect(before[0]).toMatchObject({
         list: null,
@@ -525,6 +525,21 @@ describe("Standing agrees across Group home, the Groups list and Home", () => {
           sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
         });
       }
+
+      // One result each ranks both; equal records fall through to the name.
+      const warmedUp = await positions();
+      expect(warmedUp[0]).toEqual({
+        list: 1,
+        groupHome: 1,
+        leaderboard: 1,
+        home: 1,
+      });
+      expect(warmedUp[1]).toEqual({
+        list: 2,
+        groupHome: 2,
+        leaderboard: 2,
+        home: 2,
+      });
 
       const played = await insertGame(db, {
         createdBy: abe.id,
@@ -603,7 +618,7 @@ describe("Standing agrees across Group home, the Groups list and Home", () => {
         .update(matches)
         .set({ status: MatchStatusEnum.PENDING })
         .where(eq(matches.id, played.matchId));
-      expect(await positions()).toEqual(before);
+      expect(await positions()).toEqual(warmedUp);
     } finally {
       await close();
     }
