@@ -3,11 +3,11 @@ import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 /**
  * Request header `middleware.ts` sets with the current path plus search, so
  * the dashboard layout — which cannot read the request URL any other way —
- * can carry it through as the questionnaire's `redirect_url`.
+ * can carry it through as the wait screen's `redirect_url`.
  */
 export const PATHNAME_HEADER = "x-temba-pathname";
 
-/** Route the Onboarding questionnaire lives on. */
+/** Route the Profile checklist lives on. */
 export const ONBOARDING_PATH = "/onboarding";
 
 /** The fixture-fed Home preview: development-only and deliberately User-less. */
@@ -17,10 +17,9 @@ const DESIGN_PREVIEW_PREFIX = "/dashboard/design";
 export type DashboardOnboardingState = {
   /**
    * No `user` row for the Clerk caller yet — the `user.created` webhook has
-   * not landed. Treated as incomplete, never as `UNAUTHORIZED`.
+   * not landed. The only thing that still keeps a User off `/dashboard`.
    */
   provisioning: boolean;
-  onboardingCompletedAt: Date | null;
 };
 
 /**
@@ -39,17 +38,18 @@ function isDesignPreviewPath(pathname: string) {
 
 /**
  * Where a `/dashboard/**` request should be sent, given the caller's
- * onboarding state and the path they asked for; `null` means let it render.
+ * state and the path they asked for; `null` means let it render.
  *
- * An incomplete User — including one whose `user` row is still provisioning —
- * goes to the questionnaire with the requested path carried as `redirect_url`,
- * so finishing returns them to exactly where they were headed (an Invite
- * accept's `/dashboard/games/{id}` landing included). A complete User is never
- * redirected.
+ * Only a User whose `user` row is still provisioning is redirected: to
+ * `/onboarding`, whose wait state polls until the row lands, with the
+ * requested path carried as `redirect_url` so they return to exactly where
+ * they were headed (an Invite accept's `/dashboard/games/{id}` landing
+ * included). The Onboarding questionnaire is an optional Profile task and
+ * never gates anything (ADR-0049).
  *
  * The path goes through the shipped `safeInternalRedirect`; anything it
  * refuses — or a missing header — drops the `redirect_url` rather than
- * building an open-redirect door, and the questionnaire falls back to
+ * building an open-redirect door, and the checklist falls back to
  * `/dashboard`.
  */
 export function dashboardOnboardingRedirect(args: {
@@ -64,7 +64,7 @@ export function dashboardOnboardingRedirect(args: {
     return null;
   }
 
-  if (!state.provisioning && state.onboardingCompletedAt) {
+  if (!state.provisioning) {
     return null;
   }
 

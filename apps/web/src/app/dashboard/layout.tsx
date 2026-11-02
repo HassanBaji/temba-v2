@@ -13,15 +13,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * The Onboarding questionnaire gate. It lives here rather than in
- * `middleware.ts` because `clerkMiddleware` runs on the edge runtime, where
- * the Drizzle Postgres client is unavailable — and mirroring completion into
- * Clerk session claims would put the source of truth in two places.
+ * The provisioning gate: a User whose `user` row has not landed yet waits on
+ * `/onboarding` instead of meeting `UNAUTHORIZED` here. It lives here rather
+ * than in `middleware.ts` because `clerkMiddleware` runs on the edge runtime,
+ * where the Drizzle Postgres client is unavailable. The Onboarding
+ * questionnaire is an optional Profile task and no longer gates anything
+ * (ADR-0049).
  *
  * Invite routes (`/g/{code}`, `/gr/{code}`, `/invites/**`) sit outside
- * `/dashboard` and stay ungated, so a 6-hour Invite token is never spent
- * behind the questionnaire. The accept's `/dashboard/...` landing hits this
- * gate afterwards and is carried through as `redirect_url`.
+ * `/dashboard` and stay ungated. The accept's `/dashboard/...` landing hits
+ * this gate afterwards and is carried through as `redirect_url`.
  */
 export default async function DashboardLayout({
   children,

@@ -108,6 +108,28 @@ async function storedUser(database: TestDatabase, clerkId: string) {
 }
 
 describe("Clerk user.created / user.updated upsert", () => {
+  it("stores first and last name beside the display name, and falls back to the username without them", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(db, clerkUser({ has_image: false }));
+      let row = await storedUser(db, "user_clerk_alex");
+      expect(row.firstName).toBe("Alex");
+      expect(row.lastName).toBe("River");
+      expect(row.name).toBe("Alex River");
+
+      await upsertUserFromClerk(
+        db,
+        clerkUser({ has_image: false, first_name: null, last_name: " " }),
+      );
+      row = await storedUser(db, "user_clerk_alex");
+      expect(row.firstName).toBeNull();
+      expect(row.lastName).toBeNull();
+      expect(row.name).toBe("alex");
+    } finally {
+      await close();
+    }
+  });
+
   it("persists the image URL on create when has_image is true", async () => {
     const { db, close } = await createPgliteDb();
     try {

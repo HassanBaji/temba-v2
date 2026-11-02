@@ -12,7 +12,9 @@ export type AuthScreenProps = {
   description?: string;
   onBack?: () => void;
   crossLink?: { label: string; onPress: () => void };
-  progress?: { step: number; total: number };
+  /** Mono eyebrow in the header's right slot, such as "Profile / Photo". */
+  meta?: string;
+  progress?: { step: number; total: number; label?: string };
   footer?: React.ReactNode;
   /** Pinned below the scroll, for the screen's one primary action. */
   action?: React.ReactNode;
@@ -61,12 +63,16 @@ function HeaderLink(props: { label: string; onPress: () => void }) {
   );
 }
 
-function ProgressSegments(props: { step: number; total: number }) {
+function ProgressSegments(props: {
+  step: number;
+  total: number;
+  label?: string;
+}) {
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={`Step ${props.step} of ${props.total}`}
-      accessibilityValue={{ min: 1, max: props.total, now: props.step }}
+      accessibilityLabel={props.label ?? `Step ${props.step} of ${props.total}`}
+      accessibilityValue={{ min: 0, max: props.total, now: props.step }}
       style={{ flexDirection: "row", gap: 6, marginTop: -12 }}
     >
       {Array.from({ length: props.total }, (_, index) => (
@@ -90,11 +96,13 @@ export function AuthScreen({
   description,
   onBack,
   crossLink,
+  meta,
   progress,
   footer,
   action,
   children,
 }: AuthScreenProps) {
+  const headerMeta = meta ?? progress?.label;
   return (
     <Screen
       footer={
@@ -116,6 +124,10 @@ export function AuthScreen({
         )}
         {crossLink ? (
           <HeaderLink {...crossLink} />
+        ) : headerMeta ? (
+          <Text size="eyebrow" tone="muted" mono uppercase>
+            {headerMeta}
+          </Text>
         ) : progress ? (
           <Text
             size="eyebrow"

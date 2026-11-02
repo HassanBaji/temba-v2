@@ -66,18 +66,9 @@ export function groupHomeBackTarget(
 }
 
 export function groupHomeHasStandingResults(
-  members: readonly {
-    totalSetsWon: number;
-    totalPointsWon: number;
-    totalGamesPlayed: number;
-  }[],
+  members: readonly { played: number }[],
 ) {
-  return members.some(
-    (member) =>
-      member.totalSetsWon > 0 ||
-      member.totalPointsWon > 0 ||
-      member.totalGamesPlayed > 0,
-  );
+  return members.some((member) => member.played > 0);
 }
 
 export function groupHomeShowsMemberSearch(memberCount: number) {

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { HomeBlock } from "~/components/home/home-block";
 import { HomeHeader } from "~/components/home/home-header";
+import { ProfileChecklistCard } from "~/components/home/profile-checklist-card";
 import {
   levelFromApi,
   slotOf,
@@ -27,8 +28,10 @@ import {
   RECENT_FORM_MATCH_COUNT,
 } from "@repo/domain/home-recent-form";
 import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
+import { profileChecklist } from "@repo/domain/profile-checklist";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { useNow } from "~/hooks/use-now";
+import { profileChecklistInputFrom } from "~/lib/profile-checklist-input";
 import { api } from "~/trpc/react";
 
 export default function HomePage() {
@@ -43,8 +46,18 @@ export default function HomePage() {
     sport,
   });
   const createGroups = api.games.listCreateGroups.useQuery();
+  const onboarding = api.users.onboardingState.useQuery();
 
   const name = user?.fullName ?? user?.firstName ?? user?.username ?? "You";
+  const checklist =
+    user && onboarding.data && !onboarding.data.provisioning
+      ? profileChecklist(
+          profileChecklistInputFrom(
+            user,
+            onboarding.data.onboardingCompletedAt,
+          ),
+        )
+      : null;
   const upNext = slotOf(home, (data) => upNextItems(data.carouselGames));
   const level = slotOf(rating, levelFromApi);
   const recentForm = slotOf(history, deriveRecentForm);
@@ -57,6 +70,8 @@ export default function HomePage() {
       <div className="mt-6 flex w-full min-w-0 flex-col gap-[26px] lg:mt-2">
         <h1 className="sr-only">Home</h1>
         <HomeHeader name={name} image={user?.imageUrl} />
+
+        {checklist ? <ProfileChecklistCard list={checklist} /> : null}
 
         <section className="flex flex-col gap-3">
           <UpNextHeading

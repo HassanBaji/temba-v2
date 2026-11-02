@@ -232,6 +232,34 @@ describe("groups.mine list facts", () => {
         sets: [{ slot1GamesWon: 6, slot2GamesWon: 1 }],
       });
 
+      // Three more results: the leader beats everyone, so the viewer and the
+      // rival tie on points and the viewer's better difference ranks second.
+      const extra = [
+        [leader.id, viewer.id],
+        [leader.id, rival.id],
+        [leader.id, rival.id],
+      ] as const;
+      for (const [index, [winnerId, loserId]] of extra.entries()) {
+        const game = await insertGame(db, {
+          createdBy: viewer.id,
+          venueId: venue.id,
+          groupId: group.id,
+          windowStart: new Date(
+            PAST_START.getTime() + (index + 2) * 60 * 60 * 1000,
+          ),
+          windowEnd: new Date(
+            PAST_END.getTime() + (index + 2) * 60 * 60 * 1000,
+          ),
+        });
+        await seatAndScore(db, {
+          gameId: game.gameId,
+          matchId: game.matchId,
+          slot1UserId: winnerId,
+          slot2UserId: loserId,
+          sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+        });
+      }
+
       // Two upcoming Games: the row reads the soonest one.
       await insertGame(db, {
         createdBy: viewer.id,
@@ -259,7 +287,7 @@ describe("groups.mine list facts", () => {
       });
       expect(rows[0]?.nextGameStartTime).toEqual(NEXT_START);
       // Fewer than five results render fewer marks; no padding.
-      expect(rows[0]?.formMarks).toEqual(["won", "lost"]);
+      expect(rows[0]?.formMarks).toEqual(["won", "lost", "lost"]);
     } finally {
       await close();
     }
@@ -302,21 +330,23 @@ describe("groups.mine list facts", () => {
         createdBy: rival.id,
         members: [{ userId: rival.id }, { userId: viewer.id }],
       });
-      const unrated = await insertGame(db, {
-        createdBy: rival.id,
-        venueId: venue.id,
-        groupId: group.id,
-        windowStart: PAST_START,
-        windowEnd: PAST_END,
-        rated: false,
-      });
-      await seatAndScore(db, {
-        gameId: unrated.gameId,
-        matchId: unrated.matchId,
-        slot1UserId: viewer.id,
-        slot2UserId: rival.id,
-        sets: [{ slot1GamesWon: 6, slot2GamesWon: 3 }],
-      });
+      for (const index of [0, 1, 2]) {
+        const unrated = await insertGame(db, {
+          createdBy: rival.id,
+          venueId: venue.id,
+          groupId: group.id,
+          windowStart: new Date(PAST_START.getTime() + index * 60 * 60 * 1000),
+          windowEnd: new Date(PAST_END.getTime() + index * 60 * 60 * 1000),
+          rated: false,
+        });
+        await seatAndScore(db, {
+          gameId: unrated.gameId,
+          matchId: unrated.matchId,
+          slot1UserId: viewer.id,
+          slot2UserId: rival.id,
+          sets: [{ slot1GamesWon: 6, slot2GamesWon: 3 }],
+        });
+      }
 
       const rows = await mine(db, { userId: viewer.id, now: NOW });
 
@@ -384,7 +414,7 @@ describe("groups.mine list facts", () => {
 
       expect(oneGroup).toHaveLength(1);
       expect(threeGroups).toHaveLength(3);
-      expect(oneGroupQueries).toBe(4);
+      expect(oneGroupQueries).toBe(5);
       expect(threeGroupQueries).toBe(oneGroupQueries);
     } finally {
       await close();
@@ -461,11 +491,40 @@ describe("Standing agrees across Group home, the Groups list and Home", () => {
       }
 
       const before = await positions();
+      // Nobody holds a rank before three results; Home reads a first place
+      // for a member with none.
       expect(before[0]).toMatchObject({
-        groupHome: 1,
-        leaderboard: 1,
+        list: null,
+        groupHome: null,
+        leaderboard: null,
         home: 1,
       });
+
+      // One result each way, so the next one decides the order.
+      const warmups = [
+        [zed.id, abe.id],
+        [abe.id, zed.id],
+      ] as const;
+      for (const [index, [winnerId, loserId]] of warmups.entries()) {
+        const warmup = await insertGame(db, {
+          createdBy: abe.id,
+          venueId: venue.id,
+          groupId: group.id,
+          windowStart: new Date(
+            PAST_START.getTime() - (index + 1) * 60 * 60 * 1000,
+          ),
+          windowEnd: new Date(
+            PAST_END.getTime() - (index + 1) * 60 * 60 * 1000,
+          ),
+        });
+        await seatAndScore(db, {
+          gameId: warmup.gameId,
+          matchId: warmup.matchId,
+          slot1UserId: winnerId,
+          slot2UserId: loserId,
+          sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+        });
+      }
 
       const played = await insertGame(db, {
         createdBy: abe.id,

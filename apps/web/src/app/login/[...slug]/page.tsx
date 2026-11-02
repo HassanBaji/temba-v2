@@ -5,10 +5,10 @@ import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 /**
  * Retired Clerk `<SignIn>` drop-in sub-routes (`routing="path"`). Dedicated
- * pages remain for `sso-callback`, `reset-password`, and `factor-two`. Named
- * leftovers — `factor-one`, `verify-email-address`, `verify-phone-number`,
- * `reset-password-success`, `verify`, `create` — redirect to `/login` so none
- * 404. `redirect_url` is preserved.
+ * pages remain for `sso-callback` and `factor-two`. Named leftovers —
+ * `factor-one`, `verify-email-address`, `verify-phone-number`,
+ * `reset-password`, `reset-password-success`, `verify`, `create` — redirect
+ * to `/login` so none 404. `redirect_url` is preserved.
  */
 export default async function RetiredLoginPathPage({
   searchParams,

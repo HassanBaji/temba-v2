@@ -30,7 +30,8 @@ export function AuthScreen({
   onBack?: () => void;
   backLabel?: string;
   crossLink?: { href: string; label: string };
-  progress?: { step: number; total: number };
+  /** Segments under the header; `label` replaces the "Step n of m" counter. */
+  progress?: { step: number; total: number; label?: string };
   eyebrow?: string;
   title?: string;
   description?: ReactNode;
@@ -42,6 +43,9 @@ export function AuthScreen({
   const surface = welcome ? "ink" : "paper";
   const showHeader =
     Boolean(backHref ?? onBack ?? crossLink ?? progress) || brand;
+  const progressLabel = progress
+    ? (progress.label ?? `Step ${progress.step} of ${progress.total}`)
+    : "";
   // The frame stays wide on desktop; forms read in a phone-width column.
   const column = welcome
     ? undefined
@@ -95,7 +99,7 @@ export function AuthScreen({
                 aria-hidden="true"
                 className="text-eyebrow text-muted-foreground font-mono uppercase"
               >
-                Step {progress.step} of {progress.total}
+                {progressLabel}
               </span>
             ) : (
               <span className="size-11 shrink-0" aria-hidden="true" />
@@ -106,8 +110,8 @@ export function AuthScreen({
         {progress ? (
           <div
             role="progressbar"
-            aria-label={`Step ${progress.step} of ${progress.total}`}
-            aria-valuemin={1}
+            aria-label={progressLabel}
+            aria-valuemin={progress.label ? 0 : 1}
             aria-valuemax={progress.total}
             aria-valuenow={progress.step}
             className={cn(column, "px-6.5 flex gap-1.5 pt-3.5")}

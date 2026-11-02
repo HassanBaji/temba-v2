@@ -1,7 +1,6 @@
 import {
   CLERK_AUTH_ERROR_COPY,
   GENERIC_CLERK_AUTH_ERROR,
-  splitClerkAuthError,
 } from "@repo/domain/clerk-auth-error";
 import { assembleE164 } from "@repo/domain/phone-number";
 
@@ -15,8 +14,6 @@ export const SOMETHING_WENT_WRONG: SplitFormError = {
 const PHONE_FORMAT_MESSAGE =
   CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
   "That doesn't look right. Check the format and try again.";
-
-export type IdentifierMode = "username" | "phone";
 
 export type PhoneResult =
   | { ok: true; e164: string }
@@ -40,30 +37,21 @@ export function resolvePhone(
   };
 }
 
-export function resolveSignInIdentifier(input: {
-  mode: IdentifierMode;
-  username: string;
-  countryIso: string;
-  national: string;
-}): { ok: true; identifier: string } | { ok: false; split: SplitFormError } {
-  if (input.mode === "username") {
-    return { ok: true, identifier: input.username.trim() };
+/** True when a Clerk API error carries the given code, such as `form_identifier_not_found`. */
+export function hasClerkErrorCode(err: unknown, code: string): boolean {
+  if (typeof err !== "object" || err === null) {
+    return false;
   }
-  const phone = resolvePhone(input.countryIso, input.national, "identifier");
-  return phone.ok
-    ? { ok: true, identifier: phone.e164 }
-    : { ok: false, split: phone.split };
-}
-
-export function splitSignInError(err: unknown): SplitFormError {
-  const split = splitClerkAuthError(err);
-  const notFound = CLERK_AUTH_ERROR_COPY.form_identifier_not_found;
-  if (notFound && split.fieldErrors.identifier === notFound) {
-    const rest = { ...split.fieldErrors };
-    delete rest.identifier;
-    return { fieldErrors: rest, globalMessage: notFound };
-  }
-  return split;
+  const { errors } = err as { errors?: unknown };
+  return (
+    Array.isArray(errors) &&
+    errors.some(
+      (item: unknown) =>
+        typeof item === "object" &&
+        item !== null &&
+        (item as { code?: unknown }).code === code,
+    )
+  );
 }
 
 export type SignUpProgress = {
@@ -98,7 +86,6 @@ export function nextSignUpStep(progress: SignUpProgress): SignUpNextStep {
 }
 
 export type ContinueValues = {
-  username: string;
   emailAddress: string;
   password: string;
   firstName: string;
@@ -108,7 +95,6 @@ export type ContinueValues = {
 };
 
 export type ContinuePayload = {
-  username?: string;
   emailAddress?: string;
   phoneNumber?: string;
   password?: string;
@@ -133,9 +119,6 @@ export function buildContinuePayload(
       return phone;
     }
     payload.phoneNumber = phone.e164;
-  }
-  if (missingFields.includes("username")) {
-    payload.username = values.username.trim();
   }
   if (missingFields.includes("email_address")) {
     payload.emailAddress = values.emailAddress.trim();

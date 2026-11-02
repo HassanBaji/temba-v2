@@ -474,8 +474,16 @@ A User an Organizer or Group approver added by phone and name, with no Temba acc
 _Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
-The questions a new User answers after Clerk sign-up and before Home, at Route `/onboarding` on web. It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. Blocking, with **Either** and **Not sure** (which starts padel at D+) as the low-commitment answers. Users who predate it are complete without answering.
+The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.
 _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
+
+**Profile checklist**:
+The list of what a User can still add after sign-up: the required name when an account predates it, then the optional Profile tasks (profile photo, verified email, the Onboarding questionnaire). It is the "You're in" screen after sign-up, at Route `/onboarding` on web and `/complete-profile` on mobile, and a card under the Home header until every task is done or the User skips it on that device. Phone and name count as its first two steps ("2 OF 5"). Pure in `@repo/domain/profile-checklist` (ADR-0049).
+_Avoid_: onboarding (bare), setup wizard, progress tracker, todo list
+
+**Profile task**:
+One row of the Profile checklist. Each saves on its own and returns to the list. The name task is required and never hidden by Skip for now; the others are optional.
+_Avoid_: step (when you mean a task), onboarding step, action item
 
 **Sports played**:
 The sports a User told the Onboarding questionnaire they play: padel, football or both. It decides which questions they answer. A User with none recorded onboarded before the question existed and is read as padel only.
@@ -522,8 +530,12 @@ The Web App page at `/dashboard/notifications`, opened from the bell, listing th
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
-A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045). A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
+A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with fewer than three results in the lens is listed Unranked, below the ranked rows, without a position. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
+
+**Season**:
+An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days, which scopes the Standing to the Matches played inside it. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day and locks the Standing from that instant. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
+_Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:
 A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.

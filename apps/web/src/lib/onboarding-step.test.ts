@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 import {
   onboardingRedirectTarget,
   onboardingPhaseFromState,
+  profileChecklistHref,
+  profileTaskHref,
   shouldFocusStepHeading,
   type OnboardingQuestionnaireState,
 } from "./onboarding-step";
@@ -23,23 +25,20 @@ describe("onboardingPhaseFromState", () => {
     assert.equal(onboardingPhaseFromState(undefined), "loading");
   });
 
-  it("waits on the webhook race instead of questioning a missing User", () => {
+  it("waits on the webhook race instead of rendering for a missing User", () => {
     assert.equal(
       onboardingPhaseFromState(state({ provisioning: true })),
       "provisioning",
     );
   });
 
-  it("asks the questions until onboarding is complete", () => {
-    assert.equal(onboardingPhaseFromState(state()), "questions");
-  });
-
-  it("sends a completed or backfilled User onward", () => {
+  it("is ready once the user row exists, questionnaire done or not", () => {
+    assert.equal(onboardingPhaseFromState(state()), "ready");
     assert.equal(
       onboardingPhaseFromState(
         state({ onboardingCompletedAt: new Date("2025-01-01T00:00:00Z") }),
       ),
-      "complete",
+      "ready",
     );
   });
 });
@@ -63,6 +62,24 @@ describe("onboardingRedirectTarget", () => {
     assert.equal(onboardingRedirectTarget("https://evil.com"), "/dashboard");
     assert.equal(onboardingRedirectTarget("/a\\b"), "/dashboard");
     assert.equal(onboardingRedirectTarget("/@evil.com"), "/dashboard");
+  });
+});
+
+describe("profile task links", () => {
+  it("point at the checklist and its tasks without a query when there is no redirect_url", () => {
+    assert.equal(profileChecklistHref(null), "/onboarding");
+    assert.equal(profileTaskHref("photo", null), "/onboarding/photo");
+  });
+
+  it("carry redirect_url through every task", () => {
+    assert.equal(
+      profileChecklistHref("/dashboard"),
+      "/onboarding?redirect_url=%2Fdashboard",
+    );
+    assert.equal(
+      profileTaskHref("email", "/dashboard/you"),
+      "/onboarding/email?redirect_url=%2Fdashboard%2Fyou",
+    );
   });
 });
 

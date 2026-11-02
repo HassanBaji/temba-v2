@@ -67,10 +67,6 @@ import {
   type GroupFormMatch,
 } from "@repo/domain/member-form-marks";
 import {
-  groupMemberWinLoss,
-  type GroupWinLossMatch,
-} from "@repo/domain/member-win-loss";
-import {
   isHomeCarouselNeedsResults,
   type HomeCarouselCandidate,
 } from "#src/home/carousel-games";
@@ -82,11 +78,9 @@ import {
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { startOfProductDay } from "@repo/domain/product-timezone";
 import { consult } from "#src/soft-archive";
-import {
-  sortStandingMembers,
-  standingPosition,
-} from "@repo/domain/compare-standing";
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
+import { seasonStandingPosition } from "@repo/domain/season-standing";
+import { canManageSeasons } from "#src/groups/helpers/season-access";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayUnlinkFromVenueCommunity } from "#src/venue-community/unlink-group";
@@ -428,26 +422,16 @@ export async function groupById(
     }),
   );
 
-  const standingMembers =
-    (await loadGroupStandingMembers(database, [group.id])).get(group.id) ?? [];
-  const standingByUserId = new Map(
-    standingMembers.map((member) => [member.userId, member]),
-  );
-
-  const sortedStanding = sortStandingMembers(
-    memberRows.map((row) => ({
-      userId: row.userId,
-      totalSetsWon: standingByUserId.get(row.userId)?.totalSetsWon ?? 0,
-      totalPointsWon: standingByUserId.get(row.userId)?.totalPointsWon ?? 0,
-      totalGamesPlayed: standingByUserId.get(row.userId)?.totalGamesPlayed ?? 0,
-      name: row.user.name,
-      image: row.user.image,
-      joinedAt: row.createdAt,
-    })),
-  );
+  const now = args.now ?? new Date();
+  const groupStanding = (
+    await loadGroupStandings(database, [group.id], now)
+  ).get(group.id);
+  const standingRows = groupStanding?.rows ?? [];
+  const seasons = groupStanding?.seasons ?? [];
+  const memberRowByUserId = new Map(memberRows.map((row) => [row.userId, row]));
 
   const viewerStandingPosition = membership
-    ? standingPosition(sortedStanding, args.userId)
+    ? seasonStandingPosition(standingRows, args.userId)
     : null;
 
   // "Organizer" on the Members tab: the Group creator, an Appointed Organizer,
@@ -475,7 +459,6 @@ export async function groupById(
   // Level reads `ratings` for `(member.userId, group.sport)` — unique on that
   // pair (D5). A Group with no sport has no Rating to read, so every member
   // falls back to the hatched Provisional placeholder.
-  const now = args.now ?? new Date();
   const ratingByUserId = new Map<
     string,
     {
@@ -684,10 +667,9 @@ export async function groupById(
     toGroupPlayedGame(game, args.userId),
   );
 
-  // W-L and form marks derive over the Matches already loaded above
-  // (`.scratch/groups-redesign/spec.md` §6.1, §6.2). A cancelled Game never
-  // becomes a result, so it is dropped before the derivations see it.
-  const winLossMatches: GroupWinLossMatch[] = [];
+  // Form marks derive over the Matches already loaded above
+  // (`.scratch/groups-redesign/spec.md` §6.2). A cancelled Game never
+  // becomes a result, so it is dropped before the derivation sees it.
   const formMatches: GroupFormMatch[] = [];
   for (const game of groupGameRows) {
     if (game.cancelledAt !== null) {
@@ -698,11 +680,6 @@ export async function groupById(
         slot1UserIds: slotUserIds(match.slot1GameTeam),
         slot2UserIds: slotUserIds(match.slot2GameTeam),
       };
-      winLossMatches.push({
-        ...occupants,
-        status: match.status,
-        sets: match.sets,
-      });
       formMatches.push({
         ...occupants,
         status: match.status,
@@ -713,8 +690,6 @@ export async function groupById(
     }
   }
 
-  const winLossByUserId = groupMemberWinLoss(winLossMatches, memberUserIds);
-
   const totalGamesPlayed = groupGameRows.filter((game) => {
     if (game.cancelledAt !== null) {
       return false;
@@ -723,21 +698,22 @@ export async function groupById(
       (match) => match.status === MatchStatusEnum.COMPLETED,
     );
   }).length;
-  const viewerStanding = standingByUserId.get(args.userId);
-  const leaderboard = sortedStanding.map((entry, index) => {
-    const record = winLossByUserId.get(entry.userId) ?? { wins: 0, losses: 0 };
+  const leaderboard = standingRows.map((entry) => {
     const rating = ratingByUserId.get(entry.userId) ?? null;
     return {
       userId: entry.userId,
       name: entry.name,
       image: entry.image,
-      totalSetsWon: entry.totalSetsWon,
-      totalPointsWon: entry.totalPointsWon,
-      totalGamesPlayed: entry.totalGamesPlayed,
-      position: index + 1,
+      position: entry.position,
+      ranked: entry.ranked,
+      played: entry.played,
+      wins: entry.wins,
+      draws: entry.draws,
+      losses: entry.losses,
+      points: entry.points,
+      diff: entry.diff,
+      form: entry.form,
       isViewer: entry.userId === args.userId,
-      wins: record.wins,
-      losses: record.losses,
       levelBand: rating?.levelBand ?? null,
       levelProvisional: rating?.provisional ?? true,
       level: rating?.level ?? null,
@@ -745,7 +721,7 @@ export async function groupById(
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
-      joinedAt: entry.joinedAt,
+      joinedAt: memberRowByUserId.get(entry.userId)?.createdAt ?? null,
       isOrganizer:
         entry.userId === group.createdBy ||
         staffUserIds.has(entry.userId) ||
@@ -807,9 +783,6 @@ export async function groupById(
     membership: membership
       ? {
           id: membership.id,
-          totalGamesPlayed: viewerStanding?.totalGamesPlayed ?? 0,
-          totalSetsWon: viewerStanding?.totalSetsWon ?? 0,
-          totalPointsWon: viewerStanding?.totalPointsWon ?? 0,
           standingPosition: viewerStandingPosition,
         }
       : null,
@@ -817,7 +790,12 @@ export async function groupById(
       memberCount: memberRows.length,
       leaderboard,
       awaitingScoreCount,
+      seasonId: groupStanding?.seasonId ?? null,
+      gamesCounted: groupStanding?.gamesCounted ?? 0,
     },
+    seasons,
+    canManageSeasons:
+      canEdit && (await canManageSeasons(database, group, args.userId)),
     upcomingGames,
     gameHistory,
     communityMembership: communityMembership

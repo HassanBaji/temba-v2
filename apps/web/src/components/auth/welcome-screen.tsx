@@ -1,16 +1,17 @@
+import { Phone } from "lucide-react";
 import Link from "next/link";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { AuthTermsNote } from "~/components/auth/auth-terms-note";
+import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { SportGlyph } from "~/components/temba/sport-glyph";
-import { Button, touchHitArea } from "~/components/ui/button";
+import { Button } from "~/components/ui/button";
 import { TembaWordmark } from "~/components/ui/temba-wordmark";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
-import { cn } from "~/lib/utils";
 import { SPORTS, SPORT_LABELS } from "@repo/domain/sport";
 
 export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
-  const signUpHref = authCrossLinkUrl("/signup", redirectUrl);
-  const signInHref = authCrossLinkUrl("/login", redirectUrl);
+  const phoneHref = authCrossLinkUrl("/login", redirectUrl);
 
   return (
     <AuthScreen padContent={false} variant="welcome">
@@ -51,33 +52,13 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
           size="lg"
           variant="inverse"
         >
-          <Link href={signUpHref}>Create account</Link>
-        </Button>
-        <Button
-          asChild
-          className="w-full font-semibold"
-          size="lg"
-          variant="outline-inverse"
-        >
-          <Link href={signInHref}>Sign in</Link>
-        </Button>
-        <p className="text-eyebrow text-dim mt-2 text-center leading-[1.6]">
-          By continuing you agree to the{" "}
-          <Link
-            className={cn(touchHitArea, "text-paper underline")}
-            href="/terms"
-          >
-            Terms and Conditions
-          </Link>{" "}
-          and{" "}
-          <Link
-            className={cn(touchHitArea, "text-paper underline")}
-            href="/privacy"
-          >
-            Privacy Policy
+          <Link href={phoneHref}>
+            <Phone aria-hidden="true" />
+            Continue with phone
           </Link>
-          .
-        </p>
+        </Button>
+        <OauthButtons flow="sign-in" redirectUrl={redirectUrl} surface="ink" />
+        <AuthTermsNote surface="ink" className="mt-2" />
       </div>
     </AuthScreen>
   );

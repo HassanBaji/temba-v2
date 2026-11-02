@@ -9,6 +9,7 @@ import * as React from "react";
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
+import { PasswordField } from "~/components/auth/password-field";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
 import { Button } from "~/components/ui/button";
@@ -20,7 +21,7 @@ import {
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
-import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
+import { authCrossLinkUrl, signUpCompleteUrl } from "~/lib/auth-redirect";
 import {
   CLERK_AUTH_ERROR_COPY,
   splitClerkAuthError,
@@ -33,7 +34,6 @@ import {
 } from "@repo/domain/phone-number";
 
 const FIELD_IDS = {
-  username: "signup-continue-username",
   emailAddress: "signup-continue-email",
   phoneNumber: "signup-continue-phone",
   password: "signup-continue-password",
@@ -59,8 +59,6 @@ function isMissing(signUp: { missingFields: string[] }, field: string) {
 
 function fieldElementId(param: string): string | undefined {
   switch (param) {
-    case "username":
-      return FIELD_IDS.username;
     case "email_address":
     case "emailAddress":
       return FIELD_IDS.emailAddress;
@@ -101,12 +99,10 @@ export function SignUpContinueForm({
   const { setActive } = useClerk();
   const { signUp, isLoaded } = useSignUp();
   const summaryRef = React.useRef<HTMLDivElement>(null);
-  const completeUrl = authCompleteUrl(redirectUrl);
+  const completeUrl = signUpCompleteUrl(redirectUrl);
   const signInUrl = authCrossLinkUrl("/login", redirectUrl);
-  const signUpUrl = authCrossLinkUrl("/signup", redirectUrl);
 
   const [step, setStep] = React.useState<Step>("fields");
-  const [username, setUsername] = React.useState("");
   const [emailAddress, setEmailAddress] = React.useState("");
   const [countryIso, setCountryIso] = React.useState(
     DEFAULT_CALLING_COUNTRY_ISO,
@@ -237,16 +233,12 @@ export function SignUpContinueForm({
     setSplit(null);
     try {
       const payload: {
-        username?: string;
         emailAddress?: string;
         phoneNumber?: string;
         password?: string;
         firstName?: string;
         lastName?: string;
       } = {};
-      if (isMissing(signUp, "username")) {
-        payload.username = username.trim();
-      }
       if (isMissing(signUp, "email_address")) {
         payload.emailAddress = emailAddress.trim();
       }
@@ -349,17 +341,16 @@ export function SignUpContinueForm({
   if (signUp?.status == null) {
     return (
       <AuthScreen
-        backHref={signUpUrl}
+        backHref={signInUrl}
         backLabel="Back"
-        crossLink={{ href: signInUrl, label: "Sign in" }}
         title="Almost there"
         description="Finish creating your account, or start from the beginning."
       >
         <div className="flex flex-col gap-[18px]">
           <p className="text-body text-muted-foreground">
             Start from{" "}
-            <Link className="text-ink font-medium underline" href={signUpUrl}>
-              sign up
+            <Link className="text-ink font-medium underline" href={signInUrl}>
+              your phone number
             </Link>{" "}
             or continue with Google.
           </p>
@@ -370,7 +361,6 @@ export function SignUpContinueForm({
   }
 
   const verifying = step !== "fields";
-  const usernameError = split?.fieldErrors.username;
   const emailError =
     split?.fieldErrors.email_address ?? split?.fieldErrors.emailAddress;
   const phoneError =
@@ -436,9 +426,8 @@ export function SignUpContinueForm({
 
   return (
     <AuthScreen
-      backHref={signUpUrl}
+      backHref={signInUrl}
       backLabel="Back"
-      crossLink={{ href: signInUrl, label: "Sign in" }}
       title="Almost there"
       description="A few details are still needed to finish your account."
     >
@@ -502,35 +491,6 @@ export function SignUpContinueForm({
               {lastNameError ? (
                 <FieldError id={`${FIELD_IDS.lastName}-error`}>
                   {lastNameError}
-                </FieldError>
-              ) : null}
-            </Field>
-          ) : null}
-          {isMissing(signUp, "username") ? (
-            <Field>
-              <FieldLabel
-                htmlFor={FIELD_IDS.username}
-                className="text-meta text-muted-foreground"
-              >
-                Username
-              </FieldLabel>
-              <Input
-                id={FIELD_IDS.username}
-                name="username"
-                autoComplete="username"
-                placeholder="Choose a username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                aria-invalid={Boolean(usernameError)}
-                aria-describedby={
-                  usernameError ? `${FIELD_IDS.username}-error` : undefined
-                }
-                size="lg"
-                disabled={pending}
-              />
-              {usernameError ? (
-                <FieldError id={`${FIELD_IDS.username}-error`}>
-                  {usernameError}
                 </FieldError>
               ) : null}
             </Field>
@@ -600,19 +560,16 @@ export function SignUpContinueForm({
               >
                 Password
               </FieldLabel>
-              <Input
+              <PasswordField
                 id={FIELD_IDS.password}
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Create a password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                aria-invalid={Boolean(passwordError)}
-                aria-describedby={
+                onChange={setPassword}
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                invalid={Boolean(passwordError)}
+                describedBy={
                   passwordError ? `${FIELD_IDS.password}-error` : undefined
                 }
-                size="lg"
                 disabled={pending}
               />
               {passwordError ? (

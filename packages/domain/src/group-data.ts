@@ -3,6 +3,7 @@ import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
 import type { MatchSlotMember } from "./match-slots";
 import type { FormMark } from "./member-form-marks";
+import type { ResultMarkVariant } from "./result-mark";
 
 export type GroupMineRowData = {
   id: string;
@@ -32,19 +33,44 @@ export type GroupLevelOverrideData = {
   reason: LevelOverrideReason | null;
 };
 
-export type GroupLeaderboardEntryData = {
+export type GroupSeasonSummaryData = {
+  id: string;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  closedAt: Date | string | null;
+  status: "upcoming" | "active" | "closed";
+};
+
+export type GroupStandingRowData = {
   userId: string;
   name: string | null;
   image: string | null;
-  totalSetsWon: number;
-  totalPointsWon: number;
-  totalGamesPlayed: number;
-  position: number;
+  /** 1-based among ranked rows; `null` while unranked. */
+  position: number | null;
+  ranked: boolean;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  diff: number;
+  form: ResultMarkVariant[];
   isViewer: boolean;
+  unclaimed: boolean;
+};
+
+export type GroupStandingData = {
+  /** The Season the rows read, `null` for all-time. */
+  seasonId: string | null;
+  rows: GroupStandingRowData[];
+  /** Completed Matches in the lens. */
+  gamesCounted: number;
+};
+
+export type GroupLeaderboardEntryData = GroupStandingRowData & {
   isOrganizer: boolean;
   isAppointedOrganizer: boolean;
-  wins: number;
-  losses: number;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
@@ -85,7 +111,12 @@ export type GroupHomeData = {
     memberCount: number;
     leaderboard: GroupLeaderboardEntryData[];
     awaitingScoreCount: number;
+    /** The lens the leaderboard reads: the default Season, or all-time. */
+    seasonId: string | null;
+    gamesCounted: number;
   };
+  seasons: GroupSeasonSummaryData[];
+  canManageSeasons: boolean;
   upcomingGames: HubGameRow[];
   gameHistory: GroupPlayedGameData[];
   joinMode: string;

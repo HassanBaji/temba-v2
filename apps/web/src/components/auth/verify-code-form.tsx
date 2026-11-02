@@ -27,6 +27,9 @@ export function VerifyCodeForm({
   codeError,
   codeInputId = "sign-up-code",
   summaryRef,
+  verifyLabel = "Verify",
+  helper = "Button unlocks at six digits",
+  children,
 }: {
   destination: string;
   changeLabel: string;
@@ -41,6 +44,11 @@ export function VerifyCodeForm({
   codeError?: string;
   codeInputId?: string;
   summaryRef?: React.Ref<HTMLDivElement>;
+  verifyLabel?: string;
+  /** Shown under the button until six digits are in. */
+  helper?: string;
+  /** Rendered under the code, before the resend row. */
+  children?: React.ReactNode;
 }) {
   const ready = isVerificationCodeComplete(code);
   const autoVerify = React.useRef(false);
@@ -93,6 +101,7 @@ export function VerifyCodeForm({
         disabled={pending}
       />
       {codeError ? <FieldError id={errorId}>{codeError}</FieldError> : null}
+      {children}
       <ResendCountdown
         startedAt={startedAt}
         onResend={onResend}
@@ -107,14 +116,14 @@ export function VerifyCodeForm({
           disabled={!ready || pending}
           className="w-full font-semibold"
         >
-          Verify
+          {verifyLabel}
         </Button>
         {ready ? null : (
           <p
             id={helperId}
             className="text-eyebrow text-muted-foreground mt-3 text-center"
           >
-            Button unlocks at six digits
+            {helper}
           </p>
         )}
       </div>

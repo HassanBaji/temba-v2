@@ -17,8 +17,7 @@ import {
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
-import { loadGroupStandingMembers } from "#src/standing/load-group-standing";
-import { hasStandingResults } from "#src/standing/group-standing";
+import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { loadCompletedMatchesForUser } from "#src/stats/completed-matches";
 import { createGame } from "#src/routers/games/create";
 import { createTournament } from "#src/routers/games/createTournament";
@@ -700,10 +699,10 @@ describe("football Games and results readers", () => {
       const game = await createFootball(f);
       const player = await insertMember(f, "scorer");
       await register(f.db, { gameId: game.id, userId: player.id });
-      const standing = await loadGroupStandingMembers(f.db, [f.group.id]);
-      const members = standing.get(f.group.id) ?? [];
+      const standing = await loadGroupStandings(f.db, [f.group.id]);
+      const members = standing.get(f.group.id)?.rows ?? [];
       expect(members.some((member) => member.userId === player.id)).toBe(true);
-      expect(members.some((member) => hasStandingResults(member))).toBe(false);
+      expect(members.some((member) => member.played > 0)).toBe(false);
       expect(await loadCompletedMatchesForUser(f.db, player.id)).toEqual([]);
     });
   });

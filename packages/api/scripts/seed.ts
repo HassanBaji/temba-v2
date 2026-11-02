@@ -307,11 +307,14 @@ async function seedUsers(): Promise<Users> {
     const clerkId =
       process.env[`SEED_CLERK_ID_${persona.key.toUpperCase()}`] ??
       `seed_${persona.key}`;
+    const [firstName = persona.name, ...rest] = persona.name.split(" ");
     const [row] = await db
       .insert(user)
       .values({
         clerkId,
         name: persona.name,
+        firstName,
+        lastName: rest.length > 0 ? rest.join(" ") : null,
         username: persona.username,
         email: `${persona.username}@example.test`,
         emailVerified: true,

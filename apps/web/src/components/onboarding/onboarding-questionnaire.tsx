@@ -1,6 +1,5 @@
 "use client";
 
-import { useClerk, useUser } from "@clerk/nextjs";
 import {
   FOOTBALL_POSITION_CHOICES,
   KEEPER_CODE,
@@ -16,24 +15,18 @@ import {
   SPORT_CHOICES,
   initialOnboardingAnswers,
   onboardingSubmission,
-  onboardingSummary,
   type OnboardingAnswers,
 } from "@repo/domain/onboarding-answers";
 import {
   adjacentQuestion,
-  findGamesLabel,
   onboardingProgress,
   sportsContinueLabel,
   type OnboardingQuestion,
 } from "@repo/domain/onboarding-flow";
 import { type Sport } from "@repo/domain/sport";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
-import { ErrorState } from "~/components/common/error-state";
-import { UserAvatar } from "~/components/common/user-avatar";
 import {
   CardChoice,
   Group,
@@ -41,22 +34,32 @@ import {
   SectionLabel,
   TileChoices,
 } from "~/components/onboarding/onboarding-choices";
+import { type ReadyOnboardingState } from "~/components/onboarding/onboarding-state-gate";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Skeleton } from "~/components/ui/skeleton";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
-import {
-  onboardingPhaseFromState,
-  shouldFocusStepHeading,
-} from "~/lib/onboarding-step";
-import { api, type RouterOutputs } from "~/trpc/react";
+import { shouldFocusStepHeading } from "~/lib/onboarding-step";
+import { api } from "~/trpc/react";
 
-type OnboardingState = RouterOutputs["users"]["onboardingState"];
+/**
+ * The "ready" summary is gone: the last sport step saves and returns to the
+ * checklist, so the flow's progress counts one step fewer than
+ * `onboardingProgress` does.
+ */
+function sportsProgress(
+  picked: OnboardingAnswers["picked"],
+  question: OnboardingQuestion,
+) {
+  const progress = onboardingProgress(picked, question);
+  return { step: progress.step, total: progress.total - 1 };
+}
 
-/** How often the wait state re-asks whether the `user` row has landed. */
-const PROVISIONING_POLL_MS = 2000;
-/** About ten polls; past this the wait offers a retry and a way out. */
-const PROVISIONING_TIMEOUT_MS = 10 * PROVISIONING_POLL_MS;
+function isLastQuestion(
+  picked: OnboardingAnswers["picked"],
+  question: OnboardingQuestion,
+) {
+  return adjacentQuestion(picked, question, "next") === "ready";
+}
 
 function Actions(props: { children: React.ReactNode }) {
   return (
@@ -72,22 +75,34 @@ function LevelAlreadySet(props: { sport: string }) {
   );
 }
 
-function Questions({
+/**
+ * The Onboarding questionnaire as the "Pick your sports and level" Profile
+ * task: which sports the User plays, then padel and football questions for
+ * each one picked. Answers are held in the page and saved in one
+ * `users.completeOnboarding` call on the last step, so going back never
+ * meets a half-written answer. `onDone` runs once that save lands.
+ *
+ * There is no Skip button by design: **Either** and **I don't know** are the
+ * low-commitment answers; the task itself is optional (ADR-0049).
+ */
+export function OnboardingQuestionnaire({
   state,
-  redirectTo,
+  backHref,
+  onDone,
 }: {
-  state: OnboardingState;
-  redirectTo: string;
+  state: ReadyOnboardingState;
+  backHref: string;
+  onDone: () => void;
 }) {
-  const router = useRouter();
-  const { user } = useUser();
+  const utils = api.useUtils();
   const [question, setQuestion] = React.useState<OnboardingQuestion>("sports");
   const [answers, setAnswers] = React.useState(() =>
     initialOnboardingAnswers(state),
   );
   const complete = api.users.completeOnboarding.useMutation({
-    onSuccess: () => {
-      router.replace(redirectTo);
+    onSuccess: async () => {
+      await utils.users.onboardingState.invalidate();
+      onDone();
     },
   });
 
@@ -100,16 +115,34 @@ function Questions({
     }
   }, [question]);
 
-  const progress = onboardingProgress(answers.picked, question);
+  const progress = sportsProgress(answers.picked, question);
+  const eyebrow = `Profile / Sports ${progress.step} of ${progress.total}`;
+  const saving = complete.isPending || complete.isSuccess;
+  const finishError = globalFormErrorMessage(complete.error);
   const update = (patch: Partial<OnboardingAnswers>) =>
     setAnswers((current) => ({ ...current, ...patch }));
-  const go = (direction: "next" | "back") => {
-    const target = adjacentQuestion(answers.picked, question, direction);
+  // A patch passed with "next" is saved in the same move, so the last step's
+  // shortcut answers never submit a stale copy.
+  const go = (
+    direction: "next" | "back",
+    patch?: Partial<OnboardingAnswers>,
+  ) => {
+    const merged = patch ? { ...answers, ...patch } : answers;
+    if (patch) {
+      setAnswers(merged);
+    }
+    if (direction === "next" && isLastQuestion(merged.picked, question)) {
+      complete.mutate(onboardingSubmission(merged));
+      return;
+    }
+    const target = adjacentQuestion(merged.picked, question, direction);
     if (target) {
       setQuestion(target);
     }
   };
   const back = () => go("back");
+  const nextLabel = (label: string) =>
+    isLastQuestion(answers.picked, question) ? "Save sports" : label;
   const togglePicked = (sport: Sport) =>
     update({ picked: { ...answers.picked, [sport]: !answers.picked[sport] } });
 
@@ -117,12 +150,14 @@ function Questions({
     const nonePicked = !answers.picked.padel && !answers.picked.football;
     return (
       <AuthScreen
-        brand
-        progress={progress}
+        backHref={backHref}
+        backLabel="Back"
+        progress={{ ...progress, label: eyebrow }}
         title="What do you play?"
         description="Pick one or both. Each sport keeps its own Level and its own Games list."
       >
         <div className="flex flex-col gap-3">
+          <FormErrorSummary message={finishError} />
           {SPORT_CHOICES.map((choice) => (
             <CardChoice
               key={choice.value}
@@ -157,13 +192,14 @@ function Questions({
     const levelSet = state.hasRating;
     return (
       <AuthScreen
-        onBack={back}
-        progress={progress}
+        onBack={saving ? undefined : back}
+        progress={{ ...progress, label: eyebrow }}
         eyebrow="Padel"
         title="Where would you place yourself?"
         description="A starting point only. Rated matches confirm it."
       >
         <div className="flex flex-col gap-5">
+          <FormErrorSummary message={finishError} />
           {levelSet ? (
             <LevelAlreadySet sport="padel" />
           ) : (
@@ -196,22 +232,26 @@ function Questions({
             size="lg"
             className="w-full font-semibold"
             disabled={!levelSet && answers.padelLevel === ""}
+            pending={saving}
+            pendingLabel="Saving…"
             onClick={() => go("next")}
           >
-            {levelSet || answers.padelLevel ? "Continue" : "Pick a Level"}
+            {levelSet || answers.padelLevel
+              ? nextLabel("Continue")
+              : "Pick a Level"}
           </Button>
           {levelSet ? null : (
             <Button
               type="button"
               variant="link"
               className="text-muted-foreground min-h-11 underline"
-              onClick={() => {
-                update({
+              disabled={saving}
+              onClick={() =>
+                go("next", {
                   padelLevel: PADEL_NOT_SURE_LEVEL,
                   padelSide: "either",
-                });
-                go("next");
-              }}
+                })
+              }
             >
               {PADEL_NOT_SURE_LABEL}
             </Button>
@@ -225,13 +265,14 @@ function Questions({
     const keeper = answers.footballRole === "keeper";
     return (
       <AuthScreen
-        onBack={back}
-        progress={progress}
+        onBack={saving ? undefined : back}
+        progress={{ ...progress, label: eyebrow }}
         eyebrow="Football"
         title="How do you line up?"
         description="Organizers use this to balance teams. You can change it per Game."
       >
         <div className="flex flex-col gap-5">
+          <FormErrorSummary message={finishError} />
           <Group>
             <SectionLabel label="Usually join as" />
             <TileChoices
@@ -306,186 +347,16 @@ function Questions({
             type="button"
             size="lg"
             className="w-full font-semibold"
+            pending={saving}
+            pendingLabel="Saving…"
             onClick={() => go("next")}
           >
-            Continue
+            {nextLabel("Continue")}
           </Button>
         </Actions>
       </AuthScreen>
     );
   }
 
-  const finishError = globalFormErrorMessage(complete.error);
-  const pending = complete.isPending || complete.isSuccess;
-  const name = user?.fullName ?? user?.username ?? "You";
-  const phone = user?.primaryPhoneNumber?.phoneNumber ?? null;
-  return (
-    <AuthScreen
-      onBack={pending ? undefined : back}
-      progress={progress}
-      title="You’re set."
-      description="Here’s how organizers will see you. Your side and football role can change later; your Levels move with results."
-    >
-      <div className="flex flex-col gap-2.5">
-        <FormErrorSummary message={finishError} />
-        <SectionLabel label="Your profile so far" />
-        <div className="border-rule overflow-hidden rounded-[14px] border">
-          <div className="flex items-center gap-3.5 px-5 py-4">
-            <UserAvatar name={name} image={user?.imageUrl} size="lg" />
-            <div className="min-w-0 flex-1">
-              <p className="text-body truncate font-semibold">{name}</p>
-              {phone ? (
-                <p className="text-meta text-muted-foreground">{phone}</p>
-              ) : null}
-            </div>
-          </div>
-          {onboardingSummary(answers).map((row) => (
-            <div
-              key={row.sport}
-              className="border-rule flex items-center justify-between gap-3 border-t px-5 py-3.5"
-            >
-              <span className="text-body font-semibold">{row.sport}</span>
-              <span className="text-meta text-muted-foreground text-right">
-                {row.line}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <Actions>
-        <Button
-          type="button"
-          size="lg"
-          className="w-full font-semibold"
-          pending={pending}
-          pendingLabel="Saving…"
-          onClick={() => complete.mutate(onboardingSubmission(answers))}
-        >
-          {findGamesLabel(answers.picked)}
-        </Button>
-      </Actions>
-    </AuthScreen>
-  );
-}
-
-/**
- * The Onboarding questionnaire: which sports the User plays, then padel and
- * football questions for each one picked, then a summary. Answers are held
- * in the page and saved in one `users.completeOnboarding` call, so going
- * back never meets a half-written answer.
- *
- * There is no Skip button by design: **Either** and **I don't know** are the
- * low-commitment answers.
- */
-export function OnboardingQuestionnaire({
-  redirectTo,
-}: {
-  redirectTo: string;
-}) {
-  const router = useRouter();
-  const { signOut } = useClerk();
-  const state = api.users.onboardingState.useQuery(undefined, {
-    refetchInterval: (query) =>
-      query.state.data?.provisioning ? PROVISIONING_POLL_MS : false,
-  });
-  const [provisioningStalled, setProvisioningStalled] = React.useState(false);
-  const [signingOut, setSigningOut] = React.useState(false);
-
-  const phase = onboardingPhaseFromState(state.data);
-
-  React.useEffect(() => {
-    if (phase !== "provisioning" || provisioningStalled) {
-      return;
-    }
-    const id = window.setTimeout(() => {
-      setProvisioningStalled(true);
-    }, PROVISIONING_TIMEOUT_MS);
-    return () => window.clearTimeout(id);
-  }, [provisioningStalled, phase]);
-
-  React.useEffect(() => {
-    if (phase === "complete") {
-      router.replace(redirectTo);
-    }
-  }, [phase, redirectTo, router]);
-
-  function onSignOut() {
-    setSigningOut(true);
-    signOut({ redirectUrl: "/login" }).catch(() => {
-      setSigningOut(false);
-    });
-  }
-
-  // Checked before the loading branch: a failed query has no data, so the
-  // phase would otherwise sit on the skeleton forever.
-  if (state.error && !state.data) {
-    return (
-      <AuthScreen brand>
-        <ErrorState
-          headingLevel={1}
-          title="Setup could not be loaded"
-          message={state.error.message}
-          onRetry={() => {
-            void state.refetch();
-          }}
-        />
-      </AuthScreen>
-    );
-  }
-
-  if (phase === "loading" || phase === "complete") {
-    return (
-      <AuthScreen brand>
-        <AuthLoading />
-      </AuthScreen>
-    );
-  }
-
-  if (phase === "provisioning" && provisioningStalled) {
-    return (
-      <AuthScreen brand>
-        <ErrorState
-          headingLevel={1}
-          title="Setup is taking longer than usual"
-          message="Your Temba account is still being created. Try again, or sign out and come back later."
-          onRetry={() => {
-            setProvisioningStalled(false);
-            void state.refetch();
-          }}
-          secondaryAction={
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              pending={signingOut}
-              pendingLabel="Signing out…"
-              onClick={onSignOut}
-            >
-              Sign out
-            </Button>
-          }
-        />
-      </AuthScreen>
-    );
-  }
-
-  if (phase === "provisioning" || !state.data) {
-    return (
-      <AuthScreen brand title="Setting up your account">
-        <div className="space-y-4">
-          <p
-            role="status"
-            aria-live="polite"
-            className="text-body text-muted-foreground"
-          >
-            Your Temba account is still being created. This only takes a moment
-            after sign-up, and the questions open on their own.
-          </p>
-          <Skeleton className="h-24 w-full rounded-lg" />
-        </div>
-      </AuthScreen>
-    );
-  }
-
-  return <Questions state={state.data} redirectTo={redirectTo} />;
+  return null;
 }

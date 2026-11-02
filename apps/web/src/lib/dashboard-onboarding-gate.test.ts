@@ -7,20 +7,9 @@ import {
   type DashboardOnboardingState,
 } from "./dashboard-onboarding-gate";
 
-const COMPLETE: DashboardOnboardingState = {
-  provisioning: false,
-  onboardingCompletedAt: new Date("2026-01-01T00:00:00Z"),
-};
+const READY: DashboardOnboardingState = { provisioning: false };
 
-const INCOMPLETE: DashboardOnboardingState = {
-  provisioning: false,
-  onboardingCompletedAt: null,
-};
-
-const PROVISIONING: DashboardOnboardingState = {
-  provisioning: true,
-  onboardingCompletedAt: null,
-};
+const PROVISIONING: DashboardOnboardingState = { provisioning: true };
 
 function gate(
   pathname: string | null | undefined,
@@ -31,94 +20,76 @@ function gate(
 }
 
 describe("dashboardOnboardingRedirect", () => {
-  it("sends an incomplete User to the questionnaire", () => {
+  it("sends a provisioning User to the wait screen", () => {
     assert.equal(
-      gate("/dashboard", INCOMPLETE),
+      gate("/dashboard", PROVISIONING),
       `${ONBOARDING_PATH}?redirect_url=%2Fdashboard`,
     );
   });
 
   it("carries the exact dashboard path through as redirect_url", () => {
     assert.equal(
-      gate("/dashboard/games/abc123", INCOMPLETE),
+      gate("/dashboard/games/abc123", PROVISIONING),
       `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fgames%2Fabc123`,
-    );
-  });
-
-  it("carries a Game Invite landing path through as redirect_url", () => {
-    assert.equal(
-      gate("/dashboard/games/game_42", PROVISIONING),
-      `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fgames%2Fgame_42`,
     );
   });
 
   it("keeps the query string on the path it returns to", () => {
     assert.equal(
-      gate("/dashboard/games?tab=upcoming", INCOMPLETE),
+      gate("/dashboard/games?tab=upcoming", PROVISIONING),
       `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fgames%3Ftab%3Dupcoming`,
     );
   });
 
-  it("redirects rather than throwing while the user row is still provisioning", () => {
-    assert.equal(
-      gate("/dashboard/you", PROVISIONING),
-      `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fyou`,
-    );
+  it("never redirects once the user row exists, questionnaire done or not", () => {
+    assert.equal(gate("/dashboard", READY), null);
+    assert.equal(gate("/dashboard/you", READY), null);
+    assert.equal(gate("/dashboard/games/abc123?tab=teams", READY), null);
+    assert.equal(gate(null, READY), null);
   });
 
-  it("never redirects a complete User", () => {
-    assert.equal(gate("/dashboard", COMPLETE), null);
-    assert.equal(gate("/dashboard/you", COMPLETE), null);
-    assert.equal(gate("/dashboard/games/abc123?tab=teams", COMPLETE), null);
-  });
-
-  it("never redirects a complete User even with no pathname header", () => {
-    assert.equal(gate(null, COMPLETE), null);
-  });
-
-  it("falls back to a bare questionnaire when no pathname header arrived", () => {
-    assert.equal(gate(null, INCOMPLETE), ONBOARDING_PATH);
-    assert.equal(gate(undefined, INCOMPLETE), ONBOARDING_PATH);
-    assert.equal(gate("", INCOMPLETE), ONBOARDING_PATH);
+  it("falls back to a bare wait screen when no pathname header arrived", () => {
+    assert.equal(gate(null, PROVISIONING), ONBOARDING_PATH);
+    assert.equal(gate(undefined, PROVISIONING), ONBOARDING_PATH);
+    assert.equal(gate("", PROVISIONING), ONBOARDING_PATH);
   });
 
   it("drops a path safeInternalRedirect refuses instead of building an open redirect", () => {
-    assert.equal(gate("//evil.example.com", INCOMPLETE), ONBOARDING_PATH);
-    assert.equal(gate("https://evil.example.com", INCOMPLETE), ONBOARDING_PATH);
+    assert.equal(gate("//evil.example.com", PROVISIONING), ONBOARDING_PATH);
     assert.equal(
-      gate("/dashboard@evil.example.com", INCOMPLETE),
+      gate("https://evil.example.com", PROVISIONING),
       ONBOARDING_PATH,
     );
-    assert.equal(gate("/dashboard\\evil", INCOMPLETE), ONBOARDING_PATH);
+    assert.equal(
+      gate("/dashboard@evil.example.com", PROVISIONING),
+      ONBOARDING_PATH,
+    );
+    assert.equal(gate("/dashboard\\evil", PROVISIONING), ONBOARDING_PATH);
   });
 
-  it("lets the development design preview render un-onboarded", () => {
+  it("lets the development design preview render while provisioning", () => {
     assert.equal(gate("/dashboard/design", PROVISIONING, true), null);
     assert.equal(gate("/dashboard/design/home", PROVISIONING, true), null);
     assert.equal(
-      gate("/dashboard/design/tournament", PROVISIONING, true),
-      null,
-    );
-    assert.equal(
-      gate("/dashboard/design/home?state=empty", INCOMPLETE, true),
+      gate("/dashboard/design/home?state=empty", PROVISIONING, true),
       null,
     );
   });
 
   it("gates the design preview outside development", () => {
     assert.equal(
-      gate("/dashboard/design", INCOMPLETE, false),
+      gate("/dashboard/design", PROVISIONING, false),
       `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fdesign`,
     );
   });
 
   it("does not let a design-look-alike path slip past the gate", () => {
     assert.equal(
-      gate("/dashboard/designs", INCOMPLETE, true),
+      gate("/dashboard/designs", PROVISIONING, true),
       `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fdesigns`,
     );
     assert.equal(
-      gate("/dashboard/design-system", INCOMPLETE, true),
+      gate("/dashboard/design-system", PROVISIONING, true),
       `${ONBOARDING_PATH}?redirect_url=%2Fdashboard%2Fdesign-system`,
     );
   });

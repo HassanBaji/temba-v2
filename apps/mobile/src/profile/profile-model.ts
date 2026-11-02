@@ -27,7 +27,25 @@ export type ProfileModel = {
   allTime: Slot<ProfileAllTimeInput>;
   pendingInviteCount: number;
   teamCount: number;
+  /** Shows the "Complete your profile" link in Settings. */
+  checklistIncomplete: boolean;
 };
+
+export type ProfileDestination =
+  | "bookings"
+  | "teams"
+  | "invites"
+  | "terms"
+  | "complete-profile";
+
+/** The checklist lives under the Home stack; everything else is a Profile sub-screen. */
+export function profileDestinationPath(
+  destination: ProfileDestination,
+): string {
+  return destination === "complete-profile"
+    ? "/complete-profile"
+    : `/profile/${destination}`;
+}
 
 type ApiRating = RouterOutputs["ratings"]["me"];
 type ApiStats = RouterOutputs["users"]["profileStats"];
@@ -88,5 +106,6 @@ export function profileModelFromFixture(fixture: ProfileFixture): ProfileModel {
     allTime: { status: "ready", value: fixture.allTime },
     pendingInviteCount: fixture.pendingInviteCount,
     teamCount: fixture.teamCount,
+    checklistIncomplete: false,
   };
 }

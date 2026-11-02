@@ -3,7 +3,11 @@
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
 import { AuthLoading } from "~/components/auth/auth-loading";
-import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
+import {
+  authCompleteUrl,
+  authCrossLinkUrl,
+  signUpCompleteUrl,
+} from "~/lib/auth-redirect";
 
 function signupContinueUrl(redirectUrl: string | null): string {
   if (!redirectUrl) {
@@ -14,6 +18,7 @@ function signupContinueUrl(redirectUrl: string | null): string {
 
 export function SsoCallback({ redirectUrl }: { redirectUrl: string | null }) {
   const complete = authCompleteUrl(redirectUrl);
+  const signUpComplete = signUpCompleteUrl(redirectUrl);
 
   return (
     <>
@@ -25,9 +30,9 @@ export function SsoCallback({ redirectUrl }: { redirectUrl: string | null }) {
         signInFallbackRedirectUrl={complete}
         signInForceRedirectUrl={complete}
         signInUrl={authCrossLinkUrl("/login", redirectUrl)}
-        signUpFallbackRedirectUrl={complete}
-        signUpForceRedirectUrl={complete}
-        signUpUrl={authCrossLinkUrl("/signup", redirectUrl)}
+        signUpFallbackRedirectUrl={signUpComplete}
+        signUpForceRedirectUrl={signUpComplete}
+        signUpUrl={authCrossLinkUrl("/login", redirectUrl)}
       />
     </>
   );
