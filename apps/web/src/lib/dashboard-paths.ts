@@ -58,6 +58,9 @@ export function titleFromPath(pathname: string) {
   if (/^\/dashboard\/groups\/[^/]+\/seasons\/new/.test(pathname)) {
     return "New season";
   }
+  if (/^\/dashboard\/groups\/[^/]+\/edit/.test(pathname)) {
+    return "Edit Group";
+  }
   if (/^\/dashboard\/groups\/[^/]+\/seasons/.test(pathname)) {
     return "Seasons";
   }
@@ -143,6 +146,10 @@ export function detailBackHref(
 
 export function groupSeasonsHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons`;
+}
+
+export function groupEditHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/edit`;
 }
 
 export function groupNewSeasonHref(groupId: string) {

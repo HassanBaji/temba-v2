@@ -1,20 +1,54 @@
 "use client";
 
-import Link from "next/link";
-import { Fragment, type RefObject } from "react";
+import {
+  CalendarRangeIcon,
+  ImageIcon,
+  ImageOffIcon,
+  LinkIcon,
+  LogOutIcon,
+  MoreVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  UnlinkIcon,
+  UserRoundPlusIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
+import { useState, type RefObject } from "react";
 
 import {
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
-} from "~/components/common/action-menu";
-import { groupLeaveVenueActionLabel } from "@repo/domain/group-link-request";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "~/components/common/responsive-dialog";
+import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
 import type { GroupHomeOverflowItem } from "@repo/domain/group-home-cta";
-import { groupSeasonsHref } from "~/lib/dashboard-paths";
+import { groupLeaveVenueActionLabel } from "@repo/domain/group-link-request";
+import { GROUP_MENU_LABELS } from "@repo/domain/group-settings";
+import { groupEditHref, groupSeasonsHref } from "~/lib/dashboard-paths";
 
+const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
+  "leave_venue_community",
+  "leave",
+  "delete",
+]);
+
+type Row = {
+  label: string;
+  icon: LucideIcon;
+  href?: string;
+  onSelect?: () => void;
+};
+
+/** The More menu on Group home (design "Group create and edit flow" 02). */
 export function GroupHomeOverflowMenu({
   items,
   groupId,
+  groupName,
+  roleLine,
   communityId,
   communityName,
   venueName,
@@ -29,6 +63,8 @@ export function GroupHomeOverflowMenu({
 }: {
   items: GroupHomeOverflowItem[];
   groupId: string;
+  groupName: string;
+  roleLine: string | null;
   communityId: string | null;
   communityName: string | null;
   venueName: string | null;
@@ -41,91 +77,160 @@ export function GroupHomeOverflowMenu({
   onLeave: () => void;
   onDelete: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+
   if (items.length === 0) {
     return null;
   }
 
-  return (
-    <ActionMenu triggerRef={triggerRef} label="Group actions">
-      {items.map((item, index) => {
-        const previous = items[index - 1];
-        const showSeparator =
-          (item === "leave_venue_community" ||
-            item === "leave" ||
-            item === "delete") &&
-          previous != null &&
-          previous !== "leave_venue_community" &&
-          previous !== "leave" &&
-          previous !== "delete";
+  const rowFor = (item: GroupHomeOverflowItem): Row | null => {
+    switch (item) {
+      case "edit":
+        return {
+          label: GROUP_MENU_LABELS.edit,
+          icon: PencilIcon,
+          href: groupEditHref(groupId),
+        };
+      case "open_community":
+        return communityId
+          ? {
+              label: `Open ${communityName ?? "Community"}`,
+              icon: UsersIcon,
+              href: `/dashboard/communities/${communityId}`,
+            }
+          : null;
+      case "all_communities":
+        return {
+          label: "All Communities",
+          icon: UsersIcon,
+          href: "/dashboard/communities",
+        };
+      case "create_game":
+        return {
+          label: "Create Game",
+          icon: PlusIcon,
+          href: `/dashboard/games/new?groupId=${groupId}`,
+        };
+      case "copy_group_url":
+        return {
+          label: GROUP_MENU_LABELS.copy_link,
+          icon: LinkIcon,
+          onSelect: onCopyGroupUrl,
+        };
+      case "manage_invites":
+        return {
+          label: GROUP_MENU_LABELS.invite,
+          icon: UserRoundPlusIcon,
+          onSelect: onManageInvites,
+        };
+      case "change_image":
+        return {
+          label: "Change image",
+          icon: ImageIcon,
+          onSelect: onChangeImage,
+        };
+      case "remove_image":
+        return {
+          label: "Remove image",
+          icon: ImageOffIcon,
+          onSelect: onRemoveImage,
+        };
+      case "seasons":
+        return {
+          label: "Seasons",
+          icon: CalendarRangeIcon,
+          href: groupSeasonsHref(groupId),
+        };
+      case "leave_venue_community":
+        return venueName
+          ? {
+              label: groupLeaveVenueActionLabel(venueName),
+              icon: UnlinkIcon,
+              onSelect: onLeaveVenueCommunity,
+            }
+          : null;
+      case "leave":
+        return {
+          label: GROUP_MENU_LABELS.leave,
+          icon: LogOutIcon,
+          onSelect: onLeave,
+        };
+      case "delete":
+        return { label: "Delete Group", icon: Trash2Icon, onSelect: onDelete };
+    }
+  };
 
-        return (
-          <Fragment key={item}>
-            {showSeparator ? <ActionMenuSeparator /> : null}
-            {item === "open_community" && communityId ? (
-              <ActionMenuItem asChild>
-                <Link href={`/dashboard/communities/${communityId}`}>
-                  Open {communityName ?? "Community"}
-                </Link>
-              </ActionMenuItem>
-            ) : null}
-            {item === "all_communities" ? (
-              <ActionMenuItem asChild>
-                <Link href="/dashboard/communities">All Communities</Link>
-              </ActionMenuItem>
-            ) : null}
-            {item === "create_game" ? (
-              <ActionMenuItem asChild>
-                <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-                  Create Game
-                </Link>
-              </ActionMenuItem>
-            ) : null}
-            {item === "copy_group_url" ? (
-              <ActionMenuItem onSelect={onCopyGroupUrl}>
-                Copy Group URL
-              </ActionMenuItem>
-            ) : null}
-            {item === "manage_invites" ? (
-              <ActionMenuItem onSelect={onManageInvites}>
-                Manage invites
-              </ActionMenuItem>
-            ) : null}
-            {item === "change_image" ? (
-              <ActionMenuItem onSelect={onChangeImage}>
-                Change image
-              </ActionMenuItem>
-            ) : null}
-            {item === "remove_image" ? (
-              <ActionMenuItem onSelect={onRemoveImage}>
-                Remove image
-              </ActionMenuItem>
-            ) : null}
-            {item === "seasons" ? (
-              <ActionMenuItem asChild>
-                <Link href={groupSeasonsHref(groupId)}>Seasons</Link>
-              </ActionMenuItem>
-            ) : null}
-            {item === "leave_venue_community" && venueName ? (
-              <ActionMenuItem
-                variant="destructive"
-                onSelect={onLeaveVenueCommunity}
-              >
-                {groupLeaveVenueActionLabel(venueName)}
-              </ActionMenuItem>
-            ) : null}
-            {item === "leave" ? (
-              <ActionMenuItem variant="destructive" onSelect={onLeave}>
-                Leave Group
-              </ActionMenuItem>
-            ) : null}
-            {item === "delete" ? (
-              <ActionMenuItem variant="destructive" onSelect={onDelete}>
-                Delete Group
-              </ActionMenuItem>
-            ) : null}
-          </Fragment>
-        );
-      })}
-    </ActionMenu>
+  const groups = [
+    items.filter((item) => !DESTRUCTIVE.has(item)),
+    items.filter((item) => DESTRUCTIVE.has(item)),
+  ]
+    .map((list) =>
+      list.flatMap((item) => {
+        const row = rowFor(item);
+        return row ? [{ item, ...row }] : [];
+      }),
+    )
+    .filter((list) => list.length > 0);
+
+  return (
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label="Group actions"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="bg-wash text-ink hover:bg-rule focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
+      >
+        <MoreVerticalIcon aria-hidden="true" className="size-5" />
+      </button>
+      <ResponsiveDialogContent showCloseButton restoreFocusRef={triggerRef}>
+        <ResponsiveDialogHeader className="pr-14">
+          <ResponsiveDialogTitle className="text-lead font-semibold tracking-normal [font-variation-settings:normal]">
+            {groupName}
+          </ResponsiveDialogTitle>
+          {roleLine ? (
+            <ResponsiveDialogDescription className="text-meta">
+              {roleLine}
+            </ResponsiveDialogDescription>
+          ) : (
+            <ResponsiveDialogDescription className="sr-only">
+              Group actions
+            </ResponsiveDialogDescription>
+          )}
+        </ResponsiveDialogHeader>
+        <div className="flex flex-col gap-2.5 px-4 pb-4 md:px-0 md:pb-0">
+          {groups.map((list, index) => (
+            <SheetMenu key={index}>
+              {list.map((row) =>
+                row.href !== undefined ? (
+                  <SheetMenuRow
+                    key={row.item}
+                    label={row.label}
+                    icon={row.icon}
+                    trailing="chevron"
+                    href={row.href}
+                    onSelect={() => setOpen(false)}
+                  />
+                ) : (
+                  <SheetMenuRow
+                    key={row.item}
+                    label={row.label}
+                    icon={row.icon}
+                    trailing={DESTRUCTIVE.has(row.item) ? undefined : "chevron"}
+                    tone={DESTRUCTIVE.has(row.item) ? "danger" : "default"}
+                    onSelect={() => {
+                      setOpen(false);
+                      row.onSelect?.();
+                    }}
+                  />
+                ),
+              )}
+            </SheetMenu>
+          ))}
+        </div>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

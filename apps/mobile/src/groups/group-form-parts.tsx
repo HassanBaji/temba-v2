@@ -13,6 +13,7 @@ import { Pressable, Switch, View } from "react-native";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
+import { initialsFor } from "../primitives/initials";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
@@ -46,6 +47,7 @@ export function PhotoTile({
   label,
   onPress,
   disabled = false,
+  empty = "camera",
 }: {
   uri: string | null;
   name: string;
@@ -53,7 +55,10 @@ export function PhotoTile({
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** Without a photo: a dashed camera slot, or the Group's initials on ink. */
+  empty?: "camera" | "initials";
 }) {
+  const filled = Boolean(uri) || empty === "initials";
   return (
     <Pressable
       accessibilityRole="button"
@@ -68,9 +73,29 @@ export function PhotoTile({
         opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
       })}
     >
-      {uri ? (
-        <View style={{ width: PHOTO_TILE, height: PHOTO_TILE }}>
-          <Avatar name={name} uri={uri} size="xl" radius={radii.card} />
+      {filled ? (
+        <View
+          style={{
+            width: PHOTO_TILE,
+            height: PHOTO_TILE,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.ink,
+          }}
+        >
+          {uri ? (
+            <Avatar name={name} uri={uri} size="xl" radius={radii.card} />
+          ) : (
+            <Text
+              size="h2"
+              weight="semibold"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+              style={{ color: colors.paper }}
+            >
+              {initialsFor(name)}
+            </Text>
+          )}
           <View
             style={{
               position: "absolute",
@@ -79,7 +104,7 @@ export function PhotoTile({
               bottom: 0,
               paddingVertical: 4,
               alignItems: "center",
-              backgroundColor: colors.ink,
+              backgroundColor: uri ? colors.ink : colors.dimrule,
             }}
           >
             <Text
@@ -103,10 +128,10 @@ export function PhotoTile({
             borderWidth: hairline,
             borderColor: colors.inputBorder,
             borderStyle: "dashed",
-            backgroundColor: colors.wash,
+            backgroundColor: colors.surfaceRaised,
           }}
         >
-          <Camera size={sizes.iconAction} color={colors.ink} />
+          <Camera size={sizes.iconAction} color={colors.muted} />
           <Text size="eyebrow" tone="muted">
             {label}
           </Text>

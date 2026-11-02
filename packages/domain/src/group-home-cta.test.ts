@@ -178,6 +178,25 @@ describe("groupHomeOverflowItems", () => {
     );
   });
 
+  it("puts Edit Group first for the owner", () => {
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        family: { kind: "none" },
+        hasCommunity: false,
+        hasCreateAccess: false,
+        canShowCreateGame: false,
+        isLoosePublic: true,
+        canManageInvites: false,
+        canManageImage: false,
+        hasImage: false,
+        isMember: true,
+        canDelete: true,
+        canEdit: true,
+      }),
+      ["edit", "copy_group_url", "leave", "delete"],
+    );
+  });
+
   it("hides overflow when nothing is available", () => {
     assert.deepEqual(
       groupHomeOverflowItems({

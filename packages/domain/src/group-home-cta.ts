@@ -16,6 +16,7 @@ export type GroupHomeCtaInput = {
 };
 
 export type GroupHomeOverflowItem =
+  | "edit"
   | "open_community"
   | "all_communities"
   | "create_game"
@@ -41,6 +42,7 @@ export type GroupHomeOverflowInput = {
   canDelete: boolean;
   canLeaveVenueCommunity?: boolean;
   canManageSeasons?: boolean;
+  canEdit?: boolean;
 };
 
 export function groupHomeCanShowCreateGame(input: { canCreateGame: boolean }) {
@@ -157,6 +159,9 @@ export function groupHomeOverflowItems(
   const createOnBar = groupHomeCreateOnActionBar(input.family);
   const inviteOnBar = groupHomeInviteOnActionBar(input.family);
 
+  if (input.canEdit) {
+    items.push("edit");
+  }
   if (input.hasCommunity) {
     items.push("open_community");
     if (input.hasCreateAccess) {

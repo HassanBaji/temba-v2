@@ -9,19 +9,20 @@ import {
   GroupCreateForm,
   type GroupCreateValues,
 } from "~/components/groups/group-create-form";
-import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { PageTitle } from "~/components/layout/page-title";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import {
   GROUP_CREATED_WITHOUT_IMAGE_TOAST,
   entityImageUploadInput,
 } from "@repo/domain/entity-image-file";
 import {
   GROUP_CREATED_TOAST,
-  GROUP_CREATE_LOOSE_DESCRIPTION,
+  GROUP_CREATE_SCREEN,
 } from "@repo/domain/group-create";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
+/** Design "Group create and edit flow" 01. */
 export default function NewLooseGroupPage() {
   const router = useRouter();
   const utils = api.useUtils();
@@ -96,10 +97,35 @@ export default function NewLooseGroupPage() {
 
   return (
     <DashboardShell
-      title="Create Group"
-      description={GROUP_CREATE_LOOSE_DESCRIPTION}
+      title={GROUP_CREATE_SCREEN.title}
+      hidePageHeader
+      hideMobileTopBar
     >
-      <Card variant="outlined" className="w-full">
+      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[26px] pb-6">
+        <header className="mt-6 flex flex-col gap-[18px] lg:mt-2">
+          <div className="flex items-center justify-between gap-3">
+            <BackButton
+              variant="boxed"
+              href="/dashboard/groups"
+              label="Back to Groups"
+            />
+            <Link
+              href="/dashboard/groups"
+              aria-disabled={isPending || undefined}
+              className="text-body text-muted-foreground hover:text-ink inline-flex min-h-11 items-center px-1.5"
+            >
+              {GROUP_CREATE_SCREEN.cancel}
+            </Link>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <PageTitle variant="hero" className="text-ink text-[30px]">
+              {GROUP_CREATE_SCREEN.title}
+            </PageTitle>
+            <p className="text-body text-muted-foreground">
+              {GROUP_CREATE_SCREEN.description.loose}
+            </p>
+          </div>
+        </header>
         <GroupCreateForm
           context="loose"
           idPrefix="group"
@@ -108,13 +134,8 @@ export default function NewLooseGroupPage() {
           onSubmit={(values) => {
             void onSubmit(values);
           }}
-          secondaryAction={
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/groups">Cancel</Link>
-            </Button>
-          }
         />
-      </Card>
+      </div>
     </DashboardShell>
   );
 }

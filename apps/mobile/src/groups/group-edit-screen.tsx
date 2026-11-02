@@ -107,6 +107,7 @@ function GroupEditForm({
   });
 
   const transfer = useGroupTransfer(groupId, data.name, leaveToGroups);
+  const dirty = groupEditChanges(initial, draft) != null;
   const canSave = groupEditCanSave(initial, draft) && !save.isPending;
 
   return (
@@ -115,7 +116,7 @@ function GroupEditForm({
         <GroupEditFooter
           canSave={canSave}
           saving={save.isPending}
-          footer={groupEditSaveFooter(groupEditChanges(initial, draft) != null)}
+          footer={groupEditSaveFooter(dirty)}
           onSave={() => {
             const changes = groupEditChanges(initial, draft);
             if (!changes) {
@@ -158,6 +159,11 @@ function GroupEditForm({
         canDelete={data.canDelete}
         onTransferOwnership={() => transfer.setOpen(true)}
         onDelete={() => setDeleteOpen(true)}
+        dirty={dirty}
+        onDiscard={() => {
+          setDraft(initial);
+          setNameError(null);
+        }}
         saving={save.isPending}
       />
       <DeleteGroupSheet

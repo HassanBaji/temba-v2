@@ -55,6 +55,9 @@ export type GroupEditViewProps = {
   canDelete: boolean;
   onTransferOwnership: () => void;
   onDelete: () => void;
+  /** Whether the draft differs from the Group as loaded. */
+  dirty: boolean;
+  onDiscard: () => void;
   saving: boolean;
 };
 
@@ -145,7 +148,28 @@ export function GroupEditView(props: GroupEditViewProps) {
 
   return (
     <View style={{ gap: spacing.section }}>
-      <ScreenHeader nav="back" fallback="/groups" title={GROUP_EDIT_COPY.title}>
+      <ScreenHeader
+        nav="back"
+        fallback="/groups"
+        title={GROUP_EDIT_COPY.title}
+        actions={
+          props.dirty ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={GROUP_EDIT_COPY.discard}
+              disabled={disabled}
+              onPress={props.onDiscard}
+              hitSlop={10}
+              style={({ pressed }) => ({
+                paddingHorizontal: 6,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text tone="muted">{GROUP_EDIT_COPY.discard}</Text>
+            </Pressable>
+          ) : undefined
+        }
+      >
         <Text tone="muted" style={{ marginTop: -12 }}>
           {props.subtitle}
         </Text>
@@ -160,6 +184,7 @@ export function GroupEditView(props: GroupEditViewProps) {
               uri={props.imageUri}
               name={draft.name || "Group"}
               label={GROUP_EDIT_COPY.photoChange}
+              empty="initials"
               disabled={props.imagePending || disabled}
               onPress={props.onChangeImage}
             />
@@ -260,6 +285,7 @@ export function GroupEditView(props: GroupEditViewProps) {
                     label={GROUP_EDIT_COPY.deleteTitle}
                     hint={GROUP_EDIT_COPY.deleteHint}
                     trailing={Trash2}
+                    tone="danger"
                     disabled={disabled}
                     onPress={props.onDelete}
                   />

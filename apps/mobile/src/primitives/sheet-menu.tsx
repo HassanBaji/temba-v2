@@ -7,7 +7,7 @@ import { Hairline } from "./hairline";
 import { Surface } from "./surface";
 import { Text } from "./text";
 
-const ROW_MIN_HEIGHT = 52;
+const ROW_MIN_HEIGHT = 54;
 const ROW_PADDING_X = 18;
 
 export type SheetMenuRowProps = {
@@ -15,6 +15,8 @@ export type SheetMenuRowProps = {
   hint?: string | null;
   icon?: ComponentType<{ size: number; color: ColorValue }>;
   trailing?: ComponentType<{ size: number; color: ColorValue }> | "chevron";
+  /** "danger" marks a destructive door: leave, delete, remove. */
+  tone?: "default" | "danger";
   pending?: boolean;
   disabled?: boolean;
   accessibilityLabel?: string;
@@ -27,6 +29,7 @@ export function SheetMenuRow({
   hint,
   icon: Icon,
   trailing,
+  tone = "default",
   pending = false,
   disabled = false,
   accessibilityLabel,
@@ -34,6 +37,7 @@ export function SheetMenuRow({
 }: SheetMenuRowProps) {
   const Trailing = trailing === "chevron" ? ChevronRight : trailing;
   const inactive = disabled || pending;
+  const ink = tone === "danger" ? colors.danger : colors.ink;
   return (
     <Pressable
       accessibilityRole="button"
@@ -54,9 +58,9 @@ export function SheetMenuRow({
         opacity: disabled && !pending ? 0.5 : 1,
       })}
     >
-      {Icon ? <Icon size={sizes.iconAction} color={colors.ink} /> : null}
+      {Icon ? <Icon size={sizes.iconAction} color={ink} /> : null}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text weight={hint ? "medium" : "regular"}>
+        <Text weight={hint ? "medium" : "regular"} style={{ color: ink }}>
           {pending ? `${label}…` : label}
         </Text>
         {hint ? (
@@ -65,7 +69,12 @@ export function SheetMenuRow({
           </Text>
         ) : null}
       </View>
-      {Trailing ? <Trailing size={sizes.iconRow} color={colors.dim} /> : null}
+      {Trailing ? (
+        <Trailing
+          size={sizes.iconRow}
+          color={trailing === "chevron" ? colors.dim : ink}
+        />
+      ) : null}
     </Pressable>
   );
 }
