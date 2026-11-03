@@ -255,8 +255,7 @@ export type AdmitReason =
   | "team_incomplete"
   | "team_already_on_game"
   | "level_range"
-  | "cancelled"
-  | "match_completed";
+  | "cancelled";
 
 export type AdmitPlacement =
   | {

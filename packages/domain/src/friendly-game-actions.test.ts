@@ -22,6 +22,12 @@ describe("friendlyGameFooterActions", () => {
     );
   });
 
+  it("drops Leave Game once the Game has been played", () => {
+    for (const phase of ["needs_results", "final"] as const) {
+      assert.deepEqual(friendlyGameFooterActions({ ...player, phase }), []);
+    }
+  });
+
   it("gives a non-seated player nothing", () => {
     assert.deepEqual(
       friendlyGameFooterActions({

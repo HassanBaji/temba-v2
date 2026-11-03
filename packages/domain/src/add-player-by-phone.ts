@@ -300,9 +300,10 @@ export function sameJoinSeat(
 }
 
 /**
- * Until a completed Match, while there is room: a vacant Position on a padel
- * Friendly game, a side with room on a tournament before its Pool draw, or a
- * roster below players allowed on an Americano or football Game.
+ * While there is room: a vacant Position on a padel Friendly game, a side
+ * with room on a tournament before its Pool draw, or a roster below players
+ * allowed on an Americano or football Game. A played Game stays open to the
+ * Organizer, so the record can be put right after the fact.
  */
 export function organizerCanAddPlayer(game: {
   isOrganizer: boolean;
@@ -314,22 +315,14 @@ export function organizerCanAddPlayer(game: {
   registrationMode: string;
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[];
   drawPostedAt?: Date | string | null;
-  matches?: readonly { status: string | null }[];
   roster?: { count: number; cap: number | null } | null;
 }): boolean {
   if (!game.isOrganizer || game.cancelledAt || game.joinFrozen) {
     return false;
   }
-  if (game.matches?.some((match) => match.status === "completed")) {
-    return false;
-  }
   const placement = addPlayerPlacement(game);
   if (placement === "seat") {
-    return (
-      game.phase !== "final" &&
-      game.phase !== "cancelled" &&
-      vacantJoinSeats(game.sides).length > 0
-    );
+    return game.phase !== "cancelled" && vacantJoinSeats(game.sides).length > 0;
   }
   if (placement === "side") {
     return !game.drawPostedAt && vacantJoinSeats(game.sides).length > 0;
