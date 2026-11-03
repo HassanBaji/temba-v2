@@ -341,6 +341,18 @@ _Avoid_: score (Sets carry the score), win rate (that is a derived percentage), 
 A seated User's acknowledgement that a Match's entered Sets are correct. The User who enters the Set that first produces a Match result is confirmed automatically; a Match only reaches completed, and only then rates, once every seated User with an account on its two Game teams has confirmed. An Unclaimed player never confirms: a side whose seated Users are all Unclaimed players is confirmed by an Organizer's confirmation for that side, which a changed score clears like any other. A football Match needs one player from each side, read the same way. An Organizer's confirmation is final: it completes the Match without waiting on the players (ADR-0044). Entering a score is never a final confirmation, even for an Organizer.
 _Avoid_: complete (the resulting Match status), verify, approve, agree, confirmed Match status (`MatchStatusEnum.CONFIRMED` is deliberately unused — see ADR-0011)
 
+**Played game**:
+A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result.
+_Avoid_: finished game, past game, archived game
+
+**Result card**:
+A 1080 by 1920 picture of a Played game's result on ink, sized for a story: the winners first, the score or the Sets, the scorers or line-ups, the Venue and the date. Saved to the photo library or handed to the share sheet as a PNG.
+_Avoid_: story (that is where it goes), poster, screenshot
+
+**Result sticker**:
+A compact Result card on a transparent canvas, to drop on the player's own photo. Same content as the Result card, one line each for the score and your own part.
+_Avoid_: widget, badge, overlay
+
 **Americano**:
 A Game format with individual-only registration and rotating partners across multiple Matches. Matches are generated after registration.
 _Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)

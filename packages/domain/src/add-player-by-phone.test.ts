@@ -323,13 +323,21 @@ describe("organizerCanAddPlayer", () => {
     assert.equal(organizerCanAddPlayer(game), true);
   });
 
-  it("hides it from Members, on finished or full Games and other formats", () => {
+  it("keeps the add open to the Organizer once the Game is played", () => {
+    assert.equal(organizerCanAddPlayer({ ...game, phase: "final" }), true);
+    assert.equal(
+      organizerCanAddPlayer({ ...game, phase: "needs_results" }),
+      true,
+    );
+  });
+
+  it("hides it from Members, on cancelled or full Games and other formats", () => {
     assert.equal(organizerCanAddPlayer({ ...game, isOrganizer: false }), false);
     assert.equal(
       organizerCanAddPlayer({ ...game, cancelledAt: new Date() }),
       false,
     );
-    assert.equal(organizerCanAddPlayer({ ...game, phase: "final" }), false);
+    assert.equal(organizerCanAddPlayer({ ...game, phase: "cancelled" }), false);
     assert.equal(organizerCanAddPlayer({ ...game, joinFrozen: true }), false);
     assert.equal(
       organizerCanAddPlayer({ ...game, registrationMode: "team_only" }),
@@ -363,7 +371,7 @@ describe("organizerCanAddPlayer", () => {
     );
   });
 
-  it("offers an Americano or football roster below players allowed and before a completed Match", () => {
+  it("offers an Americano or football roster below players allowed, played or not", () => {
     for (const roster of [
       { ...game, format: "americano", phase: null, sides: [] },
       { ...game, sport: "football", phase: null, sides: [] },
@@ -379,10 +387,10 @@ describe("organizerCanAddPlayer", () => {
       assert.equal(
         organizerCanAddPlayer({
           ...roster,
+          phase: "final",
           roster: { count: 2, cap: 8 },
-          matches: [{ status: "completed" }],
         }),
-        false,
+        true,
       );
     }
   });

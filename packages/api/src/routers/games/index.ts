@@ -49,6 +49,7 @@ import { rejectLevelRangeRequestProcedure as rejectLevelRangeRequest } from "./r
 import { removeSetProcedure as removeSet } from "./removeSet";
 import { reopenRegistrationProcedure as reopenRegistration } from "./reopenRegistration";
 import { reportWrongScoreProcedure as reportWrongScore } from "./reportWrongScore";
+import { resultLinkProcedure as resultLink } from "./resultLink";
 import { requestLevelRangeProcedure as requestLevelRange } from "./requestLevelRange";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { saveFootballScoreProcedure as saveFootballScore } from "./saveFootballScore";
@@ -119,6 +120,7 @@ export const gamesRouter = createTRPCRouter({
   confirmMatchResult,
   reportWrongScore,
   footballBoard,
+  resultLink,
   setFootballRole,
   publishFootballTeams,
   saveFootballScore,

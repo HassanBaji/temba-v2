@@ -83,7 +83,7 @@ export function friendlyGameFooterActions(input: {
           },
     );
   }
-  if (input.canLeaveGame) {
+  if (input.canLeaveGame && isUpcoming) {
     actions.push({
       kind: "leave_game",
       label: LEAVE_GAME_ACTION,

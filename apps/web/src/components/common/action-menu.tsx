@@ -17,10 +17,13 @@ export function ActionMenu({
   children,
   label = "More actions",
   triggerRef,
+  triggerClassName,
 }: {
   children: React.ReactNode;
   label?: string;
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
+  /** Trigger overrides, e.g. paper ink and a raised hover on an ink surface. */
+  triggerClassName?: string;
 }) {
   return (
     <DropdownMenu modal={false}>
@@ -30,7 +33,7 @@ export function ActionMenu({
           type="button"
           variant="ghost"
           aria-label={label}
-          className="size-11 min-h-11 min-w-11 p-0"
+          className={cn("size-11 min-h-11 min-w-11 p-0", triggerClassName)}
         >
           <MoreVertical aria-hidden="true" className="size-5" strokeWidth={2} />
         </Button>

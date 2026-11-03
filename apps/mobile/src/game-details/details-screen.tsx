@@ -1,6 +1,9 @@
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
-import type { FriendlyGameDetails } from "@repo/domain/friendly-game-details";
+import {
+  friendlyGameDetailsPlan,
+  type FriendlyGameDetails,
+} from "@repo/domain/friendly-game-details";
 import {
   isPartnerVacantSideRace,
   offersPartnerJoin,
@@ -37,6 +40,7 @@ import { useNow } from "../games/use-now";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
+import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
@@ -664,46 +668,69 @@ export function GameDetailsScreen({
   };
 
   const hero = gameHeroModel(details, now);
+  const playedMatch =
+    details.phase === "final"
+      ? friendlyGameDetailsPlan(details).firstMatch
+      : undefined;
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        statusBarTone={hero?.tone ?? "paper"}
-        header={
-          hero ? (
-            <GameHero model={hero} fallback="/games" actions={inviteEntry} />
-          ) : undefined
-        }
-      >
-        {hero ? null : (
-          <>
-            {header}
-            {inviteEntry}
-          </>
-        )}
-        <GameDetailsContent
+      {playedMatch ? (
+        <PlayedFriendlyGame
+          gameId={gameId}
           game={details}
-          handlers={handlers}
-          organizer={
-            organizer.plan
-              ? { plan: organizer.plan, handlers: organizer.handlers }
-              : null
-          }
+          match={playedMatch}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          organizer={organizer}
+          onOpenPlayer={onOpenPlayer}
+          onRenameUnclaimed={details.isOrganizer ? setRenaming : undefined}
         />
-      </Screen>
-      <GameDetailsBar
-        game={details}
-        handlers={{
-          joinPending: registerSeat.isPending && !joinOpen,
-          leaveWaitlistPending: leaveWaitlist.isPending,
-          onJoin: () => openJoin(),
-          onJoinWaitlist: () => registerSeat.mutate({ gameId }),
-          onLeaveWaitlist: askLeaveWaitlist,
-          onBrowse: () => router.push("/games"),
-        }}
-      />
+      ) : (
+        <>
+          <Screen
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            statusBarTone={hero?.tone ?? "paper"}
+            header={
+              hero ? (
+                <GameHero
+                  model={hero}
+                  fallback="/games"
+                  actions={inviteEntry}
+                />
+              ) : undefined
+            }
+          >
+            {hero ? null : (
+              <>
+                {header}
+                {inviteEntry}
+              </>
+            )}
+            <GameDetailsContent
+              game={details}
+              handlers={handlers}
+              organizer={
+                organizer.plan
+                  ? { plan: organizer.plan, handlers: organizer.handlers }
+                  : null
+              }
+            />
+          </Screen>
+          <GameDetailsBar
+            game={details}
+            handlers={{
+              joinPending: registerSeat.isPending && !joinOpen,
+              leaveWaitlistPending: leaveWaitlist.isPending,
+              onJoin: () => openJoin(),
+              onJoinWaitlist: () => registerSeat.mutate({ gameId }),
+              onLeaveWaitlist: askLeaveWaitlist,
+              onBrowse: () => router.push("/games"),
+            }}
+          />
+        </>
+      )}
       {sheets}
       {organizer.plan ? (
         <>

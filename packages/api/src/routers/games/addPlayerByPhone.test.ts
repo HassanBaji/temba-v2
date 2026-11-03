@@ -618,7 +618,7 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
       }
     });
 
-    it("a Game with a completed Match", async () => {
+    it("but still seats a player once the Match is completed", async () => {
       const { db, close } = await createPgliteDb();
       try {
         const f = await seed(db);
@@ -626,15 +626,15 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
           .update(matches)
           .set({ status: MatchStatusEnum.COMPLETED })
           .where(eq(matches.gameId, f.gameId));
-        await expect(
-          addPlayerByPhone(db, {
-            gameId: f.gameId,
-            organizerUserId: f.organizer,
-            ...bahrain("36110001"),
-            seat: { sideIndex: 1, position: "left" },
-          }),
-        ).rejects.toThrow("This Game already has a completed Match");
-        expect(await playersOn(db, f.gameId)).toEqual([]);
+        const added = await addPlayerByPhone(db, {
+          gameId: f.gameId,
+          organizerUserId: f.organizer,
+          ...bahrain("36110001"),
+          seat: { sideIndex: 1, position: "left" },
+        });
+        expect(await playersOn(db, f.gameId)).toEqual([
+          { userId: added.userId },
+        ]);
       } finally {
         await close();
       }
@@ -937,7 +937,7 @@ describe("games.addPlayerByPhone on an Americano", () => {
     }
   });
 
-  it("refuses once a Match is completed", async () => {
+  it("still adds to the roster once a Match is completed", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seed(db);
@@ -955,14 +955,15 @@ describe("games.addPlayerByPhone on an Americano", () => {
         gameId: americano!.id,
         status: MatchStatusEnum.COMPLETED,
       });
-      await expect(
-        addPlayerByPhone(db, {
-          gameId: americano!.id,
-          organizerUserId: f.organizer,
-          ...bahrain("36124408"),
-          name: "Ali",
-        }),
-      ).rejects.toThrow("This Game already has a completed Match");
+      const added = await addPlayerByPhone(db, {
+        gameId: americano!.id,
+        organizerUserId: f.organizer,
+        ...bahrain("36124408"),
+        name: "Ali",
+      });
+      expect(await playersOn(db, americano!.id)).toEqual([
+        { userId: added.userId },
+      ]);
     } finally {
       await close();
     }

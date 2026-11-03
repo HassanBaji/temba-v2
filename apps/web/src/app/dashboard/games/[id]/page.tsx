@@ -23,6 +23,7 @@ import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
+import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameBookedBlock } from "~/components/games/game-booked-block";
@@ -685,6 +686,8 @@ export default function GameHomePage({
   const canAddPlayer = organizerCanAddPlayer(data);
   const openAddPlayer = canAddPlayer ? () => setAddPlayerOpen(true) : undefined;
   const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
+  const playedMatch =
+    usesFriendlyChrome && data.phase === "final" ? firstMatch : undefined;
   const heroInput = friendlyGameHeroInput(data);
   const ctaFamily = usesFriendlyChrome
     ? plan.ctaFamily
@@ -824,7 +827,7 @@ export default function GameHomePage({
     >
       <div
         className={
-          ctaFamily.kind !== "none"
+          ctaFamily.kind !== "none" && !playedMatch
             ? "mt-6 space-y-6 max-lg:pb-20"
             : "space-y-6"
         }
@@ -935,7 +938,9 @@ export default function GameHomePage({
                 {desktopOverflow}
               </div>
             ) : null}
-            {heroInput ? <FriendlyGameDetailsHero {...heroInput} /> : null}
+            {heroInput && !playedMatch ? (
+              <FriendlyGameDetailsHero {...heroInput} />
+            ) : null}
           </>
         ) : (
           <GameHomeHeader
@@ -953,7 +958,7 @@ export default function GameHomePage({
           />
         )}
 
-        {usesFriendlyChrome && ctaFamily.kind !== "none" ? (
+        {usesFriendlyChrome && ctaFamily.kind !== "none" && !playedMatch ? (
           <div className="max-lg:contents">
             <FriendlyGameCtaBar
               family={ctaFamily}
@@ -994,7 +999,18 @@ export default function GameHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        {usesDrawnTournamentChrome ? null : usesFriendlyChrome ? (
+        {usesDrawnTournamentChrome ? null : playedMatch ? (
+          <PlayedFriendlyGame
+            gameId={id}
+            game={data}
+            match={playedMatch}
+            linkToPlayers={gamePlayersLink(data)}
+            onKick={(userId) => requestKick({ userId })}
+            onRename={data.isOrganizer ? setRenaming : undefined}
+            onAddPlayer={openAddPlayer}
+            onReportWrongScore={() => setReportWrongScoreOpen(true)}
+          />
+        ) : usesFriendlyChrome ? (
           // Hero + Line-up + Score + Rating impact + organiser actions
           // footer scope (game-details redesign,
           // TEM-179/TEM-180/TEM-181/TEM-182/TEM-184): the tab bar and
