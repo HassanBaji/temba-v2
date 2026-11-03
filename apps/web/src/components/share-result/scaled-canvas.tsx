@@ -2,9 +2,11 @@
 
 import * as React from "react";
 
-export const STORY_WIDTH = 1080;
-export const STORY_HEIGHT = 1920;
-export const STICKER_WIDTH = STORY_WIDTH - 2 * 72;
+export {
+  STICKER_WIDTH,
+  STORY_HEIGHT,
+  STORY_WIDTH,
+} from "@repo/domain/result-share-frame";
 
 /**
  * Lays a card out at its export size and scales it down to the width it is
