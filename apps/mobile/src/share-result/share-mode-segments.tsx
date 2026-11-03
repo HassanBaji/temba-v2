@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { colors, radii } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
 import { hairline } from "../primitives/hairline-width";
@@ -10,6 +10,10 @@ const MODES: { value: ShareMode; label: string }[] = [
   { value: "sticker", label: "Sticker" },
 ];
 
+const TRACK_PADDING = 3;
+const SEGMENT_HEIGHT = 40;
+
+/** A wash track with the chosen mode lifted on a paper pill. */
 export function ShareModeSegments({
   value,
   onSelect,
@@ -23,15 +27,14 @@ export function ShareModeSegments({
       accessibilityLabel="What to share"
       style={{
         flexDirection: "row",
+        gap: TRACK_PADDING,
+        padding: TRACK_PADDING,
         borderRadius: radii.lg,
-        borderWidth: hairline,
-        borderColor: colors.rule,
-        overflow: "hidden",
+        backgroundColor: colors.wash,
       }}
     >
-      {MODES.map((mode, index) => {
+      {MODES.map((mode) => {
         const selected = mode.value === value;
-        const color = selected ? colors.paper : colors.muted;
         return (
           <Pressable
             key={mode.value}
@@ -40,16 +43,21 @@ export function ShareModeSegments({
             onPress={() => onSelect(mode.value)}
             style={({ pressed }) => ({
               flex: 1,
-              minHeight: sizes.touchTarget,
+              height: SEGMENT_HEIGHT,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: selected ? colors.ink : colors.paper,
-              borderLeftWidth: index === 0 ? 0 : hairline,
-              borderLeftColor: colors.rule,
-              opacity: pressed ? 0.85 : 1,
+              borderRadius: radii.lg - TRACK_PADDING,
+              borderWidth: hairline,
+              borderColor: selected ? colors.rule : "transparent",
+              backgroundColor: selected ? colors.paper : "transparent",
+              opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Text weight={selected ? "semibold" : "regular"} style={{ color }}>
+            <Text
+              size="meta"
+              weight={selected ? "semibold" : "regular"}
+              tone={selected ? "default" : "muted"}
+            >
               {mode.label}
             </Text>
           </Pressable>

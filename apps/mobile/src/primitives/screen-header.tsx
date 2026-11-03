@@ -89,6 +89,19 @@ export function ScreenHeader({
   );
 }
 
+/** Leaves the screen the way its back button would. */
+export function useLeaveScreen(fallback: Href) {
+  const router = useRouter();
+  return () => {
+    const target = backTarget(router.canGoBack(), fallback);
+    if (target.kind === "back") {
+      router.back();
+    } else {
+      router.replace(target.href);
+    }
+  };
+}
+
 function NavButton({
   nav,
   fallback,
@@ -98,26 +111,48 @@ function NavButton({
   fallback: Href;
   onNav?: () => void;
 }) {
-  const router = useRouter();
+  const leave = useLeaveScreen(fallback);
 
   return (
     <HeaderIconButton
       framed
       icon={nav === "back" ? ChevronLeft : X}
       accessibilityLabel={nav === "back" ? "Back" : "Close"}
-      onPress={() => {
-        if (onNav) {
-          onNav();
-          return;
-        }
-        const target = backTarget(router.canGoBack(), fallback);
-        if (target.kind === "back") {
-          router.back();
-        } else {
-          router.replace(target.href);
-        }
-      }}
+      onPress={onNav ?? leave}
     />
+  );
+}
+
+/** A plain word in the header's action row, like "Done". */
+export function HeaderTextButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  const onInk = useSurfaceTone() === "ink";
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: sizes.touchTarget,
+        minWidth: NAV_BUTTON,
+        paddingHorizontal: 4,
+        alignItems: "flex-end",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text
+        weight="semibold"
+        style={{ color: onInk ? colors.paper : colors.ink }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
