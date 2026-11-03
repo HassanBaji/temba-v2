@@ -3,12 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useCreateAccess } from "~/components/create-access-gate";
 import { NotificationBell } from "~/components/notifications/notification-bell";
-import {
-  visibleAppNavItems,
-  isNavItemActive,
-} from "~/components/layout/app-nav";
+import { APP_NAV_ITEMS, isNavItemActive } from "~/components/layout/app-nav";
 import {
   Sidebar,
   SidebarContent,
@@ -23,8 +19,7 @@ import { cn } from "~/lib/utils";
 
 export function AppRail() {
   const pathname = usePathname();
-  const { isLoaded, hasCreateAccess } = useCreateAccess();
-  const items = visibleAppNavItems(isLoaded && hasCreateAccess);
+  const items = APP_NAV_ITEMS;
 
   return (
     <Sidebar
