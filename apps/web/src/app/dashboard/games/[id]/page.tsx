@@ -7,7 +7,8 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
-  ACTION_MENU_INK_TRIGGER,
+  ACTION_MENU_INK_BOXED_TRIGGER,
+  ACTION_MENU_PAPER_BOXED_TRIGGER,
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
@@ -24,6 +25,7 @@ import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
+import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
@@ -742,7 +744,11 @@ export default function GameHomePage({
     usesFriendlyChrome && overflowItems.length > 0 ? (
       <FriendlyGameOverflowMenu
         items={overflowItems}
-        triggerClassName={tone === "ink" ? ACTION_MENU_INK_TRIGGER : undefined}
+        triggerClassName={
+          tone === "ink"
+            ? ACTION_MENU_INK_BOXED_TRIGGER
+            : ACTION_MENU_PAPER_BOXED_TRIGGER
+        }
         {...overflowHandlers}
       />
     ) : null;
@@ -944,9 +950,7 @@ export default function GameHomePage({
             {heroInput && !playedMatch ? (
               <FriendlyGameDetailsHero {...heroInput} actions={overflow} />
             ) : playedMatch ? null : (
-              <div className="flex justify-end empty:hidden">
-                {overflow("paper")}
-              </div>
+              <HeroNavRow tone="paper" actions={overflow("paper")} />
             )}
           </>
         ) : (

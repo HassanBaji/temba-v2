@@ -6,6 +6,7 @@ import { useLightStatusBar } from "../create-game/step-shell";
 import type { footballHeroLines } from "@repo/domain/football-board";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
+import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
@@ -13,6 +14,8 @@ import { HeroTopLine } from "./hero-top-line";
 
 const HERO_PADDING_BOTTOM = 22;
 const SEAT_HEIGHT = 24;
+const NAV_TO_STATUS_GAP = 24;
+const GAMES_FALLBACK = "/games";
 
 function LightStatusBar() {
   useLightStatusBar();
@@ -75,53 +78,59 @@ export function FootballHero({
     >
       {tone === "ink" ? <LightStatusBar /> : null}
       <View style={{ gap: spacing.compact }}>
-        <View style={{ gap: 6 }}>
-          <HeroTopLine
-            left={lines.status}
-            right={
-              lines.sizeTag ? (
-                <Text size="eyebrow" tone="muted" mono>
-                  {lines.sizeTag}
-                </Text>
-              ) : null
-            }
+        <View style={{ gap: NAV_TO_STATUS_GAP }}>
+          <ScreenHeader
+            nav="back"
+            fallback={GAMES_FALLBACK}
             actions={actions}
           />
-          {lines.time ? (
-            <View
-              accessible
-              accessibilityLabel={`${lines.time} ${lines.meridiem ?? ""}`}
-              style={{
-                flexDirection: "row",
-                alignItems: "baseline",
-                columnGap: 8,
-              }}
-            >
-              <Text size="heroTime" width="expanded" weight="bold">
-                {lines.time}
+          <View style={{ gap: 6 }}>
+            <HeroTopLine
+              left={lines.status}
+              right={
+                lines.sizeTag ? (
+                  <Text size="eyebrow" tone="muted" mono>
+                    {lines.sizeTag}
+                  </Text>
+                ) : null
+              }
+            />
+            {lines.time ? (
+              <View
+                accessible
+                accessibilityLabel={`${lines.time} ${lines.meridiem ?? ""}`}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "baseline",
+                  columnGap: 8,
+                }}
+              >
+                <Text size="heroTime" width="expanded" weight="bold">
+                  {lines.time}
+                </Text>
+                {lines.meridiem ? (
+                  <Text size="title" tone="muted">
+                    {lines.meridiem}
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text size="display" width="expanded" weight="bold">
+                Time unset
               </Text>
-              {lines.meridiem ? (
-                <Text size="title" tone="muted">
-                  {lines.meridiem}
+            )}
+            <View>
+              {lines.dayLine ? (
+                <Text size="lead" weight="semibold">
+                  {lines.dayLine}
+                </Text>
+              ) : null}
+              {lines.subLine ? (
+                <Text size="meta" tone="muted">
+                  {lines.subLine}
                 </Text>
               ) : null}
             </View>
-          ) : (
-            <Text size="display" width="expanded" weight="bold">
-              Time unset
-            </Text>
-          )}
-          <View>
-            {lines.dayLine ? (
-              <Text size="lead" weight="semibold">
-                {lines.dayLine}
-              </Text>
-            ) : null}
-            {lines.subLine ? (
-              <Text size="meta" tone="muted">
-                {lines.subLine}
-              </Text>
-            ) : null}
           </View>
         </View>
         {children}

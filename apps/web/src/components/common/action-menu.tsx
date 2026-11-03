@@ -13,13 +13,13 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { cn } from "~/lib/utils";
 
-/** Trigger overrides for a menu that sits on an ink surface. */
-export const ACTION_MENU_INK_TRIGGER =
-  "text-paper hover:bg-raised hover:text-paper";
-
 /** Trigger overrides for a boxed menu on an ink surface, beside other boxed actions. */
 export const ACTION_MENU_INK_BOXED_TRIGGER =
   "bg-raised text-paper hover:bg-raised/80 hover:text-paper rounded-md";
+
+/** Trigger overrides for a boxed menu on paper, beside other boxed actions. */
+export const ACTION_MENU_PAPER_BOXED_TRIGGER =
+  "border-rule text-ink rounded-md border";
 
 export function ActionMenu({
   children,

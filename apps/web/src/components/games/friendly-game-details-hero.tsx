@@ -3,6 +3,7 @@
 import { Surface } from "~/components/ui/surface";
 import { useEffect, useState } from "react";
 
+import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 
 import { DividedFigurePair } from "~/components/home/home-all-time";
@@ -33,12 +34,14 @@ function FinalHero({
 }) {
   return (
     <article className="border-rule bg-paper text-ink rounded-xl border p-[22px]">
-      <HeroTopLine
-        tone="paper"
-        left={model.dateLabel}
-        right={<p className="shrink-0">{model.tag}</p>}
-        actions={actions?.("paper")}
-      />
+      <HeroNavRow tone="paper" actions={actions?.("paper")} />
+      <div className="mt-6">
+        <HeroTopLine
+          tone="paper"
+          left={model.dateLabel}
+          right={<p className="shrink-0">{model.tag}</p>}
+        />
+      </div>
 
       {model.verdict && model.verdictWord ? (
         <div className="mt-3 flex items-center gap-3">
@@ -90,17 +93,16 @@ export function FriendlyGameDetailsHero({
   const model = friendlyGameHeroModel(props, now);
 
   if (!model) {
-    return actions ? (
-      <div className="text-ink flex justify-end empty:hidden">
-        {actions("paper")}
-      </div>
-    ) : null;
+    return <HeroNavRow tone="paper" actions={actions?.("paper")} />;
   }
 
   if (model.kind === "time_unset") {
     return (
       <Surface as="article" tone="ink" radius="surface" className="p-[22px]">
-        <HeroTopLine tone="ink" left="Time unset" actions={actions?.("ink")} />
+        <HeroNavRow tone="ink" actions={actions?.("ink")} />
+        <div className="mt-6">
+          <HeroTopLine tone="ink" left="Time unset" />
+        </div>
       </Surface>
     );
   }
@@ -116,19 +118,21 @@ export function FriendlyGameDetailsHero({
       radius="surface"
       className="p-[22px]"
     >
+      <HeroNavRow tone={model.tone} actions={actions?.(model.tone)} />
       {/* ADR-0013: the left label is booked now, not "Team confirmed" / seats held. */}
-      <HeroTopLine
-        tone={model.tone}
-        left={model.leftLabel}
-        right={
-          model.statusLabel ? (
-            <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
-              {model.statusLabel}
-            </p>
-          ) : null
-        }
-        actions={actions?.(model.tone)}
-      />
+      <div className="mt-6">
+        <HeroTopLine
+          tone={model.tone}
+          left={model.leftLabel}
+          right={
+            model.statusLabel ? (
+              <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
+                {model.statusLabel}
+              </p>
+            ) : null
+          }
+        />
+      </div>
       {model.partnerName ? (
         <>
           <p className="font-expanded text-display mt-3 leading-none tracking-[-0.03em]">

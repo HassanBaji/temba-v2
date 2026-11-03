@@ -38,7 +38,7 @@ import { View } from "react-native";
 
 import { useNow } from "../games/use-now";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
-import { InviteEntry } from "../invites/invite-entry";
+import { InviteEntry, InviteIconEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
 import { gamePlayersLink } from "../player-profile/game-player-links";
@@ -431,6 +431,9 @@ export function GameDetailsScreen({
   const inviteEntry = inviteAccess?.canManage ? (
     <InviteEntry onPress={() => setInviteOpen(true)} />
   ) : null;
+  const heroInvite = inviteAccess?.canManage ? (
+    <InviteIconEntry onPress={() => setInviteOpen(true)} />
+  ) : null;
 
   const sheets = data ? (
     <>
@@ -685,7 +688,7 @@ export function GameDetailsScreen({
             onRefresh={onRefresh}
             statusBarTone={hero?.tone ?? "paper"}
             header={
-              hero ? <GameHero model={hero} actions={inviteEntry} /> : undefined
+              hero ? <GameHero model={hero} actions={heroInvite} /> : undefined
             }
           >
             {hero ? null : inviteEntry}
