@@ -546,7 +546,6 @@ export function FootballGameDetails({
       hero={{
         dateLine: playedModel.dateLine,
         tag: playedModel.tag,
-        fallback: "/games",
         result: playedModel.result,
         venueLine: playedModel.venueLine,
         whenLine: playedModel.whenLine,
@@ -582,7 +581,6 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
-          fallback="/games"
           actions={
             inviteAccess.canManage ? (
               <InviteEntry onPress={() => setInviteOpen(true)} />

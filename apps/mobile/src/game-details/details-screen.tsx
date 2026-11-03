@@ -45,7 +45,6 @@ import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -418,8 +417,6 @@ export function GameDetailsScreen({
     });
   }
 
-  const header = <ScreenHeader nav="back" fallback="/games" />;
-
   const inviteAccess = data
     ? gameInviteAccess({
         friendlyChrome: friendly,
@@ -518,7 +515,6 @@ export function GameDetailsScreen({
   if (isNotFoundError(game.error)) {
     return (
       <Screen>
-        {header}
         <Notice
           title="Game not found"
           description="It may have been removed, or you may not have access."
@@ -530,7 +526,6 @@ export function GameDetailsScreen({
   if (game.error && !data) {
     return (
       <Screen>
-        {header}
         <Notice
           title="Game could not be loaded"
           description={game.error.message}
@@ -543,7 +538,6 @@ export function GameDetailsScreen({
   if (!data) {
     return (
       <Screen>
-        {header}
         <LoadingSkeleton />
       </Screen>
     );
@@ -571,7 +565,6 @@ export function GameDetailsScreen({
     return (
       <View style={{ flex: 1 }}>
         <Screen refreshing={refreshing} onRefresh={onRefresh}>
-          {header}
           {inviteEntry}
           <TournamentContent
             game={details}
@@ -632,7 +625,6 @@ export function GameDetailsScreen({
   if (!friendly) {
     return (
       <Screen refreshing={refreshing} onRefresh={onRefresh}>
-        {header}
         <Notice
           title={UNSUPPORTED_FORMAT_COPY.title}
           description={UNSUPPORTED_FORMAT_COPY.description}
@@ -693,21 +685,10 @@ export function GameDetailsScreen({
             onRefresh={onRefresh}
             statusBarTone={hero?.tone ?? "paper"}
             header={
-              hero ? (
-                <GameHero
-                  model={hero}
-                  fallback="/games"
-                  actions={inviteEntry}
-                />
-              ) : undefined
+              hero ? <GameHero model={hero} actions={inviteEntry} /> : undefined
             }
           >
-            {hero ? null : (
-              <>
-                {header}
-                {inviteEntry}
-              </>
-            )}
+            {hero ? null : inviteEntry}
             <GameDetailsContent
               game={details}
               handlers={handlers}

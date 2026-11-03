@@ -1,37 +1,38 @@
 import { spacing } from "@repo/design-tokens";
 import type { FriendlyGameHeroModel } from "@repo/domain/friendly-game-hero";
-import type { Href } from "expo-router";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
-import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { FigurePair } from "./figure-pair";
+import { HeroTopLine } from "./hero-top-line";
 
 const HERO_PADDING_BOTTOM = 22;
 
-function TopLine({ left, right }: { left: string; right: string | null }) {
+function TopLine({
+  left,
+  right,
+  actions,
+}: {
+  left: string;
+  right: string | null;
+  actions?: React.ReactNode;
+}) {
   return (
-    <View
-      style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
-    >
-      <Text
-        size="meta"
-        tone="muted"
-        numberOfLines={1}
-        style={{ flexShrink: 1 }}
-      >
-        {left}
-      </Text>
-      {right ? (
-        <Text size="meta" tone="muted">
-          {right}
-        </Text>
-      ) : null}
-    </View>
+    <HeroTopLine
+      left={left}
+      right={
+        right ? (
+          <Text size="meta" tone="muted">
+            {right}
+          </Text>
+        ) : null
+      }
+      actions={actions}
+    />
   );
 }
 
@@ -40,14 +41,12 @@ function LightStatusBar() {
   return null;
 }
 
-/** The full-bleed header of Game details: back, actions, then the Game. */
+/** The full-bleed header of Game details: the actions, then the Game. */
 export function GameHero({
   model,
-  fallback,
   actions,
 }: {
   model: FriendlyGameHeroModel;
-  fallback: Href;
   actions?: React.ReactNode;
 }) {
   return (
@@ -62,26 +61,26 @@ export function GameHero({
       }}
     >
       {model.tone === "ink" ? <LightStatusBar /> : null}
-      <ScreenHeader nav="back" fallback={fallback} actions={actions}>
-        <HeroBody model={model} />
-      </ScreenHeader>
+      <HeroBody model={model} actions={actions} />
     </Surface>
   );
 }
 
-function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
+function HeroBody({
+  model,
+  actions,
+}: {
+  model: FriendlyGameHeroModel;
+  actions?: React.ReactNode;
+}) {
   if (model.kind === "time_unset") {
-    return (
-      <Text size="meta" tone="muted">
-        Time unset
-      </Text>
-    );
+    return <TopLine left="Time unset" right={null} actions={actions} />;
   }
 
   if (model.kind === "final") {
     return (
       <View style={{ gap: 12 }}>
-        <TopLine left={model.dateLabel} right={model.tag} />
+        <TopLine left={model.dateLabel} right={model.tag} actions={actions} />
         {model.verdict && model.verdictWord ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <ResultMark variant={model.verdict} size={32} decorative />
@@ -117,7 +116,11 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
 
   return (
     <View style={{ gap: 12 }}>
-      <TopLine left={model.leftLabel} right={model.statusLabel} />
+      <TopLine
+        left={model.leftLabel}
+        right={model.statusLabel}
+        actions={actions}
+      />
       {model.partnerName ? (
         <View style={{ gap: 8 }}>
           <Text size="display" width="expanded" weight="bold">

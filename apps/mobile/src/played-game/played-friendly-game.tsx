@@ -114,7 +114,6 @@ export function PlayedFriendlyGame({
         hero={{
           dateLine: model.dateLine,
           tag: model.tag,
-          fallback: "/games",
           result: model.result,
           venueLine: model.venueLine,
           whenLine: model.whenLine,

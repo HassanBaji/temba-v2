@@ -1,15 +1,15 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
 import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
-import type { Href } from "expo-router";
 import { MoreVertical, Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { HeroTopLine } from "../game-details/hero-top-line";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
-import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
+import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 
@@ -48,7 +48,6 @@ function Pill({ label, solid = false }: { label: string; solid?: boolean }) {
 export type PlayedHeroProps = {
   dateLine: string;
   tag: string | null;
-  fallback: Href;
   result: PlayedResultLine;
   venueLine: string | null;
   whenLine: string | null;
@@ -67,7 +66,6 @@ export type PlayedHeroProps = {
 export function PlayedHero({
   dateLine,
   tag,
-  fallback,
   result,
   venueLine,
   whenLine,
@@ -88,114 +86,97 @@ export function PlayedHero({
       }}
     >
       <LightStatusBar />
-      <ScreenHeader
-        nav="back"
-        fallback={fallback}
-        actions={
-          <>
-            <HeaderIconButton
-              framed
-              icon={Share}
-              accessibilityLabel="Share result"
-              onPress={onShare}
-            />
-            {onMore ? (
-              <HeaderIconButton
-                framed
-                icon={MoreVertical}
-                accessibilityLabel="More"
-                onPress={onMore}
-              />
-            ) : null}
-          </>
-        }
-      >
-        <View style={{ gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <Text
-              size="meta"
-              tone="muted"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
-            >
-              {dateLine}
-            </Text>
-            {tag ? (
+      <View style={{ gap: 16 }}>
+        <HeroTopLine
+          left={dateLine}
+          right={
+            tag ? (
               <Text size="eyebrow" tone="muted" mono>
                 {tag}
               </Text>
-            ) : null}
-          </View>
-
-          {children}
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {result.hasWinner ? (
-              <ResultMark variant="won" size={16} decorative />
-            ) : null}
-            <Text
-              weight="semibold"
-              numberOfLines={2}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {result.line}
-            </Text>
-            <View
-              style={{
-                borderRadius: radii.slot + 1,
-                paddingVertical: 4,
-                paddingHorizontal: 7,
-                borderWidth: hairline,
-                borderColor: colors.dimrule,
-              }}
-            >
-              <Text size="eyebrow" tone="muted" mono>
-                {CONFIRMED_LABEL}
-              </Text>
-            </View>
-          </View>
-
-          {venueLine || whenLine ? (
-            <View style={{ marginTop: 6 }}>
-              {venueLine ? <Text size="lead">{venueLine}</Text> : null}
-              {whenLine ? (
-                <Text size="meta" tone="muted">
-                  {whenLine}
-                </Text>
+            ) : null
+          }
+          actions={
+            <>
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel="Share result"
+                onPress={onShare}
+              />
+              {onMore ? (
+                <HeaderIconButton
+                  framed
+                  icon={MoreVertical}
+                  accessibilityLabel="More"
+                  onPress={onMore}
+                />
               ) : null}
-            </View>
-          ) : null}
+            </>
+          }
+        />
 
-          {you ? (
-            <View style={{ gap: 16, marginTop: 6 }}>
-              <Hairline />
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-              >
-                {avatar ? (
-                  <Avatar name={avatar.name} uri={avatar.image} size="lg" />
-                ) : null}
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text weight="semibold" numberOfLines={1}>
-                    {you.line}
-                  </Text>
-                  <Text size="meta" tone="muted" numberOfLines={2}>
-                    {you.ratingLine}
-                  </Text>
-                </View>
-                <Pill label={you.tag} solid={you.won} />
-              </View>
-            </View>
+        {children}
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          {result.hasWinner ? (
+            <ResultMark variant="won" size={16} decorative />
           ) : null}
+          <Text
+            weight="semibold"
+            numberOfLines={2}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {result.line}
+          </Text>
+          <View
+            style={{
+              borderRadius: radii.slot + 1,
+              paddingVertical: 4,
+              paddingHorizontal: 7,
+              borderWidth: hairline,
+              borderColor: colors.dimrule,
+            }}
+          >
+            <Text size="eyebrow" tone="muted" mono>
+              {CONFIRMED_LABEL}
+            </Text>
+          </View>
         </View>
-      </ScreenHeader>
+
+        {venueLine || whenLine ? (
+          <View style={{ marginTop: 6 }}>
+            {venueLine ? <Text size="lead">{venueLine}</Text> : null}
+            {whenLine ? (
+              <Text size="meta" tone="muted">
+                {whenLine}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {you ? (
+          <View style={{ gap: 16, marginTop: 6 }}>
+            <Hairline />
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+            >
+              {avatar ? (
+                <Avatar name={avatar.name} uri={avatar.image} size="lg" />
+              ) : null}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text weight="semibold" numberOfLines={1}>
+                  {you.line}
+                </Text>
+                <Text size="meta" tone="muted" numberOfLines={2}>
+                  {you.ratingLine}
+                </Text>
+              </View>
+              <Pill label={you.tag} solid={you.won} />
+            </View>
+          </View>
+        ) : null}
+      </View>
     </Surface>
   );
 }
