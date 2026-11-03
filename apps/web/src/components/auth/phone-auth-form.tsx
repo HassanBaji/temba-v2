@@ -37,6 +37,7 @@ import {
   PHONE_AUTH_TITLES,
   hasPasswordFactor,
   previousPhoneAuthStep,
+  resetPasswordPhoneNumberId,
   signUpStepProgress,
   type PhoneAuthStep,
 } from "~/lib/phone-auth-flow";
@@ -145,7 +146,8 @@ function PreviewCard({ name, phone }: { name: string | null; phone: string }) {
  * The one door: phone, then a password for a known number, or a code, a name
  * and a new password for a new one (ADR-0049, ADR-0050). `signIn.create`
  * decides which it is: `form_identifier_not_found` switches to a sign-up on
- * the same number. The code is sent only on sign-up.
+ * the same number. The code is sent on sign-up, and on "Forgot password?",
+ * which resets the password with a code and a new password (ADR-0051).
  */
 export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   const router = useRouter();
@@ -198,6 +200,12 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       setPassword("");
     }
     goTo(previous);
+  }
+
+  function restart() {
+    setCode("");
+    setPassword("");
+    goTo("phone");
   }
 
   async function activate(sessionId: string, url: string) {
@@ -336,6 +344,108 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     }
   }
 
+  async function sendResetCode(): Promise<boolean> {
+    if (!signIn) {
+      return false;
+    }
+    const phoneNumberId = resetPasswordPhoneNumberId(
+      signIn.supportedFirstFactors,
+    );
+    if (!phoneNumberId) {
+      setSplit(GENERIC_SPLIT);
+      return false;
+    }
+    await signIn.prepareFirstFactor({
+      strategy: "reset_password_phone_code",
+      phoneNumberId,
+    });
+    setStartedAt(Date.now());
+    return true;
+  }
+
+  async function onForgotPassword() {
+    if (pending || !signIn) {
+      return;
+    }
+    setPending(true);
+    setSplit(null);
+    try {
+      if (await sendResetCode()) {
+        setCode("");
+        goTo("reset-code");
+      }
+      setPending(false);
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+      setPending(false);
+    }
+  }
+
+  async function onResendResetCode() {
+    if (pending || !signIn) {
+      return;
+    }
+    setPending(true);
+    try {
+      await sendResetCode();
+      setPending(false);
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+      setPending(false);
+    }
+  }
+
+  async function onVerifyResetCode() {
+    if (pending || !signIn) {
+      return;
+    }
+    setPending(true);
+    setSplit(null);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_phone_code",
+        code,
+      });
+      if (result.status === "needs_new_password") {
+        setPassword("");
+        goTo("reset-password");
+        setPending(false);
+        return;
+      }
+      if (await finishSignIn(result)) {
+        return;
+      }
+      setSplit(GENERIC_SPLIT);
+      setPending(false);
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+      setPending(false);
+    }
+  }
+
+  async function onSaveNewPassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending || !signIn || !isPasswordLongEnough(password)) {
+      return;
+    }
+    setPending(true);
+    setSplit(null);
+    try {
+      const result = await signIn.resetPassword({
+        password,
+        signOutOfOtherSessions: true,
+      });
+      if (await finishSignIn(result)) {
+        return;
+      }
+      setSplit(GENERIC_SPLIT);
+      setPending(false);
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+      setPending(false);
+    }
+  }
+
   async function onSaveName(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !signUp) {
@@ -442,7 +552,20 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
           >
             Sign in
           </Button>
-          <p className="text-center">
+          <p className="flex items-center justify-center gap-6">
+            <button
+              type="button"
+              className={cn(
+                touchHitArea,
+                "text-body text-ink focus-visible:ring-ring/50 rounded-sm underline outline-none focus-visible:ring-[3px]",
+              )}
+              disabled={pending}
+              onClick={() => {
+                void onForgotPassword();
+              }}
+            >
+              Forgot password?
+            </button>
             <button
               type="button"
               className={cn(
@@ -455,6 +578,106 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
               Change number
             </button>
           </p>
+        </form>
+      </AuthScreen>
+    );
+  }
+
+  if (step === "reset-code") {
+    return (
+      <AuthScreen
+        onBack={back}
+        backLabel="Back"
+        title={title}
+        description="To reset your password."
+        footer={
+          <p className="text-eyebrow text-muted-foreground leading-[1.5]">
+            Codes expire after a short time. Too many wrong tries will lock this
+            number.
+          </p>
+        }
+      >
+        <VerifyCodeForm
+          destination={formattedPhone}
+          changeLabel="Change number"
+          onChangeIdentifier={restart}
+          code={code}
+          onCodeChange={setCode}
+          onVerify={() => {
+            void onVerifyResetCode();
+          }}
+          onResend={() => {
+            void onResendResetCode();
+          }}
+          startedAt={startedAt}
+          pending={pending}
+          globalMessage={split?.globalMessage ?? null}
+          codeError={split?.fieldErrors.code}
+          codeInputId={FIELD_IDS.code}
+          summaryRef={summaryRef}
+        />
+      </AuthScreen>
+    );
+  }
+
+  if (step === "reset-password") {
+    const passwordError = split?.fieldErrors.password;
+    const describedBy = [
+      FIELD_IDS.passwordHint,
+      passwordError ? `${FIELD_IDS.password}-error` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return (
+      <AuthScreen
+        onBack={back}
+        backLabel="Back"
+        title={title}
+        description={`For ${formattedPhone}. Other devices will be signed out.`}
+      >
+        <form
+          className="flex flex-col gap-[18px]"
+          onSubmit={onSaveNewPassword}
+          noValidate
+        >
+          <FormErrorSummary ref={summaryRef} message={split?.globalMessage} />
+          <Field>
+            <FieldLabel
+              htmlFor={FIELD_IDS.password}
+              className="text-meta text-muted-foreground"
+            >
+              New password
+            </FieldLabel>
+            <PasswordField
+              id={FIELD_IDS.password}
+              value={password}
+              onChange={setPassword}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              invalid={Boolean(passwordError)}
+              describedBy={describedBy}
+              disabled={pending}
+            />
+            <PasswordStrengthMeter password={password} />
+            <FieldDescription id={FIELD_IDS.passwordHint}>
+              {PASSWORD_HINT}
+            </FieldDescription>
+            {passwordError ? (
+              <FieldError id={`${FIELD_IDS.password}-error`}>
+                {passwordError}
+              </FieldError>
+            ) : null}
+          </Field>
+          <Button
+            type="submit"
+            size="lg"
+            pending={pending}
+            pendingLabel="Saving…"
+            disabled={!isPasswordLongEnough(password)}
+            className="w-full font-semibold"
+          >
+            Save and sign in
+          </Button>
         </form>
       </AuthScreen>
     );

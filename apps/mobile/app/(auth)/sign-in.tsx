@@ -39,10 +39,18 @@ import { TextField } from "../../src/primitives/text-field";
 
 /**
  * A known number signs in with its password; a new one gets a code, then a
- * name and a new password (ADR-0049, ADR-0050). The code is sent only on
- * sign-up.
+ * name and a new password (ADR-0049, ADR-0050). The code is sent on sign-up
+ * and on "Forgot password?", which resets the password with a code and a new
+ * password (ADR-0051).
  */
-type Step = "phone" | "password" | "code" | "name" | "new-password";
+type Step =
+  | "phone"
+  | "password"
+  | "code"
+  | "name"
+  | "new-password"
+  | "reset-code"
+  | "reset-password";
 
 const SIGN_UP_STEPS: readonly Step[] = ["code", "name", "new-password"];
 
@@ -76,6 +84,12 @@ export default function SignIn() {
     setSplit(null);
     setCode("");
     setPassword("");
+  }
+
+  function backToPassword() {
+    setStep("password");
+    setSplit(null);
+    setCode("");
   }
 
   async function activate(outcome: SessionOutcome): Promise<boolean> {
@@ -206,6 +220,110 @@ export default function SignIn() {
     }
   }
 
+  async function sendResetCode(): Promise<boolean> {
+    if (!signIn) {
+      return false;
+    }
+    const phoneNumberId = signIn.supportedFirstFactors?.find(
+      (item) => item.strategy === "reset_password_phone_code",
+    )?.phoneNumberId;
+    if (!phoneNumberId) {
+      setSplit(SOMETHING_WENT_WRONG);
+      return false;
+    }
+    await signIn.prepareFirstFactor({
+      strategy: "reset_password_phone_code",
+      phoneNumberId,
+    });
+    setStartedAt(Date.now());
+    return true;
+  }
+
+  async function onForgotPassword() {
+    if (pending || !signIn) {
+      return;
+    }
+    setPending(true);
+    setSplit(null);
+    try {
+      if (await sendResetCode()) {
+        setCode("");
+        setStep("reset-code");
+      }
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onResendResetCode() {
+    if (pending || !signIn) {
+      return;
+    }
+    setPending(true);
+    try {
+      await sendResetCode();
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onVerifyResetCode() {
+    if (pending || !signIn) {
+      return;
+    }
+    setPending(true);
+    setSplit(null);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_phone_code",
+        code,
+      });
+      if (result.status === "needs_new_password") {
+        setPassword("");
+        setStep("reset-password");
+        return;
+      }
+      if (await activate(result)) {
+        return;
+      }
+      setSplit(SOMETHING_WENT_WRONG);
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onSaveNewPassword() {
+    if (pending || !signIn || !passwordMeetsMinimum(password)) {
+      return;
+    }
+    setPending(true);
+    setSplit(null);
+    try {
+      const result = await signIn.resetPassword({
+        password,
+        signOutOfOtherSessions: true,
+      });
+      if (await activate(result)) {
+        return;
+      }
+      if (result.status === "needs_second_factor") {
+        router.push("/factor-two");
+        return;
+      }
+      setSplit(SOMETHING_WENT_WRONG);
+    } catch (err) {
+      setSplit(splitClerkAuthError(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function onSaveName() {
     if (pending || !signUp) {
       return;
@@ -280,20 +398,106 @@ export default function SignIn() {
           editable={!pending}
           error={fieldError(split, "password")}
         />
-        <Pressable
-          accessibilityRole="button"
-          hitSlop={8}
-          disabled={pending}
-          onPress={backToPhone}
-          style={{ minHeight: 44, justifyContent: "center" }}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 24,
+          }}
         >
-          <Text
-            tone="muted"
-            style={{ textAlign: "center", textDecorationLine: "underline" }}
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            disabled={pending}
+            onPress={() => void onForgotPassword()}
+            style={{ minHeight: 44, justifyContent: "center" }}
           >
-            Change number
+            <Text
+              tone="muted"
+              style={{ textAlign: "center", textDecorationLine: "underline" }}
+            >
+              Forgot password?
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            disabled={pending}
+            onPress={backToPhone}
+            style={{ minHeight: 44, justifyContent: "center" }}
+          >
+            <Text
+              tone="muted"
+              style={{ textAlign: "center", textDecorationLine: "underline" }}
+            >
+              Change number
+            </Text>
+          </Pressable>
+        </View>
+      </AuthScreen>
+    );
+  }
+
+  if (step === "reset-code") {
+    return (
+      <AuthScreen
+        onBack={backToPassword}
+        title="Enter the code"
+        description="To reset your password."
+        footer={
+          <Text size="eyebrow" tone="muted">
+            Codes expire after a short time. Too many wrong tries will lock this
+            number.
           </Text>
-        </Pressable>
+        }
+      >
+        <CodeForm
+          destination={formattedPhone}
+          changeLabel="Change number"
+          onChangeIdentifier={backToPhone}
+          code={code}
+          onCodeChange={setCode}
+          onVerify={() => void onVerifyResetCode()}
+          onResend={() => void onResendResetCode()}
+          startedAt={startedAt}
+          pending={pending}
+          globalMessage={split?.globalMessage ?? null}
+          codeError={fieldError(split, "code")}
+        />
+      </AuthScreen>
+    );
+  }
+
+  if (step === "reset-password") {
+    return (
+      <AuthScreen
+        onBack={backToPhone}
+        title="Pick a new password"
+        description={`For ${formattedPhone}. Other devices will be signed out.`}
+        action={
+          <Button
+            label="Save and sign in"
+            size="lg"
+            pending={pending}
+            disabled={!passwordMeetsMinimum(password)}
+            onPress={() => void onSaveNewPassword()}
+          />
+        }
+      >
+        <FormErrorSummary message={split?.globalMessage} />
+        <PasswordField
+          label="New password"
+          strength
+          autoFocus
+          autoComplete="password-new"
+          textContentType="newPassword"
+          placeholder="At least 8 characters"
+          value={password}
+          onChangeText={setPassword}
+          onSubmitEditing={() => void onSaveNewPassword()}
+          editable={!pending}
+          error={fieldError(split, "password")}
+        />
       </AuthScreen>
     );
   }

@@ -1,6 +1,6 @@
 # Sign-in is phone and password; the SMS code is sent only on sign-up
 
-**Status:** accepted. Amends ADR-0049: a known number no longer receives a code.
+**Status:** accepted. Amends ADR-0049: a known number no longer receives a code. Amended by ADR-0051: a forgotten password is reset with an SMS code.
 
 ADR-0049 made the phone number the one door and sent a six-digit SMS code to every number, known or new, with the password as the alternative on the code screen. Every sign-in therefore cost an SMS, and a User with a password still waited for a text.
 
