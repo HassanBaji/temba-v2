@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   GROUP_HISTORY_PAGE_SIZE,
-  GROUP_ARCHIVE_GAMES_COPY,
+  groupArchiveGamesCopy,
   groupDisplayName,
   groupGamesEmptyDescription,
   groupHomeCanJoin,
@@ -22,16 +22,24 @@ import {
 
 describe("groupJoinLabel", () => {
   it("reads Requested once a request is open", () => {
-    expect(groupJoinLabel("requested", false, "row")).toBe("Requested");
-    expect(groupJoinLabel("requested", true, "home")).toBe("Requested");
+    expect(groupJoinLabel("requested", false, "row", "en")).toBe("Requested");
+    expect(groupJoinLabel("requested", true, "home", "en")).toBe("Requested");
   });
 
   it("names the request and join actions with their pending forms", () => {
-    expect(groupJoinLabel("request", false, "row")).toBe("Request to join");
-    expect(groupJoinLabel("request", true, "row")).toBe("Requesting…");
-    expect(groupJoinLabel("join", false, "row")).toBe("Join");
-    expect(groupJoinLabel("join", false, "home")).toBe("Join Group");
-    expect(groupJoinLabel("join", true, "home")).toBe("Joining…");
+    expect(groupJoinLabel("request", false, "row", "en")).toBe(
+      "Request to join",
+    );
+    expect(groupJoinLabel("request", true, "row", "en")).toBe("Requesting…");
+    expect(groupJoinLabel("join", false, "row", "en")).toBe("Join");
+    expect(groupJoinLabel("join", false, "home", "en")).toBe("Join Group");
+    expect(groupJoinLabel("join", true, "home", "en")).toBe("Joining…");
+  });
+
+  it("reads in Arabic", () => {
+    expect(groupJoinLabel("join", false, "home", "ar")).toBe(
+      "انضم إلى المجموعة",
+    );
   });
 });
 
@@ -107,20 +115,21 @@ describe("groupHomeJoinDoor", () => {
 
 describe("toasts and copy", () => {
   it("confirms the join or the request", () => {
-    expect(groupJoinToast("requestJoin")).toBe("Requested to join");
-    expect(groupJoinToast("joinLoosePublic")).toBe("Joined Group");
+    expect(groupJoinToast("requestJoin", "en")).toBe("Requested to join");
+    expect(groupJoinToast("joinLoosePublic", "en")).toBe("Joined Group");
   });
 
   it("says the viewer remains in the Community after leaving a Club Group", () => {
-    expect(groupLeaveToast("c1")).toBe(
+    expect(groupLeaveToast("c1", "en")).toBe(
       "Left Group — you remain in the Community",
     );
-    expect(groupLeaveToast(null)).toBe("Left Group");
+    expect(groupLeaveToast(null, "en")).toBe("Left Group");
   });
 
   it("falls back for an unnamed Group", () => {
-    expect(groupDisplayName(null)).toBe("Untitled Group");
-    expect(groupDisplayName("Bromma")).toBe("Bromma");
+    expect(groupDisplayName(null, "en")).toBe("Untitled Group");
+    expect(groupDisplayName("Bromma", "en")).toBe("Bromma");
+    expect(groupDisplayName(null, "ar")).toBe("مجموعة بلا اسم");
   });
 
   it("adds the approval note to the member count", () => {
@@ -128,12 +137,14 @@ describe("toasts and copy", () => {
       publicGroupMetaLine({
         memberCountLabel: "3 members",
         requiresApproval: true,
+        locale: "en",
       }),
     ).toBe("3 members · Requires approval");
     expect(
       publicGroupMetaLine({
         memberCountLabel: "3 members",
         requiresApproval: false,
+        locale: "en",
       }),
     ).toBe("3 members");
   });
@@ -146,6 +157,7 @@ describe("groupHomeBanner", () => {
     communityId: "c1",
     communityName: "Bromma",
     joinMode: "join",
+    locale: "en" as const,
   };
 
   it("explains an archived Community to a non-member", () => {
@@ -265,7 +277,9 @@ describe("groupHomeCanJoin", () => {
 
 describe("groupGamesEmptyDescription", () => {
   it("explains the archive freeze on an archived Community", () => {
-    expect(groupGamesEmptyDescription(true)).toBe(GROUP_ARCHIVE_GAMES_COPY);
-    expect(groupGamesEmptyDescription(false)).toContain("live window");
+    expect(groupGamesEmptyDescription(true, "en")).toBe(
+      groupArchiveGamesCopy("en"),
+    );
+    expect(groupGamesEmptyDescription(false, "en")).toContain("live window");
   });
 });

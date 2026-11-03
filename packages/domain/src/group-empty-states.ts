@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "./game-shape";
 import { sportLabel } from "./sport";
 
@@ -6,11 +9,13 @@ export const GROUP_STANDING_PREVIEW_SEATS = 4;
 
 const PADEL_MATCH_PLAYERS = 4;
 
-export const GROUP_STANDING_AFTER_FIRST_RESULT =
-  "Standings appear after the first result.";
+export function groupStandingAfterFirstResult(locale: Locale) {
+  return messagesFor(locale).group.empty.standingAfterFirstResult;
+}
 
-export const GROUP_GAMES_EMPTY_COPY =
-  "Once a Game is set with a live window or Match, it shows up here.";
+export function groupGamesEmptyCopy(locale: Locale) {
+  return messagesFor(locale).group.empty.games;
+}
 
 /** Players a first Game needs: a padel Match, or the default football side twice. */
 export function groupGamePlayersNeeded(sport: string | null | undefined) {
@@ -25,22 +30,25 @@ export function groupStandingOpenSeats(memberCount: number): number[] {
   return Array.from({ length: open }, (_, index) => memberCount + index + 1);
 }
 
-export function groupStandingEmptyFooter(memberCount: number) {
+export function groupStandingEmptyFooter(memberCount: number, locale: Locale) {
+  const m = messagesFor(locale).group.empty;
   if (memberCount >= GROUP_STANDING_PREVIEW_SEATS) {
-    return GROUP_STANDING_AFTER_FIRST_RESULT;
+    return m.standingAfterFirstResult;
   }
-  return `${memberCount} of ${GROUP_STANDING_PREVIEW_SEATS} seats filled. ${GROUP_STANDING_AFTER_FIRST_RESULT}`;
+  return m.standingSeatsFilled(memberCount, GROUP_STANDING_PREVIEW_SEATS);
 }
 
 export function groupGamesEmptyLine(input: {
   sport: string | null | undefined;
   memberCount: number;
   isMember: boolean;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).group.empty;
   const needed = groupGamePlayersNeeded(input.sport);
-  const sport = sportLabel(input.sport) ?? "A Game";
+  const sport = sportLabel(input.sport, input.locale) ?? m.aGame;
   if (!input.isMember || input.memberCount >= needed) {
-    return GROUP_GAMES_EMPTY_COPY;
+    return m.games;
   }
-  return `${sport} needs ${needed}. You have ${input.memberCount}. ${GROUP_GAMES_EMPTY_COPY}`;
+  return m.gamesNeedPlayers(sport, needed, input.memberCount);
 }

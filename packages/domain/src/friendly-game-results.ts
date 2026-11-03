@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const FRIENDLY_SET_GAMES_MIN = 0;
 export const FRIENDLY_SET_GAMES_MAX = 7;
 
@@ -71,24 +74,26 @@ export function friendlyGameResultsWinnerLine(input: {
   outcomeResult: string;
   slot1Label: string;
   slot2Label: string;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).game.results;
   if (input.matchStatus === "cancelled") {
-    return "Match cancelled";
+    return m.matchCancelled;
   }
   if (input.matchStatus === "completed") {
     if (input.outcomeResult === "draw") {
-      return "Match draw";
+      return m.matchDraw;
     }
     if (input.outcomeResult === "slot1") {
-      return `${input.slot1Label} won`;
+      return m.teamWon(input.slot1Label);
     }
     if (input.outcomeResult === "slot2") {
-      return `${input.slot2Label} won`;
+      return m.teamWon(input.slot2Label);
     }
-    return "Match completed";
+    return m.matchCompleted;
   }
   if (input.outcomeResult === "none") {
-    return "Needs a score";
+    return m.needsAScore;
   }
   return null;
 }

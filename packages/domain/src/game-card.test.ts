@@ -54,14 +54,25 @@ describe("gameCardSubtitle", () => {
 
 describe("sideJoinAccessibleName", () => {
   it("names the team and position", () => {
-    assert.equal(sideJoinAccessibleName(1, "left", null), "Join Team A Left");
+    assert.equal(
+      sideJoinAccessibleName(1, "left", null, "en"),
+      "Join Team A Left",
+    );
   });
 
   it("adds the partner already on the side", () => {
     assert.equal(
-      sideJoinAccessibleName(2, "right", "Ada"),
+      sideJoinAccessibleName(2, "right", "Ada", "en"),
       "Join Team B Right with Ada",
     );
+  });
+
+  it("names the seat in Arabic", () => {
+    assert.match(
+      sideJoinAccessibleName(1, "left", "Ada", "ar"),
+      /^انضم إلى .* يسار مع Ada$/,
+    );
+    assert.equal(hubRegisterToast(false, "ar"), "تم التسجيل");
   });
 });
 
@@ -139,26 +150,26 @@ describe("hubWaitlistJoinCall", () => {
 
 describe("hubRegisterToast", () => {
   it("tells a waitlist from a seat", () => {
-    assert.equal(hubRegisterToast(true), "Joined waitlist");
-    assert.equal(hubRegisterToast(false), "Registered");
+    assert.equal(hubRegisterToast(true, "en"), "Joined waitlist");
+    assert.equal(hubRegisterToast(false, "en"), "Registered");
   });
 });
 
 describe("gameCardSportTag", () => {
   it("pairs the glyph with the word", () => {
-    assert.deepEqual(gameCardSportTag("football"), {
+    assert.deepEqual(gameCardSportTag("football", "en"), {
       glyph: "goal",
       label: "Football",
     });
-    assert.deepEqual(gameCardSportTag("padel"), {
+    assert.deepEqual(gameCardSportTag("padel", "en"), {
       glyph: "circle-dot",
       label: "Padel",
     });
   });
 
   it("is null when the sport is unknown", () => {
-    assert.equal(gameCardSportTag(null), null);
-    assert.equal(gameCardSportTag(""), null);
+    assert.equal(gameCardSportTag(null, "en"), null);
+    assert.equal(gameCardSportTag("", "en"), null);
   });
 });
 

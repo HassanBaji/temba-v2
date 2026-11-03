@@ -1,3 +1,5 @@
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatGameWindowName, splitGameWindow } from "./game-window";
 
 export const GAME_CUSTOM_NAME_MAX_LENGTH = 60;
@@ -21,10 +23,16 @@ export function gameCustomName(game: {
 export function gameWindowLabel(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,
+  locale: Locale,
 ) {
   const window = splitGameWindow(windowStart, windowEnd);
   if (!window.day || !window.startTime || !window.finishTime) {
     return null;
   }
-  return formatGameWindowName(window.day, window.startTime, window.finishTime);
+  return formatGameWindowName(
+    window.day,
+    window.startTime,
+    window.finishTime,
+    locale,
+  );
 }

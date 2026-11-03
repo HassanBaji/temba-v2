@@ -1,55 +1,27 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { poolLetter } from "./tournament-knockout";
 import { tournamentRoundSummary } from "./tournament-rounds";
 import { resolveRoundCount } from "./tournament-sizing";
 
-function gameTeamName(team: {
-  name: string | null;
-  members: readonly { name: string }[];
-}) {
+function gameTeamName(
+  team: {
+    name: string | null;
+    members: readonly { name: string }[];
+  },
+  locale: Locale,
+) {
   if (team.members.length > 0) {
     return team.members.map((member) => member.name).join(" / ");
   }
-  return team.name ?? "Game team";
+  return team.name ?? messagesFor(locale).tournament.gameTeam;
 }
 
-export const POOL_DRAW_NOT_HAPPENED_COPY =
-  "The group draw has not happened yet.";
-export const OPPONENTS_UNKNOWN_COPY = "Your opponents are not yet known.";
-export const POOL_DRAW_RANDOM_COPY =
-  "The group draw is random. Nobody is seeded.";
-export const DRAW_POOLS_ACTION = "Draw the groups";
-export const DRAW_AGAIN_ACTION = "Draw again";
-export const POST_POOL_DRAW_ACTION = "Post the group draw";
-export const UNDO_POOL_DRAW_ACTION = "Undo the group draw";
-export const UNDO_POOL_DRAW_CONFIRM_TITLE = "Undo the group draw?";
-export const UNDO_POOL_DRAW_CONFIRM_COPY =
-  "Teams leave their groups and every group Match is deleted.";
-export const UNDO_POOL_DRAW_CONFIRM_LABEL = "Undo draw";
-export const DRAW_DRAWER_TITLE = "The draw";
-export const DRAW_ENTRY_TITLE = "The group draw";
-export const DRAW_ENTRY_DRAFTED_TITLE = "The groups are drafted";
-export const DRAW_ENTRY_ACTION_LABEL = "Open the draw";
-export const DRAW_EMPTY_DRAFT_COPY =
-  "Draw the groups to see which Game teams land in which group.";
-export const POST_POOL_DRAW_FOOTER_COPY =
-  "Posting creates every group Match and closes the seats.";
-export const KNOCKOUT_DRAW_RANDOM_COPY =
-  "The draw is random. Nobody is seeded.";
-export const DRAW_KNOCKOUT_ACTION = "Draw the knockout";
-export const POST_KNOCKOUT_DRAW_ACTION = "Post the draw";
-export const DRAW_KNOCKOUT_ENTRY_TITLE = "The knockout draw";
-export const DRAW_KNOCKOUT_ENTRY_DRAFTED_TITLE = "The knockout is drafted";
-export const DRAW_KNOCKOUT_EMPTY_DRAFT_COPY =
-  "Draw the knockout to see who plays whom in the first round.";
-export const POST_KNOCKOUT_DRAW_FOOTER_COPY =
-  "Posting creates every knockout Match and closes the seats.";
-export const UNDO_KNOCKOUT_DRAW_ACTION = "Undo the draw";
-export const UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE = "Undo the draw?";
-export const UNDO_KNOCKOUT_DRAW_CONFIRM_COPY =
-  "Every knockout Match is deleted and the draw is cleared.";
-
-export function poolLabel(poolIndex: number) {
-  return `group ${poolLetter(poolIndex)}`;
+export function poolLabel(poolIndex: number, locale: Locale) {
+  return messagesFor(locale).tournament.poolDraw.poolLabel(
+    poolLetter(poolIndex),
+  );
 }
 
 export function hasDraftPoolDraw(
@@ -75,37 +47,47 @@ export function canShowUndoPoolDraw(args: {
   return args.isOrganizer && !args.cancelled && args.drawPosted && args.canUndo;
 }
 
-export function drawEntryTitle(hasDraft: boolean, knockoutOnly = false) {
+export function drawEntryTitle(
+  hasDraft: boolean,
+  locale: Locale,
+  knockoutOnly = false,
+) {
+  const m = messagesFor(locale).tournament.poolDraw;
   if (knockoutOnly) {
-    return hasDraft
-      ? DRAW_KNOCKOUT_ENTRY_DRAFTED_TITLE
-      : DRAW_KNOCKOUT_ENTRY_TITLE;
+    return hasDraft ? m.knockoutEntryDraftedTitle : m.knockoutEntryTitle;
   }
-  return hasDraft ? DRAW_ENTRY_DRAFTED_TITLE : DRAW_ENTRY_TITLE;
+  return hasDraft ? m.entryDraftedTitle : m.entryTitle;
 }
 
-export function drawEntryStateLine(completeTeams: number, teamCount: number) {
-  const teamWord = teamCount === 1 ? "Game team" : "Game teams";
-  const verb = teamCount === 1 ? "is" : "are";
-  return `${completeTeams} of ${teamCount} ${teamWord} ${verb} complete.`;
+export function drawEntryStateLine(
+  completeTeams: number,
+  teamCount: number,
+  locale: Locale,
+) {
+  return messagesFor(locale).tournament.poolDraw.entryStateLine(
+    completeTeams,
+    teamCount,
+  );
 }
 
-export function drawDrawerLead(teamCount: number | null | undefined) {
+export function drawDrawerLead(
+  teamCount: number | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.poolDraw;
   if (teamCount == null || teamCount <= 0) {
-    return POOL_DRAW_RANDOM_COPY;
+    return m.random;
   }
-  const teamWord = teamCount === 1 ? "Game team" : "Game teams";
-  return `${teamCount} ${teamWord}. ${POOL_DRAW_RANDOM_COPY}`;
+  return m.drawerLead(teamCount);
 }
 
 /** The tree sizes itself to the complete Game teams, not the planned count. */
-export function knockoutDrawDrawerLead(completeTeams: number) {
+export function knockoutDrawDrawerLead(completeTeams: number, locale: Locale) {
+  const m = messagesFor(locale).tournament.poolDraw;
   if (completeTeams <= 0) {
-    return KNOCKOUT_DRAW_RANDOM_COPY;
+    return m.knockoutRandom;
   }
-  const teamWord =
-    completeTeams === 1 ? "complete Game team goes" : "complete Game teams go";
-  return `${completeTeams} ${teamWord} into the draw. ${KNOCKOUT_DRAW_RANDOM_COPY}`;
+  return m.knockoutDrawerLead(completeTeams);
 }
 
 export function draftPoolMetaLine(args: {
@@ -143,6 +125,7 @@ export function draftPoolsFromGameTeams(args: {
   windowEnd: Date | string | null | undefined;
   matchMinutes: number | null;
   courtNames: readonly string[];
+  locale: Locale;
 }): DraftPoolView[] {
   const byPool = new Map<number, DraftPoolTeam[]>();
   for (const team of args.gameTeams) {
@@ -160,6 +143,7 @@ export function draftPoolsFromGameTeams(args: {
     windowStart: args.windowStart,
     windowEnd: args.windowEnd,
     matchMinutes: args.matchMinutes,
+    locale: args.locale,
   });
   const dateLines = rounds?.dateLines ?? [];
   const courtNames = [...args.courtNames];
@@ -168,7 +152,7 @@ export function draftPoolsFromGameTeams(args: {
     .sort(([left], [right]) => left - right)
     .map(([poolIndex, teams]) => ({
       poolIndex,
-      label: poolLabel(poolIndex),
+      label: poolLabel(poolIndex, args.locale),
       teams: [...teams]
         .sort((left, right) => {
           const leftSide = left.sideIndex ?? Number.MAX_SAFE_INTEGER;
@@ -180,7 +164,7 @@ export function draftPoolsFromGameTeams(args: {
         })
         .map((team) => ({
           id: team.id,
-          name: gameTeamName(team),
+          name: gameTeamName(team, args.locale),
         })),
       dateLines,
       courtNames,

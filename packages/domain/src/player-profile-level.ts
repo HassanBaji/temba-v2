@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   BAND_LOWER_HUNDREDTHS,
   BAND_UPPER_HUNDREDTHS,
@@ -84,15 +87,13 @@ function distanceToNextRung(
   return (tenths / 10).toFixed(1);
 }
 
-function ratedMatchesLine(count: number) {
-  return `Confirmed, ${count} rated ${count === 1 ? "match" : "matches"}`;
-}
-
 export function playerLevelCardView(
   input: PlayerLevelInput | null,
+  locale: Locale,
 ): PlayerLevelCardView {
+  const m = messagesFor(locale).profile;
   if (!input) {
-    return { kind: "none", label: "No Level yet" };
+    return { kind: "none", label: m.levelCard.noLevelYet };
   }
 
   const displayBand = displayLabelFromStoredBand(input.levelBand);
@@ -108,6 +109,7 @@ export function playerLevelCardView(
     const caption = confirmationProgressCaption(
       input.ratedMatchCount,
       input.ratedMatchesRemaining,
+      locale,
     );
     return {
       ...base,
@@ -118,27 +120,48 @@ export function playerLevelCardView(
           input.ratedMatchesRemaining,
         ) * 100,
       ),
-      accessibilityLabel: `Level ${displayBand} ${level}, Provisional. ${caption}`,
+      accessibilityLabel: m.levelCard.spokenProvisional(
+        displayBand,
+        level,
+        caption,
+      ),
     };
   }
 
   const next = nextDistinctDisplayRung(input.levelBand);
-  const confirmed = ratedMatchesLine(input.ratedMatchCount);
+  const confirmed = m.levelCard.confirmedRated(input.ratedMatchCount);
   if (next == null) {
+    const lines = [confirmed, m.level.topBand];
     return {
       ...base,
-      lines: [confirmed, "Top Level band"],
+      lines,
       fillPercent: 100,
-      accessibilityLabel: `Level ${displayBand} ${level}. ${confirmed}. Top Level band`,
+      accessibilityLabel: m.levelCard.spokenLevel(
+        displayBand,
+        level,
+        lines.join(". "),
+      ),
     };
   }
 
   const percent = percentThroughDisplayBand(input.levelValue, input.levelBand);
-  const progress = `${distanceToNextRung(input.levelValue, next)} to ${next} · ${percent}% through ${displayBand}`;
+  const lines = [
+    confirmed,
+    m.levelCard.distanceProgress(
+      distanceToNextRung(input.levelValue, next),
+      next,
+      percent,
+      displayBand,
+    ),
+  ];
   return {
     ...base,
-    lines: [confirmed, progress],
+    lines,
     fillPercent: percent,
-    accessibilityLabel: `Level ${displayBand} ${level}. ${confirmed}. ${progress}`,
+    accessibilityLabel: m.levelCard.spokenLevel(
+      displayBand,
+      level,
+      lines.join(". "),
+    ),
   };
 }

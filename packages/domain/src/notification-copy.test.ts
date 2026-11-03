@@ -15,12 +15,15 @@ const NOW = bahrainDate(2026, 9, 10, 9, 0, 0);
 describe("notificationCopy", () => {
   it("renders a Group join for an admin with the actor and Group in bold", () => {
     assert.deepEqual(
-      notificationCopy({
-        type: "group_member_joined",
-        audience: "admin",
-        actor: { name: "Sara" },
-        group: { name: "Night Crew" },
-      }),
+      notificationCopy(
+        {
+          type: "group_member_joined",
+          audience: "admin",
+          actor: { name: "Sara" },
+          group: { name: "Night Crew" },
+        },
+        "en",
+      ),
       {
         title: [
           { text: "Sara", strong: true },
@@ -33,12 +36,15 @@ describe("notificationCopy", () => {
   });
 
   it("falls back to Someone for a deleted actor and Untitled Group for a nameless Group", () => {
-    const copy = notificationCopy({
-      type: "group_member_joined",
-      audience: "admin",
-      actor: null,
-      group: { name: null },
-    });
+    const copy = notificationCopy(
+      {
+        type: "group_member_joined",
+        audience: "admin",
+        actor: null,
+        group: { name: null },
+      },
+      "en",
+    );
     assert.equal(
       copy?.title.map((part) => part.text).join(""),
       "Someone joined Untitled Group",
@@ -47,21 +53,27 @@ describe("notificationCopy", () => {
 
   it("returns null for a type or audience it does not know", () => {
     assert.equal(
-      notificationCopy({
-        type: "something_new",
-        audience: "admin",
-        actor: null,
-        group: null,
-      }),
+      notificationCopy(
+        {
+          type: "something_new",
+          audience: "admin",
+          actor: null,
+          group: null,
+        },
+        "en",
+      ),
       null,
     );
     assert.equal(
-      notificationCopy({
-        type: "group_member_joined",
-        audience: "spectator",
-        actor: null,
-        group: null,
-      }),
+      notificationCopy(
+        {
+          type: "group_member_joined",
+          audience: "spectator",
+          actor: null,
+          group: null,
+        },
+        "en",
+      ),
       null,
     );
   });
@@ -75,14 +87,17 @@ describe("notificationCopy for a Game join", () => {
   };
 
   function join(item: Partial<NotificationCopyInput>) {
-    return notificationCopy({
-      type: "game_player_joined",
-      audience: "admin",
-      actor: { name: "Sara" },
-      group: { name: "Night Crew" },
-      game,
-      ...item,
-    });
+    return notificationCopy(
+      {
+        type: "game_player_joined",
+        audience: "admin",
+        actor: { name: "Sara" },
+        group: { name: "Night Crew" },
+        game,
+        ...item,
+      },
+      "en",
+    );
   }
 
   function titleText(item: Partial<NotificationCopyInput>) {
@@ -163,14 +178,17 @@ describe("notificationCopy for a Game leave", () => {
   };
 
   function left(item: Partial<NotificationCopyInput>) {
-    return notificationCopy({
-      type: "game_player_left",
-      audience: "admin",
-      actor: { name: "Sara" },
-      group: { name: "Night Crew" },
-      game,
-      ...item,
-    });
+    return notificationCopy(
+      {
+        type: "game_player_left",
+        audience: "admin",
+        actor: { name: "Sara" },
+        group: { name: "Night Crew" },
+        game,
+        ...item,
+      },
+      "en",
+    );
   }
 
   it("names the User who left and the Game in bold", () => {
@@ -219,13 +237,16 @@ describe("notificationCopy for an Organizer's add", () => {
 
   it("tells a player an Organizer seated them", () => {
     assert.deepEqual(
-      notificationCopy({
-        type: "game_seated_by_organizer",
-        audience: "player",
-        actor: { name: "Sara" },
-        group: { name: "Night Crew" },
-        game,
-      }),
+      notificationCopy(
+        {
+          type: "game_seated_by_organizer",
+          audience: "player",
+          actor: { name: "Sara" },
+          group: { name: "Night Crew" },
+          game,
+        },
+        "en",
+      ),
       {
         title: [
           { text: "Sara", strong: true },
@@ -236,13 +257,16 @@ describe("notificationCopy for an Organizer's add", () => {
       },
     );
     assert.equal(
-      notificationCopy({
-        type: "game_seated_by_organizer",
-        audience: "admin",
-        actor: { name: "Sara" },
-        group: null,
-        game,
-      }),
+      notificationCopy(
+        {
+          type: "game_seated_by_organizer",
+          audience: "admin",
+          actor: { name: "Sara" },
+          group: null,
+          game,
+        },
+        "en",
+      ),
       null,
     );
   });
@@ -250,14 +274,17 @@ describe("notificationCopy for an Organizer's add", () => {
 
 describe("notificationCopy for a claimed history", () => {
   function linked(item: Partial<NotificationCopyInput>) {
-    return notificationCopy({
-      type: "history_linked",
-      audience: "player",
-      actor: null,
-      group: null,
-      gameCount: 3,
-      ...item,
-    });
+    return notificationCopy(
+      {
+        type: "history_linked",
+        audience: "player",
+        actor: null,
+        group: null,
+        gameCount: 3,
+        ...item,
+      },
+      "en",
+    );
   }
 
   it("tells the claimer how many Games were linked", () => {
@@ -292,14 +319,17 @@ describe("notificationCopy for a Finished Game", () => {
   };
 
   function finished(item: Partial<NotificationCopyInput>) {
-    return notificationCopy({
-      type: "game_finished",
-      audience: "admin",
-      actor: null,
-      group: { name: "Night Crew" },
-      game,
-      ...item,
-    });
+    return notificationCopy(
+      {
+        type: "game_finished",
+        audience: "admin",
+        actor: null,
+        group: { name: "Night Crew" },
+        game,
+        ...item,
+      },
+      "en",
+    );
   }
 
   it("tells an admin that every Match is in", () => {
@@ -339,14 +369,17 @@ describe("notificationCopy for a Finished Game", () => {
 
 describe("notificationCopy for a Level set", () => {
   function levelSet(item: Partial<NotificationCopyInput>) {
-    return notificationCopy({
-      type: "level_set",
-      audience: "player",
-      actor: { name: "Sara" },
-      group: { name: "Night Crew" },
-      levelSet: { level: "3.8", levelBand: "C1", reason: "back_from_injury" },
-      ...item,
-    });
+    return notificationCopy(
+      {
+        type: "level_set",
+        audience: "player",
+        actor: { name: "Sara" },
+        group: { name: "Night Crew" },
+        levelSet: { level: "3.8", levelBand: "C1", reason: "back_from_injury" },
+        ...item,
+      },
+      "en",
+    );
   }
 
   it("names the setter, the letter and the Level, with the reason as the subline", () => {
@@ -407,6 +440,7 @@ describe("notificationMeta", () => {
           group: { name: "Night Crew" },
           game: { name: null, format: "americano", windowStart: null },
         },
+        "en",
         NOW,
       ),
       "2 min ago · Night Crew",
@@ -415,7 +449,7 @@ describe("notificationMeta", () => {
 
   it("is the time alone for a Group join or a groupless Game", () => {
     assert.equal(
-      notificationMeta({ createdAt, group: { name: "Night Crew" } }, NOW),
+      notificationMeta({ createdAt, group: { name: "Night Crew" } }, "en", NOW),
       "2 min ago",
     );
     assert.equal(
@@ -425,6 +459,7 @@ describe("notificationMeta", () => {
           group: null,
           game: { name: null, format: "americano", windowStart: null },
         },
+        "en",
         NOW,
       ),
       "2 min ago",
@@ -435,57 +470,87 @@ describe("notificationMeta", () => {
 describe("formatNotificationTime", () => {
   it("says Just now under a minute", () => {
     assert.equal(
-      formatNotificationTime(bahrainDate(2026, 9, 10, 8, 59, 30), NOW),
+      formatNotificationTime(bahrainDate(2026, 9, 10, 8, 59, 30), "en", NOW),
       "Just now",
     );
   });
 
   it("counts minutes within the hour", () => {
     assert.equal(
-      formatNotificationTime(bahrainDate(2026, 9, 10, 8, 58, 0), NOW),
+      formatNotificationTime(bahrainDate(2026, 9, 10, 8, 58, 0), "en", NOW),
       "2 min ago",
     );
   });
 
   it("counts hours earlier the same product day", () => {
     assert.equal(
-      formatNotificationTime(bahrainDate(2026, 9, 10, 5, 30, 0), NOW),
+      formatNotificationTime(bahrainDate(2026, 9, 10, 5, 30, 0), "en", NOW),
       "3 h ago",
     );
   });
 
   it("says Yesterday for the previous product day, even under 24 hours ago", () => {
     assert.equal(
-      formatNotificationTime(bahrainDate(2026, 9, 9, 23, 30, 0), NOW),
+      formatNotificationTime(bahrainDate(2026, 9, 9, 23, 30, 0), "en", NOW),
       "Yesterday",
     );
   });
 
   it("counts days within the week, then switches to a date", () => {
     assert.equal(
-      formatNotificationTime(bahrainDate(2026, 9, 4, 18, 0, 0), NOW),
+      formatNotificationTime(bahrainDate(2026, 9, 4, 18, 0, 0), "en", NOW),
       "6 days ago",
     );
     assert.equal(
-      formatNotificationTime(bahrainDate(2026, 9, 3, 18, 0, 0), NOW),
+      formatNotificationTime(bahrainDate(2026, 9, 3, 18, 0, 0), "en", NOW),
       "3 Oct",
     );
   });
 
   it("adds the year for another year", () => {
     assert.equal(
-      formatNotificationTime(bahrainDate(2025, 11, 20, 18, 0, 0), NOW),
+      formatNotificationTime(bahrainDate(2025, 11, 20, 18, 0, 0), "en", NOW),
       "20 Dec 2025",
     );
   });
 });
 
+describe("notificationCopy in Arabic", () => {
+  it("puts the verb first and keeps the names in bold", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "group_member_joined",
+          audience: "admin",
+          actor: { name: "Sara" },
+          group: { name: "Night Crew" },
+        },
+        "ar",
+      ),
+      {
+        title: [
+          { text: "انضم ", strong: false },
+          { text: "Sara", strong: true },
+          { text: " إلى ", strong: false },
+          { text: "Night Crew", strong: true },
+        ],
+        subline: null,
+      },
+    );
+    assert.equal(
+      formatNotificationTime(bahrainDate(2026, 9, 10, 8, 58, 0), "ar", NOW),
+      "قبل دقيقتين",
+    );
+    assert.equal(invitesWaitingLabel(3, "ar"), "3 دعوات بانتظارك");
+  });
+});
+
 describe("invitesWaitingLabel", () => {
   it("counts one invite in the singular", () => {
-    assert.equal(invitesWaitingLabel(1), "1 invite waiting");
+    assert.equal(invitesWaitingLabel(1, "en"), "1 invite waiting");
   });
 
   it("counts several invites in the plural", () => {
-    assert.equal(invitesWaitingLabel(3), "3 invites waiting");
+    assert.equal(invitesWaitingLabel(3, "en"), "3 invites waiting");
   });
 });

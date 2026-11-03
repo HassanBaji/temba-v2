@@ -1,16 +1,12 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
   type LevelBand,
 } from "./level-bands";
 import type { Sport } from "./sport";
-
-/**
- * Football Games are Unrated, so a football Level stays the self-placed
- * starting one until a football Match rates.
- */
-export const FOOTBALL_STARTING_LEVEL_CAPTION =
-  "Starting Level. Football games don’t move it yet";
 
 export function confirmationFraction(
   ratedMatchCount: number,
@@ -26,10 +22,13 @@ export function confirmationFraction(
 export function confirmationProgressCaption(
   ratedMatchCount: number,
   ratedMatchesRemaining: number,
+  locale: Locale,
 ): string {
   const total = ratedMatchCount + ratedMatchesRemaining;
-  const noun = total === 1 ? "rated game" : "rated games";
-  return `${ratedMatchCount} of about ${total} ${noun} to confirm`;
+  return messagesFor(locale).profile.level.confirmProgress(
+    ratedMatchCount,
+    total,
+  );
 }
 
 export type LastMatchMovement = "up" | "down" | "held";
@@ -78,7 +77,11 @@ export type ProfileLevelView = {
   caption: string;
 };
 
-export function profileLevelView(input: ProfileLevelInput): ProfileLevelView {
+export function profileLevelView(
+  input: ProfileLevelInput,
+  locale: Locale,
+): ProfileLevelView {
+  const m = messagesFor(locale).profile.level;
   if (input.sport === "football" && input.ratedMatchCount === 0) {
     return {
       displayBand: displayLabelFromStoredBand(input.band),
@@ -87,7 +90,7 @@ export function profileLevelView(input: ProfileLevelInput): ProfileLevelView {
       movement: null,
       atTopBand: false,
       fillPercent: 0,
-      caption: FOOTBALL_STARTING_LEVEL_CAPTION,
+      caption: m.footballStartingCaption,
     };
   }
   const displayNext = nextDistinctDisplayRung(input.band);
@@ -101,8 +104,8 @@ export function profileLevelView(input: ProfileLevelInput): ProfileLevelView {
   );
   const progressCaption =
     displayNext == null
-      ? "Top Level band"
-      : `${Math.round(fillPercent)}% of the way to ${displayNext}`;
+      ? m.topBand
+      : m.progressTo(Math.round(fillPercent), displayNext);
 
   return {
     displayBand: displayLabelFromStoredBand(input.band),
@@ -115,6 +118,7 @@ export function profileLevelView(input: ProfileLevelInput): ProfileLevelView {
       ? confirmationProgressCaption(
           input.ratedMatchCount,
           input.ratedMatchesRemaining,
+          locale,
         )
       : progressCaption,
   };

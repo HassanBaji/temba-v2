@@ -87,49 +87,61 @@ describe("score helpers", () => {
   });
 
   it("labels a team with Open for a vacant seat", () => {
-    assert.equal(scoreTeamNamesLabel(sides[0]!), "Alex & Sam");
-    assert.equal(scoreTeamNamesLabel(sides[1]!), "Riley & Open");
+    assert.equal(scoreTeamNamesLabel(sides[0]!, "en"), "Alex & Sam");
+    assert.equal(scoreTeamNamesLabel(sides[1]!, "en"), "Riley & Open");
+    assert.equal(scoreTeamNamesLabel(sides[1]!, "ar"), "Riley ومفتوح");
   });
 
   it("describes a box to a screen reader without relying on the hatch", () => {
     assert.equal(
-      scoreSetBoxAccessibleLabel("solid", "Team A, Set 1", 6),
+      scoreSetBoxAccessibleLabel("solid", "Team A, Set 1", 6, "en"),
       "Team A, Set 1: 6 games, won this Set",
     );
     assert.equal(
-      scoreSetBoxAccessibleLabel("outline", "Team B, Set 1", 3),
+      scoreSetBoxAccessibleLabel("outline", "Team B, Set 1", 3, "en"),
       "Team B, Set 1: 3 games, lost this Set",
     );
     assert.equal(
-      scoreSetBoxAccessibleLabel("readonly", "Team A, Set 1", null),
+      scoreSetBoxAccessibleLabel("readonly", "Team A, Set 1", null, "en"),
       "Team A, Set 1: not entered yet",
     );
     assert.equal(
-      scoreSetBoxAccessibleLabel("locked", "Team A, Set 1", null),
+      scoreSetBoxAccessibleLabel("readonly", "Team A, Set 1", 4, "en"),
+      "Team A, Set 1: 4",
+    );
+    assert.equal(
+      scoreSetBoxAccessibleLabel("locked", "Team A, Set 1", null, "en"),
       "Team A, Set 1",
     );
   });
 
   it("writes the footer note for each phase", () => {
     assert.match(
-      scoreFooterNote("upcoming", null),
+      scoreFooterNote("upcoming", null, "en"),
       /Scoring opens when the court is full/,
     );
     assert.match(
-      scoreFooterNote("needs_results", null),
+      scoreFooterNote("needs_results", null, "en"),
       /The other three confirm/,
     );
     assert.equal(
-      scoreFooterNote("final", "Mon 5 Oct"),
+      scoreFooterNote("final", "Mon 5 Oct", "en"),
       "Confirmed by all four players on Mon 5 Oct. Nothing else needed.",
     );
     assert.equal(
-      scoreFooterNote("final", null),
+      scoreFooterNote("final", null, "en"),
       "Confirmed by all four players. Nothing else needed.",
     );
     assert.equal(
-      scoreFooterNote("final", "Mon 5 Oct", true),
+      scoreFooterNote("final", "Mon 5 Oct", "en", true),
       "Confirmed by the Organizer. Nothing else needed.",
+    );
+  });
+
+  it("writes the footer note in Arabic", () => {
+    assert.equal(
+      scoreFooterNote("final", null, "ar", true),
+      "أكّدها المنظّم. لا حاجة إلى شيء آخر.",
     );
   });
 });
@@ -143,9 +155,12 @@ describe("confirmations", () => {
 
   it("lists who confirmed and who is still waiting, marking the viewer", () => {
     assert.deepEqual(
-      scoreConfirmationRows(confirmation, "u1", scoreNameByUserId(sides)).map(
-        (row) => [row.label, row.status],
-      ),
+      scoreConfirmationRows(
+        confirmation,
+        "u1",
+        scoreNameByUserId(sides),
+        "en",
+      ).map((row) => [row.label, row.status]),
       [
         ["Alex (You)", "Confirmed"],
         ["Sam", "Waiting"],
@@ -159,6 +174,7 @@ describe("confirmations", () => {
       { ...confirmation, requiredUserIds: ["x"] },
       "u1",
       new Map(),
+      "en",
     );
     assert.equal(row?.label, "Player");
   });
@@ -231,22 +247,28 @@ describe("Organizer confirmation for a side with no account holder", () => {
   };
 
   it("says the Organizer still has to confirm for that side", () => {
-    assert.deepEqual(scoreOrganizerWaitingLines(confirmation), [
+    assert.deepEqual(scoreOrganizerWaitingLines(confirmation, "en"), [
       "Waiting for the Organizer to confirm for Team B.",
     ]);
     assert.deepEqual(
-      scoreOrganizerWaitingLines({
-        ...confirmation,
-        organizerSides: [{ slot: 2, confirmed: true }],
-      }),
+      scoreOrganizerWaitingLines(
+        {
+          ...confirmation,
+          organizerSides: [{ slot: 2, confirmed: true }],
+        },
+        "en",
+      ),
       [],
     );
     assert.deepEqual(
-      scoreOrganizerWaitingLines({
-        confirmedUserIds: [],
-        requiredUserIds: ["u1"],
-        viewerHasConfirmed: false,
-      }),
+      scoreOrganizerWaitingLines(
+        {
+          confirmedUserIds: [],
+          requiredUserIds: ["u1"],
+          viewerHasConfirmed: false,
+        },
+        "en",
+      ),
       [],
     );
   });

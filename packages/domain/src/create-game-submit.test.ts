@@ -12,7 +12,7 @@ import {
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
 } from "./create-game-submit";
-import { LEVEL_RANGE_INVERTED_MESSAGE } from "./level-range";
+import { levelRangeInvertedMessage } from "./level-range";
 
 const NOW = bahrainDate(2026, 8, 22, 12, 0, 0);
 
@@ -51,7 +51,7 @@ const tournament = {
 
 describe("validateFriendlyGameSubmit", () => {
   it("builds the create input from a complete draft", () => {
-    const result = validateFriendlyGameSubmit(game, NOW);
+    const result = validateFriendlyGameSubmit(game, NOW, "en");
     assert.ok(result.ok);
     if (result.ok) {
       assert.equal(result.input.groupId, "group-1");
@@ -62,13 +62,21 @@ describe("validateFriendlyGameSubmit", () => {
   });
 
   it("reports the earliest incomplete step", () => {
-    const where = validateFriendlyGameSubmit({ ...game, groupId: "" }, NOW);
+    const where = validateFriendlyGameSubmit(
+      { ...game, groupId: "" },
+      NOW,
+      "en",
+    );
     assert.ok(!where.ok);
     if (!where.ok) {
       assert.equal(where.step, 2);
       assert.equal(where.message, "Pick a Group");
     }
-    const when = validateFriendlyGameSubmit({ ...game, startTime: "" }, NOW);
+    const when = validateFriendlyGameSubmit(
+      { ...game, startTime: "" },
+      NOW,
+      "en",
+    );
     assert.ok(!when.ok);
     if (!when.ok) {
       assert.equal(when.step, 3);
@@ -79,6 +87,7 @@ describe("validateFriendlyGameSubmit", () => {
     const price = validateFriendlyGameSubmit(
       { ...game, pricePerPlayer: "abc" },
       NOW,
+      "en",
     );
     assert.ok(!price.ok);
     if (!price.ok) {
@@ -89,11 +98,12 @@ describe("validateFriendlyGameSubmit", () => {
     const level = validateFriendlyGameSubmit(
       { ...game, levelMin: "B", levelMax: "C" },
       NOW,
+      "en",
     );
     assert.ok(!level.ok);
     if (!level.ok) {
       assert.equal(level.field, "levelMinTenths");
-      assert.equal(level.message, LEVEL_RANGE_INVERTED_MESSAGE);
+      assert.equal(level.message, levelRangeInvertedMessage("en"));
     }
   });
 
@@ -101,6 +111,7 @@ describe("validateFriendlyGameSubmit", () => {
     const result = validateFriendlyGameSubmit(
       { ...game, courtId: "court-1", pricePerPlayer: "4.5", levelMin: "C" },
       NOW,
+      "en",
     );
     assert.ok(result.ok);
     if (result.ok) {
@@ -129,6 +140,7 @@ describe("validateFootballGameSubmit", () => {
     const result = validateFootballGameSubmit(
       { ...football, courtId: "pitch-1", pricePerPlayer: "2.5" },
       NOW,
+      "en",
     );
     assert.ok(result.ok);
     if (result.ok) {
@@ -146,7 +158,7 @@ describe("validateFootballGameSubmit", () => {
   });
 
   it("leaves the pitch out when none is picked", () => {
-    const result = validateFootballGameSubmit(football, NOW);
+    const result = validateFootballGameSubmit(football, NOW, "en");
     assert.ok(result.ok);
     if (result.ok) {
       assert.equal(result.input.courtId, undefined);
@@ -155,7 +167,11 @@ describe("validateFootballGameSubmit", () => {
   });
 
   it("reports the earliest incomplete step", () => {
-    const where = validateFootballGameSubmit({ ...football, venueId: "" }, NOW);
+    const where = validateFootballGameSubmit(
+      { ...football, venueId: "" },
+      NOW,
+      "en",
+    );
     assert.ok(!where.ok);
     if (!where.ok) {
       assert.equal(where.step, 2);
@@ -163,6 +179,7 @@ describe("validateFootballGameSubmit", () => {
     const when = validateFootballGameSubmit(
       { ...football, startTime: "" },
       NOW,
+      "en",
     );
     assert.ok(!when.ok);
     if (!when.ok) {
@@ -175,6 +192,7 @@ describe("validateFootballGameSubmit", () => {
       const result = validateFootballGameSubmit(
         { ...football, playersAllowed },
         NOW,
+        "en",
       );
       assert.ok(!result.ok);
       if (!result.ok) {
@@ -189,7 +207,11 @@ describe("validateFootballGameSubmit", () => {
   });
 
   it("refuses an unknown side size and a bad price", () => {
-    const size = validateFootballGameSubmit({ ...football, sideSize: 4 }, NOW);
+    const size = validateFootballGameSubmit(
+      { ...football, sideSize: 4 },
+      NOW,
+      "en",
+    );
     assert.ok(!size.ok);
     if (!size.ok) {
       assert.equal(size.field, "sideSize");
@@ -197,6 +219,7 @@ describe("validateFootballGameSubmit", () => {
     const price = validateFootballGameSubmit(
       { ...football, pricePerPlayer: "abc" },
       NOW,
+      "en",
     );
     assert.ok(!price.ok);
     if (!price.ok) {
@@ -208,7 +231,12 @@ describe("validateFootballGameSubmit", () => {
 
 describe("validateFriendlyTournamentSubmit", () => {
   it("trims the name and omits pool fields for knockout only", () => {
-    const groups = validateFriendlyTournamentSubmit(tournament, NOW, true);
+    const groups = validateFriendlyTournamentSubmit(
+      tournament,
+      NOW,
+      true,
+      "en",
+    );
     assert.ok(groups.ok);
     if (groups.ok) {
       assert.equal(groups.input.name, "Friday cup");
@@ -220,6 +248,7 @@ describe("validateFriendlyTournamentSubmit", () => {
       { ...tournament, tournamentShape: "knockout_only", courtIds: [] },
       NOW,
       true,
+      "en",
     );
     assert.ok(knockout.ok);
     if (knockout.ok) {
@@ -230,6 +259,7 @@ describe("validateFriendlyTournamentSubmit", () => {
       { ...tournament, tournamentShape: "groups_then_knockout", roundCount: 2 },
       NOW,
       true,
+      "en",
     );
     assert.ok(then.ok);
     if (then.ok) {
@@ -243,6 +273,7 @@ describe("validateFriendlyTournamentSubmit", () => {
       { ...tournament, matchMinutes: "7" },
       NOW,
       true,
+      "en",
     );
     assert.ok(!minutes.ok);
     if (!minutes.ok) {
@@ -253,6 +284,7 @@ describe("validateFriendlyTournamentSubmit", () => {
       { ...tournament, name: "  " },
       NOW,
       true,
+      "en",
     );
     assert.ok(!name.ok);
     if (!name.ok) {
@@ -266,7 +298,12 @@ describe("validateFriendlyTournamentSubmit public Games", () => {
   const publicDraft = { ...tournament, isPublic: true };
 
   it("keeps a public choice on a Verified Group", () => {
-    const result = validateFriendlyTournamentSubmit(publicDraft, NOW, true);
+    const result = validateFriendlyTournamentSubmit(
+      publicDraft,
+      NOW,
+      true,
+      "en",
+    );
     assert.ok(result.ok);
     if (result.ok) {
       assert.equal(result.input.isPublic, true);
@@ -274,7 +311,12 @@ describe("validateFriendlyTournamentSubmit public Games", () => {
   });
 
   it("never sends public for a Group that is not Verified", () => {
-    const result = validateFriendlyTournamentSubmit(publicDraft, NOW, false);
+    const result = validateFriendlyTournamentSubmit(
+      publicDraft,
+      NOW,
+      false,
+      "en",
+    );
     assert.ok(result.ok);
     if (result.ok) {
       assert.equal(result.input.isPublic, false);
@@ -284,13 +326,14 @@ describe("validateFriendlyTournamentSubmit public Games", () => {
 
 describe("validateTournamentStepThree", () => {
   it("passes a complete step", () => {
-    assert.equal(validateTournamentStepThree(tournament, NOW), null);
+    assert.equal(validateTournamentStepThree(tournament, NOW, "en"), null);
   });
 
   it("flags a groups count that does not fit the Game team count", () => {
     const issue = validateTournamentStepThree(
       { ...tournament, teamCount: 4, poolCount: 3 },
       NOW,
+      "en",
     );
     assert.equal(issue?.field, "poolCount");
     assert.equal(issue?.message, "Pick a groups count");
@@ -306,6 +349,7 @@ describe("validateTournamentStepThree", () => {
           poolCount: 3,
         },
         NOW,
+        "en",
       ),
       null,
     );
@@ -381,6 +425,7 @@ describe("tournament sizing helpers", () => {
       courtCount: 2,
       now: NOW,
       clock: (date: Date) => date.toISOString(),
+      locale: "en" as const,
     };
     assert.ok(friendlyTournamentScheduleFor(input)?.line);
     assert.equal(
@@ -391,5 +436,31 @@ describe("tournament sizing helpers", () => {
       friendlyTournamentScheduleFor({ ...input, startTime: "" }),
       null,
     );
+  });
+});
+
+describe("Arabic validation", () => {
+  it("reports the issue in Arabic", () => {
+    const where = validateFriendlyGameSubmit(
+      { ...game, groupId: "" },
+      NOW,
+      "ar",
+    );
+    assert.ok(!where.ok);
+    if (!where.ok) {
+      assert.equal(where.message, "اختر مجموعة");
+    }
+    const cap = validateFootballGameSubmit(
+      { ...football, playersAllowed: 9 },
+      NOW,
+      "ar",
+    );
+    assert.ok(!cap.ok);
+    if (!cap.ok) {
+      assert.equal(
+        cap.message,
+        "يجب أن يكون عدد اللاعبين المسموح به بين 10 و40",
+      );
+    }
   });
 });

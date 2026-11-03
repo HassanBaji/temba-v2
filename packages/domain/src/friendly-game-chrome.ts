@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatAbsoluteDay } from "./format-game-start";
 import { parseOptionalCoord } from "./parse-optional-coord";
 import { formatPricePerPlayerFils } from "./price-per-player";
@@ -6,57 +9,70 @@ import type { GameViewerStatus } from "./game-summary-cta";
 export function friendlyGameHomeTitle(
   groupId: string | null | undefined,
   groupName: string | null | undefined,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.chrome;
   if (!groupId) {
-    return "Pickup";
+    return m.pickup;
   }
   const name = groupName?.trim();
-  return name && name.length > 0 ? name : "Group";
+  return name && name.length > 0 ? name : m.group;
 }
 
-export function friendlyGameViewerLine(status: GameViewerStatus) {
+export function friendlyGameViewerLine(
+  status: GameViewerStatus,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.chrome;
   if (status === "in") {
-    return "You're playing";
+    return m.yourePlaying;
   }
   if (status === "waitlisted") {
-    return "You're on the waitlist";
+    return m.youreOnTheWaitlist;
   }
   return null;
 }
 
-export function friendlyGamePriceRow(fils: number | null | undefined) {
-  const amount = formatPricePerPlayerFils(fils);
+export function friendlyGamePriceRow(
+  fils: number | null | undefined,
+  locale: Locale,
+) {
+  const amount = formatPricePerPlayerFils(fils, locale);
   if (amount == null) {
     return null;
   }
   return {
     amount,
-    helper: fils != null && fils > 0 ? "Paid at the venue" : null,
+    helper:
+      fils != null && fils > 0
+        ? messagesFor(locale).game.chrome.paidAtTheVenue
+        : null,
   };
 }
 
 export function friendlyGameOccupancyLabel(
   registeredUserCount: number,
   playersAllowed: number | null | undefined,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.chrome;
   if (playersAllowed == null) {
-    return registeredUserCount === 1
-      ? "1 player"
-      : `${registeredUserCount} players`;
+    return m.players(registeredUserCount);
   }
-  return `${registeredUserCount} of ${playersAllowed} players`;
+  return m.playersOf(registeredUserCount, playersAllowed);
 }
 
 export function friendlyGameOpenSpotsLabel(
   registeredUserCount: number,
   playersAllowed: number | null | undefined,
+  locale: Locale,
 ) {
   if (playersAllowed == null) {
     return null;
   }
 
   const openSpots = playersAllowed - registeredUserCount;
-  return openSpots === 1 ? "1 spot left" : `${openSpots} spots left`;
+  return messagesFor(locale).game.occupancy.spotsLeft(openSpots);
 }
 
 export function friendlyGameDirectionsUrl(
@@ -77,13 +93,14 @@ export function friendlyGameDirectionsUrl(
 export function friendlyGameDateDurationLine(
   windowStart: Date | string | null | undefined,
   durationInMinutes: number | null | undefined,
+  locale: Locale,
 ) {
   if (!windowStart) {
     return null;
   }
-  const date = formatAbsoluteDay(windowStart);
+  const date = formatAbsoluteDay(windowStart, locale);
   if (durationInMinutes == null) {
     return date;
   }
-  return `${date} · ${durationInMinutes} min`;
+  return messagesFor(locale).game.chrome.dateDuration(date, durationInMinutes);
 }

@@ -2,6 +2,9 @@
  * Groups list presentation helpers (`.scratch/groups-redesign/spec.md` §1.1).
  */
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatWeekday } from "./format-game-start";
 import { memberCountLabel } from "./member-count-label";
 
@@ -13,20 +16,21 @@ import { memberCountLabel } from "./member-count-label";
 export function groupRowMetaLine(input: {
   memberCount: number;
   standingPosition: number | null | undefined;
+  locale: Locale;
 }) {
-  const members = memberCountLabel(input.memberCount);
+  const members = memberCountLabel(input.memberCount, input.locale);
   const rank = input.standingPosition;
   if (rank == null || !Number.isFinite(rank)) {
     return members;
   }
-  return `${members}, you are rank ${rank}`;
+  return messagesFor(input.locale).group.list.rowMeta(members, rank);
 }
 
 /** The next Game's weekday abbreviation, as the design draws it: `Thu`. */
-export function groupNextGameWeekday(startTime: Date | string) {
+export function groupNextGameWeekday(startTime: Date | string, locale: Locale) {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return formatWeekday(date, "short");
+  return formatWeekday(date, "short", locale);
 }

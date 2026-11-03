@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import { showsFriendlyRoster } from "./game-summary-cta";
 import {
   isDrawnTournament,
@@ -10,37 +12,6 @@ import {
 } from "./tournament-rounds";
 import { sizeFriendlyTournament } from "./tournament-sizing";
 import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_YES,
-  GROUP_ROW_LABEL,
-  INVITE_ACTION_LABEL,
-  INVITE_FROM_A_GROUP_LABEL,
-  LEAVE_THE_SEAT_LABEL,
-  LEFT_SEAT_LABEL,
-  NOT_DRAWN_TRAILER,
-  OPEN_POSITION_SR_LABEL,
-  ORGANIZER_ROW_LABEL,
-  PRICE_PER_MATCH_SUFFIX,
-  PRICE_ROW_LABEL,
-  RIGHT_SEAT_LABEL,
-  SEATS_HEADING,
-  TAKE_SEAT_LABEL,
-  TEAMS_HEADING,
-  TOURNAMENT_CLOSING_LINE,
-  TOURNAMENT_DRAW_RANDOM_CLAUSE,
-  TOURNAMENT_DRAW_WHEN_FULL_COPY,
-  TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY,
-  TOURNAMENT_EYEBROW_PREFIX,
-  TOURNAMENT_YOU_ARE_IN_COPY,
-  YOU_OWE_AFTER_EACH_MATCH,
-  YOU_OWE_ROW_LABEL,
-  YOUR_ROUNDS_PREDRAW_CAPTION,
-  YOUR_TEAM_LABEL,
-  YOUR_TEAM_TAG,
-  POOLS_SEGMENT_LABEL,
-  STANDINGS_HEADING,
-  TOURNAMENT_ENDS_COPY,
-  GROUPS_THEN_KNOCKOUT_LEAD,
   defaultStandingsPoolIndex,
   drawnTournamentProgressLine,
   gameDetailsChrome,
@@ -71,6 +42,8 @@ import type {
   KnockoutViewRound,
   KnockoutViewSide,
 } from "./tournament-knockout-view";
+
+const HOME = messagesFor("en").tournament.home;
 
 const FORBIDDEN = /quarter|knockout|champion|then quarters|message|notified/iu;
 
@@ -239,6 +212,7 @@ describe("tournamentTeamRows", () => {
         side(4, null, null),
       ],
       ada.userId,
+      "en",
     );
     assert.equal(rows.collapsedCount, 0);
     assert.equal(rows.collapsed.length, 0);
@@ -283,7 +257,7 @@ describe("tournamentTeamRows", () => {
       side(12, rashid, null),
       side(13, null, kim),
     ];
-    const rows = tournamentTeamRows(sides, ada.userId);
+    const rows = tournamentTeamRows(sides, ada.userId, "en");
     assert.ok(rows.collapsedCount >= 3);
     assert.equal(rows.collapsed.length, rows.collapsedCount);
     assert.equal(
@@ -324,7 +298,7 @@ describe("tournamentTeamRows", () => {
       ),
       side(14, rashid, null),
     ];
-    const rows = tournamentTeamRows(sides, ada.userId);
+    const rows = tournamentTeamRows(sides, ada.userId, "en");
     assert.equal(
       rows.head.some((row) => row.isViewer && row.sideIndex === 9),
       true,
@@ -342,7 +316,7 @@ describe("tournamentTeamRows", () => {
       ),
       side(9, rashid, null),
     ];
-    const rows = tournamentTeamRows(sides, "nobody");
+    const rows = tournamentTeamRows(sides, "nobody", "en");
     assert.equal(
       rows.collapsed.some((row) => row.hasOpenPosition),
       false,
@@ -361,7 +335,7 @@ describe("tournamentTeamRows", () => {
 
 function teamsSectionCountLine(sides: readonly TournamentHomeSide[]) {
   const field = tournamentFieldSummary(sides);
-  return tournamentTeamsCountLine(field.full, field.halfOpen);
+  return tournamentTeamsCountLine(field.full, field.halfOpen, "en");
 }
 
 function vacantField(teamCount: number): TournamentHomeSide[] {
@@ -373,16 +347,19 @@ function vacantField(teamCount: number): TournamentHomeSide[] {
 describe("tournamentTeamsCountLine", () => {
   it("states how many Game teams are full and how many have a Position open", () => {
     assert.equal(
-      tournamentTeamsCountLine(11, 2),
+      tournamentTeamsCountLine(11, 2, "en"),
       "11 full, 2 with a Position open",
     );
     assert.equal(
-      tournamentTeamsCountLine(1, 1),
+      tournamentTeamsCountLine(1, 1, "en"),
       "1 full, 1 with a Position open",
     );
-    assert.equal(tournamentTeamsCountLine(12, 0), "12 full");
-    assert.equal(tournamentTeamsCountLine(0, 0), "");
-    assert.equal(tournamentTeamsCountLine(0, 2), "2 with a Position open");
+    assert.equal(tournamentTeamsCountLine(12, 0, "en"), "12 full");
+    assert.equal(tournamentTeamsCountLine(0, 0, "en"), "");
+    assert.equal(
+      tournamentTeamsCountLine(0, 2, "en"),
+      "2 with a Position open",
+    );
   });
 
   it("does not read a 0-team tournament as a full field", () => {
@@ -397,6 +374,7 @@ describe("tournamentTeamsCountLine", () => {
         vacantFieldSummary.seatsTaken,
       teamCount: 12,
       organizerName: null,
+      locale: "en",
     });
 
     assert.equal(empty, "");
@@ -407,7 +385,7 @@ describe("tournamentTeamsCountLine", () => {
 
 describe("tournamentCollapsedTeamsLabel", () => {
   it("names the collapsed run of full Game teams", () => {
-    assert.equal(tournamentCollapsedTeamsLabel(6), "Six more full teams");
+    assert.equal(tournamentCollapsedTeamsLabel(6, "en"), "Six more full teams");
   });
 });
 
@@ -419,11 +397,11 @@ describe("tournamentSeatsTakenLine", () => {
       side(3, null, null),
     ]);
     assert.equal(
-      tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal),
+      tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal, "en"),
       "3 of 6",
     );
     assert.equal(
-      tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal),
+      tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal, "en"),
       "3 of 6 seats taken",
     );
   });
@@ -431,8 +409,11 @@ describe("tournamentSeatsTakenLine", () => {
 
 describe("tournamentOpenPositionSubline", () => {
   it("names the open Position", () => {
-    assert.equal(tournamentOpenPositionSubline("left"), "Left seat open");
-    assert.equal(tournamentOpenPositionSubline("right"), "Right seat open");
+    assert.equal(tournamentOpenPositionSubline("left", "en"), "Left seat open");
+    assert.equal(
+      tournamentOpenPositionSubline("right", "en"),
+      "Right seat open",
+    );
   });
 });
 
@@ -444,7 +425,7 @@ describe("tournamentSizeLine", () => {
       return;
     }
     assert.equal(
-      tournamentSizeLine(result.sizing),
+      tournamentSizeLine(result.sizing, "en"),
       "12 Game teams, 3 groups of 4",
     );
   });
@@ -455,7 +436,7 @@ describe("tournamentSizeLine", () => {
     if (!result.ok) {
       return;
     }
-    const line = tournamentSizeLine(result.sizing);
+    const line = tournamentSizeLine(result.sizing, "en");
     assert.match(line, /10 Game teams/);
     assert.match(line, /groups?/u);
     assert.equal(/\bPool\b/u.test(line), false);
@@ -471,8 +452,9 @@ describe("tournamentStatusLine", () => {
         seatsLeft: 5,
         teamCount: 12,
         organizerName: "Jonas B",
+        locale: "en",
       }),
-      `${TOURNAMENT_YOU_ARE_IN_COPY} The draw happens once 12 Game teams are full, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`,
+      `${HOME.youAreIn} The draw happens once 12 Game teams are full, ${HOME.drawRandomClause}`,
     );
   });
 
@@ -482,6 +464,7 @@ describe("tournamentStatusLine", () => {
       seatsLeft: 5,
       teamCount: 12,
       organizerName: "Jonas B",
+      locale: "en",
     });
     assert.match(line, /5 seats left/u);
     assert.match(line, /Jonas/u);
@@ -495,11 +478,11 @@ describe("tournamentStatusLine", () => {
 describe("Knockout only copy", () => {
   it("names the first Knockout round in the size line", () => {
     assert.equal(
-      knockoutSizeLine(12),
+      knockoutSizeLine(12, "en"),
       "12 Game teams, knockout from the Round of 16",
     );
     assert.equal(
-      knockoutSizeLine(8),
+      knockoutSizeLine(8, "en"),
       "8 Game teams, knockout from the Quarter-finals",
     );
   });
@@ -511,6 +494,7 @@ describe("Knockout only copy", () => {
       teamCount: 12,
       organizerName: "Jonas B",
       knockoutOnly: true,
+      locale: "en",
     });
     assert.match(unseated, /Jonas draws the knockout/u);
     assert.equal(/groups?/iu.test(unseated), false);
@@ -520,6 +504,7 @@ describe("Knockout only copy", () => {
       teamCount: 12,
       organizerName: "Jonas B",
       knockoutOnly: true,
+      locale: "en",
     });
     assert.equal(/groups?/iu.test(seatedFull), false);
   });
@@ -533,15 +518,15 @@ describe("Groups then knockout copy", () => {
       return;
     }
     assert.equal(
-      tournamentSizeLine(result.sizing, 3),
+      tournamentSizeLine(result.sizing, "en", 3),
       "12 Game teams, 3 groups of 4, then quarters",
     );
     assert.equal(
-      tournamentSizeLine(result.sizing, 2),
+      tournamentSizeLine(result.sizing, "en", 2),
       "12 Game teams, 3 groups of 4, then semis",
     );
     assert.equal(
-      tournamentSizeLine(result.sizing, null),
+      tournamentSizeLine(result.sizing, "en", null),
       "12 Game teams, 3 groups of 4",
     );
   });
@@ -552,10 +537,11 @@ describe("Groups then knockout copy", () => {
       seatsLeft: 5,
       teamCount: 12,
       organizerName: "Jonas B",
+      locale: "en" as const,
     };
     assert.equal(
       tournamentStatusLine({ ...base, thenKnockout: true }),
-      `${tournamentStatusLine(base)} ${GROUPS_THEN_KNOCKOUT_LEAD}`,
+      `${tournamentStatusLine(base)} ${HOME.groupsThenKnockoutLead}`,
     );
     assert.match(
       tournamentStatusLine({ ...base, thenKnockout: true }),
@@ -607,6 +593,7 @@ describe("tournament home after the draw", () => {
       drawnTournamentProgressLine({
         roundsPlayed: "Round 2 of 3 played",
         knockout: rounds,
+        locale: "en",
       }),
       "Round 2 of 3 played",
     );
@@ -614,6 +601,7 @@ describe("tournament home after the draw", () => {
       drawnTournamentProgressLine({
         roundsPlayed: "Round 2 of 3 played",
         knockout: null,
+        locale: "en",
       }),
       "Round 2 of 3 played",
     );
@@ -630,6 +618,7 @@ describe("tournament home after the draw", () => {
       drawnTournamentProgressLine({
         roundsPlayed: "Round 3 of 3 played",
         knockout: rounds,
+        locale: "en",
       }),
       "Now at the Final",
     );
@@ -640,7 +629,11 @@ describe("tournament home after the draw", () => {
       round(1, "Final", [match(team("Ada / Sam"), team("Kim / Elin"), true)]),
     ];
     assert.equal(
-      drawnTournamentProgressLine({ roundsPlayed: null, knockout: rounds }),
+      drawnTournamentProgressLine({
+        roundsPlayed: null,
+        knockout: rounds,
+        locale: "en",
+      }),
       null,
     );
   });
@@ -655,54 +648,57 @@ describe("Groups only copy does not advertise a knockout or a message", () => {
       return;
     }
     const copy = [
-      tournamentSizeLine(even.sizing),
-      tournamentSizeLine(uneven.sizing),
+      tournamentSizeLine(even.sizing, "en"),
+      tournamentSizeLine(uneven.sizing, "en"),
       tournamentStatusLine({
         seated: true,
         seatsLeft: 4,
         teamCount: 12,
         organizerName: "Jonas B",
+        locale: "en",
       }),
       tournamentStatusLine({
         seated: false,
         seatsLeft: 5,
         teamCount: 12,
         organizerName: "Jonas B",
+        locale: "en",
       }),
       tournamentStatusLine({
         seated: false,
         seatsLeft: 0,
         teamCount: 12,
         organizerName: null,
+        locale: "en",
       }),
-      tournamentEyebrow(3),
-      TOURNAMENT_CLOSING_LINE,
-      TOURNAMENT_YOU_ARE_IN_COPY,
-      TOURNAMENT_DRAW_RANDOM_CLAUSE,
-      TOURNAMENT_DRAW_WHEN_FULL_COPY,
-      TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY,
-      TOURNAMENT_EYEBROW_PREFIX,
-      YOUR_TEAM_LABEL,
-      LEFT_SEAT_LABEL,
-      RIGHT_SEAT_LABEL,
-      OPEN_POSITION_SR_LABEL,
-      ORGANIZER_ROW_LABEL,
-      GROUP_ROW_LABEL,
-      PRICE_ROW_LABEL,
-      COUNTS_FOR_RATING_LABEL,
-      COUNTS_FOR_RATING_YES,
-      YOU_OWE_ROW_LABEL,
-      YOU_OWE_AFTER_EACH_MATCH,
-      INVITE_ACTION_LABEL,
-      INVITE_FROM_A_GROUP_LABEL,
-      LEAVE_THE_SEAT_LABEL,
-      PRICE_PER_MATCH_SUFFIX,
-      TEAMS_HEADING,
-      TAKE_SEAT_LABEL,
-      YOUR_TEAM_TAG,
-      SEATS_HEADING,
-      YOUR_ROUNDS_PREDRAW_CAPTION,
-      NOT_DRAWN_TRAILER,
+      tournamentEyebrow(3, "en"),
+      HOME.closingLine,
+      HOME.youAreIn,
+      HOME.drawRandomClause,
+      HOME.drawWhenFull,
+      HOME.drawsPoolsWhenFull,
+      HOME.eyebrowPrefix,
+      HOME.yourTeam,
+      HOME.leftSeat,
+      HOME.rightSeat,
+      HOME.openPositionSr,
+      HOME.organizerRow,
+      HOME.groupRow,
+      HOME.priceRow,
+      HOME.countsForRating,
+      messagesFor("en").common.yes,
+      HOME.youOweRow,
+      HOME.youOweAfterEachMatch,
+      HOME.inviteAction,
+      HOME.inviteFromGroup,
+      HOME.leaveTheSeat,
+      HOME.pricePerMatch,
+      HOME.teamsHeading,
+      HOME.takeSeat,
+      HOME.yourTeamTag,
+      HOME.seatsHeading,
+      HOME.yourRoundsPredrawCaption,
+      HOME.notDrawn,
     ].join("\n");
     assert.equal(FORBIDDEN.test(copy), false);
   });
@@ -710,12 +706,15 @@ describe("Groups only copy does not advertise a knockout or a message", () => {
 
 describe("tournamentEyebrow", () => {
   it("ships Friendly tournament and the Round count", () => {
-    assert.equal(tournamentEyebrow(3), "Friendly tournament, 3 Rounds");
-    assert.equal(tournamentEyebrow(1), "Friendly tournament, 1 Round");
+    assert.equal(tournamentEyebrow(3, "en"), "Friendly tournament, 3 Rounds");
+    assert.equal(tournamentEyebrow(1, "en"), "Friendly tournament, 1 Round");
   });
 
   it("names the knockout instead of counting Rounds on Knockout only", () => {
-    assert.equal(tournamentEyebrow(4, true), "Friendly tournament, knockout");
+    assert.equal(
+      tournamentEyebrow(4, "en", true),
+      "Friendly tournament, knockout",
+    );
   });
 });
 
@@ -734,7 +733,7 @@ describe("tournamentRoundCount", () => {
     });
     assert.equal(explicit, 5);
     assert.equal(
-      tournamentEyebrow(explicit ?? 0),
+      tournamentEyebrow(explicit ?? 0, "en"),
       "Friendly tournament, 5 Rounds",
     );
   });
@@ -765,7 +764,7 @@ describe("tournamentRoundCount", () => {
       ],
     });
     assert.equal(followedSmallerField, 2);
-    assert.equal(poolRoundLabel(2, followedSmallerField), "R2 of 2");
+    assert.equal(poolRoundLabel(2, followedSmallerField, "en"), "R2 of 2");
 
     const clamped = tournamentRoundCount({
       ...planned,
@@ -787,6 +786,7 @@ describe("tournamentRoundCount", () => {
           ],
         },
         clamped,
+        "en",
       ),
       "Round 1 of 4 played",
     );
@@ -796,7 +796,7 @@ describe("tournamentRoundCount", () => {
 describe("tournamentStartLine", () => {
   it("joins the start day and Venue", () => {
     const start = new Date(2026, 8, 4, 18, 0, 0);
-    const line = tournamentStartLine(start, "Padelhuset Bromma");
+    const line = tournamentStartLine(start, "Padelhuset Bromma", "en");
     assert.match(line ?? "", /Starts /u);
     assert.match(line ?? "", /Padelhuset Bromma/u);
   });
@@ -886,17 +886,17 @@ describe("otherPoolsPlayedSummary", () => {
   ];
 
   it("names the other groups, counts their completed Matches, and moves to the next group", () => {
-    assert.deepEqual(otherPoolsPlayedSummary(1, pools), {
+    assert.deepEqual(otherPoolsPlayedSummary(1, pools, "en"), {
       namesLine: "group 2 and group 3",
       playedLabel: "3 Matches played",
       nextPoolIndex: 2,
     });
-    assert.deepEqual(otherPoolsPlayedSummary(2, pools), {
+    assert.deepEqual(otherPoolsPlayedSummary(2, pools, "en"), {
       namesLine: "group 1 and group 3",
       playedLabel: "4 Matches played",
       nextPoolIndex: 3,
     });
-    assert.deepEqual(otherPoolsPlayedSummary(3, pools), {
+    assert.deepEqual(otherPoolsPlayedSummary(3, pools, "en"), {
       namesLine: "group 1 and group 2",
       playedLabel: "3 Matches played",
       nextPoolIndex: 1,
@@ -905,9 +905,11 @@ describe("otherPoolsPlayedSummary", () => {
 
   it("is null when there is no other Pool to move to", () => {
     assert.equal(
-      otherPoolsPlayedSummary(1, [
-        { poolIndex: 1, label: "group 1", matches: [] },
-      ]),
+      otherPoolsPlayedSummary(
+        1,
+        [{ poolIndex: 1, label: "group 1", matches: [] }],
+        "en",
+      ),
       null,
     );
   });
@@ -915,27 +917,53 @@ describe("otherPoolsPlayedSummary", () => {
 
 describe("standings copy", () => {
   it("replaces the knockout line with how a Pool tournament ends", () => {
-    assert.equal(STANDINGS_HEADING, "Standings");
+    assert.equal(HOME.standingsHeading, "Standings");
     assert.equal(
-      TOURNAMENT_ENDS_COPY,
+      HOME.endsCopy,
       "Each group has a winner. There is no overall champion.",
     );
-    assert.equal(roundResultsHeading(2), "Round 2 results");
-    assert.equal(otherPoolsPlayedLabel(1), "1 Match played");
-    assert.equal(otherPoolsPlayedLabel(4), "4 Matches played");
-    assert.equal(POOLS_SEGMENT_LABEL, "groups");
+    assert.equal(roundResultsHeading(2, "en"), "Round 2 results");
+    assert.equal(otherPoolsPlayedLabel(1, "en"), "1 Match played");
+    assert.equal(otherPoolsPlayedLabel(4, "en"), "4 Matches played");
+    assert.equal(HOME.poolsSegment, "groups");
   });
 
   it("does not say quarter, knockout, then quarters, or Group for a Pool", () => {
     const copy = [
-      STANDINGS_HEADING,
-      TOURNAMENT_ENDS_COPY,
-      POOLS_SEGMENT_LABEL,
-      roundResultsHeading(2),
-      otherPoolsPlayedLabel(4),
+      HOME.standingsHeading,
+      HOME.endsCopy,
+      HOME.poolsSegment,
+      roundResultsHeading(2, "en"),
+      otherPoolsPlayedLabel(4, "en"),
       "group 2 and group 3",
     ].join("\n");
     assert.equal(/quarter|knockout|then quarters/iu.test(copy), false);
     assert.equal(/\bGroup\b/u.test(copy), false);
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the size line, the status line and the eyebrow in Arabic", () => {
+    const result = sizeFriendlyTournament(12, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      tournamentSizeLine(result.sizing, "ar"),
+      "12 فريقًا، 3 مجموعات من 4",
+    );
+    assert.equal(
+      tournamentStatusLine({
+        seated: false,
+        seatsLeft: 5,
+        teamCount: 12,
+        organizerName: "Jonas B",
+        locale: "ar",
+      }),
+      "تبقّت 5 مقاعد. يُجري Jonas قرعة المجموعات عندما تمتلئ الفرق، وهي عشوائية.",
+    );
+    assert.equal(tournamentEyebrow(3, "ar"), "بطولة ودية، 3 جولات");
+    assert.equal(tournamentCollapsedTeamsLabel(6, "ar"), "6 فرق مكتملة أخرى");
   });
 });

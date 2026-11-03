@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import type { MatchOutcome } from "./result-mark";
 import { winRatePercent } from "./win-rate";
 
@@ -20,7 +23,7 @@ export type RecentFormBar =
 export type RecentFormStreak =
   | { kind: "won"; count: number; label: string }
   | { kind: "lost"; count: number; label: string }
-  | { kind: "none"; label: "No streak" };
+  | { kind: "none"; label: string };
 
 export type RecentFormView = {
   wins: number;
@@ -44,10 +47,12 @@ const OUTCOME_LABEL: Record<RecentFormHistoryRow["outcome"], "W" | "L" | "D"> =
 
 export function streakFromNewestFirst(
   rows: readonly RecentFormHistoryRow[],
+  locale: Locale,
 ): RecentFormStreak {
+  const m = messagesFor(locale).home.recentForm;
   const newest = rows[0];
   if (!newest || newest.outcome === "draw") {
-    return { kind: "none", label: "No streak" };
+    return { kind: "none", label: m.noStreak };
   }
 
   let count = 0;
@@ -59,25 +64,15 @@ export function streakFromNewestFirst(
   }
 
   if (newest.outcome === "won") {
-    return {
-      kind: "won",
-      count,
-      label:
-        count === 1
-          ? "Building that win streak"
-          : `On a ${count} games Win streak`,
-    };
+    return { kind: "won", count, label: m.winStreak(count) };
   }
 
-  return {
-    kind: "lost",
-    count,
-    label: count === 1 ? "Painful loss" : `On a ${count} games Lose streak`,
-  };
+  return { kind: "lost", count, label: m.loseStreak(count) };
 }
 
 export function deriveRecentForm(
   rows: readonly RecentFormHistoryRow[],
+  locale: Locale,
 ): RecentFormView {
   const current = rows.slice(0, WINDOW);
   const played: RecentFormBar[] = current.map((row) => ({
@@ -95,7 +90,7 @@ export function deriveRecentForm(
     losses: current.filter((row) => row.outcome === "lost").length,
     draws: current.filter((row) => row.outcome === "draw").length,
     bars: [...played, ...empty],
-    streak: streakFromNewestFirst(current),
+    streak: streakFromNewestFirst(current, locale),
     winRatePercent:
       winRatePercent(
         current.filter((row) => row.outcome === "won").length,
@@ -112,38 +107,24 @@ export function recentFormRecord(form: RecentFormView): string {
   return `${form.wins}–${form.losses}`;
 }
 
-const SLOT_WORDS = [
-  "",
-  "One",
-  "Two",
-  "Three",
-  "Four",
-  "Five",
-  "Six",
-  "Seven",
-  "Eight",
-  "Nine",
-  "Ten",
-] as const;
-
-export function recentFormStatus(form: RecentFormView): string {
+export function recentFormStatus(form: RecentFormView, locale: Locale): string {
   const unfilled = WINDOW - form.playedCount;
-  if (unfilled === 1) {
-    return "One slot left to fill";
-  }
-  if (unfilled > 1) {
-    const word = SLOT_WORDS[unfilled] ?? String(unfilled);
-    return `${word} slots left to fill`;
+  if (unfilled > 0) {
+    return messagesFor(locale).home.recentForm.slotsLeft(unfilled);
   }
   return form.streak.label;
 }
 
-export function recentFormWinRateCopy(form: RecentFormView): {
+export function recentFormWinRateCopy(
+  form: RecentFormView,
+  locale: Locale,
+): {
   value: string;
   caption: string;
 } {
+  const m = messagesFor(locale).home.recentForm;
   if (form.playedCount < 3) {
-    return { value: "—", caption: "win rate after 3 games" };
+    return { value: "—", caption: m.winRateAfterThree };
   }
-  return { value: `${form.winRatePercent}%`, caption: "win rate" };
+  return { value: `${form.winRatePercent}%`, caption: m.winRate };
 }

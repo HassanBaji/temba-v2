@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatDayMonth, formatGameClock } from "./format-game-start";
 import {
   buildKnockoutTree,
@@ -79,26 +82,29 @@ export type KnockoutViewMatch = {
   slot2SourcePoolPosition?: number | null;
 };
 
-export const KNOCKOUT_BYE_LABEL = "Bye";
-export const KNOCKOUT_DECIDING_SET_COPY = "Add a deciding Set";
-export const KNOCKOUT_WON_TAG = "won";
-export const KNOCKOUT_WALKOVER_TAG = "Walkover";
-export const KNOCKOUT_CHAMPION_TAG = "Champion";
+export function knockoutWonTag(locale: Locale) {
+  return messagesFor(locale).tournament.knockoutView.wonTag;
+}
 
-function gameTeamName(team: KnockoutViewGameTeam) {
+export function knockoutChampionTag(locale: Locale) {
+  return messagesFor(locale).tournament.knockoutView.champion;
+}
+
+function gameTeamName(team: KnockoutViewGameTeam, locale: Locale) {
   if (team.members.length > 0) {
     return team.members.map((member) => member.name).join(" / ");
   }
-  return team.name ?? "Game team";
+  return team.name ?? messagesFor(locale).tournament.gameTeam;
 }
 
 function viewTeam(
   team: KnockoutViewGameTeam,
   viewerUserId: string,
+  locale: Locale,
 ): KnockoutViewTeam {
   return {
     gameTeamId: team.id,
-    name: gameTeamName(team),
+    name: gameTeamName(team, locale),
     isViewer: team.members.some((member) => member.id === viewerUserId),
   };
 }
@@ -113,6 +119,7 @@ export function hasDraftKnockoutDraw(
 export function draftKnockoutFirstRound(args: {
   gameTeams: readonly KnockoutViewGameTeam[];
   viewerUserId: string;
+  locale: Locale;
 }): KnockoutViewRound | null {
   const drawnOrder = args.gameTeams
     .filter((team) => team.knockoutSeed != null)
@@ -128,7 +135,7 @@ export function draftKnockoutFirstRound(args: {
 
   const entrant = (order: number) => {
     const team = drawnOrder[order - 1];
-    return team ? viewTeam(team, args.viewerUserId) : null;
+    return team ? viewTeam(team, args.viewerUserId, args.locale) : null;
   };
   const places: KnockoutViewPlace[] = [];
   for (const place of tree.firstRound) {
@@ -165,7 +172,7 @@ export function draftKnockoutFirstRound(args: {
   }
   return {
     round: 1,
-    name: knockoutRoundName(1, tree.roundCount),
+    name: knockoutRoundName(1, tree.roundCount, args.locale),
     places,
   };
 }
@@ -201,6 +208,7 @@ export function postedKnockoutRounds(args: {
   matches: readonly KnockoutViewMatch[];
   gameTeams: readonly KnockoutViewGameTeam[];
   viewerUserId: string;
+  locale: Locale;
 }): KnockoutViewRound[] | null {
   const byPlace = new Map<string, KnockoutViewMatch>();
   let roundCount = 0;
@@ -218,7 +226,7 @@ export function postedKnockoutRounds(args: {
   const teamsById = new Map(args.gameTeams.map((team) => [team.id, team]));
   const teamFor = (gameTeamId: string | null) => {
     const team = gameTeamId ? teamsById.get(gameTeamId) : undefined;
-    return team ? viewTeam(team, args.viewerUserId) : null;
+    return team ? viewTeam(team, args.viewerUserId, args.locale) : null;
   };
   const sourceOf = (match: KnockoutViewMatch | undefined, slot: 1 | 2) => {
     const poolIndex =
@@ -253,6 +261,7 @@ export function postedKnockoutRounds(args: {
         kind: "winner_of",
         label: knockoutWinnerOfLabel(
           knockoutMatchCode(fedBy.round, fedBy.position, roundCount),
+          args.locale,
         ),
       };
     }
@@ -306,7 +315,7 @@ export function postedKnockoutRounds(args: {
     }
     rounds.push({
       round,
-      name: knockoutRoundName(round, roundCount),
+      name: knockoutRoundName(round, roundCount, args.locale),
       places,
     });
   }
@@ -349,8 +358,8 @@ export function knockoutCurrentRound(
 }
 
 /** `Now at the Semi-finals` */
-export function knockoutNowLine(roundName: string) {
-  return `Now at the ${roundName}`;
+export function knockoutNowLine(roundName: string, locale: Locale) {
+  return messagesFor(locale).tournament.knockoutView.nowAt(roundName);
 }
 
 export type KnockoutMatchPlace = Extract<KnockoutViewPlace, { kind: "match" }>;
@@ -380,29 +389,36 @@ export function knockoutCancelPrompt(
   return { kind: "nobody" };
 }
 
-const WALKOVER_UNRATED_COPY =
-  "The Match is shown as a Walkover and no Rating changes.";
-
-export function knockoutCancelDescription(prompt: KnockoutCancelPrompt) {
+export function knockoutCancelDescription(
+  prompt: KnockoutCancelPrompt,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.knockoutView;
   switch (prompt.kind) {
     case "choose":
-      return `Choose which team goes through. ${WALKOVER_UNRATED_COPY}`;
+      return m.chooseThrough;
     case "through":
-      return `${prompt.team.name} goes through. ${WALKOVER_UNRATED_COPY}`;
+      return m.teamGoesThrough(prompt.team.name);
     case "nobody":
-      return "Nobody goes through. This cannot be undone.";
+      return m.nobodyThrough;
   }
 }
 
 /** `Champion: Ana / Bea` */
-export function knockoutChampionLine(champion: KnockoutViewTeam) {
-  return `${KNOCKOUT_CHAMPION_TAG}: ${champion.name}`;
+export function knockoutChampionLine(
+  champion: KnockoutViewTeam,
+  locale: Locale,
+) {
+  return messagesFor(locale).tournament.knockoutView.championLine(
+    champion.name,
+  );
 }
 
-export const KNOCKOUT_OPEN_SIDE_LABEL = "To be decided";
-export const KNOCKOUT_HEADING = "Knockout";
+export function knockoutHeading(locale: Locale) {
+  return messagesFor(locale).tournament.knockoutView.heading;
+}
 
-export function knockoutSideLabel(side: KnockoutViewSide) {
+export function knockoutSideLabel(side: KnockoutViewSide, locale: Locale) {
   switch (side.kind) {
     case "team":
       return side.team.name;
@@ -411,7 +427,7 @@ export function knockoutSideLabel(side: KnockoutViewSide) {
     case "winner_of":
       return side.label;
     case "open":
-      return KNOCKOUT_OPEN_SIDE_LABEL;
+      return messagesFor(locale).tournament.knockoutView.toBeDecided;
   }
 }
 
@@ -419,16 +435,17 @@ export function knockoutSideLabel(side: KnockoutViewSide) {
 export function knockoutPlaceMetaLine(
   startTime: Date | string | null,
   courtName: string | null,
+  locale: Locale,
 ) {
   const parts = [
-    startTime ? formatGameClock(startTime) : null,
+    startTime ? formatGameClock(startTime, locale) : null,
     courtName,
   ].filter((part): part is string => Boolean(part));
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
 /** `Sat 27 Sep`, from the round's earliest Match. */
-export function knockoutRoundDayLine(round: KnockoutViewRound) {
+export function knockoutRoundDayLine(round: KnockoutViewRound, locale: Locale) {
   let earliest: Date | null = null;
   for (const place of round.places) {
     if (place.kind !== "match" || !place.startTime) {
@@ -442,11 +459,10 @@ export function knockoutRoundDayLine(round: KnockoutViewRound) {
       earliest = start;
     }
   }
-  return earliest ? formatDayMonth(earliest, { weekday: "short" }) : null;
+  return earliest
+    ? formatDayMonth(earliest, locale, { weekday: "short" })
+    : null;
 }
-
-export const KNOCKOUT_NOT_THROUGH_COPY =
-  "Your team did not go through. The tournament is over for your team.";
 
 function placeSides(place: KnockoutViewPlace): KnockoutViewSide[] {
   return place.kind === "match" ? [place.slot1, place.slot2] : [place.side];

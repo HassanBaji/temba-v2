@@ -2,44 +2,49 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  CANCEL_GAME_ACTION,
-  EDIT_GAME_ACTION,
-  GAME_TOAST,
-  JOIN_GAME_ACTION,
-  LEAVE_GAME_ACTION,
-  LEAVE_GAME_CONSEQUENCE,
-  MARK_AS_NOT_PLAYED_CONSEQUENCE,
-  REPORT_WRONG_SCORE_CONSEQUENCE,
-  REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
+  cancelGameAction,
   cancelGameConsequence,
+  editGameAction,
   gameJoinToast,
-  teamRegisterToast,
+  gameToast,
+  joinGameAction,
   kickedToast,
+  leaveGameAction,
+  leaveGameConsequence,
+  markAsNotPlayedConsequence,
+  reportWrongScoreConsequence,
+  reportWrongScoreLockedConsequence,
   setLabel,
   setShortLabel,
+  teamRegisterToast,
 } from "./game-copy";
 
 describe("cancelGameConsequence", () => {
   it("counts the players who lose the Game", () => {
     assert.equal(
-      cancelGameConsequence(4),
+      cancelGameConsequence(4, "en"),
       "Removes it from the calendar for all 4 players.",
     );
     assert.equal(
-      cancelGameConsequence(2),
+      cancelGameConsequence(2, "en"),
       "Removes it from the calendar for all 2 players.",
     );
   });
 
   it("keeps one player singular", () => {
     assert.equal(
-      cancelGameConsequence(1),
+      cancelGameConsequence(1, "en"),
       "Removes it from the calendar for 1 player.",
     );
   });
 
   it("says nobody is affected on an empty Game", () => {
-    assert.equal(cancelGameConsequence(0), "Nobody has joined yet.");
+    assert.equal(cancelGameConsequence(0, "en"), "Nobody has joined yet.");
+  });
+
+  it("uses the Arabic dual for two players", () => {
+    assert.equal(cancelGameConsequence(2, "ar"), "يزيلها من تقويم لاعبَين.");
+    assert.equal(cancelGameConsequence(0, "ar"), "لم ينضم أحد بعد.");
   });
 });
 
@@ -47,10 +52,10 @@ describe("Game action copy", () => {
   it("writes actions in sentence case with the Game noun capitalised", () => {
     assert.deepEqual(
       [
-        JOIN_GAME_ACTION,
-        EDIT_GAME_ACTION,
-        CANCEL_GAME_ACTION,
-        LEAVE_GAME_ACTION,
+        joinGameAction("en"),
+        editGameAction("en"),
+        cancelGameAction("en"),
+        leaveGameAction("en"),
       ],
       ["Join Game", "Edit Game", "Cancel Game", "Leave Game"],
     );
@@ -58,35 +63,42 @@ describe("Game action copy", () => {
 
   it("ends every consequence line with a period", () => {
     for (const line of [
-      LEAVE_GAME_CONSEQUENCE,
-      MARK_AS_NOT_PLAYED_CONSEQUENCE,
-      REPORT_WRONG_SCORE_CONSEQUENCE,
-      REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
-      cancelGameConsequence(3),
+      leaveGameConsequence("en"),
+      markAsNotPlayedConsequence("en"),
+      reportWrongScoreConsequence("en"),
+      reportWrongScoreLockedConsequence("en"),
+      cancelGameConsequence(3, "en"),
     ]) {
       assert.match(line, /\.$/u);
     }
   });
 
   it("starts every toast with a capital letter", () => {
-    for (const toast of Object.values(GAME_TOAST)) {
+    for (const toast of Object.values(gameToast("en"))) {
       assert.match(toast, /^[A-Z]/u);
     }
   });
 
   it("uses one toast for joining a Game however the seat was taken", () => {
-    assert.equal(gameJoinToast(false), "Joined Game");
-    assert.equal(gameJoinToast(true), "Joined waitlist");
-    assert.equal(teamRegisterToast(false), "Team registered");
-    assert.equal(teamRegisterToast(true), "Team joined waitlist");
+    assert.equal(gameJoinToast(false, "en"), "Joined Game");
+    assert.equal(gameJoinToast(true, "en"), "Joined waitlist");
+    assert.equal(teamRegisterToast(false, "en"), "Team registered");
+    assert.equal(teamRegisterToast(true, "en"), "Team joined waitlist");
   });
 
   it("names who was kicked, matching the Kick confirm", () => {
-    assert.equal(kickedToast("Dev"), "Kicked Dev");
+    assert.equal(kickedToast("Dev", "en"), "Kicked Dev");
   });
 
   it("numbers Sets from 1", () => {
-    assert.equal(setLabel(0), "Set 1");
-    assert.equal(setShortLabel(2), "S3");
+    assert.equal(setLabel(0, "en"), "Set 1");
+    assert.equal(setShortLabel(2, "en"), "S3");
+  });
+
+  it("writes the actions, toasts and Set labels in Arabic", () => {
+    assert.equal(joinGameAction("ar"), "انضم إلى اللعبة");
+    assert.equal(gameJoinToast(true, "ar"), "انضممت إلى قائمة الانتظار");
+    assert.equal(kickedToast("Dev", "ar"), "تم إخراج Dev");
+    assert.equal(setLabel(0, "ar"), "الشوط 1");
   });
 });

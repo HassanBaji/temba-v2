@@ -51,18 +51,18 @@ function game(
 
 describe("footballOccupancyLine", () => {
   it("reads 5-a-side · 7/10", () => {
-    assert.equal(footballOccupancyLine(5, 7, 10), "5-a-side · 7/10");
+    assert.equal(footballOccupancyLine(5, 7, 10, "en"), "5-a-side · 7/10");
   });
 
   it("drops the missing parts", () => {
-    assert.equal(footballOccupancyLine(null, 7, 10), "7/10");
-    assert.equal(footballOccupancyLine(7, 4, null), "7-a-side · 4");
+    assert.equal(footballOccupancyLine(null, 7, 10, "en"), "7/10");
+    assert.equal(footballOccupancyLine(7, 4, null, "en"), "7-a-side · 4");
   });
 });
 
 describe("footballGameDetailsModel", () => {
   it("heads with size and occupancy, the Venue and pitch, price and duration", () => {
-    const { hero, title } = footballGameDetailsModel(game(), NOW);
+    const { hero, title } = footballGameDetailsModel(game(), NOW, "en");
     assert.equal(title, "Riffa Sports");
     assert.equal(hero.sizeLine, "5-a-side · 3/10");
     assert.equal(hero.placeLine, "Riffa Sports · Pitch 2 · Riffa");
@@ -77,7 +77,11 @@ describe("footballGameDetailsModel", () => {
   });
 
   it("lists the roster in registration order and marks the viewer", () => {
-    const { rosterRows, openSpots } = footballGameDetailsModel(game(), NOW);
+    const { rosterRows, openSpots } = footballGameDetailsModel(
+      game(),
+      NOW,
+      "en",
+    );
     assert.deepEqual(
       rosterRows.map((row) => [row.place, row.id, row.isViewer]),
       [
@@ -90,16 +94,19 @@ describe("footballGameDetailsModel", () => {
   });
 
   it("is always Unrated", () => {
-    assert.equal(footballGameDetailsModel(game(), NOW).unratedLine, "Unrated");
+    assert.equal(
+      footballGameDetailsModel(game(), NOW, "en").unratedLine,
+      "Unrated",
+    );
   });
 
   it("turns paper once cancelled or over", () => {
     assert.equal(
-      footballGameDetailsModel(game({ cancelledAt: NOW }), NOW).hero.tone,
+      footballGameDetailsModel(game({ cancelledAt: NOW }), NOW, "en").hero.tone,
       "paper",
     );
     const later = new Date("2026-10-27T10:00:00.000Z");
-    const over = footballGameDetailsModel(game(), later).hero;
+    const over = footballGameDetailsModel(game(), later, "en").hero;
     assert.equal(over.tone, "paper");
     assert.equal(over.statusLabel, "Played");
   });
@@ -115,6 +122,7 @@ describe("footballGameDetailsModel", () => {
         },
       }),
       NOW,
+      "en",
     );
     assert.ok(model.organizer);
     assert.deepEqual(model.organizer.capBounds, { min: 10, max: 40 });
@@ -129,15 +137,17 @@ describe("footballGameDetailsModel", () => {
     const model = footballGameDetailsModel(
       game({ isOrganizer: true, sideSize: 7, playersAllowed: 14 }),
       NOW,
+      "en",
     );
     assert.deepEqual(model.organizer?.capBounds, { min: 14, max: 40 });
   });
 
   it("hides the Organizer card and kicks from a non-Organizer and once cancelled", () => {
-    assert.equal(footballGameDetailsModel(game(), NOW).organizer, null);
+    assert.equal(footballGameDetailsModel(game(), NOW, "en").organizer, null);
     const cancelled = footballGameDetailsModel(
       game({ isOrganizer: true, cancelledAt: NOW }),
       NOW,
+      "en",
     );
     assert.equal(cancelled.organizer, null);
     assert.equal(
@@ -150,6 +160,7 @@ describe("footballGameDetailsModel", () => {
     const model = footballGameDetailsModel(
       game({ isOrganizer: true, registrationClosedAt: NOW }),
       NOW,
+      "en",
     );
     assert.equal(model.organizer?.registration, "reopen");
   });
@@ -157,12 +168,13 @@ describe("footballGameDetailsModel", () => {
 
 describe("footballGameCta", () => {
   it("offers Join on an open Game", () => {
-    assert.equal(footballGameCta(game())?.kind, "join");
+    assert.equal(footballGameCta(game(), "en")?.kind, "join");
   });
 
   it("offers the waitlist on a full Game", () => {
     assert.equal(
-      footballGameCta(game({ canRegister: false, canWaitlist: true }))?.kind,
+      footballGameCta(game({ canRegister: false, canWaitlist: true }), "en")
+        ?.kind,
       "join_waitlist",
     );
   });
@@ -170,6 +182,7 @@ describe("footballGameCta", () => {
   it("shows the waitlist place and offers to leave it", () => {
     const cta = footballGameCta(
       game({ canRegister: false, isWaitlisted: true, waitlistPlace: 2 }),
+      "en",
     );
     assert.deepEqual(cta, {
       kind: "waitlisted",
@@ -181,15 +194,33 @@ describe("footballGameCta", () => {
   it("offers Leave to a registered player", () => {
     const cta = footballGameCta(
       game({ canRegister: false, isRegistered: true }),
+      "en",
     );
     assert.equal(cta?.kind, "registered");
     assert.equal(cta?.actionLabel, "Leave Game");
   });
 
   it("offers nothing once cancelled or frozen", () => {
-    assert.equal(footballGameCta(game({ cancelledAt: NOW })), null);
-    assert.equal(footballGameCta(game({ joinFrozen: true })), null);
-    assert.equal(footballGameCta(game({ canRegister: false })), null);
+    assert.equal(footballGameCta(game({ cancelledAt: NOW }), "en"), null);
+    assert.equal(footballGameCta(game({ joinFrozen: true }), "en"), null);
+    assert.equal(footballGameCta(game({ canRegister: false }), "en"), null);
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the hero figures and the join CTA in Arabic", () => {
+    const model = footballGameDetailsModel(game(), NOW, "ar");
+    assert.deepEqual(
+      model.hero.figures.map((figure) => figure.label),
+      ["السعر", "المدة"],
+    );
+    assert.equal(model.hero.figures[1]?.value, "90 د");
+    assert.equal(footballGameCta(game(), "ar")?.title, "انضم إلى هذه اللعبة");
+    assert.equal(
+      footballGameCta(game({ canRegister: false, canWaitlist: true }), "ar")
+        ?.actionLabel,
+      "انضم إلى قائمة الانتظار",
+    );
   });
 });
 

@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export type InviteOutcomeKind =
   | "invalid"
   | "unavailable"
@@ -5,37 +8,48 @@ export type InviteOutcomeKind =
 
 export type InviteHostLabel = "Community" | "Group" | "Team" | "Game";
 
+const HOST_KINDS = {
+  Community: "community",
+  Group: "group",
+  Team: "team",
+  Game: "game",
+} as const;
+
 export function inviteOutcomeCopy(
   outcome: InviteOutcomeKind,
   hostLabel: InviteHostLabel,
+  locale: Locale,
 ): { title: string; description: string } {
+  const m = messagesFor(locale).invite.outcome;
   if (outcome === "invalid") {
-    return {
-      title: "Link expired or invalid",
-      description: "Ask the person who shared it for a new invite link.",
-    };
+    return { title: m.invalid.title, description: m.invalid.description };
   }
   if (outcome === "unavailable") {
-    const joiners = hostLabel === "Game" ? "players" : "members";
     return {
-      title: `Not accepting new ${joiners}`,
-      description: `This ${hostLabel} isn't accepting new ${joiners} right now.`,
+      title:
+        hostLabel === "Game"
+          ? m.unavailable.playersTitle
+          : m.unavailable.membersTitle,
+      description: m.unavailable.description[HOST_KINDS[hostLabel]],
     };
   }
   return {
-    title: "Waiting for your partner",
-    description:
-      "Your Team is registered once both partners accept. Until then you don't hold a seat or a waitlist spot.",
+    title: m.waitingForPartner.title,
+    description: m.waitingForPartner.description,
   };
 }
 
 export type InviteOutcomeTarget = "home" | "sign-in";
 
-export function inviteOutcomeAction(isSignedIn: boolean): {
+export function inviteOutcomeAction(
+  isSignedIn: boolean,
+  locale: Locale,
+): {
   label: string;
   target: InviteOutcomeTarget;
 } {
+  const m = messagesFor(locale).common;
   return isSignedIn
-    ? { label: "Go to Home", target: "home" }
-    : { label: "Sign in", target: "sign-in" };
+    ? { label: m.goHome, target: "home" }
+    : { label: m.signIn, target: "sign-in" };
 }

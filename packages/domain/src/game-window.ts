@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   formatDayMonth,
   formatGameClock,
@@ -134,15 +137,15 @@ export function snapTimeInputValue(time: string): string {
   return `${pad(Math.floor(clamped / 60))}:${pad(clamped % 60)}`;
 }
 
-export function formatDayLabel(day: string) {
+export function formatDayLabel(day: string, locale: Locale) {
   const date = parseDateInputValue(day);
   if (!date) {
     return null;
   }
-  return formatDayMonth(date, { weekday: "short", year: true });
+  return formatDayMonth(date, locale, { weekday: "short", year: true });
 }
 
-export function formatTimeSlotLabel(time: string) {
+export function formatTimeSlotLabel(time: string, locale: Locale) {
   const snapped = snapTimeInputValue(time);
   const timeMatch = TIME_PATTERN.exec(snapped);
   if (!timeMatch) {
@@ -158,6 +161,7 @@ export function formatTimeSlotLabel(time: string) {
       hour: hours,
       minute: minutes,
     }),
+    locale,
   );
 }
 
@@ -165,10 +169,15 @@ export function formatGameWindowName(
   day: string,
   startTime: string,
   finishTime: string,
+  locale: Locale,
 ) {
   const date = parseDateInputValue(day);
-  const weekday = date ? formatWeekday(date, "short") : day;
-  return `${weekday} ${formatTimeSlotLabel(startTime)} - ${formatTimeSlotLabel(finishTime)}`;
+  const weekday = date ? formatWeekday(date, "short", locale) : day;
+  return messagesFor(locale).game.window.name(
+    weekday,
+    formatTimeSlotLabel(startTime, locale),
+    formatTimeSlotLabel(finishTime, locale),
+  );
 }
 
 function combineDateAndTime(day: string, time: string): Date | undefined {

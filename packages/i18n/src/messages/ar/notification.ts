@@ -1,3 +1,130 @@
-import type { notification as source } from "../en/notification";
+import type {
+  NotificationTitlePart,
+  notification as source,
+} from "../en/notification";
+import { plural } from "../../plural";
 
-export const notification = {} satisfies typeof source;
+function strong(text: string): NotificationTitlePart {
+  return { text, strong: true };
+}
+
+function plain(text: string): NotificationTitlePart {
+  return { text, strong: false };
+}
+
+export const notification = {
+  title: {
+    pair: (actor: string, partner: string) => [
+      strong(actor),
+      plain(" و"),
+      strong(partner),
+    ],
+    groupMemberJoined: (actor: string, group: string) => [
+      plain("انضم "),
+      strong(actor),
+      plain(" إلى "),
+      strong(group),
+    ],
+    gamePlayerJoined: (subject: NotificationTitlePart[], game: string) => [
+      plain("انضم "),
+      ...subject,
+      plain(" إلى "),
+      strong(game),
+    ],
+    gamePlayerJoinedViaWaitlist: (
+      subject: NotificationTitlePart[],
+      game: string,
+    ) => [
+      plain("انتقل "),
+      ...subject,
+      plain(" من قائمة الانتظار إلى "),
+      strong(game),
+    ],
+    gamePlayerLeft: (actor: string, game: string) => [
+      plain("غادر "),
+      strong(actor),
+      plain(" "),
+      strong(game),
+    ],
+    gamePlayerLeftWithPartner: (
+      actor: string,
+      game: string,
+      partner: string,
+    ) => [
+      plain("غادر "),
+      strong(actor),
+      plain(" "),
+      strong(game),
+      plain(". وأُزيل "),
+      strong(partner),
+      plain(" معه"),
+    ],
+    gameSeatedByOrganizer: (actor: string, game: string) => [
+      plain("أضافك "),
+      strong(actor),
+      plain(" إلى "),
+      strong(game),
+    ],
+    historyLinked: (gameCount: number) => [
+      plain("ربطنا "),
+      strong(
+        plural("ar", gameCount, {
+          one: "لعبة واحدة",
+          two: "لعبتين",
+          few: "{n} ألعاب",
+          many: "{n} لعبة",
+          other: "{n} لعبة",
+        }),
+      ),
+      plain(" لُعبت برقمك"),
+    ],
+    levelSet: (actor: string, level: string) => [
+      plain("حدّد "),
+      strong(actor),
+      plain(" مستواك عند "),
+      strong(level),
+    ],
+    gameFinished: (game: string) => [plain("انتهت "), strong(game)],
+  },
+  subline: {
+    everyMatchIn: "كل المباريات مسجّلة.",
+    seeYourResults: "اطّلع على نتائجك.",
+  },
+  gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
+  metaWithGroup: (time: string, group: string) => `${time} · ${group}`,
+  time: {
+    justNow: "الآن",
+    minutesAgo: (n: number) =>
+      plural("ar", n, {
+        one: "قبل دقيقة",
+        two: "قبل دقيقتين",
+        few: "قبل {n} دقائق",
+        many: "قبل {n} دقيقة",
+        other: "قبل {n} دقيقة",
+      }),
+    hoursAgo: (n: number) =>
+      plural("ar", n, {
+        one: "قبل ساعة",
+        two: "قبل ساعتين",
+        few: "قبل {n} ساعات",
+        many: "قبل {n} ساعة",
+        other: "قبل {n} ساعة",
+      }),
+    daysAgo: (n: number) =>
+      plural("ar", n, {
+        one: "قبل يوم",
+        two: "قبل يومين",
+        few: "قبل {n} أيام",
+        many: "قبل {n} يومًا",
+        other: "قبل {n} يوم",
+      }),
+  },
+  invitesWaiting: (n: number) =>
+    plural("ar", n, {
+      one: "دعوة واحدة بانتظارك",
+      two: "دعوتان بانتظارك",
+      few: "{n} دعوات بانتظارك",
+      many: "{n} دعوة بانتظارك",
+      other: "{n} دعوة بانتظارك",
+    }),
+} satisfies typeof source;

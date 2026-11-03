@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   levelChangeView,
   parseLevelHistory,
@@ -32,15 +35,18 @@ export type HomeLevelView = {
   legend: { lead: string; rest: string };
 };
 
-export function homeLevelView(input: HomeLevelInput): HomeLevelView {
+export function homeLevelView(
+  input: HomeLevelInput,
+  locale: Locale,
+): HomeLevelView {
+  const m = messagesFor(locale).home.level;
   const parsed = parseLevelHistory(input.history);
   const matchCount = parsed?.matchCount ?? 0;
   const change =
     parsed && matchCount > 0
       ? {
-          ...levelChangeView(parsed.delta),
-          windowLabel:
-            matchCount === 1 ? "last 1 match" : `last ${matchCount} matches`,
+          ...levelChangeView(parsed.delta, locale),
+          windowLabel: m.window(matchCount),
         }
       : null;
 
@@ -49,14 +55,8 @@ export function homeLevelView(input: HomeLevelInput): HomeLevelView {
 
   const remaining = input.ratedMatchesRemaining;
   const legend = input.provisional
-    ? {
-        lead: "Provisional Level.",
-        rest: ` Hatched means unconfirmed — play about ${remaining} more rated ${remaining === 1 ? "game" : "games"} and your Level confirms.`,
-      }
-    : {
-        lead: "Level confirmed.",
-        rest: " Your Level now moves with every rated game you play.",
-      };
+    ? { lead: m.provisionalLead, rest: m.provisionalRest(remaining) }
+    : { lead: m.confirmedLead, rest: m.confirmedRest };
 
   return {
     displayBand: displayLabelFromStoredBand(input.band),
@@ -64,9 +64,7 @@ export function homeLevelView(input: HomeLevelInput): HomeLevelView {
     change,
     provisional: input.provisional,
     progress:
-      next == null
-        ? null
-        : { percent, label: `${percent}% of the way to ${next}` },
+      next == null ? null : { percent, label: m.progressTo(percent, next) },
     legend,
   };
 }

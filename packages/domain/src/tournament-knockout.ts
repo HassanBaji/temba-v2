@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 export const KNOCKOUT_MIN_ENTRANTS = 2;
 
 export type KnockoutSlot = 1 | 2;
@@ -263,48 +266,59 @@ export function knockoutTeamsLeft(round: number, roundCount: number) {
   return 2 ** (roundCount - round + 1);
 }
 
-export function knockoutRoundName(round: number, roundCount: number) {
+export function knockoutRoundName(
+  round: number,
+  roundCount: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.knockout;
   const teamsLeft = knockoutTeamsLeft(round, roundCount);
   if (teamsLeft === 2) {
-    return "Final";
+    return m.final;
   }
   if (teamsLeft === 4) {
-    return "Semi-finals";
+    return m.semiFinals;
   }
   if (teamsLeft === 8) {
-    return "Quarter-finals";
+    return m.quarterFinals;
   }
-  return `Round of ${teamsLeft}`;
+  return m.roundOf(teamsLeft);
 }
 
 /** One Match of a Knockout round: `Quarter-final`, `Semi-final`, `Final`. */
-export function knockoutMatchRoundName(round: number, roundCount: number) {
+export function knockoutMatchRoundName(
+  round: number,
+  roundCount: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.knockout;
   const teamsLeft = knockoutTeamsLeft(round, roundCount);
   if (teamsLeft === 2) {
-    return "Final";
+    return m.final;
   }
   if (teamsLeft === 4) {
-    return "Semi-final";
+    return m.semiFinal;
   }
   if (teamsLeft === 8) {
-    return "Quarter-final";
+    return m.quarterFinal;
   }
-  return `Round of ${teamsLeft}`;
+  return m.roundOf(teamsLeft);
 }
 
 /** Where the Knockout starts, as in `3 groups of 4, then quarters`. */
-export function knockoutStartWord(roundCount: number) {
+export function knockoutStartWord(roundCount: number, locale: Locale) {
+  const m = messagesFor(locale).tournament.knockout;
   const teamsLeft = knockoutTeamsLeft(1, roundCount);
   if (teamsLeft === 2) {
-    return "the final";
+    return m.startFinal;
   }
   if (teamsLeft === 4) {
-    return "semis";
+    return m.startSemis;
   }
   if (teamsLeft === 8) {
-    return "quarters";
+    return m.startQuarters;
   }
-  return `the round of ${teamsLeft}`;
+  return m.startRoundOf(teamsLeft);
 }
 
 export function knockoutMatchCode(
@@ -325,56 +339,71 @@ export function knockoutMatchCode(
   return `R${teamsLeft}-${position}`;
 }
 
-export function knockoutWinnerOfLabel(code: string) {
-  return `Winner of ${code}`;
+export function knockoutWinnerOfLabel(code: string, locale: Locale) {
+  return messagesFor(locale).tournament.knockout.winnerOf(code);
 }
 
-export function knockoutByeCountLabel(byeCount: number) {
-  return byeCount === 1 ? "1 bye" : `${byeCount} byes`;
+export function knockoutByeCountLabel(byeCount: number, locale: Locale) {
+  return messagesFor(locale).tournament.knockout.byeCount(byeCount);
 }
 
 /** Review row: `Round of 16 onward. 4 byes` */
-export function knockoutOnlyReviewValue(tree: KnockoutTree) {
-  const start = `${knockoutRoundName(1, tree.roundCount)} onward`;
+export function knockoutOnlyReviewValue(tree: KnockoutTree, locale: Locale) {
+  const m = messagesFor(locale).tournament.knockout;
+  const start = knockoutRoundName(1, tree.roundCount, locale);
   if (tree.byeCount === 0) {
-    return start;
+    return m.onward(start);
   }
-  return `${start}. ${knockoutByeCountLabel(tree.byeCount)}`;
+  return m.onwardWithByes(start, tree.byeCount);
 }
 
-export const THROUGH_FROM_EACH_GROUP_LABEL = "Through from each group";
+export function throughFromEachGroupLabel(locale: Locale) {
+  return messagesFor(locale).tournament.knockout.throughFromEachGroup;
+}
 
-export function qualifierUnit(qualifiersPerPool: number) {
-  return qualifiersPerPool === 1 ? "team" : "teams";
+export function qualifierUnit(qualifiersPerPool: number, locale: Locale) {
+  return messagesFor(locale).tournament.knockout.qualifierUnit(
+    qualifiersPerPool,
+  );
 }
 
 /** `6 teams into the knockout, 2 byes.` */
-export function qualifiersConsequenceLine(tree: KnockoutTree) {
-  const teams = `${tree.entrantCount} ${qualifierUnit(tree.entrantCount)} into the knockout`;
+export function qualifiersConsequenceLine(tree: KnockoutTree, locale: Locale) {
+  const m = messagesFor(locale).tournament.knockout;
   return tree.byeCount === 0
-    ? `${teams}.`
-    : `${teams}, ${knockoutByeCountLabel(tree.byeCount)}.`;
+    ? m.intoKnockout(tree.entrantCount)
+    : m.intoKnockoutWithByes(tree.entrantCount, tree.byeCount);
 }
 
-const TOP_QUALIFIER_WORDS: Record<number, string> = {
-  1: "Top team",
-  2: "Top two",
-  3: "Top three",
-  4: "Top four",
-};
+function topQualifierWords(qualifiersPerPool: number, locale: Locale) {
+  const m = messagesFor(locale).tournament.knockout;
+  switch (qualifiersPerPool) {
+    case 1:
+      return m.topTeam;
+    case 2:
+      return m.topTwo;
+    case 3:
+      return m.topThree;
+    case 4:
+      return m.topFour;
+    default:
+      return m.topN(qualifiersPerPool);
+  }
+}
 
-function knockoutStageClause(roundCount: number) {
+function knockoutStageClause(roundCount: number, locale: Locale) {
+  const m = messagesFor(locale).tournament.knockout;
   const teams = knockoutTeamsLeft(1, roundCount);
   if (teams === 2) {
-    return "final";
+    return m.stageFinal;
   }
   if (teams === 4) {
-    return "semis, then the final";
+    return m.stageSemis;
   }
   if (teams === 8) {
-    return "quarters onward";
+    return m.stageQuarters;
   }
-  return `round of ${teams} onward`;
+  return m.stageRoundOf(teams);
 }
 
 /** Review row: `Top two in each group, quarters onward. 2 byes` */
@@ -382,15 +411,15 @@ export function groupsThenKnockoutReviewValue(args: {
   tree: KnockoutTree;
   poolCount: number;
   qualifiersPerPool: number;
+  locale: Locale;
 }) {
-  const top =
-    TOP_QUALIFIER_WORDS[args.qualifiersPerPool] ??
-    `Top ${args.qualifiersPerPool}`;
-  const who = args.poolCount === 1 ? top : `${top} in each group`;
-  const value = `${who}, ${knockoutStageClause(args.tree.roundCount)}`;
+  const m = messagesFor(args.locale).tournament.knockout;
+  const top = topQualifierWords(args.qualifiersPerPool, args.locale);
+  const who = args.poolCount === 1 ? top : m.inEachGroup(top);
+  const stage = knockoutStageClause(args.tree.roundCount, args.locale);
   return args.tree.byeCount === 0
-    ? value
-    : `${value}. ${knockoutByeCountLabel(args.tree.byeCount)}`;
+    ? m.reviewValue(who, stage)
+    : m.reviewValueWithByes(who, stage, args.tree.byeCount);
 }
 
 /** Pools are lettered in drawn order so `A1` in the tree matches group A's table. */

@@ -162,6 +162,7 @@ describe("friendlyGameResultsWinnerLine", () => {
         outcomeResult: "slot1",
         slot1Label: "Team A",
         slot2Label: "Team B",
+        locale: "en",
       }),
       "Team A won",
     );
@@ -171,6 +172,7 @@ describe("friendlyGameResultsWinnerLine", () => {
         outcomeResult: "slot2",
         slot1Label: "Team A",
         slot2Label: "Team B",
+        locale: "en",
       }),
       "Team B won",
     );
@@ -180,6 +182,7 @@ describe("friendlyGameResultsWinnerLine", () => {
         outcomeResult: "draw",
         slot1Label: "Team A",
         slot2Label: "Team B",
+        locale: "en",
       }),
       "Match draw",
     );
@@ -192,6 +195,7 @@ describe("friendlyGameResultsWinnerLine", () => {
         outcomeResult: "none",
         slot1Label: "Team A",
         slot2Label: "Team B",
+        locale: "en",
       }),
       "Needs a score",
     );
@@ -204,8 +208,22 @@ describe("friendlyGameResultsWinnerLine", () => {
         outcomeResult: "none",
         slot1Label: "Team A",
         slot2Label: "Team B",
+        locale: "en",
       }),
       "Match cancelled",
+    );
+  });
+
+  it("writes the winner line in Arabic", () => {
+    assert.equal(
+      friendlyGameResultsWinnerLine({
+        matchStatus: "completed",
+        outcomeResult: "slot1",
+        slot1Label: "الفريق أ",
+        slot2Label: "الفريق ب",
+        locale: "ar",
+      }),
+      "فاز الفريق أ",
     );
   });
 });

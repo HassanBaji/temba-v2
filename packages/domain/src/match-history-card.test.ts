@@ -39,15 +39,22 @@ function row(overrides: Partial<HistoryRowInput> = {}): HistoryRowInput {
 
 describe("matchHistoryCardModel unrated mark", () => {
   it("leaves a rated Match unmarked", () => {
-    const model = matchHistoryCardModel(row());
+    const model = matchHistoryCardModel(row(), "en");
     assert.equal(model.unrated, false);
     assert.ok(!model.meta.includes("Unrated"));
   });
 
   it("marks an unrated Match in the meta line", () => {
-    const model = matchHistoryCardModel(row({ rated: false }));
+    const model = matchHistoryCardModel(row({ rated: false }), "en");
     assert.equal(model.unrated, true);
     assert.ok(model.meta.endsWith(" · Unrated"));
+  });
+
+  it("marks an unrated Match in Arabic", () => {
+    const model = matchHistoryCardModel(row({ rated: false }), "ar");
+    assert.ok(model.meta.endsWith(" · غير مصنّفة"));
+    assert.equal(model.teams[0]!.label, "أنت وAda L");
+    assert.equal(model.teams[0]!.note, "فريقك، الفائزون");
   });
 });
 
@@ -105,7 +112,7 @@ describe("nextHistoryCursor", () => {
 
 describe("matchHistoryCardModel", () => {
   it("fills the winners and leads with the viewer's team on a win", () => {
-    const model = matchHistoryCardModel(row());
+    const model = matchHistoryCardModel(row(), "en");
     assert.deepEqual(
       model.teams.map((team) => [team.side, team.filled, team.outlined]),
       [
@@ -119,7 +126,7 @@ describe("matchHistoryCardModel", () => {
   });
 
   it("puts the winning opponents first on a loss", () => {
-    const model = matchHistoryCardModel(row({ outcome: "lost" }));
+    const model = matchHistoryCardModel(row({ outcome: "lost" }), "en");
     assert.deepEqual(
       model.teams.map((team) => [team.side, team.filled, team.outlined]),
       [
@@ -131,19 +138,19 @@ describe("matchHistoryCardModel", () => {
   });
 
   it("has no scores until a set is scored", () => {
-    const model = matchHistoryCardModel(row({ scoredSets: [] }));
+    const model = matchHistoryCardModel(row({ scoredSets: [] }), "en");
     assert.equal(model.scored, false);
     assert.equal(model.teams[0]!.scores, null);
   });
 
   it("names the venue only when the Game name matches it", () => {
     assert.ok(
-      matchHistoryCardModel(row({ name: "Padelhuset" })).meta.endsWith(
+      matchHistoryCardModel(row({ name: "Padelhuset" }), "en").meta.endsWith(
         ", Padelhuset",
       ),
     );
     assert.ok(
-      matchHistoryCardModel(row({ name: "Cup" })).meta.endsWith(
+      matchHistoryCardModel(row({ name: "Cup" }), "en").meta.endsWith(
         ", Padelhuset · Cup",
       ),
     );

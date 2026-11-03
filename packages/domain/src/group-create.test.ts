@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  GROUP_CREATE_COPY,
+  groupCreateCopy,
   groupCreateDoor,
   groupCreateRequiresApproval,
   groupCreateSubmitLabel,
@@ -24,19 +24,28 @@ describe("groupCreateDoor", () => {
   });
 });
 
-describe("GROUP_CREATE_COPY", () => {
+describe("groupCreateCopy", () => {
   it("names the submit action per context", () => {
-    expect(GROUP_CREATE_COPY.loose.submit).toBe("Create Group");
-    expect(GROUP_CREATE_COPY.club.submit).toBe("Create Club Group");
+    expect(groupCreateCopy("loose", "en").submit).toBe("Create Group");
+    expect(groupCreateCopy("club", "en").submit).toBe("Create Club Group");
   });
 });
 
 describe("groupCreateSubmitLabel", () => {
   it("names the Group once it has a name", () => {
-    expect(groupCreateSubmitLabel("loose", "")).toBe("Create Group");
-    expect(groupCreateSubmitLabel("club", "  ")).toBe("Create Club Group");
-    expect(groupCreateSubmitLabel("loose", " Tuesday Padel Crew ")).toBe(
+    expect(groupCreateSubmitLabel("loose", "", "en")).toBe("Create Group");
+    expect(groupCreateSubmitLabel("club", "  ", "en")).toBe(
+      "Create Club Group",
+    );
+    expect(groupCreateSubmitLabel("loose", " Tuesday Padel Crew ", "en")).toBe(
       "Create Tuesday Padel Crew",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    expect(groupCreateSubmitLabel("loose", "", "ar")).toBe("إنشاء مجموعة");
+    expect(groupCreateSubmitLabel("club", "رفاق الثلاثاء", "ar")).toBe(
+      "إنشاء رفاق الثلاثاء",
     );
   });
 });

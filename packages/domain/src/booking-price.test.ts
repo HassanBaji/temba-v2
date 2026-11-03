@@ -204,7 +204,7 @@ describe("priceForInterval", () => {
 
 describe("formatBookingPriceFils", () => {
   it("shows three decimals and the currency", () => {
-    expect(formatBookingPriceFils(21_004)).toBe("21.004 BD");
-    expect(formatBookingPriceFils(0)).toBe("0.000 BD");
+    expect(formatBookingPriceFils(21_004, "en")).toBe("21.004 BD");
+    expect(formatBookingPriceFils(0, "en")).toBe("0.000 BD");
   });
 });

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  FOOTBALL_STARTING_LEVEL_CAPTION,
   confirmationFraction,
   confirmationProgressCaption,
   lastMatchMovement,
@@ -54,14 +53,14 @@ describe("lastMatchMovement", () => {
 describe("confirmationProgressCaption", () => {
   it("says what the confirmation bar measures", () => {
     assert.equal(
-      confirmationProgressCaption(3, 2),
+      confirmationProgressCaption(3, 2, "en"),
       "3 of about 5 rated games to confirm",
     );
   });
 
   it("uses the singular when one rated game confirms", () => {
     assert.equal(
-      confirmationProgressCaption(0, 1),
+      confirmationProgressCaption(0, 1, "en"),
       "0 of about 1 rated game to confirm",
     );
   });
@@ -79,7 +78,7 @@ describe("profileLevelView", () => {
   } as const;
 
   it("fills a confirmed bar from the progress towards the next band", () => {
-    const view = profileLevelView(base);
+    const view = profileLevelView(base, "en");
     assert.equal(view.fillPercent, 16.4);
     assert.equal(view.caption, "16% of the way to C+");
     assert.equal(view.movement, "up");
@@ -87,50 +86,67 @@ describe("profileLevelView", () => {
   });
 
   it("fills a provisional bar from the confirmation fraction", () => {
-    const view = profileLevelView({
-      ...base,
-      provisional: true,
-      ratedMatchCount: 3,
-      ratedMatchesRemaining: 2,
-    });
+    const view = profileLevelView(
+      {
+        ...base,
+        provisional: true,
+        ratedMatchCount: 3,
+        ratedMatchesRemaining: 2,
+      },
+      "en",
+    );
     assert.equal(view.fillPercent, 60);
     assert.equal(view.caption, "3 of about 5 rated games to confirm");
   });
 
   it("reads an unrated football Level as the starting one", () => {
-    const view = profileLevelView({
-      ...base,
-      sport: "football",
-      provisional: true,
-      ratedMatchCount: 0,
-      ratedMatchesRemaining: 5,
-      history: ["3.1", "3.4"],
-    });
+    const view = profileLevelView(
+      {
+        ...base,
+        sport: "football",
+        provisional: true,
+        ratedMatchCount: 0,
+        ratedMatchesRemaining: 5,
+        history: ["3.1", "3.4"],
+      },
+      "en",
+    );
     assert.equal(view.displayBand, "C");
     assert.equal(view.provisional, true);
     assert.equal(view.movement, null);
     assert.equal(view.fillPercent, 0);
-    assert.equal(view.caption, FOOTBALL_STARTING_LEVEL_CAPTION);
+    assert.equal(
+      view.caption,
+      "Starting Level. Football games don’t move it yet",
+    );
   });
 
   it("reads a rated football Level like a padel one", () => {
-    const view = profileLevelView({ ...base, sport: "football" });
+    const view = profileLevelView({ ...base, sport: "football" }, "en");
     assert.equal(view.caption, "16% of the way to C+");
   });
 
   it("clamps the fill into 0 to 100", () => {
     assert.equal(
-      profileLevelView({ ...base, progressPercent: 140 }).fillPercent,
+      profileLevelView({ ...base, progressPercent: 140 }, "en").fillPercent,
       100,
     );
     assert.equal(
-      profileLevelView({ ...base, progressPercent: null }).fillPercent,
+      profileLevelView({ ...base, progressPercent: null }, "en").fillPercent,
       0,
     );
   });
 
+  it("reads the captions in Arabic", () => {
+    assert.equal(profileLevelView(base, "ar").caption, "16% من الطريق إلى C+");
+    assert.equal(
+      confirmationProgressCaption(3, 2, "ar"),
+      "3 من نحو 5 ألعاب مصنّفة للتأكيد",
+    );
+  });
+
   it("marks a confirmed top band with no next rung", () => {
-    const view = profileLevelView({ ...base, band: "A", history: [] });
+    const view = profileLevelView({ ...base, band: "A", history: [] }, "en");
     assert.equal(view.atTopBand, true);
     assert.equal(view.caption, "Top Level band");
     assert.equal(view.movement, null);

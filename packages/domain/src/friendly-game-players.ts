@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 export type FriendlyGameVacantSeatAction = "join" | "move" | null;
@@ -42,12 +45,14 @@ export function friendlyGameVacantSeatLabel(
   action: FriendlyGameVacantSeatAction,
   sideLabel: string,
   positionLabel: string,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.players;
   if (action === "move") {
-    return `Move to ${sideLabel} ${positionLabel}`;
+    return m.moveTo(sideLabel, positionLabel);
   }
   if (action === "join") {
-    return `Join ${sideLabel} ${positionLabel}`;
+    return m.joinSeat(sideLabel, positionLabel);
   }
   return null;
 }
@@ -68,30 +73,41 @@ export function friendlyGameOccupantActions(input: {
   return friendlyGameCanKickPlayer(input) ? ["kick"] : [];
 }
 
-export function friendlyGamePlayersCancelledNote(cancelled: boolean) {
-  return cancelled
-    ? "This Game was cancelled. Seated people stay listed."
-    : null;
+export function friendlyGamePlayersCancelledNote(
+  cancelled: boolean,
+  locale: Locale,
+) {
+  return cancelled ? messagesFor(locale).game.players.cancelledNote : null;
 }
 
 export function friendlyGameSeatSubline(
   position: "left" | "right",
   levelBand: LevelBand | null,
+  locale: Locale,
 ) {
-  const positionLabel = position === "left" ? "Left seat" : "Right seat";
+  const m = messagesFor(locale).game.players;
+  const positionLabel = position === "left" ? m.leftSeat : m.rightSeat;
   if (!levelBand) {
     return positionLabel;
   }
-  return `${positionLabel} — level ${displayLabelFromStoredBand(levelBand)}`;
+  return m.seatWithLevel(positionLabel, displayLabelFromStoredBand(levelBand));
 }
 
-export function friendlyGameOpenSeatLabel(position: "left" | "right") {
-  return `Open ${position} seat`;
+export function friendlyGameOpenSeatLabel(
+  position: "left" | "right",
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.players;
+  return position === "left" ? m.openLeftSeat : m.openRightSeat;
 }
 
 export function friendlyGameInviteSeatLabel(
   sideLabel: string,
   position: "left" | "right",
+  locale: Locale,
 ) {
-  return `Invite to ${sideLabel}, ${position}`;
+  const m = messagesFor(locale).game.players;
+  return position === "left"
+    ? m.inviteToLeftSeat(sideLabel)
+    : m.inviteToRightSeat(sideLabel);
 }

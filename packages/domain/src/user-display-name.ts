@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export type UserNames = {
   firstName: string | null | undefined;
   lastName: string | null | undefined;
@@ -36,21 +39,23 @@ export type NameFieldErrors = Partial<Record<"firstName" | "lastName", string>>;
  */
 export function validateUserNames(
   input: UserNames,
+  locale: Locale,
 ):
   | { ok: true; firstName: string; lastName: string }
   | { ok: false; fieldErrors: NameFieldErrors } {
+  const m = messagesFor(locale).group.userName;
   const firstName = clean(input.firstName);
   const lastName = clean(input.lastName);
   const fieldErrors: NameFieldErrors = {};
   if (!firstName) {
-    fieldErrors.firstName = "Enter your first name";
+    fieldErrors.firstName = m.firstRequired;
   } else if (firstName.length > USER_NAME_MAX_LENGTH) {
-    fieldErrors.firstName = `Keep it under ${USER_NAME_MAX_LENGTH} characters`;
+    fieldErrors.firstName = m.tooLong(USER_NAME_MAX_LENGTH);
   }
   if (!lastName) {
-    fieldErrors.lastName = "Enter your last name";
+    fieldErrors.lastName = m.lastRequired;
   } else if (lastName.length > USER_NAME_MAX_LENGTH) {
-    fieldErrors.lastName = `Keep it under ${USER_NAME_MAX_LENGTH} characters`;
+    fieldErrors.lastName = m.tooLong(USER_NAME_MAX_LENGTH);
   }
   if (!firstName || !lastName || Object.keys(fieldErrors).length > 0) {
     return { ok: false, fieldErrors };

@@ -145,7 +145,10 @@ describe("friendlyGameCtaFamily", () => {
       ),
       { kind: "waitlisted", place: 3 },
     );
-    assert.equal(friendlyGameWaitlistLine(3), "You're 3rd on the Waitlist");
+    assert.equal(
+      friendlyGameWaitlistLine(3, "en"),
+      "You're 3rd on the Waitlist",
+    );
   });
 
   it("maps Join when the viewer may register", () => {
@@ -172,29 +175,34 @@ describe("friendlyGameCtaFamily", () => {
 
 describe("friendlyGameVacantSeatLine", () => {
   it("is null when the court is full", () => {
-    assert.equal(friendlyGameVacantSeatLine(0), null);
+    assert.equal(friendlyGameVacantSeatLine(0, "en"), null);
   });
 
   it("singularizes exactly one spot", () => {
-    assert.equal(friendlyGameVacantSeatLine(1), "One spot left to fill");
+    assert.equal(friendlyGameVacantSeatLine(1, "en"), "One spot left to fill");
   });
 
   it("pluralizes more than one spot", () => {
-    assert.equal(friendlyGameVacantSeatLine(3), "3 spots left to fill");
+    assert.equal(friendlyGameVacantSeatLine(3, "en"), "3 spots left to fill");
+  });
+
+  it("uses the Arabic plural categories", () => {
+    assert.equal(friendlyGameVacantSeatLine(2, "ar"), "بقي مكانان لشغلهما");
+    assert.equal(friendlyGameVacantSeatLine(3, "ar"), "بقيت 3 أماكن لشغلها");
   });
 });
 
 describe("friendlyGameLevelUpdatedLine", () => {
   it("renders the display band remap, not the raw stored band", () => {
     assert.equal(
-      friendlyGameLevelUpdatedLine("C2", 2.9),
+      friendlyGameLevelUpdatedLine("C2", 2.9, "en"),
       "C · 2.9 after this game",
     );
   });
 
   it("renders the collapsed-plus display rung for a plus-tier stored band", () => {
     assert.equal(
-      friendlyGameLevelUpdatedLine("C1", 3.1),
+      friendlyGameLevelUpdatedLine("C1", 3.1, "en"),
       "C+ · 3.1 after this game",
     );
   });
@@ -375,7 +383,7 @@ describe("friendlyGameJoinSheetCaption", () => {
 
   it("counts the open spots when nothing is picked yet", () => {
     assert.equal(
-      friendlyGameJoinSheetCaption(sides, null),
+      friendlyGameJoinSheetCaption(sides, null, "en"),
       "3 of 4 spots still open. Tap one to take it",
     );
   });
@@ -388,6 +396,7 @@ describe("friendlyGameJoinSheetCaption", () => {
           { sideIndex: 2, left: { name: "Yousif" }, right: null },
         ],
         null,
+        "en",
       ),
       "One spot still open. Tap it to take it",
     );
@@ -401,6 +410,7 @@ describe("friendlyGameJoinSheetCaption", () => {
           { sideIndex: 2, left: { name: "Yousif" }, right: { name: "Omar" } },
         ],
         null,
+        "en",
       ),
       "Every spot on this Game is taken",
     );
@@ -408,14 +418,22 @@ describe("friendlyGameJoinSheetCaption", () => {
 
   it("names the partner already on the picked Game team", () => {
     assert.equal(
-      friendlyGameJoinSheetCaption(sides, { sideIndex: 1, position: "right" }),
+      friendlyGameJoinSheetCaption(
+        sides,
+        { sideIndex: 1, position: "right" },
+        "en",
+      ),
       "You'll play with Nasser",
     );
   });
 
   it("flags an open partner Position on the picked Game team", () => {
     assert.equal(
-      friendlyGameJoinSheetCaption(sides, { sideIndex: 2, position: "left" }),
+      friendlyGameJoinSheetCaption(
+        sides,
+        { sideIndex: 2, position: "left" },
+        "en",
+      ),
       "Your partner spot is still open — anyone can take it",
     );
   });

@@ -1,3 +1,4 @@
+import { messagesFor } from "@repo/i18n/messages";
 import { describe, expect, it } from "vitest";
 
 import { LEVEL_BANDS } from "./level-bands";
@@ -8,7 +9,6 @@ import {
   formatLevelTenths,
   LEVEL_BAND_MAX_TENTHS,
   LEVEL_BAND_MIN_TENTHS,
-  LEVEL_RANGE_FIELD_DESCRIPTION,
   parseLevelBandSelectTenths,
   parseOptionalLevelTenths,
   tenthsToLevelBand,
@@ -18,37 +18,58 @@ import {
 
 describe("parseOptionalLevelTenths", () => {
   it("treats blank as unset", () => {
-    expect(parseOptionalLevelTenths("")).toEqual({
+    expect(parseOptionalLevelTenths("", "en")).toEqual({
       ok: true,
       tenths: null,
     });
-    expect(parseOptionalLevelTenths("   ")).toEqual({
+    expect(parseOptionalLevelTenths("   ", "en")).toEqual({
       ok: true,
       tenths: null,
     });
   });
 
   it("parses 0.0 as tenths 0, not unset", () => {
-    expect(parseOptionalLevelTenths("0")).toEqual({ ok: true, tenths: 0 });
-    expect(parseOptionalLevelTenths("0.0")).toEqual({ ok: true, tenths: 0 });
+    expect(parseOptionalLevelTenths("0", "en")).toEqual({
+      ok: true,
+      tenths: 0,
+    });
+    expect(parseOptionalLevelTenths("0.0", "en")).toEqual({
+      ok: true,
+      tenths: 0,
+    });
   });
 
   it("parses whole units and one decimal into tenths", () => {
-    expect(parseOptionalLevelTenths("3")).toEqual({ ok: true, tenths: 30 });
-    expect(parseOptionalLevelTenths("3.0")).toEqual({ ok: true, tenths: 30 });
-    expect(parseOptionalLevelTenths("4.2")).toEqual({ ok: true, tenths: 42 });
-    expect(parseOptionalLevelTenths("7")).toEqual({ ok: true, tenths: 70 });
-    expect(parseOptionalLevelTenths("7.0")).toEqual({ ok: true, tenths: 70 });
+    expect(parseOptionalLevelTenths("3", "en")).toEqual({
+      ok: true,
+      tenths: 30,
+    });
+    expect(parseOptionalLevelTenths("3.0", "en")).toEqual({
+      ok: true,
+      tenths: 30,
+    });
+    expect(parseOptionalLevelTenths("4.2", "en")).toEqual({
+      ok: true,
+      tenths: 42,
+    });
+    expect(parseOptionalLevelTenths("7", "en")).toEqual({
+      ok: true,
+      tenths: 70,
+    });
+    expect(parseOptionalLevelTenths("7.0", "en")).toEqual({
+      ok: true,
+      tenths: 70,
+    });
   });
 
   it("refuses extra decimals, negatives, non-numeric input, and values above 7.0", () => {
-    expect(parseOptionalLevelTenths("4.25")).toEqual({
+    expect(parseOptionalLevelTenths("4.25", "en")).toEqual({
       ok: false,
       message: "Use one decimal place",
     });
-    expect(parseOptionalLevelTenths("-1").ok).toBe(false);
-    expect(parseOptionalLevelTenths("abc").ok).toBe(false);
-    expect(parseOptionalLevelTenths("7.1")).toEqual({
+    expect(parseOptionalLevelTenths("-1", "en").ok).toBe(false);
+    expect(parseOptionalLevelTenths("abc", "en").ok).toBe(false);
+    expect(parseOptionalLevelTenths("7.1", "en")).toEqual({
       ok: false,
       message: "Level must be between 0.0 and 7.0",
     });
@@ -164,52 +185,56 @@ describe("tenthsToLevelBandSelectValue", () => {
 
 describe("formatLevelRangeLabel", () => {
   it("omits when both bounds are unset", () => {
-    expect(formatLevelRangeLabel(null, null)).toBeNull();
-    expect(formatLevelRangeLabel(undefined, undefined)).toBeNull();
+    expect(formatLevelRangeLabel(null, null, "en")).toBeNull();
+    expect(formatLevelRangeLabel(undefined, undefined, "en")).toBeNull();
   });
 
   it("formats captioned slots as a bare band, without a Level prefix", () => {
-    expect(formatLevelRangeLabel(21, 41)).toBe("C-/C+");
-    expect(formatLevelRangeLabel(21, 34)).toBe("C-/C");
-    expect(formatLevelRangeLabel(21, null)).toBe("C- and up");
-    expect(formatLevelRangeLabel(null, 41)).toBe("C+ and under");
-    expect(formatLevelRangeLabel(30, 45)).toBe("C/B-");
-    expect(formatLevelRangeLabel(null, 45)).toBe("B- and under");
-    expect(formatLevelRangeLabel(21, 41)).not.toMatch(/^Level /);
+    expect(formatLevelRangeLabel(21, 41, "en")).toBe("C-/C+");
+    expect(formatLevelRangeLabel(21, 34, "en")).toBe("C-/C");
+    expect(formatLevelRangeLabel(21, null, "en")).toBe("C- and up");
+    expect(formatLevelRangeLabel(null, 41, "en")).toBe("C+ and under");
+    expect(formatLevelRangeLabel(30, 45, "en")).toBe("C/B-");
+    expect(formatLevelRangeLabel(null, 45, "en")).toBe("B- and under");
+    expect(formatLevelRangeLabel(21, 41, "en")).not.toMatch(/^Level /);
   });
 
   it("collapses the same display min and max to one letter and never writes D++", () => {
-    expect(formatLevelRangeLabel(35, 41)).toBe("C+");
-    expect(formatLevelRangeLabel(30, 32)).toBe("C");
-    expect(formatLevelRangeLabel(0, null)).toBe("D and up");
-    expect(formatLevelRangeLabel(14, null)).toBe("D+ and up");
-    expect(formatLevelRangeLabel(0, null)).not.toBe("D+");
-    expect(formatLevelRangeLabel(14, null)).not.toContain("D++");
+    expect(formatLevelRangeLabel(35, 41, "en")).toBe("C+");
+    expect(formatLevelRangeLabel(30, 32, "en")).toBe("C");
+    expect(formatLevelRangeLabel(0, null, "en")).toBe("D and up");
+    expect(formatLevelRangeLabel(14, null, "en")).toBe("D+ and up");
+    expect(formatLevelRangeLabel(0, null, "en")).not.toBe("D+");
+    expect(formatLevelRangeLabel(14, null, "en")).not.toContain("D++");
   });
 });
 
 describe("formatLevelRangeProseLabel", () => {
   it("omits when both bounds are unset", () => {
-    expect(formatLevelRangeProseLabel(null, null)).toBeNull();
-    expect(formatLevelRangeProseLabel(undefined, undefined)).toBeNull();
+    expect(formatLevelRangeProseLabel(null, null, "en")).toBeNull();
+    expect(formatLevelRangeProseLabel(undefined, undefined, "en")).toBeNull();
   });
 
   it("prefixes Level for prose callers", () => {
-    expect(formatLevelRangeProseLabel(21, 41)).toBe("Level C-/C+");
-    expect(formatLevelRangeProseLabel(21, 34)).toBe("Level C-/C");
-    expect(formatLevelRangeProseLabel(21, null)).toBe("Level C- and up");
-    expect(formatLevelRangeProseLabel(null, 41)).toBe("Level C+ and under");
-    expect(formatLevelRangeProseLabel(30, 45)).toBe("Level C/B-");
-    expect(formatLevelRangeProseLabel(null, 45)).toBe("Level B- and under");
+    expect(formatLevelRangeProseLabel(21, 41, "en")).toBe("Level C-/C+");
+    expect(formatLevelRangeProseLabel(21, 34, "en")).toBe("Level C-/C");
+    expect(formatLevelRangeProseLabel(21, null, "en")).toBe("Level C- and up");
+    expect(formatLevelRangeProseLabel(null, 41, "en")).toBe(
+      "Level C+ and under",
+    );
+    expect(formatLevelRangeProseLabel(30, 45, "en")).toBe("Level C/B-");
+    expect(formatLevelRangeProseLabel(null, 45, "en")).toBe(
+      "Level B- and under",
+    );
   });
 
   it("collapses the same display min and max to one letter and never writes D++", () => {
-    expect(formatLevelRangeProseLabel(35, 41)).toBe("Level C+");
-    expect(formatLevelRangeProseLabel(30, 32)).toBe("Level C");
-    expect(formatLevelRangeProseLabel(0, null)).toBe("Level D and up");
-    expect(formatLevelRangeProseLabel(14, null)).toBe("Level D+ and up");
-    expect(formatLevelRangeProseLabel(0, null)).not.toBe("Level D+");
-    expect(formatLevelRangeProseLabel(14, null)).not.toContain("D++");
+    expect(formatLevelRangeProseLabel(35, 41, "en")).toBe("Level C+");
+    expect(formatLevelRangeProseLabel(30, 32, "en")).toBe("Level C");
+    expect(formatLevelRangeProseLabel(0, null, "en")).toBe("Level D and up");
+    expect(formatLevelRangeProseLabel(14, null, "en")).toBe("Level D+ and up");
+    expect(formatLevelRangeProseLabel(0, null, "en")).not.toBe("Level D+");
+    expect(formatLevelRangeProseLabel(14, null, "en")).not.toContain("D++");
   });
 });
 
@@ -222,6 +247,9 @@ describe("tenthsToMajorInput", () => {
 });
 
 describe("LEVEL_RANGE_FIELD_DESCRIPTION", () => {
+  const LEVEL_RANGE_FIELD_DESCRIPTION =
+    messagesFor("en").level.rangeFieldDescription;
+
   it("says optional inclusive Level bands and request when a range is set", () => {
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).toContain("Level");
     expect(LEVEL_RANGE_FIELD_DESCRIPTION).toMatch(/band/i);
@@ -242,6 +270,7 @@ describe("formatLevelRangeGateCopy", () => {
         levelMinTenths: 30,
         levelMaxTenths: 45,
         viewerLevelTenths: 52,
+        locale: "en",
       }),
     ).toBe("This Game is for Level C/B-. Your Level is B.");
     expect(
@@ -249,6 +278,7 @@ describe("formatLevelRangeGateCopy", () => {
         levelMinTenths: 21,
         levelMaxTenths: 41,
         viewerLevelTenths: 52,
+        locale: "en",
       }),
     ).toBe("This Game is for Level C-/C+. Your Level is B.");
     expect(
@@ -256,9 +286,31 @@ describe("formatLevelRangeGateCopy", () => {
         levelMinTenths: 30,
         levelMaxTenths: 45,
         viewerLevelTenths: null,
+        locale: "en",
       }),
     ).toBe(
       "You don't have a Level yet. Declare one on You, or request to play.",
     );
+  });
+});
+
+describe("Arabic Level copy", () => {
+  it("writes the range and the gate in Arabic", () => {
+    expect(formatLevelRangeProseLabel(21, null, "ar")).toBe(
+      "المستوى C- فما فوق",
+    );
+    expect(formatLevelRangeLabel(null, 41, "ar")).toBe("C+ فما دون");
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 30,
+        levelMaxTenths: 45,
+        viewerLevelTenths: null,
+        locale: "ar",
+      }),
+    ).toBe("ليس لديك مستوى بعد. حدّد واحدًا في «أنت»، أو اطلب اللعب.");
+    expect(parseOptionalLevelTenths("7.1", "ar")).toEqual({
+      ok: false,
+      message: "يجب أن يكون المستوى بين 0.0 و7.0",
+    });
   });
 });

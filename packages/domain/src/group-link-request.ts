@@ -1,104 +1,108 @@
-export const VENUE_REQUESTS_TITLE = "Venue requests";
-
-export const GROUP_LINK_REQUEST_ROW_META =
-  "Only you can decide, as the Group creator.";
-
-export const GROUP_LINK_REQUEST_ACCEPT_LABEL = "Accept";
-
-export const GROUP_LINK_REQUEST_DECLINE_LABEL = "Decline";
-
-export const GROUP_LINK_REQUEST_DECLINED_TOAST = "Request declined";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export function groupLinkRequestRowTitle(
   venueName: string,
   groupName: string | null,
+  locale: Locale,
 ) {
-  return `${venueName} wants to add ${groupName ?? "your Group"} to its Community`;
+  const m = messagesFor(locale).group.linkRequest;
+  return m.rowTitle(venueName, groupName ?? m.yourGroup);
 }
 
-export function groupLinkRequestBannerText(venueName: string) {
-  return `${venueName} wants to add this Group to its Community.`;
+export function groupLinkRequestBannerText(venueName: string, locale: Locale) {
+  return messagesFor(locale).group.linkRequest.bannerText(venueName);
 }
 
 export function groupLinkRequestAcceptedToast(
   groupName: string | null,
   venueName: string,
+  locale: Locale,
 ) {
-  return `${groupName ?? "this Group"} is now part of ${venueName}`;
+  const m = messagesFor(locale).group.linkRequest;
+  return m.acceptedToast(groupName ?? m.thisGroup, venueName);
 }
 
 export function groupLinkRequestAcceptConfirm(
   groupName: string | null,
   venueName: string,
+  locale: Locale,
 ) {
-  const name = groupName ?? "this Group";
+  const m = messagesFor(locale).group.linkRequest;
+  const name = groupName ?? m.thisGroup;
   return {
-    title: `Add ${name} to ${venueName}’s Community?`,
-    description: `${name} becomes a Club Group. Here is what changes.`,
-    confirmLabel: "Add Group",
-    cancelLabel: "Not now",
-    pendingLabel: "Adding…",
+    title: m.acceptConfirm.title(name, venueName),
+    description: m.acceptConfirm.description(name),
+    confirmLabel: m.acceptConfirm.confirmLabel,
+    cancelLabel: m.acceptConfirm.cancelLabel,
+    pendingLabel: m.acceptConfirm.pendingLabel,
     consequences: [
-      "Everyone in the Group becomes a Community Member.",
-      "New people can’t join directly. They send a request instead.",
-      "You can’t make Invite links any more. You can still invite existing Community Members.",
-      `New Games are held at ${venueName}.`,
-      "The Group is Verified, so it can host Rated Games and Games open to anyone with the link.",
+      m.acceptConfirm.consequences.members,
+      m.acceptConfirm.consequences.noDirectJoin,
+      m.acceptConfirm.consequences.noInviteLinks,
+      m.acceptConfirm.consequences.gamesHeldAt(venueName),
+      m.acceptConfirm.consequences.verified,
     ],
   };
 }
 
-export function groupLinkRequestDeclineConfirm(venueName: string) {
+export function groupLinkRequestDeclineConfirm(
+  venueName: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.linkRequest.declineConfirm;
   return {
-    title: `Decline ${venueName}'s request?`,
-    description: `${venueName} will see that you declined. They can send a new request later.`,
-    confirmLabel: "Decline request",
-    cancelLabel: "Keep request",
+    title: m.title(venueName),
+    description: m.description(venueName),
+    confirmLabel: m.confirmLabel,
+    cancelLabel: m.cancelLabel,
   };
 }
 
-export function groupPartOfVenueLine(venueName: string) {
-  return `Part of ${venueName}`;
+export function groupPartOfVenueLine(venueName: string, locale: Locale) {
+  return messagesFor(locale).group.linkRequest.partOf(venueName);
 }
 
-export const GROUP_UNLINK_ACTION_LABEL = "Unlink";
-
-export function groupLeaveVenueActionLabel(venueName: string) {
-  return `Leave ${venueName}’s Community`;
+export function groupLeaveVenueActionLabel(venueName: string, locale: Locale) {
+  return messagesFor(locale).group.linkRequest.leaveVenueLabel(venueName);
 }
 
 export function groupLeaveVenueConfirm(
   groupName: string | null,
   venueName: string,
+  locale: Locale,
 ) {
-  const name = groupName ?? "this Group";
+  const m = messagesFor(locale).group.linkRequest;
+  const name = groupName ?? m.thisGroup;
   return {
-    title: `Leave ${venueName}’s Community?`,
-    description: `${name} becomes a Loose Group again. New Games will be Unrated unless an Operator has verified the Group.`,
-    confirmLabel: "Leave Community",
-    cancelLabel: "Stay",
-    pendingLabel: "Leaving…",
+    title: m.leaveVenueConfirm.title(venueName),
+    description: m.leaveVenueConfirm.description(name),
+    confirmLabel: m.leaveVenueConfirm.confirmLabel,
+    cancelLabel: m.leaveVenueConfirm.cancelLabel,
+    pendingLabel: m.leaveVenueConfirm.pendingLabel,
     consequences: [
-      "Members, past Games and results stay as they are.",
-      "Members stay in the Community until they leave it themselves.",
-      "New Games can be held at any Venue.",
-      "You can make Invite links again.",
+      m.leaveVenueConfirm.consequences.historyStays,
+      m.leaveVenueConfirm.consequences.membersStay,
+      m.leaveVenueConfirm.consequences.anyVenue,
+      m.leaveVenueConfirm.consequences.inviteLinks,
     ],
   };
 }
 
-export function groupLeftVenueToast(venueName: string) {
-  return `Left ${venueName}’s Community`;
+export function groupLeftVenueToast(venueName: string, locale: Locale) {
+  return messagesFor(locale).group.linkRequest.leftVenueToast(venueName);
 }
 
-export function venueUnlinkGroupConfirm(groupName: string | null) {
-  const name = groupName ?? "this Group";
+export function venueUnlinkGroupConfirm(
+  groupName: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.linkRequest;
+  const name = groupName ?? m.thisGroup;
   return {
-    title: `Unlink ${name}?`,
-    description: `${name} leaves your Venue's Community and becomes a Loose Group. New Games will be Unrated unless an Operator has verified it. Past Games and members stay as they are.`,
-    confirmLabel: "Unlink Group",
-    cancelLabel: "Keep linked",
+    title: m.venueUnlinkConfirm.title(name),
+    description: m.venueUnlinkConfirm.description(name),
+    confirmLabel: m.venueUnlinkConfirm.confirmLabel,
+    cancelLabel: m.venueUnlinkConfirm.cancelLabel,
   };
 }
-
-export const VENUE_UNLINK_GROUP_TOAST = "Group unlinked";

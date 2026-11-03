@@ -1,10 +1,13 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth } from "./format-game-start";
-import { UNRATED_LABEL } from "./game-rating-impact";
+import { unratedLabel } from "./game-rating-impact";
 import { formatLevel } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { shortPlayerName } from "./player-name";
 import {
-  RESULT_MARK_LABEL,
+  resultMarkLabel,
   type MatchOutcome,
   type ResultMarkVariant,
 } from "./result-mark";
@@ -74,36 +77,40 @@ export type LastTenSummary = {
 export const LAST_TEN_SIZE = 10;
 export const LAST_TEN_RECENT_ROWS = 3;
 
-const OUTCOME_WORD: Record<MatchOutcome, string> = {
-  won: "Won",
-  lost: "Lost",
-  draw: "Drew",
-};
-
 function nonBlank(value: string | null) {
   const trimmed = value?.trim();
   return trimmed === "" ? null : (trimmed ?? null);
 }
 
-function tournamentName(game: PlayerMatchGame) {
-  return nonBlank(game.name) ?? "Friendly tournament";
+function tournamentName(game: PlayerMatchGame, locale: Locale) {
+  return (
+    nonBlank(game.name) ??
+    messagesFor(locale).profile.matches.friendlyTournament
+  );
 }
 
-export function playerMatchKindLabel(game: PlayerMatchGame) {
+export function playerMatchKindLabel(game: PlayerMatchGame, locale: Locale) {
+  const m = messagesFor(locale).profile.matches;
   if (game.format === "americano") {
-    return "Americano";
+    return m.americano;
   }
   if (game.format === "friendly_tournament") {
     if (game.knockoutRound) {
       const { round, roundCount } = game.knockoutRound;
-      return `${tournamentName(game)}, ${knockoutMatchRoundName(round, roundCount)}`;
+      return m.tournamentRound(
+        tournamentName(game, locale),
+        knockoutMatchRoundName(round, roundCount, locale),
+      );
     }
     if (game.roundNumber != null) {
-      return `${tournamentName(game)}, Round ${game.roundNumber}`;
+      return m.tournamentRoundNumber(
+        tournamentName(game, locale),
+        game.roundNumber,
+      );
     }
-    return tournamentName(game);
+    return tournamentName(game, locale);
   }
-  return nonBlank(game.groupName) ?? "Friendly game";
+  return nonBlank(game.groupName) ?? m.friendlyGame;
 }
 
 /** One decimal with a true minus sign: "+0.1", "−0.1", "0.0". */
@@ -117,8 +124,15 @@ export function levelChangeLabel(levelChange: number) {
 }
 
 /** "Last 10: +0.2" on the Level card, absent when no Match was rated. */
-export function levelTrendLabel(trend: { levelChange: number } | null) {
-  return trend ? `Last 10: ${levelChangeLabel(trend.levelChange)}` : null;
+export function levelTrendLabel(
+  trend: { levelChange: number } | null,
+  locale: Locale,
+) {
+  return trend
+    ? messagesFor(locale).profile.matches.lastTenTrend(
+        levelChangeLabel(trend.levelChange),
+      )
+    : null;
 }
 
 function ownerSets(match: PlayerMatchInput) {
@@ -142,55 +156,69 @@ function opponentNames(match: PlayerMatchInput) {
 }
 
 /** "with Jonas B, Padelhuset Bromma"; just the Venue when no partner sat. */
-function partnerVenueLine(match: PlayerMatchInput, ownerId: string) {
+function partnerVenueLine(
+  match: PlayerMatchInput,
+  ownerId: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).profile.matches;
   const partners = ownerTeam(match)
     .filter((player) => player.userId !== ownerId)
     .map((player) => shortPlayerName(player.name));
   const venue = match.game.venueName;
-  return partners.length > 0 ? `with ${partners.join(" & ")}, ${venue}` : venue;
+  return partners.length > 0
+    ? m.withPartnerAt(m.namesWithAmpersand(partners), venue)
+    : venue;
 }
 
-function deltaWords(levelChange: number) {
+function deltaWords(levelChange: number, locale: Locale) {
+  const m = messagesFor(locale).profile.matches;
   const label = levelChangeLabel(levelChange);
   if (label === "0.0") {
-    return "rating unchanged";
+    return m.ratingUnchanged;
   }
-  return `rating ${levelChange > 0 ? "up" : "down"} ${label.slice(1)}`;
+  return levelChange > 0
+    ? m.ratingUp(label.slice(1))
+    : m.ratingDown(label.slice(1));
 }
 
 export function playerMatchRowView(
   match: PlayerMatchInput,
   ownerId: string,
+  locale: Locale,
 ): PlayerMatchRowView {
+  const m = messagesFor(locale).profile.matches;
   const names = opponentNames(match);
-  const kind = playerMatchKindLabel(match.game);
+  const kind = playerMatchKindLabel(match.game, locale);
   const sets = ownerSets(match).map((set) => `${set.us}–${set.them}`);
+  const outcome = m.outcome[match.outcome];
   const spoken = [
     names.length > 0
-      ? `${OUTCOME_WORD[match.outcome]} against ${names.join(" and ")}`
-      : OUTCOME_WORD[match.outcome],
-    formatDayMonth(match.playedAt, { weekday: "long", month: "long" }),
+      ? m.outcomeAgainst(outcome, m.namesWithAnd(names))
+      : outcome,
+    formatDayMonth(match.playedAt, locale, { weekday: "long", month: "long" }),
     kind,
     sets.join(" "),
-    match.rating ? deltaWords(match.rating.levelChange) : null,
-    match.rated ? null : UNRATED_LABEL,
+    match.rating ? deltaWords(match.rating.levelChange, locale) : null,
+    match.rated ? null : unratedLabel(locale),
   ];
 
   return {
     matchId: match.matchId,
     outcome: match.outcome,
-    opponents: names.length > 0 ? `vs ${names.join(" & ")}` : "",
-    partnerVenue: partnerVenueLine(match, ownerId),
-    meta: `${formatDayMonth(match.playedAt, { weekday: "short" })}, ${kind}`,
+    opponents: names.length > 0 ? m.versus(m.namesWithAmpersand(names)) : "",
+    partnerVenue: partnerVenueLine(match, ownerId, locale),
+    meta: m.dateComma(
+      formatDayMonth(match.playedAt, locale, { weekday: "short" }),
+      kind,
+    ),
     sets,
     delta: match.rating ? levelChangeLabel(match.rating.levelChange) : null,
     unrated: !match.rated,
-    accessibilityLabel: spoken.filter((part) => part).join(", "),
+    accessibilityLabel: m.spokenParts(
+      spoken.filter((part): part is string => !!part),
+    ),
   };
-}
-
-function gamesWord(count: number) {
-  return count === 1 ? "1 game" : `${count} games`;
 }
 
 /**
@@ -199,7 +227,9 @@ function gamesWord(count: number) {
  */
 export function lastTenSummary(
   matches: readonly Pick<PlayerMatchInput, "outcome" | "playedAt">[],
+  locale: Locale,
 ): LastTenSummary {
+  const m = messagesFor(locale).profile.lastTen;
   const shown = matches.slice(0, LAST_TEN_SIZE);
   const count = (outcome: MatchOutcome) =>
     shown.filter((match) => match.outcome === outcome).length;
@@ -209,8 +239,10 @@ export function lastTenSummary(
   return {
     record:
       shown.length === 0
-        ? "No games yet."
-        : `${count("won")} won, ${count("lost")} lost${drawn > 0 ? `, ${drawn} drawn` : ""}`,
+        ? m.noGamesYet
+        : drawn > 0
+          ? m.recordWithDrawn(count("won"), count("lost"), drawn)
+          : m.record(count("won"), count("lost")),
     marks: [
       ...shown.map((match) => match.outcome),
       ...Array.from(
@@ -220,11 +252,11 @@ export function lastTenSummary(
     ],
     ends: oldest
       ? {
-          newest: "Latest",
-          oldest: formatDayMonth(oldest.playedAt, { weekday: "short" }),
+          newest: m.latest,
+          oldest: formatDayMonth(oldest.playedAt, locale, { weekday: "short" }),
         }
       : null,
-    seeAll: shown.length > 0 ? `See all ${gamesWord(shown.length)}` : null,
+    seeAll: shown.length > 0 ? m.seeAllGames(shown.length) : null,
   };
 }
 
@@ -236,8 +268,6 @@ export type LastTenFilterChip = {
   count: number;
 };
 
-export const LAST_TEN_FILTER_EMPTY = "No games here.";
-
 /**
  * The Last 10 screen's chips and rows. Counts come from the data, and a draw
  * shows under All only.
@@ -245,7 +275,9 @@ export const LAST_TEN_FILTER_EMPTY = "No games here.";
 export function filterLastTen<T extends { outcome: MatchOutcome }>(
   matches: readonly T[],
   filter: LastTenFilter,
+  locale: Locale,
 ): { chips: LastTenFilterChip[]; matches: T[]; empty: string | null } {
+  const m = messagesFor(locale).profile.lastTen;
   const shown = matches.slice(0, LAST_TEN_SIZE);
   const won = shown.filter((match) => match.outcome === "won");
   const lost = shown.filter((match) => match.outcome === "lost");
@@ -253,12 +285,12 @@ export function filterLastTen<T extends { outcome: MatchOutcome }>(
 
   return {
     chips: [
-      { filter: "all", label: `All ${shown.length}`, count: shown.length },
-      { filter: "won", label: `Won ${won.length}`, count: won.length },
-      { filter: "lost", label: `Lost ${lost.length}`, count: lost.length },
+      { filter: "all", label: m.chipAll(shown.length), count: shown.length },
+      { filter: "won", label: m.chipWon(won.length), count: won.length },
+      { filter: "lost", label: m.chipLost(lost.length), count: lost.length },
     ],
     matches: filtered,
-    empty: filtered.length === 0 ? LAST_TEN_FILTER_EMPTY : null,
+    empty: filtered.length === 0 ? m.filterEmpty : null,
   };
 }
 
@@ -295,9 +327,15 @@ export type PlayerMatchSheetView = {
   canOpenGame: boolean;
 };
 
-export const OPEN_GAME_ACTION = "Open game";
+export function openGameAction(locale: Locale) {
+  return messagesFor(locale).profile.matchSheet.openGame;
+}
 
-function sheetPlayer(player: PlayerMatchPlayer): PlayerMatchSheetPlayer {
+function sheetPlayer(
+  player: PlayerMatchPlayer,
+  locale: Locale,
+): PlayerMatchSheetPlayer {
+  const m = messagesFor(locale).profile.matchSheet;
   const level =
     player.levelBand && player.level != null && !player.provisional
       ? `${displayLabelFromStoredBand(player.levelBand)} ${player.level}`
@@ -308,8 +346,8 @@ function sheetPlayer(player: PlayerMatchPlayer): PlayerMatchSheetPlayer {
     image: player.image,
     level,
     accessibilityLabel: level
-      ? `${player.name}, Level ${level}`
-      : `${player.name}, Level still Provisional`,
+      ? m.playerLevel(player.name, level)
+      : m.playerProvisional(player.name),
   };
 }
 
@@ -317,8 +355,13 @@ function bandLevel(band: LevelBand, level: number) {
   return `${displayLabelFromStoredBand(band)} ${formatLevel(level)}`;
 }
 
-function sheetRating(rating: PlayerMatchRating, ownerName: string) {
-  const label = `${shortPlayerName(ownerName)}'s rating`;
+function sheetRating(
+  rating: PlayerMatchRating,
+  ownerName: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).profile.matchSheet;
+  const label = m.ratingOf(shortPlayerName(ownerName));
   const before = bandLevel(rating.bandBefore, rating.levelBefore);
   const after = bandLevel(rating.bandAfter, rating.levelAfter);
   return {
@@ -326,7 +369,12 @@ function sheetRating(rating: PlayerMatchRating, ownerName: string) {
     before,
     after,
     delta: levelChangeLabel(rating.levelChange),
-    accessibilityLabel: `${label}, ${before} to ${after}, ${deltaWords(rating.levelChange)}`,
+    accessibilityLabel: m.ratingSpoken(
+      label,
+      before,
+      after,
+      deltaWords(rating.levelChange, locale),
+    ),
   };
 }
 
@@ -334,27 +382,33 @@ function sheetRating(rating: PlayerMatchRating, ownerName: string) {
 export function playerMatchSheetView(
   match: PlayerMatchInput,
   ownerName: string,
+  locale: Locale,
 ): PlayerMatchSheetView {
   const sets = ownerSets(match);
 
   return {
     matchId: match.matchId,
     gameId: match.gameId,
-    title: playerMatchKindLabel(match.game),
-    subtitle: `${formatDayMonth(match.playedAt, { weekday: "short" })}, ${match.game.venueName}`,
+    title: playerMatchKindLabel(match.game, locale),
+    subtitle: messagesFor(locale).profile.matches.dateComma(
+      formatDayMonth(match.playedAt, locale, { weekday: "short" }),
+      match.game.venueName,
+    ),
     outcome: match.outcome,
-    badge: RESULT_MARK_LABEL[match.outcome],
+    badge: resultMarkLabel(match.outcome, locale),
     teams: [
       {
-        players: ownerTeam(match).map(sheetPlayer),
+        players: ownerTeam(match).map((player) => sheetPlayer(player, locale)),
         sets: sets.map((set) => ({ games: set.us, won: set.us > set.them })),
       },
       {
-        players: opponentTeam(match).map(sheetPlayer),
+        players: opponentTeam(match).map((player) =>
+          sheetPlayer(player, locale),
+        ),
         sets: sets.map((set) => ({ games: set.them, won: set.them > set.us })),
       },
     ],
-    rating: match.rating ? sheetRating(match.rating, ownerName) : null,
+    rating: match.rating ? sheetRating(match.rating, ownerName, locale) : null,
     canOpenGame: match.canOpenGame,
   };
 }

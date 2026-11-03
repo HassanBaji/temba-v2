@@ -214,14 +214,14 @@ describe("customerMayCancelAt", () => {
 
 describe("describeCancellationPolicy", () => {
   it("describes the 24 h preset", () => {
-    expect(describeCancellationPolicy(full24)).toEqual([
+    expect(describeCancellationPolicy(full24, "en")).toEqual([
       "Full refund until 24 hours before",
       "No refund after that",
     ]);
   });
 
   it("describes the tiered preset", () => {
-    expect(describeCancellationPolicy(tiered)).toEqual([
+    expect(describeCancellationPolicy(tiered, "en")).toEqual([
       "Full refund until 48 hours before",
       "50% refund until 12 hours before",
       "No refund after that",
@@ -229,31 +229,45 @@ describe("describeCancellationPolicy", () => {
   });
 
   it("describes the always free preset", () => {
-    expect(describeCancellationPolicy(alwaysFree)).toEqual([
+    expect(describeCancellationPolicy(alwaysFree, "en")).toEqual([
       "Free cancellation at any time",
     ]);
   });
 
   it("adds the late percent and the Customer cancel limit", () => {
     expect(
-      describeCancellationPolicy({
-        tiers: [{ hoursBefore: 1, refundPercent: 100 }],
-        lateRefundPercent: 25,
-        customerCancelUntilMinutes: 90,
-      }),
+      describeCancellationPolicy(
+        {
+          tiers: [{ hoursBefore: 1, refundPercent: 100 }],
+          lateRefundPercent: 25,
+          customerCancelUntilMinutes: 90,
+        },
+        "en",
+      ),
     ).toEqual([
       "Full refund until 1 hour before",
       "25% refund after that",
       "Cancel in the app until 90 minutes before the start",
     ]);
     expect(
-      describeCancellationPolicy({
-        ...alwaysFree,
-        customerCancelUntilMinutes: 60,
-      }),
+      describeCancellationPolicy(
+        {
+          ...alwaysFree,
+          customerCancelUntilMinutes: 60,
+        },
+        "en",
+      ),
     ).toEqual([
       "Free cancellation at any time",
       "Cancel in the app until 1 hour before the start",
+    ]);
+  });
+
+  it("describes the policy in Arabic", () => {
+    expect(describeCancellationPolicy(tiered, "ar")).toEqual([
+      "استرداد كامل حتى 48 ساعة قبل الموعد",
+      "استرداد 50% حتى 12 ساعة قبل الموعد",
+      "لا استرداد بعد ذلك",
     ]);
   });
 });

@@ -1,1 +1,366 @@
-export const game = {};
+import { plural } from "../../plural";
+
+export const game = {
+  action: {
+    joinGame: "Join Game",
+    editGame: "Edit Game",
+    cancelGame: "Cancel Game",
+    leaveGame: "Leave Game",
+    leaveWaitlist: "Leave waitlist",
+    registerTeam: "Register Team",
+    cancelMatch: "Cancel Match",
+    completeMatch: "Complete Match",
+    markAsNotPlayed: "Mark as not played",
+    reportWrongScore: "Report a wrong score",
+    kick: "Kick",
+    closeRegistration: "Close registration",
+    reopenRegistration: "Reopen registration",
+  },
+  consequence: {
+    cannotBeUndone: "This cannot be undone.",
+    leaveGame: "Your spot can open for someone else.",
+    leaveWaitlist: "You'll lose your place on the Waitlist.",
+    markAsNotPlayed: "No result is recorded and nobody's Level changes.",
+    reportWrongScore: "The players are asked to check the score again.",
+    reportWrongScoreLocked:
+      "A later rated Game means this can't be corrected here. Contact support to fix it.",
+    completeMatch:
+      "The score becomes final and each player's rating updates from it.",
+    cancelNobodyJoined: "Nobody has joined yet.",
+    cancelRemovesFromCalendar: (n: number) =>
+      plural("en", n, {
+        one: "Removes it from the calendar for 1 player.",
+        other: "Removes it from the calendar for all {n} players.",
+      }),
+  },
+  setLabel: (n: number) => `Set ${n}`,
+  setShortLabel: (n: number) => `S${n}`,
+  toast: {
+    joined: "Joined Game",
+    joinedWaitlist: "Joined waitlist",
+    teamRegistered: "Team registered",
+    teamJoinedWaitlist: "Team joined waitlist",
+    seatChanged: "Seat changed",
+    halfTeamsMerged: "Half teams merged",
+    poolsDrawn: "Groups drawn",
+    poolDrawPosted: "Group draw posted",
+    poolDrawUndone: "Group draw undone",
+    knockoutDrawn: "Knockout drawn",
+    knockoutDrawPosted: "Draw posted",
+    knockoutDrawUndone: "Draw undone",
+    left: "You left the Game",
+    leftWaitlist: "You left the waitlist",
+    registrationClosed: "Registration closed",
+    registrationReopened: "Registration reopened",
+    gameCancelled: "Game cancelled",
+    matchCancelled: "Match cancelled",
+  },
+  kickedToast: (name: string) => `Kicked ${name}`,
+  cta: {
+    joining: "Joining…",
+    browseOpenGames: "Browse open games",
+    joinWaitlist: "Join waitlist",
+    join: "Join",
+    youreIn: "You're in",
+    inviteAPlayer: "Invite a player",
+    addTheScore: "Add the score",
+    countsOnceOthersConfirm: "Counts once the others confirm",
+    addResult: "Add result",
+    levelUpdated: "Level updated",
+    shareResult: "Share result",
+    waitlistLine: (place: number, ordinal: string) =>
+      `You're ${ordinal} on the Waitlist`,
+    vacantSeatLine: (n: number) =>
+      plural("en", n, {
+        one: "One spot left to fill",
+        other: "{n} spots left to fill",
+      }),
+    levelUpdatedLine: (band: string, level: string) =>
+      `${band} · ${level} after this game`,
+  },
+  joinSheet: {
+    playWith: (name: string) => `You'll play with ${name}`,
+    partnerSpotOpen: "Your partner spot is still open — anyone can take it",
+    everySpotTaken: "Every spot on this Game is taken",
+    oneSpotOpen: "One spot still open. Tap it to take it",
+    spotsOpen: (open: number, total: number) =>
+      `${open} of ${total} spots still open. Tap one to take it`,
+    howToJoin: "How do you want to join?",
+    howToJoinDescription:
+      "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team.",
+    gameIsFull: "Game is full",
+    pickYourSpot: "Pick your spot",
+    joinAlone: {
+      title: "Join alone",
+      description: "One seat. Someone else takes the other.",
+      note: "You are in straight away",
+      accessibleName: "Join alone. One seat. Someone else takes the other.",
+    },
+    joinWithPartner: {
+      title: "Join with a partner",
+      description: "Both seats. You play as a team.",
+      note: "Both seats booked now",
+      accessibleName:
+        "Join with a partner. Both seats. You play as a team. Both seats are booked now; your partner is in straight away.",
+    },
+    partnerPicker: {
+      title: "Pick a partner",
+      description: "You register both seats. Your partner is in straight away.",
+      footnote: "No seat is taken until you register the team.",
+    },
+    partnerReview: {
+      title: "Register the team",
+      yourTeam: "Your team",
+      keepSides: "Keep sides",
+      swapSides: "Swap sides",
+      register: "Register us as a team",
+      footnote: "Both seats are booked straight away. Your partner is in now.",
+    },
+    continueWith: (name: string) => `Continue with ${name}`,
+  },
+  partner: {
+    joinUnavailableToast: "This Game is no longer open to join with a partner",
+    vacantSideRaceMessage:
+      "That side was taken while you were registering. Join alone, or pick another partner if a side is still fully open.",
+    alreadyInGame: "Already in this game",
+    onTheWaitlist: "On the waitlist",
+    outsideLevelRange: "Outside this game's level range",
+    playsLeft: "plays left",
+    playsRight: "plays right",
+    playsEitherSide: "plays either side",
+    gamesTogether: (n: number) =>
+      plural("en", n, { one: "1 game together", other: "{n} games together" }),
+    metaWithHistory: (head: string, together: string) => `${head}. ${together}`,
+    ineligibleButton: (name: string, meta: string) => `${name}. ${meta}`,
+    select: (name: string) => `Select ${name}`,
+    seatsOpen: (n: number) =>
+      plural("en", n, { one: "1 seat open", other: "{n} seats open" }),
+    whenLine: (day: string, time: string, meridiem: string | null) =>
+      `${day}, ${time}${meridiem ? ` ${meridiem}` : ""}`,
+    reviewLineWhenVenue: (when: string, venue: string) =>
+      `${when} at ${venue}. Two seats, one for each of you.`,
+    reviewLineWhen: (when: string) =>
+      `${when}. Two seats, one for each of you.`,
+    reviewLineVenue: (venue: string) =>
+      `Two seats at ${venue}, one for each of you.`,
+    reviewLine: "Two seats, one for each of you.",
+    leftSeat: "left seat",
+    rightSeat: "right seat",
+    levelAndSeat: (band: string, seat: string) => `${band}, ${seat}`,
+    organizer: "Organizer",
+    pricePerPlayer: "Price per player",
+    priceEach: (price: string) => `${price} each`,
+    countsForRating: "Counts for rating",
+    yesAsAPair: "Yes, as a pair",
+    levelFit: (range: string) => `${range}, you both fit`,
+  },
+  chrome: {
+    pickup: "Pickup",
+    group: "Group",
+    yourePlaying: "You're playing",
+    youreOnTheWaitlist: "You're on the waitlist",
+    paidAtTheVenue: "Paid at the venue",
+    players: (n: number) =>
+      plural("en", n, { one: "1 player", other: "{n} players" }),
+    playersOf: (n: number, cap: number) => `${n} of ${cap} players`,
+    dateDuration: (date: string, minutes: number) => `${date} · ${minutes} min`,
+  },
+  occupancy: {
+    spotsLeft: (n: number) =>
+      plural("en", n, { one: "1 spot left", other: "{n} spots left" }),
+    full: "Full",
+    spotsOpen: (n: number) =>
+      plural("en", n, { one: "One spot open", other: "{n} spots open" }),
+  },
+  hero: {
+    ratedMatch: "Rated match",
+    duration: "Duration",
+    wonBy: "Won by",
+    noScore: "No score",
+    nobodyAddedOne: "Nobody has added one",
+    price: "Price",
+    seatsBooked: "Seats booked",
+    dateLine: (date: string, time: string, trailer: string | null) =>
+      `${date}, ${time}${trailer ? ` ${trailer}` : ""}`,
+    durationShort: (minutes: number) => `${minutes}m`,
+  },
+  organizer: {
+    userFallback: "User",
+  },
+  players: {
+    left: "Left",
+    right: "Right",
+    moveTo: (side: string, position: string) => `Move to ${side} ${position}`,
+    joinSeat: (side: string, position: string) => `Join ${side} ${position}`,
+    joinSeatWith: (side: string, position: string, partner: string) =>
+      `Join ${side} ${position} with ${partner}`,
+    cancelledNote: "This Game was cancelled. Seated people stay listed.",
+    leftSeat: "Left seat",
+    rightSeat: "Right seat",
+    seatWithLevel: (seat: string, band: string) => `${seat} — level ${band}`,
+    openLeftSeat: "Open left seat",
+    openRightSeat: "Open right seat",
+    inviteToLeftSeat: (side: string) => `Invite to ${side}, left`,
+    inviteToRightSeat: (side: string) => `Invite to ${side}, right`,
+  },
+  results: {
+    matchCancelled: "Match cancelled",
+    matchDraw: "Match draw",
+    teamWon: (team: string) => `${team} won`,
+    matchCompleted: "Match completed",
+    needsAScore: "Needs a score",
+  },
+  score: {
+    incompleteMessage: "Enter games won for both teams",
+    organizerConfirmNote:
+      "As the Organizer, your confirmation makes the score final.",
+    open: "Open",
+    pairNames: (left: string, right: string) => `${left} & ${right}`,
+    wonSet: (label: string, games: number) =>
+      `${label}: ${games} games, won this Set`,
+    lostSet: (label: string, games: number) =>
+      `${label}: ${games} games, lost this Set`,
+    entered: (label: string, games: number) => `${label}: ${games}`,
+    notEntered: (label: string) => `${label}: not entered yet`,
+    confirmedByOrganizer: "Confirmed by the Organizer. Nothing else needed.",
+    confirmedByAllOn: (date: string) =>
+      `Confirmed by all four players on ${date}. Nothing else needed.`,
+    confirmedByAll: "Confirmed by all four players. Nothing else needed.",
+    noScoreYet:
+      "No score yet. Anyone who played can add it. The other three confirm before it counts towards your level.",
+    scoringOpens:
+      "Scoring opens when the court is full. Fill the last spot and you'll be able to enter a result after the game.",
+    player: "Player",
+    youSuffix: (name: string) => `${name} (You)`,
+    confirmed: "Confirmed",
+    waiting: "Waiting",
+    organizerWaiting: (team: string) =>
+      `Waiting for the Organizer to confirm for ${team}.`,
+  },
+  kick: {
+    fallbackName: "this player",
+    spotConfirm: "Their spot can open for someone else.",
+    afterDrawConfirm: "Their team's unplayed Matches are cancelled.",
+    waitlistConfirm: "They lose their place on the Waitlist.",
+    title: (name: string) => `Kick ${name}?`,
+    waitlistTitle: (name: string) => `Kick ${name} from the waitlist?`,
+  },
+  rating: {
+    unratedGameLine: "This Game doesn't change anyone's Level.",
+    unratedGroupLine:
+      "Games in this Group are Unrated. They don't change anyone's Level.",
+    stillProvisional: (band: string, remaining: number) =>
+      `Still ${band}. ${plural("en", remaining, {
+        one: "About 1 more rated game and your level confirms.",
+        other: "About {n} more rated games and your level confirms.",
+      })}`,
+    stillConfirmed: (band: string) =>
+      `Still ${band}. Your level is confirmed — it moves with every rated game you play.`,
+    increasedBy: (magnitude: string) => `Level increased by ${magnitude}`,
+    decreasedBy: (magnitude: string) => `Level decreased by ${magnitude}`,
+    unchanged: "Level unchanged",
+  },
+  card: {
+    registered: "Registered",
+    register: "Register",
+    view: "View",
+    details: "Details",
+  },
+  share: {
+    ratedMatch: "RATED MATCH",
+    friendlyMatch: "FRIENDLY MATCH",
+    padelTypeLine: "FRIENDLY · PADEL",
+    footballTypeLine: (sideSize: string | null) =>
+      sideSize ? `FRIENDLY · FOOTBALL · ${sideSize}` : "FRIENDLY · FOOTBALL",
+    setLabel: (n: number) => `SET ${n}`,
+    draw: "DRAW",
+    stickerWin: (winners: string, won: number, lost: number) =>
+      `${winners} WIN ${won}–${lost}`,
+    when: (day: string, time: string) => `${day}, ${time}`,
+    padelResult: "🎾 Padel result",
+    drew: (first: string, second: string) => `🤝 ${first} and ${second} drew`,
+    beat: (winners: string, losers: string, won: number, lost: number) =>
+      `🏆 ${winners} beat ${losers} ${won}–${lost}`,
+    footballResult: "⚽ Football result",
+  },
+  hubEmpty: {
+    noGamesYet: "No Games yet",
+    noHistoryYet: "No Match history yet",
+    historyCopy: "Completed Games you played in show up here.",
+    played: "Played",
+    won: "Won",
+    lost: "Lost",
+    line: "Games you create or join show up here.",
+    sportLine: (sport: string) =>
+      `${sport} Games you create or join show up here.`,
+  },
+  history: {
+    openSeats: "Open seats",
+    namesList: (head: string, last: string) => `${head} and ${last}`,
+    meta: (day: string, venue: string) => `${day}, ${venue}`,
+    metaWithName: (day: string, venue: string, name: string) =>
+      `${day}, ${venue} · ${name}`,
+    withUnrated: (base: string, unrated: string) => `${base} · ${unrated}`,
+    yourTeamWinners: "Your team, winners",
+    yourTeamLost: "Your team, lost",
+    yourTeam: "Your team",
+    lost: "Lost",
+    winners: "Winners",
+    otherTeam: "Other team",
+  },
+  resultMark: {
+    won: "Won",
+    lost: "Lost",
+    draw: "Draw",
+    notPlayed: "Not played",
+  },
+  played: {
+    word: { won: "Won", lost: "Lost", draw: "Draw" },
+    tag: { won: "WON", lost: "LOST", draw: "DRAW" },
+    padel: "PADEL",
+    seatCode: { left: "LEFT", right: "RIGHT" },
+    playedOn: (date: string) => `Played, ${date}`,
+    played: "Played",
+    minutes: (n: number) => `${n} min`,
+    friendlyNoRating: "Friendly, does not count for rating",
+    countsForRating: "Counts for rating",
+    ratingMovesUp: (band: string) => `Counts for rating, ${band} moves up`,
+    ratingMovesDown: (band: string) => `Counts for rating, ${band} moves down`,
+    ratingHolds: (band: string) => `Counts for rating, ${band} holds`,
+    open: "Open",
+    pair: (first: string, second: string) => `${first} & ${second}`,
+    winInSets: (winners: string, won: number, lost: number) =>
+      `${winners} win ${won}–${lost} in sets`,
+    drawLevel: "Draw, both sides level",
+    noResult: "No result",
+    playedWith: (name: string) => `You played with ${name}`,
+    playedAlone: "You played alone",
+    yourPair: "Your pair",
+    opponents: "Opponents",
+    group: "Group",
+    confirmed: "Confirmed",
+    byTheOrganizer: "By the organizer",
+    byBothPairs: "By both pairs",
+    format: "Format",
+    sets: (n: number) => plural("en", n, { one: "1 set", other: "{n} sets" }),
+    countsForRatingLabel: "Counts for rating",
+    goals: (n: number) =>
+      plural("en", n, { one: "1 goal", other: "{n} goals" }),
+    winBy: (winner: string, margin: number) => `${winner} win by ${margin}`,
+    avg: (level: string) => `avg ${level}`,
+    playedCodeFor: (code: string, team: string) =>
+      `You played ${code} for ${team}`,
+    playedFor: (team: string) => `You played for ${team}`,
+    score: "Score",
+    enteredBy: (name: string) => `Entered by ${name}`,
+    byBothSides: "By both sides",
+    teams: "Teams",
+    bibs: "Bibs",
+    bibsLine: (first: string, second: string) =>
+      `${first} and ${second}, organizer brings`,
+  },
+  window: {
+    name: (weekday: string, start: string, finish: string) =>
+      `${weekday} ${start} - ${finish}`,
+  },
+};

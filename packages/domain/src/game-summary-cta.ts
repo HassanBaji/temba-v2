@@ -1,8 +1,11 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   hasFullyVacantSide,
   type FriendlyGamePartnerSides,
 } from "./friendly-game-partner";
-import { JOIN_GAME_ACTION } from "./game-copy";
+import { joinGameAction } from "./game-copy";
 import { isRosterRegistrationGame } from "./game-shape";
 import { isDrawnTournament } from "./tournament-rounds";
 
@@ -75,40 +78,49 @@ export function gameSummaryPrimaryAction(
   return "view";
 }
 
-export function gameSummaryCtaLabel(action: GameSummaryCta) {
+export function gameSummaryCtaLabel(action: GameSummaryCta, locale: Locale) {
+  const m = messagesFor(locale).game;
   switch (action) {
     case "join":
-      return "Join";
+      return m.cta.join;
     case "join_waitlist":
-      return "Join waitlist";
+      return m.cta.joinWaitlist;
     case "register":
-      return "Register";
+      return m.card.register;
     case "view":
-      return "View";
+      return m.card.view;
   }
 }
 
 export function gameCardActionLabel(
   action: GameSummaryCta,
+  locale: Locale,
   context?: { viewerIn?: boolean; openSpots?: number },
 ) {
+  const m = messagesFor(locale).game;
   switch (action) {
     case "join":
-      return JOIN_GAME_ACTION;
+      return joinGameAction(locale);
     case "join_waitlist":
-      return "Join waitlist";
+      return m.cta.joinWaitlist;
     case "register":
-      return "Register";
+      return m.card.register;
     case "view":
       if (context?.viewerIn && (context.openSpots ?? 0) > 0) {
-        return "Invite a player";
+        return m.cta.inviteAPlayer;
       }
-      return "Details";
+      return m.card.details;
   }
 }
 
-export function gameCardActionSolid(label: string, action: GameSummaryCta) {
-  return action !== "view" || label === "Invite a player";
+export function gameCardActionSolid(
+  label: string,
+  action: GameSummaryCta,
+  locale: Locale,
+) {
+  return (
+    action !== "view" || label === messagesFor(locale).game.cta.inviteAPlayer
+  );
 }
 
 export type GameViewerStatus = "in" | "waitlisted" | null;

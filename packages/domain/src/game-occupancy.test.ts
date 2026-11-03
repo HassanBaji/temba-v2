@@ -45,24 +45,29 @@ describe("gameOccupancy", () => {
 
 describe("seatsLeftLabel", () => {
   it("keeps the spot count singular for the last seat", () => {
-    assert.equal(seatsLeftLabel(1), "1 spot left");
+    assert.equal(seatsLeftLabel(1, "en"), "1 spot left");
   });
 
   it("pluralizes multiple spots", () => {
-    assert.equal(seatsLeftLabel(2), "2 spots left");
+    assert.equal(seatsLeftLabel(2, "en"), "2 spots left");
+  });
+
+  it("uses the Arabic dual and plural", () => {
+    assert.equal(seatsLeftLabel(2, "ar"), "بقي مكانان");
+    assert.equal(spotsOpenLabel(0, "ar"), "ممتلئة");
   });
 });
 
 describe("spotsOpenLabel", () => {
   it("reads as Full when no seats remain", () => {
-    assert.equal(spotsOpenLabel(0), "Full");
+    assert.equal(spotsOpenLabel(0, "en"), "Full");
   });
 
   it("uses One spot open for the last vacant seat", () => {
-    assert.equal(spotsOpenLabel(1), "One spot open");
+    assert.equal(spotsOpenLabel(1, "en"), "One spot open");
   });
 
   it("pluralizes multiple open spots", () => {
-    assert.equal(spotsOpenLabel(2), "2 spots open");
+    assert.equal(spotsOpenLabel(2, "en"), "2 spots open");
   });
 });

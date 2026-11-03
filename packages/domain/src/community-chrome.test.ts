@@ -9,52 +9,88 @@ import {
 describe("communityListMetaLine", () => {
   it("reads visibility, member count, and the viewer's role", () => {
     expect(
-      communityListMetaLine({ type: "public", memberCount: 12, role: "owner" }),
+      communityListMetaLine({
+        type: "public",
+        memberCount: 12,
+        role: "owner",
+        locale: "en",
+      }),
     ).toBe("Public, 12 members, you are Owner");
   });
 
   it("pluralises member", () => {
     expect(
-      communityListMetaLine({ type: "private", memberCount: 1, role: "owner" }),
+      communityListMetaLine({
+        type: "private",
+        memberCount: 1,
+        role: "owner",
+        locale: "en",
+      }),
     ).toBe("Private, 1 member, you are Owner");
     expect(
-      communityListMetaLine({ type: "private", memberCount: 0, role: "owner" }),
+      communityListMetaLine({
+        type: "private",
+        memberCount: 0,
+        role: "owner",
+        locale: "en",
+      }),
     ).toBe("Private, 0 members, you are Owner");
   });
 
   it("names each role", () => {
     expect(
-      communityListMetaLine({ type: "public", memberCount: 3, role: "admin" }),
+      communityListMetaLine({
+        type: "public",
+        memberCount: 3,
+        role: "admin",
+        locale: "en",
+      }),
     ).toBe("Public, 3 members, you are Admin");
     expect(
-      communityListMetaLine({ type: "public", memberCount: 3, role: "member" }),
+      communityListMetaLine({
+        type: "public",
+        memberCount: 3,
+        role: "member",
+        locale: "en",
+      }),
     ).toBe("Public, 3 members, you are Member");
+  });
+
+  it("reads in Arabic with the Arabic comma", () => {
+    expect(
+      communityListMetaLine({
+        type: "public",
+        memberCount: 12,
+        role: "owner",
+        locale: "ar",
+      }),
+    ).toBe("عام، 12 عضوًا، أنت المالك");
   });
 });
 
 describe("clubGroupRowMetaLine", () => {
   it("reads visibility and member count", () => {
-    expect(clubGroupRowMetaLine({ type: "public", memberCount: 8 })).toBe(
-      "Public, 8 members",
-    );
-    expect(clubGroupRowMetaLine({ type: "private", memberCount: 2 })).toBe(
-      "Private, 2 members",
-    );
+    expect(
+      clubGroupRowMetaLine({ type: "public", memberCount: 8, locale: "en" }),
+    ).toBe("Public, 8 members");
+    expect(
+      clubGroupRowMetaLine({ type: "private", memberCount: 2, locale: "en" }),
+    ).toBe("Private, 2 members");
   });
 
   it("pluralises member", () => {
-    expect(clubGroupRowMetaLine({ type: "public", memberCount: 1 })).toBe(
-      "Public, 1 member",
-    );
-    expect(clubGroupRowMetaLine({ type: "private", memberCount: 0 })).toBe(
-      "Private, 0 members",
-    );
+    expect(
+      clubGroupRowMetaLine({ type: "public", memberCount: 1, locale: "en" }),
+    ).toBe("Public, 1 member");
+    expect(
+      clubGroupRowMetaLine({ type: "private", memberCount: 0, locale: "en" }),
+    ).toBe("Private, 0 members");
   });
 
   it("drops the visibility when the Group has no type", () => {
-    expect(clubGroupRowMetaLine({ type: null, memberCount: 4 })).toBe(
-      "4 members",
-    );
+    expect(
+      clubGroupRowMetaLine({ type: null, memberCount: 4, locale: "en" }),
+    ).toBe("4 members");
   });
 });
 
@@ -66,6 +102,7 @@ describe("communityHomeMetaLine", () => {
         sports: ["padel"],
         memberCount: 24,
         role: "admin",
+        locale: "en",
       }),
     ).toBe("Public, Padel, 24 members, Admin");
   });
@@ -77,6 +114,7 @@ describe("communityHomeMetaLine", () => {
         sports: ["padel", "football"],
         memberCount: 1,
         role: "owner",
+        locale: "en",
       }),
     ).toBe("Private, Padel and Football, 1 member, Owner");
   });
@@ -88,6 +126,7 @@ describe("communityHomeMetaLine", () => {
         sports: [],
         memberCount: 3,
         role: "member",
+        locale: "en",
       }),
     ).toBe("Public, 3 members, Member");
   });
@@ -99,6 +138,7 @@ describe("communityHomeMetaLine", () => {
         sports: ["padel"],
         memberCount: 12,
         role: null,
+        locale: "en",
       }),
     ).toBe("Public, Padel, 12 members");
   });
@@ -110,6 +150,7 @@ describe("communityHomeMetaLine", () => {
         sports: [],
         memberCount: null,
         role: null,
+        locale: "en",
       }),
     ).toBe("Private");
   });

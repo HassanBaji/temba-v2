@@ -7,6 +7,9 @@
  * `YYYY-MM-DD` keys so a day never shifts with the reader's clock.
  */
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth, formatWeekday } from "./format-game-start";
 import {
   addProductDays,
@@ -37,17 +40,9 @@ export type GroupSeasonData = {
   closedAt: Date | string | null;
 };
 
-export const SEASON_SETTINGS_INTRO =
-  "A season scopes the standing to a date window. Levels are never reset by a season.";
-
-export const SEASON_NEW_STANDING_NOTE =
-  "Standing starts empty for the new season. Levels, W/L history and earlier seasons stay as they are.";
-
-export const SEASON_STATUS_LABEL: Record<GroupSeasonStatus, string> = {
-  upcoming: "Upcoming",
-  active: "Active",
-  closed: "Closed",
-};
+export function seasonStatusLabel(status: GroupSeasonStatus, locale: Locale) {
+  return messagesFor(locale).group.season.status[status];
+}
 
 export function parseDayKey(key: string) {
   const [year, month, day] = key.split("-").map(Number);
@@ -152,8 +147,12 @@ export function seasonDayNumber(
 export function seasonProgressLine(
   season: Pick<GroupSeasonData, "startsOn" | "endsOn">,
   now: Date,
+  locale: Locale,
 ) {
-  return `Day ${seasonDayNumber(season, now)} of ${seasonLengthDays(season)}`;
+  return messagesFor(locale).group.season.progress(
+    seasonDayNumber(season, now),
+    seasonLengthDays(season),
+  );
 }
 
 /** 0 to 1, how far through the Season `now` is. */
@@ -167,24 +166,39 @@ export function seasonProgress(
 /** `"1 Nov – 31 Jan"`. */
 export function formatSeasonRange(
   season: Pick<GroupSeasonData, "startsOn" | "endsOn">,
+  locale: Locale,
 ) {
-  return `${formatDayMonth(dayKeyToInstant(season.startsOn))} – ${formatDayMonth(dayKeyToInstant(season.endsOn))}`;
+  return messagesFor(locale).group.season.range(
+    formatDayMonth(dayKeyToInstant(season.startsOn), locale),
+    formatDayMonth(dayKeyToInstant(season.endsOn), locale),
+  );
 }
 
 /** `"Starts Sunday 9 Nov"`. */
-export function seasonStartsLine(season: Pick<GroupSeasonData, "startsOn">) {
+export function seasonStartsLine(
+  season: Pick<GroupSeasonData, "startsOn">,
+  locale: Locale,
+) {
   const start = dayKeyToInstant(season.startsOn);
-  return `Starts ${formatWeekday(start, "long")} ${formatDayMonth(start)}`;
+  return messagesFor(locale).group.season.startsLine(
+    formatWeekday(start, "long", locale),
+    formatDayMonth(start, locale),
+  );
 }
 
 /** `"Locked at close, 31 Oct"`. */
-export function seasonLockedLine(season: Pick<GroupSeasonData, "endsOn">) {
-  return `Locked at close, ${formatDayMonth(dayKeyToInstant(season.endsOn))}`;
+export function seasonLockedLine(
+  season: Pick<GroupSeasonData, "endsOn">,
+  locale: Locale,
+) {
+  return messagesFor(locale).group.season.lockedLine(
+    formatDayMonth(dayKeyToInstant(season.endsOn), locale),
+  );
 }
 
 /** `"41 games counted"`. */
-export function seasonGamesCountedLine(count: number) {
-  return `${count} ${count === 1 ? "game" : "games"} counted`;
+export function seasonGamesCountedLine(count: number, locale: Locale) {
+  return messagesFor(locale).group.season.gamesCounted(count);
 }
 
 export function seasonsOverlap(
@@ -194,22 +208,29 @@ export function seasonsOverlap(
   return a.startsOn <= b.endsOn && b.startsOn <= a.endsOn;
 }
 
-export const SEASON_OVERLAP_MESSAGE = "Seasons can't overlap.";
-export const SEASON_ORDER_MESSAGE = "The season must end after it starts.";
+export function seasonOverlapMessage(locale: Locale) {
+  return messagesFor(locale).group.season.overlapMessage;
+}
+
+export function seasonOrderMessage(locale: Locale) {
+  return messagesFor(locale).group.season.orderMessage;
+}
 
 /** Why these dates cannot be a new Season, or `null` when they can. */
 export function seasonDatesError(
   dates: { startsOn: string; endsOn: string },
   existing: readonly Pick<GroupSeasonData, "startsOn" | "endsOn">[],
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).group.season;
   if (!isDayKey(dates.startsOn) || !isDayKey(dates.endsOn)) {
-    return "Pick a start and an end day.";
+    return m.pickDaysMessage;
   }
   if (dates.endsOn < dates.startsOn) {
-    return SEASON_ORDER_MESSAGE;
+    return m.orderMessage;
   }
   if (existing.some((season) => seasonsOverlap(season, dates))) {
-    return SEASON_OVERLAP_MESSAGE;
+    return m.overlapMessage;
   }
   return null;
 }
@@ -265,19 +286,23 @@ export type SeasonLensChip = { seasonId: string | null; label: string };
 /** The chip row under the Season header: Seasons newest first, then All-time. */
 export function seasonLensChips(
   seasons: readonly GroupSeasonData[],
+  locale: Locale,
 ): SeasonLensChip[] {
   return [
     ...sortSeasonsNewestFirst(seasons).map((season) => ({
       seasonId: season.id,
       label: season.name,
     })),
-    { seasonId: null, label: "All-time" },
+    { seasonId: null, label: messagesFor(locale).group.season.allTime },
   ];
 }
 
 /** `"Season 4"` when the Group has three Seasons. */
-export function suggestedSeasonName(seasons: readonly unknown[]) {
-  return `Season ${seasons.length + 1}`;
+export function suggestedSeasonName(
+  seasons: readonly unknown[],
+  locale: Locale,
+) {
+  return messagesFor(locale).group.season.suggestedName(seasons.length + 1);
 }
 
 /** The day after the latest Season ends, or today when there is none. */
@@ -308,8 +333,10 @@ export function suggestedSeasonEnd(startsOn: string): string {
 export function newSeasonSummaryLine(
   dates: { startsOn: string; endsOn: string },
   existing: readonly GroupSeasonData[],
+  locale: Locale,
 ): string {
-  const error = seasonDatesError(dates, existing);
+  const m = messagesFor(locale).group.season;
+  const error = seasonDatesError(dates, existing, locale);
   if (error) {
     return error;
   }
@@ -317,7 +344,7 @@ export function newSeasonSummaryLine(
   const previous = sortSeasonsNewestFirst(
     existing.filter((season) => season.endsOn < dates.startsOn),
   )[0];
-  const parts = [`${days} ${days === 1 ? "day" : "days"}.`];
+  const parts = [m.summaryDays(days)];
   if (previous) {
     const gap = productDaysBetween(
       dayKeyToInstant(previous.endsOn),
@@ -325,11 +352,11 @@ export function newSeasonSummaryLine(
     );
     parts.push(
       gap === 1
-        ? `Starts the day after ${previous.name} closes.`
-        : `Starts ${gap - 1} ${gap - 1 === 1 ? "day" : "days"} after ${previous.name} closes.`,
+        ? m.startsDayAfter(previous.name)
+        : m.startsDaysAfter(gap - 1, previous.name),
     );
   }
-  parts.push(SEASON_OVERLAP_MESSAGE);
+  parts.push(m.overlapMessage);
   return parts.join(" ");
 }
 
@@ -342,28 +369,36 @@ export function seasonForDate<T extends GroupSeasonData>(
 }
 
 /** The hairline in the Games list (design 1d): `"SEASON 2 / 1 AUG – 31 OCT"`. */
-export function seasonBoundaryLabel(season: GroupSeasonData) {
-  return `${season.name} / ${formatSeasonRange(season)}`.toUpperCase();
+export function seasonBoundaryLabel(season: GroupSeasonData, locale: Locale) {
+  return `${season.name} / ${formatSeasonRange(season, locale)}`.toUpperCase();
 }
 
 /** `"Today, 60 days early"` for the close sheet (design 1l). */
 export function seasonCloseEndsLine(
   season: Pick<GroupSeasonData, "endsOn">,
   now: Date,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).group.season;
   const early = productDaysBetween(now, dayKeyToInstant(season.endsOn));
   if (early <= 0) {
-    return "Today";
+    return m.closeEndsToday;
   }
-  return `Today, ${early} ${early === 1 ? "day" : "days"} early`;
+  return m.closeEndsEarly(early);
 }
 
-export function closeSeasonTitle(season: Pick<GroupSeasonData, "name">) {
-  return `Close ${season.name}?`;
+export function closeSeasonTitle(
+  season: Pick<GroupSeasonData, "name">,
+  locale: Locale,
+) {
+  return messagesFor(locale).group.season.closeTitle(season.name);
 }
 
-export function closeSeasonActionLabel(season: Pick<GroupSeasonData, "name">) {
-  return `Close ${season.name} early`;
+export function closeSeasonActionLabel(
+  season: Pick<GroupSeasonData, "name">,
+  locale: Locale,
+) {
+  return messagesFor(locale).group.season.closeAction(season.name);
 }
 
 /**
@@ -373,19 +408,26 @@ export function closeSeasonActionLabel(season: Pick<GroupSeasonData, "name">) {
 export function closeSeasonBody(input: {
   gamesCounted: number;
   awaitingScoreCount: number;
+  locale: Locale;
 }) {
-  const counted = `${input.gamesCounted} confirmed ${input.gamesCounted === 1 ? "game counts" : "games count"}.`;
-  const waiting =
-    input.awaitingScoreCount > 0
-      ? ` ${input.awaitingScoreCount} ${input.awaitingScoreCount === 1 ? "game" : "games"} still waiting on a score won't.`
-      : "";
-  return `The standing locks in its current order. ${counted}${waiting}`;
+  const m = messagesFor(input.locale).group.season;
+  const parts = [m.closeBodyLead, m.closeBodyCounted(input.gamesCounted)];
+  if (input.awaitingScoreCount > 0) {
+    parts.push(m.closeBodyWaiting(input.awaitingScoreCount));
+  }
+  return parts.join(" ");
 }
 
-export function seasonCreatedToast(season: Pick<GroupSeasonData, "name">) {
-  return `${season.name} created`;
+export function seasonCreatedToast(
+  season: Pick<GroupSeasonData, "name">,
+  locale: Locale,
+) {
+  return messagesFor(locale).group.season.createdToast(season.name);
 }
 
-export function seasonClosedToast(season: Pick<GroupSeasonData, "name">) {
-  return `${season.name} closed`;
+export function seasonClosedToast(
+  season: Pick<GroupSeasonData, "name">,
+  locale: Locale,
+) {
+  return messagesFor(locale).group.season.closedToast(season.name);
 }

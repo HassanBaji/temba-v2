@@ -335,6 +335,7 @@ function baseTournament(args: {
         })
       : [];
   const poolTables = computePoolTables({
+    locale: "en",
     format: "friendly_tournament",
     poolCount: POOL_COUNT,
     viewerUserId: args.viewerUserId,
@@ -751,6 +752,7 @@ function knockoutTournament(args: {
   });
   const matches = knockoutRows.map(({ source: _source, ...match }) => match);
   const knockout = postedKnockoutRounds({
+    locale: "en",
     viewerUserId: VIEWER_ID,
     gameTeams: base.gameTeams.map((team) => ({
       id: team.id,

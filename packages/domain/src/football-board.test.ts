@@ -56,7 +56,7 @@ describe("poolLayout", () => {
 describe("poolSections", () => {
   it("splits keepers from outfield and hatches a seat for each missing keeper", () => {
     const pool = [player("a", { role: "keeper" }), player("b"), player("c")];
-    const sections = poolSections(pool, 10);
+    const sections = poolSections(pool, 10, "en");
     expect(sections.keepers.map((row) => row.userId)).toEqual(["a"]);
     expect(sections.outfield.map((row) => row.userId)).toEqual(["b", "c"]);
     expect(sections.keeperOpenSeats).toBe(1);
@@ -70,7 +70,7 @@ describe("poolSections", () => {
       player("a", { role: "keeper" }),
       player("b", { role: "keeper" }),
     ];
-    const sections = poolSections(pool, 10);
+    const sections = poolSections(pool, 10, "en");
     expect(sections.keeperOpenSeats).toBe(0);
     expect(sections.outfieldOpenSeats).toBe(8);
     expect(sections.outfieldLine).toBe("0 of 8 in");
@@ -80,7 +80,7 @@ describe("poolSections", () => {
     const pool = Array.from({ length: 10 }, (_, index) =>
       player(String(index)),
     );
-    const sections = poolSections(pool, 10);
+    const sections = poolSections(pool, 10, "en");
     expect(sections.keeperOpenSeats).toBe(0);
     expect(sections.outfieldOpenSeats).toBe(0);
     expect(sections.outfieldLine).toBe("10 of 10 in");
@@ -93,29 +93,34 @@ describe("join sheet copy", () => {
       player("a"),
       player("b", { role: "keeper", name: "Hassan Ali" }),
     ];
-    expect(keeperNote(players)).toBe(
+    expect(keeperNote(players, "en")).toBe(
       "One keeper per team, so 2 per game. Hassan A has the first.",
     );
-    expect(keeperSub(players)).toBe("1 seat left");
-    expect(keeperSub([...players, player("c", { role: "keeper" })])).toBe(
+    expect(keeperSub(players, "en")).toBe("1 seat left");
+    expect(keeperSub([...players, player("c", { role: "keeper" })], "en")).toBe(
       "both taken",
     );
   });
 
   it("labels the join action by role and price", () => {
-    expect(joinActionLabel("outfield", "mid", "1.500 BD")).toBe(
+    expect(joinActionLabel("outfield", "mid", "1.500 BD", "en")).toBe(
       "Join as MID, 1.500 BD",
     );
-    expect(joinActionLabel("keeper", "mid", "Free")).toBe("Join as keeper");
+    expect(joinActionLabel("keeper", "mid", "Free", "en")).toBe(
+      "Join as keeper",
+    );
   });
 
   it("sums up side size and open seats for an Invite link joiner", () => {
     expect(
-      footballInviteJoinSubtitle({
-        players: [player("a"), player("b")],
-        sideSize: 5,
-        playersAllowed: 10,
-      }),
+      footballInviteJoinSubtitle(
+        {
+          players: [player("a"), player("b")],
+          sideSize: 5,
+          playersAllowed: 10,
+        },
+        "en",
+      ),
     ).toBe("5-a-side, 8 seats open");
   });
 
@@ -171,13 +176,13 @@ describe("teams draft", () => {
       "k",
       1,
     );
-    const summary = draftSummary(manual, players);
+    const summary = draftSummary(manual, players, "en");
     expect(summary.slot1.map((row) => row.userId)).toEqual(["k", "a"]);
     expect(summary.unplaced.map((row) => row.userId)).toEqual(["b", "c"]);
     expect(summary.problem).toBe("2 still to place.");
 
     const done = placeOn(placeOn(manual, "b", 2), "c", 2);
-    expect(draftSummary(done, players).note).toBe(
+    expect(draftSummary(done, players, "en").note).toBe(
       "Everyone placed. Black avg B, White avg B-.",
     );
   });
@@ -197,7 +202,7 @@ describe("score draft", () => {
     draft = addGoal(draft, players[0]!, players);
     expect(draft.slot1).toBe(2);
     expect(draft.goals).toEqual({ a: 2 });
-    expect(scorersNote(draft, players, names)).toBe(
+    expect(scorersNote(draft, players, names, "en")).toBe(
       "2 of 2 Black goals and 0 of 0 White goals named.",
     );
     draft = removeGoal(removeGoal(draft, "a"), "a");
@@ -208,15 +213,15 @@ describe("score draft", () => {
   });
 
   it("explains who still has to confirm", () => {
-    expect(confirmationLine({ slot1: true, slot2: false }, names, false)).toBe(
-      "Waiting for one player from White to confirm.",
-    );
-    expect(confirmationLine({ slot1: true, slot2: true }, names, true)).toBe(
-      "Both sides confirmed.",
-    );
-    expect(confirmationLine({ slot1: true, slot2: false }, names, true)).toBe(
-      "Confirmed by the Organizer.",
-    );
+    expect(
+      confirmationLine({ slot1: true, slot2: false }, names, false, "en"),
+    ).toBe("Waiting for one player from White to confirm.");
+    expect(
+      confirmationLine({ slot1: true, slot2: true }, names, true, "en"),
+    ).toBe("Both sides confirmed.");
+    expect(
+      confirmationLine({ slot1: true, slot2: false }, names, true, "en"),
+    ).toBe("Confirmed by the Organizer.");
   });
 
   it("names the Organizer for a side with no account holder", () => {
@@ -226,6 +231,7 @@ describe("score draft", () => {
         { slot1: true, slot2: false },
         names,
         false,
+        "en",
         organizerSides,
       ),
     ).toBe("Waiting for the Organizer to confirm for White.");
@@ -234,17 +240,34 @@ describe("score draft", () => {
         { slot1: false, slot2: false },
         names,
         false,
+        "en",
         organizerSides,
       ),
     ).toBe(
       "Waiting for one player from Black to confirm and the Organizer to confirm for White.",
     );
     expect(
-      confirmationLine({ slot1: false, slot2: false }, names, false, [
+      confirmationLine({ slot1: false, slot2: false }, names, false, "en", [
         { slot: 1 },
         { slot: 2 },
       ]),
     ).toBe("Waiting for the Organizer to confirm for both sides.");
+  });
+
+  it("reads the confirmation and viewer lines in Arabic", () => {
+    const arabicNames = { slot1: "أسود", slot2: "أبيض" };
+    expect(
+      confirmationLine({ slot1: true, slot2: false }, arabicNames, false, "ar"),
+    ).toBe("بانتظار تأكيد لاعب واحد من أبيض.");
+    expect(
+      viewerSideLine(
+        { sideIndex: 2 },
+        [player("me", { isViewer: true, position: "def" })],
+        arabicNames,
+        "ar",
+      ),
+    ).toBe("تلعب في أبيض كـDEF.");
+    expect(keeperSub([player("a")], "ar")).toBe("تبقّى مقعدان");
   });
 
   it("tells the viewer their team and position", () => {
@@ -253,6 +276,7 @@ describe("score draft", () => {
         { sideIndex: 2 },
         [player("me", { isViewer: true, position: "def" })],
         names,
+        "en",
       ),
     ).toBe("You play in White as DEF.");
   });

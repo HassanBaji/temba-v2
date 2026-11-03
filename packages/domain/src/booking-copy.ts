@@ -1,3 +1,6 @@
+import { intlLocale, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import type { RefundStep } from "./booking-refund";
 import { formatGameClock } from "./format-game-start";
 import { PRODUCT_TIMEZONE } from "./product-timezone";
@@ -10,69 +13,106 @@ export type BookingStatus =
   | "no_show"
   | "expired";
 
-const STATUS_LABELS: Record<BookingStatus, string> = {
-  pending_payment: "Awaiting payment",
-  confirmed: "Confirmed",
-  cancelled: "Cancelled",
-  no_show: "No-show",
-  expired: "Expired",
-};
+const STATUS_KEYS = {
+  pending_payment: "pendingPayment",
+  confirmed: "confirmed",
+  cancelled: "cancelled",
+  no_show: "noShow",
+  expired: "expired",
+} as const satisfies Record<BookingStatus, string>;
 
-export function bookingStatusLabel(status: BookingStatus): string {
-  return STATUS_LABELS[status];
+export function bookingStatusLabel(
+  status: BookingStatus,
+  locale: Locale,
+): string {
+  return messagesFor(locale).booking.status[STATUS_KEYS[status]];
 }
 
-export const SLOT_REFUSAL_MESSAGES: Record<SlotRefusal, string> = {
-  bad_duration: "That duration is not offered at this Venue",
-  off_grid: "That start time is not on this Venue's booking grid",
-  too_soon: "That time is too soon to book",
-  too_far: "That day is too far ahead to book",
-  ended: "That time has already passed",
-  outside_hours: "The Venue is not open at that time",
-  closure: "That time is unavailable",
-  no_price: "That time cannot be booked",
-  taken: "That slot was just taken",
-};
+const SLOT_REFUSAL_KEYS = {
+  bad_duration: "badDuration",
+  off_grid: "offGrid",
+  too_soon: "tooSoon",
+  too_far: "tooFar",
+  ended: "ended",
+  outside_hours: "outsideHours",
+  closure: "closure",
+  no_price: "noPrice",
+  taken: "taken",
+} as const satisfies Record<SlotRefusal, string>;
 
-export function cancelWindowClosedMessage(venuePhone: string | null): string {
-  const base = "This Booking can no longer be cancelled in the app";
+export function slotRefusalMessage(
+  reason: SlotRefusal,
+  locale: Locale,
+): string {
+  return messagesFor(locale).booking.slotRefusal[SLOT_REFUSAL_KEYS[reason]];
+}
+
+export function cancelWindowClosedMessage(
+  venuePhone: string | null,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).booking;
   return venuePhone
-    ? `${base}. Call the Venue on ${venuePhone}`
-    : `${base}. Contact the Venue`;
+    ? m.cancelWindowClosedCall(venuePhone)
+    : m.cancelWindowClosedContact;
 }
 
-const stepFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: PRODUCT_TIMEZONE,
-  weekday: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
+const stepFormatters = new Map<Locale, Intl.DateTimeFormat>();
 
-function refundWords(percent: number) {
+function stepFormatter(locale: Locale) {
+  let formatter = stepFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(intlLocale(locale), {
+      timeZone: PRODUCT_TIMEZONE,
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    stepFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
+
+function refundWords(percent: number, locale: Locale) {
+  const m = messagesFor(locale).booking.refund;
   if (percent >= 100) {
-    return "Full refund";
+    return m.full;
   }
   if (percent <= 0) {
-    return "No refund";
+    return m.none;
   }
-  return `${percent}% refund`;
+  return m.percent(percent);
 }
 
 /** "Full refund until Tue 18:00, then 50% refund", or null when nothing changes. */
-export function describeNextRefundStep(step: RefundStep | null): string | null {
+export function describeNextRefundStep(
+  step: RefundStep | null,
+  locale: Locale,
+): string | null {
   if (!step) {
     return null;
   }
-  const when = stepFormatter.format(step.deadline).replace(",", "");
-  return `${refundWords(step.currentPercent)} until ${when}, then ${refundWords(step.nextPercent).toLowerCase()}`;
+  const when = stepFormatter(locale).format(step.deadline).replace(",", "");
+  return messagesFor(locale).booking.nextRefundStep(
+    refundWords(step.currentPercent, locale),
+    when,
+    refundWords(step.nextPercent, locale),
+  );
 }
 
 /** The line Game details shows for a Booking Game: "Court 2, 7:00 PM to 8:30 PM". */
-export function bookedCourtLine(booking: {
-  courtName: string;
-  startsAt: Date;
-  endsAt: Date;
-}): string {
-  return `${booking.courtName}, ${formatGameClock(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
+export function bookedCourtLine(
+  booking: {
+    courtName: string;
+    startsAt: Date;
+    endsAt: Date;
+  },
+  locale: Locale,
+): string {
+  return messagesFor(locale).booking.bookedCourtLine(
+    booking.courtName,
+    formatGameClock(booking.startsAt, locale),
+    formatGameClock(booking.endsAt, locale),
+  );
 }

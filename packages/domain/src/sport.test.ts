@@ -11,15 +11,20 @@ import {
 
 describe("sport", () => {
   it("labels known sports and passes unknown values through", () => {
-    expect(sportLabel("padel")).toBe("Padel");
-    expect(sportLabel("football")).toBe("Football");
-    expect(sportLabel("squash")).toBe("squash");
+    expect(sportLabel("padel", "en")).toBe("Padel");
+    expect(sportLabel("football", "en")).toBe("Football");
+    expect(sportLabel("squash", "en")).toBe("squash");
+  });
+
+  it("labels known sports in Arabic", () => {
+    expect(sportLabel("padel", "ar")).toBe("بادل");
+    expect(sportLabel("football", "ar")).toBe("كرة القدم");
   });
 
   it("returns null for an absent or blank sport", () => {
-    expect(sportLabel(null)).toBeNull();
-    expect(sportLabel(undefined)).toBeNull();
-    expect(sportLabel("  ")).toBeNull();
+    expect(sportLabel(null, "en")).toBeNull();
+    expect(sportLabel(undefined, "en")).toBeNull();
+    expect(sportLabel("  ", "en")).toBeNull();
   });
 
   it("gives each sport a glyph name and none for unknown values", () => {
@@ -30,9 +35,11 @@ describe("sport", () => {
   });
 
   it("models the Public Groups filter as All, Padel, Football", () => {
-    expect(PUBLIC_GROUP_SPORT_FILTERS.map(publicGroupSportFilterLabel)).toEqual(
-      ["All", "Padel", "Football"],
-    );
+    expect(
+      PUBLIC_GROUP_SPORT_FILTERS.map((filter) =>
+        publicGroupSportFilterLabel(filter, "en"),
+      ),
+    ).toEqual(["All", "Padel", "Football"]);
     expect(publicGroupSportFilterInput("all")).toBeUndefined();
     expect(publicGroupSportFilterInput("football")).toEqual({
       sport: "football",

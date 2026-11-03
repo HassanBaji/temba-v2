@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatHomeCountdown } from "./home-countdown";
 
 export type HomeNextGamePhase = "upcoming" | "ongoing" | "needs_results";
@@ -14,20 +17,23 @@ export function homeNextGameActions({
   gameId,
   phase,
   hasOpenSeat,
+  locale,
 }: {
   gameId: string;
   phase: HomeNextGamePhase;
   hasOpenSeat: boolean;
+  locale: Locale;
 }): {
   primary: { target: HomeTarget; label: string };
   details: HomeTarget | null;
 } {
+  const m = messagesFor(locale).home.nextGame;
   const game: HomeTarget = { kind: "game", gameId };
   if (phase === "needs_results") {
     return {
       primary: {
         target: { ...game, intent: "results" },
-        label: "Add results",
+        label: m.addResults,
       },
       details: game,
     };
@@ -36,26 +42,28 @@ export function homeNextGameActions({
     return {
       primary: {
         target: { ...game, intent: "invite" },
-        label: "Invite a player",
+        label: m.invitePlayer,
       },
       details: game,
     };
   }
-  return { primary: { target: game, label: "View game" }, details: null };
+  return { primary: { target: game, label: m.viewGame }, details: null };
 }
 
 export function homeNextGameStatus(
   phase: HomeNextGamePhase,
   startsAt: Date,
   now: Date,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).home.nextGame;
   if (phase === "ongoing") {
-    return "Playing now";
+    return m.playingNow;
   }
   if (phase === "needs_results") {
-    return "Add results";
+    return m.addResults;
   }
-  return formatHomeCountdown(startsAt, now);
+  return formatHomeCountdown(startsAt, now, locale);
 }
 
 export function homeNextGameSecondaryLine(

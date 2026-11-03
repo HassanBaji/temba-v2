@@ -1,13 +1,13 @@
-import { SPORT_LABELS, type Sport } from "./sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
-export const COURT_SPORT_LABELS = SPORT_LABELS;
+import { type Sport } from "./sport";
 
 export function courtFace(sport: Sport): "court" | "pitch" {
   return sport === "football" ? "pitch" : "court";
 }
 
-export function courtCountLabel(count: number, sport: Sport) {
-  const face = courtFace(sport);
-  const noun = count === 1 ? face : face === "pitch" ? "pitches" : "courts";
-  return `${count} ${noun}`;
+export function courtCountLabel(count: number, sport: Sport, locale: Locale) {
+  const m = messagesFor(locale).createGame.court;
+  return courtFace(sport) === "pitch" ? m.pitchCount(count) : m.count(count);
 }

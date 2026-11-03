@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { type Sport } from "./sport";
 
 /**
@@ -47,18 +50,24 @@ export function onboardingProgress(
   return { step: questions.indexOf(current) + 1, total: questions.length };
 }
 
-export function sportsContinueLabel(picked: PickedSports) {
+export function sportsContinueLabel(picked: PickedSports, locale: Locale) {
+  const m = messagesFor(locale);
   const sports = pickedSportList(picked);
-  if (sports.length === 0) {
-    return "Pick at least one";
+  const [first] = sports;
+  if (!first) {
+    return m.onboarding.flow.pickAtLeastOne;
   }
   if (sports.length === 2) {
-    return "Continue with both";
+    return m.onboarding.flow.continueWithBoth;
   }
-  return `Continue with ${sports[0]}`;
+  return m.onboarding.flow.continueWith(m.common[first]);
 }
 
-export function findGamesLabel(picked: PickedSports) {
+export function findGamesLabel(picked: PickedSports, locale: Locale) {
+  const m = messagesFor(locale);
   const sports = pickedSportList(picked);
-  return sports.length === 1 ? `Find ${sports[0]} games` : "Find games";
+  const only = sports.length === 1 ? sports[0] : undefined;
+  return only
+    ? m.onboarding.flow.findSportGames(m.common[only])
+    : m.onboarding.flow.findGames;
 }

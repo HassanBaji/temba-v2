@@ -1,10 +1,13 @@
 /**
- * The one locale every date and time in the App is written in, so a card and
- * the hero never disagree ("7:30 PM" vs "19:30"). en-US was already the most
- * used; it gives a 12-hour clock and English day and month names. Dates are
- * still composed day before month (`Sat 4 Oct`), which en-US would reverse.
+ * Every date and time in the App is written through these formatters so a
+ * card and the hero never disagree ("7:30 PM" vs "19:30"). The Intl locale
+ * comes from `intlLocale(locale)`: a 12-hour clock and the language's own day
+ * and month names. Dates are still composed day before month (`Sat 4 Oct`),
+ * which en-US would reverse.
  */
-export const APP_LOCALE = "en-US";
+
+import { intlLocale, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   PRODUCT_TIMEZONE,
@@ -18,15 +21,23 @@ function asDate(value: Date | string) {
   return value instanceof Date ? value : new Date(value);
 }
 
-export function formatWeekday(value: Date | string, style: NameStyle) {
-  return asDate(value).toLocaleDateString(APP_LOCALE, {
+export function formatWeekday(
+  value: Date | string,
+  style: NameStyle,
+  locale: Locale,
+) {
+  return asDate(value).toLocaleDateString(intlLocale(locale), {
     weekday: style,
     timeZone: PRODUCT_TIMEZONE,
   });
 }
 
-export function formatMonth(value: Date | string, style: NameStyle) {
-  return asDate(value).toLocaleDateString(APP_LOCALE, {
+export function formatMonth(
+  value: Date | string,
+  style: NameStyle,
+  locale: Locale,
+) {
+  return asDate(value).toLocaleDateString(intlLocale(locale), {
     month: style,
     timeZone: PRODUCT_TIMEZONE,
   });
@@ -35,25 +46,29 @@ export function formatMonth(value: Date | string, style: NameStyle) {
 /** `4 Oct`, `Sat 4 Oct`, `Saturday 4 October 2026`. */
 export function formatDayMonth(
   value: Date | string,
+  locale: Locale,
   options: { weekday?: NameStyle; month?: NameStyle; year?: boolean } = {},
 ) {
   const date = asDate(value);
   const { day, year } = zonedParts(date);
   const parts = [
-    options.weekday ? formatWeekday(date, options.weekday) : null,
+    options.weekday ? formatWeekday(date, options.weekday, locale) : null,
     String(day),
-    formatMonth(date, options.month ?? "short"),
+    formatMonth(date, options.month ?? "short", locale),
     options.year ? String(year) : null,
   ];
   return parts.filter((part) => part != null).join(" ");
 }
 
-export function formatGameStart(startTime: Date | string) {
-  return `${formatDayMonth(startTime, { weekday: "short" })}, ${formatGameClock(startTime)}`;
+export function formatGameStart(startTime: Date | string, locale: Locale) {
+  return messagesFor(locale).dates.gameStart(
+    formatDayMonth(startTime, locale, { weekday: "short" }),
+    formatGameClock(startTime, locale),
+  );
 }
 
-export function formatGameClock(startTime: Date | string) {
-  return asDate(startTime).toLocaleTimeString(APP_LOCALE, {
+export function formatGameClock(startTime: Date | string, locale: Locale) {
+  return asDate(startTime).toLocaleTimeString(intlLocale(locale), {
     hour: "numeric",
     minute: "2-digit",
     timeZone: PRODUCT_TIMEZONE,
@@ -63,15 +78,17 @@ export function formatGameClock(startTime: Date | string) {
 export function formatDurationInMinutes(
   startTime: Date,
   endTime: Date,
+  locale: Locale,
 ): string {
   const duration = endTime.getTime() - startTime.getTime();
   const minutes = Math.floor(duration / (1000 * 60)).toString();
-  return `${minutes}m`;
+  return messagesFor(locale).dates.minutesCompact(minutes);
 }
 
 export function formatWindowDuration(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,
+  locale: Locale,
 ): string | null {
   if (!windowStart || !windowEnd) {
     return null;
@@ -83,18 +100,22 @@ export function formatWindowDuration(
   if (!Number.isFinite(minutes) || minutes < 1) {
     return null;
   }
-  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+  return messagesFor(locale).dates.windowDuration(minutes);
 }
 
 export function formatGameTimeWindow(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,
   startTime: Date | string,
+  locale: Locale,
 ) {
   if (windowStart && windowEnd) {
-    return `${formatGameClock(windowStart)} - ${formatGameClock(windowEnd)}`;
+    return messagesFor(locale).dates.timeWindow(
+      formatGameClock(windowStart, locale),
+      formatGameClock(windowEnd, locale),
+    );
   }
-  return formatGameClock(startTime);
+  return formatGameClock(startTime, locale);
 }
 
 function daysUntilProductDay(date: Date) {
@@ -119,39 +140,42 @@ export function gameDayProximity(startTime: Date | string): GameDayProximity {
 
 export function formatRelativeDay(
   startTime: Date | string,
+  locale: Locale,
   options?: { sameDayLabel?: "Tonight" | "Today" },
 ) {
+  const m = messagesFor(locale);
   const date = startTime instanceof Date ? startTime : new Date(startTime);
   const diffDays = daysUntilProductDay(date);
 
   if (diffDays === 0) {
-    return options?.sameDayLabel ?? "Tonight";
+    return options?.sameDayLabel === "Today" ? m.common.today : m.dates.tonight;
   }
   if (diffDays === 1) {
-    return "Tomorrow";
+    return m.common.tomorrow;
   }
 
-  return formatDayMonth(date, { weekday: "short" });
+  return formatDayMonth(date, locale, { weekday: "short" });
 }
 
 /** Detail headings: `Saturday 4 October`. */
-export function formatAbsoluteDay(startTime: Date | string) {
-  return formatDayMonth(startTime, { weekday: "long", month: "long" });
+export function formatAbsoluteDay(startTime: Date | string, locale: Locale) {
+  return formatDayMonth(startTime, locale, { weekday: "long", month: "long" });
 }
 
 /** Hub Game card day: Today / Tomorrow / `Thursday 11 Sep`. */
-export function formatGameCardDay(startTime: Date | string) {
+export function formatGameCardDay(startTime: Date | string, locale: Locale) {
+  const m = messagesFor(locale);
   const date = startTime instanceof Date ? startTime : new Date(startTime);
   const diffDays = daysUntilProductDay(date);
 
   if (diffDays === 0) {
-    return "Today";
+    return m.common.today;
   }
   if (diffDays === 1) {
-    return "Tomorrow";
+    return m.common.tomorrow;
   }
 
-  return formatDayMonth(date, { weekday: "long" });
+  return formatDayMonth(date, locale, { weekday: "long" });
 }
 
 /**
@@ -165,8 +189,11 @@ function stripMeridiem(clock: string) {
 }
 
 /** Bare clock digits with no AM/PM suffix, e.g. `"10:30"`. */
-export function formatGameClockWithoutMeridiem(time: Date | string) {
-  return stripMeridiem(formatGameClock(time));
+export function formatGameClockWithoutMeridiem(
+  time: Date | string,
+  locale: Locale,
+) {
+  return stripMeridiem(formatGameClock(time, locale));
 }
 
 /**
@@ -176,15 +203,16 @@ export function formatGameClockWithoutMeridiem(time: Date | string) {
  * relative-future (`formatRelativeDay`) — this is the past-facing mirror,
  * reusing the same local-day math.
  */
-export function formatPlayedRelativeDay(startTime: Date | string) {
+export function formatPlayedRelativeDay(
+  startTime: Date | string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
   const date = startTime instanceof Date ? startTime : new Date(startTime);
   const daysAgo = -daysUntilProductDay(date);
 
   if (daysAgo <= 0) {
-    return "Played today";
+    return m.dates.playedToday;
   }
-  if (daysAgo === 1) {
-    return "Played 1 day ago";
-  }
-  return `Played ${daysAgo} days ago`;
+  return m.dates.playedDaysAgo(daysAgo);
 }

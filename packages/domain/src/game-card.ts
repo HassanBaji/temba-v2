@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { friendlyGameVacantSeatLabel } from "./friendly-game-players";
 import { offersPartnerJoin } from "./friendly-game-partner";
 import { formatGameSideLabel } from "./game-side-label";
@@ -59,14 +62,18 @@ export function sideJoinAccessibleName(
   sideIndex: number,
   position: CardSeatPosition,
   partnerName: string | null,
+  locale: Locale,
 ) {
-  const teamLabel = formatGameSideLabel("friendly_game", sideIndex);
-  const positionLabel = position === "left" ? "Left" : "Right";
-  const base = friendlyGameVacantSeatLabel("join", teamLabel, positionLabel);
-  if (base == null) {
-    return "Join";
+  const m = messagesFor(locale).game;
+  const teamLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
+  const positionLabel = position === "left" ? m.players.left : m.players.right;
+  if (partnerName) {
+    return m.players.joinSeatWith(teamLabel, positionLabel, partnerName);
   }
-  return partnerName ? `${base} with ${partnerName}` : base;
+  return (
+    friendlyGameVacantSeatLabel("join", teamLabel, positionLabel, locale) ??
+    m.cta.join
+  );
 }
 
 export function gameCardOpenSpots(game: {
@@ -88,9 +95,12 @@ export function gameCardOpenSpots(game: {
   };
 }
 
-export function gameCardSportTag(sport: string | null | undefined) {
+export function gameCardSportTag(
+  sport: string | null | undefined,
+  locale: Locale,
+) {
   const glyph = sportGlyph(sport);
-  const label = sportLabel(sport);
+  const label = sportLabel(sport, locale);
   return glyph && label ? { glyph, label } : null;
 }
 
@@ -171,6 +181,7 @@ export function hubWaitlistJoinCall(
     : "registerSeat";
 }
 
-export function hubRegisterToast(waitlisted: boolean) {
-  return waitlisted ? "Joined waitlist" : "Registered";
+export function hubRegisterToast(waitlisted: boolean, locale: Locale) {
+  const m = messagesFor(locale).game;
+  return waitlisted ? m.toast.joinedWaitlist : m.card.registered;
 }

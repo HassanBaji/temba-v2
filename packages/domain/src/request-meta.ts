@@ -1,22 +1,30 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth } from "./format-game-start";
 import { productDaysBetween, zonedParts } from "./product-timezone";
 
 const RELATIVE_DAYS = 7;
 
 /** `today`, `yesterday`, `3 days ago`, then `4 Oct` after a week. */
-export function formatPastDay(value: Date | string, now: Date = new Date()) {
+export function formatPastDay(
+  value: Date | string,
+  locale: Locale,
+  now: Date = new Date(),
+) {
+  const m = messagesFor(locale).group.pastDay;
   const date = value instanceof Date ? value : new Date(value);
   const daysAgo = productDaysBetween(date, now);
   if (daysAgo <= 0) {
-    return "today";
+    return m.today;
   }
   if (daysAgo === 1) {
-    return "yesterday";
+    return m.yesterday;
   }
   if (daysAgo < RELATIVE_DAYS) {
-    return `${daysAgo} days ago`;
+    return m.daysAgo(daysAgo);
   }
-  return formatDayMonth(date, {
+  return formatDayMonth(date, locale, {
     year: zonedParts(date).year !== zonedParts(now).year,
   });
 }
@@ -24,9 +32,12 @@ export function formatPastDay(value: Date | string, now: Date = new Date()) {
 /** `Requested today`, `Requested 3 days ago`, then `Requested 4 Oct` after a week. */
 export function formatRequestedAt(
   requestedAt: Date | string,
+  locale: Locale,
   now: Date = new Date(),
 ) {
-  return `Requested ${formatPastDay(requestedAt, now)}`;
+  return messagesFor(locale).group.pastDay.requested(
+    formatPastDay(requestedAt, locale, now),
+  );
 }
 
 /**
@@ -35,10 +46,11 @@ export function formatRequestedAt(
  */
 export function requestRowMeta(
   requestedAt: Date | string,
+  locale: Locale,
   details: readonly (string | null | undefined)[] = [],
   now?: Date,
 ) {
-  return [...details, formatRequestedAt(requestedAt, now)]
+  return [...details, formatRequestedAt(requestedAt, locale, now)]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
 }

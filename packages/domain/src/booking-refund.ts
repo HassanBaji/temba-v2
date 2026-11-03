@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export type RefundPolicy = {
   tiers: readonly { hoursBefore: number; refundPercent: number }[];
   lateRefundPercent: number;
@@ -72,48 +75,57 @@ export function customerMayCancelAt(
   return minutes >= policy.customerCancelUntilMinutes;
 }
 
-function refundLabel(percent: number) {
+function refundLabel(percent: number, locale: Locale) {
+  const m = messagesFor(locale).booking.refund;
   if (percent >= 100) {
-    return "Full refund";
+    return m.full;
   }
   if (percent <= 0) {
-    return "No refund";
+    return m.none;
   }
-  return `${percent}% refund`;
+  return m.percent(percent);
 }
 
-function plural(count: number, unit: string) {
-  return `${count} ${unit}${count === 1 ? "" : "s"}`;
-}
-
-function describeMinutes(minutes: number) {
+function describeMinutes(minutes: number, locale: Locale) {
+  const m = messagesFor(locale).booking.policy;
   if (minutes % 60 === 0) {
-    return plural(minutes / 60, "hour");
+    return m.hours(minutes / 60);
   }
-  return plural(minutes, "minute");
+  return m.minutes(minutes);
 }
 
-export function describeCancellationPolicy(policy: RefundPolicy): string[] {
+export function describeCancellationPolicy(
+  policy: RefundPolicy,
+  locale: Locale,
+): string[] {
+  const m = messagesFor(locale).booking.policy;
   const lines: string[] = [];
 
   if (policy.tiers.length === 0) {
     lines.push(
       policy.lateRefundPercent >= 100
-        ? "Free cancellation at any time"
-        : `${refundLabel(policy.lateRefundPercent)} on cancellation`,
+        ? m.freeAnyTime
+        : m.refundOnCancellation(refundLabel(policy.lateRefundPercent, locale)),
     );
   } else {
     for (const tier of policy.tiers) {
       lines.push(
-        `${refundLabel(tier.refundPercent)} until ${plural(tier.hoursBefore, "hour")} before`,
+        m.refundUntilHoursBefore(
+          refundLabel(tier.refundPercent, locale),
+          tier.hoursBefore,
+        ),
       );
     }
-    lines.push(`${refundLabel(policy.lateRefundPercent)} after that`);
+    lines.push(
+      m.refundAfterThat(refundLabel(policy.lateRefundPercent, locale)),
+    );
   }
 
   if (policy.customerCancelUntilMinutes > 0) {
     lines.push(
-      `Cancel in the app until ${describeMinutes(policy.customerCancelUntilMinutes)} before the start`,
+      m.cancelInAppUntil(
+        describeMinutes(policy.customerCancelUntilMinutes, locale),
+      ),
     );
   }
 

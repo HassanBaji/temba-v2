@@ -1,3 +1,5 @@
+import type { Locale } from "@repo/i18n/locale";
+
 import {
   DEFAULT_MATCH_MINUTES,
   DEFAULT_TOURNAMENT_SHAPE,
@@ -60,7 +62,10 @@ const CREATE_GAME_TYPES: readonly CreateGameTypeId[] = [
   "friendly_tournament",
 ];
 
-export function initialCreateGameDraft(now: Date): CreateGameDraft {
+export function initialCreateGameDraft(
+  now: Date,
+  locale: Locale,
+): CreateGameDraft {
   const day = earliestCreateDay(now);
   return {
     groupId: "",
@@ -80,7 +85,7 @@ export function initialCreateGameDraft(now: Date): CreateGameDraft {
     roundCount: null,
     qualifiersPerPool: DEFAULT_QUALIFIERS_PER_POOL,
     matchMinutes: String(DEFAULT_MATCH_MINUTES),
-    name: friendlyTournamentDefaultName(day),
+    name: friendlyTournamentDefaultName(day, locale),
     nameTouched: false,
     customName: "",
     isPublic: false,

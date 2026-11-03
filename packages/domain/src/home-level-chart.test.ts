@@ -40,7 +40,7 @@ describe("chartPointGeometry", () => {
 
 describe("levelChangeView", () => {
   it("names an upward change", () => {
-    assert.deepEqual(levelChangeView(0.3), {
+    assert.deepEqual(levelChangeView(0.3, "en"), {
       direction: "up",
       amount: "0.3",
       spoken: "Up",
@@ -48,7 +48,7 @@ describe("levelChangeView", () => {
   });
 
   it("names a downward change without a minus sign in the amount", () => {
-    assert.deepEqual(levelChangeView(-0.4), {
+    assert.deepEqual(levelChangeView(-0.4, "en"), {
       direction: "down",
       amount: "0.4",
       spoken: "Down",
@@ -56,11 +56,16 @@ describe("levelChangeView", () => {
   });
 
   it("treats a change that rounds to 0.0 as no change", () => {
-    assert.deepEqual(levelChangeView(0), {
+    assert.deepEqual(levelChangeView(0, "en"), {
       direction: "none",
       amount: "0.0",
       spoken: "No change",
     });
-    assert.equal(levelChangeView(-0.04).direction, "none");
+    assert.equal(levelChangeView(-0.04, "en").direction, "none");
+  });
+
+  it("speaks the change in Arabic", () => {
+    assert.equal(levelChangeView(0.3, "ar").spoken, "ارتفاع");
+    assert.equal(levelChangeView(0, "ar").spoken, "بلا تغيير");
   });
 });

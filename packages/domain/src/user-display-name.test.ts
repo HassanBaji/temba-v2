@@ -43,12 +43,12 @@ describe("hasFullName", () => {
 describe("validateUserNames", () => {
   it("trims and accepts", () => {
     expect(
-      validateUserNames({ firstName: " Mikael ", lastName: "Karlsson " }),
+      validateUserNames({ firstName: " Mikael ", lastName: "Karlsson " }, "en"),
     ).toEqual({ ok: true, firstName: "Mikael", lastName: "Karlsson" });
   });
 
   it("names each missing field", () => {
-    expect(validateUserNames({ firstName: "", lastName: null })).toEqual({
+    expect(validateUserNames({ firstName: "", lastName: null }, "en")).toEqual({
       ok: false,
       fieldErrors: {
         firstName: "Enter your first name",
@@ -58,14 +58,24 @@ describe("validateUserNames", () => {
   });
 
   it("bounds the length", () => {
-    const result = validateUserNames({
-      firstName: "a".repeat(61),
-      lastName: "Karlsson",
-    });
+    const result = validateUserNames(
+      {
+        firstName: "a".repeat(61),
+        lastName: "Karlsson",
+      },
+      "en",
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.fieldErrors.firstName).toMatch(/under 60/);
       expect(result.fieldErrors.lastName).toBeUndefined();
     }
+  });
+
+  it("names a missing field in Arabic", () => {
+    expect(validateUserNames({ firstName: "", lastName: "ك" }, "ar")).toEqual({
+      ok: false,
+      fieldErrors: { firstName: "أدخل اسمك الأول" },
+    });
   });
 });

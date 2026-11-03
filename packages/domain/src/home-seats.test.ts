@@ -43,12 +43,13 @@ describe("flattenSidesToHomeSeats", () => {
     const open = seats.length - seats.filter((seat) => seat.filled).length;
     assert.equal(seats.length, 24);
     assert.equal(open, 24);
-    assert.equal(homeSpotsOpenLabel(open, seats.length), "24 spots open");
-    assert.equal(homeSpotsOpenLabel(0, 0), null);
+    assert.equal(homeSpotsOpenLabel(open, seats.length, "en"), "24 spots open");
+    assert.equal(homeSpotsOpenLabel(0, 0, "en"), null);
     assert.equal(
       homeSpotsOpenLabel(
         flattenSidesToHomeSeats([]).length,
         flattenSidesToHomeSeats([]).length,
+        "en",
       ),
       null,
     );
@@ -102,12 +103,20 @@ describe("homeSeatRowSummary", () => {
       name: null,
       filled: index < 5,
     }));
-    assert.deepEqual(homeSeatRowSummary(seats), {
+    assert.deepEqual(homeSeatRowSummary(seats, "en"), {
       filled: 5,
       total: 8,
       useInitials: true,
       spotsLabel: "3 spots open",
     });
-    assert.equal(homeSeatRowSummary(seats.slice(0, 4)).useInitials, false);
+    assert.equal(
+      homeSeatRowSummary(seats.slice(0, 4), "en").useInitials,
+      false,
+    );
+  });
+
+  it("labels open spots in Arabic", () => {
+    assert.equal(homeSpotsOpenLabel(3, 8, "ar"), "3 أماكن شاغرة");
+    assert.equal(homeSpotsOpenLabel(0, 8, "ar"), "ممتلئ");
   });
 });

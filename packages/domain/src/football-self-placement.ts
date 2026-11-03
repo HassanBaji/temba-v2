@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import {
   selfDeclareChoiceFromDisplay,
   type AssignableDisplayLevelBand,
@@ -19,54 +22,44 @@ export const FOOTBALL_SELF_PLACEMENTS = [
 
 export type FootballSelfPlacement = (typeof FOOTBALL_SELF_PLACEMENTS)[number];
 
-export const FOOTBALL_SELF_PLACEMENT_CHOICES: {
+const FOOTBALL_SELF_PLACEMENT_BANDS: Record<
+  FootballSelfPlacement,
+  AssignableDisplayLevelBand
+> = {
+  beginner: "D",
+  casual: "C-",
+  competitive: "C+",
+  pro: "B-",
+};
+
+export function footballSelfPlacementChoices(locale: Locale): {
   value: FootballSelfPlacement;
   label: string;
   description: string;
   band: AssignableDisplayLevelBand;
-}[] = [
-  {
-    value: "beginner",
-    label: "Beginner",
-    description: "Still finding your feet. Now and then.",
-    band: "D",
-  },
-  {
-    value: "casual",
-    label: "Casual",
-    description: "Pick-up games, holds a position. 1–2× a week.",
-    band: "C-",
-  },
-  {
-    value: "competitive",
-    label: "Competitive",
-    description: "Plays local tournaments, lasts the full match. 2–3× a week.",
-    band: "C+",
-  },
-  {
-    value: "pro",
-    label: "Pro",
-    description:
-      "Club or academy background, dictates the game. Several times a week.",
-    band: "B-",
-  },
-];
+}[] {
+  const m = messagesFor(locale).football.selfPlacement;
+  return FOOTBALL_SELF_PLACEMENTS.map((value) => ({
+    value,
+    label: m[value].label,
+    description: m[value].description,
+    band: FOOTBALL_SELF_PLACEMENT_BANDS[value],
+  }));
+}
 
 export const DEFAULT_FOOTBALL_SELF_PLACEMENT: FootballSelfPlacement =
   "competitive";
 
-export function footballSelfPlacementLabel(placement: FootballSelfPlacement) {
-  return (
-    FOOTBALL_SELF_PLACEMENT_CHOICES.find((choice) => choice.value === placement)
-      ?.label ?? placement
-  );
+export function footballSelfPlacementLabel(
+  placement: FootballSelfPlacement,
+  locale: Locale,
+) {
+  return messagesFor(locale).football.selfPlacement[placement].label;
 }
 
 export function selfDeclareChoiceFromFootballPlacement(
   placement: FootballSelfPlacement,
 ): SelfDeclareChoice {
-  const choice = FOOTBALL_SELF_PLACEMENT_CHOICES.find(
-    (entry) => entry.value === placement,
-  );
-  return choice ? selfDeclareChoiceFromDisplay(choice.band) : "unknown";
+  const band = FOOTBALL_SELF_PLACEMENT_BANDS[placement];
+  return band ? selfDeclareChoiceFromDisplay(band) : "unknown";
 }

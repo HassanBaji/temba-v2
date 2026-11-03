@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { MATCH_STATUS } from "./match-status";
 import { scoredSetLabel } from "./tournament-knockout";
 import { poolLabel } from "./tournament-pool-draw";
@@ -140,11 +143,11 @@ export type ComputedPoolTables = {
   pools: ComputedPoolTable[];
 };
 
-function gameTeamName(team: PoolTableTeamInput) {
+function gameTeamName(team: PoolTableTeamInput, locale: Locale) {
   if (team.members.length > 0) {
     return team.members.map((member) => member.name).join(" / ");
   }
-  return team.name ?? "Game team";
+  return team.name ?? messagesFor(locale).tournament.gameTeam;
 }
 
 function poolOrderOf(team: PoolTableTeamInput) {
@@ -204,6 +207,7 @@ export function computePoolTables(args: {
   gameTeams: readonly PoolTableTeamInput[];
   matches: readonly PoolTableMatchInput[];
   viewerUserId: string;
+  locale: Locale;
 }): ComputedPoolTables | null {
   if (!hasPools(args.format, args.poolCount)) {
     return null;
@@ -350,7 +354,7 @@ export function computePoolTables(args: {
         return {
           position: index + 1,
           gameTeamId: row.gameTeamId,
-          name: gameTeamName(row.team),
+          name: gameTeamName(row.team, args.locale),
           isViewer: row.gameTeamId === viewerTeamId,
           played: unplayed ? null : row.played,
           won: unplayed ? null : row.won,
@@ -388,8 +392,8 @@ export function computePoolTables(args: {
               cancelled,
               slot1GameTeamId: slot1Id,
               slot2GameTeamId: slot2Id,
-              slot1Name: gameTeamName(slot1),
-              slot2Name: gameTeamName(slot2),
+              slot1Name: gameTeamName(slot1, args.locale),
+              slot2Name: gameTeamName(slot2, args.locale),
               outcome,
               scoreLabel: completed ? scoredSetLabel(sets) : null,
               sets,
@@ -459,7 +463,7 @@ export function computePoolTables(args: {
 
       return {
         poolIndex,
-        label: poolLabel(poolIndex),
+        label: poolLabel(poolIndex, args.locale),
         finished,
         winnerGameTeamId,
         rows,

@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatDayMonth, formatGameClock } from "./format-game-start";
 import { friendlyGameWaitlistOrdinal } from "./friendly-game-cta";
 import {
@@ -9,10 +12,7 @@ import {
   knockoutRoundName,
   knockoutStartWord,
 } from "./tournament-knockout";
-import {
-  KNOCKOUT_CHAMPION_TAG,
-  knockoutNowLine,
-} from "./tournament-knockout-view";
+import { knockoutNowLine } from "./tournament-knockout-view";
 import {
   hasKnockout,
   isDrawnTournament,
@@ -22,10 +22,7 @@ import {
 import { isOneDayTournamentWindow } from "./tournament-schedule";
 import { roundCountLabel } from "./tournament-sizing";
 
-export const TOURNAMENT_CARD_BAND_LABEL = "Friendly tournament";
-export const TOURNAMENT_MATCH_CARD_BAND_LABEL = "Your tournament";
 export const TOURNAMENT_CARD_MAX_PAIRS = 4;
-export const NO_TEAMS_YET_COPY = "No teams yet";
 
 type Occupant = { name: string; isViewer: boolean } | null;
 
@@ -63,10 +60,15 @@ export type TournamentCardInput = GameSummaryCtaInput & {
 /** One Knockout Match row: its Knockout round and how many the tree has. */
 export type TournamentKnockoutMatch = { round: number; roundCount: number };
 
-export const KNOCKOUT_BAND_META = "Knockout";
-
-function knockoutMatchName(knockoutMatch: TournamentKnockoutMatch) {
-  return knockoutMatchRoundName(knockoutMatch.round, knockoutMatch.roundCount);
+function knockoutMatchName(
+  knockoutMatch: TournamentKnockoutMatch,
+  locale: Locale,
+) {
+  return knockoutMatchRoundName(
+    knockoutMatch.round,
+    knockoutMatch.roundCount,
+    locale,
+  );
 }
 
 function asDate(value: Date | string) {
@@ -74,26 +76,32 @@ function asDate(value: Date | string) {
 }
 
 /** `Thu 25 Sep` */
-function shortDay(date: Date) {
-  return formatDayMonth(date, { weekday: "short" });
+function shortDay(date: Date, locale: Locale) {
+  return formatDayMonth(date, locale, { weekday: "short" });
 }
 
 export function tournamentCardDateLine(
   windowStart: Date | string | null | undefined,
   windowEnd: Date | string | null | undefined,
+  locale: Locale,
 ): string | null {
   if (!windowStart) {
     return null;
   }
+  const m = messagesFor(locale).tournament.card;
   const start = asDate(windowStart);
   if (!windowEnd) {
-    return `From ${shortDay(start)}`;
+    return m.fromDay(shortDay(start, locale));
   }
   const end = asDate(windowEnd);
   if (isOneDayTournamentWindow(start, end)) {
-    return `${shortDay(start)}, ${formatGameClock(start)} – ${formatGameClock(end)}`;
+    return m.dayWithHours(
+      shortDay(start, locale),
+      formatGameClock(start, locale),
+      formatGameClock(end, locale),
+    );
   }
-  return `${shortDay(start)} to ${shortDay(end)}`;
+  return m.dayRange(shortDay(start, locale), shortDay(end, locale));
 }
 
 /**
@@ -102,17 +110,19 @@ export function tournamentCardDateLine(
  */
 export function tournamentCardBandMeta(
   roundCount: number | null | undefined,
+  locale: Locale,
   game?: { format: string; tournamentShape: string | null },
 ) {
+  const m = messagesFor(locale).tournament.card;
   if (game && isKnockoutOnly(game.format, game.tournamentShape)) {
-    return KNOCKOUT_BAND_META;
+    return m.knockoutBandMeta;
   }
   if (roundCount == null) {
     return null;
   }
-  const rounds = roundCountLabel(roundCount);
+  const rounds = roundCountLabel(roundCount, locale);
   return game && hasKnockout(game.format, game.tournamentShape)
-    ? `${rounds}, then knockout`
+    ? m.roundsThenKnockout(rounds)
     : rounds;
 }
 
@@ -137,31 +147,34 @@ export function showsTournamentOpenFlag(game: TournamentCardInput) {
   );
 }
 
-export function tournamentOpenFlagLabel(openTeams: number) {
-  return openTeams > 0 ? `${openTeams} open` : "Full";
+export function tournamentOpenFlagLabel(openTeams: number, locale: Locale) {
+  const m = messagesFor(locale).tournament.card;
+  return openTeams > 0 ? m.openCount(openTeams) : m.full;
 }
 
-export function tournamentTeamsLine(game: TournamentCardInput) {
+export function tournamentTeamsLine(game: TournamentCardInput, locale: Locale) {
+  const m = messagesFor(locale).tournament.card;
   const tournament = game.tournament;
   if (tournament?.drawPosted) {
     const drawn = tournament.teams.filter((team) => team.poolIndex != null);
     const teamCount = drawn.length > 0 ? drawn.length : tournament.teams.length;
     if (isKnockoutOnly(game.format, game.tournamentShape)) {
-      return `${teamCount} ${teamCount === 1 ? "team" : "teams"}, knockout`;
+      return m.teamsKnockout(teamCount);
     }
     const groupCount =
       new Set(drawn.map((team) => team.poolIndex)).size ||
       (game.poolCount ?? 0);
-    const line = `${teamCount} ${teamCount === 1 ? "team" : "teams"}, ${groupCount} ${
-      groupCount === 1 ? "group" : "groups"
-    }`;
     const knockoutRounds = tournament.knockout?.roundCount;
     return hasKnockout(game.format, game.tournamentShape) &&
       knockoutRounds != null
-      ? `${line}, then ${knockoutStartWord(knockoutRounds)}`
-      : line;
+      ? m.teamsGroupsThen(
+          teamCount,
+          groupCount,
+          knockoutStartWord(knockoutRounds, locale),
+        )
+      : m.teamsGroups(teamCount, groupCount);
   }
-  return `${game.registeredTeamCount} of ${game.teamsAllowed ?? 0} teams in`;
+  return m.teamsIn(game.registeredTeamCount, game.teamsAllowed ?? 0);
 }
 
 /**
@@ -169,7 +182,10 @@ export function tournamentTeamsLine(game: TournamentCardInput) {
  * Final is decided, else the Knockout round now being played. Null on a
  * Groups only tournament.
  */
-export function tournamentCardKnockoutLine(game: TournamentCardInput) {
+export function tournamentCardKnockoutLine(
+  game: TournamentCardInput,
+  locale: Locale,
+) {
   const knockout = game.tournament?.knockout;
   if (
     !game.tournament?.drawPosted ||
@@ -179,10 +195,12 @@ export function tournamentCardKnockoutLine(game: TournamentCardInput) {
     return null;
   }
   if (knockout.champion) {
-    return `${KNOCKOUT_CHAMPION_TAG}: ${knockout.champion}`;
+    return messagesFor(locale).tournament.knockoutView.championLine(
+      knockout.champion,
+    );
   }
   return knockout.currentRoundName
-    ? knockoutNowLine(knockout.currentRoundName)
+    ? knockoutNowLine(knockout.currentRoundName, locale)
     : null;
 }
 
@@ -235,16 +253,20 @@ export function tournamentCardAction(
   return "view";
 }
 
-export function tournamentCardActionLabel(action: TournamentCardAction) {
+export function tournamentCardActionLabel(
+  action: TournamentCardAction,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.card;
   switch (action) {
     case "join":
-      return "Join tournament";
+      return m.joinAction;
     case "join_waitlist":
-      return "Join waitlist";
+      return m.joinWaitlistAction;
     case "invite_partner":
-      return "Invite a partner";
+      return m.invitePartnerAction;
     case "view":
-      return "View tournament";
+      return m.viewAction;
   }
 }
 
@@ -252,15 +274,22 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-function occupantName(occupant: Occupant) {
+function occupantName(occupant: Occupant, locale: Locale) {
+  const m = messagesFor(locale);
   if (!occupant) {
-    return "open seat";
+    return m.tournament.card.openSeat;
   }
-  return occupant.isViewer ? "You" : firstName(occupant.name);
+  return occupant.isViewer ? m.common.you : firstName(occupant.name);
 }
 
-export function tournamentTeamPairLabel(team: TournamentCardTeam) {
-  return `${occupantName(team.left)} and ${occupantName(team.right)}`;
+export function tournamentTeamPairLabel(
+  team: TournamentCardTeam,
+  locale: Locale,
+) {
+  return messagesFor(locale).tournament.card.pair(
+    occupantName(team.left, locale),
+    occupantName(team.right, locale),
+  );
 }
 
 export type TournamentPoolMatch = {
@@ -275,34 +304,40 @@ export type TournamentPoolMatch = {
 };
 
 /** Band meta and Coming up tag: `R2 of 3` on a Pool Match, `Semi-final` on a Knockout Match. */
-export function tournamentMatchRoundLabel(row: {
-  roundNumber: number | null | undefined;
-  roundCount: number | null | undefined;
-  knockoutMatch?: TournamentKnockoutMatch | null;
-}) {
+export function tournamentMatchRoundLabel(
+  row: {
+    roundNumber: number | null | undefined;
+    roundCount: number | null | undefined;
+    knockoutMatch?: TournamentKnockoutMatch | null;
+  },
+  locale: Locale,
+) {
   if (row.knockoutMatch) {
-    return knockoutMatchName(row.knockoutMatch);
+    return knockoutMatchName(row.knockoutMatch, locale);
   }
-  return poolRoundLabel(row.roundNumber, row.roundCount);
+  return poolRoundLabel(row.roundNumber, row.roundCount, locale);
 }
 
 export function tournamentMatchRoundLine(
   roundNumber: number | null | undefined,
   poolMatch: TournamentPoolMatch | null | undefined,
+  locale: Locale,
   knockoutMatch?: TournamentKnockoutMatch | null,
 ) {
   if (knockoutMatch) {
-    return knockoutMatchName(knockoutMatch);
+    return knockoutMatchName(knockoutMatch, locale);
   }
-  const parts = [
-    roundNumber != null ? `Round ${roundNumber}` : null,
-    poolMatch ? `group ${poolMatch.poolLabel}` : null,
-  ].filter((part): part is string => part != null);
-  if (parts.length === 0) {
-    return null;
+  const m = messagesFor(locale).tournament.card;
+  if (roundNumber != null && poolMatch) {
+    return m.roundGroup(roundNumber, poolMatch.poolLabel);
   }
-  const line = parts.join(", ");
-  return line.charAt(0).toUpperCase() + line.slice(1);
+  if (roundNumber != null) {
+    return m.roundN(roundNumber);
+  }
+  if (poolMatch) {
+    return m.group(poolMatch.poolLabel);
+  }
+  return null;
 }
 
 export function tournamentMatchVenueLine(
@@ -315,37 +350,42 @@ export function tournamentMatchVenueLine(
 
 export function tournamentMatchStandingLine(
   poolMatch: TournamentPoolMatch | null | undefined,
+  locale: Locale,
 ) {
   if (!poolMatch) {
     return null;
   }
+  const m = messagesFor(locale).tournament.card;
   if (poolMatch.viewerPosition != null) {
-    return `${friendlyGameWaitlistOrdinal(poolMatch.viewerPosition)} in group ${poolMatch.poolLabel}`;
+    return m.ordinalInGroup(
+      friendlyGameWaitlistOrdinal(poolMatch.viewerPosition),
+      poolMatch.poolLabel,
+    );
   }
-  return `Group ${poolMatch.poolLabel}, ${poolMatch.poolSize} ${
-    poolMatch.poolSize === 1 ? "team" : "teams"
-  }`;
+  return m.groupTeams(poolMatch.poolLabel, poolMatch.poolSize);
 }
 
 export function tournamentMatchLastResultLine(
   lastResult: TournamentPoolMatch["lastResult"] | undefined,
+  locale: Locale,
 ) {
   if (!lastResult) {
     return null;
   }
-  const round = `R${lastResult.roundNumber}`;
+  const m = messagesFor(locale).tournament.card;
+  const round = m.roundShort(lastResult.roundNumber);
   const score = lastResult.viewerSets
     .map((set) => `${set.viewer}-${set.opponent}`)
     .join(" ");
   switch (lastResult.outcome) {
     case "cancelled":
-      return `${round} cancelled`;
+      return m.roundCancelled(round);
     case "draw":
-      return `Drew ${round}`;
+      return m.drewRound(round);
     case "won":
-      return score ? `Won ${round}, ${score}` : `Won ${round}`;
+      return score ? m.wonRoundScore(round, score) : m.wonRound(round);
     case "lost":
-      return score ? `Lost ${round}, ${score}` : `Lost ${round}`;
+      return score ? m.lostRoundScore(round, score) : m.lostRound(round);
   }
 }
 
@@ -357,13 +397,18 @@ function capitalize(line: string) {
 export function tournamentMatchHeadline(
   roundNumber: number | null | undefined,
   relativeDay: string,
+  locale: Locale,
   knockoutMatch?: TournamentKnockoutMatch | null,
 ) {
+  const m = messagesFor(locale).tournament.card;
   if (knockoutMatch) {
-    return `${knockoutMatchName(knockoutMatch)}, ${relativeDay}`;
+    return m.knockoutHeadline(
+      knockoutMatchName(knockoutMatch, locale),
+      relativeDay,
+    );
   }
   return roundNumber != null
-    ? `Round ${roundNumber}, ${relativeDay}`
+    ? m.headline(roundNumber, relativeDay)
     : capitalize(relativeDay);
 }
 
@@ -378,47 +423,56 @@ export function tournamentMatchKickoffLine(
 
 export function tournamentMatchGroupLabel(
   poolMatch: TournamentPoolMatch | null | undefined,
+  locale: Locale,
 ) {
-  return poolMatch ? `Group ${poolMatch.poolLabel}` : null;
+  return poolMatch
+    ? messagesFor(locale).tournament.card.group(poolMatch.poolLabel)
+    : null;
 }
 
-function lastResultPhrase(lastResult: TournamentPoolMatch["lastResult"]) {
+function lastResultPhrase(
+  lastResult: TournamentPoolMatch["lastResult"],
+  locale: Locale,
+) {
   if (!lastResult) {
     return null;
   }
-  const round = `R${lastResult.roundNumber}`;
+  const m = messagesFor(locale).tournament.card;
+  const round = m.roundShort(lastResult.roundNumber);
   const score = lastResult.viewerSets
     .map((set) => `${set.viewer}-${set.opponent}`)
     .join(" ");
   switch (lastResult.outcome) {
     case "cancelled":
-      return `${round} cancelled`;
+      return m.roundCancelled(round);
     case "draw":
-      return `drew ${round}`;
+      return m.standingDrew(round);
     case "won":
-      return [`won ${round}`, score].filter(Boolean).join(" ");
+      return score ? m.standingWonScore(round, score) : m.standingWon(round);
     case "lost":
-      return [`lost ${round}`, score].filter(Boolean).join(" ");
+      return score ? m.standingLostScore(round, score) : m.standingLost(round);
   }
 }
 
 /** Home: `2nd, won R1 6-3 6-4`; the group size before the viewer's team has played. */
 export function tournamentMatchGroupStanding(
   poolMatch: TournamentPoolMatch | null | undefined,
+  locale: Locale,
 ) {
   if (!poolMatch) {
     return null;
   }
+  const m = messagesFor(locale).tournament;
   const parts = [
     poolMatch.viewerPosition != null
       ? friendlyGameWaitlistOrdinal(poolMatch.viewerPosition)
       : null,
-    lastResultPhrase(poolMatch.lastResult),
+    lastResultPhrase(poolMatch.lastResult, locale),
   ].filter((part): part is string => part != null);
   if (parts.length === 0) {
-    return `${poolMatch.poolSize} ${poolMatch.poolSize === 1 ? "team" : "teams"}`;
+    return m.card.teamsCount(poolMatch.poolSize);
   }
-  return capitalize(parts.join(", "));
+  return capitalize(parts.join(m.listSeparator));
 }
 
 /**
@@ -429,29 +483,34 @@ export function tournamentMatchGroupStanding(
 export function tournamentMatchRoundsLeftLine(
   roundNumber: number | null | undefined,
   roundCount: number | null | undefined,
+  locale: Locale,
   options: {
     knockoutMatch?: TournamentKnockoutMatch | null;
     thenKnockout?: boolean;
   } = {},
 ) {
+  const m = messagesFor(locale).tournament.card;
   const { knockoutMatch } = options;
   if (knockoutMatch) {
     if (knockoutMatch.round >= knockoutMatch.roundCount) {
-      return `Winner is ${KNOCKOUT_CHAMPION_TAG}`;
+      return m.winnerIsChampion;
     }
-    return `Winner plays the ${knockoutRoundName(
-      knockoutMatch.round + 1,
-      knockoutMatch.roundCount,
-    )}`;
+    return m.winnerPlays(
+      knockoutRoundName(
+        knockoutMatch.round + 1,
+        knockoutMatch.roundCount,
+        locale,
+      ),
+    );
   }
   if (roundNumber == null || roundCount == null) {
     return null;
   }
   const left = roundCount - roundNumber;
   if (left <= 0) {
-    return options.thenKnockout ? "Then the knockout" : "Last round";
+    return options.thenKnockout ? m.thenKnockout : m.lastRound;
   }
-  return `Then ${left} more ${left === 1 ? "round" : "rounds"}`;
+  return m.thenMoreRounds(left);
 }
 
 type MatchupSide = { left: Occupant; right: Occupant };
@@ -478,10 +537,14 @@ function shortPlayerName(name: string) {
 }
 
 /** Vacant Positions are left out: the draw has already fixed who plays. */
-export function tournamentMatchupName(side: MatchupSide | null) {
+export function tournamentMatchupName(
+  side: MatchupSide | null,
+  locale: Locale,
+) {
   if (!side) {
     return null;
   }
+  const m = messagesFor(locale);
   const occupants = [side.left, side.right].filter(
     (occupant): occupant is NonNullable<Occupant> => occupant != null,
   );
@@ -489,9 +552,13 @@ export function tournamentMatchupName(side: MatchupSide | null) {
     .filter((occupant) => !occupant.isViewer)
     .map((occupant) => shortPlayerName(occupant.name));
   if (sideHasViewer(side)) {
-    names.unshift("You");
+    names.unshift(m.common.you);
   }
-  return names.length > 0 ? names.join(" and ") : null;
+  const [first, second] = names;
+  if (first == null) {
+    return null;
+  }
+  return second == null ? first : m.tournament.card.pair(first, second);
 }
 
 export type TournamentMatchPhase = "upcoming" | "ongoing" | "needs_results";
@@ -526,12 +593,14 @@ export function isDrawnTournamentSummaryRow(row: {
 export function tournamentMatchStatus(
   phase: TournamentMatchPhase | undefined,
   countdown: string | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).tournament.card;
   switch (phase) {
     case "ongoing":
-      return "Playing now";
+      return m.playingNow;
     case "needs_results":
-      return "Add results";
+      return m.addResults;
     default:
       return countdown;
   }
@@ -546,19 +615,24 @@ export function tournamentMatchAction(
   return phase === "needs_results" && canAddResults ? "add_results" : "view";
 }
 
-export function tournamentMatchActionLabel(action: TournamentMatchAction) {
+export function tournamentMatchActionLabel(
+  action: TournamentMatchAction,
+  locale: Locale,
+) {
   return action === "add_results"
-    ? "Add results"
-    : tournamentCardActionLabel("view");
+    ? messagesFor(locale).tournament.card.addResults
+    : tournamentCardActionLabel("view", locale);
 }
 
 /** After the draw the Game opens on the viewer's group table, or on the Knockout. */
 export function homeTournamentMatchActionLabel(
   action: TournamentMatchAction,
+  locale: Locale,
   knockoutMatch?: TournamentKnockoutMatch | null,
 ) {
+  const m = messagesFor(locale).tournament.card;
   if (action === "add_results") {
-    return tournamentMatchActionLabel(action);
+    return tournamentMatchActionLabel(action, locale);
   }
-  return knockoutMatch ? "View knockout" : "View group";
+  return knockoutMatch ? m.viewKnockout : m.viewGroup;
 }

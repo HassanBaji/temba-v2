@@ -1,7 +1,10 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth } from "./format-game-start";
 import {
-  FOOTBALL_POSITION_CHOICES,
   KEEPER_CODE,
+  footballPositionChoices,
   footballPositionCode,
   type FootballPosition,
   type FootballRole,
@@ -62,24 +65,9 @@ export type FootballMatchRowView = {
   accessibilityLabel: string;
 };
 
-const OUTCOME_WORD: Record<MatchOutcome, string> = {
-  won: "Won",
-  lost: "Lost",
-  draw: "Drew",
-};
-
-const STARTING_LEVEL_LINES = [
-  "Starting Level",
-  "Football games don't move it yet",
-];
-
 function nonBlank(value: string | null) {
   const trimmed = value?.trim();
   return trimmed === "" ? null : (trimmed ?? null);
-}
-
-function goalsLabel(goals: number) {
-  return goals === 1 ? "1 goal" : `${goals} goals`;
 }
 
 /**
@@ -88,70 +76,84 @@ function goalsLabel(goals: number) {
  */
 export function footballLevelCardView(
   input: PlayerLevelInput | null,
+  locale: Locale,
 ): PlayerLevelCardView {
   if (!input || input.ratedMatchCount > 0) {
-    return playerLevelCardView(input);
+    return playerLevelCardView(input, locale);
   }
+  const m = messagesFor(locale).profile;
   const displayBand = displayLabelFromStoredBand(input.levelBand);
   const level = formatLevel(input.levelValue);
+  const lines = [m.football.startingLevel, m.football.startingLevelNote];
   return {
     kind: "rated",
     displayBand,
     level,
     provisional: true,
-    lines: STARTING_LEVEL_LINES,
+    lines,
     fillPercent: 0,
-    accessibilityLabel: `Level ${displayBand} ${level}. ${STARTING_LEVEL_LINES.join(". ")}`,
+    accessibilityLabel: m.levelCard.spokenLevel(
+      displayBand,
+      level,
+      lines.join(". "),
+    ),
   };
 }
 
-export function footballRoleView(input: FootballRoleInput): FootballRoleView {
+export function footballRoleView(
+  input: FootballRoleInput,
+  locale: Locale,
+): FootballRoleView {
+  const m = messagesFor(locale).profile;
   if (input.role === "keeper") {
-    return { label: "Keeper", code: KEEPER_CODE };
+    return { label: m.football.keeper, code: KEEPER_CODE };
   }
   if (input.role == null) {
-    return { label: "No preference set", code: null };
+    return { label: m.player.noPreferenceSet, code: null };
   }
-  const position = FOOTBALL_POSITION_CHOICES.find(
+  const position = footballPositionChoices(locale).find(
     (choice) => choice.value === input.position,
   );
   return position
     ? { label: position.label, code: footballPositionCode(position.value) }
-    : { label: "Outfield", code: null };
+    : { label: m.football.outfield, code: null };
 }
 
 export function footballOverallView(
   input: FootballOverallInput,
+  locale: Locale,
 ): PlayerOverallView {
+  const m = messagesFor(locale).profile.player;
   return {
-    title: "Overall",
-    scope: "All time",
+    title: m.overall,
+    scope: m.allTime,
     tiles: [
-      { label: "Matches", value: String(input.played) },
-      { label: "Won", value: String(input.won) },
-      { label: "Win rate", value: formatWinRate(input.won, input.played) },
-      { label: "Goals", value: String(input.goals) },
+      { label: m.matches, value: String(input.played) },
+      { label: m.won, value: String(input.won) },
+      { label: m.winRate, value: formatWinRate(input.won, input.played) },
+      { label: m.goals, value: String(input.goals) },
     ],
   };
 }
 
 export function footballMatchRowView(
   match: FootballMatchInput,
+  locale: Locale,
 ): FootballMatchRowView {
+  const m = messagesFor(locale).profile;
   const title =
     nonBlank(match.game.groupName) ??
     nonBlank(match.game.name) ??
-    "Friendly game";
+    m.matches.friendlyGame;
   const score = match.score ? `${match.score.us}–${match.score.them}` : null;
-  const goals = match.goals > 0 ? goalsLabel(match.goals) : null;
+  const goals = match.goals > 0 ? m.football.goalsScored(match.goals) : null;
+  const outcome = m.matches.outcome[match.outcome];
   const spoken = [
-    score
-      ? `${OUTCOME_WORD[match.outcome]} ${score}`
-      : OUTCOME_WORD[match.outcome],
-    formatDayMonth(match.playedAt, { weekday: "long", month: "long" }),
+    score ? m.matches.outcomeScore(outcome, score) : outcome,
+    formatDayMonth(match.playedAt, locale, { weekday: "long", month: "long" }),
     title,
     match.game.venueName,
-    goals ? `scored ${goals}` : null,
+    goals ? m.football.scored(goals) : null,
   ];
 
   return {
@@ -159,17 +161,23 @@ export function footballMatchRowView(
     gameId: match.gameId,
     outcome: match.outcome,
     title,
-    meta: `${formatDayMonth(match.playedAt, { weekday: "short" })}, ${match.game.venueName}`,
+    meta: m.matches.dateComma(
+      formatDayMonth(match.playedAt, locale, { weekday: "short" }),
+      match.game.venueName,
+    ),
     score,
     goals,
     canOpenGame: match.canOpenGame,
-    accessibilityLabel: spoken.filter((part) => part).join(", "),
+    accessibilityLabel: m.matches.spokenParts(
+      spoken.filter((part) => part != null),
+    ),
   };
 }
 
 /** The Last 10 strip without "See all": the Last 10 screen is padel only. */
 export function footballLastTenSummary(
   matches: readonly Pick<FootballMatchInput, "outcome" | "playedAt">[],
+  locale: Locale,
 ): LastTenSummary {
-  return { ...lastTenSummary(matches), seeAll: null };
+  return { ...lastTenSummary(matches, locale), seeAll: null };
 }

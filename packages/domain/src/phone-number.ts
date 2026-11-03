@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
+
 export type CallingCountry = {
   iso: string;
   name: string;
@@ -75,6 +78,24 @@ export const DEFAULT_CALLING_COUNTRY_ISO = "BH";
 
 export function callingCountryByIso(iso: string): CallingCountry | undefined {
   return CALLING_COUNTRIES.find((country) => country.iso === iso);
+}
+
+const COUNTRY_NAME_KEYS = {
+  BH: "bh",
+  KW: "kw",
+  SA: "sa",
+  AE: "ae",
+  QA: "qa",
+  OM: "om",
+  US: "us",
+} as const satisfies Record<string, keyof Messages["auth"]["country"]>;
+
+/** The country as the phone control names it; `name` on the row is the English reference. */
+export function callingCountryName(iso: string, locale: Locale): string {
+  const key = COUNTRY_NAME_KEYS[iso as keyof typeof COUNTRY_NAME_KEYS];
+  return key
+    ? messagesFor(locale).auth.country[key]
+    : (callingCountryByIso(iso)?.name ?? iso);
 }
 
 const REGIONAL_INDICATOR_A = 0x1f1e6;

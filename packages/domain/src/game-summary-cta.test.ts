@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   gameCardActionLabel,
   gameCardActionSolid,
+  gameSummaryCtaLabel,
   gameSummaryPrimaryAction,
   gameViewerStatus,
   showsFriendlyRoster,
@@ -224,30 +225,47 @@ describe("showsFriendlyRoster", () => {
 
 describe("gameCardActionLabel", () => {
   it("uses Join Game for an open Friendly join", () => {
-    assert.equal(gameCardActionLabel("join"), "Join Game");
+    assert.equal(gameCardActionLabel("join", "en"), "Join Game");
   });
 
   it("offers Invite a player when the viewer is in and a seat is open", () => {
     assert.equal(
-      gameCardActionLabel("view", { viewerIn: true, openSpots: 1 }),
+      gameCardActionLabel("view", "en", { viewerIn: true, openSpots: 1 }),
       "Invite a player",
     );
   });
 
   it("falls back to Details when the Game is full or the viewer is out", () => {
     assert.equal(
-      gameCardActionLabel("view", { viewerIn: true, openSpots: 0 }),
+      gameCardActionLabel("view", "en", { viewerIn: true, openSpots: 0 }),
       "Details",
     );
-    assert.equal(gameCardActionLabel("view"), "Details");
+    assert.equal(gameCardActionLabel("view", "en"), "Details");
+  });
+
+  it("labels the card action in Arabic", () => {
+    assert.equal(gameCardActionLabel("join", "ar"), "انضم إلى اللعبة");
+    assert.equal(gameCardActionLabel("view", "ar"), "التفاصيل");
+    assert.equal(
+      gameSummaryCtaLabel("join_waitlist", "ar"),
+      "انضم إلى قائمة الانتظار",
+    );
   });
 });
 
 describe("gameCardActionSolid", () => {
   it("keeps Invite a player and join actions solid", () => {
-    assert.equal(gameCardActionSolid("Invite a player", "view"), true);
-    assert.equal(gameCardActionSolid("Join Game", "join"), true);
-    assert.equal(gameCardActionSolid("Details", "view"), false);
+    assert.equal(gameCardActionSolid("Invite a player", "view", "en"), true);
+    assert.equal(gameCardActionSolid("Join Game", "join", "en"), true);
+    assert.equal(gameCardActionSolid("Details", "view", "en"), false);
+    assert.equal(
+      gameCardActionSolid(
+        gameCardActionLabel("view", "ar", { viewerIn: true, openSpots: 1 }),
+        "view",
+        "ar",
+      ),
+      true,
+    );
   });
 });
 

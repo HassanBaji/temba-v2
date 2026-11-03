@@ -1,7 +1,11 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
+  formatDayMonth,
   formatGameClock,
   formatGameClockWithoutMeridiem,
-  formatRelativeDay,
+  gameDayProximity,
 } from "./format-game-start";
 
 const MINUTE_MS = 60_000;
@@ -10,7 +14,12 @@ const MINUTE_MS = 60_000;
  * Live countdown for an upcoming Home game. Returns null when the start is
  * not in the future so the UI never shows a negative or zero-minute value.
  */
-export function formatHomeCountdown(startsAt: Date, now: Date): string | null {
+export function formatHomeCountdown(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string | null {
+  const m = messagesFor(locale).dates.countdown;
   const remainingMs = startsAt.getTime() - now.getTime();
   if (remainingMs <= 0) {
     return null;
@@ -19,16 +28,15 @@ export function formatHomeCountdown(startsAt: Date, now: Date): string | null {
   const totalMinutes = Math.floor(remainingMs / MINUTE_MS);
   const dayMinutes = 24 * 60;
   if (totalMinutes >= dayMinutes) {
-    const days = Math.floor(totalMinutes / dayMinutes);
-    return days === 1 ? "in 1 day" : `in ${days} days`;
+    return m.inDays(Math.floor(totalMinutes / dayMinutes));
   }
   if (totalMinutes < 60) {
-    return `in ${Math.max(1, totalMinutes)}m`;
+    return m.inMinutes(Math.max(1, totalMinutes));
   }
 
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return `in ${hours}h ${minutes}m`;
+  return m.inHoursMinutes(hours, minutes);
 }
 
 /**
@@ -45,12 +53,15 @@ export function formatHeroCountdown(
   phase: "upcoming" | "ongoing",
   startsAt: Date,
   now: Date,
+  locale: Locale,
 ): string | null {
-  const countdown = formatHomeCountdown(startsAt, now);
+  const countdown = formatHomeCountdown(startsAt, now, locale);
   if (countdown) {
     return countdown;
   }
-  return phase === "ongoing" ? "Starting now" : null;
+  return phase === "ongoing"
+    ? messagesFor(locale).dates.countdown.startingNow
+    : null;
 }
 
 /**
@@ -63,33 +74,39 @@ export function formatHeroCountdown(
 export function formatHeroKickoffTrailer(
   startsAt: Date,
   windowEnd: Date | string | null | undefined,
+  locale: Locale,
 ): string {
-  const kickoff = formatHomeKickoff(startsAt);
+  const m = messagesFor(locale).dates.countdown;
+  const kickoff = formatHomeKickoff(startsAt, locale);
   if (!windowEnd) {
     return kickoff.meridiem;
   }
-  const endClock = formatGameClockWithoutMeridiem(windowEnd);
+  const endClock = formatGameClockWithoutMeridiem(windowEnd, locale);
   return kickoff.meridiem
-    ? `${kickoff.meridiem} until ${endClock}`
-    : `until ${endClock}`;
+    ? m.meridiemUntil(kickoff.meridiem, endClock)
+    : m.until(endClock);
 }
 
-export function formatHomeKickoff(startsAt: Date): {
+export function formatHomeKickoff(
+  startsAt: Date,
+  locale: Locale,
+): {
   time: string;
   meridiem: string;
   relativeDay: string;
 } {
-  const clock = formatGameClock(startsAt);
+  const m = messagesFor(locale).dates;
+  const clock = formatGameClock(startsAt, locale);
   const parts = clock.trim().split(/\s+/);
   const meridiem = parts.length > 1 ? (parts[parts.length - 1] ?? "") : "";
   const time = parts.length > 1 ? parts.slice(0, -1).join(" ") : clock;
-  const relative = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
+  const proximity = gameDayProximity(startsAt);
   const relativeDay =
-    relative === "Tonight"
-      ? "tonight"
-      : relative === "Tomorrow"
-        ? "tomorrow"
-        : relative;
+    proximity === "today"
+      ? m.tonightInSentence
+      : proximity === "tomorrow"
+        ? m.tomorrowInSentence
+        : formatDayMonth(startsAt, locale, { weekday: "short" });
 
   return { time, meridiem, relativeDay };
 }

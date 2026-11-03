@@ -1,5 +1,9 @@
-export const NO_LINKABLE_COMMUNITY_COPY =
-  "You're not in a Community that can link this Team.";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+export function noLinkableCommunityCopy(locale: Locale) {
+  return messagesFor(locale).team.noLinkableCommunity;
+}
 
 export type TeamLinkCommunityPicker<T> =
   | { status: "loading" }

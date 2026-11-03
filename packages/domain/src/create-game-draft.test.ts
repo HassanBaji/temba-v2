@@ -18,7 +18,7 @@ const now = new Date(2026, 8, 29, 10, 0);
 
 function filledDraft(): CreateGameDraft {
   return {
-    ...initialCreateGameDraft(now),
+    ...initialCreateGameDraft(now, "en"),
     groupId: "group-1",
     venueId: "venue-1",
     courtId: "court-2",
@@ -69,11 +69,23 @@ const throwingStorage = {
 
 describe("create game draft", () => {
   it("starts from the earliest create day with a matching default tournament name", () => {
-    const initial = initialCreateGameDraft(now);
+    const initial = initialCreateGameDraft(now, "en");
     assert.equal(initial.day, "2026-09-29");
-    assert.equal(initial.name, friendlyTournamentDefaultName("2026-09-29"));
+    assert.equal(
+      initial.name,
+      friendlyTournamentDefaultName("2026-09-29", "en"),
+    );
     assert.equal(initial.courtId, "none");
     assert.equal(initial.roundCount, null);
+  });
+
+  it("names the default tournament in Arabic", () => {
+    const initial = initialCreateGameDraft(now, "ar");
+    assert.equal(
+      initial.name,
+      friendlyTournamentDefaultName("2026-09-29", "ar"),
+    );
+    assert.ok(initial.name.startsWith("بطولة ودية · "));
   });
 
   it("round-trips every field", () => {
@@ -85,7 +97,7 @@ describe("create game draft", () => {
   });
 
   it("starts at 5-a-side with ten players and reads an older draft the same way", () => {
-    const initial = initialCreateGameDraft(now);
+    const initial = initialCreateGameDraft(now, "en");
     assert.equal(initial.sideSize, 5);
     assert.equal(initial.playersAllowed, 10);
     const stored = JSON.parse(
@@ -127,7 +139,10 @@ describe("create game draft", () => {
       parseCreateGameDraft(serializeCreateGameDraft(draft)),
       draft,
     );
-    assert.equal(initialCreateGameDraft(now).tournamentShape, "groups_only");
+    assert.equal(
+      initialCreateGameDraft(now, "en").tournamentShape,
+      "groups_only",
+    );
     const stored = JSON.parse(
       serializeCreateGameDraft(filledDraft()),
     ) as Record<string, unknown>;
@@ -154,7 +169,7 @@ describe("create game draft", () => {
       parseCreateGameDraft(serializeCreateGameDraft(draft)),
       draft,
     );
-    assert.equal(initialCreateGameDraft(now).qualifiersPerPool, 2);
+    assert.equal(initialCreateGameDraft(now, "en").qualifiersPerPool, 2);
     const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
       string,
       unknown
@@ -203,9 +218,9 @@ describe("create game draft", () => {
   });
 
   it("is dirty only when a field differs from the initial draft", () => {
-    const initial = initialCreateGameDraft(now);
+    const initial = initialCreateGameDraft(now, "en");
     assert.equal(
-      isCreateGameDraftDirty(initialCreateGameDraft(now), initial),
+      isCreateGameDraftDirty(initialCreateGameDraft(now, "en"), initial),
       false,
     );
     assert.equal(

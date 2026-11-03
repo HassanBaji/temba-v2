@@ -20,12 +20,25 @@ describe("gameWindowLabel", () => {
     const windowStart = new Date("2026-11-05T17:00:00.000Z");
     const windowEnd = new Date("2026-11-05T18:30:00.000Z");
     const window = splitGameWindow(windowStart, windowEnd);
-    expect(gameWindowLabel(windowStart, windowEnd)).toBe(
-      formatGameWindowName(window.day, window.startTime, window.finishTime),
+    expect(gameWindowLabel(windowStart, windowEnd, "en")).toBe(
+      formatGameWindowName(
+        window.day,
+        window.startTime,
+        window.finishTime,
+        "en",
+      ),
+    );
+    expect(gameWindowLabel(windowStart, windowEnd, "ar")).toBe(
+      formatGameWindowName(
+        window.day,
+        window.startTime,
+        window.finishTime,
+        "ar",
+      ),
     );
   });
 
   it("is null without a window", () => {
-    expect(gameWindowLabel(null, null)).toBeNull();
+    expect(gameWindowLabel(null, null, "en")).toBeNull();
   });
 });

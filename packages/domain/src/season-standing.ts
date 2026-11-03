@@ -8,6 +8,9 @@
  * ranked rows without a position.
  */
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { MATCH_STATUS } from "./match-status";
 import { matchOutcome } from "./match-outcome";
 import {
@@ -271,27 +274,33 @@ export function seasonStandingTable<
 }
 
 /** `"No games yet"` or `"Fewer than 3 games"`, the UNRANKED divider's note. */
-export function unrankedNote(minRankedGames = SEASON_MIN_RANKED_GAMES) {
+export function unrankedNote(
+  locale: Locale,
+  minRankedGames = SEASON_MIN_RANKED_GAMES,
+) {
+  const m = messagesFor(locale).group.standing;
   if (minRankedGames <= 1) {
-    return "No games yet";
+    return m.noGamesYet;
   }
-  return `Fewer than ${minRankedGames} games`;
+  return m.fewerThan(minRankedGames);
 }
 
 /** The footer under the table, by sport. */
 export function standingRulesLine(
   diffUnit: StandingDiffUnit,
+  locale: Locale,
   minRankedGames = SEASON_MIN_RANKED_GAMES,
 ) {
-  const difference =
-    diffUnit === "sets" ? "set difference" : "score difference";
-  return `Win ${SEASON_POINTS.win}, draw ${SEASON_POINTS.draw}, loss ${SEASON_POINTS.loss}, to every player on the team. Only games with a confirmed final score count. Ties: wins, then head-to-head, then ${difference}, then fewer games played. ${rankedAfterLine(minRankedGames)}`;
+  const m = messagesFor(locale).group.standing;
+  const difference = diffUnit === "sets" ? m.setDifference : m.scoreDifference;
+  return `${m.rulesLine(SEASON_POINTS.win, SEASON_POINTS.draw, SEASON_POINTS.loss, difference)} ${rankedAfterLine(minRankedGames, locale)}`;
 }
 
-function rankedAfterLine(minRankedGames: number) {
+function rankedAfterLine(minRankedGames: number, locale: Locale) {
+  const m = messagesFor(locale).group.standing;
   return minRankedGames <= 1
-    ? "One game ranks you."
-    : `Play ${minRankedGames} games to be ranked.`;
+    ? m.oneGameRanks
+    : m.playGamesToRank(minRankedGames);
 }
 
 /** `"5–2–1"`: wins, draws, losses. */

@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   displayLabelFromStoredBand,
@@ -113,16 +116,23 @@ export const LEVEL_OVERRIDE_REASONS = [
 
 export type LevelOverrideReason = (typeof LEVEL_OVERRIDE_REASONS)[number];
 
-const REASON_LABELS: Record<LevelOverrideReason, string> = {
-  new_to_group: "New to the Group",
-  plays_above_results: "Plays above results",
-  plays_below_results: "Plays below results",
-  back_from_injury: "Back from injury",
-  correcting_a_mistake: "Correcting a mistake",
-};
-
-export function levelOverrideReasonLabel(reason: LevelOverrideReason): string {
-  return REASON_LABELS[reason];
+export function levelOverrideReasonLabel(
+  reason: LevelOverrideReason,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).level.overrideReason;
+  switch (reason) {
+    case "new_to_group":
+      return m.newToGroup;
+    case "plays_above_results":
+      return m.playsAboveResults;
+    case "plays_below_results":
+      return m.playsBelowResults;
+    case "back_from_injury":
+      return m.backFromInjury;
+    case "correcting_a_mistake":
+      return m.correctingAMistake;
+  }
 }
 
 /** `Set by you, today` or `Set by Sara K, 3 days ago`. */
@@ -130,8 +140,15 @@ export function levelOverrideCaption(args: {
   setByIsViewer: boolean;
   setByName: string;
   createdAt: Date | string;
+  locale: Locale;
   now?: Date;
 }): string {
-  const who = args.setByIsViewer ? "you" : shortPlayerName(args.setByName);
-  return `Set by ${who}, ${formatPastDay(args.createdAt, args.now)}`;
+  const m = messagesFor(args.locale).level;
+  const who = args.setByIsViewer
+    ? m.overrideByYou
+    : shortPlayerName(args.setByName);
+  return m.overrideCaption(
+    who,
+    formatPastDay(args.createdAt, args.locale, args.now),
+  );
 }

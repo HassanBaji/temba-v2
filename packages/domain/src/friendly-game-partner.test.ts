@@ -391,24 +391,27 @@ describe("partner suggestion copy", () => {
 
   it("describes an eligible partner with position and history", () => {
     assert.equal(
-      partnerSuggestionMetaLine(row),
+      partnerSuggestionMetaLine(row, "en"),
       `${displayLabelFromStoredBand("C1")}, plays left. 2 games together`,
     );
-    assert.equal(partnerSuggestionButtonLabel(row), "Select Sam Chen");
+    assert.equal(partnerSuggestionButtonLabel(row, "en"), "Select Sam Chen");
   });
 
   it("falls back to either side and omits the history for a first pairing", () => {
     assert.equal(
-      partnerSuggestionMetaLine({
-        ...row,
-        levelBand: null,
-        preferredPosition: null,
-        gamesTogether: 0,
-      }),
+      partnerSuggestionMetaLine(
+        {
+          ...row,
+          levelBand: null,
+          preferredPosition: null,
+          gamesTogether: 0,
+        },
+        "en",
+      ),
       "plays either side",
     );
     assert.match(
-      partnerSuggestionMetaLine({ ...row, gamesTogether: 1 }),
+      partnerSuggestionMetaLine({ ...row, gamesTogether: 1 }, "en"),
       /1 game together$/,
     );
   });
@@ -416,31 +419,38 @@ describe("partner suggestion copy", () => {
   it("explains why a partner cannot be chosen", () => {
     const blocked = { ...row, ineligible: "level_range" as const };
     assert.equal(
-      partnerSuggestionButtonLabel(blocked),
+      partnerSuggestionButtonLabel(blocked, "en"),
       "Sam Chen. Outside this game's level range",
     );
     assert.equal(
-      partnerIneligibleReason("already_on_game"),
+      partnerIneligibleReason("already_on_game", "en"),
       "Already in this game",
     );
-    assert.equal(partnerIneligibleReason("waitlisted"), "On the waitlist");
+    assert.equal(
+      partnerIneligibleReason("waitlisted", "en"),
+      "On the waitlist",
+    );
   });
 
   it("counts the open seats", () => {
-    assert.equal(partnerSeatsChip(1), "1 seat open");
-    assert.equal(partnerSeatsChip(2), "2 seats open");
+    assert.equal(partnerSeatsChip(1, "en"), "1 seat open");
+    assert.equal(partnerSeatsChip(2, "en"), "2 seats open");
   });
 
   it("builds the review line from what is known", () => {
     assert.equal(
-      partnerReviewGameLine({ venueName: " Riverside " }),
+      partnerReviewGameLine({ venueName: " Riverside ", locale: "en" }),
       "Two seats at Riverside, one for each of you.",
     );
-    assert.equal(partnerReviewGameLine({}), "Two seats, one for each of you.");
+    assert.equal(
+      partnerReviewGameLine({ locale: "en" }),
+      "Two seats, one for each of you.",
+    );
     assert.match(
       partnerReviewGameLine({
         windowStart: new Date("2026-10-04T16:30:00Z"),
         venueName: "Riverside",
+        locale: "en",
       }),
       /at Riverside\. Two seats, one for each of you\.$/,
     );
@@ -453,26 +463,40 @@ describe("partner suggestion copy", () => {
         pricePerPlayerFils: 12500,
         levelMinTenths: 30,
         levelMaxTenths: 45,
+        locale: "en",
       }).map((detail) => detail.label),
       ["Organizer", "Price per player", "Counts for rating", "Level"],
     );
     assert.equal(
-      partnerReviewDetails({ pricePerPlayerFils: 12500 })[0]?.value,
+      partnerReviewDetails({ pricePerPlayerFils: 12500, locale: "en" })[0]
+        ?.value,
       "12.500 BD each",
     );
-    assert.deepEqual(partnerReviewDetails({}), [
+    assert.deepEqual(partnerReviewDetails({ locale: "en" }), [
       { label: "Counts for rating", value: "Yes, as a pair" },
     ]);
   });
 
   it("describes a player's seat", () => {
     assert.equal(
-      partnerPlayerMeta({ levelBand: null, position: "right" }),
+      partnerPlayerMeta({ levelBand: null, position: "right", locale: "en" }),
       "right seat",
     );
     assert.equal(
-      partnerPlayerMeta({ levelBand: "C1", position: "left" }),
+      partnerPlayerMeta({ levelBand: "C1", position: "left", locale: "en" }),
       `${displayLabelFromStoredBand("C1")}, left seat`,
+    );
+  });
+
+  it("writes the suggestion copy in Arabic", () => {
+    assert.equal(
+      partnerSuggestionMetaLine({ ...row, levelBand: null }, "ar"),
+      "يلعب يسارًا. لعبتان معًا",
+    );
+    assert.equal(partnerSeatsChip(1, "ar"), "مقعد واحد مفتوح");
+    assert.equal(
+      partnerReviewGameLine({ locale: "ar" }),
+      "مقعدان، واحد لكل منكما.",
     );
   });
 });
@@ -504,8 +528,12 @@ describe("join sheet copy", () => {
 
   it("titles the seat step by whether anything is left", () => {
     assert.equal(
-      friendlyGameJoinSheetHeader({ step: "seat", isFull: true, title: "Game" })
-        .title,
+      friendlyGameJoinSheetHeader({
+        step: "seat",
+        isFull: true,
+        title: "Game",
+        locale: "en",
+      }).title,
       "Game is full",
     );
     assert.equal(
@@ -513,6 +541,7 @@ describe("join sheet copy", () => {
         step: "seat",
         isFull: false,
         title: "Game",
+        locale: "en",
       }).title,
       "Pick your spot",
     );
@@ -521,13 +550,15 @@ describe("join sheet copy", () => {
         step: "chooser",
         isFull: false,
         title: "Game",
+        locale: "en",
       }).title,
       "How do you want to join?",
     );
   });
 
   it("labels the Continue button with the chosen partner", () => {
-    assert.equal(partnerContinueLabel(null), "Continue");
-    assert.equal(partnerContinueLabel("Sam"), "Continue with Sam");
+    assert.equal(partnerContinueLabel(null, "en"), "Continue");
+    assert.equal(partnerContinueLabel("Sam", "en"), "Continue with Sam");
+    assert.equal(partnerContinueLabel("Sam", "ar"), "تابع مع Sam");
   });
 });

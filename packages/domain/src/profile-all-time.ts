@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { shortPlayerName } from "./player-name";
 import type { Sport } from "./sport";
 import { winRatePercent } from "./win-rate";
@@ -40,21 +43,28 @@ export function matchYear(value: Date | string | null | undefined) {
   return Number.isFinite(year) ? year : null;
 }
 
-export function winStreakLabel(streak: number) {
+export function winStreakLabel(streak: number, locale: Locale) {
   if (streak <= 0) {
     return EMPTY_VALUE;
   }
-  return streak === 1 ? "1 win" : `${streak} wins`;
+  return messagesFor(locale).profile.wins(streak);
 }
 
-export function playingSinceLine(firstMatchAt: Date | string | null) {
+export function playingSinceLine(
+  firstMatchAt: Date | string | null,
+  locale: Locale,
+) {
   const year = matchYear(firstMatchAt);
-  return year == null ? null : `Playing padel since ${year}`;
+  return year == null
+    ? null
+    : messagesFor(locale).profile.allTime.playingSince(year);
 }
 
 export function profileAllTimeView(
   input: ProfileAllTimeInput,
+  locale: Locale,
 ): ProfileAllTimeView {
+  const m = messagesFor(locale).profile.allTime;
   const year = matchYear(input.firstMatchAt);
   const football = input.sport === "football";
   const sets =
@@ -67,13 +77,13 @@ export function profileAllTimeView(
     matchesPlayed: input.matchesPlayed,
     record: `${input.matchesWon}–${input.matchesLost}`,
     winRatePercent: winRatePercent(input.matchesWon, input.matchesPlayed),
-    sinceLabel: year == null ? null : `Since ${year}`,
+    sinceLabel: year == null ? null : m.since(year),
     sets,
     tally: football
-      ? { label: "Goals", value: goals }
-      : { label: "Sets", value: sets },
-    longestStreak: winStreakLabel(input.longestWinStreak),
-    partnerLabel: football ? "Most played teammate" : "Most played partner",
+      ? { label: m.goals, value: goals }
+      : { label: m.sets, value: sets },
+    longestStreak: winStreakLabel(input.longestWinStreak, locale),
+    partnerLabel: football ? m.mostPlayedTeammate : m.mostPlayedPartner,
     mostPlayedPartner: input.mostPlayedPartnerName
       ? shortPlayerName(input.mostPlayedPartnerName)
       : EMPTY_VALUE,

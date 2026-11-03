@@ -1,117 +1,97 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import type { GroupJoinRequestData } from "./group-data";
 import { formatPastDay, formatRequestedAt } from "./request-meta";
 
-export const GROUP_REQUIRE_APPROVAL_LABEL = "Require approval";
-
-export const GROUP_REQUESTS_ERROR_TITLE = "Join requests could not be loaded";
-
-export const GROUP_IMAGE_SAVED_TOAST = "Image saved";
-
-export const GROUP_IMAGE_REMOVED_TOAST = "Image removed";
-
-export const GROUP_DELETED_TOAST = "Group deleted";
-
-export function groupDeleteConfirm(groupName: string) {
+export function groupDeleteConfirm(groupName: string, locale: Locale) {
+  const m = messagesFor(locale).group.admin.deleteConfirm;
   return {
-    title: `Delete ${groupName}?`,
-    description: "This cannot be undone.",
-    confirmLabel: "Delete Group",
+    title: m.title(groupName),
+    description: m.description,
+    confirmLabel: m.confirmLabel,
   };
 }
 
-export function groupRemoveImageConfirm(groupName: string) {
+export function groupRemoveImageConfirm(groupName: string, locale: Locale) {
+  const m = messagesFor(locale).group.admin.removeImageConfirm;
   return {
-    title: `Remove image for ${groupName}?`,
-    description: "The current image will be removed.",
-    confirmLabel: "Remove image",
+    title: m.title(groupName),
+    description: m.description,
+    confirmLabel: m.confirmLabel,
   };
 }
 
 export function groupJoinRequestMeta(
   request: Pick<GroupJoinRequestData, "createdAt" | "source" | "invitedBy">,
   communityName: string | null,
+  locale: Locale,
   now?: Date,
 ) {
-  const when = formatPastDay(request.createdAt, now);
+  const m = messagesFor(locale).group.admin.requestMeta;
+  const when = formatPastDay(request.createdAt, locale, now);
   if (request.source === "invite_link") {
     return request.invitedBy
-      ? `Via invite link from ${request.invitedBy.name}, ${when}`
-      : `Via invite link, ${when}`;
+      ? m.viaInviteLinkFrom(request.invitedBy.name, when)
+      : m.viaInviteLink(when);
   }
   if (request.source === "community") {
-    return `Found the Group in ${communityName ?? "the Community"}, ${when}`;
+    return m.foundInCommunity(communityName ?? m.theCommunity, when);
   }
-  return formatRequestedAt(request.createdAt, now);
+  return formatRequestedAt(request.createdAt, locale, now);
 }
 
-export function groupJoinRequestsBannerText(count: number) {
-  return count === 1
-    ? "1 person wants to join"
-    : `${count} people want to join`;
+export function groupJoinRequestsBannerText(count: number, locale: Locale) {
+  return messagesFor(locale).group.admin.requestsBanner(count);
 }
 
-export function groupJoinRequestsHeading(count: number) {
-  return count === 1 ? "1 wants to join" : `${count} want to join`;
+export function groupJoinRequestsHeading(count: number, locale: Locale) {
+  return messagesFor(locale).group.admin.requestsHeading(count);
 }
 
-export const GROUP_JOIN_REQUESTS_REVIEW_LABEL = "Review";
-
-export const GROUP_JOIN_POLICY_CHANGE_LABEL = "Change";
-
-export function groupJoinPolicyLine(requiresApproval: boolean) {
-  return requiresApproval
-    ? "Organizers approve new members"
-    : "Anyone with the link can join";
+export function groupJoinPolicyLine(requiresApproval: boolean, locale: Locale) {
+  const m = messagesFor(locale).group.admin.policy;
+  return requiresApproval ? m.approve : m.open;
 }
 
 /** The one-line card that stands in for the requests list when it is empty. */
 export function groupJoinRequestsSummary(input: {
   requiresApproval: boolean;
   approvedToday: number;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).group.admin;
   if (!input.requiresApproval) {
     return {
-      title: "Anyone with the link can join",
-      line: "Joins instantly, no review",
+      title: m.policy.open,
+      line: m.requestsSummary.openLine,
     };
   }
   return {
-    title: "No requests waiting",
+    title: m.requestsSummary.waitingTitle,
     line:
       input.approvedToday > 0
-        ? `Organizers approve new members, ${input.approvedToday} approved today`
-        : "Organizers approve new members",
+        ? m.requestsSummary.approvedToday(input.approvedToday)
+        : m.policy.approve,
   };
 }
 
-export const GROUP_WHO_CAN_JOIN = {
-  title: "Who can join",
-  approve: {
-    title: "Organizers approve",
-    description: "Requests wait on the Members tab until you decide.",
-  },
-  open: {
-    title: "Anyone with the link",
-    description:
-      "They join instantly. Pending requests are not admitted automatically.",
-  },
-  doneLabel: "Done",
-} as const;
-
-export function groupWhoCanJoinDescription(communityName: string | null) {
-  return communityName
-    ? `Applies to the invite link and to people who find the Group in ${communityName}.`
-    : "Applies to the invite link and to people who find the Group.";
+export function groupWhoCanJoinDescription(
+  communityName: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.admin.whoCanJoin;
+  return communityName ? m.descriptionIn(communityName) : m.description;
 }
 
-export function groupRejectRequestCopy(name: string) {
+export function groupRejectRequestCopy(name: string, locale: Locale) {
+  const m = messagesFor(locale);
   return {
-    title: `Reject ${name}?`,
-    description:
-      "They are not notified and can request again. Reject and block stops further requests.",
-    rejectLabel: "Reject request",
-    blockLabel: "Reject and block",
-    cancelLabel: "Cancel",
+    title: m.group.admin.reject.title(name),
+    description: m.group.admin.reject.description,
+    rejectLabel: m.group.admin.reject.rejectLabel,
+    blockLabel: m.group.admin.reject.blockLabel,
+    cancelLabel: m.common.cancel,
   };
 }
 
@@ -120,26 +100,12 @@ export type GroupJoinRequestDecision = "approved" | "rejected" | "blocked";
 export function groupJoinRequestDecidedToast(
   name: string,
   decision: GroupJoinRequestDecision,
+  locale: Locale,
 ) {
-  if (decision === "approved") {
-    return `${name} added to the Group`;
-  }
-  return decision === "blocked"
-    ? `${name} rejected and blocked`
-    : `${name} rejected`;
+  return messagesFor(locale).group.admin.decided[decision](name);
 }
 
-export const GROUP_JOIN_REQUEST_UNDO_LABEL = "Undo";
-
 export const GROUP_JOIN_NOTE_MAX_LENGTH = 280;
-
-export const GROUP_REQUEST_JOIN_SHEET = {
-  title: "Request to join",
-  description:
-    "Organizers approve new members. A short note helps them place you.",
-  notePlaceholder: "Add a note (optional)",
-  submitLabel: "Send request",
-} as const;
 
 export type GroupManageAction = "change_image" | "remove_image" | "delete";
 

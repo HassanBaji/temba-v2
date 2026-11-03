@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
+
 export type SplitClerkAuthError = {
   fieldErrors: Record<string, string>;
   globalMessage: string | null;
@@ -10,27 +13,32 @@ type ClerkAuthApiError = {
   meta?: { paramName?: string };
 };
 
-export const GENERIC_CLERK_AUTH_ERROR = "Something went wrong. Try again.";
+type ClerkErrorKey = keyof Messages["auth"]["clerkError"];
 
-export const CLERK_AUTH_ERROR_COPY: Record<string, string> = {
-  form_identifier_not_found:
-    "No account matches that. Try a different one, or create an account.",
-  form_identifier_exists:
-    "An account with that already exists. Sign in instead.",
-  form_code_incorrect: "That code is incorrect. Try again.",
-  verification_expired: "That code has expired. Request a new one.",
-  verification_failed: "Too many incorrect attempts. Try again later.",
-  too_many_requests: "Too many attempts. Wait a moment and try again.",
-  form_param_format_invalid:
-    "That doesn't look right. Check the format and try again.",
-  form_password_incorrect: "That password is incorrect.",
-  form_password_pwned:
-    "That password has appeared in a data breach. Choose a different one.",
+const CLERK_ERROR_KEYS: Record<string, ClerkErrorKey> = {
+  form_identifier_not_found: "identifierNotFound",
+  form_identifier_exists: "identifierExists",
+  form_code_incorrect: "codeIncorrect",
+  verification_expired: "verificationExpired",
+  verification_failed: "verificationFailed",
+  too_many_requests: "tooManyRequests",
+  form_param_format_invalid: "paramFormatInvalid",
+  form_password_incorrect: "passwordIncorrect",
+  form_password_pwned: "passwordPwned",
 };
 
-function clerkErrorCopy(error: ClerkAuthApiError): string {
+/** Temba copy for a Clerk error code, or null when Clerk's own message stands. */
+export function clerkAuthErrorCopy(
+  code: string,
+  locale: Locale,
+): string | null {
+  const key = CLERK_ERROR_KEYS[code];
+  return key ? messagesFor(locale).auth.clerkError[key] : null;
+}
+
+function clerkErrorCopy(error: ClerkAuthApiError, locale: Locale): string {
   return (
-    CLERK_AUTH_ERROR_COPY[error.code] ?? error.longMessage ?? error.message
+    clerkAuthErrorCopy(error.code, locale) ?? error.longMessage ?? error.message
   );
 }
 
@@ -57,16 +65,20 @@ function isClerkAuthApiError(
   );
 }
 
-export function splitClerkAuthError(err: unknown): SplitClerkAuthError {
+export function splitClerkAuthError(
+  err: unknown,
+  locale: Locale,
+): SplitClerkAuthError {
+  const generic = messagesFor(locale).auth.clerkError.generic;
   if (!isClerkAuthApiError(err)) {
-    return { fieldErrors: {}, globalMessage: GENERIC_CLERK_AUTH_ERROR };
+    return { fieldErrors: {}, globalMessage: generic };
   }
 
   const fieldErrors: Record<string, string> = {};
   let globalMessage: string | null = null;
 
   for (const item of err.errors) {
-    const message = clerkErrorCopy(item);
+    const message = clerkErrorCopy(item, locale);
     const paramName = item.meta?.paramName;
     if (paramName) {
       fieldErrors[paramName] ??= message;
@@ -81,17 +93,21 @@ export function splitClerkAuthError(err: unknown): SplitClerkAuthError {
 
   return {
     fieldErrors: {},
-    globalMessage: globalMessage ?? GENERIC_CLERK_AUTH_ERROR,
+    globalMessage: globalMessage ?? generic,
   };
 }
 
 export function clerkFieldErrorMessage(
   err: unknown,
   field: string,
+  locale: Locale,
 ): string | undefined {
-  return splitClerkAuthError(err).fieldErrors[field];
+  return splitClerkAuthError(err, locale).fieldErrors[field];
 }
 
-export function clerkGlobalErrorMessage(err: unknown): string | null {
-  return splitClerkAuthError(err).globalMessage;
+export function clerkGlobalErrorMessage(
+  err: unknown,
+  locale: Locale,
+): string | null {
+  return splitClerkAuthError(err, locale).globalMessage;
 }

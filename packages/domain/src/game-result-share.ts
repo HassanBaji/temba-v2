@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   bibNames,
   byKeeperThenLevel,
@@ -89,8 +92,9 @@ export type FootballResultCard = ResultCardBase & {
 
 export type ResultCard = PadelResultCard | FootballResultCard;
 
-function typeNote(rated: boolean) {
-  return rated ? "RATED MATCH" : "FRIENDLY MATCH";
+function typeNote(rated: boolean, locale: Locale) {
+  const m = messagesFor(locale).game.share;
+  return rated ? m.ratedMatch : m.friendlyMatch;
 }
 
 function cardVenue(place: PlayedPlace) {
@@ -99,13 +103,16 @@ function cardVenue(place: PlayedPlace) {
   );
 }
 
-function cardWhen(windowStart: Date | null) {
+function cardWhen(windowStart: Date | null, locale: Locale) {
   if (!windowStart) {
     return { when: "", whenShort: "" };
   }
   return {
-    when: `${formatDayMonth(windowStart, { weekday: "short", year: true })}, ${formatGameClock(windowStart)}`,
-    whenShort: formatDayMonth(windowStart, { weekday: "short" }),
+    when: messagesFor(locale).game.share.when(
+      formatDayMonth(windowStart, locale, { weekday: "short", year: true }),
+      formatGameClock(windowStart, locale),
+    ),
+    whenShort: formatDayMonth(windowStart, locale, { weekday: "short" }),
   };
 }
 
@@ -144,7 +151,11 @@ export type PadelResultCardInput = PlayedPlace & {
   rated: boolean;
 };
 
-export function padelResultCard(input: PadelResultCardInput): PadelResultCard {
+export function padelResultCard(
+  input: PadelResultCardInput,
+  locale: Locale,
+): PadelResultCard {
+  const m = messagesFor(locale).game.share;
   const { a, b } = padelSidesInOrder(input.sides, input.viewerUserId);
   const slotA = a ? padelSlotOfSide(a, input.match) : 1;
   const slotB: 1 | 2 = slotA === 1 ? 2 : 1;
@@ -162,7 +173,7 @@ export function padelResultCard(input: PadelResultCardInput): PadelResultCard {
     const l = games(pair, winnerSlot === 1 ? 2 : 1);
     return {
       id: pair.id,
-      label: `SET ${index + 1}`,
+      label: m.setLabel(index + 1),
       note: w > l ? "won" : "lost",
       w,
       l,
@@ -172,20 +183,20 @@ export function padelResultCard(input: PadelResultCardInput): PadelResultCard {
   const losers = padelPeople(loser, input.viewerUserId);
   return {
     kind: "padel",
-    typeLine: "FRIENDLY · PADEL",
-    typeNote: typeNote(input.rated),
+    typeLine: m.padelTypeLine,
+    typeNote: typeNote(input.rated, locale),
     winners,
     losers,
     winCount: setRows.filter((row) => row.w > row.l).length,
     loseCount: setRows.filter((row) => row.l > row.w).length,
-    winnerLine: padelPairLine(winner, input.viewerUserId, "first"),
-    loserLine: padelPairLine(loser, input.viewerUserId, "first"),
+    winnerLine: padelPairLine(winner, input.viewerUserId, locale, "first"),
+    loserLine: padelPairLine(loser, input.viewerUserId, locale, "first"),
     winnerShort: shortOf(winners),
     loserShort: shortOf(losers),
     setRows,
     draw: !aWon && !bWon,
     venue: cardVenue(input),
-    ...cardWhen(input.windowStart),
+    ...cardWhen(input.windowStart, locale),
   };
 }
 
@@ -199,8 +210,10 @@ export type FootballResultCardInput = PlayedPlace & {
 
 export function footballResultCard(
   input: FootballResultCardInput,
+  locale: Locale,
 ): FootballResultCard {
-  const names = bibNames(input.bibs);
+  const m = messagesFor(locale).game.share;
+  const names = bibNames(input.bibs, locale);
   const slot2Won = input.score.slot2 > input.score.slot1;
   const winSlot: 1 | 2 = slot2Won ? 2 : 1;
   const loseSlot: 1 | 2 = slot2Won ? 1 : 2;
@@ -238,14 +251,12 @@ export function footballResultCard(
   const viewer = input.players.find((player) => player.isViewer);
   return {
     kind: "football",
-    typeLine: [
-      "FRIENDLY",
-      "FOOTBALL",
-      input.sideSize ? sideSizeLabel(input.sideSize).toUpperCase() : null,
-    ]
-      .filter(Boolean)
-      .join(" · "),
-    typeNote: typeNote(input.rated),
+    typeLine: m.footballTypeLine(
+      input.sideSize
+        ? sideSizeLabel(input.sideSize, locale).toUpperCase()
+        : null,
+    ),
+    typeNote: typeNote(input.rated, locale),
     draw: input.score.slot1 === input.score.slot2,
     win: sideOf(winSlot),
     lose: sideOf(loseSlot),
@@ -260,27 +271,32 @@ export function footballResultCard(
         }
       : null,
     venue: cardVenue(input),
-    ...cardWhen(input.windowStart),
+    ...cardWhen(input.windowStart, locale),
   };
 }
 
 /** The sticker's one-line verdict: "ELIN & MARYAM WIN 2–1". */
-export function padelStickerLine(card: PadelResultCard) {
+export function padelStickerLine(card: PadelResultCard, locale: Locale) {
+  const m = messagesFor(locale).game.share;
   if (card.draw) {
-    return "DRAW";
+    return m.draw;
   }
-  return `${card.winnerLine} WIN ${card.winCount}–${card.loseCount}`.toUpperCase();
+  return m
+    .stickerWin(card.winnerLine, card.winCount, card.loseCount)
+    .toUpperCase();
 }
 
 export function formatPadelResultShareMessage(
   card: PadelResultCard,
   url: string,
+  locale: Locale,
 ) {
-  const lines = ["🎾 Padel result"];
+  const m = messagesFor(locale).game.share;
+  const lines = [m.padelResult];
   lines.push(
     card.draw
-      ? `🤝 ${card.winnerLine} and ${card.loserLine} drew`
-      : `🏆 ${card.winnerLine} beat ${card.loserLine} ${card.winCount}–${card.loseCount}`,
+      ? m.drew(card.winnerLine, card.loserLine)
+      : m.beat(card.winnerLine, card.loserLine, card.winCount, card.loseCount),
   );
   if (card.setRows.length > 0) {
     lines.push(
@@ -298,8 +314,9 @@ export function formatPadelResultShareMessage(
 export function formatFootballResultShareMessage(
   card: FootballResultCard,
   url: string,
+  locale: Locale,
 ) {
-  const lines = ["⚽ Football result"];
+  const lines = [messagesFor(locale).game.share.footballResult];
   lines.push(
     `${card.draw ? "🤝" : "🏆"} ${card.win.name} ${card.win.score}–${card.lose.score} ${card.lose.name}`,
   );
@@ -322,10 +339,14 @@ export function formatFootballResultShareMessage(
   return lines.join("\n");
 }
 
-export function formatResultShareMessage(card: ResultCard, url: string) {
+export function formatResultShareMessage(
+  card: ResultCard,
+  url: string,
+  locale: Locale,
+) {
   return card.kind === "padel"
-    ? formatPadelResultShareMessage(card, url)
-    : formatFootballResultShareMessage(card, url);
+    ? formatPadelResultShareMessage(card, url, locale)
+    : formatFootballResultShareMessage(card, url, locale);
 }
 
 export type ResultShareGame = {
@@ -356,6 +377,7 @@ export type ResultShareBoard = {
 export function resultShareCard(
   game: ResultShareGame,
   board: ResultShareBoard | null,
+  locale: Locale,
 ): ResultCard | null {
   const place = {
     windowStart: game.windowStart,
@@ -370,26 +392,32 @@ export function resultShareCard(
     ) {
       return null;
     }
-    return footballResultCard({
-      ...place,
-      players: board.players,
-      bibs: board.teams.bibs,
-      score: board.match.score,
-      sideSize: game.sideSize,
-      courtName: game.recordedCourts[0]?.name ?? null,
-      rated: game.rated,
-    });
+    return footballResultCard(
+      {
+        ...place,
+        players: board.players,
+        bibs: board.teams.bibs,
+        score: board.match.score,
+        sideSize: game.sideSize,
+        courtName: game.recordedCourts[0]?.name ?? null,
+        rated: game.rated,
+      },
+      locale,
+    );
   }
   const match = game.matches[0];
   if (game.phase !== "final" || !match) {
     return null;
   }
-  return padelResultCard({
-    ...place,
-    sides: game.sides,
-    viewerUserId: game.viewerUserId,
-    match,
-    courtName: match.courtName,
-    rated: game.rated,
-  });
+  return padelResultCard(
+    {
+      ...place,
+      sides: game.sides,
+      viewerUserId: game.viewerUserId,
+      match,
+      courtName: match.courtName,
+      rated: game.rated,
+    },
+    locale,
+  );
 }
