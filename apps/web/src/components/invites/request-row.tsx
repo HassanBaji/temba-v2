@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 export function RequestRow({
@@ -24,6 +25,8 @@ export function RequestRow({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.webAuth.invites.request;
   const [confirmRejectOpen, setConfirmRejectOpen] = React.useState(false);
   const busy = disabled || approvePending || rejectPending;
 
@@ -41,32 +44,32 @@ export function RequestRow({
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
-          aria-label={`Approve ${title}'s request`}
+          aria-label={copy.approve(title)}
           onClick={onApprove}
           disabled={busy}
           pending={approvePending}
-          pendingLabel="Approving…"
+          pendingLabel={copy.approving}
         >
-          Approve
+          {copy.approveLabel}
         </Button>
         <Button
           type="button"
           variant="outline"
-          aria-label={`Reject ${title}'s request`}
+          aria-label={copy.reject(title)}
           onClick={() => setConfirmRejectOpen(true)}
           disabled={busy}
           pending={rejectPending}
-          pendingLabel="Rejecting…"
+          pendingLabel={copy.rejecting}
         >
-          Reject
+          {copy.rejectLabel}
         </Button>
       </div>
       <ConfirmDialog
         open={confirmRejectOpen}
         onOpenChange={setConfirmRejectOpen}
-        title={`Reject ${title}'s request?`}
-        description="They can ask again later."
-        confirmLabel="Reject"
+        title={copy.rejectConfirm(title)}
+        description={copy.canAskAgain}
+        confirmLabel={copy.rejectLabel}
         pending={rejectPending}
         onConfirm={onReject}
       />

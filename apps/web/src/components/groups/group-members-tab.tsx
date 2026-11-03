@@ -228,7 +228,7 @@ function GroupMemberRow({
   const linkHref = managing ? undefined : profileHref;
   const cells = (
     <>
-      <td className="py-3 ps-4 pe-2">
+      <td className="py-3 pe-2 ps-4">
         <span className="flex min-w-0 items-center gap-2.5">
           <UserAvatar
             name={member.name}
@@ -355,7 +355,7 @@ function PendingInvitesDialog({
             {invites.map((invite) => (
               <li
                 key={invite.id}
-                className="border-rule flex items-center gap-3 border-t py-3 ps-4 pe-3 first:border-t-0"
+                className="border-rule flex items-center gap-3 border-t py-3 pe-3 ps-4 first:border-t-0"
               >
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-body truncate font-semibold">
@@ -627,7 +627,9 @@ export function GroupMembersTab({
                 ) : null}
                 {isManaging ? (
                   <th scope="col" className={COL_ACTION}>
-                    <span className="sr-only">{m.webGroup.members.actions}</span>
+                    <span className="sr-only">
+                      {m.webGroup.members.actions}
+                    </span>
                   </th>
                 ) : null}
               </tr>

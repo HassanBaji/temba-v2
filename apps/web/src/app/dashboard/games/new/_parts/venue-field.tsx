@@ -4,6 +4,7 @@ import { Lock, Search } from "lucide-react";
 import * as React from "react";
 
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { FieldDescription, FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -50,10 +51,12 @@ function VenueCards({
   describedBy?: string;
   onSelect: (venueId: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <RovingRadioGroup
       id={labelledBy ? "game-venue" : undefined}
-      aria-label={labelledBy ? undefined : "Venue"}
+      aria-label={labelledBy ? undefined : m.webDashboard.venue.title}
       aria-labelledby={labelledBy}
       aria-invalid={invalid ? true : undefined}
       aria-describedby={describedBy}
@@ -67,7 +70,12 @@ function VenueCards({
           layout="row"
           selected={venue.id === venueId}
           title={venue.name}
-          description={venueCardMeta(venue.courts.length, venue.city, sport)}
+          description={venueCardMeta(
+            venue.courts.length,
+            venue.city,
+            locale,
+            sport,
+          )}
           trailing="check"
           onClick={() => {
             onSelect(venue.id);
@@ -101,6 +109,9 @@ export function VenueField({
   emptyCatalog: boolean;
   sport?: Sport;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const c = m.webDashboard.createGame;
   const [venuesOpen, setVenuesOpen] = React.useState(false);
   const [venueQuery, setVenueQuery] = React.useState("");
   const visibleVenues = visibleCreateGroups(venues, venueId);
@@ -112,8 +123,8 @@ export function VenueField({
     <section className="flex flex-col gap-3">
       <SectionHeading
         id="game-venue-label"
-        title="Venue"
-        meta={selectedGroupId ? "Required" : undefined}
+        title={m.webDashboard.venue.title}
+        meta={selectedGroupId ? m.common.required : undefined}
       />
       {!selectedGroupId ? (
         <div className="border-rule hatch rounded-card flex min-h-11 items-center gap-3 px-[18px] py-4">
@@ -129,7 +140,7 @@ export function VenueField({
           aria-busy="true"
           className="border-rule rounded-card overflow-hidden border"
         >
-          <span className="sr-only">Loading Venues</span>
+          <span className="sr-only">{c.loadingVenues}</span>
           {Array.from({ length: 2 }, (_, index) => (
             <div
               key={index}
@@ -148,10 +159,17 @@ export function VenueField({
           tabIndex={-1}
           className="border-rule rounded-card border px-[18px] py-4 outline-none"
         >
-          <p className="font-semibold">{venues[0]?.name ?? "Venue"}</p>
+          <p className="font-semibold">
+            {venues[0]?.name ?? m.webDashboard.venue.title}
+          </p>
           {venues[0] ? (
             <p className="text-muted-foreground text-meta mt-0.5">
-              {venueCardMeta(venues[0].courts.length, venues[0].city, sport)}
+              {venueCardMeta(
+                venues[0].courts.length,
+                venues[0].city,
+                locale,
+                sport,
+              )}
             </p>
           ) : null}
         </div>
@@ -179,7 +197,7 @@ export function VenueField({
               }}
             >
               <Search aria-hidden="true" className="size-3.5" />
-              All {venues.length} venues
+              {c.allVenues(venues.length)}
             </ChoiceChip>
           ) : null}
           <Sheet open={venuesOpen} onOpenChange={setVenuesOpen}>
@@ -188,7 +206,7 @@ export function VenueField({
               className="max-h-[85svh] overflow-hidden"
             >
               <SheetHeader>
-                <SheetTitle>All {venues.length} venues</SheetTitle>
+                <SheetTitle>{c.allVenues(venues.length)}</SheetTitle>
               </SheetHeader>
               <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
                 <Input
@@ -196,12 +214,12 @@ export function VenueField({
                   onChange={(event) => {
                     setVenueQuery(event.target.value);
                   }}
-                  placeholder="Search venues"
-                  aria-label="Search venues"
+                  placeholder={c.searchVenues}
+                  aria-label={c.searchVenues}
                 />
                 {filteredVenues.length === 0 ? (
                   <p className="text-muted-foreground text-body">
-                    No venues match.
+                    {c.noVenuesMatch}
                   </p>
                 ) : (
                   <VenueCards
@@ -223,10 +241,7 @@ export function VenueField({
         <FieldDescription id="game-venue-copy">{venueCopy}</FieldDescription>
       ) : null}
       <FieldError id="game-venue-error">
-        {venueError ??
-          (emptyCatalog
-            ? "No live Venues. Create is not available."
-            : undefined)}
+        {venueError ?? (emptyCatalog ? c.noLiveVenues : undefined)}
       </FieldError>
     </section>
   );

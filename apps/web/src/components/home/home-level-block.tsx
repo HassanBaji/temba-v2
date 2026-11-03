@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
+import { useMessages } from "~/components/locale-provider";
 import { DeclareLevelDialog } from "~/components/you/declare-level-dialog";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { type SelfDeclareChoice } from "@repo/domain/level-bands";
@@ -18,12 +19,13 @@ export function HomeDeclareLevel({
   surface?: "home" | "profile";
   sport?: Sport;
 }) {
+  const m = useMessages();
   const declareButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const utils = api.useUtils();
   const selfDeclare = api.ratings.selfDeclare.useMutation({
     onSuccess: async () => {
-      toast.success("Level saved");
+      toast.success(m.webAuth.home.declare.levelSaved);
       setDialogOpen(false);
       await utils.ratings.me.invalidate();
     },
@@ -39,10 +41,9 @@ export function HomeDeclareLevel({
         surface === "profile" ? "rounded-card p-5" : "rounded-xl p-[22px]",
       )}
     >
-      <p className="text-lead font-semibold">Declare your Level</p>
+      <p className="text-lead font-semibold">{m.webAuth.home.declare.title}</p>
       <p className="text-muted-foreground text-meta mt-1">
-        Place yourself on the {sport} ladder. You can do this once, before you
-        have a Rated Match.
+        {m.webAuth.home.declare.description[sport]}
       </p>
       <Button
         ref={declareButtonRef}
@@ -53,7 +54,7 @@ export function HomeDeclareLevel({
           setDialogOpen(true);
         }}
       >
-        Declare Level
+        {m.webAuth.home.declare.button}
       </Button>
       <DeclareLevelDialog
         open={dialogOpen}

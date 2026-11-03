@@ -529,18 +529,18 @@ export function FootballGameDetails({
       ? playedFootballModel(
           {
             players,
-          bibs: teams.bibs,
-          score,
-          confirmed: board.data.match.confirmed,
-          enteredByName: board.data.match.enteredByName,
-          teamsMethod: teams.method,
-          sideSize: game.sideSize,
-          windowStart: game.windowStart,
-          windowEnd: game.windowEnd,
-          venue: game.venue,
-          courtName: game.recordedCourts[0]?.name ?? null,
-          groupName: game.groupName,
-          rated: game.rated,
+            bibs: teams.bibs,
+            score,
+            confirmed: board.data.match.confirmed,
+            enteredByName: board.data.match.enteredByName,
+            teamsMethod: teams.method,
+            sideSize: game.sideSize,
+            windowStart: game.windowStart,
+            windowEnd: game.windowEnd,
+            venue: game.venue,
+            courtName: game.recordedCourts[0]?.name ?? null,
+            groupName: game.groupName,
+            rated: game.rated,
             ratingImpact: game.ratingImpact,
           },
           locale,
@@ -548,13 +548,17 @@ export function FootballGameDetails({
       : null;
   const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (
-    <ActionMenu label="Game actions">
+    <ActionMenu label={m.webTournament.gameActions}>
       <ActionMenuItem onSelect={() => setEditOpen(true)}>
-        {EDIT_GAME_ACTION}
+        {editGameAction(locale)}
       </ActionMenuItem>
       {canMakeTeams ? (
         <ActionMenuItem asChild>
-          <Link href={teamsHref}>{teams ? "Edit teams" : "Make teams"}</Link>
+          <Link href={teamsHref}>
+            {teams
+              ? m.webTournament.footballTeams.editTeams
+              : m.webTournament.footballTeams.makeTeams}
+          </Link>
         </ActionMenuItem>
       ) : null}
       {organizer.registration === "reopen" ? (
@@ -562,24 +566,24 @@ export function FootballGameDetails({
           disabled={game.joinFrozen || reopenRegistration.isPending}
           onSelect={() => reopenRegistration.mutate({ gameId })}
         >
-          {REOPEN_REGISTRATION_ACTION}
+          {reopenRegistrationAction(locale)}
         </ActionMenuItem>
       ) : (
         <ActionMenuItem
           disabled={closeRegistration.isPending}
           onSelect={() => closeRegistration.mutate({ gameId })}
         >
-          {CLOSE_REGISTRATION_ACTION}
+          {closeRegistrationAction(locale)}
         </ActionMenuItem>
       )}
       {inviteAccess.canManage ? (
         <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-          Invite
+          {m.tournament.home.inviteAction}
         </ActionMenuItem>
       ) : null}
       {canAddPlayer ? (
         <ActionMenuItem onSelect={() => setAddPlayerOpen(true)}>
-          {ADD_PLAYER_ACTION}
+          {m.group.addPlayer.action}
         </ActionMenuItem>
       ) : null}
       <ActionMenuSeparator />
@@ -594,7 +598,7 @@ export function FootballGameDetails({
 
   return (
     <DashboardShell
-      title="Game"
+      title={m.football.details.fallbackTitle}
       hidePageHeader
       action={menu}
       isSubPage={true}
@@ -613,17 +617,14 @@ export function FootballGameDetails({
                 strokeWidth={2}
               />
               <p className="text-title font-semibold tracking-[-0.01em]">
-                This Game is cancelled
+                {t.cancelledHeading}
               </p>
             </div>
           </section>
         ) : null}
         {game.joinFrozen && !game.cancelledAt ? (
-          <SoftArchiveBanner
-            headingLevel={2}
-            heading="This Club Group's Community is Soft-archived"
-          >
-            Registration, the waitlist, and invites stay closed.
+          <SoftArchiveBanner headingLevel={2} heading={t.softArchivedHeading}>
+            {t.softArchivedBody}
           </SoftArchiveBanner>
         ) : null}
 
@@ -663,7 +664,7 @@ export function FootballGameDetails({
 
         {board.error ? (
           <p role="alert" className="text-destructive text-meta">
-            The lineup could not be loaded. {board.error.message}
+            {t.lineupLoadFailed} {board.error.message}
           </p>
         ) : null}
 
@@ -678,10 +679,7 @@ export function FootballGameDetails({
               headingId="football-players-heading"
               onOpenPlayer={pressPlayer}
             />
-            <p className="text-muted-foreground text-meta">
-              Positions are preferences, not promises. The organizer makes the
-              teams, with a keeper on each side.
-            </p>
+            <p className="text-muted-foreground text-meta">{t.positionsNote}</p>
           </section>
         ) : null}
 
@@ -712,16 +710,18 @@ export function FootballGameDetails({
         {canMakeTeams ? (
           <section className="border-rule bg-paper flex items-center justify-between gap-3 rounded-xl border p-5">
             <div>
-              <h2 className="font-medium">Teams</h2>
+              <h2 className="font-medium">{m.common.teams}</h2>
               <p className="text-muted-foreground text-meta">
                 {teams
-                  ? footballTeamsMethodLabel(teams.method)
-                  : "Not set yet. Split the pool when it fills."}
+                  ? footballTeamsMethodLabel(teams.method, locale)
+                  : t.teamsNotSetYet}
               </p>
             </div>
             <Button asChild>
               <Link href={teamsHref}>
-                {teams ? "Edit teams" : "Make teams"}
+                {teams
+                  ? m.webTournament.footballTeams.editTeams
+                  : m.webTournament.footballTeams.makeTeams}
               </Link>
             </Button>
           </section>
@@ -736,7 +736,7 @@ export function FootballGameDetails({
               id="football-waitlist-heading"
               className="text-title font-semibold tracking-[-0.01em]"
             >
-              Waitlist
+              {t.waitlistHeading}
             </h2>
             <RowList>
               {game.waitlist.map((entry) => (
@@ -755,10 +755,10 @@ export function FootballGameDetails({
                       variant="outline"
                       size="sm"
                       disabled={kick.isPending}
-                      aria-label={`${KICK_ACTION} ${entry.name}`}
+                      aria-label={m.webTournament.kickName(entry.name)}
                       onClick={() => requestKick({ waitlistId: entry.id })}
                     >
-                      {KICK_ACTION}
+                      {kickAction(locale)}
                     </Button>
                   }
                 />
@@ -783,7 +783,7 @@ export function FootballGameDetails({
           position: viewer?.position ?? null,
         }}
         price={price}
-        teamsLine={teams ? "Set" : "Made by the organizer"}
+        teamsLine={teams ? t.teamsSet : t.teamsMadeByOrganizer}
         pending={register.isPending || setRole.isPending}
         error={
           (joinMode === "edit" ? setRole.error : register.error)?.message ??
@@ -850,12 +850,15 @@ export function FootballGameDetails({
             gameId,
             canLookup: inviteAccess.canSendLookup,
             canLink: true,
-            subtitle: gameInviteSubtitle({
-              windowStart: game.windowStart,
-              courtName: game.recordedCourts[0]?.name ?? null,
-              venueName: game.venue?.name ?? null,
-              sides: [],
-            }),
+            subtitle: gameInviteSubtitle(
+              {
+                windowStart: game.windowStart,
+                courtName: game.recordedCourts[0]?.name ?? null,
+                venueName: game.venue?.name ?? null,
+                sides: [],
+              },
+              locale,
+            ),
             shareMessage: inviteShareText,
           }}
           open={invitesOpen}
@@ -866,9 +869,9 @@ export function FootballGameDetails({
       <ConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title={`Cancel ${gameName}?`}
-        description={cancelGameConsequence(model.rosterRows.length)}
-        confirmLabel={CANCEL_GAME_ACTION}
+        title={t.cancelTitle(gameName)}
+        description={cancelGameConsequence(model.rosterRows.length, locale)}
+        confirmLabel={cancelGameAction(locale)}
         pending={cancel.isPending}
         onConfirm={async () => {
           await cancel.mutateAsync({ gameId });
@@ -877,9 +880,9 @@ export function FootballGameDetails({
       <ConfirmDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
-        title={`Leave ${gameName}?`}
-        description={LEAVE_GAME_CONSEQUENCE}
-        confirmLabel={LEAVE_GAME_ACTION}
+        title={t.leaveTitle(gameName)}
+        description={leaveGameConsequence(locale)}
+        confirmLabel={leaveGameAction(locale)}
         pending={leave.isPending}
         onConfirm={async () => {
           await leave.mutateAsync({ gameId });
@@ -888,9 +891,9 @@ export function FootballGameDetails({
       <ConfirmDialog
         open={leaveWaitlistOpen}
         onOpenChange={setLeaveWaitlistOpen}
-        title={`${LEAVE_WAITLIST_ACTION}?`}
-        description={LEAVE_WAITLIST_CONSEQUENCE}
-        confirmLabel={LEAVE_WAITLIST_ACTION}
+        title={t.leaveWaitlistTitle}
+        description={leaveWaitlistConsequence(locale)}
+        confirmLabel={leaveWaitlistAction(locale)}
         pending={leaveWaitlist.isPending}
         onConfirm={async () => {
           await leaveWaitlist.mutateAsync({ gameId });
@@ -903,9 +906,9 @@ export function FootballGameDetails({
             setKickConfirm(null);
           }
         }}
-        title={kickCopy?.title ?? "Kick player?"}
+        title={kickCopy?.title ?? t.kickPlayerTitle}
         description={kickCopy?.description}
-        confirmLabel={KICK_ACTION}
+        confirmLabel={kickAction(locale)}
         pending={kick.isPending}
         onConfirm={async () => {
           if (!kickConfirm) {
@@ -916,7 +919,7 @@ export function FootballGameDetails({
               ? { gameId, userId: kickConfirm.userId }
               : { gameId, waitlistId: kickConfirm.waitlistId },
           );
-          toast.success(kickedToast(kickConfirm.name));
+          toast.success(kickedToast(kickConfirm.name, locale));
         }}
       />
     </DashboardShell>

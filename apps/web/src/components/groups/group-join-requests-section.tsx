@@ -51,7 +51,7 @@ export function JoinRequestsBanner({
     <Surface
       tone="ink"
       radius="card"
-      className="flex items-center gap-2.5 py-2 ps-4 pe-2"
+      className="flex items-center gap-2.5 py-2 pe-2 ps-4"
     >
       <span aria-hidden="true" className="bg-paper size-1.5 rounded-full" />
       <span className="text-meta flex-1 font-semibold">
@@ -242,7 +242,7 @@ export const JoinRequestsCard = forwardRef<
       <section
         ref={ref}
         aria-label={m.community.joinRequestsTitle}
-        className="border-rule rounded-card hatch flex items-center gap-3 border py-3 ps-[18px] pe-2.5"
+        className="border-rule rounded-card hatch flex items-center gap-3 border py-3 pe-2.5 ps-[18px]"
       >
         <Inbox
           aria-hidden="true"
@@ -286,7 +286,7 @@ export const JoinRequestsCard = forwardRef<
           />
         ))}
       </ul>
-      <div className="border-rule bg-wash flex items-center justify-between gap-3 border-t py-1.5 ps-4 pe-2.5">
+      <div className="border-rule bg-wash flex items-center justify-between gap-3 border-t py-1.5 pe-2.5 ps-4">
         <span className="text-eyebrow text-muted-foreground">
           {groupJoinPolicyLine(props.requiresApproval, locale)}
         </span>

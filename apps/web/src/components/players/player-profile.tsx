@@ -47,9 +47,7 @@ export function PlayerProfileRefused() {
     <div className="space-y-5">
       <PlayerBackButton surface="paper" />
       <section className="border-rule rounded-card border p-5">
-        <h1 className="text-lead font-semibold">
-          {refused.title}
-        </h1>
+        <h1 className="text-lead font-semibold">{refused.title}</h1>
         <p className="text-meta text-muted-foreground mt-1.5">
           {refused.description}
         </p>

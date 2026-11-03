@@ -7,7 +7,9 @@ import { Badge } from "~/components/ui/badge";
 export type CommunityTypeValue = "public" | "private";
 
 export function communityTypeLabel(type: string, m: Messages) {
-  return type === "public" || type === "private" ? m.community.type[type] : type;
+  return type === "public" || type === "private"
+    ? m.community.type[type]
+    : type;
 }
 
 export function CommunityTypeBadge({ type }: { type: string }) {

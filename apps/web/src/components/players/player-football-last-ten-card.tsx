@@ -1,6 +1,6 @@
-import Link from "next/link";
-
 "use client";
+
+import Link from "next/link";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { useMessages } from "~/components/locale-provider";

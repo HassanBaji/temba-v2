@@ -153,7 +153,9 @@ export function GroupCreateForm({
           <GroupPhotoTile
             imageUrl={previewUrl}
             name={name || m.webGroup.groupFallback}
-            label={previewUrl ? m.group.settings.edit.photoChange : screen.photo}
+            label={
+              previewUrl ? m.group.settings.edit.photoChange : screen.photo
+            }
             disabled={pending}
             onPick={() => imageInputRef.current?.click()}
           />

@@ -127,7 +127,9 @@ export function GroupHomeChrome({
       />
 
       <TabsList variant="segmented" className="mt-5">
-        <TabsTrigger value="standing">{m.webGroup.home.tab.standing}</TabsTrigger>
+        <TabsTrigger value="standing">
+          {m.webGroup.home.tab.standing}
+        </TabsTrigger>
         <TabsTrigger value="games">{m.webGroup.home.tab.games}</TabsTrigger>
         <TabsTrigger value="members">{m.webGroup.home.tab.members}</TabsTrigger>
       </TabsList>

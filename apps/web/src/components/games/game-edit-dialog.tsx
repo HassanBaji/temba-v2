@@ -7,6 +7,7 @@ import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { RoundCountField } from "~/components/games/round-count-field";
 import type { GameEditController } from "~/components/games/use-game-edit";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -25,13 +26,6 @@ import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
-  CHANGES_LABEL,
-  EDIT_GAME_TITLE,
-  NAME_SECTION_HINT,
-  OPTIONAL_TAG,
-  PLAYERS_AND_PRICE_HINT,
-  SAVE_CHANGES_ACTION,
-  WHEN_SECTION_HINT,
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
@@ -43,13 +37,7 @@ import {
   type GameEditSections,
 } from "@repo/domain/game-edit-form";
 import {
-  SEASON_CHANGE_ACTION,
-  SEASON_COUNTS_LINE,
-  SEASON_LOCKED_NOTE,
-  SEASON_NEEDS_FIX_TAG,
-  SEASON_PICKER_LOCK_NOTE,
-  SEASON_SECTION_FRIENDLY_NOTE,
-  UNLINK_SEASON_ACTION,
+  SEASON_BADGE,
   gameSeasonChoices,
   seasonLinkActionLabel,
   seasonLinkRowNote,
@@ -62,10 +50,8 @@ import { footballPlayersAllowedBounds } from "@repo/domain/game-shape";
 import {
   formatSeasonRange,
   type GroupSeasonData,
+  type GroupSeasonStatus,
 } from "@repo/domain/group-season";
-import { LEVEL_RANGE_FIELD_DESCRIPTION } from "@repo/domain/level-range";
-import { PRICE_PER_PLAYER_CURRENCY } from "@repo/domain/price-per-player";
-import { ONE_DAY_OVERRUN_MESSAGE } from "@repo/domain/tournament-sizing";
 
 export type GameEditContext = {
   venueName: string | null;
@@ -188,9 +174,13 @@ function SeasonBadge({
   label: string | null;
   active: boolean;
 }) {
+  const m = useMessages();
   if (!label) {
     return null;
   }
+  const status = (Object.keys(SEASON_BADGE) as GroupSeasonStatus[]).find(
+    (key) => SEASON_BADGE[key] === label,
+  );
   return (
     <span
       className={cn(
@@ -200,7 +190,7 @@ function SeasonBadge({
           : "border-rule text-muted-foreground border",
       )}
     >
-      {label}
+      {status ? m.createGame.season.badge[status] : label}
     </span>
   );
 }
@@ -222,26 +212,28 @@ function SeasonPicker({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const chosen = choices.find((choice) => choice.id === picked) ?? choices[0]!;
   return (
     <>
       <ResponsiveDialogHeader className="text-start">
         <div className="flex items-start justify-between gap-3">
           <ResponsiveDialogTitle className="font-expanded text-h2">
-            Link to a season
+            {m.createGame.season.linkRowTitle}
           </ResponsiveDialogTitle>
           <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            Back
+            {m.common.back}
           </Button>
         </div>
         <ResponsiveDialogDescription>
-          {seasonPickerSubtitle(groupName, day)}
+          {seasonPickerSubtitle(groupName, day, locale)}
         </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
       <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 pb-4 md:px-0 md:pb-0">
         <div
           role="radiogroup"
-          aria-label="Season"
+          aria-label={m.webGame.edit.stepLabel.season}
           className="border-rule divide-rule divide-y overflow-hidden rounded-lg border"
         >
           {choices.map((choice) => {
@@ -298,13 +290,13 @@ function SeasonPicker({
             aria-hidden="true"
             className="text-muted-foreground mt-0.5 size-3.5 shrink-0"
           />
-          <Hint>{SEASON_PICKER_LOCK_NOTE}</Hint>
+          <Hint>{m.createGame.season.pickerLockNote}</Hint>
         </div>
       </div>
       <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-0 md:pb-0">
         <Button type="button" size="lg" className="w-full" onClick={onConfirm}>
           <Trophy aria-hidden="true" />
-          {seasonLinkActionLabel(chosen)}
+          {seasonLinkActionLabel(chosen, locale)}
         </Button>
       </div>
     </>
@@ -320,18 +312,20 @@ function SeasonSection({
   context: GameEditContext;
   onOpenPicker: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const { draft, seasonFix, now } = edit;
   const linked =
     context.seasons.find((season) => season.id === draft.seasonId) ?? null;
-  const groupName = context.groupName ?? "This group";
+  const groupName = context.groupName ?? m.webGame.edit.thisGroup;
   const locked = !context.canChangeSeason;
 
   if (seasonFix) {
     return (
       <section className="space-y-3">
         <SectionHead
-          title="Season"
-          meta={SEASON_NEEDS_FIX_TAG}
+          title={m.webGame.edit.stepLabel.season}
+          meta={m.createGame.season.needsFixTag}
           metaTone="tag"
         />
         <div className="border-ink overflow-hidden rounded-lg border">
@@ -369,7 +363,7 @@ function SeasonSection({
               )}
               onClick={() => edit.update({ seasonId: null })}
             >
-              {UNLINK_SEASON_ACTION}
+              {m.createGame.season.unlink}
             </Button>
           </div>
         </div>
@@ -382,7 +376,7 @@ function SeasonSection({
     return (
       <section className="space-y-3">
         <SectionHead
-          title="Season"
+          title={m.webGame.edit.stepLabel.season}
           action={
             locked ? null : (
               <button
@@ -390,7 +384,7 @@ function SeasonSection({
                 onClick={onOpenPicker}
                 className="text-meta text-ink underline underline-offset-4"
               >
-                {SEASON_CHANGE_ACTION}
+                {m.createGame.season.change}
               </button>
             )
           }
@@ -401,18 +395,22 @@ function SeasonSection({
               {linked.name.toUpperCase()}
             </span>
             <span className="text-dim text-meta">
-              {formatSeasonRange(linked)}
+              {formatSeasonRange(linked, locale)}
             </span>
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <span className="text-dim text-meta">{groupName}</span>
             <span className="text-meta flex items-center gap-1 font-medium">
               <Check aria-hidden="true" className="size-3.5" />
-              {SEASON_COUNTS_LINE}
+              {m.createGame.season.countsLine}
             </span>
           </div>
         </div>
-        <Hint>{locked ? SEASON_LOCKED_NOTE : seasonLinkedNote(linked)}</Hint>
+        <Hint>
+          {locked
+            ? m.createGame.season.lockedNote
+            : seasonLinkedNote(linked, locale)}
+        </Hint>
       </section>
     );
   }
@@ -422,7 +420,10 @@ function SeasonSection({
     : 0;
   return (
     <section className="space-y-3">
-      <SectionHead title="Season" meta={OPTIONAL_TAG} />
+      <SectionHead
+        title={m.webGame.edit.stepLabel.season}
+        meta={m.common.optional}
+      />
       <button
         type="button"
         onClick={onOpenPicker}
@@ -434,20 +435,24 @@ function SeasonSection({
         </span>
         <span className="min-w-0 flex-1">
           <span className="text-body block font-semibold">
-            Link to a season
+            {m.createGame.season.linkRowTitle}
           </span>
           <span className="text-muted-foreground text-meta block">
             {draft.day
-              ? seasonLinkRowNote(groupName, openCount, draft.day)
-              : "Pick a day first."}
+              ? seasonLinkRowNote(groupName, openCount, draft.day, locale)
+              : m.webGame.edit.pickDayFirst}
           </span>
         </span>
         <ChevronRight
           aria-hidden="true"
-          className="text-muted-foreground size-4 shrink-0"
+          className="text-muted-foreground size-4 shrink-0 rtl:-scale-x-100"
         />
       </button>
-      <Hint>{locked ? SEASON_LOCKED_NOTE : SEASON_SECTION_FRIENDLY_NOTE}</Hint>
+      <Hint>
+        {locked
+          ? m.createGame.season.lockedNote
+          : m.createGame.season.sectionFriendlyNote}
+      </Hint>
     </section>
   );
 }
@@ -467,6 +472,8 @@ export function GameEditDialog({
   sections: GameEditSections;
   context: GameEditContext;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [view, setView] = React.useState<"form" | "season">("form");
   const [picked, setPicked] = React.useState<string | null>(null);
   const { draft, update, error, pending } = edit;
@@ -483,6 +490,7 @@ export function GameEditDialog({
     draft.day,
     draft.startTime,
     draft.finishTime,
+    locale,
   );
   const sideSize = draft.sideSize;
   const capBounds = footballPlayersAllowedBounds(sideSize ?? 5);
@@ -503,7 +511,12 @@ export function GameEditDialog({
       >
         {view === "season" && context.groupName != null ? (
           <SeasonPicker
-            choices={gameSeasonChoices(context.seasons, draft.day, edit.now)}
+            choices={gameSeasonChoices(
+              context.seasons,
+              draft.day,
+              edit.now,
+              locale,
+            )}
             picked={picked}
             onPick={setPicked}
             groupName={context.groupName}
@@ -519,7 +532,7 @@ export function GameEditDialog({
             <ResponsiveDialogHeader className="text-start">
               <div className="flex items-start justify-between gap-3">
                 <ResponsiveDialogTitle className="font-expanded text-h2">
-                  {EDIT_GAME_TITLE}
+                  {m.createGame.edit.title}
                 </ResponsiveDialogTitle>
                 <Button
                   type="button"
@@ -527,12 +540,12 @@ export function GameEditDialog({
                   size="sm"
                   onClick={() => onOpenChange(false)}
                 >
-                  Cancel
+                  {m.common.cancel}
                 </Button>
               </div>
               <ResponsiveDialogDescription className="flex items-center gap-1.5">
                 <Lock aria-hidden="true" className="size-3.5 shrink-0" />
-                {venueLockedLine(context.venueName, context.courtName)}
+                {venueLockedLine(context.venueName, context.courtName, locale)}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <form
@@ -550,10 +563,13 @@ export function GameEditDialog({
               ) : null}
               {sections.name ? (
                 <section className="space-y-3">
-                  <SectionHead title="Name" meta={OPTIONAL_TAG} />
+                  <SectionHead
+                    title={m.webGame.edit.stepLabel.name}
+                    meta={m.common.optional}
+                  />
                   <Field>
                     <FieldLabel htmlFor="edit-custom-name" className="sr-only">
-                      Name
+                      {m.webGame.edit.stepLabel.name}
                     </FieldLabel>
                     <Input
                       id="edit-custom-name"
@@ -566,7 +582,7 @@ export function GameEditDialog({
                       aria-describedby="edit-custom-name-copy"
                     />
                     <FieldDescription id="edit-custom-name-copy">
-                      {NAME_SECTION_HINT}
+                      {m.createGame.edit.nameHint}
                     </FieldDescription>
                     <FieldError id="edit-custom-name-error">
                       {errorFor("name")}
@@ -575,7 +591,10 @@ export function GameEditDialog({
                 </section>
               ) : null}
               <section className="space-y-3">
-                <SectionHead title="When" meta={duration} />
+                <SectionHead
+                  title={m.webGame.edit.stepLabel.window}
+                  meta={duration}
+                />
                 <GameWindowFields
                   dayId="edit-window-day"
                   startId="edit-window-start"
@@ -587,30 +606,38 @@ export function GameEditDialog({
                   onStartTimeChange={(startTime) => update({ startTime })}
                   onFinishTimeChange={(finishTime) => update({ finishTime })}
                   startError={errorFor("window")}
-                  description={WHEN_SECTION_HINT}
+                  description={m.createGame.edit.whenHint}
                 />
               </section>
               <section className="space-y-3">
                 <SectionHead
-                  title={sections.caps ? "Players and price" : "Price"}
-                  meta={sections.caps ? joinedCountLabel(context.joined) : null}
+                  title={
+                    sections.caps
+                      ? m.webGame.edit.playersAndPrice
+                      : m.webGame.edit.stepLabel.price
+                  }
+                  meta={
+                    sections.caps
+                      ? joinedCountLabel(context.joined, locale)
+                      : null
+                  }
                 />
                 {sections.caps && sideSize != null ? (
                   <div className="grid grid-cols-2 gap-2">
                     <CompactStepper
                       id="edit-players-allowed"
-                      label="Players"
+                      label={m.webGame.edit.stepLabel.caps}
                       display={String(players)}
                       canDecrease={players - 1 >= capBounds.min}
                       canIncrease={players + 1 <= capBounds.max}
                       onDecrease={() => update({ playersAllowed: players - 1 })}
                       onIncrease={() => update({ playersAllowed: players + 1 })}
-                      decreaseLabel="Fewer players"
-                      increaseLabel="More players"
+                      decreaseLabel={m.webGame.edit.fewerPlayers}
+                      increaseLabel={m.webGame.edit.morePlayers}
                     />
                     <CompactStepper
                       id="edit-side-size"
-                      label="A-side"
+                      label={m.webGame.edit.aside}
                       display={asideLabel(sideSize)}
                       canDecrease={footballSideSizeStep(sideSize, -1) != null}
                       canIncrease={footballSideSizeStep(sideSize, 1) != null}
@@ -632,8 +659,8 @@ export function GameEditDialog({
                           });
                         }
                       }}
-                      decreaseLabel="Smaller side"
-                      increaseLabel="Bigger side"
+                      decreaseLabel={m.webGame.edit.smallerSide}
+                      increaseLabel={m.webGame.edit.biggerSide}
                     />
                   </div>
                 ) : null}
@@ -644,7 +671,7 @@ export function GameEditDialog({
                         htmlFor="edit-price-per-player"
                         className="text-muted-foreground text-[11px] font-normal tracking-[0.02em]"
                       >
-                        Price per player
+                        {m.webGame.edit.pricePerPlayer}
                       </FieldLabel>
                       <Input
                         id="edit-price-per-player"
@@ -669,7 +696,7 @@ export function GameEditDialog({
                       aria-hidden="true"
                       className="text-muted-foreground text-meta shrink-0"
                     >
-                      {PRICE_PER_PLAYER_CURRENCY}
+                      {m.createGame.price.currency}
                     </span>
                   </div>
                   <FieldError id="edit-price-per-player-error">
@@ -679,24 +706,29 @@ export function GameEditDialog({
                 <div id="edit-price-per-player-copy" className="space-y-1">
                   {sections.caps && sideSize != null ? (
                     <>
-                      <Hint>{footballFormatNote(sideSize, players)}</Hint>
-                      <Hint>{playersCapWaitNote(players, context.joined)}</Hint>
-                      <Hint>{PLAYERS_AND_PRICE_HINT}</Hint>
+                      <Hint>
+                        {footballFormatNote(sideSize, players, locale)}
+                      </Hint>
+                      <Hint>
+                        {playersCapWaitNote(players, context.joined, locale)}
+                      </Hint>
+                      <Hint>{m.createGame.edit.playersAndPriceHint}</Hint>
                     </>
                   ) : (
-                    <Hint>
-                      Price changes apply to players who join from now on.
-                    </Hint>
+                    <Hint>{m.webGame.edit.priceHint}</Hint>
                   )}
                 </div>
               </section>
               {sections.level ? (
                 <section className="space-y-3">
-                  <SectionHead title="Level range" meta={OPTIONAL_TAG} />
+                  <SectionHead
+                    title={m.webGame.edit.stepLabel.level}
+                    meta={m.common.optional}
+                  />
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field>
                       <FieldLabel htmlFor="edit-level-min">
-                        Minimum Level
+                        {m.webGame.edit.minimumLevel}
                       </FieldLabel>
                       <GameLevelBandSelect
                         id="edit-level-min"
@@ -708,7 +740,7 @@ export function GameEditDialog({
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="edit-level-max">
-                        Maximum Level
+                        {m.webGame.edit.maximumLevel}
                       </FieldLabel>
                       <GameLevelBandSelect
                         id="edit-level-max"
@@ -720,7 +752,7 @@ export function GameEditDialog({
                     </Field>
                   </div>
                   <FieldDescription id="edit-level-range-copy">
-                    {LEVEL_RANGE_FIELD_DESCRIPTION}
+                    {m.level.rangeFieldDescription}
                   </FieldDescription>
                   <FieldError id="edit-level-error">
                     {errorFor("level")}
@@ -729,7 +761,7 @@ export function GameEditDialog({
               ) : null}
               {sections.rounds && context.rounds ? (
                 <section className="space-y-3">
-                  <SectionHead title="Rounds" />
+                  <SectionHead title={m.webGame.edit.stepLabel.rounds} />
                   <RoundCountField
                     id="edit-round-count"
                     poolSizes={context.rounds.poolSizes}
@@ -738,7 +770,7 @@ export function GameEditDialog({
                     error={errorFor("rounds")}
                   />
                   {context.rounds.overruns ? (
-                    <Hint>{ONE_DAY_OVERRUN_MESSAGE}</Hint>
+                    <Hint>{m.tournament.sizing.oneDayOverrun}</Hint>
                   ) : null}
                 </section>
               ) : null}
@@ -758,7 +790,7 @@ export function GameEditDialog({
             <div className="border-rule flex items-center justify-between gap-4 border-t px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:px-0 md:pb-0">
               <div className="min-w-0">
                 <div className="text-muted-foreground text-eyebrow">
-                  {CHANGES_LABEL}
+                  {m.createGame.edit.changes}
                 </div>
                 <div
                   aria-live="polite"
@@ -773,10 +805,10 @@ export function GameEditDialog({
                 size="lg"
                 disabled={!edit.canSave}
                 pending={pending}
-                pendingLabel="Saving…"
+                pendingLabel={m.common.saving}
                 className="shrink-0"
               >
-                {SAVE_CHANGES_ACTION}
+                {m.createGame.edit.saveChanges}
               </Button>
             </div>
           </>

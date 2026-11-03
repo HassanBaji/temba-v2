@@ -27,7 +27,7 @@ describe("levelFromApi", () => {
     } as ApiRating;
     assert.deepEqual(levelFromApi(data), { kind: "none" });
     assert.equal(
-      noLevelCopy("football"),
+      noLevelCopy("football", "en"),
       "Play a rated football game and your football Level appears.",
     );
   });
@@ -102,8 +102,8 @@ describe("per-sport sections", () => {
       standingInSport(rows, "football").map((row) => row.groupId),
       ["b"],
     );
-    assert.equal(standingCountLabel(1), "1 group");
-    assert.equal(standingCountLabel(7), "7 groups");
+    assert.equal(standingCountLabel(1, "en"), "1 group");
+    assert.equal(standingCountLabel(7, "en"), "7 groups");
   });
 });
 

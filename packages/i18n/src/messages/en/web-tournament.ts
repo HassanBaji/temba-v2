@@ -62,12 +62,12 @@ export const webTournament = {
       `${place}, ${day} ${time} ${meridiem}`,
     scoreIn: "Score in",
     scoreMissing: "Score missing",
-    startCaptainsPick: (sideSize: number) =>
-      `${sideSize} start, captains pick`,
+    startCaptainsPick: (sideSize: number) => `${sideSize} start, captains pick`,
     captainsPickStarters: "Captains pick starters",
     each: "each",
   },
   footballDetails: {
+    timeUnset: "Time unset",
     scoreConfirmedToast: "Score confirmed",
     venueFallback: "Venue",
     seasonRow: "Season",

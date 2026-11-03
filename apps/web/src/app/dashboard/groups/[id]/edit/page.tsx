@@ -155,7 +155,7 @@ function InviteLinkCard({
 
   return (
     <div className="border-rule flex flex-col overflow-hidden rounded-[12px] border">
-      <div className="flex min-h-[56px] items-center gap-3 py-2.5 ps-[18px] pe-2.5">
+      <div className="flex min-h-[56px] items-center gap-3 py-2.5 pe-2.5 ps-[18px]">
         <span
           className={
             url

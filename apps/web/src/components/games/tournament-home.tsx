@@ -693,7 +693,9 @@ function TournamentHomeActions({
                 </FieldLabel>
                 <Select value={teamId} onValueChange={onTeamIdChange}>
                   <SelectTrigger id="tournament-team-id">
-                    <SelectValue placeholder={m.webTournament.home.selectTeam} />
+                    <SelectValue
+                      placeholder={m.webTournament.home.selectTeam}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {eligibleTeams.map((team) => (

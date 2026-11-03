@@ -506,7 +506,8 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     split?.fieldErrors.identifier;
   const formattedPhone = formatInternationalNumber(countryIso, national);
   const title = phoneAuthTitle(step, locale);
-  const passwordPlaceholder = m.webAuth.password.placeholder(PASSWORD_MIN_LENGTH);
+  const passwordPlaceholder =
+    m.webAuth.password.placeholder(PASSWORD_MIN_LENGTH);
   const passwordHint = passwordHintCopy(locale);
 
   if (step === "password") {

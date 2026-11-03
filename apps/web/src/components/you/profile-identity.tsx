@@ -4,6 +4,7 @@ import { Camera } from "lucide-react";
 import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { AvatarBadge } from "~/components/ui/avatar";
 import { Skeleton } from "~/components/ui/skeleton";
 import { profileTaskHref } from "~/lib/onboarding-step";
@@ -23,7 +24,10 @@ function ProfileIdentityAvatar({
   hasImage: boolean;
   imageUrl: string;
 }) {
-  const photoLabel = hasImage ? "Edit profile photo" : "Add profile photo";
+  const m = useMessages();
+  const photoLabel = hasImage
+    ? m.webAuth.you.identity.editPhoto
+    : m.webAuth.you.identity.addPhoto;
 
   return (
     <Link
@@ -56,6 +60,7 @@ export function ProfileIdentity({
   canEditPhoto: boolean;
   ready: boolean;
 }) {
+  const locale = useLocale();
   const state = api.users.onboardingState.useQuery(undefined, {
     enabled: ready,
   });
@@ -64,8 +69,12 @@ export function ProfileIdentity({
   });
   const positionLine = preferredPositionProfileLine(
     state.data?.preferredPosition,
+    locale,
   );
-  const playingSince = playingSinceLine(stats.data?.firstMatchAt ?? null);
+  const playingSince = playingSinceLine(
+    stats.data?.firstMatchAt ?? null,
+    locale,
+  );
 
   if (!ready) {
     return (

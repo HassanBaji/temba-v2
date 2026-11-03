@@ -100,7 +100,9 @@ export function AddPlayerIdentityFields({
       {preview?.kind === "new" ? (
         <>
           <Field>
-            <FieldLabel htmlFor={NAME_ID}>{m.group.addPlayer.nameLabel}</FieldLabel>
+            <FieldLabel htmlFor={NAME_ID}>
+              {m.group.addPlayer.nameLabel}
+            </FieldLabel>
             <Input
               id={NAME_ID}
               value={name}

@@ -152,8 +152,7 @@ export const webGroup = {
     newLevel: "المستوى الجديد",
     toNext: (distance: string, band: string) => `${distance} حتى ${band}`,
     topOfScale: "أعلى المقياس",
-    throughRung: (percent: number, band: string) =>
-      `${percent}% من ${band}`,
+    throughRung: (percent: number, band: string) => `${percent}% من ${band}`,
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
     reset: "إعادة ضبط",

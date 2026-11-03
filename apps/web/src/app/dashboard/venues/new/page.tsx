@@ -76,10 +76,7 @@ export default function NewVenuePage() {
   const error = createVenue.error;
 
   return (
-    <DashboardShell
-      title={v.createAction}
-      description={v.new.description}
-    >
+    <DashboardShell title={v.createAction} description={v.new.description}>
       <Card variant="outlined" className="w-full">
         <form onSubmit={onSubmit} className="space-y-6">
           <FormErrorSummary
@@ -181,7 +178,9 @@ export default function NewVenuePage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="venue-longitude">{v.new.longitude}</FieldLabel>
+              <FieldLabel htmlFor="venue-longitude">
+                {v.new.longitude}
+              </FieldLabel>
               <Input
                 id="venue-longitude"
                 type="number"

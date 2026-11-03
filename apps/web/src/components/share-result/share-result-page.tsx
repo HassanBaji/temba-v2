@@ -151,9 +151,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     setPending(action);
     void task()
       .catch((error: unknown) => {
-        toast.error(
-          error instanceof Error ? error.message : m.shareFailed,
-        );
+        toast.error(error instanceof Error ? error.message : m.shareFailed);
       })
       .finally(() => setPending(null));
   }

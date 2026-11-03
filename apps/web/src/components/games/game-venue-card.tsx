@@ -46,7 +46,9 @@ export function GameVenueCard({
               {m.webGame.venueCard.cityCountry(venue.city, venue.country)}
             </p>
             {venue.archivedAt ? (
-              <Badge variant="warning">{m.webGame.venueCard.softArchived}</Badge>
+              <Badge variant="warning">
+                {m.webGame.venueCard.softArchived}
+              </Badge>
             ) : null}
           </div>
         </div>

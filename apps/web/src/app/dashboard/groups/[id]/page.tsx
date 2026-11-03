@@ -300,7 +300,8 @@ export default function GroupHomePage({
     onSuccess: async () => {
       toast.success(
         groupLeftVenueToast(
-          group.data?.venueCommunity?.venueName ?? m.webDashboard.group.theVenue,
+          group.data?.venueCommunity?.venueName ??
+            m.webDashboard.group.theVenue,
           locale,
         ),
       );
@@ -407,7 +408,9 @@ export default function GroupHomePage({
   const registerGame = api.games.register.useMutation({
     onSuccess: async (result) => {
       toast.success(
-        result.waitlisted ? m.game.toast.joinedWaitlist : m.game.card.registered,
+        result.waitlisted
+          ? m.game.toast.joinedWaitlist
+          : m.game.card.registered,
       );
       await refreshAfterGameJoin();
     },
@@ -508,7 +511,11 @@ export default function GroupHomePage({
 
   if (group.isLoading) {
     return (
-      <DashboardShell title={m.invite.kind.group} hidePageHeader hideMobileTopBar>
+      <DashboardShell
+        title={m.invite.kind.group}
+        hidePageHeader
+        hideMobileTopBar
+      >
         <GroupHomeSkeleton />
       </DashboardShell>
     );

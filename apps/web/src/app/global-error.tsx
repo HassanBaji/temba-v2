@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { InviteShell } from "~/components/invites/invite-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { display, mono, sans } from "./fonts";
 
@@ -16,21 +17,23 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   useEffect(() => {
     console.error(error);
   }, [error]);
 
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${sans.variable} ${mono.variable} ${display.variable}`}
     >
       <body className="font-sans antialiased">
-        <title>Something went wrong · Temba</title>
+        <title>{m.webAuth.errors.globalTitle}</title>
         <InviteShell>
           <ErrorState
             headingLevel={1}
-            message="Temba could not load. Try again in a moment."
+            message={m.webAuth.errors.globalMessage}
             onRetry={reset}
           />
         </InviteShell>

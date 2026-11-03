@@ -72,7 +72,10 @@ export function SelectCard({
         {trailing === "chevron" ? (
           <ChevronRight
             aria-hidden="true"
-            className={cn("size-[18px] shrink-0", ON_INK_MUTED)}
+            className={cn(
+              "size-[18px] shrink-0 rtl:-scale-x-100",
+              ON_INK_MUTED,
+            )}
           />
         ) : null}
         {trailing === "check" && selected ? (

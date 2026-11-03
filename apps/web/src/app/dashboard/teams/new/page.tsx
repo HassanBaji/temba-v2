@@ -101,7 +101,9 @@ export default function NewTeamPage() {
 
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={createTeam.isPending}>
-              {createTeam.isPending ? m.webDashboard.creating : m.team.createLabel}
+              {createTeam.isPending
+                ? m.webDashboard.creating
+                : m.team.createLabel}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/dashboard/teams">{m.common.cancel}</Link>

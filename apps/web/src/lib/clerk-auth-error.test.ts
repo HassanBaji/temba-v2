@@ -4,7 +4,7 @@ import { describe, it } from "vitest";
 import { ClerkAPIResponseError } from "@clerk/nextjs/errors";
 
 import {
-  CLERK_AUTH_ERROR_COPY,
+  clerkAuthErrorCopy,
   splitClerkAuthError,
 } from "@repo/domain/clerk-auth-error";
 
@@ -21,9 +21,9 @@ describe("splitClerkAuthError with the Clerk SDK error", () => {
         },
       ],
     });
-    assert.deepEqual(splitClerkAuthError(err), {
+    assert.deepEqual(splitClerkAuthError(err, "en"), {
       fieldErrors: {
-        identifier: CLERK_AUTH_ERROR_COPY.form_identifier_not_found,
+        identifier: clerkAuthErrorCopy("form_identifier_not_found", "en"),
       },
       globalMessage: null,
     });

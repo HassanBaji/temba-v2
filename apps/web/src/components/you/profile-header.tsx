@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 
 import { PageTitle } from "~/components/layout/page-title";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { profileSettingsAriaLabel } from "@repo/domain/profile-chrome";
 
 export function ProfileHeader({
@@ -11,12 +12,14 @@ export function ProfileHeader({
 }: {
   pendingInviteCount: number;
 }) {
-  const ariaLabel = profileSettingsAriaLabel(pendingInviteCount);
+  const m = useMessages();
+  const locale = useLocale();
+  const ariaLabel = profileSettingsAriaLabel(pendingInviteCount, locale);
   const showDot = pendingInviteCount > 0;
 
   return (
     <header className="flex items-center justify-between gap-3">
-      <PageTitle className="text-ink truncate">Profile</PageTitle>
+      <PageTitle className="text-ink truncate">{m.common.profile}</PageTitle>
       <Link
         href="/dashboard/you/settings"
         aria-label={ariaLabel}

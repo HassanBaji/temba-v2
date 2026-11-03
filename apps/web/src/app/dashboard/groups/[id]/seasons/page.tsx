@@ -296,7 +296,10 @@ export default function GroupSeasonsPage({
         ) : null}
       </section>
 
-      <section className={cardFrame} aria-label={m.webDashboard.seasons.scoring}>
+      <section
+        className={cardFrame}
+        aria-label={m.webDashboard.seasons.scoring}
+      >
         <div className="flex items-center justify-between gap-3 px-[18px] py-3.5">
           <span className="min-w-0">
             <span className="text-body block font-semibold">

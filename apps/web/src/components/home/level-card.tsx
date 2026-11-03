@@ -4,9 +4,10 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { sportLabel, type Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 
 import { noLevelCopy, type HomeLevel } from "./home-model";
@@ -18,9 +19,10 @@ const CHANGE_ICONS = {
 } as const;
 
 function SportMeta({ sport }: { sport: Sport }) {
+  const locale = useLocale();
   return (
     <span className="text-eyebrow font-mono uppercase">
-      {SPORT_LABELS[sport]}
+      {sportLabel(sport, locale)}
     </span>
   );
 }
@@ -32,18 +34,24 @@ export function LevelCard({
   level: HomeLevel;
   sport: Sport;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <SurfaceLabel meta={<SportMeta sport={sport} />}>Level</SurfaceLabel>
+      <SurfaceLabel meta={<SportMeta sport={sport} />}>
+        {m.common.level}
+      </SurfaceLabel>
       {level.kind === "rated" ? (
         <RatedLevel input={level.input} />
       ) : (
         <div className="flex items-center gap-5 px-[22px] pb-[22px]">
           <Hatch radius="lg" className="size-[74px] shrink-0" />
           <div className="flex min-w-0 flex-col gap-1.5">
-            <p className="text-lead font-semibold">No Level yet</p>
+            <p className="text-lead font-semibold">
+              {m.profile.levelCard.noLevelYet}
+            </p>
             <p className="text-meta text-muted-foreground">
-              {noLevelCopy(sport)}
+              {noLevelCopy(sport, locale)}
             </p>
           </div>
         </div>
@@ -53,19 +61,21 @@ export function LevelCard({
 }
 
 function RatedLevel({ input }: { input: HomeLevelInput }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     setDrawn(true);
   }, []);
 
-  const view = homeLevelView(input);
+  const view = homeLevelView(input, locale);
   const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
 
   return (
     <>
       <div className="flex items-stretch gap-4 px-[22px] pb-[22px]">
         <p className="font-expanded text-[88px] leading-none">
-          <span className="sr-only">Level band </span>
+          <span className="sr-only">{`${m.webAuth.home.levelBandSpoken} `}</span>
           {view.displayBand}
         </p>
         <div className="bg-rule w-px self-stretch" />
@@ -74,7 +84,9 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
             <span className="font-expanded text-h2 tabular-nums">
               {view.level}
             </span>
-            <span className="text-meta text-muted-foreground">Level</span>
+            <span className="text-meta text-muted-foreground">
+              {m.common.level}
+            </span>
           </p>
           {view.change && ChangeIcon ? (
             <p className="flex items-center gap-1">
@@ -114,7 +126,7 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
         </div>
       ) : (
         <p className="border-rule text-meta border-t px-[22px] py-3">
-          Top Level band
+          {m.profile.level.topBand}
         </p>
       )}
 

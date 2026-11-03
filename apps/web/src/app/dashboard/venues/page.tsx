@@ -155,7 +155,9 @@ export default function VenuesPage() {
                 meta={m.community.venue.location(venue.city, venue.country)}
                 trailing={
                   venue.archivedAt ? (
-                    <Badge variant="outline">{m.community.badge.softArchived}</Badge>
+                    <Badge variant="outline">
+                      {m.community.badge.softArchived}
+                    </Badge>
                   ) : undefined
                 }
               >

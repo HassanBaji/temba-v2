@@ -148,7 +148,9 @@ function TeamSeat({
   const m = useMessages();
   const locale = useLocale();
   const positionName =
-    position === "left" ? m.tournament.position.left : m.tournament.position.right;
+    position === "left"
+      ? m.tournament.position.left
+      : m.tournament.position.right;
 
   if (!occupant) {
     const canJoin = joinable && onJoin != null;

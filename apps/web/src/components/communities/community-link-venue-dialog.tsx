@@ -75,9 +75,7 @@ export function CommunityLinkVenueDialog({
             />
           ) : null}
           {venues?.length === 0 ? (
-            <p className="text-body text-muted-foreground">
-              {copy.none}
-            </p>
+            <p className="text-body text-muted-foreground">{copy.none}</p>
           ) : null}
           {venues && venues.length > 0 ? (
             <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">

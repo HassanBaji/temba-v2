@@ -1,4 +1,5 @@
 import { ErrorState } from "~/components/common/error-state";
+import { useMessages } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
 
 import type { Slot } from "./home-model";
@@ -16,6 +17,7 @@ export function HomeBlock<T>({
   onRetry: () => void;
   children: (value: T) => React.ReactNode;
 }) {
+  const m = useMessages();
   if (slot.status === "loading") {
     return (
       <Skeleton
@@ -29,7 +31,7 @@ export function HomeBlock<T>({
     return (
       <ErrorState
         variant="inline"
-        title={`${title} could not be loaded`}
+        title={m.webAuth.home.couldNotLoad(title)}
         message={slot.message}
         onRetry={onRetry}
       />

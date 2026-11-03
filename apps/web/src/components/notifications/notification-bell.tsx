@@ -24,7 +24,9 @@ export function NotificationBell({ className }: { className?: string }) {
     <Link
       href="/dashboard/notifications"
       aria-label={
-        showDot ? m.webUi.notificationBell.unread : m.webUi.notificationBell.label
+        showDot
+          ? m.webUi.notificationBell.unread
+          : m.webUi.notificationBell.label
       }
       className={cn(
         "border-rule text-ink focus-visible:ring-ring/50 relative flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]",

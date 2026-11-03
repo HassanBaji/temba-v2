@@ -34,7 +34,10 @@ export function passwordStrength(password: string): number {
   return checks.filter(Boolean).length;
 }
 
-export function passwordStrengthLabel(password: string, locale: Locale): string {
+export function passwordStrengthLabel(
+  password: string,
+  locale: Locale,
+): string {
   const m = messagesFor(locale).webUi.password;
   const labels = [m.tooShort, m.weak, m.fair, m.good, m.strong] as const;
   if (!isPasswordLongEnough(password)) {

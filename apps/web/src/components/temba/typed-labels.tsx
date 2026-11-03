@@ -88,9 +88,7 @@ export function InviteKindBadge({ kind }: { kind: string }) {
 
 export function GameRegistrationModeBadge({ mode }: { mode: string }) {
   const m = useMessages();
-  return (
-    <Badge variant="outline">{gameRegistrationModeLabel(mode, m)}</Badge>
-  );
+  return <Badge variant="outline">{gameRegistrationModeLabel(mode, m)}</Badge>;
 }
 
 export function GameRegistrationStatusBadge({ status }: { status: string }) {

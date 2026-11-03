@@ -58,7 +58,7 @@ export function MemberRow({
           {navigates ? (
             <ChevronRight
               aria-hidden="true"
-              className="text-muted-foreground size-[18px] shrink-0 sm:hidden"
+              className="text-muted-foreground size-[18px] shrink-0 sm:hidden rtl:-scale-x-100"
             />
           ) : null}
         </div>

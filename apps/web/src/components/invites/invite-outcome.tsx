@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { DoorClosed, Hourglass, Link2Off, type LucideIcon } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
   inviteOutcomeAction,
@@ -28,8 +31,9 @@ export function InviteOutcome({
   hostLabel: InviteHostLabel;
   isSignedIn: boolean;
 }) {
-  const { title, description } = inviteOutcomeCopy(outcome, hostLabel);
-  const action = inviteOutcomeAction(isSignedIn);
+  const locale = useLocale();
+  const { title, description } = inviteOutcomeCopy(outcome, hostLabel, locale);
+  const action = inviteOutcomeAction(isSignedIn, locale);
   return (
     <EmptyState
       icon={OUTCOME_ICONS[outcome]}
@@ -46,10 +50,11 @@ export function InviteOutcome({
 }
 
 export function InvitePreviewError({ onRetry }: { onRetry: () => void }) {
+  const m = useMessages();
   return (
     <ErrorState
-      title="Couldn't load this invite"
-      message="Check your connection and try again."
+      title={m.webAuth.invites.previewFailed}
+      message={m.webAuth.invites.checkConnection}
       onRetry={onRetry}
       headingLevel={1}
     />

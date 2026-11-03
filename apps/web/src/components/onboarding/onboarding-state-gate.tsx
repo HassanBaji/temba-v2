@@ -6,6 +6,7 @@ import * as React from "react";
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { ErrorState } from "~/components/common/error-state";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { onboardingPhaseFromState } from "~/lib/onboarding-step";
@@ -34,6 +35,8 @@ export function OnboardingStateGate({
 }: {
   children: (state: ReadyOnboardingState) => React.ReactNode;
 }) {
+  const m = useMessages();
+  const copy = m.webAuth.onboarding.gate;
   const { signOut } = useClerk();
   const state = api.users.onboardingState.useQuery(undefined, {
     refetchInterval: (query) =>
@@ -68,7 +71,7 @@ export function OnboardingStateGate({
       <AuthScreen brand>
         <ErrorState
           headingLevel={1}
-          title="Setup could not be loaded"
+          title={copy.loadFailed}
           message={state.error.message}
           onRetry={() => {
             void state.refetch();
@@ -92,8 +95,8 @@ export function OnboardingStateGate({
         <AuthScreen brand>
           <ErrorState
             headingLevel={1}
-            title="Setup is taking longer than usual"
-            message="Your Temba account is still being created. Try again, or sign out and come back later."
+            title={copy.stalledTitle}
+            message={copy.stalledMessage}
             onRetry={() => {
               setProvisioningStalled(false);
               void state.refetch();
@@ -104,10 +107,10 @@ export function OnboardingStateGate({
                 variant="outline"
                 className="min-h-11"
                 pending={signingOut}
-                pendingLabel="Signing out…"
+                pendingLabel={copy.signingOut}
                 onClick={onSignOut}
               >
-                Sign out
+                {m.common.signOut}
               </Button>
             }
           />
@@ -115,15 +118,14 @@ export function OnboardingStateGate({
       );
     }
     return (
-      <AuthScreen brand title="Setting up your account">
+      <AuthScreen brand title={copy.settingUp}>
         <div className="space-y-4">
           <p
             role="status"
             aria-live="polite"
             className="text-body text-muted-foreground"
           >
-            Your Temba account is still being created. This only takes a moment
-            after sign-up, and the page opens on its own.
+            {copy.creatingNote}
           </p>
           <Skeleton className="h-24 w-full rounded-lg" />
         </div>

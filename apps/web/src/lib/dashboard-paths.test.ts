@@ -16,7 +16,10 @@ const en = messagesFor("en");
 
 describe("titleFromPath", () => {
   it("titles the Notifications page", () => {
-    assert.equal(titleFromPath("/dashboard/notifications", en), "Notifications");
+    assert.equal(
+      titleFromPath("/dashboard/notifications", en),
+      "Notifications",
+    );
   });
 
   it("titles Settings for the Profile settings route", () => {
@@ -59,7 +62,10 @@ describe("detailBackHref", () => {
   });
 
   it("titles the Operator Groups page", () => {
-    assert.equal(titleFromPath("/dashboard/operator/groups", en), "Verify Groups");
+    assert.equal(
+      titleFromPath("/dashboard/operator/groups", en),
+      "Verify Groups",
+    );
   });
 
   it("keeps existing detail back targets", () => {

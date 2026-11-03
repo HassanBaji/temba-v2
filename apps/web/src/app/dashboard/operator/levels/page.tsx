@@ -97,10 +97,7 @@ export default function OperatorLevelsPage() {
   }
 
   return (
-    <DashboardShell
-      title={o.title}
-      description={o.description}
-    >
+    <DashboardShell title={o.title} description={o.description}>
       <div className="space-y-4">
         <SportSegments value={sport} onSelect={setSport} />
 
@@ -202,7 +199,9 @@ export default function OperatorLevelsPage() {
       >
         <SheetContent className="w-full overflow-y-auto sm:max-w-[480px]">
           <SheetHeader>
-            <SheetTitle>{o.sheetTitle(sportLabel(sport, locale) ?? "")}</SheetTitle>
+            <SheetTitle>
+              {o.sheetTitle(sportLabel(sport, locale) ?? "")}
+            </SheetTitle>
             <SheetDescription>{o.sheetDescription}</SheetDescription>
           </SheetHeader>
           {target ? (

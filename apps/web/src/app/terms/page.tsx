@@ -1,15 +1,17 @@
 import { type Metadata } from "next";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { getRequestLocale, getRequestMessages } from "~/lib/request-locale";
 import {
   TERMS_SECTIONS,
   TERMS_UPDATED,
   type TermsClause,
 } from "@repo/domain/terms";
 
-export const metadata: Metadata = {
-  title: "Terms and Conditions",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.webAuth.legal.termsTitle };
+}
 
 function Clause({ clause }: { clause: TermsClause }) {
   return (
@@ -31,17 +33,24 @@ function Clause({ clause }: { clause: TermsClause }) {
   );
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const m = await getRequestMessages();
+  const locale = await getRequestLocale();
   return (
     <AuthScreen
       wide
       backHref="/"
-      backLabel="Back"
-      eyebrow={`Last updated ${TERMS_UPDATED}`}
-      title="Terms and Conditions"
-      description="What you agree to when you create an account or use Temba."
+      backLabel={m.common.back}
+      eyebrow={m.webAuth.legal.lastUpdated(TERMS_UPDATED)}
+      title={m.webAuth.legal.termsTitle}
+      description={m.webAuth.legal.termsDescription}
     >
-      <div className="flex flex-col gap-7">
+      {locale === "en" ? null : (
+        <p className="text-body text-ink mb-7 font-semibold">
+          {m.webAuth.legal.englishGoverns}
+        </p>
+      )}
+      <div lang="en" dir="ltr" className="flex flex-col gap-7">
         {TERMS_SECTIONS.map((section) => (
           <section key={section.number} className="flex flex-col gap-2.5">
             <h2 className="text-lead font-semibold">

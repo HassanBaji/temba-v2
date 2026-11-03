@@ -239,7 +239,9 @@ export function GameWindowFields({
         className={includeFinish ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
       >
         <Field>
-          <FieldLabel htmlFor={startId}>{m.webGame.window.startTime}</FieldLabel>
+          <FieldLabel htmlFor={startId}>
+            {m.webGame.window.startTime}
+          </FieldLabel>
           <TimeSlotSelect
             id={startId}
             value={startTime}

@@ -75,7 +75,7 @@ export function SecondFactorForm({
         setPrepared(true);
         setPending(false);
       });
-  }, [isLoaded, pending, prepared, signIn]);
+  }, [isLoaded, locale, pending, prepared, signIn]);
 
   async function onVerify() {
     if (pending || !signIn) {

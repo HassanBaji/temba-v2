@@ -55,13 +55,12 @@ export default function OperatorGroupsPage() {
   });
 
   return (
-    <DashboardShell
-      title={o.title}
-      description={o.description}
-    >
+    <DashboardShell title={o.title} description={o.description}>
       <div className="space-y-4">
         <Field>
-          <FieldLabel htmlFor="operator-group-search">{o.searchLabel}</FieldLabel>
+          <FieldLabel htmlFor="operator-group-search">
+            {o.searchLabel}
+          </FieldLabel>
           <Input
             id="operator-group-search"
             value={query}
@@ -122,7 +121,9 @@ export default function OperatorGroupsPage() {
                       ) : null}
                       {viaVenueCommunity ? (
                         <Badge variant="secondary">
-                          {o.verifiedByVenue(group.venueCommunityVenueName)}
+                          {o.verifiedByVenue(
+                            group.venueCommunityVenueName ?? "",
+                          )}
                         </Badge>
                       ) : null}
                       {viaVenueCommunity ? null : verified ? (

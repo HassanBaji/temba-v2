@@ -8,6 +8,7 @@ import * as React from "react";
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotNowLink, TaskActions } from "~/components/onboarding/task-actions";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
@@ -37,19 +38,11 @@ type UserLike = {
   update: (params: { primaryEmailAddressId: string }) => Promise<unknown>;
 };
 
-const BENEFITS: { icon: LucideIcon; lead: string; rest: string }[] = [
-  {
-    icon: Receipt,
-    lead: "Receipts.",
-    rest: "Every booking and seat payment, in your inbox.",
-  },
-  {
-    icon: Mail,
-    lead: "Recovery.",
-    rest: "Sign in by email if your number changes.",
-  },
-  { icon: Lock, lead: "Private.", rest: "Never shown to other members." },
-];
+const BENEFIT_ICONS = {
+  receipts: Receipt,
+  recovery: Mail,
+  private: Lock,
+} as const satisfies Record<string, LucideIcon>;
 
 /** An address already on the account but never verified picks up where it left off. */
 function unverifiedAddress(user: UserLike) {
@@ -59,6 +52,9 @@ function unverifiedAddress(user: UserLike) {
 }
 
 function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.onboarding.email;
   const router = useRouter();
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [step, setStep] = React.useState<Step>("email");
@@ -93,7 +89,7 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
     const trimmed = email.trim();
     if (trimmed.length === 0) {
       setSplit({
-        fieldErrors: { email_address: "Enter your email" },
+        fieldErrors: { email_address: copy.enterYourEmail },
         globalMessage: null,
       });
       return;
@@ -113,7 +109,7 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
       setStep("code");
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -129,7 +125,7 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
       await user.update({ primaryEmailAddressId: address.id });
       router.replace(backHref);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -144,7 +140,7 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
       setStartedAt(Date.now());
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -159,18 +155,18 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
     return (
       <AuthScreen
         onBack={changeEmail}
-        backLabel="Back"
-        eyebrow="Profile / Email"
-        title="Check your inbox"
+        backLabel={m.common.back}
+        eyebrow={m.webAuth.onboarding.eyebrow.email}
+        title={copy.checkYourInbox}
         footer={
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
-            Until verified, the email is saved but unused.
+            {copy.unverifiedNote}
           </p>
         }
       >
         <VerifyCodeForm
           destination={address.emailAddress}
-          changeLabel="Change email"
+          changeLabel={m.webAuth.signUpContinue.changeEmail}
           onChangeIdentifier={changeEmail}
           code={code}
           onCodeChange={setCode}
@@ -186,8 +182,8 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
           codeError={split?.fieldErrors.code}
           codeInputId={FIELD_IDS.code}
           summaryRef={summaryRef}
-          verifyLabel="Verify email"
-          helper="Check spam if nothing arrives in a minute."
+          verifyLabel={copy.verifyEmail}
+          helper={copy.spamHelper}
         />
       </AuthScreen>
     );
@@ -199,10 +195,10 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
   return (
     <AuthScreen
       backHref={backHref}
-      backLabel="Back"
-      eyebrow="Profile / Email"
-      title="Add your email"
-      description="For booking receipts, and a way back into your account if you change number. We send a six digit code to confirm it."
+      backLabel={m.common.back}
+      eyebrow={m.webAuth.onboarding.eyebrow.email}
+      title={copy.title}
+      description={copy.description}
     >
       <form
         className="flex flex-col gap-[18px]"
@@ -215,7 +211,7 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
             htmlFor={FIELD_IDS.email}
             className="text-meta text-muted-foreground"
           >
-            Email
+            {copy.emailLabel}
           </FieldLabel>
           <Input
             id={FIELD_IDS.email}
@@ -242,23 +238,30 @@ function Steps({ user, backHref }: { user: UserLike; backHref: string }) {
           type="submit"
           size="lg"
           pending={pending}
-          pendingLabel="Sending code…"
+          pendingLabel={copy.sendingCode}
           className="w-full font-semibold"
         >
-          Send code
+          {copy.sendCode}
         </Button>
         <ul className="flex flex-col gap-3 pt-2">
-          {BENEFITS.map(({ icon: Icon, lead, rest }) => (
-            <li key={lead} className="flex items-start gap-3">
-              <Icon
-                aria-hidden="true"
-                className="text-muted-foreground mt-0.5 size-4 shrink-0"
-              />
-              <p className="text-meta text-muted-foreground">
-                <span className="text-ink font-semibold">{lead}</span> {rest}
-              </p>
-            </li>
-          ))}
+          {(Object.keys(BENEFIT_ICONS) as (keyof typeof BENEFIT_ICONS)[]).map(
+            (key) => {
+              const Icon = BENEFIT_ICONS[key];
+              const { lead, rest } = copy.benefits[key];
+              return (
+                <li key={key} className="flex items-start gap-3">
+                  <Icon
+                    aria-hidden="true"
+                    className="text-muted-foreground mt-0.5 size-4 shrink-0"
+                  />
+                  <p className="text-meta text-muted-foreground">
+                    <span className="text-ink font-semibold">{lead}</span>{" "}
+                    {rest}
+                  </p>
+                </li>
+              );
+            },
+          )}
         </ul>
         <TaskActions>
           <NotNowLink href={backHref} disabled={pending} />

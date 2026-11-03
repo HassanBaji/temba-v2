@@ -63,7 +63,9 @@ export function GamesHubUpcomingEmpty({
       </section>
       <div className="flex flex-col gap-2">
         <Button asChild size="lg" className="text-body w-full font-semibold">
-          <Link href="/dashboard/games/new">{m.webGame.hubEmpty.createGame}</Link>
+          <Link href="/dashboard/games/new">
+            {m.webGame.hubEmpty.createGame}
+          </Link>
         </Button>
         <Button
           asChild

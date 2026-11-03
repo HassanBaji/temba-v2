@@ -69,6 +69,7 @@ export const webTournament = {
     each: "للاعب",
   },
   footballDetails: {
+    timeUnset: "الوقت غير محدد",
     scoreConfirmedToast: "تم تأكيد النتيجة",
     venueFallback: "النادي",
     seasonRow: "الموسم",

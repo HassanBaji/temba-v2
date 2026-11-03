@@ -62,7 +62,8 @@ function SideRow({
   const locale = useLocale();
   const current = side === 1 ? bibs.slot1 : bibs.slot2;
   const [more, setMore] = React.useState(MORE_FOOTBALL_BIBS.includes(current));
-  const label = side === 1 ? m.webTournament.bibs.teamA : m.webTournament.bibs.teamB;
+  const label =
+    side === 1 ? m.webTournament.bibs.teamA : m.webTournament.bibs.teamB;
   const swatch = (bib: FootballBib) => {
     const selected = bib === current;
     return (

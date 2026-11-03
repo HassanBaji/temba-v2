@@ -469,7 +469,9 @@ export function GamePlayersPanel({
                   </FieldLabel>
                   <Select value={teamId} onValueChange={onTeamIdChange}>
                     <SelectTrigger id="team-id">
-                      <SelectValue placeholder={m.webGame.players.selectATeam} />
+                      <SelectValue
+                        placeholder={m.webGame.players.selectATeam}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {game.eligibleTeams.map((team) => (
@@ -635,7 +637,9 @@ function PartnerRegisterCard({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="left">{m.game.players.left}</SelectItem>
-                    <SelectItem value="right">{m.game.players.right}</SelectItem>
+                    <SelectItem value="right">
+                      {m.game.players.right}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </Field>

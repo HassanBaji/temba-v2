@@ -15,7 +15,11 @@ export default function PlayerMatchesPage({
   const m = useMessages();
 
   return (
-    <DashboardShell title={m.webDashboard.player.lastTenGames} width="content" hidePageHeader>
+    <DashboardShell
+      title={m.webDashboard.player.lastTenGames}
+      width="content"
+      hidePageHeader
+    >
       <div className="mx-auto mt-6 w-full min-w-0 max-w-[1000px] lg:mt-2">
         <PlayerMatches userId={userId} />
       </div>

@@ -7,6 +7,7 @@ import * as React from "react";
 
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   OnboardingStateGate,
   type ReadyOnboardingState,
@@ -61,6 +62,7 @@ function TaskRow({
   redirectUrl: string | null;
   showTime?: boolean;
 }) {
+  const m = useMessages();
   const body = (
     <>
       <TaskMarker done={task.done} />
@@ -80,7 +82,7 @@ function TaskRow({
         )}
       </span>
       {task.done ? (
-        <span className="sr-only">Done</span>
+        <span className="sr-only">{m.common.done}</span>
       ) : showTime ? (
         <span className="text-eyebrow text-muted-foreground shrink-0 font-mono uppercase">
           {task.time}
@@ -88,7 +90,7 @@ function TaskRow({
       ) : (
         <ChevronRight
           aria-hidden="true"
-          className="text-muted-foreground size-4 shrink-0"
+          className="text-muted-foreground size-4 shrink-0 rtl:-scale-x-100"
         />
       )}
     </>
@@ -144,11 +146,14 @@ function YouAreIn({
   redirectTo: string;
   onCompleteProfile: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.onboarding.checklist;
   return (
     <AuthScreen
-      crossLink={{ href: redirectTo, label: "Skip" }}
-      title={youAreInTitle(firstName)}
-      description={checklistBlurb(list)}
+      crossLink={{ href: redirectTo, label: copy.skip }}
+      title={youAreInTitle(firstName, locale)}
+      description={checklistBlurb(list, locale)}
     >
       <div className="flex flex-col gap-5">
         <span
@@ -159,15 +164,15 @@ function YouAreIn({
         </span>
         <div className="flex flex-col gap-2.5">
           <div className="text-meta text-muted-foreground flex items-baseline justify-between">
-            <span>Profile</span>
+            <span>{copy.profile}</span>
             <span className="text-eyebrow font-mono uppercase">
-              {checklistCountLabel(list)}
+              {checklistCountLabel(list, locale)}
             </span>
           </div>
           <Segments list={list} />
         </div>
         <ul
-          aria-label="Profile tasks"
+          aria-label={copy.tasksLabel}
           className="border-rule divide-rule divide-y overflow-hidden rounded-[14px] border"
         >
           {list.tasks.map((task) => (
@@ -187,7 +192,7 @@ function YouAreIn({
           className="w-full font-semibold"
           onClick={onCompleteProfile}
         >
-          Complete profile
+          {copy.completeProfile}
         </Button>
         <Button
           asChild
@@ -195,7 +200,7 @@ function YouAreIn({
           variant="outline"
           className="border-rule bg-paper hover:bg-wash w-full font-semibold"
         >
-          <Link href={redirectTo}>Later, show me games</Link>
+          <Link href={redirectTo}>{copy.laterShowGames}</Link>
         </Button>
       </div>
     </AuthScreen>
@@ -215,27 +220,30 @@ function Checklist({
   redirectUrl: string | null;
   redirectTo: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.onboarding.checklist;
   const doneAtSignUp = [
-    name ? { label: "Name", value: name } : null,
-    phone ? { label: "Mobile number", value: phone } : null,
+    name ? { label: copy.nameLabel, value: name } : null,
+    phone ? { label: copy.mobileNumberLabel, value: phone } : null,
   ].filter((row): row is { label: string; value: string } => row !== null);
 
   return (
     <AuthScreen
       backHref={redirectTo}
-      backLabel="Back"
+      backLabel={m.common.back}
       progress={{
         step: list.done,
         total: list.total,
-        label: `${checklistCountLabel(list)} done`,
+        label: copy.countDone(checklistCountLabel(list, locale)),
       }}
-      title="Complete your profile"
-      description={checklistBlurb(list)}
+      title={copy.title}
+      description={checklistBlurb(list, locale)}
     >
       <div className="flex flex-col gap-6">
         {doneAtSignUp.length > 0 ? (
           <section className="flex flex-col gap-2.5">
-            <SectionHeading>Done at sign up</SectionHeading>
+            <SectionHeading>{copy.doneAtSignUp}</SectionHeading>
             <ul className="border-rule divide-rule divide-y overflow-hidden rounded-[14px] border">
               {doneAtSignUp.map((row) => (
                 <DoneRow key={row.label} label={row.label} value={row.value} />
@@ -244,7 +252,7 @@ function Checklist({
           </section>
         ) : null}
         <section className="flex flex-col gap-2.5">
-          <SectionHeading>Tasks</SectionHeading>
+          <SectionHeading>{copy.tasks}</SectionHeading>
           <ul className="border-rule divide-rule divide-y overflow-hidden rounded-[14px] border">
             {list.tasks.map((task) => (
               <TaskRow key={task.id} task={task} redirectUrl={redirectUrl} />
@@ -254,7 +262,7 @@ function Checklist({
       </div>
       <div className="mt-auto flex flex-col gap-2.5 pt-6">
         <Button asChild size="lg" className="w-full font-semibold">
-          <Link href={redirectTo}>{checklistCta(list)}</Link>
+          <Link href={redirectTo}>{checklistCta(list, locale)}</Link>
         </Button>
       </div>
     </AuthScreen>
@@ -272,6 +280,7 @@ function LoadedChecklist({
   redirectUrl: string | null;
   redirectTo: string;
 }) {
+  const locale = useLocale();
   const { user, isLoaded } = useUser();
   const [showList, setShowList] = React.useState(!fresh);
 
@@ -291,6 +300,7 @@ function LoadedChecklist({
 
   const list = profileChecklist(
     profileChecklistInputFrom(user, state.onboardingCompletedAt),
+    locale,
   );
   const name = userDisplayName(user);
 

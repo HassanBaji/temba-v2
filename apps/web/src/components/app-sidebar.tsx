@@ -33,36 +33,36 @@ import {
 
 function navMain(m: Messages) {
   return [
-  {
-    title: m.common.home,
-    url: "/dashboard",
-    icon: House,
-  },
-  {
-    title: m.common.games,
-    url: "/dashboard/games",
-    icon: CalendarDays,
-  },
-  {
-    title: m.common.groups,
-    url: "/dashboard/groups",
-    icon: Users,
-  },
-  {
-    title: m.common.teams,
-    url: "/dashboard/teams",
-    icon: UserRound,
-  },
-  {
-    title: m.common.communities,
-    url: "/dashboard/communities",
-    icon: Building2,
-  },
-  {
-    title: m.common.invites,
-    url: "/dashboard/invites",
-    icon: Mail,
-  },
+    {
+      title: m.common.home,
+      url: "/dashboard",
+      icon: House,
+    },
+    {
+      title: m.common.games,
+      url: "/dashboard/games",
+      icon: CalendarDays,
+    },
+    {
+      title: m.common.groups,
+      url: "/dashboard/groups",
+      icon: Users,
+    },
+    {
+      title: m.common.teams,
+      url: "/dashboard/teams",
+      icon: UserRound,
+    },
+    {
+      title: m.common.communities,
+      url: "/dashboard/communities",
+      icon: Building2,
+    },
+    {
+      title: m.common.invites,
+      url: "/dashboard/invites",
+      icon: Mail,
+    },
   ];
 }
 

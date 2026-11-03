@@ -148,7 +148,9 @@ export function useGameEdit({
         moved += await runStep(step);
       } catch (caught) {
         const message =
-          caught instanceof Error ? caught.message : m.common.somethingWentWrong;
+          caught instanceof Error
+            ? caught.message
+            : m.common.somethingWentWrong;
         failed = { field: step.kind, message };
         break;
       }

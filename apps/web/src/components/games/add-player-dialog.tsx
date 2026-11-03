@@ -88,12 +88,14 @@ export function AddPlayerDialog({
   const [pickedSide, setPickedSide] = React.useState<number | null>(null);
 
   const isFootball = placement === "football";
-  const seatChoices = placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
+  const seatChoices =
+    placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
   const seat =
     seatChoices.find((choice) => sameJoinSeat(choice.seat, picked))?.seat ??
     seatChoices[0]?.seat ??
     null;
-  const sideChoices = placement === "side" ? addPlayerSideChoices(sides, locale) : [];
+  const sideChoices =
+    placement === "side" ? addPlayerSideChoices(sides, locale) : [];
   const side =
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
@@ -284,7 +286,9 @@ export function AddPlayerDialog({
             className="w-full font-semibold"
             disabled={!canSubmit}
           >
-            {add.isPending ? m.webGame.addPlayer.adding : m.group.addPlayer.action}
+            {add.isPending
+              ? m.webGame.addPlayer.adding
+              : m.group.addPlayer.action}
           </Button>
         </form>
       </ResponsiveDialogContent>

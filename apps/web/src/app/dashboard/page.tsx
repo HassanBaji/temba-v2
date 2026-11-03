@@ -51,7 +51,8 @@ export default function HomePage() {
   const createGroups = api.games.listCreateGroups.useQuery();
   const onboarding = api.users.onboardingState.useQuery();
 
-  const name = user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you;
+  const name =
+    user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you;
   const checklist =
     user && onboarding.data && !onboarding.data.provisioning
       ? profileChecklist(
@@ -82,7 +83,7 @@ export default function HomePage() {
           <UpNextHeading
             label={
               upNext.status === "ready"
-                ? upNextWeekLabel(upNext.value, now)
+                ? upNextWeekLabel(upNext.value, now, locale)
                 : ""
             }
           />

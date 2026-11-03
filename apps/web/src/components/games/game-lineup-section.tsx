@@ -318,7 +318,9 @@ export function GameLineupSection({
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <div className="flex items-center justify-between gap-3 px-[22px] pb-3 pt-[22px]">
-        <h2 className="text-muted-foreground text-sm">{m.webGame.lineup.title}</h2>
+        <h2 className="text-muted-foreground text-sm">
+          {m.webGame.lineup.title}
+        </h2>
         {onAddPlayer ? (
           <Button
             type="button"

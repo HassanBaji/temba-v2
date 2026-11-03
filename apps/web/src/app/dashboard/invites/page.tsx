@@ -94,12 +94,15 @@ export default function InvitesPage() {
     gameInvites.error ??
     venueRequests.error;
   const venueRequestRows = venueRequests.data ?? [];
-  const items = mergeInviteInbox({
-    community: communityInvites.data,
-    group: groupInvites.data,
-    team: teamInvites.data,
-    game: gameInvites.data,
-  });
+  const items = mergeInviteInbox(
+    {
+      community: communityInvites.data,
+      group: groupInvites.data,
+      team: teamInvites.data,
+      game: gameInvites.data,
+    },
+    locale,
+  );
 
   function isRowPending(kind: string, id: string) {
     if (kind === "community") {
@@ -211,7 +214,7 @@ export default function InvitesPage() {
                     }
                     onMove={() => undefined}
                     onKick={() => undefined}
-                    sideNoun={m.invite.kind.team}
+                    sideNoun="Team"
                   />
                   {waitlistOnly ? (
                     <Button

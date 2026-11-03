@@ -241,9 +241,7 @@ export default function VenueHomePage({
     void entityImageUploadInput(file, locale, "Logo")
       .then((input) => uploadLogo.mutate({ venueId: id, ...input }))
       .catch((error: unknown) => {
-        setLogoError(
-          error instanceof Error ? error.message : v.logoReadError,
-        );
+        setLogoError(error instanceof Error ? error.message : v.logoReadError);
       });
   }
 
@@ -366,10 +364,7 @@ export default function VenueHomePage({
           )}
         </Section>
 
-        <Section
-          title={v.details.title}
-          description={v.details.description}
-        >
+        <Section title={v.details.title} description={v.details.description}>
           <form onSubmit={onSubmit} className="space-y-6">
             <FormErrorSummary
               ref={detailsSummaryRef}
@@ -553,10 +548,7 @@ export default function VenueHomePage({
 
         <VenueManagersSection venueId={id} />
 
-        <Section
-          title={v.courts.title}
-          description={v.courts.description}
-        >
+        <Section title={v.courts.title} description={v.courts.description}>
           <form onSubmit={onAddCourt} className="space-y-3">
             <FormErrorSummary
               ref={courtSummaryRef}
@@ -613,9 +605,7 @@ export default function VenueHomePage({
           </form>
 
           {data.courts.length === 0 ? (
-            <p className="text-body text-muted-foreground">
-              {v.courts.empty}
-            </p>
+            <p className="text-body text-muted-foreground">{v.courts.empty}</p>
           ) : (
             <RowList>
               {data.courts.map((court) => {

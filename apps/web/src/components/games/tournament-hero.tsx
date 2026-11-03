@@ -31,7 +31,9 @@ function TournamentHeroSeatBlock({
 }) {
   const m = useMessages();
   const positionLabel =
-    position === "left" ? m.tournament.home.leftSeat : m.tournament.home.rightSeat;
+    position === "left"
+      ? m.tournament.home.leftSeat
+      : m.tournament.home.rightSeat;
 
   if (!occupant) {
     return (

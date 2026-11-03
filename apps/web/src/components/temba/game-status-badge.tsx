@@ -4,7 +4,12 @@ import { useMessages } from "~/components/locale-provider";
 import { Badge, type BadgeVariant } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 
-const GAME_STATUSES = ["pending", "confirmed", "completed", "cancelled"] as const;
+const GAME_STATUSES = [
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+] as const;
 
 export type GameStatusValue = (typeof GAME_STATUSES)[number];
 

@@ -351,7 +351,9 @@ export default function GroupsIndexPage({
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
         <TabsList variant="segmented">
-          <TabsTrigger value="mine">{m.webDashboard.groups.tabs.mine}</TabsTrigger>
+          <TabsTrigger value="mine">
+            {m.webDashboard.groups.tabs.mine}
+          </TabsTrigger>
           <TabsTrigger value="public">
             {m.webDashboard.groups.tabs.public}
           </TabsTrigger>

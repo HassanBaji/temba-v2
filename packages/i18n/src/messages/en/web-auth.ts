@@ -87,8 +87,7 @@ export const webAuth = {
   },
   signUpContinue: {
     almostThere: "Almost there",
-    finishOrStart:
-      "Finish creating your account, or start from the beginning.",
+    finishOrStart: "Finish creating your account, or start from the beginning.",
     startFrom: "Start from {phone} or continue with Google.",
     yourPhoneNumber: "your phone number",
     yourEmail: "your email",
@@ -150,6 +149,8 @@ export const webAuth = {
         "Self-placed for now. It balances teams until football results are rated.",
     },
     name: {
+      title: "Add your name",
+      description: "Shown to organizers and the people you play with.",
       saveName: "Save name",
     },
     photo: {

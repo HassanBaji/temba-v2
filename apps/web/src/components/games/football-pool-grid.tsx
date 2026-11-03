@@ -190,7 +190,10 @@ export function SeatBar({
   return (
     <div
       role="img"
-      aria-label={m.tournament.home.seatsTakenSr(Math.min(filled, seats), seats)}
+      aria-label={m.tournament.home.seatsTakenSr(
+        Math.min(filled, seats),
+        seats,
+      )}
       className="flex gap-[3px]"
     >
       {Array.from({ length: seats }, (_, index) =>

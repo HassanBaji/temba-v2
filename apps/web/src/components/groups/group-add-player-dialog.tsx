@@ -105,7 +105,9 @@ export function GroupAddPlayerDialog({
     >
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>{m.group.addPlayer.action}</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            {m.group.addPlayer.action}
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             {m.group.addPlayer.groupDescription}
           </ResponsiveDialogDescription>

@@ -6,6 +6,7 @@ import {
   dayInputValueFromPickerDate,
   pickerDateFromInstant,
 } from "~/components/games/calendar-day";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Calendar } from "~/components/ui/calendar";
 import { FieldError } from "~/components/ui/field";
@@ -39,6 +40,8 @@ export function DayField({
   dayError?: string;
   onSelectDay: (day: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [dayOpen, setDayOpen] = React.useState(false);
   const [displayedMonth, setDisplayedMonth] = React.useState(() =>
     pickerDateFromInstant(
@@ -62,7 +65,7 @@ export function DayField({
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="game-window-day-label" className="font-expanded text-title">
-          Day
+          {m.webDashboard.createGame.day}
         </h2>
         <Popover open={dayOpen} onOpenChange={setDayOpen}>
           <PopoverTrigger asChild>
@@ -72,8 +75,9 @@ export function DayField({
               aria-pressed={!dayInChips}
             >
               {dayInChips
-                ? "Later date"
-                : (formatDayLabel(day) ?? "Later date")}
+                ? m.webDashboard.createGame.laterDate
+                : (formatDayLabel(day, locale) ??
+                  m.webDashboard.createGame.laterDate)}
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
@@ -105,7 +109,7 @@ export function DayField({
       >
         {dayOptions.map((option) => {
           const value = dayChipValue(option);
-          const label = createDayChipLabel(option, now);
+          const label = createDayChipLabel(option, now, locale);
           return (
             <ChoiceChip
               key={value}

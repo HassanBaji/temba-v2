@@ -319,7 +319,11 @@ function MergedPreview({
       </div>
       <div className="mt-3.5 flex items-center justify-between gap-3">
         <p className="text-muted-foreground text-meta min-w-0 flex-1">
-          {mergeSwapHint(second.occupant.name, assignment.firstPosition, locale)}
+          {mergeSwapHint(
+            second.occupant.name,
+            assignment.firstPosition,
+            locale,
+          )}
         </p>
         <button
           type="button"

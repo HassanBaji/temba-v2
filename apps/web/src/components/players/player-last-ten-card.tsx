@@ -1,7 +1,7 @@
+"use client";
+
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-
-"use client";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { useMessages } from "~/components/locale-provider";

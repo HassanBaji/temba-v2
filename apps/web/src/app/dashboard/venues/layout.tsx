@@ -15,5 +15,7 @@ export default async function VenuesLayout({
   children: ReactNode;
 }) {
   const m = await getRequestMessages();
-  return <OperatorGate title={m.webDashboard.meta.venues}>{children}</OperatorGate>;
+  return (
+    <OperatorGate title={m.webDashboard.meta.venues}>{children}</OperatorGate>
+  );
 }

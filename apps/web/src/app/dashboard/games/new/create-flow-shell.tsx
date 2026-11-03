@@ -1,6 +1,7 @@
 import { Surface } from "~/components/ui/surface";
 import type { MouseEvent, ReactNode } from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { pageBleed, pageGutterX } from "~/lib/page-layout";
@@ -31,13 +32,14 @@ export function CreateFlowShell({
   footer: ReactNode;
   children: ReactNode;
 }) {
+  const m = useMessages();
   return (
     <div className="flex flex-col gap-6 pb-28 lg:pb-0">
       <Surface as="header" tone="ink" className={cn("py-[22px]", BLEED)}>
         <div className="flex items-center justify-between">
           {step === firstStep ? (
             <CloseButton
-              label="Cancel"
+              label={m.common.cancel}
               surface="ink"
               href={cancelHref}
               onClick={onCancel}
@@ -46,7 +48,7 @@ export function CreateFlowShell({
             <BackButton surface="ink" onClick={onBack} />
           )}
           <p className="text-dim font-mono text-[10px] uppercase tracking-wide">
-            Step {step} of {CREATE_FLOW_STEP_COUNT}
+            {m.webDashboard.createGame.stepOf(step, CREATE_FLOW_STEP_COUNT)}
           </p>
         </div>
         <div aria-live="polite" className="mt-4">
@@ -81,9 +83,10 @@ export function CreateFlowShell({
 }
 
 export function CreateFlowSkeleton() {
+  const m = useMessages();
   return (
     <div aria-busy="true" className="flex flex-col gap-6">
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{m.common.loading}</span>
       <Surface
         as="div"
         tone="ink"

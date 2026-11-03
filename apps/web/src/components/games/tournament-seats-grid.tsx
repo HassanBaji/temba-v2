@@ -37,7 +37,9 @@ export function TournamentSeatsGrid({
   return (
     <section className="border-rule rounded-card border p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-body font-semibold">{m.tournament.home.seatsHeading}</h2>
+        <h2 className="text-body font-semibold">
+          {m.tournament.home.seatsHeading}
+        </h2>
         <p aria-hidden="true" className="text-muted-foreground text-meta">
           {countLine}
         </p>

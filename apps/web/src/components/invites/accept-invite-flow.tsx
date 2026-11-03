@@ -11,6 +11,7 @@ import {
   InviteOutcome,
   InvitePreviewError,
 } from "~/components/invites/invite-outcome";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
 import type { InviteHostKind } from "@repo/api/types";
@@ -32,6 +33,8 @@ export function AcceptInviteFlow({
   returnPath: string;
 }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
 
   const communityPreview = api.communities.previewInviteLink.useQuery(
     { token },
@@ -48,7 +51,7 @@ export function AcceptInviteFlow({
 
   const communityAccept = api.communities.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success(inviteLinkAcceptToast("community"));
+      toast.success(inviteLinkAcceptToast("community", locale));
       router.replace(`/dashboard/communities/${result.communityId}`);
     },
     onError: (error) => {
@@ -59,8 +62,8 @@ export function AcceptInviteFlow({
     onSuccess: (result) => {
       toast.success(
         result.requested
-          ? groupJoinToast("requestJoin")
-          : inviteLinkAcceptToast("group"),
+          ? groupJoinToast("requestJoin", locale)
+          : inviteLinkAcceptToast("group", locale),
       );
       router.replace(`/dashboard/groups/${result.groupId}`);
     },
@@ -70,7 +73,7 @@ export function AcceptInviteFlow({
   });
   const teamAccept = api.teams.acceptInviteLink.useMutation({
     onSuccess: (result) => {
-      toast.success(inviteLinkAcceptToast("team"));
+      toast.success(inviteLinkAcceptToast("team", locale));
       router.replace(`/dashboard/teams/${result.teamId}`);
     },
     onError: (error) => {
@@ -91,15 +94,16 @@ export function AcceptInviteFlow({
         ? groupAccept
         : teamAccept;
 
-  const entityLabel =
+  const hostLabel =
     kind === "community" ? "Community" : kind === "group" ? "Group" : "Team";
+  const entityLabel = m.invite.kind[kind];
   const readyPreview =
     preview.data?.status === "ready" ? preview.data : undefined;
   const entityName = readyPreview
     ? "communityName" in readyPreview
       ? readyPreview.communityName
       : "groupName" in readyPreview
-        ? (readyPreview.groupName ?? "Group")
+        ? (readyPreview.groupName ?? m.invite.kind.group)
         : readyPreview.teamName
     : entityLabel;
   const requiresApproval = Boolean(
@@ -142,7 +146,7 @@ export function AcceptInviteFlow({
     return (
       <InviteOutcome
         outcome={preview.data.status}
-        hostLabel={entityLabel}
+        hostLabel={hostLabel}
         isSignedIn={isSignedIn}
       />
     );
@@ -155,11 +159,11 @@ export function AcceptInviteFlow({
           <EntityMonogram name={entityName} size="lg" />
           <div className="min-w-0 space-y-1">
             <h1 className="text-title font-semibold">
-              {inviteLinkJoinLabel(entityName, requiresApproval)}
+              {inviteLinkJoinLabel(entityName, locale, requiresApproval)}
             </h1>
             <p className="text-meta text-muted-foreground">{entityLabel}</p>
             <p className="text-body text-muted-foreground">
-              Sign in or create an account to join {entityName}.
+              {m.webAuth.invites.signInToJoin(entityName)}
             </p>
           </div>
         </div>
@@ -175,7 +179,7 @@ export function AcceptInviteFlow({
   if (accept.isError) {
     return (
       <ErrorState
-        title="Could not join"
+        title={m.webAuth.invites.couldNotJoin}
         message={accept.error.message}
         headingLevel={1}
         onRetry={() => accept.mutate({ token })}
@@ -187,7 +191,7 @@ export function AcceptInviteFlow({
     <div aria-busy="true" className="flex items-center gap-3">
       <EntityMonogram name={entityName} size="lg" />
       <h1 className="text-title min-w-0 font-semibold">
-        Joining {entityName}…
+        {m.webAuth.invites.joining(entityName)}
       </h1>
     </div>
   );
