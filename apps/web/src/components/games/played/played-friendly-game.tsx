@@ -19,7 +19,7 @@ import {
 import * as React from "react";
 
 import {
-  ACTION_MENU_INK_TRIGGER,
+  ACTION_MENU_INK_BOXED_TRIGGER,
   ActionMenu,
   ActionMenuItem,
 } from "~/components/common/action-menu";
@@ -92,7 +92,7 @@ export function PlayedFriendlyGame({
     showAdd || organizerActions.length > 0 ? (
       <ActionMenu
         label="Game actions"
-        triggerClassName={ACTION_MENU_INK_TRIGGER}
+        triggerClassName={ACTION_MENU_INK_BOXED_TRIGGER}
       >
         {showAdd ? (
           <ActionMenuItem onSelect={onAddPlayer}>

@@ -7,6 +7,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
+  ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_INK_TRIGGER,
   ActionMenu,
   ActionMenuItem,
@@ -530,9 +531,11 @@ export function FootballGameDetails({
     <ActionMenu
       label="Game actions"
       triggerClassName={
-        playedModel || model.hero.tone === "ink"
-          ? ACTION_MENU_INK_TRIGGER
-          : undefined
+        playedModel
+          ? ACTION_MENU_INK_BOXED_TRIGGER
+          : model.hero.tone === "ink"
+            ? ACTION_MENU_INK_TRIGGER
+            : undefined
       }
     >
       <ActionMenuItem onSelect={() => setEditOpen(true)}>

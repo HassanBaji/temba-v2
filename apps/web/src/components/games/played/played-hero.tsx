@@ -4,6 +4,7 @@ import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { HeroTopLine } from "~/components/games/hero-top-line";
+import { BackButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -54,7 +55,7 @@ export type PlayedHeroProps = {
   whenLine: string | null;
   you: PlayedYouLine | null;
   avatar: { name: string; image: string | null } | null;
-  /** Share and the organizer's menu, top right. */
+  /** Share and the organizer's menu, top right across from back. */
   actions?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -77,18 +78,28 @@ export function PlayedHero({
 }: PlayedHeroProps) {
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
-      <HeroTopLine
-        tone="ink"
-        left={dateLine}
-        right={
-          tag ? (
-            <p className="shrink-0 font-mono text-[11px] tracking-[0.08em]">
-              {tag}
-            </p>
-          ) : null
-        }
-        actions={actions}
-      />
+      <div className="flex items-center justify-between gap-3">
+        <BackButton variant="boxed" surface="ink" href="/dashboard/games" />
+        {actions ? (
+          <div className="text-paper flex shrink-0 items-center gap-2">
+            {actions}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-6">
+        <HeroTopLine
+          tone="ink"
+          left={dateLine}
+          right={
+            tag ? (
+              <p className="shrink-0 font-mono text-[11px] tracking-[0.08em]">
+                {tag}
+              </p>
+            ) : null
+          }
+        />
+      </div>
 
       <div className="mt-4">{children}</div>
 
