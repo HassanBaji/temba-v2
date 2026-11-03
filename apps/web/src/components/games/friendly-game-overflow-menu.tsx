@@ -24,6 +24,7 @@ import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
 export function FriendlyGameOverflowMenu({
   items,
   triggerRef,
+  triggerClassName,
   closePending,
   reopenPending,
   onCloseRegistration,
@@ -34,6 +35,7 @@ export function FriendlyGameOverflowMenu({
 }: {
   items: FriendlyGameOverflowItem[];
   triggerRef?: RefObject<HTMLButtonElement | null>;
+  triggerClassName?: string;
   closePending: boolean;
   reopenPending: boolean;
   onCloseRegistration: () => void;
@@ -47,7 +49,11 @@ export function FriendlyGameOverflowMenu({
   }
 
   return (
-    <ActionMenu triggerRef={triggerRef} label="Game actions">
+    <ActionMenu
+      triggerRef={triggerRef}
+      triggerClassName={triggerClassName}
+      label="Game actions"
+    >
       {items.map((item, index) => {
         const previous = items[index - 1];
         const showSeparator = item === "leave_waitlist" && previous != null;
