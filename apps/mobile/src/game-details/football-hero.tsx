@@ -1,16 +1,15 @@
 import { spacing } from "@repo/design-tokens";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
-import type { Href } from "expo-router";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import type { footballHeroLines } from "@repo/domain/football-board";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
-import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { HeroTopLine } from "./hero-top-line";
 
 const HERO_PADDING_BOTTOM = 22;
 const SEAT_HEIGHT = 24;
@@ -55,13 +54,11 @@ export function SeatBar({ seats, filled }: { seats: number; filled: number }) {
 export function FootballHero({
   tone,
   lines,
-  fallback,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
-  fallback: Href;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -77,70 +74,58 @@ export function FootballHero({
       }}
     >
       {tone === "ink" ? <LightStatusBar /> : null}
-      <ScreenHeader nav="back" fallback={fallback} actions={actions}>
-        <View style={{ gap: spacing.compact }}>
-          <View style={{ gap: 6 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <Text
-                size="meta"
-                tone="muted"
-                numberOfLines={1}
-                style={{ flexShrink: 1 }}
-              >
-                {lines.status}
-              </Text>
-              {lines.sizeTag ? (
+      <View style={{ gap: spacing.compact }}>
+        <View style={{ gap: 6 }}>
+          <HeroTopLine
+            left={lines.status}
+            right={
+              lines.sizeTag ? (
                 <Text size="eyebrow" tone="muted" mono>
                   {lines.sizeTag}
                 </Text>
-              ) : null}
-            </View>
-            {lines.time ? (
-              <View
-                accessible
-                accessibilityLabel={`${lines.time} ${lines.meridiem ?? ""}`}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "baseline",
-                  columnGap: 8,
-                }}
-              >
-                <Text size="heroTime" width="expanded" weight="bold">
-                  {lines.time}
-                </Text>
-                {lines.meridiem ? (
-                  <Text size="title" tone="muted">
-                    {lines.meridiem}
-                  </Text>
-                ) : null}
-              </View>
-            ) : (
-              <Text size="display" width="expanded" weight="bold">
-                Time unset
+              ) : null
+            }
+            actions={actions}
+          />
+          {lines.time ? (
+            <View
+              accessible
+              accessibilityLabel={`${lines.time} ${lines.meridiem ?? ""}`}
+              style={{
+                flexDirection: "row",
+                alignItems: "baseline",
+                columnGap: 8,
+              }}
+            >
+              <Text size="heroTime" width="expanded" weight="bold">
+                {lines.time}
               </Text>
-            )}
-            <View>
-              {lines.dayLine ? (
-                <Text size="lead" weight="semibold">
-                  {lines.dayLine}
-                </Text>
-              ) : null}
-              {lines.subLine ? (
-                <Text size="meta" tone="muted">
-                  {lines.subLine}
+              {lines.meridiem ? (
+                <Text size="title" tone="muted">
+                  {lines.meridiem}
                 </Text>
               ) : null}
             </View>
+          ) : (
+            <Text size="display" width="expanded" weight="bold">
+              Time unset
+            </Text>
+          )}
+          <View>
+            {lines.dayLine ? (
+              <Text size="lead" weight="semibold">
+                {lines.dayLine}
+              </Text>
+            ) : null}
+            {lines.subLine ? (
+              <Text size="meta" tone="muted">
+                {lines.subLine}
+              </Text>
+            ) : null}
           </View>
-          {children}
         </View>
-      </ScreenHeader>
+        {children}
+      </View>
     </Surface>
   );
 }
