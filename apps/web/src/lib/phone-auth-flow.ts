@@ -1,18 +1,22 @@
 /**
  * The one phone door on `/login`: a number first. A known number signs in
  * with its password; a new one gets a code, then a name and a password
- * (ADR-0049, ADR-0050). Clerk does the work; these helpers keep the step
- * logic pure.
+ * (ADR-0049, ADR-0050). A forgotten password is reset with a code, then a new
+ * password (ADR-0051). Clerk does the work; these helpers keep the step logic
+ * pure.
  */
 export type PhoneAuthStep =
   | "phone"
   | "password"
   | "code"
   | "name"
-  | "new-password";
+  | "new-password"
+  | "reset-code"
+  | "reset-password";
 
 type FirstFactorLike = {
   strategy: string;
+  phoneNumberId?: string;
 };
 
 /** Whether Clerk offers the password as a first factor for a known number. */
@@ -23,8 +27,22 @@ export function hasPasswordFactor(
 }
 
 /**
- * Where Back goes from each step. The code is spent once verified, so from
- * the name step Back returns to the number, not to the code.
+ * The phone number Clerk will text a reset code to, from the known number's
+ * first factors. Null when the account cannot reset its password by SMS.
+ */
+export function resetPasswordPhoneNumberId(
+  factors: readonly FirstFactorLike[] | null | undefined,
+): string | null {
+  const factor = factors?.find(
+    (item) => item.strategy === "reset_password_phone_code",
+  );
+  return factor?.phoneNumberId ?? null;
+}
+
+/**
+ * Where Back goes from each step. A code is spent once verified, so from the
+ * name step and the new-password-after-reset step Back returns to the number,
+ * not to the code.
  */
 export function previousPhoneAuthStep(
   step: PhoneAuthStep,
@@ -35,9 +53,12 @@ export function previousPhoneAuthStep(
     case "password":
     case "code":
     case "name":
+    case "reset-password":
       return "phone";
     case "new-password":
       return "name";
+    case "reset-code":
+      return "password";
   }
 }
 
@@ -60,4 +81,6 @@ export const PHONE_AUTH_TITLES: Record<PhoneAuthStep, string> = {
   code: "Enter the code",
   name: "What should we call you?",
   "new-password": "Pick a password",
+  "reset-code": "Enter the code",
+  "reset-password": "Pick a new password",
 };
