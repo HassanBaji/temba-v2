@@ -9,8 +9,6 @@ import { SeatTile } from "~/components/temba/seat";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { tournamentSeatLabel } from "@repo/domain/tournament-details";
 import {
-  TEAMS_HEADING,
-  YOUR_TEAM_TAG,
   tournamentCollapsedTeamsLabel,
   tournamentFieldSummary,
   tournamentTeamRows,
@@ -19,6 +17,7 @@ import {
   type TournamentHomeSide,
   type TournamentTeamRow,
 } from "@repo/domain/tournament-home";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 
@@ -38,10 +37,16 @@ export function TournamentTeamsSection({
     position: "left" | "right";
   }) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [expanded, setExpanded] = useState(false);
   const field = tournamentFieldSummary(sides);
-  const view = tournamentTeamRows(sides, viewerUserId);
-  const countLine = tournamentTeamsCountLine(field.full, field.halfOpen);
+  const view = tournamentTeamRows(sides, viewerUserId, locale);
+  const countLine = tournamentTeamsCountLine(
+    field.full,
+    field.halfOpen,
+    locale,
+  );
   const collapsible = view.collapsedCount > 0;
   const middle = expanded ? view.collapsed : [];
 
@@ -49,14 +54,14 @@ export function TournamentTeamsSection({
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h2 className="font-expanded text-title tracking-[-0.03em]">
-          {TEAMS_HEADING}
+          {m.tournament.home.teamsHeading}
         </h2>
         {countLine ? (
           <p className="text-muted-foreground text-meta">{countLine}</p>
         ) : null}
       </div>
       <RowList
-        aria-label={TEAMS_HEADING}
+        aria-label={m.tournament.home.teamsHeading}
         className="border-rule divide-rule rounded-card"
       >
         {view.head.map((row) => (
@@ -80,7 +85,7 @@ export function TournamentTeamsSection({
             >
               <span aria-hidden="true" className="w-[22px] shrink-0" />
               <span className="text-muted-foreground text-meta min-w-0 flex-1">
-                {tournamentCollapsedTeamsLabel(view.collapsedCount)}
+                {tournamentCollapsedTeamsLabel(view.collapsedCount, locale)}
               </span>
               <ChevronDown
                 aria-hidden="true"
@@ -140,7 +145,10 @@ function TeamSeat({
   onJoin?: () => void;
   linked: boolean;
 }) {
-  const positionName = position === "left" ? "Left" : "Right";
+  const m = useMessages();
+  const locale = useLocale();
+  const positionName =
+    position === "left" ? m.tournament.position.left : m.tournament.position.right;
 
   if (!occupant) {
     const canJoin = joinable && onJoin != null;
@@ -148,7 +156,12 @@ function TeamSeat({
       <SeatTile
         occupant={null}
         caption={positionName}
-        label={tournamentSeatLabel({ position, teamLabel, joinable: canJoin })}
+        label={tournamentSeatLabel({
+          position,
+          teamLabel,
+          joinable: canJoin,
+          locale,
+        })}
         onSelect={canJoin ? onJoin : undefined}
       />
     );
@@ -157,7 +170,7 @@ function TeamSeat({
   return (
     <SeatTile
       occupant={{ name: occupant.name, image: occupant.image ?? null }}
-      name={occupant.userId === viewerUserId ? "You" : occupant.name}
+      name={occupant.userId === viewerUserId ? m.common.you : occupant.name}
       level={
         occupant.levelBand
           ? displayLabelFromStoredBand(occupant.levelBand)
@@ -187,7 +200,13 @@ function TeamRow({
   }) => void;
   linkToPlayers: boolean;
 }) {
-  const teamLabel = formatGameSideLabel("friendly_tournament", row.sideIndex);
+  const m = useMessages();
+  const locale = useLocale();
+  const teamLabel = formatGameSideLabel(
+    "friendly_tournament",
+    row.sideIndex,
+    locale,
+  );
 
   function join(position: "left" | "right") {
     if (!canTakeSeat || !onTakeSeat || row.isViewer) {
@@ -213,7 +232,7 @@ function TeamRow({
         </span>
         {row.isViewer ? (
           <span className="text-muted-foreground text-eyebrow">
-            {YOUR_TEAM_TAG}
+            {m.tournament.home.yourTeamTag}
           </span>
         ) : null}
       </div>

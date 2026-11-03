@@ -1,7 +1,10 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+"use client";
+
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import type {
   LastTenSummary,
@@ -46,10 +49,11 @@ export function PlayerLastTenCard({
   summary: LastTenSummary;
   rows: PlayerMatchRowView[];
 }) {
+  const m = useMessages();
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
       <SurfaceLabel inset="profile" meta={summary.record}>
-        Last 10 games
+        {m.webUi.player.lastTenGames}
       </SurfaceLabel>
       <LastTenMarks summary={summary} />
       {rows.length > 0 ? (
@@ -71,7 +75,10 @@ export function PlayerLastTenCard({
             className="border-rule hover:bg-wash rounded-card flex h-11 items-center justify-center gap-1 border font-semibold transition-colors"
           >
             {summary.seeAll}
-            <ChevronRight aria-hidden="true" className="size-4" />
+            <ChevronRight
+              aria-hidden="true"
+              className="size-4 rtl:-scale-x-100"
+            />
           </Link>
         </div>
       ) : null}

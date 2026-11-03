@@ -1,6 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
@@ -16,6 +17,7 @@ function Failure({
   message: string;
   onRetry: () => void;
 }) {
+  const m = useMessages();
   return (
     <Card>
       <View
@@ -29,7 +31,11 @@ function Failure({
           {message}
         </Text>
         <View style={{ flexDirection: "row", marginTop: 4 }}>
-          <Button label="Try again" variant="outline" onPress={onRetry} />
+          <Button
+            label={m.common.tryAgain}
+            variant="outline"
+            onPress={onRetry}
+          />
         </View>
       </View>
     </Card>
@@ -53,13 +59,14 @@ export function Block<T>({
   onRetry: () => void;
   children: (value: T) => React.ReactNode;
 }) {
+  const m = useMessages();
   if (slot.status === "loading") {
     return <CardSkeleton height={skeletonHeight} />;
   }
   if (slot.status === "error") {
     return (
       <Failure
-        title={`${title} could not be loaded`}
+        title={m.mobileHome.block.couldNotLoad(title)}
         message={slot.message}
         onRetry={onRetry}
       />

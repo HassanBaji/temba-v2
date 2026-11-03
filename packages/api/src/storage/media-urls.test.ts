@@ -144,6 +144,7 @@ describe("procedure outputs", () => {
         getPublicMetadata: async () => undefined,
         headers: new Headers(),
         webOrigin: "https://temba.example",
+        locale: "en",
       }),
     );
     const result = await caller.image();

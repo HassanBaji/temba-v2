@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -14,7 +15,7 @@ type DbClient = typeof db;
 
 export async function acceptLookupInvite(
   database: DbClient,
-  args: { inviteId: string; userId: string },
+  args: { inviteId: string; userId: string ; locale?: Locale },
 ) {
   const invite = await database.query.communityMemberInvites.findFirst({
     where: eq(communityMemberInvites.id, args.inviteId),
@@ -38,7 +39,11 @@ export async function acceptLookupInvite(
   const accepted = await acceptLookup(
     database,
     { kind: "community", id: community.id },
-    { inviteId: invite.id, userId: args.userId },
+    {
+        inviteId: invite.id,
+        userId: args.userId,
+        locale: args.locale ?? DEFAULT_LOCALE,
+      },
   );
   if (!accepted.ok) {
     if (accepted.reason === "frozen" || accepted.reason === "not_found") {
@@ -73,5 +78,6 @@ export const acceptLookupInviteProcedure = protectedProcedure
     return acceptLookupInvite(ctx.db, {
       inviteId: input.inviteId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

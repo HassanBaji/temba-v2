@@ -11,6 +11,8 @@ import type {
   InviteLinkPath,
   InviteLinkPreview,
 } from "@repo/domain/invites";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { relativeDay } from "../booking/booking-model";
 
@@ -62,21 +64,19 @@ export function inviteLinkFromParams(
   return null;
 }
 
-export const PASTE_LINK_INVALID_MESSAGE =
-  "That is not a Temba invite link. Paste the whole link you were sent.";
-
-export const PASTE_LINK_EMPTY_MESSAGE =
-  "Copy the invite link first, then paste.";
-
-export function groupShareMessage(input: {
-  name: string | null;
-  sport: string | null;
-  link: { shortUrl: string | null; inviteUrl: string };
-}) {
+export function groupShareMessage(
+  input: {
+    name: string | null;
+    sport: string | null;
+    link: { shortUrl: string | null; inviteUrl: string };
+  },
+  locale: Locale,
+) {
   return groupInviteClipboardText({
     groupName: input.name,
     sport: input.sport,
     inviteUrl: input.link.shortUrl ?? input.link.inviteUrl,
+    locale,
   });
 }
 
@@ -100,6 +100,7 @@ export type GameShareContext = {
 export function gameShareMessage(
   game: GameShareContext,
   link: { shortUrl: string | null; inviteUrl: string },
+  locale: Locale,
 ) {
   const url = link.shortUrl ?? link.inviteUrl;
   return gameInviteClipboardText({
@@ -109,30 +110,39 @@ export function gameShareMessage(
     shortUrl: url,
     roster: {
       customName: game.customName,
-      venueName: game.venueName ?? "Venue",
+      venueName:
+        game.venueName ??
+        messagesFor(locale).mobileCommunity.share.venueFallback,
       courtName: game.courtName,
       windowStart: game.windowStart,
       windowEnd: game.windowEnd,
       sides: game.sides,
       shortUrl: url,
       football: game.football,
+      locale,
     },
   });
 }
 
 /** "Tonight 8:30 PM, Court 2. 2 seats open." */
-export function gameInviteSubtitle(game: GameShareContext, now: Date) {
+export function gameInviteSubtitle(
+  game: GameShareContext,
+  now: Date,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileCommunity.inviteSubtitle;
   const start = game.windowStart ? new Date(game.windowStart) : null;
   const when = start
-    ? `${relativeDay(start, now)} ${formatGameClock(start)}`
+    ? m.when(relativeDay(start, now), formatGameClock(start, locale))
     : null;
   const place = [when, game.courtName ?? game.venueName]
     .filter(Boolean)
-    .join(", ");
+    .join(m.separator);
   const open = openSeatCount(game.sides);
-  const seats =
-    open === 0 ? null : open === 1 ? "1 seat open." : `${open} seats open.`;
-  return [place ? `${place}.` : null, seats].filter(Boolean).join(" ") || null;
+  const seats = open === 0 ? null : m.seatsOpen(open);
+  return (
+    [place ? m.sentence(place) : null, seats].filter(Boolean).join(" ") || null
+  );
 }
 
 export function whatsAppUrl(body: string) {

@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/expo";
 import { useEffect, useState } from "react";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
@@ -19,6 +20,7 @@ import {
  * The questionnaire is a Profile task now and never blocks (ADR-0049).
  */
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const m = useMessages();
   const { signOut } = useAuth();
   const state = api.users.onboardingState.useQuery(undefined, {
     refetchInterval: (query) =>
@@ -51,7 +53,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   const signOutButton = (
     <Button
-      label="Sign out"
+      label={m.common.signOut}
       variant="outline"
       pending={signingOut}
       onPress={onSignOut}
@@ -61,11 +63,11 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   if (state.error && !state.data) {
     return (
       <AuthScreen
-        title="Setup could not be loaded"
+        title={m.mobileHome.gate.setupCouldNotLoad}
         description={state.error.message}
       >
         <Button
-          label="Try again"
+          label={m.common.tryAgain}
           size="lg"
           onPress={() => void state.refetch()}
         />
@@ -81,11 +83,11 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   if (provisioningStalled) {
     return (
       <AuthScreen
-        title="Setup is taking longer than usual"
-        description="Your Temba account is still being created. Try again, or sign out and come back later."
+        title={m.mobileHome.gate.takingLongerTitle}
+        description={m.mobileHome.gate.takingLongerBody}
       >
         <Button
-          label="Try again"
+          label={m.common.tryAgain}
           size="lg"
           onPress={() => {
             setProvisioningStalled(false);
@@ -98,10 +100,9 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthScreen title="Setting up your account">
+    <AuthScreen title={m.mobileHome.gate.settingUpTitle}>
       <Text tone="muted" accessibilityLiveRegion="polite">
-        Your Temba account is still being created. This only takes a moment
-        after sign-up.
+        {m.mobileHome.gate.settingUpBody}
       </Text>
       <Skeleton height={96} />
       {signOutButton}

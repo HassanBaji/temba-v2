@@ -34,6 +34,7 @@ import {
   parseDateInputValue,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 function TimeSlotSelect({
@@ -49,6 +50,8 @@ function TimeSlotSelect({
   error?: string;
   slots: readonly string[];
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   return (
@@ -65,12 +68,12 @@ function TimeSlotSelect({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
         >
-          <SelectValue placeholder="Pick a time" />
+          <SelectValue placeholder={m.webGame.window.pickATime} />
         </SelectTrigger>
         <SelectContent position="popper">
           {slots.map((slot) => (
             <SelectItem key={slot} value={slot}>
-              {formatTimeSlotLabel(slot)}
+              {formatTimeSlotLabel(slot, locale)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -121,13 +124,15 @@ export function GameWindowFields({
   includeFinish?: boolean;
   description?: string;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [dayOpen, setDayOpen] = React.useState(false);
   const dayButtonRef = React.useRef<HTMLButtonElement>(null);
   const selectedInstant = parseDateInputValue(day);
   const selectedDay = selectedInstant
     ? pickerDateFromInstant(selectedInstant)
     : undefined;
-  const dayLabel = formatDayLabel(day);
+  const dayLabel = formatDayLabel(day, locale);
   const now = new Date();
   const earliestDay = React.useMemo(
     () => pickerDateFromInstant(earliestGameWindowDay()),
@@ -176,7 +181,7 @@ export function GameWindowFields({
   return (
     <div className="flex flex-col gap-3">
       <Field>
-        <FieldLabel htmlFor={dayId}>Day</FieldLabel>
+        <FieldLabel htmlFor={dayId}>{m.webGame.window.day}</FieldLabel>
         <Popover open={dayOpen} onOpenChange={setDayOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -194,7 +199,7 @@ export function GameWindowFields({
               aria-describedby={`${dayId}-description`}
             >
               <CalendarIcon />
-              {dayLabel ?? "Pick a date"}
+              {dayLabel ?? m.webGame.window.pickADate}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -234,7 +239,7 @@ export function GameWindowFields({
         className={includeFinish ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}
       >
         <Field>
-          <FieldLabel htmlFor={startId}>Start time</FieldLabel>
+          <FieldLabel htmlFor={startId}>{m.webGame.window.startTime}</FieldLabel>
           <TimeSlotSelect
             id={startId}
             value={startTime}
@@ -251,7 +256,9 @@ export function GameWindowFields({
         </Field>
         {includeFinish && finishId ? (
           <Field>
-            <FieldLabel htmlFor={finishId}>Finish time</FieldLabel>
+            <FieldLabel htmlFor={finishId}>
+              {m.webGame.window.finishTime}
+            </FieldLabel>
             <TimeSlotSelect
               id={finishId}
               value={finishTime}
@@ -266,8 +273,8 @@ export function GameWindowFields({
       <FieldDescription id={`${dayId}-description`}>
         {description ??
           (includeFinish
-            ? "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed."
-            : "Day and start time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed.")}
+            ? m.webGame.window.descriptionWithFinish
+            : m.webGame.window.descriptionStartOnly)}
       </FieldDescription>
     </div>
   );

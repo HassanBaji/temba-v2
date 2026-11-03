@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Skeleton } from "~/components/ui/skeleton";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -26,6 +27,8 @@ export function PlayerMatches({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const locale = useLocale();
+  const m = useMessages();
   const openMatchId = searchParams.get(MATCH_PARAM);
   const [filter, setFilter] = useState<LastTenFilter>("all");
   const [selectedMatchId, setSelectedMatchId] = useState(openMatchId);
@@ -57,7 +60,7 @@ export function PlayerMatches({ userId }: { userId: string }) {
   if (!profile.data) {
     return (
       <ErrorState
-        title="Games could not be loaded"
+        title={m.webUi.player.gamesLoadError}
         message={profile.error?.message}
         onRetry={() => {
           void profile.refetch();
@@ -67,7 +70,7 @@ export function PlayerMatches({ userId }: { userId: string }) {
   }
 
   const data = profile.data;
-  const filtered = filterLastTen(data.lastMatches, filter);
+  const filtered = filterLastTen(data.lastMatches, filter, locale);
   const openMatch = data.lastMatches.find(
     (match) => match.matchId === openMatchId,
   );
@@ -76,13 +79,17 @@ export function PlayerMatches({ userId }: { userId: string }) {
     <div className="space-y-5">
       <div>
         <h1 className="text-[22px] font-bold tracking-[-0.01em]">
-          Last 10 games
+          {m.webUi.player.lastTenGames}
         </h1>
         <p className="text-meta text-muted-foreground mt-1">
-          {`${data.player.name}, ${lastTenSummary(data.lastMatches).record}`}
+          {`${data.player.name}, ${lastTenSummary(data.lastMatches, locale).record}`}
         </p>
       </div>
-      <div role="radiogroup" aria-label="Filter games" className="flex gap-2">
+      <div
+        role="radiogroup"
+        aria-label={m.webUi.player.filterGames}
+        className="flex gap-2"
+      >
         {filtered.chips.map((chip) => (
           <ChoiceChip
             key={chip.filter}
@@ -103,7 +110,7 @@ export function PlayerMatches({ userId }: { userId: string }) {
           {filtered.matches.map((match) => (
             <li key={match.matchId}>
               <PlayerMatchRow
-                row={playerMatchRowView(match, data.player.id)}
+                row={playerMatchRowView(match, data.player.id, locale)}
                 showPartner
                 selected={match.matchId === selectedMatchId}
                 onSelect={() => {
@@ -117,7 +124,9 @@ export function PlayerMatches({ userId }: { userId: string }) {
       )}
       <PlayerMatchSheet
         sheet={
-          openMatch ? playerMatchSheetView(openMatch, data.player.name) : null
+          openMatch
+            ? playerMatchSheetView(openMatch, data.player.name, locale)
+            : null
         }
         onClose={() => showMatch(null)}
       />

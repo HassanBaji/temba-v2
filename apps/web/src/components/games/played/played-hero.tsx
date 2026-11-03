@@ -1,8 +1,13 @@
 "use client";
 
-import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
+import {
+  playedTagLabel,
+  type PlayedResultLine,
+  type PlayedYouLine,
+} from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -74,6 +79,8 @@ export function PlayedHero({
   actions,
   children,
 }: PlayedHeroProps) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
       {actions ? (
@@ -96,7 +103,7 @@ export function PlayedHero({
         {result.hasWinner ? <InkWonMark className="size-4" /> : null}
         <p className="min-w-0 flex-1 font-semibold">{result.line}</p>
         <span className="text-dim border-dimrule text-eyebrow rounded-[6px] border px-[7px] py-1 font-mono tracking-[0.08em]">
-          CONFIRMED
+          {m.webGame.played.confirmed}
         </span>
       </div>
 
@@ -121,7 +128,7 @@ export function PlayedHero({
             <p className="truncate font-semibold">{you.line}</p>
             <p className="text-dim text-meta">{you.ratingLine}</p>
           </div>
-          <Pill label={you.tag} solid={you.won} />
+          <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
         </div>
       ) : null}
     </Surface>

@@ -1,6 +1,7 @@
 import { TERMS_MINIMUM_AGE } from "@repo/domain/terms";
 import { router } from "expo-router";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Text } from "../primitives/text";
 
 /**
@@ -9,20 +10,20 @@ import { Text } from "../primitives/text";
  * rates note on the phone step.
  */
 export function TermsMicrocopy({ lead }: { lead?: string }) {
+  const m = useMessages();
   return (
     <Text size="eyebrow" tone="muted" style={{ textAlign: "center" }}>
       {lead ? `${lead} ` : null}
-      By continuing you confirm you are {TERMS_MINIMUM_AGE} or older and agree
-      to the{" "}
+      {m.mobileHome.termsMicrocopy.before(TERMS_MINIMUM_AGE)}
       <Text
         size="eyebrow"
         accessibilityRole="link"
         onPress={() => router.push("/terms")}
         style={{ textDecorationLine: "underline" }}
       >
-        Terms
-      </Text>{" "}
-      and Privacy Policy.
+        {m.mobileHome.termsMicrocopy.termsLink}
+      </Text>
+      {m.mobileHome.termsMicrocopy.after}
     </Text>
   );
 }

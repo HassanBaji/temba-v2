@@ -1,18 +1,14 @@
 import {
-  ADD_PLAYER_ACTION,
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
   ADD_PLAYER_DEFAULT_FOOTBALL_POSITION,
   ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
   ADD_PLAYER_DEFAULT_LEVEL,
-  ADD_PLAYER_DESCRIPTION,
-  ADD_PLAYER_FOOTBALL_POSITION_CHOICES,
-  ADD_PLAYER_FOOTBALL_ROLE_CHOICES,
-  ADD_PLAYER_NO_SEAT_COPY,
-  ADD_PLAYER_NO_SIDE_COPY,
   addPlayerAddedToast,
   addPlayerCanSubmit,
   addPlayerCompletePhone,
   addPlayerFootballInput,
+  addPlayerFootballPositionChoices,
+  addPlayerFootballRoleChoices,
   addPlayerPreviewLine,
   addPlayerSeatChoices,
   addPlayerSideChoices,
@@ -30,6 +26,7 @@ import { View } from "react-native";
 
 import { TileChoices } from "../auth/onboarding-choices";
 import { FieldError } from "../create-game/chips";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
@@ -61,6 +58,8 @@ export function AddPlayerSheet({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   onAdded: () => Promise<unknown>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const toast = useToast();
   const utils = api.useUtils();
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
@@ -79,12 +78,14 @@ export function AddPlayerSheet({
   const [pickedSide, setPickedSide] = useState<number | null>(null);
 
   const isFootball = placement === "football";
-  const seatChoices = placement === "seat" ? addPlayerSeatChoices(sides) : [];
+  const seatChoices =
+    placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
   const seat =
     seatChoices.find((choice) => sameJoinSeat(choice.seat, picked))?.seat ??
     seatChoices[0]?.seat ??
     null;
-  const sideChoices = placement === "side" ? addPlayerSideChoices(sides) : [];
+  const sideChoices =
+    placement === "side" ? addPlayerSideChoices(sides, locale) : [];
   const side =
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
@@ -105,7 +106,7 @@ export function AddPlayerSheet({
 
   const add = api.games.addPlayerByPhone.useMutation({
     onSuccess: async (result) => {
-      toast.show(addPlayerAddedToast(result.name));
+      toast.show(addPlayerAddedToast(result.name, locale));
       setNational("");
       setName("");
       setLevel(ADD_PLAYER_DEFAULT_LEVEL);
@@ -151,15 +152,15 @@ export function AddPlayerSheet({
     <Sheet
       visible={visible}
       onClose={close}
-      title={ADD_PLAYER_ACTION}
-      subtitle={ADD_PLAYER_DESCRIPTION}
+      title={m.group.addPlayer.action}
+      subtitle={m.group.addPlayer.description}
       tall
       keyboardShouldPersistTaps="handled"
       footer={
         <View style={{ gap: 8 }}>
           <FieldError message={add.error?.message} />
           <Button
-            label={ADD_PLAYER_ACTION}
+            label={m.group.addPlayer.action}
             size="lg"
             pending={add.isPending}
             disabled={!canSubmit}
@@ -177,7 +178,7 @@ export function AddPlayerSheet({
         preview={
           previewData
             ? {
-                line: addPlayerPreviewLine(previewData),
+                line: addPlayerPreviewLine(previewData, locale),
                 kind: previewData.kind,
                 phoneMasked: previewData.phoneMasked,
               }
@@ -197,20 +198,22 @@ export function AddPlayerSheet({
 
       {isFootball ? (
         <>
-          <AddPlayerSection label="Plays as">
+          <AddPlayerSection label={m.mobileGameDetails.addPlayer.playsAs}>
             <TileChoices
-              label="Plays as"
-              choices={ADD_PLAYER_FOOTBALL_ROLE_CHOICES}
+              label={m.mobileGameDetails.addPlayer.playsAs}
+              choices={addPlayerFootballRoleChoices(locale)}
               value={role}
               onSelect={setRole}
               disabled={add.isPending}
             />
           </AddPlayerSection>
           {role === "outfield" ? (
-            <AddPlayerSection label="Preferred position">
+            <AddPlayerSection
+              label={m.mobileGameDetails.addPlayer.preferredPosition}
+            >
               <TileChoices
-                label="Preferred position"
-                choices={ADD_PLAYER_FOOTBALL_POSITION_CHOICES}
+                label={m.mobileGameDetails.addPlayer.preferredPosition}
+                choices={addPlayerFootballPositionChoices(locale)}
                 value={footballPosition}
                 onSelect={setFootballPosition}
                 disabled={add.isPending}
@@ -221,10 +224,10 @@ export function AddPlayerSheet({
       ) : null}
 
       {placement === "side" ? (
-        <AddPlayerSection label="Side">
+        <AddPlayerSection label={m.mobileGameDetails.addPlayer.side}>
           {side ? (
             <TileChoices
-              label="Side"
+              label={m.mobileGameDetails.addPlayer.side}
               choices={sideChoices.map((choice) => ({
                 value: String(choice.sideIndex),
                 name: choice.team,
@@ -236,17 +239,17 @@ export function AddPlayerSheet({
             />
           ) : (
             <Text size="meta" tone="muted">
-              {ADD_PLAYER_NO_SIDE_COPY}
+              {m.group.addPlayer.noSide}
             </Text>
           )}
         </AddPlayerSection>
       ) : null}
 
       {placement === "seat" ? (
-        <AddPlayerSection label="Position">
+        <AddPlayerSection label={m.mobileGameDetails.addPlayer.position}>
           {seat ? (
             <TileChoices
-              label="Position"
+              label={m.mobileGameDetails.addPlayer.position}
               choices={seatChoices.map((choice) => ({
                 value: seatKey(choice.seat),
                 name: choice.side,
@@ -263,7 +266,7 @@ export function AddPlayerSheet({
             />
           ) : (
             <Text size="meta" tone="muted">
-              {ADD_PLAYER_NO_SEAT_COPY}
+              {m.group.addPlayer.noSeat}
             </Text>
           )}
         </AddPlayerSection>

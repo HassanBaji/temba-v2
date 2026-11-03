@@ -1,3 +1,5 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import type { PlayerProfileFixture } from "@repo/domain/player-profile-fixtures";
 import {
   filterLastTen,
@@ -56,19 +58,27 @@ export function playerMatchesModel(
   data: ApiPlayerProfile | PlayerProfileFixture,
   view: { filter: LastTenFilter; matchId: string | null },
   apiOrigin: string,
+  locale: Locale,
 ): PlayerMatchesModel {
-  const filtered = filterLastTen(data.lastMatches, view.filter);
+  const m = messagesFor(locale).mobilePlayer.profile;
+  const filtered = filterLastTen(data.lastMatches, view.filter, locale);
   const open = data.lastMatches.find((match) => match.matchId === view.matchId);
 
   return {
-    subtitle: `${data.player.name}, ${lastTenSummary(data.lastMatches).record}`,
+    subtitle: m.matchesSubtitle(
+      data.player.name,
+      lastTenSummary(data.lastMatches, locale).record,
+    ),
     chips: filtered.chips,
     rows: filtered.matches.map((match) =>
-      playerMatchRowView(match, data.player.id),
+      playerMatchRowView(match, data.player.id, locale),
     ),
     empty: filtered.empty,
     sheet: open
-      ? sheetModel(playerMatchSheetView(open, data.player.name), apiOrigin)
+      ? sheetModel(
+          playerMatchSheetView(open, data.player.name, locale),
+          apiOrigin,
+        )
       : null,
   };
 }

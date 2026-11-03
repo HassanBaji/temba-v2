@@ -7,6 +7,7 @@ import {
   ListPageSkeleton,
 } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { pageHidesMobileTopBar, titleFromPath } from "~/lib/dashboard-paths";
 
@@ -22,7 +23,8 @@ function isDetailPath(pathname: string) {
 
 export function DashboardRouteLoading() {
   const pathname = usePathname() ?? "/dashboard";
-  const title = titleFromPath(pathname);
+  const m = useMessages();
+  const title = titleFromPath(pathname, m);
   const isSettings = pathname.startsWith("/dashboard/you/settings");
   const hidesTopBar = pageHidesMobileTopBar(pathname);
 

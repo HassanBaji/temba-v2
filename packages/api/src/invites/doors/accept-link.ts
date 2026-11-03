@@ -1,3 +1,4 @@
+import { type Locale } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
@@ -73,7 +74,7 @@ async function requestGroupJoinFromLink(
 export async function acceptLink(
   database: InviteDb,
   hostKind: InviteHost["kind"],
-  args: { token: string; userId: string; seat?: AcceptSeat },
+  args: { token: string; userId: string; seat?: AcceptSeat; locale: Locale },
 ): Promise<AcceptLinkResult> {
   if (hostKind === "community") {
     const link = await database.query.communityInviteLinks.findFirst({
@@ -239,6 +240,7 @@ export async function acceptLink(
       game,
       linkId: link.id,
       userId: args.userId,
+      locale: args.locale,
     });
     if (consent.outcome === "waiting_for_partner") {
       return {
@@ -262,6 +264,7 @@ export async function acceptLink(
     database as Tx,
     game,
     args.userId,
+    args.locale,
     new Date(),
     args.seat,
   );

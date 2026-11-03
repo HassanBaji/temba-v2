@@ -1,9 +1,9 @@
 "use client";
 
 import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
-import { FOOTBALL_POSITION_CHOICES } from "@repo/domain/football-lineup";
-import { KICK_ACTION } from "@repo/domain/game-copy";
-import { RENAME_UNCLAIMED_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
+import { footballPositionChoices } from "@repo/domain/football-lineup";
+import type { Messages } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
 import Link from "next/link";
 
 import {
@@ -14,20 +14,21 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 
-function roleLine(player: BoardPlayer) {
+function roleLine(player: BoardPlayer, m: Messages, locale: Locale) {
   if (player.role === "keeper") {
-    return "Keeper";
+    return m.football.board.seatKeeper;
   }
-  const position = FOOTBALL_POSITION_CHOICES.find(
+  const position = footballPositionChoices(locale).find(
     (choice) => choice.value === player.position,
   );
   return position
-    ? `Prefers ${position.label.toLowerCase()}`
-    : "No position yet";
+    ? m.webTournament.footballPlayer.prefers(position.label)
+    : m.webTournament.footballPlayer.noPositionYet;
 }
 
 /** What an Organizer can do with one player in the pool. */
@@ -44,6 +45,8 @@ export function FootballPlayerDialog({
   onRemove: (userId: string) => void;
   onRename?: (player: { userId: string; name: string }) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <ResponsiveDialog open={player != null} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="sm:max-w-[420px]">
@@ -59,7 +62,10 @@ export function FootballPlayerDialog({
                   {player.unclaimed ? <NotOnTembaTag /> : null}
                 </div>
                 <ResponsiveDialogDescription>
-                  {roleLine(player)}, Level {levelLabel(player.levelBand)}
+                  {m.webTournament.footballPlayer.subtitle(
+                    roleLine(player, m, locale),
+                    levelLabel(player.levelBand),
+                  )}
                 </ResponsiveDialogDescription>
                 {player.phoneMasked ? (
                   <p className="text-muted-foreground text-meta tabular-nums">
@@ -72,27 +78,29 @@ export function FootballPlayerDialog({
               {canOpenProfile ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId, "football")}>
-                    View profile
+                    {m.webTournament.footballPlayer.viewProfile}
                   </Link>
                 </Button>
               ) : null}
               {onRename && player.unclaimed ? (
                 <Button
                   variant="outline"
-                  aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${player.name}`}
+                  aria-label={m.webTournament.footballPlayer.renameLabel(
+                    player.name,
+                  )}
                   onClick={() =>
                     onRename({ userId: player.userId, name: player.name })
                   }
                 >
-                  {RENAME_UNCLAIMED_PLAYER_ACTION}
+                  {m.group.addPlayer.renameAction}
                 </Button>
               ) : null}
               <Button
                 variant="outline"
-                aria-label={`${KICK_ACTION} ${player.name}`}
+                aria-label={m.webTournament.kickName(player.name)}
                 onClick={() => onRemove(player.userId)}
               >
-                {KICK_ACTION}
+                {m.game.action.kick}
               </Button>
             </div>
           </>

@@ -1,7 +1,10 @@
+"use client";
+
 import {
-  RESULT_MARK_LABEL,
+  resultMarkLabel,
   type ResultMarkVariant,
 } from "@repo/domain/result-mark";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export type { ResultMarkVariant } from "@repo/domain/result-mark";
@@ -32,6 +35,7 @@ export function ResultMark({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const locale = useLocale();
   const notPlayed = variant === "not-played";
 
   return (
@@ -47,7 +51,7 @@ export function ResultMark({
       )}
     >
       {decorative ? null : (
-        <span className="sr-only">{RESULT_MARK_LABEL[variant]}</span>
+        <span className="sr-only">{resultMarkLabel(variant, locale)}</span>
       )}
 
       {notPlayed ? (

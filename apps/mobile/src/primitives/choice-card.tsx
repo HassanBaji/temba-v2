@@ -3,6 +3,7 @@ import { Check, ChevronRight } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
 
+import { mirrorInRtl } from "../i18n/rtl";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
 import { tonePalette } from "./tone-palette";
@@ -108,7 +109,11 @@ export function ChoiceCard({
           {selected ? (
             <Check size={sizes.iconAction} color={palette.foreground} />
           ) : trailing === "chevron" ? (
-            <ChevronRight size={sizes.iconAction} color={palette.muted} />
+            <ChevronRight
+              size={sizes.iconAction}
+              color={palette.muted}
+              style={mirrorInRtl}
+            />
           ) : null}
         </View>
         {children}

@@ -4,8 +4,10 @@ import { Phone } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LanguageSwitch } from "../../src/auth/language-switch";
 import { OauthButtons } from "../../src/auth/oauth-buttons";
 import { TermsMicrocopy } from "../../src/auth/terms-microcopy";
+import { useMessages } from "../../src/i18n/locale-provider";
 import { Button } from "../../src/primitives/button";
 import { hairline } from "../../src/primitives/hairline-width";
 import { Hatch } from "../../src/primitives/hatch";
@@ -16,11 +18,7 @@ import { Text } from "../../src/primitives/text";
 const TILE = 36;
 const PHONE_ICON = 18;
 /** Fixed decorative content: a Game tonight with one seat open. */
-const TONIGHT = {
-  label: "Tonight, Karbabad 9:00 PM",
-  players: ["MK", "AH", "SR"],
-  open: "1 open",
-};
+const TONIGHT_PLAYERS = ["MK", "AH", "SR"];
 
 function PlayerTile({ initials }: { initials: string }) {
   return (
@@ -44,6 +42,7 @@ function PlayerTile({ initials }: { initials: string }) {
 }
 
 function TonightStrip() {
+  const m = useMessages();
   return (
     <View
       accessibilityElementsHidden
@@ -57,10 +56,10 @@ function TonightStrip() {
       }}
     >
       <Text size="eyebrow" tone="muted" mono uppercase>
-        {TONIGHT.label}
+        {m.mobileHome.welcome.tonightLabel}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        {TONIGHT.players.map((initials) => (
+        {TONIGHT_PLAYERS.map((initials) => (
           <PlayerTile key={initials} initials={initials} />
         ))}
         <View
@@ -75,7 +74,7 @@ function TonightStrip() {
         >
           <Hatch radius={radii.sm} />
           <Text size="eyebrow" weight="medium">
-            {TONIGHT.open}
+            {m.mobileHome.welcome.oneOpen}
           </Text>
         </View>
       </View>
@@ -84,6 +83,7 @@ function TonightStrip() {
 }
 
 export default function Welcome() {
+  const m = useMessages();
   const insets = useSafeAreaInsets();
 
   return (
@@ -97,11 +97,21 @@ export default function Welcome() {
           paddingHorizontal: spacing.section,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
-          <ResultMark variant="won" size={26} decorative />
-          <Text size="title" width="expanded" weight="bold" uppercase>
-            Temba
-          </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 11,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <ResultMark variant="won" size={26} decorative />
+            <Text size="title" width="expanded" weight="bold" uppercase>
+              {m.common.appName}
+            </Text>
+          </View>
+          <LanguageSwitch />
         </View>
         <View style={{ marginTop: 72, gap: 20 }}>
           <Text
@@ -110,11 +120,10 @@ export default function Welcome() {
             weight="bold"
             accessibilityRole="header"
           >
-            Find a game, fill the court, keep the score.
+            {m.mobileHome.welcome.headline}
           </Text>
           <Text tone="muted" style={{ maxWidth: 300 }}>
-            Open padel and football games near you, your regular Groups, and a
-            Level that follows your results.
+            {m.mobileHome.welcome.body}
           </Text>
         </View>
         <View style={{ marginTop: 32 }}>
@@ -123,7 +132,7 @@ export default function Welcome() {
         <View style={{ flex: 1 }} />
         <View style={{ gap: 10 }}>
           <Button
-            label="Continue with phone"
+            label={m.mobileHome.welcome.continueWithPhone}
             size="lg"
             icon={<Phone size={PHONE_ICON} color={colors.ink} />}
             onPress={() => router.push("/sign-in")}

@@ -1,1 +1,181 @@
-export const webTournament = {};
+import { plural } from "../../plural";
+
+export const webTournament = {
+  vs: "vs",
+  backToGame: "Back to the game",
+  gameActions: "Game actions",
+  kickName: (name: string) => `Kick ${name}`,
+  kickFromWaitlist: (name: string) => `Kick ${name} from the waitlist`,
+  draw: {
+    undoing: "Undoing…",
+    posting: "Posting…",
+    drawing: "Drawing…",
+  },
+  merge: {
+    firstHalfTeam: "First Half team",
+    secondHalfTeam: "Second Half team",
+    merging: "Merging…",
+  },
+  knockoutCancel: {
+    title: (code: string) => `Cancel ${code}?`,
+    titleFallback: "Cancel Match?",
+    goesThrough: "Goes through",
+    cancelling: "Cancel Match…",
+  },
+  home: {
+    needCompleteTeam:
+      "You need a complete Team whose both partners are allowed on this Game.",
+    teamLabel: "Team",
+    selectTeam: "Select a Team",
+    teamOption: (name: string, members: string) => `${name} (${members})`,
+    registering: "Registering…",
+  },
+  poolTable: {
+    played: "P",
+    won: "W",
+    drawn: "D",
+    lost: "L",
+  },
+  card: {
+    untitledGame: "Untitled Game",
+    levelMeta: (label: string) => `level ${label}`,
+  },
+  bibs: {
+    teamA: "Team A",
+    teamB: "Team B",
+    swatchLabel: (team: string, colour: string) => `${team}, ${colour}`,
+    groupLabel: (team: string) => `${team} bib colour`,
+    moreColours: "More colours",
+    heading: "Bib colours",
+    versus: (first: string, second: string) => `${first} vs ${second}`,
+    note: "The plus opens more colours. The organizer brings both sets of bibs.",
+  },
+  footballCard: {
+    youPlayed: "You played",
+    countOfSeats: (taken: number, seats: number) => `${taken} of ${seats}`,
+    in: "in",
+    inWithOpen: (open: number) => `in, ${open} open`,
+    teamsNotSet: "Teams not set",
+    youPlayIn: (team: string) => `You play in ${team}`,
+    asCode: (code: string) => `as ${code}`,
+    linkLabel: (place: string, day: string, time: string, meridiem: string) =>
+      `${place}, ${day} ${time} ${meridiem}`,
+    scoreIn: "Score in",
+    scoreMissing: "Score missing",
+    startCaptainsPick: (sideSize: number) =>
+      `${sideSize} start, captains pick`,
+    captainsPickStarters: "Captains pick starters",
+    each: "each",
+  },
+  footballDetails: {
+    scoreConfirmedToast: "Score confirmed",
+    venueFallback: "Venue",
+    seasonRow: "Season",
+    pitchCost: "Pitch cost",
+    organizerMakesTeams: "The organizer makes them",
+    youreInAs: (code: string) => `You're in as ${code}`,
+    change: "Change",
+    invitePlayers: "Invite players",
+    captainsPickBeforeKickoff: "Captains pick starters before kick-off.",
+    playersIn: "Players in",
+    ofSeats: (seats: number) => `of ${seats}`,
+    teamsByOrganizer: "Teams by the organizer",
+    cancelledHeading: "This Game is cancelled",
+    softArchivedHeading: "This Club Group's Community is Soft-archived",
+    softArchivedBody: "Registration, the waitlist, and invites stay closed.",
+    lineupLoadFailed: "The lineup could not be loaded.",
+    positionsNote:
+      "Positions are preferences, not promises. The organizer makes the teams, with a keeper on each side.",
+    teamsNotSetYet: "Not set yet. Split the pool when it fills.",
+    waitlistHeading: "Waitlist",
+    teamsSet: "Set",
+    teamsMadeByOrganizer: "Made by the organizer",
+    cancelTitle: (name: string) => `Cancel ${name}?`,
+    leaveTitle: (name: string) => `Leave ${name}?`,
+    leaveWaitlistTitle: "Leave waitlist?",
+    kickPlayerTitle: "Kick player?",
+  },
+  footballJoin: {
+    howYouPlay: "How you play",
+    joinAs: "Join as",
+    choiceLabel: (title: string, note: string) => `${title}, ${note}`,
+    preferredPosition: "Preferred position",
+    preferenceNotPromise: "a preference, not a promise",
+    yourSeat: "Your seat",
+  },
+  footballTeams: {
+    method: {
+      level: "By level",
+      manual: "Manual",
+    },
+    howToMakeTeams: "How to make teams",
+    avgAndKeepers: (average: string, keepers: string) =>
+      `avg ${average}, ${keepers}`,
+    countOfTeamSize: (count: number, teamSize: number) =>
+      `${count} of ${teamSize}`,
+    readyToPublish: (note: string) => `${note} Ready to publish.`,
+    moveToOtherTeam: (name: string) => `Move ${name} to the other team`,
+    noSubsNote:
+      "No subs are set here. Each captain picks starters before kick-off and runs the swaps on the pitch.",
+    putIn: (name: string, team: string) => `Put ${name} in ${team}`,
+    notPlaced: "Not placed",
+    leftCount: (n: number) =>
+      plural("en", n, { one: "1 left", other: "{n} left" }),
+    publishedToast: "Teams published",
+    poolLoadFailed: "The pool could not be loaded",
+    fixedTitle: "Teams are fixed",
+    fixedBody:
+      "Only an organizer makes the teams, and only until the score is in.",
+    perTeam: (teamSize: number) => `${teamSize} per team`,
+    perTeamStart: (teamSize: number, sideSize: number) =>
+      `${teamSize} per team, ${sideSize} start`,
+    levelHint: "Use the arrow on a row to move that player to the other team.",
+    manualHint:
+      "Pick a swatch to place a player; placed rows take their team colour.",
+    shuffle: "Shuffle",
+    publish: "Publish teams",
+    manualTitle: "Manual teams",
+    makeTeams: "Make teams",
+    editTeams: "Edit teams",
+    inThePool: (n: number) =>
+      plural("en", n, { one: "1 in the pool", other: "{n} in the pool" }),
+  },
+  footballPlayer: {
+    prefers: (label: string) => `Prefers ${label.toLowerCase()}`,
+    noPositionYet: "No position yet",
+    subtitle: (role: string, level: string) => `${role}, Level ${level}`,
+    viewProfile: "View profile",
+    renameLabel: (name: string) => `Edit name: ${name}`,
+  },
+  footballPool: {
+    openTile: "open",
+    openSeat: "Open seat",
+    keepers: "Keepers",
+  },
+  footballScore: {
+    waitingToConfirm: "Waiting to confirm",
+    enteredBySentence: (name: string) => `Entered by ${name}.`,
+    confirmScore: "Confirm score",
+    editScore: "Edit score",
+    enterScore: "Enter score",
+    scorers: "Scorers",
+    emptyNote: "Entered by either side after the game, confirmed by the other.",
+    goalsOutput: (team: string) => `${team} goals`,
+    oneGoalFewer: (team: string) => `One goal fewer for ${team}`,
+    oneGoalMore: (team: string) => `One goal more for ${team}`,
+    addGoalLabel: (name: string, team: string, goals: number) =>
+      `Add a goal for ${name}, ${team}, ${goals} so far`,
+    takeGoalAway: (name: string) => `Take a goal away from ${name}`,
+    savedToast: "Score saved",
+    loadFailed: "The game could not be loaded",
+    closedTitle: "The score is closed",
+    closedBody:
+      "The score opens at kick-off for players on the teams and the organizer, until both sides confirm it.",
+    scorersOptional: "Scorers, optional",
+    selectNameHint: "select a name to add a goal",
+    saveScore: "Save score",
+    otherConfirms: (team: string) =>
+      `One player from ${team} confirms the score.`,
+    eachSideConfirms: "One player from each side confirms the score.",
+  },
+};

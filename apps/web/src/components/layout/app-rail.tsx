@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useMessages } from "~/components/locale-provider";
 import { NotificationBell } from "~/components/notifications/notification-bell";
-import { APP_NAV_ITEMS, isNavItemActive } from "~/components/layout/app-nav";
+import { appNavItems, isNavItemActive } from "~/components/layout/app-nav";
 import {
   Sidebar,
   SidebarContent,
@@ -19,7 +20,8 @@ import { cn } from "~/lib/utils";
 
 export function AppRail() {
   const pathname = usePathname();
-  const items = APP_NAV_ITEMS;
+  const m = useMessages();
+  const items = appNavItems(m);
 
   return (
     <Sidebar
@@ -27,7 +29,7 @@ export function AppRail() {
       className="hidden border-e lg:sticky lg:top-0 lg:flex lg:h-svh"
       style={{ width: "var(--rail-width)" }}
       role="navigation"
-      aria-label="Primary"
+      aria-label={m.webUi.primaryNav}
     >
       <SidebarHeader className="flex-row items-center">
         <SidebarMenu className="min-w-0 flex-1">

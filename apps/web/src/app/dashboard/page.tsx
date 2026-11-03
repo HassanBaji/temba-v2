@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { HomeBlock } from "~/components/home/home-block";
 import { HomeHeader } from "~/components/home/home-header";
 import { ProfileChecklistCard } from "~/components/home/profile-checklist-card";
@@ -36,6 +37,8 @@ import { api } from "~/trpc/react";
 
 export default function HomePage() {
   const { user } = useUser();
+  const m = useMessages();
+  const locale = useLocale();
   const now = useNow();
   const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
 
@@ -48,7 +51,7 @@ export default function HomePage() {
   const createGroups = api.games.listCreateGroups.useQuery();
   const onboarding = api.users.onboardingState.useQuery();
 
-  const name = user?.fullName ?? user?.firstName ?? user?.username ?? "You";
+  const name = user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you;
   const checklist =
     user && onboarding.data && !onboarding.data.provisioning
       ? profileChecklist(
@@ -56,19 +59,21 @@ export default function HomePage() {
             user,
             onboarding.data.onboardingCompletedAt,
           ),
+          locale,
         )
       : null;
   const upNext = slotOf(home, (data) => upNextItems(data.carouselGames));
   const level = slotOf(rating, levelFromApi);
-  const recentForm = slotOf(history, deriveRecentForm);
+  const recentForm = slotOf(history, (rows) => deriveRecentForm(rows, locale));
   const createAction = homeNoGamesCreateAction({
     createGroupCount: createGroups.data?.length,
+    locale,
   });
 
   return (
     <DashboardShell width="content" hidePageHeader={true} hideMobileTopBar>
       <div className="mt-6 flex w-full min-w-0 flex-col gap-[26px] lg:mt-2">
-        <h1 className="sr-only">Home</h1>
+        <h1 className="sr-only">{m.common.home}</h1>
         <HomeHeader name={name} image={user?.imageUrl} />
 
         {checklist ? <ProfileChecklistCard list={checklist} /> : null}
@@ -83,7 +88,7 @@ export default function HomePage() {
           />
           <HomeBlock
             slot={upNext}
-            title="Up next"
+            title={m.webDashboard.home.upNext}
             skeletonHeight={224}
             onRetry={() => void home.refetch()}
           >
@@ -100,11 +105,14 @@ export default function HomePage() {
           </HomeBlock>
         </section>
 
-        <section aria-label="Your sport" className="flex flex-col gap-3">
+        <section
+          aria-label={m.webDashboard.home.yourSport}
+          className="flex flex-col gap-3"
+        >
           <SportSegments value={sport} onSelect={setSport} />
           <HomeBlock
             slot={level}
-            title="Level"
+            title={m.common.level}
             skeletonHeight={200}
             onRetry={() => void rating.refetch()}
           >
@@ -112,7 +120,7 @@ export default function HomePage() {
           </HomeBlock>
           <HomeBlock
             slot={recentForm}
-            title="Recent form"
+            title={m.webDashboard.home.recentForm}
             skeletonHeight={160}
             onRetry={() => void history.refetch()}
           >

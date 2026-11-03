@@ -1,3 +1,6 @@
+"use client";
+
+import { useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 
 export function GroupTypeBadge({
@@ -7,14 +10,15 @@ export function GroupTypeBadge({
   isLoose: boolean;
   type?: string | null;
 }) {
-  const join =
-    type === "public" ? "Public" : type === "private" ? "Private" : null;
+  const m = useMessages().webUi.groupType;
 
   const label = isLoose
-    ? "Group outside a Community"
-    : join
-      ? `Club Group ${join}`
-      : "Club Group";
+    ? m.loose
+    : type === "public"
+      ? m.clubPublic
+      : type === "private"
+        ? m.clubPrivate
+        : m.club;
 
   return <Badge variant="outline">{label}</Badge>;
 }

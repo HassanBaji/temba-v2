@@ -1,10 +1,11 @@
 import { bookedCourtLine } from "@repo/domain/booking-copy";
 import type { FriendlyGameDetailsBooking } from "@repo/domain/friendly-game-details";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 
 import { bookingPath } from "../booking/booking-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -15,6 +16,8 @@ export function BookedCard({
   booking: FriendlyGameDetailsBooking;
 }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <Surface style={{ gap: 12 }}>
       <View
@@ -26,17 +29,17 @@ export function BookedCard({
       >
         <View style={{ flexShrink: 1, gap: 2 }}>
           <Text size="eyebrow" mono uppercase tone="muted">
-            Booked
+            {m.mobileGameDetails.booked.eyebrow}
           </Text>
-          <Text weight="semibold">{bookedCourtLine(booking)}</Text>
+          <Text weight="semibold">{bookedCourtLine(booking, locale)}</Text>
         </View>
         <Text size="meta" tone="muted">
-          {UNRATED_LABEL}
+          {unratedLabel(locale)}
         </Text>
       </View>
       {booking.heldByViewer ? (
         <Button
-          label="View booking"
+          label={m.mobileGameDetails.booked.view}
           variant="outline"
           size="sm"
           onPress={() => router.push(bookingPath(booking.id))}

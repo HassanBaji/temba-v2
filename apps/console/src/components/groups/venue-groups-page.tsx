@@ -4,11 +4,8 @@ import { Plus, Users } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
-import {
-  GROUP_UNLINK_ACTION_LABEL,
-  VENUE_UNLINK_GROUP_TOAST,
-  venueUnlinkGroupConfirm,
-} from "@repo/domain/group-link-request";
+import { venueUnlinkGroupConfirm } from "@repo/domain/group-link-request";
+import { messagesFor } from "@repo/i18n/messages";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
@@ -25,6 +22,7 @@ import { PageHeader } from "~/components/console/page-header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import { LinkGroupSheet } from "./link-group-sheet";
 
@@ -33,6 +31,7 @@ function memberLabel(count: number) {
 }
 
 export function VenueGroupsPage() {
+  const m = messagesFor(CONSOLE_LOCALE).group.linkRequest;
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [linkOpen, setLinkOpen] = React.useState(false);
@@ -56,7 +55,7 @@ export function VenueGroupsPage() {
 
   const unlink = api.venues.unlinkGroup.useMutation({
     onSuccess: async () => {
-      toast.success(VENUE_UNLINK_GROUP_TOAST);
+      toast.success(m.venueUnlinkedToast);
       await utils.venues.listCommunityGroups.invalidate({ venueId: venue.id });
       await utils.venues.searchLinkableGroups.invalidate();
     },
@@ -66,7 +65,7 @@ export function VenueGroupsPage() {
   });
 
   const unlinkConfirm = unlinkTarget
-    ? venueUnlinkGroupConfirm(unlinkTarget.name)
+    ? venueUnlinkGroupConfirm(unlinkTarget.name, CONSOLE_LOCALE)
     : null;
 
   const archived = data.data?.venue.archived ?? false;
@@ -141,7 +140,7 @@ export function VenueGroupsPage() {
                               })
                             }
                           >
-                            {GROUP_UNLINK_ACTION_LABEL}
+                            {m.unlinkLabel}
                           </Button>
                         ) : null}
                       </div>

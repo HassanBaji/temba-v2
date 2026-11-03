@@ -14,6 +14,8 @@ import { Pressable, View } from "react-native";
 
 import { AuthLoading } from "../auth/auth-loading";
 import { AuthScreen } from "../auth/auth-screen";
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -37,6 +39,7 @@ function TaskList({
   tasks: ProfileTask[];
   trailing: "time" | "chevron";
 }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -51,7 +54,10 @@ function TaskList({
           {index > 0 ? <Hairline /> : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${task.title}. ${task.description}`}
+            accessibilityLabel={m.mobileHome.checklist.taskSpoken(
+              task.title,
+              task.description,
+            )}
             accessibilityState={{ checked: task.done }}
             onPress={() => openTask(task)}
             style={({ pressed }) => ({
@@ -86,7 +92,11 @@ function TaskList({
                 {task.time}
               </Text>
             ) : (
-              <ChevronRight size={sizes.iconAction} color={colors.muted} />
+              <ChevronRight
+                size={sizes.iconAction}
+                color={colors.muted}
+                style={mirrorInRtl}
+              />
             )}
           </Pressable>
         </View>
@@ -119,6 +129,8 @@ function DoneRow({ label, value }: { label: string; value: string }) {
 }
 
 function ProgressRow({ list }: { list: ProfileChecklist }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View style={{ gap: 10 }}>
       <View
@@ -129,16 +141,16 @@ function ProgressRow({ list }: { list: ProfileChecklist }) {
         }}
       >
         <Text size="meta" tone="muted">
-          Profile
+          {m.common.profile}
         </Text>
         <Text size="eyebrow" tone="muted" mono uppercase>
-          {checklistCountLabel(list)}
+          {checklistCountLabel(list, locale)}
         </Text>
       </View>
       <ChecklistSegments
         done={list.done}
         total={list.total}
-        label={`Profile ${list.done} of ${list.total} done`}
+        label={m.mobileHome.checklist.progressSpoken(list.done, list.total)}
       />
     </View>
   );
@@ -155,18 +167,20 @@ function YouAreIn({
   firstName: string | null;
   onCompleteProfile: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <AuthScreen
-      crossLink={{ label: "Skip", onPress: leaveChecklist }}
+      crossLink={{ label: m.mobileHome.tasks.skip, onPress: leaveChecklist }}
       action={
         <>
           <Button
-            label="Complete profile"
+            label={m.mobileHome.tasks.completeProfile}
             size="lg"
             onPress={onCompleteProfile}
           />
           <Button
-            label="Later, show me games"
+            label={m.mobileHome.tasks.laterShowGames}
             size="lg"
             variant="outline"
             onPress={leaveChecklist}
@@ -178,11 +192,10 @@ function YouAreIn({
         <InitialsTile name={name} size="lg" />
         <View style={{ gap: 10 }}>
           <Text size="h1Lg" weight="bold" accessibilityRole="header">
-            {youAreInTitle(firstName)}
+            {youAreInTitle(firstName, locale)}
           </Text>
           <Text tone="muted">
-            Your account works as it is. A fuller profile gets you matched
-            games, a rating and receipts by email. {checklistBlurb(list)}
+            {m.mobileHome.tasks.youAreInBody} {checklistBlurb(list, locale)}
           </Text>
         </View>
       </View>
@@ -201,30 +214,36 @@ function Checklist({
   name: string | null;
   phone: string | null;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const doneAtSignUp = [
-    name ? { label: "Name", value: name } : null,
-    phone ? { label: "Mobile number", value: phone } : null,
+    name ? { label: m.mobileHome.tasks.short.name, value: name } : null,
+    phone ? { label: m.mobileHome.fields.mobileNumber, value: phone } : null,
   ].filter((row): row is { label: string; value: string } => row !== null);
 
   return (
     <AuthScreen
       onBack={exitChecklist}
-      meta={`${checklistCountLabel(list)} done`}
+      meta={m.mobileHome.tasks.countDone(checklistCountLabel(list, locale))}
       progress={{
         step: list.done,
         total: list.total,
-        label: `Profile ${list.done} of ${list.total} done`,
+        label: m.mobileHome.checklist.progressSpoken(list.done, list.total),
       }}
-      title="Complete your profile"
-      description={checklistBlurb(list)}
+      title={m.mobileHome.checklist.title}
+      description={checklistBlurb(list, locale)}
       action={
-        <Button label={checklistCta(list)} size="lg" onPress={leaveChecklist} />
+        <Button
+          label={checklistCta(list, locale)}
+          size="lg"
+          onPress={leaveChecklist}
+        />
       }
     >
       {doneAtSignUp.length > 0 ? (
         <View style={{ gap: 10 }}>
           <Text size="meta" tone="muted" accessibilityRole="header">
-            Done at sign up
+            {m.mobileHome.tasks.doneAtSignUp}
           </Text>
           <View
             style={{
@@ -245,7 +264,7 @@ function Checklist({
       ) : null}
       <View style={{ gap: 10 }}>
         <Text size="meta" tone="muted" accessibilityRole="header">
-          Tasks
+          {m.mobileHome.tasks.heading}
         </Text>
         <TaskList tasks={list.tasks} trailing="chevron" />
       </View>
@@ -254,6 +273,7 @@ function Checklist({
 }
 
 export function CompleteProfileScreen() {
+  const m = useMessages();
   const { fresh } = useLocalSearchParams<{ fresh?: string }>();
   const [showingList, setShowingList] = useState(false);
   const { user, list, error, refetch } = useProfileChecklist();
@@ -262,10 +282,14 @@ export function CompleteProfileScreen() {
     return (
       <AuthScreen
         onBack={exitChecklist}
-        title="Profile could not be loaded"
+        title={m.mobileHome.block.couldNotLoad(m.common.profile)}
         description={error.message}
       >
-        <Button label="Try again" size="lg" onPress={() => void refetch()} />
+        <Button
+          label={m.common.tryAgain}
+          size="lg"
+          onPress={() => void refetch()}
+        />
       </AuthScreen>
     );
   }
@@ -280,7 +304,7 @@ export function CompleteProfileScreen() {
     return (
       <YouAreIn
         list={list}
-        name={name ?? "You"}
+        name={name ?? m.common.you}
         firstName={user.firstName}
         onCompleteProfile={() => setShowingList(true)}
       />

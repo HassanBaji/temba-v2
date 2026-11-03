@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import type { PlayerLevelCardView } from "@repo/domain/player-profile-level";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function PlayerLevelCard({
@@ -12,6 +13,7 @@ export function PlayerLevelCard({
   view: PlayerLevelCardView;
   trend: string | null;
 }) {
+  const m = useMessages();
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     setDrawn(true);
@@ -20,7 +22,7 @@ export function PlayerLevelCard({
   if (view.kind === "none") {
     return (
       <section className="hatch-on-ink rounded-card relative p-5">
-        <h2 className="text-meta text-dim">Level</h2>
+        <h2 className="text-meta text-dim">{m.webUi.player.level}</h2>
         <p className="text-lead mt-1 font-semibold">{view.label}</p>
       </section>
     );
@@ -29,8 +31,8 @@ export function PlayerLevelCard({
   return (
     <section className="bg-raised rounded-card p-5">
       <div className="text-meta text-dim flex items-baseline justify-between gap-3">
-        <h2 className="text-meta font-normal">Level</h2>
-        {view.provisional ? <p>Provisional</p> : null}
+        <h2 className="text-meta font-normal">{m.webUi.player.level}</h2>
+        {view.provisional ? <p>{m.webUi.player.provisional}</p> : null}
       </div>
       <p className="mt-2 flex items-baseline gap-3">
         <span

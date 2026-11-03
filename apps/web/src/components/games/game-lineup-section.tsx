@@ -2,11 +2,6 @@
 
 import { Fragment } from "react";
 
-import {
-  ADD_PLAYER_ACTION,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-} from "@repo/domain/add-player-by-phone";
-import { KICK_ACTION } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { ResultTag } from "~/components/temba/result-mark";
 import { OpenSeat, SeatRow } from "~/components/temba/seat";
@@ -20,6 +15,7 @@ import {
   friendlyGameSeatSubline,
   friendlyGameVacantSeatLabel,
 } from "@repo/domain/friendly-game-players";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
@@ -65,12 +61,15 @@ function LineupSeatRow({
   onRename?: (player: RenameTarget) => void;
   linked: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   if (vacant || !occupant) {
     const vacantAction = friendlyGameLineupVacantAction(canMove);
     const moveLabel = friendlyGameVacantSeatLabel(
       vacantAction,
       sideLabel,
-      position === "left" ? "Left" : "Right",
+      m.game.players[position],
+      locale,
     );
     return (
       <div className="flex items-center justify-between gap-3">
@@ -89,7 +88,7 @@ function LineupSeatRow({
             <>
               <OpenSeat size="lg" />
               <span className="sr-only">
-                {friendlyGameOpenSeatLabel(position)}
+                {friendlyGameOpenSeatLabel(position, locale)}
               </span>
             </>
           )}
@@ -100,10 +99,14 @@ function LineupSeatRow({
             variant="outline"
             size="sm"
             className="shrink-0"
-            aria-label={friendlyGameInviteSeatLabel(sideLabel, position)}
+            aria-label={friendlyGameInviteSeatLabel(
+              sideLabel,
+              position,
+              locale,
+            )}
             onClick={onInvite}
           >
-            Invite
+            {m.invite.door.inviteButton}
           </Button>
         ) : null}
       </div>
@@ -119,7 +122,7 @@ function LineupSeatRow({
       unclaimed={occupant.unclaimed}
       phoneMasked={occupant.phoneMasked}
       href={linked ? playerProfilePath(occupant.userId) : undefined}
-      subline={friendlyGameSeatSubline(position, occupant.levelBand)}
+      subline={friendlyGameSeatSubline(position, occupant.levelBand, locale)}
       trailing={
         canKick || canRename ? (
           <div className="flex items-center gap-2">
@@ -128,12 +131,15 @@ function LineupSeatRow({
                 type="button"
                 variant="outline"
                 size="sm"
-                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${occupant.name}`}
+                aria-label={m.webGame.lineup.renameFor(
+                  m.group.addPlayer.renameAction,
+                  occupant.name,
+                )}
                 onClick={() =>
                   onRename?.({ userId: occupant.userId, name: occupant.name })
                 }
               >
-                {RENAME_UNCLAIMED_PLAYER_ACTION}
+                {m.group.addPlayer.renameAction}
               </Button>
             ) : null}
             {canKick ? (
@@ -141,11 +147,11 @@ function LineupSeatRow({
                 type="button"
                 variant="outline"
                 size="sm"
-                aria-label={`${KICK_ACTION} ${occupant.name}`}
+                aria-label={m.webGame.lineup.kickName(occupant.name)}
                 disabled={kickPending}
                 onClick={() => onKick(occupant.userId)}
               >
-                {KICK_ACTION}
+                {m.game.action.kick}
               </Button>
             ) : null}
           </div>
@@ -188,7 +194,13 @@ function LineupTeamColumn({
   onRename?: (player: RenameTarget) => void;
   linkToPlayers: boolean;
 }) {
-  const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
+  const locale = useLocale();
+  const m = useMessages();
+  const sideLabel = formatGameSideLabel(
+    "friendly_game",
+    side.sideIndex,
+    locale,
+  );
   return (
     <div className="min-w-0 flex-1 space-y-3">
       <div className="flex items-center gap-1.5">
@@ -196,7 +208,7 @@ function LineupTeamColumn({
           {sideLabel}
         </h3>
         {showWonTag && isWinner ? (
-          <ResultTag variant="won">Won</ResultTag>
+          <ResultTag variant="won">{m.game.resultMark.won}</ResultTag>
         ) : null}
       </div>
       <div className="space-y-3">
@@ -283,6 +295,7 @@ export function GameLineupSection({
   onAddPlayer?: () => void;
   onRenameUnclaimed?: (player: RenameTarget) => void;
 }) {
+  const m = useMessages();
   // Final phase never shows invite affordances in this section, regardless
   // of the caller's organizer-only `canMintInvite` value (spec: "no invite
   // affordances anywhere in the section" once a Match is Final).
@@ -305,7 +318,7 @@ export function GameLineupSection({
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <div className="flex items-center justify-between gap-3 px-[22px] pb-3 pt-[22px]">
-        <h2 className="text-muted-foreground text-sm">Line-up</h2>
+        <h2 className="text-muted-foreground text-sm">{m.webGame.lineup.title}</h2>
         {onAddPlayer ? (
           <Button
             type="button"
@@ -313,7 +326,7 @@ export function GameLineupSection({
             size="sm"
             onClick={onAddPlayer}
           >
-            {ADD_PLAYER_ACTION}
+            {m.group.addPlayer.action}
           </Button>
         ) : null}
       </div>
@@ -326,7 +339,7 @@ export function GameLineupSection({
           <Fragment key={side.sideIndex}>
             {index > 0 ? (
               <span aria-hidden="true" className={VS_DIVIDER}>
-                vs
+                {m.webGame.joinSheet.versus}
               </span>
             ) : null}
             <LineupTeamColumn

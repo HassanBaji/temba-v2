@@ -7,11 +7,8 @@ import {
   type GameTeamPlayersSheetTeam,
 } from "~/components/games/game-team-players-sheet";
 import { Button } from "~/components/ui/button";
-import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
-  KNOCKOUT_BYE_LABEL,
-  KNOCKOUT_DECIDING_SET_COPY,
-  KNOCKOUT_WALKOVER_TAG,
   canCancelKnockoutPlace,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
@@ -22,7 +19,6 @@ import {
   type KnockoutViewSide,
 } from "@repo/domain/tournament-knockout-view";
 import { knockoutPlaceSideTags } from "@repo/domain/tournament-details";
-import { YOUR_TEAM_TAG } from "@repo/domain/tournament-home";
 import { gameTeamPlayers } from "~/lib/game-player-links";
 import { cn } from "~/lib/utils";
 
@@ -42,9 +38,11 @@ function KnockoutSideRow({
   gameTeams?: GameTeams;
   onOpenTeam: OpenTeam;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const isTeam = side.kind === "team";
   const isViewer = side.kind === "team" && side.team.isViewer;
-  const label = knockoutSideLabel(side);
+  const label = knockoutSideLabel(side, locale);
   const players =
     side.kind === "team" && gameTeams
       ? gameTeamPlayers(gameTeams, side.team.gameTeamId)
@@ -73,12 +71,12 @@ function KnockoutSideRow({
       )}
       {isViewer ? (
         <span className="text-muted-foreground text-meta shrink-0">
-          {YOUR_TEAM_TAG}
+          {m.tournament.home.yourTeamTag}
         </span>
       ) : null}
       {walkover ? (
         <span className="text-muted-foreground text-meta shrink-0 font-semibold">
-          {KNOCKOUT_WALKOVER_TAG}
+          {m.tournament.knockoutView.walkover}
         </span>
       ) : null}
       {resultTag ? (
@@ -103,9 +101,11 @@ function KnockoutPlaceCard({
   gameTeams?: GameTeams;
   onOpenTeam: OpenTeam;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const meta =
     place.kind === "match"
-      ? knockoutPlaceMetaLine(place.startTime, place.courtName)
+      ? knockoutPlaceMetaLine(place.startTime, place.courtName, locale)
       : null;
   return (
     <div className="border-rule rounded-card border px-4 pt-3">
@@ -122,13 +122,13 @@ function KnockoutPlaceCard({
           <>
             <KnockoutSideRow
               side={place.slot1}
-              {...knockoutPlaceSideTags(place, 1, isFinal)}
+              {...knockoutPlaceSideTags(place, 1, isFinal, locale)}
               gameTeams={gameTeams}
               onOpenTeam={onOpenTeam}
             />
             <KnockoutSideRow
               side={place.slot2}
-              {...knockoutPlaceSideTags(place, 2, isFinal)}
+              {...knockoutPlaceSideTags(place, 2, isFinal, locale)}
               gameTeams={gameTeams}
               onOpenTeam={onOpenTeam}
             />
@@ -139,7 +139,7 @@ function KnockoutPlaceCard({
             ) : null}
             {place.needsDecidingSet ? (
               <p className="text-muted-foreground text-meta py-2">
-                {KNOCKOUT_DECIDING_SET_COPY}
+                {m.tournament.knockoutView.decidingSet}
               </p>
             ) : null}
             {onCancelMatch && canCancelKnockoutPlace(place) ? (
@@ -150,7 +150,7 @@ function KnockoutPlaceCard({
                   className="min-h-11 w-full"
                   onClick={() => onCancelMatch(place)}
                 >
-                  {CANCEL_MATCH_ACTION}
+                  {m.game.action.cancelMatch}
                 </Button>
               </div>
             ) : null}
@@ -163,7 +163,7 @@ function KnockoutPlaceCard({
               onOpenTeam={onOpenTeam}
             />
             <div className="text-muted-foreground text-body flex min-h-11 items-center py-2">
-              {KNOCKOUT_BYE_LABEL}
+              {m.tournament.knockoutView.bye}
             </div>
           </>
         )}
@@ -186,10 +186,11 @@ export function TournamentKnockoutRound({
   /** Given when the viewer may open Player profiles from the tree. */
   gameTeams?: GameTeams;
 }) {
+  const locale = useLocale();
   const [openTeam, setOpenTeam] =
     React.useState<GameTeamPlayersSheetTeam | null>(null);
   const Heading = headingLevel;
-  const day = knockoutRoundDayLine(round);
+  const day = knockoutRoundDayLine(round, locale);
   return (
     <section aria-label={round.name}>
       <div className="flex items-baseline gap-2.5 pb-2.5">

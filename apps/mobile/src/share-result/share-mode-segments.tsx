@@ -1,14 +1,12 @@
 import { colors, radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import type { ShareMode } from "./share-model";
 
-const MODES: { value: ShareMode; label: string }[] = [
-  { value: "story", label: "Story" },
-  { value: "sticker", label: "Sticker" },
-];
+const MODE_VALUES: ShareMode[] = ["story", "sticker"];
 
 export function ShareModeSegments({
   value,
@@ -17,10 +15,12 @@ export function ShareModeSegments({
   value: ShareMode;
   onSelect: (mode: ShareMode) => void;
 }) {
+  const m = useMessages().mobilePlayer.share;
+  const modes = MODE_VALUES.map((mode) => ({ value: mode, label: m[mode] }));
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel="What to share"
+      accessibilityLabel={m.whatToShare}
       style={{
         flexDirection: "row",
         borderRadius: radii.lg,
@@ -29,7 +29,7 @@ export function ShareModeSegments({
         overflow: "hidden",
       }}
     >
-      {MODES.map((mode, index) => {
+      {modes.map((mode, index) => {
         const selected = mode.value === value;
         const color = selected ? colors.paper : colors.muted;
         return (

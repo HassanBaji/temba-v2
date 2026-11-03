@@ -6,9 +6,10 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { AuthScreen } from "../auth/auth-screen";
-import { SOMETHING_WENT_WRONG, fieldError } from "../auth/clerk-forms";
+import { somethingWentWrong, fieldError } from "../auth/clerk-forms";
 import { CodeForm } from "../auth/code-form";
 import { FormErrorSummary } from "../auth/form-error-summary";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { type SplitFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
@@ -17,21 +18,14 @@ import { backToChecklist } from "./task-navigation";
 
 type Step = "email" | "code";
 
-const BENEFITS = [
-  {
-    icon: Receipt,
-    lead: "Receipts.",
-    text: "Every booking and seat payment, in your inbox.",
-  },
-  {
-    icon: KeyRound,
-    lead: "Recovery.",
-    text: "Sign in by email if your number changes.",
-  },
-  { icon: Lock, lead: "Private.", text: "Never shown to other members." },
-];
+const BENEFIT_ICONS = {
+  receipts: Receipt,
+  recovery: KeyRound,
+  private: Lock,
+} as const;
 
 function NotNow({ disabled }: { disabled: boolean }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
@@ -44,13 +38,15 @@ function NotNow({ disabled }: { disabled: boolean }) {
         tone="muted"
         style={{ textAlign: "center", textDecorationLine: "underline" }}
       >
-        Not now
+        {m.mobileHome.tasks.notNow}
       </Text>
     </Pressable>
   );
 }
 
 export function EmailTaskScreen() {
+  const m = useMessages();
+  const locale = useLocale();
   const { user } = useUser();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState(() => {
@@ -76,7 +72,7 @@ export function EmailTaskScreen() {
     const trimmed = email.trim();
     if (!trimmed) {
       setSplit({
-        fieldErrors: { email_address: "Enter your email" },
+        fieldErrors: { email_address: m.mobileHome.emailTask.enterEmail },
         globalMessage: null,
       });
       return;
@@ -95,7 +91,7 @@ export function EmailTaskScreen() {
       setStartedAt(Date.now());
       setStep("code");
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -111,7 +107,7 @@ export function EmailTaskScreen() {
       await address.prepareVerification({ strategy: "email_code" });
       setStartedAt(Date.now());
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -127,14 +123,14 @@ export function EmailTaskScreen() {
     try {
       const verified = await address.attemptVerification({ code });
       if (verified.verification.status !== "verified") {
-        setSplit(SOMETHING_WENT_WRONG);
+        setSplit(somethingWentWrong(locale));
         return;
       }
       await user.update({ primaryEmailAddressId: verified.id });
       await user.reload();
       backToChecklist();
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -148,18 +144,17 @@ export function EmailTaskScreen() {
           setSplit(null);
           setCode("");
         }}
-        meta="Profile / Email"
-        title="Check your inbox"
+        meta={m.mobileHome.emailTask.meta}
+        title={m.mobileHome.emailTask.checkInbox}
         footer={
           <Text size="eyebrow" tone="muted">
-            Until verified, the email is saved but unused. Check spam if nothing
-            arrives in a minute.
+            {m.mobileHome.emailTask.inboxFooter}
           </Text>
         }
       >
         <CodeForm
           destination={email.trim()}
-          changeLabel="Change email"
+          changeLabel={m.mobileHome.code.changeEmail}
           onChangeIdentifier={() => {
             setStep("email");
             setSplit(null);
@@ -178,16 +173,18 @@ export function EmailTaskScreen() {
     );
   }
 
+  const benefits = m.mobileHome.emailTask.benefits;
+
   return (
     <AuthScreen
       onBack={backToChecklist}
-      meta="Profile / Email"
-      title="Add your email"
-      description="For booking receipts, and a way back into your account if you change number. We send a six digit code to confirm it."
+      meta={m.mobileHome.emailTask.meta}
+      title={m.mobileHome.emailTask.title}
+      description={m.mobileHome.emailTask.description}
       action={
         <>
           <Button
-            label="Send code"
+            label={m.mobileHome.emailTask.sendCode}
             size="lg"
             pending={pending}
             disabled={!user}
@@ -199,7 +196,7 @@ export function EmailTaskScreen() {
     >
       <FormErrorSummary message={split?.globalMessage} />
       <TextField
-        label="Email"
+        label={m.mobileHome.fields.email}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -213,20 +210,29 @@ export function EmailTaskScreen() {
         error={fieldError(split, "email_address", "emailAddress")}
       />
       <View style={{ gap: 14 }}>
-        {BENEFITS.map(({ icon: Icon, lead, text }) => (
-          <View
-            key={lead}
-            style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}
-          >
-            <Icon size={sizes.iconAction} color={colors.ink} />
-            <Text size="meta" tone="muted" style={{ flex: 1 }}>
-              <Text size="meta" weight="semibold">
-                {lead}
-              </Text>{" "}
-              {text}
-            </Text>
-          </View>
-        ))}
+        {(Object.keys(BENEFIT_ICONS) as (keyof typeof BENEFIT_ICONS)[]).map(
+          (key) => {
+            const Icon = BENEFIT_ICONS[key];
+            return (
+              <View
+                key={key}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
+                <Icon size={sizes.iconAction} color={colors.ink} />
+                <Text size="meta" tone="muted" style={{ flex: 1 }}>
+                  <Text size="meta" weight="semibold">
+                    {benefits[key].lead}
+                  </Text>{" "}
+                  {benefits[key].text}
+                </Text>
+              </View>
+            );
+          },
+        )}
       </View>
     </AuthScreen>
   );

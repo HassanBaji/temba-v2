@@ -16,7 +16,6 @@ import {
   formatGameClockWithoutMeridiem,
 } from "@repo/domain/format-game-start";
 import {
-  PARTNER_PICKER_COPY,
   partnerContinueLabel,
   partnerSeatsChip,
   partnerSuggestionButtonLabel,
@@ -24,6 +23,7 @@ import {
 } from "@repo/domain/friendly-game-partner";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 import type { LookupUserSearchRow } from "@repo/api/types";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -48,6 +48,7 @@ function RecentPartnerChip({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const locale = useLocale();
   const blocked = row.ineligible != null;
 
   return (
@@ -56,7 +57,7 @@ function RecentPartnerChip({
       disabled={blocked}
       onClick={onSelect}
       aria-pressed={blocked ? undefined : selected}
-      aria-label={partnerSuggestionButtonLabel(row)}
+      aria-label={partnerSuggestionButtonLabel(row, locale)}
       className={cn(
         "rounded-card flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 px-1 py-2",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
@@ -102,6 +103,7 @@ function RecentsShowcase({
   selectedId: string | null;
   onSelect: (row: PartnerSuggestion) => void;
 }) {
+  const m = useMessages();
   if (rows.length === 0) {
     return null;
   }
@@ -110,7 +112,7 @@ function RecentsShowcase({
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h3 className="font-expanded text-title leading-tight">
-          Played with before
+          {m.webGame.partnerPicker.playedWithBefore}
         </h3>
       </div>
       <div className="-mx-[22px] overflow-x-auto px-[22px]">
@@ -138,6 +140,7 @@ function PartnerSuggestionRow({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const locale = useLocale();
   const blocked = row.ineligible != null;
 
   return (
@@ -146,7 +149,7 @@ function PartnerSuggestionRow({
       disabled={blocked}
       onClick={onSelect}
       aria-pressed={blocked ? undefined : selected}
-      aria-label={partnerSuggestionButtonLabel(row)}
+      aria-label={partnerSuggestionButtonLabel(row, locale)}
       className={cn(
         "flex w-full items-center gap-3 px-[18px] py-4 text-start",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
@@ -172,7 +175,7 @@ function PartnerSuggestionRow({
           {row.name}
         </span>
         <span className="text-meta text-muted-foreground mt-0.5 block">
-          {partnerSuggestionMetaLine(row)}
+          {partnerSuggestionMetaLine(row, locale)}
         </span>
       </span>
       <span
@@ -298,6 +301,8 @@ export function FriendlyGamePartnerPicker({
   onContinue: () => void;
   notice?: string | null;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [query, setQuery] = useState("");
   const [searchSelected, setSearchSelected] = useState<LookupUserSearchRow[]>(
     [],
@@ -315,10 +320,10 @@ export function FriendlyGamePartnerPicker({
       : windowStart instanceof Date
         ? windowStart
         : new Date(windowStart);
-  const clock = start ? formatGameClockWithoutMeridiem(start) : null;
-  const day = start ? formatGameCardDay(start) : null;
-  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
-  const seatsChip = partnerSeatsChip(vacantSeatCount);
+  const clock = start ? formatGameClockWithoutMeridiem(start, locale) : null;
+  const day = start ? formatGameCardDay(start, locale) : null;
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils, locale);
+  const seatsChip = partnerSeatsChip(vacantSeatCount, locale);
 
   function pickSuggestion(row: PartnerSuggestion) {
     if (row.ineligible) {
@@ -367,21 +372,23 @@ export function FriendlyGamePartnerPicker({
       <div className="flex min-h-0 flex-1 flex-col gap-[26px] overflow-y-auto overscroll-contain px-[22px]">
         <div className="border-rule mt-6 shrink-0">
           <h2 className="font-expanded text-h1-lg leading-none tracking-[-0.03em]">
-            {PARTNER_PICKER_COPY.title}
+            {m.game.joinSheet.partnerPicker.title}
           </h2>
           <p className="text-meta mt-2 leading-relaxed">
-            {PARTNER_PICKER_COPY.description}
+            {m.game.joinSheet.partnerPicker.description}
           </p>
         </div>
 
         {suggestions.isLoading ? (
           <div aria-busy="true">
-            <span className="sr-only">Loading partner suggestions</span>
+            <span className="sr-only">
+              {m.webGame.partnerPicker.loadingSuggestions}
+            </span>
             <RecentsSkeleton />
           </div>
         ) : suggestions.error ? (
           <ErrorState
-            title="Suggestions could not be loaded"
+            title={m.webGame.partnerPicker.suggestionsError}
             message={suggestions.error.message}
             headingLevel={3}
             className="py-4"
@@ -398,7 +405,9 @@ export function FriendlyGamePartnerPicker({
         )}
 
         <Field>
-          <FieldLabel htmlFor="partner-picker-search">Search</FieldLabel>
+          <FieldLabel htmlFor="partner-picker-search">
+            {m.common.search}
+          </FieldLabel>
           <LookupUserSelect
             id="partner-picker-search"
             query={query}
@@ -408,13 +417,13 @@ export function FriendlyGamePartnerPicker({
             onSelectedChange={pickSearch}
             selection="single"
             pending={partnerSearch.isFetching}
-            placeholder="Search Users"
+            placeholder={m.webGame.partnerPicker.searchPlaceholder}
           />
         </Field>
 
         {suggestions.isLoading ? <SuggestionRowsSkeleton /> : null}
         <SuggestionSection
-          title="From your groups"
+          title={m.webGame.partnerPicker.fromYourGroups}
           eyebrow={groupName?.trim() ?? ""}
           rows={suggestions.data?.fromYourGroups ?? []}
           selectedId={selectedPartner?.id ?? null}
@@ -430,10 +439,10 @@ export function FriendlyGamePartnerPicker({
           disabled={!selectedPartner}
           onClick={onContinue}
         >
-          {partnerContinueLabel(selectedPartner?.name ?? null)}
+          {partnerContinueLabel(selectedPartner?.name ?? null, locale)}
         </Button>
         <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
-          {PARTNER_PICKER_COPY.footnote}
+          {m.game.joinSheet.partnerPicker.footnote}
         </p>
       </div>
     </div>

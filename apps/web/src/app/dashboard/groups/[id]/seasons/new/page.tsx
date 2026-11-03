@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   dayInputValueFromPickerDate,
   pickerDateFromInstant,
@@ -31,7 +32,6 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { formatDayMonth, formatWeekday } from "@repo/domain/format-game-start";
 import {
   SEASON_NAME_MAX_LENGTH,
-  SEASON_NEW_STANDING_NOTE,
   dayKeyToInstant,
   formatSeasonRange,
   isDayKey,
@@ -59,16 +59,23 @@ function NewSeasonFrame({
   groupName: string | null;
   children: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
-    <DashboardShell title="New season" hidePageHeader hideMobileTopBar>
+    <DashboardShell
+      title={m.webDashboard.seasons.new.title}
+      hidePageHeader
+      hideMobileTopBar
+    >
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-6 pb-6">
         <header className="mt-6 flex items-center gap-3 lg:mt-2">
           <BackButton
             href={groupSeasonsHref(groupId)}
-            label="Back to Seasons"
+            label={m.webDashboard.seasons.new.backToSeasons}
           />
           <div className="min-w-0">
-            <PageTitle className="text-ink">New season</PageTitle>
+            <PageTitle className="text-ink">
+              {m.webDashboard.seasons.new.title}
+            </PageTitle>
             {groupName ? (
               <p className="text-meta text-muted-foreground truncate">
                 {groupName}
@@ -93,6 +100,8 @@ function DayPickerField({
   value: string;
   onChange: (day: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const selected = isDayKey(value)
     ? pickerDateFromInstant(dayKeyToInstant(value))
@@ -109,8 +118,8 @@ function DayPickerField({
           >
             <span className="tabular-nums">
               {selected
-                ? `${formatWeekday(dayKeyToInstant(value), "short")} ${formatDayMonth(dayKeyToInstant(value))}`
-                : "Pick a day"}
+                ? `${formatWeekday(dayKeyToInstant(value), "short", locale)} ${formatDayMonth(dayKeyToInstant(value), locale)}`
+                : m.createGame.validation.pickDay}
             </span>
             <CalendarDays
               aria-hidden="true"
@@ -144,10 +153,14 @@ function NewSeasonForm({
   groupId: string;
   list: SeasonList;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const utils = api.useUtils();
   const now = new Date();
-  const [name, setName] = useState(() => suggestedSeasonName(list.seasons));
+  const [name, setName] = useState(() =>
+    suggestedSeasonName(list.seasons, locale),
+  );
   const [startsOn, setStartsOn] = useState(() =>
     suggestedSeasonStart(list.seasons, now),
   );
@@ -157,7 +170,7 @@ function NewSeasonForm({
   const [submitted, setSubmitted] = useState(false);
   const createSeason = api.groups.createSeason.useMutation({
     onSuccess: async (season) => {
-      toast.success(seasonCreatedToast(season));
+      toast.success(seasonCreatedToast(season, locale));
       await Promise.all([
         utils.groups.listSeasons.invalidate({ groupId }),
         utils.groups.byId.invalidate({ id: groupId }),
@@ -173,10 +186,12 @@ function NewSeasonForm({
   });
 
   const dates = { startsOn, endsOn };
-  const datesError = seasonDatesError(dates, list.seasons);
+  const datesError = seasonDatesError(dates, list.seasons, locale);
   const trimmed = name.trim();
   const nameError =
-    submitted && trimmed.length === 0 ? "Give the season a name." : null;
+    submitted && trimmed.length === 0
+      ? m.webDashboard.seasons.new.nameRequired
+      : null;
   const canPreview = !datesError;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -192,7 +207,9 @@ function NewSeasonForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="season-name">Name</FieldLabel>
+          <FieldLabel htmlFor="season-name">
+            {m.webDashboard.seasons.new.name}
+          </FieldLabel>
           <Input
             id="season-name"
             value={name}
@@ -207,7 +224,7 @@ function NewSeasonForm({
         <div className="grid grid-cols-2 gap-3">
           <DayPickerField
             id="season-starts"
-            label="Starts"
+            label={m.webDashboard.seasons.new.starts}
             value={startsOn}
             onChange={(day) => {
               setStartsOn(day);
@@ -218,7 +235,7 @@ function NewSeasonForm({
           />
           <DayPickerField
             id="season-ends"
-            label="Ends"
+            label={m.webDashboard.seasons.new.ends}
             value={endsOn}
             onChange={setEndsOn}
           />
@@ -230,23 +247,26 @@ function NewSeasonForm({
           )}
           aria-live="polite"
         >
-          {newSeasonSummaryLine(dates, list.seasons)}
+          {newSeasonSummaryLine(dates, list.seasons, locale)}
         </p>
       </FieldGroup>
 
       {canPreview ? (
-        <section className={cardFrame} aria-label="Preview">
+        <section
+          className={cardFrame}
+          aria-label={m.webDashboard.seasons.new.preview}
+        >
           <div className="flex items-end justify-between gap-3 px-5 py-4">
             <span className="font-expanded text-h1 uppercase leading-none tracking-[-0.03em]">
-              {trimmed || suggestedSeasonName(list.seasons)}
+              {trimmed || suggestedSeasonName(list.seasons, locale)}
             </span>
             <span className="text-meta text-muted-foreground shrink-0 tabular-nums">
-              {formatSeasonRange(dates)}
+              {formatSeasonRange(dates, locale)}
             </span>
           </div>
           <div className="hatch mx-5 h-[3px] rounded-full" aria-hidden="true" />
           <p className="border-rule text-meta text-muted-foreground mt-4 border-t px-5 py-3.5">
-            {SEASON_NEW_STANDING_NOTE}
+            {m.group.season.newStandingNote}
           </p>
         </section>
       ) : null}
@@ -258,7 +278,9 @@ function NewSeasonForm({
         pending={createSeason.isPending}
         disabled={Boolean(datesError)}
       >
-        Create {trimmed || "season"}
+        {m.webDashboard.seasons.new.create(
+          trimmed || m.webDashboard.seasons.new.seasonWord,
+        )}
       </Button>
     </form>
   );
@@ -270,6 +292,7 @@ export default function NewSeasonPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const m = useMessages();
   const seasons = api.groups.listSeasons.useQuery({ groupId: id });
 
   if (seasons.isLoading) {
@@ -288,7 +311,7 @@ export default function NewSeasonPage({
     return (
       <NewSeasonFrame groupId={id} groupName={null}>
         <ErrorState
-          title="Seasons could not be loaded"
+          title={m.webDashboard.seasons.errorTitle}
           message={seasons.error?.message}
           onRetry={() => {
             void seasons.refetch();
@@ -302,7 +325,7 @@ export default function NewSeasonPage({
     return (
       <NewSeasonFrame groupId={id} groupName={seasons.data.groupName}>
         <ErrorState
-          title="Only the Group owner can open a season"
+          title={m.webDashboard.seasons.new.ownerOnly}
           onRetry={() => {
             void seasons.refetch();
           }}

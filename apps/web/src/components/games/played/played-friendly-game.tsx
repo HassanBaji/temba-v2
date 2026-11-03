@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ADD_PLAYER_ACTION,
-  organizerCanAddPlayer,
-} from "@repo/domain/add-player-by-phone";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import type {
   FriendlyGameDetails,
@@ -19,6 +16,7 @@ import {
 import * as React from "react";
 
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -44,23 +42,28 @@ export function PlayedFriendlyGame({
   onAddPlayer?: () => void;
   onReportWrongScore: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [selected, setSelected] = React.useState<PlayedRow | null>(null);
   const model = React.useMemo(
     () =>
-      playedPadelModel({
-        sides: game.sides,
-        viewerUserId: game.viewerUserId,
-        match,
-        windowStart: game.windowStart,
-        windowEnd: game.windowEnd,
-        venue: game.venue,
-        courtName: match.courtName,
-        groupName: game.groupName,
-        rated: game.rated,
-        ratingImpact: game.ratingImpact,
-        confirmation: game.matchResultConfirmation,
-      }),
-    [game, match],
+      playedPadelModel(
+        {
+          sides: game.sides,
+          viewerUserId: game.viewerUserId,
+          match,
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          venue: game.venue,
+          courtName: match.courtName,
+          groupName: game.groupName,
+          rated: game.rated,
+          ratingImpact: game.ratingImpact,
+          confirmation: game.matchResultConfirmation,
+        },
+        locale,
+      ),
+    [game, match, locale],
   );
   const viewerSide = padelViewerSide(game.sides, game.viewerUserId);
   const viewerSeat =
@@ -80,6 +83,7 @@ export function PlayedFriendlyGame({
         canLeaveGame: false,
         canReportWrongScore: game.canReportWrongScore,
         playerCount: occupiedFriendlyPositions(game.sides),
+        locale,
       })
     : [];
   const showAdd =
@@ -87,12 +91,12 @@ export function PlayedFriendlyGame({
   const menu =
     showAdd || organizerActions.length > 0 ? (
       <ActionMenu
-        label="Game actions"
+        label={m.webGame.overflow.gameActions}
         triggerClassName="text-paper hover:bg-raised hover:text-paper"
       >
         {showAdd ? (
           <ActionMenuItem onSelect={onAddPlayer}>
-            {ADD_PLAYER_ACTION}
+            {m.group.addPlayer.action}
           </ActionMenuItem>
         ) : null}
         {organizerActions.map((action) => (

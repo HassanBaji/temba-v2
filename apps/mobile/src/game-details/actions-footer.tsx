@@ -2,6 +2,7 @@ import { sizes, spacing } from "@repo/design-tokens";
 import type { FriendlyGameFooterAction } from "@repo/domain/friendly-game-actions";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 
@@ -14,6 +15,7 @@ export function ActionsFooter({
   pendingKind: FriendlyGameFooterAction["kind"] | null;
   onAction: (kind: FriendlyGameFooterAction["kind"]) => void;
 }) {
+  const m = useMessages();
   if (actions.length === 0) {
     return null;
   }
@@ -28,7 +30,10 @@ export function ActionsFooter({
               accessibilityRole="button"
               accessibilityLabel={
                 action.consequence
-                  ? `${action.label}. ${action.consequence}`
+                  ? m.mobileGameDetails.actionWithConsequence(
+                      action.label,
+                      action.consequence,
+                    )
                   : action.label
               }
               accessibilityState={{

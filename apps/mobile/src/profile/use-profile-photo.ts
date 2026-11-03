@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useState } from "react";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { imageDataUri, photoErrorMessage } from "./photo";
 
 export type PhotoSource = "camera" | "library";
@@ -20,16 +21,14 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
   base64: true,
 };
 
-const CAMERA_DENIED =
-  "Allow camera access in Settings to take a photo, or choose one from your library.";
-const UNREADABLE = "That photo could not be read. Try another one.";
-
 /**
  * Picking and saving a profile photo, shared by the Profile tab and the
  * "Add a profile photo" task. `pickPhoto` resolves to `null` when the User
  * cancels; `savePhoto` writes to Clerk and reloads the user.
  */
 export function useProfilePhoto() {
+  const m = useMessages();
+  const locale = useLocale();
   const { user } = useUser();
   const [pending, setPending] = useState(false);
 
@@ -40,7 +39,7 @@ export function useProfilePhoto() {
         if (source === "camera") {
           const permission = await ImagePicker.requestCameraPermissionsAsync();
           if (!permission.granted) {
-            return { ok: false, message: CAMERA_DENIED };
+            return { ok: false, message: m.mobileHome.photo.cameraDenied };
           }
         }
         const result =
@@ -52,7 +51,7 @@ export function useProfilePhoto() {
           return { ok: true, value: null };
         }
         if (!asset.base64) {
-          return { ok: false, message: UNREADABLE };
+          return { ok: false, message: m.mobileHome.photo.unreadable };
         }
         return {
           ok: true,
@@ -62,18 +61,18 @@ export function useProfilePhoto() {
           },
         };
       } catch (error) {
-        return { ok: false, message: photoErrorMessage(error) };
+        return { ok: false, message: photoErrorMessage(error, locale) };
       } finally {
         setPending(false);
       }
     },
-    [],
+    [locale, m],
   );
 
   const savePhoto = useCallback(
     async (photo: PickedPhoto): Promise<PhotoResult<null>> => {
       if (!user) {
-        return { ok: false, message: photoErrorMessage(null) };
+        return { ok: false, message: photoErrorMessage(null, locale) };
       }
       setPending(true);
       try {
@@ -81,12 +80,12 @@ export function useProfilePhoto() {
         await user.reload();
         return { ok: true, value: null };
       } catch (error) {
-        return { ok: false, message: photoErrorMessage(error) };
+        return { ok: false, message: photoErrorMessage(error, locale) };
       } finally {
         setPending(false);
       }
     },
-    [user],
+    [locale, user],
   );
 
   return { pickPhoto, savePhoto, pending };

@@ -1,7 +1,10 @@
+"use client";
+
 import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
 import { Surface } from "~/components/ui/surface";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /** Edge to edge on phones, matching the mobile App; a card from `md` up. */
@@ -21,6 +24,7 @@ export function FootballGameHeroCard({
   lines: ReturnType<typeof footballHeroLines>;
   children?: React.ReactNode;
 }) {
+  const m = useMessages();
   const muted = tone === "ink" ? "text-dim" : "text-muted-foreground";
   return (
     <Surface
@@ -51,7 +55,9 @@ export function FootballGameHeroCard({
           ) : null}
         </h1>
       ) : (
-        <h1 className="font-expanded text-display mt-2">Time unset</h1>
+        <h1 className="font-expanded text-display mt-2">
+          {m.webTournament.footballDetails.timeUnset}
+        </h1>
       )}
       {lines.dayLine ? (
         <p className="text-lead mt-2 font-semibold">{lines.dayLine}</p>

@@ -5,6 +5,7 @@ import {
 } from "@repo/domain/home-standing";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
@@ -18,23 +19,31 @@ export function StandingCard({
   rows: readonly HomeStandingRow[];
   onNavigate: (target: HomeNavTarget) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   if (rows.length === 0) {
     return null;
   }
 
   return (
     <Card
-      title="Standing"
-      meta={standingCountLabel(rows.length)}
+      title={m.mobileHome.standing.title}
+      meta={standingCountLabel(rows.length, locale)}
       monoMeta
       flush
     >
-      {rows.map(homeStandingRowView).map((row) => (
+      {rows
+        .map((row) => homeStandingRowView(row, locale))
+        .map((row) => (
         <View key={row.groupId}>
           <Hairline />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${row.groupName}, ${row.rank} ${row.ofCount}`}
+            accessibilityLabel={m.mobileHome.standing.rowSpoken(
+              row.groupName,
+              row.rank,
+              row.ofCount,
+            )}
             onPress={() => onNavigate({ kind: "group", groupId: row.groupId })}
             style={({ pressed }) => ({
               minHeight: sizes.touchTarget + 8,

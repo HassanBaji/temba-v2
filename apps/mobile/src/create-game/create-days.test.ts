@@ -6,13 +6,14 @@ import {
   monthGrid,
   shiftMonth,
   visibleDayOptions,
+  weekdayInitials,
 } from "./create-days";
 
 const NOW = bahrainDate(2026, 9, 4, 12, 0, 0);
 
 describe("visibleDayOptions", () => {
   it("lists five days from today with weekday and date", () => {
-    expect(visibleDayOptions(NOW, "2026-10-04").cells).toEqual([
+    expect(visibleDayOptions(NOW, "2026-10-04", "en").cells).toEqual([
       { value: "2026-10-04", weekday: "Today", date: 4 },
       { value: "2026-10-05", weekday: "Mon", date: 5 },
       { value: "2026-10-06", weekday: "Tue", date: 6 },
@@ -22,29 +23,29 @@ describe("visibleDayOptions", () => {
   });
 
   it("keeps the link text when the selected day is inside the strip", () => {
-    expect(visibleDayOptions(NOW, "2026-10-07").laterLabel).toBe(null);
+    expect(visibleDayOptions(NOW, "2026-10-07", "en").laterLabel).toBe(null);
   });
 
   it("names a selected day beyond the strip", () => {
-    expect(visibleDayOptions(NOW, "2026-10-20").laterLabel).toBe(
+    expect(visibleDayOptions(NOW, "2026-10-20", "en").laterLabel).toBe(
       "Tue 20 Oct 2026",
     );
   });
 
   it("keeps the link text before a day is picked", () => {
-    expect(visibleDayOptions(NOW, "").laterLabel).toBe(null);
+    expect(visibleDayOptions(NOW, "", "en").laterLabel).toBe(null);
   });
 
   it("starts tomorrow once today has no upcoming slot", () => {
     const late = bahrainDate(2026, 9, 4, 23, 45, 0);
-    const { cells } = visibleDayOptions(late, "");
+    const { cells } = visibleDayOptions(late, "", "en");
     expect(cells[0]).toEqual({ value: "2026-10-05", weekday: "Mon", date: 5 });
   });
 });
 
 describe("monthGrid", () => {
   const leadingBlanks = (month: string) =>
-    monthGrid(month, "2026-01-01").weeks[0]?.findIndex((cell) => cell !== null);
+    monthGrid(month, "2026-01-01", "en").weeks[0]?.findIndex((cell) => cell !== null);
 
   it("places the first of the month under its weekday, Sunday first", () => {
     expect(leadingBlanks("2026-02")).toBe(0);
@@ -57,7 +58,7 @@ describe("monthGrid", () => {
   });
 
   it("pads every week to seven cells", () => {
-    const grid = monthGrid("2026-08", "2026-01-01");
+    const grid = monthGrid("2026-08", "2026-01-01", "en");
     expect(grid.weeks).toHaveLength(6);
     for (const week of grid.weeks) {
       expect(week).toHaveLength(7);
@@ -66,11 +67,11 @@ describe("monthGrid", () => {
   });
 
   it("fits a February starting on Sunday in four weeks", () => {
-    expect(monthGrid("2026-02", "2026-01-01").weeks).toHaveLength(4);
+    expect(monthGrid("2026-02", "2026-01-01", "en").weeks).toHaveLength(4);
   });
 
   it("gives a leap February its 29th", () => {
-    const grid = monthGrid("2028-02", "2026-01-01");
+    const grid = monthGrid("2028-02", "2026-01-01", "en");
     const days = grid.weeks.flat().filter((cell) => cell !== null);
     expect(days).toHaveLength(29);
     expect(days.at(-1)).toEqual({
@@ -82,7 +83,7 @@ describe("monthGrid", () => {
   });
 
   it("disables the days before the earliest day", () => {
-    const grid = monthGrid("2026-10", "2026-10-04");
+    const grid = monthGrid("2026-10", "2026-10-04", "en");
     const days = grid.weeks.flat().filter((cell) => cell !== null);
     expect(
       days.filter((cell) => cell.disabled).map((cell) => cell.date),
@@ -91,30 +92,38 @@ describe("monthGrid", () => {
   });
 
   it("disables a whole month before the earliest day", () => {
-    const days = monthGrid("2026-09", "2026-10-04")
+    const days = monthGrid("2026-09", "2026-10-04", "en")
       .weeks.flat()
       .filter((cell) => cell !== null);
     expect(days.every((cell) => cell.disabled)).toBe(true);
   });
 
   it("offers no previous month at the earliest month", () => {
-    const grid = monthGrid("2026-10", "2026-10-04");
+    const grid = monthGrid("2026-10", "2026-10-04", "en");
     expect(grid.label).toBe("October 2026");
     expect(grid.previous).toBe(null);
     expect(grid.next).toBe("2026-11");
   });
 
   it("steps back to the earliest month from a later one", () => {
-    expect(monthGrid("2026-11", "2026-10-04").previous).toBe("2026-10");
+    expect(monthGrid("2026-11", "2026-10-04", "en").previous).toBe("2026-10");
   });
 
   it("crosses the year in both directions", () => {
-    expect(monthGrid("2026-12", "2026-10-04").next).toBe("2027-01");
-    expect(monthGrid("2027-01", "2026-10-04").previous).toBe("2026-12");
+    expect(monthGrid("2026-12", "2026-10-04", "en").next).toBe("2027-01");
+    expect(monthGrid("2027-01", "2026-10-04", "en").previous).toBe("2026-12");
   });
 
   it("falls back to the earliest month for an invalid month", () => {
-    expect(monthGrid("soon", "2026-10-04").month).toBe("2026-10");
+    expect(monthGrid("soon", "2026-10-04", "en").month).toBe("2026-10");
+  });
+
+  it("reads Arabic", () => {
+    expect(monthGrid("2026-10", "2026-10-04", "ar").label).toBe("أكتوبر 2026");
+    expect(visibleDayOptions(NOW, "2026-10-04", "ar").cells[0]?.weekday).toBe(
+      "اليوم",
+    );
+    expect(weekdayInitials("ar")).toEqual(["ح", "ن", "ث", "ر", "خ", "ج", "س"]);
   });
 });
 

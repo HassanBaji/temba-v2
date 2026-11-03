@@ -1,3 +1,5 @@
+"use client";
+
 import { colors } from "@repo/design-tokens";
 import {
   padelStickerLine,
@@ -5,6 +7,8 @@ import {
   type PadelResultCard,
   type ResultCard,
 } from "@repo/domain/game-result-share";
+
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { STICKER_WIDTH } from "./scaled-canvas";
 import { Big, BibSquare, InitialsSquare, Label, Wordmark } from "./story-parts";
@@ -58,6 +62,8 @@ function StickerFoot({
 }
 
 function FootballSticker({ card }: { card: FootballResultCard }) {
+  const m = useMessages();
+  const tag = m.game.played.tag;
   const side = (
     team: FootballResultCard["win"],
     word: string,
@@ -90,7 +96,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
   return (
     <StickerFrame typeLine={card.typeLine}>
       <div className="flex items-center" style={{ gap: 28 }}>
-        {side(card.win, card.draw ? "DRAW" : "WON", true, "left")}
+        {side(card.win, card.draw ? tag.draw : tag.won, true, "left")}
         <div className="flex items-baseline" style={{ gap: 16 }}>
           <Big px={150} ratio={0.86} tracking={-0.05} expanded>
             {card.win.score}
@@ -104,7 +110,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
             </span>
           </Big>
         </div>
-        {side(card.lose, card.draw ? "DRAW" : "LOST", card.draw, "right")}
+        {side(card.lose, card.draw ? tag.draw : tag.lost, card.draw, "right")}
       </div>
       <StickerFoot whenShort={card.whenShort}>
         {card.you ? (
@@ -121,7 +127,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
                 {card.you.name}
               </Big>
               <Label px={20} className="text-dim">
-                {[`${card.you.goals} GOALS`, card.you.code]
+                {[m.webUi.shareResult.goalsTag(card.you.goals), card.you.code]
                   .filter(Boolean)
                   .join(" · ")}
               </Label>
@@ -138,6 +144,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
 }
 
 function PadelSticker({ card }: { card: PadelResultCard }) {
+  const locale = useLocale();
   const pair = (short: string, line: string, strong: boolean) => (
     <div className="flex min-w-0 flex-1 items-center" style={{ gap: 14 }}>
       <InitialsSquare
@@ -190,7 +197,7 @@ function PadelSticker({ card }: { card: PadelResultCard }) {
       </div>
       <StickerFoot whenShort={card.whenShort}>
         <Label px={20} className="text-dim min-w-0 flex-1 truncate">
-          {padelStickerLine(card)}
+          {padelStickerLine(card, locale)}
         </Label>
       </StickerFoot>
     </StickerFrame>

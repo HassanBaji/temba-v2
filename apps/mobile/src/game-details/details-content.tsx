@@ -13,8 +13,10 @@ import {
 } from "@repo/domain/friendly-game-hero";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
+import type { Locale } from "@repo/i18n/locale";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { ActionsFooter } from "./actions-footer";
@@ -58,8 +60,10 @@ export function GameDetailsContent({
   handlers: DetailsHandlers;
   organizer?: DetailsOrganizer | null;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const plan = friendlyGameDetailsPlan(game);
-  const levelCard = levelRangeRequestCard(game);
+  const levelCard = levelRangeRequestCard(game, locale);
   const { phase } = game;
   const { firstMatch } = plan;
   const live = phase && phase !== "cancelled" ? phase : null;
@@ -69,7 +73,7 @@ export function GameDetailsContent({
       {game.cancelledAt ? (
         <Surface accessibilityRole="alert">
           <Text size="title" weight="semibold">
-            This Game is cancelled
+            {m.mobileGameDetails.cancelledTitle}
           </Text>
         </Surface>
       ) : null}
@@ -78,10 +82,10 @@ export function GameDetailsContent({
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold" accessibilityRole="header">
-            This Club Group&apos;s Community is Soft-archived
+            {m.mobileGameDetails.frozen.title}
           </Text>
           <Text size="meta" tone="muted">
-            Registration, the waitlist, and invites stay closed.
+            {m.mobileGameDetails.frozen.description}
           </Text>
         </Surface>
       ) : null}
@@ -134,6 +138,7 @@ export function GameDetailsContent({
             canLeaveGame: plan.canLeaveGame,
             canReportWrongScore: game.canReportWrongScore,
             playerCount: occupiedFriendlyPositions(game.sides),
+            locale,
           })}
           pendingKind={handlers.footerPendingKind}
           onAction={handlers.onFooterAction}
@@ -143,9 +148,13 @@ export function GameDetailsContent({
   );
 }
 
-export function gameHeroModel(game: FriendlyGameDetails, now: Date) {
+export function gameHeroModel(
+  game: FriendlyGameDetails,
+  now: Date,
+  locale: Locale,
+) {
   const input = friendlyGameHeroInput(game);
-  return input ? friendlyGameHeroModel(input, now) : null;
+  return input ? friendlyGameHeroModel(input, now, locale) : null;
 }
 
 export function GameDetailsBar({

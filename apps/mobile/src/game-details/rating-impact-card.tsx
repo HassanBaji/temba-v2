@@ -2,13 +2,15 @@ import { spacing } from "@repo/design-tokens";
 import type { FriendlyGameDetailsRatingImpact } from "@repo/domain/friendly-game-details";
 import {
   ratingImpactView,
-  UNRATED_GAME_LINE,
-  UNRATED_LABEL,
+  unratedGameLine,
+  unratedLabel,
 } from "@repo/domain/game-rating-impact";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react-native";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Hairline } from "../primitives/hairline";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
@@ -25,42 +27,45 @@ export function RatingImpactCard({
   ratingImpact: FriendlyGameDetailsRatingImpact;
 }) {
   const palette = useTonePalette();
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGameDetails.rating;
   const { direction, magnitude, newLevelLabel, sentence, directionText } =
-    ratingImpactView(ratingImpact);
+    ratingImpactView(ratingImpact, locale);
   const Icon = ICONS[direction];
 
   return (
-    <Card title="Rating impact">
+    <Card title={copy.title}>
       <Hairline />
       <View style={{ padding: spacing.surface, gap: 16 }}>
         <View style={{ flexDirection: "row", gap: 24 }}>
           <View
             accessible
-            accessibilityLabel={`${directionText}. Change`}
+            accessibilityLabel={copy.changeLabel(directionText)}
             style={{ gap: 4 }}
           >
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
-              <Icon size={20} color={palette.foreground} />
+              <Icon size={20} color={palette.foreground} style={mirrorInRtl} />
               <Text size="figure" width="expanded" weight="bold">
                 {magnitude}
               </Text>
             </View>
             <Text size="meta" tone="muted">
-              Change
+              {copy.change}
             </Text>
           </View>
           <View
             accessible
-            accessibilityLabel={`New level ${newLevelLabel}`}
+            accessibilityLabel={copy.newLevelLabel(newLevelLabel)}
             style={{ gap: 4 }}
           >
             <Text size="figure" width="expanded" weight="bold">
               {newLevelLabel}
             </Text>
             <Text size="meta" tone="muted">
-              New level
+              {copy.newLevel}
             </Text>
           </View>
         </View>
@@ -71,10 +76,11 @@ export function RatingImpactCard({
 }
 
 export function UnratedCard() {
+  const locale = useLocale();
   return (
-    <Card title={UNRATED_LABEL}>
+    <Card title={unratedLabel(locale)}>
       <Text size="meta" tone="muted">
-        {UNRATED_GAME_LINE}
+        {unratedGameLine(locale)}
       </Text>
     </Card>
   );

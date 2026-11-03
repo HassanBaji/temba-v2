@@ -3,31 +3,25 @@ import {
   createFlowDayOptions,
   dayChipValue,
 } from "@repo/domain/create-game-flow";
+import { formatMonth } from "@repo/domain/format-game-start";
 import { formatDayLabel } from "@repo/domain/game-window";
 import { zonedParts } from "@repo/domain/product-timezone";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { gridRows } from "./grid-rows";
 
 export const DAY_STRIP_COUNT = 5;
 
-export const WEEKDAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"] as const;
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
+export const WEEK_LENGTH = 7;
 
 const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
+
+/** Sunday first, matching the month grid's columns. */
+export function weekdayInitials(locale: Locale): readonly string[] {
+  const m = messagesFor(locale).mobileCreateGame.day.weekdayInitials;
+  return [m.sun, m.mon, m.tue, m.wed, m.thu, m.fri, m.sat];
+}
 
 export type DayStripCell = {
   value: string;
@@ -40,16 +34,21 @@ export type VisibleDays = {
   laterLabel: string | null;
 };
 
-export function visibleDayOptions(now: Date, selectedDay: string): VisibleDays {
+export function visibleDayOptions(
+  now: Date,
+  selectedDay: string,
+  locale: Locale,
+): VisibleDays {
   const cells = createFlowDayOptions(now, DAY_STRIP_COUNT).map((option) => ({
     value: dayChipValue(option),
-    weekday: createDayChipLabel(option, now),
+    weekday: createDayChipLabel(option, now, locale),
     date: zonedParts(option).day,
   }));
   const inStrip = cells.some((cell) => cell.value === selectedDay);
   return {
     cells,
-    laterLabel: inStrip || !selectedDay ? null : formatDayLabel(selectedDay),
+    laterLabel:
+      inStrip || !selectedDay ? null : formatDayLabel(selectedDay, locale),
   };
 }
 
@@ -102,15 +101,18 @@ export function dateSheetStartMonth(selectedDay: string, earliestDay: string) {
     : monthOfDay(earliestDay);
 }
 
-export function monthGrid(month: string, earliestDay: string): MonthGrid {
+export function monthGrid(
+  month: string,
+  earliestDay: string,
+  locale: Locale,
+): MonthGrid {
   const parts = monthParts(month) ?? monthParts(monthOfDay(earliestDay));
   if (!parts) {
     return { month, label: month, weeks: [], previous: null, next: month };
   }
   const key = `${parts.year}-${pad(parts.month)}`;
-  const leading = new Date(
-    Date.UTC(parts.year, parts.month - 1, 1),
-  ).getUTCDay();
+  const first = new Date(Date.UTC(parts.year, parts.month - 1, 1));
+  const leading = first.getUTCDay();
   const length = new Date(Date.UTC(parts.year, parts.month, 0)).getUTCDate();
   const cells: (MonthGridCell | null)[] = [
     ...Array.from({ length: leading }, () => null),
@@ -121,8 +123,11 @@ export function monthGrid(month: string, earliestDay: string): MonthGrid {
   ];
   return {
     month: key,
-    label: `${MONTH_NAMES[parts.month - 1]} ${parts.year}`,
-    weeks: gridRows(cells, WEEKDAY_INITIALS.length),
+    label: messagesFor(locale).mobileCreateGame.day.monthYear(
+      formatMonth(first, "long", locale),
+      parts.year,
+    ),
+    weeks: gridRows(cells, WEEK_LENGTH),
     previous: key > monthOfDay(earliestDay) ? shiftMonth(key, -1) : null,
     next: shiftMonth(key, 1),
   };

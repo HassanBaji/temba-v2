@@ -7,6 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 
+import { type Locale } from "@repo/i18n/locale";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -36,6 +37,7 @@ export type TRPCContextHost = {
   getPublicMetadata: () => Promise<PublicMetadata | undefined>;
   headers: Headers;
   webOrigin: string;
+  locale: Locale;
 };
 
 export const createTRPCContext = (host: TRPCContextHost) => ({ ...host });

@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import {
@@ -35,6 +36,8 @@ const FIELD_IDS = {
 };
 
 export default function NewVenuePage() {
+  const m = useMessages();
+  const v = m.webDashboard.venues;
   const router = useRouter();
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
@@ -46,7 +49,7 @@ export default function NewVenuePage() {
 
   const createVenue = api.venues.create.useMutation({
     onSuccess: async (venue) => {
-      toast.success("Venue created");
+      toast.success(v.new.createdToast);
       await utils.venues.list.invalidate();
       router.push(`/dashboard/venues/${venue.id}`);
     },
@@ -74,8 +77,8 @@ export default function NewVenuePage() {
 
   return (
     <DashboardShell
-      title="Create Venue"
-      description="A physical site starts with no Courts. Name, city, and country are required."
+      title={v.createAction}
+      description={v.new.description}
     >
       <Card variant="outlined" className="w-full">
         <form onSubmit={onSubmit} className="space-y-6">
@@ -85,7 +88,7 @@ export default function NewVenuePage() {
           />
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="venue-name">Name</FieldLabel>
+              <FieldLabel htmlFor="venue-name">{v.new.name}</FieldLabel>
               <Input
                 id="venue-name"
                 value={name}
@@ -107,7 +110,7 @@ export default function NewVenuePage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="venue-city">City</FieldLabel>
+              <FieldLabel htmlFor="venue-city">{v.new.city}</FieldLabel>
               <Input
                 id="venue-city"
                 value={city}
@@ -129,7 +132,7 @@ export default function NewVenuePage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="venue-country">Country</FieldLabel>
+              <FieldLabel htmlFor="venue-country">{v.new.country}</FieldLabel>
               <Input
                 id="venue-country"
                 value={country}
@@ -151,7 +154,7 @@ export default function NewVenuePage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="venue-latitude">Latitude</FieldLabel>
+              <FieldLabel htmlFor="venue-latitude">{v.new.latitude}</FieldLabel>
               <Input
                 id="venue-latitude"
                 type="number"
@@ -170,7 +173,7 @@ export default function NewVenuePage() {
                 }
               />
               <FieldDescription id="venue-latitude-help">
-                Optional. Between −90 and 90.
+                {v.new.latitudeHelp}
               </FieldDescription>
               <FieldError id="venue-latitude-error">
                 {fieldErrorMessage(error, "latitude")}
@@ -178,7 +181,7 @@ export default function NewVenuePage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="venue-longitude">Longitude</FieldLabel>
+              <FieldLabel htmlFor="venue-longitude">{v.new.longitude}</FieldLabel>
               <Input
                 id="venue-longitude"
                 type="number"
@@ -197,7 +200,7 @@ export default function NewVenuePage() {
                 }
               />
               <FieldDescription id="venue-longitude-help">
-                Optional. Between −180 and 180.
+                {v.new.longitudeHelp}
               </FieldDescription>
               <FieldError id="venue-longitude-error">
                 {fieldErrorMessage(error, "longitude")}
@@ -207,10 +210,10 @@ export default function NewVenuePage() {
 
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={createVenue.isPending}>
-              {createVenue.isPending ? "Creating…" : "Create Venue"}
+              {createVenue.isPending ? m.webDashboard.creating : v.createAction}
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard/venues">Cancel</Link>
+              <Link href="/dashboard/venues">{m.common.cancel}</Link>
             </Button>
           </div>
         </form>

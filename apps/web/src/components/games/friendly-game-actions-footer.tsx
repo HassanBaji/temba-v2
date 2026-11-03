@@ -1,6 +1,7 @@
 "use client";
 
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -104,12 +105,14 @@ export function FriendlyGameActionsFooter({
   onReportWrongScore: () => void;
   onLeaveGame: () => void;
 }) {
+  const locale = useLocale();
   const actions = friendlyGameFooterActions({
     phase,
     isOrganizer,
     canLeaveGame,
     canReportWrongScore,
     playerCount,
+    locale,
   });
 
   if (actions.length === 0) {

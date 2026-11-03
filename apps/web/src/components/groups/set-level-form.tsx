@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
 
 import { LevelSlider } from "~/components/groups/level-slider";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { LevelCell } from "~/components/temba/level-cell";
 import { Button } from "~/components/ui/button";
@@ -49,10 +50,6 @@ function currentTenthsOf(member: SetLevelMember) {
     : DEFAULT_CURRENT_TENTHS;
 }
 
-function matchCountLabel(count: number) {
-  return `${count} Rated ${count === 1 ? "Match" : "Matches"}`;
-}
-
 export function SetLevelMemberSummary({
   member,
   profileHref,
@@ -60,6 +57,8 @@ export function SetLevelMemberSummary({
   member: SetLevelMember;
   profileHref?: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const override = member.levelOverride;
 
   return (
@@ -68,7 +67,7 @@ export function SetLevelMemberSummary({
         <div className="min-w-0">
           <h2 className="text-lead break-words font-semibold">{member.name}</h2>
           <p className="text-meta text-muted-foreground">
-            {matchCountLabel(member.ratedMatchCount)}
+            {m.webGroup.setLevel.ratedMatches(member.ratedMatchCount)}
           </p>
         </div>
         <LevelCell
@@ -80,10 +79,12 @@ export function SetLevelMemberSummary({
       </div>
       {override ? (
         <p className="text-meta border-rule border-t pt-3">
-          <span className="text-muted-foreground">Latest Level set: </span>
-          {levelOverrideCaption(override)}
+          <span className="text-muted-foreground">
+            {m.webGroup.setLevel.latestSet}
+          </span>
+          {levelOverrideCaption({ ...override, locale })}
           {override.reason
-            ? `. ${levelOverrideReasonLabel(override.reason)}`
+            ? `. ${levelOverrideReasonLabel(override.reason, locale)}`
             : null}
         </p>
       ) : null}
@@ -93,7 +94,7 @@ export function SetLevelMemberSummary({
           variant="outline"
           className="min-h-11 w-full font-semibold"
         >
-          <Link href={profileHref}>View profile</Link>
+          <Link href={profileHref}>{m.webGroup.viewProfile}</Link>
         </Button>
       ) : null}
     </section>
@@ -149,6 +150,9 @@ export function SetLevelFields({
     reason: LevelOverrideReason | undefined;
   }) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webGroup.setLevel;
   const currentTenths = currentTenthsOf(member);
   const [tenths, setTenths] = React.useState(currentTenths);
   const [reason, setReason] = React.useState<LevelOverrideReason | null>(null);
@@ -157,8 +161,8 @@ export function SetLevelFields({
   const alreadyConfirmed = member.level !== null && !member.levelProvisional;
   const unchanged = alreadyConfirmed && tenths === currentTenths;
   const wasLabel = member.level
-    ? `was ${levelSliderLabel(currentTenths)}`
-    : "no Level yet";
+    ? copy.was(levelSliderLabel(currentTenths))
+    : copy.noLevelYet;
 
   function step(delta: number) {
     setTenths((value) => clampLevelTenths(value + delta));
@@ -168,7 +172,7 @@ export function SetLevelFields({
     <div className="flex flex-col gap-5">
       <Surface tone="ink" radius="card" className="flex flex-col gap-3 p-5">
         <div className="flex items-baseline justify-between">
-          <p className="text-meta font-semibold">New Level</p>
+          <p className="text-meta font-semibold">{copy.newLevel}</p>
           <p className="text-meta opacity-70">{wasLabel}</p>
         </div>
         <p
@@ -184,11 +188,11 @@ export function SetLevelFields({
         <div className="text-meta flex justify-between">
           <span>
             {readout.toNext
-              ? `${readout.toNext.distanceLabel} to ${readout.toNext.label}`
-              : "Top of the scale"}
+              ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
+              : copy.topOfScale}
           </span>
           <span>
-            {readout.percentThroughRung}% through {readout.rung.label}
+            {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
           </span>
         </div>
         <div
@@ -220,7 +224,7 @@ export function SetLevelFields({
           type="button"
           variant="outline"
           className="min-h-11 min-w-11"
-          aria-label="Decrease Level by 0.1"
+          aria-label={copy.decrease}
           disabled={tenths <= 0}
           onClick={() => step(-1)}
         >
@@ -233,7 +237,7 @@ export function SetLevelFields({
           type="button"
           variant="outline"
           className="min-h-11 min-w-11"
-          aria-label="Increase Level by 0.1"
+          aria-label={copy.increase}
           disabled={tenths >= 70}
           onClick={() => step(1)}
         >
@@ -246,13 +250,13 @@ export function SetLevelFields({
           disabled={tenths === currentTenths}
           onClick={() => setTenths(currentTenths)}
         >
-          Reset
+          {copy.reset}
         </Button>
       </div>
 
       <div className="space-y-2">
         <p id={REASON_LABEL_ID} className="text-body font-semibold">
-          Reason
+          {copy.reason}
         </p>
         <RovingRadioGroup
           aria-labelledby={REASON_LABEL_ID}
@@ -266,7 +270,7 @@ export function SetLevelFields({
               disabled={pending}
               onClick={() => setReason(reason === option ? null : option)}
             >
-              {levelOverrideReasonLabel(option)}
+              {levelOverrideReasonLabel(option, locale)}
             </ChoiceChip>
           ))}
         </RovingRadioGroup>
@@ -277,10 +281,9 @@ export function SetLevelFields({
       />
 
       <p className="text-body">
-        A Level you set counts as confirmed. Rated Matches keep moving it from
-        here.
+        {copy.confirmedNote}
         {member.levelProvisional
-          ? ` ${firstName(member.name)} will no longer be Provisional, and setting again will not change that.`
+          ? ` ${copy.provisionalNote(firstName(member.name))}`
           : null}
       </p>
 
@@ -293,7 +296,7 @@ export function SetLevelFields({
           onSubmit({ levelTenths: tenths, reason: reason ?? undefined })
         }
       >
-        Set to {levelSliderLabel(tenths)}
+        {copy.setTo(levelSliderLabel(tenths))}
       </Button>
     </div>
   );

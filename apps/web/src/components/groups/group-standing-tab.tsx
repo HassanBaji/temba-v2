@@ -7,6 +7,7 @@ import { Lock, Plus, UserRoundPlus, Users } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
@@ -97,7 +98,8 @@ function PlayerCell({
   linkToPlayers: boolean;
   muted?: boolean;
 }) {
-  const name = entry.name ?? "Member";
+  const m = useMessages();
+  const name = entry.name ?? m.community.memberFallback;
   const label = (
     <span
       className={cn(
@@ -260,6 +262,9 @@ function StandingTable({
   notPlayedYet: boolean;
   footer: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const columns = m.webGroup.standing;
   const ranked = rows.filter((row) => row.ranked);
   const unranked = rows.filter((row) => !row.ranked);
   const head = cn(HEAD_CELL, "text-eyebrow text-muted-foreground");
@@ -269,33 +274,45 @@ function StandingTable({
         <thead className="bg-wash">
           <tr>
             <th scope="col" className={cn(COL_POSITION, head)}>
-              <span className="sr-only">Position</span>
+              <span className="sr-only">{columns.position}</span>
             </th>
             <th scope="col" className={cn(COL_PLAYER, head)}>
-              Player
-            </th>
-            <th scope="col" title="Played" className={cn(COL_COUNT, head)}>
-              P
-            </th>
-            <th scope="col" title="Won" className={cn(COL_COUNT, head)}>
-              W
-            </th>
-            <th scope="col" title="Drawn" className={cn(COL_COUNT, head)}>
-              D
-            </th>
-            <th scope="col" title="Lost" className={cn(COL_COUNT, head)}>
-              L
+              {columns.player}
             </th>
             <th
               scope="col"
-              title="Points"
+              title={columns.played}
+              className={cn(COL_COUNT, head)}
+            >
+              {columns.playedAbbrev}
+            </th>
+            <th scope="col" title={columns.won} className={cn(COL_COUNT, head)}>
+              {columns.wonAbbrev}
+            </th>
+            <th
+              scope="col"
+              title={columns.drawn}
+              className={cn(COL_COUNT, head)}
+            >
+              {columns.drawnAbbrev}
+            </th>
+            <th
+              scope="col"
+              title={columns.lost}
+              className={cn(COL_COUNT, head)}
+            >
+              {columns.lostAbbrev}
+            </th>
+            <th
+              scope="col"
+              title={columns.points}
               className={cn(
                 COL_POINTS,
                 HEAD_CELL,
                 "text-eyebrow text-ink font-semibold",
               )}
             >
-              PTS
+              {columns.pointsAbbrev}
             </th>
           </tr>
         </thead>
@@ -325,8 +342,10 @@ function StandingTable({
                 className="text-eyebrow text-muted-foreground px-4 py-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="uppercase tracking-[0.06em]">Unranked</span>
-                  <span>{unrankedNote()}</span>
+                  <span className="uppercase tracking-[0.06em]">
+                    {columns.unranked}
+                  </span>
+                  <span>{unrankedNote(locale)}</span>
                 </div>
               </td>
             </tr>
@@ -357,13 +376,15 @@ function Podium({
   rows: StandingEntry[];
   season: StandingSeason;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const top = rows.filter((row) => row.ranked).slice(0, 3);
   if (top.length === 0) {
     return null;
   }
   return (
     <section
-      aria-label="Final top three"
+      aria-label={m.webGroup.standing.finalTopThree}
       className="border-ink rounded-card overflow-hidden border-[1.5px]"
     >
       <ol>
@@ -385,7 +406,7 @@ function Podium({
                   entry.isViewer && "font-semibold",
                 )}
               >
-                {entry.name ?? "Member"}
+                {entry.name ?? m.community.memberFallback}
               </span>
               {entry.isViewer ? <YouTag /> : null}
             </span>
@@ -395,14 +416,14 @@ function Podium({
             <span className="font-expanded text-[18px] tabular-nums">
               {entry.points}
               <span className="text-eyebrow text-muted-foreground ms-0.5 font-normal tracking-normal">
-                pts
+                {m.webGroup.standing.ptsSuffix}
               </span>
             </span>
           </li>
         ))}
       </ol>
       <p className="border-rule text-eyebrow text-muted-foreground flex items-center justify-between border-t px-4 py-2.5">
-        <span>{seasonLockedLine(season)}</span>
+        <span>{seasonLockedLine(season, locale)}</span>
         <Lock aria-hidden="true" className="size-3.5" />
       </p>
     </section>
@@ -418,6 +439,8 @@ function SeasonHeader({
   gamesCounted: number;
   now: Date;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const title = (
     <h2 className="font-expanded text-display uppercase leading-none tracking-[-0.03em]">
       {season.name}
@@ -425,7 +448,7 @@ function SeasonHeader({
   );
   const range = (
     <span className="text-meta text-muted-foreground shrink-0 tabular-nums">
-      {formatSeasonRange(season)}
+      {formatSeasonRange(season, locale)}
     </span>
   );
 
@@ -435,10 +458,10 @@ function SeasonHeader({
         <div className="flex items-end justify-between gap-3">
           {title}
           <span className="text-meta text-paper/70 shrink-0 tabular-nums">
-            {formatSeasonRange(season)}
+            {formatSeasonRange(season, locale)}
           </span>
         </div>
-        <p className="text-body mt-2">{seasonStartsLine(season)}</p>
+        <p className="text-body mt-2">{seasonStartsLine(season, locale)}</p>
       </Surface>
     );
   }
@@ -452,10 +475,10 @@ function SeasonHeader({
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
           <span className="border-ink text-eyebrow rounded-[4px] border px-1.5 py-px font-semibold uppercase tracking-[0.06em]">
-            Final
+            {m.webGroup.standing.final}
           </span>
           <span className="text-eyebrow text-muted-foreground tabular-nums">
-            {seasonGamesCountedLine(gamesCounted)}
+            {seasonGamesCountedLine(gamesCounted, locale)}
           </span>
         </div>
       </div>
@@ -470,7 +493,7 @@ function SeasonHeader({
       </div>
       <div
         role="progressbar"
-        aria-label="Season progress"
+        aria-label={m.webGroup.standing.seasonProgress}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(seasonProgress(season, now) * 100)}
@@ -482,8 +505,8 @@ function SeasonHeader({
         />
       </div>
       <div className="text-eyebrow text-muted-foreground mt-2 flex items-center justify-between tabular-nums">
-        <span>{seasonProgressLine(season, now)}</span>
-        <span>{seasonGamesCountedLine(gamesCounted)}</span>
+        <span>{seasonProgressLine(season, now, locale)}</span>
+        <span>{seasonGamesCountedLine(gamesCounted, locale)}</span>
       </div>
     </div>
   );
@@ -498,13 +521,15 @@ function LensChips({
   lensId: string | null;
   onPick: (seasonId: string | null) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div
       role="tablist"
-      aria-label="Season"
+      aria-label={m.webGroup.standing.seasonLens}
       className="border-rule -mx-1 flex gap-1 overflow-x-auto border-b px-1"
     >
-      {seasonLensChips(seasons).map((chip) => {
+      {seasonLensChips(seasons, locale).map((chip) => {
         const selected = chip.seasonId === lensId;
         return (
           <button
@@ -546,6 +571,8 @@ function StandingPreview({
   canInvite: boolean;
   onInvite: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className={cardFrame}>
       <div
@@ -555,12 +582,14 @@ function StandingPreview({
         )}
       >
         <span>#</span>
-        <span>Player</span>
-        <span>PTS</span>
+        <span>{m.webGroup.standing.player}</span>
+        <span>{m.webGroup.standing.pointsAbbrev}</span>
       </div>
       <ol>
         {leaderboard.map((entry, index) => {
-          const name = entry.isViewer ? "You" : (entry.name ?? "Member");
+          const name = entry.isViewer
+            ? m.common.you
+            : (entry.name ?? m.community.memberFallback);
           return (
             <li
               key={entry.userId}
@@ -574,7 +603,7 @@ function StandingPreview({
               <span className="font-expanded text-lead">{index + 1}</span>
               <span className="flex min-w-0 items-center gap-2.5">
                 <UserAvatar
-                  name={entry.name ?? "Member"}
+                  name={entry.name ?? m.community.memberFallback}
                   image={entry.image}
                   className={cn(
                     "size-7 rounded-lg [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",
@@ -627,7 +656,9 @@ function StandingPreview({
                 aria-hidden="true"
                 className="hatch size-7 shrink-0 rounded-lg"
               />
-              <span className="text-body text-muted-foreground">Open seat</span>
+              <span className="text-body text-muted-foreground">
+                {m.webGroup.standing.openSeat}
+              </span>
             </span>
             {canInvite ? (
               <Button
@@ -635,11 +666,11 @@ function StandingPreview({
                 variant="outline"
                 size="sm"
                 onClick={onInvite}
-                aria-label="Invite players"
+                aria-label={m.invite.door.invitePlayers}
                 className="font-semibold"
               >
                 <Plus aria-hidden="true" />
-                Invite
+                {m.invite.door.inviteButton}
               </Button>
             ) : (
               <span />
@@ -648,7 +679,7 @@ function StandingPreview({
         ))}
       </ol>
       <p className="border-rule text-meta text-muted-foreground border-t px-[18px] py-3.5">
-        {groupStandingEmptyFooter(leaderboard.length)}
+        {groupStandingEmptyFooter(leaderboard.length, locale)}
       </p>
     </div>
   );
@@ -663,6 +694,7 @@ function StatPair({
   awaitingScoreCount: number;
   muted?: boolean;
 }) {
+  const m = useMessages();
   const value = cn(
     "font-expanded text-[26px] tabular-nums leading-8",
     muted && "text-muted-foreground/40",
@@ -672,13 +704,13 @@ function StatPair({
       <div className="border-rule min-w-0 flex-1 border-e px-5 py-[18px]">
         <p className={value}>{totalGamesPlayed}</p>
         <p className="text-eyebrow text-muted-foreground mt-0.5">
-          games played
+          {m.webGroup.standing.gamesPlayed}
         </p>
       </div>
       <div className="min-w-0 flex-1 px-5 py-[18px]">
         <p className={value}>{awaitingScoreCount}</p>
         <p className="text-eyebrow text-muted-foreground mt-0.5">
-          awaiting score
+          {m.webGroup.standing.awaitingScore}
         </p>
       </div>
     </div>
@@ -702,10 +734,13 @@ function ManageSeasonsLink({
   groupId: string;
   hasSeasons: boolean;
 }) {
+  const m = useMessages();
   return (
     <Button asChild variant="outline" className="w-full font-semibold">
       <Link href={groupSeasonsHref(groupId)}>
-        {hasSeasons ? "Manage seasons" : "Set up seasons"}
+        {hasSeasons
+          ? m.webGroup.standing.manageSeasons
+          : m.webGroup.standing.setUpSeasons}
       </Link>
     </Button>
   );
@@ -747,6 +782,8 @@ export function GroupStandingTab({
   canManageSeasons?: boolean;
   now?: Date;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [lensId, setLensId] = useState<string | null>(defaultSeasonId);
   const lensIsDefault = lensId === defaultSeasonId;
   const lens = api.groups.seasonStanding.useQuery(
@@ -758,7 +795,7 @@ export function GroupStandingTab({
     : (lens.data?.rows ?? []);
   const counted = lensIsDefault ? gamesCounted : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
-  const footer = standingRulesLine(standingDiffUnit(sport));
+  const footer = standingRulesLine(standingDiffUnit(sport), locale);
 
   const state = groupStandingState({
     isMember,
@@ -769,8 +806,8 @@ export function GroupStandingTab({
     return (
       <EmptyState
         icon={Users}
-        title="Join to see your Standing"
-        description="Join this Group to get a Standing among its members."
+        title={m.webGroup.standing.joinTitle}
+        description={m.webGroup.standing.joinDescription}
       />
     );
   }
@@ -800,7 +837,7 @@ export function GroupStandingTab({
                 onClick={invite}
               >
                 <UserRoundPlus aria-hidden="true" />
-                Invite players
+                {m.invite.door.invitePlayers}
               </Button>
             ) : null}
             {showCreateFirstGame ? (
@@ -811,7 +848,7 @@ export function GroupStandingTab({
                 className="text-body w-full font-semibold"
               >
                 <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-                  Create the first Game
+                  {m.webGroup.games.createFirst}
                 </Link>
               </Button>
             ) : null}
@@ -834,7 +871,7 @@ export function GroupStandingTab({
     table = (
       <EmptyState
         icon={Users}
-        title="Standing could not be loaded"
+        title={m.webGroup.standing.errorTitle}
         description={lens.error.message}
       />
     );
@@ -842,12 +879,12 @@ export function GroupStandingTab({
     table = (
       <EmptyState
         icon={Users}
-        title="Standings appear after the first result"
+        title={m.webGroup.standing.afterFirstResultTitle}
         action={
           showCreateFirstGame ? (
             <Button asChild variant="outline">
               <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-                Create the first Game
+                {m.webGroup.games.createFirst}
               </Link>
             </Button>
           ) : null

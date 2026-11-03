@@ -2,13 +2,6 @@ import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { teamLinkCommunityPicker } from "@repo/domain/team-link-community-picker";
 import {
-  TEAM_DISSOLVED_TOAST,
-  TEAM_ERROR_TITLE,
-  TEAM_FORBIDDEN_COPY,
-  TEAM_LEFT_TOAST,
-  TEAM_LINK_REQUESTED_TOAST,
-  TEAM_NOT_FOUND_COPY,
-  TEAM_UNLINKED_TOAST,
   teamDissolveConfirm,
   teamHomeView,
   teamLeaveConfirm,
@@ -19,6 +12,7 @@ import { useCallback, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { Notice } from "../groups/notice";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -33,6 +27,8 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 export function TeamHomeScreen({ teamId }: { teamId: string }) {
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -58,7 +54,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
 
   const requestLink = api.teams.requestLink.useMutation({
     onSuccess: async () => {
-      toast.show(TEAM_LINK_REQUESTED_TOAST);
+      toast.show(m.team.toast.linkRequested);
       await utils.teams.byId.invalidate({ id: teamId });
       setLinkOpen(false);
       setSelectedCommunityId(null);
@@ -71,7 +67,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
 
   const unlink = api.teams.unlink.useMutation({
     onSuccess: async (result) => {
-      toast.show(TEAM_UNLINKED_TOAST);
+      toast.show(m.team.toast.unlinked);
       await Promise.all([
         utils.teams.byId.invalidate({ id: teamId }),
         utils.teams.mine.invalidate(),
@@ -90,7 +86,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
-      toast.show(TEAM_DISSOLVED_TOAST);
+      toast.show(m.team.toast.dissolved);
       await utils.teams.mine.invalidate();
       router.replace(TEAMS_PATH);
     },
@@ -103,7 +99,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
 
   const leave = api.teams.leave.useMutation({
     onSuccess: async () => {
-      toast.show(TEAM_LEFT_TOAST);
+      toast.show(m.team.toast.left);
       await utils.teams.mine.invalidate();
       router.replace(TEAMS_PATH);
     },
@@ -123,14 +119,14 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     }
   }, [team]);
 
-  const view = data ? teamHomeView(data) : null;
+  const view = data ? teamHomeView(data, locale) : null;
   const header = <ScreenHeader nav="back" fallback={TEAMS_PATH} />;
 
   if (isNotFoundError(team.error)) {
     return (
       <Screen>
         {header}
-        <Notice {...TEAM_NOT_FOUND_COPY} />
+        <Notice {...m.team.notFound} />
       </Screen>
     );
   }
@@ -139,7 +135,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     return (
       <Screen>
         {header}
-        <Notice {...TEAM_FORBIDDEN_COPY} />
+        <Notice {...m.team.forbidden} />
       </Screen>
     );
   }
@@ -150,7 +146,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         {header}
         <Notice
           alert
-          title={TEAM_ERROR_TITLE}
+          title={m.team.teamErrorTitle}
           description={team.error.message}
           onRetry={() => void team.refetch()}
         />
@@ -202,21 +198,21 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         onUnlink={() => {
           setActionError(null);
           setConfirm({
-            ...teamUnlinkConfirm(view.title),
+            ...teamUnlinkConfirm(view.title, locale),
             onConfirm: () => unlink.mutate({ teamId }),
           });
         }}
         onDissolve={() => {
           setActionError(null);
           setConfirm({
-            ...teamDissolveConfirm(view.title),
+            ...teamDissolveConfirm(view.title, locale),
             onConfirm: () => dissolve.mutate({ teamId }),
           });
         }}
         onLeave={() => {
           setActionError(null);
           setConfirm({
-            ...teamLeaveConfirm(view.title),
+            ...teamLeaveConfirm(view.title, locale),
             onConfirm: () => leave.mutate({ teamId }),
           });
         }}

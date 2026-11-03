@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { z } from "zod";
 
 import { protectedProcedure } from "#src/trpc";
@@ -30,6 +31,7 @@ export async function moveSeat(
     userId: string;
     sideIndex: number;
     position: SeatPosition;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
@@ -43,7 +45,7 @@ export async function moveSeat(
     });
   }
 
-  assertGameHasSeats(game);
+  assertGameHasSeats(game, args.locale ?? DEFAULT_LOCALE);
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -81,5 +83,6 @@ export const moveSeatProcedure = protectedProcedure
       userId: appUser.id,
       sideIndex: input.sideIndex,
       position: input.position,
+      locale: ctx.locale,
     });
   });

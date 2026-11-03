@@ -14,6 +14,8 @@ import {
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { sportQuery } from "./book-sport";
 
@@ -88,13 +90,21 @@ export function directionsUrl(venue: DirectionsVenue, os: string): string {
     : `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
 }
 
-export function bookingShareMessage(booking: {
-  startsAt: Date;
-  endsAt: Date;
-  venue: { name: string };
-  court: { name: string };
-}): string {
-  return `${booking.court.name} at ${booking.venue.name}, ${formatGameStart(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
+export function bookingShareMessage(
+  booking: {
+    startsAt: Date;
+    endsAt: Date;
+    venue: { name: string };
+    court: { name: string };
+  },
+  locale: Locale,
+): string {
+  return messagesFor(locale).mobileBooking.shareMessage(
+    booking.court.name,
+    booking.venue.name,
+    formatGameStart(booking.startsAt, locale),
+    formatGameClock(booking.endsAt, locale),
+  );
 }
 
 /** A short reference a Customer can read out at the desk. */
@@ -110,25 +120,44 @@ export function minutesBetween(startsAt: Date, endsAt: Date): number {
   return Math.round((endsAt.getTime() - startsAt.getTime()) / MS_PER_MINUTE);
 }
 
-function dayLine(startsAt: Date, now: Date): string {
+function dayLine(startsAt: Date, now: Date, locale: Locale): string {
+  const m = messagesFor(locale).mobileBooking;
   const days = productDaysBetween(now, startsAt);
-  const date = formatDayMonth(startsAt, { weekday: "short" });
+  const date = formatDayMonth(startsAt, locale, { weekday: "short" });
   return days === 0
-    ? `Today, ${date}`
+    ? m.todayDate(date)
     : days === 1
-      ? `Tomorrow, ${date}`
+      ? m.tomorrowDate(date)
       : date;
 }
 
 /** "Today, Thu 15 Oct / 90 min". */
-export function whenLine(startsAt: Date, minutes: number, now: Date): string {
-  return `${dayLine(startsAt, now)} / ${minutes} min`;
+export function whenLine(
+  startsAt: Date,
+  minutes: number,
+  now: Date,
+  locale: Locale,
+): string {
+  return messagesFor(locale).mobileBooking.whenLine(
+    dayLine(startsAt, now, locale),
+    minutes,
+  );
 }
 
 /** "Today, Thu 15 Oct / 7:30 PM to 8:30 PM / 60 min". */
-export function slotLine(startsAt: Date, minutes: number, now: Date): string {
+export function slotLine(
+  startsAt: Date,
+  minutes: number,
+  now: Date,
+  locale: Locale,
+): string {
   const endsAt = endsAfter(startsAt, minutes);
-  return `${dayLine(startsAt, now)} / ${formatGameClock(startsAt)} to ${formatGameClock(endsAt)} / ${minutes} min`;
+  return messagesFor(locale).mobileBooking.slotLine(
+    dayLine(startsAt, now, locale),
+    formatGameClock(startsAt, locale),
+    formatGameClock(endsAt, locale),
+    minutes,
+  );
 }
 
 /** "Tonight / Karbabad Courts / Court 2". */
@@ -137,8 +166,13 @@ export function placeLine(
   venueName: string,
   courtName: string,
   now: Date,
+  locale: Locale,
 ): string {
-  return [relativeDay(startsAt, now), venueName, courtName].join(" / ");
+  return messagesFor(locale).mobileBooking.placeLine(
+    relativeDay(startsAt, now, locale),
+    venueName,
+    courtName,
+  );
 }
 
 function isEvening(startsAt: Date) {
@@ -146,68 +180,84 @@ function isEvening(startsAt: Date) {
 }
 
 /** "Tonight", "Today", "Tomorrow" or "Tue 20 Oct". */
-export function relativeDay(startsAt: Date, now: Date): string {
+export function relativeDay(startsAt: Date, now: Date, locale: Locale): string {
+  const m = messagesFor(locale);
   const days = productDaysBetween(now, startsAt);
   if (days === 0) {
-    return isEvening(startsAt) ? "Tonight" : "Today";
+    return isEvening(startsAt) ? m.dates.tonight : m.common.today;
   }
   if (days === 1) {
-    return "Tomorrow";
+    return m.common.tomorrow;
   }
-  return formatDayMonth(startsAt, { weekday: "short" });
+  return formatDayMonth(startsAt, locale, { weekday: "short" });
 }
 
-export function untilLabel(endsAt: Date): string {
-  return `to ${formatGameClock(endsAt)}`;
+export function untilLabel(endsAt: Date, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.untilClock(
+    formatGameClock(endsAt, locale),
+  );
 }
 
 export function bookedHeadline(
   courtName: string,
   startsAt: Date,
   now: Date,
+  locale: Locale,
 ): string {
+  const m = messagesFor(locale).mobileBooking.bookedHeadline;
   const days = productDaysBetween(now, startsAt);
   if (days === 0) {
-    return `${courtName} is yours ${isEvening(startsAt) ? "tonight" : "today"}.`;
+    return isEvening(startsAt) ? m.tonight(courtName) : m.today(courtName);
   }
   if (days === 1) {
-    return `${courtName} is yours tomorrow.`;
+    return m.tomorrow(courtName);
   }
-  return `${courtName} is yours on ${formatWeekday(startsAt, "long")}.`;
+  return m.onDay(courtName, formatWeekday(startsAt, "long", locale));
 }
 
 export function payButtonLabel(
   method: BookingPaymentMethod,
   priceFils: number,
+  locale: Locale,
 ): string {
-  const price = formatBookingPriceFils(priceFils);
-  return method === "at_venue"
-    ? `Reserve, pay ${price} at venue`
-    : `Pay ${price}`;
+  const m = messagesFor(locale).mobileBooking.payButton;
+  const price = formatBookingPriceFils(priceFils, locale);
+  return method === "at_venue" ? m.reserveAtVenue(price) : m.pay(price);
 }
 
-const PAYMENT_METHOD_COPY: Record<
-  BookingPaymentMethod,
-  { title: string; detail: string }
-> = {
-  card: { title: "Card", detail: "Visa, Mastercard or Amex" },
-  benefit: { title: "Benefit", detail: "Bahraini debit card and PIN" },
-  benefitpay: {
-    title: "BenefitPay",
-    detail: "You will be directed to the BenefitPay app to complete payment",
-  },
-  apple_pay: { title: "Apple Pay", detail: "Stays in the app" },
-  at_venue: {
-    title: "Pay at the venue",
-    detail: "Settle at the desk when you arrive",
-  },
-};
+// Payment network names are brands, not copy.
+const PAYMENT_METHOD_BRANDS = {
+  benefit: "Benefit",
+  benefitpay: "BenefitPay",
+  apple_pay: "Apple Pay",
+} as const;
 
-export function paymentMethod(method: BookingPaymentMethod): {
+export function paymentMethod(
+  method: BookingPaymentMethod,
+  locale: Locale,
+): {
   title: string;
   detail: string;
 } {
-  return PAYMENT_METHOD_COPY[method];
+  const m = messagesFor(locale).mobileBooking.paymentMethods;
+  switch (method) {
+    case "card":
+      return m.card;
+    case "benefit":
+      return { title: PAYMENT_METHOD_BRANDS.benefit, detail: m.benefitDetail };
+    case "benefitpay":
+      return {
+        title: PAYMENT_METHOD_BRANDS.benefitpay,
+        detail: m.benefitpayDetail,
+      };
+    case "apple_pay":
+      return {
+        title: PAYMENT_METHOD_BRANDS.apple_pay,
+        detail: m.applePayDetail,
+      };
+    case "at_venue":
+      return m.atVenue;
+  }
 }
 
 const CHECKOUT_ORDER: readonly BookingPaymentMethod[] = [
@@ -236,15 +286,16 @@ export function checkoutMethods(
   );
 }
 
-function deadlineLine(deadline: Date, now: Date): string {
+function deadlineLine(deadline: Date, now: Date, locale: Locale): string {
+  const m = messagesFor(locale);
   const days = productDaysBetween(now, deadline);
   const day =
     days === 0
-      ? "today"
+      ? m.mobileBooking.todayInSentence
       : days === 1
-        ? "tomorrow"
-        : formatDayMonth(deadline, { weekday: "short" });
-  return `${formatGameClock(deadline)} ${day}`;
+        ? m.dates.tomorrowInSentence
+        : formatDayMonth(deadline, locale, { weekday: "short" });
+  return m.mobileBooking.clockOnDay(formatGameClock(deadline, locale), day);
 }
 
 /**
@@ -256,35 +307,46 @@ export function refundTerms(
   policyLines: readonly string[],
   startsAt: Date,
   now: Date,
+  locale: Locale,
 ): string | null {
   const step = nextRefundStep(policy, startsAt, now);
   if (step && step.currentPercent >= 100) {
-    return `Free cancellation until ${deadlineLine(step.deadline, now)}.`;
+    return messagesFor(locale).mobileBooking.freeCancellationUntil(
+      deadlineLine(step.deadline, now, locale),
+    );
   }
-  const line = describeNextRefundStep(step) ?? policyLines[0];
+  const line = describeNextRefundStep(step, locale) ?? policyLines[0];
   return line ? `${line.replace(/\.$/, "")}.` : null;
 }
 
 export function paymentStatusLine(
   status: PaymentStatus,
   bookingStatus: string,
+  locale: Locale,
 ): string {
   if (status === "pending" && bookingStatus === "confirmed") {
-    return "Pay at the venue";
+    return messagesFor(locale).mobileBooking.payAtTheVenue;
   }
-  return paymentStatusLabel(status);
+  return paymentStatusLabel(status, locale);
 }
 
-export function cancelConsequence(args: {
-  paymentStatus: PaymentStatus;
-  refundDueFilsNow: number;
-  refundPercentNow: number;
-}): string {
+export function cancelConsequence(
+  args: {
+    paymentStatus: PaymentStatus;
+    refundDueFilsNow: number;
+    refundPercentNow: number;
+  },
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).mobileBooking.cancelConsequence;
   if (args.paymentStatus !== "paid") {
-    return "You have not paid for this booking, so there is nothing to refund.";
+    return m.notPaid;
   }
   if (args.refundDueFilsNow <= 0) {
-    return "It is too late for a refund. You will not get any money back.";
+    return m.tooLate;
   }
-  return `You'll be refunded ${formatBookingPriceFils(args.refundDueFilsNow)} (${args.refundPercentNow}%).`;
+  return m.refunded(
+    formatBookingPriceFils(args.refundDueFilsNow, locale),
+    args.refundPercentNow,
+  );
 }

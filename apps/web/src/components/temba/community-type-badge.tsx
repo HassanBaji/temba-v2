@@ -1,17 +1,17 @@
+"use client";
+
+import type { Messages } from "@repo/i18n/messages";
+import { useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 
-export const COMMUNITY_TYPE_LABELS = {
-  public: "Public",
-  private: "Private",
-} as const;
+export type CommunityTypeValue = "public" | "private";
 
-export type CommunityTypeValue = keyof typeof COMMUNITY_TYPE_LABELS;
+export function communityTypeLabel(type: string, m: Messages) {
+  return type === "public" || type === "private" ? m.community.type[type] : type;
+}
 
 export function CommunityTypeBadge({ type }: { type: string }) {
-  const label =
-    type in COMMUNITY_TYPE_LABELS
-      ? COMMUNITY_TYPE_LABELS[type as CommunityTypeValue]
-      : type;
+  const m = useMessages();
 
-  return <Badge variant="outline">{label}</Badge>;
+  return <Badge variant="outline">{communityTypeLabel(type, m)}</Badge>;
 }

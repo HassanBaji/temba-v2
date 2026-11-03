@@ -6,9 +6,10 @@ import {
   PENDING_SET_COLUMNS,
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
-import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { resultMarkLabel } from "@repo/domain/result-mark";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -20,6 +21,7 @@ import { CardShell } from "./card-parts";
 const SCORE_WIDTH = 28;
 
 function SetHeader({ columns }: { columns: number }) {
+  const locale = useLocale();
   return (
     <View
       accessibilityElementsHidden
@@ -32,10 +34,10 @@ function SetHeader({ columns }: { columns: number }) {
           size="eyebrow"
           tone="muted"
           mono
-          accessibilityLabel={setLabel(index)}
+          accessibilityLabel={setLabel(index, locale)}
           style={{ width: SCORE_WIDTH, textAlign: "center" }}
         >
-          {setShortLabel(index)}
+          {setShortLabel(index, locale)}
         </Text>
       ))}
     </View>
@@ -134,12 +136,15 @@ export function HistoryCard({
   row: HubHistoryRow;
   onOpen: (gameId: string) => void;
 }) {
-  const model = matchHistoryCardModel(row);
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.history;
+  const model = matchHistoryCardModel(row, locale);
   const won = model.outcome === "won";
+  const outcomeLabel = resultMarkLabel(model.outcome, locale);
 
   return (
     <CardShell
-      label={`${RESULT_MARK_LABEL[model.outcome]}, ${model.meta}`}
+      label={m.accessibleName(outcomeLabel, model.meta)}
       onPress={() => onOpen(row.id)}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
@@ -154,12 +159,12 @@ export function HistoryCard({
               weight="bold"
               tone={won ? "default" : "muted"}
             >
-              {RESULT_MARK_LABEL[model.outcome]}
+              {outcomeLabel}
             </Text>
             <Text size="meta" tone="muted">
               {model.scored
-                ? `${model.tally.won}–${model.tally.lost} in sets`
-                : "No score yet"}
+                ? m.inSets(model.tally.won, model.tally.lost)
+                : m.noScoreYet}
             </Text>
           </View>
           <Text size="meta" tone="muted" numberOfLines={1}>

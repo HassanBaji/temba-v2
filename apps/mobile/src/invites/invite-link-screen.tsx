@@ -14,6 +14,7 @@ import { useCallback, useState } from "react";
 
 import type { Slot } from "../home/home-model";
 import { Notice } from "../groups/notice";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { useToast } from "../primitives/toast";
@@ -44,19 +45,27 @@ function kindOf(link: InviteLinkPath): InviteKind {
 }
 
 function InviteLinkHeader() {
-  return <ScreenHeader nav="back" fallback="/profile" title="Invite" />;
+  const m = useMessages();
+  return (
+    <ScreenHeader
+      nav="back"
+      fallback="/profile"
+      title={m.mobileCommunity.inviteLink.title}
+    />
+  );
 }
 
 export function InviteLinkScreen() {
   const params = useLocalSearchParams<InviteLinkParams>();
+  const m = useMessages();
   const link = inviteLinkFromParams(params);
   if (!link) {
     return (
       <Screen>
         <InviteLinkHeader />
         <Notice
-          title="Couldn't open this invite"
-          description="The link is incomplete. Go back and paste it again."
+          title={m.mobileCommunity.inviteLink.incompleteTitle}
+          description={m.mobileCommunity.inviteLink.incompleteDescription}
         />
       </Screen>
     );
@@ -67,6 +76,8 @@ export function InviteLinkScreen() {
 function InviteLink({ link }: { link: InviteLinkPath }) {
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const kind = kindOf(link);
   const [refreshing, setRefreshing] = useState(false);
@@ -165,7 +176,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
 
   const acceptCommunity = api.communities.acceptInviteLink.useMutation({
     onSuccess: async (result) => {
-      toast.show(inviteLinkAcceptToast("community"));
+      toast.show(inviteLinkAcceptToast("community", locale));
       await utils.communities.mine.invalidate();
       land(result.communityId);
     },
@@ -175,8 +186,8 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     onSuccess: async (result) => {
       toast.show(
         result.requested
-          ? groupJoinToast("requestJoin")
-          : inviteLinkAcceptToast("group"),
+          ? groupJoinToast("requestJoin", locale)
+          : inviteLinkAcceptToast("group", locale),
       );
       await Promise.all([
         utils.groups.mine.invalidate(),
@@ -188,7 +199,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   });
   const acceptTeam = api.teams.acceptInviteLink.useMutation({
     onSuccess: async (result) => {
-      toast.show(inviteLinkAcceptToast("team"));
+      toast.show(inviteLinkAcceptToast("team", locale));
       await utils.teams.mine.invalidate();
       land(result.teamId);
     },
@@ -197,7 +208,12 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   const acceptGame = api.games.acceptInviteLink.useMutation({
     onSuccess: async (result) => {
       toast.show(
-        inviteLinkAcceptToast("game", result.outcome, result.joinedGroup),
+        inviteLinkAcceptToast(
+          "game",
+          locale,
+          result.outcome,
+          result.joinedGroup,
+        ),
       );
       if (result.outcome === "waiting_for_partner") {
         setWaitingForPartner(true);
@@ -219,7 +235,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
-      toast.show("Request sent");
+      toast.show(m.level.request.sent);
       await game.refetch();
     },
     onError: (e) => toast.show(e.message),

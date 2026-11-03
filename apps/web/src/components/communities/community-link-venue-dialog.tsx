@@ -13,10 +13,8 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import {
-  COMMUNITY_LINK_VENUE_COPY,
-  communityLiveVenueRow,
-} from "@repo/domain/community";
+import { useLocale, useMessages } from "~/components/locale-provider";
+import { communityLiveVenueRow } from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type LiveVenue = RouterOutputs["communities"]["searchLiveVenues"][number];
@@ -44,23 +42,22 @@ export function CommunityLinkVenueDialog({
   pendingVenueId: string | null;
   onRequest: (venueId: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.community.linkVenue;
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>
-            {COMMUNITY_LINK_VENUE_COPY.title}
-          </ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {COMMUNITY_LINK_VENUE_COPY.description}
+            {copy.description}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className="space-y-4 px-4 pb-4 md:px-0 md:pb-0">
           <Field>
-            <FieldLabel htmlFor="venue-search">
-              {COMMUNITY_LINK_VENUE_COPY.searchLabel}
-            </FieldLabel>
+            <FieldLabel htmlFor="venue-search">{copy.searchLabel}</FieldLabel>
             <Input
               id="venue-search"
               value={query}
@@ -72,20 +69,20 @@ export function CommunityLinkVenueDialog({
             <ErrorState
               headingLevel={3}
               className="py-6"
-              title={COMMUNITY_LINK_VENUE_COPY.errorTitle}
+              title={copy.errorTitle}
               message={errorMessage}
               onRetry={onRetry}
             />
           ) : null}
           {venues?.length === 0 ? (
             <p className="text-body text-muted-foreground">
-              {COMMUNITY_LINK_VENUE_COPY.none}
+              {copy.none}
             </p>
           ) : null}
           {venues && venues.length > 0 ? (
             <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
               {venues.map((venue) => {
-                const row = communityLiveVenueRow(venue);
+                const row = communityLiveVenueRow(venue, locale);
                 return (
                   <li
                     key={venue.id}
@@ -106,11 +103,11 @@ export function CommunityLinkVenueDialog({
                       aria-label={row.accessibilityLabel}
                       disabled={pendingVenueId !== null}
                       pending={pendingVenueId === venue.id}
-                      pendingLabel="Requesting…"
+                      pendingLabel={m.group.join.label.requesting}
                       onClick={() => onRequest(venue.id)}
                       className="border-ink h-10 min-h-10 shrink-0 rounded-[10px] font-semibold"
                     >
-                      {COMMUNITY_LINK_VENUE_COPY.requestLabel}
+                      {copy.requestLabel}
                     </Button>
                   </li>
                 );

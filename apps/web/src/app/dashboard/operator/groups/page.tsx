@@ -11,6 +11,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
@@ -27,6 +28,8 @@ function useDebouncedValue(value: string, delayMs: number) {
 }
 
 export default function OperatorGroupsPage() {
+  const m = useMessages();
+  const o = m.webDashboard.operator.groups;
   const utils = api.useUtils();
   const [query, setQuery] = React.useState("");
   const debouncedQuery = useDebouncedValue(query.trim(), 250);
@@ -43,9 +46,7 @@ export default function OperatorGroupsPage() {
 
   const setVerified = api.groups.setVerified.useMutation({
     onSuccess: async (_result, variables) => {
-      toast.success(
-        variables.verified ? "Group verified" : "Verification removed",
-      );
+      toast.success(variables.verified ? o.verifiedToast : o.unverifiedToast);
       await utils.groups.listForOperator.invalidate();
     },
     onError: (error) => {
@@ -55,17 +56,17 @@ export default function OperatorGroupsPage() {
 
   return (
     <DashboardShell
-      title="Verify Groups"
-      description="Only a Verified Group can host Rated Games and open a Game to anyone with the link. Removing verification leaves existing Games unchanged."
+      title={o.title}
+      description={o.description}
     >
       <div className="space-y-4">
         <Field>
-          <FieldLabel htmlFor="operator-group-search">Search Groups</FieldLabel>
+          <FieldLabel htmlFor="operator-group-search">{o.searchLabel}</FieldLabel>
           <Input
             id="operator-group-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by Group name"
+            placeholder={o.searchPlaceholder}
             maxLength={255}
             autoComplete="off"
           />
@@ -75,7 +76,7 @@ export default function OperatorGroupsPage() {
 
         {groups.error ? (
           <ErrorState
-            title="Groups could not be loaded"
+            title={m.webDashboard.groups.errorTitle}
             message={groups.error.message}
             onRetry={() => {
               void groups.refetch();
@@ -86,19 +87,15 @@ export default function OperatorGroupsPage() {
         {groups.data && rows.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No Groups found"
-            description={
-              debouncedQuery
-                ? "Try a different name."
-                : "Groups will show up here once they are created."
-            }
+            title={o.empty.title}
+            description={debouncedQuery ? o.empty.tryOther : o.empty.none}
           />
         ) : null}
 
         {rows.length > 0 ? (
           <RowList>
             {rows.map((group) => {
-              const name = group.name ?? "Untitled Group";
+              const name = group.name ?? m.group.untitled;
               const pending =
                 setVerified.isPending &&
                 setVerified.variables?.groupId === group.id;
@@ -112,19 +109,20 @@ export default function OperatorGroupsPage() {
                   title={name}
                   meta={
                     group.communityName
-                      ? `Club Group of ${group.communityName}${group.communityArchived ? " (Soft-archived)" : ""}`
-                      : "Loose Group"
+                      ? group.communityArchived
+                        ? o.clubGroupOfArchived(group.communityName)
+                        : o.clubGroupOf(group.communityName)
+                      : o.looseGroup
                   }
                   stackTrailing
                   trailing={
                     <div className="flex items-center gap-2">
                       {verified ? (
-                        <Badge variant="secondary">Verified</Badge>
+                        <Badge variant="secondary">{o.verified}</Badge>
                       ) : null}
                       {viaVenueCommunity ? (
                         <Badge variant="secondary">
-                          Verified by Venue Community:{" "}
-                          {group.venueCommunityVenueName}
+                          {o.verifiedByVenue(group.venueCommunityVenueName)}
                         </Badge>
                       ) : null}
                       {viaVenueCommunity ? null : verified ? (
@@ -136,7 +134,7 @@ export default function OperatorGroupsPage() {
                             setRemoveTarget({ id: group.id, name })
                           }
                         >
-                          Remove verification
+                          {o.removeVerification}
                         </Button>
                       ) : (
                         <Button
@@ -149,7 +147,7 @@ export default function OperatorGroupsPage() {
                             })
                           }
                         >
-                          Verify
+                          {o.verify}
                         </Button>
                       )}
                     </div>
@@ -168,7 +166,7 @@ export default function OperatorGroupsPage() {
               void groups.fetchNextPage();
             }}
           >
-            Show more
+            {m.common.showMore}
           </Button>
         ) : null}
       </div>
@@ -180,9 +178,11 @@ export default function OperatorGroupsPage() {
             setRemoveTarget(null);
           }
         }}
-        title={`Remove verification from ${removeTarget?.name ?? "this Group"}?`}
-        description="Existing Games keep their Rated and public settings. New Games in this Group will be Unrated and private."
-        confirmLabel="Remove verification"
+        title={o.removeConfirm.title(
+          removeTarget?.name ?? m.group.linkRequest.thisGroup,
+        )}
+        description={o.removeConfirm.description}
+        confirmLabel={o.removeVerification}
         pending={setVerified.isPending}
         onConfirm={async () => {
           if (!removeTarget) {

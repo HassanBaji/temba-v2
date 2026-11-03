@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { UserAvatar } from "~/components/common/user-avatar";
 import {
   ResponsiveDialog,
@@ -13,7 +14,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { Hatch } from "~/components/ui/hatch";
 import {
-  OPEN_GAME_ACTION,
+  openGameAction,
   type PlayerMatchSheetView,
 } from "@repo/domain/player-profile-matches";
 import { playerProfilePath } from "~/lib/dashboard-paths";
@@ -33,6 +34,7 @@ function ResultBadge({ sheet }: { sheet: PlayerMatchSheetView }) {
 }
 
 function TeamRow({ team }: { team: PlayerMatchSheetView["teams"][number] }) {
+  const m = useMessages();
   return (
     <div className="flex items-center gap-3 px-5 py-1.5">
       <ul className="min-w-0 flex-1">
@@ -57,7 +59,9 @@ function TeamRow({ team }: { team: PlayerMatchSheetView["teams"][number] }) {
         ))}
       </ul>
       <div
-        aria-label={`Sets: ${team.sets.map((set) => set.games).join(", ")}`}
+        aria-label={m.webUi.player.sets(
+          team.sets.map((set) => String(set.games)),
+        )}
         className="flex shrink-0 gap-1.5"
         role="group"
       >
@@ -85,6 +89,7 @@ export function PlayerMatchSheet({
   sheet: PlayerMatchSheetView | null;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   return (
     <ResponsiveDialog
       open={sheet != null}
@@ -141,8 +146,11 @@ export function PlayerMatchSheet({
                   href={`/dashboard/games/${sheet.gameId}`}
                   className="border-rule hover:bg-wash rounded-card flex h-11 items-center justify-center gap-1 border font-semibold transition-colors"
                 >
-                  {OPEN_GAME_ACTION}
-                  <ChevronRight aria-hidden="true" className="size-4" />
+                  {openGameAction(locale)}
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 rtl:-scale-x-100"
+                  />
                 </Link>
               ) : null}
             </div>

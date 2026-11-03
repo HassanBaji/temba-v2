@@ -69,15 +69,15 @@ describe("loadGameInviteOpenGraph", () => {
       if (!minted.ok) {
         return;
       }
-      const live = await loadGameInviteOpenGraph(db, minted.link.shortCode!);
+      const live = await loadGameInviteOpenGraph(db, minted.link.shortCode!, "en");
       expect(live.title).toBe("Ocean Padel");
       expect(live.description).toContain("0/4 sitting");
       expect(live.description).not.toMatch(/Test User|og-owner/);
 
-      expect(await loadGameInviteOpenGraph(db, "0O1ILUAB")).toEqual(
+      expect(await loadGameInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual(
         GENERIC_TEMBA_OPEN_GRAPH,
       );
-      expect(await loadGameInviteOpenGraph(db, "ZZZZZZZZ")).toEqual(
+      expect(await loadGameInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual(
         GENERIC_TEMBA_OPEN_GRAPH,
       );
 
@@ -85,7 +85,7 @@ describe("loadGameInviteOpenGraph", () => {
         .update(games)
         .set({ cancelledAt: new Date() })
         .where(eq(games.id, game.id));
-      expect(await loadGameInviteOpenGraph(db, minted.link.shortCode!)).toEqual(
+      expect(await loadGameInviteOpenGraph(db, minted.link.shortCode!, "en")).toEqual(
         GENERIC_TEMBA_OPEN_GRAPH,
       );
     } finally {

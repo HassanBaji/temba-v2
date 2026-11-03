@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { z } from "zod";
 
 import { protectedProcedure } from "#src/trpc";
@@ -10,11 +11,12 @@ type DbClient = typeof db;
 
 export async function acceptInviteLink(
   database: DbClient,
-  args: { token: string; userId: string },
+  args: { token: string; userId: string ; locale?: Locale },
 ) {
   const accepted = await acceptLink(database, "community", {
     token: args.token,
     userId: args.userId,
+    locale: args.locale ?? DEFAULT_LOCALE,
   });
   if (!accepted.ok) {
     if (accepted.reason === "frozen") {
@@ -45,5 +47,6 @@ export const acceptInviteLinkProcedure = protectedProcedure
     return acceptInviteLink(ctx.db, {
       token: input.token,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

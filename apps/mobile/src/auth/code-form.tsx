@@ -12,6 +12,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
@@ -22,6 +23,8 @@ function ResendCountdown(props: {
   onResend: () => void;
   disabled: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [now, setNow] = useState(() => Date.now());
   const [resendFrom, setResendFrom] = useState<number | null>(null);
   const remaining = remainingSeconds(props.startedAt, now);
@@ -49,7 +52,7 @@ function ResendCountdown(props: {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={resendAccessibleName(remaining)}
+          accessibilityLabel={resendAccessibleName(remaining, locale)}
           accessibilityState={{ disabled: props.disabled || !available }}
           disabled={props.disabled || !available}
           hitSlop={8}
@@ -65,7 +68,7 @@ function ResendCountdown(props: {
             tone={available ? "default" : "muted"}
             style={{ textDecorationLine: available ? "underline" : "none" }}
           >
-            Resend code
+            {m.auth.resendCode}
           </Text>
         </Pressable>
         <Text weight="bold" accessibilityElementsHidden>
@@ -74,7 +77,7 @@ function ResendCountdown(props: {
       </View>
       {codeResent ? (
         <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
-          New code sent
+          {m.mobileHome.code.newCodeSent}
         </Text>
       ) : null}
     </View>
@@ -96,6 +99,7 @@ export type CodeFormProps = {
 };
 
 export function CodeForm(props: CodeFormProps) {
+  const m = useMessages();
   const ready = isVerificationCodeComplete(props.code);
   const autoVerify = useRef(false);
   const { code, pending, onVerify } = props;
@@ -111,7 +115,7 @@ export function CodeForm(props: CodeFormProps) {
   return (
     <View style={{ gap: 20 }}>
       <View style={{ gap: 4 }}>
-        <Text tone="muted">Sent to {props.destination}.</Text>
+        <Text tone="muted">{m.mobileHome.code.sentTo(props.destination)}</Text>
         <Pressable
           accessibilityRole="link"
           hitSlop={8}
@@ -125,7 +129,7 @@ export function CodeForm(props: CodeFormProps) {
       </View>
       <FormErrorSummary message={props.globalMessage} />
       <TextField
-        label="Six digit code"
+        label={m.mobileHome.code.codeLabel}
         mono
         autoFocus
         keyboardType="number-pad"
@@ -152,7 +156,7 @@ export function CodeForm(props: CodeFormProps) {
       />
       <View style={{ gap: 12 }}>
         <Button
-          label="Verify"
+          label={m.mobileHome.code.verify}
           size="lg"
           pending={ready && props.pending}
           disabled={!ready || props.pending}
@@ -160,7 +164,7 @@ export function CodeForm(props: CodeFormProps) {
         />
         {ready ? null : (
           <Text size="eyebrow" tone="muted" style={{ textAlign: "center" }}>
-            Button unlocks at six digits
+            {m.mobileHome.code.unlocksAtSixDigits}
           </Text>
         )}
       </View>

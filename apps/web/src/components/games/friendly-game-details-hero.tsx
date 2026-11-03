@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { DividedFigurePair } from "~/components/home/home-all-time";
 import { WinLossMark } from "~/components/home/home-recent-form-row";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   friendlyGameHeroModel,
   type FriendlyGameHeroInput,
@@ -65,6 +66,8 @@ function FinalHero({
 }
 
 export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
+  const locale = useLocale();
+  const m = useMessages();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -74,7 +77,7 @@ export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
     return () => window.clearInterval(timer);
   }, []);
 
-  const model = friendlyGameHeroModel(props, now);
+  const model = friendlyGameHeroModel(props, now, locale);
 
   if (!model) {
     return null;
@@ -83,7 +86,7 @@ export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
   if (model.kind === "time_unset") {
     return (
       <Surface as="article" tone="ink" radius="surface" className="p-[22px]">
-        <p className="text-dim text-meta">Time unset</p>
+        <p className="text-dim text-meta">{m.webGame.hero.timeUnset}</p>
       </Surface>
     );
   }
@@ -113,7 +116,7 @@ export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
       {model.partnerName ? (
         <>
           <p className="font-expanded text-display mt-3 leading-none tracking-[-0.03em]">
-            You and {model.partnerName}
+            {m.webGame.hero.youAnd(model.partnerName)}
           </p>
           <p className="text-lead mt-3">{model.dateLine}</p>
         </>

@@ -7,9 +7,9 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import { footballResultLine } from "@repo/domain/football-lineup";
-import { ORGANIZER_CONFIRM_NOTE } from "@repo/domain/friendly-game-score";
 import Link from "next/link";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 
@@ -66,6 +66,8 @@ export function FootballScoreCard({
   scoreHref: string;
   onConfirm: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const score = match?.score ?? null;
   const completed = match?.status === "completed";
   const scorers = players
@@ -78,9 +80,13 @@ export function FootballScoreCard({
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <div className="text-muted-foreground text-meta flex justify-between px-5 pt-5">
-        <h2 id="football-score-heading">Score</h2>
+        <h2 id="football-score-heading">{m.game.played.score}</h2>
         {score ? (
-          <span>{completed ? "Confirmed" : "Waiting to confirm"}</span>
+          <span>
+            {completed
+              ? m.game.played.confirmed
+              : m.webTournament.footballScore.waitingToConfirm}
+          </span>
         ) : null}
       </div>
       {score ? (
@@ -101,17 +107,18 @@ export function FootballScoreCard({
           <div className="border-rule space-y-3 border-t p-5">
             <div>
               <p className="font-semibold">
-                {footballResultLine(score, names)}
+                {footballResultLine(score, names, locale)}
               </p>
               <p className="text-muted-foreground text-meta">
                 {confirmationLine(
                   match?.confirmed ?? { slot1: false, slot2: false },
                   names,
                   completed,
+                  locale,
                   match?.organizerSides,
                 )}
                 {match?.enteredByName
-                  ? ` Entered by ${match.enteredByName}.`
+                  ? ` ${m.webTournament.footballScore.enteredBySentence(match.enteredByName)}`
                   : ""}
               </p>
             </div>
@@ -119,33 +126,37 @@ export function FootballScoreCard({
               <div className="flex flex-wrap gap-2">
                 {canConfirm || canConfirmAsOrganizer ? (
                   <Button pending={confirmPending} onClick={onConfirm}>
-                    Confirm score
+                    {m.webTournament.footballScore.confirmScore}
                   </Button>
                 ) : null}
                 {canEnterScore ? (
                   <Button variant="outline" asChild>
-                    <Link href={scoreHref}>Edit score</Link>
+                    <Link href={scoreHref}>
+                      {m.webTournament.footballScore.editScore}
+                    </Link>
                   </Button>
                 ) : null}
               </div>
             ) : null}
             {canConfirmAsOrganizer ? (
               <p className="text-muted-foreground text-meta">
-                {ORGANIZER_CONFIRM_NOTE}
+                {m.game.score.organizerConfirmNote}
               </p>
             ) : null}
           </div>
           {scorers.length > 0 ? (
             <div className="border-rule space-y-2 border-t p-5">
-              <h3 className="text-muted-foreground text-meta">Scorers</h3>
+              <h3 className="text-muted-foreground text-meta">
+                {m.webTournament.footballScore.scorers}
+              </h3>
               <ul className="space-y-1">
                 {scorers.map((player) => (
                   <li key={player.userId} className="flex justify-between">
                     <span>
-                      {player.isViewer ? "You" : shortName(player.name)}
+                      {player.isViewer ? m.common.you : shortName(player.name)}
                     </span>
                     <span className="font-semibold">
-                      {player.goals === 1 ? "1 goal" : `${player.goals} goals`}
+                      {m.game.played.goals(player.goals)}
                     </span>
                   </li>
                 ))}
@@ -165,11 +176,13 @@ export function FootballScoreCard({
             </span>
           </div>
           <p className="text-muted-foreground text-meta">
-            Entered by either side after the game, confirmed by the other.
+            {m.webTournament.footballScore.emptyNote}
           </p>
           {canEnterScore ? (
             <Button asChild>
-              <Link href={scoreHref}>Enter score</Link>
+              <Link href={scoreHref}>
+                {m.webTournament.footballScore.enterScore}
+              </Link>
             </Button>
           ) : null}
         </div>

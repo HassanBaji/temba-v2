@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   levelRangeSummary,
-  PICK_COURTS_FOR_SCHEDULE,
   tournamentMatchTotals,
   tournamentScheduleSummary,
 } from "./create-summary";
@@ -36,7 +35,7 @@ const groupsThenKnockout = friendlyTournamentPlan({
 
 describe("levelRangeSummary", () => {
   it("reads Any for both bounds and is open when neither is set", () => {
-    expect(levelRangeSummary("none", "none")).toEqual({
+    expect(levelRangeSummary("none", "none", "en")).toEqual({
       minimum: "Any",
       maximum: "Any",
       open: true,
@@ -44,7 +43,7 @@ describe("levelRangeSummary", () => {
   });
 
   it("shows the minimum alone", () => {
-    expect(levelRangeSummary("C", "none")).toEqual({
+    expect(levelRangeSummary("C", "none", "en")).toEqual({
       minimum: "C",
       maximum: "Any",
       open: false,
@@ -52,7 +51,7 @@ describe("levelRangeSummary", () => {
   });
 
   it("shows the maximum alone", () => {
-    expect(levelRangeSummary("none", "B+")).toEqual({
+    expect(levelRangeSummary("none", "B+", "en")).toEqual({
       minimum: "Any",
       maximum: "B+",
       open: false,
@@ -60,11 +59,15 @@ describe("levelRangeSummary", () => {
   });
 
   it("shows both bounds", () => {
-    expect(levelRangeSummary("D+", "B")).toEqual({
+    expect(levelRangeSummary("D+", "B", "en")).toEqual({
       minimum: "D+",
       maximum: "B",
       open: false,
     });
+  });
+
+  it("reads Arabic", () => {
+    expect(levelRangeSummary("none", "B", "ar").minimum).toBe("أي");
   });
 });
 
@@ -130,6 +133,7 @@ describe("tournamentScheduleSummary", () => {
     matchMinutes: "45",
     courtCount: 3,
     now: NOW,
+    locale: "en" as const,
   };
 
   it("reads the Match total, the start and the last finish when it fits", () => {
@@ -175,7 +179,7 @@ describe("tournamentScheduleSummary", () => {
   it("asks for Courts when none are picked", () => {
     expect(tournamentScheduleSummary({ ...input, courtCount: 0 })).toEqual({
       kind: "pickCourts",
-      message: PICK_COURTS_FOR_SCHEDULE,
+      message: "Pick Courts in use to see the schedule.",
     });
   });
 

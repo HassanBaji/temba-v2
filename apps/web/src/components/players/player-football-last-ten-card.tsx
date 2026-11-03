@@ -1,6 +1,9 @@
 import Link from "next/link";
 
+"use client";
+
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import type { FootballMatchRowView } from "@repo/domain/player-profile-football";
 import type { LastTenSummary } from "@repo/domain/player-profile-matches";
@@ -54,10 +57,11 @@ export function PlayerFootballLastTenCard({
   summary: LastTenSummary;
   rows: FootballMatchRowView[];
 }) {
+  const m = useMessages();
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
       <SurfaceLabel inset="profile" meta={summary.record}>
-        Last 10 games
+        {m.webUi.player.lastTenGames}
       </SurfaceLabel>
       <LastTenMarks summary={summary} />
       {rows.length > 0 ? (

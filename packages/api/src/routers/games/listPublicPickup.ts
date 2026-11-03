@@ -1,4 +1,5 @@
 import type { DbClient } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { games } from "@repo/db";
@@ -19,8 +20,9 @@ export async function listPublicHubRows(
   database: DbClient,
   userId: string,
   now: Date = new Date(),
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<HubListRow[]> {
-  const viewer = await viewerHubContext(database, userId);
+  const viewer = await viewerHubContext(database, userId, locale);
   const rows = await queryHubGames(
     database,
     and(eq(games.isPublic, true), isNull(games.cancelledAt)),
@@ -49,5 +51,5 @@ export async function listPublicHubRows(
  */
 export const listPublicPickup = protectedProcedure.query(async ({ ctx }) => {
   const appUser = await resolveAppUser(ctx.userId);
-  return listPublicHubRows(ctx.db, appUser.id);
+  return listPublicHubRows(ctx.db, appUser.id, new Date(), ctx.locale);
 });

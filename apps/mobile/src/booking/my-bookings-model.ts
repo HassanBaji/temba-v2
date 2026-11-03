@@ -2,6 +2,8 @@ import type { PaymentStatus } from "@repo/domain/booking-payment";
 import type { BookingStatus } from "@repo/domain/booking-copy";
 import { formatGameClock, formatWeekday } from "@repo/domain/format-game-start";
 import { zonedParts } from "@repo/domain/product-timezone";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { minutesBetween } from "./booking-model";
 
@@ -17,36 +19,48 @@ export type BookingRow = {
   court: { name: string };
 };
 
-export function dayBlock(startsAt: Date): { day: string; weekday: string } {
+export function dayBlock(
+  startsAt: Date,
+  locale: Locale,
+): { day: string; weekday: string } {
   return {
     day: String(zonedParts(startsAt).day),
-    weekday: formatWeekday(startsAt, "short"),
+    weekday: formatWeekday(startsAt, "short", locale),
   };
 }
 
-export function rowTitle(row: BookingRow): string {
-  return `${formatGameClock(row.startsAt)}, ${row.venue.name}`;
+export function rowTitle(row: BookingRow, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.rowTitle(
+    formatGameClock(row.startsAt, locale),
+    row.venue.name,
+  );
 }
 
-export function rowDetail(row: BookingRow): string {
-  return `${row.court.name}, ${minutesBetween(row.startsAt, row.endsAt)} min`;
+export function rowDetail(row: BookingRow, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.courtMinutes(
+    row.court.name,
+    minutesBetween(row.startsAt, row.endsAt),
+  );
 }
 
-export function rowBadge(row: BookingRow, now: Date): string {
+export function rowBadge(row: BookingRow, now: Date, locale: Locale): string {
+  const m = messagesFor(locale);
   switch (row.status) {
     case "pending_payment":
-      return "Finish payment";
+      return m.mobileBooking.finishPayment;
     case "cancelled":
-      return "Cancelled";
+      return m.booking.status.cancelled;
     case "no_show":
-      return "No-show";
+      return m.booking.status.noShow;
     case "expired":
-      return "Expired";
+      return m.booking.status.expired;
     case "confirmed":
       if (row.endsAt.getTime() <= now.getTime()) {
-        return "Played";
+        return m.mobileBooking.badgePlayed;
       }
-      return row.paymentStatus === "paid" ? "Paid" : "Pay at venue";
+      return row.paymentStatus === "paid"
+        ? m.booking.paymentStatus.paid
+        : m.mobileBooking.payAtVenueShort;
   }
 }
 
@@ -54,26 +68,24 @@ export function tabLabel(
   label: string,
   count: number | null,
   hasMore: boolean,
+  locale: Locale,
 ): string {
   if (count === null || count === 0) {
     return label;
   }
-  return `${label}, ${hasMore ? `${count}+` : count}`;
+  const m = messagesFor(locale).mobileBooking;
+  return m.tabWithCount(label, hasMore ? m.partialCount(count) : String(count));
 }
 
-export function bookingsEmptyCopy(tab: BookingsTab): {
+export function bookingsEmptyCopy(
+  tab: BookingsTab,
+  locale: Locale,
+): {
   title: string;
   description: string;
 } {
-  return tab === "upcoming"
-    ? {
-        title: "No upcoming bookings",
-        description: "Book a court and it will show here.",
-      }
-    : {
-        title: "No past bookings",
-        description: "Bookings you have played or cancelled show here.",
-      };
+  const m = messagesFor(locale).mobileBooking.bookingsEmpty;
+  return tab === "upcoming" ? m.upcoming : m.past;
 }
 
 const MS_PER_MINUTE = 60_000;
@@ -84,9 +96,11 @@ export function startsInLabel(
   startsAt: Date,
   endsAt: Date,
   now: Date,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).mobileBooking.startsIn;
   if (startsAt.getTime() <= now.getTime()) {
-    return endsAt.getTime() > now.getTime() ? "on now" : null;
+    return endsAt.getTime() > now.getTime() ? m.onNow : null;
   }
   const total = Math.max(
     1,
@@ -98,9 +112,9 @@ export function startsInLabel(
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
   if (hours === 0) {
-    return `in ${minutes} min`;
+    return m.minutes(minutes);
   }
-  return minutes === 0 ? `in ${hours} h` : `in ${hours} h ${minutes} min`;
+  return minutes === 0 ? m.hours(hours) : m.hoursMinutes(hours, minutes);
 }
 
 /** "20.000 BD" as its amount and currency, so the currency can sit muted. */
@@ -117,13 +131,18 @@ export function priceParts(formatted: string): {
       };
 }
 
+export type CountNoun = {
+  exact: (n: number) => string;
+  orMore: (n: number) => string;
+};
+
 /** "1 booking", "3 bookings", "20+ bookings". */
 export function countLabel(
   count: number,
-  noun: { one: string; other: string },
+  noun: CountNoun,
   hasMore = false,
 ): string {
-  return `${count}${hasMore ? "+" : ""} ${count === 1 && !hasMore ? noun.one : noun.other}`;
+  return hasMore ? noun.orMore(count) : noun.exact(count);
 }
 
 export type NextBookingAction = "finish_payment" | "open_game" | "make_game";

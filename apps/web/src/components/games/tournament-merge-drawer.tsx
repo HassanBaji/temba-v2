@@ -9,13 +9,8 @@ import {
   DrawerTitle,
 } from "~/components/ui/drawer";
 import { CloseButton } from "~/components/ui/nav-icon-button";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
-  MERGE_BANNER_ACTION_LABEL,
-  MERGE_BANNER_TITLE,
-  MERGE_DRAWER_TITLE,
-  MERGE_MANY_TITLE,
-  MERGE_SEATS_ACTION_LABEL,
-  ORGANIZER_EYEBROW,
   halfTeamsFromSides,
   mergeCompletesTheField,
   mergeDrawerLead,
@@ -54,6 +49,8 @@ export function TournamentMergeBanner({
   teamCount: number | null;
   onOpen: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const halfTeams = halfTeamsFromSides(sides);
   const first = halfTeams[0];
   const second = halfTeams[1];
@@ -65,15 +62,18 @@ export function TournamentMergeBanner({
   return (
     <div className="border-ink rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
-        {ORGANIZER_EYEBROW}
+        {m.tournament.halfTeams.organizerEyebrow}
       </p>
-      <p className="text-body mt-2 font-semibold">{MERGE_BANNER_TITLE}</p>
+      <p className="text-body mt-2 font-semibold">
+        {m.tournament.halfTeams.bannerTitle}
+      </p>
       <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
         {mergePairCopy({
           firstName: first.occupant.name,
           secondName: second.occupant.name,
           completesField,
           teamCount,
+          locale,
         })}
       </p>
       <Button
@@ -81,7 +81,7 @@ export function TournamentMergeBanner({
         onClick={onOpen}
         className="mt-4 w-full font-semibold"
       >
-        {MERGE_BANNER_ACTION_LABEL}
+        {m.tournament.halfTeams.bannerAction}
       </Button>
     </div>
   );
@@ -94,14 +94,18 @@ export function TournamentMergeEntry({
   halfTeamCount: number;
   onOpen: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="border-rule rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
-        {ORGANIZER_EYEBROW}
+        {m.tournament.halfTeams.organizerEyebrow}
       </p>
-      <p className="text-body mt-2 font-semibold">{MERGE_MANY_TITLE}</p>
+      <p className="text-body mt-2 font-semibold">
+        {m.tournament.halfTeams.manyTitle}
+      </p>
       <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
-        {mergeManyHalfTeamsCopy(halfTeamCount)}
+        {mergeManyHalfTeamsCopy(halfTeamCount, locale)}
       </p>
       <Button
         type="button"
@@ -109,7 +113,7 @@ export function TournamentMergeEntry({
         onClick={onOpen}
         className="border-ink mt-4 w-full font-semibold"
       >
-        {MERGE_SEATS_ACTION_LABEL}
+        {m.tournament.halfTeams.mergeSeats}
       </Button>
     </div>
   );
@@ -136,6 +140,8 @@ export function TournamentMergeDrawer({
   mergeError: { message: string; data?: { zodError?: unknown } | null } | null;
   onMerge: (input: MergeInput) => void | Promise<void>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const halfTeams = halfTeamsFromSides(sides);
   const first = halfTeams[0];
   const second = halfTeams[1];
@@ -147,8 +153,9 @@ export function TournamentMergeDrawer({
           secondName: second.occupant.name,
           completesField,
           teamCount,
+          locale,
         })
-      : MERGE_DRAWER_TITLE;
+      : m.tournament.halfTeams.drawerTitle;
 
   function close() {
     if (mergePending) {
@@ -177,11 +184,11 @@ export function TournamentMergeDrawer({
                 disabled={mergePending}
               />
               <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
-                {ORGANIZER_EYEBROW}
+                {m.tournament.halfTeams.organizerEyebrow}
               </p>
             </div>
             <DrawerTitle className="font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
-              {MERGE_DRAWER_TITLE}
+              {m.tournament.halfTeams.drawerTitle}
             </DrawerTitle>
             <DrawerDescription className="text-body mt-2.5 leading-relaxed">
               {lead}

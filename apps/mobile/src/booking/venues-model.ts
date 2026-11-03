@@ -1,14 +1,19 @@
 import { courtCountLabel as courtCountLabelFor } from "@repo/domain/court-sport-copy";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import type { OpeningWindow } from "./slot-grid";
 
 export type VenueSort = "name" | "cheapest";
 
-export const VENUE_SORTS: { key: VenueSort; label: string }[] = [
-  { key: "name", label: "A to Z" },
-  { key: "cheapest", label: "Cheapest" },
-];
+export function venueSorts(locale: Locale): { key: VenueSort; label: string }[] {
+  const m = messagesFor(locale).mobileBooking.sort;
+  return [
+    { key: "name", label: m.aToZ },
+    { key: "cheapest", label: m.cheapest },
+  ];
+}
 
 type ListedVenue = {
   name: string;
@@ -44,68 +49,76 @@ export function sortVenues<T extends ListedVenue>(
 }
 
 /** Minutes after the Venue's midnight as a wall clock: "6 AM", "11:30 PM", "1 AM". */
-export function minutesLabel(minutes: number): string {
+export function minutesLabel(minutes: number, locale: Locale): string {
+  const m = messagesFor(locale).mobileBooking;
   const ofDay = ((minutes % 1440) + 1440) % 1440;
   if (ofDay === 0) {
-    return "Midnight";
+    return m.midnight;
   }
   const hour = Math.floor(ofDay / 60);
   const minute = ofDay % 60;
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-  const suffix = hour < 12 ? "AM" : "PM";
-  return minute === 0
-    ? `${hour12} ${suffix}`
-    : `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+  const suffix = hour < 12 ? m.am : m.pm;
+  return m.wallClock(
+    minute === 0
+      ? String(hour12)
+      : `${hour12}:${String(minute).padStart(2, "0")}`,
+    suffix,
+  );
 }
 
-export function hoursLabel(windows: readonly OpeningWindow[]): string {
+export function hoursLabel(
+  windows: readonly OpeningWindow[],
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).mobileBooking;
   if (windows.length === 0) {
-    return "Closed";
+    return m.closed;
   }
   return windows
-    .map(
-      (window) =>
-        `${minutesLabel(window.opensAtMinutes)} to ${minutesLabel(window.closesAtMinutes)}`,
+    .map((window) =>
+      m.hoursWindow(
+        minutesLabel(window.opensAtMinutes, locale),
+        minutesLabel(window.closesAtMinutes, locale),
+      ),
     )
-    .join(", ");
+    .join(m.hoursSeparator);
 }
 
 /** "Open to 11 PM" from the day's last window, or "Closed today". */
-export function openToLabel(windows: readonly OpeningWindow[]): string {
+export function openToLabel(
+  windows: readonly OpeningWindow[],
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).mobileBooking;
   const closes = Math.max(...windows.map((window) => window.closesAtMinutes));
   return windows.length === 0
-    ? "Closed today"
-    : `Open to ${minutesLabel(closes)}`;
+    ? m.closedToday
+    : m.openTo(minutesLabel(closes, locale));
 }
 
 export function courtCountLabel(
   count: number,
+  locale: Locale,
   sport: Sport = DEFAULT_SPORT,
 ): string {
-  return courtCountLabelFor(count, sport);
+  return courtCountLabelFor(count, sport, locale);
 }
 
 export function venuesEmptyCopy(
   query: string,
+  locale: Locale,
   sport: Sport = DEFAULT_SPORT,
 ): {
   title: string;
   description: string;
 } {
+  const m = messagesFor(locale).mobileBooking.venuesEmpty;
   return query.trim()
-    ? {
-        title: "No venue matches",
-        description: "Try another area or venue name.",
-      }
+    ? m.noMatch
     : sport === "football"
-      ? {
-          title: "No pitches to book yet",
-          description: "Venues with pitches show here once they open bookings.",
-        }
-      : {
-          title: "No venues to book yet",
-          description: "Venues show here once they open bookings on Temba.",
-        };
+      ? m.noPitches
+      : m.noVenues;
 }
 
 /**

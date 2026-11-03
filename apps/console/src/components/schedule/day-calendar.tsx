@@ -6,6 +6,7 @@ import type { MouseEvent } from "react";
 import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { cn } from "~/lib/utils";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { formatGameClock } from "@repo/domain/format-game-start";
 
 import { BookingBlock } from "./booking-block";
@@ -273,7 +274,7 @@ export function DayCalendar({
               style={{ left: AXIS_WIDTH + COLUMN_GAP, top: nowTop }}
             >
               <span className="bg-ink text-paper absolute -top-[18px] right-0 rounded-[4px] px-[5px] py-0.5 font-mono text-[10px]">
-                {formatGameClock(now)}
+                {formatGameClock(now, CONSOLE_LOCALE)}
               </span>
             </div>
           ) : null}

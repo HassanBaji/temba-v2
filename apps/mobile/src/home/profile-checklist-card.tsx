@@ -9,6 +9,8 @@ import {
 import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -40,10 +42,14 @@ function TaskRow({
   task: ProfileTask;
   onPress: () => void;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${task.title}. ${task.description}`}
+      accessibilityLabel={m.mobileHome.checklist.taskSpoken(
+        task.title,
+        task.description,
+      )}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: sizes.touchTarget,
@@ -64,7 +70,11 @@ function TaskRow({
           {task.description}
         </Text>
       </View>
-      <ChevronRight size={sizes.iconAction} color={colors.muted} />
+      <ChevronRight
+        size={sizes.iconAction}
+        color={colors.muted}
+        style={mirrorInRtl}
+      />
     </Pressable>
   );
 }
@@ -109,6 +119,8 @@ export function ProfileChecklistCard({
   onSkip,
   onShow,
 }: ProfileChecklistCardProps) {
+  const m = useMessages();
+  const locale = useLocale();
   const openTask = (task: ProfileTask) =>
     onNavigate({ kind: "profile-task", task: task.id });
 
@@ -118,7 +130,10 @@ export function ProfileChecklistCard({
       <Surface tone="paper" padded={false} style={{ overflow: "hidden" }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Profile ${list.done} of ${list.total}. Show the checklist`}
+          accessibilityLabel={m.mobileHome.checklist.chipSpoken(
+            list.done,
+            list.total,
+          )}
           onPress={onShow}
           style={({ pressed }) => ({
             minHeight: sizes.touchTarget,
@@ -131,7 +146,7 @@ export function ProfileChecklistCard({
           })}
         >
           <Text size="meta" weight="semibold" numberOfLines={1}>
-            {checklistChipLabel(list)}
+            {checklistChipLabel(list, locale)}
           </Text>
           <Text
             size="meta"
@@ -139,9 +154,13 @@ export function ProfileChecklistCard({
             numberOfLines={1}
             style={{ flex: 1, minWidth: 0 }}
           >
-            {checklistChipTasks(list)}
+            {checklistChipTasks(list, locale)}
           </Text>
-          <ChevronRight size={sizes.iconRow} color={colors.muted} />
+          <ChevronRight
+            size={sizes.iconRow}
+            color={colors.muted}
+            style={mirrorInRtl}
+          />
         </Pressable>
         {required.map((task) => (
           <View key={task.id}>
@@ -153,7 +172,7 @@ export function ProfileChecklistCard({
     );
   }
 
-  const rows = homeChecklistRows(list);
+  const rows = homeChecklistRows(list, locale);
   return (
     <Surface tone="paper" padded={false} style={{ overflow: "hidden" }}>
       <View
@@ -173,16 +192,16 @@ export function ProfileChecklistCard({
           }}
         >
           <Text size="lead" weight="semibold" accessibilityRole="header">
-            Complete your profile
+            {m.mobileHome.checklist.title}
           </Text>
           <Text size="eyebrow" tone="muted" mono uppercase>
-            {checklistCountLabel(list)}
+            {checklistCountLabel(list, locale)}
           </Text>
         </View>
         <ChecklistSegments
           done={list.done}
           total={list.total}
-          label={`Profile ${list.done} of ${list.total} done`}
+          label={m.mobileHome.checklist.progressSpoken(list.done, list.total)}
         />
       </View>
       {rows.shown.map((task) => (
@@ -202,11 +221,17 @@ export function ProfileChecklistCard({
       >
         <FooterLink
           label={rows.more}
-          accessibilityLabel={`${rows.more}. Open the checklist`}
-          icon={<ArrowRight size={FOOTER_ICON} color={colors.ink} />}
+          accessibilityLabel={m.mobileHome.checklist.moreSpoken(rows.more)}
+          icon={
+            <ArrowRight
+              size={FOOTER_ICON}
+              color={colors.ink}
+              style={mirrorInRtl}
+            />
+          }
           onPress={() => onNavigate({ kind: "complete-profile" })}
         />
-        <FooterLink label="Skip for now" onPress={onSkip} />
+        <FooterLink label={m.mobileHome.checklist.skipForNow} onPress={onSkip} />
       </View>
     </Surface>
   );

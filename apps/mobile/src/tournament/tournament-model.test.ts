@@ -12,7 +12,7 @@ const knockout = createKnockoutTournamentFixtures(now);
 
 describe("scorableMatches", () => {
   it("lists only Matches the viewer may score", () => {
-    const matches = scorableMatches(pool.postedMid);
+    const matches = scorableMatches(pool.postedMid, "en");
     expect(matches.length).toBeGreaterThan(0);
     const ids = new Set(
       pool.postedMid.matches
@@ -23,18 +23,27 @@ describe("scorableMatches", () => {
   });
 
   it("flags a level Knockout Match as needing a deciding Set", () => {
-    const [level] = scorableMatches(knockout.knockoutOnlyMid);
+    const [level] = scorableMatches(knockout.knockoutOnlyMid, "en");
     expect(level?.needsDecidingSet).toBe(true);
     expect(level?.note).toBe("Add a deciding Set");
     expect(level?.heading).toBe("Semi-finals, S1");
   });
 
   it("shows nothing to score once everything is final", () => {
-    expect(scorableMatches(knockout.knockoutOnlyChampion)).toEqual([]);
+    expect(scorableMatches(knockout.knockoutOnlyChampion, "en")).toEqual([]);
   });
 
   it("names Pool Matches by Round", () => {
     const first = pool.postedMid.matches[0];
-    expect(first && matchHeading(pool.postedMid, first)).toBe("Round 1");
+    expect(first && matchHeading(pool.postedMid, first, "en")).toBe("Round 1");
+  });
+
+  it("writes the headings in Arabic", () => {
+    const first = pool.postedMid.matches[0];
+    expect(first && matchHeading(pool.postedMid, first, "ar")).toBe(
+      "الجولة 1",
+    );
+    const [level] = scorableMatches(knockout.knockoutOnlyMid, "ar");
+    expect(level?.note).toBe("أضف شوطًا فاصلًا");
   });
 });

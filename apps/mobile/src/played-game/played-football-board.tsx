@@ -6,6 +6,7 @@ import type {
 } from "@repo/domain/played-game";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 
@@ -120,6 +121,7 @@ export function PlayedFootballBoard({
   hasWinner: boolean;
   scorers: { a: PlayedScorer[]; b: PlayedScorer[] } | null;
 }) {
+  const m = useMessages();
   const [a, b] = sides;
   const ink = (side: PlayedFootballSide) =>
     side.won || !hasWinner ? colors.paper : colors.muted;
@@ -127,7 +129,12 @@ export function PlayedFootballBoard({
     <View style={{ gap: 18 }}>
       <View
         accessible
-        accessibilityLabel={`${a.name} ${a.score}, ${b.name} ${b.score}`}
+        accessibilityLabel={m.mobilePlayer.played.scoreSpoken(
+          a.name,
+          a.score,
+          b.name,
+          b.score,
+        )}
         style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
       >
         <SideName side={a} align="left" />

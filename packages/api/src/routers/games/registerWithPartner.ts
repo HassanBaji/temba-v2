@@ -1,4 +1,6 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -23,10 +25,6 @@ import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range"
 import type { SeatPosition } from "#src/games/utils";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
 import {
-  LEVEL_RANGE_OUTSIDE_MESSAGE,
-  LEVEL_RANGE_PARTNER_MESSAGE,
-} from "@repo/domain/level-range";
-import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_FULL_MESSAGE,
 } from "@repo/domain/tournament-rounds";
@@ -41,12 +39,20 @@ export async function registerWithPartner(
     partnerUserId: string;
     sideIndex?: number;
     position?: SeatPosition;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   assertPoolDrawNotPosted(game);
   const now = new Date();
-  await assertCanRegisterWithPartner(database, game, args.userId, now);
+  await assertCanRegisterWithPartner(
+    database,
+    game,
+    args.userId,
+    now,
+    locale,
+  );
 
   const partner = await database.query.user.findFirst({
     where: eq(user.id, args.partnerUserId),
@@ -82,13 +88,13 @@ export async function registerWithPartner(
   if (!(await userAllowedByLevelRange(database, game, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+      message: messagesFor(locale).level.rangeOutside,
     });
   }
   if (!(await userAllowedByLevelRange(database, game, partner.id))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: LEVEL_RANGE_PARTNER_MESSAGE,
+      message: messagesFor(locale).level.rangePartner,
     });
   }
 
@@ -144,6 +150,7 @@ export async function registerWithPartner(
         },
         now,
       }),
+      locale,
       "pair",
     );
   });
@@ -168,5 +175,6 @@ export const registerWithPartnerProcedure = protectedProcedure
       partnerUserId: input.partnerUserId,
       sideIndex: input.sideIndex,
       position: input.position,
+      locale: ctx.locale,
     });
   });

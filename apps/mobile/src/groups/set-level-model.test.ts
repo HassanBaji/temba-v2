@@ -25,6 +25,7 @@ describe("setLevelView", () => {
   it("starts from the current Level and says it counts as confirmed", () => {
     const view = setLevelView(
       entry({ level: "3.8", levelBand: "C2", levelProvisional: false }),
+      "en",
     );
     expect(view.currentTenths).toBe(38);
     expect(view.wasLabel).toBe("was C+ 3.8");
@@ -37,6 +38,7 @@ describe("setLevelView", () => {
   it("adds the Provisional sentence for a Provisional member", () => {
     const view = setLevelView(
       entry({ level: "2.4", levelBand: "C1", levelProvisional: true }),
+      "en",
     );
     expect(view.alreadyConfirmed).toBe(false);
     expect(view.note).toBe(
@@ -47,9 +49,20 @@ describe("setLevelView", () => {
   it("starts a member with no Rating at Level 3.0", () => {
     const view = setLevelView(
       entry({ level: null, levelBand: null, levelProvisional: true }),
+      "en",
     );
     expect(view.currentTenths).toBe(30);
     expect(view.wasLabel).toBe("no Level yet");
+  });
+
+  it("reads the note and the was label in Arabic", () => {
+    const view = setLevelView(
+      entry({ level: "2.4", levelBand: "C1", levelProvisional: true }),
+      "ar",
+    );
+    expect(view.wasLabel).toBe("كان C- 2.4");
+    expect(view.note).toContain("Sara");
+    expect(view.note).toMatch(/[\u0600-\u06FF]/);
   });
 });
 
@@ -57,9 +70,11 @@ describe("setLevelUnchanged", () => {
   it("blocks only an unchanged value on an already confirmed Level", () => {
     const confirmed = setLevelView(
       entry({ level: "3.8", levelBand: "C2", levelProvisional: false }),
+      "en",
     );
     const provisional = setLevelView(
       entry({ level: "3.8", levelBand: "C2", levelProvisional: true }),
+      "en",
     );
     expect(setLevelUnchanged(confirmed, 38)).toBe(true);
     expect(setLevelUnchanged(confirmed, 39)).toBe(false);
@@ -69,7 +84,8 @@ describe("setLevelUnchanged", () => {
 
 describe("setLevelConfirmLabel", () => {
   it("names the letter and the Level", () => {
-    expect(setLevelConfirmLabel(46)).toBe("Set to B- 4.6");
+    expect(setLevelConfirmLabel(46, "en")).toBe("Set to B- 4.6");
+    expect(setLevelConfirmLabel(46, "ar")).toBe("تحديد على B- 4.6");
   });
 });
 
@@ -110,18 +126,23 @@ describe("paths and saved banner", () => {
 
   it("words the banner with an optional reason and no Undo", () => {
     expect(
-      savedLevelText({
-        name: "Sara K",
-        levelLabel: "B 4.6",
-        reason: "back_from_injury",
-      }),
+      savedLevelText(
+        {
+          name: "Sara K",
+          levelLabel: "B 4.6",
+          reason: "back_from_injury",
+        },
+        "en",
+      ),
     ).toEqual({
       headline: "Sara K set to B 4.6.",
       reason: "Reason: back from injury.",
     });
     expect(
-      savedLevelText({ name: "Sara K", levelLabel: "B 4.6", reason: null })
-        .reason,
+      savedLevelText(
+        { name: "Sara K", levelLabel: "B 4.6", reason: null },
+        "en",
+      ).reason,
     ).toBeNull();
   });
 });

@@ -3,6 +3,7 @@
 import { BellIcon } from "lucide-react";
 import Link from "next/link";
 
+import { useMessages } from "~/components/locale-provider";
 import { useInviteInboxCount } from "~/hooks/use-invite-inbox-count";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -16,12 +17,15 @@ export function NotificationBell({ className }: { className?: string }) {
     refetchOnWindowFocus: true,
   });
   const inviteCount = useInviteInboxCount();
+  const m = useMessages();
   const showDot = (unread.data?.count ?? 0) > 0 || inviteCount > 0;
 
   return (
     <Link
       href="/dashboard/notifications"
-      aria-label={showDot ? "Notifications, unread" : "Notifications"}
+      aria-label={
+        showDot ? m.webUi.notificationBell.unread : m.webUi.notificationBell.label
+      }
       className={cn(
         "border-rule text-ink focus-visible:ring-ring/50 relative flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]",
         className,

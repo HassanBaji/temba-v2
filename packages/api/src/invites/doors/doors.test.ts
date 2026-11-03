@@ -88,6 +88,7 @@ describe("Invite doors", () => {
         await acceptLookup(db, host, {
           inviteId: minted.invite.id,
           userId: invitee.id,
+          locale: "en",
         }),
       ).toEqual({ ok: false, reason: "frozen" });
 
@@ -149,6 +150,7 @@ describe("Invite doors", () => {
         await acceptLookup(db, host, {
           inviteId: minted.invite.id,
           userId: invitee.id,
+          locale: "en",
         }),
       ).toEqual({ ok: false, reason: "seat_required" });
 
@@ -156,6 +158,7 @@ describe("Invite doors", () => {
         inviteId: minted.invite.id,
         userId: invitee.id,
         seat: { sideIndex: 2, position: "right" },
+        locale: "en",
       });
       expect(accepted).toMatchObject({
         ok: true,
@@ -224,6 +227,7 @@ describe("Invite doors", () => {
       const accepted = await acceptLookup(db, host, {
         inviteId: minted.invite.id,
         userId: invitee.id,
+        locale: "en",
       });
       expect(accepted).toMatchObject({ ok: true, alreadyMember: false });
 
@@ -433,6 +437,7 @@ describe("Invite doors", () => {
       const acceptedOld = await acceptLink(db, "group", {
         token: first.link.token,
         userId: invitee.id,
+        locale: "en",
       });
       expect(acceptedOld).toMatchObject({ ok: true, hostId: group.id });
     } finally {
@@ -470,6 +475,7 @@ describe("Invite doors", () => {
       const accepted = await acceptLink(db, "group", {
         token: legacy.token,
         userId: invitee.id,
+        locale: "en",
       });
       expect(accepted).toMatchObject({ ok: true, hostId: group.id });
     } finally {
@@ -518,6 +524,7 @@ describe("Invite doors", () => {
         token: first.link.token,
         userId: invitee.id,
         seat: { sideIndex: 1, position: "left" },
+        locale: "en",
       });
       expect(acceptedOld).toMatchObject({ ok: true, hostId: game.id });
     } finally {
@@ -586,6 +593,7 @@ describe("Invite doors", () => {
         token: legacy.token,
         userId: invitee.id,
         seat: { sideIndex: 1, position: "right" },
+        locale: "en",
       });
       expect(accepted).toMatchObject({ ok: true, hostId: game.id });
       expect(

@@ -13,12 +13,13 @@ import {
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import {
   ENTITY_IMAGE_ACCEPT,
-  ENTITY_IMAGE_HELP,
   entityImageFileError,
   type EntityImageNoun,
 } from "@repo/domain/entity-image-file";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { controlClass, labelClass } from "./details-styles";
 
@@ -110,7 +111,7 @@ export function EntityImageField({
           if (!next) {
             return;
           }
-          const message = entityImageFileError(next, noun);
+          const message = entityImageFileError(next, CONSOLE_LOCALE, noun);
           if (message) {
             onError(message);
             return;
@@ -120,7 +121,7 @@ export function EntityImageField({
         }}
       />
       <FieldDescription id={`${id}-help`} className="text-xs">
-        {ENTITY_IMAGE_HELP}
+        {messagesFor(CONSOLE_LOCALE).createGame.image.help}
       </FieldDescription>
       <p
         role="status"

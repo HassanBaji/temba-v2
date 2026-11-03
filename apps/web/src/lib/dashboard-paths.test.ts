@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   detailBackHref,
   groupMembersTabHref,
@@ -10,27 +12,29 @@ import {
   titleFromPath,
 } from "./dashboard-paths";
 
+const en = messagesFor("en");
+
 describe("titleFromPath", () => {
   it("titles the Notifications page", () => {
-    assert.equal(titleFromPath("/dashboard/notifications"), "Notifications");
+    assert.equal(titleFromPath("/dashboard/notifications", en), "Notifications");
   });
 
   it("titles Settings for the Profile settings route", () => {
-    assert.equal(titleFromPath("/dashboard/you/settings"), "Settings");
+    assert.equal(titleFromPath("/dashboard/you/settings", en), "Settings");
   });
 
   it("titles Profile for the rest of /dashboard/you", () => {
-    assert.equal(titleFromPath("/dashboard/you"), "Profile");
-    assert.equal(titleFromPath("/dashboard/you/extra"), "Profile");
+    assert.equal(titleFromPath("/dashboard/you", en), "Profile");
+    assert.equal(titleFromPath("/dashboard/you/extra", en), "Profile");
   });
 
   it("keeps Create Game for the single create route", () => {
-    assert.equal(titleFromPath("/dashboard/games/new"), "Create Game");
+    assert.equal(titleFromPath("/dashboard/games/new", en), "Create Game");
   });
 
   it("uses Create Game for the retired tournament path", () => {
     assert.equal(
-      titleFromPath("/dashboard/games/new-tournament"),
+      titleFromPath("/dashboard/games/new-tournament", en),
       "Create Game",
     );
   });
@@ -55,7 +59,7 @@ describe("detailBackHref", () => {
   });
 
   it("titles the Operator Groups page", () => {
-    assert.equal(titleFromPath("/dashboard/operator/groups"), "Verify Groups");
+    assert.equal(titleFromPath("/dashboard/operator/groups", en), "Verify Groups");
   });
 
   it("keeps existing detail back targets", () => {
@@ -141,9 +145,9 @@ describe("Player profile paths", () => {
   });
 
   it("titles the Player profile and its Last 10 page", () => {
-    assert.equal(titleFromPath(`/dashboard/players/${userId}`), "Player");
+    assert.equal(titleFromPath(`/dashboard/players/${userId}`, en), "Player");
     assert.equal(
-      titleFromPath(`/dashboard/players/${userId}/matches`),
+      titleFromPath(`/dashboard/players/${userId}/matches`, en),
       "Last 10 games",
     );
   });

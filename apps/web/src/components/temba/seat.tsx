@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
 
 import { UserAvatar } from "~/components/common/user-avatar";
-import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -50,17 +52,19 @@ export function OpenSeat({
 }
 
 export function YouTag() {
+  const m = useMessages();
   return (
     <span className="border-ink text-ink shrink-0 rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em]">
-      You
+      {m.common.you}
     </span>
   );
 }
 
 export function NotOnTembaTag() {
+  const m = useMessages();
   return (
     <span className="border-ink text-ink shrink-0 rounded-full border px-1.5 py-px text-[10px] font-medium">
-      {NOT_ON_TEMBA_YET_LABEL}
+      {m.group.addPlayer.notOnTembaYet}
     </span>
   );
 }
@@ -177,6 +181,7 @@ export function SeatTile({
   /** Links a taken tile. */
   href?: string;
 }) {
+  const m = useMessages();
   const taken = occupant != null;
   const picked = selected === true;
   const surface = cn(
@@ -206,7 +211,7 @@ export function SeatTile({
       ) : null}
     </>
   ) : picked ? (
-    <span className="text-meta font-semibold">You</span>
+    <span className="text-meta font-semibold">{m.common.you}</span>
   ) : (
     <span aria-hidden="true" className="text-lead leading-none">
       +

@@ -4,6 +4,7 @@ import * as React from "react";
 import { XIcon } from "lucide-react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 function Drawer({
@@ -59,6 +60,7 @@ function DrawerContent({
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const m = useMessages();
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />
@@ -85,7 +87,7 @@ function DrawerContent({
             className="bg-wash text-ink focus-visible:ring-ring/50 absolute end-4 top-4 inline-flex size-9 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]"
           >
             <XIcon aria-hidden="true" className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{m.common.close}</span>
           </DrawerPrimitive.Close>
         ) : null}
       </DrawerPrimitive.Content>

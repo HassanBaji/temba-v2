@@ -5,25 +5,21 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   GroupCreateForm,
   type GroupCreateValues,
 } from "~/components/groups/group-create-form";
 import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
-import {
-  GROUP_CREATED_WITHOUT_IMAGE_TOAST,
-  entityImageUploadInput,
-} from "@repo/domain/entity-image-file";
-import {
-  GROUP_CREATED_TOAST,
-  GROUP_CREATE_SCREEN,
-} from "@repo/domain/group-create";
+import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 
 /** Design "Group create and edit flow" 01. */
 export default function NewLooseGroupPage() {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const utils = api.useUtils();
 
@@ -54,14 +50,14 @@ export default function NewLooseGroupPage() {
   ) {
     if (image) {
       try {
-        const input = await entityImageUploadInput(image);
+        const input = await entityImageUploadInput(image, locale);
         await uploadImage.mutateAsync({
           groupId: group.id,
           contentType: input.contentType,
           dataBase64: input.dataBase64,
         });
       } catch {
-        toast.success(GROUP_CREATED_WITHOUT_IMAGE_TOAST);
+        toast.success(m.createGame.image.groupCreatedWithoutImage);
         await utils.groups.mine.invalidate();
         router.push(`/dashboard/groups/${group.id}`);
         return;
@@ -80,7 +76,7 @@ export default function NewLooseGroupPage() {
           name: values.name,
           sport: values.sport,
         });
-        await afterCreate(group, values.image, GROUP_CREATED_TOAST);
+        await afterCreate(group, values.image, m.group.create.createdToast);
         return;
       }
       createLoosePrivate.reset();
@@ -89,7 +85,7 @@ export default function NewLooseGroupPage() {
         sport: values.sport,
         requiresApproval: values.requiresApproval,
       });
-      await afterCreate(group, values.image, GROUP_CREATED_TOAST);
+      await afterCreate(group, values.image, m.group.create.createdToast);
     } catch {
       return;
     }
@@ -97,7 +93,7 @@ export default function NewLooseGroupPage() {
 
   return (
     <DashboardShell
-      title={GROUP_CREATE_SCREEN.title}
+      title={m.group.create.screen.title}
       hidePageHeader
       hideMobileTopBar
     >
@@ -107,22 +103,22 @@ export default function NewLooseGroupPage() {
             <BackButton
               variant="boxed"
               href="/dashboard/groups"
-              label="Back to Groups"
+              label={m.group.home.backToGroups}
             />
             <Link
               href="/dashboard/groups"
               aria-disabled={isPending || undefined}
               className="text-body text-muted-foreground hover:text-ink inline-flex min-h-11 items-center px-1.5"
             >
-              {GROUP_CREATE_SCREEN.cancel}
+              {m.common.cancel}
             </Link>
           </div>
           <div className="flex flex-col gap-1.5">
             <PageTitle variant="hero" className="text-ink text-[30px]">
-              {GROUP_CREATE_SCREEN.title}
+              {m.group.create.screen.title}
             </PageTitle>
             <p className="text-body text-muted-foreground">
-              {GROUP_CREATE_SCREEN.description.loose}
+              {m.group.create.screen.description.loose}
             </p>
           </div>
         </header>

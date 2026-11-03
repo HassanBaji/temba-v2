@@ -3,19 +3,13 @@
 import { TournamentKnockoutRound } from "~/components/games/tournament-knockout-tree";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   draftKnockoutFirstRound,
   hasDraftKnockoutDraw,
   type KnockoutViewGameTeam,
 } from "@repo/domain/tournament-knockout-view";
-import {
-  DRAW_AGAIN_ACTION,
-  DRAW_KNOCKOUT_ACTION,
-  DRAW_KNOCKOUT_EMPTY_DRAFT_COPY,
-  POST_KNOCKOUT_DRAW_ACTION,
-  POST_KNOCKOUT_DRAW_FOOTER_COPY,
-} from "@repo/domain/tournament-pool-draw";
 
 export function TournamentKnockoutDrawPanel({
   gameTeams,
@@ -36,9 +30,11 @@ export function TournamentKnockoutDrawPanel({
   postError: { message: string; data?: { zodError?: unknown } | null } | null;
   onPost: () => void | Promise<void>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const hasDraft = hasDraftKnockoutDraw(gameTeams);
   const firstRound = hasDraft
-    ? draftKnockoutFirstRound({ gameTeams, viewerUserId })
+    ? draftKnockoutFirstRound({ gameTeams, viewerUserId, locale })
     : null;
   const busy = drawPending || postPending;
 
@@ -60,7 +56,7 @@ export function TournamentKnockoutDrawPanel({
           <TournamentKnockoutRound round={firstRound} />
         ) : (
           <p className="text-muted-foreground text-body leading-relaxed">
-            {DRAW_KNOCKOUT_EMPTY_DRAFT_COPY}
+            {m.tournament.poolDraw.knockoutEmptyDraft}
           </p>
         )}
 
@@ -82,7 +78,9 @@ export function TournamentKnockoutDrawPanel({
                 void confirmPost();
               }}
             >
-              {postPending ? "Posting…" : POST_KNOCKOUT_DRAW_ACTION}
+              {postPending
+                ? m.webTournament.draw.posting
+                : m.tournament.poolDraw.postKnockout}
             </Button>
             <Button
               type="button"
@@ -95,10 +93,12 @@ export function TournamentKnockoutDrawPanel({
                 void onDraw();
               }}
             >
-              {drawPending ? "Drawing…" : DRAW_AGAIN_ACTION}
+              {drawPending
+                ? m.webTournament.draw.drawing
+                : m.tournament.poolDraw.drawAgain}
             </Button>
             <p className="text-muted-foreground text-meta text-center leading-relaxed">
-              {POST_KNOCKOUT_DRAW_FOOTER_COPY}
+              {m.tournament.poolDraw.postKnockoutFooter}
             </p>
           </>
         ) : (
@@ -112,7 +112,9 @@ export function TournamentKnockoutDrawPanel({
               void onDraw();
             }}
           >
-            {drawPending ? "Drawing…" : DRAW_KNOCKOUT_ACTION}
+            {drawPending
+              ? m.webTournament.draw.drawing
+              : m.tournament.poolDraw.drawKnockout}
           </Button>
         )}
       </div>

@@ -12,6 +12,7 @@ import {
 import { Plus } from "lucide-react";
 import * as React from "react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -57,9 +58,11 @@ function SideRow({
   bibs: Bibs;
   onChange: (bibs: Bibs) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const current = side === 1 ? bibs.slot1 : bibs.slot2;
   const [more, setMore] = React.useState(MORE_FOOTBALL_BIBS.includes(current));
-  const label = side === 1 ? "Team A" : "Team B";
+  const label = side === 1 ? m.webTournament.bibs.teamA : m.webTournament.bibs.teamB;
   const swatch = (bib: FootballBib) => {
     const selected = bib === current;
     return (
@@ -68,7 +71,10 @@ function SideRow({
         type="button"
         role="radio"
         aria-checked={selected}
-        aria-label={`${label}, ${footballBibName(bib, side)}`}
+        aria-label={m.webTournament.bibs.swatchLabel(
+          label,
+          footballBibName(bib, side, locale),
+        )}
         onClick={() => onChange(pickFootballBib(bibs, side, bib))}
         className={cn(
           "focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-full border-2 outline-none focus-visible:ring-[3px]",
@@ -86,7 +92,7 @@ function SideRow({
     <div className="space-y-1.5">
       <div
         role="radiogroup"
-        aria-label={`${label} bib colour`}
+        aria-label={m.webTournament.bibs.groupLabel(label)}
         className="flex flex-wrap items-center gap-0.5"
       >
         <span className="text-muted-foreground text-meta w-16 shrink-0">
@@ -95,7 +101,7 @@ function SideRow({
         {PRIMARY_FOOTBALL_BIBS.map(swatch)}
         <button
           type="button"
-          aria-label="More colours"
+          aria-label={m.webTournament.bibs.moreColours}
           aria-expanded={more}
           onClick={() => setMore((open) => !open)}
           className="focus-visible:ring-ring/50 flex size-10 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]"
@@ -126,18 +132,23 @@ export function BibPicker({
   bibs: Bibs;
   onChange: (bibs: Bibs) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <section className="border-rule bg-paper space-y-3 rounded-xl border p-[22px]">
       <div className="text-muted-foreground text-meta flex justify-between">
-        <span>Bib colours</span>
+        <span>{m.webTournament.bibs.heading}</span>
         <span>
-          {footballBibName(bibs.slot1, 1)} vs {footballBibName(bibs.slot2, 2)}
+          {m.webTournament.bibs.versus(
+            footballBibName(bibs.slot1, 1, locale),
+            footballBibName(bibs.slot2, 2, locale),
+          )}
         </span>
       </div>
       <SideRow side={1} bibs={bibs} onChange={onChange} />
       <SideRow side={2} bibs={bibs} onChange={onChange} />
       <p className="text-muted-foreground text-meta">
-        The plus opens more colours. The organizer brings both sets of bibs.
+        {m.webTournament.bibs.note}
       </p>
     </section>
   );

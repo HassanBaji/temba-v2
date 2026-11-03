@@ -6,6 +6,7 @@ import {
 } from "@repo/domain/verification-code";
 import * as React from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { OtpInput } from "~/components/ui/otp-input";
 import { Button, touchHitArea } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
@@ -27,8 +28,8 @@ export function VerifyCodeForm({
   codeError,
   codeInputId = "sign-up-code",
   summaryRef,
-  verifyLabel = "Verify",
-  helper = "Button unlocks at six digits",
+  verifyLabel,
+  helper,
   children,
 }: {
   destination: string;
@@ -50,6 +51,7 @@ export function VerifyCodeForm({
   /** Rendered under the code, before the resend row. */
   children?: React.ReactNode;
 }) {
+  const m = useMessages();
   const ready = isVerificationCodeComplete(code);
   const autoVerify = React.useRef(false);
 
@@ -75,7 +77,7 @@ export function VerifyCodeForm({
       }}
     >
       <p className="text-body text-muted-foreground">
-        Sent to {destination}.{" "}
+        {m.webAuth.verify.sentTo(destination)}{" "}
         <button
           type="button"
           className={cn(
@@ -112,18 +114,18 @@ export function VerifyCodeForm({
           type="submit"
           size="lg"
           pending={ready && pending}
-          pendingLabel="Verifying…"
+          pendingLabel={m.webAuth.verify.verifying}
           disabled={!ready || pending}
           className="w-full font-semibold"
         >
-          {verifyLabel}
+          {verifyLabel ?? m.webAuth.verify.verify}
         </Button>
         {ready ? null : (
           <p
             id={helperId}
             className="text-eyebrow text-muted-foreground mt-3 text-center"
           >
-            {helper}
+            {helper ?? m.webAuth.verify.helper}
           </p>
         )}
       </div>

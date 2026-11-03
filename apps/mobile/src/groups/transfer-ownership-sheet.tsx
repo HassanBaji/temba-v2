@@ -8,6 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -36,26 +37,31 @@ export function TransferOwnershipSheet({
   onTransfer: (member: { userId: string; name: string }) => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [pickedId, setPickedId] = useState<string | null>(null);
   useEffect(() => {
     if (visible) {
       setPickedId(null);
     }
   }, [visible]);
-  const copy = groupTransferOwnershipCopy(groupName);
+  const copy = groupTransferOwnershipCopy(groupName, locale);
   const candidates = groupTransferCandidates(members);
   const picked = candidates.find((member) => member.userId === pickedId);
   const tall = candidates.length >= TALL_FROM;
 
   const confirm = (
     <Button
-      label={groupTransferConfirmLabel(picked?.name ?? null)}
+      label={groupTransferConfirmLabel(picked?.name ?? null, locale)}
       size="lg"
       pending={pending}
       disabled={!picked}
       onPress={() => {
         if (picked) {
-          onTransfer({ userId: picked.userId, name: picked.name ?? "Member" });
+          onTransfer({
+            userId: picked.userId,
+            name: picked.name ?? m.mobileGroup.unnamedMember,
+          });
         }
       }}
     />
@@ -84,13 +90,13 @@ export function TransferOwnershipSheet({
             style={{ overflow: "hidden" }}
           >
             {candidates.map((member, index) => {
-              const name = member.name ?? "Member";
+              const name = member.name ?? m.mobileGroup.unnamedMember;
               return (
                 <View key={member.userId}>
                   {index > 0 ? <Hairline /> : null}
                   <RadioRow
                     title={name}
-                    description={groupMemberTableCaption(member)}
+                    description={groupMemberTableCaption(member, locale)}
                     selected={member.userId === pickedId}
                     disabled={pending}
                     onPress={() => setPickedId(member.userId)}

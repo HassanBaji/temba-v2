@@ -2,12 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { bookings, user } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import {
   ONLINE_PAYMENT_METHODS,
   paymentHoldExpiresAt,
   type BookingPaymentMethod,
 } from "@repo/domain/booking-payment";
-import { SLOT_REFUSAL_MESSAGES } from "@repo/domain/booking-copy";
+import { slotRefusalMessage } from "@repo/domain/booking-copy";
 import { evaluateSlot } from "@repo/domain/booking-slots";
 import { eq } from "drizzle-orm";
 import { type db } from "#src/db";
@@ -41,6 +42,7 @@ export async function createBooking(
     paymentMethod?: BookingPaymentMethod;
     userId: string;
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const now = args.now ?? new Date();
@@ -82,7 +84,10 @@ export async function createBooking(
     if (!check.ok) {
       throw new TRPCError({
         code: check.reason === "taken" ? "CONFLICT" : "BAD_REQUEST",
-        message: SLOT_REFUSAL_MESSAGES[check.reason],
+        message: slotRefusalMessage(
+          check.reason,
+          args.locale ?? DEFAULT_LOCALE,
+        ),
       });
     }
 
@@ -168,5 +173,9 @@ export const createProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return createBooking(ctx.db, { ...input, userId: appUser.id });
+    return createBooking(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

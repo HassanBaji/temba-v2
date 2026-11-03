@@ -1,6 +1,7 @@
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
@@ -10,9 +11,9 @@ import { DetailRow, Notice } from "./booking-parts";
 import { venuePath } from "./booking-model";
 import { hoursLabel } from "./venues-model";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 export function VenueDetailsScreen({ venueId }: { venueId: string }) {
+  const m = useMessages();
+  const locale = useLocale();
   const venue = api.bookings.venueForBooking.useQuery(
     { venueId },
     { enabled: Boolean(venueId) },
@@ -26,11 +27,11 @@ export function VenueDetailsScreen({ venueId }: { venueId: string }) {
           <Notice
             title={
               isNotFoundError(venue.error)
-                ? "This venue is not taking bookings"
-                : "The venue could not be loaded"
+                ? m.mobileBooking.venueScreen.notTakingBookings
+                : m.mobileBooking.venueScreen.loadError
             }
             description={venue.error.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => void venue.refetch()}
           />
         ) : (
@@ -53,19 +54,19 @@ export function VenueDetailsScreen({ venueId }: { venueId: string }) {
         title={data.name}
       />
       <View>
-        <DetailRow label="Opening hours" first>
+        <DetailRow label={m.mobileBooking.openingHours} first>
           {data.openingHours.map((entry) => (
             <Text
               key={entry.weekday}
               size="meta"
               style={{ textAlign: "right" }}
             >
-              {`${WEEKDAYS[entry.weekday]}  ${hoursLabel(entry.windows)}`}
+              {`${m.mobileBooking.weekdayShort(entry.weekday)}  ${hoursLabel(entry.windows, locale)}`}
             </Text>
           ))}
         </DetailRow>
         {data.phone ? (
-          <DetailRow label="Venue">
+          <DetailRow label={m.mobileBooking.venue}>
             <Text size="meta">{data.phone}</Text>
           </DetailRow>
         ) : null}

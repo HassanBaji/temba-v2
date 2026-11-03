@@ -6,6 +6,7 @@ import { Pressable, View } from "react-native";
 
 import { AuthScreen } from "../auth/auth-screen";
 import { FormErrorSummary } from "../auth/form-error-summary";
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { CachedImage } from "../primitives/cached-image";
 import { Hatch } from "../primitives/hatch";
@@ -23,12 +24,14 @@ const CIRCLE = 168;
 const ICON = 18;
 
 export function PhotoTaskScreen() {
+  const m = useMessages();
+  const t = m.mobileHome.photoTask;
   const { user } = useUser();
   const { pickPhoto, savePhoto, pending } = useProfilePhoto();
   const [photo, setPhoto] = useState<PickedPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const name = user?.fullName ?? user?.firstName ?? "You";
+  const name = user?.fullName ?? user?.firstName ?? m.common.you;
   const initials = initialsFor(name);
 
   async function onPick(source: PhotoSource) {
@@ -59,13 +62,13 @@ export function PhotoTaskScreen() {
   return (
     <AuthScreen
       onBack={backToChecklist}
-      meta="Profile / Photo"
-      title="Add a photo"
-      description="A clear face shot helps organizers spot you at the court. Shown to group members and people in your games."
+      meta={t.meta}
+      title={t.title}
+      description={t.description}
       action={
         <>
           <Button
-            label="Save photo"
+            label={t.save}
             size="lg"
             pending={pending && photo !== null}
             disabled={!photo || pending}
@@ -82,7 +85,7 @@ export function PhotoTaskScreen() {
               tone="muted"
               style={{ textAlign: "center", textDecorationLine: "underline" }}
             >
-              Not now
+              {m.mobileHome.tasks.notNow}
             </Text>
           </Pressable>
         </>
@@ -93,7 +96,7 @@ export function PhotoTaskScreen() {
         <View
           accessible
           accessibilityRole="image"
-          accessibilityLabel={photo ? "Your new profile photo" : "No photo yet"}
+          accessibilityLabel={photo ? t.newPhotoSpoken : t.noPhotoSpoken}
           style={{
             width: CIRCLE,
             height: CIRCLE,
@@ -114,18 +117,18 @@ export function PhotoTaskScreen() {
             <>
               <Hatch radius={CIRCLE / 2} bordered={false} />
               <Text size="eyebrow" tone="muted" mono uppercase>
-                Profile photo
+                {t.placeholder}
               </Text>
             </>
           )}
         </View>
         <Text size="meta" tone="muted">
-          Until then you show as {initials}
+          {t.untilThen(initials)}
         </Text>
       </View>
       <View style={{ gap: 10 }}>
         <Button
-          label="Take a photo"
+          label={t.takePhoto}
           size="lg"
           variant="outline"
           disabled={pending}
@@ -133,7 +136,7 @@ export function PhotoTaskScreen() {
           onPress={() => void onPick("camera")}
         />
         <Button
-          label="Choose from library"
+          label={t.chooseFromLibrary}
           size="lg"
           variant="outline"
           disabled={pending}

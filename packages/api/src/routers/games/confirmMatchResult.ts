@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -9,7 +10,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
 import {
-  KNOCKOUT_LEVEL_MESSAGE,
+  knockoutLevelMessage,
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
@@ -35,7 +36,7 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  */
 export async function confirmMatchResult(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string; slot?: MatchSlot },
+  args: { gameId: string; matchId: string; userId: string; slot?: MatchSlot ; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);
@@ -86,7 +87,7 @@ export async function confirmMatchResult(
   if (knockoutMatchIsLevel(match, outcome.result)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: KNOCKOUT_LEVEL_MESSAGE,
+      message: knockoutLevelMessage(args.locale ?? DEFAULT_LOCALE),
     });
   }
 
@@ -116,5 +117,6 @@ export const confirmMatchResultProcedure = protectedProcedure
       matchId: input.matchId,
       userId: appUser.id,
       slot: input.slot,
+      locale: ctx.locale,
     });
   });

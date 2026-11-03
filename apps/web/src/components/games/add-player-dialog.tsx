@@ -19,20 +19,16 @@ import {
 import { Button } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
 import {
-  ADD_PLAYER_ACTION,
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
   ADD_PLAYER_DEFAULT_FOOTBALL_POSITION,
   ADD_PLAYER_DEFAULT_FOOTBALL_ROLE,
   ADD_PLAYER_DEFAULT_LEVEL,
-  ADD_PLAYER_DESCRIPTION,
-  ADD_PLAYER_FOOTBALL_POSITION_CHOICES,
-  ADD_PLAYER_FOOTBALL_ROLE_CHOICES,
-  ADD_PLAYER_NO_SEAT_COPY,
-  ADD_PLAYER_NO_SIDE_COPY,
   addPlayerAddedToast,
   addPlayerCanSubmit,
   addPlayerCompletePhone,
   addPlayerFootballInput,
+  addPlayerFootballPositionChoices,
+  addPlayerFootballRoleChoices,
   addPlayerPreviewLine,
   addPlayerSeatChoices,
   addPlayerSideChoices,
@@ -45,6 +41,7 @@ import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
 
 function seatKey(seat: FriendlyGameJoinSeat) {
@@ -68,6 +65,8 @@ export function AddPlayerDialog({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   onAdded: () => Promise<unknown>;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [countryIso, setCountryIso] = React.useState(
     DEFAULT_CALLING_COUNTRY_ISO,
   );
@@ -89,12 +88,12 @@ export function AddPlayerDialog({
   const [pickedSide, setPickedSide] = React.useState<number | null>(null);
 
   const isFootball = placement === "football";
-  const seatChoices = placement === "seat" ? addPlayerSeatChoices(sides) : [];
+  const seatChoices = placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
   const seat =
     seatChoices.find((choice) => sameJoinSeat(choice.seat, picked))?.seat ??
     seatChoices[0]?.seat ??
     null;
-  const sideChoices = placement === "side" ? addPlayerSideChoices(sides) : [];
+  const sideChoices = placement === "side" ? addPlayerSideChoices(sides, locale) : [];
   const side =
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
@@ -115,7 +114,7 @@ export function AddPlayerDialog({
 
   const add = api.games.addPlayerByPhone.useMutation({
     onSuccess: async (result) => {
-      toast.success(addPlayerAddedToast(result.name));
+      toast.success(addPlayerAddedToast(result.name, locale));
       setNational("");
       setName("");
       setLevel(ADD_PLAYER_DEFAULT_LEVEL);
@@ -166,9 +165,11 @@ export function AddPlayerDialog({
     >
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>{ADD_PLAYER_ACTION}</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            {m.group.addPlayer.action}
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {ADD_PLAYER_DESCRIPTION}
+            {m.group.addPlayer.description}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
@@ -185,7 +186,7 @@ export function AddPlayerDialog({
             preview={
               previewData
                 ? {
-                    line: addPlayerPreviewLine(previewData),
+                    line: addPlayerPreviewLine(previewData, locale),
                     kind: previewData.kind,
                     phoneMasked: previewData.phoneMasked,
                   }
@@ -206,20 +207,20 @@ export function AddPlayerDialog({
           {isFootball ? (
             <>
               <Group>
-                <SectionLabel label="Plays as" />
+                <SectionLabel label={m.webGame.addPlayer.playsAs} />
                 <TileChoices
-                  label="Plays as"
-                  choices={ADD_PLAYER_FOOTBALL_ROLE_CHOICES}
+                  label={m.webGame.addPlayer.playsAs}
+                  choices={addPlayerFootballRoleChoices(locale)}
                   value={role}
                   onSelect={setRole}
                 />
               </Group>
               {role === "outfield" ? (
                 <Group>
-                  <SectionLabel label="Preferred position" />
+                  <SectionLabel label={m.webGame.addPlayer.preferredPosition} />
                   <TileChoices
-                    label="Preferred position"
-                    choices={ADD_PLAYER_FOOTBALL_POSITION_CHOICES}
+                    label={m.webGame.addPlayer.preferredPosition}
+                    choices={addPlayerFootballPositionChoices(locale)}
                     value={footballPosition}
                     onSelect={setFootballPosition}
                   />
@@ -231,9 +232,9 @@ export function AddPlayerDialog({
           {placement === "side" ? (
             side ? (
               <Group>
-                <SectionLabel label="Side" />
+                <SectionLabel label={m.webGame.addPlayer.side} />
                 <TileChoices
-                  label="Side"
+                  label={m.webGame.addPlayer.side}
                   choices={sideChoices.map((choice) => ({
                     value: String(choice.sideIndex),
                     name: choice.team,
@@ -245,16 +246,16 @@ export function AddPlayerDialog({
               </Group>
             ) : (
               <p className="text-muted-foreground text-meta">
-                {ADD_PLAYER_NO_SIDE_COPY}
+                {m.group.addPlayer.noSide}
               </p>
             )
           ) : null}
 
           {placement !== "seat" ? null : seat ? (
             <Group>
-              <SectionLabel label="Position" />
+              <SectionLabel label={m.webGame.addPlayer.position} />
               <TileChoices
-                label="Position"
+                label={m.webGame.addPlayer.position}
                 choices={seatChoices.map((choice) => ({
                   value: seatKey(choice.seat),
                   name: choice.side,
@@ -271,7 +272,7 @@ export function AddPlayerDialog({
             </Group>
           ) : (
             <p className="text-muted-foreground text-meta">
-              {ADD_PLAYER_NO_SEAT_COPY}
+              {m.group.addPlayer.noSeat}
             </p>
           )}
 
@@ -283,7 +284,7 @@ export function AddPlayerDialog({
             className="w-full font-semibold"
             disabled={!canSubmit}
           >
-            {add.isPending ? "Adding…" : ADD_PLAYER_ACTION}
+            {add.isPending ? m.webGame.addPlayer.adding : m.group.addPlayer.action}
           </Button>
         </form>
       </ResponsiveDialogContent>

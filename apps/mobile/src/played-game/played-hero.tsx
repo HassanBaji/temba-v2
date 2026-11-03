@@ -1,10 +1,15 @@
 import { colors, radii, spacing } from "@repo/design-tokens";
-import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
+import {
+  playedTagLabel,
+  type PlayedResultLine,
+  type PlayedYouLine,
+} from "@repo/domain/played-game";
 import type { Href } from "expo-router";
 import { MoreVertical, Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -14,7 +19,6 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 
 const HERO_PADDING_BOTTOM = 22;
-const CONFIRMED_LABEL = "CONFIRMED";
 
 function LightStatusBar() {
   useLightStatusBar();
@@ -77,6 +81,8 @@ export function PlayedHero({
   onMore,
   children,
 }: PlayedHeroProps) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <Surface
       tone="ink"
@@ -96,14 +102,14 @@ export function PlayedHero({
             <HeaderIconButton
               framed
               icon={Share}
-              accessibilityLabel="Share result"
+              accessibilityLabel={m.game.cta.shareResult}
               onPress={onShare}
             />
             {onMore ? (
               <HeaderIconButton
                 framed
                 icon={MoreVertical}
-                accessibilityLabel="More"
+                accessibilityLabel={m.common.more}
                 onPress={onMore}
               />
             ) : null}
@@ -157,7 +163,7 @@ export function PlayedHero({
               }}
             >
               <Text size="eyebrow" tone="muted" mono>
-                {CONFIRMED_LABEL}
+                {m.mobilePlayer.played.confirmed}
               </Text>
             </View>
           </View>
@@ -190,7 +196,7 @@ export function PlayedHero({
                     {you.ratingLine}
                   </Text>
                 </View>
-                <Pill label={you.tag} solid={you.won} />
+                <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
               </View>
             </View>
           ) : null}

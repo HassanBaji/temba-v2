@@ -13,6 +13,7 @@ import { useDebouncedValue } from "~/hooks/use-debounced-value";
 import { cn } from "~/lib/utils";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import {
   customerCountLabel,
@@ -225,10 +226,13 @@ function CustomerRow({
           customer.owedFils === 0 ? "text-muted-foreground" : "font-semibold",
         )}
       >
-        {formatBookingPriceFils(customer.owedFils)}
+        {formatBookingPriceFils(customer.owedFils, CONSOLE_LOCALE)}
       </td>
       <td className={cn(cellClass, "text-right tabular-nums")}>
-        {formatBookingPriceFils(customer.paidFils - customer.refundedFils)}
+        {formatBookingPriceFils(
+          customer.paidFils - customer.refundedFils,
+          CONSOLE_LOCALE,
+        )}
       </td>
       <td className={cellClass}>
         {lastBookingLabel(customer.lastBookingAt, now)}

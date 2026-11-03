@@ -7,6 +7,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 
 import { controlClass } from "./details-styles";
@@ -52,7 +53,7 @@ export function VenueLogoField({
     if (!file) {
       return;
     }
-    void entityImageUploadInput(file, "Logo")
+    void entityImageUploadInput(file, CONSOLE_LOCALE, "Logo")
       .then((input) => uploadLogo.mutate({ venueId, ...input }))
       .catch((error: unknown) => {
         setLogoError(

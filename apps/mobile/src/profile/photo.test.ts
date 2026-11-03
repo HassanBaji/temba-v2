@@ -27,10 +27,14 @@ describe("photoErrorMessage", () => {
         },
       ],
     };
-    assert.ok(photoErrorMessage(error).length > 0);
+    assert.ok(photoErrorMessage(error, "en").length > 0);
   });
 
   it("falls back to a generic message for anything else", () => {
-    assert.ok(photoErrorMessage(new Error("network")).length > 0);
+    assert.ok(photoErrorMessage(new Error("network"), "en").length > 0);
+  });
+
+  it("falls back in Arabic", () => {
+    assert.match(photoErrorMessage(new Error("network"), "ar"), /[؀-ۿ]/);
   });
 });

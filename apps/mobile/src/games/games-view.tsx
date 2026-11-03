@@ -4,6 +4,7 @@ import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import { Plus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
@@ -20,7 +21,7 @@ import { GameCard, type GameCardActions } from "./game-card";
 import {
   filterBySport,
   footballSections,
-  SPORT_FILTERS,
+  sportFilters,
   type SportFilter,
 } from "@repo/domain/football-hub";
 import { hubItems, tabCount, type GamesTab } from "./games-model";
@@ -67,24 +68,26 @@ function Failure({
   message: string;
   onRetry: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface accessibilityRole="alert" style={{ gap: 8 }}>
       <Text size="lead" weight="semibold">
-        Games could not be loaded
+        {m.mobileTournament.games.couldNotLoad}
       </Text>
       <Text size="meta" tone="muted">
         {message}
       </Text>
       <View style={{ flexDirection: "row", marginTop: 4 }}>
-        <Button label="Try again" variant="outline" onPress={onRetry} />
+        <Button label={m.common.tryAgain} variant="outline" onPress={onRetry} />
       </View>
     </Surface>
   );
 }
 
 function ListSkeleton() {
+  const m = useMessages().mobileTournament.games;
   return (
-    <View style={{ gap: LIST_GAP }} accessibilityLabel="Loading Games">
+    <View style={{ gap: LIST_GAP }} accessibilityLabel={m.loading}>
       {[0, 1, 2].map((key) => (
         <Skeleton key={key} height={220} radius={16} />
       ))}
@@ -147,9 +150,10 @@ function TabButtons({
   myGamesCount: number | null;
   historyCount: number | null;
 }) {
+  const m = useMessages().mobileTournament.games;
   const tabs = [
-    { key: "my-games", label: "Upcoming", count: myGamesCount },
-    { key: "history", label: "Played", count: historyCount },
+    { key: "my-games", label: m.upcomingTab, count: myGamesCount },
+    { key: "history", label: m.playedTab, count: historyCount },
   ] as const;
   return (
     <View accessibilityRole="tablist" style={segmentBarStyle}>
@@ -190,13 +194,15 @@ function SportFilterRow({
   filter: SportFilter;
   onChange: (filter: SportFilter) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.games;
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel="Sport"
+      accessibilityLabel={m.sport}
       style={segmentBarStyle}
     >
-      {SPORT_FILTERS.map((entry, index) => {
+      {sportFilters(locale).map((entry, index) => {
         const selected = entry.key === filter;
         return (
           <Segment
@@ -239,6 +245,7 @@ function SectionHead({ title, meta }: { title: string; meta: string }) {
 
 export function GamesView(props: GamesViewProps) {
   const { tab, myGames, history } = props;
+  const m = useMessages();
   const actions: GameCardActions = {
     onOpen: props.onOpen,
     onJoinSeat: props.onJoinSeat,
@@ -255,11 +262,11 @@ export function GamesView(props: GamesViewProps) {
   return (
     <View style={{ gap: spacing.compact }}>
       <ScreenHeader
-        title="Games"
+        title={m.common.games}
         actions={
           <HeaderIconButton
             icon={Plus}
-            accessibilityLabel="Create Game"
+            accessibilityLabel={m.mobileTournament.games.createGame}
             onPress={props.onCreate}
           />
         }
@@ -297,6 +304,7 @@ export function GamesView(props: GamesViewProps) {
 function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
   const { myGames, actions } = props;
   const now = useNow();
+  const locale = useLocale();
   const footballActions: FootballCardActions = {
     ...props.football,
     onOpen: actions.onOpen,
@@ -321,7 +329,7 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
   if (props.sportFilter === "football") {
     return (
       <View style={{ gap: spacing.section }}>
-        {footballSections(rows, now).map((section) => (
+        {footballSections(rows, now, locale).map((section) => (
           <View key={section.key} style={{ gap: LIST_GAP }}>
             <SectionHead title={section.title} meta={section.meta} />
             {section.rows.map((game) => (
@@ -386,6 +394,7 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
 
 function HistoryList(props: GamesViewProps) {
   const { history } = props;
+  const m = useMessages().mobileTournament.games;
   if (history.status === "loading") {
     return <ListSkeleton />;
   }
@@ -408,7 +417,7 @@ function HistoryList(props: GamesViewProps) {
       ) : props.historyHasMore ? (
         <View style={{ alignItems: "center" }}>
           <Button
-            label="Load more"
+            label={m.loadMore}
             variant="outline"
             pending={props.historyLoadingMore}
             onPress={props.onLoadMore}

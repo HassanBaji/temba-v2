@@ -44,14 +44,14 @@ describe("isPasswordLongEnough", () => {
 
 describe("passwordStrengthLabel", () => {
   it("says too short until the minimum length, whatever else is in it", () => {
-    assert.equal(passwordStrengthLabel(""), "Too short");
-    assert.equal(passwordStrengthLabel("ab1!"), "Too short");
+    assert.equal(passwordStrengthLabel("", "en"), "Too short");
+    assert.equal(passwordStrengthLabel("ab1!", "en"), "Too short");
   });
 
   it("names the filled segments", () => {
-    assert.equal(passwordStrengthLabel("abcdefgh"), "Weak");
-    assert.equal(passwordStrengthLabel("abcdefg1"), "Fair");
-    assert.equal(passwordStrengthLabel("abcdefg1!"), "Good");
-    assert.equal(passwordStrengthLabel("abcdefg1!xyz"), "Strong");
+    assert.equal(passwordStrengthLabel("abcdefgh", "en"), "Weak");
+    assert.equal(passwordStrengthLabel("abcdefg1", "en"), "Fair");
+    assert.equal(passwordStrengthLabel("abcdefg1!", "en"), "Good");
+    assert.equal(passwordStrengthLabel("abcdefg1!xyz", "en"), "Strong");
   });
 });

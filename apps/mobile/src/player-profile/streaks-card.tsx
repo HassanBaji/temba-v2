@@ -3,6 +3,7 @@ import type { PlayerStreaksView } from "@repo/domain/player-profile";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
@@ -31,20 +32,18 @@ function Column({
 }
 
 export function PlayerStreaksCard({ view }: { view: PlayerStreaksView }) {
+  const m = useMessages().mobilePlayer.profile;
   const palette = useTonePalette();
-  const best = [view.best.headline, view.best.reachedIn]
-    .filter(Boolean)
-    .join(", ");
 
   return (
-    <Card title="Streaks" flush>
+    <Card title={m.streaks} flush>
       <View style={{ flexDirection: "row" }}>
         <View
           accessible
-          accessibilityLabel={`Current streak. ${view.current.headline}`}
+          accessibilityLabel={m.currentStreakSpoken(view.current.headline)}
           style={{ flex: 1 }}
         >
-          <Column label="Current streak" headline={view.current.headline}>
+          <Column label={m.currentStreak} headline={view.current.headline}>
             {view.current.wonMarks > 0 ? (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
                 {Array.from({ length: view.current.wonMarks }, (_, index) => (
@@ -57,10 +56,13 @@ export function PlayerStreaksCard({ view }: { view: PlayerStreaksView }) {
         <View style={{ width: hairline, backgroundColor: palette.rule }} />
         <View
           accessible
-          accessibilityLabel={`Best streak. ${best}`}
+          accessibilityLabel={m.bestStreakSpoken(
+            view.best.headline,
+            view.best.reachedIn,
+          )}
           style={{ flex: 1 }}
         >
-          <Column label="Best streak" headline={view.best.headline}>
+          <Column label={m.bestStreak} headline={view.best.headline}>
             {view.best.reachedIn ? (
               <Text size="meta" tone="muted">
                 {view.best.reachedIn}

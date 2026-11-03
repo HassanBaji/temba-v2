@@ -1,5 +1,7 @@
 import { DEFAULT_SPORT, isSport, type Sport } from "@repo/domain/sport";
 import { courtFace } from "@repo/domain/court-sport-copy";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export const BOOK_SPORT_STORAGE_KEY = "temba.book.sport";
 
@@ -38,28 +40,26 @@ export function sportFromParam(value: string | string[] | undefined): Sport {
   return isSport(single) ? single : DEFAULT_SPORT;
 }
 
-export function bookTitle(sport: Sport): string {
-  return `Book a ${courtFace(sport)}`;
+export function bookTitle(sport: Sport, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.bookTitle[courtFace(sport)];
 }
 
-export function courtStepTitle(sport: Sport): string {
-  return sport === "football" ? `Pick a ${courtFace(sport)}` : "Court";
+export function courtStepTitle(sport: Sport, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.courtStep[courtFace(sport)];
 }
 
-export function courtNounTitle(sport: Sport): string {
-  return sport === "football" ? "Pitch" : "Court";
+export function courtNounTitle(sport: Sport, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.courtNoun[courtFace(sport)];
 }
 
-export function courtPlural(sport: Sport): string {
-  return sport === "football" ? "pitches" : "courts";
+export function courtCoachCopy(sport: Sport, locale: Locale): string {
+  return messagesFor(locale).mobileBooking.coach[courtFace(sport)];
 }
 
-export function courtCoachCopy(sport: Sport): string {
-  return `Pick a start time to see which ${courtPlural(sport)} are free.`;
-}
-
-export function bookingGameBlurb(sport: string | null | undefined) {
-  return sport === "football"
-    ? "Turn the booking into a game and Temba handles the roster and invites."
-    : "Turn the booking into a game and Temba handles seats, invites and the score.";
+export function bookingGameBlurb(
+  sport: string | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileBooking.gameBlurb;
+  return sport === "football" ? m.football : m.padel;
 }

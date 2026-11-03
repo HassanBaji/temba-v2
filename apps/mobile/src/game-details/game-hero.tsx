@@ -4,6 +4,7 @@ import type { Href } from "expo-router";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -70,10 +71,11 @@ export function GameHero({
 }
 
 function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
+  const m = useMessages();
   if (model.kind === "time_unset") {
     return (
       <Text size="meta" tone="muted">
-        Time unset
+        {m.mobileGameDetails.hero.timeUnset}
       </Text>
     );
   }
@@ -121,14 +123,17 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
       {model.partnerName ? (
         <View style={{ gap: 8 }}>
           <Text size="display" width="expanded" weight="bold">
-            You and {model.partnerName}
+            {m.mobileGameDetails.hero.youAnd(model.partnerName)}
           </Text>
           <Text size="lead">{model.dateLine}</Text>
         </View>
       ) : (
         <View
           accessible
-          accessibilityLabel={`${model.kickoffTime} ${model.trailer}`}
+          accessibilityLabel={m.mobileGameDetails.hero.kickoff(
+            model.kickoffTime,
+            model.trailer,
+          )}
           style={{
             flexDirection: "row",
             flexWrap: "wrap",

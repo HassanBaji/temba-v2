@@ -12,6 +12,7 @@ import { PageHeader } from "~/components/console/page-header";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import {
   formatDayMonth,
   formatGameClock,
@@ -35,7 +36,7 @@ import { PaymentLedgerSection } from "./payment-ledger-section";
 const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN;
 
 function when(value: Date) {
-  return `${formatDayMonth(value, { weekday: "short" })}, ${formatGameClock(value)}`;
+  return `${formatDayMonth(value, CONSOLE_LOCALE, { weekday: "short" })}, ${formatGameClock(value, CONSOLE_LOCALE)}`;
 }
 
 export function BookingDetails({ bookingId }: { bookingId: string }) {
@@ -146,7 +147,7 @@ function BookingActions({ booking }: { booking: BookingView }) {
 function statusText(booking: BookingView) {
   if (booking.status === "pending_payment") {
     return booking.holdExpiresAt
-      ? `Awaiting payment, held until ${formatGameClock(booking.holdExpiresAt)}`
+      ? `Awaiting payment, held until ${formatGameClock(booking.holdExpiresAt, CONSOLE_LOCALE)}`
       : "Awaiting payment";
   }
   return booking.statusLabel;
@@ -174,15 +175,18 @@ function BookingFacts({ booking }: { booking: BookingView }) {
         </Fact>
         <Fact label="Court">{booking.court.name}</Fact>
         <Fact label="Time">
-          {formatDayMonth(booking.startsAt, { weekday: "short", year: true })},{" "}
-          {timeRangeLabel(booking.startsAt, booking.endsAt)}
+          {formatDayMonth(booking.startsAt, CONSOLE_LOCALE, {
+            weekday: "short",
+            year: true,
+          })}
+          , {timeRangeLabel(booking.startsAt, booking.endsAt)}
         </Fact>
         <Fact label="Duration">
           {durationLabel(booking.startsAt, booking.endsAt)}
         </Fact>
         <Fact label="Price">
           <span className="tabular-nums">
-            {formatBookingPriceFils(booking.priceFils)}
+            {formatBookingPriceFils(booking.priceFils, CONSOLE_LOCALE)}
           </span>
         </Fact>
         <Fact label="Source">{sourceLabel(booking.source)}</Fact>
@@ -253,11 +257,13 @@ function AuditTrail({ booking }: { booking: BookingView }) {
       `Cancelled by ${booking.cancelledBy === "venue" ? "the Venue" : "the Customer"}`,
     ];
     if (booking.refundDueFils !== null) {
-      parts.push(`refund due ${formatBookingPriceFils(booking.refundDueFils)}`);
+      parts.push(
+        `refund due ${formatBookingPriceFils(booking.refundDueFils, CONSOLE_LOCALE)}`,
+      );
     }
     if (booking.cancellationChargeFils) {
       parts.push(
-        `cancellation charge ${formatBookingPriceFils(booking.cancellationChargeFils)} (information only)`,
+        `cancellation charge ${formatBookingPriceFils(booking.cancellationChargeFils, CONSOLE_LOCALE)} (information only)`,
       );
     }
     if (booking.cancelReason) {

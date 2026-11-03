@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameCtaFamily } from "@repo/domain/friendly-game-cta";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -37,7 +38,8 @@ export function FriendlyGameCtaBar({
   onInvite?: () => void;
   onShareResult?: () => void;
 }) {
-  const copy = friendlyGameCtaCopy(family);
+  const locale = useLocale();
+  const copy = friendlyGameCtaCopy(family, locale);
   if (!copy) {
     return null;
   }

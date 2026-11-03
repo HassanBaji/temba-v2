@@ -6,6 +6,7 @@ import type {
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { useTonePalette } from "../primitives/surface-context";
@@ -54,13 +55,16 @@ function Court({ court }: { court: PlayedSideView["court"] }) {
 }
 
 export function PlayerPositionCard({ view }: { view: PlayedSideView }) {
+  const m = useMessages();
   return (
-    <Card title="Preferred position">
+    <Card title={m.mobilePlayer.profile.preferredSide}>
       <View
         accessible
-        accessibilityLabel={[view.label, view.subtitle]
-          .filter(Boolean)
-          .join(". ")}
+        accessibilityLabel={
+          view.subtitle
+            ? m.mobilePlayer.profile.positionSpoken(view.label, view.subtitle)
+            : view.label
+        }
         style={{
           flexDirection: "row",
           alignItems: "center",

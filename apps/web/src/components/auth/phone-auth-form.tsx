@@ -14,6 +14,7 @@ import {
 } from "~/components/auth/password-field";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button, touchHitArea } from "~/components/ui/button";
 import {
   Field,
@@ -32,21 +33,23 @@ import {
 } from "~/lib/auth-redirect";
 import { hasClerkErrorCode } from "~/lib/clerk-error-code";
 import type { SplitFormError } from "~/lib/form-mutation-error";
-import { isPasswordLongEnough, PASSWORD_HINT } from "~/lib/password-strength";
 import {
-  PHONE_AUTH_TITLES,
+  isPasswordLongEnough,
+  passwordHint as passwordHintCopy,
+  PASSWORD_MIN_LENGTH,
+} from "~/lib/password-strength";
+import {
   hasPasswordFactor,
+  phoneAuthTitle,
   previousPhoneAuthStep,
   resetPasswordPhoneNumberId,
   signUpStepProgress,
   type PhoneAuthStep,
 } from "~/lib/phone-auth-flow";
 import { cn } from "~/lib/utils";
-import {
-  CLERK_AUTH_ERROR_COPY,
-  GENERIC_CLERK_AUTH_ERROR,
-  splitClerkAuthError,
-} from "@repo/domain/clerk-auth-error";
+import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { initials } from "@repo/domain/initials";
 import {
   DEFAULT_CALLING_COUNTRY_ISO,
@@ -98,24 +101,25 @@ function focusSplit(split: SplitFormError, summary: HTMLElement | null) {
   summary?.focus();
 }
 
-const GENERIC_SPLIT: SplitFormError = {
-  fieldErrors: {},
-  globalMessage: GENERIC_CLERK_AUTH_ERROR,
-};
+function genericSplit(locale: Locale): SplitFormError {
+  return {
+    fieldErrors: {},
+    globalMessage: messagesFor(locale).auth.clerkError.generic,
+  };
+}
 
-function phoneFormatSplit(): SplitFormError {
+function phoneFormatSplit(locale: Locale): SplitFormError {
   return {
     fieldErrors: {
-      phone_number:
-        CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
-        "That doesn't look right. Check the format and try again.",
+      phone_number: messagesFor(locale).auth.clerkError.paramFormatInvalid,
     },
     globalMessage: null,
   };
 }
 
 function PreviewCard({ name, phone }: { name: string | null; phone: string }) {
-  const shown = name ?? "Your name";
+  const m = useMessages();
+  const shown = name ?? m.webAuth.phoneAuth.yourName;
   return (
     <div className="border-rule flex items-center gap-3.5 rounded-[14px] border px-4 py-3.5">
       <span
@@ -136,7 +140,7 @@ function PreviewCard({ name, phone }: { name: string | null; phone: string }) {
         <p className="text-meta text-muted-foreground truncate">{phone}</p>
       </div>
       <span className="text-eyebrow text-muted-foreground shrink-0 font-mono uppercase">
-        Preview
+        {m.webAuth.phoneAuth.preview}
       </span>
     </div>
   );
@@ -151,6 +155,8 @@ function PreviewCard({ name, phone }: { name: string | null; phone: string }) {
  */
 export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   const { setActive } = useClerk();
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
@@ -246,7 +252,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     }
     const assembled = assembleE164(countryIso, national);
     if (!assembled.ok) {
-      setSplit(phoneFormatSplit());
+      setSplit(phoneFormatSplit(locale));
       return;
     }
     setPending(true);
@@ -257,8 +263,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
         if (!hasPasswordFactor(attempt.supportedFirstFactors)) {
           setSplit({
             fieldErrors: {},
-            globalMessage:
-              "This account has no password. Sign in with Google instead.",
+            globalMessage: m.webAuth.phoneAuth.noPasswordUseGoogle,
           });
           setPending(false);
           return;
@@ -282,7 +287,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       goTo("code");
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -301,7 +306,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       goTo("name");
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -316,7 +321,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       setStartedAt(Date.now());
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -336,10 +341,10 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       if (await finishSignIn(result)) {
         return;
       }
-      setSplit(GENERIC_SPLIT);
+      setSplit(genericSplit(locale));
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -352,7 +357,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       signIn.supportedFirstFactors,
     );
     if (!phoneNumberId) {
-      setSplit(GENERIC_SPLIT);
+      setSplit(genericSplit(locale));
       return false;
     }
     await signIn.prepareFirstFactor({
@@ -376,7 +381,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       }
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -390,7 +395,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       await sendResetCode();
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -415,10 +420,10 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       if (await finishSignIn(result)) {
         return;
       }
-      setSplit(GENERIC_SPLIT);
+      setSplit(genericSplit(locale));
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -438,10 +443,10 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       if (await finishSignIn(result)) {
         return;
       }
-      setSplit(GENERIC_SPLIT);
+      setSplit(genericSplit(locale));
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -451,7 +456,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     if (pending || !signUp) {
       return;
     }
-    const names = validateUserNames({ firstName, lastName });
+    const names = validateUserNames({ firstName, lastName }, locale);
     if (!names.ok) {
       setSplit({ fieldErrors: names.fieldErrors, globalMessage: null });
       return;
@@ -470,7 +475,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       goTo("new-password");
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -487,10 +492,10 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
       if (await finishSignUpIfComplete(result)) {
         return;
       }
-      setSplit(GENERIC_SPLIT);
+      setSplit(genericSplit(locale));
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -500,16 +505,17 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     split?.fieldErrors.phoneNumber ??
     split?.fieldErrors.identifier;
   const formattedPhone = formatInternationalNumber(countryIso, national);
-  const title = PHONE_AUTH_TITLES[step];
+  const title = phoneAuthTitle(step, locale);
+  const passwordPlaceholder = m.webAuth.password.placeholder(PASSWORD_MIN_LENGTH);
+  const passwordHint = passwordHintCopy(locale);
 
   if (step === "password") {
     const passwordError = split?.fieldErrors.password;
     return (
       <AuthScreen
         onBack={back}
-        backLabel="Back"
         title={title}
-        description={`For ${formattedPhone}.`}
+        description={m.webAuth.phoneAuth.forNumber(formattedPhone)}
       >
         <form
           className="flex flex-col gap-[18px]"
@@ -522,14 +528,14 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
               htmlFor={FIELD_IDS.password}
               className="text-meta text-muted-foreground"
             >
-              Password
+              {m.webAuth.phoneAuth.passwordLabel}
             </FieldLabel>
             <PasswordField
               id={FIELD_IDS.password}
               value={password}
               onChange={setPassword}
               autoComplete="current-password"
-              placeholder="Enter your password"
+              placeholder={m.webAuth.phoneAuth.enterPassword}
               invalid={Boolean(passwordError)}
               describedBy={
                 passwordError ? `${FIELD_IDS.password}-error` : undefined
@@ -546,11 +552,11 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
             type="submit"
             size="lg"
             pending={pending}
-            pendingLabel="Signing in…"
+            pendingLabel={m.webAuth.phoneAuth.signingIn}
             disabled={password.length === 0}
             className="w-full font-semibold"
           >
-            Sign in
+            {m.common.signIn}
           </Button>
           <p className="flex items-center justify-center gap-6">
             <button
@@ -564,7 +570,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
                 void onForgotPassword();
               }}
             >
-              Forgot password?
+              {m.webAuth.phoneAuth.forgotPassword}
             </button>
             <button
               type="button"
@@ -575,7 +581,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
               disabled={pending}
               onClick={back}
             >
-              Change number
+              {m.webAuth.phoneAuth.changeNumber}
             </button>
           </p>
         </form>
@@ -587,19 +593,17 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     return (
       <AuthScreen
         onBack={back}
-        backLabel="Back"
         title={title}
-        description="To reset your password."
+        description={m.webAuth.phoneAuth.toResetPassword}
         footer={
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
-            Codes expire after a short time. Too many wrong tries will lock this
-            number.
+            {m.webAuth.phoneAuth.codesExpire.number}
           </p>
         }
       >
         <VerifyCodeForm
           destination={formattedPhone}
-          changeLabel="Change number"
+          changeLabel={m.webAuth.phoneAuth.changeNumber}
           onChangeIdentifier={restart}
           code={code}
           onCodeChange={setCode}
@@ -631,9 +635,10 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     return (
       <AuthScreen
         onBack={back}
-        backLabel="Back"
         title={title}
-        description={`For ${formattedPhone}. Other devices will be signed out.`}
+        description={m.webAuth.phoneAuth.forNumberSignsOutOthers(
+          formattedPhone,
+        )}
       >
         <form
           className="flex flex-col gap-[18px]"
@@ -646,21 +651,21 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
               htmlFor={FIELD_IDS.password}
               className="text-meta text-muted-foreground"
             >
-              New password
+              {m.webAuth.phoneAuth.newPasswordLabel}
             </FieldLabel>
             <PasswordField
               id={FIELD_IDS.password}
               value={password}
               onChange={setPassword}
               autoComplete="new-password"
-              placeholder="At least 8 characters"
+              placeholder={passwordPlaceholder}
               invalid={Boolean(passwordError)}
               describedBy={describedBy}
               disabled={pending}
             />
             <PasswordStrengthMeter password={password} />
             <FieldDescription id={FIELD_IDS.passwordHint}>
-              {PASSWORD_HINT}
+              {passwordHint}
             </FieldDescription>
             {passwordError ? (
               <FieldError id={`${FIELD_IDS.password}-error`}>
@@ -672,11 +677,11 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
             type="submit"
             size="lg"
             pending={pending}
-            pendingLabel="Saving…"
+            pendingLabel={m.common.saving}
             disabled={!isPasswordLongEnough(password)}
             className="w-full font-semibold"
           >
-            Save and sign in
+            {m.webAuth.phoneAuth.saveAndSignIn}
           </Button>
         </form>
       </AuthScreen>
@@ -687,18 +692,16 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     return (
       <AuthScreen
         onBack={back}
-        backLabel="Back"
         title={title}
         footer={
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
-            Codes expire after a short time. Too many wrong tries will lock this
-            number.
+            {m.webAuth.phoneAuth.codesExpire.number}
           </p>
         }
       >
         <VerifyCodeForm
           destination={formattedPhone}
-          changeLabel="Change number"
+          changeLabel={m.webAuth.phoneAuth.changeNumber}
           onChangeIdentifier={back}
           code={code}
           onCodeChange={setCode}
@@ -727,10 +730,9 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     return (
       <AuthScreen
         onBack={back}
-        backLabel="Back"
         progress={signUpStepProgress(step)}
         title={title}
-        description="Shown to organizers and the people you play with."
+        description={m.profile.checklist.tasks.name.description}
       >
         <form
           className="flex flex-col gap-[18px]"
@@ -744,7 +746,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
                 htmlFor={FIELD_IDS.firstName}
                 className="text-meta text-muted-foreground"
               >
-                First name
+                {m.webAuth.phoneAuth.firstName}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.firstName}
@@ -770,7 +772,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
                 htmlFor={FIELD_IDS.lastName}
                 className="text-meta text-muted-foreground"
               >
-                Last name
+                {m.webAuth.phoneAuth.lastName}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.lastName}
@@ -800,13 +802,13 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
             type="submit"
             size="lg"
             pending={pending}
-            pendingLabel="Saving…"
+            pendingLabel={m.common.saving}
             className="w-full font-semibold"
           >
-            Continue
+            {m.common.continue}
           </Button>
           <p className="text-eyebrow text-muted-foreground text-center leading-[1.6]">
-            Photo, email, sports and level can be added later from Profile.
+            {m.webAuth.phoneAuth.addLaterFromProfile}
           </p>
         </form>
       </AuthScreen>
@@ -824,10 +826,9 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
     return (
       <AuthScreen
         onBack={back}
-        backLabel="Back"
         progress={signUpStepProgress(step)}
         title={title}
-        description="For signing in on a new phone."
+        description={m.webAuth.phoneAuth.newPasswordDescription}
       >
         <form
           className="flex flex-col gap-[18px]"
@@ -840,21 +841,21 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
               htmlFor={FIELD_IDS.password}
               className="text-meta text-muted-foreground"
             >
-              Password
+              {m.webAuth.phoneAuth.passwordLabel}
             </FieldLabel>
             <PasswordField
               id={FIELD_IDS.password}
               value={password}
               onChange={setPassword}
               autoComplete="new-password"
-              placeholder="At least 8 characters"
+              placeholder={passwordPlaceholder}
               invalid={Boolean(passwordError)}
               describedBy={describedBy}
               disabled={pending}
             />
             <PasswordStrengthMeter password={password} />
             <FieldDescription id={FIELD_IDS.passwordHint}>
-              {PASSWORD_HINT}
+              {passwordHint}
             </FieldDescription>
             {passwordError ? (
               <FieldError id={`${FIELD_IDS.password}-error`}>
@@ -866,14 +867,14 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
             type="submit"
             size="lg"
             pending={pending}
-            pendingLabel="Creating account…"
+            pendingLabel={m.webAuth.phoneAuth.creatingAccount}
             disabled={!isPasswordLongEnough(password)}
             className="w-full font-semibold"
           >
-            Create account
+            {m.webAuth.phoneAuth.createAccount}
           </Button>
           <p className="text-eyebrow text-muted-foreground text-center leading-[1.6]">
-            You can change it later from Settings.
+            {m.webAuth.phoneAuth.changeLaterFromSettings}
           </p>
         </form>
       </AuthScreen>
@@ -883,13 +884,14 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
   return (
     <AuthScreen
       backHref={authCrossLinkUrl("/", redirectUrl)}
-      backLabel="Back"
       title={title}
-      description="Known numbers sign in with a password. If the number is new to us, we text a six digit code and create your account."
+      description={m.webAuth.phoneAuth.phoneDescription}
       footer={
         <p className="text-meta text-muted-foreground flex items-baseline justify-between gap-3">
-          <span>Invited to a Group?</span>
-          <span className="text-ink font-medium">Open your invite link.</span>
+          <span>{m.webAuth.phoneAuth.invitedToGroup}</span>
+          <span className="text-ink font-medium">
+            {m.webAuth.phoneAuth.openInviteLink}
+          </span>
         </p>
       }
     >
@@ -905,7 +907,7 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
             htmlFor={FIELD_IDS.phone}
             className="text-meta text-muted-foreground"
           >
-            Mobile number
+            {m.webAuth.phoneAuth.mobileNumber}
           </FieldLabel>
           <PhoneField
             id={FIELD_IDS.phone}
@@ -928,13 +930,13 @@ export function PhoneAuthForm({ redirectUrl }: { redirectUrl: string | null }) {
           type="submit"
           size="lg"
           pending={pending}
-          pendingLabel="Checking…"
+          pendingLabel={m.webAuth.phoneAuth.checking}
           disabled={!isLoaded}
           className="w-full font-semibold"
         >
-          Continue
+          {m.common.continue}
         </Button>
-        <AuthTermsNote lead="Standard SMS rates may apply." />
+        <AuthTermsNote lead={m.webAuth.termsNote.smsRates} />
         <OauthButtons flow="sign-in" redirectUrl={redirectUrl} />
       </form>
     </AuthScreen>

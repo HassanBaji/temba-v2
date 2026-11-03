@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const PASSWORD_MIN_LENGTH = 8;
 
 /** Length past which the last strength segment fills. */
@@ -5,7 +8,9 @@ const STRONG_PASSWORD_LENGTH = 12;
 
 export const PASSWORD_STRENGTH_SEGMENTS = 4;
 
-export const PASSWORD_HINT = `At least ${PASSWORD_MIN_LENGTH} characters. Mix in a number or symbol to make it strong.`;
+export function passwordHint(locale: Locale): string {
+  return messagesFor(locale).webUi.password.hint(PASSWORD_MIN_LENGTH);
+}
 
 export function isPasswordLongEnough(password: string): boolean {
   return password.length >= PASSWORD_MIN_LENGTH;
@@ -29,17 +34,11 @@ export function passwordStrength(password: string): number {
   return checks.filter(Boolean).length;
 }
 
-const STRENGTH_LABELS = [
-  "Too short",
-  "Weak",
-  "Fair",
-  "Good",
-  "Strong",
-] as const;
-
-export function passwordStrengthLabel(password: string): string {
+export function passwordStrengthLabel(password: string, locale: Locale): string {
+  const m = messagesFor(locale).webUi.password;
+  const labels = [m.tooShort, m.weak, m.fair, m.good, m.strong] as const;
   if (!isPasswordLongEnough(password)) {
-    return STRENGTH_LABELS[0];
+    return labels[0];
   }
-  return STRENGTH_LABELS[passwordStrength(password)] ?? STRENGTH_LABELS[0];
+  return labels[passwordStrength(password)] ?? labels[0];
 }

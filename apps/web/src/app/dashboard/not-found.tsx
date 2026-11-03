@@ -4,17 +4,19 @@ import Link from "next/link";
 import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { Button } from "~/components/ui/button";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export default function DashboardNotFound() {
+export default async function DashboardNotFound() {
+  const m = await getRequestMessages();
   return (
-    <DashboardShell title="Not found">
+    <DashboardShell title={m.webDashboard.notFound.title}>
       <EmptyState
         icon={SearchX}
-        title="Page not found"
-        description="This page does not exist or is no longer available."
+        title={m.common.pageNotFound}
+        description={m.webDashboard.notFound.description}
         action={
           <Button asChild>
-            <Link href="/dashboard">Back to Home</Link>
+            <Link href="/dashboard">{m.webDashboard.backToHome}</Link>
           </Button>
         }
       />

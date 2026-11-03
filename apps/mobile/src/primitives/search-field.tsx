@@ -3,6 +3,7 @@ import { Search } from "lucide-react-native";
 import { forwardRef } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { fontFamilyFor } from "./font-family";
 import { hairline } from "./hairline-width";
 import { Text } from "./text";
@@ -20,6 +21,7 @@ export type SearchFieldProps = Omit<
 
 export const SearchField = forwardRef<TextInput, SearchFieldProps>(
   function SearchField({ value, onChangeText, tone = "paper", ...props }, ref) {
+    const m = useMessages();
     return (
       <View
         style={{
@@ -50,6 +52,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
+          placeholder={m.common.search}
           {...props}
           style={{
             flex: 1,
@@ -66,7 +69,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
         {value ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Clear search"
+            accessibilityLabel={m.mobilePlayer.primitives.clearSearch}
             onPress={() => onChangeText("")}
             style={{
               minWidth: sizes.touchTarget,
@@ -77,7 +80,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
             }}
           >
             <Text size="meta" weight="medium">
-              Clear
+              {m.common.clear}
             </Text>
           </Pressable>
         ) : null}

@@ -1,5 +1,8 @@
+"use client";
+
 import { levelCellView } from "@repo/domain/group-home-chrome";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -30,6 +33,7 @@ export function LevelCell({
   onInk?: boolean;
   className?: string;
 }) {
+  const m = useMessages();
   const view = levelCellView(band, provisional);
   const text =
     view.label && level ? `${view.label} ${level}` : (view.label ?? null);
@@ -54,8 +58,8 @@ export function LevelCell({
         </span>
         <span className="sr-only">
           {hatchText
-            ? `Level ${hatchText}, still Provisional`
-            : "Level still Provisional"}
+            ? m.webUi.levelCell.provisionalWithLevel(hatchText)
+            : m.webUi.levelCell.provisional}
         </span>
       </span>
     );

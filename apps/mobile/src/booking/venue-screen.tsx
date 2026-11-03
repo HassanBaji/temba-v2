@@ -1,9 +1,12 @@
 import type { Sport } from "@repo/domain/sport";
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { venuePageImage } from "@repo/domain/venue-photos";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { useRouter } from "expo-router";
 import { ArrowRight, Info } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -11,6 +14,8 @@ import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
@@ -36,7 +41,7 @@ import {
 } from "./slot-grid";
 import { VenueBanner } from "./venue-banner";
 import { courtCountLabel, openToLabel } from "./venues-model";
-import { courtCoachCopy, courtPlural, courtStepTitle } from "./book-sport";
+import { courtCoachCopy, courtStepTitle } from "./book-sport";
 
 type BookingVenue = RouterOutputs["bookings"]["venueForBooking"];
 
@@ -55,6 +60,8 @@ export function VenueScreen({
 }) {
   const router = useRouter();
   const now = useNow();
+  const m = useMessages();
+  const locale = useLocale();
   const [refreshing, setRefreshing] = useState(false);
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [pickedMinutes, setPickedMinutes] = useState<number | null>(null);
@@ -65,7 +72,9 @@ export function VenueScreen({
     { venueId },
     { enabled: Boolean(venueId) },
   );
-  const days = venue.data ? dayStrip(now, venue.data.bookingHorizonDays) : [];
+  const days = venue.data
+    ? dayStrip(now, venue.data.bookingHorizonDays, locale)
+    : [];
   const day = dayKey ?? days[0]?.key ?? null;
   const availability = api.bookings.venueAvailability.useQuery(
     { venueId, day: day ?? "", sport },
@@ -89,11 +98,11 @@ export function VenueScreen({
           <Notice
             title={
               isNotFoundError(venue.error)
-                ? "This venue is not taking bookings"
-                : "The venue could not be loaded"
+                ? m.mobileBooking.venueScreen.notTakingBookings
+                : m.mobileBooking.venueScreen.loadError
             }
             description={venue.error.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => void venue.refetch()}
           />
         ) : (
@@ -135,6 +144,7 @@ export function VenueScreen({
           minLeadMinutes: data.minLeadMinutes,
           courts: availability.data.courts,
           now,
+          locale,
         })
       : null;
   const times = groups?.flatMap((group) => group.times) ?? [];
@@ -207,13 +217,13 @@ export function VenueScreen({
         </View>
         {data.description ? <Text size="meta">{data.description}</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Pill label={courtCountLabel(sportCourts.length, sport)} />
-          <Pill label={openToLabel(todayWindows)} />
+          <Pill label={courtCountLabel(sportCourts.length, locale, sport)} />
+          <Pill label={openToLabel(todayWindows, locale)} />
         </View>
       </View>
 
       <View style={{ gap: 12 }}>
-        <SectionHeading title="Day" />
+        <SectionHeading title={m.mobileBooking.venueScreen.day} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -225,7 +235,10 @@ export function VenueScreen({
               <Pressable
                 key={entry.key}
                 accessibilityRole="button"
-                accessibilityLabel={`${entry.weekday} ${entry.dayOfMonth}`}
+                accessibilityLabel={m.mobileBooking.venueScreen.dayTileLabel(
+                  entry.weekday,
+                  entry.dayOfMonth,
+                )}
                 accessibilityState={{ selected: isSelected }}
                 onPress={() => {
                   setDayKey(entry.key);
@@ -262,12 +275,12 @@ export function VenueScreen({
       </View>
 
       <View style={{ gap: 12 }}>
-        <SectionHeading title="Duration" />
+        <SectionHeading title={m.mobileBooking.venueScreen.duration} />
         <ChipGrid columns={DURATION_COLUMNS}>
           {durations.map((entry) => (
             <ChipTile
               key={entry.minutes}
-              label={`${entry.minutes} min`}
+              label={m.dates.minutes(entry.minutes)}
               struck={!entry.offered}
               selected={entry.minutes === minutes}
               onPress={() => setPickedMinutes(entry.minutes)}
@@ -277,21 +290,18 @@ export function VenueScreen({
       </View>
 
       <View style={{ gap: 12 }}>
-        <SectionHeading title="Start time" />
+        <SectionHeading title={m.mobileBooking.venueScreen.startTime} />
         {availability.error ? (
           <Notice
-            title="Times could not be loaded"
+            title={m.mobileBooking.venueScreen.timesLoadError}
             description={availability.error.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => void availability.refetch()}
           />
         ) : groups === null ? (
           <Skeleton height={104} />
         ) : times.length === 0 ? (
-          <Notice
-            title="Nothing to book on this day"
-            description="The venue is closed or every time has passed. Pick another day or duration."
-          />
+          <Notice {...m.mobileBooking.venueScreen.nothingOnDay} />
         ) : (
           <>
             {groups.map((group) => (
@@ -307,7 +317,13 @@ export function VenueScreen({
                     <ChipTile
                       key={time.startsAt.getTime()}
                       label={time.label}
-                      accessibilityLabel={`${formatGameClock(time.startsAt)}${time.freeCourts === 0 ? ", unavailable" : ""}`}
+                      accessibilityLabel={
+                        time.freeCourts === 0
+                          ? m.mobileBooking.venueScreen.timeUnavailable(
+                              formatGameClock(time.startsAt, locale),
+                            )
+                          : formatGameClock(time.startsAt, locale)
+                      }
                       struck={time.freeCourts === 0}
                       selected={
                         chosen?.startsAt.getTime() === time.startsAt.getTime()
@@ -320,7 +336,7 @@ export function VenueScreen({
             ))}
             {times.some((time) => time.freeCourts === 0) ? (
               <Text size="meta" tone="muted">
-                {`Struck times have no court free for ${minutes} min.`}
+                {m.mobileBooking.venueScreen.struckTimesNote(minutes ?? 0)}
               </Text>
             ) : null}
           </>
@@ -330,10 +346,13 @@ export function VenueScreen({
       {times.length > 0 ? (
         <View style={{ gap: 12 }}>
           <SectionHeading
-            title={courtStepTitle(sport)}
+            title={courtStepTitle(sport, locale)}
             meta={
               chosen
-                ? `${courtCountLabel(chosen.freeCourts, sport)} free at ${formatGameClock(chosen.startsAt)}`
+                ? m.mobileBooking.venueScreen.freeAt(
+                    courtCountLabel(chosen.freeCourts, locale, sport),
+                    formatGameClock(chosen.startsAt, locale),
+                  )
                 : null
             }
           />
@@ -344,7 +363,7 @@ export function VenueScreen({
                   <ChipTile
                     key={entry.id}
                     label={entry.name}
-                    sublabel={courtSublabel(entry)}
+                    sublabel={courtSublabel(entry, locale)}
                     struck={entry.priceFils === null}
                     selected={entry.id === courtId}
                     onPress={() => setPickedCourt(entry.id)}
@@ -353,20 +372,22 @@ export function VenueScreen({
               </ChipGrid>
               {courts.some((entry) => entry.fullyBooked) ? (
                 <Text size="meta" tone="muted">
-                  {`Fully booked ${courtPlural(sport)} have no time free for ${minutes} min on this day.`}
+                  {m.mobileBooking.venueScreen.fullyBookedNote[courtFace(sport)](
+                    minutes ?? 0,
+                  )}
                 </Text>
               ) : null}
             </>
           ) : (
             <Text size="meta" tone="muted">
-              {courtCoachCopy(sport)}
+              {courtCoachCopy(sport, locale)}
             </Text>
           )}
         </View>
       ) : null}
 
       <View>
-        <DetailRow label="Cancellation" first>
+        <DetailRow label={m.mobileBooking.cancellation} first>
           {data.cancellationPolicyLines.map((line) => (
             <Text key={line} size="meta" style={{ textAlign: "right" }}>
               {line}
@@ -374,7 +395,7 @@ export function VenueScreen({
           ))}
         </DetailRow>
         {data.bookingNotes ? (
-          <DetailRow label="Good to know">
+          <DetailRow label={m.mobileBooking.venueScreen.goodToKnow}>
             <Text size="meta" style={{ textAlign: "right" }}>
               {data.bookingNotes}
             </Text>
@@ -388,6 +409,7 @@ export function VenueScreen({
 function Banner({ venue, venueId }: { venue: BookingVenue; venueId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const m = useMessages();
   return (
     <VenueBanner
       image={venuePageImage(venue)}
@@ -408,7 +430,7 @@ function Banner({ venue, venueId }: { venue: BookingVenue; venueId: string }) {
             <HeaderIconButton
               framed
               icon={Info}
-              accessibilityLabel="Venue details"
+              accessibilityLabel={m.mobileBooking.venueScreen.venueDetails}
               onPress={() => router.push(venueDetailsPath(venueId))}
             />
           }
@@ -418,11 +440,12 @@ function Banner({ venue, venueId }: { venue: BookingVenue; venueId: string }) {
   );
 }
 
-function courtSublabel(court: CourtChoice) {
+function courtSublabel(court: CourtChoice, locale: Locale) {
+  const m = messagesFor(locale).mobileBooking.venueScreen;
   if (court.priceFils !== null) {
-    return formatBookingPriceFils(court.priceFils);
+    return formatBookingPriceFils(court.priceFils, locale);
   }
-  return court.fullyBooked ? "Fully booked" : "Taken";
+  return court.fullyBooked ? m.fullyBooked : m.taken;
 }
 
 function Footer({
@@ -438,23 +461,42 @@ function Footer({
   now: Date;
   onContinue: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <>
       <View style={{ flex: 1, gap: 2 }}>
         <Text size="eyebrow" tone="muted">
-          {chosen ? relativeDay(chosen.startsAt, now) : "No time picked"}
+          {chosen
+            ? relativeDay(chosen.startsAt, now, locale)
+            : m.mobileBooking.venueScreen.noTimePicked}
         </Text>
         <Text size="meta" weight="semibold" numberOfLines={1}>
           {chosen
-            ? `${formatGameClock(chosen.startsAt)}, ${minutes} min${court ? `, ${court.name}` : ""}`
-            : "Pick a start time"}
+            ? court
+              ? m.mobileBooking.venueScreen.footerSlotCourt(
+                  formatGameClock(chosen.startsAt, locale),
+                  minutes ?? 0,
+                  court.name,
+                )
+              : m.mobileBooking.venueScreen.footerSlot(
+                  formatGameClock(chosen.startsAt, locale),
+                  minutes ?? 0,
+                )
+            : m.mobileBooking.venueScreen.pickStartTime}
         </Text>
       </View>
       <Button
-        label="Continue"
+        label={m.common.continue}
         size="lg"
         disabled={!chosen || !court}
-        icon={<ArrowRight size={sizes.iconAction} color={colors.paper} />}
+        icon={
+          <ArrowRight
+            size={sizes.iconAction}
+            color={colors.paper}
+            style={mirrorInRtl}
+          />
+        }
         iconPlacement="trailing"
         onPress={onContinue}
       />

@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { AuthLoading } from "../../src/auth/auth-loading";
 import { AuthScreen } from "../../src/auth/auth-screen";
 import {
-  SOMETHING_WENT_WRONG,
+  somethingWentWrong,
   buildContinuePayload,
   fieldError,
   nextSignUpStep,
@@ -23,6 +23,7 @@ import {
   FRESH_ACCOUNT_TARGET,
   setPostAuthTarget,
 } from "../../src/auth/post-auth-target";
+import { useLocale, useMessages } from "../../src/i18n/locale-provider";
 import { type SplitFormError } from "../../src/lib/form-error";
 import { Button } from "../../src/primitives/button";
 import { Text } from "../../src/primitives/text";
@@ -35,6 +36,8 @@ function backToWelcome() {
 }
 
 export default function Continue() {
+  const m = useMessages();
+  const locale = useLocale();
   const { signUp, setActive, isLoaded } = useSignUp();
   const [step, setStep] = useState<Step>("fields");
   const [emailAddress, setEmailAddress] = useState("");
@@ -67,7 +70,7 @@ export default function Continue() {
     } else {
       setStep("fields");
       if (next.kind === "stuck") {
-        setSplit(SOMETHING_WENT_WRONG);
+        setSplit(somethingWentWrong(locale));
       }
       return;
     }
@@ -80,14 +83,18 @@ export default function Continue() {
     if (pending || !signUp) {
       return;
     }
-    const built = buildContinuePayload(missing, {
-      emailAddress,
-      password,
-      firstName,
-      lastName,
-      countryIso,
-      national,
-    });
+    const built = buildContinuePayload(
+      missing,
+      {
+        emailAddress,
+        password,
+        firstName,
+        lastName,
+        countryIso,
+        national,
+      },
+      locale,
+    );
     if (!built.ok) {
       setSplit(built.split);
       return;
@@ -98,7 +105,7 @@ export default function Continue() {
       const updated = await signUp.update(built.payload);
       await advance(nextSignUpStep(updated));
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -117,7 +124,7 @@ export default function Continue() {
           : await signUp.attemptPhoneNumberVerification({ code });
       await advance(nextSignUpStep(result));
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -140,7 +147,7 @@ export default function Continue() {
       }
       setStartedAt(Date.now());
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -158,7 +165,7 @@ export default function Continue() {
     }
     setPending(true);
     advance(next)
-      .catch((err: unknown) => setSplit(splitClerkAuthError(err)))
+      .catch((err: unknown) => setSplit(splitClerkAuthError(err, locale)))
       .finally(() => setPending(false));
   });
 
@@ -170,11 +177,11 @@ export default function Continue() {
     return (
       <AuthScreen
         onBack={backToWelcome}
-        title="Almost there"
-        description="Finish creating your account, or start from the beginning."
+        title={m.mobileHome.continue.almostThere}
+        description={m.mobileHome.continue.startOver}
       >
         <Button
-          label="Continue with phone"
+          label={m.mobileHome.welcome.continueWithPhone}
           size="lg"
           onPress={() => router.replace("/sign-in")}
         />
@@ -191,23 +198,25 @@ export default function Continue() {
           setSplit(null);
           setCode("");
         }}
-        title="Enter the code"
+        title={m.mobileHome.code.enterTheCode}
         footer={
           <Text size="eyebrow" tone="muted">
-            Codes expire after a short time. Too many wrong tries will lock this{" "}
-            {email ? "email" : "number"}.
+            {email ? m.mobileHome.code.expiryEmail : m.mobileHome.code.expiryNumber}
           </Text>
         }
       >
         <CodeForm
           destination={
             email
-              ? emailAddress || (signUp.emailAddress ?? "your email")
+              ? emailAddress ||
+                (signUp.emailAddress ?? m.mobileHome.code.yourEmail)
               : national
                 ? formatInternationalNumber(countryIso, national)
-                : (signUp.phoneNumber ?? "your number")
+                : (signUp.phoneNumber ?? m.mobileHome.code.yourNumber)
           }
-          changeLabel={email ? "Change email" : "Change number"}
+          changeLabel={
+            email ? m.mobileHome.code.changeEmail : m.mobileHome.code.changeNumber
+          }
           onChangeIdentifier={() => {
             setStep("fields");
             setSplit(null);
@@ -229,13 +238,13 @@ export default function Continue() {
   return (
     <AuthScreen
       onBack={backToWelcome}
-      title="Almost there"
-      description="A few details are still needed to finish your account."
+      title={m.mobileHome.continue.almostThere}
+      description={m.mobileHome.continue.fewDetails}
     >
       <FormErrorSummary message={split?.globalMessage} />
       {isMissing("first_name") ? (
         <TextField
-          label="First name"
+          label={m.mobileHome.fields.firstName}
           autoComplete="given-name"
           value={firstName}
           onChangeText={setFirstName}
@@ -245,7 +254,7 @@ export default function Continue() {
       ) : null}
       {isMissing("last_name") ? (
         <TextField
-          label="Last name"
+          label={m.mobileHome.fields.lastName}
           autoComplete="family-name"
           value={lastName}
           onChangeText={setLastName}
@@ -255,7 +264,7 @@ export default function Continue() {
       ) : null}
       {isMissing("email_address") ? (
         <TextField
-          label="Email"
+          label={m.mobileHome.fields.email}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -268,7 +277,7 @@ export default function Continue() {
       ) : null}
       {isMissing("phone_number") ? (
         <PhoneField
-          label="Mobile number"
+          label={m.mobileHome.fields.mobileNumber}
           countryIso={countryIso}
           national={national}
           onCountryIsoChange={setCountryIso}
@@ -279,11 +288,11 @@ export default function Continue() {
       ) : null}
       {isMissing("password") ? (
         <TextField
-          label="Password"
+          label={m.mobileHome.fields.password}
           secureTextEntry
           autoCapitalize="none"
           autoComplete="password-new"
-          placeholder="Create a password"
+          placeholder={m.mobileHome.fields.createPassword}
           value={password}
           onChangeText={setPassword}
           editable={!pending}
@@ -291,7 +300,7 @@ export default function Continue() {
         />
       ) : null}
       <Button
-        label="Continue"
+        label={m.common.continue}
         size="lg"
         pending={pending}
         onPress={() => void onSubmitFields()}

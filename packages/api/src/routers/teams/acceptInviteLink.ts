@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -21,7 +22,7 @@ type DbClient = typeof db;
 
 export async function acceptInviteLink(
   database: DbClient,
-  args: { token: string; userId: string },
+  args: { token: string; userId: string ; locale?: Locale },
 ) {
   const link = await database.query.teamInviteLinks.findFirst({
     where: eq(teamInviteLinks.token, args.token),
@@ -72,6 +73,7 @@ export async function acceptInviteLink(
     const accepted = await acceptLink(tx, "team", {
       token: args.token,
       userId: args.userId,
+      locale: args.locale ?? DEFAULT_LOCALE,
     });
     if (!accepted.ok) {
       if (accepted.reason === "already_member") {
@@ -104,5 +106,6 @@ export const acceptInviteLinkProcedure = protectedProcedure
     return acceptInviteLink(ctx.db, {
       token: input.token,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

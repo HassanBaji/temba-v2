@@ -1,5 +1,6 @@
 import { formatDayMonth, formatWeekday } from "@repo/domain/format-game-start";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 export const CUSTOMER_SORTS = [
   "lastVisit",
@@ -47,9 +48,9 @@ export function lastBookingLabel(startsAt: Date, now: Date): string {
     return "Tomorrow";
   }
   if (Math.abs(days) < 7) {
-    return formatWeekday(startsAt, "short");
+    return formatWeekday(startsAt, "short", CONSOLE_LOCALE);
   }
-  return formatDayMonth(startsAt, {
+  return formatDayMonth(startsAt, CONSOLE_LOCALE, {
     year: zonedParts(startsAt).year !== zonedParts(now).year,
   });
 }

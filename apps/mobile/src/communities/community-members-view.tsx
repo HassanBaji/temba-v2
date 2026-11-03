@@ -1,11 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import {
-  COMMUNITY_INVITE_BLOCK_COPY,
-  COMMUNITY_MEMBERS_ERROR_TITLE,
-  COMMUNITY_MEMBERS_NO_MATCH_COPY,
-  COMMUNITY_NO_MEMBERS_EMPTY,
-  COMMUNITY_ROLE_CHOICES,
   communityMemberList,
+  communityRoleChoices,
   type CommunityMemberRow,
 } from "@repo/domain/community";
 import type { CommunityMemberData } from "@repo/domain/community-data";
@@ -14,6 +10,7 @@ import { View } from "react-native";
 
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceRow } from "../lib/choice-row";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
@@ -52,13 +49,15 @@ function MemberRowView({
   rolePending: boolean;
   onRoleChange: (role: CommunityRoleValue) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View style={{ gap: 10, padding: spacing.surface }}>
       <View
         accessible
         accessibilityLabel={[row.displayName, row.email, row.roleLabel]
           .filter(Boolean)
-          .join(", ")}
+          .join(m.group.metaSeparator)}
         style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
       >
         <Avatar
@@ -84,8 +83,8 @@ function MemberRowView({
       </View>
       {canManageRoles ? (
         <ChoiceRow
-          label={`Role for ${row.name}`}
-          choices={COMMUNITY_ROLE_CHOICES}
+          label={m.mobileCommunity.members.roleFor(row.name)}
+          choices={communityRoleChoices(locale)}
           value={row.role}
           onSelect={onRoleChange}
           disabled={rolePending}
@@ -97,6 +96,8 @@ function MemberRowView({
 
 function MemberList(props: CommunityMembersViewProps) {
   const { members } = props;
+  const m = useMessages();
+  const locale = useLocale();
   if (members.status === "loading") {
     return <Skeleton height={160} radius={16} />;
   }
@@ -104,7 +105,7 @@ function MemberList(props: CommunityMembersViewProps) {
     return (
       <Notice
         alert
-        title={COMMUNITY_MEMBERS_ERROR_TITLE}
+        title={m.community.membersErrorTitle}
         description={members.message}
         onRetry={props.onRetry}
       />
@@ -114,24 +115,25 @@ function MemberList(props: CommunityMembersViewProps) {
     members.value,
     props.viewerUserId,
     props.query,
+    locale,
   );
   if (list.isEmpty) {
-    return <Notice {...COMMUNITY_NO_MEMBERS_EMPTY} />;
+    return <Notice {...m.community.noMembersEmpty} />;
   }
   return (
     <View style={{ gap: spacing.compact }}>
       {list.showSearch ? (
         <TextField
-          label="Search members"
+          label={m.mobileCommunity.members.search}
           value={props.query}
           onChangeText={props.onQueryChange}
-          placeholder="Search members"
+          placeholder={m.mobileCommunity.members.search}
           autoCorrect={false}
           returnKeyType="search"
         />
       ) : null}
       {list.rows.length === 0 ? (
-        <Text tone="muted">{COMMUNITY_MEMBERS_NO_MATCH_COPY}</Text>
+        <Text tone="muted">{m.community.membersNoMatch}</Text>
       ) : (
         <Surface padded={false} style={{ overflow: "hidden" }}>
           {list.rows.map((row, index) => (
@@ -153,6 +155,7 @@ function MemberList(props: CommunityMembersViewProps) {
 }
 
 export function CommunityMembersView(props: CommunityMembersViewProps) {
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
       {props.leaveNotices.map((notice) => (
@@ -164,14 +167,14 @@ export function CommunityMembersView(props: CommunityMembersViewProps) {
       {props.canInvite ? (
         <Surface style={{ gap: 8 }}>
           <Text size="lead" weight="semibold">
-            {COMMUNITY_INVITE_BLOCK_COPY.title}
+            {m.community.inviteBlock.title}
           </Text>
           <Text size="meta" tone="muted">
-            {COMMUNITY_INVITE_BLOCK_COPY.description}
+            {m.community.inviteBlock.description}
           </Text>
           <View style={{ flexDirection: "row", marginTop: 4 }}>
             <Button
-              label={COMMUNITY_INVITE_BLOCK_COPY.action}
+              label={m.community.inviteBlock.action}
               onPress={props.onInvite}
             />
           </View>

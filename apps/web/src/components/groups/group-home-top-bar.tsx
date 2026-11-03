@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { PageTitle } from "~/components/layout/page-title";
+import { useMessages } from "~/components/locale-provider";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { cn } from "~/lib/utils";
 
@@ -15,6 +16,7 @@ export function GroupHomeTopBar({
   name: string;
   overflow: ReactNode;
 }) {
+  const m = useMessages();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function GroupHomeTopBar({
         collapsed && "border-border border-b",
       )}
     >
-      <BackButton href="/dashboard/groups" label="Back to Groups" />
+      <BackButton href="/dashboard/groups" label={m.group.home.backToGroups} />
       <PageTitle
         as="p"
         variant="compact"

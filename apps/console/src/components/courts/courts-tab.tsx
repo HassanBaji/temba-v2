@@ -27,8 +27,8 @@ import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
-import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
-import { SPORTS, type Sport } from "@repo/domain/sport";
+import { SPORTS, sportLabel, type Sport } from "@repo/domain/sport";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import {
   controlClass,
@@ -160,7 +160,7 @@ function CourtNameDialog({
               >
                 {SPORTS.map((value) => (
                   <option key={value} value={value}>
-                    {COURT_SPORT_LABELS[value]}
+                    {sportLabel(value, CONSOLE_LOCALE)}
                   </option>
                 ))}
               </NativeSelect>
@@ -371,7 +371,7 @@ export function CourtCards() {
               >
                 {SPORTS.map((value) => (
                   <option key={value} value={value}>
-                    {COURT_SPORT_LABELS[value]}
+                    {sportLabel(value, CONSOLE_LOCALE)}
                   </option>
                 ))}
               </NativeSelect>

@@ -6,12 +6,11 @@ import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import {
   formatRoundMatchesPerTeam,
   resolveRoundCount,
-  ROUND_MEETS_COPY,
   roundCountRange,
-  ROUNDS_LABEL,
-  SUGGESTED_ROUNDS_TAG,
+  roundMeetsCopy,
   suggestedRoundsResetLabel,
 } from "@repo/domain/tournament-sizing";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 export function RoundCountField({
   id,
@@ -28,6 +27,8 @@ export function RoundCountField({
   error?: string;
   labelClassName?: string;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const value = resolveRoundCount(poolSizes, roundCount);
   if (value == null) {
     return null;
@@ -39,23 +40,23 @@ export function RoundCountField({
   return (
     <StepperField
       id={id}
-      label={ROUNDS_LABEL}
+      label={m.tournament.sizing.roundsLabel}
       labelClassName={labelClassName}
       value={value}
-      unit={value === 1 ? "Round" : "Rounds"}
+      unit={m.webGame.overview.roundUnit(value)}
       min={range.min}
       max={range.max}
       step={1}
       onChange={(next) => {
         onRoundCount(next === range.suggested ? null : next);
       }}
-      decreaseLabel="Fewer Rounds"
-      increaseLabel="More Rounds"
+      decreaseLabel={m.webGame.roundCount.fewer}
+      increaseLabel={m.webGame.roundCount.more}
       error={error}
       description={
         <div className="flex flex-col gap-1">
           {onSuggestion ? (
-            <Badge variant="outline">{SUGGESTED_ROUNDS_TAG}</Badge>
+            <Badge variant="outline">{m.tournament.sizing.suggestedTag}</Badge>
           ) : (
             <button
               type="button"
@@ -64,14 +65,14 @@ export function RoundCountField({
                 onRoundCount(null);
               }}
             >
-              {suggestedRoundsResetLabel(range.suggested)}
+              {suggestedRoundsResetLabel(range.suggested, locale)}
             </button>
           )}
           <p className="text-muted-foreground text-meta">
-            {formatRoundMatchesPerTeam(rounds)}
+            {formatRoundMatchesPerTeam(rounds, locale)}
           </p>
           <p className="text-muted-foreground text-meta">
-            {ROUND_MEETS_COPY[rounds.meets]}
+            {roundMeetsCopy(rounds.meets, locale)}
           </p>
         </div>
       }

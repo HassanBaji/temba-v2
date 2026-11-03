@@ -10,6 +10,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { RequestRow } from "~/components/invites/request-row";
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Section } from "~/components/layout/section";
@@ -19,13 +20,16 @@ import { requestRowMeta } from "@repo/domain/request-meta";
 import { api } from "~/trpc/react";
 
 export default function VenuesPage() {
+  const m = useMessages();
+  const locale = useLocale();
+  const v = m.webDashboard.venues;
   const utils = api.useUtils();
   const venues = api.venues.list.useQuery();
   const pendingLinks = api.venues.listPendingLinkRequests.useQuery();
 
   const approveLink = api.venues.approveLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Venue link approved");
+      toast.success(v.linkApprovedToast);
       await utils.venues.listPendingLinkRequests.invalidate();
       await utils.venues.list.invalidate();
       await utils.venues.byId.invalidate();
@@ -37,7 +41,7 @@ export default function VenuesPage() {
 
   const rejectLink = api.venues.rejectLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Venue link request rejected");
+      toast.success(v.linkRejectedToast);
       await utils.venues.listPendingLinkRequests.invalidate();
     },
     onError: (error) => {
@@ -49,16 +53,16 @@ export default function VenuesPage() {
 
   return (
     <DashboardShell
-      title="Venues"
-      description="Every Venue, including Soft-archived ones. Create a Venue before a Community asks to link it."
+      title={m.webDashboard.meta.venues}
+      description={v.description}
       action={
-        <PageCreateAction href="/dashboard/venues/new" label="Create Venue" />
+        <PageCreateAction href="/dashboard/venues/new" label={v.createAction} />
       }
     >
       <div className="space-y-6">
         <Section
-          title="Requests"
-          description="Approve to link the Venue to that Community. If you reject, they can ask again."
+          title={m.community.tab.requests}
+          description={v.requests.description}
           action={
             requestCount > 0 ? (
               <Badge variant="secondary">{requestCount}</Badge>
@@ -69,7 +73,7 @@ export default function VenuesPage() {
           {pendingLinks.error ? (
             <ErrorState
               headingLevel={3}
-              title="Requests could not be loaded"
+              title={v.requests.errorTitle}
               message={pendingLinks.error.message}
               onRetry={() => {
                 void pendingLinks.refetch();
@@ -80,8 +84,8 @@ export default function VenuesPage() {
             <EmptyState
               headingLevel={3}
               icon={Inbox}
-              title="No pending requests"
-              description="Venue link requests from Communities will show up here."
+              title={m.community.requestsEmpty.title}
+              description={v.requests.emptyDescription}
             />
           ) : null}
           {pendingLinks.data && pendingLinks.data.length > 0 ? (
@@ -97,8 +101,8 @@ export default function VenuesPage() {
                   <RequestRow
                     key={request.id}
                     title={request.community.name}
-                    meta={requestRowMeta(request.createdAt, [
-                      `For ${request.venue.name}`,
+                    meta={requestRowMeta(request.createdAt, locale, [
+                      v.forVenue(request.venue.name),
                     ])}
                     approvePending={approvePending}
                     rejectPending={rejectPending}
@@ -119,7 +123,7 @@ export default function VenuesPage() {
 
         {venues.error ? (
           <ErrorState
-            title="Venues could not be loaded"
+            title={m.community.linkVenue.errorTitle}
             message={venues.error.message}
             onRetry={() => {
               void venues.refetch();
@@ -130,11 +134,11 @@ export default function VenuesPage() {
         {venues.data?.length === 0 ? (
           <EmptyState
             icon={Building2}
-            title="No Venues yet"
-            description="Create a Venue to start the catalog."
+            title={v.empty.title}
+            description={v.empty.description}
             action={
               <Button asChild>
-                <Link href="/dashboard/venues/new">Create Venue</Link>
+                <Link href="/dashboard/venues/new">{v.createAction}</Link>
               </Button>
             }
           />
@@ -148,10 +152,10 @@ export default function VenuesPage() {
                 asChild
                 leading={<EntityMonogram name={venue.name} size="lg" />}
                 title={venue.name}
-                meta={`${venue.city}, ${venue.country}`}
+                meta={m.community.venue.location(venue.city, venue.country)}
                 trailing={
                   venue.archivedAt ? (
-                    <Badge variant="outline">Soft-archived</Badge>
+                    <Badge variant="outline">{m.community.badge.softArchived}</Badge>
                   ) : undefined
                 }
               >

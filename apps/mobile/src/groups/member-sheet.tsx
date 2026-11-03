@@ -1,9 +1,6 @@
-import {
-  REMOVE_PLAYER_ACTION,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-} from "@repo/domain/add-player-by-phone";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
@@ -38,12 +35,13 @@ export function MemberSheet({
   onRename?: () => void;
   onRemove?: () => void;
 }) {
+  const m = useMessages();
   const rows = member
     ? [
         onViewProfile ? (
           <SheetMenuRow
             key="profile"
-            label="View profile"
+            label={m.mobileGroup.members.sheet.viewProfile}
             trailing="chevron"
             onPress={onViewProfile}
           />
@@ -51,8 +49,12 @@ export function MemberSheet({
         onSetLevel ? (
           <SheetMenuRow
             key="level"
-            label="Set Level"
-            hint={member.provisionalNote ? "Still Provisional" : null}
+            label={m.mobileGroup.members.sheet.setLevel}
+            hint={
+              member.provisionalNote
+                ? m.mobileGroup.members.sheet.stillProvisional
+                : null
+            }
             trailing="chevron"
             onPress={onSetLevel}
           />
@@ -68,14 +70,14 @@ export function MemberSheet({
         onRename ? (
           <SheetMenuRow
             key="rename"
-            label={RENAME_UNCLAIMED_PLAYER_ACTION}
+            label={m.group.addPlayer.renameAction}
             onPress={onRename}
           />
         ) : null,
         onRemove ? (
           <SheetMenuRow
             key="remove"
-            label={REMOVE_PLAYER_ACTION}
+            label={m.group.addPlayer.removeAction}
             onPress={onRemove}
           />
         ) : null,
@@ -116,8 +118,10 @@ export function MemberSheet({
                 accessible
                 accessibilityLabel={
                   member.letter
-                    ? `Level ${member.letter} ${member.level ?? ""}`.trim()
-                    : "No Level yet"
+                    ? m.mobileGroup.members.levelSpoken(
+                        `${member.letter} ${member.level ?? ""}`.trim(),
+                      )
+                    : m.mobileGroup.members.noLevelYet
                 }
                 style={{
                   flexDirection: "row",
@@ -126,7 +130,7 @@ export function MemberSheet({
                 }}
               >
                 <Text size="statTotal" width="expanded" weight="bold">
-                  {member.letter ?? "–"}
+                  {member.letter ?? m.mobileGroup.members.sheet.noLevelMark}
                 </Text>
                 {member.level ? (
                   <Text size="title" width="expanded" weight="bold">
@@ -144,14 +148,14 @@ export function MemberSheet({
               ) : null}
               {member.latestSet ? (
                 <Text size="meta" tone="muted">
-                  {`Latest Level set: ${member.latestSet}`}
+                  {m.mobileGroup.members.latestSet(member.latestSet)}
                 </Text>
               ) : null}
             </Surface>
           ) : null}
           {rows.some(Boolean) ? <SheetMenu>{rows}</SheetMenu> : null}
           <Button
-            label="Cancel"
+            label={m.common.cancel}
             size="lg"
             variant="outline"
             onPress={onClose}

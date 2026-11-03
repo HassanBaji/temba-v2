@@ -1,4 +1,5 @@
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import type { ScheduleStats } from "./booking-model";
 
@@ -21,7 +22,10 @@ export function ScheduleStatLine({
         </span>
       ) : null}
       <span>
-        <Figure>{formatBookingPriceFils(stats.takenFils)}</Figure> {takenLabel}
+        <Figure>
+          {formatBookingPriceFils(stats.takenFils, CONSOLE_LOCALE)}
+        </Figure>{" "}
+        {takenLabel}
       </span>
     </p>
   );

@@ -9,6 +9,7 @@ import * as React from "react";
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { authCompleteUrl, authCrossLinkUrl } from "~/lib/auth-redirect";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
@@ -29,6 +30,8 @@ export function SecondFactorForm({
   redirectUrl: string | null;
 }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   const { setActive } = useClerk();
   const { signIn, isLoaded } = useSignIn();
   const completeUrl = authCompleteUrl(redirectUrl);
@@ -68,7 +71,7 @@ export function SecondFactorForm({
         setPending(false);
       })
       .catch((err: unknown) => {
-        setSplit(splitClerkAuthError(err));
+        setSplit(splitClerkAuthError(err, locale));
         setPrepared(true);
         setPending(false);
       });
@@ -96,10 +99,10 @@ export function SecondFactorForm({
       setPending(false);
       setSplit({
         fieldErrors: {},
-        globalMessage: "Something went wrong. Try again.",
+        globalMessage: m.auth.clerkError.generic,
       });
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
@@ -114,14 +117,14 @@ export function SecondFactorForm({
       setStartedAt(Date.now());
       setPending(false);
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
     }
   }
 
   if (!isLoaded) {
     return (
-      <AuthScreen title="Check your phone">
+      <AuthScreen title={m.webAuth.secondFactor.checkYourPhone}>
         <AuthLoading />
       </AuthScreen>
     );
@@ -131,13 +134,12 @@ export function SecondFactorForm({
     return (
       <AuthScreen
         backHref={loginUrl}
-        backLabel="Back"
-        title="Check your phone"
-        description="Start from sign in to continue."
+        title={m.webAuth.secondFactor.checkYourPhone}
+        description={m.webAuth.secondFactor.startFromSignIn}
       >
         <p className="text-body text-muted-foreground">
           <Link className="text-ink font-medium underline" href={loginUrl}>
-            Sign in
+            {m.common.signIn}
           </Link>
         </p>
       </AuthScreen>
@@ -147,23 +149,21 @@ export function SecondFactorForm({
   const phone =
     signIn.supportedSecondFactors?.find(
       (factor) => factor.strategy === "phone_code",
-    )?.safeIdentifier ?? "your number";
+    )?.safeIdentifier ?? m.webAuth.signUpContinue.yourNumber;
 
   return (
     <AuthScreen
       backHref={loginUrl}
-      backLabel="Back"
-      title="Enter the code"
+      title={m.webAuth.signUpContinue.enterTheCode}
       footer={
         <p className="text-eyebrow text-muted-foreground leading-[1.5]">
-          Codes expire after a short time. Too many wrong tries will lock this
-          account.
+          {m.webAuth.phoneAuth.codesExpire.account}
         </p>
       }
     >
       <VerifyCodeForm
         destination={phone}
-        changeLabel="Sign in with a different account"
+        changeLabel={m.webAuth.secondFactor.differentAccount}
         onChangeIdentifier={() => {
           router.push(loginUrl);
         }}

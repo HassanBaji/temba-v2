@@ -1,8 +1,9 @@
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
-import { TEAM_CREATED_TOAST, teamCreateInput } from "@repo/domain/teams";
+import { teamCreateInput } from "@repo/domain/teams";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
+import { useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
@@ -13,6 +14,7 @@ import { teamPath } from "./teams-model";
 export function CreateTeamScreen() {
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
   const utils = api.useUtils();
   const [name, setName] = useState("");
   const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
@@ -21,7 +23,7 @@ export function CreateTeamScreen() {
 
   const create = api.teams.create.useMutation({
     onSuccess: async (team) => {
-      toast.show(TEAM_CREATED_TOAST);
+      toast.show(m.team.toast.created);
       await utils.teams.mine.invalidate();
       router.replace(teamPath(team.id));
     },

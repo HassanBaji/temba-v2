@@ -1,4 +1,6 @@
 import { CircleUser, House, Users } from "lucide-react";
+
+import type { Messages } from "@repo/i18n/messages";
 import { Field } from "../ui/icons/field";
 
 export type AppNavSlot = "home" | "games" | "groups" | "you";
@@ -11,16 +13,17 @@ export type AppNavItem = {
   slot: AppNavSlot;
 };
 
-export const APP_NAV_ITEMS: AppNavItem[] = [
+export function appNavItems(m: Messages): AppNavItem[] {
+  return [
   {
-    title: "Home",
+    title: m.common.home,
     href: "/dashboard",
     icon: <House className="size-[21px]" aria-hidden="true" />,
     match: "exact",
     slot: "home",
   },
   {
-    title: "Games",
+    title: m.common.games,
     href: "/dashboard/games",
     icon: (
       <Field
@@ -34,20 +37,21 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     slot: "games",
   },
   {
-    title: "Groups",
+    title: m.common.groups,
     href: "/dashboard/groups",
     icon: <Users className="size-[21px]" aria-hidden="true" />,
     match: "prefix",
     slot: "groups",
   },
   {
-    title: "Profile",
+    title: m.common.profile,
     href: "/dashboard/you",
     icon: <CircleUser className="size-[21px]" aria-hidden="true" />,
     match: "prefix",
     slot: "you",
   },
-];
+  ];
+}
 
 export function isNavItemActive(pathname: string, item: AppNavItem) {
   if (item.match === "exact") {

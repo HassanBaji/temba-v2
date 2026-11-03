@@ -1,19 +1,24 @@
 import type { FriendlyGameHeroFigure } from "@repo/domain/friendly-game-hero";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
 export function FigurePair({ figures }: { figures: FriendlyGameHeroFigure[] }) {
   const palette = useTonePalette();
+  const m = useMessages();
   return (
     <View style={{ flexDirection: "row" }}>
       {figures.map((figure, index) => (
         <View
           key={figure.key}
           accessible
-          accessibilityLabel={`${figure.label}: ${figure.value}`}
+          accessibilityLabel={m.mobileGameDetails.figure(
+            figure.label,
+            figure.value,
+          )}
           style={{
             flex: 1,
             minWidth: 0,

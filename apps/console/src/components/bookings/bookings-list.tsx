@@ -15,6 +15,7 @@ import { api } from "~/trpc/react";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDayKey } from "@repo/domain/product-timezone";
 import { cn } from "~/lib/utils";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import {
   countLabel,
@@ -294,7 +295,7 @@ function BookingRow({
         <PaymentBadge status={booking.paymentStatus} />
       </td>
       <td className={cn(cellClass, "text-right tabular-nums")}>
-        {formatBookingPriceFils(booking.priceFils)}
+        {formatBookingPriceFils(booking.priceFils, CONSOLE_LOCALE)}
       </td>
       <td className={cn(cellClass, "pr-3")}>
         <BookingRowMenu venueId={venueId} booking={booking} />

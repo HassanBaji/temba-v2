@@ -9,6 +9,7 @@ import {
   friendlyGameVacantSeatAction,
   friendlyGameVacantSeatLabel,
 } from "@repo/domain/friendly-game-players";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -17,7 +18,7 @@ type SeatOccupant = NonNullable<GameSide["left"]>;
 
 function FriendlySeatRow({
   sideLabel,
-  positionLabel,
+  position,
   occupant,
   viewerUserId,
   vacantAction,
@@ -32,7 +33,7 @@ function FriendlySeatRow({
   linked,
 }: {
   sideLabel: string;
-  positionLabel: "Left" | "Right";
+  position: "left" | "right";
   occupant: SeatOccupant | null;
   viewerUserId: string;
   vacantAction: ReturnType<typeof friendlyGameVacantSeatAction>;
@@ -46,6 +47,9 @@ function FriendlySeatRow({
   onKick: (userId: string) => void;
   linked: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const positionLabel = m.game.players[position];
   if (occupant) {
     const isViewer = occupant.userId === viewerUserId;
     const canKick = friendlyGameCanKickPlayer({
@@ -61,13 +65,13 @@ function FriendlySeatRow({
         subline={positionLabel}
         trailing={
           canKick ? (
-            <ActionMenu label={`Actions for ${occupant.name}`}>
+            <ActionMenu label={m.webGame.seatBlocks.actionsFor(occupant.name)}>
               <ActionMenuItem
                 variant="destructive"
                 disabled={kickPending}
                 onClick={() => onKick(occupant.userId)}
               >
-                Kick
+                {m.game.action.kick}
               </ActionMenuItem>
             </ActionMenu>
           ) : undefined
@@ -80,6 +84,7 @@ function FriendlySeatRow({
     vacantAction,
     sideLabel,
     positionLabel,
+    locale,
   );
   const pending = vacantAction === "move" ? moving : joining;
 
@@ -103,9 +108,11 @@ function FriendlySeatRow({
       }
       title={
         vacantAction ? (
-          <span className="text-foreground">Open</span>
+          <span className="text-foreground">{m.webGame.seatBlocks.open}</span>
         ) : (
-          <span className="text-muted-foreground">Vacant</span>
+          <span className="text-muted-foreground">
+            {m.webGame.seatBlocks.vacant}
+          </span>
         )
       }
       subline={positionLabel}
@@ -146,6 +153,7 @@ export function FriendlyGameSeatBlocks({
   onKick: (userId: string) => void;
   linkToPlayers: boolean;
 }) {
+  const locale = useLocale();
   const vacantAction = friendlyGameVacantSeatAction({
     cancelled,
     canMove,
@@ -158,7 +166,11 @@ export function FriendlyGameSeatBlocks({
     <div className="grid gap-4 md:grid-cols-2">
       {sides.map((side) => {
         const fill = friendlyGameSideFill(side);
-        const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
+        const sideLabel = formatGameSideLabel(
+          "friendly_game",
+          side.sideIndex,
+          locale,
+        );
         return (
           <div key={side.sideIndex} className="gap-0 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-2">
@@ -170,7 +182,7 @@ export function FriendlyGameSeatBlocks({
             <div className="mt-2 flex flex-col gap-2 px-4">
               <FriendlySeatRow
                 sideLabel={sideLabel}
-                positionLabel="Left"
+                position="left"
                 occupant={side.left}
                 viewerUserId={viewerUserId}
                 vacantAction={vacantAction}
@@ -186,7 +198,7 @@ export function FriendlyGameSeatBlocks({
               />
               <FriendlySeatRow
                 sideLabel={sideLabel}
-                positionLabel="Right"
+                position="right"
                 occupant={side.right}
                 viewerUserId={viewerUserId}
                 vacantAction={vacantAction}

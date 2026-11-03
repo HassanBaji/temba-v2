@@ -31,17 +31,14 @@ import {
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
 import {
-  JOIN_ALONE_COPY,
-  JOIN_WITH_PARTNER_COPY,
   firstFullyVacantSideIndex,
   friendlyGameJoinOpeningStep,
   friendlyGameJoinSheetHeader,
   isPartnerVacantSideRace,
   offersPartnerJoin,
-  PARTNER_VACANT_SIDE_RACE_MESSAGE,
+  partnerVacantSideRaceMessage,
   partnerVacantSideRaceRecovery,
 } from "@repo/domain/friendly-game-partner";
-import { JOIN_GAME_ACTION } from "@repo/domain/game-copy";
 import {
   displayLabelFromStoredBand,
   type LevelBand,
@@ -51,9 +48,6 @@ import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { tournamentFieldSummary } from "@repo/domain/tournament-home";
 import {
   isTournamentJoinSheet,
-  LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY,
-  LEAVE_SEAT_UNTIL_POOL_DRAW_COPY,
-  TAKE_A_SEAT_TITLE,
   tournamentJoinDetailRows,
   tournamentJoinFirstRoundDay,
   tournamentJoinHeaderLine,
@@ -70,14 +64,13 @@ import {
   plannedTournamentRoundCount,
   tournamentRoundSchedule,
 } from "@repo/domain/tournament-rounds";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
 
 type SeatPosition = "left" | "right";
-
-const SEAT_JOIN_FAILED_MESSAGE = "Couldn't take that seat. Try again.";
 
 /**
  * Structural side shape rather than one screen's router output: the sheet is
@@ -102,10 +95,6 @@ function occupantLevelLabel(occupant: FriendlyGameJoinSheetOccupant | null) {
     return null;
   }
   return displayLabelFromStoredBand(occupant.levelBand);
-}
-
-function positionLabel(position: SeatPosition) {
-  return position === "left" ? "Left" : "Right";
 }
 
 /**
@@ -138,33 +127,36 @@ function ModeChooser({
   onJoinAlone: () => void;
   onJoinWithPartner: () => void;
 }) {
+  const m = useMessages();
+  const joinAlone = m.game.joinSheet.joinAlone;
+  const joinWithPartner = m.game.joinSheet.joinWithPartner;
   return (
     <div className="flex flex-col gap-3 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-[18px]">
       <SelectCard
         onClick={onJoinAlone}
-        aria-label={JOIN_ALONE_COPY.accessibleName}
+        aria-label={joinAlone.accessibleName}
         icon={<UserRound className="size-[17px]" strokeWidth={1.75} />}
-        title={JOIN_ALONE_COPY.title}
-        description={JOIN_ALONE_COPY.description}
+        title={joinAlone.title}
+        description={joinAlone.description}
         trailing="chevron"
         className="border-ink"
       >
         <TwoSeatDiagram onInk={false} />
-        <SelectCardNote>{JOIN_ALONE_COPY.note}</SelectCardNote>
+        <SelectCardNote>{joinAlone.note}</SelectCardNote>
       </SelectCard>
 
       <SelectCard
         selected
         onClick={onJoinWithPartner}
-        aria-label={JOIN_WITH_PARTNER_COPY.accessibleName}
+        aria-label={joinWithPartner.accessibleName}
         icon={<Users className="size-[17px]" strokeWidth={1.75} />}
-        title={JOIN_WITH_PARTNER_COPY.title}
-        description={JOIN_WITH_PARTNER_COPY.description}
+        title={joinWithPartner.title}
+        description={joinWithPartner.description}
         trailing="chevron"
         className="hover:bg-dimrule"
       >
         <TwoSeatDiagram onInk />
-        <SelectCardNote>{JOIN_WITH_PARTNER_COPY.note}</SelectCardNote>
+        <SelectCardNote>{joinWithPartner.note}</SelectCardNote>
       </SelectCard>
     </div>
   );
@@ -185,15 +177,21 @@ function PositionButton({
   disabled: boolean;
   onSelect: () => void;
 }) {
-  const seatName = `${sideLabel} ${positionLabel(position).toLowerCase()}`;
+  const m = useMessages();
+  const seatName = m.webGame.joinSheet.seatName(
+    sideLabel,
+    m.tournament.position[`${position}Lower`],
+  );
   return (
     <SeatTile
       occupant={occupant}
       level={occupantLevelLabel(occupant)}
       selected={selected}
-      caption={positionLabel(position)}
+      caption={m.tournament.position[position]}
       label={
-        occupant ? `${seatName}, taken by ${occupant.name}` : `Take ${seatName}`
+        occupant
+          ? m.webGame.joinSheet.seatTakenBy(seatName, occupant.name)
+          : m.webGame.joinSheet.takeSeat(seatName)
       }
       disabled={occupant != null || disabled}
       onSelect={onSelect}
@@ -204,6 +202,7 @@ function PositionButton({
 /** The net between the two Game teams — decoration, mirroring the "vs" rule
  * `game-lineup-section.tsx` already puts between its two columns. */
 function NetDivider() {
+  const m = useMessages();
   return (
     <div
       aria-hidden="true"
@@ -212,7 +211,7 @@ function NetDivider() {
       <span className="h-5 shrink-0" />
       <span className="bg-rule w-px flex-1" />
       <span className="text-muted-foreground text-eyebrow py-1.5 font-semibold">
-        vs
+        {m.webGame.joinSheet.versus}
       </span>
       <span className="bg-rule w-px flex-1" />
       <span className="h-7 shrink-0" />
@@ -233,7 +232,8 @@ function SideColumn({
   pending: boolean;
   onPick: (seat: FriendlyGameJoinSeat) => void;
 }) {
-  const sideLabel = formatGameSideLabel(format, side.sideIndex);
+  const locale = useLocale();
+  const sideLabel = formatGameSideLabel(format, side.sideIndex, locale);
 
   return (
     <div className="min-w-0 flex-1">
@@ -280,13 +280,15 @@ function TournamentTeamSides({
   ) => void;
   onPick: (seat: FriendlyGameJoinSeat) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const focused =
     focusedSideIndex == null
       ? null
       : (sides.find((side) => side.sideIndex === focusedSideIndex) ?? null);
 
   if (focused) {
-    const teamLabel = formatGameSideLabel(format, focused.sideIndex);
+    const teamLabel = formatGameSideLabel(format, focused.sideIndex, locale);
     return (
       <section>
         <div className="pb-2.5">
@@ -317,7 +319,7 @@ function TournamentTeamSides({
           id="tournament-join-sides"
           className="font-expanded text-title tracking-[-0.03em]"
         >
-          Teams
+          {m.webGame.joinSheet.teams}
         </h3>
       </div>
       <div
@@ -387,6 +389,8 @@ function TournamentTakeASeat({
   onConfirm: () => void;
   onJoinWithPartner?: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const field = tournamentFieldSummary(sides);
   const pickedSide = sides.find((side) => side.sideIndex === picked?.sideIndex);
   const occupiedPosition: SeatPosition | null =
@@ -407,6 +411,7 @@ function TournamentTakeASeat({
           occupiedPosition,
           freePosition: picked.position,
           roundCount,
+          locale,
         });
   const schedule =
     roundCount != null && windowStart && windowEnd
@@ -417,13 +422,16 @@ function TournamentTakeASeat({
           matchMinutes,
         })
       : [];
-  const roundDates = schedule.map((entry) => formatGameCardDay(entry.start));
+  const roundDates = schedule.map((entry) =>
+    formatGameCardDay(entry.start, locale),
+  );
   const firstRoundDay =
-    roundDates[0] ?? tournamentJoinFirstRoundDay(windowStart);
+    roundDates[0] ?? tournamentJoinFirstRoundDay(windowStart, locale);
   const detailRows = tournamentJoinDetailRows({
     roundDates,
     roundCount,
-    priceLabel: formatPricePerPlayerFils(pricePerPlayerFils),
+    priceLabel: formatPricePerPlayerFils(pricePerPlayerFils, locale),
+    locale,
   });
 
   return (
@@ -433,25 +441,30 @@ function TournamentTakeASeat({
           {onBackToTeams ? (
             <BackButton
               variant="boxed"
-              label="All teams"
+              label={m.webGame.joinSheet.allTeams}
               onClick={onBackToTeams}
             />
           ) : (
             <CloseButton variant="boxed" onClick={onClose} />
           )}
           <p className="text-muted-foreground text-meta">
-            {tournamentJoinSeatsTakenLine(field.seatsTaken, field.seatTotal)}
+            {tournamentJoinSeatsTakenLine(
+              field.seatsTaken,
+              field.seatTotal,
+              locale,
+            )}
           </p>
         </div>
         <ResponsiveDialogHeader className="p-0 pt-6 text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
           <ResponsiveDialogTitle className="font-expanded text-display leading-none tracking-[-0.03em]">
-            {TAKE_A_SEAT_TITLE}
+            {m.tournament.join.takeASeatTitle}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription className="text-body leading-relaxed">
             {tournamentJoinHeaderLine({
               name: title,
               roundCount,
               firstRoundDay,
+              locale,
             })}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
@@ -485,10 +498,13 @@ function TournamentTakeASeat({
           onClick={onConfirm}
         >
           {pending
-            ? "Joining…"
+            ? m.game.cta.joining
             : picked
-              ? `Join ${formatGameSideLabel(format, picked.sideIndex)}, ${picked.position === "left" ? "left" : "right"} seat`
-              : TAKE_A_SEAT_TITLE}
+              ? m.webGame.joinSheet.joinSeatButton(
+                  formatGameSideLabel(format, picked.sideIndex, locale),
+                  m.tournament.position[`${picked.position}Lower`],
+                )
+              : m.tournament.join.takeASeatTitle}
         </Button>
         {onJoinWithPartner ? (
           <Button
@@ -499,13 +515,13 @@ function TournamentTakeASeat({
             disabled={pending}
             onClick={onJoinWithPartner}
           >
-            Join with a partner
+            {m.game.joinSheet.joinWithPartner.title}
           </Button>
         ) : null}
         <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
           {knockoutOnly
-            ? LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY
-            : LEAVE_SEAT_UNTIL_POOL_DRAW_COPY}
+            ? m.tournament.join.leaveSeatUntilKnockoutDraw
+            : m.tournament.join.leaveSeatUntilPoolDraw}
         </p>
       </div>
     </div>
@@ -595,6 +611,8 @@ export function FriendlyGameJoinSheet({
   matchMinutes?: number | null;
   allowSoloRegister?: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const isTournamentJoin = isTournamentJoinSheet(
     format,
     poolCount,
@@ -615,8 +633,8 @@ export function FriendlyGameJoinSheet({
     sides,
   });
   const vacantSideRaceMessage = isTournamentJoin
-    ? tournamentPartnerVacantSideRaceMessage(partnerRequired)
-    : PARTNER_VACANT_SIDE_RACE_MESSAGE;
+    ? tournamentPartnerVacantSideRaceMessage(partnerRequired, locale)
+    : partnerVacantSideRaceMessage(locale);
 
   // `touched` is what keeps the Preferred Position default a default: until
   // the viewer taps, the picked Position is derived, so it can appear the
@@ -647,7 +665,11 @@ export function FriendlyGameJoinSheet({
 
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      toast.success(
+        result.waitlisted
+          ? m.game.toast.joinedWaitlist
+          : m.webGame.joinSheet.registeredToast,
+      );
       if (gameId) {
         await utils.games.byId.invalidate({ id: gameId });
         await utils.games.searchPartnerUsers.invalidate({ gameId });
@@ -771,7 +793,7 @@ export function FriendlyGameJoinSheet({
   }
 
   const isFull = vacantJoinSeats(sides).length === 0;
-  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils, locale);
   const vacantSideIndex = firstFullyVacantSideIndex(sides);
 
   async function confirmSeat() {
@@ -790,7 +812,7 @@ export function FriendlyGameJoinSheet({
     } catch (error) {
       setSeatError(
         globalFormErrorMessage(error instanceof Error ? error : null) ??
-          SEAT_JOIN_FAILED_MESSAGE,
+          m.webGame.joinSheet.seatJoinFailed,
       );
     }
   }
@@ -829,6 +851,7 @@ export function FriendlyGameJoinSheet({
       step: step === "chooser" ? "chooser" : "seat",
       isFull,
       title,
+      locale,
     });
   const showSheetHeader =
     step !== "partner" &&
@@ -861,11 +884,11 @@ export function FriendlyGameJoinSheet({
           <ResponsiveDialogHeader className="sr-only">
             <ResponsiveDialogTitle>
               {step === "partnerConfirm"
-                ? "Register the team"
-                : "Pick a partner"}
+                ? m.game.joinSheet.partnerReview.title
+                : m.game.joinSheet.partnerPicker.title}
             </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              You register both seats. Your partner is in straight away.
+              {m.game.joinSheet.partnerPicker.description}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
         ) : null}
@@ -944,7 +967,7 @@ export function FriendlyGameJoinSheet({
                   aria-live="polite"
                   className="border-rule text-muted-foreground text-meta border-t px-4 py-3"
                 >
-                  {friendlyGameJoinSheetCaption(sides, picked)}
+                  {friendlyGameJoinSheetCaption(sides, picked, locale)}
                 </p>
               </div>
             </div>
@@ -956,7 +979,7 @@ export function FriendlyGameJoinSheet({
                     {priceLabel}
                   </p>
                   <p className="text-muted-foreground text-eyebrow mt-1.5">
-                    per player
+                    {m.tournament.join.pricePerPlayer}
                   </p>
                 </div>
               ) : null}
@@ -969,7 +992,7 @@ export function FriendlyGameJoinSheet({
                   void confirmSeat();
                 }}
               >
-                {pending ? "Joining…" : JOIN_GAME_ACTION}
+                {pending ? m.game.cta.joining : m.game.action.joinGame}
               </Button>
             </div>
           </>

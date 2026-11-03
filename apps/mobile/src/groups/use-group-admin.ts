@@ -1,7 +1,4 @@
 import {
-  GROUP_IMAGE_REMOVED_TOAST,
-  GROUP_IMAGE_SAVED_TOAST,
-  GROUP_JOIN_REQUEST_UNDO_LABEL,
   groupJoinRequestDecidedToast,
   type GroupJoinRequestDecision,
 } from "@repo/domain/group-admin";
@@ -12,6 +9,7 @@ import type {
 import { useCallback, useState } from "react";
 
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
@@ -45,6 +43,8 @@ export function useGroupAdmin(
   groupId: string,
   data: GroupHomeData | undefined,
 ) {
+  const locale = useLocale();
+  const m = useMessages();
   const toast = useToast();
   const utils = api.useUtils();
   const communityId = data?.communityId ?? null;
@@ -99,9 +99,13 @@ export function useGroupAdmin(
     decision: GroupJoinRequestDecision,
   ) =>
     toast.show(
-      groupJoinRequestDecidedToast(request.user.name ?? "User", decision),
+      groupJoinRequestDecidedToast(
+        request.user.name ?? m.mobileGroup.unnamedUser,
+        decision,
+        locale,
+      ),
       {
-        label: GROUP_JOIN_REQUEST_UNDO_LABEL,
+        label: m.group.admin.undoLabel,
         onPress: () => undo.mutate({ requestId: request.id }),
       },
     );
@@ -128,7 +132,7 @@ export function useGroupAdmin(
 
   const uploadImage = api.groups.uploadImage.useMutation({
     onSuccess: async () => {
-      toast.show(GROUP_IMAGE_SAVED_TOAST);
+      toast.show(m.group.admin.imageSavedToast);
       await refreshImage();
     },
     onError,
@@ -136,7 +140,7 @@ export function useGroupAdmin(
 
   const clearImage = api.groups.clearImage.useMutation({
     onSuccess: async () => {
-      toast.show(GROUP_IMAGE_REMOVED_TOAST);
+      toast.show(m.group.admin.imageRemovedToast);
       await refreshImage();
     },
     onError,
@@ -146,7 +150,7 @@ export function useGroupAdmin(
     if (uploadImage.isPending) {
       return;
     }
-    const picked = await pickGroupImage();
+    const picked = await pickGroupImage(locale);
     if (!picked) {
       return;
     }
@@ -159,7 +163,7 @@ export function useGroupAdmin(
       contentType: picked.image.contentType,
       dataBase64: picked.image.dataBase64,
     });
-  }, [uploadImage, groupId, toast]);
+  }, [uploadImage, groupId, toast, locale]);
 
   return {
     approver: {

@@ -34,6 +34,8 @@ import {
 } from "@repo/domain/create-game-submit";
 import type { LevelBandSelectValue } from "@repo/domain/level-range";
 import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { splitTrpcFormError } from "../lib/form-error";
 
@@ -42,6 +44,7 @@ export type CreateState = {
   type: CreateGameTypeId | null;
   step: CreateFlowStep;
   draft: CreateGameDraft;
+  locale: Locale;
 };
 
 export type CreateAction =
@@ -77,6 +80,7 @@ export type CreateAction =
 
 export function initialCreateState(
   now: Date,
+  locale: Locale,
   groupId?: string,
   type: CreateGameTypeId | null = null,
 ): CreateState {
@@ -84,7 +88,8 @@ export function initialCreateState(
     sport: DEFAULT_SPORT,
     type,
     step: type ? 2 : 1,
-    draft: { ...initialCreateGameDraft(now), groupId: groupId ?? "" },
+    draft: { ...initialCreateGameDraft(now, locale), groupId: groupId ?? "" },
+    locale,
   };
 }
 
@@ -96,7 +101,7 @@ export function createReducer(
   state: CreateState,
   action: CreateAction,
 ): CreateState {
-  const { draft } = state;
+  const { draft, locale } = state;
   switch (action.kind) {
     case "selectType": {
       if (action.type === state.type) {
@@ -106,7 +111,8 @@ export function createReducer(
         sport: state.sport,
         type: action.type,
         step: 1,
-        draft: resetCreateBranch(draft, action.type),
+        draft: resetCreateBranch(draft, action.type, locale),
+        locale,
       };
     }
     case "setStep":
@@ -127,7 +133,8 @@ export function createReducer(
         draft:
           state.type === "friendly_game"
             ? grouped
-            : resetCreateBranch(grouped, "friendly_game"),
+            : resetCreateBranch(grouped, "friendly_game", locale),
+        locale,
       };
     }
     case "setSideSize":
@@ -149,7 +156,7 @@ export function createReducer(
         courtIds: toggleCreateCourt(draft.courtIds, action.courtId),
       });
     case "setDay": {
-      const named = changeCreateDay(draft, action.day);
+      const named = changeCreateDay(draft, action.day, locale);
       const times = reconcileWindowForDay(
         draft,
         action.day,
@@ -258,10 +265,13 @@ export function advance(
   state: CreateState,
   context: AdvanceContext,
 ): AdvanceResult {
-  const { draft } = state;
+  const { draft, locale } = state;
   if (state.step === 1) {
     if (!state.type) {
-      return blockedBy({ field: "type", message: "Pick a Game type" });
+      return blockedBy({
+        field: "type",
+        message: messagesFor(locale).mobileCreateGame.validation.pickGameType,
+      });
     }
     return { moved: true, state: { ...state, step: 2 } };
   }
@@ -269,7 +279,11 @@ export function advance(
     if (context.venuesPending || context.emptyCatalog) {
       return STAY;
     }
-    const where = validateFriendlyGameWhere(draft.groupId, draft.venueId);
+    const where = validateFriendlyGameWhere(
+      draft.groupId,
+      draft.venueId,
+      locale,
+    );
     if (!where.ok) {
       return blockedBy({
         field: where.field,
@@ -284,12 +298,13 @@ export function advance(
   if (state.step === 3) {
     const issue =
       state.type === "friendly_tournament"
-        ? validateTournamentStepThree(draft, context.now)
+        ? validateTournamentStepThree(draft, context.now, locale)
         : (() => {
             const when = validateFriendlyGameWhen(
               draft.day,
               draft.startTime,
               draft.finishTime,
+              locale,
               context.now,
             );
             return when.ok ? null : when;
@@ -349,11 +364,13 @@ export function submitRequest(
     step: issue.step,
     errors: { [issue.field]: issue.message },
   });
+  const { locale } = state;
   if (state.type === "friendly_tournament") {
     const result = validateFriendlyTournamentSubmit(
       state.draft,
       now,
       groupVerified,
+      locale,
     );
     return result.ok
       ? {
@@ -363,12 +380,12 @@ export function submitRequest(
       : issueResult(result);
   }
   if (state.sport === "football") {
-    const football = validateFootballGameSubmit(state.draft, now);
+    const football = validateFootballGameSubmit(state.draft, now, locale);
     return football.ok
       ? { ok: true, request: { kind: "football_game", input: football.input } }
       : issueResult(football);
   }
-  const result = validateFriendlyGameSubmit(state.draft, now);
+  const result = validateFriendlyGameSubmit(state.draft, now, locale);
   return result.ok
     ? { ok: true, request: { kind: "friendly_game", input: result.input } }
     : issueResult(result);

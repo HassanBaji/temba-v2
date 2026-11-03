@@ -3,6 +3,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import * as React from "react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   InputGroup,
   InputGroupAddon,
@@ -38,6 +39,7 @@ export function PasswordField({
   describedBy?: string;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   const [shown, setShown] = React.useState(false);
 
   return (
@@ -65,7 +67,7 @@ export function PasswordField({
         <InputGroupButton
           type="button"
           size="icon-sm"
-          aria-label={shown ? "Hide password" : "Show password"}
+          aria-label={shown ? m.webAuth.password.hide : m.webAuth.password.show}
           aria-pressed={shown}
           disabled={disabled}
           onClick={() => setShown((current) => !current)}
@@ -85,10 +87,12 @@ export function PasswordStrengthMeter({
   password: string;
   id?: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const filled = isPasswordLongEnough(password)
     ? passwordStrength(password)
     : 0;
-  const label = passwordStrengthLabel(password);
+  const label = passwordStrengthLabel(password, locale);
   return (
     <div id={id} className="flex flex-col gap-1.5">
       <div aria-hidden="true" className="flex gap-1.5">
@@ -103,7 +107,7 @@ export function PasswordStrengthMeter({
         ))}
       </div>
       <p role="status" className="sr-only">
-        {password.length > 0 ? `Password strength: ${label}` : ""}
+        {password.length > 0 ? m.webAuth.password.strength(label) : ""}
       </p>
     </div>
   );

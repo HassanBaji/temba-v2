@@ -1,5 +1,6 @@
 "use client";
 
+import { useMessages } from "~/components/locale-provider";
 import { Slider, SLIDER_THUMB_PX } from "~/components/ui/slider";
 import {
   LEVEL_SLIDER_TICKS,
@@ -21,6 +22,7 @@ export function LevelSlider({
   currentTenths: number;
   onTenthsChange: (tenths: number) => void;
 }) {
+  const m = useMessages();
   return (
     <div className="px-4">
       <div className="relative h-8">
@@ -44,7 +46,7 @@ export function LevelSlider({
               onTenthsChange(next);
             }
           }}
-          thumbLabel="Level"
+          thumbLabel={m.common.level}
           thumbValueText={levelSliderLabel(tenths)}
         >
           <span
@@ -77,7 +79,7 @@ export function LevelSlider({
             className="text-muted-foreground text-meta absolute -translate-x-1/2 whitespace-nowrap"
             style={{ left: leftAt(currentTenths) }}
           >
-            Now {levelSliderLabel(currentTenths)}
+            {m.webGroup.setLevel.now(levelSliderLabel(currentTenths))}
           </span>
         </div>
       </div>

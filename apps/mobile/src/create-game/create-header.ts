@@ -1,5 +1,5 @@
 import {
-  CREATE_GAME_TYPE_CARDS,
+  createGameTypeCards,
   createFlowLaterSteps,
   type CreateFlowStep,
   type CreateGameTypeId,
@@ -15,8 +15,10 @@ import {
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
-import { DEFAULT_SPORT, SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 import type { CreateState } from "./create-model";
 import { matchCountLabel } from "./create-summary";
@@ -36,37 +38,52 @@ export type StepHeaderText = {
   context: { icon?: HeaderContextIcon; parts: readonly string[] } | null;
 };
 
-export const CREATE_ENTRY_HEADER: StepHeaderText = {
-  title: ["New", "Game"],
-  subtitle: null,
-  context: null,
-};
+function titleLines(title: string): string[] {
+  return title.split("\n");
+}
+
+export function createEntryHeader(locale: Locale): StepHeaderText {
+  return {
+    title: titleLines(messagesFor(locale).mobileCreateGame.entryTitle),
+    subtitle: null,
+    context: null,
+  };
+}
 
 export type StepHeaderContext = {
   groupName: string | null;
   venues: { locked: boolean; count: number } | null;
 };
 
-const TOURNAMENT_RATING =
-  CREATE_GAME_TYPE_CARDS.find((card) => card.id === "friendly_tournament")
-    ?.rating ?? "";
+function tournamentRating(locale: Locale) {
+  return (
+    createGameTypeCards(locale).find((card) => card.id === "friendly_tournament")
+      ?.rating ?? ""
+  );
+}
 
-function venueCountPart(venues: { locked: boolean; count: number }) {
+function venueCountPart(
+  venues: { locked: boolean; count: number },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileCreateGame.header;
   if (venues.locked) {
-    return "Linked Venue";
+    return m.linkedVenue;
   }
-  return venues.count === 1 ? "1 Venue" : `${venues.count} Venues`;
+  return m.venueCount(venues.count);
 }
 
 export function stepHeader(
   state: Pick<CreateState, "type" | "step"> & { sport?: Sport },
   context: StepHeaderContext,
+  locale: Locale,
 ): StepHeaderText | null {
+  const messages = messagesFor(locale);
+  const m = messages.mobileCreateGame.header;
   if (state.step === 1) {
     return {
-      title: ["What are you", "setting up?"],
-      subtitle:
-        "Both start with a Venue and a time. The rest of the form follows your pick.",
+      title: titleLines(m.whatTitle),
+      subtitle: m.whatSubtitle,
       context: null,
     };
   }
@@ -75,32 +92,37 @@ export function stepHeader(
   }
   if (state.type === "friendly_tournament") {
     return {
-      title: ["Friendly", "tournament"],
+      title: titleLines(m.tournamentTitle),
       subtitle: null,
       context: {
         icon: "trophy",
         parts: [
-          TOURNAMENT_RATING,
-          `${TOURNAMENT_TEAM_MIN} to ${TOURNAMENT_TEAM_MAX} Game teams`,
+          tournamentRating(locale),
+          m.teamRange(TOURNAMENT_TEAM_MIN, TOURNAMENT_TEAM_MAX),
         ],
       },
     };
   }
   if (!context.groupName) {
     return {
-      title: ["Friendly", "game"],
-      subtitle: "Start with the Group. Venue rules depend on it.",
+      title: titleLines(m.gameTitle),
+      subtitle: m.startWithGroup,
       context: null,
     };
   }
-  const sportPart = state.sport === "football" ? [SPORT_LABELS.football] : [];
+  const sportPart =
+    state.sport === "football" ? [messages.common.football] : [];
   return {
-    title: ["Friendly", "game"],
+    title: titleLines(m.gameTitle),
     subtitle: null,
     context: {
       icon: "users",
       parts: context.venues
-        ? [context.groupName, ...sportPart, venueCountPart(context.venues)]
+        ? [
+            context.groupName,
+            ...sportPart,
+            venueCountPart(context.venues, locale),
+          ]
         : [context.groupName, ...sportPart],
     },
   };
@@ -109,11 +131,13 @@ export function stepHeader(
 export function nextStepTitle(
   type: CreateGameTypeId | null,
   step: CreateFlowStep,
+  locale: Locale,
   sport: Sport = DEFAULT_SPORT,
 ): string | null {
   return (
-    createFlowLaterSteps(type, sport).find((item) => item.step === step + 1)
-      ?.title ?? null
+    createFlowLaterSteps(type, locale, sport).find(
+      (item) => item.step === step + 1,
+    )?.title ?? null
   );
 }
 
@@ -121,19 +145,22 @@ export function kickoffHero(
   day: string,
   startTime: string,
   finishTime: string,
+  locale: Locale,
 ): KickoffHero | null {
   const startsAt = startTime ? parseGameDateTime(day, startTime) : undefined;
   if (!startsAt) {
     return null;
   }
-  const { time, meridiem } = formatHomeKickoff(startsAt);
+  const { time, meridiem } = formatHomeKickoff(startsAt, locale);
   const endsAt = finishTime ? parseGameDateTime(day, finishTime) : undefined;
   return {
     value: time,
     unit: meridiem,
     trailing:
       endsAt && endsAt.getTime() > startsAt.getTime()
-        ? `to ${formatTimeSlotLabel(finishTime)}`
+        ? messagesFor(locale).mobileCreateGame.header.toTime(
+            formatTimeSlotLabel(finishTime, locale),
+          )
         : null,
   };
 }
@@ -145,26 +172,32 @@ export function friendlyGameTimeHeader(input: {
   groupName: string | null;
   venueName: string | null;
   courtName: string | null;
+  locale: Locale;
 }): StepHeaderText {
-  const hero = kickoffHero(input.day, input.startTime, input.finishTime);
+  const { locale } = input;
+  const hero = kickoffHero(input.day, input.startTime, input.finishTime, locale);
   const parts = [
-    input.day ? formatDayLabel(input.day) : null,
+    input.day ? formatDayLabel(input.day, locale) : null,
     input.venueName ?? input.groupName,
     input.courtName,
   ].filter((part): part is string => Boolean(part));
   return {
-    title: hero ? [] : ["Pick a time"],
+    title: hero ? [] : [messagesFor(locale).mobileCreateGame.header.pickTime],
     ...(hero ? { hero } : {}),
     subtitle: null,
     context: parts.length > 0 ? { parts } : null,
   };
 }
 
-function tournamentHero(teamCount: number, matchTotal: number): KickoffHero {
+function tournamentHero(
+  teamCount: number,
+  matchTotal: number,
+  locale: Locale,
+): KickoffHero {
   return {
     value: String(teamCount),
-    unit: "Game teams",
-    trailing: matchTotal > 0 ? matchCountLabel(matchTotal) : null,
+    unit: messagesFor(locale).mobileCreateGame.header.gameTeamsUnit,
+    trailing: matchTotal > 0 ? matchCountLabel(matchTotal, locale) : null,
   };
 }
 
@@ -178,16 +211,18 @@ export function tournamentFormatHeader(input: {
   day: string;
   venueName: string | null;
   courtCount: number;
+  locale: Locale;
 }): StepHeaderText {
+  const { locale } = input;
   return {
     title: [],
-    hero: tournamentHero(input.teamCount, input.matchTotal),
+    hero: tournamentHero(input.teamCount, input.matchTotal, locale),
     subtitle: null,
     context: {
       parts: presentParts([
-        input.day ? formatDayLabel(input.day) : null,
+        input.day ? formatDayLabel(input.day, locale) : null,
         input.venueName,
-        input.courtCount > 0 ? courtCountValue(input.courtCount) : null,
+        input.courtCount > 0 ? courtCountValue(input.courtCount, locale) : null,
       ]),
     },
   };
@@ -200,20 +235,25 @@ export function tournamentEntryHeader(input: {
   startTime: string;
   finishTime: string;
   courtCount: number;
+  locale: Locale;
 }): StepHeaderText {
+  const { locale } = input;
   const window =
     input.startTime && input.finishTime
-      ? `${formatTimeSlotLabel(input.startTime)} to ${formatTimeSlotLabel(input.finishTime)}`
+      ? messagesFor(locale).mobileCreateGame.timeRange(
+          formatTimeSlotLabel(input.startTime, locale),
+          formatTimeSlotLabel(input.finishTime, locale),
+        )
       : null;
   return {
     title: [],
-    hero: tournamentHero(input.teamCount, input.matchTotal),
+    hero: tournamentHero(input.teamCount, input.matchTotal, locale),
     subtitle: null,
     context: {
       parts: presentParts([
-        input.day ? formatDayLabel(input.day) : null,
+        input.day ? formatDayLabel(input.day, locale) : null,
         window,
-        input.courtCount > 0 ? courtCountValue(input.courtCount) : null,
+        input.courtCount > 0 ? courtCountValue(input.courtCount, locale) : null,
       ]),
     },
   };

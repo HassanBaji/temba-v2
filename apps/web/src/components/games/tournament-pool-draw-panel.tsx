@@ -3,13 +3,9 @@
 import { ListRow, RowList } from "~/components/common/row-list";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
-  DRAW_AGAIN_ACTION,
-  DRAW_EMPTY_DRAFT_COPY,
-  DRAW_POOLS_ACTION,
-  POST_POOL_DRAW_ACTION,
-  POST_POOL_DRAW_FOOTER_COPY,
   draftPoolMetaLine,
   draftPoolsFromGameTeams,
   hasDraftPoolDraw,
@@ -43,6 +39,8 @@ export function TournamentPoolDrawPanel({
   postError: { message: string; data?: { zodError?: unknown } | null } | null;
   onPost: () => void | Promise<void>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const hasDraft = hasDraftPoolDraw(gameTeams);
   const pools = draftPoolsFromGameTeams({
     gameTeams,
@@ -51,6 +49,7 @@ export function TournamentPoolDrawPanel({
     windowEnd,
     matchMinutes,
     courtNames,
+    locale,
   });
   const busy = drawPending || postPending;
 
@@ -98,7 +97,7 @@ export function TournamentPoolDrawPanel({
           })
         ) : (
           <p className="text-muted-foreground text-body leading-relaxed">
-            {DRAW_EMPTY_DRAFT_COPY}
+            {m.tournament.poolDraw.emptyDraft}
           </p>
         )}
 
@@ -120,7 +119,9 @@ export function TournamentPoolDrawPanel({
                 void confirmPost();
               }}
             >
-              {postPending ? "Posting…" : POST_POOL_DRAW_ACTION}
+              {postPending
+                ? m.webTournament.draw.posting
+                : m.tournament.poolDraw.post}
             </Button>
             <Button
               type="button"
@@ -133,10 +134,12 @@ export function TournamentPoolDrawPanel({
                 void onDraw();
               }}
             >
-              {drawPending ? "Drawing…" : DRAW_AGAIN_ACTION}
+              {drawPending
+                ? m.webTournament.draw.drawing
+                : m.tournament.poolDraw.drawAgain}
             </Button>
             <p className="text-muted-foreground text-meta text-center leading-relaxed">
-              {POST_POOL_DRAW_FOOTER_COPY}
+              {m.tournament.poolDraw.postFooter}
             </p>
           </>
         ) : (
@@ -150,7 +153,9 @@ export function TournamentPoolDrawPanel({
               void onDraw();
             }}
           >
-            {drawPending ? "Drawing…" : DRAW_POOLS_ACTION}
+            {drawPending
+              ? m.webTournament.draw.drawing
+              : m.tournament.poolDraw.drawPools}
           </Button>
         )}
       </div>

@@ -7,6 +7,7 @@ import {
 } from "@repo/domain/game-result-share";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import {
   Big,
   BibSquare,
@@ -92,6 +93,8 @@ function StickerFoot({
 }
 
 function FootballSticker({ card }: { card: FootballResultCard }) {
+  const m = useMessages();
+  const tag = m.game.played.tag;
   const side = (
     team: FootballResultCard["win"],
     word: string,
@@ -127,7 +130,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
   return (
     <StickerFrame typeLine={card.typeLine}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 28 }}>
-        {side(card.win, card.draw ? "DRAW" : "WON", true, "left")}
+        {side(card.win, card.draw ? tag.draw : tag.won, true, "left")}
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 16 }}>
           <Big
             px={150}
@@ -152,7 +155,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
             {String(card.lose.score)}
           </Big>
         </View>
-        {side(card.lose, card.draw ? "DRAW" : "LOST", card.draw, "right")}
+        {side(card.lose, card.draw ? tag.draw : tag.lost, card.draw, "right")}
       </View>
       <StickerFoot whenShort={card.whenShort}>
         {card.you ? (
@@ -177,7 +180,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
                 {card.you.name}
               </Big>
               <Label px={20} tone="muted">
-                {[`${card.you.goals} GOALS`, card.you.code]
+                {[m.mobilePlayer.share.goals(card.you.goals), card.you.code]
                   .filter(Boolean)
                   .join(" · ")}
               </Label>
@@ -194,6 +197,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
 }
 
 function PadelSticker({ card }: { card: PadelResultCard }) {
+  const locale = useLocale();
   const pair = (short: string, line: string, strong: boolean) => (
     <View
       style={{
@@ -260,7 +264,7 @@ function PadelSticker({ card }: { card: PadelResultCard }) {
       </View>
       <StickerFoot whenShort={card.whenShort}>
         <Label px={20} tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-          {padelStickerLine(card)}
+          {padelStickerLine(card, locale)}
         </Label>
       </StickerFoot>
     </StickerFrame>

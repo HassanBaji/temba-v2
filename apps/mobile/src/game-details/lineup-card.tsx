@@ -10,16 +10,13 @@ import type {
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
-import {
-  NOT_ON_TEMBA_YET_LABEL,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-} from "@repo/domain/add-player-by-phone";
-import { KICK_ACTION } from "@repo/domain/game-copy";
+import { kickAction } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
@@ -60,11 +57,14 @@ function VacantRow({
   moving: boolean;
   onMove: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const action = friendlyGameLineupVacantAction(canMove);
   const moveLabel = friendlyGameVacantSeatLabel(
     action,
     sideLabel,
-    position === "left" ? "Left" : "Right",
+    position === "left" ? m.game.players.left : m.game.players.right,
+    locale,
   );
 
   if (action === "move" && moveLabel) {
@@ -90,7 +90,7 @@ function VacantRow({
           accessibilityElementsHidden
           importantForAccessibility="no"
         >
-          Move here
+          {m.mobileGameDetails.lineup.moveHere}
         </Text>
       </Pressable>
     );
@@ -99,7 +99,7 @@ function VacantRow({
   return (
     <View
       accessible
-      accessibilityLabel={friendlyGameOpenSeatLabel(position)}
+      accessibilityLabel={friendlyGameOpenSeatLabel(position, locale)}
       style={{
         minHeight: sizes.touchTarget,
         flexDirection: "row",
@@ -114,7 +114,7 @@ function VacantRow({
         accessibilityElementsHidden
         importantForAccessibility="no"
       >
-        Open
+        {m.mobileGameDetails.lineup.open}
       </Text>
     </View>
   );
@@ -135,14 +135,16 @@ function SeatRow({
   onRename: (() => void) | null;
   onOpen: (() => void) | null;
 }) {
-  const subline = friendlyGameSeatSubline(position, seat.levelBand);
+  const m = useMessages();
+  const locale = useLocale();
+  const subline = friendlyGameSeatSubline(position, seat.levelBand, locale);
+  const displayName = isViewer ? m.game.score.youSuffix(seat.name) : seat.name;
   const occupant = (
     <>
       <Avatar name={seat.name} uri={seat.image} size="lg" />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="body" weight="medium" numberOfLines={1}>
-          {seat.name}
-          {isViewer ? " (You)" : ""}
+          {displayName}
         </Text>
         {seat.unclaimed ? <NotOnTembaMark /> : null}
         {seat.phoneMasked ? (
@@ -178,14 +180,14 @@ function SeatRow({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={[
-            `${seat.name}${isViewer ? " (You)" : ""}`,
-            seat.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+            displayName,
+            seat.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
             seat.phoneMasked ?? null,
             subline,
           ]
             .filter(Boolean)
-            .join(", ")}
-          accessibilityHint="Opens their Player profile"
+            .join(m.mobileGameDetails.listSeparator)}
+          accessibilityHint={m.mobileGameDetails.lineup.opensProfileHint}
           onPress={onOpen}
           style={({ pressed }) => [
             occupantStyle,
@@ -201,8 +203,10 @@ function SeatRow({
         <View style={{ gap: 6, alignItems: "flex-end" }}>
           {onRename ? (
             <Button
-              label={RENAME_UNCLAIMED_PLAYER_ACTION}
-              accessibilityLabel={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${seat.name}`}
+              label={m.group.addPlayer.renameAction}
+              accessibilityLabel={m.mobileGameDetails.lineup.renameFor(
+                seat.name,
+              )}
               variant="outline"
               size="sm"
               onPress={onRename}
@@ -210,8 +214,10 @@ function SeatRow({
           ) : null}
           {onKick ? (
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${seat.name}`}
+              label={kickAction(locale)}
+              accessibilityLabel={m.mobileGameDetails.lineup.kickName(
+                seat.name,
+              )}
               variant="outline"
               size="sm"
               onPress={onKick}
@@ -250,7 +256,9 @@ function SideColumn({
   onRename: ((player: RenameTarget) => void) | undefined;
   onOpenPlayer: ((userId: string) => void) | undefined;
 }) {
-  const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
+  const m = useMessages();
+  const locale = useLocale();
+  const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex, locale);
   return (
     <View style={{ gap: 4 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -259,7 +267,7 @@ function SideColumn({
         </Text>
         {showWonTag && isWinner ? (
           <View style={{ width: 44 }}>
-            <FormSlot variant="won" label="Won" compact />
+            <FormSlot variant="won" label={m.game.resultMark.won} compact />
           </View>
         ) : null}
       </View>
@@ -323,6 +331,7 @@ export function LineupCard({
   onRenameUnclaimed?: (player: RenameTarget) => void;
   onOpenPlayer?: (userId: string) => void;
 }) {
+  const m = useMessages();
   const vacant = vacantJoinSeats(sides);
   const isVacant = (sideIndex: number, position: Position) =>
     vacant.some(
@@ -330,7 +339,7 @@ export function LineupCard({
     );
 
   return (
-    <Card title="Line-up">
+    <Card title={m.mobileGameDetails.lineup.title}>
       <View
         style={{
           paddingHorizontal: spacing.surface,
@@ -348,7 +357,7 @@ export function LineupCard({
                 accessibilityElementsHidden
                 importantForAccessibility="no"
               >
-                vs
+                {m.mobileGameDetails.lineup.vs}
               </Text>
             ) : null}
             <SideColumn

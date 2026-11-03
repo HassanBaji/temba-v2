@@ -9,6 +9,7 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   MyGroupsEmpty,
   PublicGroupsEmpty,
@@ -46,6 +47,7 @@ import {
   publicGroupSportFilterLabel,
   type PublicGroupSportFilter,
 } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { cardFrame } from "~/lib/page-layout";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -77,7 +79,9 @@ function GroupRowsSkeleton() {
 }
 
 function NextGameCell({ startTime }: { startTime: Date | string | null }) {
-  const weekday = startTime ? groupNextGameWeekday(startTime) : null;
+  const m = useMessages();
+  const locale = useLocale();
+  const weekday = startTime ? groupNextGameWeekday(startTime, locale) : null;
 
   if (!weekday) {
     return (
@@ -91,16 +95,20 @@ function NextGameCell({ startTime }: { startTime: Date | string | null }) {
   return (
     <div className="shrink-0 text-end">
       <p className="font-expanded text-[22px] leading-7">{weekday}</p>
-      <p className="text-eyebrow text-muted-foreground">Next Game</p>
+      <p className="text-eyebrow text-muted-foreground">
+        {m.webDashboard.groups.nextGame}
+      </p>
     </div>
   );
 }
 
 function GroupRows({ groups }: { groups: GroupRow[] }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <RowList variant="card">
       {groups.map((group) => {
-        const name = groupDisplayName(group.name);
+        const name = groupDisplayName(group.name, locale);
         return (
           <ListRow
             key={group.id}
@@ -113,6 +121,7 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
             meta={groupRowMetaLine({
               memberCount: group.memberCount,
               standingPosition: group.standingPosition,
+              locale,
             })}
             trailing={<NextGameCell startTime={group.nextGameStartTime} />}
             footer={
@@ -120,7 +129,7 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
                 <div className="flex items-center gap-2">
                   <FormStrip marks={group.formMarks} size={18} gap={6} />
                   <span className="text-eyebrow text-muted-foreground ms-auto">
-                    your form here
+                    {m.webDashboard.groups.yourFormHere}
                   </span>
                 </div>
               ) : undefined
@@ -134,8 +143,11 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
   );
 }
 
-function toPendingInviteRow(invite: GroupInvite): PendingInviteRow {
-  const title = groupDisplayName(invite.groupName);
+function toPendingInviteRow(
+  invite: GroupInvite,
+  locale: Locale,
+): PendingInviteRow {
+  const title = groupDisplayName(invite.groupName, locale);
   return {
     id: invite.id,
     leading: <EntityMonogram name={title} image={invite.imageUrl} size="lg" />,
@@ -145,16 +157,18 @@ function toPendingInviteRow(invite: GroupInvite): PendingInviteRow {
 }
 
 function StartAGroupCard() {
+  const m = useMessages();
   return (
     <section className="border-rule rounded-card border p-5">
-      <h2 className="text-body font-semibold">Start a group</h2>
+      <h2 className="text-body font-semibold">
+        {m.webDashboard.groups.start.title}
+      </h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        Choose padel or football, invite players, and Temba keeps the standing
-        and history.
+        {m.webDashboard.groups.start.description}
       </p>
       <div className="mt-4">
         <Button asChild className="w-full font-semibold">
-          <Link href="/dashboard/groups/new">Create Group</Link>
+          <Link href="/dashboard/groups/new">{m.home.noGames.createGroup}</Link>
         </Button>
       </div>
     </section>
@@ -172,14 +186,16 @@ function PublicGroupRows({
   onJoin: (group: PublicGroupRow) => void;
   onRequest: (groupId: string) => void;
 }) {
+  const locale = useLocale();
   return (
     <RowList variant="card">
       {groups.map((group) => {
-        const name = groupDisplayName(group.name);
+        const name = groupDisplayName(group.name, locale);
         const isPending = pendingGroupId === group.id;
         const meta = publicGroupMetaLine({
-          memberCountLabel: memberCountLabel(group.memberCount),
+          memberCountLabel: memberCountLabel(group.memberCount, locale),
           requiresApproval: group.requiresApproval,
+          locale,
         });
         return (
           <ListRow
@@ -218,7 +234,7 @@ function PublicGroupRows({
                 }}
                 className="font-semibold"
               >
-                {groupJoinLabel(group.joinMode, isPending, "row")}
+                {groupJoinLabel(group.joinMode, isPending, "row", locale)}
               </Button>
             }
           />
@@ -236,6 +252,8 @@ export default function GroupsIndexPage({
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const tab = groupsTabFromQuery(tabParam);
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/groups";
   const groups = api.groups.mine.useQuery();
@@ -261,7 +279,7 @@ export default function GroupsIndexPage({
 
   const acceptInvite = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Joined Group");
+      toast.success(m.group.join.toast.joined);
       await utils.groups.pendingLookupInvites.invalidate();
       await utils.groups.mine.invalidate();
       await utils.groups.listPublic.invalidate();
@@ -273,7 +291,7 @@ export default function GroupsIndexPage({
 
   const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
     onSuccess: async () => {
-      toast.success(groupJoinToast("joinLoosePublic"));
+      toast.success(groupJoinToast("joinLoosePublic", locale));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -284,7 +302,7 @@ export default function GroupsIndexPage({
 
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
     onSuccess: async () => {
-      toast.success(groupJoinToast("joinClubPublic"));
+      toast.success(groupJoinToast("joinClubPublic", locale));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -299,7 +317,7 @@ export default function GroupsIndexPage({
   const requestJoin = api.groups.requestJoin.useMutation({
     onSuccess: async () => {
       setRequestingGroupId(null);
-      toast.success(groupJoinToast("requestJoin"));
+      toast.success(groupJoinToast("requestJoin", locale));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -323,15 +341,20 @@ export default function GroupsIndexPage({
 
   return (
     <DashboardShell
-      title="Groups"
+      title={m.common.groups}
       action={
-        <PageCreateAction href="/dashboard/groups/new" label="Create Group" />
+        <PageCreateAction
+          href="/dashboard/groups/new"
+          label={m.home.noGames.createGroup}
+        />
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
         <TabsList variant="segmented">
-          <TabsTrigger value="mine">Mine</TabsTrigger>
-          <TabsTrigger value="public">Public</TabsTrigger>
+          <TabsTrigger value="mine">{m.webDashboard.groups.tabs.mine}</TabsTrigger>
+          <TabsTrigger value="public">
+            {m.webDashboard.groups.tabs.public}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="mine">
@@ -340,7 +363,7 @@ export default function GroupsIndexPage({
 
             {groups.error ? (
               <ErrorState
-                title="Groups could not be loaded"
+                title={m.webDashboard.groups.errorTitle}
                 message={groups.error.message}
                 onRetry={() => {
                   void groups.refetch();
@@ -357,7 +380,7 @@ export default function GroupsIndexPage({
             <PendingInvitesSection
               variant="card"
               invites={invites.data?.map((invite) =>
-                toPendingInviteRow(invite),
+                toPendingInviteRow(invite, locale),
               )}
               pendingId={pendingInviteId}
               error={invites.error}
@@ -376,7 +399,7 @@ export default function GroupsIndexPage({
         <TabsContent value="public">
           <div className="flex flex-col gap-[26px] py-2">
             <RovingRadioGroup
-              aria-label="Filter by sport"
+              aria-label={m.webDashboard.groups.filterBySport}
               className="flex flex-wrap gap-2"
             >
               {PUBLIC_GROUP_SPORT_FILTERS.map((filter) => (
@@ -386,7 +409,7 @@ export default function GroupsIndexPage({
                   selected={sportFilter === filter}
                   onClick={() => setSportFilter(filter)}
                 >
-                  {publicGroupSportFilterLabel(filter)}
+                  {publicGroupSportFilterLabel(filter, locale)}
                 </ChoiceChip>
               ))}
             </RovingRadioGroup>
@@ -395,7 +418,7 @@ export default function GroupsIndexPage({
 
             {publicGroups.error ? (
               <ErrorState
-                title="Public Groups could not be loaded"
+                title={m.webDashboard.groups.publicErrorTitle}
                 message={publicGroups.error.message}
                 onRetry={() => {
                   void publicGroups.refetch();

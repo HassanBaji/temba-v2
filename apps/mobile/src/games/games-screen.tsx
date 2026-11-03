@@ -7,6 +7,7 @@ import type { SportFilter } from "@repo/domain/football-hub";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
@@ -29,6 +30,7 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 export function GamesScreen() {
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
   const utils = api.useUtils();
   const [tab, setTab] = useState<GamesTab>("my-games");
   const [sportFilter, setSportFilter] = useState<SportFilter>("all");
@@ -47,7 +49,7 @@ export function GamesScreen() {
 
   const { join, pendingGameId } = useGameJoin();
   const confirmScore = api.games.confirmMatchResult.useMutation({
-    onSuccess: () => toast.show("Score confirmed"),
+    onSuccess: () => toast.show(m.mobileTournament.games.scoreConfirmed),
     onError: (error) => toast.show(error.message),
     onSettled: () => utils.games.listMyGames.invalidate(),
   });

@@ -1,17 +1,10 @@
 import { sizes, spacing } from "@repo/design-tokens";
-import {
-  TEAMS_DESCRIPTION,
-  TEAMS_EMPTY_COPY,
-  TEAMS_ERROR_TITLE,
-  TEAMS_TITLE,
-  TEAM_CREATE_LABEL,
-  teamListRowView,
-  type TeamListRowInput,
-} from "@repo/domain/teams";
+import { teamListRowView, type TeamListRowInput } from "@repo/domain/teams";
 import { Pressable, View } from "react-native";
 
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -46,7 +39,8 @@ function InviteRow({
   pending: boolean;
   onAccept: () => void;
 }) {
-  const inviter = invite.invitedBy.name ?? "Member";
+  const m = useMessages();
+  const inviter = invite.invitedBy.name ?? m.team.memberFallback;
   return (
     <View
       style={{
@@ -62,12 +56,14 @@ function InviteRow({
           {invite.displayName}
         </Text>
         <Text size="meta" tone="muted" numberOfLines={1}>
-          Invited by {inviter}
+          {m.mobileCommunity.teams.invitedBy(inviter)}
         </Text>
       </View>
       <Button
-        label="Accept"
-        accessibilityLabel={`Accept the invite to ${invite.displayName}`}
+        label={m.invite.inbox.acceptLabel}
+        accessibilityLabel={m.mobileCommunity.invites.acceptInviteA11y(
+          invite.displayName,
+        )}
         pending={pending}
         onPress={onAccept}
       />
@@ -81,11 +77,12 @@ function PendingInvites({
   onAccept,
   onRetry,
 }: Pick<TeamsViewProps, "invites" | "acceptingId" | "onAccept" | "onRetry">) {
+  const m = useMessages();
   if (invites.status === "error") {
     return (
       <Notice
         alert
-        title="Invites could not be loaded"
+        title={m.invite.inbox.errorTitle}
         description={invites.message}
         onRetry={onRetry}
       />
@@ -97,7 +94,7 @@ function PendingInvites({
   return (
     <View style={{ gap: 8 }}>
       <Text size="meta" tone="muted" accessibilityRole="header">
-        Invites to join a Team
+        {m.mobileCommunity.teams.pendingInvitesTitle}
       </Text>
       <Surface padded={false} style={{ overflow: "hidden" }}>
         {invites.value.map((invite, index) => (
@@ -122,7 +119,8 @@ function TeamRow({
   team: TeamListRowInput;
   onOpen: (teamId: string) => void;
 }) {
-  const row = teamListRowView(team);
+  const locale = useLocale();
+  const row = teamListRowView(team, locale);
   return (
     <Pressable
       accessibilityRole="button"
@@ -170,9 +168,13 @@ function TeamList({
   TeamsViewProps,
   "teams" | "invites" | "onOpen" | "onCreate" | "onRetry"
 >) {
+  const m = useMessages();
   if (teams.status === "loading") {
     return (
-      <View style={{ gap: 12 }} accessibilityLabel="Loading Teams">
+      <View
+        style={{ gap: 12 }}
+        accessibilityLabel={m.mobileCommunity.teams.loadingA11y}
+      >
         {[0, 1, 2].map((key) => (
           <Skeleton key={key} height={76} radius={16} />
         ))}
@@ -183,7 +185,7 @@ function TeamList({
     return (
       <Notice
         alert
-        title={TEAMS_ERROR_TITLE}
+        title={m.team.errorTitle}
         description={teams.message}
         onRetry={onRetry}
       />
@@ -197,13 +199,13 @@ function TeamList({
     return (
       <Surface style={{ gap: 8 }}>
         <Text size="lead" weight="semibold">
-          {TEAMS_EMPTY_COPY.title}
+          {m.team.empty.title}
         </Text>
         <Text size="meta" tone="muted">
-          {TEAMS_EMPTY_COPY.description}
+          {m.team.empty.description}
         </Text>
         <View style={{ flexDirection: "row", marginTop: 4 }}>
-          <Button label={TEAM_CREATE_LABEL} onPress={onCreate} />
+          <Button label={m.team.createLabel} onPress={onCreate} />
         </View>
       </Surface>
     );
@@ -221,16 +223,17 @@ function TeamList({
 }
 
 export function TeamsView(props: TeamsViewProps) {
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
-        <ScreenHeader nav="back" fallback="/profile" title={TEAMS_TITLE} />
+        <ScreenHeader nav="back" fallback="/profile" title={m.team.title} />
         <Text size="meta" tone="muted">
-          {TEAMS_DESCRIPTION}
+          {m.team.description}
         </Text>
       </View>
       <View style={{ flexDirection: "row" }}>
-        <Button label={TEAM_CREATE_LABEL} onPress={props.onCreate} />
+        <Button label={m.team.createLabel} onPress={props.onCreate} />
       </View>
       <PendingInvites {...props} />
       <TeamList {...props} />

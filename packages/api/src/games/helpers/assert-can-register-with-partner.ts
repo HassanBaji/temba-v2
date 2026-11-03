@@ -1,3 +1,4 @@
+import { type Locale } from "@repo/i18n/locale";
 import { TRPCError } from "@trpc/server";
 
 import {
@@ -17,6 +18,7 @@ export async function assertCanRegisterWithPartner(
   game: GameRow,
   userId: string,
   now: Date,
+  locale: Locale,
 ) {
   if (
     game.format !== "friendly_game" &&
@@ -27,7 +29,7 @@ export async function assertCanRegisterWithPartner(
       message: "Register with a partner on a Friendly game or tournament",
     });
   }
-  assertGameHasSeats(game);
+  assertGameHasSeats(game, locale);
   if (game.registrationMode !== "individual") {
     throw new TRPCError({
       code: "BAD_REQUEST",

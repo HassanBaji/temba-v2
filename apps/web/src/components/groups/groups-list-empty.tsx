@@ -1,13 +1,10 @@
 import { Users } from "lucide-react";
 import Link from "next/link";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotSetCell } from "~/components/temba/not-set-cell";
 import { Button } from "~/components/ui/button";
 import {
-  MY_GROUPS_EMPTY_COPY,
-  MY_GROUPS_EMPTY_TITLE,
-  MY_GROUPS_PLACEHOLDER_TITLE,
-  PUBLIC_GROUPS_EMPTY_TITLE,
   PUBLIC_GROUPS_PREVIEW_MONOGRAMS,
   publicGroupsEmptyLine,
 } from "@repo/domain/groups-list-empty-states";
@@ -34,6 +31,7 @@ export function MyGroupsEmpty({
 }: {
   onBrowsePublic: () => void;
 }) {
+  const m = useMessages();
   return (
     <div className="flex flex-col gap-[22px]">
       <section className={cardFrame}>
@@ -41,23 +39,23 @@ export function MyGroupsEmpty({
           <div aria-hidden="true" className="flex items-center gap-3">
             <span className="hatch size-10 shrink-0 rounded-lg" />
             <span className="text-body text-muted-foreground min-w-0 flex-1 truncate">
-              {MY_GROUPS_PLACEHOLDER_TITLE}
+              {m.group.list.placeholderTitle}
             </span>
             <span className="hatch h-11 w-[52px] shrink-0 rounded-lg" />
           </div>
           <EmptyHeading
-            title={MY_GROUPS_EMPTY_TITLE}
-            line={MY_GROUPS_EMPTY_COPY}
+            title={m.group.list.mineEmptyTitle}
+            line={m.group.list.mineEmptyCopy}
           />
         </div>
         <dl className="border-rule divide-rule grid grid-cols-2 divide-x border-t">
-          <NotSetCell label="Standing" />
-          <NotSetCell label="Next Game" />
+          <NotSetCell label={m.webGroup.list.standing} />
+          <NotSetCell label={m.webGroup.nextGame} />
         </dl>
       </section>
       <div className="flex flex-col gap-2">
         <Button asChild size="lg" className="text-body w-full font-semibold">
-          <Link href={CREATE_GROUP_HREF}>Create Group</Link>
+          <Link href={CREATE_GROUP_HREF}>{m.group.create.loose.submit}</Link>
         </Button>
         <Button
           type="button"
@@ -67,7 +65,7 @@ export function MyGroupsEmpty({
           onClick={onBrowsePublic}
         >
           <Users aria-hidden="true" />
-          Browse public Groups
+          {m.webGroup.list.browsePublic}
         </Button>
       </div>
     </div>
@@ -80,13 +78,15 @@ export function PublicGroupsEmpty({
 }: {
   sportFilter: PublicGroupSportFilter;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="flex flex-col gap-[22px]">
       <section className={cardFrame}>
         <div className="flex flex-col gap-[18px] p-5">
           <p className="text-meta text-muted-foreground flex justify-between gap-3">
-            <span>Public Groups</span>
-            <span>None open</span>
+            <span>{m.webGroup.list.publicGroups}</span>
+            <span>{m.webGroup.list.noneOpen}</span>
           </p>
           <div aria-hidden="true" className="flex gap-1.5">
             {Array.from({ length: PUBLIC_GROUPS_PREVIEW_MONOGRAMS }, (_, i) => (
@@ -94,13 +94,13 @@ export function PublicGroupsEmpty({
             ))}
           </div>
           <EmptyHeading
-            title={PUBLIC_GROUPS_EMPTY_TITLE}
-            line={publicGroupsEmptyLine(sportFilter)}
+            title={m.group.list.publicEmptyTitle}
+            line={publicGroupsEmptyLine(sportFilter, locale)}
           />
         </div>
       </section>
       <Button asChild size="lg" className="text-body w-full font-semibold">
-        <Link href={CREATE_GROUP_HREF}>Create Group</Link>
+        <Link href={CREATE_GROUP_HREF}>{m.group.create.loose.submit}</Link>
       </Button>
     </div>
   );

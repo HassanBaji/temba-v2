@@ -1,5 +1,6 @@
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import type { Sport } from "@repo/domain/sport";
 
+import { useMessages } from "../i18n/locale-provider";
 import { ChoiceRow } from "./choice-row";
 import { SportGlyph } from "./sport-glyph";
 
@@ -9,12 +10,13 @@ export function SportChoiceRow(props: {
   onSelect: (sport: Sport) => void;
   disabled: boolean;
 }) {
+  const m = useMessages();
   return (
     <ChoiceRow
-      label="Sport"
+      label={m.mobilePlayer.lib.sport}
       choices={props.sports.map((sport) => ({
         value: sport,
-        label: SPORT_LABELS[sport],
+        label: m.common[sport],
         icon: (color: string) => <SportGlyph sport={sport} color={color} />,
       }))}
       value={props.value}

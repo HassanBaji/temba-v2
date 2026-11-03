@@ -5,6 +5,7 @@ import type {
   GameTeamPlayer,
   gameTeamPlayers,
 } from "../player-profile/game-player-links";
+import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { Sheet } from "../primitives/sheet";
@@ -27,6 +28,7 @@ export function GameTeamSheet({
   onClose: () => void;
   onOpenPlayer: (userId: string) => void;
 }) {
+  const m = useMessages().mobileTournament.predraw;
   return (
     <Sheet visible={team != null} onClose={onClose} title={team?.name}>
       {team ? (
@@ -37,7 +39,7 @@ export function GameTeamSheet({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={player.name}
-                accessibilityHint="Opens their Player profile"
+                accessibilityHint={m.opensProfileHint}
                 onPress={() => {
                   onClose();
                   onOpenPlayer(player.id);

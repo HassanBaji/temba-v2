@@ -11,7 +11,8 @@ import {
   matchHistoryCardModel,
   PENDING_SET_COLUMNS,
 } from "@repo/domain/match-history-card";
-import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { resultMarkLabel } from "@repo/domain/result-mark";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -49,6 +50,7 @@ function SeatTile({
 }
 
 function SetHeader({ columns }: { columns: number }) {
+  const locale = useLocale();
   return (
     <div className="flex items-center gap-2 pe-3">
       <span className="min-w-0 flex-1" />
@@ -58,8 +60,8 @@ function SetHeader({ columns }: { columns: number }) {
             key={index}
             className="text-muted-foreground w-7 text-center font-mono text-[10px]"
           >
-            <abbr title={setLabel(index)} className="no-underline">
-              {setShortLabel(index)}
+            <abbr title={setLabel(index, locale)} className="no-underline">
+              {setShortLabel(index, locale)}
             </abbr>
           </span>
         ))}
@@ -156,16 +158,19 @@ function TeamRow({
 }
 
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
+  const locale = useLocale();
+  const m = useMessages();
   const { scored, tally, setColumns, meta, groupName, teams } =
-    matchHistoryCardModel(row);
+    matchHistoryCardModel(row, locale);
   const won = row.outcome === "won";
+  const outcomeLabel = resultMarkLabel(row.outcome, locale);
 
   return (
     <li data-slot="match-history-card">
       <SummaryCardShell
         emphasis={won}
         href={`/dashboard/games/${row.id}`}
-        linkLabel={`${RESULT_MARK_LABEL[row.outcome]}, ${meta}`}
+        linkLabel={m.webGame.history.linkLabel(outcomeLabel, meta)}
       >
         <SummaryCardBody className="flex items-start gap-3 pb-4">
           <ResultMark
@@ -182,15 +187,15 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
                   won ? null : "text-muted-foreground",
                 )}
               >
-                {RESULT_MARK_LABEL[row.outcome]}
+                {outcomeLabel}
               </h3>
               {scored ? (
                 <span className="font-expanded text-muted-foreground text-body tabular-nums">
-                  {tally.won}&ndash;{tally.lost} in sets
+                  {m.webGame.history.inSets(tally.won, tally.lost)}
                 </span>
               ) : (
                 <span className="text-muted-foreground text-meta">
-                  No score yet
+                  {m.webGame.history.noScoreYet}
                 </span>
               )}
             </div>

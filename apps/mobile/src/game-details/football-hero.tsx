@@ -5,6 +5,7 @@ import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import type { footballHeroLines } from "@repo/domain/football-board";
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -23,10 +24,14 @@ function LightStatusBar() {
 /** One square per side seat: filled when taken, hatched while open. */
 export function SeatBar({ seats, filled }: { seats: number; filled: number }) {
   const palette = useTonePalette();
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={`${Math.min(filled, seats)} of ${seats} seats taken`}
+      accessibilityLabel={m.mobileGameDetails.football.seatsTaken(
+        Math.min(filled, seats),
+        seats,
+      )}
       style={{ flexDirection: "row", gap: 3 }}
     >
       {Array.from({ length: seats }, (_, index) => (
@@ -65,6 +70,7 @@ export function FootballHero({
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
     <Surface
       tone={tone}
@@ -122,7 +128,7 @@ export function FootballHero({
               </View>
             ) : (
               <Text size="display" width="expanded" weight="bold">
-                Time unset
+                {m.mobileGameDetails.hero.timeUnset}
               </Text>
             )}
             <View>

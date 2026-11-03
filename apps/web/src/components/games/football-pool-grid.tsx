@@ -8,17 +8,20 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import { KEEPER_CODE } from "@repo/domain/football-lineup";
-import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
 
 function OpenTile() {
+  const m = useMessages();
   return (
     <div className="relative flex h-[74px] items-center justify-center overflow-hidden rounded-md">
       <Hatch radius="md" className="absolute inset-0" />
-      <span className="text-muted-foreground relative text-[12px]">open</span>
+      <span className="text-muted-foreground relative text-[12px]">
+        {m.webTournament.footballPool.openTile}
+      </span>
     </div>
   );
 }
@@ -30,7 +33,8 @@ function PlayerTile({
   player: BoardPlayer;
   onPress?: (userId: string) => void;
 }) {
-  const name = player.isViewer ? "You" : shortName(player.name);
+  const m = useMessages();
+  const name = player.isViewer ? m.common.you : shortName(player.name);
   const code = slotCode(player);
   const Tag = onPress ? "button" : "div";
   return (
@@ -41,10 +45,10 @@ function PlayerTile({
         name,
         code,
         levelLabel(player.levelBand),
-        player.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+        player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
       ]
         .filter(Boolean)
-        .join(", ")}
+        .join(m.tournament.listSeparator)}
       className={cn(
         "focus-visible:ring-ring/50 flex h-[74px] w-full min-w-0 flex-col justify-between rounded-md border p-2 text-start outline-none focus-visible:ring-[3px]",
         player.isViewer
@@ -91,6 +95,7 @@ export function PoolGrid({
   open: number;
   onOpenPlayer?: (userId: string) => void;
 }) {
+  const m = useMessages();
   return (
     <ul className="grid grid-cols-4 gap-2">
       {players.map((player) => (
@@ -99,7 +104,10 @@ export function PoolGrid({
         </li>
       ))}
       {Array.from({ length: open }, (_, index) => (
-        <li key={`open-${index}`} aria-label="Open seat">
+        <li
+          key={`open-${index}`}
+          aria-label={m.webTournament.footballPool.openSeat}
+        >
           <OpenTile />
         </li>
       ))}
@@ -141,17 +149,23 @@ export function PoolSections({
   headingId?: string;
   onOpenPlayer?: (userId: string) => void;
 }) {
-  const sections = poolSections(players, seats);
+  const m = useMessages();
+  const locale = useLocale();
+  const sections = poolSections(players, seats, locale);
   return (
     <div className="space-y-3">
-      <PoolHeading id={headingId} title="Keepers" meta={sections.keepersLine} />
+      <PoolHeading
+        id={headingId}
+        title={m.webTournament.footballPool.keepers}
+        meta={sections.keepersLine}
+      />
       <PoolGrid
         players={sections.keepers}
         open={sections.keeperOpenSeats}
         onOpenPlayer={onOpenPlayer}
       />
       <div className="pt-2">
-        <PoolHeading title="Players" meta={sections.outfieldLine} />
+        <PoolHeading title={m.common.players} meta={sections.outfieldLine} />
       </div>
       <PoolGrid
         players={sections.outfield}
@@ -172,10 +186,11 @@ export function SeatBar({
   filled: number;
   tone?: "paper" | "ink";
 }) {
+  const m = useMessages();
   return (
     <div
       role="img"
-      aria-label={`${Math.min(filled, seats)} of ${seats} seats taken`}
+      aria-label={m.tournament.home.seatsTakenSr(Math.min(filled, seats), seats)}
       className="flex gap-[3px]"
     >
       {Array.from({ length: seats }, (_, index) =>

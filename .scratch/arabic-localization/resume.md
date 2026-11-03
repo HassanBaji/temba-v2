@@ -1,0 +1,10 @@
+# Resuming an interrupted slice
+
+A previous agent started your slice and was stopped partway by a usage limit. Its edits are in the working tree, uncommitted.
+
+1. Read `.scratch/arabic-localization/spec.md` (rules, your slice row, glossary), `CLAUDE.md` and `AGENTS.md`.
+2. Run `git diff --stat -- <your slice paths> <your two catalog files>` and read your catalog files (`packages/i18n/src/messages/en/<file>.ts` and `ar/<file>.ts`) to see what is already done. Continue from there; do not redo or reformat finished files.
+3. Fix every typecheck error in your files (`pnpm --filter <app> exec tsc --noEmit`, filter to your paths), then move every remaining user-facing English literal in your files into your catalog (English and Arabic together, per the glossary), then directional icons (web: `rtl:-scale-x-100`; mobile: `style={mirrorInRtl}` from `src/i18n/rtl.ts`).
+4. Phase 1 notes that recur: `formatDayMonth(value, locale, options?)` takes locale before options; ids stay ids (`played-game` `word`/`tag` via `playedWordLabel`/`playedTagLabel`; `SEASON_BADGE`, `LevelRangeRequestCard.badge`, `courtFace()` "court"|"pitch", `knockoutMatchCode`, position codes, `RecentFormBar` W/L/D, `inviteKindLabel`); `GAME_TOAST` → `gameToast(locale)`; `PRICE_PER_PLAYER_CURRENCY` → `m.createGame.price.currency`; `CALLING_COUNTRIES[].name` stays English, render `callingCountryName(iso, locale)`; a compare against a label literal such as `"Invite a player"` compares against the catalog leaf (`m.game.cta.inviteAPlayer`). Open the domain module when a constant disappeared: its replacement is a `fn(locale)` or a catalog key.
+5. Other agents are editing the other slices right now. Do not edit files outside your slice and your two catalog files. Ignore errors outside your files. Never edit `en/common.ts` or another owner's catalog.
+6. Finish: tsc clean for your files, eslint on your files, vitest on tests under your files, `pnpm --filter @repo/i18n test`, prettier --write on everything you touched, and the leftover-literal greps from spec rule 11. Do not commit. Report files changed, any signature change other slices depend on, and anything left in English and why.

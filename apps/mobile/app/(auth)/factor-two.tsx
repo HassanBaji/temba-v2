@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 
 import { AuthLoading } from "../../src/auth/auth-loading";
 import { AuthScreen } from "../../src/auth/auth-screen";
-import { SOMETHING_WENT_WRONG, fieldError } from "../../src/auth/clerk-forms";
+import { somethingWentWrong, fieldError } from "../../src/auth/clerk-forms";
 import { CodeForm } from "../../src/auth/code-form";
+import { useLocale, useMessages } from "../../src/i18n/locale-provider";
 import { type SplitFormError } from "../../src/lib/form-error";
 import { Button } from "../../src/primitives/button";
 import { Text } from "../../src/primitives/text";
@@ -16,6 +17,8 @@ function backToSignIn() {
 }
 
 export default function FactorTwo() {
+  const m = useMessages();
+  const locale = useLocale();
   const { signIn, setActive, isLoaded } = useSignIn();
   const [code, setCode] = useState("");
   const [startedAt, setStartedAt] = useState(() => Date.now());
@@ -37,12 +40,12 @@ export default function FactorTwo() {
     void signIn
       .prepareSecondFactor({ strategy: "phone_code" })
       .then(() => setStartedAt(Date.now()))
-      .catch((err: unknown) => setSplit(splitClerkAuthError(err)))
+      .catch((err: unknown) => setSplit(splitClerkAuthError(err, locale)))
       .finally(() => {
         setPrepared(true);
         setPending(false);
       });
-  }, [isLoaded, pending, prepared, signIn]);
+  }, [isLoaded, locale, pending, prepared, signIn]);
 
   async function onVerify() {
     if (pending || !signIn) {
@@ -59,9 +62,9 @@ export default function FactorTwo() {
         await setActive({ session: result.createdSessionId });
         return;
       }
-      setSplit(SOMETHING_WENT_WRONG);
+      setSplit(somethingWentWrong(locale));
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -76,7 +79,7 @@ export default function FactorTwo() {
       await signIn.prepareSecondFactor({ strategy: "phone_code" });
       setStartedAt(Date.now());
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -90,10 +93,10 @@ export default function FactorTwo() {
     return (
       <AuthScreen
         onBack={backToSignIn}
-        title="Check your phone"
-        description="Start from sign in to continue."
+        title={m.mobileHome.factorTwo.checkYourPhone}
+        description={m.mobileHome.factorTwo.startFromSignIn}
       >
-        <Button label="Sign in" size="lg" onPress={backToSignIn} />
+        <Button label={m.common.signIn} size="lg" onPress={backToSignIn} />
       </AuthScreen>
     );
   }
@@ -101,22 +104,21 @@ export default function FactorTwo() {
   const phone =
     signIn.supportedSecondFactors?.find(
       (factor) => factor.strategy === "phone_code",
-    )?.safeIdentifier ?? "your number";
+    )?.safeIdentifier ?? m.mobileHome.code.yourNumber;
 
   return (
     <AuthScreen
       onBack={backToSignIn}
-      title="Enter the code"
+      title={m.mobileHome.code.enterTheCode}
       footer={
         <Text size="eyebrow" tone="muted">
-          Codes expire after a short time. Too many wrong tries will lock this
-          account.
+          {m.mobileHome.code.expiryAccount}
         </Text>
       }
     >
       <CodeForm
         destination={phone}
-        changeLabel="Sign in with a different account"
+        changeLabel={m.mobileHome.factorTwo.differentAccount}
         onChangeIdentifier={backToSignIn}
         code={code}
         onCodeChange={setCode}

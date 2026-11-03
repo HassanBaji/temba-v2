@@ -5,6 +5,7 @@ import {
 } from "@repo/domain/home-recent-form";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
@@ -15,16 +16,24 @@ const MARK = 16;
 const MARKS_WIDTH = 150;
 
 export function RecentFormCard({ form }: { form: RecentFormView }) {
+  const m = useMessages();
   const palette = useTonePalette();
   const record = recentFormRecord(form);
   const figures = [
-    { key: "played", label: "Played", value: form.playedCount },
-    { key: "won", label: "Won", value: form.wins },
-    { key: "lost", label: "Lost", value: form.losses },
+    {
+      key: "played",
+      label: m.mobileHome.recentForm.played,
+      value: form.playedCount,
+    },
+    { key: "won", label: m.profile.player.won, value: form.wins },
+    { key: "lost", label: m.mobileHome.recentForm.lost, value: form.losses },
   ];
 
   return (
-    <Card title="Recent form" meta="Last 10 matches">
+    <Card
+      title={m.mobileHome.recentForm.title}
+      meta={m.mobileHome.recentForm.lastTen}
+    >
       <View
         style={{
           flexDirection: "row",
@@ -39,7 +48,7 @@ export function RecentFormCard({ form }: { form: RecentFormView }) {
           size="record"
           width="expanded"
           weight="bold"
-          accessibilityLabel={`Record ${record}`}
+          accessibilityLabel={m.mobileHome.recentForm.recordSpoken(record)}
         >
           {record}
         </Text>
@@ -67,7 +76,10 @@ export function RecentFormCard({ form }: { form: RecentFormView }) {
           <View
             key={figure.key}
             accessible
-            accessibilityLabel={`${figure.label} ${figure.value}`}
+            accessibilityLabel={m.mobileHome.join.labelValue(
+              figure.label,
+              String(figure.value),
+            )}
             style={{
               flex: 1,
               minWidth: 0,

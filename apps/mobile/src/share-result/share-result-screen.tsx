@@ -18,6 +18,7 @@ import { useMemo, useRef, useState } from "react";
 import { Platform, Share, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
@@ -26,7 +27,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import { SHARE_MODE_HINT, type ShareMode } from "./share-model";
+import { shareModeHint, type ShareMode } from "./share-model";
 import { ShareModeSegments } from "./share-mode-segments";
 import { Sticker } from "./stickers";
 import {
@@ -38,9 +39,6 @@ import {
 import { StoryCard } from "./story-cards";
 
 type ShareAction = "save" | "share_image" | "share_link" | "share_message";
-
-const PERMISSION_REFUSED = "Allow Temba to add to your photos in Settings.";
-const SHARING_UNAVAILABLE = "Sharing is not available on this device.";
 
 function Notice({
   title,
@@ -62,6 +60,9 @@ function Notice({
 }
 
 export function ShareResultScreen({ gameId }: { gameId: string }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const share = m.mobilePlayer.share;
   const toast = useToast();
   const [mode, setMode] = useState<ShareMode>("story");
   const [stickerHeight, setStickerHeight] = useState(0);
@@ -80,14 +81,22 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
   const card = useMemo(
     () =>
       game.data
-        ? resultShareCard(game.data, football ? (board.data ?? null) : null)
+        ? resultShareCard(
+            game.data,
+            football ? (board.data ?? null) : null,
+            locale,
+          )
         : null,
-    [game.data, board.data, football],
+    [game.data, board.data, football, locale],
   );
   const url = link.data?.url ?? null;
   const fallback = `/games/${gameId}` as Href;
   const header = (
-    <ScreenHeader nav="back" fallback={fallback} title="Share result" />
+    <ScreenHeader
+      nav="back"
+      fallback={fallback}
+      title={m.game.cta.shareResult}
+    />
   );
 
   if (isNotFoundError(game.error)) {
@@ -95,8 +104,8 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
       <Screen>
         {header}
         <Notice
-          title="Game not found"
-          description="It may have been removed, or you may not have access."
+          title={share.gameNotFound}
+          description={share.gameNotFoundDescription}
         />
       </Screen>
     );
@@ -106,7 +115,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
       <Screen>
         {header}
         <Notice
-          title="Result could not be loaded"
+          title={share.loadError}
           description={game.error?.message ?? board.error?.message ?? ""}
         />
       </Screen>
@@ -116,7 +125,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     return (
       <Screen>
         {header}
-        <View style={{ gap: 16 }} accessibilityLabel="Loading result">
+        <View style={{ gap: 16 }} accessibilityLabel={share.loading}>
           <Skeleton height={44} radius={radii.lg} />
           <Skeleton height={420} radius={radii.surface} />
         </View>
@@ -128,8 +137,8 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
       <Screen>
         {header}
         <Notice
-          title="No result to share yet"
-          description="Once the score is confirmed, the result card is ready here."
+          title={share.noResultYet}
+          description={share.noResultYetDescription}
         />
       </Screen>
     );
@@ -161,7 +170,9 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     setPending(action);
     void task()
       .catch((error: unknown) => {
-        toast.show(error instanceof Error ? error.message : "Could not share");
+        toast.show(
+          error instanceof Error ? error.message : share.couldNotShare,
+        );
       })
       .finally(() => setPending(null));
   }
@@ -170,30 +181,30 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     run("save", async () => {
       const permission = await MediaLibrary.requestPermissionsAsync(true);
       if (!permission.granted) {
-        toast.show(PERMISSION_REFUSED);
+        toast.show(share.permissionRefused);
         return;
       }
       await MediaLibrary.Asset.create(await capture());
-      toast.show("Saved to Photos");
+      toast.show(share.savedToPhotos);
     });
 
   const shareImage = () =>
     run("share_image", async () => {
       if (!(await Sharing.isAvailableAsync())) {
-        toast.show(SHARING_UNAVAILABLE);
+        toast.show(share.sharingUnavailable);
         return;
       }
       await Sharing.shareAsync(await capture(), {
         mimeType: "image/png",
         UTI: "public.png",
-        dialogTitle: "Share result",
+        dialogTitle: m.game.cta.shareResult,
       });
     });
 
   const shareLink = () =>
     run("share_link", async () => {
       if (!url) {
-        toast.show("The link is still loading");
+        toast.show(share.linkStillLoading);
         return;
       }
       await Share.share(Platform.OS === "ios" ? { url } : { message: url });
@@ -202,7 +213,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
   const shareMessage = () =>
     run("share_message", async () => {
       await Share.share({
-        message: formatResultShareMessage(card, url ?? ""),
+        message: formatResultShareMessage(card, url ?? "", locale),
       });
     });
 
@@ -238,37 +249,39 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
           )}
         </View>
         <Text size="meta" tone="muted">
-          {SHARE_MODE_HINT[mode]}
+          {shareModeHint(mode, locale)}
         </Text>
       </View>
       <SheetMenu>
         <SheetMenuRow
-          label={mode === "story" ? "Save to Photos" : "Save sticker to Photos"}
-          hint="A PNG you can post anywhere"
+          label={
+            mode === "story" ? share.saveToPhotos : share.saveStickerToPhotos
+          }
+          hint={share.saveHint}
           icon={ImageDown}
           pending={pending === "save"}
           disabled={pending != null}
           onPress={saveImage}
         />
         <SheetMenuRow
-          label="Share image"
-          hint="Send the picture straight to an app"
+          label={share.shareImage}
+          hint={share.shareImageHint}
           icon={ShareIcon}
           pending={pending === "share_image"}
           disabled={pending != null}
           onPress={shareImage}
         />
         <SheetMenuRow
-          label="Share link"
-          hint="The result on Temba"
+          label={share.shareLink}
+          hint={share.shareLinkHint}
           icon={Link}
           pending={pending === "share_link"}
           disabled={pending != null || !url}
           onPress={shareLink}
         />
         <SheetMenuRow
-          label="Share as message"
-          hint="Score, venue and the link as text"
+          label={share.shareAsMessage}
+          hint={share.shareAsMessageHint}
           icon={MessageSquare}
           pending={pending === "share_message"}
           disabled={pending != null}

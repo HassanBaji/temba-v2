@@ -10,6 +10,7 @@ import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { SportSegments } from "../lib/sport-segments";
 import { Button } from "../primitives/button";
@@ -33,12 +34,12 @@ import {
 import { countLabel } from "./my-bookings-model";
 import { VenueBanner } from "./venue-banner";
 import {
-  VENUE_SORTS,
   courtCountLabel,
   filterVenues,
   openToLabel,
   sortVenues,
   venueListMinHeight,
+  venueSorts,
   venuesEmptyCopy,
   type VenueSort,
 } from "./venues-model";
@@ -57,6 +58,8 @@ const FILTER_BAR_PADDING = 12;
 
 export function VenuesScreen() {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<VenueSort>("name");
   const [sport, setSport] = useState<Sport>("padel");
@@ -125,11 +128,11 @@ export function VenuesScreen() {
       onViewportHeight={setViewportHeight}
     >
       <ScreenHeader
-        title="Bookings"
+        title={m.mobileBooking.title}
         actions={
           <Button
-            label="Past"
-            accessibilityLabel="Past bookings"
+            label={m.mobileBooking.past}
+            accessibilityLabel={m.mobileBooking.pastBookings}
             size="sm"
             variant="outline"
             icon={<History size={sizes.iconRow} color={colors.ink} />}
@@ -156,10 +159,13 @@ export function VenuesScreen() {
         {/* The sticky wrapper takes over this View's style, so the gap lives one level down. */}
         <View style={{ gap: 10 }}>
           <SectionHead
-            title={bookTitle(sport)}
+            title={bookTitle(sport, locale)}
             count={
               slot.status === "ready"
-                ? countLabel(shown.length, { one: "venue", other: "venues" })
+                ? countLabel(shown.length, {
+                    exact: m.mobileBooking.count.venues,
+                    orMore: m.mobileBooking.count.venuesOrMore,
+                  })
                 : null
             }
           />
@@ -168,19 +174,19 @@ export function VenuesScreen() {
             value={query}
             onChangeText={setQuery}
             tone="wash"
-            placeholder="Area or venue"
-            accessibilityLabel="Search area or venue"
+            placeholder={m.mobileBooking.venues.searchPlaceholder}
+            accessibilityLabel={m.mobileBooking.venues.searchLabel}
             returnKeyType="search"
           />
           <View
             accessibilityRole="radiogroup"
-            accessibilityLabel="Sort venues"
+            accessibilityLabel={m.mobileBooking.venues.sortLabel}
             style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
           >
             <Text size="eyebrow" tone="muted" style={{ marginRight: 4 }}>
-              Sort
+              {m.mobileBooking.sort.label}
             </Text>
-            {VENUE_SORTS.map((entry) => (
+            {venueSorts(locale).map((entry) => (
               <SortChip
                 key={entry.key}
                 label={entry.label}
@@ -193,20 +199,23 @@ export function VenuesScreen() {
       </View>
       <View style={{ minHeight: listMinHeight }}>
         {slot.status === "loading" ? (
-          <View style={{ gap: LIST_GAP }} accessibilityLabel="Loading venues">
+          <View
+            style={{ gap: LIST_GAP }}
+            accessibilityLabel={m.mobileBooking.venues.loading}
+          >
             {[0, 1, 2].map((key) => (
               <Skeleton key={key} height={200} radius={radii.surface} />
             ))}
           </View>
         ) : slot.status === "error" ? (
           <Notice
-            title="Venues could not be loaded"
+            title={m.mobileBooking.venues.loadError}
             description={slot.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => void onRefresh()}
           />
         ) : shown.length === 0 ? (
-          <Notice {...venuesEmptyCopy(query, sport)} />
+          <Notice {...venuesEmptyCopy(query, locale, sport)} />
         ) : (
           <View style={{ gap: LIST_GAP }}>
             {shown.map((venue) => (
@@ -237,21 +246,22 @@ function UpcomingBookings({
   const router = useRouter();
   const segments = useSegments();
   const now = useNow();
+  const m = useMessages();
   const items = query.data?.items;
 
   if (query.error && !items) {
     return (
       <Notice
-        title="Upcoming bookings could not be loaded"
+        title={m.mobileBooking.venues.upcomingLoadError}
         description={query.error.message}
-        actionLabel="Try again"
+        actionLabel={m.common.tryAgain}
         onAction={onRetry}
       />
     );
   }
   if (!items) {
     return (
-      <View accessibilityLabel="Loading upcoming bookings">
+      <View accessibilityLabel={m.mobileBooking.venues.loadingUpcoming}>
         <Skeleton height={180} radius={radii.surface} />
       </View>
     );
@@ -266,10 +276,13 @@ function UpcomingBookings({
   return (
     <View style={{ gap: 12 }}>
       <SectionHead
-        title="Upcoming"
+        title={m.mobileBooking.upcoming}
         count={countLabel(
           items.length,
-          { one: "booking", other: "bookings" },
+          {
+            exact: m.mobileBooking.count.bookings,
+            orMore: m.mobileBooking.count.bookingsOrMore,
+          },
           query.data?.nextCursor != null,
         )}
       />
@@ -305,13 +318,20 @@ function VenueCard({
   sport: Sport;
   onPress: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const open = venue.todayOpen.length > 0;
-  const price = formatBookingPriceFils(venue.fromHourlyRateFils);
+  const price = formatBookingPriceFils(venue.fromHourlyRateFils, locale);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${venue.name}, ${venue.city}, from ${price} an hour, ${openToLabel(venue.todayOpen)}`}
+      accessibilityLabel={m.mobileBooking.venues.cardLabel(
+        venue.name,
+        venue.city,
+        price,
+        openToLabel(venue.todayOpen, locale),
+      )}
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
@@ -331,7 +351,7 @@ function VenueCard({
             }}
           >
             <Text size="eyebrow" tone={open ? "default" : "muted"}>
-              {openToLabel(venue.todayOpen)}
+              {openToLabel(venue.todayOpen, locale)}
             </Text>
           </View>
         </VenueBanner>
@@ -363,11 +383,11 @@ function VenueCard({
             </Text>
             <Text size="meta">
               <Text size="meta" tone="muted">
-                from{" "}
+                {m.mobileBooking.venues.fromPrefix}{" "}
               </Text>
               {price}
               <Text size="meta" tone="muted">
-                /h
+                {m.mobileBooking.venues.perHour}
               </Text>
             </Text>
           </View>
@@ -376,7 +396,7 @@ function VenueCard({
             <Text size="eyebrow" style={{ color: colors.rule }}>
               {"  /  "}
             </Text>
-            {courtCountLabel(venue.courtCount, sport)}
+            {courtCountLabel(venue.courtCount, locale, sport)}
           </Text>
         </View>
       </Surface>

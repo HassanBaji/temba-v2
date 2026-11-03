@@ -43,16 +43,16 @@ describe("loadGroupInviteOpenGraph", () => {
         return;
       }
       expect(
-        await loadGroupInviteOpenGraph(db, minted.link.shortCode!),
+        await loadGroupInviteOpenGraph(db, minted.link.shortCode!, "en"),
       ).toEqual({
         title: "Friday Night",
         description: 'You are invited to join "Friday Night" for "Padel"',
       });
 
-      expect(await loadGroupInviteOpenGraph(db, "0O1ILUAB")).toEqual(
+      expect(await loadGroupInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual(
         GENERIC_TEMBA_OPEN_GRAPH,
       );
-      expect(await loadGroupInviteOpenGraph(db, "ZZZZZZZZ")).toEqual(
+      expect(await loadGroupInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual(
         GENERIC_TEMBA_OPEN_GRAPH,
       );
 
@@ -61,7 +61,7 @@ describe("loadGroupInviteOpenGraph", () => {
         .set({ expiresAt: new Date(Date.now() - 1000) })
         .where(eq(groupInviteLinks.id, minted.link.id));
       expect(
-        await loadGroupInviteOpenGraph(db, minted.link.shortCode!),
+        await loadGroupInviteOpenGraph(db, minted.link.shortCode!, "en"),
       ).toEqual(GENERIC_TEMBA_OPEN_GRAPH);
     } finally {
       await close();

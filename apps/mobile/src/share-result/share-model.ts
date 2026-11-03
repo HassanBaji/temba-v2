@@ -1,6 +1,8 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export type ShareMode = "story" | "sticker";
 
-export const SHARE_MODE_HINT: Record<ShareMode, string> = {
-  story: "1080 × 1920, sized for a story.",
-  sticker: "A transparent sticker to drop on your own photo.",
-};
+export function shareModeHint(mode: ShareMode, locale: Locale) {
+  return messagesFor(locale).mobilePlayer.share.hint[mode];
+}

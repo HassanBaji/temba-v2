@@ -12,6 +12,8 @@ import {
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { courtCountValue, oneDayFit } from "@repo/domain/tournament-sizing";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export type LevelRangeSummary = {
   minimum: string;
@@ -19,15 +21,15 @@ export type LevelRangeSummary = {
   open: boolean;
 };
 
-const UNSET_BOUND = "Any";
-
 export function levelRangeSummary(
   min: LevelBandSelectValue,
   max: LevelBandSelectValue,
+  locale: Locale,
 ): LevelRangeSummary {
+  const unsetBound = messagesFor(locale).mobileCreateGame.levelRange.any;
   return {
-    minimum: min === LEVEL_BAND_SELECT_NONE ? UNSET_BOUND : min,
-    maximum: max === LEVEL_BAND_SELECT_NONE ? UNSET_BOUND : max,
+    minimum: min === LEVEL_BAND_SELECT_NONE ? unsetBound : min,
+    maximum: max === LEVEL_BAND_SELECT_NONE ? unsetBound : max,
     open: min === LEVEL_BAND_SELECT_NONE && max === LEVEL_BAND_SELECT_NONE,
   };
 }
@@ -53,12 +55,9 @@ export function tournamentMatchTotals(
   return { pool, knockout, total: pool + knockout };
 }
 
-export function matchCountLabel(matches: number) {
-  return matches === 1 ? "1 Match" : `${matches} Matches`;
+export function matchCountLabel(matches: number, locale: Locale) {
+  return messagesFor(locale).mobileCreateGame.header.matchCount(matches);
 }
-
-export const PICK_COURTS_FOR_SCHEDULE =
-  "Pick Courts in use to see the schedule.";
 
 export type TournamentScheduleSummary =
   | { kind: "pickCourts"; message: string }
@@ -70,12 +69,20 @@ export type TournamentScheduleSummary =
       overruns: boolean;
     };
 
-function matchesPart(totals: TournamentMatchTotals) {
+function matchesPart(totals: TournamentMatchTotals, locale: Locale) {
   const parts = [
-    totals.pool > 0 ? friendlyTournamentMatchCountLabel(totals.pool) : null,
-    totals.knockout > 0 ? knockoutMatchCountLabel(totals.knockout) : null,
+    totals.pool > 0
+      ? friendlyTournamentMatchCountLabel(totals.pool, locale)
+      : null,
+    totals.knockout > 0
+      ? knockoutMatchCountLabel(totals.knockout, locale)
+      : null,
   ].filter((part): part is string => part !== null);
-  return parts.join(" and ");
+  const [first, second] = parts;
+  if (first !== undefined && second !== undefined) {
+    return messagesFor(locale).tournament.listAnd(first, second);
+  }
+  return first ?? "";
 }
 
 export function tournamentScheduleSummary(input: {
@@ -86,19 +93,23 @@ export function tournamentScheduleSummary(input: {
   matchMinutes: string;
   courtCount: number;
   now: Date;
+  locale: Locale;
 }): TournamentScheduleSummary | null {
+  const { locale } = input;
+  const m = messagesFor(locale).mobileCreateGame.schedule;
   const totals = tournamentMatchTotals(input.plan);
   if (totals.total === 0) {
     return null;
   }
   if (input.courtCount < 1) {
-    return { kind: "pickCourts", message: PICK_COURTS_FOR_SCHEDULE };
+    return { kind: "pickCourts", message: m.pickCourts };
   }
-  const minutes = parseCreateMatchMinutes(input.matchMinutes);
+  const minutes = parseCreateMatchMinutes(input.matchMinutes, locale);
   const when = validateFriendlyGameWhen(
     input.day,
     input.startTime,
     input.finishTime,
+    locale,
     input.now,
   );
   if (!minutes.ok || !when.ok) {
@@ -117,12 +128,20 @@ export function tournamentScheduleSummary(input: {
   if (fit.slotCount === null || fit.lastFinish === null) {
     return null;
   }
-  const lastFinish = formatGameClock(fit.lastFinish);
-  const slots = fit.slotCount === 1 ? "1 slot" : `${fit.slotCount} slots`;
+  const lastFinish = formatGameClock(fit.lastFinish, locale);
   return {
     kind: "schedule",
-    title: `${matchCountLabel(totals.total)}, ${formatTimeSlotLabel(input.startTime)} to ${lastFinish}`,
-    detail: `${matchesPart(totals)}. ${courtCountValue(input.courtCount)}, ${minutes.minutes} minutes a Match, ${slots} back to back.`,
+    title: m.title(
+      matchCountLabel(totals.total, locale),
+      formatTimeSlotLabel(input.startTime, locale),
+      lastFinish,
+    ),
+    detail: m.detail(
+      matchesPart(totals, locale),
+      courtCountValue(input.courtCount, locale),
+      minutes.minutes,
+      fit.slotCount,
+    ),
     lastFinish,
     overruns: fit.overruns,
   };

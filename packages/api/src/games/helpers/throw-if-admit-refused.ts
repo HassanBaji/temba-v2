@@ -1,26 +1,25 @@
+import { type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { TRPCError } from "@trpc/server";
 
 import type { AdmitResult } from "#src/games/utils";
-import {
-  LEVEL_RANGE_OUTSIDE_MESSAGE,
-  LEVEL_RANGE_PARTNER_MESSAGE,
-  LEVEL_RANGE_TEAM_MESSAGE,
-} from "@repo/domain/level-range";
 
 export function throwIfAdmitRefused(
   result: AdmitResult,
+  locale: Locale,
   partyKind: "user" | "pair" | "team" = "user",
 ) {
   if (result.ok || result.reason === "full") {
     return;
   }
   if (result.reason === "level_range") {
+    const level = messagesFor(locale).level;
     const message =
       partyKind === "user"
-        ? LEVEL_RANGE_OUTSIDE_MESSAGE
+        ? level.rangeOutside
         : partyKind === "pair"
-          ? LEVEL_RANGE_PARTNER_MESSAGE
-          : LEVEL_RANGE_TEAM_MESSAGE;
+          ? level.rangePartner
+          : level.rangeTeam;
     throw new TRPCError({
       code: "FORBIDDEN",
       message,

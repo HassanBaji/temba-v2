@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -103,8 +104,10 @@ export async function publishFootballTeams(
     bibs: { slot1: FootballBib; slot2: FootballBib };
     slot1: string[];
     slot2: string[];
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   assertFootballGame(game);
   assertGameNotCancelled(game);
@@ -126,9 +129,10 @@ export async function publishFootballTeams(
       unplaced: registered.length - args.slot1.length - args.slot2.length,
     },
     {
-      slot1: footballBibName(args.bibs.slot1, 1),
-      slot2: footballBibName(args.bibs.slot2, 2),
+      slot1: footballBibName(args.bibs.slot1, 1, locale),
+      slot2: footballBibName(args.bibs.slot2, 2, locale),
     },
+    locale,
   );
   if (problem) {
     refuse(problem);
@@ -234,5 +238,9 @@ export const publishFootballTeamsProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return publishFootballTeams(ctx.db, { ...input, userId: appUser.id });
+    return publishFootballTeams(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

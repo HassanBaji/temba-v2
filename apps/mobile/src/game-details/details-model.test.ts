@@ -5,10 +5,12 @@ import {
   UNTOUCHED_SELECTION,
   digitsOnly,
   draftsFromSets,
+  gameTitle,
   isFriendlyGameDetails,
   pickedSeat,
   setsToSave,
   togglePickedSeat,
+  unsupportedFormatCopy,
   withDraftChange,
 } from "./details-model";
 
@@ -40,6 +42,22 @@ describe("isFriendlyGameDetails", () => {
       }),
       false,
     );
+  });
+});
+
+describe("gameTitle", () => {
+  it("keeps the Game's own name", () => {
+    assert.equal(gameTitle("Friday padel", "en"), "Friday padel");
+  });
+
+  it("falls back to the catalog word", () => {
+    assert.equal(gameTitle(null, "en"), "Game");
+    assert.equal(gameTitle(null, "ar"), "لعبة");
+  });
+
+  it("reads the unsupported-format copy in Arabic", () => {
+    assert.equal(unsupportedFormatCopy("en").title, "Not on mobile yet");
+    assert.match(unsupportedFormatCopy("ar").title, /[؀-ۿ]/);
   });
 });
 

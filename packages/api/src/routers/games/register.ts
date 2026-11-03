@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -35,8 +36,10 @@ export async function register(
     gameId: string;
     userId: string;
     football?: { role: FootballRole; position: FootballPosition };
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   const now = new Date();
 
@@ -91,7 +94,7 @@ export async function register(
         await enqueueWaitlistUser(tx, game.id, args.userId);
         return { ok: true as const, waitlisted: true as const };
       }
-      throwIfAdmitRefused(admitted);
+      throwIfAdmitRefused(admitted, locale);
     }
     if (args.football) {
       await tx
@@ -130,5 +133,6 @@ export const registerProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       football: input.football,
+      locale: ctx.locale,
     });
   });

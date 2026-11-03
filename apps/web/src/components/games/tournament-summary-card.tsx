@@ -16,6 +16,7 @@ import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   formatGameCardDay,
   formatRelativeDay,
@@ -24,14 +25,10 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
-  NO_TEAMS_YET_COPY,
   showsTournamentOpenFlag,
-  TOURNAMENT_CARD_BAND_LABEL,
-  TOURNAMENT_MATCH_CARD_BAND_LABEL,
   tournamentCardAction,
   tournamentCardActionLabel,
   tournamentCardBandMeta,
@@ -61,6 +58,7 @@ import {
   type TournamentMatchPhase,
 } from "@repo/domain/tournament-card";
 import { hasKnockout } from "@repo/domain/tournament-rounds";
+import type { Locale } from "@repo/i18n/locale";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -92,15 +90,17 @@ function CardBand({ label, meta }: { label: string; meta: string | null }) {
 }
 
 function UnratedBadge() {
+  const m = useMessages();
   return (
     <Badge variant="outline" data-slot="game-card-unrated">
-      {UNRATED_LABEL}
+      {m.common.unrated}
     </Badge>
   );
 }
 
 function OpenFlag({ openTeams }: { openTeams: number }) {
-  const label = tournamentOpenFlagLabel(openTeams);
+  const locale = useLocale();
+  const label = tournamentOpenFlagLabel(openTeams, locale);
   if (openTeams <= 0) {
     return <span className="text-muted-foreground shrink-0">{label}</span>;
   }
@@ -146,6 +146,7 @@ function PairSquare({
 }
 
 function TeamPair({ team }: { team: TournamentCardTeam }) {
+  const locale = useLocale();
   return (
     <span className="flex flex-none items-center">
       <PairSquare
@@ -154,7 +155,7 @@ function TeamPair({ team }: { team: TournamentCardTeam }) {
         overlap={false}
       />
       <PairSquare occupant={team.right} onInk={team.isViewerTeam} overlap />
-      <span className="sr-only">{tournamentTeamPairLabel(team)}</span>
+      <span className="sr-only">{tournamentTeamPairLabel(team, locale)}</span>
     </span>
   );
 }
@@ -190,13 +191,16 @@ function TeamPairs({
   teamsAllowed: number | null;
   registrationOpen: boolean;
 }) {
+  const m = useMessages();
   const { shown, remaining, placeholders } = tournamentCardPairs(teams, {
     teamsAllowed,
     registrationOpen,
   });
   if (shown.length === 0 && placeholders === 0) {
     return (
-      <p className="text-muted-foreground text-meta">{NO_TEAMS_YET_COPY}</p>
+      <p className="text-muted-foreground text-meta">
+        {m.tournament.card.noTeamsYet}
+      </p>
     );
   }
   return (
@@ -215,16 +219,18 @@ function TeamPairs({
 }
 
 function PriceLine({ fils }: { fils: number | null }) {
-  const amount = formatPricePerPlayerFils(fils);
+  const m = useMessages();
+  const locale = useLocale();
+  const amount = formatPricePerPlayerFils(fils, locale);
   if (!amount) {
     return <span className="min-w-0 flex-1" />;
   }
   return (
     <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate">
       <b className="text-lead font-bold tracking-[-0.03em]">{amount}</b>
-      {amount === "Free" ? null : (
+      {amount === m.createGame.price.free ? null : (
         <span className="text-muted-foreground text-meta truncate">
-          per player
+          {m.tournament.join.pricePerPlayer}
         </span>
       )}
     </span>
@@ -248,43 +254,56 @@ export function TournamentSummaryCard({
   onJoinWaitlist: () => void;
   as?: "li" | "article";
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const tournament = game.tournament;
   const teams = tournament?.teams ?? [];
-  const title = game.name ?? game.venue?.name ?? "Untitled Game";
-  const dateLine = tournamentCardDateLine(game.windowStart, game.windowEnd);
+  const title =
+    game.name ?? game.venue?.name ?? m.webTournament.card.untitledGame;
+  const dateLine = tournamentCardDateLine(
+    game.windowStart,
+    game.windowEnd,
+    locale,
+  );
   const levelLabel = formatLevelRangeLabel(
     game.levelMinTenths,
     game.levelMaxTenths,
+    locale,
   );
-  const subLine = [game.venue?.name, levelLabel ? `level ${levelLabel}` : null]
+  const subLine = [
+    game.venue?.name,
+    levelLabel ? m.webTournament.card.levelMeta(levelLabel) : null,
+  ]
     .filter(Boolean)
-    .join(", ");
+    .join(m.tournament.listSeparator);
   const cancelled = game.registrationStatus === "cancelled";
   const action = tournamentCardAction(game);
-  const actionLabel = tournamentCardActionLabel(action);
+  const actionLabel = tournamentCardActionLabel(action, locale);
   const interactive = action === "join" || action === "join_waitlist";
-  const knockoutLine = tournamentCardKnockoutLine(game);
+  const knockoutLine = tournamentCardKnockoutLine(game, locale);
 
   return (
     <Element data-slot="tournament-summary-card">
       <SummaryCardShell
         emphasis
         href={href}
-        linkLabel={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
+        linkLabel={[title, m.tournament.card.bandLabel, dateLine]
           .filter(Boolean)
-          .join(", ")}
+          .join(m.tournament.listSeparator)}
       >
         <CardBand
-          label={TOURNAMENT_CARD_BAND_LABEL}
-          meta={tournamentCardBandMeta(tournament?.roundCount, game)}
+          label={m.tournament.card.bandLabel}
+          meta={tournamentCardBandMeta(tournament?.roundCount, locale, game)}
         />
 
         <SummaryCardBody>
           <div className="text-body flex items-center justify-between gap-2.5">
             <span className="text-muted-foreground min-w-0 truncate">
               {game.windowStart
-                ? `Starts ${formatGameCardDay(game.windowStart)}`
+                ? m.tournament.home.starts(
+                    formatGameCardDay(game.windowStart, locale),
+                  )
                 : null}
             </span>
             <span className="flex shrink-0 items-center gap-2">
@@ -317,7 +336,7 @@ export function TournamentSummaryCard({
           <div className="border-rule my-4 border-t" />
 
           <p className="text-muted-foreground text-meta pb-2.5">
-            {tournamentTeamsLine(game)}
+            {tournamentTeamsLine(game, locale)}
           </p>
           <TeamPairs
             teams={teams}
@@ -344,7 +363,7 @@ export function TournamentSummaryCard({
                 onJoinWaitlist();
               }}
             >
-              {actionPending ? "Joining…" : actionLabel}
+              {actionPending ? m.game.cta.joining : actionLabel}
             </Button>
           ) : (
             <span
@@ -398,7 +417,8 @@ function MatchupColumn({
   side: TournamentCardGame["sides"][number] | null;
   isViewerSide: boolean;
 }) {
-  const name = tournamentMatchupName(side);
+  const locale = useLocale();
+  const name = tournamentMatchupName(side, locale);
   return (
     <div
       className={cn(
@@ -434,7 +454,11 @@ function MatchupColumn({
   );
 }
 
-function useMatchStatus(startsAt: Date, phase?: TournamentMatchPhase) {
+function useMatchStatus(
+  startsAt: Date,
+  locale: Locale,
+  phase?: TournamentMatchPhase,
+) {
   const [now, setNow] = React.useState(() => new Date());
 
   React.useEffect(() => {
@@ -444,15 +468,22 @@ function useMatchStatus(startsAt: Date, phase?: TournamentMatchPhase) {
     return () => window.clearInterval(timer);
   }, []);
 
-  return tournamentMatchStatus(phase, formatHomeCountdown(startsAt, now));
+  return tournamentMatchStatus(
+    phase,
+    formatHomeCountdown(startsAt, now, locale),
+    locale,
+  );
 }
 
 function Matchup({ sides }: { sides: TournamentCardGame["sides"] }) {
+  const m = useMessages();
   const { viewer, opponent } = tournamentMatchup(sides);
   return (
     <div className="flex items-center gap-2.5">
       <MatchupColumn side={viewer} isViewerSide={viewer != null} />
-      <span className="text-muted-foreground text-eyebrow flex-none">vs</span>
+      <span className="text-muted-foreground text-eyebrow flex-none">
+        {m.webTournament.vs}
+      </span>
       <MatchupColumn side={opponent} isViewerSide={false} />
     </div>
   );
@@ -465,20 +496,25 @@ export function TournamentMatchCard({
   game: TournamentCardGame;
   href: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const startsAt = new Date(game.startTime);
-  const kickoff = formatHomeKickoff(startsAt);
-  const day = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
-  const status = useMatchStatus(startsAt);
-  const title = game.name ?? game.venue?.name ?? "Untitled Game";
+  const kickoff = formatHomeKickoff(startsAt, locale);
+  const day = formatRelativeDay(startsAt, locale, { sameDayLabel: "Tonight" });
+  const status = useMatchStatus(startsAt, locale);
+  const title =
+    game.name ?? game.venue?.name ?? m.webTournament.card.untitledGame;
   const roundLine = tournamentMatchRoundLine(
     game.roundNumber,
     game.poolMatch,
+    locale,
     game.knockoutMatch,
   );
   const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
-  const standingLine = tournamentMatchStandingLine(game.poolMatch);
+  const standingLine = tournamentMatchStandingLine(game.poolMatch, locale);
   const lastResultLine = tournamentMatchLastResultLine(
     game.poolMatch?.lastResult,
+    locale,
   );
 
   return (
@@ -493,11 +529,11 @@ export function TournamentMatchCard({
           day,
         ]
           .filter(Boolean)
-          .join(", ")}
+          .join(m.tournament.listSeparator)}
       >
         <CardBand
-          label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
-          meta={tournamentMatchRoundLabel(game)}
+          label={m.tournament.card.matchBandLabel}
+          meta={tournamentMatchRoundLabel(game, locale)}
         />
 
         <SummaryCardBody>
@@ -559,7 +595,7 @@ export function TournamentMatchCard({
               SUMMARY_CARD_ACTION_CLASS,
             )}
           >
-            {tournamentMatchActionLabel("view")}
+            {tournamentMatchActionLabel("view", locale)}
           </span>
         </SummaryCardFooter>
       </SummaryCardShell>
@@ -578,22 +614,27 @@ export function HomeTournamentMatchCard({
   phase: TournamentMatchPhase;
   canAddResults?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const startsAt = new Date(game.startTime);
-  const kickoff = formatHomeKickoff(startsAt);
-  const status = useMatchStatus(startsAt, phase);
+  const kickoff = formatHomeKickoff(startsAt, locale);
+  const status = useMatchStatus(startsAt, locale, phase);
   const action = tournamentMatchAction(phase, canAddResults);
-  const title = game.name ?? game.venue?.name ?? "Untitled Game";
+  const title =
+    game.name ?? game.venue?.name ?? m.webTournament.card.untitledGame;
   const headline = tournamentMatchHeadline(
     game.roundNumber,
     kickoff.relativeDay,
+    locale,
     game.knockoutMatch,
   );
   const kickoffLine = tournamentMatchKickoffLine(kickoff, game.venue?.name);
-  const groupLabel = tournamentMatchGroupLabel(game.poolMatch);
-  const groupStanding = tournamentMatchGroupStanding(game.poolMatch);
+  const groupLabel = tournamentMatchGroupLabel(game.poolMatch, locale);
+  const groupStanding = tournamentMatchGroupStanding(game.poolMatch, locale);
   const roundsLeftLine = tournamentMatchRoundsLeftLine(
     game.roundNumber,
     game.roundCount,
+    locale,
     {
       knockoutMatch: game.knockoutMatch,
       thenKnockout: hasKnockout(game.format, game.tournamentShape),
@@ -605,11 +646,13 @@ export function HomeTournamentMatchCard({
       <SummaryCardShell
         emphasis
         href={href}
-        linkLabel={[title, headline, kickoffLine].filter(Boolean).join(", ")}
+        linkLabel={[title, headline, kickoffLine]
+          .filter(Boolean)
+          .join(m.tournament.listSeparator)}
       >
         <CardBand
-          label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
-          meta={tournamentMatchRoundLabel(game)}
+          label={m.tournament.card.matchBandLabel}
+          meta={tournamentMatchRoundLabel(game, locale)}
         />
 
         <SummaryCardBody>
@@ -664,7 +707,7 @@ export function HomeTournamentMatchCard({
               action !== "add_results" && "border-ink",
             )}
           >
-            {homeTournamentMatchActionLabel(action, game.knockoutMatch)}
+            {homeTournamentMatchActionLabel(action, locale, game.knockoutMatch)}
           </span>
         </SummaryCardFooter>
       </SummaryCardShell>

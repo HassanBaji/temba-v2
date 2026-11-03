@@ -9,6 +9,7 @@ import {
   displayLabelFromStoredBand,
   type LevelBand,
 } from "@repo/domain/level-bands";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 // Self-contained rather than derived from `RouterOutputs["games"]["byId"]`:
 // this grid also renders invite-preview sides (`@repo/api/games/utils`'s
@@ -28,7 +29,7 @@ type GameSide = {
 };
 
 function SeatRow({
-  positionLabel,
+  position,
   occupant,
   canJoin,
   joinLabel,
@@ -41,7 +42,7 @@ function SeatRow({
   onMove,
   onKick,
 }: {
-  positionLabel: string;
+  position: "left" | "right";
   occupant: SeatOccupant | null;
   canJoin: boolean;
   joinLabel: string;
@@ -54,6 +55,8 @@ function SeatRow({
   onMove: () => void;
   onKick: (userId: string) => void;
 }) {
+  const m = useMessages();
+  const positionLabel = m.game.players[position];
   const trailing = occupant ? (
     isOrganizer ? (
       <Button
@@ -62,21 +65,24 @@ function SeatRow({
         onClick={() => onKick(occupant.userId)}
         disabled={kickPending}
       >
-        Kick
+        {m.game.action.kick}
       </Button>
     ) : undefined
   ) : canMove ? (
     <Button onClick={onMove} disabled={moving} variant="outline" size="sm">
-      {moving ? "Moving…" : "Move here"}
+      {moving ? m.webGame.seatGrid.moving : m.webGame.seatGrid.moveHere}
     </Button>
   ) : canJoin ? (
     <Button onClick={onJoin} disabled={joining} size="sm">
-      {joining ? "Joining…" : joinLabel}
+      {joining ? m.game.cta.joining : joinLabel}
     </Button>
   ) : undefined;
 
   const occupantSubtitle = occupant?.levelBand
-    ? `${positionLabel} — level ${displayLabelFromStoredBand(occupant.levelBand)}`
+    ? m.game.players.seatWithLevel(
+        positionLabel,
+        displayLabelFromStoredBand(occupant.levelBand),
+      )
     : positionLabel;
 
   return (
@@ -92,9 +98,13 @@ function SeatRow({
         occupant ? (
           occupant.name
         ) : canJoin || canMove ? (
-          <span className="text-foreground font-medium">Open</span>
+          <span className="text-foreground font-medium">
+            {m.webGame.seatBlocks.open}
+          </span>
         ) : (
-          <span className="text-muted-foreground font-medium">Vacant</span>
+          <span className="text-muted-foreground font-medium">
+            {m.webGame.seatBlocks.vacant}
+          </span>
         )
       }
       subtitle={occupantSubtitle}
@@ -132,16 +142,22 @@ export function GameSeatGrid({
   onKick: (userId: string) => void;
   sideNoun?: string;
 }) {
+  const locale = useLocale();
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {sides.map((side) => (
         <div key={side.sideIndex} className="space-y-2">
           <h3 className="text-title font-medium">
-            {formatSeatSideHeading(sideNoun, side.sideIndex, sides.length)}
+            {formatSeatSideHeading(
+              sideNoun,
+              side.sideIndex,
+              sides.length,
+              locale,
+            )}
           </h3>
           <RowList>
             <SeatRow
-              positionLabel="Left"
+              position="left"
               occupant={side.left}
               canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}
@@ -155,7 +171,7 @@ export function GameSeatGrid({
               onKick={onKick}
             />
             <SeatRow
-              positionLabel="Right"
+              position="right"
               occupant={side.right}
               canJoin={canJoinVacant && !cancelled}
               joinLabel={joinLabel}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -12,11 +13,17 @@ type DbClient = typeof db;
 
 export async function searchPartnerUsers(
   database: DbClient,
-  args: { gameId: string; userId: string; query: string },
+  args: { gameId: string; userId: string; query: string ; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
   const now = new Date();
-  await assertCanRegisterWithPartner(database, game, args.userId, now);
+  await assertCanRegisterWithPartner(
+    database,
+    game,
+    args.userId,
+    now,
+    args.locale ?? DEFAULT_LOCALE,
+  );
 
   const excludeUserIds = await gameHideRegisteredWaitlistedSelf(
     database,
@@ -49,5 +56,6 @@ export const searchPartnerUsersProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       query: input.query,
+      locale: ctx.locale,
     });
   });

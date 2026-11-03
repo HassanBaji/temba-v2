@@ -1,4 +1,5 @@
 import type { DbClient } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 
 import { communityMembers, groupMembers, type GroupSportEnum } from "@repo/db";
@@ -23,7 +24,10 @@ import { loadGroupStandings } from "#src/standing/load-group-standing";
  * live if the viewer qualifies. Standing position is among that Group's
  * members only — not a global rank, and not a heading on the Level surface.
  */
-export async function loadHome(database: DbClient, args: { userId: string }) {
+export async function loadHome(
+  database: DbClient,
+  args: { userId: string; locale?: Locale },
+) {
   const now = new Date();
 
   const [communityMemberships, communityInvites, groupInvites, teamInvites] =
@@ -72,7 +76,12 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
       }),
     );
 
-  const carouselGames = await listHomeCarouselGames(database, args.userId, now);
+  const carouselGames = await listHomeCarouselGames(
+    database,
+    args.userId,
+    now,
+    args.locale ?? DEFAULT_LOCALE,
+  );
   const stats = summarizeCompletedMatchStats(
     await loadCompletedMatchesForUser(database, args.userId),
   );
@@ -92,5 +101,5 @@ export async function loadHome(database: DbClient, args: { userId: string }) {
 
 export const home = protectedProcedure.query(async ({ ctx }) => {
   const appUser = await resolveAppUser(ctx.userId);
-  return loadHome(ctx.db, { userId: appUser.id });
+  return loadHome(ctx.db, { userId: appUser.id, locale: ctx.locale });
 });

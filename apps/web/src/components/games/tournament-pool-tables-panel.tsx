@@ -7,11 +7,8 @@ import {
   type GameTeamPlayersSheetTeam,
 } from "~/components/games/game-team-players-sheet";
 import { ResultTag } from "~/components/temba/result-mark";
-import {
-  POOL_WINNER_LABEL,
-  TOURNAMENT_FINISHED_COPY,
-  poolRecordDisplay,
-} from "@repo/domain/tournament-pool-table";
+import { useMessages } from "~/components/locale-provider";
+import { poolRecordDisplay } from "@repo/domain/tournament-pool-table";
 import { gameTeamPlayers } from "~/lib/game-player-links";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
@@ -38,6 +35,7 @@ export function PoolRecordTable({
   /** Given when the viewer may open Player profiles from this table. */
   gameTeams?: GameTeams;
 }) {
+  const m = useMessages();
   const [openTeam, setOpenTeam] =
     React.useState<GameTeamPlayersSheetTeam | null>(null);
 
@@ -50,19 +48,19 @@ export function PoolRecordTable({
               #
             </th>
             <th scope="col" className={cn(COL_TEAM, HEAD_CELL)}>
-              Game team
+              {m.tournament.gameTeam}
             </th>
             <th scope="col" className={cn(COL_STAT, HEAD_CELL)}>
-              P
+              {m.webTournament.poolTable.played}
             </th>
             <th scope="col" className={cn(COL_STAT, HEAD_CELL)}>
-              W
+              {m.webTournament.poolTable.won}
             </th>
             <th scope="col" className={cn(COL_STAT, HEAD_CELL)}>
-              D
+              {m.webTournament.poolTable.drawn}
             </th>
             <th scope="col" className={cn(COL_STAT, HEAD_CELL, "pe-[18px]")}>
-              L
+              {m.webTournament.poolTable.lost}
             </th>
           </tr>
         </thead>
@@ -150,6 +148,7 @@ function PoolTeamName({
   winner: boolean;
   onOpen: (team: GameTeamPlayersSheetTeam) => void;
 }) {
+  const m = useMessages();
   const content = (
     <>
       <span
@@ -162,7 +161,7 @@ function PoolTeamName({
       </span>
       {winner ? (
         <ResultTag variant="won" className="text-eyebrow mt-1">
-          {POOL_WINNER_LABEL}
+          {m.tournament.poolTable.winner}
         </ResultTag>
       ) : null}
     </>
@@ -189,6 +188,7 @@ export function TournamentPoolTablesPanel({
   poolTables: PoolTables;
   gameTeams?: GameTeams;
 }) {
+  const m = useMessages();
   if (poolTables.pools.length === 0) {
     return null;
   }
@@ -197,7 +197,7 @@ export function TournamentPoolTablesPanel({
     <div className="space-y-4">
       {poolTables.finished ? (
         <p className="text-muted-foreground text-body">
-          {TOURNAMENT_FINISHED_COPY}
+          {m.tournament.poolTable.finished}
         </p>
       ) : null}
       {poolTables.pools.map((pool) => (

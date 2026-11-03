@@ -4,6 +4,7 @@ import * as React from "react";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
 import { CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
 
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
   InputGroup,
@@ -253,6 +254,7 @@ function ComboboxChip({
 }: ComboboxPrimitive.Chip.Props & {
   showRemove?: boolean;
 }) {
+  const m = useMessages();
   return (
     <ComboboxPrimitive.Chip
       data-slot="combobox-chip"
@@ -271,7 +273,9 @@ function ComboboxChip({
               variant="ghost"
               size="icon-xs"
               aria-label={
-                typeof children === "string" ? `Remove ${children}` : "Remove"
+                typeof children === "string"
+                  ? m.webUi.combobox.removeChip(children)
+                  : m.common.remove
               }
             />
           }

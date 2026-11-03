@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { games } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
   participantGameIdsForViewer,
@@ -53,8 +54,9 @@ export async function listMyGamesHubRows(
   database: DbClient,
   userId: string,
   now: Date = new Date(),
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<HubListRow[]> {
-  const viewer = await viewerHubContext(database, userId);
+  const viewer = await viewerHubContext(database, userId, locale);
   const participantGameIds = await participantGameIdsForViewer(
     database,
     userId,
@@ -106,7 +108,7 @@ export async function listMyGamesHubRows(
       if (!source) {
         return [row];
       }
-      return expandDrawnTournamentHubRows(source, row, userId);
+      return expandDrawnTournamentHubRows(source, row, viewer);
     }),
   );
 }

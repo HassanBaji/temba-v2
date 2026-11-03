@@ -1,10 +1,5 @@
 import { spacing } from "@repo/design-tokens";
 import {
-  COMMUNITY_LINK_VENUE_COPY,
-  COMMUNITY_LINK_VENUE_LABEL,
-  COMMUNITY_NO_COURTS_COPY,
-  COMMUNITY_NO_VENUE_COPY,
-  COMMUNITY_UNLINK_VENUE_LABEL,
   communityLiveVenueRow,
   communityVenueView,
 } from "@repo/domain/community";
@@ -16,6 +11,7 @@ import { View } from "react-native";
 
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -37,7 +33,9 @@ export function CommunityVenueBlock({
   onLink: () => void;
   onUnlink: () => void;
 }) {
-  const view = communityVenueView(data);
+  const m = useMessages();
+  const locale = useLocale();
+  const view = communityVenueView(data, locale);
   const { venue } = view;
   return (
     <Surface style={{ gap: spacing.compact - 4 }}>
@@ -48,7 +46,7 @@ export function CommunityVenueBlock({
         uppercase
         accessibilityRole="header"
       >
-        Venue
+        {m.mobileCommunity.venue.heading}
       </Text>
       {venue ? (
         <View style={{ gap: 10 }}>
@@ -67,14 +65,14 @@ export function CommunityVenueBlock({
               </Text>
               {venue.archivedAt ? (
                 <Text size="eyebrow" tone="muted" mono uppercase>
-                  Venue Soft-archived
+                  {m.mobileCommunity.venue.softArchived}
                 </Text>
               ) : null}
             </View>
           </View>
           {view.courtNames.length === 0 ? (
             <Text size="meta" tone="muted">
-              {COMMUNITY_NO_COURTS_COPY}
+              {m.community.venue.noCourts}
             </Text>
           ) : (
             <Text size="meta" tone="muted">
@@ -83,7 +81,7 @@ export function CommunityVenueBlock({
           )}
         </View>
       ) : (
-        <Text tone="muted">{COMMUNITY_NO_VENUE_COPY}</Text>
+        <Text tone="muted">{m.community.venue.noVenue}</Text>
       )}
       {view.notes.map((note) => (
         <Text key={note} size="meta" tone="muted">
@@ -93,11 +91,11 @@ export function CommunityVenueBlock({
       {view.canRequestLink || view.canUnlink ? (
         <View style={{ flexDirection: "row" }}>
           {view.canRequestLink ? (
-            <Button label={COMMUNITY_LINK_VENUE_LABEL} onPress={onLink} />
+            <Button label={m.community.action.linkVenue} onPress={onLink} />
           ) : null}
           {view.canUnlink ? (
             <Button
-              label={COMMUNITY_UNLINK_VENUE_LABEL}
+              label={m.community.action.unlinkVenue}
               variant="outline"
               onPress={onUnlink}
             />
@@ -121,17 +119,19 @@ export type VenueLinkSheetProps = {
 
 export function VenueLinkSheet(props: VenueLinkSheetProps) {
   const { venues } = props;
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <Sheet
       visible={props.visible}
       onClose={props.onClose}
-      title={COMMUNITY_LINK_VENUE_COPY.title}
+      title={m.community.linkVenue.title}
     >
       <Text size="meta" tone="muted">
-        {COMMUNITY_LINK_VENUE_COPY.description}
+        {m.community.linkVenue.description}
       </Text>
       <TextField
-        label={COMMUNITY_LINK_VENUE_COPY.searchLabel}
+        label={m.community.linkVenue.searchLabel}
         value={props.query}
         onChangeText={props.onQueryChange}
         autoCorrect={false}
@@ -143,18 +143,18 @@ export function VenueLinkSheet(props: VenueLinkSheetProps) {
       {venues.status === "error" ? (
         <Notice
           alert
-          title={COMMUNITY_LINK_VENUE_COPY.errorTitle}
+          title={m.community.linkVenue.errorTitle}
           description={venues.message}
           onRetry={props.onRetry}
         />
       ) : null}
       {venues.status === "ready" && venues.value.length === 0 ? (
-        <Text tone="muted">{COMMUNITY_LINK_VENUE_COPY.none}</Text>
+        <Text tone="muted">{m.community.linkVenue.none}</Text>
       ) : null}
       {venues.status === "ready" && venues.value.length > 0 ? (
         <Surface padded={false} style={{ overflow: "hidden" }}>
           {venues.value.map((venue, index) => {
-            const row = communityLiveVenueRow(venue);
+            const row = communityLiveVenueRow(venue, locale);
             return (
               <View key={row.id}>
                 {index > 0 ? <Hairline /> : null}
@@ -175,7 +175,7 @@ export function VenueLinkSheet(props: VenueLinkSheetProps) {
                     </Text>
                   </View>
                   <Button
-                    label={COMMUNITY_LINK_VENUE_COPY.requestLabel}
+                    label={m.community.linkVenue.requestLabel}
                     accessibilityLabel={row.accessibilityLabel}
                     variant="outline"
                     disabled={props.pendingVenueId !== null}

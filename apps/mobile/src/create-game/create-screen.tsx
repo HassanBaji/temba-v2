@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useReducer, useState } from "react";
 
 import { gamePath } from "../games/games-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -21,12 +22,10 @@ import {
   type CreateAction,
   type FieldErrors,
 } from "./create-model";
-import { CREATE_ENTRY_HEADER } from "./create-header";
 import { CreateView } from "./create-view";
 import { StepShell } from "./step-shell";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
-const GROUP_REFUSED = "You cannot create a Game in that Group.";
 
 export function CreateGameScreen({
   groupId,
@@ -38,9 +37,16 @@ export function CreateGameScreen({
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
+  const locale = useLocale();
+  const m = useMessages();
   const [now, setNow] = useState(() => new Date());
   const [state, rawDispatch] = useReducer(createReducer, undefined, () =>
-    initialCreateState(now, undefined, parseCreateFlowType(type ?? null)),
+    initialCreateState(
+      now,
+      locale,
+      undefined,
+      parseCreateFlowType(type ?? null),
+    ),
   );
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
@@ -82,8 +88,8 @@ export function CreateGameScreen({
       rawDispatch({ kind: "setGroup", groupId, sport: group.sport });
       return;
     }
-    setGroupFieldError(GROUP_REFUSED);
-  }, [groups.data, groupId]);
+    setGroupFieldError(m.mobileCreateGame.groupRefused);
+  }, [groups.data, groupId, m]);
 
   useEffect(() => {
     if (linkedVenueId) {
@@ -119,11 +125,13 @@ export function CreateGameScreen({
   );
 
   const createGame = api.games.create.useMutation({
-    onSuccess: (game) => onCreated(game.id, "Game created"),
+    onSuccess: (game) =>
+      onCreated(game.id, m.mobileCreateGame.toast.gameCreated),
     onError: onFailed,
   });
   const createTournament = api.games.createTournament.useMutation({
-    onSuccess: (game) => onCreated(game.id, "Tournament created"),
+    onSuccess: (game) =>
+      onCreated(game.id, m.mobileCreateGame.toast.tournamentCreated),
     onError: onFailed,
   });
   const pending = createGame.isPending || createTournament.isPending;

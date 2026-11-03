@@ -10,6 +10,7 @@ import type { DbClient } from "@repo/db";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { communityMembers, gamePlayers, games, groups } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
   FRIENDLY_PLAYERS_ALLOWED,
@@ -312,6 +313,7 @@ export async function listHomeCarouselGames(
   database: DbClient,
   userId: string,
   now: Date = new Date(),
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<HomeCarouselGame[]> {
   const organizerGroupIds = await organizerGroupIdsForViewer(database, userId);
   const admittedGameIds = await admittedGameIdsForViewer(database, userId);
@@ -328,7 +330,7 @@ export async function listHomeCarouselGames(
     database,
     and(isNull(games.cancelledAt), or(...scope)),
   );
-  const viewer = await viewerHubContext(database, userId);
+  const viewer = await viewerHubContext(database, userId, locale);
   const candidates = (rows as HubQueryRow[]).map((row) => ({
     ...row,
     viewerHasGameAdmit: row.players.some((player) => player.userId === userId),
@@ -339,7 +341,7 @@ export async function listHomeCarouselGames(
   const expanded: HomeCarouselGame[] = [];
   for (const row of filtered) {
     const hubRow = toHubListRow(row, viewer, now);
-    const hubRows = expandDrawnTournamentHubRows(row, hubRow, userId);
+    const hubRows = expandDrawnTournamentHubRows(row, hubRow, viewer);
     for (const item of hubRows) {
       const match = item.matchId
         ? row.matches.find((candidate) => candidate.id === item.matchId)

@@ -5,13 +5,13 @@ import {
 import { courtFace } from "@repo/domain/court-sport-copy";
 import type { CreateGameDraft } from "@repo/domain/create-game-draft";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import {
   footballPlayersAllowedBounds,
   isFootballSideSize,
 } from "@repo/domain/game-shape";
 import {
-  LEVEL_RANGE_INVERTED_MESSAGE,
+  levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
 } from "@repo/domain/level-range";
 import {
@@ -19,6 +19,8 @@ import {
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { relativeDay } from "../booking/booking-model";
 import type { StepHeaderText } from "./create-header";
@@ -39,15 +41,19 @@ export type BookingGameSource = {
 export function bookingGameHeader(
   booking: BookingGameSource,
   now: Date,
+  locale: Locale,
 ): StepHeaderText {
+  const m = messagesFor(locale).mobileCreateGame.bookingGame;
   return {
-    title: ["New game"],
-    subtitle:
-      "Where and when come from the booking. Only the rest is yours to set.",
+    title: [m.title],
+    subtitle: m.subtitle,
     context: {
       icon: "lock",
       parts: [
-        `${relativeDay(booking.startsAt, now)} ${formatGameClock(booking.startsAt)}`,
+        m.dayAndClock(
+          relativeDay(booking.startsAt, now, locale),
+          formatGameClock(booking.startsAt, locale),
+        ),
         booking.venue.name,
         booking.court.name,
       ],
@@ -71,34 +77,42 @@ export type BookingGameGroup = { name: string; rated: boolean };
 
 export function bookingGameReviewRows(
   booking: BookingGameSource,
+  locale: Locale,
   size: { sideSize: number; playersAllowed: number } = {
     sideSize: 0,
     playersAllowed: BOOKING_GAME_PLAYERS,
   },
   group: BookingGameGroup | null = null,
 ): ReviewRow[] {
+  const messages = messagesFor(locale);
+  const m = messages.mobileCreateGame;
   const sport = bookingGameSport(booking);
   return [
     {
-      label: courtFace(sport) === "pitch" ? "Pitch" : "Court",
-      value: `${booking.venue.name}, ${booking.court.name}`,
+      label:
+        courtFace(sport) === "pitch" ? m.court.pitchTitle : m.court.courtTitle,
+      value: m.review.venueAndCourt(booking.venue.name, booking.court.name),
     },
     {
-      label: "Time",
-      value: `${formatGameClock(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`,
+      label: m.review.time,
+      value: m.timeRange(
+        formatGameClock(booking.startsAt, locale),
+        formatGameClock(booking.endsAt, locale),
+      ),
     },
     {
-      label: sport === "football" ? "Size" : "Seats",
-      value: createFlowSeatsLabel(sport, size),
+      label: sport === "football" ? m.review.size : m.review.seats,
+      value: createFlowSeatsLabel(sport, size, locale),
     },
-    ...(group ? [{ label: "Group", value: group.name }] : []),
+    ...(group ? [{ label: m.review.group, value: group.name }] : []),
     {
-      label: "Who can join",
-      value: group
-        ? "Group members and people you invite"
-        : "People you invite",
+      label: m.review.whoCanJoin,
+      value: group ? m.review.groupMembersAndInvited : m.review.invitedOnly,
     },
-    { label: "Rating", value: group?.rated ? "Rated" : UNRATED_LABEL },
+    {
+      label: m.review.rating,
+      value: group?.rated ? messages.common.rated : unratedLabel(locale),
+    },
   ];
 }
 
@@ -121,9 +135,11 @@ export function bookingGameRequest(
   bookingId: string,
   draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax"> &
     Partial<Pick<CreateGameDraft, "groupId" | "sideSize" | "playersAllowed">>,
+  locale: Locale,
   sport: Sport = "padel",
 ): BookingGameRequest {
-  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer);
+  const m = messagesFor(locale).createGame.validation;
+  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer, locale);
   if (!price.ok) {
     return { ok: false, errors: { pricePerPlayerFils: price.message } };
   }
@@ -131,7 +147,7 @@ export function bookingGameRequest(
   if (sport === "football") {
     const { sideSize, playersAllowed } = draft;
     if (!isFootballSideSize(sideSize)) {
-      return { ok: false, errors: { sideSize: "Pick a side size" } };
+      return { ok: false, errors: { sideSize: m.pickSideSize } };
     }
     const bounds = footballPlayersAllowedBounds(sideSize);
     if (
@@ -143,7 +159,7 @@ export function bookingGameRequest(
       return {
         ok: false,
         errors: {
-          playersAllowed: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+          playersAllowed: m.playersAllowedBetween(bounds.min, bounds.max),
         },
       };
     }
@@ -167,7 +183,7 @@ export function bookingGameRequest(
   ) {
     return {
       ok: false,
-      errors: { levelMinTenths: LEVEL_RANGE_INVERTED_MESSAGE },
+      errors: { levelMinTenths: levelRangeInvertedMessage(locale) },
     };
   }
   return {

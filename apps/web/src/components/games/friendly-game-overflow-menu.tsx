@@ -7,11 +7,8 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
-import {
-  CLOSE_REGISTRATION_ACTION,
-  REOPEN_REGISTRATION_ACTION,
-} from "@repo/domain/game-copy";
 import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
+import { useMessages } from "~/components/locale-provider";
 
 /**
  * Organizer overflow menu (game-details redesign, TEM-184 note: "Edit Game",
@@ -42,12 +39,13 @@ export function FriendlyGameOverflowMenu({
   onShare: () => void;
   onLeaveWaitlist: () => void;
 }) {
+  const m = useMessages();
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <ActionMenu triggerRef={triggerRef} label="Game actions">
+    <ActionMenu triggerRef={triggerRef} label={m.webGame.overflow.gameActions}>
       {items.map((item, index) => {
         const previous = items[index - 1];
         const showSeparator = item === "leave_waitlist" && previous != null;
@@ -60,7 +58,7 @@ export function FriendlyGameOverflowMenu({
                 disabled={closePending}
                 onSelect={onCloseRegistration}
               >
-                {CLOSE_REGISTRATION_ACTION}
+                {m.game.action.closeRegistration}
               </ActionMenuItem>
             ) : null}
             {item === "reopen_registration" ? (
@@ -68,18 +66,22 @@ export function FriendlyGameOverflowMenu({
                 disabled={reopenPending}
                 onSelect={onReopenRegistration}
               >
-                {REOPEN_REGISTRATION_ACTION}
+                {m.game.action.reopenRegistration}
               </ActionMenuItem>
             ) : null}
             {item === "invite" ? (
-              <ActionMenuItem onSelect={onInvite}>Invite</ActionMenuItem>
+              <ActionMenuItem onSelect={onInvite}>
+                {m.invite.door.inviteButton}
+              </ActionMenuItem>
             ) : null}
             {item === "share" ? (
-              <ActionMenuItem onSelect={onShare}>Share</ActionMenuItem>
+              <ActionMenuItem onSelect={onShare}>
+                {m.common.share}
+              </ActionMenuItem>
             ) : null}
             {item === "leave_waitlist" ? (
               <ActionMenuItem variant="destructive" onSelect={onLeaveWaitlist}>
-                Leave waitlist
+                {m.game.action.leaveWaitlist}
               </ActionMenuItem>
             ) : null}
           </Fragment>

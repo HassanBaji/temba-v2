@@ -1,4 +1,5 @@
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -152,11 +153,17 @@ async function hydrateSuggestions(
 
 export async function listPartnerSuggestions(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string ; locale?: Locale },
 ): Promise<ListPartnerSuggestionsResult> {
   const game = await requireGame(database, args.gameId);
   const now = new Date();
-  await assertCanRegisterWithPartner(database, game, args.userId, now);
+  await assertCanRegisterWithPartner(
+    database,
+    game,
+    args.userId,
+    now,
+    args.locale ?? DEFAULT_LOCALE,
+  );
 
   if (!game.isPublic && !game.groupId) {
     return { playedWithBefore: [], fromYourGroups: [] };
@@ -269,5 +276,6 @@ export const listPartnerSuggestionsProcedure = protectedProcedure
     return listPartnerSuggestions(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

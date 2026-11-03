@@ -1,11 +1,8 @@
-import {
-  NOT_ON_TEMBA_YET_LABEL,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-} from "@repo/domain/add-player-by-phone";
-import { KICK_ACTION } from "@repo/domain/game-copy";
+import { kickAction } from "@repo/domain/game-copy";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
@@ -34,16 +31,20 @@ export function PlayedPlayerSheet({
   onKick: (userId: string) => void;
   onRename: (player: { userId: string; name: string }) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const renameAction = m.group.addPlayer.renameAction;
+  const kick = kickAction(locale);
   const meta = player
-    ? [
-        player.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
-        player.phoneMasked,
-        player.meta,
-        `Level ${player.level}`,
-        player.trailing,
-      ]
-        .filter(Boolean)
-        .join(", ")
+    ? m.profile.matches.spokenParts(
+        [
+          player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+          player.phoneMasked,
+          player.meta,
+          m.mobilePlayer.played.levelLine(player.level),
+          player.trailing,
+        ].filter((part): part is string => Boolean(part)),
+      )
     : "";
   return (
     <Sheet visible={player != null} onClose={onClose}>
@@ -63,15 +64,18 @@ export function PlayedPlayerSheet({
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {canOpenProfile ? (
               <Button
-                label="View profile"
+                label={m.mobilePlayer.played.viewProfile}
                 variant="outline"
                 onPress={() => onOpenProfile(player.userId)}
               />
             ) : null}
             {canRename && player.unclaimed ? (
               <Button
-                label={RENAME_UNCLAIMED_PLAYER_ACTION}
-                accessibilityLabel={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${player.fullName}`}
+                label={renameAction}
+                accessibilityLabel={m.mobilePlayer.played.renameSpoken(
+                  renameAction,
+                  player.fullName,
+                )}
                 variant="outline"
                 onPress={() =>
                   onRename({ userId: player.userId, name: player.fullName })
@@ -80,8 +84,11 @@ export function PlayedPlayerSheet({
             ) : null}
             {canKick ? (
               <Button
-                label={KICK_ACTION}
-                accessibilityLabel={`${KICK_ACTION} ${player.fullName}`}
+                label={kick}
+                accessibilityLabel={m.mobilePlayer.played.kickSpoken(
+                  kick,
+                  player.fullName,
+                )}
                 variant="outline"
                 onPress={() => onKick(player.userId)}
               />

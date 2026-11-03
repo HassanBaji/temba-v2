@@ -1,9 +1,6 @@
 "use client";
 
 import {
-  GROUP_LINK_REQUEST_ACCEPT_LABEL,
-  GROUP_LINK_REQUEST_DECLINE_LABEL,
-  GROUP_LINK_REQUEST_DECLINED_TOAST,
   groupLinkRequestAcceptConfirm,
   groupLinkRequestAcceptedToast,
   groupLinkRequestDeclineConfirm,
@@ -12,6 +9,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -29,14 +27,20 @@ export function VenueLinkRequestActions({
 }: {
   request: { id: string; groupName: string | null; venueName: string };
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const [acceptOpen, setAcceptOpen] = React.useState(false);
   const [declineOpen, setDeclineOpen] = React.useState(false);
   const acceptConfirm = groupLinkRequestAcceptConfirm(
     request.groupName,
     request.venueName,
+    locale,
   );
-  const declineConfirm = groupLinkRequestDeclineConfirm(request.venueName);
+  const declineConfirm = groupLinkRequestDeclineConfirm(
+    request.venueName,
+    locale,
+  );
 
   async function refresh() {
     await Promise.all([
@@ -51,7 +55,11 @@ export function VenueLinkRequestActions({
   const accept = api.groups.acceptLinkRequest.useMutation({
     onSuccess: async () => {
       toast.success(
-        groupLinkRequestAcceptedToast(request.groupName, request.venueName),
+        groupLinkRequestAcceptedToast(
+          request.groupName,
+          request.venueName,
+          locale,
+        ),
       );
       setAcceptOpen(false);
       await refresh();
@@ -64,7 +72,7 @@ export function VenueLinkRequestActions({
 
   const decline = api.groups.declineLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.success(GROUP_LINK_REQUEST_DECLINED_TOAST);
+      toast.success(m.group.linkRequest.declinedToast);
       setDeclineOpen(false);
       await refresh();
     },
@@ -80,17 +88,17 @@ export function VenueLinkRequestActions({
         <Button
           type="button"
           variant="outline"
-          aria-label={`Decline the request from ${request.venueName}`}
+          aria-label={m.webGroup.linkRequest.declineFrom(request.venueName)}
           onClick={() => setDeclineOpen(true)}
         >
-          {GROUP_LINK_REQUEST_DECLINE_LABEL}
+          {m.group.linkRequest.declineLabel}
         </Button>
         <Button
           type="button"
-          aria-label={`Review the request from ${request.venueName}`}
+          aria-label={m.webGroup.linkRequest.reviewFrom(request.venueName)}
           onClick={() => setAcceptOpen(true)}
         >
-          {GROUP_LINK_REQUEST_ACCEPT_LABEL}
+          {m.group.linkRequest.acceptLabel}
         </Button>
       </div>
 

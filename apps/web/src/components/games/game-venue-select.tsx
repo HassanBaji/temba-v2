@@ -10,6 +10,7 @@ import {
   venueOptionLabel,
   type VenueSelectOption,
 } from "@repo/domain/game-venue-select";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function GameVenueSelect({
@@ -21,7 +22,7 @@ export function GameVenueSelect({
   pending = false,
   error = false,
   describedBy,
-  placeholder = "Select a Venue",
+  placeholder,
 }: {
   id: string;
   venues: VenueSelectOption[];
@@ -33,6 +34,7 @@ export function GameVenueSelect({
   describedBy?: string;
   placeholder?: string;
 }) {
+  const m = useMessages();
   const listId = `${id}-list`;
   const rootRef = React.useRef<HTMLDivElement>(null);
   const [open, setOpen] = React.useState(false);
@@ -98,7 +100,7 @@ export function GameVenueSelect({
         aria-describedby={describedBy}
         autoComplete="off"
         disabled={disabled}
-        placeholder={placeholder}
+        placeholder={placeholder ?? m.webGame.venueSelect.placeholder}
         value={query}
         onChange={(event) => {
           const nextQuery = event.target.value;
@@ -154,12 +156,14 @@ export function GameVenueSelect({
         >
           {pending && venues.length === 0 ? (
             <p className="text-muted-foreground text-body px-3 py-3">
-              Loading…
+              {m.common.loading}
             </p>
           ) : null}
           {!pending && filtered.length === 0 ? (
             <p className="text-muted-foreground text-body px-3 py-3">
-              {venues.length === 0 ? "No live Venues." : "No Venues match."}
+              {venues.length === 0
+                ? m.webGame.venueSelect.noLiveVenues
+                : m.webGame.venueSelect.noMatch}
             </p>
           ) : null}
           {filtered.map((venue) => {

@@ -1,4 +1,4 @@
-import { GAME_TOAST, KICK_ACTION, kickedToast } from "@repo/domain/game-copy";
+import { gameToast, kickAction, kickedToast } from "@repo/domain/game-copy";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
@@ -7,16 +7,10 @@ import {
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import { isKnockoutOnly } from "@repo/domain/tournament-rounds";
-import {
-  UNDO_KNOCKOUT_DRAW_CONFIRM_COPY,
-  UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE,
-  UNDO_POOL_DRAW_CONFIRM_COPY,
-  UNDO_POOL_DRAW_CONFIRM_LABEL,
-  UNDO_POOL_DRAW_CONFIRM_TITLE,
-} from "@repo/domain/tournament-pool-draw";
 import { useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import type { OrganizerSheetsProps } from "./organizer-sheets";
@@ -44,6 +38,8 @@ export function useTournamentOrganizer({
   setConfirm,
 }: Options) {
   const toast = useToast();
+  const locale = useLocale();
+  const m = useMessages();
   const knockoutOnly =
     game != null && isKnockoutOnly(game.format, game.tournamentShape);
   const [sheet, setSheet] = useState<TournamentSheet>(null);
@@ -58,40 +54,39 @@ export function useTournamentOrganizer({
 
   const merge = api.games.mergeHalfTeams.useMutation({
     onSuccess: () => {
-      toast.show(GAME_TOAST.halfTeamsMerged);
+      toast.show(gameToast(locale).halfTeamsMerged);
       setSheet(null);
     },
     onSettled: refresh,
   });
   const draw = api.games.drawPools.useMutation({
-    onSuccess: () => toast.show(drawToast("drawn", knockoutOnly)),
+    onSuccess: () => toast.show(drawToast("drawn", knockoutOnly, locale)),
     onSettled: refresh,
   });
   const post = api.games.postPoolDraw.useMutation({
     onSuccess: () => {
-      toast.show(drawToast("posted", knockoutOnly));
+      toast.show(drawToast("posted", knockoutOnly, locale));
       setSheet(null);
     },
     onSettled: refresh,
   });
   const undo = api.games.undoPoolDraw.useMutation({
-    onSuccess: () => toast.show(drawToast("undone", knockoutOnly)),
+    onSuccess: () => toast.show(drawToast("undone", knockoutOnly, locale)),
     onError: failure,
     onSettled: settled,
   });
   const updateRounds = api.games.updateRoundCount.useMutation({
     onSuccess: () => {
-      toast.show("Rounds saved");
+      toast.show(m.mobileTournament.organizer.roundsSaved);
       setSheet(null);
     },
     onSettled: refresh,
   });
   const cancelMatch = api.games.cancelMatch.useMutation({
     onSuccess: (result) => {
+      const toasts = gameToast(locale);
       toast.show(
-        result.cancelledGame
-          ? GAME_TOAST.gameCancelled
-          : GAME_TOAST.matchCancelled,
+        result.cancelledGame ? toasts.gameCancelled : toasts.matchCancelled,
       );
       setSheet(null);
     },
@@ -103,14 +98,15 @@ export function useTournamentOrganizer({
   });
 
   function askUndo() {
+    const poolDraw = m.tournament.poolDraw;
     setConfirm({
       title: knockoutOnly
-        ? UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE
-        : UNDO_POOL_DRAW_CONFIRM_TITLE,
+        ? poolDraw.undoKnockoutConfirmTitle
+        : poolDraw.undoConfirmTitle,
       description: knockoutOnly
-        ? UNDO_KNOCKOUT_DRAW_CONFIRM_COPY
-        : UNDO_POOL_DRAW_CONFIRM_COPY,
-      confirmLabel: UNDO_POOL_DRAW_CONFIRM_LABEL,
+        ? poolDraw.undoKnockoutConfirmCopy
+        : poolDraw.undoConfirmCopy,
+      confirmLabel: poolDraw.undoConfirmLabel,
       onConfirm: () => undo.mutate({ gameId }),
     });
   }
@@ -120,20 +116,24 @@ export function useTournamentOrganizer({
       return;
     }
     const target = gameKickTarget(game, request);
-    const copy = gameKickConfirmCopy(target, {
-      partnerRequired: false,
-      drawPosted: Boolean(game.drawPostedAt),
-    });
+    const copy = gameKickConfirmCopy(
+      target,
+      {
+        partnerRequired: false,
+        drawPosted: Boolean(game.drawPostedAt),
+      },
+      locale,
+    );
     setConfirm({
       title: copy.title,
       description: copy.description,
-      confirmLabel: KICK_ACTION,
+      confirmLabel: kickAction(locale),
       onConfirm: () =>
         kick.mutate(
           target.kind === "player"
             ? { gameId, userId: target.userId }
             : { gameId, waitlistId: target.waitlistId },
-          { onSuccess: () => toast.show(kickedToast(target.name)) },
+          { onSuccess: () => toast.show(kickedToast(target.name, locale)) },
         ),
     });
   }

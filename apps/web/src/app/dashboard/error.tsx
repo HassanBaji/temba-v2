@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 
 export default function DashboardError({
   error,
@@ -12,15 +13,16 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const m = useMessages();
   useEffect(() => {
     console.error(error);
   }, [error]);
 
   return (
-    <DashboardShell title="Error">
+    <DashboardShell title={m.webDashboard.error.title}>
       <ErrorState
-        title="This page could not be loaded"
-        message="Try again, or use the navigation to open another page."
+        title={m.webDashboard.error.pageTitle}
+        message={m.webDashboard.error.message}
         onRetry={reset}
       />
     </DashboardShell>

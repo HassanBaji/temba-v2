@@ -1,12 +1,14 @@
 import { spacing } from "@repo/design-tokens";
-import { LEAVE_WAITLIST_ACTION } from "@repo/domain/game-copy";
+import { leaveWaitlistAction } from "@repo/domain/game-copy";
 import {
   tournamentHomeView,
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
+import type { Locale } from "@repo/i18n/locale";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 
@@ -18,8 +20,8 @@ export type TournamentBarHandlers = {
   onLeaveWaitlist: () => void;
 };
 
-export function tournamentBarActions(game: TournamentDetails) {
-  const view = tournamentHomeView(game);
+export function tournamentBarActions(game: TournamentDetails, locale: Locale) {
+  const view = tournamentHomeView(game, locale);
   return {
     join: view.canJoin,
     waitlist: view.canWaitlist,
@@ -37,7 +39,9 @@ export function TournamentBar({
   inset?: boolean;
 }) {
   const insets = useSafeAreaInsets();
-  const actions = tournamentBarActions(game);
+  const locale = useLocale();
+  const m = useMessages();
+  const actions = tournamentBarActions(game, locale);
 
   if (!actions.join && !actions.waitlist && !actions.leaveWaitlist) {
     return null;
@@ -56,7 +60,7 @@ export function TournamentBar({
       >
         {actions.join ? (
           <Button
-            label="Join"
+            label={m.game.cta.join}
             size="lg"
             pending={handlers.joinPending}
             onPress={handlers.onJoin}
@@ -64,7 +68,7 @@ export function TournamentBar({
         ) : null}
         {actions.waitlist ? (
           <Button
-            label="Join waitlist"
+            label={m.game.cta.joinWaitlist}
             size="lg"
             pending={handlers.joinPending}
             onPress={handlers.onJoinWaitlist}
@@ -72,7 +76,7 @@ export function TournamentBar({
         ) : null}
         {actions.leaveWaitlist ? (
           <Button
-            label={LEAVE_WAITLIST_ACTION}
+            label={leaveWaitlistAction(locale)}
             variant="outline"
             size="lg"
             pending={handlers.leaveWaitlistPending}

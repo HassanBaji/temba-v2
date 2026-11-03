@@ -19,6 +19,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
@@ -40,11 +41,6 @@ import { StoryCard } from "./story-cards";
 type ShareMode = "story" | "sticker";
 type ShareAction = "save" | "share_image" | "share_link" | "share_message";
 
-const MODE_HINT: Record<ShareMode, string> = {
-  story: "1080 × 1920, sized for a story.",
-  sticker: "A transparent PNG to drop on your own photo.",
-};
-
 function downloadDataUrl(dataUrl: string, name: string) {
   const anchor = document.createElement("a");
   anchor.href = dataUrl;
@@ -58,6 +54,8 @@ async function fileFromDataUrl(dataUrl: string, name: string) {
 }
 
 export function ShareResultPage({ gameId }: { gameId: string }) {
+  const locale = useLocale();
+  const m = useMessages().webUi.shareResult;
   const [mode, setMode] = React.useState<ShareMode>("story");
   const [pending, setPending] = React.useState<ShareAction | null>(null);
   const storyRef = React.useRef<HTMLDivElement | null>(null);
@@ -74,15 +72,19 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   const card = React.useMemo(
     () =>
       game.data
-        ? resultShareCard(game.data, football ? (board.data ?? null) : null)
+        ? resultShareCard(
+            game.data,
+            football ? (board.data ?? null) : null,
+            locale,
+          )
         : null,
-    [game.data, board.data, football],
+    [game.data, board.data, football, locale],
   );
   const url = link.data?.url ?? null;
   const gameHref = `/dashboard/games/${gameId}`;
   const backAction = (
     <Button variant="outline" asChild>
-      <Link href={gameHref}>Back to the game</Link>
+      <Link href={gameHref}>{m.backToGame}</Link>
     </Button>
   );
 
@@ -91,9 +93,9 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
   if (game.error || (football && board.error)) {
     return (
-      <DashboardShell title="Share result" action={backAction} isSubPage>
+      <DashboardShell title={m.title} action={backAction} isSubPage>
         <ErrorState
-          title="Result could not be loaded"
+          title={m.loadError}
           message={game.error?.message ?? board.error?.message}
           onRetry={() => {
             void game.refetch();
@@ -105,18 +107,18 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
   if (!game.data || (football && !board.data)) {
     return (
-      <DashboardShell title="Share result" action={backAction} isSubPage>
+      <DashboardShell title={m.title} action={backAction} isSubPage>
         <GameDetailsSkeleton />
       </DashboardShell>
     );
   }
   if (!card) {
     return (
-      <DashboardShell title="Share result" action={backAction} isSubPage>
+      <DashboardShell title={m.title} action={backAction} isSubPage>
         <ErrorState
-          title="No result to share yet"
-          message="Once the score is confirmed, the result card is ready here."
-          retryLabel="Check again"
+          title={m.noResultTitle}
+          message={m.noResultMessage}
+          retryLabel={m.checkAgain}
           onRetry={() => {
             void game.refetch();
             void board.refetch();
@@ -131,7 +133,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   async function capture() {
     const node = mode === "story" ? storyRef.current : stickerRef.current;
     if (!node) {
-      throw new Error("The card is not ready yet");
+      throw new Error(m.notReady);
     }
     return toPng(node, {
       pixelRatio: 1,
@@ -150,7 +152,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     void task()
       .catch((error: unknown) => {
         toast.error(
-          error instanceof Error ? error.message : "Could not share the result",
+          error instanceof Error ? error.message : m.shareFailed,
         );
       })
       .finally(() => setPending(null));
@@ -183,32 +185,32 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   const shareLink = () =>
     run("share_link", async () => {
       if (!url) {
-        toast.error("The link is still loading");
+        toast.error(m.linkLoading);
         return;
       }
-      await shareLinkWithFeedback({ text: url, url }, "Link copied");
+      await shareLinkWithFeedback({ text: url, url }, m.linkCopied, locale);
     });
 
   const shareMessage = () =>
     run("share_message", async () => {
       const outcome = await shareOrCopyLink({
-        text: formatResultShareMessage(card, url ?? ""),
+        text: formatResultShareMessage(card, url ?? "", locale),
       });
       if (outcome === "copied") {
-        toast.success("Message copied");
+        toast.success(m.messageCopied);
       }
     });
 
   return (
-    <DashboardShell title="Share result" action={backAction} isSubPage>
+    <DashboardShell title={m.title} action={backAction} isSubPage>
       <div className="mx-auto max-w-[520px] space-y-6">
         <Tabs
           value={mode}
           onValueChange={(value) => setMode(value as ShareMode)}
         >
-          <TabsList variant="segmented" aria-label="What to share">
-            <TabsTrigger value="story">Story</TabsTrigger>
-            <TabsTrigger value="sticker">Sticker</TabsTrigger>
+          <TabsList variant="segmented" aria-label={m.whatToShare}>
+            <TabsTrigger value="story">{m.story}</TabsTrigger>
+            <TabsTrigger value="sticker">{m.sticker}</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="space-y-2.5">
@@ -232,36 +234,38 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
               </ScaledCanvas>
             )}
           </div>
-          <p className="text-muted-foreground text-meta">{MODE_HINT[mode]}</p>
+          <p className="text-muted-foreground text-meta">
+            {mode === "story" ? m.storyHint : m.stickerHint}
+          </p>
         </div>
         <SheetMenu>
           <SheetMenuRow
-            label={mode === "story" ? "Save image" : "Save sticker"}
-            hint="A PNG you can post anywhere"
+            label={mode === "story" ? m.saveImage : m.saveSticker}
+            hint={m.saveHint}
             icon={ImageDown}
             pending={pending === "save"}
             disabled={pending != null}
             onSelect={saveImage}
           />
           <SheetMenuRow
-            label="Share image"
-            hint="Send the picture straight to an app"
+            label={m.shareImage}
+            hint={m.shareImageHint}
             icon={Share}
             pending={pending === "share_image"}
             disabled={pending != null}
             onSelect={shareImage}
           />
           <SheetMenuRow
-            label="Share link"
-            hint="The result on Temba"
+            label={m.shareLink}
+            hint={m.shareLinkHint}
             icon={LinkIcon}
             pending={pending === "share_link"}
             disabled={pending != null || !url}
             onSelect={shareLink}
           />
           <SheetMenuRow
-            label="Share as message"
-            hint="Score, venue and the link as text"
+            label={m.shareMessage}
+            hint={m.shareMessageHint}
             icon={MessageSquare}
             pending={pending === "share_message"}
             disabled={pending != null}

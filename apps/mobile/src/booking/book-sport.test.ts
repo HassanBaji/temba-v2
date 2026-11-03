@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BOOK_SPORT_STORAGE_KEY,
   bookTitle,
+  bookingGameBlurb,
   courtCoachCopy,
   courtNounTitle,
   courtStepTitle,
@@ -59,17 +60,25 @@ describe("Book tab sport choice", () => {
 
 describe("pitch copy", () => {
   it("says pitch for football and court for padel", () => {
-    expect(bookTitle("football")).toBe("Book a pitch");
-    expect(bookTitle("padel")).toBe("Book a court");
-    expect(courtStepTitle("football")).toBe("Pick a pitch");
-    expect(courtStepTitle("padel")).toBe("Court");
-    expect(courtNounTitle("football")).toBe("Pitch");
-    expect(courtCoachCopy("football")).toBe(
+    expect(bookTitle("football", "en")).toBe("Book a pitch");
+    expect(bookTitle("padel", "en")).toBe("Book a court");
+    expect(courtStepTitle("football", "en")).toBe("Pick a pitch");
+    expect(courtStepTitle("padel", "en")).toBe("Court");
+    expect(courtNounTitle("football", "en")).toBe("Pitch");
+    expect(courtCoachCopy("football", "en")).toBe(
       "Pick a start time to see which pitches are free.",
     );
-    expect(courtCoachCopy("padel")).toBe(
+    expect(courtCoachCopy("padel", "en")).toBe(
       "Pick a start time to see which courts are free.",
     );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the titles in Arabic", () => {
+    expect(bookTitle("padel", "ar")).toBe("احجز ملعبًا");
+    expect(courtStepTitle("football", "ar")).toBe("اختر ملعبًا");
+    expect(bookingGameBlurb("football", "ar")).toMatch(/Temba/);
   });
 });
 

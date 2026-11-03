@@ -1,5 +1,5 @@
 import {
-  PLAYER_PROFILE_REFUSED,
+  playerProfileRefused,
   profileSport,
 } from "@repo/domain/player-profile";
 import type { Sport } from "@repo/domain/sport";
@@ -13,6 +13,7 @@ import { useCallback, useState } from "react";
 
 import { gamePath } from "../games/games-model";
 import { Notice } from "../groups/notice";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { SportSegments } from "../lib/sport-segments";
 import { Screen } from "../primitives/screen";
@@ -38,6 +39,8 @@ export function PlayerProfileScreen({
 }) {
   const router = useRouter();
   const segments = useSegments();
+  const locale = useLocale();
+  const m = useMessages();
   const [refreshing, setRefreshing] = useState(false);
   const [chosen, setChosen] = useState<Sport | null>(null);
   const padelQuery = api.users.playerProfile.useQuery(
@@ -50,8 +53,8 @@ export function PlayerProfileScreen({
     { ...REFETCH_ON_FOREGROUND, enabled: sport === "football" },
   );
   const query = sport === "football" ? footballQuery : padelQuery;
-  const padelState = playerProfileState(padelQuery, apiOrigin);
-  const footballState = footballProfileState(footballQuery, apiOrigin);
+  const padelState = playerProfileState(padelQuery, apiOrigin, locale);
+  const footballState = footballProfileState(footballQuery, apiOrigin, locale);
   const state = sport === "football" ? footballState : padelState;
 
   const onRefresh = useCallback(async () => {
@@ -69,7 +72,7 @@ export function PlayerProfileScreen({
     return (
       <Screen>
         {header}
-        <Notice {...PLAYER_PROFILE_REFUSED} />
+        <Notice {...playerProfileRefused(locale)} />
       </Screen>
     );
   }
@@ -80,7 +83,7 @@ export function PlayerProfileScreen({
         {header}
         <Notice
           alert
-          title="Profile could not be loaded"
+          title={m.mobilePlayer.profile.loadError}
           description={state.message}
           onRetry={() => void query.refetch()}
         />

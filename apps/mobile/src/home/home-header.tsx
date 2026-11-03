@@ -2,6 +2,7 @@ import { sizes } from "@repo/design-tokens";
 import { Bell } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
@@ -19,11 +20,12 @@ export function HomeHeader({
   pendingInviteCount: number;
   onInvites: () => void;
 }) {
+  const m = useMessages();
   const palette = useTonePalette();
   const invites =
     pendingInviteCount === 0
-      ? "Invites"
-      : `Invites, ${pendingInviteCount} waiting`;
+      ? m.common.invites
+      : m.mobileHome.header.invitesWaiting(pendingInviteCount);
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

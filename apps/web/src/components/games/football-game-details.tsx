@@ -34,6 +34,7 @@ import {
   gameInviteSubtitle,
   InviteDoorDialog,
 } from "~/components/invites/invite-door-dialog";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
@@ -59,24 +60,21 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import {
-  CANCEL_GAME_ACTION,
-  CLOSE_REGISTRATION_ACTION,
-  EDIT_GAME_ACTION,
-  GAME_TOAST,
-  KICK_ACTION,
-  LEAVE_GAME_ACTION,
-  LEAVE_GAME_CONSEQUENCE,
-  LEAVE_WAITLIST_ACTION,
-  LEAVE_WAITLIST_CONSEQUENCE,
-  REOPEN_REGISTRATION_ACTION,
+  cancelGameAction,
   cancelGameConsequence,
+  closeRegistrationAction,
+  editGameAction,
   gameJoinToast,
+  gameToast,
+  kickAction,
   kickedToast,
+  leaveGameAction,
+  leaveGameConsequence,
+  leaveWaitlistAction,
+  leaveWaitlistConsequence,
+  reopenRegistrationAction,
 } from "@repo/domain/game-copy";
-import {
-  ADD_PLAYER_ACTION,
-  organizerCanAddPlayer,
-} from "@repo/domain/add-player-by-phone";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
@@ -103,6 +101,10 @@ export function FootballGameDetails({
   openInvites: boolean;
   openJoin: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const t = m.webTournament.footballDetails;
+  const toastCopy = gameToast(locale);
   const utils = api.useUtils();
   const router = useRouter();
   const [now] = React.useState(() => new Date());
@@ -126,19 +128,19 @@ export function FootballGameDetails({
   const board = api.games.footballBoard.useQuery({ gameId });
   const players = board.data?.players ?? [];
   const teams = board.data?.teams ?? null;
-  const names = teams ? bibNames(teams.bibs) : null;
+  const names = teams ? bibNames(teams.bibs, locale) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
 
   const input: FootballGameDetailsInput = {
     ...game,
     roster: game.roster ?? { users: [], count: 0, cap: game.playersAllowed },
   };
-  const model = footballGameDetailsModel(input, now);
+  const model = footballGameDetailsModel(input, now, locale);
   const played = gameIsPlayed(
     { windowEnd: game.windowEnd, matches: game.matches },
     now,
   );
-  const price = formatPricePerPlayerFils(game.pricePerPlayerFils);
+  const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
   const lines = footballHeroLines(
     {
@@ -152,6 +154,7 @@ export function FootballGameDetails({
       scored: board.data?.match?.score != null,
     },
     now,
+    locale,
   );
 
   const savedCustomName = gameCustomName(game);
@@ -168,34 +171,34 @@ export function FootballGameDetails({
   const register = api.games.register.useMutation({
     onSuccess: async (result) => {
       setJoinMode(null);
-      toast.success(gameJoinToast(result.waitlisted));
+      toast.success(gameJoinToast(result.waitlisted, locale));
       await refreshGame();
     },
   });
   const setRole = api.games.setFootballRole.useMutation({
     onSuccess: async () => {
       setJoinMode(null);
-      toast.success("Saved");
+      toast.success(m.common.saved);
       await refreshGame();
     },
   });
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: async () => {
-      toast.success("Score confirmed");
+      toast.success(t.scoreConfirmedToast);
       await refreshGame();
     },
     onError,
   });
   const leave = api.games.leave.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.left);
+      toast.success(toastCopy.left);
       await refreshGame();
     },
     onError,
   });
   const leaveWaitlist = api.games.leaveWaitlist.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.leftWaitlist);
+      toast.success(toastCopy.leftWaitlist);
       await refreshGame();
     },
     onError,
@@ -206,21 +209,21 @@ export function FootballGameDetails({
   });
   const cancel = api.games.cancel.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.gameCancelled);
+      toast.success(toastCopy.gameCancelled);
       await refreshGame();
     },
     onError,
   });
   const closeRegistration = api.games.closeRegistration.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.registrationClosed);
+      toast.success(toastCopy.registrationClosed);
       await refreshGame();
     },
     onError,
   });
   const reopenRegistration = api.games.reopenRegistration.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.registrationReopened);
+      toast.success(toastCopy.registrationReopened);
       await refreshGame();
     },
     onError,
@@ -258,7 +261,7 @@ export function FootballGameDetails({
       sport: game.sport,
       roster: {
         customName: savedCustomName,
-        venueName: game.venue?.name ?? "Venue",
+        venueName: game.venue?.name ?? t.venueFallback,
         courtName: game.recordedCourts[0]?.name ?? null,
         windowStart: game.windowStart,
         windowEnd: game.windowEnd,
@@ -269,6 +272,7 @@ export function FootballGameDetails({
           playersAllowed: game.playersAllowed,
           players,
         },
+        locale,
       },
     });
   }
@@ -289,17 +293,22 @@ export function FootballGameDetails({
           waitlist: game.waitlist,
         },
         request,
+        locale,
       ),
     );
   }
 
   const kickCopy = kickConfirm
-    ? gameKickConfirmCopy(kickConfirm, {
-        partnerRequired: false,
-        drawPosted: false,
-      })
+    ? gameKickConfirmCopy(
+        kickConfirm,
+        {
+          partnerRequired: false,
+          drawPosted: false,
+        },
+        locale,
+      )
     : null;
-  const gameName = game.name ?? "Game";
+  const gameName = game.name ?? m.football.details.fallbackTitle;
   const organizer = model.organizer;
   const cta = model.cta;
 
@@ -329,37 +338,45 @@ export function FootballGameDetails({
     model.hero.tone === "ink" ? "text-dim" : "text-muted-foreground";
   const joinSubtitle = [
     lines.dayLine,
-    game.sideSize ? `${game.sideSize}-a-side` : null,
-    `${layout.openSeats} seats open`,
+    game.sideSize ? m.createGame.sideSize(game.sideSize) : null,
+    m.football.board.seatsOpen(layout.openSeats),
   ]
     .filter(Boolean)
     .join(", ");
   const infoRows: FootballInfoRow[] = [
-    ...(game.groupName ? [{ label: "Group", value: game.groupName }] : []),
-    ...(game.season ? [{ label: "Season", value: game.season.name }] : []),
+    ...(game.groupName
+      ? [{ label: m.game.played.group, value: game.groupName }]
+      : []),
+    ...(game.season ? [{ label: t.seasonRow, value: game.season.name }] : []),
     ...(price
       ? [
           {
-            label: "Pitch cost",
-            value: price === "Free" ? price : `${price} each`,
+            label: t.pitchCost,
+            value:
+              price === m.createGame.price.free
+                ? price
+                : m.game.partner.priceEach(price),
           },
         ]
       : []),
     {
-      label: "Teams",
+      label: m.common.teams,
       value: teams
-        ? footballTeamsMethodLabel(teams.method)
-        : "The organizer makes them",
+        ? footballTeamsMethodLabel(teams.method, locale)
+        : t.organizerMakesTeams,
     },
     ...(names
       ? [
           {
-            label: "Bibs",
-            value: `${names.slot1} and ${names.slot2}, organizer brings`,
+            label: m.game.played.bibs,
+            value: m.game.played.bibsLine(names.slot1, names.slot2),
           },
         ]
       : []),
-    { label: "Counts for rating", value: game.rated ? "Yes" : "No" },
+    {
+      label: m.game.played.countsForRatingLabel,
+      value: game.rated ? m.common.yes : m.common.no,
+    },
   ];
   const onInk = model.hero.tone === "ink";
 
@@ -376,7 +393,9 @@ export function FootballGameDetails({
             setJoinMode("join");
           }}
         >
-          {price && price !== "Free" ? `Join, ${price}` : "Join"}
+          {price && price !== m.createGame.price.free
+            ? m.football.board.joinWithPrice(m.game.cta.join, price)
+            : m.game.cta.join}
         </Button>
       ) : null}
       {cta?.kind === "join_waitlist" ? (
@@ -388,13 +407,13 @@ export function FootballGameDetails({
           pending={register.isPending}
           onClick={() => register.mutate({ gameId })}
         >
-          Join waitlist
+          {m.game.cta.joinWaitlist}
         </Button>
       ) : null}
       {cta?.kind === "registered" ? (
         <div className="flex items-center gap-2">
           <p className="min-w-0 flex-1 font-semibold">
-            {viewerCode ? `You're in as ${viewerCode}` : "You're in"}
+            {viewerCode ? t.youreInAs(viewerCode) : m.game.cta.youreIn}
           </p>
           {board.data?.match?.score == null && !played ? (
             <Button
@@ -406,7 +425,7 @@ export function FootballGameDetails({
                 setJoinMode("edit");
               }}
             >
-              Change
+              {t.change}
             </Button>
           ) : null}
           {played ? null : (
@@ -416,7 +435,7 @@ export function FootballGameDetails({
               variant={onInk ? "outline-inverse" : "outline"}
               onClick={() => setLeaveOpen(true)}
             >
-              {LEAVE_GAME_ACTION}
+              {leaveGameAction(locale)}
             </Button>
           )}
         </div>
@@ -430,7 +449,7 @@ export function FootballGameDetails({
             variant={onInk ? "outline-inverse" : "outline"}
             onClick={() => setLeaveWaitlistOpen(true)}
           >
-            {LEAVE_WAITLIST_ACTION}
+            {leaveWaitlistAction(locale)}
           </Button>
         </div>
       ) : null}
@@ -442,7 +461,7 @@ export function FootballGameDetails({
           className="w-full"
           onClick={() => setInvitesOpen(true)}
         >
-          Invite players
+          {t.invitePlayers}
         </Button>
       ) : null}
     </div>
@@ -464,8 +483,9 @@ export function FootballGameDetails({
               board.data?.viewer ?? { sideIndex: null },
               players,
               names,
+              locale,
             ),
-            "Captains pick starters before kick-off.",
+            t.captainsPickBeforeKickoff,
           ]
             .filter(Boolean)
             .join(" ")}
@@ -479,16 +499,16 @@ export function FootballGameDetails({
         >
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className={`${heroMuted} text-meta`}>Players in</p>
+              <p className={`${heroMuted} text-meta`}>{t.playersIn}</p>
               <p className="flex items-baseline gap-1.5">
                 <span className="font-expanded text-display tabular-nums leading-none">
                   {players.length}
                 </span>
-                <span className={heroMuted}>of {layout.seats}</span>
+                <span className={heroMuted}>{t.ofSeats(layout.seats)}</span>
               </p>
             </div>
             <p className={`${heroMuted} text-meta text-end`}>
-              Teams by the organizer
+              {t.teamsByOrganizer}
             </p>
           </div>
           <div className="mt-3">
@@ -506,8 +526,9 @@ export function FootballGameDetails({
   const score = board.data?.match?.score ?? null;
   const playedModel =
     teams && names && score && board.data?.match?.status === "completed"
-      ? playedFootballModel({
-          players,
+      ? playedFootballModel(
+          {
+            players,
           bibs: teams.bibs,
           score,
           confirmed: board.data.match.confirmed,
@@ -520,8 +541,10 @@ export function FootballGameDetails({
           courtName: game.recordedCourts[0]?.name ?? null,
           groupName: game.groupName,
           rated: game.rated,
-          ratingImpact: game.ratingImpact,
-        })
+            ratingImpact: game.ratingImpact,
+          },
+          locale,
+        )
       : null;
   const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (

@@ -10,6 +10,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { type GameTeamPlayer } from "~/lib/game-player-links";
 
@@ -25,6 +26,7 @@ export function GameTeamPlayersSheet({
   team: GameTeamPlayersSheetTeam | null;
   onClose: () => void;
 }) {
+  const m = useMessages();
   return (
     <ResponsiveDialog
       open={team != null}
@@ -42,7 +44,7 @@ export function GameTeamPlayersSheet({
                 {team.name}
               </ResponsiveDialogTitle>
               <ResponsiveDialogDescription className="text-meta">
-                Game team
+                {m.createGame.side.gameTeam}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <ul className="border-rule rounded-card divide-rule mx-[22px] mb-[max(22px,env(safe-area-inset-bottom))] mt-[18px] divide-y overflow-hidden border">

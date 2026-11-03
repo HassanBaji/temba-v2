@@ -4,6 +4,8 @@ import { ChevronLeft, X } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { backTarget } from "./back-target";
 import { hairline } from "./hairline-width";
 import { useSurfaceTone } from "./surface-context";
@@ -89,6 +91,10 @@ export function ScreenHeader({
   );
 }
 
+function BackChevron(props: { size: number; color: ColorValue }) {
+  return <ChevronLeft {...props} style={mirrorInRtl} />;
+}
+
 function NavButton({
   nav,
   fallback,
@@ -99,12 +105,13 @@ function NavButton({
   onNav?: () => void;
 }) {
   const router = useRouter();
+  const m = useMessages();
 
   return (
     <HeaderIconButton
       framed
-      icon={nav === "back" ? ChevronLeft : X}
-      accessibilityLabel={nav === "back" ? "Back" : "Close"}
+      icon={nav === "back" ? BackChevron : X}
+      accessibilityLabel={nav === "back" ? m.common.back : m.common.close}
       onPress={() => {
         if (onNav) {
           onNav();

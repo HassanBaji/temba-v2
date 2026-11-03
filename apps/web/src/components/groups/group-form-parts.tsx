@@ -3,16 +3,17 @@
 import { CameraIcon, LockIcon } from "lucide-react";
 import * as React from "react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Switch } from "~/components/ui/switch";
 import {
   GROUP_NAME_MAX_LENGTH,
-  GROUP_SPORT_SUBLABELS,
   groupNameCounter,
+  groupSportSublabel,
   groupVisibilityCopy,
   type GroupVisibility,
 } from "@repo/domain/group-settings";
 import { initials } from "@repo/domain/initials";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { sportLabel, type Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 
 /** Shared parts of Create Group and Edit Group (design "Group create and edit flow" 01 and 03). */
@@ -58,11 +59,14 @@ export function GroupPhotoTile({
   disabled?: boolean;
   onPick: () => void;
 }) {
+  const m = useMessages();
   const filled = Boolean(imageUrl) || empty === "initials";
   return (
     <button
       type="button"
-      aria-label={imageUrl ? "Change photo" : "Add photo"}
+      aria-label={
+        imageUrl ? m.webGroup.form.changePhoto : m.webGroup.form.addPhoto
+      }
       aria-busy={pending || undefined}
       disabled={disabled || pending}
       onClick={onPick}
@@ -119,6 +123,7 @@ export function GroupNameField({
   error?: string | null;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
       <label htmlFor={id} className="text-meta text-muted-foreground">
@@ -143,7 +148,10 @@ export function GroupNameField({
         </span>
         <span
           className="shrink-0 tabular-nums"
-          aria-label={`${value.length} of ${GROUP_NAME_MAX_LENGTH} characters`}
+          aria-label={m.webGroup.form.characterCount(
+            value.length,
+            GROUP_NAME_MAX_LENGTH,
+          )}
         >
           {groupNameCounter(value)}
         </span>
@@ -175,6 +183,8 @@ export function SportSegment({
   onSelect: (sport: Sport) => void;
   disabled?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div
       role="radiogroup"
@@ -186,13 +196,15 @@ export function SportSegment({
     >
       {sports.map((sport) => {
         const selected = sport === value;
+        const label = sportLabel(sport, locale);
+        const sublabel = groupSportSublabel(sport, locale);
         return (
           <button
             key={sport}
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={`${SPORT_LABELS[sport]}, ${GROUP_SPORT_SUBLABELS[sport]}`}
+            aria-label={m.webGroup.form.sportChoice(label ?? sport, sublabel)}
             disabled={disabled}
             onClick={() => onSelect(sport)}
             className={cn(
@@ -202,16 +214,14 @@ export function SportSegment({
                 : "bg-paper text-ink hover:bg-wash",
             )}
           >
-            <span className="text-body font-semibold">
-              {SPORT_LABELS[sport]}
-            </span>
+            <span className="text-body font-semibold">{label}</span>
             <span
               className={cn(
                 "text-eyebrow",
                 selected ? "text-dim" : "text-muted-foreground",
               )}
             >
-              {GROUP_SPORT_SUBLABELS[sport]}
+              {sublabel}
             </span>
           </button>
         );
@@ -227,11 +237,13 @@ export function LockedSportCard({
   sport: Sport | null;
   help: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="border-rule bg-wash flex items-center gap-3 rounded-[12px] border px-[18px] py-3.5">
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body font-semibold">
-          {sport ? SPORT_LABELS[sport] : "Not set"}
+          {sport ? sportLabel(sport, locale) : m.common.notSet}
         </span>
         <span className="text-eyebrow text-muted-foreground">{help}</span>
       </span>
@@ -305,7 +317,8 @@ export function VisibilityCards({
   onSelect: (value: GroupVisibility) => void;
   disabled?: boolean;
 }) {
-  const copy = groupVisibilityCopy(context);
+  const locale = useLocale();
+  const copy = groupVisibilityCopy(context, locale);
   return (
     <div
       role="radiogroup"

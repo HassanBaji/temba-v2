@@ -11,6 +11,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RadioRow } from "~/components/groups/group-form-parts";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { groupMemberTableCaption } from "@repo/domain/group-members-table";
 import {
@@ -45,13 +46,15 @@ export function TransferOwnershipSheet({
   onTransfer: (member: { userId: string; name: string }) => void;
   onOpenChange: (open: boolean) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [pickedId, setPickedId] = useState<string | null>(null);
   useEffect(() => {
     if (open) {
       setPickedId(null);
     }
   }, [open]);
-  const copy = groupTransferOwnershipCopy(groupName);
+  const copy = groupTransferOwnershipCopy(groupName, locale);
   const candidates = groupTransferCandidates(members);
   const picked = candidates.find((member) => member.userId === pickedId);
 
@@ -82,12 +85,12 @@ export function TransferOwnershipSheet({
               className="border-rule divide-rule flex max-h-[50vh] flex-col divide-y overflow-y-auto rounded-[16px] border"
             >
               {candidates.map((member) => {
-                const name = member.name ?? "Member";
+                const name = member.name ?? m.community.memberFallback;
                 return (
                   <RadioRow
                     key={member.userId}
                     title={name}
-                    description={groupMemberTableCaption(member)}
+                    description={groupMemberTableCaption(member, locale)}
                     selected={member.userId === pickedId}
                     disabled={pending}
                     onSelect={() => setPickedId(member.userId)}
@@ -108,13 +111,13 @@ export function TransferOwnershipSheet({
               if (picked) {
                 onTransfer({
                   userId: picked.userId,
-                  name: picked.name ?? "Member",
+                  name: picked.name ?? m.community.memberFallback,
                 });
               }
             }}
             className="w-full font-semibold"
           >
-            {groupTransferConfirmLabel(picked?.name ?? null)}
+            {groupTransferConfirmLabel(picked?.name ?? null, locale)}
           </Button>
         </div>
       </ResponsiveDialogContent>

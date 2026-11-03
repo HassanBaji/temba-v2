@@ -4,7 +4,6 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
-  CHANGES_SAVED_TOAST,
   gameEditChangeNote,
   gameEditChangedSections,
   gameEditDraftFrom,
@@ -16,26 +15,16 @@ import {
   type GameEditStep,
 } from "@repo/domain/game-edit-form";
 import type { GroupSeasonData } from "@repo/domain/group-season";
+import type { Messages } from "@repo/i18n/messages";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
 
 export type GameEditField = GameEditStep["kind"];
 
 export type GameEditError = { field: GameEditField | null; message: string };
 
-const STEP_LABEL: Record<GameEditField, string> = {
-  name: "Name",
-  window: "When",
-  caps: "Players",
-  price: "Price",
-  level: "Level range",
-  rounds: "Rounds",
-  season: "Season",
-};
-
-export function movedToWaitlistToast(count: number) {
-  return count === 1
-    ? "1 player moved to the waiting list"
-    : `${count} players moved to the waiting list`;
+export function movedToWaitlistToast(count: number, messages: Messages) {
+  return messages.webGame.edit.movedToWaitlist(count);
 }
 
 /**
@@ -60,6 +49,8 @@ export function useGameEdit({
   onSaved: () => Promise<unknown>;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [now] = React.useState(() => new Date());
   const saved = React.useMemo(() => gameEditDraftFrom(game), [game]);
   const [draft, setDraft] = React.useState<GameEditDraft>(saved);
@@ -126,10 +117,10 @@ export function useGameEdit({
   }
 
   const seasonFix = sections.season
-    ? gameEditSeasonFix(draft, seasons, now)
+    ? gameEditSeasonFix(draft, seasons, now, locale)
     : null;
   const changed = gameEditChangedSections(saved, draft, sections);
-  const note = gameEditChangeNote(saved, draft, sections, {
+  const note = gameEditChangeNote(saved, draft, sections, locale, {
     seasonNeedsFix: seasonFix != null,
   });
   const canSave = changed.length > 0 && seasonFix == null && !pending;
@@ -143,7 +134,7 @@ export function useGameEdit({
     if (!canSave) {
       return;
     }
-    const plan = gameEditPlan(saved, draft, sections);
+    const plan = gameEditPlan(saved, draft, sections, locale);
     if (!plan.ok) {
       setError({ field: plan.field, message: plan.message });
       return;
@@ -157,7 +148,7 @@ export function useGameEdit({
         moved += await runStep(step);
       } catch (caught) {
         const message =
-          caught instanceof Error ? caught.message : "Something went wrong";
+          caught instanceof Error ? caught.message : m.common.somethingWentWrong;
         failed = { field: step.kind, message };
         break;
       }
@@ -166,12 +157,17 @@ export function useGameEdit({
     setPending(false);
     if (failed) {
       setError(failed);
-      toast.error(`${STEP_LABEL[failed.field ?? "name"]}: ${failed.message}`);
+      toast.error(
+        m.webGame.edit.stepFailed(
+          m.webGame.edit.stepLabel[failed.field ?? "name"],
+          failed.message,
+        ),
+      );
       return;
     }
-    toast.success(CHANGES_SAVED_TOAST);
+    toast.success(m.createGame.edit.changesSaved);
     if (moved > 0) {
-      toast.success(movedToWaitlistToast(moved));
+      toast.success(movedToWaitlistToast(moved, m));
     }
     onClose();
   }

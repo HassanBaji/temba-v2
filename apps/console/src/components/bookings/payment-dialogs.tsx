@@ -14,6 +14,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import {
   formatBookingPriceFils,
   parseOptionalPricePerPlayerFils,
@@ -85,7 +86,8 @@ export function MarkPaidDialog({
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>Mark as paid</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {formatBookingPriceFils(priceFils)} taken at the Venue.
+              {formatBookingPriceFils(priceFils, CONSOLE_LOCALE)} taken at the
+              Venue.
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -168,14 +170,14 @@ export function RefundDialog({
     if (refund.isPending) {
       return;
     }
-    const parsed = parseOptionalPricePerPlayerFils(amount);
+    const parsed = parseOptionalPricePerPlayerFils(amount, CONSOLE_LOCALE);
     if (!parsed.ok || parsed.fils === null || parsed.fils <= 0) {
       toast.error("Enter a refund amount");
       return;
     }
     if (parsed.fils > refundableFils) {
       toast.error(
-        `At most ${formatBookingPriceFils(refundableFils)} can be refunded`,
+        `At most ${formatBookingPriceFils(refundableFils, CONSOLE_LOCALE)} can be refunded`,
       );
       return;
     }
@@ -207,8 +209,8 @@ export function RefundDialog({
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>Record refund</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              Up to {formatBookingPriceFils(refundableFils)} can still be
-              refunded.
+              Up to {formatBookingPriceFils(refundableFils, CONSOLE_LOCALE)} can
+              still be refunded.
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
