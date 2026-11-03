@@ -96,6 +96,7 @@ export const mobileCreateGame = {
     more: "More Game teams",
   },
   day: {
+    sheetTitle: "Pick a day",
     title: "Day",
     laterDate: "Later date",
     laterDateA11y: (label: string) => `Later date, ${label}`,
@@ -130,7 +131,8 @@ export const mobileCreateGame = {
     intoKnockout: "Into knockout",
     fewerIntoKnockout: "Fewer teams into the knockout",
     moreIntoKnockout: "More teams into the knockout",
-    roundUnit: (n: number) => plural("en", n, { one: "Round", other: "Rounds" }),
+    roundUnit: (n: number) =>
+      plural("en", n, { one: "Round", other: "Rounds" }),
     fewerRounds: "Fewer Rounds",
     moreRounds: "More Rounds",
     roundsHelper: (perTeam: string, meets: string) => `${perTeam}. ${meets}.`,

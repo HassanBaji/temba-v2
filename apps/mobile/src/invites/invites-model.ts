@@ -133,7 +133,7 @@ export function gameInviteSubtitle(
   const m = messagesFor(locale).mobileCommunity.inviteSubtitle;
   const start = game.windowStart ? new Date(game.windowStart) : null;
   const when = start
-    ? m.when(relativeDay(start, now), formatGameClock(start, locale))
+    ? m.when(relativeDay(start, now, locale), formatGameClock(start, locale))
     : null;
   const place = [when, game.courtName ?? game.venueName]
     .filter(Boolean)

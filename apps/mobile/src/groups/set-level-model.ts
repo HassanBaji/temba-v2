@@ -35,9 +35,7 @@ export function setLevelView(
     : DEFAULT_CURRENT_TENTHS;
   const note = [
     m.setLevel.note,
-    entry.levelProvisional
-      ? m.setLevel.noteProvisional(firstName(name))
-      : null,
+    entry.levelProvisional ? m.setLevel.noteProvisional(firstName(name)) : null,
   ]
     .filter(Boolean)
     .join(" ");

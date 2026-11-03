@@ -10,6 +10,7 @@ import { Plus } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -87,10 +88,11 @@ function Swatch({
 }
 
 function MoreSwatch({ open, onPress }: { open: boolean; onPress: () => void }) {
+  const m = useMessages().mobileTournament.bibs;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="More colours"
+      accessibilityLabel={m.moreColours}
       accessibilityState={{ expanded: open }}
       onPress={onPress}
       style={{
@@ -126,15 +128,18 @@ function SideRow({
   bibs: Bibs;
   onChange: (bibs: Bibs) => void;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.bibs;
   const current = side === 1 ? bibs.slot1 : bibs.slot2;
   const [more, setMore] = useState(MORE_FOOTBALL_BIBS.includes(current));
-  const label = side === 1 ? "Team A" : "Team B";
+  const label = messages.createGame.side.team(side === 1 ? "A" : "B");
   const swatch = (bib: FootballBib) => (
     <Swatch
       key={bib}
       bib={bib}
       selected={bib === current}
-      label={`${label}, ${footballBibName(bib, side)}`}
+      label={m.swatchSr(label, footballBibName(bib, side, locale))}
       onPress={() => onChange(pickFootballBib(bibs, side, bib))}
     />
   );
@@ -142,7 +147,7 @@ function SideRow({
     <View style={{ gap: 6 }}>
       <View
         accessibilityRole="radiogroup"
-        accessibilityLabel={`${label} bib colour`}
+        accessibilityLabel={m.bibColourFor(label)}
         style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
       >
         <Text size="meta" tone="muted" style={{ width: 64 }}>
@@ -174,20 +179,25 @@ export function BibPicker({
   bibs: Bibs;
   onChange: (bibs: Bibs) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.bibs;
   return (
     <Surface style={{ gap: 10, borderRadius: radii.surface }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text size="meta" tone="muted">
-          Bib colours
+          {m.bibColours}
         </Text>
         <Text size="meta" tone="muted">
-          {footballBibName(bibs.slot1, 1)} vs {footballBibName(bibs.slot2, 2)}
+          {m.versus(
+            footballBibName(bibs.slot1, 1, locale),
+            footballBibName(bibs.slot2, 2, locale),
+          )}
         </Text>
       </View>
       <SideRow side={1} bibs={bibs} onChange={onChange} />
       <SideRow side={2} bibs={bibs} onChange={onChange} />
       <Text size="meta" tone="muted">
-        The plus opens more colours. The organizer brings both sets of bibs.
+        {m.note}
       </Text>
     </Surface>
   );

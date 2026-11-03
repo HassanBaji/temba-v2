@@ -79,6 +79,7 @@ export const mobileBooking = {
   closed: "Closed",
   hoursWindow: (open: string, close: string) => `${open} to ${close}`,
   hoursSeparator: ", ",
+  listSeparator: ", ",
   closedToday: "Closed today",
   openTo: (clock: string) => `Open to ${clock}`,
   venuesEmpty: {
@@ -101,7 +102,8 @@ export const mobileBooking = {
       "Enter your BENEFIT card and PIN on the payment page, then come back here.",
     benefitpay:
       "Approve in the BenefitPay app or scan the QR code, then come back here.",
-    applePay: "Confirm with Apple Pay on the payment page, then come back here.",
+    applePay:
+      "Confirm with Apple Pay on the payment page, then come back here.",
     generic: "Finish paying on the payment page, then come back here.",
   },
   paymentPageName: "The payment page",

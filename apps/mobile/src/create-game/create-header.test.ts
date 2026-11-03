@@ -32,7 +32,9 @@ describe("stepHeader", () => {
   });
 
   it("starts a Friendly game with the Group before one is picked", () => {
-    expect(stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "en")).toEqual({
+    expect(
+      stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "en"),
+    ).toEqual({
       title: ["Friendly", "game"],
       subtitle: "Start with the Group. Venue rules depend on it.",
       context: null,
@@ -40,7 +42,9 @@ describe("stepHeader", () => {
   });
 
   it("names the Group and its Venue count once a Group is picked", () => {
-    expect(stepHeader({ type: "friendly_game", step: 2 }, WITH_GROUP, "en")).toEqual({
+    expect(
+      stepHeader({ type: "friendly_game", step: 2 }, WITH_GROUP, "en"),
+    ).toEqual({
       title: ["Friendly", "game"],
       subtitle: null,
       context: { icon: "users", parts: ["Tuesday Crew", "3 Venues"] },
@@ -105,9 +109,9 @@ describe("stepHeader", () => {
   });
 
   it("leaves steps 3 and 4 to the step summary", () => {
-    expect(stepHeader({ type: "friendly_game", step: 3 }, WITH_GROUP, "en")).toBe(
-      null,
-    );
+    expect(
+      stepHeader({ type: "friendly_game", step: 3 }, WITH_GROUP, "en"),
+    ).toBe(null);
     expect(
       stepHeader({ type: "friendly_tournament", step: 4 }, WITH_GROUP, "en"),
     ).toBe(null);
@@ -130,9 +134,15 @@ describe("nextStepTitle", () => {
   });
 
   it("follows the Friendly tournament steps", () => {
-    expect(nextStepTitle("friendly_tournament", 1, "en")).toBe("Where and size");
-    expect(nextStepTitle("friendly_tournament", 2, "en")).toBe("Format and day");
-    expect(nextStepTitle("friendly_tournament", 3, "en")).toBe("Entry and review");
+    expect(nextStepTitle("friendly_tournament", 1, "en")).toBe(
+      "Where and size",
+    );
+    expect(nextStepTitle("friendly_tournament", 2, "en")).toBe(
+      "Format and day",
+    );
+    expect(nextStepTitle("friendly_tournament", 3, "en")).toBe(
+      "Entry and review",
+    );
   });
 
   it("previews the Friendly game steps before a type is picked", () => {
@@ -185,7 +195,9 @@ describe("kickoffHero", () => {
   });
 
   it("drops a finish that is not after the start", () => {
-    expect(kickoffHero("2026-10-06", "20:00", "19:00", "en")?.trailing).toBe(null);
+    expect(kickoffHero("2026-10-06", "20:00", "19:00", "en")?.trailing).toBe(
+      null,
+    );
   });
 
   it("is a placeholder before a start time or for invalid input", () => {

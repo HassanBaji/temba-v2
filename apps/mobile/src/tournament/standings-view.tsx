@@ -9,22 +9,16 @@ import {
   type TournamentStandingsView,
 } from "@repo/domain/tournament-details";
 import {
-  POOLS_SEGMENT_LABEL,
   defaultStandingsPoolIndex,
   otherPoolsPlayedSummary,
   roundResultsHeading,
 } from "@repo/domain/tournament-home";
-import { KNOCKOUT_NOT_THROUGH_COPY } from "@repo/domain/tournament-knockout-view";
-import {
-  POOL_WINNER_LABEL,
-  TOURNAMENT_FINISHED_COPY,
-  YOUR_ROUNDS_HEADING,
-  poolRecordDisplay,
-} from "@repo/domain/tournament-pool-table";
+import { poolRecordDisplay } from "@repo/domain/tournament-pool-table";
 import { useState, type ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { gameTeamPlayers } from "../player-profile/game-player-links";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -71,8 +65,11 @@ function RecordTable({
   finished: boolean;
   links?: GameTeamLinks;
 }) {
+  const messages = useMessages();
+  const m = messages.mobileTournament.standings;
+  const winnerLabel = messages.tournament.poolTable.winner;
   const palette = useTonePalette();
-  const heads = ["P", "W", "D", "L"];
+  const heads = [m.headPlayed, m.headWon, m.headDrawn, m.headLost];
   return (
     <Card>
       <View
@@ -88,7 +85,7 @@ function RecordTable({
           #
         </Text>
         <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
-          Game team
+          {messages.tournament.gameTeam}
         </Text>
         {heads.map((head) => (
           <Text
@@ -115,7 +112,16 @@ function RecordTable({
           paddingVertical: 10,
           backgroundColor: row.isViewer ? palette.wash : undefined,
         } as const;
-        const label = `${row.position}. ${row.name}. Played ${poolRecordDisplay(row.played)}, won ${poolRecordDisplay(row.won)}, drawn ${poolRecordDisplay(row.drawn)}, lost ${poolRecordDisplay(row.lost)}${finished && row.isWinner ? `. ${POOL_WINNER_LABEL}` : ""}`;
+        const record = m.recordRowSr(
+          row.position,
+          row.name,
+          poolRecordDisplay(row.played),
+          poolRecordDisplay(row.won),
+          poolRecordDisplay(row.drawn),
+          poolRecordDisplay(row.lost),
+        );
+        const label =
+          finished && row.isWinner ? `${record}. ${winnerLabel}` : record;
         const cells = (
           <>
             <Text
@@ -145,7 +151,7 @@ function RecordTable({
                 >
                   <ResultMark variant="won" size={16} decorative />
                   <Text size="eyebrow" tone="muted">
-                    {POOL_WINNER_LABEL}
+                    {winnerLabel}
                   </Text>
                 </View>
               ) : null}
@@ -171,7 +177,9 @@ function RecordTable({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={label}
-                accessibilityHint="Lists this Game team's players"
+                accessibilityHint={
+                  messages.mobileTournament.knockout.teamPlayersHint
+                }
                 onPress={() => links.onOpenTeam({ name: row.name, players })}
                 style={({ pressed }) => ({
                   ...rowStyle,
@@ -193,16 +201,19 @@ function RecordTable({
 }
 
 function ViewerRounds({ rounds }: { rounds: Pool["viewerRounds"] }) {
+  const locale = useLocale();
+  const messages = useMessages();
   if (rounds.length === 0) {
     return null;
   }
   return (
-    <Card title={YOUR_ROUNDS_HEADING} flush>
+    <Card title={messages.tournament.poolTable.yourRounds} flush>
       {rounds.map((round) => {
         const trailing = matchTrailing({
           cancelled: round.cancelled,
           scoreLabel: round.scoreLabel,
           viewerOutcome: round.viewerOutcome,
+          locale,
         });
         return (
           <View key={round.matchId}>
@@ -230,7 +241,11 @@ function ViewerRounds({ rounds }: { rounds: Pool["viewerRounds"] }) {
                   {round.opponentName}
                 </Text>
                 <Text size="meta" tone="muted">
-                  {viewerRoundSubtitle(round.roundNumber, round.startTime)}
+                  {viewerRoundSubtitle(
+                    round.roundNumber,
+                    round.startTime,
+                    locale,
+                  )}
                 </Text>
               </View>
               <Trailing trailing={trailing} />
@@ -251,6 +266,7 @@ function RoundResults({
   otherPools: ReturnType<typeof otherPoolsPlayedSummary>;
   onSelectPool: (poolIndex: number) => void;
 }) {
+  const locale = useLocale();
   const groups = poolRoundGroups(matches);
   const others = otherPools ? (
     <Pressable
@@ -277,7 +293,11 @@ function RoundResults({
   return (
     <View style={{ gap: 20 }}>
       {groups.map(({ roundNumber, matches: roundMatches }, index) => (
-        <Card key={roundNumber} title={roundResultsHeading(roundNumber)} flush>
+        <Card
+          key={roundNumber}
+          title={roundResultsHeading(roundNumber, locale)}
+          flush
+        >
           {roundMatches.map((match) => (
             <View key={match.matchId}>
               <Hairline />
@@ -298,6 +318,7 @@ function RoundResults({
                   trailing={matchTrailing({
                     cancelled: match.cancelled,
                     scoreLabel: match.scoreLabel,
+                    locale,
                   })}
                 />
                 <Text
@@ -331,6 +352,8 @@ function PoolTablesSection({
   poolTables: PoolTables;
   links?: GameTeamLinks;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
   const [selected, setSelected] = useState(
     defaultStandingsPoolIndex(poolTables.viewerPoolIndex, poolTables.pools),
   );
@@ -348,7 +371,7 @@ function PoolTablesSection({
     <View style={{ gap: 16 }}>
       <View
         accessibilityRole="tablist"
-        accessibilityLabel={POOLS_SEGMENT_LABEL}
+        accessibilityLabel={messages.tournament.home.poolsSegment}
         style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
       >
         {poolTables.pools.map((entry) => (
@@ -366,7 +389,11 @@ function PoolTablesSection({
       <ViewerRounds rounds={viewerRounds} />
       <RoundResults
         matches={pool.matches}
-        otherPools={otherPoolsPlayedSummary(pool.poolIndex, poolTables.pools)}
+        otherPools={otherPoolsPlayedSummary(
+          pool.poolIndex,
+          poolTables.pools,
+          locale,
+        )}
         onSelectPool={setSelected}
       />
     </View>
@@ -378,6 +405,7 @@ export function StandingsHeader({
 }: {
   standings: TournamentStandingsView;
 }) {
+  const messages = useMessages();
   return (
     <View style={{ gap: 6 }}>
       {standings.roundsPlayed ? (
@@ -399,7 +427,7 @@ export function StandingsHeader({
       </Text>
       {standings.finished ? (
         <Text size="meta" tone="muted">
-          {TOURNAMENT_FINISHED_COPY}
+          {messages.tournament.poolTable.finished}
         </Text>
       ) : null}
       {standings.championLine ? (
@@ -432,6 +460,7 @@ export function StandingsView({
   onCancelMatch?: ComponentProps<typeof KnockoutTree>["onCancelMatch"];
   onOpenPlayer?: (userId: string) => void;
 }) {
+  const messages = useMessages();
   const { poolTables, knockout } = game;
   const [openTeam, setOpenTeam] = useState<GameTeamSheetTeam | null>(null);
   const links = onOpenPlayer
@@ -462,7 +491,7 @@ export function StandingsView({
           </Text>
           {standings.notThrough ? (
             <Text size="meta" tone="muted">
-              {KNOCKOUT_NOT_THROUGH_COPY}
+              {messages.tournament.knockoutView.notThrough}
             </Text>
           ) : null}
           <KnockoutTree

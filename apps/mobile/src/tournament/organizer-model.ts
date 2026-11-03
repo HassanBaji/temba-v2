@@ -3,7 +3,11 @@ import type { Locale } from "@repo/i18n/locale";
 
 export type DrawStep = "drawn" | "posted" | "undone";
 
-export function drawToast(step: DrawStep, knockoutOnly: boolean, locale: Locale) {
+export function drawToast(
+  step: DrawStep,
+  knockoutOnly: boolean,
+  locale: Locale,
+) {
   const toast = gameToast(locale);
   const poolToasts: Record<DrawStep, string> = {
     drawn: toast.poolsDrawn,

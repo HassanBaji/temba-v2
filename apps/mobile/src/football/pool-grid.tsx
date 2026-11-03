@@ -2,6 +2,7 @@ import { radii } from "@repo/design-tokens";
 import { KEEPER_CODE } from "@repo/domain/football-lineup";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -57,9 +58,10 @@ function PlayerTile({
   player: BoardPlayer;
   onPress?: (userId: string) => void;
 }) {
+  const messages = useMessages();
   const tone = player.isViewer ? "ink" : "paper";
   const palette = tonePalette(tone);
-  const name = player.isViewer ? "You" : shortName(player.name);
+  const name = player.isViewer ? messages.common.you : shortName(player.name);
   const code = slotCode(player);
   return (
     <SurfaceToneContext.Provider value={tone}>
@@ -67,7 +69,7 @@ function PlayerTile({
         accessibilityRole={onPress ? "button" : undefined}
         accessibilityLabel={[name, code, levelLabel(player.levelBand)]
           .filter(Boolean)
-          .join(", ")}
+          .join(messages.tournament.listSeparator)}
         disabled={!onPress}
         onPress={() => onPress?.(player.userId)}
         style={{
@@ -112,6 +114,7 @@ function PlayerTile({
 }
 
 function OpenTile() {
+  const m = useMessages().mobileTournament.pool;
   return (
     <View
       style={{
@@ -123,7 +126,7 @@ function OpenTile() {
     >
       <Hatch radius={radii.md} />
       <Text size="eyebrow" tone="muted">
-        open
+        {m.open}
       </Text>
     </View>
   );
@@ -207,17 +210,25 @@ export function PoolSections({
   seats: number;
   onOpenPlayer?: (userId: string) => void;
 }) {
-  const sections = poolSections(players, seats);
+  const locale = useLocale();
+  const messages = useMessages();
+  const sections = poolSections(players, seats, locale);
   return (
     <View style={{ gap: 12 }}>
-      <PoolHeading title="Keepers" meta={sections.keepersLine} />
+      <PoolHeading
+        title={messages.mobileTournament.pool.keepers}
+        meta={sections.keepersLine}
+      />
       <PoolGrid
         players={sections.keepers}
         open={sections.keeperOpenSeats}
         onOpenPlayer={onOpenPlayer}
       />
       <View style={{ paddingTop: 8 }}>
-        <PoolHeading title="Players" meta={sections.outfieldLine} />
+        <PoolHeading
+          title={messages.common.players}
+          meta={sections.outfieldLine}
+        />
       </View>
       <PoolGrid
         players={sections.outfield}

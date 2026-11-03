@@ -201,7 +201,9 @@ export default function Continue() {
         title={m.mobileHome.code.enterTheCode}
         footer={
           <Text size="eyebrow" tone="muted">
-            {email ? m.mobileHome.code.expiryEmail : m.mobileHome.code.expiryNumber}
+            {email
+              ? m.mobileHome.code.expiryEmail
+              : m.mobileHome.code.expiryNumber}
           </Text>
         }
       >
@@ -215,7 +217,9 @@ export default function Continue() {
                 : (signUp.phoneNumber ?? m.mobileHome.code.yourNumber)
           }
           changeLabel={
-            email ? m.mobileHome.code.changeEmail : m.mobileHome.code.changeNumber
+            email
+              ? m.mobileHome.code.changeEmail
+              : m.mobileHome.code.changeNumber
           }
           onChangeIdentifier={() => {
             setStep("fields");

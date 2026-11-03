@@ -52,7 +52,6 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
-          placeholder={m.common.search}
           {...props}
           style={{
             flex: 1,

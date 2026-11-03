@@ -12,6 +12,7 @@ import { Fragment, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceCard } from "../primitives/choice-card";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -47,15 +48,17 @@ export function VenueField({
   initialSheetQuery?: string;
   onSelect: (venueId: string) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [sheetOpen, setSheetOpen] = useState(initialSheetQuery !== undefined);
   const ready = picker?.status === "ready" ? picker.value : null;
   const unlocked = ready !== null && !ready.locked && ready.venues.length > 0;
 
   return (
     <StepSection
-      title="Venue"
+      title={m.mobileCreateGame.venue.title}
       locked={!groupId}
-      note={unlocked ? "Required" : undefined}
+      note={unlocked ? m.common.required : undefined}
     >
       {!groupId ? (
         <LockedPanel />
@@ -73,7 +76,7 @@ export function VenueField({
         />
       ) : picker.value.venues.length === 0 ? (
         <Text size="meta" weight="medium">
-          No Venues are available yet.
+          {m.mobileCreateGame.venue.noneYet}
         </Text>
       ) : (
         <>
@@ -94,7 +97,7 @@ export function VenueField({
             onSelect={onSelect}
           />
           <Text size="meta" tone="muted">
-            {createVenueCopy(picker.value, { manyCourts, sport })}
+            {createVenueCopy(picker.value, locale, { manyCourts, sport })}
           </Text>
         </>
       )}
@@ -122,6 +125,7 @@ function ListFrame({ children, ...props }: React.ComponentProps<typeof View>) {
 
 function LockedPanel() {
   const palette = useTonePalette();
+  const copy = useMessages().mobileCreateGame.venue;
   return (
     <View
       style={{
@@ -137,16 +141,17 @@ function LockedPanel() {
       <Hatch radius={radii.card} />
       <Lock size={sizes.iconRow} color={palette.muted} />
       <Text size="meta" tone="muted" style={{ flex: 1 }}>
-        Pick a Group first. Venue rules depend on the Group.
+        {copy.lockedNote}
       </Text>
     </View>
   );
 }
 
 function LoadingRows() {
+  const copy = useMessages().mobileCreateGame.venue;
   return (
     <ListFrame
-      accessibilityLabel="Loading Venues"
+      accessibilityLabel={copy.loading}
       accessibilityState={{ busy: true }}
     >
       {Array.from({ length: SKELETON_ROWS }, (_, index) => (
@@ -172,16 +177,18 @@ function LinkedVenue({
   sport: Sport;
 }) {
   const palette = useTonePalette();
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.venue;
   const venue = picker.venues[0];
   const meta = venue
-    ? venueCardMeta(venue.courts.length, venue.city, sport)
+    ? venueCardMeta(venue.courts.length, venue.city, locale, sport)
     : null;
   return (
     <>
       {venue ? (
         <ListFrame
           accessible
-          accessibilityLabel={`${venue.name}, ${meta}`}
+          accessibilityLabel={copy.linkedA11y(venue.name, meta ?? "")}
           accessibilityState={{ selected: true, disabled: true }}
         >
           <View
@@ -205,7 +212,7 @@ function LinkedVenue({
         </ListFrame>
       ) : null}
       <Text size="meta" tone="muted">
-        {createVenueCopy(picker, { manyCourts, sport })}
+        {createVenueCopy(picker, locale, { manyCourts, sport })}
       </Text>
     </>
   );
@@ -213,10 +220,11 @@ function LinkedVenue({
 
 function SearchFieldButton({ onPress }: { onPress: () => void }) {
   const palette = useTonePalette();
+  const copy = useMessages().mobileCreateGame.venue;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Search all Venues"
+      accessibilityLabel={copy.searchAll}
       onPress={onPress}
       style={({ pressed }) => ({
         height: SEARCH_FIELD_HEIGHT,
@@ -231,7 +239,7 @@ function SearchFieldButton({ onPress }: { onPress: () => void }) {
       })}
     >
       <Search size={sizes.iconRow} color={palette.muted} />
-      <Text tone="muted">Search all Venues</Text>
+      <Text tone="muted">{copy.searchAll}</Text>
     </Pressable>
   );
 }
@@ -247,8 +255,10 @@ function VenueList({
   sport: Sport;
   onSelect: (venueId: string) => void;
 }) {
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.venue;
   return (
-    <ListFrame accessibilityRole="radiogroup" accessibilityLabel="Venue">
+    <ListFrame accessibilityRole="radiogroup" accessibilityLabel={copy.title}>
       {venues.map((venue, index) => (
         <Fragment key={venue.id}>
           {index > 0 ? <Hairline /> : null}
@@ -258,7 +268,12 @@ function VenueList({
             trailing="check"
             selected={venue.id === venueId}
             title={venue.name}
-            description={venueCardMeta(venue.courts.length, venue.city, sport)}
+            description={venueCardMeta(
+              venue.courts.length,
+              venue.city,
+              locale,
+              sport,
+            )}
             onPress={() => onSelect(venue.id)}
           />
         </Fragment>
@@ -284,12 +299,14 @@ function VenueSheet({
   onSelect: (venueId: string) => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.venue;
   return (
     <SearchSheet
       visible={visible}
-      title="Find a Venue"
-      placeholder="Venue name or area"
-      listLabel="Venue"
+      title={copy.find}
+      placeholder={copy.searchPlaceholder}
+      listLabel={copy.title}
       initialQuery={initialQuery}
       selectedId={venueId}
       filter={(query) =>
@@ -298,11 +315,16 @@ function VenueSheet({
           .map((venue) => ({
             id: venue.id,
             title: venue.name,
-            description: venueCardMeta(venue.courts.length, venue.city, sport),
+            description: venueCardMeta(
+              venue.courts.length,
+              venue.city,
+              locale,
+              sport,
+            ),
           }))
       }
-      resultLabel={venueSheetLabel}
-      emptyMessage={(query) => `No Venues match “${query}”.`}
+      resultLabel={(query, count) => venueSheetLabel(query, count, locale)}
+      emptyMessage={copy.noMatch}
       onPick={onSelect}
       onClose={onClose}
     />

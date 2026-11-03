@@ -2,6 +2,7 @@ import { bibColors, radii } from "@repo/design-tokens";
 import { type FootballBib } from "@repo/domain/football-lineup";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
@@ -31,17 +32,18 @@ export function BibRow({
   trailing?: React.ReactNode;
   onPress?: () => void;
 }) {
+  const messages = useMessages();
   const palette = useTonePalette();
   const { fill, on } = bibColors[bib];
   const edge = fill === palette.background ? palette.muted : fill;
-  const name = player.isViewer ? "You" : shortName(player.name);
+  const name = player.isViewer ? messages.common.you : shortName(player.name);
   const code = slotCode(player);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={[name, code, levelLabel(player.levelBand)]
         .filter(Boolean)
-        .join(", ")}
+        .join(messages.tournament.listSeparator)}
       disabled={!onPress}
       onPress={onPress}
       style={{
@@ -87,6 +89,7 @@ export function TeamHeader({
   name: string;
   players: readonly BoardPlayer[];
 }) {
+  const messages = useMessages();
   return (
     <View
       style={{
@@ -103,7 +106,7 @@ export function TeamHeader({
         </Text>
       </View>
       <Text size="eyebrow" tone="muted">
-        avg {sideAverage(players)}
+        {messages.game.played.avg(sideAverage(players))}
       </Text>
     </View>
   );
@@ -121,6 +124,7 @@ export function TeamColumns({
   names: { slot1: string; slot2: string };
   onOpenPlayer?: (userId: string) => void;
 }) {
+  const m = useMessages().mobileTournament.card;
   const side = (index: 1 | 2) =>
     players
       .filter((player) => player.sideIndex === index)
@@ -153,7 +157,7 @@ export function TeamColumns({
       {column(1)}
       <View style={{ paddingTop: 30 }}>
         <Text size="eyebrow" tone="muted">
-          vs
+          {m.vs}
         </Text>
       </View>
       {column(2)}

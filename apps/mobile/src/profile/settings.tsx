@@ -1,9 +1,10 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
 import {
-  PREFERRED_POSITION_CHOICES,
+  preferredPositionChoices,
   preferredPositionNote,
   type PreferredPosition,
 } from "@repo/domain/preferred-position";
+import { LOCALES, LOCALE_LABELS } from "@repo/i18n/locale";
 import {
   Calendar,
   ChevronRight,
@@ -16,6 +17,12 @@ import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
 import { Block } from "../home/slot-block";
+import {
+  useLocale,
+  useLocaleSwitch,
+  useMessages,
+} from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { ChoiceRow } from "../lib/choice-row";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -39,11 +46,14 @@ function LinkRow({
   count?: number;
   onPress: () => void;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        count > 0 ? `${title}, ${count}. ${subtitle}` : `${title}. ${subtitle}`
+        count > 0
+          ? m.mobileHome.settings.rowSpokenCount(title, count, subtitle)
+          : m.mobileHome.settings.rowSpoken(title, subtitle)
       }
       onPress={onPress}
       style={({ pressed }) => ({
@@ -70,8 +80,44 @@ function LinkRow({
           {count}
         </Text>
       ) : null}
-      <ChevronRight size={sizes.iconAction} color={colors.muted} />
+      <ChevronRight
+        size={sizes.iconAction}
+        color={colors.muted}
+        style={mirrorInRtl}
+      />
     </Pressable>
+  );
+}
+
+function LanguageCard() {
+  const m = useMessages();
+  const { locale, setLocale, restartNeeded } = useLocaleSwitch();
+  return (
+    <Card title={m.common.language}>
+      <View
+        style={{
+          paddingHorizontal: spacing.surface,
+          paddingBottom: spacing.surface,
+          gap: 10,
+        }}
+      >
+        <ChoiceRow
+          label={m.common.language}
+          choices={LOCALES.map((value) => ({
+            value,
+            label: LOCALE_LABELS[value],
+          }))}
+          value={locale}
+          onSelect={setLocale}
+          disabled={false}
+        />
+        {restartNeeded ? (
+          <Text size="meta" tone="muted">
+            {m.common.restartToApplyLayout}
+          </Text>
+        ) : null}
+      </View>
+    </Card>
   );
 }
 
@@ -100,16 +146,18 @@ export function ProfileSettings({
   onSignOut: () => void;
   onRetry: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
-    <Section title="Settings">
+    <Section title={m.common.settings}>
       <Block
         slot={position}
-        title="Preferred Position"
+        title={m.mobileHome.settings.preferredPosition}
         skeletonHeight={132}
         onRetry={onRetry}
       >
         {(setting) => (
-          <Card title="Preferred Position">
+          <Card title={m.mobileHome.settings.preferredPosition}>
             <View
               style={{
                 paddingHorizontal: spacing.surface,
@@ -118,22 +166,23 @@ export function ProfileSettings({
               }}
             >
               <Text size="meta" tone="muted">
-                Your default side when you pick a Game seat
+                {m.mobileHome.settings.preferredPositionHint}
               </Text>
               <ChoiceRow
-                label="Preferred Position"
-                choices={PREFERRED_POSITION_CHOICES}
+                label={m.mobileHome.settings.preferredPosition}
+                choices={preferredPositionChoices(locale)}
                 value={selectedPosition ?? ""}
                 onSelect={onSelectPosition}
                 disabled={!setting.editable || savingPosition}
               />
               <Text size="meta" tone="muted">
-                {preferredPositionNote(selectedPosition)}
+                {preferredPositionNote(selectedPosition, locale)}
               </Text>
             </View>
           </Card>
         )}
       </Block>
+      <LanguageCard />
       <Card>
         {checklistIncomplete ? (
           <>
@@ -141,8 +190,8 @@ export function ProfileSettings({
               icon={
                 <CircleUserRound size={sizes.iconAction} color={colors.ink} />
               }
-              title="Complete your profile"
-              subtitle="Photo, email, sports and level"
+              title={m.mobileHome.checklist.title}
+              subtitle={m.mobileHome.settings.completeProfileHint}
               onPress={() => onOpen("complete-profile")}
             />
             <Hairline />
@@ -150,37 +199,37 @@ export function ProfileSettings({
         ) : null}
         <LinkRow
           icon={<Calendar size={sizes.iconAction} color={colors.ink} />}
-          title="My bookings"
-          subtitle="Upcoming and past court bookings"
+          title={m.mobileHome.settings.myBookings}
+          subtitle={m.mobileHome.settings.myBookingsHint}
           onPress={() => onOpen("bookings")}
         />
         <Hairline />
         <LinkRow
           icon={<Users size={sizes.iconAction} color={colors.ink} />}
-          title="Teams"
-          subtitle="Partnerships you play as"
+          title={m.common.teams}
+          subtitle={m.team.description}
           count={teamCount}
           onPress={() => onOpen("teams")}
         />
         <Hairline />
         <LinkRow
           icon={<Mail size={sizes.iconAction} color={colors.ink} />}
-          title="Invites"
-          subtitle="Lookup invites addressed to you"
+          title={m.common.invites}
+          subtitle={m.mobileHome.settings.invitesHint}
           count={pendingInviteCount}
           onPress={() => onOpen("invites")}
         />
         <Hairline />
         <LinkRow
           icon={<FileText size={sizes.iconAction} color={colors.ink} />}
-          title="Terms and Conditions"
-          subtitle="What you agree to by using Temba"
+          title={m.mobileHome.terms.title}
+          subtitle={m.mobileHome.settings.termsHint}
           onPress={() => onOpen("terms")}
         />
       </Card>
       <View style={{ flexDirection: "row" }}>
         <Button
-          label="Sign out"
+          label={m.common.signOut}
           variant="outline"
           pending={signingOut}
           onPress={onSignOut}

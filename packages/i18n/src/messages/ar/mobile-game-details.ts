@@ -32,6 +32,7 @@ export const mobileGameDetails = {
     requestApproved: "تمت الموافقة على الطلب",
     requestRejected: "رُفض الطلب",
     matchUpdated: "تم تحديث المباراة",
+    completeFailed: "تعذّر إكمال المباراة",
   },
   confirm: {
     keep: "إبقاء",
@@ -113,6 +114,7 @@ export const mobileGameDetails = {
     setBox: (side: string, set: string) => `${side}، ${set}`,
   },
   join: {
+    positionWord: { left: "يسار", right: "يمين" },
     seatName: (side: string, position: string) => `${side} ${position}`,
     takenBy: (seat: string, name: string) => `${seat}، يشغله ${name}`,
     take: (seat: string) => `خذ ${seat}`,
@@ -160,6 +162,15 @@ export const mobileGameDetails = {
     playersAndPrice: "اللاعبون والسعر",
     price: "السعر",
     players: "اللاعبون",
+    playersValue: (n: number) =>
+      plural("ar", n, {
+        zero: "لا لاعبين",
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      }),
     fewerPlayers: "لاعبون أقل",
     morePlayers: "لاعبون أكثر",
     aside: "لكل فريق",

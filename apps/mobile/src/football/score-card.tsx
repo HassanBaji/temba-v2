@@ -1,9 +1,10 @@
 import { radii, spacing } from "@repo/design-tokens";
 import { footballResultLine } from "@repo/domain/football-lineup";
-import { ORGANIZER_CONFIRM_NOTE } from "@repo/domain/friendly-game-score";
+import { organizerConfirmNote } from "@repo/domain/friendly-game-score";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
@@ -57,6 +58,7 @@ function SideScore({
 }
 
 function Scorers({ players }: { players: readonly BoardPlayer[] }) {
+  const messages = useMessages();
   const scorers = players.filter((player) => player.goals > 0);
   if (scorers.length === 0) {
     return null;
@@ -66,7 +68,7 @@ function Scorers({ players }: { players: readonly BoardPlayer[] }) {
       <Hairline />
       <View style={{ padding: spacing.surface, gap: 8 }}>
         <Text size="meta" tone="muted">
-          Scorers
+          {messages.mobileTournament.scoreCard.scorers}
         </Text>
         {scorers
           .sort((a, b) => b.goals - a.goals)
@@ -75,9 +77,11 @@ function Scorers({ players }: { players: readonly BoardPlayer[] }) {
               key={player.userId}
               style={{ flexDirection: "row", justifyContent: "space-between" }}
             >
-              <Text>{player.isViewer ? "You" : shortName(player.name)}</Text>
+              <Text>
+                {player.isViewer ? messages.common.you : shortName(player.name)}
+              </Text>
               <Text weight="semibold">
-                {player.goals === 1 ? "1 goal" : `${player.goals} goals`}
+                {messages.game.played.goals(player.goals)}
               </Text>
             </View>
           ))}
@@ -110,11 +114,13 @@ export type FootballScoreCardProps = {
  * goals, who still has to confirm, and who scored.
  */
 export function FootballScoreCard(props: FootballScoreCardProps) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.scoreCard;
   const score = props.match?.score ?? null;
   const completed = props.match?.status === "completed";
   if (!score) {
     return (
-      <Card title="Score">
+      <Card title={m.title}>
         <View
           style={{
             paddingHorizontal: spacing.surface,
@@ -124,10 +130,10 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
         >
           <Placeholder />
           <Text size="meta" tone="muted">
-            Entered by either side after the game, confirmed by the other.
+            {m.placeholderNote}
           </Text>
           {props.canEnterScore ? (
-            <Button label="Enter score" onPress={props.onEnterScore} />
+            <Button label={m.enterScore} onPress={props.onEnterScore} />
           ) : null}
         </View>
       </Card>
@@ -135,8 +141,8 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
   }
   return (
     <Card
-      title="Score"
-      meta={completed ? "Confirmed" : "Waiting to confirm"}
+      title={m.title}
+      meta={completed ? m.confirmed : m.waitingToConfirm}
       flush
     >
       <View
@@ -165,17 +171,18 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
       <View style={{ padding: spacing.surface, gap: 12 }}>
         <View style={{ gap: 2 }}>
           <Text weight="semibold">
-            {footballResultLine(score, props.names)}
+            {footballResultLine(score, props.names, locale)}
           </Text>
           <Text size="meta" tone="muted">
             {confirmationLine(
               props.match?.confirmed ?? { slot1: false, slot2: false },
               props.names,
               completed,
+              locale,
               props.match?.organizerSides,
             )}
             {props.match?.enteredByName
-              ? ` Entered by ${props.match.enteredByName}.`
+              ? ` ${m.enteredBy(props.match.enteredByName)}`
               : ""}
           </Text>
         </View>
@@ -185,14 +192,14 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {props.canConfirm || props.canConfirmAsOrganizer ? (
               <Button
-                label="Confirm score"
+                label={m.confirmScore}
                 pending={props.confirmPending}
                 onPress={props.onConfirm}
               />
             ) : null}
             {props.canEnterScore ? (
               <Button
-                label="Edit score"
+                label={m.editScore}
                 variant="outline"
                 onPress={props.onEnterScore}
               />
@@ -201,7 +208,7 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
         ) : null}
         {props.canConfirmAsOrganizer ? (
           <Text size="meta" tone="muted">
-            {ORGANIZER_CONFIRM_NOTE}
+            {organizerConfirmNote(locale)}
           </Text>
         ) : null}
       </View>

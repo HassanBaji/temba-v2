@@ -45,7 +45,9 @@ describe("visibleDayOptions", () => {
 
 describe("monthGrid", () => {
   const leadingBlanks = (month: string) =>
-    monthGrid(month, "2026-01-01", "en").weeks[0]?.findIndex((cell) => cell !== null);
+    monthGrid(month, "2026-01-01", "en").weeks[0]?.findIndex(
+      (cell) => cell !== null,
+    );
 
   it("places the first of the month under its weekday, Sunday first", () => {
     expect(leadingBlanks("2026-02")).toBe(0);

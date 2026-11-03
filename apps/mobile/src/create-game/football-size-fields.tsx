@@ -10,6 +10,7 @@ import {
 } from "@repo/domain/game-shape";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChipGrid, FieldError, StepperRow } from "./chips";
 import type { StepProps } from "./step-props";
 import { HelperNote, StepSection } from "./step-section";
@@ -21,16 +22,18 @@ const LARGEST_SIDE_SIZE = Math.max(...FOOTBALL_SIDE_SIZES);
 export function FootballSizeFields({ state, errors, dispatch }: StepProps) {
   const { sideSize, playersAllowed } = state.draft;
   const bounds = footballPlayersAllowedBounds(sideSize);
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.football;
 
   return (
     <View style={{ gap: 24 }}>
-      <StepSection title="Side size">
+      <StepSection title={copy.sideSize}>
         <ChipGrid
-          label="Side size"
+          label={copy.sideSize}
           columns={PRESET_COLUMNS}
           chips={FOOTBALL_SIDE_SIZE_PRESETS.map((size) => ({
             value: String(size),
-            label: sideSizeLabel(size),
+            label: sideSizeLabel(size, locale),
           }))}
           isSelected={(value) => Number(value) === sideSize}
           onSelect={(value) =>
@@ -38,9 +41,9 @@ export function FootballSizeFields({ state, errors, dispatch }: StepProps) {
           }
         />
         <StepperRow
-          label="Side size"
+          label={copy.sideSize}
           value={sideSize}
-          unit="a side"
+          unit={copy.aSideUnit}
           min={SMALLEST_SIDE_SIZE}
           max={LARGEST_SIDE_SIZE}
           step={1}
@@ -53,28 +56,26 @@ export function FootballSizeFields({ state, errors, dispatch }: StepProps) {
               ),
             })
           }
-          decreaseLabel="Smaller side"
-          increaseLabel="Larger side"
+          decreaseLabel={copy.smallerSide}
+          increaseLabel={copy.largerSide}
         />
         <FieldError message={errors.sideSize} />
       </StepSection>
-      <StepSection title="Players allowed">
+      <StepSection title={copy.playersAllowed}>
         <StepperRow
-          label="Players allowed"
+          label={copy.playersAllowed}
           value={playersAllowed}
-          unit="players"
+          unit={copy.playersUnit}
           min={bounds.min}
           max={FOOTBALL_PLAYERS_ALLOWED_MAX}
           step={1}
           onChange={(next) =>
             dispatch({ kind: "setPlayersAllowed", playersAllowed: next })
           }
-          decreaseLabel="Fewer players"
-          increaseLabel="More players"
+          decreaseLabel={copy.fewerPlayers}
+          increaseLabel={copy.morePlayers}
         />
-        <HelperNote>
-          At least two full sides. Anyone past that is a substitute.
-        </HelperNote>
+        <HelperNote>{copy.playersNote}</HelperNote>
         <FieldError message={errors.playersAllowed} />
       </StepSection>
     </View>

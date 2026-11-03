@@ -57,8 +57,9 @@ export type StepHeaderContext = {
 
 function tournamentRating(locale: Locale) {
   return (
-    createGameTypeCards(locale).find((card) => card.id === "friendly_tournament")
-      ?.rating ?? ""
+    createGameTypeCards(locale).find(
+      (card) => card.id === "friendly_tournament",
+    )?.rating ?? ""
   );
 }
 
@@ -175,7 +176,12 @@ export function friendlyGameTimeHeader(input: {
   locale: Locale;
 }): StepHeaderText {
   const { locale } = input;
-  const hero = kickoffHero(input.day, input.startTime, input.finishTime, locale);
+  const hero = kickoffHero(
+    input.day,
+    input.startTime,
+    input.finishTime,
+    locale,
+  );
   const parts = [
     input.day ? formatDayLabel(input.day, locale) : null,
     input.venueName ?? input.groupName,

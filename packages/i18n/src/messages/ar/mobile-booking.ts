@@ -74,6 +74,7 @@ export const mobileBooking = {
   closed: "مغلق",
   hoursWindow: (open: string, close: string) => `من ${open} إلى ${close}`,
   hoursSeparator: "، ",
+  listSeparator: "، ",
   closedToday: "مغلق اليوم",
   openTo: (clock: string) => `مفتوح حتى ${clock}`,
   venuesEmpty: {

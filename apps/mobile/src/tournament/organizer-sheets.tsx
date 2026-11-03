@@ -1,16 +1,7 @@
-import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
+import { cancelMatchAction } from "@repo/domain/game-copy";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 import {
-  MERGE_DISMISS_ACTION_LABEL,
-  MERGE_DRAWER_TITLE,
-  MERGE_OPEN_POSITION_SR,
-  MERGE_PREVIEW_LABEL,
-  MERGE_PRIMARY_ACTION_LABEL,
-  MERGE_SAME_POSITION_COPY,
-  MERGE_SWAP_LABEL,
-  MERGE_TAKES_EFFECT_COPY,
-  MERGE_TAKES_EFFECT_KNOCKOUT_COPY,
   mergeCompletesTheField,
   mergeDrawerLead,
   mergeOccupantSubline,
@@ -32,16 +23,6 @@ import {
   tournamentRoundsPlan,
 } from "@repo/domain/tournament-organizer";
 import {
-  DRAW_AGAIN_ACTION,
-  DRAW_DRAWER_TITLE,
-  DRAW_EMPTY_DRAFT_COPY,
-  DRAW_KNOCKOUT_ACTION,
-  DRAW_KNOCKOUT_EMPTY_DRAFT_COPY,
-  DRAW_POOLS_ACTION,
-  POST_KNOCKOUT_DRAW_ACTION,
-  POST_KNOCKOUT_DRAW_FOOTER_COPY,
-  POST_POOL_DRAW_ACTION,
-  POST_POOL_DRAW_FOOTER_COPY,
   draftPoolMetaLine,
   draftPoolsFromGameTeams,
   drawDrawerLead,
@@ -49,17 +30,15 @@ import {
   knockoutDrawDrawerLead,
 } from "@repo/domain/tournament-pool-draw";
 import {
-  ONE_DAY_OVERRUN_MESSAGE,
-  ROUND_MEETS_COPY,
-  ROUNDS_LABEL,
-  SUGGESTED_ROUNDS_TAG,
   formatRoundMatchesPerTeam,
+  roundMeetsCopy,
   suggestedRoundsResetLabel,
 } from "@repo/domain/tournament-sizing";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 
 import { FieldError, Stepper } from "../create-game/chips";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
@@ -118,9 +97,10 @@ function HalfTeamPick({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const m = useMessages().mobileTournament.organizer;
   return (
     <Button
-      label={`${label}: ${team.occupant.name}`}
+      label={m.pick(label, team.occupant.name)}
       variant={selected ? "default" : "outline"}
       selected={selected}
       onPress={onSelect}
@@ -129,25 +109,29 @@ function HalfTeamPick({
 }
 
 function HalfTeamSummary({ team }: { team: HalfTeam }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.organizer;
   const band = team.occupant.levelBand;
+  const openPosition = mergeOpenPositionLabel(team.openPosition, locale);
   return (
     <Surface style={{ gap: 2 }}>
       <Text size="eyebrow" tone="muted">
-        {mergeTeamEyebrow(team.sideIndex)}
+        {mergeTeamEyebrow(team.sideIndex, locale)}
       </Text>
       <Text weight="medium">{team.occupant.name}</Text>
       <Text size="meta" tone="muted">
         {mergeOccupantSubline(
           team.takenPosition,
           band ? displayLabelFromStoredBand(band) : null,
+          locale,
         )}
       </Text>
       <Text
         size="meta"
         tone="muted"
-        accessibilityLabel={`${mergeOpenPositionLabel(team.openPosition)}. ${MERGE_OPEN_POSITION_SR}`}
+        accessibilityLabel={m.openPositionSr(openPosition)}
       >
-        {mergeOpenPositionLabel(team.openPosition)}
+        {openPosition}
       </Text>
     </Surface>
   );
@@ -165,6 +149,10 @@ function MergeSheet({
   error: string | null;
   onMerge: OrganizerSheetsProps["onMerge"];
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const halfTeamsCopy = messages.tournament.halfTeams;
+  const m = messages.mobileTournament.organizer;
   const halfTeams = halfTeamsFromSides(game.sides);
   const [firstId, setFirstId] = useState("");
   const [secondId, setSecondId] = useState("");
@@ -183,8 +171,9 @@ function MergeSheet({
           secondName: second.occupant.name,
           completesField: mergeCompletesTheField(halfTeams),
           teamCount: game.teamsAllowed,
+          locale,
         })
-      : MERGE_DRAWER_TITLE;
+      : halfTeamsCopy.drawerTitle;
 
   function merge() {
     if (!first || !second || !assignment || !canMerge) {
@@ -209,14 +198,14 @@ function MergeSheet({
             <View style={{ gap: 8 }}>
               <View
                 accessibilityRole="radiogroup"
-                accessibilityLabel="First Half team"
+                accessibilityLabel={m.firstHalfTeam}
                 style={{ gap: 8 }}
               >
                 {halfTeams.map((team) => (
                   <HalfTeamPick
                     key={team.gameTeamId}
                     team={team}
-                    label="First"
+                    label={m.first}
                     selected={team.gameTeamId === first?.gameTeamId}
                     onSelect={() => {
                       setFirstId(team.gameTeamId);
@@ -230,7 +219,7 @@ function MergeSheet({
               </View>
               <View
                 accessibilityRole="radiogroup"
-                accessibilityLabel="Second Half team"
+                accessibilityLabel={m.secondHalfTeam}
                 style={{ gap: 8 }}
               >
                 {halfTeams
@@ -239,7 +228,7 @@ function MergeSheet({
                     <HalfTeamPick
                       key={team.gameTeamId}
                       team={team}
-                      label="Second"
+                      label={m.second}
                       selected={team.gameTeamId === second?.gameTeamId}
                       onSelect={() => {
                         setSecondId(team.gameTeamId);
@@ -259,19 +248,29 @@ function MergeSheet({
           {first && second && assignment ? (
             <View style={{ gap: 8 }}>
               <Text size="meta" tone="muted">
-                {MERGE_PREVIEW_LABEL}
+                {halfTeamsCopy.previewLabel}
               </Text>
               <Text weight="medium">
                 {assignment.firstPosition === "left"
-                  ? `${first.occupant.name} and ${second.occupant.name}`
-                  : `${second.occupant.name} and ${first.occupant.name}`}
+                  ? messages.tournament.listAnd(
+                      first.occupant.name,
+                      second.occupant.name,
+                    )
+                  : messages.tournament.listAnd(
+                      second.occupant.name,
+                      first.occupant.name,
+                    )}
               </Text>
               <Text size="meta" tone="muted">
-                {mergeSwapHint(second.occupant.name, assignment.firstPosition)}
+                {mergeSwapHint(
+                  second.occupant.name,
+                  assignment.firstPosition,
+                  locale,
+                )}
               </Text>
               <ActionRow>
                 <Button
-                  label={MERGE_SWAP_LABEL}
+                  label={halfTeamsCopy.swap}
                   variant="outline"
                   size="sm"
                   disabled={pending}
@@ -282,28 +281,28 @@ function MergeSheet({
           ) : null}
           <FieldError
             message={
-              invalidPair ? MERGE_SAME_POSITION_COPY : (error ?? undefined)
+              invalidPair ? halfTeamsCopy.samePosition : (error ?? undefined)
             }
           />
         </View>
       </ScrollView>
       <Button
-        label={MERGE_PRIMARY_ACTION_LABEL}
+        label={halfTeamsCopy.primaryAction}
         size="lg"
         pending={pending}
         disabled={!canMerge}
         onPress={merge}
       />
       <Button
-        label={MERGE_DISMISS_ACTION_LABEL}
+        label={halfTeamsCopy.dismissAction}
         variant="outline"
         disabled={pending}
         onPress={onClose}
       />
       <Text size="meta" tone="muted">
         {knockoutOnly
-          ? MERGE_TAKES_EFFECT_KNOCKOUT_COPY
-          : MERGE_TAKES_EFFECT_COPY}
+          ? halfTeamsCopy.takesEffectKnockout
+          : halfTeamsCopy.takesEffect}
       </Text>
     </>
   );
@@ -322,6 +321,8 @@ function DrawSheet({
   postPending: boolean;
   error: string | null;
 }) {
+  const locale = useLocale();
+  const poolDraw = useMessages().tournament.poolDraw;
   const busy = drawPending || postPending;
   const hasDraft = knockoutOnly
     ? hasDraftKnockoutDraw(game.gameTeams)
@@ -334,6 +335,7 @@ function DrawSheet({
       ? draftKnockoutFirstRound({
           gameTeams: game.gameTeams,
           viewerUserId: game.viewerUserId,
+          locale,
         })
       : null;
   const pools =
@@ -345,11 +347,12 @@ function DrawSheet({
           windowEnd: game.windowEnd,
           matchMinutes: game.matchMinutes,
           courtNames: game.recordedCourts.map((court) => court.name),
+          locale,
         })
       : [];
   const empty = knockoutOnly
-    ? DRAW_KNOCKOUT_EMPTY_DRAFT_COPY
-    : DRAW_EMPTY_DRAFT_COPY;
+    ? poolDraw.knockoutEmptyDraft
+    : poolDraw.emptyDraft;
 
   return (
     <>
@@ -357,8 +360,8 @@ function DrawSheet({
         <View style={{ gap: 16 }}>
           <Text size="meta" tone="muted">
             {knockoutOnly
-              ? knockoutDrawDrawerLead(completeTeams)
-              : drawDrawerLead(game.teamsAllowed)}
+              ? knockoutDrawDrawerLead(completeTeams, locale)
+              : drawDrawerLead(game.teamsAllowed, locale)}
           </Text>
           {firstRound ? <KnockoutTree rounds={[firstRound]} /> : null}
           {pools.map((pool) => {
@@ -386,30 +389,26 @@ function DrawSheet({
       {hasDraft ? (
         <>
           <Button
-            label={
-              knockoutOnly ? POST_KNOCKOUT_DRAW_ACTION : POST_POOL_DRAW_ACTION
-            }
+            label={knockoutOnly ? poolDraw.postKnockout : poolDraw.post}
             size="lg"
             pending={postPending}
             disabled={busy}
             onPress={onPost}
           />
           <Button
-            label={DRAW_AGAIN_ACTION}
+            label={poolDraw.drawAgain}
             variant="outline"
             pending={drawPending}
             disabled={busy}
             onPress={onDraw}
           />
           <Text size="meta" tone="muted">
-            {knockoutOnly
-              ? POST_KNOCKOUT_DRAW_FOOTER_COPY
-              : POST_POOL_DRAW_FOOTER_COPY}
+            {knockoutOnly ? poolDraw.postKnockoutFooter : poolDraw.postFooter}
           </Text>
         </>
       ) : (
         <Button
-          label={knockoutOnly ? DRAW_KNOCKOUT_ACTION : DRAW_POOLS_ACTION}
+          label={knockoutOnly ? poolDraw.drawKnockout : poolDraw.drawPools}
           size="lg"
           pending={drawPending}
           disabled={busy}
@@ -435,34 +434,41 @@ function RoundsSheet({
   onChange: (roundCount: number | null) => void;
   onSave: () => void;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const sizing = messages.tournament.sizing;
+  const m = messages.mobileTournament.organizer;
   const plan = tournamentRoundsPlan(game, roundCount);
   if (!plan) {
-    return <Text tone="muted">The Rounds can no longer be changed.</Text>;
+    return <Text tone="muted">{m.roundsLocked}</Text>;
   }
   const { range } = plan;
   return (
     <>
       <Stepper
-        label={ROUNDS_LABEL}
+        label={sizing.roundsLabel}
         value={plan.roundCount}
-        unit={plan.roundCount === 1 ? "Round" : "Rounds"}
+        unit={m.roundUnit(plan.roundCount)}
         min={range.min}
         max={range.max}
         step={1}
         onChange={(next) => onChange(next === range.suggested ? null : next)}
-        decreaseLabel="Fewer Rounds"
-        increaseLabel="More Rounds"
-        hint={`${formatRoundMatchesPerTeam(plan.rounds)}. ${ROUND_MEETS_COPY[plan.rounds.meets]}`}
+        decreaseLabel={m.fewerRounds}
+        increaseLabel={m.moreRounds}
+        hint={m.roundsHint(
+          formatRoundMatchesPerTeam(plan.rounds, locale),
+          roundMeetsCopy(plan.rounds.meets, locale),
+        )}
         error={error ?? undefined}
       />
       {plan.roundCount === range.suggested ? (
         <Text size="meta" tone="muted">
-          {SUGGESTED_ROUNDS_TAG}
+          {sizing.suggestedTag}
         </Text>
       ) : (
         <ActionRow>
           <Button
-            label={suggestedRoundsResetLabel(range.suggested)}
+            label={suggestedRoundsResetLabel(range.suggested, locale)}
             variant="outline"
             size="sm"
             onPress={() => onChange(null)}
@@ -471,11 +477,11 @@ function RoundsSheet({
       )}
       {plan.overruns ? (
         <Text size="meta" tone="muted">
-          {ONE_DAY_OVERRUN_MESSAGE}
+          {sizing.oneDayOverrun}
         </Text>
       ) : null}
       <Button
-        label="Save Rounds"
+        label={m.saveRounds}
         size="lg"
         pending={pending}
         onPress={onSave}
@@ -497,6 +503,8 @@ function WalkoverSheet({
   onConfirm: (matchId: string, advancingGameTeamId?: string) => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.organizer;
   const [advancing, setAdvancing] = useState<string | null>(null);
   const prompt = knockoutCancelPrompt(place);
   const needsChoice = prompt.kind === "choose";
@@ -504,14 +512,14 @@ function WalkoverSheet({
   return (
     <>
       <Text size="meta" tone="muted">
-        {knockoutCancelDescription(prompt)}
+        {knockoutCancelDescription(prompt, locale)}
       </Text>
       {prompt.kind === "choose" ? (
         <View style={{ gap: 8 }}>
-          <Text weight="medium">Goes through</Text>
+          <Text weight="medium">{m.goesThrough}</Text>
           <View
             accessibilityRole="radiogroup"
-            accessibilityLabel="Goes through"
+            accessibilityLabel={m.goesThrough}
             style={{ gap: 8 }}
           >
             {prompt.teams.map((team) => (
@@ -529,9 +537,9 @@ function WalkoverSheet({
       ) : null}
       <FieldError message={error ?? undefined} />
       <ActionRow>
-        <Button label="Keep" variant="outline" onPress={onClose} />
+        <Button label={m.keep} variant="outline" onPress={onClose} />
         <Button
-          label={CANCEL_MATCH_ACTION}
+          label={cancelMatchAction(locale)}
           pending={pending}
           disabled={needsChoice && advancing == null}
           onPress={() =>
@@ -548,6 +556,7 @@ function WalkoverSheet({
 }
 
 export function OrganizerSheets(props: OrganizerSheetsProps) {
+  const messages = useMessages();
   const { sheet, onClose, game, knockoutOnly, pending, errors } = props;
   const place =
     typeof sheet === "object" && sheet != null ? sheet.walkover : null;
@@ -556,7 +565,7 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
       <Sheet
         visible={sheet === "merge"}
         onClose={onClose}
-        title={MERGE_DRAWER_TITLE}
+        title={messages.tournament.halfTeams.drawerTitle}
       >
         {sheet === "merge" ? (
           <MergeSheet
@@ -572,7 +581,7 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
       <Sheet
         visible={sheet === "draw"}
         onClose={onClose}
-        title={DRAW_DRAWER_TITLE}
+        title={messages.tournament.poolDraw.drawerTitle}
       >
         {sheet === "draw" ? (
           <DrawSheet
@@ -586,7 +595,11 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
           />
         ) : null}
       </Sheet>
-      <Sheet visible={sheet === "rounds"} onClose={onClose} title="Rounds">
+      <Sheet
+        visible={sheet === "rounds"}
+        onClose={onClose}
+        title={messages.tournament.sizing.roundsLabel}
+      >
         {sheet === "rounds" ? (
           <RoundsSheet
             game={game}
@@ -601,7 +614,11 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
       <Sheet
         visible={place != null}
         onClose={onClose}
-        title={place ? `Cancel ${place.code}?` : undefined}
+        title={
+          place
+            ? messages.mobileTournament.organizer.cancelCodeTitle(place.code)
+            : undefined
+        }
       >
         {place ? (
           <WalkoverSheet

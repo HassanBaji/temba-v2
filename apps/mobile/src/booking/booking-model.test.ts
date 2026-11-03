@@ -111,29 +111,29 @@ describe("placeLine", () => {
   });
 
   it("says tonight for an evening start today", () => {
-    expect(placeLine(at("2026-10-15T20:30:00"), "K", "Court 2", NOW, "en")).toBe(
-      "Tonight / K / Court 2",
-    );
+    expect(
+      placeLine(at("2026-10-15T20:30:00"), "K", "Court 2", NOW, "en"),
+    ).toBe("Tonight / K / Court 2");
   });
 });
 
 describe("bookedHeadline", () => {
   it("says tonight for an evening Booking today", () => {
-    expect(bookedHeadline("Court 2", at("2026-10-15T20:30:00"), NOW, "en")).toBe(
-      "Court 2 is yours tonight.",
-    );
-    expect(bookedHeadline("Court 2", at("2026-10-15T16:00:00"), NOW, "en")).toBe(
-      "Court 2 is yours today.",
-    );
+    expect(
+      bookedHeadline("Court 2", at("2026-10-15T20:30:00"), NOW, "en"),
+    ).toBe("Court 2 is yours tonight.");
+    expect(
+      bookedHeadline("Court 2", at("2026-10-15T16:00:00"), NOW, "en"),
+    ).toBe("Court 2 is yours today.");
   });
 
   it("names tomorrow and later days", () => {
-    expect(bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW, "en")).toBe(
-      "Court 1 is yours tomorrow.",
-    );
-    expect(bookedHeadline("Court 1", at("2026-10-17T09:00:00"), NOW, "en")).toBe(
-      "Court 1 is yours on Saturday.",
-    );
+    expect(
+      bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW, "en"),
+    ).toBe("Court 1 is yours tomorrow.");
+    expect(
+      bookedHeadline("Court 1", at("2026-10-17T09:00:00"), NOW, "en"),
+    ).toBe("Court 1 is yours on Saturday.");
   });
 });
 
@@ -248,8 +248,12 @@ describe("refundTerms", () => {
 
 describe("paymentStatusLine", () => {
   it("reads a confirmed unpaid Booking as paid at the Venue", () => {
-    expect(paymentStatusLine("pending", "confirmed", "en")).toBe("Pay at the venue");
-    expect(paymentStatusLine("pending", "pending_payment", "en")).toBe("Pending");
+    expect(paymentStatusLine("pending", "confirmed", "en")).toBe(
+      "Pay at the venue",
+    );
+    expect(paymentStatusLine("pending", "pending_payment", "en")).toBe(
+      "Pending",
+    );
     expect(paymentStatusLine("paid", "confirmed", "en")).toBe("Paid");
   });
 });
@@ -322,9 +326,9 @@ describe("Arabic copy", () => {
     expect(whenLine(at("2026-10-16T20:30:00"), 60, NOW, "ar")).toMatch(
       /^غدًا، .* \/ 60 د$/,
     );
-    expect(bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW, "ar")).toBe(
-      "Court 1 لك غدًا.",
-    );
+    expect(
+      bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW, "ar"),
+    ).toBe("Court 1 لك غدًا.");
     expect(payButtonLabel("at_venue", 18000, "ar")).toBe(
       "احجز وادفع 18.000 د.ب في النادي",
     );

@@ -7,7 +7,9 @@ import type { OpeningWindow } from "./slot-grid";
 
 export type VenueSort = "name" | "cheapest";
 
-export function venueSorts(locale: Locale): { key: VenueSort; label: string }[] {
+export function venueSorts(
+  locale: Locale,
+): { key: VenueSort; label: string }[] {
   const m = messagesFor(locale).mobileBooking.sort;
   return [
     { key: "name", label: m.aToZ },

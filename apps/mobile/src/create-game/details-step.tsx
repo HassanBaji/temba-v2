@@ -1,10 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import {
-  CREATE_FLOW_PRICE_CHIPS,
+  createFlowPriceChips,
   createFlowSeatsLabel,
-  KNOCKOUT_ONLY_FORMAT_LABEL,
-  KNOCKOUT_REVIEW_LABEL,
-  TOURNAMENT_FORMAT_LABEL,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   gameTeamOfTwoCopy,
@@ -13,33 +10,24 @@ import {
 } from "@repo/domain/create-game-flow";
 import type { CreateVenuePicker } from "@repo/domain/create-game-flow";
 import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
-import { SPORT_LABELS } from "@repo/domain/sport";
 import {
   groupsThenKnockoutReviewValue,
   knockoutOnlyReviewValue,
 } from "@repo/domain/tournament-knockout";
-import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
+import { unratedGroupLine } from "@repo/domain/game-rating-impact";
 import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_NO,
-  COUNTS_FOR_RATING_YES,
-} from "@repo/domain/tournament-home";
-import {
-  ALONE_OR_WITH_A_PARTNER_LABEL,
-  ANYONE_WITH_THE_LINK_LABEL,
-  HOW_PEOPLE_JOIN_LABEL,
   resolveRoundCount,
   reviewRoundsValue,
-  ROUNDS_LABEL,
-  WHO_CAN_TAKE_A_SEAT_LABEL,
-  WITH_A_PARTNER_ONLY_LABEL,
 } from "@repo/domain/tournament-sizing";
 import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { TextField } from "../primitives/text-field";
 import { ChipGrid } from "./chips";
 import { FootballSizeFields } from "./football-size-fields";
@@ -55,7 +43,6 @@ import { HelperNote, StepSection } from "./step-section";
 
 const PRICE_COLUMNS = 4;
 const SEGMENT_COLUMNS = 2;
-const FREE_PRICE_COPY = "Zero means free. Temba does not collect payment.";
 
 type DetailsProps = StepProps & {
   groupName: string | null;
@@ -70,22 +57,25 @@ function PriceField({
   teamPrice = false,
 }: StepProps & { teamPrice?: boolean }) {
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.price;
   const teamPriceCopy = teamPrice
-    ? gameTeamOfTwoCopy(draft.pricePerPlayer)
+    ? gameTeamOfTwoCopy(draft.pricePerPlayer, locale)
     : null;
   return (
-    <StepSection title="Price per player" note="Optional">
+    <StepSection title={copy.title} note={m.common.optional}>
       <MoneyField
         value={draft.pricePerPlayer}
         onChangeText={(price) => dispatch({ kind: "setPrice", price })}
-        accessibilityLabel="Price per player in BD"
+        accessibilityLabel={copy.inputLabel}
         error={errors.pricePerPlayerFils}
       />
       <ChipGrid
-        label="Price per player"
+        label={copy.title}
         columns={PRICE_COLUMNS}
         selection="soft"
-        chips={CREATE_FLOW_PRICE_CHIPS.map((chip) => ({
+        chips={createFlowPriceChips(locale).map((chip) => ({
           value: chip.value,
           label: chip.label,
         }))}
@@ -93,19 +83,19 @@ function PriceField({
         onSelect={(price) => dispatch({ kind: "setPrice", price })}
       />
       <HelperNote>
-        {teamPriceCopy
-          ? `${teamPriceCopy}. ${FREE_PRICE_COPY}`
-          : FREE_PRICE_COPY}
+        {teamPriceCopy ? copy.teamFreeNote(teamPriceCopy) : copy.freeNote}
       </HelperNote>
     </StepSection>
   );
 }
 
 function CustomNameField({ state, errors, dispatch }: StepProps) {
+  const m = useMessages();
+  const copy = m.mobileCreateGame.name;
   return (
-    <StepSection title="Name" note="Optional">
+    <StepSection title={copy.title} note={m.common.optional}>
       <TextField
-        label="Game name"
+        label={copy.gameLabel}
         value={state.draft.customName}
         maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
         onChangeText={(customName) =>
@@ -113,27 +103,35 @@ function CustomNameField({ state, errors, dispatch }: StepProps) {
         }
         error={errors.customName}
       />
-      <HelperNote>
-        Shown on the Game and at the top of the invite message.
-      </HelperNote>
+      <HelperNote>{copy.hint}</HelperNote>
     </StepSection>
   );
 }
 
-function customNameReviewRows(customName: string): ReviewRow[] {
+function customNameReviewRows(customName: string, locale: Locale): ReviewRow[] {
   const trimmed = customName.trim();
-  return trimmed ? [{ label: "Name", value: trimmed }] : [];
+  return trimmed
+    ? [
+        {
+          label: messagesFor(locale).mobileCreateGame.review.name,
+          value: trimmed,
+        },
+      ]
+    : [];
 }
 
 export function FootballDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
+  const review = m.mobileCreateGame.review;
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
   const pitch =
     draft.courtId === "none"
       ? undefined
       : venue?.courts.find((item) => item.id === draft.courtId);
-  const venueName = venue?.name ?? "Venue";
+  const venueName = venue?.name ?? review.venue;
 
   return (
     <View style={{ gap: spacing.section }}>
@@ -142,15 +140,20 @@ export function FootballDetailsStep(props: DetailsProps) {
       <PriceField {...props} />
       <ReviewCard
         rows={[
-          ...customNameReviewRows(draft.customName),
-          { label: "Group", value: groupName ?? "Group" },
-          { label: "Sport", value: SPORT_LABELS.football },
+          ...customNameReviewRows(draft.customName, locale),
+          { label: review.group, value: groupName ?? review.group },
+          { label: review.sport, value: m.common.football },
           {
-            label: "Venue",
-            value: pitch ? `${venueName}, ${pitch.name}` : venueName,
+            label: review.venue,
+            value: pitch
+              ? review.venueAndCourt(venueName, pitch.name)
+              : venueName,
           },
-          { label: "Size", value: createFlowSeatsLabel("football", draft) },
-          { label: "Rating", value: UNRATED_LABEL },
+          {
+            label: review.size,
+            value: createFlowSeatsLabel("football", draft, locale),
+          },
+          { label: review.rating, value: unratedLabel(locale) },
         ]}
       />
     </View>
@@ -160,28 +163,37 @@ export function FootballDetailsStep(props: DetailsProps) {
 export function GameDetailsStep(props: DetailsProps) {
   const { state, groupName, groupVerified, picker } = props;
   const { draft } = state;
+  const locale = useLocale();
+  const review = useMessages().mobileCreateGame.review;
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
   const court =
     draft.courtId === "none"
       ? undefined
       : venue?.courts.find((item) => item.id === draft.courtId);
-  const venueName = venue?.name ?? "Venue";
+  const venueName = venue?.name ?? review.venue;
 
   return (
     <View style={{ gap: spacing.section }}>
       <CustomNameField {...props} />
       <LevelRangeField {...props} />
       <PriceField {...props} />
-      {groupVerified ? null : <HelperNote>{UNRATED_GROUP_LINE}</HelperNote>}
+      {groupVerified ? null : (
+        <HelperNote>{unratedGroupLine(locale)}</HelperNote>
+      )}
       <ReviewCard
         rows={[
-          ...customNameReviewRows(draft.customName),
-          { label: "Group", value: groupName ?? "Group" },
+          ...customNameReviewRows(draft.customName, locale),
+          { label: review.group, value: groupName ?? review.group },
           {
-            label: "Venue",
-            value: court ? `${venueName}, ${court.name}` : venueName,
+            label: review.venue,
+            value: court
+              ? review.venueAndCourt(venueName, court.name)
+              : venueName,
           },
-          { label: "Seats", value: createFlowSeatsLabel("padel", draft) },
+          {
+            label: review.seats,
+            value: createFlowSeatsLabel("padel", draft, locale),
+          },
         ]}
       />
     </View>
@@ -195,14 +207,16 @@ function WhoCanEnter(props: StepProps) {
     draft.preferLevelRange ||
     draft.levelMin !== LEVEL_BAND_SELECT_NONE ||
     draft.levelMax !== LEVEL_BAND_SELECT_NONE;
+  const m = useMessages();
+  const copy = m.mobileCreateGame.whoCanEnter;
   return (
-    <StepSection title="Who can enter" note="Optional">
+    <StepSection title={copy.title} note={m.common.optional}>
       <ChipGrid
-        label="Who can enter"
+        label={copy.title}
         columns={SEGMENT_COLUMNS}
         chips={[
-          { value: "anyone", label: "Anyone" },
-          { value: "range", label: "Set a Level range" },
+          { value: "anyone", label: copy.anyone },
+          { value: "range", label: copy.setRange },
         ]}
         isSelected={(value) => (value === "range") === showRange}
         onSelect={(value) =>
@@ -219,13 +233,13 @@ function WhoCanEnter(props: StepProps) {
   );
 }
 
-function tournamentReviewRows({
-  state,
-  groupName,
-  groupVerified,
-  picker,
-}: DetailsProps): ReviewRow[] {
+function tournamentReviewRows(
+  { state, groupName, groupVerified, picker }: DetailsProps,
+  locale: Locale,
+): ReviewRow[] {
   const { draft } = state;
+  const m = messagesFor(locale);
+  const review = m.mobileCreateGame.review;
   const { sizing, knockoutTree, poolKnockoutTree, knockoutOnly } =
     friendlyTournamentPlan(draft);
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
@@ -233,7 +247,7 @@ function tournamentReviewRows({
     venue?.courts
       .filter((item) => draft.courtIds.includes(item.id))
       .map((item) => item.name) ?? [];
-  const minutes = parseCreateMatchMinutes(draft.matchMinutes);
+  const minutes = parseCreateMatchMinutes(draft.matchMinutes, locale);
   const resolvedRounds = sizing
     ? resolveRoundCount(sizing.poolSizes, draft.roundCount)
     : null;
@@ -242,44 +256,53 @@ function tournamentReviewRows({
       ? sizeTournamentRounds(sizing.poolSizes, resolvedRounds)
       : null;
   const knockout = knockoutTree
-    ? knockoutOnlyReviewValue(knockoutTree)
+    ? knockoutOnlyReviewValue(knockoutTree, locale)
     : poolKnockoutTree && sizing
       ? groupsThenKnockoutReviewValue({
           tree: poolKnockoutTree,
           poolCount: sizing.poolCount,
           qualifiersPerPool: draft.qualifiersPerPool,
+          locale,
         })
       : null;
 
   return [
-    { label: "Group", value: groupName ?? "Group" },
-    { label: "Venue", value: venue?.name ?? "Venue" },
+    { label: review.group, value: groupName ?? review.group },
+    { label: review.venue, value: venue?.name ?? review.venue },
     {
-      label: TOURNAMENT_FORMAT_LABEL,
+      label: m.createGame.tournamentFormat,
       value: knockoutOnly
-        ? KNOCKOUT_ONLY_FORMAT_LABEL
+        ? m.createGame.knockoutOnly
         : friendlyTournamentFormatLabel(
             sizing?.poolCount ?? draft.poolCount,
+            locale,
             poolKnockoutTree != null,
           ),
     },
-    ...(knockout ? [{ label: KNOCKOUT_REVIEW_LABEL, value: knockout }] : []),
+    ...(knockout ? [{ label: m.createGame.knockout, value: knockout }] : []),
     ...(sizing && rounds
       ? [
           {
-            label: ROUNDS_LABEL,
-            value: reviewRoundsValue(rounds.roundCount, sizing.roundCount),
+            label: m.tournament.sizing.roundsLabel,
+            value: reviewRoundsValue(
+              rounds.roundCount,
+              sizing.roundCount,
+              locale,
+            ),
           },
         ]
       : []),
-    { label: "Courts", value: friendlyTournamentCourtsLabel(courtNames) },
     {
-      label: "Game length",
-      value: minutes.ok ? `${minutes.minutes} min` : "Game length",
+      label: review.courts,
+      value: friendlyTournamentCourtsLabel(courtNames, locale),
     },
     {
-      label: COUNTS_FOR_RATING_LABEL,
-      value: groupVerified ? COUNTS_FOR_RATING_YES : COUNTS_FOR_RATING_NO,
+      label: review.gameLength,
+      value: minutes.ok ? m.dates.minutes(minutes.minutes) : review.gameLength,
+    },
+    {
+      label: m.tournament.home.countsForRating,
+      value: groupVerified ? m.common.yes : m.common.no,
     },
   ];
 }
@@ -287,27 +310,33 @@ function tournamentReviewRows({
 export function TournamentDetailsStep(props: DetailsProps) {
   const { state, errors, dispatch, groupName, groupVerified } = props;
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
+  const sizingCopy = m.tournament.sizing;
 
   return (
     <View style={{ gap: spacing.section }}>
       <WhoCanEnter {...props} />
       <PriceField {...props} teamPrice />
-      <StepSection title="Name">
+      <StepSection title={m.mobileCreateGame.name.title}>
         <TextField
-          label="Tournament name"
+          label={m.mobileCreateGame.name.tournamentLabel}
           value={draft.name}
           onChangeText={(name) => dispatch({ kind: "setName", name })}
           error={errors.name}
         />
       </StepSection>
-      <StepSection title={WHO_CAN_TAKE_A_SEAT_LABEL}>
+      <StepSection title={sizingCopy.whoCanTakeASeat}>
         <ChipGrid
-          label={WHO_CAN_TAKE_A_SEAT_LABEL}
+          label={sizingCopy.whoCanTakeASeat}
           columns={SEGMENT_COLUMNS}
           chips={[
-            { value: "group", label: groupName ?? "Group" },
+            {
+              value: "group",
+              label: groupName ?? m.mobileCreateGame.review.group,
+            },
             ...(groupVerified
-              ? [{ value: "public", label: ANYONE_WITH_THE_LINK_LABEL }]
+              ? [{ value: "public", label: sizingCopy.anyoneWithTheLink }]
               : []),
           ]}
           isSelected={(value) => (value === "public") === draft.isPublic}
@@ -315,15 +344,17 @@ export function TournamentDetailsStep(props: DetailsProps) {
             dispatch({ kind: "setPublic", isPublic: value === "public" })
           }
         />
-        {groupVerified ? null : <HelperNote>{UNRATED_GROUP_LINE}</HelperNote>}
+        {groupVerified ? null : (
+          <HelperNote>{unratedGroupLine(locale)}</HelperNote>
+        )}
       </StepSection>
-      <StepSection title={HOW_PEOPLE_JOIN_LABEL}>
+      <StepSection title={sizingCopy.howPeopleJoin}>
         <ChipGrid
-          label={HOW_PEOPLE_JOIN_LABEL}
+          label={sizingCopy.howPeopleJoin}
           columns={SEGMENT_COLUMNS}
           chips={[
-            { value: "solo", label: ALONE_OR_WITH_A_PARTNER_LABEL },
-            { value: "pair", label: WITH_A_PARTNER_ONLY_LABEL },
+            { value: "solo", label: sizingCopy.aloneOrWithPartner },
+            { value: "pair", label: sizingCopy.withPartnerOnly },
           ]}
           isSelected={(value) => (value === "solo") === draft.allowSoloRegister}
           onSelect={(value) =>
@@ -334,7 +365,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
           }
         />
       </StepSection>
-      <ReviewCard rows={tournamentReviewRows(props)} />
+      <ReviewCard rows={tournamentReviewRows(props, locale)} />
     </View>
   );
 }

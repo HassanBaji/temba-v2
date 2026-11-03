@@ -36,8 +36,7 @@ export const mobileHome = {
       "هذه الشروط متاحة بالإنجليزية فقط، والنص الإنجليزي هو المعتمد.",
   },
   termsMicrocopy: {
-    before: (age: number) =>
-      `بمتابعتك تؤكد أن عمرك ${age} أو أكثر وتوافق على `,
+    before: (age: number) => `بمتابعتك تؤكد أن عمرك ${age} أو أكثر وتوافق على `,
     termsLink: "الشروط",
     after: " وسياسة الخصوصية.",
   },
@@ -186,12 +185,17 @@ export const mobileHome = {
     rosterSpoken: (registered: number, allowed: number) =>
       `${registered} من ${allowed} لاعبًا`,
     bookingDetail: (court: string, minutes: number) => `${court}، ${minutes} د`,
-    bookingHeroSpoken: (day: string, time: string, court: string, venue: string) =>
-      `التالي، حجز، ${day} ${time}، ${court}، ${venue}`,
+    bookingHeroSpoken: (
+      day: string,
+      time: string,
+      court: string,
+      venue: string,
+    ) => `التالي، حجز، ${day} ${time}، ${court}، ${venue}`,
     heroSpoken: (title: string, day: string, time: string) =>
       `التالي، ${title}، ${day} ${time}`,
     gameHeroSpoken: (title: string, day: string, time: string, place: string) =>
       `التالي، ${title}، ${day} ${time}، ${place}`,
+    invite: "دعوة",
     details: "التفاصيل",
     allBookingsAndGames: "كل الحجوزات والألعاب",
     book: {
@@ -201,7 +205,8 @@ export const mobileHome = {
     thisWeekTag: "هذا الأسبوع",
     free: "فارغ",
     weekOpen: "أسبوعك\nمفتوح.",
-    emptyBody: "احجز ملعبًا، أو انضم إلى لعبة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
+    emptyBody:
+      "احجز ملعبًا، أو انضم إلى لعبة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
     findAGame: "ابحث عن لعبة",
   },
   venues: {

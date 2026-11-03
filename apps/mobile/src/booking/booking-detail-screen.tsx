@@ -1,8 +1,11 @@
 import { colors, sizes } from "@repo/design-tokens";
-import { cancelWindowClosedMessage } from "@repo/domain/booking-copy";
+import {
+  bookingStatusLabel,
+  cancelWindowClosedMessage,
+} from "@repo/domain/booking-copy";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { courtFace } from "@repo/domain/court-sport-copy";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments } from "expo-router";
 import { Phone, Share2 } from "lucide-react-native";
@@ -12,6 +15,7 @@ import { Linking, Share, View } from "react-native";
 import { ConfirmSheet } from "../game-details/confirm-sheet";
 import { useNow } from "../games/use-now";
 import { gamePath } from "../games/games-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -50,6 +54,8 @@ export function BookingDetailScreen({
   const toast = useToast();
   const utils = api.useUtils();
   const now = useNow();
+  const m = useMessages();
+  const locale = useLocale();
   const [refreshing, setRefreshing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const confirmedReturn = useRef(false);
@@ -64,7 +70,7 @@ export function BookingDetailScreen({
   const cancel = api.bookings.cancel.useMutation({
     onSuccess: async () => {
       setConfirming(false);
-      toast.show("Booking cancelled");
+      toast.show(m.mobileBooking.detail.cancelledToast);
       await Promise.all([
         booking.refetch(),
         utils.bookings.listMine.invalidate(),
@@ -103,9 +109,9 @@ export function BookingDetailScreen({
         <ScreenHeader nav="back" fallback={bookingsFallback(segments)} />
         {booking.error ? (
           <Notice
-            title="Booking could not be loaded"
+            title={m.mobileBooking.detail.loadError}
             description={booking.error.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => void booking.refetch()}
           />
         ) : (
@@ -133,13 +139,14 @@ export function BookingDetailScreen({
       header={
         <BookingHero
           eyebrow={bookingRef(data.id)}
-          time={formatGameClock(data.startsAt)}
-          until={untilLabel(data.endsAt)}
+          time={formatGameClock(data.startsAt, locale)}
+          until={untilLabel(data.endsAt, locale)}
           subtitle={placeLine(
             data.startsAt,
             data.venue.name,
             data.court.name,
             now,
+            locale,
           )}
           fallback={bookingsFallback(segments)}
         >
@@ -147,7 +154,7 @@ export function BookingDetailScreen({
             {phone ? (
               <View style={{ flex: 1 }}>
                 <Button
-                  label="Call venue"
+                  label={m.mobileBooking.detail.callVenue}
                   variant="outline-inverse"
                   icon={<Phone size={sizes.iconRow} color={colors.paper} />}
                   onPress={() => void Linking.openURL(`tel:${phone}`)}
@@ -156,11 +163,13 @@ export function BookingDetailScreen({
             ) : null}
             <View style={{ flex: 1 }}>
               <Button
-                label="Share"
+                label={m.common.share}
                 variant="outline-inverse"
                 icon={<Share2 size={sizes.iconRow} color={colors.paper} />}
                 onPress={() =>
-                  void Share.share({ message: bookingShareMessage(data) })
+                  void Share.share({
+                    message: bookingShareMessage(data, locale),
+                  })
                 }
               />
             </View>
@@ -171,7 +180,7 @@ export function BookingDetailScreen({
         live && data.cancel.allowed ? (
           <View style={{ flex: 1 }}>
             <Button
-              label="Cancel booking"
+              label={m.mobileBooking.detail.cancelBooking}
               variant="outline"
               size="lg"
               onPress={() => setConfirming(true)}
@@ -194,35 +203,40 @@ export function BookingDetailScreen({
 
       <Surface padded={false} style={{ paddingHorizontal: 16 }}>
         <DetailRow
-          label={`${courtNounTitle(data.court.sport)}, ${minutesBetween(data.startsAt, data.endsAt)} min`}
+          label={m.mobileBooking.courtMinutes(
+            courtNounTitle(data.court.sport, locale),
+            minutesBetween(data.startsAt, data.endsAt),
+          )}
           first
         >
-          <Text>{formatBookingPriceFils(data.priceFils)}</Text>
+          <Text>{formatBookingPriceFils(data.priceFils, locale)}</Text>
         </DetailRow>
-        <DetailRow label="Payment">
-          <Text>{paymentStatusLine(data.paymentStatus, data.status)}</Text>
+        <DetailRow label={m.mobileBooking.detail.payment}>
+          <Text>
+            {paymentStatusLine(data.paymentStatus, data.status, locale)}
+          </Text>
         </DetailRow>
         {data.refundDueFils ? (
-          <DetailRow label="Refund due">
+          <DetailRow label={m.mobileBooking.detail.refundDue}>
             <Text weight="semibold">
-              {formatBookingPriceFils(data.refundDueFils)}
+              {formatBookingPriceFils(data.refundDueFils, locale)}
             </Text>
           </DetailRow>
         ) : null}
       </Surface>
 
       <View>
-        <DetailRow label="Status" first>
+        <DetailRow label={m.mobileBooking.status} first>
           <Text size="meta">{data.statusLabel}</Text>
         </DetailRow>
-        <DetailRow label="Cancellation">
+        <DetailRow label={m.mobileBooking.cancellation}>
           {live && data.cancel.allowed && data.cancel.nextStep?.text ? (
             <Text size="meta" style={{ textAlign: "right" }}>
               {data.cancel.nextStep.text}
             </Text>
           ) : live && !data.cancel.allowed ? (
             <Text size="meta" style={{ textAlign: "right" }}>
-              {cancelWindowClosedMessage(phone)}
+              {cancelWindowClosedMessage(phone, locale)}
             </Text>
           ) : (
             data.cancellationPolicyLines.map((line) => (
@@ -233,7 +247,7 @@ export function BookingDetailScreen({
           )}
         </DetailRow>
         {phone ? (
-          <DetailRow label="Venue">
+          <DetailRow label={m.mobileBooking.venue}>
             <Text size="meta">{phone}</Text>
           </DetailRow>
         ) : null}
@@ -243,13 +257,16 @@ export function BookingDetailScreen({
         request={
           confirming
             ? {
-                title: "Cancel this booking?",
-                description: `${cancelConsequence({
-                  paymentStatus: data.paymentStatus,
-                  refundDueFilsNow: data.cancel.refundDueFilsNow,
-                  refundPercentNow: data.cancel.refundPercentNow,
-                })} The ${courtFace(data.court.sport)} is released for others.`,
-                confirmLabel: "Cancel booking",
+                title: m.mobileBooking.detail.cancelSheet.title,
+                description: `${cancelConsequence(
+                  {
+                    paymentStatus: data.paymentStatus,
+                    refundDueFilsNow: data.cancel.refundDueFilsNow,
+                    refundPercentNow: data.cancel.refundPercentNow,
+                  },
+                  locale,
+                )} ${m.mobileBooking.detail.cancelSheet.released[courtFace(data.court.sport)]}`,
+                confirmLabel: m.mobileBooking.detail.cancelBooking,
                 onConfirm: () => cancel.mutate({ bookingId }),
               }
             : null
@@ -270,6 +287,8 @@ function GameBlock({
   onCreate: () => void;
   onOpen: (gameId: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const game = booking.game;
   if (game && !game.cancelledAt) {
     return (
@@ -283,16 +302,18 @@ function GameBlock({
         >
           <View style={{ flexShrink: 1, gap: 2 }}>
             <Text size="eyebrow" mono uppercase tone="muted">
-              Game
+              {m.mobileBooking.detail.game}
             </Text>
-            <Text weight="semibold">{game.name ?? "Your game"}</Text>
+            <Text weight="semibold">
+              {game.name ?? m.mobileBooking.detail.yourGame}
+            </Text>
           </View>
           <Text size="meta" tone="muted">
-            {UNRATED_LABEL}
+            {unratedLabel(locale)}
           </Text>
         </View>
         <Button
-          label="Open game"
+          label={m.mobileBooking.openGame}
           variant="outline"
           onPress={() => onOpen(game.id)}
         />
@@ -306,15 +327,15 @@ function GameBlock({
     <Surface style={{ gap: 12 }}>
       <View style={{ gap: 4 }}>
         <Text size="title" weight="bold" width="expanded">
-          Who is playing?
+          {m.mobileBooking.booked.whoIsPlaying}
         </Text>
         <Text size="meta" tone="muted">
           {game
-            ? "Your game was cancelled. The court is still yours, so you can set up a new one."
-            : bookingGameBlurb(booking.court.sport)}
+            ? m.mobileBooking.detail.gameCancelled
+            : bookingGameBlurb(booking.court.sport, locale)}
         </Text>
       </View>
-      <Button label="Create a game for this booking" onPress={onCreate} />
+      <Button label={m.mobileBooking.booked.createGame} onPress={onCreate} />
     </Surface>
   );
 }
@@ -328,17 +349,21 @@ function StatusBlock({
   now: Date;
   onFinishPayment: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const detail = m.mobileBooking.detail;
+  const face = courtFace(booking.court.sport);
   if (booking.status === "pending_payment") {
     const countdown = holdCountdown(booking.holdExpiresAt, now);
     return (
       <Notice
-        title={countdown ? "Finish payment" : "Your hold ran out"}
+        title={countdown ? m.mobileBooking.finishPayment : detail.holdRanOut}
         description={
           countdown
-            ? `The ${courtFace(booking.court.sport)} is held for you for ${countdown}.`
-            : `The ${courtFace(booking.court.sport)} was released because payment was not finished.`
+            ? detail.heldFor[face](countdown)
+            : detail.releasedUnpaid[face]
         }
-        actionLabel={countdown ? "Finish payment" : undefined}
+        actionLabel={countdown ? m.mobileBooking.finishPayment : undefined}
         onAction={countdown ? onFinishPayment : undefined}
       />
     );
@@ -346,24 +371,21 @@ function StatusBlock({
   if (booking.status === "cancelled") {
     return (
       <Notice
-        title="Cancelled"
+        title={bookingStatusLabel("cancelled", locale)}
         description={
           booking.cancelledBy === "venue"
-            ? "The venue cancelled this booking."
-            : "You cancelled this booking."
+            ? detail.venueCancelled
+            : detail.youCancelled
         }
       />
     );
   }
   if (booking.status === "no_show") {
-    return <Notice title="Marked as a no-show" />;
+    return <Notice title={detail.noShow} />;
   }
   if (booking.status === "expired") {
     return (
-      <Notice
-        title="This booking expired"
-        description="Payment was not finished in time."
-      />
+      <Notice title={detail.expired} description={detail.expiredDescription} />
     );
   }
   return null;

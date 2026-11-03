@@ -1,7 +1,7 @@
 import { radii } from "@repo/design-tokens";
-import { ONE_DAY_OVERRUN_MESSAGE } from "@repo/domain/tournament-sizing";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
@@ -13,6 +13,7 @@ export function ScheduleCard({
   summary: TournamentScheduleSummary;
 }) {
   const palette = useTonePalette();
+  const m = useMessages();
   return (
     <View
       accessible
@@ -37,7 +38,7 @@ export function ScheduleCard({
           </Text>
           {summary.overruns ? (
             <Text size="meta" weight="semibold">
-              {ONE_DAY_OVERRUN_MESSAGE}
+              {m.tournament.sizing.oneDayOverrun}
             </Text>
           ) : null}
         </>

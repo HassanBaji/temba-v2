@@ -47,7 +47,11 @@ function BackButton(props: { onPress: () => void }) {
         justifyContent: "center",
       }}
     >
-      <ArrowLeft size={sizes.iconAction} color={colors.ink} style={mirrorInRtl} />
+      <ArrowLeft
+        size={sizes.iconAction}
+        color={colors.ink}
+        style={mirrorInRtl}
+      />
     </Pressable>
   );
 }

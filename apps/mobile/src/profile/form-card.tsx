@@ -3,11 +3,16 @@ import type { RecentFormView } from "@repo/domain/home-recent-form";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useMessages } from "../i18n/locale-provider";
 import { FormSlot } from "../primitives/form-slot";
 
 export function ProfileFormCard({ form }: { form: RecentFormView }) {
+  const m = useMessages();
   return (
-    <Card title="Recent form" meta="Last 10 matches">
+    <Card
+      title={m.mobileHome.recentForm.title}
+      meta={m.mobileHome.recentForm.lastTen}
+    >
       <View
         style={{
           flexDirection: "row",

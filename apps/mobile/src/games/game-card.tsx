@@ -167,13 +167,17 @@ export function GameCard({
               {m.cancelled}
             </Text>
           ) : (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <SportTag sport={game.sport} />
               {rosterOccupancy ? (
                 <Text
                   size="meta"
                   tone="muted"
-                  weight={rosterOccupancy.seatsLeft > 0 ? "semibold" : "regular"}
+                  weight={
+                    rosterOccupancy.seatsLeft > 0 ? "semibold" : "regular"
+                  }
                   accessibilityLabel={m.playersSr(rosterOccupancy.label)}
                 >
                   {rosterOccupancy.label}

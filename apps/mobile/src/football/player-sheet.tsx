@@ -1,23 +1,26 @@
-import { KICK_ACTION } from "@repo/domain/game-copy";
-import { FOOTBALL_POSITION_CHOICES } from "@repo/domain/football-lineup";
+import type { Locale } from "@repo/i18n/locale";
+import type { Messages } from "@repo/i18n/messages";
+import { kickAction } from "@repo/domain/game-copy";
+import { footballPositionChoices } from "@repo/domain/football-lineup";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
 
-function roleLine(player: BoardPlayer) {
+function roleLine(player: BoardPlayer, locale: Locale, m: Messages) {
   if (player.role === "keeper") {
-    return "Keeper";
+    return m.mobileTournament.join.keeper;
   }
-  const position = FOOTBALL_POSITION_CHOICES.find(
+  const position = footballPositionChoices(locale).find(
     (choice) => choice.value === player.position,
   );
   return position
-    ? `Prefers ${position.label.toLowerCase()}`
-    : "No position yet";
+    ? m.mobileTournament.playerSheet.prefers(position.label)
+    : m.mobileTournament.playerSheet.noPositionYet;
 }
 
 /** What an Organizer can do with one player in the pool. */
@@ -34,6 +37,9 @@ export function PlayerSheet({
   onOpenProfile: (userId: string) => void;
   onRemove: (userId: string) => void;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament;
   return (
     <Sheet visible={player != null} onClose={onClose}>
       {player ? (
@@ -45,21 +51,24 @@ export function PlayerSheet({
                 {player.name}
               </Text>
               <Text size="meta" tone="muted">
-                {roleLine(player)}, Level {levelLabel(player.levelBand)}
+                {m.playerSheet.roleAndLevel(
+                  roleLine(player, locale, messages),
+                  levelLabel(player.levelBand),
+                )}
               </Text>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 8 }}>
             {canOpenProfile ? (
               <Button
-                label="View profile"
+                label={m.playerSheet.viewProfile}
                 variant="outline"
                 onPress={() => onOpenProfile(player.userId)}
               />
             ) : null}
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${player.name}`}
+              label={kickAction(locale)}
+              accessibilityLabel={m.organizer.kickSr(player.name)}
               variant="outline"
               onPress={() => onRemove(player.userId)}
             />

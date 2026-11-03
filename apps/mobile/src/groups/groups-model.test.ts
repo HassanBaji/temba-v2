@@ -83,7 +83,9 @@ describe("publicGroupRowView", () => {
       joinLabel: "Joining…",
       joinDisabled: true,
     });
-    expect(publicGroupRowView(open!, "other", ORIGIN, "en").joinLabel).toBe("Join");
+    expect(publicGroupRowView(open!, "other", ORIGIN, "en").joinLabel).toBe(
+      "Join",
+    );
   });
 });
 

@@ -660,7 +660,11 @@ function StandingPreview({
           paddingVertical: 12,
         }}
       >
-        <HeaderCell label={columns.position} width={POSITION_WIDTH} align="left" />
+        <HeaderCell
+          label={columns.position}
+          width={POSITION_WIDTH}
+          align="left"
+        />
         <HeaderCell label={columns.player} align="left" />
         <HeaderCell label={columns.points} width={POINTS_WIDTH} align="right" />
       </View>

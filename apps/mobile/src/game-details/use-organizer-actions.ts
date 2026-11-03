@@ -180,7 +180,7 @@ export function useOrganizerActions({
     if (!game) {
       return;
     }
-    const target = gameKickTarget(game, request);
+    const target = gameKickTarget(game, request, locale);
     const kickCopy = gameKickConfirmCopy(
       target,
       { partnerRequired, drawPosted: false },

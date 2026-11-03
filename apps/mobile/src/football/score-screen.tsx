@@ -14,6 +14,7 @@ import { Minus, Plus } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -89,6 +90,8 @@ function SideStepper({
   members: readonly BoardPlayer[];
   onStep: (delta: -1 | 1) => void;
 }) {
+  const messages = useMessages();
+  const m = messages.mobileTournament.scoreScreen;
   return (
     <View
       style={{ flex: 1, alignItems: "center", gap: 10, paddingVertical: 18 }}
@@ -103,24 +106,24 @@ function SideStepper({
         size="heroTime"
         width="expanded"
         weight="bold"
-        accessibilityLabel={`${name} ${goals}`}
+        accessibilityLabel={m.teamGoalsSr(name, goals)}
       >
         {String(goals)}
       </Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <StepButton
           kind="down"
-          label={`One goal fewer for ${name}`}
+          label={m.oneGoalFewer(name)}
           onPress={() => onStep(-1)}
         />
         <StepButton
           kind="up"
-          label={`One goal more for ${name}`}
+          label={m.oneGoalMore(name)}
           onPress={() => onStep(1)}
         />
       </View>
       <Text size="meta" tone="muted">
-        avg {sideAverage(members)}
+        {messages.game.played.avg(sideAverage(members))}
       </Text>
     </View>
   );
@@ -139,15 +142,17 @@ function ScorerChip({
   onAdd: () => void;
   onRemove: () => void;
 }) {
+  const messages = useMessages();
+  const m = messages.mobileTournament.scoreScreen;
   const scored = goals > 0;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${player.name}, ${team}, ${goals} goals`}
-      accessibilityHint="Tap to add a goal, hold to take one away"
+      accessibilityLabel={m.scorerSr(player.name, team, goals)}
+      accessibilityHint={m.scorerHint}
       accessibilityActions={[
-        { name: "increment", label: "Add a goal" },
-        { name: "decrement", label: "Take a goal away" },
+        { name: "increment", label: m.addAGoal },
+        { name: "decrement", label: m.takeAGoalAway },
       ]}
       onAccessibilityAction={(event) =>
         event.nativeEvent.actionName === "decrement" ? onRemove() : onAdd()
@@ -174,13 +179,13 @@ function ScorerChip({
         weight="semibold"
         style={{ color: scored ? colors.paper : colors.ink }}
       >
-        {player.isViewer ? "You" : shortName(player.name)}
+        {player.isViewer ? messages.common.you : shortName(player.name)}
       </Text>
       <Text
         size="eyebrow"
         style={{ color: scored ? colors.dim : colors.muted }}
       >
-        {scored ? `${goals} ${goals === 1 ? "goal" : "goals"}` : team}
+        {scored ? messages.game.played.goals(goals) : team}
       </Text>
     </Pressable>
   );
@@ -191,6 +196,9 @@ function ScorerChip({
  * who scored. The other side confirms the Score from the Game.
  */
 export function FootballScoreScreen({ gameId }: { gameId: string }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.scoreScreen;
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
@@ -216,7 +224,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
 
   const save = api.games.saveFootballScore.useMutation({
     onSuccess: async () => {
-      toast.show("Score saved");
+      toast.show(m.saved);
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
@@ -234,16 +242,11 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
   ) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback={fallback} title="Score" />
+        <ScreenHeader nav="back" fallback={fallback} title={m.title} />
         <Surface style={{ gap: 4 }}>
-          <Text weight="semibold">
-            {board.error
-              ? "The game could not be loaded"
-              : "The score is closed"}
-          </Text>
+          <Text weight="semibold">{board.error ? m.loadFailed : m.closed}</Text>
           <Text size="meta" tone="muted">
-            {board.error?.message ??
-              "The score opens at kick-off for players on the teams and the organizer, until both sides confirm it."}
+            {board.error?.message ?? m.closedLine}
           </Text>
         </Surface>
       </Screen>
@@ -252,14 +255,14 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
   if (!board.data || !teams || !draft) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback={fallback} title="Score" />
+        <ScreenHeader nav="back" fallback={fallback} title={m.title} />
         <Skeleton height={320} radius={16} />
       </Screen>
     );
   }
 
   const players = board.data.players;
-  const names = bibNames(teams.bibs);
+  const names = bibNames(teams.bibs, locale);
   const members = (side: Side) =>
     players
       .filter((player) => player.sideIndex === side)
@@ -277,25 +280,25 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
     });
   const start = game.data?.windowStart ?? null;
   const detail = [
-    start ? formatGameClock(start) : null,
-    formatWindowDuration(game.data?.windowStart, game.data?.windowEnd),
-    game.data?.sideSize ? sideSizeLabel(game.data.sideSize) : null,
+    start ? formatGameClock(start, locale) : null,
+    formatWindowDuration(game.data?.windowStart, game.data?.windowEnd, locale),
+    game.data?.sideSize ? sideSizeLabel(game.data.sideSize, locale) : null,
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(messages.tournament.listSeparator);
   const scorers = [...members(1), ...members(2)].filter(
     (player) => player.role !== "keeper",
   );
   const confirmLine = otherName
-    ? `One player from ${otherName} confirms the score.`
-    : "One player from each side confirms the score.";
+    ? m.oneFromConfirms(otherName)
+    : m.oneFromEachConfirms;
 
   return (
     <Screen
       footer={
         <View style={{ flex: 1, gap: 6 }}>
           <Button
-            label="Save score"
+            label={m.saveScore}
             size="lg"
             pending={save.isPending}
             onPress={() =>
@@ -316,10 +319,12 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
       <ScreenHeader
         nav="back"
         fallback={fallback}
-        title={start ? formatDayMonth(start, { weekday: "short" }) : "Score"}
+        title={
+          start ? formatDayMonth(start, locale, { weekday: "short" }) : m.title
+        }
         actions={
           <Text size="meta" tone="muted">
-            {board.data.match?.score ? "Edit score" : "Score missing"}
+            {board.data.match?.score ? m.editScore : m.scoreMissing}
           </Text>
         }
       >
@@ -327,7 +332,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
           <Text weight="semibold">
             {[game.data?.venue?.name, game.data?.recordedCourts[0]?.name]
               .filter(Boolean)
-              .join(", ")}
+              .join(messages.tournament.listSeparator)}
           </Text>
           {detail ? (
             <Text size="meta" tone="muted">
@@ -358,7 +363,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         <Hairline />
         <View style={{ padding: spacing.surface }}>
           <Text accessibilityLiveRegion="polite">
-            {footballResultLine(draft, names)}
+            {footballResultLine(draft, names, locale)}
           </Text>
         </View>
       </Surface>
@@ -372,9 +377,9 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
             paddingBottom: 12,
           }}
         >
-          <Text tone="muted">Scorers, optional</Text>
+          <Text tone="muted">{m.scorersOptional}</Text>
           <Text size="meta" tone="muted">
-            tap to add a goal
+            {m.tapToAdd}
           </Text>
         </View>
         <Hairline />
@@ -400,8 +405,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         <Hairline />
         <View style={{ padding: spacing.surface }}>
           <Text size="meta" tone="muted">
-            {scorersNote(draft, players, names)} Hold a name to take a goal
-            away.
+            {scorersNote(draft, players, names, locale)} {m.holdToRemove}
           </Text>
         </View>
       </Surface>

@@ -115,7 +115,7 @@ export function useTournamentOrganizer({
     if (!game) {
       return;
     }
-    const target = gameKickTarget(game, request);
+    const target = gameKickTarget(game, request, locale);
     const copy = gameKickConfirmCopy(
       target,
       {

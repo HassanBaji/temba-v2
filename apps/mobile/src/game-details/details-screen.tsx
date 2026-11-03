@@ -10,18 +10,17 @@ import {
   partnerVacantSideRaceRecovery,
 } from "@repo/domain/friendly-game-partner";
 import {
-  COMPLETE_MATCH_ACTION,
-  COMPLETE_MATCH_CONSEQUENCE,
-  GAME_TOAST,
-  LEAVE_GAME_ACTION,
-  LEAVE_WAITLIST_ACTION,
-  LEAVE_WAITLIST_CONSEQUENCE,
+  completeMatchAction,
+  completeMatchConsequence,
   gameJoinToast,
+  gameToast,
+  leaveGameAction,
+  leaveWaitlistAction,
+  leaveWaitlistConsequence,
   teamRegisterToast,
 } from "@repo/domain/game-copy";
-import { SCORE_INCOMPLETE_MESSAGE } from "@repo/domain/friendly-game-score";
+import { scoreIncompleteMessage } from "@repo/domain/friendly-game-score";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { LEVEL_RANGE_REQUEST_SENT_TOAST } from "@repo/domain/level-range-request";
 import {
   isDrawnTournamentDetails,
   type TournamentDetails,
@@ -37,6 +36,7 @@ import { useCallback, useState } from "react";
 import { View } from "react-native";
 
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
@@ -50,7 +50,6 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
-import { COMPLETE_FAILED_FALLBACK } from "../tournament/tournament-model";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
 import { TournamentContent } from "../tournament/tournament-content";
@@ -70,9 +69,9 @@ import { GameHero } from "./game-hero";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
 import {
-  UNSUPPORTED_FORMAT_COPY,
   gameTitle,
   isFriendlyGameDetails,
+  unsupportedFormatCopy,
 } from "./details-model";
 import { JoinSheet } from "./join-sheet";
 
@@ -87,6 +86,7 @@ function Notice({
   description?: string;
   onRetry?: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface accessibilityRole="alert" style={{ gap: 8 }}>
       <Text size="lead" weight="semibold">
@@ -99,7 +99,11 @@ function Notice({
       ) : null}
       {onRetry ? (
         <View style={{ flexDirection: "row", marginTop: 4 }}>
-          <Button label="Try again" variant="outline" onPress={onRetry} />
+          <Button
+            label={m.common.tryAgain}
+            variant="outline"
+            onPress={onRetry}
+          />
         </View>
       ) : null}
     </Surface>
@@ -107,8 +111,12 @@ function Notice({
 }
 
 function LoadingSkeleton() {
+  const m = useMessages();
   return (
-    <View style={{ gap: 16 }} accessibilityLabel="Loading Game">
+    <View
+      style={{ gap: 16 }}
+      accessibilityLabel={m.mobileGameDetails.loadingGame}
+    >
       <Skeleton height={220} radius={16} />
       <Skeleton height={200} radius={16} />
       <Skeleton height={200} radius={16} />
@@ -123,6 +131,9 @@ export function GameDetailsScreen({
   gameId: string;
   intent?: string;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails;
+  const locale = useLocale();
   const router = useRouter();
   const segments = useSegments();
   const toast = useToast();
@@ -186,7 +197,7 @@ export function GameDetailsScreen({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: (result) => {
-      toast.show(gameJoinToast(result.waitlisted));
+      toast.show(gameJoinToast(result.waitlisted, locale));
       setJoinOpen(false);
     },
     onError: (error) =>
@@ -195,7 +206,7 @@ export function GameDetailsScreen({
   });
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: (result) => {
-      toast.show(gameJoinToast(result.waitlisted));
+      toast.show(gameJoinToast(result.waitlisted, locale));
       setJoinOpen(false);
       setPartnerQuery("");
     },
@@ -211,6 +222,7 @@ export function GameDetailsScreen({
       }
       const raceMessage = tournamentPartnerVacantSideRaceMessage(
         data != null && isPartnerRequiredGame(data),
+        locale,
       );
       setJoinError(raceMessage);
       const fresh = await utils.games.byId.fetch({ id: gameId });
@@ -222,12 +234,12 @@ export function GameDetailsScreen({
     onSettled: refresh,
   });
   const moveSeat = api.games.moveSeat.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.seatChanged),
+    onSuccess: () => toast.show(gameToast(locale).seatChanged),
     onError: failure,
     onSettled: refresh,
   });
   const leaveGame = api.games.leave.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.left),
+    onSuccess: () => toast.show(gameToast(locale).left),
     onError: failure,
     onSettled: () => {
       setConfirm(null);
@@ -235,7 +247,7 @@ export function GameDetailsScreen({
     },
   });
   const leaveWaitlist = api.games.leaveWaitlist.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.leftWaitlist),
+    onSuccess: () => toast.show(gameToast(locale).leftWaitlist),
     onError: failure,
     onSettled: () => {
       setConfirm(null);
@@ -244,7 +256,7 @@ export function GameDetailsScreen({
   });
   const scoreSet = api.games.scoreSet.useMutation();
   const confirmResult = api.games.confirmMatchResult.useMutation({
-    onSuccess: () => toast.show("Result confirmed"),
+    onSuccess: () => toast.show(copy.toast.resultConfirmed),
     onError: failure,
     onSettled: async () => {
       await refresh();
@@ -252,13 +264,14 @@ export function GameDetailsScreen({
     },
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
-    onSuccess: () => toast.show(LEVEL_RANGE_REQUEST_SENT_TOAST),
+    onSuccess: () => toast.show(m.level.request.sent),
     onError: failure,
     onSettled: refresh,
   });
 
   const registerTeam = api.games.registerTeam.useMutation({
-    onSuccess: (result) => toast.show(teamRegisterToast(result.waitlisted)),
+    onSuccess: (result) =>
+      toast.show(teamRegisterToast(result.waitlisted, locale)),
     onError: failure,
     onSettled: refresh,
   });
@@ -297,7 +310,7 @@ export function GameDetailsScreen({
         return;
       }
       if (payloads.length === 0) {
-        toast.show(SCORE_INCOMPLETE_MESSAGE);
+        toast.show(scoreIncompleteMessage(locale));
         return;
       }
       try {
@@ -308,14 +321,25 @@ export function GameDetailsScreen({
             ...payload,
           });
         }
-        toast.show("Set saved");
+        toast.show(copy.toast.setSaved);
       } catch (error) {
-        toast.show(error instanceof Error ? error.message : "Could not save");
+        toast.show(
+          error instanceof Error ? error.message : copy.toast.couldNotSave,
+        );
       } finally {
         await refresh();
       }
     },
-    [firstMatchId, gameId, refresh, scoreSet, toast],
+    [
+      copy.toast.couldNotSave,
+      copy.toast.setSaved,
+      firstMatchId,
+      gameId,
+      locale,
+      refresh,
+      scoreSet,
+      toast,
+    ],
   );
 
   const onRefresh = useCallback(async () => {
@@ -341,21 +365,22 @@ export function GameDetailsScreen({
       return;
     }
     setConfirm({
-      title: `Leave ${gameTitle(data.name)}?`,
+      title: copy.confirm.leaveTitle(gameTitle(data.name, locale)),
       description: tournamentLeaveOrKickConfirmCopy({
         partnerRequired: isPartnerRequiredGame(data),
         drawPosted: Boolean(data.drawPostedAt),
+        locale,
       }),
-      confirmLabel: LEAVE_GAME_ACTION,
+      confirmLabel: leaveGameAction(locale),
       onConfirm: () => leaveGame.mutate({ gameId }),
     });
   }
 
   function askLeaveWaitlist() {
     setConfirm({
-      title: `${LEAVE_WAITLIST_ACTION}?`,
-      description: LEAVE_WAITLIST_CONSEQUENCE,
-      confirmLabel: LEAVE_WAITLIST_ACTION,
+      title: copy.confirm.leaveWaitlistTitle(leaveWaitlistAction(locale)),
+      description: leaveWaitlistConsequence(locale),
+      confirmLabel: leaveWaitlistAction(locale),
       onConfirm: () => leaveWaitlist.mutate({ gameId }),
     });
   }
@@ -378,14 +403,16 @@ export function GameDetailsScreen({
     payloads: Parameters<typeof saveTournamentSets>[1],
   ) {
     if (payloads.length === 0) {
-      toast.show(SCORE_INCOMPLETE_MESSAGE);
+      toast.show(scoreIncompleteMessage(locale));
       return;
     }
     try {
       await saveTournamentSets(matchId, payloads);
-      toast.show("Set saved");
+      toast.show(copy.toast.setSaved);
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : "Could not save");
+      toast.show(
+        error instanceof Error ? error.message : copy.toast.couldNotSave,
+      );
     } finally {
       await refresh();
     }
@@ -399,10 +426,10 @@ export function GameDetailsScreen({
       try {
         await saveTournamentSets(matchId, payloads);
         await completeMatch.mutateAsync({ gameId, matchId });
-        toast.show("Match completed");
+        toast.show(copy.toast.matchCompleted);
       } catch (error) {
         toast.show(
-          error instanceof Error ? error.message : COMPLETE_FAILED_FALLBACK,
+          error instanceof Error ? error.message : copy.toast.completeFailed,
         );
       } finally {
         setConfirm(null);
@@ -411,9 +438,9 @@ export function GameDetailsScreen({
       }
     }
     setConfirm({
-      title: "Complete Match and update ratings?",
-      description: COMPLETE_MATCH_CONSEQUENCE,
-      confirmLabel: COMPLETE_MATCH_ACTION,
+      title: copy.confirm.completeMatchTitle,
+      description: completeMatchConsequence(locale),
+      confirmLabel: completeMatchAction(locale),
       onConfirm: () => void run(),
     });
   }
@@ -464,7 +491,7 @@ export function GameDetailsScreen({
         initialSeat={initialSeat}
         onClose={() => setJoinOpen(false)}
         game={{
-          title: gameTitle(data.name),
+          title: gameTitle(data.name, locale),
           sides: data.sides,
           pricePerPlayerFils: data.pricePerPlayerFils,
           windowStart: data.windowStart,
@@ -520,8 +547,8 @@ export function GameDetailsScreen({
       <Screen>
         {header}
         <Notice
-          title="Game not found"
-          description="It may have been removed, or you may not have access."
+          title={copy.notFound.title}
+          description={copy.notFound.description}
         />
       </Screen>
     );
@@ -532,7 +559,7 @@ export function GameDetailsScreen({
       <Screen>
         {header}
         <Notice
-          title="Game could not be loaded"
+          title={copy.loadFailed}
           description={game.error.message}
           onRetry={() => void game.refetch()}
         />
@@ -634,8 +661,8 @@ export function GameDetailsScreen({
       <Screen refreshing={refreshing} onRefresh={onRefresh}>
         {header}
         <Notice
-          title={UNSUPPORTED_FORMAT_COPY.title}
-          description={UNSUPPORTED_FORMAT_COPY.description}
+          title={unsupportedFormatCopy(locale).title}
+          description={unsupportedFormatCopy(locale).description}
         />
       </Screen>
     );
@@ -667,7 +694,7 @@ export function GameDetailsScreen({
     onRenameUnclaimed: details.isOrganizer ? setRenaming : undefined,
   };
 
-  const hero = gameHeroModel(details, now);
+  const hero = gameHeroModel(details, now, locale);
   const playedMatch =
     details.phase === "final"
       ? friendlyGameDetailsPlan(details).firstMatch

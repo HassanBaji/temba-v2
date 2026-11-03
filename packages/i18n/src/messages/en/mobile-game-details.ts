@@ -31,6 +31,7 @@ export const mobileGameDetails = {
     requestApproved: "Request approved",
     requestRejected: "Request rejected",
     matchUpdated: "Match updated",
+    completeFailed: "Could not complete the Match",
   },
   confirm: {
     keep: "Keep",
@@ -112,6 +113,7 @@ export const mobileGameDetails = {
     setBox: (side: string, set: string) => `${side}, ${set}`,
   },
   join: {
+    positionWord: { left: "left", right: "right" },
     seatName: (side: string, position: string) => `${side} ${position}`,
     takenBy: (seat: string, name: string) => `${seat}, taken by ${name}`,
     take: (seat: string) => `Take ${seat}`,
@@ -156,6 +158,8 @@ export const mobileGameDetails = {
     playersAndPrice: "Players and price",
     price: "Price",
     players: "Players",
+    playersValue: (n: number) =>
+      plural("en", n, { one: "1 player", other: "{n} players" }),
     fewerPlayers: "Fewer players",
     morePlayers: "More players",
     aside: "A-side",

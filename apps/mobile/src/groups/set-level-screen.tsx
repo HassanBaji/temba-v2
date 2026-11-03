@@ -16,6 +16,7 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { ChipGrid, FieldError } from "../create-game/chips";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { MountFill } from "../primitives/mount-fill";
@@ -29,18 +30,12 @@ import { api } from "../trpc/react";
 import { Notice } from "./notice";
 import { groupPath } from "./groups-model";
 import {
-  SET_LEVEL_NOT_FOUND_COPY,
   savedLevelPath,
   setLevelConfirmLabel,
   setLevelUnchanged,
   setLevelView,
   type SetLevelView,
 } from "./set-level-model";
-
-const REASON_CHIPS = LEVEL_OVERRIDE_REASONS.map((value) => ({
-  value,
-  label: levelOverrideReasonLabel(value),
-}));
 
 const SLIDER_MARKS = LEVEL_SLIDER_TICKS.letters.map((letter) => ({
   value: letter.centreTenths,
@@ -54,6 +49,13 @@ function SetLevelForm({
   groupId: string;
   view: SetLevelView;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGroup.setLevel;
+  const reasonChips = LEVEL_OVERRIDE_REASONS.map((value) => ({
+    value,
+    label: levelOverrideReasonLabel(value, locale),
+  }));
   const router = useRouter();
   const utils = api.useUtils();
   const [tenths, setTenths] = useState(view.currentTenths);
@@ -90,7 +92,7 @@ function SetLevelForm({
         <View style={{ flex: 1, gap: 10 }}>
           <Text>{view.note}</Text>
           <Button
-            label={setLevelConfirmLabel(tenths)}
+            label={setLevelConfirmLabel(tenths, locale)}
             size="lg"
             disabled={setLevelUnchanged(view, tenths)}
             pending={setLevel.isPending}
@@ -109,12 +111,12 @@ function SetLevelForm({
       <ScreenHeader
         nav="back"
         fallback={groupPath(groupId)}
-        title={`Set Level for ${view.name}`}
+        title={copy.title(view.name)}
       />
       <Surface tone="ink" radius="card" style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text size="meta" weight="semibold">
-            New Level
+            {copy.newLevel}
           </Text>
           <Text size="meta" tone="muted">
             {view.wasLabel}
@@ -123,7 +125,11 @@ function SetLevelForm({
         <View
           accessible
           accessibilityLiveRegion="polite"
-          accessibilityLabel={`New Level ${readout.displayBand} ${readout.levelLabel}, ${readout.deltaLabel}`}
+          accessibilityLabel={copy.readout(
+            readout.displayBand,
+            readout.levelLabel,
+            readout.deltaLabel,
+          )}
           style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
         >
           <Text size="hero" width="expanded" weight="bold">
@@ -137,11 +143,11 @@ function SetLevelForm({
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text size="meta">
             {readout.toNext
-              ? `${readout.toNext.distanceLabel} to ${readout.toNext.label}`
-              : "Top of the scale"}
+              ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
+              : copy.topOfScale}
           </Text>
           <Text size="meta">
-            {`${readout.percentThroughRung}% through ${readout.rung.label}`}
+            {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
           </Text>
         </View>
         <MountFill percent={readout.percentThroughRung} />
@@ -164,7 +170,7 @@ function SetLevelForm({
         max={LEVEL_TENTHS_MAX}
         value={tenths}
         onValueChange={setTenths}
-        label="Level"
+        label={m.common.level}
         valueText={levelSliderLabel(tenths)}
         startLabel={LEVEL_SLIDER_TICKS.startLabel}
         endLabel={LEVEL_SLIDER_TICKS.endLabel}
@@ -172,7 +178,7 @@ function SetLevelForm({
         marks={SLIDER_MARKS}
         marker={{
           value: view.currentTenths,
-          label: `Now ${levelSliderLabel(view.currentTenths)}`,
+          label: copy.nowMarker(levelSliderLabel(view.currentTenths)),
         }}
         disabled={setLevel.isPending}
       />
@@ -186,7 +192,7 @@ function SetLevelForm({
         }}
       >
         <Button
-          label="Decrease Level by 0.1"
+          label={copy.decrease}
           variant="outline"
           size="icon"
           icon={<Minus size={sizes.iconAction} color={colors.ink} />}
@@ -201,7 +207,7 @@ function SetLevelForm({
           {readout.levelLabel}
         </Text>
         <Button
-          label="Increase Level by 0.1"
+          label={copy.increase}
           variant="outline"
           size="icon"
           icon={<Plus size={sizes.iconAction} color={colors.ink} />}
@@ -209,7 +215,7 @@ function SetLevelForm({
           onPress={() => step(1)}
         />
         <Button
-          label="Reset"
+          label={copy.reset}
           variant="outline"
           disabled={tenths === view.currentTenths}
           onPress={() => setTenths(view.currentTenths)}
@@ -217,10 +223,10 @@ function SetLevelForm({
       </View>
 
       <View style={{ gap: 8 }}>
-        <Text weight="semibold">Reason</Text>
+        <Text weight="semibold">{copy.reason}</Text>
         <ChipGrid
-          label="Reason"
-          chips={REASON_CHIPS.map((chip) => ({
+          label={copy.reason}
+          chips={reasonChips.map((chip) => ({
             ...chip,
             disabled: setLevel.isPending,
           }))}
@@ -241,6 +247,8 @@ export function SetLevelScreen({
   groupId: string;
   userId: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const group = api.groups.byId.useQuery({ id: groupId });
   const header = <ScreenHeader nav="back" fallback={groupPath(groupId)} />;
 
@@ -248,7 +256,7 @@ export function SetLevelScreen({
     return (
       <Screen>
         {header}
-        <Notice {...SET_LEVEL_NOT_FOUND_COPY} />
+        <Notice {...m.mobileGroup.setLevel.notFound} />
       </Screen>
     );
   }
@@ -259,7 +267,7 @@ export function SetLevelScreen({
         {header}
         <Notice
           alert
-          title="Level could not be loaded"
+          title={m.mobileGroup.loadFailed.level}
           description={group.error.message}
           onRetry={() => void group.refetch()}
         />
@@ -287,10 +295,10 @@ export function SetLevelScreen({
     return (
       <Screen>
         {header}
-        <Notice {...SET_LEVEL_NOT_FOUND_COPY} />
+        <Notice {...m.mobileGroup.setLevel.notFound} />
       </Screen>
     );
   }
 
-  return <SetLevelForm groupId={groupId} view={setLevelView(entry)} />;
+  return <SetLevelForm groupId={groupId} view={setLevelView(entry, locale)} />;
 }

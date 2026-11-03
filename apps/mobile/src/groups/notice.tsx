@@ -31,7 +31,11 @@ export function Notice({
       ) : null}
       {onRetry ? (
         <View style={{ flexDirection: "row", marginTop: 8 }}>
-          <Button label={m.common.tryAgain} variant="outline" onPress={onRetry} />
+          <Button
+            label={m.common.tryAgain}
+            variant="outline"
+            onPress={onRetry}
+          />
         </View>
       ) : null}
     </Surface>

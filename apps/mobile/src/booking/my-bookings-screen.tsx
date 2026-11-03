@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -32,6 +33,8 @@ export function MyBookingsScreen({
   const router = useRouter();
   const segments = useSegments();
   const now = useNow();
+  const m = useMessages();
+  const locale = useLocale();
   const [tab, setTab] = useState<BookingsTab>(initialTab);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -77,7 +80,7 @@ export function MyBookingsScreen({
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh} onNearEnd={loadMore}>
       <ScreenHeader
-        title="My bookings"
+        title={m.mobileBooking.myBookings}
         nav="back"
         fallback={segments.includes("profile") ? "/profile" : "/book"}
       >
@@ -85,36 +88,40 @@ export function MyBookingsScreen({
           tab={tab}
           onChange={setTab}
           upcomingLabel={tabLabel(
-            "Upcoming",
+            m.mobileBooking.upcoming,
             upcomingCount,
             upcoming.hasNextPage,
+            locale,
           )}
         />
       </ScreenHeader>
 
       {active.error && !items ? (
         <Notice
-          title="Bookings could not be loaded"
+          title={m.mobileBooking.list.loadError}
           description={active.error.message}
-          actionLabel="Try again"
+          actionLabel={m.common.tryAgain}
           onAction={() => void active.refetch()}
         />
       ) : !items ? (
-        <View style={{ gap: LIST_GAP }} accessibilityLabel="Loading bookings">
+        <View
+          style={{ gap: LIST_GAP }}
+          accessibilityLabel={m.mobileBooking.list.loading}
+        >
           <Skeleton height={180} radius={radii.surface} />
           <Skeleton height={76} radius={radii.surface} />
         </View>
       ) : items.length === 0 ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold">
-            {bookingsEmptyCopy(tab).title}
+            {bookingsEmptyCopy(tab, locale).title}
           </Text>
           <Text size="meta" tone="muted">
-            {bookingsEmptyCopy(tab).description}
+            {bookingsEmptyCopy(tab, locale).description}
           </Text>
           {tab === "upcoming" ? (
             <View style={{ flexDirection: "row", marginTop: 12 }}>
-              <Button label="Book a court" onPress={book} />
+              <Button label={m.mobileBooking.list.bookACourt} onPress={book} />
             </View>
           ) : null}
         </Surface>
@@ -139,14 +146,14 @@ export function MyBookingsScreen({
           )}
           {active.isFetchNextPageError ? (
             <Notice
-              title="More bookings could not be loaded"
-              actionLabel="Try again"
+              title={m.mobileBooking.list.moreLoadError}
+              actionLabel={m.common.tryAgain}
               onAction={loadMore}
             />
           ) : active.hasNextPage ? (
             <View style={{ alignItems: "center" }}>
               <Button
-                label="Load more"
+                label={m.mobileBooking.list.loadMore}
                 variant="outline"
                 pending={active.isFetchingNextPage}
                 onPress={loadMore}
@@ -168,9 +175,10 @@ function Tabs({
   onChange: (tab: BookingsTab) => void;
   upcomingLabel: string;
 }) {
+  const m = useMessages();
   const tabs = [
     { key: "upcoming", label: upcomingLabel },
-    { key: "past", label: "Past" },
+    { key: "past", label: m.mobileBooking.past },
   ] as const;
   return (
     <View

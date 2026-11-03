@@ -211,7 +211,9 @@ export function VenueScreen({
               {data.name}
             </Text>
             <Text size="meta" tone="muted">
-              {[data.city, data.country].filter(Boolean).join(", ")}
+              {[data.city, data.country]
+                .filter(Boolean)
+                .join(m.mobileBooking.listSeparator)}
             </Text>
           </View>
         </View>
@@ -372,9 +374,9 @@ export function VenueScreen({
               </ChipGrid>
               {courts.some((entry) => entry.fullyBooked) ? (
                 <Text size="meta" tone="muted">
-                  {m.mobileBooking.venueScreen.fullyBookedNote[courtFace(sport)](
-                    minutes ?? 0,
-                  )}
+                  {m.mobileBooking.venueScreen.fullyBookedNote[
+                    courtFace(sport)
+                  ](minutes ?? 0)}
                 </Text>
               ) : null}
             </>

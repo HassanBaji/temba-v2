@@ -32,7 +32,10 @@ function row(overrides: Partial<BookingRow> = {}): BookingRow {
 
 describe("row copy", () => {
   it("writes the date block, title and detail", () => {
-    expect(dayBlock(row().startsAt, "en")).toEqual({ day: "20", weekday: "Tue" });
+    expect(dayBlock(row().startsAt, "en")).toEqual({
+      day: "20",
+      weekday: "Tue",
+    });
     expect(rowTitle(row(), "en")).toBe("8:00 PM, Karbabad Courts");
     expect(rowDetail(row(), "en")).toBe("Court 1, 120 min");
   });
@@ -59,7 +62,9 @@ describe("rowBadge", () => {
     expect(rowBadge(row({ ...past, status: "cancelled" }), NOW, "en")).toBe(
       "Cancelled",
     );
-    expect(rowBadge(row({ ...past, status: "no_show" }), NOW, "en")).toBe("No-show");
+    expect(rowBadge(row({ ...past, status: "no_show" }), NOW, "en")).toBe(
+      "No-show",
+    );
   });
 });
 
@@ -74,7 +79,9 @@ describe("tabLabel", () => {
 
 describe("bookingsEmptyCopy", () => {
   it("differs per tab", () => {
-    expect(bookingsEmptyCopy("upcoming", "en").title).toBe("No upcoming bookings");
+    expect(bookingsEmptyCopy("upcoming", "en").title).toBe(
+      "No upcoming bookings",
+    );
     expect(bookingsEmptyCopy("past", "en").title).toBe("No past bookings");
   });
 });

@@ -29,11 +29,7 @@ export function RequestJoinSheet({
   }, [visible]);
 
   return (
-    <Sheet
-      visible={visible}
-      onClose={onClose}
-      title={copy.title}
-    >
+    <Sheet visible={visible} onClose={onClose} title={copy.title}>
       <View style={{ gap: 16 }}>
         <Text size="meta" tone="muted">
           {copy.description}

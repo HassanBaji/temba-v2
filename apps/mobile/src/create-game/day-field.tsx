@@ -5,6 +5,8 @@ import { Calendar, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
@@ -19,7 +21,7 @@ import {
   dateSheetStartMonth,
   monthGrid,
   visibleDayOptions,
-  WEEKDAY_INITIALS,
+  weekdayInitials,
   type MonthGrid,
   type MonthGridCell,
 } from "./create-days";
@@ -39,23 +41,25 @@ export function DayField({
   error?: string;
   onSelect: (day: string) => void;
 }) {
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.day;
   const [sheetOpen, setSheetOpen] = useState(false);
   const earliestDay = earliestCreateDay(now);
   const [month, setMonth] = useState(() =>
     dateSheetStartMonth(day, earliestDay),
   );
-  const { cells, laterLabel } = visibleDayOptions(now, day);
+  const { cells, laterLabel } = visibleDayOptions(now, day, locale);
 
   return (
     <StepSection
-      title="Day"
+      title={copy.title}
       link={{
-        label: laterLabel ?? "Later date",
+        label: laterLabel ?? copy.laterDate,
         icon: Calendar,
         selected: laterLabel !== null,
         accessibilityLabel: laterLabel
-          ? `Later date, ${laterLabel}`
-          : "Later date",
+          ? copy.laterDateA11y(laterLabel)
+          : copy.laterDate,
         onPress: () => {
           setMonth(dateSheetStartMonth(day, earliestDay));
           setSheetOpen(true);
@@ -64,7 +68,7 @@ export function DayField({
     >
       <View
         accessibilityRole="radiogroup"
-        accessibilityLabel="Day"
+        accessibilityLabel={copy.title}
         style={{ flexDirection: "row", gap: CELL_GAP }}
       >
         {cells.map((cell) => (
@@ -72,7 +76,10 @@ export function DayField({
             <DayCell
               weekday={cell.weekday}
               date={cell.date}
-              accessibilityLabel={`${cell.weekday}, ${formatDayLabel(cell.value) ?? cell.value}`}
+              accessibilityLabel={copy.cellA11y(
+                cell.weekday,
+                formatDayLabel(cell.value, locale) ?? cell.value,
+              )}
               selected={cell.value === day}
               onPress={() => onSelect(cell.value)}
             />
@@ -82,7 +89,7 @@ export function DayField({
       <FieldError message={error} />
       <DateSheet
         visible={sheetOpen}
-        grid={monthGrid(month, earliestDay)}
+        grid={monthGrid(month, earliestDay, locale)}
         day={day}
         onMonthChange={setMonth}
         onClose={() => setSheetOpen(false)}
@@ -155,8 +162,10 @@ function DateSheet({
   onClose: () => void;
   onPick: (day: string) => void;
 }) {
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.day;
   return (
-    <Sheet visible={visible} onClose={onClose} title="Pick a day">
+    <Sheet visible={visible} onClose={onClose} title={copy.sheetTitle}>
       <View
         style={{
           flexDirection: "row",
@@ -166,7 +175,7 @@ function DateSheet({
         }}
       >
         <MonthButton
-          label="Previous month"
+          label={copy.previousMonth}
           icon="previous"
           target={grid.previous}
           onPress={onMonthChange}
@@ -180,7 +189,7 @@ function DateSheet({
           {grid.label}
         </Text>
         <MonthButton
-          label="Next month"
+          label={copy.nextMonth}
           icon="next"
           target={grid.next}
           onPress={onMonthChange}
@@ -193,7 +202,7 @@ function DateSheet({
           aria-hidden
           style={{ flexDirection: "row", gap: CELL_GAP }}
         >
-          {WEEKDAY_INITIALS.map((initial, index) => (
+          {weekdayInitials(locale).map((initial, index) => (
             <Text
               key={index}
               size="eyebrow"
@@ -246,7 +255,13 @@ function MonthButton({
       label={label}
       variant="outline"
       size="icon"
-      icon={<Icon size={sizes.iconAction} color={palette.foreground} />}
+      icon={
+        <Icon
+          size={sizes.iconAction}
+          color={palette.foreground}
+          style={mirrorInRtl}
+        />
+      }
       disabled={target === null}
       onPress={target === null ? undefined : () => onPress(target)}
     />
@@ -262,13 +277,14 @@ function MonthDay({
   selected: boolean;
   onPress: () => void;
 }) {
+  const locale = useLocale();
   const tone = selected ? "ink" : "paper";
   const palette = tonePalette(tone);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={formatDayLabel(cell.value) ?? cell.value}
+        accessibilityLabel={formatDayLabel(cell.value, locale) ?? cell.value}
         accessibilityState={{ selected, disabled: cell.disabled }}
         disabled={cell.disabled}
         onPress={onPress}

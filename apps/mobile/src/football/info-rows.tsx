@@ -2,6 +2,7 @@ import { spacing } from "@repo/design-tokens";
 import { Fragment } from "react";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -10,6 +11,7 @@ export type InfoRow = { label: string; value: string };
 
 /** Label and value lines on one card, split by hairlines. */
 export function InfoRows({ rows }: { rows: readonly InfoRow[] }) {
+  const m = useMessages().mobileTournament;
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       {rows.map((row, index) => (
@@ -17,7 +19,7 @@ export function InfoRows({ rows }: { rows: readonly InfoRow[] }) {
           {index > 0 ? <Hairline /> : null}
           <View
             accessible
-            accessibilityLabel={`${row.label}: ${row.value}`}
+            accessibilityLabel={m.infoRow(row.label, row.value)}
             style={{
               flexDirection: "row",
               justifyContent: "space-between",

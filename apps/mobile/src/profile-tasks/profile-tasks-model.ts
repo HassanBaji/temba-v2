@@ -73,9 +73,7 @@ export function checklistChipTasks(
 ): string {
   const m = messagesFor(locale).mobileHome.tasks;
   return m.shortList(
-    list.open
-      .filter((task) => !task.required)
-      .map((task) => m.short[task.id]),
+    list.open.filter((task) => !task.required).map((task) => m.short[task.id]),
   );
 }
 

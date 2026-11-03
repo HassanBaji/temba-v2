@@ -231,7 +231,10 @@ export function ProfileChecklistCard({
           }
           onPress={() => onNavigate({ kind: "complete-profile" })}
         />
-        <FooterLink label={m.mobileHome.checklist.skipForNow} onPress={onSkip} />
+        <FooterLink
+          label={m.mobileHome.checklist.skipForNow}
+          onPress={onSkip}
+        />
       </View>
     </Surface>
   );

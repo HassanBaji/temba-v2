@@ -2,14 +2,15 @@ import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import {
   groupNameCounter,
   GROUP_NAME_MAX_LENGTH,
-  GROUP_SPORT_SUBLABELS,
+  groupSportSublabel,
   groupVisibilityCopy,
   type GroupVisibility,
 } from "@repo/domain/group-settings";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import type { Sport } from "@repo/domain/sport";
 import { Camera, Lock } from "lucide-react-native";
 import { Pressable, Switch, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -58,11 +59,14 @@ export function PhotoTile({
   /** Without a photo: a dashed camera slot, or the Group's initials on ink. */
   empty?: "camera" | "initials";
 }) {
+  const m = useMessages();
   const filled = Boolean(uri) || empty === "initials";
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={uri ? `Change photo` : `Add photo`}
+      accessibilityLabel={
+        uri ? m.mobileGroup.form.changePhoto : m.mobileGroup.form.addPhoto
+      }
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -158,6 +162,7 @@ export function GroupNameField({
   error?: string | null;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   return (
     <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
       <TextField
@@ -185,7 +190,10 @@ export function GroupNameField({
           size="eyebrow"
           tone="muted"
           mono
-          accessibilityLabel={`${value.length} of ${GROUP_NAME_MAX_LENGTH} characters`}
+          accessibilityLabel={m.mobileGroup.form.nameCounter(
+            value.length,
+            GROUP_NAME_MAX_LENGTH,
+          )}
         >
           {groupNameCounter(value)}
         </Text>
@@ -206,6 +214,8 @@ export function SportSegment({
   onSelect: (sport: Sport) => void;
   disabled?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -225,7 +235,10 @@ export function SportSegment({
           <Pressable
             key={sport}
             accessibilityRole="radio"
-            accessibilityLabel={`${SPORT_LABELS[sport]}, ${GROUP_SPORT_SUBLABELS[sport]}`}
+            accessibilityLabel={m.mobileGroup.form.sportChoice(
+              m.common[sport],
+              groupSportSublabel(sport, locale),
+            )}
             accessibilityState={{ checked: selected, disabled }}
             disabled={disabled}
             onPress={() => onSelect(sport)}
@@ -247,13 +260,13 @@ export function SportSegment({
               weight="semibold"
               style={{ color: selected ? colors.paper : colors.ink }}
             >
-              {SPORT_LABELS[sport]}
+              {m.common[sport]}
             </Text>
             <Text
               size="eyebrow"
               style={{ color: selected ? colors.dim : colors.muted }}
             >
-              {GROUP_SPORT_SUBLABELS[sport]}
+              {groupSportSublabel(sport, locale)}
             </Text>
           </Pressable>
         );
@@ -269,10 +282,14 @@ export function LockedSportCard({
   sport: Sport | null;
   help: string;
 }) {
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={`Sport ${sport ? SPORT_LABELS[sport] : "not set"}. ${help}`}
+      accessibilityLabel={m.mobileGroup.form.lockedSport(
+        sport ? m.common[sport] : m.mobileGroup.form.sportNotSet,
+        help,
+      )}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -286,7 +303,9 @@ export function LockedSportCard({
       }}
     >
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text weight="semibold">{sport ? SPORT_LABELS[sport] : "Not set"}</Text>
+        <Text weight="semibold">
+          {sport ? m.common[sport] : m.common.notSet}
+        </Text>
         <Text size="eyebrow" tone="muted">
           {help}
         </Text>
@@ -341,10 +360,13 @@ export function RadioRow({
   disabled?: boolean;
   leading?: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityLabel={description ? `${title}, ${description}` : title}
+      accessibilityLabel={
+        description ? m.mobileGroup.form.radio(title, description) : title
+      }
       accessibilityState={{ checked: selected, disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -384,7 +406,8 @@ export function VisibilityCards({
   onSelect: (value: GroupVisibility) => void;
   disabled?: boolean;
 }) {
-  const copy = groupVisibilityCopy(context);
+  const locale = useLocale();
+  const copy = groupVisibilityCopy(context, locale);
   return (
     <Surface
       accessibilityRole="radiogroup"

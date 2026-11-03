@@ -1,6 +1,7 @@
 import { View } from "react-native";
 
 import { Block } from "../home/slot-block";
+import { useMessages } from "../i18n/locale-provider";
 import { ScreenHeader } from "../primitives/screen-header";
 import { ProfileAllTimeCard } from "./all-time-card";
 import { ProfileFormCard } from "./form-card";
@@ -35,11 +36,12 @@ export function ProfileView({
   onSignOut: () => void;
   onRetry: () => void;
 }) {
+  const m = useMessages();
   const { allTime } = model;
 
   return (
     <View style={{ gap: SECTION_GAP }}>
-      <ScreenHeader title="Profile" />
+      <ScreenHeader title={m.common.profile} />
       <ProfileHeader
         name={model.name}
         imageUri={model.imageUri}
@@ -52,7 +54,7 @@ export function ProfileView({
       />
       <Block
         slot={model.level}
-        title="Level"
+        title={m.common.level}
         skeletonHeight={200}
         onRetry={onRetry}
       >
@@ -60,7 +62,7 @@ export function ProfileView({
       </Block>
       <Block
         slot={model.recentForm}
-        title="Recent form"
+        title={m.mobileHome.recentForm.title}
         skeletonHeight={90}
         onRetry={onRetry}
       >
@@ -68,7 +70,7 @@ export function ProfileView({
       </Block>
       <Block
         slot={allTime}
-        title="All time"
+        title={m.profile.player.allTime}
         skeletonHeight={240}
         onRetry={onRetry}
       >

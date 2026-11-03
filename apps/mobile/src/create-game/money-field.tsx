@@ -2,6 +2,7 @@ import { colors, numerals, radii, sizes } from "@repo/design-tokens";
 import { useRef } from "react";
 import { Pressable, TextInput, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { inputType } from "../primitives/text-field";
@@ -21,6 +22,7 @@ export function MoneyField({
   accessibilityLabel: string;
   error?: string;
 }) {
+  const m = useMessages();
   const input = useRef<TextInput>(null);
   return (
     <View style={{ gap: 6 }}>
@@ -56,7 +58,7 @@ export function MoneyField({
           }}
         />
         <Text tone="muted" importantForAccessibility="no">
-          BD
+          {m.createGame.price.currency}
         </Text>
       </Pressable>
       <FieldError message={error} />

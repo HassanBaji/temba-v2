@@ -117,8 +117,8 @@ describe("standing rows", () => {
 });
 
 describe("playedRowView", () => {
-  const [won, lost, unscored, cancelled] = home.member.gameHistory.map(
-    (game) => playedRowView(game, "en"),
+  const [won, lost, unscored, cancelled] = home.member.gameHistory.map((game) =>
+    playedRowView(game, "en"),
   );
 
   it("reads the score from the viewer's side with the viewer first", () => {
@@ -240,7 +240,14 @@ describe("memberList with an Unclaimed player", () => {
   const members = [leaderboard[0]!, unclaimed];
 
   it("marks the row and lets only a Group approver select it to remove", () => {
-    const approverRows = memberList(members, "", ORIGIN, "en", false, true).rows;
+    const approverRows = memberList(
+      members,
+      "",
+      ORIGIN,
+      "en",
+      false,
+      true,
+    ).rows;
     expect(approverRows.map((row) => row.unclaimed)).toEqual([false, true]);
     expect(approverRows.map((row) => row.selectable)).toEqual([false, true]);
     expect(approverRows[1]!.caption).toContain("+973 •••• 4408");
@@ -319,7 +326,9 @@ describe("memberSheetView", () => {
     expect(view.summary).toMatch(/ · مباراة مصنّفة واحدة$/);
     expect(view.provisionalNote).toContain("Ada");
     expect(view.latestSet).toMatch(/عائد من إصابة$/);
-    expect(standingRowView(home.member.standing.leaderboard[2]!, "ar")).toMatchObject({
+    expect(
+      standingRowView(home.member.standing.leaderboard[2]!, "ar"),
+    ).toMatchObject({
       name: "أنت",
     });
   });

@@ -40,9 +40,7 @@ describe("scorableMatches", () => {
 
   it("writes the headings in Arabic", () => {
     const first = pool.postedMid.matches[0];
-    expect(first && matchHeading(pool.postedMid, first, "ar")).toBe(
-      "الجولة 1",
-    );
+    expect(first && matchHeading(pool.postedMid, first, "ar")).toBe("الجولة 1");
     const [level] = scorableMatches(knockout.knockoutOnlyMid, "ar");
     expect(level?.note).toBe("أضف شوطًا فاصلًا");
   });

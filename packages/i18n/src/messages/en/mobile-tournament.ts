@@ -53,8 +53,7 @@ export const mobileTournament = {
     scoreMissing: "Score missing",
     enterScore: "Enter score",
     each: "each",
-    startCaptainsPick: (sideSize: number) =>
-      `${sideSize} start, captains pick`,
+    startCaptainsPick: (sideSize: number) => `${sideSize} start, captains pick`,
     captainsPickStarters: "Captains pick starters",
   },
   content: {
@@ -129,6 +128,7 @@ export const mobileTournament = {
       `${position}. ${name}. Played ${played}, won ${won}, drawn ${drawn}, lost ${lost}`,
   },
   bibs: {
+    swatchSr: (team: string, colour: string) => `${team}, ${colour}`,
     moreColours: "More colours",
     bibColourFor: (team: string) => `${team} bib colour`,
     bibColours: "Bib colours",

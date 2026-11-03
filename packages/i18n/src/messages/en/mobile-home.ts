@@ -94,7 +94,8 @@ export const mobileHome = {
       `For ${phone}. Other devices will be signed out.`,
     saveAndSignIn: "Save and sign in",
     yourName: "Your name",
-    nameFooter: "Photo, email, sports and level can be added later from Profile.",
+    nameFooter:
+      "Photo, email, sports and level can be added later from Profile.",
     preview: "Preview",
     pickPassword: "Pick a password",
     pickPasswordDescription: "For signing in on a new phone.",
@@ -161,7 +162,10 @@ export const mobileHome = {
   },
   header: {
     invitesWaiting: (n: number) =>
-      plural("en", n, { one: "Invites, 1 waiting", other: "Invites, {n} waiting" }),
+      plural("en", n, {
+        one: "Invites, 1 waiting",
+        other: "Invites, {n} waiting",
+      }),
   },
   upNext: {
     title: "Up next",
@@ -180,12 +184,17 @@ export const mobileHome = {
       `${registered} of ${allowed} players`,
     bookingDetail: (court: string, minutes: number) =>
       `${court}, ${minutes} min`,
-    bookingHeroSpoken: (day: string, time: string, court: string, venue: string) =>
-      `Next up, booking, ${day} ${time}, ${court}, ${venue}`,
+    bookingHeroSpoken: (
+      day: string,
+      time: string,
+      court: string,
+      venue: string,
+    ) => `Next up, booking, ${day} ${time}, ${court}, ${venue}`,
     heroSpoken: (title: string, day: string, time: string) =>
       `Next up, ${title}, ${day} ${time}`,
     gameHeroSpoken: (title: string, day: string, time: string, place: string) =>
       `Next up, ${title}, ${day} ${time}, ${place}`,
+    invite: "Invite",
     details: "Details",
     allBookingsAndGames: "All bookings and games",
     book: {

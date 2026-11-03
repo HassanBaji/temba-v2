@@ -43,7 +43,9 @@ export function dayStrip(
     return {
       key: productDayKey(midnight),
       weekday:
-        offset === 0 ? m.common.today : formatWeekday(midnight, "short", locale),
+        offset === 0
+          ? m.common.today
+          : formatWeekday(midnight, "short", locale),
       dayOfMonth: zonedParts(midnight).day,
     };
   });

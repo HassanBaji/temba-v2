@@ -73,7 +73,10 @@ export function MyGroupsEmpty({
         </View>
         <Hairline />
         <View style={{ flexDirection: "row" }}>
-          <NotSetCell label={m.mobileGroup.list.empty.standing} divided={false} />
+          <NotSetCell
+            label={m.mobileGroup.list.empty.standing}
+            divided={false}
+          />
           <NotSetCell label={m.mobileGroup.list.nextGame} divided />
         </View>
       </Surface>

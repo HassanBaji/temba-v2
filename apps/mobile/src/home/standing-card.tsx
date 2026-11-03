@@ -35,48 +35,50 @@ export function StandingCard({
       {rows
         .map((row) => homeStandingRowView(row, locale))
         .map((row) => (
-        <View key={row.groupId}>
-          <Hairline />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={m.mobileHome.standing.rowSpoken(
-              row.groupName,
-              row.rank,
-              row.ofCount,
-            )}
-            onPress={() => onNavigate({ kind: "group", groupId: row.groupId })}
-            style={({ pressed }) => ({
-              minHeight: sizes.touchTarget + 8,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              paddingHorizontal: spacing.surface,
-              paddingVertical: 12,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Text
-              weight="semibold"
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
+          <View key={row.groupId}>
+            <Hairline />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={m.mobileHome.standing.rowSpoken(
+                row.groupName,
+                row.rank,
+                row.ofCount,
+              )}
+              onPress={() =>
+                onNavigate({ kind: "group", groupId: row.groupId })
+              }
+              style={({ pressed }) => ({
+                minHeight: sizes.touchTarget + 8,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                paddingHorizontal: spacing.surface,
+                paddingVertical: 12,
+                opacity: pressed ? 0.7 : 1,
+              })}
             >
-              {row.groupName}
-            </Text>
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}
-            >
-              <Text size="title" width="expanded" weight="bold">
-                {row.rank}
+              <Text
+                weight="semibold"
+                numberOfLines={1}
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                {row.groupName}
               </Text>
-              <Text size="meta" tone="muted">
-                {row.ofCount}
-              </Text>
-            </View>
-          </Pressable>
-        </View>
-      ))}
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}
+              >
+                <Text size="title" width="expanded" weight="bold">
+                  {row.rank}
+                </Text>
+                <Text size="meta" tone="muted">
+                  {row.ofCount}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        ))}
     </Card>
   );
 }

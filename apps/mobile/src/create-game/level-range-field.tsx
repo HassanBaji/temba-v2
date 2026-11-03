@@ -7,13 +7,12 @@ import {
 } from "@repo/domain/level-range";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Text } from "../primitives/text";
 import { ChipGrid, FieldError } from "./chips";
 import type { StepProps } from "./step-props";
 import { levelRangeSummary } from "./create-summary";
 import { HelperNote, StepSection } from "./step-section";
-
-const BOUND_LABELS = { min: "Minimum", max: "Maximum" } as const;
 
 function BoundRow({
   bound,
@@ -28,20 +27,24 @@ function BoundRow({
   error?: string;
   onChange: (value: LevelBandSelectValue) => void;
 }) {
-  const label = BOUND_LABELS[bound];
+  const copy = useMessages().mobileCreateGame.levelRange;
+  const label = bound === "min" ? copy.minimum : copy.maximum;
   return (
     <View style={{ gap: 8 }}>
       <Text size="meta" tone="muted">
         {label}
       </Text>
       <ChipGrid
-        label={`${label} Level`}
+        label={bound === "min" ? copy.minimumLevel : copy.maximumLevel}
         columns={5}
         dense
         chips={ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
           value: band,
           label: band,
-          accessibilityLabel: `${label} Level ${band}`,
+          accessibilityLabel:
+            bound === "min"
+              ? copy.minimumLevelBand(band)
+              : copy.maximumLevelBand(band),
           disabled: isLevelBoundDisabled(bound, band, other),
         }))}
         isSelected={(band) => band === value}
@@ -61,7 +64,9 @@ export function LevelRangeRows({
   openLink = true,
 }: StepProps & { openLink?: boolean }) {
   const { draft } = state;
-  const summary = levelRangeSummary(draft.levelMin, draft.levelMax);
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.levelRange;
+  const summary = levelRangeSummary(draft.levelMin, draft.levelMax, locale);
   const setBound = (bound: "min" | "max") => (value: LevelBandSelectValue) =>
     dispatch({ kind: "setLevelBound", bound, value });
 
@@ -92,15 +97,18 @@ export function LevelRangeRows({
         <Text
           size="meta"
           tone="muted"
-          accessibilityLabel={`Minimum ${summary.minimum}, Maximum ${summary.maximum}`}
+          accessibilityLabel={copy.summaryA11y(
+            summary.minimum,
+            summary.maximum,
+          )}
           style={{ flexShrink: 1 }}
         >
-          Minimum{" "}
+          {copy.minimum}{" "}
           <Text size="meta" weight="semibold">
             {summary.minimum}
           </Text>
           {"  /  "}
-          Maximum{" "}
+          {copy.maximum}{" "}
           <Text size="meta" weight="semibold">
             {summary.maximum}
           </Text>
@@ -120,7 +128,7 @@ export function LevelRangeRows({
               tone="muted"
               style={{ textDecorationLine: "underline" }}
             >
-              Open to anyone
+              {copy.openToAnyone}
             </Text>
           </Pressable>
         )}
@@ -130,16 +138,17 @@ export function LevelRangeRows({
 }
 
 export function LevelRangeHelper() {
-  return (
-    <HelperNote>
-      Users without a Level must request to play when a range is set.
-    </HelperNote>
-  );
+  const copy = useMessages().mobileCreateGame.levelRange;
+  return <HelperNote>{copy.helper}</HelperNote>;
 }
 
 export function LevelRangeField(props: StepProps) {
+  const m = useMessages();
   return (
-    <StepSection title="Level range" note="Optional">
+    <StepSection
+      title={m.mobileCreateGame.levelRange.title}
+      note={m.common.optional}
+    >
       <LevelRangeRows {...props} />
       <LevelRangeHelper />
     </StepSection>

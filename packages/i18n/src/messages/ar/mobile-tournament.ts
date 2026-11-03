@@ -136,6 +136,7 @@ export const mobileTournament = {
       `${position}. ${name}. لُعبت ${played}، فوز ${won}، تعادل ${drawn}، خسارة ${lost}`,
   },
   bibs: {
+    swatchSr: (team: string, colour: string) => `${team}، ${colour}`,
     moreColours: "مزيد من الألوان",
     bibColourFor: (team: string) => `لون قميص ${team}`,
     bibColours: "ألوان القمصان",
@@ -159,8 +160,7 @@ export const mobileTournament = {
   makeTeams: {
     methodByLevel: "حسب المستوى",
     methodManual: "يدوي",
-    avgAndKeepers: (avg: string, keepers: string) =>
-      `متوسط ${avg}، ${keepers}`,
+    avgAndKeepers: (avg: string, keepers: string) => `متوسط ${avg}، ${keepers}`,
     ofTeamSize: (n: number, size: number) => `${n} من ${size}`,
     readyToPublish: (note: string) => `${note} جاهز للنشر.`,
     moveToOtherTeam: (name: string) => `انقل ${name} إلى الفريق الآخر`,
@@ -187,8 +187,7 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `يفضّل ${position}`,
     noPositionYet: "لا مركز بعد",
-    roleAndLevel: (role: string, level: string) =>
-      `${role}، المستوى ${level}`,
+    roleAndLevel: (role: string, level: string) => `${role}، المستوى ${level}`,
     viewProfile: "عرض الملف الشخصي",
   },
   pool: {

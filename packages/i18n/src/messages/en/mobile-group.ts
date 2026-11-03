@@ -39,8 +39,7 @@ export const mobileGroup = {
       title: "Group not found",
       description: "It may have been removed, or you may not have access.",
     },
-    declineVenueRequest: (venue: string) =>
-      `Decline the request from ${venue}`,
+    declineVenueRequest: (venue: string) => `Decline the request from ${venue}`,
     reviewVenueRequest: (venue: string) => `Review the request from ${venue}`,
   },
   standing: {

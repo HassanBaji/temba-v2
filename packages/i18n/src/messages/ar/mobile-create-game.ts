@@ -112,6 +112,7 @@ export const mobileCreateGame = {
     more: "فرق أكثر",
   },
   day: {
+    sheetTitle: "اختر يومًا",
     title: "اليوم",
     laterDate: "تاريخ لاحق",
     laterDateA11y: (label: string) => `تاريخ لاحق، ${label}`,

@@ -1,19 +1,11 @@
 import { spacing } from "@repo/design-tokens";
-import {
-  ADD_PLAYER_ACTION,
-  ADD_PLAYER_DESCRIPTION,
-  organizerCanAddPlayer,
-} from "@repo/domain/add-player-by-phone";
-import { KICK_ACTION } from "@repo/domain/game-copy";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { kickAction } from "@repo/domain/game-copy";
 import type {
   TournamentDetails,
   TournamentHomeView,
 } from "@repo/domain/tournament-details";
 import {
-  MERGE_BANNER_ACTION_LABEL,
-  MERGE_BANNER_TITLE,
-  MERGE_MANY_TITLE,
-  MERGE_SEATS_ACTION_LABEL,
   mergeCompletesTheField,
   mergeManyHalfTeamsCopy,
   mergePairCopy,
@@ -25,9 +17,6 @@ import {
 } from "@repo/domain/tournament-organizer";
 import { hasDraftKnockoutDraw } from "@repo/domain/tournament-knockout-view";
 import {
-  DRAW_ENTRY_ACTION_LABEL,
-  UNDO_KNOCKOUT_DRAW_ACTION,
-  UNDO_POOL_DRAW_ACTION,
   drawEntryStateLine,
   drawEntryTitle,
   hasDraftPoolDraw,
@@ -37,6 +26,7 @@ import { Fragment } from "react";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
@@ -83,6 +73,12 @@ export function OrganizerCard({
   organizer: TournamentOrganizerView;
   handlers: OrganizerCardHandlers;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const halfTeamsCopy = messages.tournament.halfTeams;
+  const poolDraw = messages.tournament.poolDraw;
+  const m = messages.mobileTournament.organizer;
+  const kick = kickAction(locale);
   const { knockoutOnly } = handlers;
   const blocks: React.ReactNode[] = [];
 
@@ -92,7 +88,7 @@ export function OrganizerCard({
     blocks.push(
       <Block key="merge">
         <Text weight="medium">
-          {banner ? MERGE_BANNER_TITLE : MERGE_MANY_TITLE}
+          {banner ? halfTeamsCopy.bannerTitle : halfTeamsCopy.manyTitle}
         </Text>
         <Text size="meta" tone="muted">
           {banner
@@ -101,13 +97,14 @@ export function OrganizerCard({
                 secondName: second.occupant.name,
                 completesField: mergeCompletesTheField(organizer.halfTeams),
                 teamCount: game.teamsAllowed,
+                locale,
               })
-            : mergeManyHalfTeamsCopy(organizer.halfTeams.length)}
+            : mergeManyHalfTeamsCopy(organizer.halfTeams.length, locale)}
         </Text>
         <Action>
           <Button
             label={
-              banner ? MERGE_BANNER_ACTION_LABEL : MERGE_SEATS_ACTION_LABEL
+              banner ? halfTeamsCopy.bannerAction : halfTeamsCopy.mergeSeats
             }
             variant={banner ? "default" : "outline"}
             onPress={handlers.onOpenMerge}
@@ -123,16 +120,19 @@ export function OrganizerCard({
       : hasDraftPoolDraw(game.gameTeams);
     blocks.push(
       <Block key="draw">
-        <Text weight="medium">{drawEntryTitle(hasDraft, knockoutOnly)}</Text>
+        <Text weight="medium">
+          {drawEntryTitle(hasDraft, locale, knockoutOnly)}
+        </Text>
         <Text size="meta" tone="muted">
           {drawEntryStateLine(
             home.field.full,
             game.teamsAllowed ?? game.sides.length,
+            locale,
           )}
         </Text>
         <Action>
           <Button
-            label={DRAW_ENTRY_ACTION_LABEL}
+            label={poolDraw.entryAction}
             variant="outline"
             onPress={handlers.onOpenDraw}
           />
@@ -148,14 +148,14 @@ export function OrganizerCard({
     blocks.push(
       <Block key="rounds">
         <View>
-          <Text weight="medium">Rounds</Text>
+          <Text weight="medium">{messages.tournament.sizing.roundsLabel}</Text>
           <Text size="meta" tone="muted">
-            {roundCountLabel(rounds.roundCount)}
+            {roundCountLabel(rounds.roundCount, locale)}
           </Text>
         </View>
         <Action>
           <Button
-            label="Change Rounds"
+            label={m.changeRounds}
             variant="outline"
             onPress={handlers.onOpenRounds}
           />
@@ -169,9 +169,7 @@ export function OrganizerCard({
       <Block key="undo">
         <Action>
           <Button
-            label={
-              knockoutOnly ? UNDO_KNOCKOUT_DRAW_ACTION : UNDO_POOL_DRAW_ACTION
-            }
+            label={knockoutOnly ? poolDraw.undoKnockout : poolDraw.undo}
             variant="outline"
             pending={handlers.undoPending}
             onPress={handlers.onUndo}
@@ -185,11 +183,11 @@ export function OrganizerCard({
     blocks.push(
       <Block key="add-player">
         <Text size="meta" tone="muted">
-          {ADD_PLAYER_DESCRIPTION}
+          {messages.group.addPlayer.description}
         </Text>
         <Action>
           <Button
-            label={ADD_PLAYER_ACTION}
+            label={messages.group.addPlayer.action}
             variant="outline"
             onPress={handlers.onAddPlayer}
           />
@@ -204,7 +202,7 @@ export function OrganizerCard({
     blocks.push(
       <Block key="kick">
         <Text weight="medium" accessibilityRole="header">
-          Players
+          {messages.common.players}
         </Text>
         {occupants.map((occupant) => (
           <View
@@ -215,8 +213,8 @@ export function OrganizerCard({
               {occupant.name}
             </Text>
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${occupant.name}`}
+              label={kick}
+              accessibilityLabel={m.kickSr(occupant.name)}
               size="sm"
               variant="outline"
               disabled={handlers.kickPending}
@@ -230,11 +228,11 @@ export function OrganizerCard({
             style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
           >
             <Text style={{ flex: 1, minWidth: 0 }} numberOfLines={1}>
-              {`${entry.name} (waitlist)`}
+              {m.waitlistEntry(entry.name)}
             </Text>
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${entry.name} from the waitlist`}
+              label={kick}
+              accessibilityLabel={m.kickFromWaitlistSr(entry.name)}
               size="sm"
               variant="outline"
               disabled={handlers.kickPending}
@@ -251,7 +249,7 @@ export function OrganizerCard({
   }
 
   return (
-    <Card title="Organizer" flush>
+    <Card title={messages.tournament.home.organizerRow} flush>
       {blocks.map((block, index) => (
         <Fragment key={index}>
           {index > 0 ? <Hairline /> : null}
