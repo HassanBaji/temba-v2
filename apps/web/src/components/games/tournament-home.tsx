@@ -8,7 +8,7 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
-import { FooterAction } from "~/components/games/friendly-game-actions-footer";
+import { FooterAction } from "~/components/games/footer-action";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import {
