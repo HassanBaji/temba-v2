@@ -114,6 +114,7 @@ export type HubHistoryRow = {
   id: string;
   name: string | null;
   format: string;
+  sport: string | null;
   venue: { name: string };
   displayTime: Date;
   matchId: string;

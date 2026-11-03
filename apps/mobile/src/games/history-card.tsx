@@ -1,5 +1,4 @@
 import { radii } from "@repo/design-tokens";
-import { setLabel, setShortLabel } from "@repo/domain/game-copy";
 import type { HubHistoryRow } from "@repo/domain/hub-game-row";
 import {
   matchHistoryCardModel,
@@ -7,35 +6,81 @@ import {
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
 import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
+import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { ResultMark } from "../primitives/result-mark";
-import { useTonePalette } from "../primitives/surface-context";
+import {
+  SurfaceToneContext,
+  useTonePalette,
+} from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { CardShell } from "./card-parts";
 
-const SCORE_WIDTH = 28;
+const INSET = 16;
+const AVATAR_RING = 2;
+const AVATAR_OVERLAP = 8;
+const SCORE_MIN_WIDTH = 22;
 
-function SetHeader({ columns }: { columns: number }) {
+function AvatarStack({ team }: { team: HistoryTeamRow }) {
+  const palette = useTonePalette();
+
+  if (team.avatars.length === 0) {
+    return (
+      <View style={{ width: 28, height: 28 }}>
+        <Hatch radius={14} />
+      </View>
+    );
+  }
+
   return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ flexDirection: "row", justifyContent: "flex-end", gap: 6 }}
-    >
-      {Array.from({ length: columns }, (_, index) => (
+    <View style={{ flexDirection: "row", paddingLeft: AVATAR_OVERLAP }}>
+      {team.avatars.map((member) => (
+        <View
+          key={member.id}
+          style={{
+            marginLeft: -AVATAR_OVERLAP,
+            borderRadius: 14,
+            borderWidth: AVATAR_RING,
+            borderColor: palette.background,
+          }}
+        >
+          <Avatar name={member.name} uri={member.image} size="sm" />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function TeamScores({ team }: { team: HistoryTeamRow }) {
+  if (!team.scores) {
+    return (
+      <View style={{ flexDirection: "row", gap: 6 }}>
+        {Array.from({ length: PENDING_SET_COLUMNS }, (_, index) => (
+          <View key={index} style={{ width: 22, height: 22 }}>
+            <Hatch radius={radii.sm} />
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  const sets = team.scores.length > 1;
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+      {team.scores.map((score, index) => (
         <Text
           key={index}
-          size="eyebrow"
-          tone="muted"
-          mono
-          accessibilityLabel={setLabel(index)}
-          style={{ width: SCORE_WIDTH, textAlign: "center" }}
+          size={sets ? "title" : "h2"}
+          width="expanded"
+          weight="bold"
+          tone={score.lostSet ? "muted" : "default"}
+          style={{ minWidth: SCORE_MIN_WIDTH, textAlign: "right" }}
         >
-          {setShortLabel(index)}
+          {score.games}
         </Text>
       ))}
     </View>
@@ -43,9 +88,6 @@ function SetHeader({ columns }: { columns: number }) {
 }
 
 function TeamRow({ team }: { team: HistoryTeamRow }) {
-  const palette = useTonePalette();
-  const openSeats = Math.max(team.seats - team.members.length, 0);
-
   return (
     <View
       accessible
@@ -59,70 +101,67 @@ function TeamRow({ team }: { team: HistoryTeamRow }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
-        borderRadius: radii.lg,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderWidth: hairline,
-        borderColor: team.outlined ? palette.foreground : palette.rule,
-        backgroundColor: team.filled ? palette.wash : palette.background,
+        gap: 12,
+        paddingVertical: 12,
       }}
     >
-      <View style={{ flexDirection: "row", gap: 2 }}>
-        {team.members.map((member) => (
-          <Avatar
-            key={member.id}
-            name={member.name}
-            uri={member.image}
-            size="sm"
-          />
-        ))}
-        {Array.from({ length: openSeats }, (_, index) => (
-          <View key={`open-${index}`} style={{ width: 24, height: 24 }}>
-            <Hatch radius={radii.slot} />
-          </View>
-        ))}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <AvatarStack team={team} />
+      <View
+        style={{ flex: 1, minWidth: 0 }}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
         <Text
           numberOfLines={1}
-          weight={team.filled || team.outlined ? "semibold" : "regular"}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
+          weight={team.side === "mine" ? "semibold" : "regular"}
+          tone={team.lost ? "muted" : "default"}
         >
           {team.label}
         </Text>
-        <Text
-          size="eyebrow"
-          tone="muted"
-          mono
-          uppercase
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        >
+        <Text size="eyebrow" tone="muted">
           {team.note}
         </Text>
       </View>
-      <View style={{ flexDirection: "row", gap: 6 }}>
-        {team.scores
-          ? team.scores.map((score, index) => (
-              <Text
-                key={index}
-                size="lead"
-                width="expanded"
-                weight="bold"
-                tone={score.wonSet ? "default" : "muted"}
-                style={{ width: SCORE_WIDTH, textAlign: "center" }}
-              >
-                {score.games}
-              </Text>
-            ))
-          : Array.from({ length: PENDING_SET_COLUMNS }, (_, index) => (
-              <View key={index} style={{ width: SCORE_WIDTH, height: 26 }}>
-                <Hatch radius={radii.sm} />
-              </View>
-            ))}
-      </View>
+      <TeamScores team={team} />
+    </View>
+  );
+}
+
+function ResultStrip({
+  outcome,
+  scoreLine,
+  day,
+}: {
+  outcome: HubHistoryRow["outcome"];
+  scoreLine: string;
+  day: string;
+}) {
+  const palette = useTonePalette();
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: INSET,
+        paddingVertical: 12,
+        backgroundColor: outcome === "won" ? palette.background : palette.wash,
+      }}
+    >
+      <ResultMark variant={outcome} size={16} decorative />
+      <Text weight="semibold">{RESULT_MARK_LABEL[outcome]}</Text>
+      <Text size="meta" tone="muted">
+        {scoreLine}
+      </Text>
+      <Text
+        size="eyebrow"
+        tone="muted"
+        numberOfLines={1}
+        style={{ marginLeft: "auto" }}
+      >
+        {day}
+      </Text>
     </View>
   );
 }
@@ -134,57 +173,94 @@ export function HistoryCard({
   row: HubHistoryRow;
   onOpen: (gameId: string) => void;
 }) {
+  const palette = useTonePalette();
   const model = matchHistoryCardModel(row);
   const won = model.outcome === "won";
 
   return (
-    <CardShell
-      label={`${RESULT_MARK_LABEL[model.outcome]}, ${model.meta}`}
-      onPress={() => onOpen(row.id)}
+    <View
+      style={{
+        borderRadius: radii.surface,
+        borderWidth: hairline,
+        borderColor: won ? palette.foreground : palette.rule,
+        backgroundColor: palette.background,
+        overflow: "hidden",
+      }}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-        <ResultMark variant={model.outcome} decorative />
-        <View style={{ flex: 1, minWidth: 0 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${RESULT_MARK_LABEL[model.outcome]}, ${model.scoreLine}, ${model.meta}`}
+        onPress={() => onOpen(row.id)}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      >
+        <SurfaceToneContext.Provider value={won ? "ink" : "paper"}>
+          <ResultStrip
+            outcome={model.outcome}
+            scoreLine={model.scoreLine}
+            day={model.day}
+          />
+        </SurfaceToneContext.Provider>
+
+        {model.sport || model.groupName ? (
           <View
-            style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              paddingHorizontal: INSET,
+              paddingTop: 10,
+            }}
           >
-            <Text
-              size="title"
-              width="expanded"
-              weight="bold"
-              tone={won ? "default" : "muted"}
-            >
-              {RESULT_MARK_LABEL[model.outcome]}
-            </Text>
-            <Text size="meta" tone="muted">
-              {model.scored
-                ? `${model.tally.won}–${model.tally.lost} in sets`
-                : "No score yet"}
-            </Text>
+            {model.sport ? (
+              <View
+                style={{
+                  borderWidth: hairline,
+                  borderColor: palette.rule,
+                  borderRadius: radii.slot,
+                  paddingHorizontal: 7,
+                  paddingVertical: 3,
+                }}
+              >
+                <Text size="eyebrow" tone="muted" mono uppercase>
+                  {model.sport}
+                </Text>
+              </View>
+            ) : null}
+            {model.groupName ? (
+              <Text
+                size="eyebrow"
+                tone="muted"
+                mono
+                uppercase
+                numberOfLines={1}
+                style={{ flexShrink: 1, marginLeft: "auto" }}
+              >
+                {model.groupName}
+              </Text>
+            ) : null}
           </View>
-          <Text size="meta" tone="muted" numberOfLines={1}>
-            {model.meta}
+        ) : null}
+
+        <View style={{ paddingHorizontal: INSET, paddingTop: 4 }}>
+          <TeamRow team={model.teams[0]} />
+          <Hairline />
+          <TeamRow team={model.teams[1]} />
+        </View>
+
+        <Hairline />
+        <View
+          style={{
+            paddingHorizontal: INSET,
+            paddingTop: 10,
+            paddingBottom: 12,
+          }}
+        >
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {model.place}
           </Text>
         </View>
-        {model.groupName ? (
-          <Text
-            size="eyebrow"
-            tone="muted"
-            mono
-            uppercase
-            numberOfLines={1}
-            style={{ maxWidth: "36%" }}
-          >
-            {model.groupName}
-          </Text>
-        ) : null}
-      </View>
-      <View style={{ gap: 6 }}>
-        {model.scored ? <SetHeader columns={model.setColumns} /> : null}
-        {model.teams.map((team) => (
-          <TeamRow key={team.side} team={team} />
-        ))}
-      </View>
-    </CardShell>
+      </Pressable>
+    </View>
   );
 }
