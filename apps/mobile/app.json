@@ -42,6 +42,13 @@
             "./assets/fonts/GeistMono-Regular.ttf"
           ]
         }
+      ],
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Temba saves result cards and stickers to your photo library."
+        }
       ]
     ]
   }

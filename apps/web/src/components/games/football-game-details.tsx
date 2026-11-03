@@ -27,6 +27,8 @@ import { FootballPlayerDialog } from "~/components/games/football-player-dialog"
 import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
+import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
+import { PlayedGameView } from "~/components/games/played/played-game-view";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
   gameInviteSubtitle,
@@ -83,6 +85,7 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import { gameInviteAccess } from "@repo/domain/invites";
+import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -131,6 +134,10 @@ export function FootballGameDetails({
     roster: game.roster ?? { users: [], count: 0, cap: game.playersAllowed },
   };
   const model = footballGameDetailsModel(input, now);
+  const played = gameIsPlayed(
+    { windowEnd: game.windowEnd, matches: game.matches },
+    now,
+  );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
   const lines = footballHeroLines(
@@ -389,7 +396,7 @@ export function FootballGameDetails({
           <p className="min-w-0 flex-1 font-semibold">
             {viewerCode ? `You're in as ${viewerCode}` : "You're in"}
           </p>
-          {board.data?.match?.score == null ? (
+          {board.data?.match?.score == null && !played ? (
             <Button
               type="button"
               size="sm"
@@ -402,14 +409,16 @@ export function FootballGameDetails({
               Change
             </Button>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant={onInk ? "outline-inverse" : "outline"}
-            onClick={() => setLeaveOpen(true)}
-          >
-            {LEAVE_GAME_ACTION}
-          </Button>
+          {played ? null : (
+            <Button
+              type="button"
+              size="sm"
+              variant={onInk ? "outline-inverse" : "outline"}
+              onClick={() => setLeaveOpen(true)}
+            >
+              {LEAVE_GAME_ACTION}
+            </Button>
+          )}
         </div>
       ) : null}
       {cta?.kind === "waitlisted" ? (
@@ -494,6 +503,26 @@ export function FootballGameDetails({
       </>
     );
 
+  const score = board.data?.match?.score ?? null;
+  const playedModel =
+    teams && names && score && board.data?.match?.status === "completed"
+      ? playedFootballModel({
+          players,
+          bibs: teams.bibs,
+          score,
+          confirmed: board.data.match.confirmed,
+          enteredByName: board.data.match.enteredByName,
+          teamsMethod: teams.method,
+          sideSize: game.sideSize,
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          venue: game.venue,
+          courtName: game.recordedCourts[0]?.name ?? null,
+          groupName: game.groupName,
+          rated: game.rated,
+          ratingImpact: game.ratingImpact,
+        })
+      : null;
   const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (
     <ActionMenu label="Game actions">
@@ -575,9 +604,39 @@ export function FootballGameDetails({
           </SoftArchiveBanner>
         ) : null}
 
-        <FootballGameHeroCard tone={model.hero.tone} lines={lines}>
-          {heroBody}
-        </FootballGameHeroCard>
+        {playedModel ? (
+          <PlayedGameView
+            gameId={gameId}
+            hero={{
+              dateLine: playedModel.dateLine,
+              tag: playedModel.tag,
+              result: playedModel.result,
+              venueLine: playedModel.venueLine,
+              whenLine: playedModel.whenLine,
+              you: playedModel.you,
+              avatar: viewer
+                ? { name: viewer.name, image: viewer.image }
+                : null,
+            }}
+            board={
+              <PlayedFootballBoard
+                sides={playedModel.board}
+                hasWinner={playedModel.result.hasWinner}
+                scorers={playedModel.scorers}
+              />
+            }
+            columns={playedModel.columns}
+            unplaced={playedModel.unplaced}
+            facts={playedModel.facts}
+            onPressPlayer={
+              pressPlayer ? (row) => pressPlayer(row.userId) : undefined
+            }
+          />
+        ) : (
+          <FootballGameHeroCard tone={model.hero.tone} lines={lines}>
+            {heroBody}
+          </FootballGameHeroCard>
+        )}
 
         {board.error ? (
           <p role="alert" className="text-destructive text-meta">
@@ -603,7 +662,7 @@ export function FootballGameDetails({
           </section>
         ) : null}
 
-        {teams && names ? (
+        {teams && names && !playedModel ? (
           <FootballScoreCard
             bibs={teams.bibs}
             names={names}
@@ -625,7 +684,7 @@ export function FootballGameDetails({
           />
         ) : null}
 
-        <FootballInfoRows rows={infoRows} />
+        {playedModel ? null : <FootballInfoRows rows={infoRows} />}
 
         {canMakeTeams ? (
           <section className="border-rule bg-paper flex items-center justify-between gap-3 rounded-xl border p-5">

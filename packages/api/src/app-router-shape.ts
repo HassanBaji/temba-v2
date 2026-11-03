@@ -127,6 +127,7 @@ type ExpectedGames =
   | "completeMatch"
   | "confirmMatchResult"
   | "footballBoard"
+  | "resultLink"
   | "setFootballRole"
   | "publishFootballTeams"
   | "saveFootballScore"

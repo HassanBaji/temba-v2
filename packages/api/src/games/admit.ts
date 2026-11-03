@@ -1,13 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
-import {
-  MatchStatusEnum,
-  gamePlayers,
-  gameTeams,
-  matches,
-  teamMembers,
-  teams,
-} from "@repo/db";
+import { gamePlayers, gameTeams, teamMembers, teams } from "@repo/db";
 
 import {
   FRIENDLY_PLAYERS_ALLOWED,
@@ -93,17 +86,6 @@ async function notifyGameJoined(
   });
 }
 
-async function hasCompletedMatch(database: AdmitDb, gameId: string) {
-  const completed = await database.query.matches.findFirst({
-    where: and(
-      eq(matches.gameId, gameId),
-      eq(matches.status, MatchStatusEnum.COMPLETED),
-    ),
-    columns: { id: true },
-  });
-  return Boolean(completed);
-}
-
 async function refuseRegisterDoors(
   database: AdmitDb,
   game: GameRow,
@@ -121,12 +103,6 @@ async function refuseRegisterDoors(
   }
   if (door === "register" && !isRegistrationOpen(game, now)) {
     return { ok: false, reason: "registration_closed" };
-  }
-  if (
-    door === "organizer_add" &&
-    (await hasCompletedMatch(database, game.id))
-  ) {
-    return { ok: false, reason: "match_completed" };
   }
   return null;
 }

@@ -12,7 +12,8 @@ import {
 } from "@repo/db/schema";
 
 import { gameById } from "#src/routers/games/byId";
-import { leaveGame } from "#src/routers/games/leave";
+import { GAME_PLAYED_LEAVE_MESSAGE, leaveGame } from "#src/routers/games/leave";
+import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -153,6 +154,42 @@ describe("leaveGame", () => {
       });
       expect(callerView.isSeated).toBe(false);
       expect(callerView.isRegistered).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses once the Game has been played; the roster is the record", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const caller = await insertUser(db, "caller@example.com", "Ada");
+      const venue = await insertVenue(db);
+      const game = await insertPublicFriendly(db, {
+        createdBy: caller.id,
+        venueId: venue.id,
+      });
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: caller.id,
+        sideIndex: 1,
+        position: "left",
+      });
+      const afterTheGame = new Date(
+        (game.windowEnd?.getTime() ?? Date.now()) + 60 * 60 * 1000,
+      );
+
+      await expect(
+        leaveGame(db, {
+          gameId: game.id,
+          userId: caller.id,
+          now: afterTheGame,
+        }),
+      ).rejects.toThrow(GAME_PLAYED_LEAVE_MESSAGE);
+
+      const players = await db.query.gamePlayers.findMany({
+        where: eq(gamePlayers.gameId, game.id),
+      });
+      expect(players.map((row) => row.userId)).toEqual([caller.id]);
     } finally {
       await close();
     }

@@ -1,4 +1,8 @@
-import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import {
+  ADD_PLAYER_ACTION,
+  ADD_PLAYER_DESCRIPTION,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -27,6 +31,11 @@ import {
   type GameKickRequest,
 } from "@repo/domain/game-kick-confirm";
 import { gameInviteAccess } from "@repo/domain/invites";
+import {
+  gameIsPlayed,
+  playedFootballModel,
+  type PlayedRow,
+} from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments, type Href } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -49,6 +58,11 @@ import { TeamColumns } from "../football/team-columns";
 import { useNow } from "../games/use-now";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
+import { PlayedFootballBoard } from "../played-game/played-football-board";
+import { sharePath } from "../played-game/played-friendly-game";
+import { PlayedGameView } from "../played-game/played-game-view";
+import { PlayedMenuSheet } from "../played-game/played-menu-sheet";
+import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
@@ -116,6 +130,8 @@ export function FootballGameDetails({
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [joinMode, setJoinMode] = useState<"join" | "edit" | null>(null);
   const [selected, setSelected] = useState<BoardPlayer | null>(null);
+  const [playedMenuOpen, setPlayedMenuOpen] = useState(false);
+  const [playedSelected, setPlayedSelected] = useState<PlayedRow | null>(null);
   const autoJoined = useRef(false);
 
   const board = api.games.footballBoard.useQuery(
@@ -133,6 +149,10 @@ export function FootballGameDetails({
     roster: game.roster ?? { users: [], count: 0, cap: game.playersAllowed },
   };
   const model = footballGameDetailsModel(input, now);
+  const played = gameIsPlayed(
+    { windowEnd: game.windowEnd, matches: game.matches },
+    now,
+  );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
   const lines = footballHeroLines(
@@ -384,7 +404,7 @@ export function FootballGameDetails({
               {viewerCode ? `You're in as ${viewerCode}` : "You're in"}
             </Text>
           </View>
-          {board.data?.match?.score == null ? (
+          {board.data?.match?.score == null && !played ? (
             <Button
               label="Change"
               variant="outline-inverse"
@@ -395,13 +415,15 @@ export function FootballGameDetails({
               }}
             />
           ) : null}
-          <Button
-            label={LEAVE_GAME_ACTION}
-            variant="outline-inverse"
-            size="sm"
-            pending={leave.isPending}
-            onPress={askLeave}
-          />
+          {played ? null : (
+            <Button
+              label={LEAVE_GAME_ACTION}
+              variant="outline-inverse"
+              size="sm"
+              pending={leave.isPending}
+              onPress={askLeave}
+            />
+          )}
         </View>
       ) : null}
       {model.cta?.kind === "waitlisted" ? (
@@ -484,136 +506,234 @@ export function FootballGameDetails({
       </View>
     );
 
+  const score = board.data?.match?.score ?? null;
+  const playedModel =
+    teams && names && score && board.data?.match?.status === "completed"
+      ? playedFootballModel({
+          players,
+          bibs: teams.bibs,
+          score,
+          confirmed: board.data.match.confirmed,
+          enteredByName: board.data.match.enteredByName,
+          teamsMethod: teams.method,
+          sideSize: game.sideSize,
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          venue: game.venue,
+          courtName: game.recordedCourts[0]?.name ?? null,
+          groupName: game.groupName,
+          rated: game.rated,
+          ratingImpact: game.ratingImpact,
+        })
+      : null;
+  const playedMenuItems = organizerCanAddPlayer(game)
+    ? [
+        {
+          key: "add_player",
+          label: ADD_PLAYER_ACTION,
+          hint: ADD_PLAYER_DESCRIPTION,
+          onPress: () => setAddPlayerOpen(true),
+        },
+      ]
+    : [];
+  const refreshAll = () => {
+    onRefresh();
+    void board.refetch();
+  };
+
+  const screen = playedModel ? (
+    <PlayedGameView
+      hero={{
+        dateLine: playedModel.dateLine,
+        tag: playedModel.tag,
+        fallback: "/games",
+        result: playedModel.result,
+        venueLine: playedModel.venueLine,
+        whenLine: playedModel.whenLine,
+        you: playedModel.you,
+        avatar: viewer ? { name: viewer.name, image: viewer.image } : null,
+      }}
+      board={
+        <PlayedFootballBoard
+          sides={playedModel.board}
+          hasWinner={playedModel.result.hasWinner}
+          scorers={playedModel.scorers}
+        />
+      }
+      columns={playedModel.columns}
+      unplaced={playedModel.unplaced}
+      facts={playedModel.facts}
+      refreshing={refreshing}
+      onRefresh={refreshAll}
+      onShare={() => router.push(sharePath(gameId))}
+      onMore={
+        playedMenuItems.length > 0 ? () => setPlayedMenuOpen(true) : undefined
+      }
+      onPressPlayer={
+        model.organizer || canOpenProfile ? setPlayedSelected : undefined
+      }
+    />
+  ) : (
+    <Screen
+      refreshing={refreshing}
+      onRefresh={refreshAll}
+      statusBarTone={model.hero.tone}
+      header={
+        <FootballHero
+          tone={model.hero.tone}
+          lines={lines}
+          fallback="/games"
+          actions={
+            inviteAccess.canManage ? (
+              <InviteEntry onPress={() => setInviteOpen(true)} />
+            ) : null
+          }
+        >
+          {heroBody}
+        </FootballHero>
+      }
+    >
+      <View style={{ gap: SECTION_GAP }}>
+        {game.cancelledAt ? (
+          <Surface accessibilityRole="alert">
+            <Text size="title" weight="semibold">
+              This Game is cancelled
+            </Text>
+          </Surface>
+        ) : null}
+        {game.joinFrozen && !game.cancelledAt ? (
+          <Surface style={{ gap: 4 }}>
+            <Text size="lead" weight="semibold" accessibilityRole="header">
+              This Club Group&apos;s Community is Soft-archived
+            </Text>
+            <Text size="meta" tone="muted">
+              Registration, the waitlist, and invites stay closed.
+            </Text>
+          </Surface>
+        ) : null}
+        {board.error ? (
+          <Surface accessibilityRole="alert" style={{ gap: 8 }}>
+            <Text weight="semibold">The lineup could not be loaded</Text>
+            <Text size="meta" tone="muted">
+              {board.error.message}
+            </Text>
+          </Surface>
+        ) : null}
+        {!teams ? (
+          <View style={{ gap: 12 }}>
+            {players.length === 0 && layout.openSeats === 0 ? (
+              <>
+                <SectionHead title="Players" />
+                <Text size="meta" tone="muted">
+                  Nobody has joined yet.
+                </Text>
+              </>
+            ) : (
+              <PoolSections
+                players={layout.pool}
+                seats={layout.seats}
+                onOpenPlayer={onPressPlayer}
+              />
+            )}
+            <Text size="meta" tone="muted">
+              Positions are preferences, not promises. The organizer makes the
+              teams, with a keeper on each side.
+            </Text>
+          </View>
+        ) : null}
+        {teams && names ? (
+          <FootballScoreCard
+            bibs={teams.bibs}
+            names={names}
+            players={players}
+            match={board.data?.match ?? null}
+            canEnterScore={board.data?.viewer.canEnterScore ?? false}
+            canConfirm={board.data?.viewer.canConfirm ?? false}
+            canConfirmAsOrganizer={
+              board.data?.viewer.canConfirmAsOrganizer ?? false
+            }
+            confirmPending={confirmScore.isPending}
+            onEnterScore={() => router.push(scorePath)}
+            onConfirm={() => {
+              const matchId = board.data?.match?.id;
+              if (matchId) {
+                confirmScore.mutate({ gameId, matchId });
+              }
+            }}
+          />
+        ) : null}
+        <InfoRows rows={infoRows} />
+        {model.organizer ? (
+          <FootballOrganizerCard
+            organizer={model.organizer}
+            waitlist={model.waitlistRows}
+            playersAllowed={game.playersAllowed}
+            teams={
+              board.data?.viewer.canMakeTeams
+                ? {
+                    status: teams
+                      ? footballTeamsMethodLabel(teams.method)
+                      : "Not set yet. Split the pool when it fills.",
+                    actionLabel: teams ? "Edit teams" : "Make teams",
+                  }
+                : null
+            }
+            handlers={{
+              registrationPending:
+                closeRegistration.isPending || reopenRegistration.isPending,
+              cancelPending: cancel.isPending,
+              onToggleRegistration: () =>
+                model.organizer?.registration === "reopen"
+                  ? reopenRegistration.mutate({ gameId })
+                  : closeRegistration.mutate({ gameId }),
+              onChangeCap: () => setEditOpen(true),
+              onEdit: () => setEditOpen(true),
+              onCancel: askCancel,
+              onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
+              onAddPlayer: organizerCanAddPlayer(game)
+                ? () => setAddPlayerOpen(true)
+                : undefined,
+              onMakeTeams: () => router.push(teamsPath),
+            }}
+          />
+        ) : null}
+      </View>
+    </Screen>
+  );
+
   return (
     <View style={{ flex: 1 }}>
-      <Screen
-        refreshing={refreshing}
-        onRefresh={() => {
-          onRefresh();
-          void board.refetch();
-        }}
-        statusBarTone={model.hero.tone}
-        header={
-          <FootballHero
-            tone={model.hero.tone}
-            lines={lines}
-            fallback="/games"
-            actions={
-              inviteAccess.canManage ? (
-                <InviteEntry onPress={() => setInviteOpen(true)} />
-              ) : null
+      {screen}
+      {playedModel ? (
+        <>
+          <PlayedMenuSheet
+            visible={playedMenuOpen}
+            title={gameTitle(game.name)}
+            items={playedMenuItems}
+            onClose={() => setPlayedMenuOpen(false)}
+          />
+          <PlayedPlayerSheet
+            player={playedSelected}
+            canOpenProfile={canOpenProfile}
+            canKick={
+              model.organizer != null &&
+              playedSelected != null &&
+              !playedSelected.isYou
             }
-          >
-            {heroBody}
-          </FootballHero>
-        }
-      >
-        <View style={{ gap: SECTION_GAP }}>
-          {game.cancelledAt ? (
-            <Surface accessibilityRole="alert">
-              <Text size="title" weight="semibold">
-                This Game is cancelled
-              </Text>
-            </Surface>
-          ) : null}
-          {game.joinFrozen && !game.cancelledAt ? (
-            <Surface style={{ gap: 4 }}>
-              <Text size="lead" weight="semibold" accessibilityRole="header">
-                This Club Group&apos;s Community is Soft-archived
-              </Text>
-              <Text size="meta" tone="muted">
-                Registration, the waitlist, and invites stay closed.
-              </Text>
-            </Surface>
-          ) : null}
-          {board.error ? (
-            <Surface accessibilityRole="alert" style={{ gap: 8 }}>
-              <Text weight="semibold">The lineup could not be loaded</Text>
-              <Text size="meta" tone="muted">
-                {board.error.message}
-              </Text>
-            </Surface>
-          ) : null}
-          {!teams ? (
-            <View style={{ gap: 12 }}>
-              {players.length === 0 && layout.openSeats === 0 ? (
-                <>
-                  <SectionHead title="Players" />
-                  <Text size="meta" tone="muted">
-                    Nobody has joined yet.
-                  </Text>
-                </>
-              ) : (
-                <PoolSections
-                  players={layout.pool}
-                  seats={layout.seats}
-                  onOpenPlayer={onPressPlayer}
-                />
-              )}
-              <Text size="meta" tone="muted">
-                Positions are preferences, not promises. The organizer makes the
-                teams, with a keeper on each side.
-              </Text>
-            </View>
-          ) : null}
-          {teams && names ? (
-            <FootballScoreCard
-              bibs={teams.bibs}
-              names={names}
-              players={players}
-              match={board.data?.match ?? null}
-              canEnterScore={board.data?.viewer.canEnterScore ?? false}
-              canConfirm={board.data?.viewer.canConfirm ?? false}
-              canConfirmAsOrganizer={
-                board.data?.viewer.canConfirmAsOrganizer ?? false
-              }
-              confirmPending={confirmScore.isPending}
-              onEnterScore={() => router.push(scorePath)}
-              onConfirm={() => {
-                const matchId = board.data?.match?.id;
-                if (matchId) {
-                  confirmScore.mutate({ gameId, matchId });
-                }
-              }}
-            />
-          ) : null}
-          <InfoRows rows={infoRows} />
-          {model.organizer ? (
-            <FootballOrganizerCard
-              organizer={model.organizer}
-              waitlist={model.waitlistRows}
-              playersAllowed={game.playersAllowed}
-              teams={
-                board.data?.viewer.canMakeTeams
-                  ? {
-                      status: teams
-                        ? footballTeamsMethodLabel(teams.method)
-                        : "Not set yet. Split the pool when it fills.",
-                      actionLabel: teams ? "Edit teams" : "Make teams",
-                    }
-                  : null
-              }
-              handlers={{
-                registrationPending:
-                  closeRegistration.isPending || reopenRegistration.isPending,
-                cancelPending: cancel.isPending,
-                onToggleRegistration: () =>
-                  model.organizer?.registration === "reopen"
-                    ? reopenRegistration.mutate({ gameId })
-                    : closeRegistration.mutate({ gameId }),
-                onChangeCap: () => setEditOpen(true),
-                onEdit: () => setEditOpen(true),
-                onCancel: askCancel,
-                onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
-                onAddPlayer: organizerCanAddPlayer(game)
-                  ? () => setAddPlayerOpen(true)
-                  : undefined,
-                onMakeTeams: () => router.push(teamsPath),
-              }}
-            />
-          ) : null}
-        </View>
-      </Screen>
+            canRename={false}
+            onClose={() => setPlayedSelected(null)}
+            onOpenProfile={(userId) => {
+              setPlayedSelected(null);
+              openProfile(userId);
+            }}
+            onKick={(userId) => {
+              setPlayedSelected(null);
+              askKick({ userId });
+            }}
+            onRename={() => undefined}
+          />
+        </>
+      ) : null}
       {inviteAccess.canManage ? (
         <InviteDoorSheet
           visible={inviteOpen}

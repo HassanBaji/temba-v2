@@ -1,0 +1,164 @@
+import {
+  ADD_PLAYER_ACTION,
+  ADD_PLAYER_DESCRIPTION,
+  organizerCanAddPlayer,
+} from "@repo/domain/add-player-by-phone";
+import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
+import type {
+  FriendlyGameDetails,
+  FriendlyGameDetailsMatch,
+} from "@repo/domain/friendly-game-details";
+import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
+import {
+  padelViewerSide,
+  playedPadelModel,
+  type PlayedRow,
+} from "@repo/domain/played-game";
+import { useRouter, type Href } from "expo-router";
+import { useMemo, useState } from "react";
+
+import { gameTitle } from "../game-details/details-model";
+import type { useOrganizerActions } from "../game-details/use-organizer-actions";
+import { PlayedGameView } from "./played-game-view";
+import { PlayedMenuSheet, type PlayedMenuItem } from "./played-menu-sheet";
+import { PlayedPadelBoard } from "./played-padel-board";
+import { PlayedPlayerSheet } from "./played-player-sheet";
+
+type Organizer = ReturnType<typeof useOrganizerActions>;
+
+export function sharePath(gameId: string) {
+  return `/games/${gameId}/share` as Href;
+}
+
+/** A padel Friendly game once its Match is final. */
+export function PlayedFriendlyGame({
+  gameId,
+  game,
+  match,
+  refreshing,
+  onRefresh,
+  organizer,
+  onOpenPlayer,
+  onRenameUnclaimed,
+}: {
+  gameId: string;
+  game: FriendlyGameDetails;
+  match: FriendlyGameDetailsMatch;
+  refreshing: boolean;
+  onRefresh: () => void;
+  organizer: Organizer;
+  onOpenPlayer?: (userId: string) => void;
+  onRenameUnclaimed?: (player: { userId: string; name: string }) => void;
+}) {
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selected, setSelected] = useState<PlayedRow | null>(null);
+
+  const model = useMemo(
+    () =>
+      playedPadelModel({
+        sides: game.sides,
+        viewerUserId: game.viewerUserId,
+        match,
+        windowStart: game.windowStart,
+        windowEnd: game.windowEnd,
+        venue: game.venue,
+        courtName: match.courtName,
+        groupName: game.groupName,
+        rated: game.rated,
+        ratingImpact: game.ratingImpact,
+        confirmation: game.matchResultConfirmation,
+      }),
+    [game, match],
+  );
+  const viewerSide = padelViewerSide(game.sides, game.viewerUserId);
+  const viewerSeat =
+    viewerSide?.left?.userId === game.viewerUserId
+      ? viewerSide.left
+      : (viewerSide?.right ?? null);
+
+  const menuItems: PlayedMenuItem[] = game.isOrganizer
+    ? [
+        ...(organizerCanAddPlayer(game)
+          ? [
+              {
+                key: "add_player",
+                label: ADD_PLAYER_ACTION,
+                hint: ADD_PLAYER_DESCRIPTION,
+                onPress: organizer.handlers.onAddPlayer,
+              },
+            ]
+          : []),
+        ...friendlyGameFooterActions({
+          phase: "final",
+          isOrganizer: true,
+          canLeaveGame: false,
+          canReportWrongScore: game.canReportWrongScore,
+          playerCount: occupiedFriendlyPositions(game.sides),
+        }).map((action) => ({
+          key: action.kind,
+          label: action.label,
+          hint: action.consequence,
+          disabled: !action.enabled,
+          onPress: () => organizer.onFooterAction(action.kind),
+        })),
+      ]
+    : [];
+
+  const kickable = organizer.plan?.kickableUserIds ?? [];
+  const canTapPlayers = Boolean(onOpenPlayer) || organizer.plan != null;
+
+  return (
+    <>
+      <PlayedGameView
+        hero={{
+          dateLine: model.dateLine,
+          tag: model.tag,
+          fallback: "/games",
+          result: model.result,
+          venueLine: model.venueLine,
+          whenLine: model.whenLine,
+          you: model.you,
+          avatar: viewerSeat
+            ? { name: viewerSeat.name, image: viewerSeat.image }
+            : null,
+        }}
+        board={
+          <PlayedPadelBoard setLabels={model.setLabels} rows={model.board} />
+        }
+        columns={model.columns}
+        facts={model.facts}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onShare={() => router.push(sharePath(gameId))}
+        onMore={menuItems.length > 0 ? () => setMenuOpen(true) : undefined}
+        onPressPlayer={canTapPlayers ? setSelected : undefined}
+      />
+      <PlayedMenuSheet
+        visible={menuOpen}
+        title={gameTitle(game.name)}
+        items={menuItems}
+        onClose={() => setMenuOpen(false)}
+      />
+      <PlayedPlayerSheet
+        player={selected}
+        canOpenProfile={Boolean(onOpenPlayer)}
+        canKick={selected != null && kickable.includes(selected.userId)}
+        canRename={Boolean(onRenameUnclaimed)}
+        onClose={() => setSelected(null)}
+        onOpenProfile={(userId) => {
+          setSelected(null);
+          onOpenPlayer?.(userId);
+        }}
+        onKick={(userId) => {
+          setSelected(null);
+          organizer.handlers.onKickPlayer(userId);
+        }}
+        onRename={(player) => {
+          setSelected(null);
+          onRenameUnclaimed?.(player);
+        }}
+      />
+    </>
+  );
+}
