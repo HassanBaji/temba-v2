@@ -3,8 +3,8 @@
 import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
-import { BackButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -78,14 +78,7 @@ export function PlayedHero({
 }: PlayedHeroProps) {
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
-      <div className="flex items-center justify-between gap-3">
-        <BackButton variant="boxed" surface="ink" href="/dashboard/games" />
-        {actions ? (
-          <div className="text-paper flex shrink-0 items-center gap-2">
-            {actions}
-          </div>
-        ) : null}
-      </div>
+      <HeroNavRow tone="ink" actions={actions} />
 
       <div className="mt-6">
         <HeroTopLine
