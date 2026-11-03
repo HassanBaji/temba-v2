@@ -1,15 +1,5 @@
 import { spacing } from "@repo/design-tokens";
-import {
-  ADD_PLAYER_ACTION,
-  ADD_PLAYER_DESCRIPTION,
-} from "@repo/domain/add-player-by-phone";
-import {
-  CLOSE_REGISTRATION_ACTION,
-  COMPLETE_MATCH_ACTION,
-  COMPLETE_MATCH_CONSEQUENCE,
-  KICK_ACTION,
-  REOPEN_REGISTRATION_ACTION,
-} from "@repo/domain/game-copy";
+import { KICK_ACTION } from "@repo/domain/game-copy";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import { Fragment } from "react";
 import { View } from "react-native";
@@ -79,6 +69,7 @@ export function PersonRow({
   );
 }
 
+/** The Organizer's queues: Level range requests, the waitlist, anyone not seated. */
 export function OrganizerCard({
   plan,
   handlers,
@@ -86,82 +77,7 @@ export function OrganizerCard({
   plan: FriendlyGameOrganizerPlan;
   handlers: OrganizerHandlers;
 }) {
-  const blocks: React.ReactNode[] = [
-    <Block key="registration">
-      <Text weight="medium">Registration</Text>
-      <View style={{ flexDirection: "row" }}>
-        <Button
-          label={
-            plan.registration === "close"
-              ? CLOSE_REGISTRATION_ACTION
-              : REOPEN_REGISTRATION_ACTION
-          }
-          variant="outline"
-          pending={handlers.registrationPending}
-          onPress={handlers.onToggleRegistration}
-        />
-      </View>
-    </Block>,
-  ];
-
-  if (plan.canAddPlayer) {
-    blocks.push(
-      <Block key="add-player">
-        <View>
-          <Text weight="medium">Players</Text>
-          <Text size="meta" tone="muted">
-            {ADD_PLAYER_DESCRIPTION}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label={ADD_PLAYER_ACTION}
-            variant="outline"
-            onPress={handlers.onAddPlayer}
-          />
-        </View>
-      </Block>,
-    );
-  }
-
-  if (plan.court) {
-    blocks.push(
-      <Block key="court">
-        <View>
-          <Text weight="medium">Court</Text>
-          <Text size="meta" tone="muted">
-            {plan.court.courtName ?? "No Court"}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label="Change Court"
-            variant="outline"
-            onPress={handlers.onChooseCourt}
-          />
-        </View>
-      </Block>,
-    );
-  }
-
-  if (plan.completeMatchId) {
-    const matchId = plan.completeMatchId;
-    blocks.push(
-      <Block key="complete">
-        <Text size="meta" tone="muted">
-          {COMPLETE_MATCH_CONSEQUENCE}
-        </Text>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label={COMPLETE_MATCH_ACTION}
-            variant="outline"
-            pending={handlers.completePending}
-            onPress={() => handlers.onComplete(matchId)}
-          />
-        </View>
-      </Block>,
-    );
-  }
+  const blocks: React.ReactNode[] = [];
 
   if (plan.showLevelRequests) {
     blocks.push(
@@ -246,6 +162,10 @@ export function OrganizerCard({
         ))}
       </Block>,
     );
+  }
+
+  if (blocks.length === 0) {
+    return null;
   }
 
   return (
