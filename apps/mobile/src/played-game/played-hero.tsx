@@ -9,11 +9,13 @@ import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
-import { HeaderIconButton } from "../primitives/screen-header";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 
 const HERO_PADDING_BOTTOM = 22;
+const NAV_TO_DATE_GAP = 24;
+const GAMES_FALLBACK = "/games";
 const CONFIRMED_LABEL = "CONFIRMED";
 
 function LightStatusBar() {
@@ -87,34 +89,40 @@ export function PlayedHero({
     >
       <LightStatusBar />
       <View style={{ gap: 16 }}>
-        <HeroTopLine
-          left={dateLine}
-          right={
-            tag ? (
-              <Text size="eyebrow" tone="muted" mono>
-                {tag}
-              </Text>
-            ) : null
-          }
-          actions={
-            <>
-              <HeaderIconButton
-                framed
-                icon={Share}
-                accessibilityLabel="Share result"
-                onPress={onShare}
-              />
-              {onMore ? (
+        <View style={{ gap: NAV_TO_DATE_GAP }}>
+          <ScreenHeader
+            nav="back"
+            fallback={GAMES_FALLBACK}
+            actions={
+              <>
                 <HeaderIconButton
                   framed
-                  icon={MoreVertical}
-                  accessibilityLabel="More"
-                  onPress={onMore}
+                  icon={Share}
+                  accessibilityLabel="Share result"
+                  onPress={onShare}
                 />
-              ) : null}
-            </>
-          }
-        />
+                {onMore ? (
+                  <HeaderIconButton
+                    framed
+                    icon={MoreVertical}
+                    accessibilityLabel="More"
+                    onPress={onMore}
+                  />
+                ) : null}
+              </>
+            }
+          />
+          <HeroTopLine
+            left={dateLine}
+            right={
+              tag ? (
+                <Text size="eyebrow" tone="muted" mono>
+                  {tag}
+                </Text>
+              ) : null
+            }
+          />
+        </View>
 
         {children}
 

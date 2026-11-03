@@ -12,7 +12,7 @@ import { Text } from "./text";
 const NAV_BUTTON = 40;
 const NAV_HIT_SLOP = (sizes.touchTarget - NAV_BUTTON) / 2;
 const TITLE_GAP = 20;
-const ACTION_GAP = 4;
+const ACTION_GAP = 8;
 
 type HeaderNav =
   | { nav?: undefined; fallback?: undefined; onNav?: undefined }
@@ -183,8 +183,8 @@ export function HeaderIconButton({
           justifyContent: "center",
           borderRadius: radii.md,
           borderWidth: hairline,
-          borderColor: onInk ? colors.dimrule : colors.rule,
-          backgroundColor: onInk ? colors.ink : colors.paper,
+          borderColor: onInk ? colors.raised : colors.rule,
+          backgroundColor: onInk ? colors.raised : colors.paper,
           opacity: pressed ? 0.6 : 1,
         })}
       >

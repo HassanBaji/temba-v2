@@ -47,10 +47,13 @@ export function PlayedGameView({
         {...hero}
         actions={
           <>
-            <Button variant="outline-inverse" size="sm" asChild>
-              <Link href={href}>
-                <Share aria-hidden="true" />
-                Share result
+            <Button
+              size="icon"
+              className="bg-raised text-paper hover:bg-raised/80 rounded-md"
+              asChild
+            >
+              <Link href={href} aria-label="Share result">
+                <Share aria-hidden="true" className="size-5" />
               </Link>
             </Button>
             {menu}
