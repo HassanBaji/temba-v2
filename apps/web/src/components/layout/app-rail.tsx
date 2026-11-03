@@ -24,7 +24,7 @@ export function AppRail() {
   return (
     <Sidebar
       collapsible="none"
-      className="hidden border-r lg:sticky lg:top-0 lg:flex lg:h-svh"
+      className="hidden border-e lg:sticky lg:top-0 lg:flex lg:h-svh"
       style={{ width: "var(--rail-width)" }}
       role="navigation"
       aria-label="Primary"
@@ -56,7 +56,7 @@ export function AppRail() {
                       className={cn(
                         "[&>svg]:size-[21px]",
                         active &&
-                          "border-l-sidebar-foreground text-sidebar-foreground [&>svg]:text-sidebar-foreground border-l-[3px] font-semibold",
+                          "border-s-sidebar-foreground text-sidebar-foreground [&>svg]:text-sidebar-foreground border-s-[3px] font-semibold",
                       )}
                     >
                       <Link

@@ -51,7 +51,7 @@ export function PlayedPlayerDialog({
       <ResponsiveDialogContent className="sm:max-w-[420px]">
         {player ? (
           <>
-            <ResponsiveDialogHeader className="flex-row items-center gap-3 text-left">
+            <ResponsiveDialogHeader className="flex-row items-center gap-3 text-start">
               <UserAvatar
                 name={player.fullName}
                 image={player.image}

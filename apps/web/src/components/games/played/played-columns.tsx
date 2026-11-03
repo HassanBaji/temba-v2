@@ -73,7 +73,7 @@ function PlayerRow({
     </>
   );
   const className = cn(
-    "flex h-12 w-full min-w-0 items-center gap-2 rounded-[10px] border px-2 text-left",
+    "flex h-12 w-full min-w-0 items-center gap-2 rounded-[10px] border px-2 text-start",
     look.className,
   );
   return onPress ? (

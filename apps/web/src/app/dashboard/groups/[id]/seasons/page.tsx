@@ -173,7 +173,7 @@ function CloseSeasonDialog({
               className="border-rule flex items-center justify-between gap-3 border-t px-4 py-2.5 first:border-t-0"
             >
               <dt className="text-meta text-muted-foreground">{label}</dt>
-              <dd className="text-meta text-right">{value}</dd>
+              <dd className="text-meta text-end">{value}</dd>
             </div>
           ))}
         </dl>

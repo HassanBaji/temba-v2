@@ -64,7 +64,7 @@ export function LevelCell({
   return (
     <span
       data-slot="level-cell"
-      className={cn("font-expanded text-lead block text-right", className)}
+      className={cn("font-expanded text-lead block text-end", className)}
     >
       {text}
     </span>

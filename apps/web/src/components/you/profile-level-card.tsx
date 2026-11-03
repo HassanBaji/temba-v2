@@ -65,7 +65,7 @@ export function ProfileLevelCard({
             </span>
           </div>
           {view.movement ? (
-            <div className="text-right">
+            <div className="text-end">
               <p className="font-expanded text-[20px]">{view.movement}</p>
               <p className="text-eyebrow text-muted-foreground">last match</p>
             </div>

@@ -57,7 +57,7 @@ export function ProfileAllTimeCard({
             </p>
             <p className="text-meta text-muted-foreground pb-[3px]">matches</p>
           </div>
-          <div className="text-right">
+          <div className="text-end">
             <p className="font-expanded text-[20px] tabular-nums">
               {view.record}
             </p>
@@ -85,7 +85,7 @@ export function ProfileAllTimeCard({
         </div>
         <div className="flex items-center justify-between px-5 py-[14px]">
           <p className="text-meta text-muted-foreground">{view.partnerLabel}</p>
-          <p className="text-body truncate pl-3 font-semibold">
+          <p className="text-body truncate ps-3 font-semibold">
             {view.mostPlayedPartner}
           </p>
         </div>

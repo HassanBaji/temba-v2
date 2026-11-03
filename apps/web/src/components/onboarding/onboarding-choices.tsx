@@ -8,7 +8,7 @@ import { cn } from "~/lib/utils";
 
 function choiceClass(selected: boolean) {
   return cn(
-    "focus-visible:ring-ring/50 min-h-11 border text-left outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+    "focus-visible:ring-ring/50 min-h-11 border text-start outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
     selected
       ? "border-ink bg-ink text-paper"
       : "border-rule bg-paper text-ink hover:bg-wash",

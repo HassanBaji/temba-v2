@@ -55,7 +55,7 @@ export function GameRatingImpactBlock({
         Rating impact
       </h2>
       <div className="divide-rule border-rule flex divide-x border-t px-[22px] pb-[22px]">
-        <div className="mt-4 flex min-w-0 flex-col items-center gap-1 px-3 first:pl-0">
+        <div className="mt-4 flex min-w-0 flex-col items-center gap-1 px-3 first:ps-0">
           <div className="flex items-center gap-1">
             <DirectionIcon aria-hidden="true" className="size-5 shrink-0" />
             <p className="font-expanded text-2xl tabular-nums leading-none">
@@ -71,7 +71,7 @@ export function GameRatingImpactBlock({
           </p>
           <p className="text-muted-foreground text-meta">New level</p>
         </div>
-        <div className="mt-4 flex min-w-0 flex-1 items-center px-3 last:pr-0">
+        <div className="mt-4 flex min-w-0 flex-1 items-center px-3 last:pe-0">
           <p className="text-meta">{sentence}</p>
         </div>
       </div>

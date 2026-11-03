@@ -22,8 +22,8 @@ type PoolRow = PoolTable["rows"][number];
 type GameTeams = Parameters<typeof gameTeamPlayers>[0];
 
 const CARD = "border-rule overflow-hidden rounded-card border";
-const COL_POSITION = "w-10 pl-[18px] pr-0 text-left";
-const COL_TEAM = "px-2 text-left";
+const COL_POSITION = "w-10 ps-[18px] pe-0 text-start";
+const COL_TEAM = "px-2 text-start";
 const COL_STAT = "w-[38px] px-0 text-center";
 const HEAD_CELL = "py-[13px] font-normal";
 const BODY_CELL = "py-4";
@@ -61,7 +61,7 @@ export function PoolRecordTable({
             <th scope="col" className={cn(COL_STAT, HEAD_CELL)}>
               D
             </th>
-            <th scope="col" className={cn(COL_STAT, HEAD_CELL, "pr-[18px]")}>
+            <th scope="col" className={cn(COL_STAT, HEAD_CELL, "pe-[18px]")}>
               L
             </th>
           </tr>
@@ -125,7 +125,7 @@ export function PoolRecordTable({
                 className={cn(
                   COL_STAT,
                   BODY_CELL,
-                  "font-expanded pr-[18px] text-[16px] tabular-nums",
+                  "font-expanded pe-[18px] text-[16px] tabular-nums",
                 )}
               >
                 {poolRecordDisplay(row.lost)}
@@ -175,7 +175,7 @@ function PoolTeamName({
       type="button"
       aria-haspopup="dialog"
       onClick={() => onOpen({ name: row.name, players })}
-      className="focus-visible:ring-ring/50 -my-3 flex min-h-11 w-full flex-col items-start justify-center rounded-sm text-left underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]"
+      className="focus-visible:ring-ring/50 -my-3 flex min-h-11 w-full flex-col items-start justify-center rounded-sm text-start underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]"
     >
       {content}
     </button>

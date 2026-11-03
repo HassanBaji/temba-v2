@@ -66,7 +66,7 @@ export function TransferOwnershipSheet({
       }}
     >
       <ResponsiveDialogContent showCloseButton>
-        <ResponsiveDialogHeader className="pr-14">
+        <ResponsiveDialogHeader className="pe-14">
           <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             {copy.description}

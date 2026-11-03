@@ -59,7 +59,7 @@ export function BibRow({
     </>
   );
   const className = cn(
-    "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left",
+    "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-start",
     player.unclaimed && "border-dashed",
     player.isViewer &&
       "ring-current ring-2 ring-offset-1 ring-offset-transparent",
@@ -71,7 +71,7 @@ export function BibRow({
           type="button"
           onClick={onPress}
           aria-label={label}
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-left outline-none focus-visible:underline"
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-start outline-none focus-visible:underline"
         >
           {body}
         </button>

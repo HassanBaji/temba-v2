@@ -61,7 +61,7 @@ export function PasswordField({
         disabled={disabled}
         className="h-13 min-h-13 text-base md:text-base"
       />
-      <InputGroupAddon align="inline-end" className="pr-1">
+      <InputGroupAddon align="inline-end" className="pe-1">
         <InputGroupButton
           type="button"
           size="icon-sm"

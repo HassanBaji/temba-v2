@@ -74,7 +74,7 @@ function RecentPartnerChip({
         {!blocked && selected ? (
           <span
             aria-hidden="true"
-            className="bg-ink text-paper absolute -bottom-1 -right-1 flex size-[18px] items-center justify-center rounded-full"
+            className="bg-ink text-paper absolute -bottom-1 -end-1 flex size-[18px] items-center justify-center rounded-full"
           >
             <Check className="size-[10px]" strokeWidth={3} />
           </span>
@@ -148,7 +148,7 @@ function PartnerSuggestionRow({
       aria-pressed={blocked ? undefined : selected}
       aria-label={partnerSuggestionButtonLabel(row)}
       className={cn(
-        "flex w-full items-center gap-3 px-[18px] py-4 text-left",
+        "flex w-full items-center gap-3 px-[18px] py-4 text-start",
         "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
         blocked && "hatch text-muted-foreground cursor-default",
         !blocked && selected && "bg-wash",

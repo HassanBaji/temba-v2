@@ -34,7 +34,7 @@ function SideName({
     <div
       className={cn(
         "flex min-w-0 flex-1 flex-col gap-1",
-        right ? "items-end text-right" : "items-start",
+        right ? "items-end text-end" : "items-start",
       )}
     >
       <span
@@ -63,7 +63,7 @@ function ScorerList({
     <ul
       className={cn(
         "flex min-w-0 flex-1 flex-col gap-1.5",
-        right ? "items-end text-right" : "items-start",
+        right ? "items-end text-end" : "items-start",
       )}
     >
       {scorers.map((scorer) => (

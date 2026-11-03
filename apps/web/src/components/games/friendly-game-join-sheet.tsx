@@ -443,7 +443,7 @@ function TournamentTakeASeat({
             {tournamentJoinSeatsTakenLine(field.seatsTaken, field.seatTotal)}
           </p>
         </div>
-        <ResponsiveDialogHeader className="p-0 pt-6 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+        <ResponsiveDialogHeader className="p-0 pt-6 text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
           <ResponsiveDialogTitle className="font-expanded text-display leading-none tracking-[-0.03em]">
             {TAKE_A_SEAT_TITLE}
           </ResponsiveDialogTitle>
@@ -849,7 +849,7 @@ export function FriendlyGameJoinSheet({
         showCloseButton={showSheetHeader}
       >
         {showSheetHeader ? (
-          <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+          <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
             <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
               {headerTitle}
             </ResponsiveDialogTitle>

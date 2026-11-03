@@ -49,7 +49,7 @@ export function FootballPlayerDialog({
       <ResponsiveDialogContent className="sm:max-w-[420px]">
         {player ? (
           <>
-            <ResponsiveDialogHeader className="flex-row items-center gap-3 text-left">
+            <ResponsiveDialogHeader className="flex-row items-center gap-3 text-start">
               <UserAvatar name={player.name} image={player.image} size="lg" />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">

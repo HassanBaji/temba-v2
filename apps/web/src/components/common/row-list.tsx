@@ -24,7 +24,7 @@ export function RowList({
 }
 
 const actionRow = "flex items-center";
-const actionSlot = "shrink-0 pr-4";
+const actionSlot = "shrink-0 pe-4";
 
 export function ListRow({
   leading,

@@ -186,7 +186,7 @@ export function GroupHomeOverflowMenu({
         <MoreVerticalIcon aria-hidden="true" className="size-5" />
       </button>
       <ResponsiveDialogContent showCloseButton restoreFocusRef={triggerRef}>
-        <ResponsiveDialogHeader className="pr-14">
+        <ResponsiveDialogHeader className="pe-14">
           <ResponsiveDialogTitle className="text-lead font-semibold tracking-normal [font-variation-settings:normal]">
             {groupName}
           </ResponsiveDialogTitle>

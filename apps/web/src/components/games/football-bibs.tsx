@@ -111,7 +111,7 @@ function SideRow({
         </button>
       </div>
       {more ? (
-        <div className="flex flex-wrap gap-0.5 pl-16">
+        <div className="flex flex-wrap gap-0.5 ps-16">
           {MORE_FOOTBALL_BIBS.map(swatch)}
         </div>
       ) : null}

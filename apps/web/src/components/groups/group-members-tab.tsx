@@ -223,7 +223,7 @@ function GroupMemberRow({
   const linkHref = managing ? undefined : profileHref;
   const cells = (
     <>
-      <td className="py-3 pl-4 pr-2">
+      <td className="py-3 ps-4 pe-2">
         <span className="flex min-w-0 items-center gap-2.5">
           <UserAvatar
             name={member.name}
@@ -265,7 +265,7 @@ function GroupMemberRow({
         </td>
       ) : null}
       {managing ? (
-        <td className={cn(COL_ACTION, "pr-1.5")}>{actions}</td>
+        <td className={cn(COL_ACTION, "pe-1.5")}>{actions}</td>
       ) : null}
     </>
   );
@@ -292,7 +292,7 @@ function PendingInvitesCard({
     <button
       type="button"
       onClick={onOpen}
-      className="border-rule rounded-card hover:border-ink hatch flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-current"
+      className="border-rule rounded-card hover:border-ink hatch flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-start outline-none focus-visible:ring-2 focus-visible:ring-current"
     >
       <span className="min-w-0">
         <span className="text-body block font-semibold">
@@ -344,7 +344,7 @@ function PendingInvitesDialog({
             {invites.map((invite) => (
               <li
                 key={invite.id}
-                className="border-rule flex items-center gap-3 border-t py-3 pl-4 pr-3 first:border-t-0"
+                className="border-rule flex items-center gap-3 border-t py-3 ps-4 pe-3 first:border-t-0"
               >
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-body truncate font-semibold">
@@ -593,7 +593,7 @@ export function GroupMembersTab({
               <tr>
                 <th
                   scope="col"
-                  className="text-eyebrow text-muted-foreground py-0 pl-4 text-left font-normal"
+                  className="text-eyebrow text-muted-foreground py-0 ps-4 text-start font-normal"
                 >
                   Member
                 </th>

@@ -46,7 +46,7 @@ function PlayerTile({
         .filter(Boolean)
         .join(", ")}
       className={cn(
-        "focus-visible:ring-ring/50 flex h-[74px] w-full min-w-0 flex-col justify-between rounded-md border p-2 text-left outline-none focus-visible:ring-[3px]",
+        "focus-visible:ring-ring/50 flex h-[74px] w-full min-w-0 flex-col justify-between rounded-md border p-2 text-start outline-none focus-visible:ring-[3px]",
         player.isViewer
           ? "bg-ink text-paper border-ink"
           : "bg-paper border-rule",

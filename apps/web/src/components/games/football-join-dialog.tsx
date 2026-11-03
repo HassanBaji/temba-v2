@@ -138,7 +138,7 @@ export function FootballJoinDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[460px]">
-        <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+        <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
           <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
             {mode === "join" ? "Join this game" : "How you play"}
           </ResponsiveDialogTitle>

@@ -139,11 +139,11 @@ export function GameVenueSelect({
             }
           }
         }}
-        className="pr-10"
+        className="pe-10"
       />
       <ChevronDown
         aria-hidden="true"
-        className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2"
+        className="text-muted-foreground pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2"
       />
 
       {open && !disabled ? (
@@ -171,7 +171,7 @@ export function GameVenueSelect({
                 role="option"
                 aria-selected={isSelected}
                 className={cn(
-                  "hover:bg-accent hover:text-accent-foreground text-body flex w-full px-3 py-2 text-left outline-none",
+                  "hover:bg-accent hover:text-accent-foreground text-body flex w-full px-3 py-2 text-start outline-none",
                   "focus-visible:bg-accent focus-visible:text-accent-foreground",
                   isSelected && "bg-accent text-accent-foreground",
                 )}

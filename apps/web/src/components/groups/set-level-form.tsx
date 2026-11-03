@@ -179,7 +179,7 @@ export function SetLevelFields({
             {readout.displayBand}
           </span>
           <span className="text-[28px]">{readout.levelLabel}</span>
-          <span className="text-body ml-auto">{readout.deltaLabel}</span>
+          <span className="text-body ms-auto">{readout.deltaLabel}</span>
         </p>
         <div className="text-meta flex justify-between">
           <span>

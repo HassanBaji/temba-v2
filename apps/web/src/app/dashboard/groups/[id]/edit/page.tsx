@@ -161,7 +161,7 @@ function InviteLinkCard({
 
   return (
     <div className="border-rule flex flex-col overflow-hidden rounded-[12px] border">
-      <div className="flex min-h-[56px] items-center gap-3 py-2.5 pl-[18px] pr-2.5">
+      <div className="flex min-h-[56px] items-center gap-3 py-2.5 ps-[18px] pe-2.5">
         <span
           className={
             url
@@ -202,7 +202,7 @@ function InviteLinkCard({
           disabled={reset.isPending}
           aria-busy={reset.isPending || undefined}
           onClick={() => reset.mutate({ groupId })}
-          className="border-rule hover:bg-wash focus-visible:ring-ring/50 flex min-h-12 items-center gap-3 border-t px-[18px] text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:opacity-50"
+          className="border-rule hover:bg-wash focus-visible:ring-ring/50 flex min-h-12 items-center gap-3 border-t px-[18px] text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:opacity-50"
         >
           <span className="text-meta text-muted-foreground flex-1">
             {GROUP_EDIT_COPY.inviteLinkReset}

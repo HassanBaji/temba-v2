@@ -30,6 +30,8 @@ export default [
             "react/*",
             "~/*",
             "@repo/*",
+            "!@repo/i18n",
+            "!@repo/i18n/*",
           ],
         },
       ],

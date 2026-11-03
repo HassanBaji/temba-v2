@@ -45,7 +45,7 @@ export function AppShell({
     >
       <a
         href="#main"
-        className="bg-background text-foreground text-body focus-visible:ring-ring/50 sr-only z-50 rounded-md border font-semibold outline-none focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:px-4 focus:py-3 focus-visible:ring-[3px]"
+        className="bg-background text-foreground text-body focus-visible:ring-ring/50 sr-only z-50 rounded-md border font-semibold outline-none focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:px-4 focus:py-3 focus-visible:ring-[3px]"
       >
         Skip to content
       </a>

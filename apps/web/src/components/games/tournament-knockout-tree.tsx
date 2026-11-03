@@ -63,7 +63,7 @@ function KnockoutSideRow({
           onClick={() => onOpenTeam({ name: label, players })}
           className={cn(
             nameClass,
-            "focus-visible:ring-ring/50 -my-2 min-h-11 rounded-sm text-left underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]",
+            "focus-visible:ring-ring/50 -my-2 min-h-11 rounded-sm text-start underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]",
           )}
         >
           {label}

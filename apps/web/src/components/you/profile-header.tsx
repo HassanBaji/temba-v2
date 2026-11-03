@@ -26,7 +26,7 @@ export function ProfileHeader({
         {showDot ? (
           <span
             aria-hidden="true"
-            className="bg-ink absolute right-1.5 top-1.5 size-1.5 rounded-full"
+            className="bg-ink absolute end-1.5 top-1.5 size-1.5 rounded-full"
           />
         ) : null}
       </Link>

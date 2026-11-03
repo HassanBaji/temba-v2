@@ -225,7 +225,7 @@ function SeasonPicker({
   const chosen = choices.find((choice) => choice.id === picked) ?? choices[0]!;
   return (
     <>
-      <ResponsiveDialogHeader className="text-left">
+      <ResponsiveDialogHeader className="text-start">
         <div className="flex items-start justify-between gap-3">
           <ResponsiveDialogTitle className="font-expanded text-h2">
             Link to a season
@@ -255,7 +255,7 @@ function SeasonPicker({
                 disabled={!choice.selectable}
                 onClick={() => onPick(choice.id)}
                 className={cn(
-                  "flex w-full items-center gap-3 px-3.5 py-3 text-left outline-none",
+                  "flex w-full items-center gap-3 px-3.5 py-3 text-start outline-none",
                   "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:ring-inset",
                   selected ? "bg-wash" : "bg-paper",
                   !choice.selectable && "opacity-45",
@@ -365,7 +365,7 @@ function SeasonSection({
               variant="ghost"
               className={cn(
                 "h-12 rounded-none",
-                seasonFix.replacement ? "border-ink border-l" : "col-span-2",
+                seasonFix.replacement ? "border-ink border-s" : "col-span-2",
               )}
               onClick={() => edit.update({ seasonId: null })}
             >
@@ -427,7 +427,7 @@ function SeasonSection({
         type="button"
         onClick={onOpenPicker}
         disabled={locked || !draft.day}
-        className="border-input-border hover:bg-wash focus-visible:ring-ring/50 flex w-full items-center gap-3 rounded-lg border border-dashed px-3.5 py-3 text-left outline-none focus-visible:ring-[3px] disabled:opacity-50"
+        className="border-input-border hover:bg-wash focus-visible:ring-ring/50 flex w-full items-center gap-3 rounded-lg border border-dashed px-3.5 py-3 text-start outline-none focus-visible:ring-[3px] disabled:opacity-50"
       >
         <span className="border-rule flex size-9 shrink-0 items-center justify-center rounded-md border">
           <Trophy aria-hidden="true" className="size-4" />
@@ -516,7 +516,7 @@ export function GameEditDialog({
           />
         ) : (
           <>
-            <ResponsiveDialogHeader className="text-left">
+            <ResponsiveDialogHeader className="text-start">
               <div className="flex items-start justify-between gap-3">
                 <ResponsiveDialogTitle className="font-expanded text-h2">
                   {EDIT_GAME_TITLE}

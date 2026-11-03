@@ -74,12 +74,12 @@ function RosterPlayerRow({
         <>
           {player.name}
           {isViewer ? (
-            <Badge variant="outline" className="ml-2 align-middle">
+            <Badge variant="outline" className="ms-2 align-middle">
               You
             </Badge>
           ) : null}
           {player.unclaimed ? (
-            <span className="ml-2 inline-flex align-middle">
+            <span className="ms-2 inline-flex align-middle">
               <NotOnTembaTag />
             </span>
           ) : null}

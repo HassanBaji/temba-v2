@@ -53,7 +53,7 @@ export function UpNextHeading({ label }: { label: string }) {
 
 function Chip({ sport, kind }: { sport: Sport; kind: string }) {
   return (
-    <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] pl-1.5 pr-2 font-mono uppercase">
+    <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] ps-1.5 pe-2 font-mono uppercase">
       <SportGlyph sport={sport} className="text-paper size-[13px]" />
       <span>
         {SPORT_LABELS[sport]}
@@ -177,7 +177,7 @@ function Headline({
     <div className="flex min-w-0 flex-col gap-1">
       <p
         dir="auto"
-        className="text-lead line-clamp-2 text-left font-semibold leading-snug"
+        className="text-lead line-clamp-2 text-start font-semibold leading-snug"
       >
         {title}
       </p>

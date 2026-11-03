@@ -117,7 +117,7 @@ function ScorerChip({
         type="button"
         aria-label={`Add a goal for ${player.name}, ${team}, ${goals} so far`}
         onClick={onAdd}
-        className="focus-visible:ring-ring/50 flex items-center gap-1.5 py-1 pl-1 pr-2.5 outline-none focus-visible:ring-[3px]"
+        className="focus-visible:ring-ring/50 flex items-center gap-1.5 py-1 ps-1 pe-2.5 outline-none focus-visible:ring-[3px]"
       >
         <UserAvatar name={player.name} image={player.image} size="sm" />
         <span className="text-meta font-semibold">{name}</span>
@@ -135,7 +135,7 @@ function ScorerChip({
           type="button"
           aria-label={`Take a goal away from ${player.name}`}
           onClick={onRemove}
-          className="border-dimrule focus-visible:ring-ring/50 flex h-full items-center border-l px-2 outline-none focus-visible:ring-[3px]"
+          className="border-dimrule focus-visible:ring-ring/50 flex h-full items-center border-s px-2 outline-none focus-visible:ring-[3px]"
         >
           <Minus aria-hidden="true" className="size-3.5" />
         </button>

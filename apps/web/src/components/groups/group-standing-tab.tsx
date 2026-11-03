@@ -65,10 +65,10 @@ export type StandingSeason = GroupSeasonData & { status: GroupSeasonStatus };
  * card's gutter inside their width so `table-fixed` lands the rule-to-rule
  * widths the design draws.
  */
-const COL_POSITION = "w-[52px] pl-4 pr-0 text-left";
-const COL_PLAYER = "px-0 text-left";
+const COL_POSITION = "w-[52px] ps-4 pe-0 text-start";
+const COL_PLAYER = "px-0 text-start";
 const COL_COUNT = "w-[30px] px-0 text-center";
-const COL_POINTS = "w-[56px] pl-0 pr-4 text-right";
+const COL_POINTS = "w-[56px] ps-0 pe-4 text-end";
 const HEAD_CELL = "py-3 font-normal";
 const BODY_CELL = "py-3";
 
@@ -241,7 +241,7 @@ function NotPlayedRow({
       <td className={cn(COL_POINTS, BODY_CELL)}>
         <span
           aria-hidden="true"
-          className="hatch ml-auto block size-3.5 rounded-[4px]"
+          className="hatch ms-auto block size-3.5 rounded-[4px]"
         />
       </td>
     </tr>
@@ -394,7 +394,7 @@ function Podium({
             </span>
             <span className="font-expanded text-[18px] tabular-nums">
               {entry.points}
-              <span className="text-eyebrow text-muted-foreground ml-0.5 font-normal tracking-normal">
+              <span className="text-eyebrow text-muted-foreground ms-0.5 font-normal tracking-normal">
                 pts
               </span>
             </span>
@@ -615,8 +615,8 @@ function StandingPreview({
             key={position}
             className={cn(
               PREVIEW_ROW,
-              "border-rule border-t pl-[18px]",
-              canInvite ? "pr-2.5" : "pr-[18px]",
+              "border-rule border-t ps-[18px]",
+              canInvite ? "pe-2.5" : "pe-[18px]",
             )}
           >
             <span className="font-expanded text-lead text-muted-foreground/40">
@@ -669,7 +669,7 @@ function StatPair({
   );
   return (
     <div className={cn(cardFrame, "flex")}>
-      <div className="border-rule min-w-0 flex-1 border-r px-5 py-[18px]">
+      <div className="border-rule min-w-0 flex-1 border-e px-5 py-[18px]">
         <p className={value}>{totalGamesPlayed}</p>
         <p className="text-eyebrow text-muted-foreground mt-0.5">
           games played

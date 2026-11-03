@@ -105,7 +105,7 @@ function DayPickerField({
           <button
             id={id}
             type="button"
-            className="border-rule text-body hover:bg-wash focus-visible:ring-ring/50 flex min-h-11 w-full items-center justify-between gap-2 rounded-md border px-3.5 text-left outline-none focus-visible:ring-[3px]"
+            className="border-rule text-body hover:bg-wash focus-visible:ring-ring/50 flex min-h-11 w-full items-center justify-between gap-2 rounded-md border px-3.5 text-start outline-none focus-visible:ring-[3px]"
           >
             <span className="tabular-nums">
               {selected

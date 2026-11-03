@@ -76,7 +76,7 @@ export function TournamentTeamsSection({
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((open) => !open)}
-              className="focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left outline-none focus-visible:ring-[3px]"
+              className="focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 px-4 py-3 text-start outline-none focus-visible:ring-[3px]"
             >
               <span aria-hidden="true" className="w-[22px] shrink-0" />
               <span className="text-muted-foreground text-meta min-w-0 flex-1">

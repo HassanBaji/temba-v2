@@ -105,7 +105,7 @@ export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
           {model.leftLabel}
         </p>
         {model.statusLabel ? (
-          <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
+          <p className="min-w-[11ch] shrink-0 text-end tabular-nums">
             {model.statusLabel}
           </p>
         ) : null}

@@ -121,7 +121,7 @@ function PairSquare({
   const shape = cn(
     large ? "size-9 rounded-md" : "size-8 rounded-sm",
     "shrink-0",
-    overlap ? "-ml-2" : null,
+    overlap ? "-ms-2" : null,
     overlap && onInk && occupant ? "ring-paper ring-2" : null,
   );
   if (!occupant) {
@@ -164,7 +164,7 @@ function PlaceholderSquare({ overlap }: { overlap: boolean }) {
     <span
       className={cn(
         "border-muted-foreground/50 bg-paper text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-sm border border-dashed",
-        overlap ? "-ml-2" : null,
+        overlap ? "-ms-2" : null,
       )}
     >
       <Plus className="size-3.5" strokeWidth={1.5} />
@@ -424,7 +424,7 @@ function MatchupColumn({
         <span
           className={cn(
             "text-meta max-w-full truncate",
-            isViewerSide ? "font-semibold" : "text-muted-foreground text-right",
+            isViewerSide ? "font-semibold" : "text-muted-foreground text-end",
           )}
         >
           {name}

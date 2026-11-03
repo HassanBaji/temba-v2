@@ -487,7 +487,7 @@ export function FootballGameDetails({
                 <span className={heroMuted}>of {layout.seats}</span>
               </p>
             </div>
-            <p className={`${heroMuted} text-meta text-right`}>
+            <p className={`${heroMuted} text-meta text-end`}>
               Teams by the organizer
             </p>
           </div>

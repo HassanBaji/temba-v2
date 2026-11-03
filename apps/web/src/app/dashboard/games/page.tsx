@@ -98,7 +98,7 @@ function GamesHubTabPanel({
             <div className="flex items-baseline gap-2.5">
               <Skeleton className="h-12 w-28" />
               <Skeleton className="h-5 w-10" />
-              <Skeleton className="ml-auto h-4 w-16" />
+              <Skeleton className="ms-auto h-4 w-16" />
             </div>
             <div className="space-y-1">
               <Skeleton className="h-5 w-48 max-w-full" />

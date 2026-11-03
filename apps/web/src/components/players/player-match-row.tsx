@@ -26,7 +26,7 @@ function RowContent({
           {row.meta}
         </span>
       </span>
-      <span aria-hidden="true" className="shrink-0 text-right tabular-nums">
+      <span aria-hidden="true" className="shrink-0 text-end tabular-nums">
         <span className="text-body flex gap-2 font-semibold">
           {row.sets.map((set, index) => (
             <span key={index}>{set}</span>
@@ -65,7 +65,7 @@ export function PlayerMatchRow({
   const content = <RowContent row={row} showPartner={showPartner} />;
   const interactive = cn(
     ROW,
-    "hover:bg-wash w-full text-left transition-colors",
+    "hover:bg-wash w-full text-start transition-colors",
     selected && "bg-wash",
   );
   if (onSelect) {

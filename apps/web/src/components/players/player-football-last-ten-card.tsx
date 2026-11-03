@@ -21,7 +21,7 @@ function FootballMatchRow({ row }: { row: FootballMatchRowView }) {
           {row.meta}
         </span>
       </span>
-      <span aria-hidden="true" className="shrink-0 text-right tabular-nums">
+      <span aria-hidden="true" className="shrink-0 text-end tabular-nums">
         {row.score ? (
           <span className="text-body block font-semibold">{row.score}</span>
         ) : null}

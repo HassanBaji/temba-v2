@@ -36,7 +36,7 @@ function DetailRow({
       )}
     >
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-ink text-right">{value}</span>
+      <span className="text-ink text-end">{value}</span>
     </div>
   );
 }
@@ -197,7 +197,7 @@ export function FriendlyGamePartnerReview({
                 setCallerPosition("right");
               }}
               className={cn(
-                "border-rule text-body flex-1 border-l py-[15px] font-semibold outline-none",
+                "border-rule text-body flex-1 border-s py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "right"
                   ? "bg-ink text-paper"

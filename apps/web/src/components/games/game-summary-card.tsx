@@ -246,7 +246,7 @@ function MetaCell({
     <div
       className={cn(
         "min-w-0 flex-1",
-        ruled ? "border-rule border-l pl-4" : null,
+        ruled ? "border-rule border-s ps-4" : null,
       )}
     >
       <b className="text-lead block font-semibold tracking-[-0.01em]">
@@ -512,7 +512,7 @@ export function GameSummaryCard({
               {kickoff.meridiem}
             </i>
             {countdown ? (
-              <i className="text-muted-foreground ml-auto text-[13.5px] not-italic">
+              <i className="text-muted-foreground ms-auto text-[13.5px] not-italic">
                 {countdown}
               </i>
             ) : null}

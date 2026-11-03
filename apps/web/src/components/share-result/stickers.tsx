@@ -49,7 +49,7 @@ function StickerFoot({
     >
       {children}
       {whenShort ? (
-        <Big px={24} className="text-dim shrink-0 text-right">
+        <Big px={24} className="text-dim shrink-0 text-end">
           {whenShort}
         </Big>
       ) : null}
@@ -67,7 +67,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
     <div
       className={
         align === "right"
-          ? "flex min-w-0 flex-1 flex-col items-end text-right"
+          ? "flex min-w-0 flex-1 flex-col items-end text-end"
           : "flex min-w-0 flex-1 flex-col items-start"
       }
       style={{ gap: 10 }}

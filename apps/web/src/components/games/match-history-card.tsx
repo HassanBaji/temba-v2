@@ -25,7 +25,7 @@ function SeatTile({
   member: MatchHistoryMember | null;
   onInk: boolean;
 }) {
-  const shared = "-ml-1.5 size-[26px] shrink-0 rounded-sm first:ml-0";
+  const shared = "-ms-1.5 size-[26px] shrink-0 rounded-sm first:ms-0";
 
   if (!member) {
     return <span aria-hidden="true" className={cn("hatch", shared)} />;
@@ -50,7 +50,7 @@ function SeatTile({
 
 function SetHeader({ columns }: { columns: number }) {
   return (
-    <div className="flex items-center gap-2 pr-3">
+    <div className="flex items-center gap-2 pe-3">
       <span className="min-w-0 flex-1" />
       <span className="flex shrink-0 gap-1.5">
         {Array.from({ length: columns }, (_, index) => (
@@ -200,7 +200,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
           </div>
 
           {groupName ? (
-            <span className="text-muted-foreground mt-1 max-w-[38%] shrink-0 truncate text-right font-mono text-[10px] uppercase">
+            <span className="text-muted-foreground mt-1 max-w-[38%] shrink-0 truncate text-end font-mono text-[10px] uppercase">
               {groupName}
             </span>
           ) : null}

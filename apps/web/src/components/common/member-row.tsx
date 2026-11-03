@@ -67,7 +67,7 @@ export function MemberRow({
 
   if (onSelect) {
     return (
-      <ListRow {...rowProps} asChild className="text-left">
+      <ListRow {...rowProps} asChild className="text-start">
         <button type="button" onClick={onSelect} />
       </ListRow>
     );

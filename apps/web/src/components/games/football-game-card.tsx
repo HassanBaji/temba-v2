@@ -145,7 +145,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
             ? `${football.score.slot1} – ${football.score.slot2}`
             : "– –"}
         </span>
-        <div className="min-w-0 flex-1 text-right">
+        <div className="min-w-0 flex-1 text-end">
           <p className="font-semibold">{name(2)}</p>
           {viewerSide === 2 ? (
             <p className="text-muted-foreground text-meta">You played</p>

@@ -68,8 +68,8 @@ function DrawerContent({
           "group/drawer-content bg-background fixed z-[60] flex h-auto flex-col",
           "data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-[20px]",
           "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[90vh] data-[vaul-drawer-direction=bottom]:rounded-t-[20px] data-[vaul-drawer-direction=bottom]:pb-[max(28px,env(safe-area-inset-bottom))]",
-          "data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=right]:sm:max-w-sm",
-          "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
+          "data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:end-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-s data-[vaul-drawer-direction=right]:sm:max-w-sm",
+          "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:start-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-e data-[vaul-drawer-direction=left]:sm:max-w-sm",
           className,
         )}
         {...props}
@@ -82,7 +82,7 @@ function DrawerContent({
         {showCloseButton ? (
           <DrawerPrimitive.Close
             data-slot="drawer-close"
-            className="bg-wash text-ink focus-visible:ring-ring/50 absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]"
+            className="bg-wash text-ink focus-visible:ring-ring/50 absolute end-4 top-4 inline-flex size-9 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]"
           >
             <XIcon aria-hidden="true" className="size-4" />
             <span className="sr-only">Close</span>
@@ -97,7 +97,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="drawer-header"
-      className={cn("flex flex-col gap-2 p-4 text-left", className)}
+      className={cn("flex flex-col gap-2 p-4 text-start", className)}
       {...props}
     />
   );

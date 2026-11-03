@@ -41,7 +41,7 @@ export function StatStrip({
           key={item.label}
           className={cn(
             "min-w-0 px-2 py-2 min-[430px]:px-3",
-            isDark ? null : "first:pl-0 last:pr-0",
+            isDark ? null : "first:ps-0 last:pe-0",
           )}
         >
           <dt

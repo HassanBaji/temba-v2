@@ -21,7 +21,7 @@ function Clause({ clause }: { clause: TermsClause }) {
         {clause.text}
       </p>
       {clause.bullets ? (
-        <ul className="text-body text-muted-foreground list-disc space-y-1 pl-5 leading-[1.55]">
+        <ul className="text-body text-muted-foreground list-disc space-y-1 ps-5 leading-[1.55]">
           {clause.bullets.map((bullet) => (
             <li key={bullet}>{bullet}</li>
           ))}

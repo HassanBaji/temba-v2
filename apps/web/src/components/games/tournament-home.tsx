@@ -744,7 +744,7 @@ function TournamentHomeActions({
                 {INVITE_ACTION_LABEL}
               </Button>
             ) : null}
-            <div className="ml-auto">
+            <div className="ms-auto">
               <ActionMenu label="Game actions">
                 {onAddPlayer ? (
                   <ActionMenuItem onSelect={onAddPlayer}>

@@ -46,7 +46,7 @@ export function PlayerLevelCard({
           {view.level}
         </span>
         {trend ? (
-          <span className="text-meta text-dim ml-auto tabular-nums">
+          <span className="text-meta text-dim ms-auto tabular-nums">
             {trend}
           </span>
         ) : null}

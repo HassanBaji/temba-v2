@@ -276,7 +276,7 @@ export function RadioRow({
       aria-checked={selected}
       disabled={disabled}
       onClick={onSelect}
-      className="hover:bg-wash focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3.5 px-[18px] py-3.5 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:opacity-50"
+      className="hover:bg-wash focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3.5 px-[18px] py-3.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:opacity-50"
     >
       {leading}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -373,7 +373,7 @@ function PendingChip({
   return (
     <li
       className={cn(
-        "border-rule flex h-8 items-center gap-1.5 rounded-full border pl-3 pr-[5px]",
+        "border-rule flex h-8 items-center gap-1.5 rounded-full border ps-3 pe-[5px]",
         revoking && "opacity-50",
       )}
     >

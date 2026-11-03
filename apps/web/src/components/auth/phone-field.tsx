@@ -65,7 +65,7 @@ export function PhoneField({
     >
       <InputGroupAddon
         align="inline-start"
-        className="border-rule h-full cursor-default border-r py-0 pl-0 pr-0"
+        className="border-rule h-full cursor-default border-e py-0 ps-0 pe-0"
       >
         <Select
           value={country.iso}

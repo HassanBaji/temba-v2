@@ -97,8 +97,8 @@ export function PlayerMatchSheet({
       <ResponsiveDialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[460px]">
         {sheet ? (
           <>
-            <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-              <div className="flex items-start justify-between gap-3 pr-8 sm:pr-6">
+            <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
+              <div className="flex items-start justify-between gap-3 pe-8 sm:pe-6">
                 <ResponsiveDialogTitle className="text-h2 tracking-[-0.02em]">
                   {sheet.title}
                 </ResponsiveDialogTitle>

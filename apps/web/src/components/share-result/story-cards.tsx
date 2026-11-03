@@ -283,7 +283,7 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
               ratio={1}
               tracking={-0.04}
               expanded
-              className="w-[72px] text-right"
+              className="w-[72px] text-end"
             >
               {scorer.goals}
             </Big>

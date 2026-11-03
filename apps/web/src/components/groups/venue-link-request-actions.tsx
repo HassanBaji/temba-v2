@@ -109,7 +109,7 @@ export function VenueLinkRequestActions({
               {acceptConfirm.description}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-          <ul className="text-body text-muted-foreground list-disc space-y-1.5 pl-5">
+          <ul className="text-body text-muted-foreground list-disc space-y-1.5 ps-5">
             {acceptConfirm.consequences.map((line) => (
               <li key={line}>{line}</li>
             ))}
