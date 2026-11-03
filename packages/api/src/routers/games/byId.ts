@@ -174,7 +174,7 @@ function individualFriendlyGamePhase(args: {
 
 export async function gameById(
   database: DbClient,
-  args: { gameId: string; userId: string ; locale?: Locale },
+  args: { gameId: string; userId: string; locale?: Locale },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);

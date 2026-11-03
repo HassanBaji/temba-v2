@@ -131,7 +131,8 @@ export async function updateBookingForVenue(
           code: "BAD_REQUEST",
           message:
             args.priceFils === undefined
-              ? `The payment is settled, so the price stays ${formatBookingPriceFils(booking.priceFils)}. Type it as the price to move this Booking`
+              ? // The Venue console is English-only, so the price matches the sentence.
+                `The payment is settled, so the price stays ${formatBookingPriceFils(booking.priceFils, "en")}. Type it as the price to move this Booking`
               : "The payment is settled, so the price cannot change",
         });
       }

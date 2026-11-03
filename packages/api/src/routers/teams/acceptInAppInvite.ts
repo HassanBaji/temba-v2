@@ -21,7 +21,7 @@ type DbClient = typeof db;
 
 export async function acceptInAppInvite(
   database: DbClient,
-  args: { inviteId: string; userId: string ; locale?: Locale },
+  args: { inviteId: string; userId: string; locale?: Locale },
 ) {
   const invite = await database.query.teamMemberInvites.findFirst({
     where: eq(teamMemberInvites.id, args.inviteId),

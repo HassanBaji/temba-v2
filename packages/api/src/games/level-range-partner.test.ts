@@ -24,11 +24,13 @@ import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import type { GameRow } from "#src/games/access";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
-import {
-  LEVEL_RANGE_OUTSIDE_MESSAGE,
-  LEVEL_RANGE_PARTNER_MESSAGE,
-  LEVEL_RANGE_TEAM_MESSAGE,
-} from "@repo/domain/level-range";
+import { messagesFor } from "@repo/i18n/messages";
+
+const {
+  rangeOutside: LEVEL_RANGE_OUTSIDE_MESSAGE,
+  rangePartner: LEVEL_RANGE_PARTNER_MESSAGE,
+  rangeTeam: LEVEL_RANGE_TEAM_MESSAGE,
+} = messagesFor("en").level;
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

@@ -15,7 +15,7 @@ type DbClient = typeof db;
 
 export async function acceptLookupInvite(
   database: DbClient,
-  args: { inviteId: string; userId: string ; locale?: Locale },
+  args: { inviteId: string; userId: string; locale?: Locale },
 ) {
   const invite = await database.query.groupMemberInvites.findFirst({
     where: eq(groupMemberInvites.id, args.inviteId),

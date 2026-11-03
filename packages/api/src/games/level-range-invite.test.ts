@@ -33,7 +33,9 @@ import { mintLink } from "#src/invites/doors";
 import { loadGameInviteOpenGraph } from "#src/invites/game-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
+import { messagesFor } from "@repo/i18n/messages";
+
+const LEVEL_RANGE_OUTSIDE_MESSAGE = messagesFor("en").level.rangeOutside;
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database
@@ -439,7 +441,11 @@ describe("Game Level range Lookup, Invite link, and promote", () => {
       if (!minted.ok) {
         return;
       }
-      const fields = await loadGameInviteOpenGraph(db, minted.link.shortCode!, "en");
+      const fields = await loadGameInviteOpenGraph(
+        db,
+        minted.link.shortCode!,
+        "en",
+      );
       expect(fields.description).toContain("Level C/B");
       expect(fields.description).not.toMatch(/og-range-owner|5\.2/);
     } finally {

@@ -24,6 +24,7 @@ async function updateGameWindowOnGame(
   windowEnd: Date,
   name: string,
   seasonId: string | null,
+  locale: Locale,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -42,7 +43,7 @@ async function updateGameWindowOnGame(
   const linked = game.groupId
     ? await resolveGameSeasonLink(database, {
         game,
-        locale: args.locale ?? DEFAULT_LOCALE,
+        locale,
         seasonId,
         windowStart,
         now,
@@ -99,6 +100,7 @@ export async function updateGameWindow(
       args.windowEnd,
       args.name,
       args.seasonId === undefined ? game.seasonId : args.seasonId,
+      args.locale ?? DEFAULT_LOCALE,
     );
   });
   return { ok: true as const };

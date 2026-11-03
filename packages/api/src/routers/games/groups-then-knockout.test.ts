@@ -505,8 +505,8 @@ describe("postPoolDraw on Groups then knockout", () => {
       const labels = rounds.map((round) =>
         round.places.map((place) =>
           place.kind === "bye"
-            ? `${place.code} ${knockoutSideLabel(place.side)} bye`
-            : `${place.code} ${knockoutSideLabel(place.slot1)} v ${knockoutSideLabel(place.slot2)}`,
+            ? `${place.code} ${knockoutSideLabel(place.side, "en")} bye`
+            : `${place.code} ${knockoutSideLabel(place.slot1, "en")} v ${knockoutSideLabel(place.slot2, "en")}`,
         ),
       );
       expect(labels).toEqual([
@@ -517,7 +517,7 @@ describe("postPoolDraw on Groups then knockout", () => {
 
       const roundCount = tournamentRoundCount(detail);
       expect(roundCount).toBe(3);
-      expect(roundsPlayedLabel(detail.poolTables, roundCount)).toBe(
+      expect(roundsPlayedLabel(detail.poolTables, roundCount, "en")).toBe(
         "Round 0 of 3 played",
       );
     } finally {
@@ -572,7 +572,11 @@ describe("postPoolDraw on Groups then knockout", () => {
       expect(detail.knockout).toBeNull();
       expect(detail.poolTables?.finished).toBe(true);
       expect(
-        roundsPlayedLabel(detail.poolTables, tournamentRoundCount(detail)),
+        roundsPlayedLabel(
+          detail.poolTables,
+          tournamentRoundCount(detail),
+          "en",
+        ),
       ).toBe("Round 3 of 3 played");
     } finally {
       await close();
@@ -706,7 +710,11 @@ describe("Knockout qualifier placement", () => {
         userId: seeded.owner.id,
       });
       expect(
-        roundsPlayedLabel(detail.poolTables, tournamentRoundCount(detail)),
+        roundsPlayedLabel(
+          detail.poolTables,
+          tournamentRoundCount(detail),
+          "en",
+        ),
       ).toBe("Round 3 of 3 played");
     } finally {
       await close();

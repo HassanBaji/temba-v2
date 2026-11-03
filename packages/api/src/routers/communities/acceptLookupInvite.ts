@@ -15,7 +15,7 @@ type DbClient = typeof db;
 
 export async function acceptLookupInvite(
   database: DbClient,
-  args: { inviteId: string; userId: string ; locale?: Locale },
+  args: { inviteId: string; userId: string; locale?: Locale },
 ) {
   const invite = await database.query.communityMemberInvites.findFirst({
     where: eq(communityMemberInvites.id, args.inviteId),
@@ -40,10 +40,10 @@ export async function acceptLookupInvite(
     database,
     { kind: "community", id: community.id },
     {
-        inviteId: invite.id,
-        userId: args.userId,
-        locale: args.locale ?? DEFAULT_LOCALE,
-      },
+      inviteId: invite.id,
+      userId: args.userId,
+      locale: args.locale ?? DEFAULT_LOCALE,
+    },
   );
   if (!accepted.ok) {
     if (accepted.reason === "frozen" || accepted.reason === "not_found") {

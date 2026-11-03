@@ -2,7 +2,7 @@ import { groupInviteLinks, groups, user } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
+import { genericTembaOpenGraph } from "@repo/domain/game-invite-open-graph";
 import { mintLink } from "#src/invites/doors";
 import { loadGroupInviteOpenGraph } from "#src/invites/group-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -50,10 +50,10 @@ describe("loadGroupInviteOpenGraph", () => {
       });
 
       expect(await loadGroupInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
+        genericTembaOpenGraph("en"),
       );
       expect(await loadGroupInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
+        genericTembaOpenGraph("en"),
       );
 
       await db
@@ -62,7 +62,7 @@ describe("loadGroupInviteOpenGraph", () => {
         .where(eq(groupInviteLinks.id, minted.link.id));
       expect(
         await loadGroupInviteOpenGraph(db, minted.link.shortCode!, "en"),
-      ).toEqual(GENERIC_TEMBA_OPEN_GRAPH);
+      ).toEqual(genericTembaOpenGraph("en"));
     } finally {
       await close();
     }

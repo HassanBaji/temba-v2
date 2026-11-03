@@ -3,7 +3,7 @@ import { createSign, generateKeyPairSync } from "node:crypto";
 import { createClerkClient } from "@clerk/backend";
 import { describe, expect, it, vi } from "vitest";
 
-import { clerkAuthenticator } from "./context";
+import { clerkAuthenticator, contextFor } from "./context";
 
 const WEB = "http://localhost:3000";
 const publishableKey = `pk_test_${Buffer.from("clerk.example.test$").toString("base64")}`;
@@ -150,5 +150,30 @@ describe("clerkAuthenticator", () => {
     expect(first).toEqual({ role: "operator" });
     expect(second).toEqual(first);
     expect(getUser).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("contextFor", () => {
+  const buildContext = contextFor({
+    db: {} as Parameters<typeof contextFor>[0]["db"],
+    authenticate: async () => ({
+      userId: null,
+      getPublicMetadata: async () => undefined,
+    }),
+    webOrigin: WEB,
+  });
+
+  it("reads the locale from Accept-Language", async () => {
+    const context = await buildContext(
+      request({ "accept-language": "ar-BH,ar;q=0.9,en;q=0.8" }),
+    );
+    expect(context.locale).toBe("ar");
+  });
+
+  it("falls back to English without a supported language", async () => {
+    expect((await buildContext(request({}))).locale).toBe("en");
+    expect(
+      (await buildContext(request({ "accept-language": "fr-FR" }))).locale,
+    ).toBe("en");
   });
 });

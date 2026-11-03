@@ -96,7 +96,7 @@ export async function acceptInviteLink(
   }
 
   const { accepted, joinedGroup } = await database.transaction(async (tx) => {
-    const group = await admitInviteeToGroup(tx, game, args.userId, locale);
+    const group = await admitInviteeToGroup(tx, game, args.userId);
     const accepted = await acceptLink(tx, "game", {
       token: args.token,
       userId: args.userId,

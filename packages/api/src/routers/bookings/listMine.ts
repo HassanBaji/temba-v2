@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { bookings, courts, venues } from "@repo/db";
 import { bookingStatusLabel } from "@repo/domain/booking-copy";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -29,6 +30,7 @@ export async function listMyBookings(
     cursor?: z.infer<typeof cursorSchema>;
     limit?: number;
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const now = args.now ?? new Date();
@@ -97,7 +99,10 @@ export async function listMyBookings(
       startsAt: row.startsAt,
       endsAt: row.endsAt,
       status: row.status,
-      statusLabel: bookingStatusLabel(row.status),
+      statusLabel: bookingStatusLabel(
+        row.status,
+        args.locale ?? DEFAULT_LOCALE,
+      ),
       paymentStatus: row.paymentStatus,
       priceFils: row.priceFils,
       gameId: row.gameId,
@@ -121,5 +126,9 @@ export const listMineProcedure = protectedProcedure
   .input(listMineInput)
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return listMyBookings(ctx.db, { ...input, userId: appUser.id });
+    return listMyBookings(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

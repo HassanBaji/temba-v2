@@ -13,7 +13,7 @@ type DbClient = typeof db;
 
 export async function searchPartnerUsers(
   database: DbClient,
-  args: { gameId: string; userId: string; query: string ; locale?: Locale },
+  args: { gameId: string; userId: string; query: string; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
   const now = new Date();

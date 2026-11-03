@@ -11,7 +11,7 @@ type DbClient = typeof db;
 
 export async function acceptInviteLink(
   database: DbClient,
-  args: { token: string; userId: string ; locale?: Locale },
+  args: { token: string; userId: string; locale?: Locale },
 ) {
   const accepted = await database.transaction((tx) =>
     acceptLink(tx, "group", {

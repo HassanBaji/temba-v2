@@ -46,13 +46,7 @@ export async function registerWithPartner(
   const game = await requireGame(database, args.gameId);
   assertPoolDrawNotPosted(game);
   const now = new Date();
-  await assertCanRegisterWithPartner(
-    database,
-    game,
-    args.userId,
-    now,
-    locale,
-  );
+  await assertCanRegisterWithPartner(database, game, args.userId, now, locale);
 
   const partner = await database.query.user.findFirst({
     where: eq(user.id, args.partnerUserId),

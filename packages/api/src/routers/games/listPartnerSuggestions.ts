@@ -153,7 +153,7 @@ async function hydrateSuggestions(
 
 export async function listPartnerSuggestions(
   database: DbClient,
-  args: { gameId: string; userId: string ; locale?: Locale },
+  args: { gameId: string; userId: string; locale?: Locale },
 ): Promise<ListPartnerSuggestionsResult> {
   const game = await requireGame(database, args.gameId);
   const now = new Date();

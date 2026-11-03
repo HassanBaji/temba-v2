@@ -36,7 +36,13 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  */
 export async function confirmMatchResult(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string; slot?: MatchSlot ; locale?: Locale },
+  args: {
+    gameId: string;
+    matchId: string;
+    userId: string;
+    slot?: MatchSlot;
+    locale?: Locale;
+  },
 ) {
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);

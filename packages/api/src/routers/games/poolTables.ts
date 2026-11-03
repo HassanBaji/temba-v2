@@ -22,7 +22,7 @@ export const poolTablesInputSchema = z.object({
 
 export async function listPoolTables(
   database: DbClient,
-  args: { gameId: string; userId: string ; locale?: Locale },
+  args: { gameId: string; userId: string; locale?: Locale },
 ): Promise<ComputedPoolTables | null> {
   const game = await requireGame(database, args.gameId);
   if (!(await canViewGame(database, game, args.userId))) {

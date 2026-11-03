@@ -7,7 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 
-import { type Locale } from "@repo/i18n/locale";
+import { pickLocale, type Locale } from "@repo/i18n/locale";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -41,6 +41,10 @@ export type TRPCContextHost = {
 };
 
 export const createTRPCContext = (host: TRPCContextHost) => ({ ...host });
+
+export function requestLocale(headers: Headers): Locale {
+  return pickLocale(headers.get("accept-language"));
+}
 
 /**
  * 2. INITIALIZATION

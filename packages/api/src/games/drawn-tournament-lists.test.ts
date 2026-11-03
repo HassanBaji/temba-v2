@@ -669,7 +669,7 @@ describe("Knockout Matches on hub lists", () => {
         knockoutMatch: { round: 1, roundCount: 3 },
         playersAllowed: 4,
       });
-      expect(quarter[0] && tournamentMatchRoundLabel(quarter[0])).toBe(
+      expect(quarter[0] && tournamentMatchRoundLabel(quarter[0], "en")).toBe(
         "Quarter-final",
       );
       expect(
@@ -683,7 +683,9 @@ describe("Knockout Matches on hub lists", () => {
       const bye = await myRows(db, seeded, 1);
       expect(bye).toHaveLength(1);
       expect(bye[0]?.matchId).toBe(s1.id);
-      expect(bye[0] && tournamentMatchRoundLabel(bye[0])).toBe("Semi-final");
+      expect(bye[0] && tournamentMatchRoundLabel(bye[0], "en")).toBe(
+        "Semi-final",
+      );
 
       const carousel = (
         await listHomeCarouselGames(db, seeded.player(4).id, KNOCKOUT_NOW)
@@ -852,7 +854,7 @@ describe("Knockout Matches on hub lists", () => {
       expect(summary?.tournament?.knockout?.currentRoundName).toBe(
         "Semi-finals",
       );
-      expect(summary && tournamentCardKnockoutLine(summary)).toBe(
+      expect(summary && tournamentCardKnockoutLine(summary, "en")).toBe(
         "Now at the Semi-finals",
       );
 
@@ -881,9 +883,9 @@ describe("Knockout Matches on hub lists", () => {
       const champion = champions[0]?.tournament?.knockout?.champion;
       expect(champion).toContain(seeded.player(1).name);
       expect(champions[0]?.tournament?.knockout?.currentRoundName).toBeNull();
-      expect(champions[0] && tournamentCardKnockoutLine(champions[0])).toBe(
-        `Champion: ${champion}`,
-      );
+      expect(
+        champions[0] && tournamentCardKnockoutLine(champions[0], "en"),
+      ).toBe(`Champion: ${champion}`);
     } finally {
       await close();
     }
@@ -903,11 +905,9 @@ describe("Knockout Matches on hub lists", () => {
       expect(poolRows.map((row) => row.roundNumber)).toEqual([1, 2, 3]);
       expect(poolRows.every((row) => row.roundCount === 3)).toBe(true);
       expect(poolRows.every((row) => row.knockoutMatch === null)).toBe(true);
-      expect(poolRows.map((row) => tournamentMatchRoundLabel(row))).toEqual([
-        "R1 of 3",
-        "R2 of 3",
-        "R3 of 3",
-      ]);
+      expect(
+        poolRows.map((row) => tournamentMatchRoundLabel(row, "en")),
+      ).toEqual(["R1 of 3", "R2 of 3", "R3 of 3"]);
       expect(poolRows[0]?.tournament?.knockout).toEqual({
         roundCount: 2,
         currentRoundName: null,
@@ -920,7 +920,7 @@ describe("Knockout Matches on hub lists", () => {
           now: KNOCKOUT_NOW,
         })
       ).upcomingGames.find((row) => row.id === seeded.gameId);
-      expect(summaryRow && tournamentTeamsLine(summaryRow)).toBe(
+      expect(summaryRow && tournamentTeamsLine(summaryRow, "en")).toBe(
         "8 teams, 2 groups, then semis",
       );
 
@@ -958,7 +958,7 @@ describe("Knockout Matches on hub lists", () => {
         poolMatch: null,
         knockoutMatch: { round: 1, roundCount: 2 },
       });
-      expect(placed[0] && tournamentMatchRoundLabel(placed[0])).toBe(
+      expect(placed[0] && tournamentMatchRoundLabel(placed[0], "en")).toBe(
         "Semi-final",
       );
       expect(placed[0]?.tournament?.knockout?.currentRoundName).toBe(

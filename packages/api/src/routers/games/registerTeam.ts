@@ -27,7 +27,7 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function registerTeam(
   database: DbClient,
-  args: { gameId: string; userId: string; teamId: string ; locale?: Locale },
+  args: { gameId: string; userId: string; teamId: string; locale?: Locale },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);

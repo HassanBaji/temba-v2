@@ -230,7 +230,9 @@ export async function bookingById(
       ),
       refundPercentNow: refundPercentAt(policy, booking.startsAt, now),
       refundDueFilsNow: refundNow.refundDueFils,
-      nextStep: step ? { ...step, text: describeNextRefundStep(step, locale) } : null,
+      nextStep: step
+        ? { ...step, text: describeNextRefundStep(step, locale) }
+        : null,
     },
   };
 }

@@ -11,6 +11,7 @@ import {
   venues,
 } from "@repo/db";
 import { bookingStatusLabel } from "@repo/domain/booking-copy";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import {
   addProductDays,
   productDayKey,
@@ -73,6 +74,7 @@ export async function listBookingsForVenue(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const now = args.now ?? new Date();
@@ -214,7 +216,10 @@ export async function listBookingsForVenue(
       startsAt: row.startsAt,
       endsAt: row.endsAt,
       status: row.status,
-      statusLabel: bookingStatusLabel(row.status),
+      statusLabel: bookingStatusLabel(
+        row.status,
+        args.locale ?? DEFAULT_LOCALE,
+      ),
       holdExpiresAt: row.holdExpiresAt,
       source: row.source,
       priceFils: row.priceFils,
@@ -259,5 +264,6 @@ export const listForVenueProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

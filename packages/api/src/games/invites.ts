@@ -80,7 +80,6 @@ export async function admitInviteeToGroup(
   database: Tx,
   game: GameRow,
   userId: string,
-  locale: Locale,
 ): Promise<{ joined: boolean }> {
   if (!game.groupId) {
     return { joined: false };

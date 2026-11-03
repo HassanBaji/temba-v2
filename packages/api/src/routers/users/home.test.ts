@@ -142,6 +142,7 @@ describe("loadHome pendingInviteCount", () => {
       const accepted = await acceptLookup(db, host, {
         inviteId: minted.invite.id,
         userId: viewer.id,
+        locale: "en",
       });
       expect(accepted.ok).toBe(true);
 

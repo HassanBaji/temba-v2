@@ -22,7 +22,7 @@ type DbClient = typeof db;
 
 export async function acceptInviteLink(
   database: DbClient,
-  args: { token: string; userId: string ; locale?: Locale },
+  args: { token: string; userId: string; locale?: Locale },
 ) {
   const link = await database.query.teamInviteLinks.findFirst({
     where: eq(teamInviteLinks.token, args.token),

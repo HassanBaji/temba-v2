@@ -47,7 +47,7 @@ function callerFor(metadata: Record<string, unknown> | undefined) {
       getPublicMetadata: async () => metadata,
       headers: new Headers(),
       webOrigin: "https://temba.example",
-        locale: "en",
+      locale: "en",
     }),
   );
 }

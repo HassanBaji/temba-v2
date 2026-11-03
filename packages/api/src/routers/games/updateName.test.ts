@@ -47,7 +47,7 @@ async function createFriendly(
     isPublic: false,
     format: "friendly_game",
     registrationMode: "individual",
-    name: gameWindowLabel(windowStart, windowEnd) ?? undefined,
+    name: gameWindowLabel(windowStart, windowEnd, "en") ?? undefined,
     customName,
     windowStart,
     windowEnd,
@@ -82,7 +82,7 @@ describe("Friendly game custom name", () => {
       const seeded = await seed(db);
       const created = await createFriendly(db, seeded, "   ");
       expect(await nameOf(db, created.id)).toEqual({
-        name: gameWindowLabel(windowStart, windowEnd),
+        name: gameWindowLabel(windowStart, windowEnd, "en"),
         hasCustomName: false,
       });
     } finally {
@@ -128,7 +128,7 @@ describe("Friendly game custom name", () => {
         customName: " ",
       });
       expect(await nameOf(db, created.id)).toEqual({
-        name: gameWindowLabel(windowStart, windowEnd),
+        name: gameWindowLabel(windowStart, windowEnd, "en"),
         hasCustomName: false,
       });
     } finally {
