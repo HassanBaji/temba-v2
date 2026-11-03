@@ -3,6 +3,8 @@
 import { Surface } from "~/components/ui/surface";
 import { useEffect, useState } from "react";
 
+import { HeroTopLine } from "~/components/games/hero-top-line";
+
 import { DividedFigurePair } from "~/components/home/home-all-time";
 import { WinLossMark } from "~/components/home/home-recent-form-row";
 import {
@@ -10,6 +12,10 @@ import {
   type FriendlyGameHeroInput,
   type FriendlyGameHeroModel,
 } from "@repo/domain/friendly-game-hero";
+import type { SurfaceTone } from "@repo/domain/surface-tone";
+
+/** Rendered once the hero knows its tone, so a menu can take paper ink on ink. */
+export type HeroActions = (tone: SurfaceTone) => React.ReactNode;
 
 function ScheduleSubline({ line }: { line: string | null }) {
   if (!line) {
@@ -20,15 +26,19 @@ function ScheduleSubline({ line }: { line: string | null }) {
 
 function FinalHero({
   model,
+  actions,
 }: {
   model: Extract<FriendlyGameHeroModel, { kind: "final" }>;
+  actions?: HeroActions;
 }) {
   return (
     <article className="border-rule bg-paper text-ink rounded-xl border p-[22px]">
-      <div className="text-muted-foreground text-meta flex items-start justify-between gap-3">
-        <p className="min-w-0 truncate">{model.dateLabel}</p>
-        <p className="shrink-0">{model.tag}</p>
-      </div>
+      <HeroTopLine
+        tone="paper"
+        left={model.dateLabel}
+        right={<p className="shrink-0">{model.tag}</p>}
+        actions={actions?.("paper")}
+      />
 
       {model.verdict && model.verdictWord ? (
         <div className="mt-3 flex items-center gap-3">
@@ -64,7 +74,10 @@ function FinalHero({
   );
 }
 
-export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
+export function FriendlyGameDetailsHero({
+  actions,
+  ...props
+}: FriendlyGameHeroInput & { actions?: HeroActions }) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -77,19 +90,23 @@ export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
   const model = friendlyGameHeroModel(props, now);
 
   if (!model) {
-    return null;
+    return actions ? (
+      <div className="text-ink flex justify-end empty:hidden">
+        {actions("paper")}
+      </div>
+    ) : null;
   }
 
   if (model.kind === "time_unset") {
     return (
       <Surface as="article" tone="ink" radius="surface" className="p-[22px]">
-        <p className="text-dim text-meta">Time unset</p>
+        <HeroTopLine tone="ink" left="Time unset" actions={actions?.("ink")} />
       </Surface>
     );
   }
 
   if (model.kind === "final") {
-    return <FinalHero model={model} />;
+    return <FinalHero model={model} actions={actions} />;
   }
 
   return (
@@ -99,17 +116,19 @@ export function FriendlyGameDetailsHero(props: FriendlyGameHeroInput) {
       radius="surface"
       className="p-[22px]"
     >
-      <div className="text-dim text-meta flex items-start justify-between gap-3">
-        <p className="min-w-0 truncate">
-          {/* ADR-0013: booked now, not "Team confirmed" / seats held. */}
-          {model.leftLabel}
-        </p>
-        {model.statusLabel ? (
-          <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
-            {model.statusLabel}
-          </p>
-        ) : null}
-      </div>
+      {/* ADR-0013: the left label is booked now, not "Team confirmed" / seats held. */}
+      <HeroTopLine
+        tone={model.tone}
+        left={model.leftLabel}
+        right={
+          model.statusLabel ? (
+            <p className="min-w-[11ch] shrink-0 text-right tabular-nums">
+              {model.statusLabel}
+            </p>
+          ) : null
+        }
+        actions={actions?.(model.tone)}
+      />
       {model.partnerName ? (
         <>
           <p className="font-expanded text-display mt-3 leading-none tracking-[-0.03em]">

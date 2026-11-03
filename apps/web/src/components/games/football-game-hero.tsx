@@ -1,6 +1,7 @@
 import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
+import { HeroTopLine } from "~/components/games/hero-top-line";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -15,10 +16,12 @@ const HERO_BLEED =
 export function FootballGameHeroCard({
   tone,
   lines,
+  actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const muted = tone === "ink" ? "text-dim" : "text-muted-foreground";
@@ -31,14 +34,16 @@ export function FootballGameHeroCard({
         tone === "paper" && "border-rule border-y md:border",
       )}
     >
-      <div
-        className={`${muted} text-meta flex items-start justify-between gap-3`}
-      >
-        <p className="min-w-0 truncate">{lines.status}</p>
-        {lines.sizeTag ? (
-          <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
-        ) : null}
-      </div>
+      <HeroTopLine
+        tone={tone}
+        left={lines.status}
+        right={
+          lines.sizeTag ? (
+            <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
+          ) : null
+        }
+        actions={actions}
+      />
       {lines.time ? (
         <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2">
           <span className="font-expanded text-[56px] tabular-nums leading-none">

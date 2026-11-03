@@ -3,6 +3,7 @@
 import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { HeroTopLine } from "~/components/games/hero-top-line";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -76,19 +77,18 @@ export function PlayedHero({
 }: PlayedHeroProps) {
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
-      {actions ? (
-        <div className="mb-5 flex items-center justify-end gap-2">
-          {actions}
-        </div>
-      ) : null}
-      <div className="text-dim text-meta flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate">{dateLine}</p>
-        {tag ? (
-          <p className="shrink-0 font-mono text-[11px] tracking-[0.08em]">
-            {tag}
-          </p>
-        ) : null}
-      </div>
+      <HeroTopLine
+        tone="ink"
+        left={dateLine}
+        right={
+          tag ? (
+            <p className="shrink-0 font-mono text-[11px] tracking-[0.08em]">
+              {tag}
+            </p>
+          ) : null
+        }
+        actions={actions}
+      />
 
       <div className="mt-4">{children}</div>
 

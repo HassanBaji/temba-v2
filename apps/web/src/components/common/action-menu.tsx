@@ -13,6 +13,10 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { cn } from "~/lib/utils";
 
+/** Trigger overrides for a menu that sits on an ink surface. */
+export const ACTION_MENU_INK_TRIGGER =
+  "text-paper hover:bg-raised hover:text-paper";
+
 export function ActionMenu({
   children,
   label = "More actions",

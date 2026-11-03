@@ -7,6 +7,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
+  ACTION_MENU_INK_TRIGGER,
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
@@ -41,6 +42,7 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { gamePlayersLink } from "~/lib/game-player-links";
+import { cn } from "~/lib/utils";
 import {
   bibNames,
   footballHeroLines,
@@ -525,7 +527,14 @@ export function FootballGameDetails({
       : null;
   const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (
-    <ActionMenu label="Game actions">
+    <ActionMenu
+      label="Game actions"
+      triggerClassName={
+        playedModel || model.hero.tone === "ink"
+          ? ACTION_MENU_INK_TRIGGER
+          : undefined
+      }
+    >
       <ActionMenuItem onSelect={() => setEditOpen(true)}>
         {EDIT_GAME_ACTION}
       </ActionMenuItem>
@@ -573,11 +582,16 @@ export function FootballGameDetails({
     <DashboardShell
       title="Game"
       hidePageHeader
-      action={menu}
+      hideMobileTopBar
       isSubPage={true}
       hideNav={true}
     >
-      <div className="space-y-6">
+      <div
+        className={cn(
+          "space-y-6",
+          (game.cancelledAt != null || game.joinFrozen) && "max-md:pt-4",
+        )}
+      >
         {game.cancelledAt ? (
           <section
             role="status"
@@ -607,6 +621,7 @@ export function FootballGameDetails({
         {playedModel ? (
           <PlayedGameView
             gameId={gameId}
+            menu={menu ?? undefined}
             hero={{
               dateLine: playedModel.dateLine,
               tag: playedModel.tag,
@@ -633,7 +648,11 @@ export function FootballGameDetails({
             }
           />
         ) : (
-          <FootballGameHeroCard tone={model.hero.tone} lines={lines}>
+          <FootballGameHeroCard
+            tone={model.hero.tone}
+            lines={lines}
+            actions={menu}
+          >
             {heroBody}
           </FootballGameHeroCard>
         )}
