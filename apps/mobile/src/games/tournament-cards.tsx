@@ -370,7 +370,11 @@ export function TournamentMatchCard({
     locale,
     game.knockoutMatch,
   );
-  const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
+  const venueLine = tournamentMatchVenueLine(
+    game.venue?.name,
+    game.courtName,
+    locale,
+  );
   const standingLine = tournamentMatchStandingLine(game.poolMatch, locale);
   const lastResultLine = tournamentMatchLastResultLine(
     game.poolMatch?.lastResult,

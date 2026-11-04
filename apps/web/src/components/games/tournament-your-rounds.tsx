@@ -1,7 +1,9 @@
 "use client";
 
 import { ListRow, RowList } from "~/components/common/row-list";
+import { PairLabel } from "~/components/temba/pair-label";
 import { ResultMark } from "~/components/temba/result-mark";
+import { ScoreText } from "~/components/temba/score-text";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { resultMarkVariant } from "@repo/domain/result-mark";
@@ -88,7 +90,7 @@ export function TournamentYourRounds(
                     className="size-5"
                   />
                 }
-                title={round.opponentName}
+                title={<PairLabel label={round.opponentName} />}
                 subtitle={viewerRoundSubtitle(
                   round.roundNumber,
                   round.startTime,
@@ -116,9 +118,9 @@ function roundTrailing(round: TournamentYourRoundsResult, locale: Locale) {
   }
   if (trailing.kind === "score" || trailing.kind === "draw") {
     return (
-      <span className="font-expanded text-[16px] tabular-nums">
+      <ScoreText className="font-expanded text-[16px]">
         {trailing.label}
-      </span>
+      </ScoreText>
     );
   }
   return <span className="text-body font-semibold">{trailing.label}</span>;

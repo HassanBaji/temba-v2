@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { tournament as source } from "../en/tournament";
 
@@ -51,7 +52,8 @@ export const tournament = {
     rightLower: "اليمين",
   },
   listSeparator: "، ",
-  listAnd: (first: string, second: string) => `${first} و${second}`,
+  listAnd: (first: string, second: string) =>
+    `${isolate(first)} و${isolate(second)}`,
   knockout: {
     final: "النهائي",
     semiFinals: "نصف النهائي",
@@ -63,7 +65,21 @@ export const tournament = {
     startSemis: "نصف النهائي",
     startQuarters: "ربع النهائي",
     startRoundOf: (teamsLeft: number) => `دور الـ${teamsLeft}`,
-    winnerOf: (code: string) => `الفائز في ${code}`,
+    label: {
+      final: "النهائي",
+      semi: (position: number) => `نصف النهائي ${position}`,
+      quarter: (position: number) => `ربع النهائي ${position}`,
+      round: (teamsLeft: number, position: number) =>
+        `دور الـ${teamsLeft} – ${position}`,
+    },
+    short: {
+      final: "النهائي",
+      semi: (position: number) => `نصف ${position}`,
+      quarter: (position: number) => `ربع ${position}`,
+      round: (teamsLeft: number, position: number) =>
+        `د${teamsLeft} – ${position}`,
+    },
+    winnerOf: (label: string) => `الفائز في ${label}`,
     byeCount: (n: number) => byesWord(n),
     onward: (roundName: string) => `من ${roundName} فصاعدًا`,
     onwardWithByes: (roundName: string, byeCount: number) =>
@@ -435,7 +451,8 @@ export const tournament = {
     samePosition: "سيلعب المستخدمان في الجهة نفسها",
     openPositionSr: "جهة شاغرة",
     teamEyebrow: (index: string) => `الفريق ${index}`,
-    occupantSubline: (seat: string, level: string) => `${seat}، ${level}`,
+    occupantSubline: (seat: string, level: string) =>
+      `${seat}، ${isolate(level)}`,
     leftOpen: "اليسار شاغر",
     rightOpen: "اليمين شاغر",
     openLeft: "اليسار شاغر",

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import { messagesFor } from "@repo/i18n/messages";
@@ -260,19 +261,35 @@ describe("draftPoolsFromGameTeams", () => {
   it("joins each Pool's dates and Courts into one meta line", () => {
     const day = formatAbsoluteDay(new Date(2026, 8, 20, 18, 0, 0), "en");
     assert.equal(
-      draftPoolMetaLine({
-        dateLines: [day],
-        courtNames: ["Court 1", "Court 2"],
-      }),
+      draftPoolMetaLine(
+        {
+          dateLines: [day],
+          courtNames: ["Court 1", "Court 2"],
+        },
+        "en",
+      ),
       `${day}, Court 1, Court 2`,
     );
-    assert.equal(draftPoolMetaLine({ dateLines: [day], courtNames: [] }), day);
     assert.equal(
-      draftPoolMetaLine({
-        dateLines: [],
-        courtNames: ["Court 3"],
-      }),
+      draftPoolMetaLine({ dateLines: [day], courtNames: [] }, "en"),
+      day,
+    );
+    assert.equal(
+      draftPoolMetaLine(
+        {
+          dateLines: [],
+          courtNames: ["Court 3"],
+        },
+        "en",
+      ),
       "Court 3",
+    );
+    assert.equal(
+      draftPoolMetaLine(
+        { dateLines: [day], courtNames: ["Court 1", "Court 2"] },
+        "ar",
+      ),
+      `${day}، ${isolate("Court 1")}، ${isolate("Court 2")}`,
     );
   });
 });

@@ -7,6 +7,7 @@ import {
   gameSummaryPrimaryAction,
   type GameSummaryCtaInput,
 } from "./game-summary-cta";
+import { nameInitial } from "./player-name";
 import {
   knockoutMatchRoundName,
   knockoutRoundName,
@@ -343,8 +344,13 @@ export function tournamentMatchRoundLine(
 export function tournamentMatchVenueLine(
   venueName: string | null | undefined,
   courtName: string | null | undefined,
+  locale: Locale,
 ) {
-  const line = [venueName, courtName].filter(Boolean).join(", ");
+  const { common } = messagesFor(locale);
+  const line = [venueName, courtName]
+    .filter((part): part is string => Boolean(part))
+    .map(common.isolate)
+    .join(common.listSeparator);
   return line.length > 0 ? line : null;
 }
 
@@ -375,7 +381,7 @@ export function tournamentMatchLastResultLine(
   const m = messagesFor(locale).tournament.card;
   const round = m.roundShort(lastResult.roundNumber);
   const score = lastResult.viewerSets
-    .map((set) => `${set.viewer}-${set.opponent}`)
+    .map((set) => `${set.viewer}–${set.opponent}`)
     .join(" ");
   switch (lastResult.outcome) {
     case "cancelled":
@@ -416,9 +422,13 @@ export function tournamentMatchHeadline(
 export function tournamentMatchKickoffLine(
   kickoff: { time: string; meridiem: string },
   venueName: string | null | undefined,
+  locale: Locale,
 ) {
+  const { common } = messagesFor(locale);
   const clock = [kickoff.time, kickoff.meridiem].filter(Boolean).join(" ");
-  return [clock, venueName].filter(Boolean).join(", ");
+  return [clock, venueName ? common.isolate(venueName) : null]
+    .filter(Boolean)
+    .join(common.listSeparator);
 }
 
 export function tournamentMatchGroupLabel(
@@ -440,7 +450,7 @@ function lastResultPhrase(
   const m = messagesFor(locale).tournament.card;
   const round = m.roundShort(lastResult.roundNumber);
   const score = lastResult.viewerSets
-    .map((set) => `${set.viewer}-${set.opponent}`)
+    .map((set) => `${set.viewer}–${set.opponent}`)
     .join(" ");
   switch (lastResult.outcome) {
     case "cancelled":
@@ -454,7 +464,7 @@ function lastResultPhrase(
   }
 }
 
-/** Home: `2nd, won R1 6-3 6-4`; the group size before the viewer's team has played. */
+/** Home: `2nd, won R1 6–3 6–4`; the group size before the viewer's team has played. */
 export function tournamentMatchGroupStanding(
   poolMatch: TournamentPoolMatch | null | undefined,
   locale: Locale,
@@ -533,7 +543,7 @@ function shortPlayerName(name: string) {
   const parts = name.trim().split(/\s+/);
   const first = parts[0] ?? name;
   const last = parts.length > 1 ? parts[parts.length - 1] : undefined;
-  return last ? `${first} ${last.charAt(0)}` : first;
+  return last ? `${first} ${nameInitial(last) ?? ""}` : first;
 }
 
 /** Vacant Positions are left out: the draw has already fixed who plays. */

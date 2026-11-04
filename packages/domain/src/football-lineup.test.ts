@@ -18,10 +18,17 @@ import {
 
 describe("footballSlotCode", () => {
   it("reads GK for a keeper and the position code otherwise", () => {
-    expect(footballSlotCode("keeper", "mid")).toBe("GK");
-    expect(footballSlotCode("outfield", "def")).toBe("DEF");
-    expect(footballSlotCode(null, "fwd")).toBe("FWD");
-    expect(footballSlotCode(null, null)).toBeNull();
+    expect(footballSlotCode("keeper", "mid", "en")).toBe("GK");
+    expect(footballSlotCode("outfield", "def", "en")).toBe("DEF");
+    expect(footballSlotCode(null, "fwd", "en")).toBe("FWD");
+    expect(footballSlotCode(null, null, "en")).toBeNull();
+  });
+
+  it("reads the Arabic position words", () => {
+    expect(footballSlotCode("keeper", "mid", "ar")).toBe("حارس");
+    expect(footballSlotCode("outfield", "def", "ar")).toBe("دفاع");
+    expect(footballSlotCode(null, "mid", "ar")).toBe("وسط");
+    expect(footballSlotCode(null, "fwd", "ar")).toBe("هجوم");
   });
 });
 

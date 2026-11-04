@@ -1,5 +1,6 @@
 import { bahrainDate } from "./bahrain-date.test-support";
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
@@ -530,9 +531,9 @@ describe("notificationCopy in Arabic", () => {
       {
         title: [
           { text: "انضم ", strong: false },
-          { text: "Sara", strong: true },
+          { text: isolate("Sara"), strong: true },
           { text: " إلى ", strong: false },
-          { text: "Night Crew", strong: true },
+          { text: isolate("Night Crew"), strong: true },
         ],
         subline: null,
       },

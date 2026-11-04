@@ -18,8 +18,8 @@
     var(--font-sans), var(--font-arabic), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono:
-    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+    var(--font-mono), var(--font-arabic), ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-display:
     var(--font-display), var(--font-arabic), ui-sans-serif, system-ui,
     sans-serif;
@@ -156,6 +156,12 @@
       );
     }
   }
+}
+
+/* Tracking pulls joined Arabic letters apart. !important beats the tracking-*
+   and font-expanded utilities on the same element. */
+:lang(ar) {
+  letter-spacing: 0 !important;
 }
 
 /* Always emit Home foundation utilities so later tickets can apply them. */

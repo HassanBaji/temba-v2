@@ -224,7 +224,7 @@ describe("knockout results in the posted tree", () => {
     const first = places[0];
     const second = places[1];
     assert.equal(first?.kind === "match" ? first.scoreLabel : "?", null);
-    assert.equal(second?.kind === "match" ? second.scoreLabel : "?", "3-6 4-6");
+    assert.equal(second?.kind === "match" ? second.scoreLabel : "?", "3–6 4–6");
   });
 
   it("offers Cancel Match only while a team is in the Match and it is unsettled", () => {
@@ -487,10 +487,13 @@ describe("Arabic copy", () => {
       locale: "ar",
     });
     assert.equal(rounds?.[1]?.name, "النهائي");
+    assert.equal(rounds?.[0]?.places[0]?.label, "نصف النهائي 1");
+    assert.equal(rounds?.[0]?.places[0]?.code, "S1");
+    assert.equal(rounds?.[1]?.places[0]?.label, "النهائي");
     const final = rounds?.[1]?.places[0];
     assert.equal(
       final?.kind === "match" ? knockoutSideLabel(final.slot1, "ar") : null,
-      "الفائز في S1",
+      "الفائز في نصف النهائي 1",
     );
     assert.equal(
       final?.kind === "match" ? knockoutSideLabel(final.slot2, "ar") : null,

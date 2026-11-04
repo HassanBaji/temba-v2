@@ -21,9 +21,9 @@ function RowContent({
           {row.opponents}
         </span>
         {showPartner ? (
-          <span className="text-meta block truncate">{row.partnerVenue}</span>
+          <span className="text-meta line-clamp-1">{row.partnerVenue}</span>
         ) : null}
-        <span className="text-meta text-muted-foreground block truncate">
+        <span className="text-meta text-muted-foreground line-clamp-1">
           {row.meta}
         </span>
       </span>

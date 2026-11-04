@@ -1,6 +1,41 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { plural } from "./plural";
+import { intlLocale, LOCALES } from "./locale";
+import { plural, pluralCategory } from "./plural";
+
+describe("pluralCategory", () => {
+  it.each(LOCALES)("matches Intl.PluralRules for 0..250 in %s", (locale) => {
+    const rules = new Intl.PluralRules(intlLocale(locale));
+    for (let n = 0; n <= 250; n += 1) {
+      expect(pluralCategory(locale, n), `${locale} ${n}`).toBe(rules.select(n));
+    }
+  });
+});
+
+describe("plural without Intl.PluralRules", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("falls back to pluralCategory", () => {
+    vi.stubGlobal("Intl", { ...Intl, PluralRules: undefined });
+    const forms = {
+      zero: "zero",
+      one: "one",
+      two: "two",
+      few: "few {n}",
+      many: "many {n}",
+      other: "other {n}",
+    };
+    expect(plural("ar", 0, forms)).toBe("zero");
+    expect(plural("ar", 2, forms)).toBe("two");
+    expect(plural("ar", 103, forms)).toBe("few 103");
+    expect(plural("ar", 11, forms)).toBe("many 11");
+    expect(plural("ar", 200, forms)).toBe("other 200");
+    expect(plural("en", 1, forms)).toBe("one");
+    expect(plural("en", 2, forms)).toBe("other 2");
+  });
+});
 
 describe("plural", () => {
   it("picks one and other in English", () => {

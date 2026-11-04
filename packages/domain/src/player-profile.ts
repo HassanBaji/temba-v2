@@ -1,3 +1,4 @@
+import { latinDigits } from "@repo/i18n/digits";
 import { intlLocale, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -121,11 +122,14 @@ export function overallView(
 }
 
 function monthAndYear(value: Date | string, locale: Locale) {
-  return new Date(value).toLocaleDateString(intlLocale(locale), {
-    month: "long",
-    year: "numeric",
-    timeZone: PRODUCT_TIMEZONE,
-  });
+  return latinDigits(
+    new Date(value).toLocaleDateString(intlLocale(locale), {
+      month: "long",
+      year: "numeric",
+      numberingSystem: "latn",
+      timeZone: PRODUCT_TIMEZONE,
+    }),
+  );
 }
 
 /** Only Win streaks show: a losing run reads as no current streak. */

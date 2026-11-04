@@ -18,7 +18,7 @@ export function TeamAvatars({
       {people.map((person, index) => (
         <View
           key={`${person.name}-${index}`}
-          style={{ marginLeft: index === 0 ? 0 : OVERLAP }}
+          style={{ marginStart: index === 0 ? 0 : OVERLAP }}
         >
           <Avatar name={person.name} uri={person.image} size="lg" />
         </View>
@@ -29,7 +29,7 @@ export function TeamAvatars({
           style={{
             width: OPEN_SEAT_SIZE,
             height: OPEN_SEAT_SIZE,
-            marginLeft: people.length + index === 0 ? 0 : OVERLAP,
+            marginStart: people.length + index === 0 ? 0 : OVERLAP,
           }}
         >
           <Hatch radius={OPEN_SEAT_SIZE / 2} />

@@ -103,6 +103,7 @@ export const webUi = {
     level: "Level",
     provisional: "Provisional",
     lastTenGames: "Last 10 games",
+    matchesSubtitle: (name: string, record: string) => `${name}, ${record}`,
     sets: (games: string[]) => `Sets: ${games.join(", ")}`,
     filterGames: "Filter games",
     gamesLoadError: "Games could not be loaded",

@@ -43,7 +43,9 @@ export function MemberRow({
       // Wraps instead of truncating: trailing form and level columns leave
       // a narrow name column at 360px, and the You tag must stay visible.
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 whitespace-normal">
-        <span className="min-w-0 break-words">{name}</span>
+        <span dir="auto" className="min-w-0 break-words">
+          {name}
+        </span>
         {isViewer ? <YouTag /> : null}
         {unclaimed ? <NotOnTembaTag /> : null}
       </span>

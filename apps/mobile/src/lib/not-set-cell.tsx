@@ -22,8 +22,8 @@ export function NotSetCell({
         paddingHorizontal: spacing.surface,
         paddingVertical: 14,
         gap: 2,
-        borderLeftWidth: divided ? hairline : 0,
-        borderLeftColor: colors.rule,
+        borderStartWidth: divided ? hairline : 0,
+        borderStartColor: colors.rule,
       }}
     >
       <Hatch bordered={false} radius={0} />

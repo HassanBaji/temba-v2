@@ -237,10 +237,11 @@ function ManualRow({
   onPlace: (side: Side) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const side = draft.sides[player.userId];
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   return (
     <li
       className={cn(
@@ -251,14 +252,16 @@ function ManualRow({
     >
       <UserAvatar name={player.name} image={player.image} />
       <div className="min-w-0 flex-1">
-        <p className="truncate">
+        <p dir="auto" className="truncate [text-align:match-parent]">
           {player.isViewer ? m.common.you : player.name}
         </p>
         {code ? (
           <p className="font-mono text-[11px] opacity-70">{code}</p>
         ) : null}
       </div>
-      <span className="font-expanded">{levelLabel(player.levelBand)}</span>
+      <span dir="ltr" className="font-expanded">
+        {levelLabel(player.levelBand)}
+      </span>
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}

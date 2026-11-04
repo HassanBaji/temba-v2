@@ -214,7 +214,9 @@ function TeamPairs({
         <PlaceholderPair key={index} />
       ))}
       {remaining > 0 ? (
-        <span className="text-muted-foreground text-meta">+{remaining}</span>
+        <span className="text-muted-foreground text-meta">
+          <bdi dir="ltr">+{remaining}</bdi>
+        </span>
       ) : null}
     </div>
   );
@@ -512,7 +514,11 @@ export function TournamentMatchCard({
     locale,
     game.knockoutMatch,
   );
-  const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
+  const venueLine = tournamentMatchVenueLine(
+    game.venue?.name,
+    game.courtName,
+    locale,
+  );
   const standingLine = tournamentMatchStandingLine(game.poolMatch, locale);
   const lastResultLine = tournamentMatchLastResultLine(
     game.poolMatch?.lastResult,
@@ -630,7 +636,11 @@ export function HomeTournamentMatchCard({
     locale,
     game.knockoutMatch,
   );
-  const kickoffLine = tournamentMatchKickoffLine(kickoff, game.venue?.name);
+  const kickoffLine = tournamentMatchKickoffLine(
+    kickoff,
+    game.venue?.name,
+    locale,
+  );
   const groupLabel = tournamentMatchGroupLabel(game.poolMatch, locale);
   const groupStanding = tournamentMatchGroupStanding(game.poolMatch, locale);
   const roundsLeftLine = tournamentMatchRoundsLeftLine(

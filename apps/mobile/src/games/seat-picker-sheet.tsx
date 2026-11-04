@@ -52,7 +52,10 @@ export function SeatPickerSheet({
                     locale,
                   )}
                 </Text>
-                <View style={{ flexDirection: "row", gap: 8 }}>
+                <View
+                  // Physical on purpose: Left and Right are court sides, not reading order.
+                  style={{ flexDirection: "row", direction: "ltr", gap: 8 }}
+                >
                   {seats.map((position) => (
                     <Button
                       key={position}

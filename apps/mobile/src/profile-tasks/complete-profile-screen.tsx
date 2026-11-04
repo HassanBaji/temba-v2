@@ -105,7 +105,15 @@ function TaskList({
   );
 }
 
-function DoneRow({ label, value }: { label: string; value: string }) {
+function DoneRow({
+  label,
+  value,
+  ltr = false,
+}: {
+  label: string;
+  value: string;
+  ltr?: boolean;
+}) {
   return (
     <View
       style={{
@@ -120,7 +128,7 @@ function DoneRow({ label, value }: { label: string; value: string }) {
         <Text size="meta" tone="muted">
           {label}
         </Text>
-        <Text weight="semibold" numberOfLines={1}>
+        <Text weight="semibold" numberOfLines={1} ltr={ltr}>
           {value}
         </Text>
       </View>
@@ -217,9 +225,16 @@ function Checklist({
   const m = useMessages();
   const locale = useLocale();
   const doneAtSignUp = [
-    name ? { label: m.mobileHome.tasks.short.name, value: name } : null,
-    phone ? { label: m.mobileHome.fields.mobileNumber, value: phone } : null,
-  ].filter((row): row is { label: string; value: string } => row !== null);
+    name
+      ? { label: m.mobileHome.tasks.short.name, value: name, ltr: false }
+      : null,
+    phone
+      ? { label: m.mobileHome.fields.mobileNumber, value: phone, ltr: true }
+      : null,
+  ].filter(
+    (row): row is { label: string; value: string; ltr: boolean } =>
+      row !== null,
+  );
 
   return (
     <AuthScreen
@@ -256,7 +271,7 @@ function Checklist({
             {doneAtSignUp.map((row, index) => (
               <View key={row.label}>
                 {index > 0 ? <Hairline /> : null}
-                <DoneRow label={row.label} value={row.value} />
+                <DoneRow label={row.label} value={row.value} ltr={row.ltr} />
               </View>
             ))}
           </View>

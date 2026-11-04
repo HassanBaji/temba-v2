@@ -1,5 +1,6 @@
 "use client";
 
+import { useTextDirection } from "~/components/locale-provider";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { cn } from "~/lib/utils";
 
@@ -47,6 +48,7 @@ export function SettingsChoices<T extends string>({
   variant = "tiles",
   mono = false,
   disabled = false,
+  physical = false,
   id,
 }: {
   label?: string;
@@ -58,11 +60,15 @@ export function SettingsChoices<T extends string>({
   variant?: keyof typeof LAYOUT;
   mono?: boolean;
   disabled?: boolean;
+  /** The choices are court sides, so their order stays left to right in Arabic. */
+  physical?: boolean;
   id?: string;
 }) {
+  const { direction } = useTextDirection();
   return (
     <RovingRadioGroup
       id={id}
+      dir={physical ? "ltr" : undefined}
       aria-label={label}
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
@@ -84,6 +90,7 @@ export function SettingsChoices<T extends string>({
               }
             }}
             className={optionClassName(variant, selected, mono)}
+            dir={physical ? direction : undefined}
           >
             <span>{choice.name}</span>
             {choice.detail ? (

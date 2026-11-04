@@ -48,8 +48,8 @@ export function JoinRequestsBanner({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        paddingLeft: 16,
-        paddingRight: 8,
+        paddingStart: 16,
+        paddingEnd: 8,
         paddingVertical: 8,
       }}
     >
@@ -101,7 +101,7 @@ function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
       {view.kind === "provisional" ? (
         <Hatch bordered={false} radius={radii.slot - 1} />
       ) : null}
-      <Text size="eyebrow" mono>
+      <Text size="eyebrow" mono ltr>
         {view.label}
       </Text>
     </View>
@@ -289,8 +289,8 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
-            paddingLeft: 18,
-            paddingRight: 10,
+            paddingStart: 18,
+            paddingEnd: 10,
             paddingVertical: 12,
             borderRadius: radii.card,
             borderWidth: hairline,
@@ -368,8 +368,8 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
             alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
-            paddingLeft: 16,
-            paddingRight: 10,
+            paddingStart: 16,
+            paddingEnd: 10,
             paddingVertical: 6,
             backgroundColor: colors.surfaceRaised,
           }}

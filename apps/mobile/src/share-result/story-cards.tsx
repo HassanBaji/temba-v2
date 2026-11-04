@@ -446,8 +446,8 @@ function LineupGrid({
                 alignItems: "center",
                 gap: 16,
                 paddingVertical: 10,
-                paddingLeft: 10,
-                paddingRight: 16,
+                paddingStart: 10,
+                paddingEnd: 16,
                 borderRadius: 18,
                 backgroundColor: you ? colors.paper : "transparent",
               }}

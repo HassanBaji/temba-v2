@@ -129,8 +129,8 @@ function Segment({
         justifyContent: "center",
         gap: 6,
         backgroundColor: selected ? colors.ink : colors.paper,
-        borderLeftWidth: first ? 0 : hairline,
-        borderLeftColor: colors.rule,
+        borderStartWidth: first ? 0 : hairline,
+        borderStartColor: colors.rule,
         opacity: pressed ? 0.85 : 1,
       })}
     >

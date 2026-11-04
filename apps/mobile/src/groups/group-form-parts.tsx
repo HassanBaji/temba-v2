@@ -247,7 +247,7 @@ export function SportSegment({
               alignItems: "center",
               justifyContent: "center",
               gap: 2,
-              borderLeftWidth: index > 0 ? hairline : 0,
+              borderStartWidth: index > 0 ? hairline : 0,
               borderColor: colors.rule,
               backgroundColor: selected
                 ? colors.ink

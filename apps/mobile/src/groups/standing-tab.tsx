@@ -625,8 +625,8 @@ function OpenSeatRow({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        paddingLeft: spacing.surface,
-        paddingRight: onInvite ? 10 : spacing.surface,
+        paddingStart: spacing.surface,
+        paddingEnd: onInvite ? 10 : spacing.surface,
         paddingVertical: 10,
       }}
     >
@@ -806,8 +806,8 @@ function StatCell({
         flex: 1,
         padding: spacing.surface,
         gap: 2,
-        borderLeftWidth: divided ? hairlineWidth : 0,
-        borderLeftColor: palette.rule,
+        borderStartWidth: divided ? hairlineWidth : 0,
+        borderStartColor: palette.rule,
       }}
     >
       <Text

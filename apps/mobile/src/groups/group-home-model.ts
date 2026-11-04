@@ -34,6 +34,7 @@ import {
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
+import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -218,7 +219,7 @@ export function memberRowView(
   const name = entry.name ?? m.mobileGroup.unnamedMember;
   const caption = [
     groupMemberSortCaption(entry, sort, locale),
-    entry.phoneMasked,
+    entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
       : null,

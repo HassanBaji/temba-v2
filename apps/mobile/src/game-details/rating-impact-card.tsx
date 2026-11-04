@@ -83,9 +83,16 @@ export function RatingScopeCard({ scope }: { scope: GameRatingScope }) {
   }
   return (
     <Card title={notice.title}>
-      <Text size="meta" tone="muted">
-        {notice.line}
-      </Text>
+      <View
+        style={{
+          paddingHorizontal: spacing.surface,
+          paddingBottom: spacing.surface,
+        }}
+      >
+        <Text size="meta" tone="muted">
+          {notice.line}
+        </Text>
+      </View>
     </Card>
   );
 }

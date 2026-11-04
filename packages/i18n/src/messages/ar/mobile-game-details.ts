@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { mobileGameDetails as source } from "../en/mobile-game-details";
 
@@ -49,7 +50,7 @@ export const mobileGameDetails = {
   },
   hero: {
     timeUnset: "الوقت غير محدد",
-    youAnd: (name: string) => `أنت و${name}`,
+    youAnd: (name: string) => `أنت و${isolate(name)}`,
     kickoff: (time: string, trailer: string) => `${time} ${trailer}`,
     directions: "الاتجاهات",
     directionsTo: (venue: string) => `الاتجاهات إلى ${venue}`,
@@ -255,7 +256,7 @@ export const mobileGameDetails = {
     teams: "الفرق",
     organizerMakesTeams: "يكوّنها المنظّم",
     bibs: "الصدريات",
-    youreInAs: (code: string) => `أنت مشارك كـ ${code}`,
+    youreInAs: (code: string) => `أنت مشارك بمركز ${code}`,
     change: "تغيير",
     invitePlayers: "دعوة لاعبين",
     captainsNote: "يختار القادة التشكيلة الأساسية قبل انطلاق المباراة.",

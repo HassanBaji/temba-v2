@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import type { booking as source } from "../en/booking";
 import { plural } from "../../plural";
 
@@ -29,7 +30,7 @@ export const booking = {
     taken: "تم حجز هذه الفترة للتو",
   },
   cancelWindowClosedCall: (venuePhone: string) =>
-    `لم يعد بالإمكان إلغاء هذا الحجز في التطبيق. اتصل بالنادي على ${venuePhone}`,
+    `لم يعد بالإمكان إلغاء هذا الحجز في التطبيق. اتصل بالنادي على ${isolate(venuePhone)}`,
   cancelWindowClosedContact:
     "لم يعد بالإمكان إلغاء هذا الحجز في التطبيق. تواصل مع النادي",
   refund: {

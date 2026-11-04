@@ -97,9 +97,13 @@ function typeNote(rated: boolean, locale: Locale) {
   return rated ? m.ratedMatch : m.friendlyMatch;
 }
 
-function cardVenue(place: PlayedPlace) {
+function cardVenue(place: PlayedPlace, locale: Locale) {
+  const { common } = messagesFor(locale);
   return (
-    [place.venue?.name, place.courtName].filter(Boolean).join(", ") || "Temba"
+    [place.venue?.name, place.courtName]
+      .filter((part): part is string => Boolean(part))
+      .map(common.isolate)
+      .join(common.listSeparator) || "Temba"
   );
 }
 
@@ -195,7 +199,7 @@ export function padelResultCard(
     loserShort: shortOf(losers),
     setRows,
     draw: !aWon && !bWon,
-    venue: cardVenue(input),
+    venue: cardVenue(input, locale),
     ...cardWhen(input.windowStart, locale),
   };
 }
@@ -267,10 +271,10 @@ export function footballResultCard(
           init: initials(viewer.name),
           name: viewer.name,
           goals: viewer.goals,
-          code: slotCode(viewer),
+          code: slotCode(viewer, locale),
         }
       : null,
-    venue: cardVenue(input),
+    venue: cardVenue(input, locale),
     ...cardWhen(input.windowStart, locale),
   };
 }
@@ -328,7 +332,7 @@ export function formatFootballResultShareMessage(
             ? `${shortName(scorer.name)} ×${scorer.goals}`
             : shortName(scorer.name),
         )
-        .join(", ")}`,
+        .join(messagesFor(locale).common.listSeparator)}`,
     );
   }
   lines.push(`📍 ${card.venue}`);

@@ -130,7 +130,7 @@ export function LookupUserSelect({
                   </span>
                   {option.username ? (
                     <span className="text-meta text-muted-foreground block">
-                      @{option.username}
+                      <bdi dir="ltr">@{option.username}</bdi>
                     </span>
                   ) : null}
                   {option.email ? (
@@ -140,7 +140,7 @@ export function LookupUserSelect({
                   ) : null}
                   {option.phoneNumber ? (
                     <span className="text-meta text-muted-foreground block">
-                      {option.phoneNumber}
+                      <bdi dir="ltr">{option.phoneNumber}</bdi>
                     </span>
                   ) : null}
                   {option.cue ? (

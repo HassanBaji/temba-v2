@@ -49,7 +49,21 @@ export const tournament = {
     startSemis: "semis",
     startQuarters: "quarters",
     startRoundOf: (teamsLeft: number) => `the round of ${teamsLeft}`,
-    winnerOf: (code: string) => `Winner of ${code}`,
+    label: {
+      final: "Final",
+      semi: (position: number) => `S${position}`,
+      quarter: (position: number) => `Q${position}`,
+      round: (teamsLeft: number, position: number) =>
+        `R${teamsLeft}-${position}`,
+    },
+    short: {
+      final: "Final",
+      semi: (position: number) => `S${position}`,
+      quarter: (position: number) => `Q${position}`,
+      round: (teamsLeft: number, position: number) =>
+        `R${teamsLeft}-${position}`,
+    },
+    winnerOf: (label: string) => `Winner of ${label}`,
     byeCount: (n: number) => byesWord(n),
     onward: (roundName: string) => `${roundName} onward`,
     onwardWithByes: (roundName: string, byeCount: number) =>

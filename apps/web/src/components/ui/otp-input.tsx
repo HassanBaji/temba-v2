@@ -52,7 +52,7 @@ export function OtpInput({
   const invalid = ariaInvalid === true;
 
   return (
-    <div className={cn("relative", className)}>
+    <div dir="ltr" className={cn("relative", className)}>
       <div
         aria-hidden="true"
         className={cn("grid grid-cols-6 gap-2", disabled && "opacity-50")}

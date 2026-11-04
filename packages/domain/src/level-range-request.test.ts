@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
@@ -72,7 +73,7 @@ describe("levelRangeRequestCard", () => {
     assert.equal(card?.title, "طلب اللعب");
     assert.equal(
       card?.copy,
-      "هذه المباراة مخصصة لمن هم في المستوى C/B-. مستواك C-.",
+      `هذه المباراة مخصصة لمن هم في المستوى ${isolate("C/B-")}. مستواك ${isolate("C-")}.`,
     );
   });
 

@@ -1,4 +1,5 @@
 import { bahrainDate, bahrainDayFromToday } from "./bahrain-date.test-support";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import { formatAbsoluteDay, formatGameTimeWindow } from "./format-game-start";
@@ -108,7 +109,7 @@ describe("Arabic metadata", () => {
       locale: "ar",
     });
     expect(metadata.description).toBe(
-      `${formatAbsoluteDay(start, "ar")}، ${formatGameTimeWindow(start, end, start, "ar")}، 2/4 جالسون، المستوى C/B-`,
+      `${formatAbsoluteDay(start, "ar")}، ${formatGameTimeWindow(start, end, start, "ar")}، 2/4 جالسون، المستوى ${isolate("C/B-")}`,
     );
     expect(genericTembaOpenGraph("ar").title).toContain("Temba");
   });

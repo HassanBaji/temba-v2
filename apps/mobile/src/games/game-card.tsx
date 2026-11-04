@@ -213,7 +213,7 @@ export function GameCard({
           {kickoff.meridiem}
         </Text>
         {countdown ? (
-          <Text size="meta" tone="muted" style={{ marginLeft: "auto" }}>
+          <Text size="meta" tone="muted" style={{ marginStart: "auto" }}>
             {countdown}
           </Text>
         ) : null}

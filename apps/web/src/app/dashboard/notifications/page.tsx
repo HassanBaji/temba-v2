@@ -236,6 +236,7 @@ export default function NotificationsPage() {
                   <NotificationLeading type={item.type} actor={item.actor} />
                 }
                 title={<NotificationTitle parts={copy.title} unread={unread} />}
+                titleClamp="lines"
                 subtitle={copy.subline}
                 meta={notificationMeta(item, locale)}
                 trailing={unread ? <UnreadDot /> : null}

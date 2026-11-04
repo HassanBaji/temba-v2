@@ -12,7 +12,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { LevelSlider } from "~/components/groups/level-slider";
-import { useMessages } from "~/components/locale-provider";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
@@ -44,11 +44,16 @@ function SetGroupLevelForm({
   onDone: () => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const copy = m.webGroup.setLevel;
   const startTenths = levelSliderStartTenths(member.groupLevel ?? member.level);
   const startLabel = levelSliderLabel(startTenths);
   const [tenths, setTenths] = React.useState(startTenths);
-  const readout = levelSliderReadout({ tenths, currentTenths: startTenths });
+  const readout = levelSliderReadout({
+    tenths,
+    currentTenths: startTenths,
+    locale,
+  });
   const utils = api.useUtils();
   const setGroupLevel = api.ratings.setGroupLevel.useMutation({
     onSuccess: async () => {

@@ -43,8 +43,8 @@ function SortChip({ label, onPress }: { label: string; onPress: () => void }) {
       onPress={onPress}
       style={({ pressed }) => ({
         height: CHIP_HEIGHT,
-        paddingLeft: 12,
-        paddingRight: 10,
+        paddingStart: 12,
+        paddingEnd: 10,
         flexDirection: "row",
         alignItems: "center",
         gap: 7,

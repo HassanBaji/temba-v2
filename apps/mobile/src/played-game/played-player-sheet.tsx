@@ -1,5 +1,6 @@
 import { kickAction } from "@repo/domain/game-copy";
 import type { PlayedRow } from "@repo/domain/played-game";
+import { isolate } from "@repo/i18n/bidi";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -39,7 +40,7 @@ export function PlayedPlayerSheet({
     ? m.profile.matches.spokenParts(
         [
           player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
-          player.phoneMasked,
+          player.phoneMasked ? isolate(player.phoneMasked) : null,
           player.meta,
           m.mobilePlayer.played.levelLine(player.level),
           player.trailing,

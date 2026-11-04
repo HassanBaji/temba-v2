@@ -83,5 +83,12 @@ export const common = {
   pageNotFound: "Page not found",
   goHome: "Go to Home",
   restartToApplyLayout: "Restart Temba to apply the new layout direction.",
+  listSeparator: ", ",
+  /**
+   * A name or Latin-only value (phone, band, signed delta) set inside a
+   * sentence. Arabic wraps it in a bidi isolate so it cannot reorder the
+   * words around it; English needs none.
+   */
+  isolate: (text: string) => text,
   count: (n: number) => String(n),
 };

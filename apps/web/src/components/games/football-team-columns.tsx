@@ -12,7 +12,7 @@ import {
 import type { FootballBib } from "@repo/domain/football-lineup";
 
 import { UserAvatar } from "~/components/common/user-avatar";
-import { useMessages } from "~/components/locale-provider";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 import { BibChip, bibStyle } from "./football-bibs";
@@ -30,8 +30,9 @@ export function BibRow({
   onPress?: () => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const name = player.isViewer ? m.common.you : shortName(player.name);
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   const label = [
     name,
     code,
@@ -44,8 +45,9 @@ export function BibRow({
     <>
       <UserAvatar name={player.name} image={player.image} size="sm" />
       <span
+        dir="auto"
         className={cn(
-          "text-meta min-w-0 flex-1 truncate",
+          "text-meta min-w-0 flex-1 truncate [text-align:match-parent]",
           player.isViewer && "font-semibold",
         )}
       >
@@ -54,7 +56,7 @@ export function BibRow({
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
       ) : null}
-      <span className="font-expanded text-meta">
+      <span dir="ltr" className="font-expanded text-meta">
         {levelLabel(player.levelBand)}
       </span>
     </>

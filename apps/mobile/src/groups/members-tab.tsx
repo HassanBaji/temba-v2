@@ -47,8 +47,8 @@ import { useMemberLens } from "./use-member-lens";
 
 const LEVEL_WIDTH = 52;
 const ACTION_WIDTH = 44;
-const ROW_PADDING_LEFT = 16;
-const ROW_PADDING_RIGHT = 10;
+const ROW_PADDING_START = 16;
+const ROW_PADDING_END = 10;
 
 function YouMark() {
   const m = useMessages();
@@ -111,8 +111,8 @@ function MemberRow({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingLeft: ROW_PADDING_LEFT,
-    paddingRight: managing ? 0 : ROW_PADDING_RIGHT,
+    paddingStart: ROW_PADDING_START,
+    paddingEnd: managing ? 0 : ROW_PADDING_END,
     paddingVertical: 8,
   } as const;
 
@@ -186,8 +186,8 @@ function TableHeader({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        paddingLeft: ROW_PADDING_LEFT,
-        paddingRight: managing ? 0 : ROW_PADDING_RIGHT,
+        paddingStart: ROW_PADDING_START,
+        paddingEnd: managing ? 0 : ROW_PADDING_END,
         backgroundColor: colors.wash,
       }}
     >

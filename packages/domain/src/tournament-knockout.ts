@@ -339,8 +339,37 @@ export function knockoutMatchCode(
   return `R${teamsLeft}-${position}`;
 }
 
-export function knockoutWinnerOfLabel(code: string, locale: Locale) {
-  return messagesFor(locale).tournament.knockout.winnerOf(code);
+export type KnockoutLabelForm = "full" | "short";
+
+/**
+ * The words for a Knockout place, where `knockoutMatchCode` is its id. Arabic
+ * spells it out ("نصف النهائي 1") in `full` and abbreviates it ("نصف 1") in
+ * `short`; English reads the code in both.
+ */
+export function knockoutMatchLabel(
+  round: number,
+  position: number,
+  roundCount: number,
+  locale: Locale,
+  form: KnockoutLabelForm,
+) {
+  const knockout = messagesFor(locale).tournament.knockout;
+  const m = form === "full" ? knockout.label : knockout.short;
+  const teamsLeft = knockoutTeamsLeft(round, roundCount);
+  if (teamsLeft === 2) {
+    return m.final;
+  }
+  if (teamsLeft === 4) {
+    return m.semi(position);
+  }
+  if (teamsLeft === 8) {
+    return m.quarter(position);
+  }
+  return m.round(teamsLeft, position);
+}
+
+export function knockoutWinnerOfLabel(label: string, locale: Locale) {
+  return messagesFor(locale).tournament.knockout.winnerOf(label);
 }
 
 export function knockoutByeCountLabel(byeCount: number, locale: Locale) {
@@ -446,7 +475,7 @@ export function scoredSetLabel(
     if (set.slot1GamesWon == null || set.slot2GamesWon == null) {
       continue;
     }
-    parts.push(`${set.slot1GamesWon}-${set.slot2GamesWon}`);
+    parts.push(`${set.slot1GamesWon}–${set.slot2GamesWon}`);
   }
   return parts.length > 0 ? parts.join(" ") : null;
 }

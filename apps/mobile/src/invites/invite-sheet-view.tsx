@@ -124,7 +124,7 @@ function CloseAction({ onPress }: { onPress: () => void }) {
         width: sizes.touchTarget,
         height: sizes.touchTarget,
         marginTop: -10,
-        marginRight: -12,
+        marginEnd: -12,
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -224,7 +224,7 @@ function PlayerRow({
           {view.name}
         </Text>
         {view.meta ? (
-          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+          <Text size="eyebrow" tone="muted" numberOfLines={1} ltr>
             {view.meta}
           </Text>
         ) : null}
@@ -385,7 +385,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
       >
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           {link.currentUrl ? (
-            <Text mono selectable numberOfLines={1}>
+            <Text mono selectable numberOfLines={1} ltr>
               {link.currentUrl}
             </Text>
           ) : null}
@@ -449,8 +449,8 @@ function PendingChip({
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        paddingLeft: 12,
-        paddingRight: 5,
+        paddingStart: 12,
+        paddingEnd: 5,
         borderRadius: CHIP_HEIGHT / 2,
         borderWidth: hairline,
         borderColor: colors.rule,

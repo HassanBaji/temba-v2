@@ -6,6 +6,7 @@
  * which en-US would reverse.
  */
 
+import { latinDigits } from "@repo/i18n/digits";
 import { intlLocale, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -26,10 +27,13 @@ export function formatWeekday(
   style: NameStyle,
   locale: Locale,
 ) {
-  return asDate(value).toLocaleDateString(intlLocale(locale), {
-    weekday: style,
-    timeZone: PRODUCT_TIMEZONE,
-  });
+  return latinDigits(
+    asDate(value).toLocaleDateString(intlLocale(locale), {
+      weekday: style,
+      numberingSystem: "latn",
+      timeZone: PRODUCT_TIMEZONE,
+    }),
+  );
 }
 
 export function formatMonth(
@@ -37,10 +41,13 @@ export function formatMonth(
   style: NameStyle,
   locale: Locale,
 ) {
-  return asDate(value).toLocaleDateString(intlLocale(locale), {
-    month: style,
-    timeZone: PRODUCT_TIMEZONE,
-  });
+  return latinDigits(
+    asDate(value).toLocaleDateString(intlLocale(locale), {
+      month: style,
+      numberingSystem: "latn",
+      timeZone: PRODUCT_TIMEZONE,
+    }),
+  );
 }
 
 /** `4 Oct`, `Sat 4 Oct`, `Saturday 4 October 2026`. */
@@ -68,11 +75,14 @@ export function formatGameStart(startTime: Date | string, locale: Locale) {
 }
 
 export function formatGameClock(startTime: Date | string, locale: Locale) {
-  return asDate(startTime).toLocaleTimeString(intlLocale(locale), {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: PRODUCT_TIMEZONE,
-  });
+  return latinDigits(
+    asDate(startTime).toLocaleTimeString(intlLocale(locale), {
+      hour: "numeric",
+      minute: "2-digit",
+      numberingSystem: "latn",
+      timeZone: PRODUCT_TIMEZONE,
+    }),
+  );
 }
 
 export function formatDurationInMinutes(

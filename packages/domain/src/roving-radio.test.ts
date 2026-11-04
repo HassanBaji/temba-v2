@@ -34,6 +34,17 @@ describe("rovingRadioIndex", () => {
     expect(rovingRadioIndex("ArrowLeft", 0, 1)).toBe(0);
   });
 
+  it("swaps ArrowLeft and ArrowRight in RTL, keeping Up, Down, Home and End", () => {
+    expect(rovingRadioIndex("ArrowLeft", 0, 3, "rtl")).toBe(1);
+    expect(rovingRadioIndex("ArrowLeft", 2, 3, "rtl")).toBe(0);
+    expect(rovingRadioIndex("ArrowRight", 1, 3, "rtl")).toBe(0);
+    expect(rovingRadioIndex("ArrowRight", 0, 3, "rtl")).toBe(2);
+    expect(rovingRadioIndex("ArrowDown", 0, 3, "rtl")).toBe(1);
+    expect(rovingRadioIndex("ArrowUp", 0, 3, "rtl")).toBe(2);
+    expect(rovingRadioIndex("Home", 2, 3, "rtl")).toBe(0);
+    expect(rovingRadioIndex("End", 0, 3, "rtl")).toBe(2);
+  });
+
   it("ignores other keys and empty groups", () => {
     expect(rovingRadioIndex("Enter", 0, 3)).toBeNull();
     expect(rovingRadioIndex(" ", 0, 3)).toBeNull();

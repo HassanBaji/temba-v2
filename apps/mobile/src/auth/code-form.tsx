@@ -131,6 +131,7 @@ export function CodeForm(props: CodeFormProps) {
       <TextField
         label={m.mobileHome.code.codeLabel}
         mono
+        ltr
         autoFocus
         keyboardType="number-pad"
         textContentType="oneTimeCode"

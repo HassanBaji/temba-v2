@@ -238,7 +238,8 @@ function TeamRow({
           </span>
         ) : null}
       </div>
-      <div className="flex gap-2">
+      {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+      <div className="flex gap-2 rtl:flex-row-reverse">
         <TeamSeat
           occupant={side?.left ?? null}
           position="left"

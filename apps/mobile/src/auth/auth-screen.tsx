@@ -42,7 +42,7 @@ function BackButton(props: { onPress: () => void }) {
       style={{
         width: sizes.touchTarget,
         height: sizes.touchTarget,
-        marginLeft: -12,
+        marginStart: -12,
         alignItems: "center",
         justifyContent: "center",
       }}

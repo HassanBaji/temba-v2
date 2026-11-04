@@ -89,7 +89,7 @@ export function LevelHero({ view }: { view: HeroView }) {
         style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
       >
         <LevelRing percent={view.ring.percent}>
-          <Text size="h1Lg" width="expanded" weight="bold">
+          <Text size="h1Lg" width="expanded" weight="bold" ltr>
             {view.band}
           </Text>
           <Text

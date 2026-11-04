@@ -180,9 +180,9 @@ export function viewerMaySetGroupLevel(group: {
   );
 }
 
-/** The Standing W-L column: `{wins}-{losses}`, drawn even at `0-0`. */
+/** The Standing W-L column: `{wins}–{losses}`, drawn even at `0–0`. */
 export function groupStandingRecordLabel(wins: number, losses: number) {
-  return `${wins}-${losses}`;
+  return `${wins}–${losses}`;
 }
 
 export type LevelCellView =

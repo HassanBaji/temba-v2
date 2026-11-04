@@ -69,7 +69,7 @@ export function TournamentPoolDrawPanel({
       <div className="flex min-h-0 flex-1 flex-col gap-[22px] overflow-y-auto overscroll-contain px-[22px] py-[22px]">
         {hasDraft ? (
           pools.map((pool) => {
-            const meta = draftPoolMetaLine(pool);
+            const meta = draftPoolMetaLine(pool, locale);
             return (
               <section key={pool.poolIndex}>
                 <div className="flex items-baseline gap-2.5 pb-2.5">

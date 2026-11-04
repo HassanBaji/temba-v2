@@ -70,7 +70,7 @@ export function AvatarStack({
             surface === "raised" ? "ring-surface-raised" : "ring-background"
           }
         >
-          +{overflow}
+          <bdi dir="ltr">+{overflow}</bdi>
         </AvatarGroupCount>
       ) : null}
     </AvatarGroup>

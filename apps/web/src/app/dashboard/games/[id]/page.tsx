@@ -934,6 +934,7 @@ export default function GameHomePage({
                   key: "leave",
                   label: m.game.action.leaveGame,
                   icon: LogOutIcon,
+                  iconClassName: "rtl:-scale-x-100",
                   onSelect: () => setLeaveGameOpen(true),
                 },
               ]
@@ -944,6 +945,7 @@ export default function GameHomePage({
                   key: "leave_waitlist",
                   label: m.game.action.leaveWaitlist,
                   icon: LogOutIcon,
+                  iconClassName: "rtl:-scale-x-100",
                   onSelect: () => setLeaveWaitlistOpen(true),
                 },
               ]

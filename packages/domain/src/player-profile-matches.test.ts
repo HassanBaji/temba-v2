@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import { createPlayerProfileFixtures } from "./player-profile-fixtures";
@@ -104,6 +105,12 @@ describe("levelTrendLabel", () => {
     expect(levelTrendLabel({ levelChange: 0.2 }, "en")).toBe("Last 10: +0.2");
     expect(levelTrendLabel({ levelChange: -0.3 }, "en")).toBe("Last 10: −0.3");
     expect(levelTrendLabel(null, "en")).toBeNull();
+  });
+
+  it("isolates the signed change in Arabic", () => {
+    expect(levelTrendLabel({ levelChange: 0.2 }, "ar")).toContain(
+      isolate("+0.2"),
+    );
   });
 });
 

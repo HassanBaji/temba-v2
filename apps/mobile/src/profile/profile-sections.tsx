@@ -157,7 +157,7 @@ export function GroupLevelRowItem({
       </View>
       <View style={{ alignItems: "flex-end", gap: 3 }}>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 5 }}>
-          <Text weight="bold" width="expanded">
+          <Text weight="bold" width="expanded" ltr>
             {row.band}
           </Text>
           <Text size="meta" tone="muted">

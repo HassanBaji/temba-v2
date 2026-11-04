@@ -160,8 +160,8 @@ describe("groupHomeShowsMemberSearch", () => {
 
 describe("groupStandingRecordLabel", () => {
   it("draws the W-L pair, zero included", () => {
-    assert.equal(groupStandingRecordLabel(18, 6), "18-6");
-    assert.equal(groupStandingRecordLabel(0, 0), "0-0");
+    assert.equal(groupStandingRecordLabel(18, 6), "18–6");
+    assert.equal(groupStandingRecordLabel(0, 0), "0–0");
   });
 });
 

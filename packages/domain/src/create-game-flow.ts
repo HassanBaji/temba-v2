@@ -936,8 +936,11 @@ export function friendlyTournamentPreviewDetail(input: {
   const dayLabel = input.day
     ? friendlyTournamentDayLabel(input.day, input.locale)
     : null;
+  const { common } = messagesFor(input.locale);
   const courts =
-    input.courtNames.length > 0 ? input.courtNames.join(", ") : null;
+    input.courtNames.length > 0
+      ? input.courtNames.map(common.isolate).join(common.listSeparator)
+      : null;
   return [dayLabel, input.venueName, courts]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
@@ -947,10 +950,11 @@ export function friendlyTournamentCourtsLabel(
   names: readonly string[],
   locale: Locale,
 ) {
+  const { common } = messagesFor(locale);
   if (names.length === 0) {
-    return messagesFor(locale).common.none;
+    return common.none;
   }
-  return names.join(", ");
+  return names.map(common.isolate).join(common.listSeparator);
 }
 
 export function gameTeamOfTwoCopy(price: string, locale: Locale) {

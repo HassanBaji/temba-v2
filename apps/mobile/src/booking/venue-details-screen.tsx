@@ -67,7 +67,9 @@ export function VenueDetailsScreen({ venueId }: { venueId: string }) {
         </DetailRow>
         {data.phone ? (
           <DetailRow label={m.mobileBooking.venue}>
-            <Text size="meta">{data.phone}</Text>
+            <Text size="meta" ltr>
+              {data.phone}
+            </Text>
           </DetailRow>
         ) : null}
       </View>

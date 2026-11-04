@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
@@ -89,7 +90,10 @@ describe("score helpers", () => {
   it("labels a team with Open for a vacant seat", () => {
     assert.equal(scoreTeamNamesLabel(sides[0]!, "en"), "Alex & Sam");
     assert.equal(scoreTeamNamesLabel(sides[1]!, "en"), "Riley & Open");
-    assert.equal(scoreTeamNamesLabel(sides[1]!, "ar"), "Riley ومفتوح");
+    assert.equal(
+      scoreTeamNamesLabel(sides[1]!, "ar"),
+      `${isolate("Riley")} و${isolate("مفتوح")}`,
+    );
   });
 
   it("describes a box to a screen reader without relying on the hatch", () => {

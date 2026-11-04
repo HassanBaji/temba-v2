@@ -1,6 +1,7 @@
 import { sizes } from "@repo/design-tokens";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
+import { isolate } from "@repo/i18n/bidi";
 import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
@@ -41,6 +42,7 @@ function BoundRow({
         chips={ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
           value: band,
           label: band,
+          ltr: true,
           accessibilityLabel:
             bound === "min"
               ? copy.minimumLevelBand(band)
@@ -105,12 +107,12 @@ export function LevelRangeRows({
         >
           {copy.minimum}{" "}
           <Text size="meta" weight="semibold">
-            {summary.minimum}
+            {isolate(summary.minimum)}
           </Text>
           {"  /  "}
           {copy.maximum}{" "}
           <Text size="meta" weight="semibold">
-            {summary.maximum}
+            {isolate(summary.maximum)}
           </Text>
         </Text>
         {summary.open || !openLink ? null : (

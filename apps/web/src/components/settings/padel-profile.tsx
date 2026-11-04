@@ -129,6 +129,7 @@ function PreferredSide({ details }: { details: Details }) {
       </div>
       <SettingsChoices
         variant="segmented"
+        physical
         labelledBy="padel-side-title"
         describedBy="padel-side-note"
         choices={preferredPositionChoices(locale).map((choice) => ({

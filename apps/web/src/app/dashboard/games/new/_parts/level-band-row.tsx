@@ -43,6 +43,7 @@ export function LevelBandRow({
           <ChoiceChip
             key={band}
             role="radio"
+            dir="ltr"
             selected={value === band}
             disabled={isLevelBoundDisabled(bound, band, other)}
             onClick={() => {

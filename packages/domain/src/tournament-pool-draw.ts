@@ -90,16 +90,20 @@ export function knockoutDrawDrawerLead(completeTeams: number, locale: Locale) {
   return m.knockoutDrawerLead(completeTeams);
 }
 
-export function draftPoolMetaLine(args: {
-  dateLines: readonly string[];
-  courtNames: readonly string[];
-}) {
+export function draftPoolMetaLine(
+  args: {
+    dateLines: readonly string[];
+    courtNames: readonly string[];
+  },
+  locale: Locale,
+) {
+  const { common } = messagesFor(locale);
   const parts = [...args.dateLines];
   const courts = args.courtNames.filter((name) => name.trim().length > 0);
   if (courts.length > 0) {
-    parts.push(courts.join(", "));
+    parts.push(courts.map(common.isolate).join(common.listSeparator));
   }
-  return parts.join(", ");
+  return parts.join(common.listSeparator);
 }
 
 export type DraftPoolTeam = {

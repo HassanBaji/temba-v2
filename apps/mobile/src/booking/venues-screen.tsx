@@ -183,7 +183,7 @@ export function VenuesScreen() {
             accessibilityLabel={m.mobileBooking.venues.sortLabel}
             style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
           >
-            <Text size="eyebrow" tone="muted" style={{ marginRight: 4 }}>
+            <Text size="eyebrow" tone="muted" style={{ marginEnd: 4 }}>
               {m.mobileBooking.sort.label}
             </Text>
             {venueSorts(locale).map((entry) => (
@@ -340,7 +340,7 @@ function VenueCard({
           <View
             style={{
               position: "absolute",
-              right: 12,
+              end: 12,
               bottom: 12,
               paddingHorizontal: 8,
               paddingVertical: 3,

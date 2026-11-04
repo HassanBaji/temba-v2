@@ -277,6 +277,7 @@ export function InvitesView(props: InvitesViewProps) {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
+            ltr
             returnKeyType="go"
             onSubmitEditing={props.onOpenLink}
           />

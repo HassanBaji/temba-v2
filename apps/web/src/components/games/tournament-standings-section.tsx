@@ -7,6 +7,8 @@ import { type ComponentProps } from "react";
 import { PoolRecordTable } from "~/components/games/tournament-pool-tables-panel";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
 import { PageTitle } from "~/components/layout/page-title";
+import { PairLabel } from "~/components/temba/pair-label";
+import { ScoreText } from "~/components/temba/score-text";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -64,9 +66,7 @@ function PoolRoundResults({
                       matchIndex > 0 && "border-rule border-t",
                     )}
                   >
-                    <span className="min-w-0 flex-1 truncate">
-                      {match.slot1Name}
-                    </span>
+                    <PairLabel label={match.slot1Name} className="flex-1" />
                     <PoolMatchTrailing
                       trailing={matchTrailing({
                         cancelled: match.cancelled,
@@ -74,9 +74,10 @@ function PoolRoundResults({
                         locale,
                       })}
                     />
-                    <span className="text-muted-foreground min-w-0 flex-1 truncate text-end">
-                      {match.slot2Name}
-                    </span>
+                    <PairLabel
+                      label={match.slot2Name}
+                      className="text-muted-foreground flex-1 justify-end"
+                    />
                   </li>
                 ))}
               </ul>
@@ -108,9 +109,9 @@ function PoolMatchTrailing({ trailing }: { trailing: MatchTrailing }) {
   }
   if (trailing.kind === "score") {
     return (
-      <span className="font-expanded text-[16px] tabular-nums">
+      <ScoreText className="font-expanded text-[16px]">
         {trailing.label}
-      </span>
+      </ScoreText>
     );
   }
   return <span className="text-body font-semibold">{trailing.label}</span>;

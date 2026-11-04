@@ -245,7 +245,8 @@ export const game = {
     cancelledNote: "أُلغيت هذه المباراة. يبقى الجالسون مدرجين.",
     leftSeat: "المكان الأيسر",
     rightSeat: "المكان الأيمن",
-    seatWithLevel: (seat: string, band: string) => `${seat} — المستوى ${band}`,
+    seatWithLevel: (seat: string, band: string) =>
+      `${seat} — المستوى ${isolate(band)}`,
     openLeftSeat: "مكان أيسر شاغر",
     openRightSeat: "مكان أيمن شاغر",
     inviteToLeftSeat: (side: string) => `دعوة إلى ${side}، يسار`,
@@ -262,7 +263,8 @@ export const game = {
     incompleteMessage: "أدخل الجيمات المكسوبة لكلا الفريقين",
     organizerConfirmNote: "بصفتك المنظّم، تأكيدك يجعل النتيجة نهائية.",
     open: "مفتوح",
-    pairNames: (left: string, right: string) => `${left} و${right}`,
+    pairNames: (left: string, right: string) =>
+      `${isolate(left)} و${isolate(right)}`,
     wonSet: (label: string, games: number) =>
       `${label}: ${games} جيم، فاز بهذا الشوط`,
     lostSet: (label: string, games: number) =>
@@ -394,7 +396,8 @@ export const game = {
   history: {
     openSeats: "أماكن شاغرة",
     nameSeparator: "، ",
-    namesMore: (named: string, rest: number) => `${named} +${rest}`,
+    namesMore: (named: string, rest: number) =>
+      `${named} ${isolate(`+${rest}`)}`,
     place: (venue: string, name: string) => `${venue} · ${name}`,
     meta: (day: string, place: string) => `${day}، ${place}`,
     withUnrated: (base: string, unrated: string) => `${base} · ${unrated}`,
@@ -422,16 +425,19 @@ export const game = {
     minutes: (n: number) => `${n} دقيقة`,
     friendlyNoRating: "ودية، لا تُحتسب في التصنيف",
     countsForRating: "تُحتسب في التصنيف",
-    ratingMovesUp: (band: string) => `تُحتسب في التصنيف، ${band} يرتفع`,
-    ratingMovesDown: (band: string) => `تُحتسب في التصنيف، ${band} ينخفض`,
-    ratingHolds: (band: string) => `تُحتسب في التصنيف، ${band} يثبت`,
+    ratingMovesUp: (band: string) =>
+      `تُحتسب في التصنيف، ${isolate(band)} يرتفع`,
+    ratingMovesDown: (band: string) =>
+      `تُحتسب في التصنيف، ${isolate(band)} ينخفض`,
+    ratingHolds: (band: string) => `تُحتسب في التصنيف، ${isolate(band)} يثبت`,
     open: "مفتوح",
-    pair: (first: string, second: string) => `${first} و${second}`,
+    pair: (first: string, second: string) =>
+      `${isolate(first)} و${isolate(second)}`,
     winInSets: (winners: string, won: number, lost: number) =>
       `${winners} يفوزون ${won}–${lost} في الأشواط`,
     drawLevel: "تعادل، الجهتان متساويتان",
     noResult: "لا نتيجة",
-    playedWith: (name: string) => `لعبت مع ${name}`,
+    playedWith: (name: string) => `لعبت مع ${isolate(name)}`,
     playedAlone: "لعبت بمفردك",
     yourPair: "ثنائيك",
     opponents: "الخصوم",
@@ -460,10 +466,11 @@ export const game = {
     winBy: (winner: string, margin: number) =>
       `${winner} يفوزون بفارق ${margin}`,
     avg: (level: string) => `متوسط ${level}`,
-    playedCodeFor: (code: string, team: string) => `لعبت ${code} مع ${team}`,
+    playedCodeFor: (code: string, team: string) =>
+      `لعبت بمركز ${code} مع ${team}`,
     playedFor: (team: string) => `لعبت مع ${team}`,
     score: "النتيجة",
-    enteredBy: (name: string) => `أدخلها ${name}`,
+    enteredBy: (name: string) => `أدخلها ${isolate(name)}`,
     byBothSides: "من كلا الجانبين",
     teams: "الفرق",
     bibs: "الصدريات",

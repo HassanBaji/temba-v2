@@ -157,7 +157,7 @@ export function SetLevelFields({
   const [tenths, setTenths] = React.useState(currentTenths);
   const [reason, setReason] = React.useState<LevelOverrideReason | null>(null);
 
-  const readout = levelSliderReadout({ tenths, currentTenths });
+  const readout = levelSliderReadout({ tenths, currentTenths, locale });
   const alreadyConfirmed = member.level !== null && !member.levelProvisional;
   const unchanged = alreadyConfirmed && tenths === currentTenths;
   const wasLabel = member.level
@@ -179,7 +179,7 @@ export function SetLevelFields({
           className="font-expanded flex items-baseline gap-3"
           aria-live="polite"
         >
-          <span className="text-[60px] leading-[0.94]">
+          <span dir="ltr" className="text-[60px] leading-[0.94]">
             {readout.displayBand}
           </span>
           <span className="text-[28px]">{readout.levelLabel}</span>

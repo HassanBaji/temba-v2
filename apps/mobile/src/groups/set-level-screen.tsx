@@ -63,8 +63,9 @@ export function LevelPicker({
   disabled?: boolean;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const copy = m.mobileGroup.setLevel;
-  const readout = levelSliderReadout({ tenths, currentTenths });
+  const readout = levelSliderReadout({ tenths, currentTenths, locale });
 
   function step(delta: number) {
     onTenths(clampLevelTenths(tenths + delta));
@@ -91,13 +92,13 @@ export function LevelPicker({
           )}
           style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
         >
-          <Text size="hero" width="expanded" weight="bold">
+          <Text size="hero" width="expanded" weight="bold" ltr>
             {readout.displayBand}
           </Text>
           <Text size="h1" width="expanded" weight="bold">
             {readout.levelLabel}
           </Text>
-          <Text style={{ marginLeft: "auto" }}>{readout.deltaLabel}</Text>
+          <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text size="meta">

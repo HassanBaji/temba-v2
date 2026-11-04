@@ -6,7 +6,7 @@ import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import {
   TERMS_SECTIONS,
-  TERMS_UPDATED,
+  termsUpdatedLabel,
   type TermsClause,
 } from "@repo/domain/terms";
 
@@ -40,7 +40,7 @@ export function TermsScreen(props: {
   return (
     <AuthScreen
       onBack={props.onBack}
-      eyebrow={m.mobileHome.terms.lastUpdated(TERMS_UPDATED)}
+      eyebrow={m.mobileHome.terms.lastUpdated(termsUpdatedLabel(locale))}
       title={m.mobileHome.terms.title}
       description={m.mobileHome.terms.description}
       action={
