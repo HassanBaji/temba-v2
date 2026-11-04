@@ -30,6 +30,7 @@ import {
   type FootballInfoRow,
 } from "~/components/games/football-info-rows";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
+import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
 import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
@@ -388,37 +389,17 @@ export function FootballGameDetails({
     },
   ];
   const onInk = model.hero.tone === "ink";
+  const joinFamily =
+    cta?.kind === "join" || cta?.kind === "join_waitlist"
+      ? { kind: cta.kind }
+      : null;
 
-  const heroActions = (
+  const showHeroActions =
+    cta?.kind === "registered" ||
+    cta?.kind === "waitlisted" ||
+    (inviteAccess.canManage && !teams);
+  const heroActions = showHeroActions ? (
     <div className="mt-4 space-y-2">
-      {cta?.kind === "join" ? (
-        <Button
-          type="button"
-          size="lg"
-          variant={onInk ? "inverse" : "default"}
-          className="w-full"
-          onClick={() => {
-            register.reset();
-            setJoinMode("join");
-          }}
-        >
-          {price && price !== m.createGame.price.free
-            ? m.football.board.joinWithPrice(m.game.cta.join, price)
-            : m.game.cta.join}
-        </Button>
-      ) : null}
-      {cta?.kind === "join_waitlist" ? (
-        <Button
-          type="button"
-          size="lg"
-          variant={onInk ? "inverse" : "default"}
-          className="w-full"
-          pending={register.isPending}
-          onClick={() => register.mutate({ gameId })}
-        >
-          {m.game.cta.joinWaitlist}
-        </Button>
-      ) : null}
       {cta?.kind === "registered" ? (
         <div className="flex items-center gap-2">
           <p className="min-w-0 flex-1 font-semibold">
@@ -474,7 +455,7 @@ export function FootballGameDetails({
         </Button>
       ) : null}
     </div>
-  );
+  ) : null;
 
   const heroBody =
     teams && names ? (
@@ -646,6 +627,7 @@ export function FootballGameDetails({
         className={cn(
           "space-y-6",
           (game.cancelledAt != null || game.joinFrozen) && "max-md:pt-4",
+          joinFamily && !playedModel && "max-lg:pb-20",
         )}
       >
         {game.cancelledAt ? (
@@ -709,6 +691,34 @@ export function FootballGameDetails({
             {heroBody}
           </FootballGameHeroCard>
         )}
+
+        {joinFamily && !playedModel ? (
+          <div className="max-lg:contents">
+            <FriendlyGameCtaBar
+              family={joinFamily}
+              lines={
+                joinFamily.kind === "join"
+                  ? {
+                      title: m.football.board.seatsOpen(layout.openSeats),
+                      subline:
+                        price && price !== m.createGame.price.free
+                          ? m.game.partner.priceEach(price)
+                          : null,
+                    }
+                  : null
+              }
+              joinPending={register.isPending && joinMode == null}
+              waitlistPending={false}
+              onJoin={() => {
+                register.reset();
+                setJoinMode("join");
+              }}
+              onJoinWaitlist={() => register.mutate({ gameId })}
+              onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+              onAddResult={() => undefined}
+            />
+          </div>
+        ) : null}
 
         {board.error ? (
           <p role="alert" className="text-destructive text-meta">

@@ -70,6 +70,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
+import { BottomBar } from "./bottom-bar";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
@@ -391,30 +392,12 @@ export function FootballGameDetails({
     },
   ];
 
-  const heroActions = (
+  const showHeroActions =
+    model.cta?.kind === "registered" ||
+    model.cta?.kind === "waitlisted" ||
+    (inviteAccess.canManage && !teams);
+  const heroActions = showHeroActions ? (
     <View style={{ gap: 8 }}>
-      {model.cta?.kind === "join" ? (
-        <Button
-          label={
-            price && price !== m.createGame.price.free
-              ? m.football.board.joinWithPrice(m.game.cta.join, price)
-              : m.game.cta.join
-          }
-          size="lg"
-          onPress={() => {
-            register.reset();
-            setJoinMode("join");
-          }}
-        />
-      ) : null}
-      {model.cta?.kind === "join_waitlist" ? (
-        <Button
-          label={m.game.cta.joinWaitlist}
-          size="lg"
-          pending={register.isPending}
-          onPress={() => register.mutate({ gameId })}
-        />
-      ) : null}
       {model.cta?.kind === "registered" ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -469,7 +452,7 @@ export function FootballGameDetails({
         />
       ) : null}
     </View>
-  );
+  ) : null;
 
   const heroBody =
     teams && names ? (
@@ -724,9 +707,41 @@ export function FootballGameDetails({
     </Screen>
   );
 
+  const joinFamily =
+    model.cta?.kind === "join" || model.cta?.kind === "join_waitlist"
+      ? { kind: model.cta.kind }
+      : null;
+
   return (
     <View style={{ flex: 1 }}>
       {screen}
+      {joinFamily && !playedModel ? (
+        <BottomBar
+          family={joinFamily}
+          lines={
+            joinFamily.kind === "join"
+              ? {
+                  title: m.football.board.seatsOpen(layout.openSeats),
+                  subline:
+                    price && price !== m.createGame.price.free
+                      ? m.game.partner.priceEach(price)
+                      : null,
+                }
+              : null
+          }
+          handlers={{
+            joinPending: register.isPending && joinMode == null,
+            leaveWaitlistPending: leaveWaitlist.isPending,
+            onJoin: () => {
+              register.reset();
+              setJoinMode("join");
+            },
+            onJoinWaitlist: () => register.mutate({ gameId }),
+            onLeaveWaitlist: askLeaveWaitlist,
+            onBrowse: () => router.push("/games"),
+          }}
+        />
+      ) : null}
       {playedModel ? (
         <>
           <PlayedMenuSheet
