@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { useTextDirection } from "~/components/locale-provider";
 import {
   rovingRadioIndex,
   rovingTabStopIndex,
@@ -34,6 +35,7 @@ export function RovingRadioGroup({
   ...props
 }: Omit<React.ComponentProps<"div">, "role" | "ref">) {
   const groupRef = React.useRef<HTMLDivElement>(null);
+  const { direction } = useTextDirection();
 
   React.useEffect(() => {
     const group = groupRef.current;
@@ -67,7 +69,12 @@ export function RovingRadioGroup({
     }
     const currentIndex =
       focusedIndex === -1 ? radios.findIndex(isChecked) : focusedIndex;
-    const nextIndex = rovingRadioIndex(event.key, currentIndex, radios.length);
+    const nextIndex = rovingRadioIndex(
+      event.key,
+      currentIndex,
+      radios.length,
+      direction,
+    );
     const next = nextIndex == null ? undefined : radios[nextIndex];
     if (!next) {
       return;

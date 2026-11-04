@@ -558,7 +558,7 @@ function LensChips({
     <div
       role="tablist"
       aria-label={m.webGroup.standing.seasonLens}
-      className="border-rule -mx-1 flex gap-1 overflow-x-auto border-b px-1"
+      className="border-rule -mx-1 flex gap-1 overflow-x-auto overflow-y-hidden border-b px-1"
     >
       {seasonLensChips(seasons, now, locale).map((chip) => {
         const selected = chip.seasonId === lensId;

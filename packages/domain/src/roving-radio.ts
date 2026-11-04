@@ -1,13 +1,22 @@
+import type { TextDirection } from "@repo/i18n/locale";
+
+const RTL_KEYS: Record<string, string> = {
+  ArrowLeft: "ArrowRight",
+  ArrowRight: "ArrowLeft",
+};
+
+/** In RTL the next option sits to the left, so the horizontal arrows swap. */
 export function rovingRadioIndex(
   key: string,
   currentIndex: number,
   count: number,
+  direction: TextDirection = "ltr",
 ): number | null {
   if (count <= 0) {
     return null;
   }
   const last = count - 1;
-  switch (key) {
+  switch (direction === "rtl" ? (RTL_KEYS[key] ?? key) : key) {
     case "Home":
       return 0;
     case "End":

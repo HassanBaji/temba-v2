@@ -42,6 +42,7 @@ type Row = {
   hint?: string | null;
   disabled?: boolean;
   icon: LucideIcon;
+  iconClassName?: string;
   href?: string;
   onSelect?: () => void;
 };
@@ -165,6 +166,7 @@ export function GroupHomeOverflowMenu({
           hint: leaveBlockedHint,
           disabled: leaveBlockedHint != null,
           icon: LogOutIcon,
+          iconClassName: "rtl:-scale-x-100",
           onSelect: onLeave,
         };
       case "delete":
@@ -226,6 +228,7 @@ export function GroupHomeOverflowMenu({
                     key={row.item}
                     label={row.label}
                     icon={row.icon}
+                    iconClassName={row.iconClassName}
                     trailing="chevron"
                     href={row.href}
                     onSelect={() => setOpen(false)}
@@ -237,6 +240,7 @@ export function GroupHomeOverflowMenu({
                     hint={row.hint}
                     disabled={row.disabled}
                     icon={row.icon}
+                    iconClassName={row.iconClassName}
                     trailing={DESTRUCTIVE.has(row.item) ? undefined : "chevron"}
                     tone={DESTRUCTIVE.has(row.item) ? "danger" : "default"}
                     onSelect={() => {

@@ -114,6 +114,8 @@ export function FriendlyGameMenu({
       label: action.label,
       hint: action.consequence,
       icon: FOOTER_ICONS[action.kind],
+      iconClassName:
+        action.kind === "leave_game" ? "rtl:-scale-x-100" : undefined,
       disabled: !action.enabled,
       tone: DESTRUCTIVE.includes(action.kind) ? "danger" : "default",
       onSelect: () => onFooterAction(action.kind),
@@ -128,6 +130,7 @@ export function FriendlyGameMenu({
           key: "leave_waitlist",
           label: leaveWaitlistAction(locale),
           icon: LogOutIcon,
+          iconClassName: "rtl:-scale-x-100",
           tone: "danger",
           onSelect: onLeaveWaitlist,
         },
