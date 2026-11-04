@@ -8,8 +8,8 @@ import {
 } from "@repo/domain/level-slider";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 
-/** Where a tenths value sits along the thumb's travel, which stops half a thumb short of each end. */
-function leftAt(tenths: number) {
+/** Where a tenths value sits from the start side along the thumb's travel, which stops half a thumb short of each end. */
+function insetAt(tenths: number) {
   return `calc(${SLIDER_THUMB_PX / 2}px + (100% - ${SLIDER_THUMB_PX}px) * ${tenths / LEVEL_TENTHS_MAX})`;
 }
 
@@ -29,8 +29,8 @@ export function LevelSlider({
         <span
           data-slot="level-slider-value"
           aria-hidden="true"
-          className="bg-ink text-paper text-meta absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 font-semibold"
-          style={{ left: leftAt(tenths) }}
+          className="bg-ink text-paper text-meta absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 font-semibold rtl:translate-x-1/2"
+          style={{ insetInlineStart: insetAt(tenths) }}
         >
           {levelSliderLabel(tenths)}
         </span>
@@ -52,8 +52,8 @@ export function LevelSlider({
           <span
             data-slot="level-slider-now"
             aria-hidden="true"
-            className="bg-muted-foreground pointer-events-none absolute top-1/2 h-4 w-0.5 -translate-x-1/2 -translate-y-1/2"
-            style={{ left: leftAt(currentTenths) }}
+            className="bg-muted-foreground pointer-events-none absolute top-1/2 h-4 w-0.5 -translate-x-1/2 -translate-y-1/2 rtl:translate-x-1/2"
+            style={{ insetInlineStart: insetAt(currentTenths) }}
           />
         </Slider>
         <div className="relative h-6" aria-hidden="true">
@@ -61,14 +61,14 @@ export function LevelSlider({
             <span
               key={edge}
               className="bg-rule absolute top-0 h-1.5 w-px"
-              style={{ left: leftAt(edge) }}
+              style={{ insetInlineStart: insetAt(edge) }}
             />
           ))}
           {LEVEL_SLIDER_TICKS.letters.map((letter) => (
             <span
               key={letter.label}
-              className="text-muted-foreground text-meta absolute top-1.5 -translate-x-1/2"
-              style={{ left: leftAt(letter.centreTenths) }}
+              className="text-muted-foreground text-meta absolute top-1.5 -translate-x-1/2 rtl:translate-x-1/2"
+              style={{ insetInlineStart: insetAt(letter.centreTenths) }}
             >
               {letter.label}
             </span>
@@ -76,8 +76,8 @@ export function LevelSlider({
         </div>
         <div className="relative h-5" aria-hidden="true">
           <span
-            className="text-muted-foreground text-meta absolute -translate-x-1/2 whitespace-nowrap"
-            style={{ left: leftAt(currentTenths) }}
+            className="text-muted-foreground text-meta absolute -translate-x-1/2 whitespace-nowrap rtl:translate-x-1/2"
+            style={{ insetInlineStart: insetAt(currentTenths) }}
           >
             {m.webGroup.setLevel.now(levelSliderLabel(currentTenths))}
           </span>
