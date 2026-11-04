@@ -1,12 +1,25 @@
 "use client";
 
 import {
+  Ban,
+  CalendarXIcon,
+  FlagIcon,
+  LockIcon,
+  LockOpenIcon,
+  LogOutIcon,
+  PencilIcon,
+  UserPlusIcon,
+  type LucideIcon,
+} from "lucide-react";
+
+import {
   ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_PAPER_BOXED_TRIGGER,
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
 } from "~/components/common/action-menu";
+import {
+  GameActionsSheet,
+  type GameActionsSheetRow,
+} from "~/components/games/game-actions-sheet";
 import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import type {
   FriendlyGameFooterAction,
@@ -23,11 +36,21 @@ const DESTRUCTIVE: readonly FriendlyGameFooterActionKind[] = [
   "leave_game",
 ];
 
+const FOOTER_ICONS: Record<FriendlyGameFooterActionKind, LucideIcon> = {
+  edit: PencilIcon,
+  cancel_game: Ban,
+  mark_as_not_played: CalendarXIcon,
+  report_wrong_score: FlagIcon,
+  report_wrong_score_locked: FlagIcon,
+  leave_game: LogOutIcon,
+};
+
 /**
  * Everything behind the hero's ⋮: registration and adding a player, then
  * edit, cancel and leave, then leaving the waitlist.
  */
 export function FriendlyGameMenu({
+  title,
   overflowItems,
   footerActions,
   ink,
@@ -39,6 +62,7 @@ export function FriendlyGameMenu({
   onFooterAction,
   onLeaveWaitlist,
 }: {
+  title: string;
   overflowItems: FriendlyGameOverflowItem[];
   footerActions: FriendlyGameFooterAction[];
   ink: boolean;
@@ -50,68 +74,67 @@ export function FriendlyGameMenu({
   onFooterAction: (kind: FriendlyGameFooterActionKind) => void;
   onLeaveWaitlist: () => void;
 }) {
-  const closes = overflowItems.includes("close_registration");
-  const reopens = overflowItems.includes("reopen_registration");
-  const leavesWaitlist = overflowItems.includes("leave_waitlist");
-  const tools = closes || reopens || onAddPlayer != null;
-
-  if (!tools && footerActions.length === 0 && !leavesWaitlist) {
-    return null;
+  const tools: GameActionsSheetRow[] = [];
+  if (overflowItems.includes("close_registration")) {
+    tools.push({
+      key: "close_registration",
+      label: CLOSE_REGISTRATION_ACTION,
+      icon: LockIcon,
+      disabled: closePending,
+      onSelect: onCloseRegistration,
+    });
+  }
+  if (overflowItems.includes("reopen_registration")) {
+    tools.push({
+      key: "reopen_registration",
+      label: REOPEN_REGISTRATION_ACTION,
+      icon: LockOpenIcon,
+      disabled: reopenPending,
+      onSelect: onReopenRegistration,
+    });
+  }
+  if (onAddPlayer) {
+    tools.push({
+      key: "add_player",
+      label: ADD_PLAYER_ACTION,
+      icon: UserPlusIcon,
+      onSelect: onAddPlayer,
+    });
   }
 
+  const footer = footerActions.map(
+    (action): GameActionsSheetRow => ({
+      key: action.kind,
+      label: action.label,
+      hint: action.consequence,
+      icon: FOOTER_ICONS[action.kind],
+      disabled: !action.enabled,
+      tone: DESTRUCTIVE.includes(action.kind) ? "danger" : "default",
+      onSelect: () => onFooterAction(action.kind),
+    }),
+  );
+
+  const waitlist: GameActionsSheetRow[] = overflowItems.includes(
+    "leave_waitlist",
+  )
+    ? [
+        {
+          key: "leave_waitlist",
+          label: "Leave waitlist",
+          icon: LogOutIcon,
+          tone: "danger",
+          onSelect: onLeaveWaitlist,
+        },
+      ]
+    : [];
+
   return (
-    <ActionMenu
-      label="Game actions"
+    <GameActionsSheet
+      title={title}
       triggerClassName={
         ink ? ACTION_MENU_INK_BOXED_TRIGGER : ACTION_MENU_PAPER_BOXED_TRIGGER
       }
-    >
-      {closes ? (
-        <ActionMenuItem disabled={closePending} onSelect={onCloseRegistration}>
-          {CLOSE_REGISTRATION_ACTION}
-        </ActionMenuItem>
-      ) : null}
-      {reopens ? (
-        <ActionMenuItem
-          disabled={reopenPending}
-          onSelect={onReopenRegistration}
-        >
-          {REOPEN_REGISTRATION_ACTION}
-        </ActionMenuItem>
-      ) : null}
-      {onAddPlayer ? (
-        <ActionMenuItem onSelect={onAddPlayer}>
-          {ADD_PLAYER_ACTION}
-        </ActionMenuItem>
-      ) : null}
-      {tools && footerActions.length > 0 ? <ActionMenuSeparator /> : null}
-      {footerActions.map((action) => (
-        <ActionMenuItem
-          key={action.kind}
-          disabled={!action.enabled}
-          variant={
-            DESTRUCTIVE.includes(action.kind) ? "destructive" : "default"
-          }
-          onSelect={() => onFooterAction(action.kind)}
-        >
-          <span className="flex flex-col">
-            <span>{action.label}</span>
-            {action.consequence ? (
-              <span className="text-muted-foreground text-meta">
-                {action.consequence}
-              </span>
-            ) : null}
-          </span>
-        </ActionMenuItem>
-      ))}
-      {leavesWaitlist ? (
-        <>
-          {tools || footerActions.length > 0 ? <ActionMenuSeparator /> : null}
-          <ActionMenuItem variant="destructive" onSelect={onLeaveWaitlist}>
-            Leave waitlist
-          </ActionMenuItem>
-        </>
-      ) : null}
-    </ActionMenu>
+      groups={[tools, footer, waitlist]}
+    />
   );
 }

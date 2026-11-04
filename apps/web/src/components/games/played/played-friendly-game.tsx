@@ -16,13 +16,11 @@ import {
   playedPadelModel,
   type PlayedRow,
 } from "@repo/domain/played-game";
+import { FlagIcon, UserPlusIcon } from "lucide-react";
 import * as React from "react";
 
-import {
-  ACTION_MENU_INK_BOXED_TRIGGER,
-  ActionMenu,
-  ActionMenuItem,
-} from "~/components/common/action-menu";
+import { ACTION_MENU_INK_BOXED_TRIGGER } from "~/components/common/action-menu";
+import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -90,32 +88,33 @@ export function PlayedFriendlyGame({
     game.isOrganizer && onAddPlayer && organizerCanAddPlayer(game);
   const menu =
     showAdd || organizerActions.length > 0 ? (
-      <ActionMenu
-        label="Game actions"
+      <GameActionsSheet
+        title={game.name ?? "Game"}
+        description={model.dateLine}
         triggerClassName={ACTION_MENU_INK_BOXED_TRIGGER}
-      >
-        {showAdd ? (
-          <ActionMenuItem onSelect={onAddPlayer}>
-            {ADD_PLAYER_ACTION}
-          </ActionMenuItem>
-        ) : null}
-        {organizerActions.map((action) => (
-          <ActionMenuItem
-            key={action.kind}
-            disabled={!action.enabled}
-            onSelect={action.enabled ? onReportWrongScore : undefined}
-          >
-            <span className="flex flex-col">
-              <span>{action.label}</span>
-              {action.consequence ? (
-                <span className="text-muted-foreground text-meta">
-                  {action.consequence}
-                </span>
-              ) : null}
-            </span>
-          </ActionMenuItem>
-        ))}
-      </ActionMenu>
+        groups={[
+          [
+            ...(showAdd
+              ? [
+                  {
+                    key: "add_player",
+                    label: ADD_PLAYER_ACTION,
+                    icon: UserPlusIcon,
+                    onSelect: onAddPlayer,
+                  },
+                ]
+              : []),
+            ...organizerActions.map((action) => ({
+              key: action.kind,
+              label: action.label,
+              hint: action.consequence,
+              icon: FlagIcon,
+              disabled: !action.enabled,
+              onSelect: onReportWrongScore,
+            })),
+          ],
+        ]}
+      />
     ) : undefined;
 
   return (
