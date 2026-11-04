@@ -29,7 +29,6 @@ export const group = {
     backToCommunity: "Back to Community",
     backToGroups: "Back to Groups",
     openSeats: "Open seats",
-    playedOpponentLine: (team: string, day: string) => `${team}, ${day}`,
     organizerAction: {
       appoint: "Make Organizer",
       dismiss: "Remove as Organizer",
@@ -42,6 +41,44 @@ export const group = {
       appointed: (name: string) => `${name} is now an Organizer.`,
       dismissed: (name: string) => `${name} is no longer an Organizer.`,
     },
+  },
+  played: {
+    cancelled: "Cancelled",
+    noScoreYet: "No score yet",
+    untitled: "Game",
+    filtersLabel: "Filter played Games",
+    filters: {
+      finished: "Finished",
+      needs_score: "Needs score",
+      cancelled: "Cancelled",
+      all: "All",
+    },
+    filterSpoken: (label: string, n: number) =>
+      `${label}, ${plural("en", n, { one: "1 Game", other: "{n} Games" })}`,
+    filterEmpty: {
+      finished: "No finished games yet.",
+      needs_score: "Every game has a score.",
+      cancelled: "No cancelled games.",
+      all: "No games yet.",
+    },
+    showAll: "Show all games",
+    enterScore: "Enter score",
+    you: "You",
+    versus: (first: string, second: string) => `${first} vs ${second}`,
+    pair: (first: string, second: string) => `${first} & ${second}`,
+    record: (wins: number, draws: number | null, losses: number) =>
+      draws == null ? `W${wins} L${losses}` : `W${wins} D${draws} L${losses}`,
+    recordSpoken: (wins: number, draws: number | null, losses: number) =>
+      draws == null
+        ? `${wins} won, ${losses} lost`
+        : `${wins} won, ${draws} drawn, ${losses} lost`,
+    monthCount: (n: number) =>
+      plural("en", n, { one: "1 GAME", other: "{n} GAMES" }),
+    joined: (joined: number, allowed: number) =>
+      `${joined} of ${allowed} joined`,
+    joinedOpen: (joined: number) => `${joined} joined`,
+    sideSpoken: (name: string, score: string) => `${name} ${score}`,
+    card: (parts: string[]) => parts.join(". "),
   },
   empty: {
     standingAfterFirstResult: "Standings appear after the first result.",

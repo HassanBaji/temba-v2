@@ -8,7 +8,6 @@ import {
   memberIsRemovable,
   memberList,
   memberSheetView,
-  playedRowView,
   standingRowView,
   standingStats,
 } from "./group-home-model";
@@ -113,37 +112,6 @@ describe("standing rows", () => {
       { value: 7, label: "games played" },
       { value: 1, label: "awaiting score" },
     ]);
-  });
-});
-
-describe("playedRowView", () => {
-  const [won, lost, unscored, cancelled] = home.member.gameHistory.map((game) =>
-    playedRowView(game, "en"),
-  );
-
-  it("reads the score from the viewer's side with the viewer first", () => {
-    expect(won).toMatchObject({
-      mark: "won",
-      title: "You, Ada L",
-      trailing: { kind: "score", text: "6-4 4-6 7-5" },
-    });
-    expect(lost).toMatchObject({
-      mark: "lost",
-      title: "You, Ada L",
-      trailing: { kind: "score", text: "2-6 3-6" },
-    });
-  });
-
-  it("offers Enter for a Match with no score", () => {
-    expect(unscored).toMatchObject({
-      mark: "not-played",
-      trailing: { kind: "enter" },
-    });
-    expect(unscored!.accessibilityLabel).toContain("No score yet");
-  });
-
-  it("reads a cancelled Game as cancelled", () => {
-    expect(cancelled!.trailing).toEqual({ kind: "cancelled" });
   });
 });
 

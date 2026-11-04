@@ -1,15 +1,10 @@
 import type {
   GroupHomeData,
   GroupLeaderboardEntryData,
-  GroupPlayedGameData,
   GroupStandingRowData,
 } from "@repo/domain/group-data";
 import {
   groupHomeMetaLine,
-  groupPlayedMarkVariant,
-  groupPlayedOpponentLine,
-  groupPlayedScoreLine,
-  groupPlayedTeamLabel,
   levelCellView,
   type LevelCellView,
   groupMemberOrganizerAction,
@@ -38,7 +33,6 @@ import {
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
-import { resultMarkLabel } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -167,63 +161,6 @@ export function standingStats(data: GroupHomeData, locale: Locale) {
     { value: data.totalGamesPlayed, label: m.gamesPlayed },
     { value: data.standing.awaitingScoreCount, label: m.awaitingScore },
   ];
-}
-
-export type PlayedTrailing =
-  | { kind: "cancelled" }
-  | { kind: "score"; text: string }
-  | { kind: "enter" };
-
-export type PlayedRowView = {
-  id: string;
-  mark: ResultMarkVariant;
-  title: string;
-  subtitle: string;
-  trailing: PlayedTrailing;
-  accessibilityLabel: string;
-};
-
-export function playedRowView(
-  game: GroupPlayedGameData,
-  locale: Locale,
-): PlayedRowView {
-  const m = messagesFor(locale).mobileGroup.games;
-  const viewerMembers =
-    game.viewerSlot === 2 ? game.slot2Members : game.slot1Members;
-  const otherMembers =
-    game.viewerSlot === 2 ? game.slot1Members : game.slot2Members;
-  const mark = groupPlayedMarkVariant(game.outcome);
-  const title = groupPlayedTeamLabel(viewerMembers, locale);
-  const subtitle = groupPlayedOpponentLine(
-    otherMembers,
-    game.displayTime,
-    locale,
-  );
-  const scoreLine = groupPlayedScoreLine(game.scoredSets, game.viewerSlot);
-  const trailing: PlayedTrailing = game.cancelled
-    ? { kind: "cancelled" }
-    : scoreLine
-      ? { kind: "score", text: scoreLine }
-      : { kind: "enter" };
-  const trailingLabel =
-    trailing.kind === "cancelled"
-      ? m.cancelled
-      : trailing.kind === "score"
-        ? trailing.text
-        : m.noScoreYet;
-  return {
-    id: game.id,
-    mark,
-    title,
-    subtitle,
-    trailing,
-    accessibilityLabel: m.row(
-      resultMarkLabel(mark, locale),
-      title,
-      subtitle,
-      trailingLabel,
-    ),
-  };
 }
 
 export type MemberRowView = {
