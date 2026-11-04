@@ -57,7 +57,7 @@ import { FootballScoreCard } from "../football/score-card";
 import { TeamColumns } from "../football/team-columns";
 import { useNow } from "../games/use-now";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
-import { InviteEntry } from "../invites/invite-entry";
+import { InviteIconEntry } from "../invites/invite-entry";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
 import { PlayedGameView } from "../played-game/played-game-view";
@@ -583,7 +583,7 @@ export function FootballGameDetails({
           lines={lines}
           actions={
             inviteAccess.canManage ? (
-              <InviteEntry onPress={() => setInviteOpen(true)} />
+              <InviteIconEntry onPress={() => setInviteOpen(true)} />
             ) : null
           }
         >

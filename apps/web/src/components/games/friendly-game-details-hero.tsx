@@ -10,11 +10,11 @@ import {
   type FriendlyGameHeroModel,
 } from "@repo/domain/friendly-game-hero";
 
+import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { DividedFigurePair } from "~/components/home/home-all-time";
 import { WinLossMark } from "~/components/home/home-recent-form-row";
 import { Button } from "~/components/ui/button";
-import { BackButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -27,19 +27,6 @@ export type FriendlyGameHeroPlace = {
   line: string | null;
   directionsUrl: string | null;
 };
-
-function NavRow({ actions }: { actions?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <BackButton variant="boxed" surface="ink" href="/dashboard/games" />
-      {actions ? (
-        <div className="text-paper flex shrink-0 items-center gap-2">
-          {actions}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 /** The countdown tag: outlined while the Game is ahead, solid once it has started. */
 function StatusPill({ label, solid }: { label: string; solid: boolean }) {
@@ -124,12 +111,14 @@ function FinalHero({
 }) {
   return (
     <article className="border-rule bg-paper text-ink rounded-xl border p-[22px]">
-      <HeroTopLine
-        tone="paper"
-        left={model.dateLabel}
-        right={<p className="shrink-0">{model.tag}</p>}
-        actions={actions}
-      />
+      <HeroNavRow tone="paper" actions={actions} />
+      <div className="mt-6">
+        <HeroTopLine
+          tone="paper"
+          left={model.dateLabel}
+          right={<p className="shrink-0">{model.tag}</p>}
+        />
+      </div>
 
       {model.verdict && model.verdictWord ? (
         <div className="mt-3 flex items-center gap-3">
@@ -193,9 +182,7 @@ export function FriendlyGameDetailsHero({
   const model = friendlyGameHeroModel(input, now);
 
   if (!model) {
-    return actions ? (
-      <div className="text-ink flex justify-end empty:hidden">{actions}</div>
-    ) : null;
+    return <HeroNavRow tone="paper" actions={actions} />;
   }
 
   if (model.kind === "final") {
@@ -204,7 +191,7 @@ export function FriendlyGameDetailsHero({
 
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
-      <NavRow actions={actions} />
+      <HeroNavRow tone="ink" actions={actions} />
       {model.kind === "time_unset" ? (
         <p className="text-dim text-meta mt-4">Time unset</p>
       ) : (

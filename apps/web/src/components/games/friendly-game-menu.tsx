@@ -2,6 +2,7 @@
 
 import {
   ACTION_MENU_INK_BOXED_TRIGGER,
+  ACTION_MENU_PAPER_BOXED_TRIGGER,
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
@@ -61,7 +62,9 @@ export function FriendlyGameMenu({
   return (
     <ActionMenu
       label="Game actions"
-      triggerClassName={ink ? ACTION_MENU_INK_BOXED_TRIGGER : undefined}
+      triggerClassName={
+        ink ? ACTION_MENU_INK_BOXED_TRIGGER : ACTION_MENU_PAPER_BOXED_TRIGGER
+      }
     >
       {closes ? (
         <ActionMenuItem disabled={closePending} onSelect={onCloseRegistration}>

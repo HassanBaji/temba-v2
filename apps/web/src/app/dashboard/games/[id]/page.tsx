@@ -22,6 +22,7 @@ import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
+import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
 import { PlayedPlayerDialog } from "~/components/games/played/played-player-dialog";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
@@ -1080,9 +1081,7 @@ export default function GameHomePage({
                 actions={heroActions}
               />
             ) : playedMatch ? null : (
-              <div className="flex justify-end empty:hidden">
-                {gameMenu(false)}
-              </div>
+              <HeroNavRow tone="paper" actions={gameMenu(false)} />
             )}
           </>
         ) : (
