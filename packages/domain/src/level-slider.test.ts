@@ -9,6 +9,7 @@ import {
   LEVEL_OVERRIDE_REASONS,
   levelSliderLabel,
   levelSliderReadout,
+  levelSliderStartTenths,
 } from "./level-slider";
 
 const readout = (tenths: number, currentTenths = 24) =>
@@ -44,6 +45,14 @@ describe("clampLevelTenths", () => {
     expect(clampLevelTenths(71)).toBe(70);
     expect(clampLevelTenths(36.4)).toBe(36);
     expect(clampLevelTenths(36.6)).toBe(37);
+  });
+});
+
+describe("levelSliderStartTenths", () => {
+  it("starts from the member's Level, or 3.0 without one", () => {
+    expect(levelSliderStartTenths("3.2")).toBe(32);
+    expect(levelSliderStartTenths("9.9")).toBe(70);
+    expect(levelSliderStartTenths(null)).toBe(30);
   });
 });
 

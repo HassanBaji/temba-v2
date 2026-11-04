@@ -2,7 +2,8 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { gameDisplayName } from "./game-custom-name";
-import { unratedLabel } from "./game-rating-impact";
+import { ratingScopeOf, ratingScopeTag } from "./game-rating-impact";
+import type { GameRatingScope } from "./game-rating-scope";
 import { formatRelativeDay } from "./format-game-start";
 import { shortPlayerName } from "./player-name";
 import { sportLabel } from "./sport";
@@ -30,6 +31,7 @@ export type HistoryRowInput = {
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
   rated: boolean;
+  ratingScope?: GameRatingScope;
 };
 
 export const HISTORY_PAGE_SIZE = 20;
@@ -105,14 +107,13 @@ function historyPlace(row: HistoryRowInput, locale: Locale) {
     : venueName;
 }
 
-function unratedSuffix(row: HistoryRowInput, line: string, locale: Locale) {
-  return row.rated
-    ? line
-    : messagesFor(locale).game.history.withUnrated(line, unratedLabel(locale));
+function ratingScopeSuffix(row: HistoryRowInput, line: string, locale: Locale) {
+  const tag = ratingScopeTag(row, locale);
+  return tag ? messagesFor(locale).game.history.withUnrated(line, tag) : line;
 }
 
 export function historyMeta(row: HistoryRowInput, locale: Locale) {
-  return unratedSuffix(
+  return ratingScopeSuffix(
     row,
     messagesFor(locale).game.history.meta(
       historyDay(row, locale),
@@ -158,7 +159,7 @@ export type MatchHistoryCardModel = {
   day: string;
   sport: string | null;
   groupName: string | undefined;
-  /** Venue, then the Game name when it differs, then the unrated mark. */
+  /** Venue, then the Game name when it differs, then the Rating scope mark. */
   place: string;
   meta: string;
   unrated: boolean;
@@ -209,9 +210,9 @@ export function matchHistoryCardModel(
     day: historyDay(row, locale),
     sport: sportLabel(row.sport, locale),
     groupName: row.groupName?.trim() ? row.groupName.trim() : undefined,
-    place: unratedSuffix(row, historyPlace(row, locale), locale),
+    place: ratingScopeSuffix(row, historyPlace(row, locale), locale),
     meta: historyMeta(row, locale),
-    unrated: !row.rated,
+    unrated: ratingScopeOf(row) === "unrated",
     teams: [mine, theirs],
   };
 }

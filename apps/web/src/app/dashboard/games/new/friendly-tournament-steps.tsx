@@ -8,6 +8,7 @@ import {
   type CreateGroup,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
 import {
@@ -35,13 +36,13 @@ import {
   parseCreateMatchMinutes,
   previewStartSlots,
   priceChipIsSelected,
+  createRatingChoice,
   reconcileWindowForDay,
   selectStartSlot,
   visibleCreateCourts,
   type CreateTournamentShape,
 } from "@repo/domain/create-game-flow";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { unratedGroupLine } from "@repo/domain/game-rating-impact";
 import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
@@ -134,6 +135,8 @@ export function FriendlyTournamentSteps({
   onAllowSoloRegister,
   groupName,
   groupVerified,
+  rated,
+  onRated,
 }: {
   step: 2 | 3 | 4;
   now: Date;
@@ -201,11 +204,14 @@ export function FriendlyTournamentSteps({
   onAllowSoloRegister: (allowSoloRegister: boolean) => void;
   groupName: string;
   groupVerified: boolean;
+  rated: boolean;
+  onRated: (rated: boolean) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const c = m.webDashboard.createGame;
   const sizingCopy = m.tournament.sizing;
+  const ratingChoice = createRatingChoice({ groupVerified, rated, locale });
   const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
     string | null
   >(null);
@@ -851,12 +857,14 @@ export function FriendlyTournamentSteps({
                 </ChoiceChip>
               ) : null}
             </RovingRadioGroup>
-            {groupVerified ? null : (
-              <FieldDescription id="tournament-unrated-copy">
-                {unratedGroupLine(locale)}
-              </FieldDescription>
-            )}
           </section>
+
+          <RatingField
+            idPrefix="tournament"
+            groupVerified={groupVerified}
+            rated={rated}
+            onRated={onRated}
+          />
 
           <section className="flex flex-col gap-3">
             <SectionHeading
@@ -946,8 +954,8 @@ export function FriendlyTournamentSteps({
               }
             />
             <ReviewRow
-              label={m.tournament.home.countsForRating}
-              value={groupVerified ? m.common.yes : m.common.no}
+              label={ratingChoice.title}
+              value={ratingChoice.scopeLabel}
             />
           </div>
         </>

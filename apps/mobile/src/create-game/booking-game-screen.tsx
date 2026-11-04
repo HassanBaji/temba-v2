@@ -1,5 +1,9 @@
 import { spacing } from "@repo/design-tokens";
-import { priceChipIsSelected } from "@repo/domain/create-game-flow";
+import {
+  createRatingChoice,
+  createRatingChoiceShown,
+  priceChipIsSelected,
+} from "@repo/domain/create-game-flow";
 import type { Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
 import { useRouter } from "expo-router";
@@ -38,6 +42,7 @@ import { FootballSizeFields } from "./football-size-fields";
 import { GroupField, groupLabel } from "./group-field";
 import { LevelRangeField } from "./level-range-field";
 import { MoneyField } from "./money-field";
+import { RatingField } from "./rating-field";
 import { ReviewCard } from "./review-card";
 import { StepFooter, StepShell } from "./step-shell";
 import { HelperNote, StepSection } from "./step-section";
@@ -145,6 +150,16 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
   const selectedGroup = sportGroups.find(
     (group) => group.id === state.draft.groupId,
   );
+  const groupVerified = selectedGroup?.verified ?? false;
+  const ratingShown = createRatingChoiceShown({
+    sport,
+    hasGroup: Boolean(selectedGroup),
+  });
+  const ratingScope = createRatingChoice({
+    groupVerified,
+    rated: ratingShown && state.draft.rated,
+    locale,
+  }).scope;
 
   const createGame = api.bookings.createGame.useMutation({
     onSuccess: async ({ gameId }) => {
@@ -245,6 +260,13 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
           </HelperNote>
         </StepSection>
         {football ? null : <LevelRangeField {...step} />}
+        {ratingShown ? (
+          <RatingField
+            groupVerified={groupVerified}
+            rated={state.draft.rated}
+            onRated={(rated) => onDispatch({ kind: "setRated", rated })}
+          />
+        ) : null}
         <ReviewCard
           rows={bookingGameReviewRows(
             booking,
@@ -256,7 +278,7 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
             selectedGroup
               ? {
                   name: groupLabel(selectedGroup, locale),
-                  rated: !football && selectedGroup.verified,
+                  ratingScope,
                 }
               : null,
           )}

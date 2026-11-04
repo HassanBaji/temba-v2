@@ -2,6 +2,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
 import { formatGameCardDay } from "./format-game-start";
+import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
 import type { ComputedPoolTables } from "./pool-table";
 import { formatPricePerPlayerFils } from "./price-per-player";
@@ -119,6 +120,7 @@ export type TournamentDetails = {
   allowSoloRegister: boolean;
   isPublic: boolean;
   rated: boolean;
+  ratingScope?: GameRatingScope;
   groupId: string | null;
   groupName: string | null;
   venueId: string | null;

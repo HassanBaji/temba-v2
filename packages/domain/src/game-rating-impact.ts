@@ -1,6 +1,10 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import {
+  gameRatingScopeLabel,
+  type GameRatingScope,
+} from "./game-rating-scope";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 export function unratedLabel(locale: Locale) {
@@ -11,8 +15,42 @@ export function unratedGameLine(locale: Locale) {
   return messagesFor(locale).game.rating.unratedGameLine;
 }
 
-export function unratedGroupLine(locale: Locale) {
-  return messagesFor(locale).game.rating.unratedGroupLine;
+/**
+ * A Game's Rating scope (ADR-0053). An endpoint that does not return the
+ * scope yet only says whether the Game moves the Temba Level.
+ */
+export function ratingScopeOf(game: {
+  rated: boolean;
+  ratingScope?: GameRatingScope | null;
+}): GameRatingScope {
+  return game.ratingScope ?? (game.rated ? "temba" : "unrated");
+}
+
+/** The tag a Game card or row carries: its scope, none when Temba rated. */
+export function ratingScopeTag(
+  game: { rated: boolean; ratingScope?: GameRatingScope | null },
+  locale: Locale,
+): string | null {
+  const scope = ratingScopeOf(game);
+  return scope === "temba" ? null : gameRatingScopeLabel(scope, locale);
+}
+
+/** The Game details notice for a Game that does not move the Temba Level. */
+export function ratingScopeNotice(
+  scope: GameRatingScope,
+  locale: Locale,
+): { title: string; line: string } | null {
+  if (scope === "temba") {
+    return null;
+  }
+  const m = messagesFor(locale);
+  return {
+    title: gameRatingScopeLabel(scope, locale),
+    line:
+      scope === "group"
+        ? m.you.ratingScope.group_note
+        : m.game.rating.unratedGameLine,
+  };
 }
 
 export type RatingImpactChangeDirection = "up" | "down" | "flat";

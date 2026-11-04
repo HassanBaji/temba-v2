@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import type { BoardPlayer } from "./football-board";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import {
@@ -127,8 +129,30 @@ describe("playedPadelModel", () => {
     assert.deepEqual(model.facts, [
       { label: "Confirmed", value: "By both pairs" },
       { label: "Format", value: "3 sets" },
-      { label: "Counts for rating", value: "Yes" },
+      { label: "Rating", value: "Counts for Temba rating" },
     ]);
+  });
+
+  it("names a group rated Match by its Rating scope", () => {
+    const group = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match,
+        groupName: "Tuesday padel",
+        rated: false,
+        ratingScope: "group",
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(group.you?.ratingLine, "Counts for group rating");
+    assert.deepEqual(group.facts.at(-1), {
+      label: "Rating",
+      value: "Counts for group rating",
+    });
   });
 
   it("falls back to team labels for a viewer who did not play", () => {
@@ -162,8 +186,8 @@ describe("playedPadelModel", () => {
       value: "By the organizer",
     });
     assert.deepEqual(watcher.facts[3], {
-      label: "Counts for rating",
-      value: "No",
+      label: "Rating",
+      value: "Unrated",
     });
   });
 
@@ -193,8 +217,8 @@ describe("playedPadelModel", () => {
     assert.equal(playedTagLabel("WON", "ar"), "فوز");
     assert.equal(arabic.columns[0].players[0]?.meta, "يسار");
     assert.deepEqual(arabic.facts[2], {
-      label: "يُحتسب في التصنيف",
-      value: "نعم",
+      label: messagesFor("ar").you.ratingScope.title,
+      value: messagesFor("ar").you.ratingScope.temba,
     });
   });
 });

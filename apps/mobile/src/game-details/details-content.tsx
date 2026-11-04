@@ -21,6 +21,7 @@ import {
   friendlyGameHeroInput,
   friendlyGameHeroModel,
 } from "@repo/domain/friendly-game-hero";
+import { ratingScopeOf } from "@repo/domain/game-rating-impact";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
 import type { PlayedRow } from "@repo/domain/played-game";
@@ -41,7 +42,7 @@ import type { setsToSave } from "./details-model";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard, type OpenSeatAction } from "./lineup-card";
 import { OrganizerCard, type OrganizerHandlers } from "./organizer-card";
-import { RatingImpactCard, UnratedCard } from "./rating-impact-card";
+import { RatingImpactCard, RatingScopeCard } from "./rating-impact-card";
 import { ScoreCard } from "./score-card";
 
 const SECTION_GAP = 16;
@@ -143,8 +144,11 @@ export function GameDetailsContent({
           </Text>
         </Surface>
       ) : null}
-      {game.booking ? <BookedCard booking={game.booking} /> : null}
-      {!game.rated && !game.booking ? <UnratedCard /> : null}
+      {game.booking ? (
+        <BookedCard booking={game.booking} ratingScope={ratingScopeOf(game)} />
+      ) : (
+        <RatingScopeCard scope={ratingScopeOf(game)} />
+      )}
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold" accessibilityRole="header">

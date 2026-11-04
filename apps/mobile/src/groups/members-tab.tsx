@@ -14,6 +14,10 @@ import {
   EllipsisVertical,
   UserRoundPlus,
 } from "lucide-react-native";
+import {
+  levelSliderLabel,
+  levelSliderStartTenths,
+} from "@repo/domain/level-slider";
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
@@ -266,6 +270,7 @@ export function MembersTab({
   canSetLevel,
   showLevel = true,
   onSetLevel,
+  onSetGroupLevel,
   onOpenMember,
   canAddPlayers = false,
   onRenameUnclaimed,
@@ -287,6 +292,8 @@ export function MembersTab({
   canSetLevel: boolean;
   showLevel?: boolean;
   onSetLevel: (userId: string) => void;
+  /** Given to an Organizer of the Group, who sets members' Group Levels. */
+  onSetGroupLevel?: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
   canAddPlayers?: boolean;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
@@ -313,8 +320,13 @@ export function MembersTab({
   const [managing, setManaging] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
+  const canSetGroupLevel = onSetGroupLevel != null;
   const canManage =
-    canSetLevel || canAddPlayers || canRemovePlayers || canAppointOrganizers;
+    canSetLevel ||
+    canSetGroupLevel ||
+    canAddPlayers ||
+    canRemovePlayers ||
+    canAppointOrganizers;
   const isManaging = canManage && managing;
   const legend = groupMembersLegend({ showLevel, locale });
   const list = memberList(
@@ -326,6 +338,7 @@ export function MembersTab({
     canRemovePlayers,
     canAppointOrganizers,
     { ...lens, showLevel, canManage, now: new Date() },
+    canSetGroupLevel,
   );
   const selected = leaderboard.find(
     (entry) =>
@@ -476,6 +489,23 @@ export function MembersTab({
                   onSetLevel(selected.userId);
                 }
               }
+            : undefined
+        }
+        onSetGroupLevel={
+          selected && onSetGroupLevel && !selected.isViewer
+            ? () => {
+                setSelectedUserId(null);
+                onSetGroupLevel(selected.userId);
+              }
+            : undefined
+        }
+        groupLevelHint={
+          selected?.groupLevel
+            ? m.mobileGroup.setGroupLevel.groupLevel(
+                levelSliderLabel(
+                  levelSliderStartTenths(selected.groupLevel.level),
+                ),
+              )
             : undefined
         }
         onViewProfile={

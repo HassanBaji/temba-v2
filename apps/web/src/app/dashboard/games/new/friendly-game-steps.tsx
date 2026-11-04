@@ -8,6 +8,7 @@ import {
   type CreateGroup,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
 import {
@@ -41,6 +42,8 @@ import {
   openLevelRange,
   previewStartSlots,
   priceChipIsSelected,
+  createRatingChoice,
+  createRatingChoiceShown,
   visibleCreateCourts,
 } from "@repo/domain/create-game-flow";
 import { courtCountLabel, courtFace } from "@repo/domain/court-sport-copy";
@@ -54,7 +57,6 @@ import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
-import { unratedGroupLine } from "@repo/domain/game-rating-impact";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 const SMALLEST_SIDE_SIZE = Math.min(...FOOTBALL_SIDE_SIZES);
@@ -109,6 +111,8 @@ export function FriendlyGameSteps({
   reviewGroup,
   reviewVenue,
   groupVerified,
+  rated,
+  onRated,
 }: {
   sport?: Sport;
   sideSize: number;
@@ -161,6 +165,8 @@ export function FriendlyGameSteps({
   reviewGroup: string;
   reviewVenue: string;
   groupVerified: boolean;
+  rated: boolean;
+  onRated: (rated: boolean) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -195,6 +201,15 @@ export function FriendlyGameSteps({
   const playerBounds = footballPlayersAllowedBounds(sideSize);
   const levelOpen =
     levelMin === LEVEL_BAND_SELECT_NONE && levelMax === LEVEL_BAND_SELECT_NONE;
+  const ratingShown = createRatingChoiceShown({
+    sport,
+    hasGroup: Boolean(selectedGroupId),
+  });
+  const ratingChoice = createRatingChoice({
+    groupVerified,
+    rated: ratingShown && rated,
+    locale,
+  });
 
   function selectDay(next: string) {
     onDay(next);
@@ -691,11 +706,14 @@ export function FriendlyGameSteps({
             </FieldError>
           </section>
 
-          {groupVerified ? null : (
-            <FieldDescription id="game-unrated-copy">
-              {unratedGroupLine(locale)}
-            </FieldDescription>
-          )}
+          {ratingShown ? (
+            <RatingField
+              idPrefix="game"
+              groupVerified={groupVerified}
+              rated={rated}
+              onRated={onRated}
+            />
+          ) : null}
 
           <div className="border-rule rounded-card overflow-hidden border">
             {customName.trim() ? (
@@ -710,6 +728,10 @@ export function FriendlyGameSteps({
                 { sideSize, playersAllowed },
                 locale,
               )}
+            />
+            <ReviewRow
+              label={ratingChoice.title}
+              value={ratingChoice.scopeLabel}
             />
           </div>
         </>

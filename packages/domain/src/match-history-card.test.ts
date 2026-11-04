@@ -54,6 +54,25 @@ describe("matchHistoryCardModel unrated mark", () => {
     assert.equal(model.unrated, true);
     assert.ok(model.meta.endsWith(" · Unrated"));
   });
+
+  it("marks a group rated Match with its Rating scope, not Unrated", () => {
+    const model = matchHistoryCardModel(
+      row({ rated: false, ratingScope: "group" }),
+      "en",
+    );
+    assert.equal(model.unrated, false);
+    assert.ok(model.meta.endsWith(" · Counts for group rating"));
+    assert.ok(model.place.endsWith(" · Counts for group rating"));
+  });
+
+  it("leaves a Temba rated Match unmarked", () => {
+    const model = matchHistoryCardModel(
+      row({ rated: true, ratingScope: "temba" }),
+      "en",
+    );
+    assert.ok(!model.meta.includes("Counts for"));
+    assert.ok(!model.meta.includes("Unrated"));
+  });
 });
 
 describe("viewerSets", () => {

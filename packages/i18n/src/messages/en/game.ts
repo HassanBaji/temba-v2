@@ -255,8 +255,6 @@ export const game = {
   },
   rating: {
     unratedGameLine: "This Game doesn't change anyone's Level.",
-    unratedGroupLine:
-      "Games in this Group are Unrated. They don't change anyone's Level.",
     stillProvisional: (band: string, remaining: number) =>
       `Still ${band}. ${plural("en", remaining, {
         one: "About 1 more rated game and your level confirms.",

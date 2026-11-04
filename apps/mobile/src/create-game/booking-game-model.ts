@@ -5,7 +5,10 @@ import {
 import { courtFace } from "@repo/domain/court-sport-copy";
 import type { CreateGameDraft } from "@repo/domain/create-game-draft";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import {
+  gameRatingScopeLabel,
+  type GameRatingScope,
+} from "@repo/domain/game-rating-scope";
 import {
   footballPlayersAllowedBounds,
   isFootballSideSize,
@@ -73,7 +76,7 @@ export function splitCourtCost(
   return filsToMajorInput(splitCostAcrossPlayers(priceFils, players));
 }
 
-export type BookingGameGroup = { name: string; rated: boolean };
+export type BookingGameGroup = { name: string; ratingScope: GameRatingScope };
 
 export function bookingGameReviewRows(
   booking: BookingGameSource,
@@ -111,7 +114,7 @@ export function bookingGameReviewRows(
     },
     {
       label: m.review.rating,
-      value: group?.rated ? messages.common.rated : unratedLabel(locale),
+      value: gameRatingScopeLabel(group?.ratingScope ?? "unrated", locale),
     },
   ];
 }
@@ -122,6 +125,7 @@ export type BookingGameRequest =
       input: {
         bookingId: string;
         groupId?: string;
+        rated?: false;
         pricePerPlayerFils?: number;
         levelMinTenths?: number;
         levelMaxTenths?: number;
@@ -134,7 +138,9 @@ export type BookingGameRequest =
 export function bookingGameRequest(
   bookingId: string,
   draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax"> &
-    Partial<Pick<CreateGameDraft, "groupId" | "sideSize" | "playersAllowed">>,
+    Partial<
+      Pick<CreateGameDraft, "groupId" | "sideSize" | "playersAllowed" | "rated">
+    >,
   locale: Locale,
   sport: Sport = "padel",
 ): BookingGameRequest {
@@ -191,6 +197,9 @@ export function bookingGameRequest(
     input: {
       bookingId,
       ...group,
+      ...(draft.groupId && draft.rated === false
+        ? { rated: false as const }
+        : {}),
       ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
       ...(levelMinTenths !== null ? { levelMinTenths } : {}),
       ...(levelMaxTenths !== null ? { levelMaxTenths } : {}),
