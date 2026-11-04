@@ -22,6 +22,7 @@ import {
   groupLinkRequests,
   GroupLinkRequestStatusEnum,
   groupMembers,
+  groupRatings,
   GroupTypeEnum,
   levelOverrides,
   MatchStatusEnum,
@@ -33,6 +34,7 @@ import {
 } from "@repo/db";
 
 import type { LevelBand } from "@repo/domain/level-bands";
+import { levelFromMu } from "@repo/domain/level";
 import { protectedProcedure } from "#src/trpc";
 import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -541,6 +543,28 @@ export async function groupById(
     }
   }
 
+  const groupLevelByUserId = new Map<
+    string,
+    { level: string; rating: number; levelBand: LevelBand; provisional: boolean }
+  >();
+  if (memberUserIds.length > 0) {
+    const groupRatingRows = await database.query.groupRatings.findMany({
+      where: and(
+        eq(groupRatings.groupId, group.id),
+        inArray(groupRatings.userId, memberUserIds),
+      ),
+    });
+    for (const row of groupRatingRows) {
+      const view = youRatingViewAfterIdle(row, now);
+      groupLevelByUserId.set(row.userId, {
+        level: view.level,
+        rating: Math.round(levelFromMu(row.mu) * 100) / 100,
+        levelBand: view.levelBand,
+        provisional: view.provisional,
+      });
+    }
+  }
+
   // One Clerk read per Group page view, and only for a member of a Group with
   // a sport — the only viewer a Level setter can act as.
   const viewerCanSetLevel =
@@ -768,6 +792,8 @@ export async function groupById(
       level: rating?.level ?? null,
       ratedMatchCount: rating?.ratedMatchCount ?? 0,
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
+      /** The member's Group Level (ADR-0053), null before their first. */
+      groupLevel: groupLevelByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
       joinedAt: memberRowByUserId.get(entry.userId)?.createdAt ?? null,

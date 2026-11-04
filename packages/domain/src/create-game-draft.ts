@@ -47,6 +47,8 @@ export type CreateGameDraft = {
   allowSoloRegister: boolean;
   sideSize: number;
   playersAllowed: number;
+  /** False when the creator picked Unrated (ADR-0053). */
+  rated: boolean;
 };
 
 type DraftStorage = {
@@ -92,6 +94,7 @@ export function initialCreateGameDraft(
     allowSoloRegister: true,
     sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
     playersAllowed: 2 * DEFAULT_FOOTBALL_SIDE_SIZE,
+    rated: true,
   };
 }
 
@@ -126,6 +129,7 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     allowSoloRegister: draft.allowSoloRegister,
     sideSize: draft.sideSize,
     playersAllowed: draft.playersAllowed,
+    rated: draft.rated,
   });
 }
 
@@ -175,6 +179,7 @@ export function parseCreateGameDraft(
       ? 2 * DEFAULT_FOOTBALL_SIDE_SIZE
       : record.playersAllowed;
   const customName = record.customName === undefined ? "" : record.customName;
+  const rated = record.rated === undefined ? true : record.rated;
   const strings = [
     "groupId",
     "venueId",
@@ -208,6 +213,7 @@ export function parseCreateGameDraft(
     !isFootballSideSize(sideSize) ||
     !isCount(playersAllowed) ||
     typeof customName !== "string" ||
+    typeof rated !== "boolean" ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -237,6 +243,7 @@ export function parseCreateGameDraft(
     allowSoloRegister: record.allowSoloRegister as boolean,
     sideSize,
     playersAllowed,
+    rated,
   };
 }
 

@@ -70,6 +70,14 @@ export type GroupStandingData = {
   gamesCounted: number;
 };
 
+/** A member's Group Level in this Group (ADR-0053); null before one exists. */
+export type GroupMemberGroupLevelData = {
+  level: string;
+  rating: number;
+  levelBand: LevelBand;
+  provisional: boolean;
+};
+
 export type GroupLeaderboardEntryData = GroupStandingRowData & {
   isOrganizer: boolean;
   isAppointedOrganizer: boolean;
@@ -78,6 +86,7 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
   level: string | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
+  groupLevel?: GroupMemberGroupLevelData | null;
   formMarks: FormMark[];
   /** The member's latest completed Match in this Group; null before one. */
   lastPlayedAt: Date | string | null;

@@ -3,6 +3,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  groupLevelOverrides,
+  groupRatingEvents,
+  groupRatings,
   levelOverrides,
   MatchStatusEnum,
   matches,
@@ -25,12 +28,74 @@ import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
+ * Restores each Group Level to its before-values on this Match, unless an
+ * Organizer set it after the Match, then deletes the Group rating events.
+ */
+async function reverseGroupRatingEvents(
+  tx: DbClient,
+  matchId: string,
+  now: Date,
+) {
+  const events = await tx.query.groupRatingEvents.findMany({
+    where: eq(groupRatingEvents.matchId, matchId),
+  });
+  if (events.length === 0) {
+    return;
+  }
+  const userIds = events.map((event) => event.userId);
+  await tx
+    .select({ id: groupRatings.id })
+    .from(groupRatings)
+    .where(inArray(groupRatings.userId, userIds))
+    .orderBy(groupRatings.userId)
+    .for("update");
+  const laterOverrides = await tx
+    .select({
+      userId: groupLevelOverrides.userId,
+      groupId: groupLevelOverrides.groupId,
+      createdAt: groupLevelOverrides.createdAt,
+    })
+    .from(groupLevelOverrides)
+    .where(inArray(groupLevelOverrides.userId, userIds));
+
+  for (const event of events) {
+    const hasLaterOverride = laterOverrides.some(
+      (override) =>
+        override.userId === event.userId &&
+        override.groupId === event.groupId &&
+        override.createdAt > event.createdAt,
+    );
+    if (hasLaterOverride) {
+      continue;
+    }
+    await tx
+      .update(groupRatings)
+      .set({
+        mu: event.muBefore,
+        phi: event.phiBefore,
+        sigma: event.sigmaBefore,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(groupRatings.userId, event.userId),
+          eq(groupRatings.groupId, event.groupId),
+        ),
+      );
+  }
+  await tx
+    .delete(groupRatingEvents)
+    .where(eq(groupRatingEvents.matchId, matchId));
+}
+
+/**
  * Organizer-only "report a wrong score" reversal — Option A, the gated
  * self-service reversal resolved in
  * `.scratch/game-details-redesign/spec.md` ("Resolved decision") and
  * `docs/adr/0011-match-result-confirmation.md` ("Dispute and rating
  * reversal"). Reopens a completed, rated Friendly Match only when none of
- * its four seated Users has a later Rated Match — Glicko-2 updates are
+ * its four seated Users has a later Rated Match of the same kind (Temba, or
+ * the same Group's, ADR-0053) — Glicko-2 updates are
  * sequential, so restoring stored before-values would otherwise silently
  * erase legitimate later changes.
  *
@@ -146,6 +211,7 @@ export async function reportWrongScore(
     }
 
     await tx.delete(ratingEvents).where(eq(ratingEvents.matchId, locked.id));
+    await reverseGroupRatingEvents(tx, locked.id, now);
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));

@@ -29,6 +29,9 @@ import { mobileTournament } from "./mobile-tournament";
 import { mobileHome } from "./mobile-home";
 import { mobileCommunity } from "./mobile-community";
 import { mobilePlayer } from "./mobile-player";
+import { you } from "./you";
+import { mobileYou } from "./mobile-you";
+import { webYou } from "./web-you";
 
 export const en = {
   common,
@@ -62,4 +65,7 @@ export const en = {
   mobileHome,
   mobileCommunity,
   mobilePlayer,
+  you,
+  mobileYou,
+  webYou,
 };

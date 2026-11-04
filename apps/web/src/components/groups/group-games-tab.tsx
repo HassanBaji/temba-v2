@@ -378,6 +378,7 @@ export function GroupGamesTab({
                   href={`/dashboard/games/${game.id}`}
                   showPartnerJoin={showPartnerJoin}
                   rated={game.rated}
+                  ratingScope={game.ratingScope}
                   onJoinSeat={(sideIndex, position) => {
                     onJoinSeat(game.id, sideIndex, position);
                   }}

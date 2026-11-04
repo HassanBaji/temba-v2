@@ -1,6 +1,9 @@
 import { bookedCourtLine } from "@repo/domain/booking-copy";
 import type { FriendlyGameDetailsBooking } from "@repo/domain/friendly-game-details";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import {
+  gameRatingScopeLabel,
+  type GameRatingScope,
+} from "@repo/domain/game-rating-scope";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 
@@ -12,8 +15,10 @@ import { Text } from "../primitives/text";
 
 export function BookedCard({
   booking,
+  ratingScope,
 }: {
   booking: FriendlyGameDetailsBooking;
+  ratingScope: GameRatingScope;
 }) {
   const router = useRouter();
   const m = useMessages();
@@ -34,7 +39,7 @@ export function BookedCard({
           <Text weight="semibold">{bookedCourtLine(booking, locale)}</Text>
         </View>
         <Text size="meta" tone="muted">
-          {unratedLabel(locale)}
+          {gameRatingScopeLabel(ratingScope, locale)}
         </Text>
       </View>
       {booking.heldByViewer ? (

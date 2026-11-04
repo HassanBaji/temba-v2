@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 
-import { ratingEvents } from "@repo/db";
+import { groupRatingEvents, ratingEvents } from "@repo/db";
 
 import { type db } from "#src/db";
 
@@ -23,10 +23,15 @@ export async function wrongScoreReversalEligibility(
   database: DbClient,
   matchId: string,
 ): Promise<WrongScoreReversalEligibility> {
-  const matchEvents = await database.query.ratingEvents.findMany({
-    where: eq(ratingEvents.matchId, matchId),
-  });
-  if (matchEvents.length === 0) {
+  const [matchEvents, groupEvents] = await Promise.all([
+    database.query.ratingEvents.findMany({
+      where: eq(ratingEvents.matchId, matchId),
+    }),
+    database.query.groupRatingEvents.findMany({
+      where: eq(groupRatingEvents.matchId, matchId),
+    }),
+  ]);
+  if (matchEvents.length === 0 && groupEvents.length === 0) {
     return {
       eligible: false,
       reason: "This Match has no rating events to reverse",
@@ -46,13 +51,30 @@ export async function wrongScoreReversalEligibility(
       .orderBy(desc(ratingEvents.createdAt), desc(ratingEvents.id))
       .limit(1);
     if (latest && latest.id !== event.id) {
-      return {
-        eligible: false,
-        reason:
-          "At least one player seated on this Match has a later rated Match — this needs manual support to correct",
-      };
+      return { eligible: false, reason: LATER_RATED_MATCH };
+    }
+  }
+
+  // A Group Level is sequential per Group, so the same rule holds per Group.
+  for (const event of groupEvents) {
+    const [latest] = await database
+      .select({ id: groupRatingEvents.id })
+      .from(groupRatingEvents)
+      .where(
+        and(
+          eq(groupRatingEvents.userId, event.userId),
+          eq(groupRatingEvents.groupId, event.groupId),
+        ),
+      )
+      .orderBy(desc(groupRatingEvents.createdAt), desc(groupRatingEvents.id))
+      .limit(1);
+    if (latest && latest.id !== event.id) {
+      return { eligible: false, reason: LATER_RATED_MATCH };
     }
   }
 
   return { eligible: true };
 }
+
+const LATER_RATED_MATCH =
+  "At least one player seated on this Match has a later rated Match — this needs manual support to correct";

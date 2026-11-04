@@ -4,6 +4,7 @@ export * from "./user";
 export * from "./user-merges";
 export * from "./ratings";
 export * from "./level-overrides";
+export * from "./group-ratings";
 export * from "./verification";
 export * from "./venues";
 export * from "./venue-managers";

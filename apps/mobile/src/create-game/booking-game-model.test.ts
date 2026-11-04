@@ -54,20 +54,26 @@ describe("bookingGameReviewRows", () => {
     ]);
   });
 
-  it("names the Group, its members and its rating when the Game is on one", () => {
+  it("names the Group, its members and its Rating scope when the Game is on one", () => {
     const rows = bookingGameReviewRows(booking, "en", undefined, {
       name: "Ladder",
-      rated: true,
+      ratingScope: "temba",
     });
     expect(rows.slice(3)).toEqual([
       { label: "Group", value: "Ladder" },
       { label: "Who can join", value: "Group members and people you invite" },
-      { label: "Rating", value: "Rated" },
+      { label: "Rating", value: "Counts for Temba rating" },
     ]);
     expect(
       bookingGameReviewRows(booking, "en", undefined, {
         name: "Thursday padel",
-        rated: false,
+        ratingScope: "group",
+      }).at(-1),
+    ).toEqual({ label: "Rating", value: "Counts for group rating" });
+    expect(
+      bookingGameReviewRows(booking, "en", undefined, {
+        name: "Thursday padel",
+        ratingScope: "unrated",
       }).at(-1),
     ).toEqual({ label: "Rating", value: "Unrated" });
   });
@@ -126,6 +132,35 @@ describe("bookingGameRequest", () => {
     });
     expect(
       bookingGameRequest("booking-1", { ...open, groupId: "" }, "en"),
+    ).toEqual({
+      ok: true,
+      input: { bookingId: "booking-1" },
+    });
+  });
+
+  it("sends rated false only for an Unrated pick on a Group", () => {
+    expect(
+      bookingGameRequest(
+        "booking-1",
+        { ...open, groupId: "group-1", rated: false },
+        "en",
+      ),
+    ).toEqual({
+      ok: true,
+      input: { bookingId: "booking-1", groupId: "group-1", rated: false },
+    });
+    expect(
+      bookingGameRequest(
+        "booking-1",
+        { ...open, groupId: "group-1", rated: true },
+        "en",
+      ),
+    ).toEqual({
+      ok: true,
+      input: { bookingId: "booking-1", groupId: "group-1" },
+    });
+    expect(
+      bookingGameRequest("booking-1", { ...open, rated: false }, "en"),
     ).toEqual({
       ok: true,
       input: { bookingId: "booking-1" },

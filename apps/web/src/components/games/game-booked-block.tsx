@@ -1,10 +1,16 @@
 import { bookedCourtLine } from "@repo/domain/booking-copy";
+import {
+  gameRatingScopeLabel,
+  type GameRatingScope,
+} from "@repo/domain/game-rating-scope";
 import { useLocale, useMessages } from "~/components/locale-provider";
 
 export function GameBookedBlock({
   booking,
+  ratingScope,
 }: {
   booking: { courtName: string; startsAt: Date; endsAt: Date };
+  ratingScope: GameRatingScope;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -21,7 +27,9 @@ export function GameBookedBlock({
           {bookedCourtLine(booking, locale)}
         </p>
       </div>
-      <p className="text-muted-foreground text-meta">{m.common.unrated}</p>
+      <p className="text-muted-foreground text-meta">
+        {gameRatingScopeLabel(ratingScope, locale)}
+      </p>
     </section>
   );
 }

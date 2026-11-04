@@ -1,3 +1,5 @@
+import type { GameRatingScope } from "./game-rating-scope";
+
 export type HubGameOccupant = {
   userId: string;
   name: string;
@@ -52,6 +54,7 @@ export type HubGameRow = {
   sport: string | null;
   isPublic: boolean;
   rated: boolean;
+  ratingScope: GameRatingScope;
   groupId: string | null;
   groupName: string | null;
   startTime: Date;

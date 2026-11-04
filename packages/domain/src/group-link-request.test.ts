@@ -65,14 +65,14 @@ describe("group link request copy", () => {
 });
 
 describe("leaving a Venue Community copy", () => {
-  it("names the Venue and warns that new Games are Unrated", () => {
+  it("names the Venue and warns that new Games rate the group only", () => {
     expect(groupLeaveVenueActionLabel("Smash Club", "en")).toBe(
       "Leave Smash Club’s Community",
     );
     const confirm = groupLeaveVenueConfirm("Tuesday Crew", "Smash Club", "en");
     expect(confirm.title).toBe("Leave Smash Club’s Community?");
     expect(confirm.description).toContain("Tuesday Crew");
-    expect(confirm.description).toContain("Unrated");
+    expect(confirm.description).toContain("group rating only");
     expect(confirm.description).toContain("Operator");
   });
 
@@ -81,7 +81,7 @@ describe("leaving a Venue Community copy", () => {
       "Unlink this Group?",
     );
     expect(venueUnlinkGroupConfirm("Tuesday Crew", "en").description).toContain(
-      "Unrated",
+      "group rating only",
     );
   });
 });

@@ -273,6 +273,7 @@ function GamesHubTabPanel({
             )}
             courtName={game.courtName}
             rated={game.rated}
+            ratingScope={game.ratingScope}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}

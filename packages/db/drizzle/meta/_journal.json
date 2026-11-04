@@ -526,6 +526,13 @@
       "when": 1793623644685,
       "tag": "0074_game_season_link",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793811521270,
+      "tag": "0075_profile_details_and_group_levels",
+      "breakpoints": true
     }
   ]
 }

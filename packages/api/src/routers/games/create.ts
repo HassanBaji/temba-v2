@@ -34,6 +34,7 @@ import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
+import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 import {
   GAME_CUSTOM_NAME_MAX_LENGTH,
   normalizeGameCustomName,
@@ -54,6 +55,8 @@ export const createGameInputSchema = z
     customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).optional(),
     groupId: z.string().uuid({ message: "Pick a Group" }),
     isPublic: z.boolean(),
+    /** False makes the Game Unrated (ADR-0053). */
+    rated: z.boolean().optional(),
     format: createFormatSchema.default("friendly_game"),
     registrationMode: registrationModeSchema,
     playersAllowed: z.number().int().optional(),
@@ -223,7 +226,12 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
-  const rated = await groupIsVerified(database, group);
+  const { rated, groupRated } = ratingFlagsAtCreate({
+    hasGroup: true,
+    groupVerified: await groupIsVerified(database, group),
+    sport: sportOrDefault(group.sport),
+    rated: input.rated ?? true,
+  });
 
   if (sportOrDefault(group.sport) === "football") {
     return createFootballGameOnGroup(database, input);
@@ -242,6 +250,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
       rated,
+      groupRated,
     });
     return {
       id: created.game.id,
@@ -283,6 +292,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
         rated,
+        groupRated,
         createdBy: input.createdBy,
       })
       .returning();

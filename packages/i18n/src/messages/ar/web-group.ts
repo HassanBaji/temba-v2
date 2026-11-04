@@ -167,4 +167,11 @@ export const webGroup = {
       `لن يبقى ${name} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
     setTo: (level: string) => `تحديد إلى ${level}`,
   },
+  setGroupLevel: {
+    current: (level: string) => `مستواه في المجموعة الآن، ${level}`,
+    tembaMarker: (level: string) => `Temba ${level}`,
+    startsFrom: (level: string) => `يبدأ من مستوى Temba لديه، ${level}`,
+    startsFromDefault: "لا مستوى Temba بعد، لذا يبدأ من 3.0",
+    level: "مستوى المجموعة",
+  },
 } satisfies typeof source;

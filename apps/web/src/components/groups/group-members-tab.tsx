@@ -75,6 +75,7 @@ type GroupMember = {
   level: string | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
+  groupLevel?: { level: string } | null;
   unclaimed: boolean;
   phoneMasked: string | null;
 };
@@ -158,6 +159,7 @@ function SavedBanner({
 function MemberActionsMenu({
   name,
   setLevelHref,
+  onSetGroupLevel,
   profileHref,
   organizerAction,
   onOrganizerAction,
@@ -166,6 +168,7 @@ function MemberActionsMenu({
 }: {
   name: string;
   setLevelHref?: string;
+  onSetGroupLevel?: () => void;
   profileHref?: string;
   organizerAction?: GroupMemberOrganizerAction;
   onOrganizerAction?: () => void;
@@ -179,6 +182,11 @@ function MemberActionsMenu({
       {setLevelHref ? (
         <ActionMenuItem asChild>
           <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
+        </ActionMenuItem>
+      ) : null}
+      {onSetGroupLevel ? (
+        <ActionMenuItem onSelect={onSetGroupLevel}>
+          {m.you.setGroupLevel.title}
         </ActionMenuItem>
       ) : null}
       {profileHref ? (
@@ -198,7 +206,11 @@ function MemberActionsMenu({
       ) : null}
       {onRemove ? (
         <>
-          {setLevelHref || profileHref || organizerAction || onRename ? (
+          {setLevelHref ||
+          onSetGroupLevel ||
+          profileHref ||
+          organizerAction ||
+          onRename ? (
             <ActionMenuSeparator />
           ) : null}
           <ActionMenuItem variant="destructive" onSelect={onRemove}>
@@ -433,6 +445,7 @@ export function GroupMembersTab({
   linkToPlayers,
   canInvite,
   canSetLevel,
+  onSetGroupLevel,
   savedUserId,
   onDismissSaved,
   onInvite,
@@ -466,6 +479,13 @@ export function GroupMembersTab({
   linkToPlayers: boolean;
   canInvite: boolean;
   canSetLevel: boolean;
+  /** Given to an Organizer of the Group, who sets members' Group Levels. */
+  onSetGroupLevel?: (member: {
+    userId: string;
+    name: string;
+    level: string | null;
+    groupLevel: string | null;
+  }) => void;
   /** The member whose Level was just set, from the Set Level page. */
   savedUserId: string | null;
   onDismissSaved: () => void;
@@ -490,7 +510,11 @@ export function GroupMembersTab({
     ? savedLevelOf(members.find((member) => member.userId === savedUserId))
     : null;
   const canManage =
-    canSetLevel || canAppointOrganizers || canAddPlayers || canRemovePlayers;
+    canSetLevel ||
+    onSetGroupLevel != null ||
+    canAppointOrganizers ||
+    canAddPlayers ||
+    canRemovePlayers;
   const isManaging = canManage && managing;
   const view = groupMembersLens(members, {
     ...lens,
@@ -556,6 +580,15 @@ export function GroupMembersTab({
       ? (groupMemberOrganizerAction(member) ?? undefined)
       : undefined;
     const target = { userId: member.userId, name: member.name };
+    const setGroupLevel =
+      onSetGroupLevel && !member.isViewer
+        ? () =>
+            onSetGroupLevel({
+              ...target,
+              level: member.level,
+              groupLevel: member.groupLevel?.level ?? null,
+            })
+        : undefined;
     const onRename =
       canAddPlayers && member.unclaimed && onRenameUnclaimed
         ? () => onRenameUnclaimed(target)
@@ -566,6 +599,7 @@ export function GroupMembersTab({
         : undefined;
     if (
       !setLevelHref &&
+      !setGroupLevel &&
       !profileHref &&
       !organizerAction &&
       !onRename &&
@@ -577,6 +611,7 @@ export function GroupMembersTab({
       <MemberActionsMenu
         name={member.name}
         setLevelHref={setLevelHref}
+        onSetGroupLevel={setGroupLevel}
         profileHref={profileHref}
         organizerAction={organizerAction}
         onOrganizerAction={

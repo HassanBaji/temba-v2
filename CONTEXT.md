@@ -77,7 +77,7 @@ A set of people who play Games of one sport. Every Group is either a Club Group 
 _Avoid_: Community, Team, lobby, channel
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group of a Venue Community. Every other Group's new Games are Unrated and private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; membership of a Venue Community is derived, not stored.
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group of a Venue Community. Every other Group's new Games are private and count for a Group Level only (ADR-0053). A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; membership of a Venue Community is derived, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
@@ -582,9 +582,29 @@ A Level that a Level setter or an Operator set by hand, and its audit record. An
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams. A Match on an Unrated Game is never a Rated Match.
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`, Group rating events when it is `temba` or `group`. A Match on an Unrated Game is never a Rated Match.
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events or move a Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Booking Game, any Game created on a Group that was not a Verified Group at create, and every football Game created before football results ship. Match result confirmation still applies. Stored as `games.rated = false`, fixed at create; `bookings.createGame` and every football Game create set it.
+A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
+
+**Rating scope**:
+What a Game's completed Matches rate, fixed at create (ADR-0053). `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. `group`, shown "Counts for group rating", moves the Group Level only: a padel Game on a Group that is not Verified. `unrated`, shown "Unrated", moves neither. Pure in `@repo/domain/game-rating-scope`.
+_Avoid_: rated (bare, when the scope matters), ranked, verified game
+
+**Group Level**:
+A User's Level inside one Group, from a Glicko-2 Rating that only that Group's Rated Matches move (`group_ratings`). It starts from the User's Temba Level, Provisional, and an Organizer of the Group may set it as a Group Level override. A football Group Level is the football Level until an Organizer sets one. Distinct from the Temba Level ("General" on the You page), which every Group shares, and from a Standing, which is a position.
+_Avoid_: group rating (when you mean the face), local level, club level
+
+**Group Level override**:
+A Group Level an Organizer of the Group set by hand, and its audit record (`group_level_overrides`). Works like a Level override, inside one Group. Never moves the Temba Level.
+_Avoid_: group rating override
+
+**Match history visibility**:
+Who sees a User's form, stats and partners on their Player profile: everyone who may open it (default), Group members, or only them. A viewer it excludes sees Level and Preferred Position only.
+_Avoid_: privacy (bare), profile visibility
+
+**Play windows**:
+The parts of the week a User says they usually play: weekday or weekend (Friday and Saturday) × morning (before noon), afternoon or evening (after 6 PM). Asked in Settings as "When you play". Seat alerts lean on it.
+_Avoid_: availability (that is a Venue's free Court time), schedule

@@ -119,6 +119,7 @@ function buildRow(args: {
     sport: "padel",
     isPublic: false,
     rated: true,
+    ratingScope: "temba",
     groupId: "group-bromma",
     groupName: "Bromma Tuesday",
     startTime: windowStart,

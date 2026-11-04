@@ -17,10 +17,13 @@ export function LevelSlider({
   tenths,
   currentTenths,
   onTenthsChange,
+  currentLabel,
 }: {
   tenths: number;
   currentTenths: number;
   onTenthsChange: (tenths: number) => void;
+  /** Names the marker at `currentTenths`; "Now …" by default. */
+  currentLabel?: string;
 }) {
   const m = useMessages();
   return (
@@ -79,7 +82,8 @@ export function LevelSlider({
             className="text-muted-foreground text-meta absolute -translate-x-1/2 whitespace-nowrap"
             style={{ left: leftAt(currentTenths) }}
           >
-            {m.webGroup.setLevel.now(levelSliderLabel(currentTenths))}
+            {currentLabel ??
+              m.webGroup.setLevel.now(levelSliderLabel(currentTenths))}
           </span>
         </div>
       </div>

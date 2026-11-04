@@ -20,6 +20,11 @@ import { formatDayMonth, formatGameClock } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
+import { ratingScopeOf } from "./game-rating-impact";
+import {
+  gameRatingScopeLabel,
+  type GameRatingScope,
+} from "./game-rating-scope";
 import { setShortLabel } from "./game-copy";
 import { formatGameSideLabel } from "./game-side-label";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -268,6 +273,7 @@ export type PlayedPadelInput = PlayedPlace & {
   match: FriendlyGameHeroMatch;
   groupName: string | null;
   rated: boolean;
+  ratingScope?: GameRatingScope;
   ratingImpact: PlayedRatingImpact | null;
   confirmation: { confirmedByOrganizer?: boolean } | null;
 };
@@ -323,6 +329,7 @@ export function playedPadelModel(
 ): PlayedPadelModel {
   const messages = messagesFor(locale);
   const m = messages.game.played;
+  const scope = ratingScopeOf(input);
   const { a, b } = padelSidesInOrder(input.sides, input.viewerUserId);
   const viewerPlayed = padelViewerSide(input.sides, input.viewerUserId) != null;
   const slotA = a ? padelSlotOfSide(a, input.match) : 1;
@@ -375,7 +382,10 @@ export function playedPadelModel(
   const you: PlayedYouLine | null = viewerSide
     ? {
         line: partner ? m.playedWith(shortName(partner.name)) : m.playedAlone,
-        ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
+        ratingLine:
+          scope === "group"
+            ? gameRatingScopeLabel(scope, locale)
+            : playedRatingLine(input.rated, input.ratingImpact, locale),
         tag: youTag(youWord),
         won: aWon,
       }
@@ -414,8 +424,8 @@ export function playedPadelModel(
       value: m.sets(pairs.length),
     },
     {
-      label: m.countsForRatingLabel,
-      value: input.rated ? messages.common.yes : messages.common.no,
+      label: messages.you.ratingScope.title,
+      value: gameRatingScopeLabel(scope, locale),
     },
   ];
 

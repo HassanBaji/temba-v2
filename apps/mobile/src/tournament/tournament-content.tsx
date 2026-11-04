@@ -3,11 +3,12 @@ import {
   tournamentStandingsView,
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
+import { ratingScopeOf } from "@repo/domain/game-rating-impact";
 import { tournamentOrganizerView } from "@repo/domain/tournament-organizer";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import { View } from "react-native";
 
-import { UnratedCard } from "../game-details/rating-impact-card";
+import { RatingScopeCard } from "../game-details/rating-impact-card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -68,7 +69,7 @@ export function TournamentContent({
           </Text>
         </Surface>
       ) : null}
-      {game.rated ? null : <UnratedCard />}
+      <RatingScopeCard scope={ratingScopeOf(game)} />
       {view.drawn ? (
         <StandingsView
           game={game}

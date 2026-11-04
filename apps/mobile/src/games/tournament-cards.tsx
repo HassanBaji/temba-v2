@@ -7,7 +7,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
@@ -138,6 +138,16 @@ function TeamPairs({
   );
 }
 
+function RatingScopeTag({ game }: { game: HubGameRow }) {
+  const locale = useLocale();
+  const tag = ratingScopeTag(game, locale);
+  return tag ? (
+    <Text size="meta" weight="semibold" numberOfLines={1}>
+      {tag}
+    </Text>
+  ) : null;
+}
+
 export function TournamentCard({
   game,
   pending,
@@ -236,11 +246,7 @@ export function TournamentCard({
             : ""}
         </Text>
         <View style={{ flexDirection: "row", columnGap: 12 }}>
-          {game.rated ? null : (
-            <Text size="meta" weight="semibold">
-              {unratedLabel(locale)}
-            </Text>
-          )}
+          <RatingScopeTag game={game} />
           {cancelled ? (
             <Text size="meta" weight="semibold">
               {m.cancelled}
@@ -413,11 +419,7 @@ export function TournamentMatchCard({
           ) : null}
         </View>
         <View style={{ flexDirection: "row", columnGap: 12 }}>
-          {game.rated ? null : (
-            <Text size="meta" weight="semibold">
-              {unratedLabel(locale)}
-            </Text>
-          )}
+          <RatingScopeTag game={game} />
           {status ? (
             <Text size="meta" tone="muted">
               {status}

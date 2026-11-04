@@ -283,7 +283,7 @@ export const group = {
           "You can’t make Invite links any more. You can still invite existing Community Members.",
         gamesHeldAt: (venue: string) => `New Games are held at ${venue}.`,
         verified:
-          "The Group is Verified, so it can host Rated Games and Games open to anyone with the link.",
+          "The Group is Verified, so its Games can count for the Temba rating and be open to anyone with the link.",
       },
     },
     declineConfirm: {
@@ -299,7 +299,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `Leave ${venue}’s Community?`,
       description: (group: string) =>
-        `${group} becomes a Loose Group again. New Games will be Unrated unless an Operator has verified the Group.`,
+        `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified the Group.`,
       confirmLabel: "Leave Community",
       cancelLabel: "Stay",
       pendingLabel: "Leaving…",
@@ -315,7 +315,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `Unlink ${group}?`,
       description: (group: string) =>
-        `${group} leaves your Venue's Community and becomes a Loose Group. New Games will be Unrated unless an Operator has verified it. Past Games and members stay as they are.`,
+        `${group} leaves your Venue's Community and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
       confirmLabel: "Unlink Group",
       cancelLabel: "Keep linked",
     },

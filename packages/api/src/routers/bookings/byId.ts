@@ -17,6 +17,7 @@ import {
 } from "@repo/domain/booking-refund";
 import { managerBookingActions } from "@repo/domain/booking-manager-actions";
 import { isOccupyingBooking } from "@repo/domain/booking-slots";
+import { gameRatingScope } from "@repo/domain/game-rating-scope";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -97,6 +98,8 @@ export async function bookingById(
           windowStart: games.windowStart,
           windowEnd: games.windowEnd,
           cancelledAt: games.cancelledAt,
+          rated: games.rated,
+          groupRated: games.groupRated,
         })
         .from(games)
         .where(eq(games.id, booking.gameId))
@@ -169,7 +172,7 @@ export async function bookingById(
     cancelledBy: booking.cancelledBy,
     cancelReason: booking.cancelReason,
     gameId: booking.gameId,
-    game: game ?? null,
+    game: game ? { ...game, ratingScope: gameRatingScope(game) } : null,
     venue: {
       id: venue!.id,
       name: venue!.name,

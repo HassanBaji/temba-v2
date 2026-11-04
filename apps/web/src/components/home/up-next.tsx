@@ -14,7 +14,7 @@ import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Hatch } from "~/components/ui/hatch";
 import { Surface } from "~/components/ui/surface";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
 import {
@@ -269,6 +269,7 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
         homeNextGameStatus(game.phase, startsAt, now, locale))
       : homeNextGameStatus(game.phase, startsAt, now, locale);
   const title = homeHeroTitle(game, locale);
+  const ratingTag = ratingScopeTag(game, locale);
   const place = m.home.comingUp.parts(
     [game.venue?.name, game.courtName].filter((part): part is string =>
       Boolean(part),
@@ -310,9 +311,9 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
       <Headline title={title} detail={place || null} icon={MapPin} />
-      {game.rated ? null : (
-        <p className="text-meta font-semibold">{unratedLabel(locale)}</p>
-      )}
+      {ratingTag ? (
+        <p className="text-meta font-semibold">{ratingTag}</p>
+      ) : null}
     </HeroFrame>
   );
 }
