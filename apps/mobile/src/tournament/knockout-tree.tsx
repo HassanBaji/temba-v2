@@ -19,6 +19,7 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import type { GameTeamLinks } from "./game-team-sheet";
 
@@ -157,9 +158,12 @@ function PlaceCard({
             links={links}
           />
           {place.scoreLabel ? (
-            <Text size="meta" tone="muted" style={{ paddingTop: 8 }}>
-              {place.scoreLabel}
-            </Text>
+            <ScoreLine
+              score={place.scoreLabel}
+              size="meta"
+              tone="muted"
+              style={{ paddingTop: 8 }}
+            />
           ) : null}
           {place.needsDecidingSet ? (
             <Text size="meta" tone="muted" style={{ paddingTop: 8 }}>

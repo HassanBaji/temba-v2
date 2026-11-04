@@ -24,6 +24,7 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import {
   GameTeamSheet,
@@ -50,9 +51,12 @@ function Trailing({ trailing }: { trailing: MatchTrailing }) {
     );
   }
   return (
-    <Text size="lead" width="expanded" weight="semibold">
-      {trailing.label}
-    </Text>
+    <ScoreLine
+      score={trailing.label}
+      size="lead"
+      width="expanded"
+      weight="semibold"
+    />
   );
 }
 

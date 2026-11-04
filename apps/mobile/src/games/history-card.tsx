@@ -18,6 +18,7 @@ import {
   SurfaceToneContext,
   useTonePalette,
 } from "../primitives/surface-context";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 
 const INSET = 16;
@@ -153,9 +154,7 @@ function ResultStrip({
     >
       <ResultMark variant={outcome} size={16} decorative />
       <Text weight="semibold">{resultMarkLabel(outcome, locale)}</Text>
-      <Text size="meta" tone="muted">
-        {scoreLine}
-      </Text>
+      <ScoreLine score={scoreLine} size="meta" tone="muted" />
       <Text
         size="eyebrow"
         tone="muted"

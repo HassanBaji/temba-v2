@@ -7,6 +7,7 @@ import { Card } from "../home/card";
 import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { LastTenMarks } from "./last-ten-card";
 
@@ -39,9 +40,7 @@ function FootballMatchRow({
       </View>
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         {row.score ? (
-          <Text size="body" weight="semibold">
-            {row.score}
-          </Text>
+          <ScoreLine score={row.score} size="body" weight="semibold" />
         ) : null}
         {row.goals ? (
           <Text size="meta" tone="muted">

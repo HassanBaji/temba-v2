@@ -24,6 +24,7 @@ import { BibChip } from "../football/bib-picker";
 import { SeatBar } from "../game-details/football-hero";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
+import { ScorePair } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { CardFooter, CardShell } from "./card-parts";
 import { useNow } from "./use-now";
@@ -183,9 +184,19 @@ function ResultBody({ game }: { game: HubGameRow }) {
             </Text>
           ) : null}
         </View>
-        <Text size="h1" width="expanded" weight="bold">
-          {score ? `${score.slot1} – ${score.slot2}` : "– –"}
-        </Text>
+        {score ? (
+          <ScorePair
+            own={score.slot1}
+            other={score.slot2}
+            size="h1"
+            width="expanded"
+            weight="bold"
+          />
+        ) : (
+          <Text size="h1" width="expanded" weight="bold">
+            – –
+          </Text>
+        )}
         <View style={{ flex: 1, minWidth: 0, alignItems: "flex-end" }}>
           <Text weight="semibold">{name(2)}</Text>
           {note(2) ? (

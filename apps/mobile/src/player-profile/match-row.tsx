@@ -5,6 +5,7 @@ import { Pressable, View, type ViewStyle } from "react-native";
 
 import { useLocale } from "../i18n/locale-provider";
 import { ResultMark } from "../primitives/result-mark";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 
 const ROW: ViewStyle = {
@@ -47,9 +48,7 @@ export function PlayerMatchRow({
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         <View style={{ flexDirection: "row", gap: 8 }}>
           {row.sets.map((set, index) => (
-            <Text key={index} size="body" weight="semibold">
-              {set}
-            </Text>
+            <ScoreLine key={index} score={set} size="body" weight="semibold" />
           ))}
         </View>
         {row.unrated ? (

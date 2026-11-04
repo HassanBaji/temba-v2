@@ -34,6 +34,7 @@ import { Hatch } from "../primitives/hatch";
 import { ResultMark } from "../primitives/result-mark";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { playedRowView, type PlayedRowView } from "./group-home-model";
 import { Notice } from "./notice";
@@ -203,9 +204,11 @@ function PlayedRow({
             {m.mobileGroup.games.cancelled}
           </Text>
         ) : row.trailing.kind === "score" ? (
-          <Text width="expanded" weight="semibold">
-            {row.trailing.text}
-          </Text>
+          <ScoreLine
+            score={row.trailing.text}
+            width="expanded"
+            weight="semibold"
+          />
         ) : (
           <Text size="meta" weight="semibold">
             {m.mobileGroup.games.enter}
