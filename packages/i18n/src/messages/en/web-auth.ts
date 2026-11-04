@@ -382,6 +382,10 @@ export const webAuth = {
       title: "Preferred Position",
       description: "Your default side when you pick a Game seat",
     },
+    language: {
+      title: "App Language",
+      description: "Menus, messages and dates follow this language",
+    },
     signingOut: "Signing out…",
   },
   legal: {
