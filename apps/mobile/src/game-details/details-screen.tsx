@@ -664,6 +664,7 @@ export function GameDetailsScreen({
             gameId={gameId}
             placement="side"
             sides={details.sides}
+            groupName={details.groupName}
             onAdded={refresh}
           />
         ) : null}
@@ -744,7 +745,11 @@ export function GameDetailsScreen({
     onDirections: venue
       ? () =>
           void Linking.openURL(
-            directionsUrl({ ...venue, city: venue.city ?? "" }, Platform.OS),
+            directionsUrl(
+              { ...venue, city: venue.city ?? "" },
+              Platform.OS,
+              locale,
+            ),
           )
       : null,
   };
@@ -830,6 +835,7 @@ export function GameDetailsScreen({
             placement="seat"
             sides={details.sides}
             initialSeat={addSeat}
+            groupName={details.groupName}
             onAdded={refresh}
           />
         </>

@@ -1,19 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-
-import { gamePlayers, gameTeams } from "@repo/db";
 
 import { ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL } from "@repo/domain/add-player-by-phone";
 import {
   FOOTBALL_SELF_PLACEMENTS,
   type FootballSelfPlacement,
 } from "@repo/domain/football-self-placement";
-import type {
-  FootballPosition,
-  FootballRole,
-} from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import type { PadelLevelChoice } from "@repo/domain/onboarding-answers";
@@ -24,20 +17,17 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { admit } from "#src/games/admit";
 import {
   assertGameOrganizer,
   type GameRow,
   requireGame,
 } from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
-import { assertKeeperSeatOpen } from "#src/games/football-lineup";
-import { throwIfAdmitRefused } from "#src/games/helpers/throw-if-admit-refused";
-import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
-import { userAlreadyWaitlisted } from "#src/games/helpers/user-already-waitlisted";
+import {
+  type FootballPlacement,
+  organizerAddPlayer,
+} from "#src/games/organizer-add-player";
 import type { SeatPosition } from "#src/games/utils";
-import { gameNotificationsSuppressed } from "#src/notifications/game-notifications-suppressed";
-import { notify } from "#src/notifications/notify";
 import {
   createUnclaimedPlayer,
   type UnclaimedPlayerStartingLevel,
@@ -46,14 +36,8 @@ import { requireE164 } from "#src/unclaimed-players/require-e164";
 import { resolvePhonePlayer } from "#src/unclaimed-players/resolve-phone-player";
 
 type DbClient = typeof db;
-type Tx = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
 
 type AddPlayerLevel = PadelLevelChoice | "not_sure" | FootballSelfPlacement;
-
-type FootballPlacement = {
-  role: FootballRole;
-  position: FootballPosition | null;
-};
 
 function isFootballPlacement(
   level: AddPlayerLevel,
@@ -82,49 +66,6 @@ function startingLevelFor(
     refuse("Pick a padel Level");
   }
   return { sport: "padel", level: level ?? "not_sure" };
-}
-
-/** A fully vacant side seats on the left; a Half team fills its open Position. */
-async function tournamentSideSeat(
-  tx: Tx,
-  game: GameRow,
-  sideIndex: number,
-): Promise<{ sideIndex: number; position: SeatPosition }> {
-  const team = await tx.query.gameTeams.findFirst({
-    where: and(
-      eq(gameTeams.gameId, game.id),
-      eq(gameTeams.sideIndex, sideIndex),
-    ),
-    with: { players: { columns: { position: true } } },
-  });
-  const taken = new Set(team?.players.map((link) => link.position) ?? []);
-  if (!taken.has("left")) {
-    return { sideIndex, position: "left" };
-  }
-  if (!taken.has("right")) {
-    return { sideIndex, position: "right" };
-  }
-  throw new TRPCError({ code: "CONFLICT", message: "That side is full" });
-}
-
-async function seatFor(
-  tx: Tx,
-  game: GameRow,
-  args: {
-    seat?: { sideIndex: number; position: SeatPosition };
-    side?: { sideIndex: number };
-  },
-) {
-  if (game.format === "friendly_tournament") {
-    if (!args.side) {
-      refuse("Pick a side");
-    }
-    return tournamentSideSeat(tx, game, args.side.sideIndex);
-  }
-  if (game.format === "friendly_game" && !isFootballGame(game)) {
-    return args.seat;
-  }
-  return undefined;
 }
 
 export async function addPlayerByPhone(
@@ -176,69 +117,15 @@ export async function addPlayerByPhone(
       player = resolved.user;
     }
 
-    if (await userAlreadyOnGame(tx, game.id, player.id)) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: `${player.name} is already on this Game`,
-      });
-    }
-    if (await userAlreadyWaitlisted(tx, game.id, player.id)) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: `${player.name} is on the waitlist`,
-      });
-    }
-    if (football?.role === "keeper") {
-      await assertKeeperSeatOpen(tx, game.id);
-    }
-
-    const admitted = await admit(tx, {
+    await organizerAddPlayer(tx, {
       game,
-      door: "organizer_add",
-      party: {
-        kind: "user",
-        userId: player.id,
-        seat: await seatFor(tx, game, args),
-      },
-      addedByUserId: args.organizerUserId,
+      player,
+      organizerUserId: args.organizerUserId,
+      placement: args,
+      football,
+      notifyPlayer: resolved.kind === "account",
+      locale,
     });
-    if (!admitted.ok && admitted.reason === "full") {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "This Game is full",
-      });
-    }
-    throwIfAdmitRefused(admitted, locale);
-
-    if (football) {
-      await tx
-        .update(gamePlayers)
-        .set({
-          footballRole: football.role,
-          footballPosition: football.position,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(gamePlayers.gameId, game.id),
-            eq(gamePlayers.userId, player.id),
-          ),
-        );
-    }
-
-    if (
-      resolved.kind === "account" &&
-      !(await gameNotificationsSuppressed(tx, game))
-    ) {
-      await notify(tx, {
-        type: "game_seated_by_organizer",
-        recipients: [{ userId: player.id, audience: "player" }],
-        excludeUserIds: [args.organizerUserId],
-        actorUserId: args.organizerUserId,
-        groupId: game.groupId,
-        gameId: game.id,
-      });
-    }
 
     return {
       userId: player.id,

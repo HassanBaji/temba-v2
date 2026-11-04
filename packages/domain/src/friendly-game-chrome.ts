@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatAbsoluteDay } from "./format-game-start";
+import { withGoogleLocale } from "./google-locale";
 import { parseOptionalCoord } from "./parse-optional-coord";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import type { GameViewerStatus } from "./game-summary-cta";
@@ -78,6 +79,7 @@ export function friendlyGameOpenSpotsLabel(
 export function friendlyGameDirectionsUrl(
   latitude: string | null | undefined,
   longitude: string | null | undefined,
+  locale: Locale,
 ) {
   if (latitude == null || longitude == null) {
     return null;
@@ -87,22 +89,35 @@ export function friendlyGameDirectionsUrl(
   if (lat == null || lng == null) {
     return null;
   }
-  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  return withGoogleLocale(
+    `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    locale,
+  );
 }
 
 /** The pin when the Venue has one, otherwise a search for its name and city. */
-export function friendlyGameVenueDirectionsUrl(venue: {
-  name: string;
-  city: string | null;
-  latitude: string | null | undefined;
-  longitude: string | null | undefined;
-}) {
-  const pinned = friendlyGameDirectionsUrl(venue.latitude, venue.longitude);
+export function friendlyGameVenueDirectionsUrl(
+  venue: {
+    name: string;
+    city: string | null;
+    latitude: string | null | undefined;
+    longitude: string | null | undefined;
+  },
+  locale: Locale,
+) {
+  const pinned = friendlyGameDirectionsUrl(
+    venue.latitude,
+    venue.longitude,
+    locale,
+  );
   if (pinned) {
     return pinned;
   }
   const query = [venue.name, venue.city].filter(Boolean).join(", ");
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return withGoogleLocale(
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
+    locale,
+  );
 }
 
 export function friendlyGameDateDurationLine(
