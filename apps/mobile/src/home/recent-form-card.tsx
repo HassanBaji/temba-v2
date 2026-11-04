@@ -62,8 +62,8 @@ export function RecentFormCard({ form }: { form: RecentFormView }) {
               alignItems: "center",
               gap: 4,
               paddingVertical: 16,
-              borderLeftWidth: index === 0 ? 0 : 1,
-              borderLeftColor: palette.rule,
+              borderStartWidth: index === 0 ? 0 : 1,
+              borderStartColor: palette.rule,
             }}
           >
             <Text size="figure" width="expanded" weight="bold">

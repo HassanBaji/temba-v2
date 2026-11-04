@@ -122,7 +122,7 @@ function SideLine({ side }: { side: HubGameFootballSide }) {
             style={{
               width: DISC,
               height: DISC,
-              marginLeft: index === 0 ? 0 : DISC_OVERLAP,
+              marginStart: index === 0 ? 0 : DISC_OVERLAP,
               borderRadius: DISC / 2,
               backgroundColor: bibColors[bib].fill,
               borderWidth: 2,

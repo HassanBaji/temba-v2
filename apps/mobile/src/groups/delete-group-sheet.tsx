@@ -32,7 +32,7 @@ function StatCell({
         paddingHorizontal: 14,
         paddingVertical: 12,
         gap: 2,
-        borderLeftWidth: first ? 0 : hairline,
+        borderStartWidth: first ? 0 : hairline,
         borderColor: colors.rule,
       }}
     >

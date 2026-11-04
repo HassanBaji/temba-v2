@@ -151,6 +151,7 @@ export function Slider({
             style={{
               position: "absolute",
               top: 0,
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: sliderLabelLeft(at(value), VALUE_LABEL_WIDTH, width),
               width: VALUE_LABEL_WIDTH,
               alignItems: "center",
@@ -190,6 +191,7 @@ export function Slider({
             pointerEvents="none"
             style={{
               position: "absolute",
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: at(marker.value) - hairline,
               width: 2 * hairline,
               height: MARKER_HEIGHT,
@@ -202,6 +204,7 @@ export function Slider({
           style={[
             {
               position: "absolute",
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: 0,
               width: THUMB,
               height: THUMB,
@@ -226,6 +229,7 @@ export function Slider({
             style={{
               position: "absolute",
               top: 0,
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: at(edge),
               width: hairline,
               height: TICK_HEIGHT,
@@ -241,6 +245,7 @@ export function Slider({
             style={{
               position: "absolute",
               top: TICK_HEIGHT,
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: at(mark.value) - 20,
               width: 40,
               textAlign: "center",
@@ -263,6 +268,7 @@ export function Slider({
             numberOfLines={1}
             style={{
               position: "absolute",
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: sliderLabelLeft(
                 at(marker.value),
                 MARKER_LABEL_WIDTH,

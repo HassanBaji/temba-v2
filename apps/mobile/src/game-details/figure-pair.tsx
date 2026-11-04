@@ -24,9 +24,9 @@ export function FigurePair({ figures }: { figures: Figure[] }) {
             flex: 1,
             minWidth: 0,
             gap: 2,
-            paddingLeft: index > 0 ? 16 : 0,
-            borderLeftWidth: index > 0 ? hairline : 0,
-            borderLeftColor: palette.rule,
+            paddingStart: index > 0 ? 16 : 0,
+            borderStartWidth: index > 0 ? hairline : 0,
+            borderStartColor: palette.rule,
           }}
         >
           <Text

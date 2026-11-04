@@ -55,6 +55,7 @@ export function ScaledCanvas({
           style={{
             position: "absolute",
             top: 0,
+            // eslint-disable-next-line no-restricted-syntax -- share canvas: the frame above is LTR, see its comment
             left: 0,
             width: canvasWidth,
             height: canvasHeight,

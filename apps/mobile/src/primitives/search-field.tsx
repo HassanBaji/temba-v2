@@ -31,7 +31,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
           flexDirection: "row",
           alignItems: "center",
           gap: 10,
-          paddingLeft: 14,
+          paddingStart: 14,
           borderRadius: radii.lg,
           borderWidth: hairline,
           borderColor: tone === "wash" ? colors.rule : colors.ink,

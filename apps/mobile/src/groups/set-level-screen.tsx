@@ -138,7 +138,7 @@ function SetLevelForm({
           <Text size="h1" width="expanded" weight="bold">
             {readout.levelLabel}
           </Text>
-          <Text style={{ marginLeft: "auto" }}>{readout.deltaLabel}</Text>
+          <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text size="meta">

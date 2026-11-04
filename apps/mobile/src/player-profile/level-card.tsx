@@ -81,7 +81,7 @@ export function PlayerLevelCard({
           <Text
             size="meta"
             tone="muted"
-            style={{ marginLeft: "auto", flexShrink: 1 }}
+            style={{ marginStart: "auto", flexShrink: 1 }}
           >
             {trend}
           </Text>
