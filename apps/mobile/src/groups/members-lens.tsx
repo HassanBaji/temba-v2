@@ -1,5 +1,9 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
-import type { GroupMemberSort } from "@repo/domain/group-members-table";
+import type {
+  GroupMemberFilterChip,
+  GroupMemberSort,
+  GroupMemberSortOption,
+} from "@repo/domain/group-members-table";
 import { ArrowDownUp, Check, ChevronDown } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -18,10 +22,6 @@ import { Surface } from "../primitives/surface";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { tonePalette } from "../primitives/tone-palette";
-import type {
-  MemberFilterChipView,
-  MemberSortOptionView,
-} from "./group-home-model";
 
 const CHIP_HEIGHT = 40;
 const CHIP_HIT_SLOP = {
@@ -38,7 +38,7 @@ function SortChip({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileGroup.members.sort.chip(label)}
+      accessibilityLabel={m.group.members.lens.sort.chip(label)}
       hitSlop={CHIP_HIT_SLOP}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -66,7 +66,7 @@ function FilterChip({
   onPress,
   onLayout,
 }: {
-  chip: MemberFilterChipView;
+  chip: GroupMemberFilterChip;
   onPress: () => void;
   onLayout: (frame: LayoutRectangle) => void;
 }) {
@@ -117,9 +117,9 @@ export function MemberLensRow({
   onPickFilter,
 }: {
   sortLabel: string;
-  filters: MemberFilterChipView[];
+  filters: GroupMemberFilterChip[];
   onOpenSort: () => void;
-  onPickFilter: (chip: MemberFilterChipView) => void;
+  onPickFilter: (chip: GroupMemberFilterChip) => void;
 }) {
   const m = useMessages();
   const scroll = useRef<ScrollView>(null);
@@ -178,7 +178,7 @@ export function MemberLensRow({
       />
       <View
         accessibilityRole="radiogroup"
-        accessibilityLabel={m.mobileGroup.members.filters.label}
+        accessibilityLabel={m.group.members.lens.filters.label}
         style={{ flexDirection: "row", gap: 8 }}
       >
         {filters.map((chip) => (
@@ -205,7 +205,7 @@ function SortOption({
   option,
   onPress,
 }: {
-  option: MemberSortOptionView;
+  option: GroupMemberSortOption;
   onPress: () => void;
 }) {
   return (
@@ -265,11 +265,11 @@ export function MemberSortSheet({
   onPick,
 }: {
   visible: boolean;
-  options: MemberSortOptionView[];
+  options: GroupMemberSortOption[];
   onClose: () => void;
   onPick: (sort: GroupMemberSort) => void;
 }) {
-  const m = useMessages().mobileGroup.members.sort;
+  const m = useMessages().group.members.lens.sort;
   return (
     <Sheet visible={visible} onClose={onClose} title={m.title} closeButton>
       <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>

@@ -414,7 +414,7 @@ export function MembersTab({
                 {list.emptyText}
               </Text>
               <Button
-                label={m.mobileGroup.members.showAll}
+                label={m.group.members.lens.showAll}
                 variant="outline"
                 onPress={() => {
                   onQueryChange("");

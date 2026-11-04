@@ -1,6 +1,8 @@
-import type {
-  GroupMemberFilter,
-  GroupMemberSort,
+import {
+  asGroupMemberFilter,
+  asGroupMemberSort,
+  type GroupMemberFilter,
+  type GroupMemberSort,
 } from "@repo/domain/group-members-table";
 
 export type StoredMemberLens = {
@@ -13,24 +15,10 @@ export type MemberLensStorage = {
   setItem: (key: string, value: string) => Promise<void>;
 };
 
-const SORTS: readonly GroupMemberSort[] = ["recent", "joined", "name", "level"];
-const FILTERS: readonly GroupMemberFilter[] = [
-  "all",
-  "organizers",
-  "active",
-  "inactive",
-  "noGames",
-  "notOnTemba",
-];
-
 export const EMPTY_MEMBER_LENS: StoredMemberLens = { sort: null, filter: null };
 
 export function memberLensKey(groupId: string) {
   return `temba.groupMembers.lens.${groupId}`;
-}
-
-function oneOf<T extends string>(options: readonly T[], value: unknown) {
-  return options.find((option) => option === value) ?? null;
 }
 
 export async function readMemberLens(
@@ -44,8 +32,8 @@ export async function readMemberLens(
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
-      sort: oneOf(SORTS, parsed.sort),
-      filter: oneOf(FILTERS, parsed.filter),
+      sort: asGroupMemberSort(parsed.sort),
+      filter: asGroupMemberFilter(parsed.filter),
     };
   } catch {
     return EMPTY_MEMBER_LENS;

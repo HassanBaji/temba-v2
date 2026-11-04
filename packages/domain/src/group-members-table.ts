@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth } from "./format-game-start";
+import { groupHomeShowsMemberSearch } from "./group-home-chrome";
 
 /**
  * The Members tab table (design "Group members" 2a–2f, Seasons revision):
@@ -222,6 +223,117 @@ export function groupMemberSortCaption(
     ? m.organizerJoined(day(joined))
     : m.joined(day(joined));
 }
+
+const SORTS: readonly GroupMemberSort[] = ["recent", "joined", "name", "level"];
+const FILTERS: readonly GroupMemberFilter[] = [
+  "all",
+  "organizers",
+  "active",
+  "inactive",
+  "noGames",
+  "notOnTemba",
+];
+
+/** Reads a stored sort back; anything unknown is `null`. */
+export function asGroupMemberSort(value: unknown): GroupMemberSort | null {
+  return SORTS.find((sort) => sort === value) ?? null;
+}
+
+export function asGroupMemberFilter(value: unknown): GroupMemberFilter | null {
+  return FILTERS.find((filter) => filter === value) ?? null;
+}
+
+type LensMember = DatedMember & {
+  isOrganizer: boolean;
+  unclaimed: boolean;
+};
+
+export type GroupMembersLensInput = {
+  query: string;
+  /** The viewer's picks; `null` or one not on offer means the default. */
+  sort: GroupMemberSort | null;
+  filter: GroupMemberFilter | null;
+  showLevel: boolean;
+  /** Offers the Not on Temba filter. */
+  canManage: boolean;
+  now: Date;
+  locale: Locale;
+};
+
+/**
+ * The Members tab under its search, sort and filter (design "Group members"
+ * 4a–4d). The controls show only once the Group is big enough to search;
+ * until then the table reads in the default order, unfiltered.
+ */
+export function groupMembersLens<T extends LensMember>(
+  members: readonly T[],
+  input: GroupMembersLensInput,
+) {
+  const m = messagesFor(input.locale).group;
+  const lens = m.members.lens;
+  const showControls = groupHomeShowsMemberSearch(members.length);
+  const sorts = groupMemberSorts(input.showLevel);
+  const filters = groupMemberFilters(input.canManage);
+  const sort =
+    showControls && input.sort && sorts.includes(input.sort)
+      ? input.sort
+      : defaultGroupMemberSort(input.showLevel);
+  const filter =
+    showControls && input.filter && filters.includes(input.filter)
+      ? input.filter
+      : "all";
+  const needle = showControls ? input.query.trim() : "";
+  const lowered = needle.toLowerCase();
+  const rows = sortGroupMembersBy(
+    members.filter(
+      (member) =>
+        groupMemberMatchesFilter(member, filter, input.now) &&
+        (member.name ?? "").toLowerCase().includes(lowered),
+    ),
+    sort,
+    input.locale,
+  );
+  const narrowed = filter !== "all" || needle !== "";
+  return {
+    showControls,
+    sort,
+    filter,
+    rows,
+    countLine: narrowed
+      ? lens.countOf(rows.length, members.length)
+      : String(members.length),
+    emptyText: needle
+      ? filter === "all"
+        ? lens.noMatchQuery(needle)
+        : lens.noMatchQueryIn(needle, lens.filters[filter])
+      : lens.noneIn(lens.filters[filter]),
+    sortLabel: lens.sort.options[sort].label,
+    sorts: sorts.map((id) => ({
+      id,
+      ...lens.sort.options[id],
+      selected: id === sort,
+    })),
+    filters: filters.map((id) => {
+      const count = members.filter((member) =>
+        groupMemberMatchesFilter(member, id, input.now),
+      ).length;
+      return {
+        id,
+        label: lens.filters[id],
+        count,
+        selected: id === filter,
+        accessibilityLabel: lens.filterSpoken(
+          lens.filters[id],
+          m.memberCount(count),
+        ),
+      };
+    }),
+  };
+}
+
+export type GroupMembersLens = ReturnType<typeof groupMembersLens>;
+export type GroupMemberSortOption = GroupMembersLens["sorts"][number];
+export type GroupMemberFilterChip = GroupMembersLens["filters"][number];
 
 /** The table footer; nothing to explain on a Group without Levels. */
 export function groupMembersLegend(input: {

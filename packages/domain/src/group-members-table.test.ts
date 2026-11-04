@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  asGroupMemberFilter,
+  asGroupMemberSort,
   defaultGroupMemberSort,
   groupMemberFilters,
   groupMemberMatchesFilter,
@@ -8,6 +10,7 @@ import {
   groupMemberSorts,
   groupMemberTableCaption,
   groupMembersLegend,
+  groupMembersLens,
   groupPendingInviteCaption,
   groupPendingInvitesTitle,
   sortGroupMembers,
@@ -286,5 +289,105 @@ describe("groupMemberSortCaption", () => {
     expect(groupMemberSortCaption(organizer, "joined", "ar")).toContain(
       "المنظّم، انضم",
     );
+  });
+});
+
+describe("groupMembersLens", () => {
+  const now = new Date("2026-11-04T12:00:00Z");
+  const member = (
+    name: string,
+    lastPlayedAt: string | null,
+    extra: { isOrganizer?: boolean; unclaimed?: boolean } = {},
+  ) => ({
+    name,
+    level: null,
+    lastPlayedAt,
+    joinedAt: "2026-09-06T09:00:00Z",
+    isOrganizer: false,
+    unclaimed: false,
+    ...extra,
+  });
+  const members = [
+    member("ahmed", "2026-11-02T17:00:00Z", { isOrganizer: true }),
+    member("sayed", "2026-09-25T17:00:00Z"),
+    member("Yousif", "2026-09-21T17:00:00Z"),
+    member("Abbas", null, { unclaimed: true }),
+    ...Array.from({ length: 5 }, (_, index) =>
+      member(`Player ${index}`, "2026-10-28T17:00:00Z"),
+    ),
+  ];
+  const input = {
+    query: "",
+    sort: null,
+    filter: null,
+    showLevel: false,
+    canManage: true,
+    now,
+    locale: "en" as const,
+  };
+
+  it("counts every filter and narrows to the picked one", () => {
+    const view = groupMembersLens(members, { ...input, filter: "inactive" });
+    expect(view.filters.map((chip) => [chip.id, chip.count])).toEqual([
+      ["all", 9],
+      ["organizers", 1],
+      ["active", 6],
+      ["inactive", 2],
+      ["noGames", 1],
+      ["notOnTemba", 1],
+    ]);
+    expect(view.rows.map((row) => row.name)).toEqual(["sayed", "Yousif"]);
+    expect(view.countLine).toBe("2 of 9");
+  });
+
+  it("names the search and filter when nobody matches", () => {
+    const view = groupMembersLens(members, {
+      ...input,
+      query: " yousif ",
+      filter: "noGames",
+    });
+    expect(view.rows).toEqual([]);
+    expect(view.emptyText).toBe("Nobody matches “yousif” in No games.");
+    expect(
+      groupMembersLens(members, { ...input, filter: "organizers", query: "x" })
+        .emptyText,
+    ).toBe("Nobody matches “x” in Organizers.");
+    expect(groupMembersLens(members, { ...input, query: "zz" }).emptyText).toBe(
+      "Nobody matches “zz”.",
+    );
+  });
+
+  it("falls back to the defaults for a pick not on offer", () => {
+    const view = groupMembersLens(members, {
+      ...input,
+      sort: "level",
+      filter: "notOnTemba",
+      canManage: false,
+    });
+    expect(view.sort).toBe("recent");
+    expect(view.filter).toBe("all");
+    expect(view.sortLabel).toBe("Recently played");
+    expect(view.countLine).toBe("9");
+  });
+
+  it("hides the controls and ignores the picks on a small Group", () => {
+    const view = groupMembersLens(members.slice(0, 4), {
+      ...input,
+      query: "ahmed",
+      sort: "name",
+      filter: "inactive",
+    });
+    expect(view.showControls).toBe(false);
+    expect(view.sort).toBe("recent");
+    expect(view.rows).toHaveLength(4);
+  });
+});
+
+describe("stored lens values", () => {
+  it("keeps only known sorts and filters", () => {
+    expect(asGroupMemberSort("joined")).toBe("joined");
+    expect(asGroupMemberSort("wins")).toBeNull();
+    expect(asGroupMemberFilter("noGames")).toBe("noGames");
+    expect(asGroupMemberFilter(3)).toBeNull();
   });
 });
