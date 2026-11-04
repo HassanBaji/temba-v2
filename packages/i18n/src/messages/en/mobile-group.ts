@@ -112,6 +112,37 @@ export const mobileGroup = {
     columnMember: "Member",
     columnLevel: "LVL",
     searchPlaceholder: "Search members",
+    sort: {
+      title: "Sort members",
+      chip: (label: string) => `Sort members, ${label}`,
+      footnote:
+        "Your sort and filter stay set for this Group until you change them.",
+      options: {
+        recent: {
+          label: "Recently played",
+          hint: "Last game in this Group first",
+        },
+        joined: { label: "Recently joined", hint: "Newest members first" },
+        name: { label: "Name", hint: "A to Z" },
+        level: { label: "Level", hint: "Highest first, no Level last" },
+      },
+    },
+    filters: {
+      label: "Filter members",
+      all: "All",
+      organizers: "Organizers",
+      active: "Active",
+      inactive: "Inactive",
+      noGames: "No games",
+      notOnTemba: "Not on Temba",
+    },
+    filterSpoken: (label: string, count: string) => `${label}, ${count}`,
+    countOf: (shown: number, total: number) => `${shown} of ${total}`,
+    noMatchQuery: (query: string) => `Nobody matches “${query}”.`,
+    noMatchQueryIn: (query: string, filter: string) =>
+      `Nobody matches “${query}” in ${filter}.`,
+    noneIn: (filter: string) => `No members in ${filter}.`,
+    showAll: "Show all members",
     pendingInvites: (title: string, names: string) => `${title}. ${names}`,
     rowYou: (name: string) => `${name}, you`,
     levelSpoken: (label: string) => `Level ${label}`,

@@ -287,6 +287,11 @@ export const group = {
     organizer: "Organizer",
     lastPlayed: (day: string) => `Last ${day}`,
     joined: (day: string) => `Joined ${day}`,
+    organizerLastPlayed: (day: string) => `Organizer, last ${day}`,
+    organizerJoined: (day: string) => `Organizer, joined ${day}`,
+    noGamesJoined: (day: string) => `No games yet, joined ${day}`,
+    organizerNoGamesJoined: (day: string) =>
+      `Organizer, no games yet, joined ${day}`,
     legend: "Hatched Levels are still Provisional.",
     noMatch: "Nobody matches.",
     pendingInvitesTitle: (n: number) =>

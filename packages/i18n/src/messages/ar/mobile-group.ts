@@ -113,6 +113,37 @@ export const mobileGroup = {
     columnMember: "العضو",
     columnLevel: "المستوى",
     searchPlaceholder: "ابحث في الأعضاء",
+    sort: {
+      title: "ترتيب الأعضاء",
+      chip: (label: string) => `ترتيب الأعضاء، ${label}`,
+      footnote:
+        "يبقى الترتيب والتصفية لهذه المجموعة كما اخترتهما حتى تغيّرهما.",
+      options: {
+        recent: {
+          label: "لعبوا مؤخرًا",
+          hint: "آخر لعبة في هذه المجموعة أولًا",
+        },
+        joined: { label: "انضموا مؤخرًا", hint: "الأعضاء الأحدث أولًا" },
+        name: { label: "الاسم", hint: "من أ إلى ي" },
+        level: { label: "المستوى", hint: "الأعلى أولًا، ومن بلا مستوى أخيرًا" },
+      },
+    },
+    filters: {
+      label: "تصفية الأعضاء",
+      all: "الكل",
+      organizers: "المنظّمون",
+      active: "نشطون",
+      inactive: "غير نشطين",
+      noGames: "بلا ألعاب",
+      notOnTemba: "ليسوا على Temba",
+    },
+    filterSpoken: (label: string, count: string) => `${label}، ${count}`,
+    countOf: (shown: number, total: number) => `${shown} من ${total}`,
+    noMatchQuery: (query: string) => `لا أحد يطابق «${query}».`,
+    noMatchQueryIn: (query: string, filter: string) =>
+      `لا أحد يطابق «${query}» في ${filter}.`,
+    noneIn: (filter: string) => `لا أعضاء في ${filter}.`,
+    showAll: "عرض كل الأعضاء",
     pendingInvites: (title: string, names: string) => `${title}. ${names}`,
     rowYou: (name: string) => `${name}، أنت`,
     levelSpoken: (label: string) => `المستوى ${label}`,

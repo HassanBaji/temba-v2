@@ -296,6 +296,11 @@ export const group = {
     organizer: "المنظّم",
     lastPlayed: (day: string) => `آخر لعب ${day}`,
     joined: (day: string) => `انضم ${day}`,
+    organizerLastPlayed: (day: string) => `المنظّم، آخر لعب ${day}`,
+    organizerJoined: (day: string) => `المنظّم، انضم ${day}`,
+    noGamesJoined: (day: string) => `لا ألعاب بعد، انضم ${day}`,
+    organizerNoGamesJoined: (day: string) =>
+      `المنظّم، لا ألعاب بعد، انضم ${day}`,
     legend: "المستويات المخطّطة ما زالت مبدئية.",
     noMatch: "لا أحد يطابق البحث.",
     pendingInvitesTitle: (n: number) =>

@@ -296,6 +296,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
       ) : null}
       {props.tab === "members" ? (
         <MembersTab
+          groupId={data.id}
           leaderboard={data.standing.leaderboard}
           query={props.memberQuery}
           onQueryChange={props.onMemberQueryChange}

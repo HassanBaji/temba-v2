@@ -28,8 +28,15 @@ import {
   type GroupJoinDoor,
 } from "@repo/domain/group-join";
 import {
+  defaultGroupMemberSort,
+  groupMemberFilters,
+  groupMemberMatchesFilter,
+  groupMemberSortCaption,
+  groupMemberSorts,
   groupMemberTableCaption,
-  sortGroupMembers,
+  sortGroupMembersBy,
+  type GroupMemberFilter,
+  type GroupMemberSort,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
@@ -273,11 +280,12 @@ export function memberRowView(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
+  sort: GroupMemberSort = "level",
 ): MemberRowView {
   const m = messagesFor(locale);
   const name = entry.name ?? m.mobileGroup.unnamedMember;
   const caption = [
-    groupMemberTableCaption(entry, locale),
+    groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
@@ -310,6 +318,51 @@ export function memberRowView(
   };
 }
 
+/** The sort and filter a viewer picked; `null` means the default. */
+export type MemberLens = {
+  sort: GroupMemberSort | null;
+  filter: GroupMemberFilter | null;
+  showLevel: boolean;
+  /** Offers the Not on Temba filter. */
+  canManage: boolean;
+  now: Date;
+};
+
+export type MemberSortOptionView = {
+  id: GroupMemberSort;
+  label: string;
+  hint: string;
+  selected: boolean;
+};
+
+export type MemberFilterChipView = {
+  id: GroupMemberFilter;
+  label: string;
+  count: number;
+  selected: boolean;
+  accessibilityLabel: string;
+};
+
+const LEVEL_ORDER: MemberLens = {
+  sort: "level",
+  filter: "all",
+  showLevel: true,
+  canManage: false,
+  now: new Date(0),
+};
+
+export function resolvedMemberSort(lens: MemberLens): GroupMemberSort {
+  return lens.sort && groupMemberSorts(lens.showLevel).includes(lens.sort)
+    ? lens.sort
+    : defaultGroupMemberSort(lens.showLevel);
+}
+
+export function resolvedMemberFilter(lens: MemberLens): GroupMemberFilter {
+  return lens.filter && groupMemberFilters(lens.canManage).includes(lens.filter)
+    ? lens.filter
+    : "all";
+}
+
 export function memberList(
   leaderboard: readonly GroupLeaderboardEntryData[],
   query: string,
@@ -318,8 +371,28 @@ export function memberList(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
+  lens: MemberLens = LEVEL_ORDER,
 ) {
-  const members = sortGroupMembers(leaderboard).map((entry) =>
+  const messages = messagesFor(locale);
+  const m = messages.mobileGroup.members;
+  const showSearch = groupHomeShowsMemberSearch(leaderboard.length);
+  const sort = showSearch
+    ? resolvedMemberSort(lens)
+    : defaultGroupMemberSort(lens.showLevel);
+  const filter = showSearch ? resolvedMemberFilter(lens) : "all";
+  const needle = showSearch ? query.trim() : "";
+  const filterLabel = (id: GroupMemberFilter) => m.filters[id];
+  const matching = leaderboard.filter((entry) =>
+    groupMemberMatchesFilter(entry, filter, lens.now),
+  );
+  const members = sortGroupMembersBy(
+    matching.map((entry) => ({
+      ...entry,
+      name: entry.name ?? messages.mobileGroup.unnamedMember,
+    })),
+    sort,
+    locale,
+  ).map((entry) =>
     memberRowView(
       entry,
       apiOrigin,
@@ -327,13 +400,48 @@ export function memberList(
       canSetLevel,
       canRemovePlayers,
       canAppointOrganizers,
+      sort,
     ),
   );
-  const showSearch = groupHomeShowsMemberSearch(members.length);
+  const rows = filterGroupMembersByName(members, needle);
+  const narrowed = filter !== "all" || needle !== "";
   return {
     showSearch,
-    rows: showSearch ? filterGroupMembersByName(members, query) : members,
-    isEmpty: members.length === 0,
+    rows,
+    isEmpty: leaderboard.length === 0,
+    countLine: narrowed
+      ? m.countOf(rows.length, leaderboard.length)
+      : String(leaderboard.length),
+    emptyText: needle
+      ? filter === "all"
+        ? m.noMatchQuery(needle)
+        : m.noMatchQueryIn(needle, filterLabel(filter))
+      : m.noneIn(filterLabel(filter)),
+    sortLabel: m.sort.options[sort].label,
+    sorts: groupMemberSorts(lens.showLevel).map(
+      (id): MemberSortOptionView => ({
+        id,
+        ...m.sort.options[id],
+        selected: id === sort,
+      }),
+    ),
+    filters: groupMemberFilters(lens.canManage).map(
+      (id): MemberFilterChipView => {
+        const count = leaderboard.filter((entry) =>
+          groupMemberMatchesFilter(entry, id, lens.now),
+        ).length;
+        return {
+          id,
+          label: filterLabel(id),
+          count,
+          selected: id === filter,
+          accessibilityLabel: m.filterSpoken(
+            filterLabel(id),
+            messages.group.memberCount(count),
+          ),
+        };
+      },
+    ),
   };
 }
 
