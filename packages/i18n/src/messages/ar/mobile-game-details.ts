@@ -80,6 +80,48 @@ export const mobileGameDetails = {
     side: "الجانب",
     position: "الجهة",
     saveName: "حفظ الاسم",
+    fromGroup: "من المجموعة",
+    byPhone: "بالهاتف",
+    modes: "طريقة الإضافة",
+    groupDescription:
+      "اختر من المجموعة، ثم حدّد كيف يلعب كل واحد. ملفه الشخصي يملأ ذلك مسبقًا.",
+    searchMembers: "ابحث في الأعضاء",
+    groupLine: (group: string, count: number) =>
+      plural("ar", count, {
+        zero: `${group} · لا أعضاء`,
+        one: `${group} · عضو واحد`,
+        two: `${group} · عضوان`,
+        few: `${group} · {n} أعضاء`,
+        many: `${group} · {n} عضوًا`,
+        other: `${group} · {n} عضو`,
+      }),
+    spotsLeft: (left: number, open: number) => `${left} من ${open} أماكن شاغرة`,
+    gameFull: "اللعبة ممتلئة",
+    inGame: "في اللعبة",
+    onWaitlist: "في قائمة الانتظار",
+    noSpotsLeft: "لا أماكن متبقية",
+    level: (label: string) => `المستوى ${label}`,
+    noPreferenceShort: "بلا تفضيل",
+    selectPlayers: "اختر لاعبين",
+    addCount: (count: number) =>
+      plural("ar", count, {
+        one: "إضافة لاعب واحد",
+        two: "إضافة لاعبَين",
+        few: "إضافة {n} لاعبين",
+        many: "إضافة {n} لاعبًا",
+        other: "إضافة {n} لاعب",
+      }),
+    addedCount: (count: number) =>
+      plural("ar", count, {
+        one: "أُضيف لاعب واحد",
+        two: "أُضيف لاعبان",
+        few: "أُضيف {n} لاعبين",
+        many: "أُضيف {n} لاعبًا",
+        other: "أُضيف {n} لاعب",
+      }),
+    noMatch: (query: string) => `لا أحد يطابق "${query}".`,
+    tryPhone: "أضفه برقم هاتفه بدلًا من ذلك.",
+    loadingMembers: "جارٍ تحميل الأعضاء…",
   },
   organizer: {
     title: "المنظّم",

@@ -17,6 +17,18 @@ import {
   type AddPlayerLevel,
   type AddPlayerPlacement,
 } from "@repo/domain/add-player-by-phone";
+import {
+  groupAddActionLabel,
+  groupAddedToast,
+  groupMemberFootballDefaults,
+  groupMemberRows,
+  groupNoMatchLine,
+  groupPickedNames,
+  groupSpotsLine,
+  toggleGroupMemberPick,
+  type AddPlayerMode,
+  type GroupMemberFootballPick,
+} from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
@@ -32,6 +44,7 @@ import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
+import { AddPlayerModeSwitch, GroupMemberList } from "./add-player-group-list";
 import {
   AddPlayerIdentityFields,
   AddPlayerSection,
@@ -50,6 +63,7 @@ export function AddPlayerSheet({
   placement,
   sides,
   initialSeat = null,
+  groupName,
   onAdded,
 }: {
   visible: boolean;
@@ -59,6 +73,8 @@ export function AddPlayerSheet({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer tapped on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The Game's Group; with one, the sheet opens on its members. */
+  groupName: string | null;
   onAdded: () => Promise<unknown>;
 }) {
   const m = useMessages();
@@ -79,14 +95,26 @@ export function AddPlayerSheet({
     useState<AddPlayerFootballPosition>(ADD_PLAYER_DEFAULT_FOOTBALL_POSITION);
   const [picked, setPicked] = useState<FriendlyGameJoinSeat | null>(null);
   const [pickedSide, setPickedSide] = useState<number | null>(null);
+  const hasGroup = groupName != null;
+  const [mode, setMode] = useState<AddPlayerMode>(hasGroup ? "group" : "phone");
+  const [query, setQuery] = useState("");
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [footballPicks, setFootballPicks] = useState<
+    Record<string, GroupMemberFootballPick>
+  >({});
 
   useEffect(() => {
     if (visible) {
       setPicked(initialSeat);
+      setMode(hasGroup ? "group" : "phone");
+      setQuery("");
+      setMemberIds([]);
+      setFootballPicks({});
     }
-  }, [visible, initialSeat]);
+  }, [visible, initialSeat, hasGroup]);
 
   const isFootball = placement === "football";
+  const inGroupMode = hasGroup && mode === "group";
   const seatChoices =
     placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
   const seat =
@@ -130,9 +158,74 @@ export function AddPlayerSheet({
     },
   });
 
+  const groupMembers = api.games.listGroupMembersToAdd.useQuery(
+    { gameId },
+    { enabled: visible && hasGroup },
+  );
+  const roster = groupMembers.data ?? null;
+  const openSpots = roster?.openSpots ?? 0;
+  const memberRows = roster
+    ? groupMemberRows(
+        {
+          members: roster.members,
+          query,
+          picked: memberIds,
+          openSpots,
+          isFootball,
+        },
+        locale,
+      )
+    : [];
+
+  const addMembers = api.games.addGroupMembers.useMutation({
+    onSuccess: async (result) => {
+      toast.show(groupAddedToast(result.added, locale));
+      setMemberIds([]);
+      setFootballPicks({});
+      setPicked(null);
+      await Promise.all([
+        utils.games.listGroupMembersToAdd.invalidate({ gameId }),
+        utils.games.previewPlayerByPhone.invalidate({ gameId }),
+        onAdded(),
+      ]);
+    },
+  });
+
+  function toggleMember(userId: string) {
+    const next = toggleGroupMemberPick(memberIds, userId, openSpots);
+    setMemberIds(next);
+    const member = roster?.members.find((entry) => entry.userId === userId);
+    if (next.includes(userId) && member && !footballPicks[userId]) {
+      setFootballPicks((current) => ({
+        ...current,
+        [userId]: groupMemberFootballDefaults(member),
+      }));
+    }
+  }
+
+  function submitMembers() {
+    if (memberIds.length === 0 || addMembers.isPending) {
+      return;
+    }
+    addMembers.mutate({
+      gameId,
+      players: memberIds.map((userId) => {
+        const pick = footballPicks[userId];
+        return {
+          userId,
+          football:
+            isFootball && pick
+              ? addPlayerFootballInput(pick.role, pick.position)
+              : undefined,
+        };
+      }),
+      seat: placement === "seat" ? (picked ?? undefined) : undefined,
+    });
+  }
+
+  const pending = add.isPending || addMembers.isPending;
   const canSubmit =
-    !add.isPending &&
-    addPlayerCanSubmit({ preview: previewData, name, placed });
+    !pending && addPlayerCanSubmit({ preview: previewData, name, placed });
 
   function submit() {
     if (!canSubmit) {
@@ -154,132 +247,206 @@ export function AddPlayerSheet({
 
   function close() {
     add.reset();
+    addMembers.reset();
     onClose();
   }
+
+  const pickedNames = roster
+    ? groupPickedNames(roster.members, memberIds, locale)
+    : "";
+  const groupFooter = (
+    <View style={{ gap: 8 }}>
+      <FieldError message={addMembers.error?.message} />
+      {pickedNames ? (
+        <Text size="meta" tone="muted" numberOfLines={1}>
+          {pickedNames}
+        </Text>
+      ) : null}
+      <Button
+        label={groupAddActionLabel(memberIds.length, locale)}
+        size="lg"
+        pending={addMembers.isPending}
+        disabled={memberIds.length === 0 || pending}
+        onPress={submitMembers}
+      />
+    </View>
+  );
 
   return (
     <Sheet
       visible={visible}
       onClose={close}
       title={m.group.addPlayer.action}
-      subtitle={m.group.addPlayer.description}
+      subtitle={
+        inGroupMode
+          ? m.mobileGameDetails.addPlayer.groupDescription
+          : m.group.addPlayer.description
+      }
       tall
       keyboardShouldPersistTaps="handled"
       footer={
-        <View style={{ gap: 8 }}>
-          <FieldError message={add.error?.message} />
-          <Button
-            label={m.group.addPlayer.action}
-            size="lg"
-            pending={add.isPending}
-            disabled={!canSubmit}
-            onPress={submit}
-          />
-        </View>
+        inGroupMode ? (
+          groupFooter
+        ) : (
+          <View style={{ gap: 8 }}>
+            <FieldError message={add.error?.message} />
+            <Button
+              label={m.group.addPlayer.action}
+              size="lg"
+              pending={add.isPending}
+              disabled={!canSubmit}
+              onPress={submit}
+            />
+          </View>
+        )
       }
     >
-      <AddPlayerIdentityFields
-        countryIso={countryIso}
-        national={national}
-        onCountryIsoChange={setCountryIso}
-        onNationalChange={setNational}
-        complete={completePhone != null}
-        preview={
-          previewData
-            ? {
-                line: addPlayerPreviewLine(previewData, locale),
-                kind: previewData.kind,
-                phoneMasked: previewData.phoneMasked,
-              }
-            : null
-        }
-        previewError={preview.error?.message}
-        previewFetching={preview.isFetching}
-        name={name}
-        onNameChange={setName}
-        isFootball={isFootball}
-        level={level}
-        onLevelChange={setLevel}
-        footballLevel={footballLevel}
-        onFootballLevelChange={setFootballLevel}
-        disabled={add.isPending}
-      />
-
-      {isFootball ? (
+      {hasGroup ? <AddPlayerModeSwitch mode={mode} onChange={setMode} /> : null}
+      {inGroupMode ? (
+        <GroupMemberList
+          query={query}
+          onQueryChange={setQuery}
+          groupLine={
+            roster
+              ? m.mobileGameDetails.addPlayer.groupLine(
+                  roster.groupName,
+                  roster.members.length,
+                )
+              : null
+          }
+          spotsLine={
+            roster ? groupSpotsLine(openSpots, memberIds.length, locale) : null
+          }
+          full={roster != null && memberIds.length >= openSpots}
+          rows={memberRows}
+          detailsById={
+            new Map(
+              (roster?.members ?? []).map((member) => [
+                member.userId,
+                { unclaimed: member.unclaimed, image: member.image },
+              ]),
+            )
+          }
+          footballById={isFootball ? footballPicks : null}
+          emptyLine={
+            roster && memberRows.length === 0 && query.trim()
+              ? groupNoMatchLine(query, locale)
+              : null
+          }
+          loading={groupMembers.isPending}
+          error={groupMembers.error?.message}
+          onToggle={toggleMember}
+          onFootballChange={(userId, pick) =>
+            setFootballPicks((current) => ({ ...current, [userId]: pick }))
+          }
+          disabled={addMembers.isPending}
+        />
+      ) : (
         <>
-          <AddPlayerSection label={m.mobileGameDetails.addPlayer.playsAs}>
-            <TileChoices
-              label={m.mobileGameDetails.addPlayer.playsAs}
-              choices={addPlayerFootballRoleChoices(locale)}
-              value={role}
-              onSelect={setRole}
-              disabled={add.isPending}
-            />
-          </AddPlayerSection>
-          {role === "outfield" ? (
-            <AddPlayerSection
-              label={m.mobileGameDetails.addPlayer.preferredPosition}
-            >
-              <TileChoices
-                label={m.mobileGameDetails.addPlayer.preferredPosition}
-                choices={addPlayerFootballPositionChoices(locale)}
-                value={footballPosition}
-                onSelect={setFootballPosition}
-                disabled={add.isPending}
-              />
+          <AddPlayerIdentityFields
+            countryIso={countryIso}
+            national={national}
+            onCountryIsoChange={setCountryIso}
+            onNationalChange={setNational}
+            complete={completePhone != null}
+            preview={
+              previewData
+                ? {
+                    line: addPlayerPreviewLine(previewData, locale),
+                    kind: previewData.kind,
+                    phoneMasked: previewData.phoneMasked,
+                  }
+                : null
+            }
+            previewError={preview.error?.message}
+            previewFetching={preview.isFetching}
+            name={name}
+            onNameChange={setName}
+            isFootball={isFootball}
+            level={level}
+            onLevelChange={setLevel}
+            footballLevel={footballLevel}
+            onFootballLevelChange={setFootballLevel}
+            disabled={add.isPending}
+          />
+
+          {isFootball ? (
+            <>
+              <AddPlayerSection label={m.mobileGameDetails.addPlayer.playsAs}>
+                <TileChoices
+                  label={m.mobileGameDetails.addPlayer.playsAs}
+                  choices={addPlayerFootballRoleChoices(locale)}
+                  value={role}
+                  onSelect={setRole}
+                  disabled={add.isPending}
+                />
+              </AddPlayerSection>
+              {role === "outfield" ? (
+                <AddPlayerSection
+                  label={m.mobileGameDetails.addPlayer.preferredPosition}
+                >
+                  <TileChoices
+                    label={m.mobileGameDetails.addPlayer.preferredPosition}
+                    choices={addPlayerFootballPositionChoices(locale)}
+                    value={footballPosition}
+                    onSelect={setFootballPosition}
+                    disabled={add.isPending}
+                  />
+                </AddPlayerSection>
+              ) : null}
+            </>
+          ) : null}
+
+          {placement === "side" ? (
+            <AddPlayerSection label={m.mobileGameDetails.addPlayer.side}>
+              {side ? (
+                <TileChoices
+                  label={m.mobileGameDetails.addPlayer.side}
+                  choices={sideChoices.map((choice) => ({
+                    value: String(choice.sideIndex),
+                    name: choice.team,
+                    detail: choice.detail,
+                  }))}
+                  value={String(side.sideIndex)}
+                  onSelect={(key) => setPickedSide(Number(key))}
+                  disabled={add.isPending}
+                />
+              ) : (
+                <Text size="meta" tone="muted">
+                  {m.group.addPlayer.noSide}
+                </Text>
+              )}
+            </AddPlayerSection>
+          ) : null}
+
+          {placement === "seat" ? (
+            <AddPlayerSection label={m.mobileGameDetails.addPlayer.position}>
+              {seat ? (
+                <TileChoices
+                  label={m.mobileGameDetails.addPlayer.position}
+                  choices={seatChoices.map((choice) => ({
+                    value: seatKey(choice.seat),
+                    name: choice.side,
+                    detail: choice.team,
+                  }))}
+                  value={seatKey(seat)}
+                  onSelect={(key) =>
+                    setPicked(
+                      seatChoices.find((choice) => seatKey(choice.seat) === key)
+                        ?.seat ?? null,
+                    )
+                  }
+                  disabled={add.isPending}
+                />
+              ) : (
+                <Text size="meta" tone="muted">
+                  {m.group.addPlayer.noSeat}
+                </Text>
+              )}
             </AddPlayerSection>
           ) : null}
         </>
-      ) : null}
-
-      {placement === "side" ? (
-        <AddPlayerSection label={m.mobileGameDetails.addPlayer.side}>
-          {side ? (
-            <TileChoices
-              label={m.mobileGameDetails.addPlayer.side}
-              choices={sideChoices.map((choice) => ({
-                value: String(choice.sideIndex),
-                name: choice.team,
-                detail: choice.detail,
-              }))}
-              value={String(side.sideIndex)}
-              onSelect={(key) => setPickedSide(Number(key))}
-              disabled={add.isPending}
-            />
-          ) : (
-            <Text size="meta" tone="muted">
-              {m.group.addPlayer.noSide}
-            </Text>
-          )}
-        </AddPlayerSection>
-      ) : null}
-
-      {placement === "seat" ? (
-        <AddPlayerSection label={m.mobileGameDetails.addPlayer.position}>
-          {seat ? (
-            <TileChoices
-              label={m.mobileGameDetails.addPlayer.position}
-              choices={seatChoices.map((choice) => ({
-                value: seatKey(choice.seat),
-                name: choice.side,
-                detail: choice.team,
-              }))}
-              value={seatKey(seat)}
-              onSelect={(key) =>
-                setPicked(
-                  seatChoices.find((choice) => seatKey(choice.seat) === key)
-                    ?.seat ?? null,
-                )
-              }
-              disabled={add.isPending}
-            />
-          ) : (
-            <Text size="meta" tone="muted">
-              {m.group.addPlayer.noSeat}
-            </Text>
-          )}
-        </AddPlayerSection>
-      ) : null}
+      )}
     </Sheet>
   );
 }
