@@ -1,14 +1,12 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import { Ban, Share } from "lucide-react";
 import { notFound, usePathname, useRouter } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
 import {
-  ACTION_MENU_INK_BOXED_TRIGGER,
-  ACTION_MENU_PAPER_BOXED_TRIGGER,
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
@@ -18,19 +16,22 @@ import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
-import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
-import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
+import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
+import { PlayedPlayerDialog } from "~/components/games/played/played-player-dialog";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
 import { GameBookedBlock } from "~/components/games/game-booked-block";
-import { GameLineupSection } from "~/components/games/game-lineup-section";
+import {
+  GameLineupSection,
+  type OpenSeatAction,
+} from "~/components/games/game-lineup-section";
 import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import {
@@ -87,8 +88,29 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import {
   friendlyGameCanMintInvite,
+  vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import {
+  friendlyGameCtaCopy,
+  friendlyGameFooterActions,
+} from "@repo/domain/friendly-game-actions";
+import {
+  COURT_ADD_PLAYER_HINT,
+  COURT_JOIN_SUBLINE,
+  courtFigures,
+  courtPositionLabel,
+  courtSpotsLabel,
+  scoreLeadLine,
+} from "@repo/domain/friendly-game-court";
+import {
+  friendlyGameCanKickPlayer,
+  friendlyGameVacantSeatAction,
+  friendlyGameVacantSeatLabel,
+} from "@repo/domain/friendly-game-players";
+import { friendlyGameVenueDirectionsUrl } from "@repo/domain/friendly-game-chrome";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import type { PlayedRow } from "@repo/domain/played-game";
 import {
   ADD_PLAYER_ACTION,
   addPlayerPlacement,
@@ -116,7 +138,6 @@ import {
   isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
-import type { SurfaceTone } from "@repo/domain/surface-tone";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
@@ -215,6 +236,12 @@ export default function GameHomePage({
     null,
   );
   const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
+  const [addSeat, setAddSeat] = React.useState<FriendlyGameJoinSeat | null>(
+    null,
+  );
+  const [selectedPlayer, setSelectedPlayer] = React.useState<PlayedRow | null>(
+    null,
+  );
   const [reportWrongScoreOpen, setReportWrongScoreOpen] = React.useState(false);
 
   const registerSeat = api.games.registerSeat.useMutation({
@@ -731,27 +758,123 @@ export default function GameHomePage({
         ) : null}
       </>
     );
-  const overflowHandlers = {
-    closePending: closeRegistration.isPending,
-    reopenPending: reopenRegistration.isPending,
-    onCloseRegistration: () => closeRegistration.mutate({ gameId: id }),
-    onReopenRegistration: () => reopenRegistration.mutate({ gameId: id }),
-    onInvite: () => setInvitesOpen(true),
-    onShare: shareInviteLink,
-    onLeaveWaitlist: () => setLeaveWaitlistOpen(true),
-  };
-  const overflow = (tone: SurfaceTone) =>
-    usesFriendlyChrome && overflowItems.length > 0 ? (
-      <FriendlyGameOverflowMenu
-        items={overflowItems}
-        triggerClassName={
-          tone === "ink"
-            ? ACTION_MENU_INK_BOXED_TRIGGER
-            : ACTION_MENU_PAPER_BOXED_TRIGGER
-        }
-        {...overflowHandlers}
+  const vacantSeatCount = vacantJoinSeats(data.sides).length;
+  const footerActions =
+    usesFriendlyChrome && data.phase && data.phase !== "cancelled" && firstMatch
+      ? friendlyGameFooterActions({
+          phase: data.phase,
+          isOrganizer: data.isOrganizer,
+          canLeaveGame,
+          canReportWrongScore: data.canReportWrongScore,
+          playerCount: occupiedFriendlyPositions(data.sides),
+        })
+      : [];
+  const footerHandlers = {
+    edit: () => setEditOpen(true),
+    cancel_game: () => setCancelGameOpen(true),
+    mark_as_not_played: () => setMarkAsNotPlayedOpen(true),
+    report_wrong_score: () => setReportWrongScoreOpen(true),
+    report_wrong_score_locked: () => undefined,
+    leave_game: () => setLeaveGameOpen(true),
+  } as const;
+  const gameMenu = (ink: boolean) =>
+    usesFriendlyChrome ? (
+      <FriendlyGameMenu
+        overflowItems={overflowItems}
+        footerActions={footerActions}
+        ink={ink}
+        closePending={closeRegistration.isPending}
+        reopenPending={reopenRegistration.isPending}
+        onCloseRegistration={() => closeRegistration.mutate({ gameId: id })}
+        onReopenRegistration={() => reopenRegistration.mutate({ gameId: id })}
+        onAddPlayer={openAddPlayer}
+        onFooterAction={(kind) => footerHandlers[kind]()}
+        onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
       />
     ) : null;
+  const heroActions = (
+    <>
+      {canManageGameInvites ? (
+        <Button
+          type="button"
+          size="icon"
+          aria-label="Share Game"
+          className="bg-raised text-paper hover:bg-raised/80 rounded-md"
+          onClick={shareInviteLink}
+        >
+          <Share aria-hidden="true" className="size-5" />
+        </Button>
+      ) : null}
+      {gameMenu(true)}
+    </>
+  );
+  const heroPlace = data.venue
+    ? {
+        name: data.venue.name,
+        line:
+          [firstMatch?.courtName, data.venue.city]
+            .filter(Boolean)
+            .join(" · ") || null,
+        directionsUrl: friendlyGameVenueDirectionsUrl(data.venue),
+      }
+    : null;
+  const heroFigures = courtFigures({
+    seatedCount: occupiedFriendlyPositions(data.sides),
+    seatCount: data.sides.length * 2,
+    durationInMinutes: firstMatch?.durationInMinutes ?? null,
+    pricePerPlayerFils: data.pricePerPlayerFils,
+  });
+  const vacantAction = friendlyGameVacantSeatAction({
+    cancelled: data.cancelledAt != null,
+    canMove: data.canMove,
+    canRegister: data.canRegister,
+    canPickSeat: false,
+    canWaitlist: false,
+  });
+  const canAddAtSeat = canAddPlayer && addPlacement === "seat";
+  const openSeatAction = (
+    sideIndex: number,
+    position: "left" | "right",
+  ): OpenSeatAction | null => {
+    const sideLabel = formatGameSideLabel("friendly_game", sideIndex);
+    const positionLabel = courtPositionLabel(position);
+    if (vacantAction === "move" || vacantAction === "join") {
+      return {
+        label:
+          friendlyGameVacantSeatLabel(vacantAction, sideLabel, positionLabel) ??
+          positionLabel,
+        onClick: () =>
+          vacantAction === "move"
+            ? moveSeat.mutate({ gameId: id, sideIndex, position })
+            : openJoinPicker({ sideIndex, position }),
+      };
+    }
+    return canAddAtSeat
+      ? {
+          label: `Add a player to ${sideLabel} ${positionLabel}`,
+          onClick: () => {
+            setAddSeat({ sideIndex, position });
+            setAddPlayerOpen(true);
+          },
+        }
+      : null;
+  };
+  const leadLine =
+    ctaFamily.kind === "needs_score" && firstMatch
+      ? scoreLeadLine(firstMatch, plan.viewerGameTeamId)
+      : null;
+  const ctaLines =
+    ctaFamily.kind === "join"
+      ? {
+          title: courtSpotsLabel(vacantSeatCount),
+          subline: COURT_JOIN_SUBLINE,
+        }
+      : leadLine
+        ? {
+            title: leadLine,
+            subline: friendlyGameCtaCopy(ctaFamily)?.subline ?? null,
+          }
+        : null;
   const organizerMenu = usesFriendlyChrome ? null : showMenu ||
     primaryLeave ||
     primaryLeaveWaitlist ? (
@@ -842,8 +965,11 @@ export default function GameHomePage({
       <div
         className={cn(
           "space-y-6",
-          ctaFamily.kind !== "none" && !playedMatch && "mt-6 max-lg:pb-20",
-          usesFriendlyChrome && !playedMatch && "max-md:pt-4",
+          ctaFamily.kind !== "none" && !playedMatch && "max-lg:pb-20",
+          ctaFamily.kind !== "none" &&
+            !playedMatch &&
+            !(usesFriendlyChrome && heroInput) &&
+            "mt-6",
         )}
       >
         {(usesFriendlyChrome || usesDrawnTournamentChrome) &&
@@ -948,9 +1074,14 @@ export default function GameHomePage({
           <>
             <h1 className="sr-only">Friendly Game</h1>
             {heroInput && !playedMatch ? (
-              <FriendlyGameDetailsHero {...heroInput} actions={overflow} />
+              <FriendlyGameDetailsHero
+                input={heroInput}
+                place={heroPlace}
+                figures={heroFigures}
+                actions={heroActions}
+              />
             ) : playedMatch ? null : (
-              <HeroNavRow tone="paper" actions={overflow("paper")} />
+              <HeroNavRow tone="paper" actions={gameMenu(false)} />
             )}
           </>
         ) : (
@@ -973,6 +1104,7 @@ export default function GameHomePage({
           <div className="max-lg:contents">
             <FriendlyGameCtaBar
               family={ctaFamily}
+              lines={ctaLines}
               joinPending={registerSeat.isPending}
               waitlistPending={leaveWaitlist.isPending}
               onJoin={() => setJoinPickerOpen(true)}
@@ -1022,37 +1154,37 @@ export default function GameHomePage({
             onReportWrongScore={() => setReportWrongScoreOpen(true)}
           />
         ) : usesFriendlyChrome ? (
-          // Hero + Line-up + Score + Rating impact + organiser actions
-          // footer scope (game-details redesign,
-          // TEM-179/TEM-180/TEM-181/TEM-182/TEM-184): the tab bar and
-          // Overview tab are gone for this Game format, the Players tab
-          // content is replaced by the Line-up section, the Results tab
-          // content is replaced by the Score section, the Rating impact
-          // block (Final phase only) explains why the viewer's Home level
-          // card changed, and the organiser actions footer is the only place
-          // on the page a destructive/editing action renders.
+          // Hero + Line-up + Score + Rating impact (game-details redesign,
+          // TEM-179/TEM-180/TEM-181/TEM-182): the tab bar and Overview tab
+          // are gone for this Game format, the Players tab content is
+          // replaced by the court Line-up, the Results tab content by the
+          // Score section, and the Rating impact block (Final phase only)
+          // explains why the viewer's Home level card changed. Editing and
+          // destructive actions live only in the hero's ⋮ menu.
           <div className="space-y-6">
             {data.booking ? <GameBookedBlock booking={data.booking} /> : null}
             {!data.rated && !data.booking ? <GameUnratedBlock /> : null}
             <GameLineupSection
               sides={data.sides}
               viewerUserId={data.viewerUserId}
-              isFinal={data.phase === "final"}
-              winningGameTeamId={winningGameTeamId}
-              canMintInvite={canMintInvite}
-              onInvite={() => setInvitesOpen(true)}
-              canMove={data.canMove}
-              moving={moveSeat.isPending}
-              onMove={(sideIndex, position) =>
-                moveSeat.mutate({ gameId: id, sideIndex, position })
+              vacantSeatCount={vacantSeatCount}
+              hint={
+                canAddAtSeat && vacantSeatCount > 0
+                  ? COURT_ADD_PLAYER_HINT
+                  : null
               }
-              isOrganizer={data.isOrganizer}
-              cancelled={Boolean(data.cancelledAt)}
-              kickPending={kick.isPending}
-              onKick={(userId) => requestKick({ userId })}
-              linkToPlayers={gamePlayersLink(data)}
-              onAddPlayer={openAddPlayer}
-              onRenameUnclaimed={data.isOrganizer ? setRenaming : undefined}
+              busy={moveSeat.isPending}
+              openSeatAction={openSeatAction}
+              onInvite={
+                canManageGameInvites && vacantSeatCount > 0
+                  ? () => setInvitesOpen(true)
+                  : undefined
+              }
+              onPressPlayer={
+                gamePlayersLink(data) || data.isOrganizer
+                  ? setSelectedPlayer
+                  : undefined
+              }
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
@@ -1064,6 +1196,7 @@ export default function GameHomePage({
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
                   isOrganizer={data.isOrganizer}
+                  courtFull={vacantSeatCount === 0}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
                   onScoreSet={(input) =>
@@ -1086,24 +1219,6 @@ export default function GameHomePage({
             ) : null}
             {data.phase === "final" && data.ratingImpact ? (
               <GameRatingImpactBlock ratingImpact={data.ratingImpact} />
-            ) : null}
-            {data.phase && data.phase !== "cancelled" && firstMatch ? (
-              <FriendlyGameActionsFooter
-                phase={data.phase}
-                isOrganizer={data.isOrganizer}
-                canLeaveGame={canLeaveGame}
-                canReportWrongScore={data.canReportWrongScore}
-                playerCount={occupiedFriendlyPositions(data.sides)}
-                cancelGamePending={cancelGame.isPending}
-                markAsNotPlayedPending={cancelMatch.isPending}
-                reportWrongScorePending={reportWrongScore.isPending}
-                leaveGamePending={leaveGame.isPending}
-                onEditGame={() => setEditOpen(true)}
-                onCancelGame={() => setCancelGameOpen(true)}
-                onMarkAsNotPlayed={() => setMarkAsNotPlayedOpen(true)}
-                onReportWrongScore={() => setReportWrongScoreOpen(true)}
-                onLeaveGame={() => setLeaveGameOpen(true)}
-              />
             ) : null}
           </div>
         ) : (
@@ -1283,14 +1398,48 @@ export default function GameHomePage({
       {addPlacement && (canAddPlayer || addPlayerOpen) ? (
         <AddPlayerDialog
           open={addPlayerOpen}
-          onOpenChange={setAddPlayerOpen}
+          onOpenChange={(open) => {
+            setAddPlayerOpen(open);
+            if (!open) {
+              setAddSeat(null);
+            }
+          }}
           gameId={id}
           placement={addPlacement}
           sides={data.sides}
+          initialSeat={addSeat}
           onAdded={() => utils.games.byId.invalidate({ id })}
         />
       ) : null}
 
+      {usesFriendlyChrome && !playedMatch ? (
+        <PlayedPlayerDialog
+          player={selectedPlayer}
+          canOpenProfile={gamePlayersLink(data)}
+          canKick={
+            selectedPlayer != null &&
+            friendlyGameCanKickPlayer({
+              isOrganizer: data.isOrganizer,
+              cancelled: Boolean(data.cancelledAt),
+              isViewer: selectedPlayer.userId === data.viewerUserId,
+            })
+          }
+          canRename={data.isOrganizer}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedPlayer(null);
+            }
+          }}
+          onKick={(userId) => {
+            setSelectedPlayer(null);
+            requestKick({ userId });
+          }}
+          onRename={(player) => {
+            setSelectedPlayer(null);
+            setRenaming(player);
+          }}
+        />
+      ) : null}
       {data.isOrganizer ? (
         <RenameUnclaimedPlayerDialog
           player={renaming}

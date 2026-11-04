@@ -5,6 +5,7 @@ import { formatAbsoluteDay } from "./format-game-start";
 import {
   friendlyGameDateDurationLine,
   friendlyGameDirectionsUrl,
+  friendlyGameVenueDirectionsUrl,
   friendlyGameHomeTitle,
   friendlyGameOccupancyLabel,
   friendlyGamePriceRow,
@@ -128,5 +129,31 @@ describe("friendlyGameDateDurationLine", () => {
 
   it("is null when the window is unset", () => {
     assert.equal(friendlyGameDateDurationLine(null, 90), null);
+  });
+});
+
+describe("friendlyGameVenueDirectionsUrl", () => {
+  it("uses the pin when the Venue has one", () => {
+    assert.equal(
+      friendlyGameVenueDirectionsUrl({
+        name: "Bay Padel",
+        city: "Porto",
+        latitude: "26.228509",
+        longitude: "50.58605",
+      }),
+      "https://www.google.com/maps/search/?api=1&query=26.228509,50.58605",
+    );
+  });
+
+  it("searches the name and city without a pin", () => {
+    assert.equal(
+      friendlyGameVenueDirectionsUrl({
+        name: "Bay Padel",
+        city: "Porto",
+        latitude: null,
+        longitude: null,
+      }),
+      "https://www.google.com/maps/search/?api=1&query=Bay%20Padel%2C%20Porto",
+    );
   });
 });
