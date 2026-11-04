@@ -111,16 +111,10 @@ export const mobileGroup = {
     notScheduled: "غير مجدولة",
     when: "متى",
     where: "أين",
-    cancelled: "أُلغيت",
-    enter: "إدخال",
-    noScoreYet: "لا نتيجة بعد، أدخلها",
     scheduled: "مجدولة",
     played: "سابقة",
     scheduledEmpty: "لا مباريات قادمة مجدولة لهذه المجموعة.",
-    playedEmpty: "لا سجل مباريات بعد.",
     loadMore: "تحميل المزيد",
-    row: (mark: string, title: string, subtitle: string, trailing: string) =>
-      `${mark}. ${title}. ${subtitle}. ${trailing}`,
   },
   members: {
     empty: {

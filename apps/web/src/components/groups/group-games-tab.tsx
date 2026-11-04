@@ -11,13 +11,13 @@ import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { NotSetCell } from "~/components/temba/not-set-cell";
-import { GroupPlayedRow } from "~/components/groups/group-played-row";
+import { GroupPlayedGames } from "~/components/groups/group-played-games";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import {
-  seasonBoundaryLabel,
-  seasonForDate,
-  type GroupSeasonData,
-} from "@repo/domain/group-season";
+import type { GroupSeasonData } from "@repo/domain/group-season";
+import type {
+  GroupPlayedCounts,
+  GroupPlayedFilter,
+} from "@repo/domain/group-played-filter";
 import { Button } from "~/components/ui/button";
 import {
   GROUP_HISTORY_PAGE_SIZE,
@@ -155,6 +155,10 @@ function NoGamesYet({
 export function GroupGamesTab({
   upcomingGames,
   gameHistory,
+  playedCounts,
+  playedFilter,
+  onPlayedFilterChange,
+  filtering,
   groupId,
   groupName,
   isCommunityArchived,
@@ -178,6 +182,10 @@ export function GroupGamesTab({
   onInvite: () => void;
   upcomingGames: GroupHome["upcomingGames"];
   gameHistory: GroupHome["gameHistory"];
+  playedCounts: GroupPlayedCounts;
+  playedFilter: GroupPlayedFilter;
+  onPlayedFilterChange: (filter: GroupPlayedFilter) => void;
+  filtering: boolean;
   groupId: string;
   groupName: string | null;
   isCommunityArchived: boolean;
@@ -204,10 +212,12 @@ export function GroupGamesTab({
   const [loadMoreFailed, setLoadMoreFailed] = React.useState(false);
   const older = olderPages.source === gameHistory ? olderPages : null;
   const playedGames = [...gameHistory, ...(older?.games ?? [])];
-  const canLoadMore = groupHistoryCanLoadMore({
-    loadedCount: playedGames.length,
-    exhausted: older?.exhausted ?? false,
-  });
+  const canLoadMore =
+    !filtering &&
+    groupHistoryCanLoadMore({
+      loadedCount: playedGames.length,
+      exhausted: older?.exhausted ?? false,
+    });
 
   async function loadMoreHistory() {
     const last = playedGames.at(-1);
@@ -222,6 +232,7 @@ export function GroupGamesTab({
         gameHistory: {
           limit: GROUP_HISTORY_PAGE_SIZE,
           cursor: { id: last.id },
+          status: playedFilter,
         },
       });
       setOlderPages({
@@ -236,7 +247,7 @@ export function GroupGamesTab({
     }
   }
 
-  const hasAny = upcomingGames.length > 0 || playedGames.length > 0;
+  const hasAny = upcomingGames.length > 0 || playedCounts.all > 0;
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
@@ -383,71 +394,24 @@ export function GroupGamesTab({
         )}
       </section>
 
-      <section>
-        <h2 className={HEADING}>{m.webGroup.games.played}</h2>
-        {playedGames.length === 0 ? (
-          <p className="text-body text-muted-foreground">
-            {m.webGroup.games.noHistory}
-          </p>
-        ) : (
-          <>
-            <ul className={cardFrame}>
-              {playedGames.map((game, index) => {
-                const season = seasonForDate(seasons, game.displayTime);
-                const previous = playedGames[index - 1];
-                const previousSeason = previous
-                  ? seasonForDate(seasons, previous.displayTime)
-                  : null;
-                const boundary =
-                  index > 0 && season && season.id !== previousSeason?.id
-                    ? season
-                    : null;
-                return (
-                  <React.Fragment key={game.id}>
-                    {boundary ? (
-                      <li
-                        aria-label={boundary.name}
-                        className="text-eyebrow text-muted-foreground flex items-center gap-3 px-5 py-2 tracking-[0.06em]"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="bg-rule h-px flex-1"
-                        />
-                        <span className="shrink-0 font-mono">
-                          {seasonBoundaryLabel(boundary, locale)}
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="bg-rule h-px flex-1"
-                        />
-                      </li>
-                    ) : null}
-                    <GroupPlayedRow game={game} />
-                  </React.Fragment>
-                );
-              })}
-            </ul>
-            {canLoadMore ? (
-              <div className="mt-3 flex flex-col items-center gap-2">
-                {loadMoreFailed ? (
-                  <p className="text-body text-muted-foreground">
-                    {m.webGroup.games.loadMoreFailed}
-                  </p>
-                ) : null}
-                <Button
-                  variant="outline"
-                  disabled={loadingMore}
-                  onClick={() => {
-                    void loadMoreHistory();
-                  }}
-                >
-                  {loadingMore ? m.common.loading : m.webGroup.games.loadMore}
-                </Button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </section>
+      <GroupPlayedGames
+        games={playedGames}
+        counts={playedCounts}
+        filter={playedFilter}
+        onFilterChange={(filter) => {
+          setLoadMoreFailed(false);
+          onPlayedFilterChange(filter);
+        }}
+        filtering={filtering}
+        sport={sport}
+        seasons={seasons}
+        canLoadMore={canLoadMore}
+        loadingMore={loadingMore}
+        loadMoreFailed={loadMoreFailed}
+        onLoadMore={() => {
+          void loadMoreHistory();
+        }}
+      />
     </div>
   );
 }

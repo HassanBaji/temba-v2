@@ -10,6 +10,11 @@ import {
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { EmptyState } from "~/components/common/empty-state";
+import {
+  GroupMembersLensRow,
+  GroupMembersSortDialog,
+  useMemberLens,
+} from "~/components/groups/group-members-lens";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
 import {
   ResponsiveDialog,
@@ -33,19 +38,18 @@ import {
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import {
-  filterGroupMembersByName,
-  groupHomeShowsMemberSearch,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   type GroupMemberOrganizerAction,
   groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
 import {
-  groupMemberTableCaption,
+  groupMemberSortCaption,
   groupMembersLegend,
+  groupMembersLens,
   groupPendingInviteCaption,
   groupPendingInvitesTitle,
-  sortGroupMembers,
+  type GroupMemberSort,
 } from "@repo/domain/group-members-table";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
@@ -101,10 +105,11 @@ export type GroupPendingInvite = {
 function memberCaption(
   member: GroupMember,
   canSetLevel: boolean,
+  sort: GroupMemberSort,
   locale: Locale,
 ) {
   const parts = [
-    groupMemberTableCaption(member, locale),
+    groupMemberSortCaption(member, sort, locale),
     member.phoneMasked,
     canSetLevel && member.levelOverride
       ? levelOverrideCaption({ ...member.levelOverride, locale })
@@ -213,6 +218,7 @@ function GroupMemberRow({
   canSetLevel,
   showLevel,
   managing,
+  sort,
   profileHref,
   actions,
 }: {
@@ -220,11 +226,12 @@ function GroupMemberRow({
   canSetLevel: boolean;
   showLevel: boolean;
   managing: boolean;
+  sort: GroupMemberSort;
   profileHref?: string;
   actions?: ReactNode;
 }) {
   const locale = useLocale();
-  const caption = memberCaption(member, canSetLevel, locale);
+  const caption = memberCaption(member, canSetLevel, sort, locale);
   const linkHref = managing ? undefined : profileHref;
   const cells = (
     <>
@@ -477,16 +484,24 @@ export function GroupMembersTab({
   const [query, setQuery] = useState("");
   const [managing, setManaging] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const { lens, setSort, setFilter } = useMemberLens(groupId);
   const saved = canSetLevel
     ? savedLevelOf(members.find((member) => member.userId === savedUserId))
     : null;
   const canManage =
     canSetLevel || canAppointOrganizers || canAddPlayers || canRemovePlayers;
   const isManaging = canManage && managing;
-  const showSearch = groupHomeShowsMemberSearch(members.length);
-  const visible = sortGroupMembers(
-    showSearch ? filterGroupMembersByName(members, query) : members,
-  );
+  const view = groupMembersLens(members, {
+    ...lens,
+    query,
+    showLevel,
+    canManage,
+    now: new Date(),
+    locale,
+  });
+  const showSearch = view.showControls;
+  const visible = view.rows;
   const columnCount = 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
   const legend = groupMembersLegend({ showLevel, locale });
   const addPlayerButton =
@@ -598,6 +613,14 @@ export function GroupMembersTab({
             {manageButton}
           </div>
         ) : null}
+        {showSearch ? (
+          <GroupMembersLensRow
+            sortLabel={view.sortLabel}
+            filters={view.filters}
+            onOpenSort={() => setSortOpen(true)}
+            onPickFilter={setFilter}
+          />
+        ) : null}
         {isManaging ? addPlayerButton : null}
 
         <div className={cardFrame}>
@@ -609,9 +632,14 @@ export function GroupMembersTab({
               <tr>
                 <th
                   scope="col"
-                  className="text-eyebrow text-muted-foreground py-0 ps-4 text-start font-normal"
+                  className="text-eyebrow text-muted-foreground py-0 pe-2.5 ps-4 text-start font-normal"
                 >
-                  {m.webGroup.members.memberColumn}
+                  <span className="flex items-center justify-between gap-2">
+                    {m.webGroup.members.memberColumn}
+                    <span className="font-mono text-[11px]">
+                      {view.countLine}
+                    </span>
+                  </span>
                 </th>
                 {showLevel ? (
                   <th
@@ -637,11 +665,22 @@ export function GroupMembersTab({
             <tbody>
               {visible.length === 0 ? (
                 <tr className="border-rule border-t">
-                  <td
-                    colSpan={columnCount}
-                    className="text-meta text-muted-foreground px-[18px] py-5"
-                  >
-                    {m.group.members.noMatch}
+                  <td colSpan={columnCount} className="px-[18px] py-5">
+                    <div className="flex flex-col items-start gap-3.5">
+                      <p className="text-meta text-muted-foreground">
+                        {view.emptyText}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setQuery("");
+                          setFilter("all");
+                        }}
+                      >
+                        {m.group.members.lens.showAll}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -652,6 +691,7 @@ export function GroupMembersTab({
                     canSetLevel={canSetLevel}
                     showLevel={showLevel}
                     managing={isManaging}
+                    sort={view.sort}
                     profileHref={
                       linkToPlayers
                         ? playerProfilePath(member.userId)
@@ -679,6 +719,13 @@ export function GroupMembersTab({
           />
         ) : null}
       </div>
+
+      <GroupMembersSortDialog
+        open={sortOpen}
+        onOpenChange={setSortOpen}
+        options={view.sorts}
+        onPick={setSort}
+      />
 
       {onRevokeInvite ? (
         <PendingInvitesDialog

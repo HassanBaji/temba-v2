@@ -1,3 +1,5 @@
+import type { FootballBib } from "./football-lineup";
+import type { GroupPlayedCounts } from "./group-played-filter";
 import type { HubGameRow } from "./hub-game-row";
 import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
@@ -86,10 +88,19 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
 
 export type GroupPlayedGameData = {
   id: string;
+  name: string | null;
+  hasCustomName: boolean;
+  sport: string | null;
+  venueName: string | null;
+  courtName: string | null;
   displayTime: Date;
   cancelled: boolean;
+  joinedCount: number;
+  playersAllowed: number | null;
   slot1Members: MatchSlotMember[];
   slot2Members: MatchSlotMember[];
+  slot1Bib: FootballBib | null;
+  slot2Bib: FootballBib | null;
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2 | null;
   outcome: "won" | "lost" | "draw" | null;
@@ -119,6 +130,7 @@ export type GroupHomeData = {
   canManageSeasons: boolean;
   upcomingGames: HubGameRow[];
   gameHistory: GroupPlayedGameData[];
+  gameHistoryCounts: GroupPlayedCounts;
   joinMode: string;
   canJoinLoosePublic: boolean;
   canJoinClubPublic: boolean;

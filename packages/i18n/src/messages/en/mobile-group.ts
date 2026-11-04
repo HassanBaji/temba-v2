@@ -90,16 +90,10 @@ export const mobileGroup = {
     notScheduled: "Not scheduled",
     when: "When",
     where: "Where",
-    cancelled: "Cancelled",
-    enter: "Enter",
-    noScoreYet: "No score yet, enter it",
     scheduled: "Scheduled",
     played: "Played",
     scheduledEmpty: "No upcoming Games scheduled for this Group.",
-    playedEmpty: "No Game history yet.",
     loadMore: "Load more",
-    row: (mark: string, title: string, subtitle: string, trailing: string) =>
-      `${mark}. ${title}. ${subtitle}. ${trailing}`,
   },
   members: {
     empty: {
