@@ -1,6 +1,6 @@
 # Arabic localization
 
-Status: in-progress
+Status: done
 
 Related: [ADR-0052](../../docs/adr/0052-two-languages-from-one-message-catalog.md), `CONTEXT.md` (i18n Package, Locale, Message catalog), `CLAUDE.md` (Package boundaries, Conventions).
 
