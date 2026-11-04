@@ -181,6 +181,7 @@ export async function createFriendlyGame(
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
         rated: input.rated ?? true,
+        groupRated: input.groupRated ?? false,
         createdBy: input.createdBy,
       })
       .returning();

@@ -1,5 +1,5 @@
 import type { DbClient, DbTx, UserMergeSummary } from "@repo/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 
 import {
@@ -24,6 +24,9 @@ import {
   groupEmailInvites,
   groupInviteLinks,
   groupJoinRequests,
+  groupLevelOverrides,
+  groupRatingEvents,
+  groupRatings,
   groupLinkRequests,
   groupMemberInvites,
   groupMembers,
@@ -133,6 +136,12 @@ const ratingUserReferences: PgColumn[] = [
   levelOverrides.userId,
 ];
 
+const groupRatingUserReferences: PgColumn[] = [
+  groupRatings.userId,
+  groupRatingEvents.userId,
+  groupLevelOverrides.userId,
+];
+
 const plainUserReferences: PgColumn[] = [
   account.userId,
   session.userId,
@@ -182,12 +191,14 @@ const plainUserReferences: PgColumn[] = [
   bookingPayments.settledByUserId,
   bookingPayments.refundedByUserId,
   levelOverrides.setByUserId,
+  groupLevelOverrides.setByUserId,
 ];
 
 /** Every column referencing `user.id` that the merge reassigns or resolves. */
 export const mergedUserReferenceColumns: readonly PgColumn[] = [
   ...uniqueUserReferences.map((reference) => reference.column),
   ...ratingUserReferences,
+  ...groupRatingUserReferences,
   ...plainUserReferences,
 ];
 
@@ -337,6 +348,87 @@ async function resolveRatings(tx: DbTx, ids: MergeIds) {
   return ratingKeptBySport;
 }
 
+async function groupRatedMatchCount(tx: DbTx, userId: string, groupId: string) {
+  const [row] = await tx
+    .select({ value: count() })
+    .from(groupRatingEvents)
+    .where(
+      and(
+        eq(groupRatingEvents.userId, userId),
+        eq(groupRatingEvents.groupId, groupId),
+      ),
+    );
+  return Number(row?.value ?? 0);
+}
+
+async function deleteGroupRatingHistory(
+  tx: DbTx,
+  userId: string,
+  groupId: string,
+) {
+  await tx
+    .delete(groupRatings)
+    .where(
+      and(eq(groupRatings.userId, userId), eq(groupRatings.groupId, groupId)),
+    );
+  await tx
+    .delete(groupRatingEvents)
+    .where(
+      and(
+        eq(groupRatingEvents.userId, userId),
+        eq(groupRatingEvents.groupId, groupId),
+      ),
+    );
+  await tx
+    .delete(groupLevelOverrides)
+    .where(
+      and(
+        eq(groupLevelOverrides.userId, userId),
+        eq(groupLevelOverrides.groupId, groupId),
+      ),
+    );
+}
+
+/**
+ * Per Group, the same rule as `resolveRatings`: the Group Level with more
+ * Group rating events stays and the account's wins a tie. The merged side's
+ * remaining Group Levels move with the plain reassignment.
+ */
+async function resolveGroupRatings(tx: DbTx, ids: MergeIds) {
+  const rows = await tx
+    .select({ userId: groupRatings.userId, groupId: groupRatings.groupId })
+    .from(groupRatings)
+    .where(
+      inArray(groupRatings.userId, [ids.survivorUserId, ids.mergedUserId]),
+    );
+  const survivorGroups = new Set(
+    rows
+      .filter((row) => row.userId === ids.survivorUserId)
+      .map((row) => row.groupId),
+  );
+  const sharedGroups = rows
+    .filter(
+      (row) =>
+        row.userId === ids.mergedUserId && survivorGroups.has(row.groupId),
+    )
+    .map((row) => row.groupId);
+
+  for (const groupId of sharedGroups) {
+    const [survivorMatches, mergedMatches] = await Promise.all([
+      groupRatedMatchCount(tx, ids.survivorUserId, groupId),
+      groupRatedMatchCount(tx, ids.mergedUserId, groupId),
+    ]);
+    await deleteGroupRatingHistory(
+      tx,
+      mergedMatches > survivorMatches ? ids.survivorUserId : ids.mergedUserId,
+      groupId,
+    );
+  }
+  for (const column of groupRatingUserReferences) {
+    await reassign(tx, column, ids);
+  }
+}
+
 async function seatAndMembershipCounts(tx: DbTx, ids: MergeIds) {
   const both = [ids.survivorUserId, ids.mergedUserId];
   const [seatRows, groupRows, communityRows] = await Promise.all([
@@ -434,6 +526,7 @@ export async function mergeIntoAccount(
 
     const counts = await seatAndMembershipCounts(tx, ids);
     const ratingKeptBySport = await resolveRatings(tx, ids);
+    await resolveGroupRatings(tx, ids);
 
     for (const reference of uniqueUserReferences) {
       await dropMergedDuplicates(tx, reference, ids);

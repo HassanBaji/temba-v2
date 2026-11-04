@@ -50,6 +50,7 @@ import type {
   HubListTournamentTeam,
 } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
+import { gameRatingScope } from "@repo/domain/game-rating-scope";
 
 export type HubListDb = DbClient;
 
@@ -59,6 +60,7 @@ export const hubListColumns = {
   hasCustomName: true,
   isPublic: true,
   rated: true,
+  groupRated: true,
   groupId: true,
   venueId: true,
   windowStart: true,
@@ -190,6 +192,7 @@ export type HubQueryRow = {
   hasCustomName: boolean;
   isPublic: boolean;
   rated: boolean;
+  groupRated: boolean;
   groupId: string | null;
   venueId: string;
   windowStart: Date | null;
@@ -666,6 +669,7 @@ export function toHubListRow(
     sport: row.sport,
     isPublic: row.isPublic,
     rated: row.rated,
+    ratingScope: gameRatingScope(row),
     groupId: row.groupId,
     groupName: row.group?.name ?? null,
     startTime: gameListTime(candidate),

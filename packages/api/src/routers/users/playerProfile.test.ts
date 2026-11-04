@@ -502,6 +502,7 @@ describe("loadPlayerProfile", () => {
           image: null,
           isViewer: true,
         },
+        historyHidden: false,
         sports: ["padel"],
         venue: null,
         rating: null,

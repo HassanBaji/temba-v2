@@ -90,6 +90,7 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
+import { gameRatingScope } from "@repo/domain/game-rating-scope";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -639,6 +640,7 @@ export async function gameById(
     allowSoloRegister: game.allowSoloRegister,
     isPublic: game.isPublic,
     rated: game.rated,
+    ratingScope: gameRatingScope(game),
     groupId: game.groupId,
     groupName: group?.name ?? null,
     seasonId: game.seasonId,

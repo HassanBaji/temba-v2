@@ -1,4 +1,5 @@
 import {
+  date,
   pgEnum,
   pgTable,
   text,
@@ -31,6 +32,33 @@ export const USER_PREFERRED_POSITION_VALUES = [
 export const userPreferredPositions = pgEnum(
   "user_preferred_position",
   USER_PREFERRED_POSITION_VALUES,
+);
+
+export const USER_GENDER_VALUES = ["male", "female", "unspecified"] as const;
+
+export const userGenders = pgEnum("user_gender", USER_GENDER_VALUES);
+
+/** Weekend is Friday and Saturday; morning is before noon, evening after 6 PM. */
+export const PLAY_WINDOW_VALUES = [
+  "weekday_morning",
+  "weekday_afternoon",
+  "weekday_evening",
+  "weekend_morning",
+  "weekend_afternoon",
+  "weekend_evening",
+] as const;
+
+export const playWindows = pgEnum("play_window", PLAY_WINDOW_VALUES);
+
+export const MATCH_HISTORY_VISIBILITY_VALUES = [
+  "everyone",
+  "group_members",
+  "only_me",
+] as const;
+
+export const matchHistoryVisibilities = pgEnum(
+  "match_history_visibility",
+  MATCH_HISTORY_VISIBILITY_VALUES,
 );
 
 export const user = pgTable(
@@ -67,6 +95,17 @@ export const user = pgTable(
     preferredFootballRole: footballRoles("preferred_football_role"),
     preferredFootballPosition: footballPositions("preferred_football_position"),
     onboardingCompletedAt: timestamp("onboarding_completed_at"),
+    gender: userGenders("gender"),
+    birthDate: date("birth_date", { mode: "string" }),
+    /** An area name such as "Seef", never an address. */
+    homeArea: text("home_area"),
+    /** ISO 3166-1 alpha-2 code of the nationality. */
+    nationality: varchar("nationality", { length: 2 }),
+    playWindows: playWindows("play_windows").array(),
+    seatAlerts: boolean("seat_alerts").notNull().default(false),
+    matchHistoryVisibility: matchHistoryVisibilities("match_history_visibility")
+      .notNull()
+      .default("everyone"),
     addedByUserId: uuid("added_by_user_id").references(
       (): AnyPgColumn => user.id,
       { onDelete: "set null" },

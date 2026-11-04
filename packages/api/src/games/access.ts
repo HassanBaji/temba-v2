@@ -90,7 +90,7 @@ async function clubCommunityIsArchived(database: DbOrTx, communityId: string) {
 }
 
 /** Group creator, Community Owner/Admin on a Club Group, or an Appointed Organizer. */
-async function mayOrganizeGroupGames(
+export async function mayOrganizeGroupGames(
   database: DbOrTx,
   group: GroupForOrganize,
   userId: string,

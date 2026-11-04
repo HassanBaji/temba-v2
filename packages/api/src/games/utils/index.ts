@@ -10,6 +10,7 @@ import { games, matches } from "@repo/db";
 
 import type { HubGameFootball } from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
+import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
@@ -91,6 +92,7 @@ export type HubListRow = {
   sport: GameSportEnum | string | null;
   isPublic: boolean;
   rated: boolean;
+  ratingScope: GameRatingScope;
   groupId: string | null;
   groupName: string | null;
   startTime: Date;
@@ -158,8 +160,10 @@ export type CreateFriendlyGameInput = {
   courtId?: string | null;
   windowStart: Date;
   windowEnd: Date;
-  /** Omitted = rated. False only for a Booking Game. */
+  /** Moves the Temba Level. Omitted = rated. */
   rated?: boolean;
+  /** Moves the Group Level (ADR-0053). Omitted = not group rated. */
+  groupRated?: boolean;
   /** Null / omitted = unset. 0 = free. Positive = fils per User occupying a seat. */
   pricePerPlayerFils?: number | null;
   /** Null / omitted = that bound unset. 0 = Level 0.0. */
@@ -193,6 +197,8 @@ export type CreateGameInput = {
   customName?: string;
   groupId: string;
   isPublic: boolean;
+  /** False makes the Game Unrated (ADR-0053). Omitted = rated. */
+  rated?: boolean;
   format: "friendly_game" | "americano" | "friendly_tournament";
   registrationMode: "individual" | "team_only";
   playersAllowed?: number;
