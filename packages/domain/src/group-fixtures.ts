@@ -7,8 +7,11 @@ import type {
   GroupPublicRowData,
 } from "./group-data";
 import { createGamesHubFixtures } from "./games-hub-fixtures";
+import { groupPlayedCounts } from "./group-played-filter";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const EMPTY_PLAYED_COUNTS = groupPlayedCounts([]);
 
 function entry(
   position: number,
@@ -56,8 +59,17 @@ function playedGame(
 ): GroupPlayedGameData {
   return {
     id,
+    name: "Friendly Game",
+    hasCustomName: false,
+    sport: "padel",
+    venueName: "Padel Pro Arad",
+    courtName: "Court 2",
     displayTime: new Date(now.getTime() - daysAgo * DAY_MS),
     cancelled: false,
+    joinedCount: 4,
+    playersAllowed: 4,
+    slot1Bib: null,
+    slot2Bib: null,
     slot1Members: [
       { id: "viewer", name: "Alex Rivera", image: null, isViewer: true },
       { id: "ada", name: "Ada Lindqvist", image: null, isViewer: false },
@@ -246,6 +258,13 @@ export function createGroupFixtures(now = new Date()) {
         scoredSets: [],
       }),
     ],
+    gameHistoryCounts: {
+      finished: 2,
+      needs_score: 1,
+      cancelled: 1,
+      all: 4,
+      record: { wins: 1, draws: 0, losses: 1 },
+    },
     joinMode: "member",
     canJoinLoosePublic: false,
     canJoinClubPublic: false,
@@ -370,8 +389,14 @@ export function createGroupFixtures(now = new Date()) {
           gamesCounted: 0,
         },
         gameHistory: [],
+        gameHistoryCounts: EMPTY_PLAYED_COUNTS,
       },
-      noGames: { ...base, upcomingGames: [], gameHistory: [] },
+      noGames: {
+        ...base,
+        upcomingGames: [],
+        gameHistory: [],
+        gameHistoryCounts: EMPTY_PLAYED_COUNTS,
+      },
       nonMemberJoin: nonMember,
       nonMemberRequest: {
         ...nonMember,
