@@ -2,7 +2,12 @@ import { expanded, numerals, typeScale } from "@repo/design-tokens";
 import { Text as RNText, type TextProps as RNTextProps } from "react-native";
 
 import { isLayoutRtl } from "../i18n/rtl";
-import { fontFamilyFor, type TextWeight, type TextWidth } from "./font-family";
+import {
+  containsArabic,
+  fontFamilyFor,
+  type TextWeight,
+  type TextWidth,
+} from "./font-family";
 import { useTonePalette } from "./surface-context";
 import { textDirectionStyle } from "./text-direction";
 
@@ -41,7 +46,8 @@ export function Text({
 }: TextProps) {
   const palette = useTonePalette();
   const metrics = metricsFor(size);
-  const isExpanded = width === "expanded" && !mono;
+  const arabic = containsArabic(props.children);
+  const isExpanded = width === "expanded" && !mono && !arabic;
 
   return (
     <RNText
@@ -50,7 +56,7 @@ export function Text({
         {
           ...textDirectionStyle(isLayoutRtl(), ltr),
           color: tone === "muted" ? palette.muted : palette.foreground,
-          fontFamily: fontFamilyFor({ weight, width, mono }),
+          fontFamily: fontFamilyFor({ weight, width, mono, arabic }),
           fontSize: metrics.size,
           lineHeight: metrics.lineHeight,
           fontVariant: ["tabular-nums"],
