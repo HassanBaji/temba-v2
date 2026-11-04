@@ -1,14 +1,18 @@
 "use client";
 
+import {
+  LockIcon,
+  LockOpenIcon,
+  Share2Icon,
+  UserMinusIcon,
+  UserPlusIcon,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import {
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
-} from "~/components/common/action-menu";
+import { ACTION_MENU_PAPER_BOXED_TRIGGER } from "~/components/common/action-menu";
 import { FooterAction } from "~/components/games/friendly-game-actions-footer";
+import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import {
@@ -43,8 +47,10 @@ import { detailBackHref } from "~/lib/dashboard-paths";
 import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import {
   CANCEL_GAME_ACTION,
+  CLOSE_REGISTRATION_ACTION,
   EDIT_GAME_ACTION,
   REGISTER_TEAM_ACTION,
+  REOPEN_REGISTRATION_ACTION,
 } from "@repo/domain/game-copy";
 import {
   tournamentHomeView,
@@ -279,6 +285,8 @@ export function TournamentHome({
       </p>
 
       <TournamentHomeActions
+        title={view.hero.name}
+        description={view.hero.startLine}
         joinKind={joinKind}
         isWaitlisted={data.isWaitlisted}
         isOrganizerActive={isOrganizerActive}
@@ -615,6 +623,8 @@ function TournamentJoinBar({
 }
 
 function TournamentHomeActions({
+  title,
+  description,
   joinKind,
   isWaitlisted,
   isOrganizerActive,
@@ -643,6 +653,8 @@ function TournamentHomeActions({
   onInvite,
   onShare,
 }: {
+  title: string;
+  description: string | null;
   joinKind: TournamentHomeJoinKind | null;
   isWaitlisted: boolean;
   isOrganizerActive: boolean;
@@ -745,58 +757,71 @@ function TournamentHomeActions({
               </Button>
             ) : null}
             <div className="ml-auto">
-              <ActionMenu label="Game actions">
-                {onAddPlayer ? (
-                  <ActionMenuItem onSelect={onAddPlayer}>
-                    {ADD_PLAYER_ACTION}
-                  </ActionMenuItem>
-                ) : null}
-                {onShare ? (
-                  <ActionMenuItem disabled={sharePending} onSelect={onShare}>
-                    Share
-                  </ActionMenuItem>
-                ) : null}
-                {registrationClosed ? (
-                  <ActionMenuItem
-                    disabled={joinFrozen || reopenPending}
-                    onSelect={onReopenRegistration}
-                  >
-                    Reopen registration
-                  </ActionMenuItem>
-                ) : (
-                  <ActionMenuItem
-                    disabled={closePending}
-                    onSelect={onCloseRegistration}
-                  >
-                    Close registration
-                  </ActionMenuItem>
-                )}
-                {showKick ? (
-                  <>
-                    <ActionMenuSeparator />
-                    {kickable.map((occupant) => (
-                      <ActionMenuItem
-                        key={occupant.userId}
-                        variant="destructive"
-                        disabled={kickPending}
-                        onSelect={() => onKick?.(occupant.userId)}
-                      >
-                        Kick {occupant.name}
-                      </ActionMenuItem>
-                    ))}
-                    {waitlist.map((entry) => (
-                      <ActionMenuItem
-                        key={entry.id}
-                        variant="destructive"
-                        disabled={kickPending}
-                        onSelect={() => onKickWaitlist?.(entry.id)}
-                      >
-                        Kick {entry.name} from the waitlist
-                      </ActionMenuItem>
-                    ))}
-                  </>
-                ) : null}
-              </ActionMenu>
+              <GameActionsSheet
+                title={title}
+                description={description}
+                triggerClassName={ACTION_MENU_PAPER_BOXED_TRIGGER}
+                groups={[
+                  [
+                    ...(onAddPlayer
+                      ? [
+                          {
+                            key: "add_player",
+                            label: ADD_PLAYER_ACTION,
+                            icon: UserPlusIcon,
+                            onSelect: onAddPlayer,
+                          },
+                        ]
+                      : []),
+                    ...(onShare
+                      ? [
+                          {
+                            key: "share",
+                            label: "Share",
+                            icon: Share2Icon,
+                            disabled: sharePending,
+                            onSelect: onShare,
+                          },
+                        ]
+                      : []),
+                    registrationClosed
+                      ? {
+                          key: "reopen_registration",
+                          label: REOPEN_REGISTRATION_ACTION,
+                          icon: LockOpenIcon,
+                          disabled: joinFrozen || reopenPending,
+                          onSelect: onReopenRegistration,
+                        }
+                      : {
+                          key: "close_registration",
+                          label: CLOSE_REGISTRATION_ACTION,
+                          icon: LockIcon,
+                          disabled: closePending,
+                          onSelect: onCloseRegistration,
+                        },
+                  ],
+                  showKick
+                    ? [
+                        ...kickable.map((occupant) => ({
+                          key: `kick-${occupant.userId}`,
+                          label: `Kick ${occupant.name}`,
+                          icon: UserMinusIcon,
+                          tone: "danger" as const,
+                          disabled: kickPending,
+                          onSelect: () => onKick?.(occupant.userId),
+                        })),
+                        ...waitlist.map((entry) => ({
+                          key: `kick-waitlist-${entry.id}`,
+                          label: `Kick ${entry.name} from the waitlist`,
+                          icon: UserMinusIcon,
+                          tone: "danger" as const,
+                          disabled: kickPending,
+                          onSelect: () => onKickWaitlist?.(entry.id),
+                        })),
+                      ]
+                    : [],
+                ]}
+              />
             </div>
           </div>
           {onEdit || onCancelGame ? (
