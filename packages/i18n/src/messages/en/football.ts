@@ -123,6 +123,19 @@ export const football = {
       teams: { title: "Teams set", meta: "see your team" },
       full: { title: "Full", meta: "waitlist open" },
     },
+    card: {
+      waitingForPlayers: "Waiting for players",
+      playersOf: (taken: number, seats: number) =>
+        plural("en", seats, {
+          one: `${taken} of 1 player`,
+          other: `${taken} of {n} players`,
+        }),
+      openSpots: (n: number) =>
+        plural("en", n, {
+          one: ", 1 open spot",
+          other: ", {n} open spots",
+        }),
+    },
   },
   selfPlacement: {
     beginner: {

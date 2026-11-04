@@ -295,7 +295,7 @@ describe("knockoutDrawDrawerLead", () => {
 describe("Arabic copy", () => {
   it("labels the groups and the draw state in Arabic", () => {
     assert.equal(poolLabel(1, "ar"), "المجموعة A");
-    assert.equal(drawEntryStateLine(8, 12, "ar"), "8 من 12 فريقًا مكتملة.");
+    assert.equal(drawEntryStateLine(8, 12, "ar"), "8 من 12 فريقًا مكتملًا.");
     assert.equal(drawEntryTitle(true, "ar"), "المجموعات جاهزة كمسودة");
     assert.equal(
       knockoutDrawDrawerLead(2, "ar"),

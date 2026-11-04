@@ -31,11 +31,15 @@ function ratingSport(sport: Sport): GroupSportEnum {
   return sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
 }
 
+/**
+ * Level points oldest first, and how many of the changes between them came
+ * from Rated Matches. Level overrides move the line too but are not Matches.
+ */
 async function levelHistory(
   database: DbClient,
   userId: string,
   sport: GroupSportEnum,
-): Promise<string[]> {
+): Promise<{ points: string[]; matchCount: number }> {
   const [events, overrides] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: and(
@@ -57,6 +61,7 @@ async function levelHistory(
     }),
   ]);
 
+  const eventIds = new Set(events.map((event) => event.id));
   const changes = [...events, ...overrides]
     .sort(
       (a, b) =>
@@ -67,13 +72,16 @@ async function levelHistory(
 
   const first = changes[0];
   if (!first) {
-    return [];
+    return { points: [], matchCount: 0 };
   }
 
-  return [
-    displayedLevelFromMu(first.muBefore),
-    ...changes.map((change) => displayedLevelFromMu(change.muAfter)),
-  ];
+  return {
+    points: [
+      displayedLevelFromMu(first.muBefore),
+      ...changes.map((change) => displayedLevelFromMu(change.muAfter)),
+    ],
+    matchCount: changes.filter((change) => eventIds.has(change.id)).length,
+  };
 }
 
 async function ratedMatchCount(
@@ -93,7 +101,8 @@ async function ratedMatchCount(
  * for display (not persisted). Returns product Level / Level band /
  * Provisional only — never raw Glicko μ/φ/σ. Also includes progress within
  * the current Level band, typical Rated Matches remaining while Provisional,
- * and recent Level history for the home sparkline.
+ * and recent Level history for the home sparkline with the number of Rated
+ * Matches inside it.
  */
 export async function loadRatingsMe(
   database: DbClient,
@@ -111,6 +120,7 @@ export async function loadRatingsMe(
       progressPercent: null as number | null,
       nextBand: null as LevelBand | null,
       history: [] as string[],
+      historyMatchCount: 0,
       ratedMatchCount: 0,
     };
   }
@@ -129,7 +139,8 @@ export async function loadRatingsMe(
     canSelfDeclare: false,
     progressPercent: progress.progressPercent,
     nextBand: progress.nextBand,
-    history,
+    history: history.points,
+    historyMatchCount: history.matchCount,
     ratedMatchCount: matchCount,
   };
 }

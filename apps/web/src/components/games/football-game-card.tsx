@@ -11,6 +11,7 @@ import {
   isFootballBib,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import type {
@@ -52,9 +53,11 @@ function Kickoff({ game }: { game: HubGameRow }) {
   const m = useMessages();
   const locale = useLocale();
   const kickoff = formatHomeKickoff(game.startTime, locale);
+  const customName = gameCustomName(game);
   const place = [game.venue?.name, game.courtName]
     .filter(Boolean)
     .join(m.tournament.listSeparator);
+  const day = formatGameCardDay(game.startTime, locale);
   return (
     <div className="flex items-start gap-4">
       <p className="flex items-baseline gap-1">
@@ -67,10 +70,12 @@ function Kickoff({ game }: { game: HubGameRow }) {
       </p>
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 font-semibold">
-          {place.length > 0 ? place : (game.name ?? m.common.football)}
+          {customName ?? (place.length > 0 ? place : m.common.football)}
         </p>
         <p className="text-muted-foreground text-meta">
-          {formatGameCardDay(game.startTime, locale)}
+          {customName && place.length > 0
+            ? [place, day].join(m.tournament.listSeparator)
+            : day}
         </p>
       </div>
       <SizeTag sideSize={game.football?.sideSize ?? null} />
@@ -187,19 +192,16 @@ function OpenBody({ game }: { game: HubGameRow }) {
       <div className="text-meta flex justify-between">
         <span>
           <span className="font-semibold tabular-nums">
-            {m.webTournament.footballCard.countOfSeats(
-              Math.min(taken, seats),
-              seats,
-            )}
-          </span>{" "}
-          <span className="text-muted-foreground">
-            {open > 0
-              ? m.webTournament.footballCard.inWithOpen(open)
-              : m.webTournament.footballCard.in}
+            {m.football.hub.card.playersOf(Math.min(taken, seats), seats)}
           </span>
+          {open > 0 ? (
+            <span className="text-muted-foreground">
+              {m.football.hub.card.openSpots(open)}
+            </span>
+          ) : null}
         </span>
         <span className="text-muted-foreground">
-          {m.webTournament.footballCard.teamsNotSet}
+          {m.football.hub.card.waitingForPlayers}
         </span>
       </div>
     </div>

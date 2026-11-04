@@ -5,8 +5,8 @@ import {
   groupDeleteSheetCopy,
   groupEditCanSave,
   groupEditChanges,
-  groupJoiningFooter,
   groupJoiningToggleHelp,
+  groupLeaveBlockedHint,
   groupMenuItems,
   groupMenuRoleLine,
   groupSeasonCount,
@@ -137,40 +137,56 @@ describe("groupEditChanges", () => {
 });
 
 describe("joining copy", () => {
-  it("counts the requests waiting", () => {
-    expect(groupJoiningToggleHelp(0, "en")).toBe(
-      "Anyone who finds the Group joins instantly.",
-    );
-    expect(groupJoiningToggleHelp(1, "en")).toBe(
-      "1 request waiting on Group home.",
-    );
-    expect(groupJoiningToggleHelp(2, "en")).toBe(
-      "2 requests waiting on Group home.",
-    );
+  it("describes the switch in its current state", () => {
+    expect(
+      groupJoiningToggleHelp({ requiresApproval: false, locale: "en" }),
+    ).toBe("Anyone who finds the Group joins right away.");
+    expect(
+      groupJoiningToggleHelp({ requiresApproval: true, locale: "en" }),
+    ).toBe("You approve each request before they join.");
+    expect(
+      groupJoiningToggleHelp({ requiresApproval: false, locale: "ar" }),
+    ).toBe("ينضم أي شخص يجد المجموعة مباشرة.");
+    expect(
+      groupJoiningToggleHelp({ requiresApproval: true, locale: "ar" }),
+    ).toBe("توافق على كل طلب قبل انضمامه.");
   });
 
-  it("states the policy in the footer", () => {
+  it("counts the requests waiting", () => {
     expect(
-      groupJoiningFooter({
-        visibility: "public",
-        requiresApproval: false,
-        locale: "en",
-      }),
-    ).toBe("Anyone can find the Group and joins instantly.");
-    expect(
-      groupJoiningFooter({
-        visibility: "public",
+      groupJoiningToggleHelp({
         requiresApproval: true,
+        pendingRequestCount: 1,
         locale: "en",
       }),
-    ).toContain("waits for your approval");
+    ).toBe("1 request waiting on Group home.");
     expect(
-      groupJoiningFooter({
-        visibility: "private",
+      groupJoiningToggleHelp({
         requiresApproval: true,
+        pendingRequestCount: 2,
         locale: "en",
       }),
-    ).toBe("Only people you invite can join.");
+    ).toBe("2 requests waiting on Group home.");
+  });
+});
+
+describe("groupLeaveBlockedHint", () => {
+  it("disables Leave for a Loose Group owner", () => {
+    expect(
+      groupLeaveBlockedHint({ isOwner: true, isLoose: true, locale: "en" }),
+    ).toBe("Transfer ownership first.");
+    expect(
+      groupLeaveBlockedHint({ isOwner: true, isLoose: true, locale: "ar" }),
+    ).toBe("انقل الملكية أولًا.");
+  });
+
+  it("lets a Club Group creator and a member leave", () => {
+    expect(
+      groupLeaveBlockedHint({ isOwner: true, isLoose: false, locale: "en" }),
+    ).toBeNull();
+    expect(
+      groupLeaveBlockedHint({ isOwner: false, isLoose: true, locale: "en" }),
+    ).toBeNull();
   });
 });
 

@@ -4,7 +4,6 @@ import { messagesFor } from "@repo/i18n/messages";
 import {
   formatDayMonth,
   formatGameClock,
-  formatGameClockWithoutMeridiem,
   gameDayProximity,
 } from "./format-game-start";
 
@@ -40,28 +39,26 @@ export function formatHomeCountdown(
 }
 
 /**
- * Live countdown for the Game-details hero's Upcoming/Ongoing treatment
- * (game-details redesign, TEM-179). `formatHomeCountdown` returns `null`
- * once `startsAt` is no longer in the future, which is correct for Home
- * (an ongoing Game simply drops the countdown) but would leave the hero's
- * countdown slot blank while `ongoing` visually collapses into the Upcoming
- * treatment — this wraps it with the one small addition Home doesn't need:
- * "Starting now" for the window between kickoff and the countdown running
- * out, so the hero never shows a negative or missing duration.
+ * The Game-details hero's status pill: a countdown before kick-off, "Live
+ * now" through the window, then a prompt for the score once it has ended.
+ * Reads the clock rather than the server phase so a screen left open moves
+ * on by itself.
  */
 export function formatHeroCountdown(
-  phase: "upcoming" | "ongoing",
   startsAt: Date,
+  endsAt: Date | null,
   now: Date,
   locale: Locale,
-): string | null {
+): string {
+  const m = messagesFor(locale).dates.countdown;
   const countdown = formatHomeCountdown(startsAt, now, locale);
   if (countdown) {
-    return countdown;
+    return m.startsIn(countdown);
   }
-  return phase === "ongoing"
-    ? messagesFor(locale).dates.countdown.startingNow
-    : null;
+  if (endsAt && endsAt.getTime() <= now.getTime()) {
+    return m.endedEnterScore;
+  }
+  return m.liveNow;
 }
 
 /**
@@ -81,10 +78,17 @@ export function formatHeroKickoffTrailer(
   if (!windowEnd) {
     return kickoff.meridiem;
   }
-  const endClock = formatGameClockWithoutMeridiem(windowEnd, locale);
+  const end = splitClock(formatGameClock(windowEnd, locale));
   return kickoff.meridiem
-    ? m.meridiemUntil(kickoff.meridiem, endClock)
-    : m.until(endClock);
+    ? m.meridiemUntil(kickoff.meridiem, end)
+    : m.until(end.clock);
+}
+
+function splitClock(clock: string) {
+  const parts = clock.trim().split(/\s+/);
+  return parts.length > 1
+    ? { clock: parts.slice(0, -1).join(" "), meridiem: parts.at(-1) ?? "" }
+    : { clock, meridiem: "" };
 }
 
 export function formatHomeKickoff(
@@ -96,10 +100,9 @@ export function formatHomeKickoff(
   relativeDay: string;
 } {
   const m = messagesFor(locale).dates;
-  const clock = formatGameClock(startsAt, locale);
-  const parts = clock.trim().split(/\s+/);
-  const meridiem = parts.length > 1 ? (parts[parts.length - 1] ?? "") : "";
-  const time = parts.length > 1 ? parts.slice(0, -1).join(" ") : clock;
+  const { clock: time, meridiem } = splitClock(
+    formatGameClock(startsAt, locale),
+  );
   const proximity = gameDayProximity(startsAt);
   const relativeDay =
     proximity === "today"

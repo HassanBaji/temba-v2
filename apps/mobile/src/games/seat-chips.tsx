@@ -164,7 +164,7 @@ function SideSeat({
   }
   return (
     <OpenChip
-      caption={m.tournament.details.open}
+      caption={m.game.court.open}
       accessibilityLabel={m.mobileTournament.card.openSeat}
     />
   );

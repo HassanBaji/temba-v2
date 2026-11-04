@@ -2,12 +2,12 @@ import { plural } from "../../plural";
 
 export const webGame = {
   addPlayer: {
-    playsAs: "Plays as",
+    playsAs: "Role",
     preferredPosition: "Preferred position",
     side: "Side",
     position: "Position",
     adding: "Adding…",
-    phone: "Phone",
+    phone: "Phone number",
     lookingUp: "Looking up…",
     startingLevel: "Starting Level",
   },

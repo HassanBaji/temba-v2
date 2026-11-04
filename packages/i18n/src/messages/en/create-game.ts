@@ -10,6 +10,7 @@ export const createGame = {
       plural("en", n, { one: "1 Court", other: "{n} Courts" }),
   },
   typeCards: {
+    countsNote: "Friendly, but it counts toward your Level.",
     friendlyGame: {
       title: "Friendly game",
       description: "One Match. Temba fills the open seats.",
@@ -118,6 +119,8 @@ export const createGame = {
     friendlyTournament: "Friendly tournament",
   },
   side: {
+    letter: (n: number): string | undefined =>
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[n - 1],
     team: (label: string) => `Team ${label}`,
     gameTeam: "Game team",
   },

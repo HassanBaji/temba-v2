@@ -9,6 +9,7 @@ import {
   isFootballBib,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { footballSection } from "@repo/domain/football-hub";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
@@ -59,7 +60,11 @@ function Kickoff({ game }: { game: HubGameRow }) {
   const locale = useLocale();
   const m = useMessages();
   const kickoff = formatHomeKickoff(game.startTime, locale);
-  const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
+  const customName = gameCustomName(game);
+  const place = [game.venue?.name, game.courtName].filter(
+    (part): part is string => Boolean(part),
+  );
+  const day = formatGameCardDay(game.startTime, locale);
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 16 }}>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
@@ -72,10 +77,13 @@ function Kickoff({ game }: { game: HubGameRow }) {
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold" numberOfLines={2}>
-          {place.length > 0 ? place : (game.name ?? m.common.football)}
+          {customName ??
+            (place.length > 0
+              ? m.home.comingUp.parts(place)
+              : m.common.football)}
         </Text>
         <Text size="meta" tone="muted">
-          {formatGameCardDay(game.startTime, locale)}
+          {customName ? m.home.comingUp.parts([...place, day]) : day}
         </Text>
       </View>
       <SizeTag sideSize={game.football?.sideSize ?? null} />
@@ -156,12 +164,12 @@ function ResultBody({ game }: { game: HubGameRow }) {
     <>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text size="meta" tone="muted">
-          {[
-            formatDayMonth(game.startTime, locale, { weekday: "short" }),
-            game.venue?.name,
-          ]
-            .filter(Boolean)
-            .join(", ")}
+          {messages.home.comingUp.parts(
+            [
+              formatDayMonth(game.startTime, locale, { weekday: "short" }),
+              game.venue?.name,
+            ].filter((part): part is string => Boolean(part)),
+          )}
         </Text>
         <SizeTag sideSize={football.sideSize} />
       </View>
@@ -193,7 +201,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
 }
 
 function OpenBody({ game }: { game: HubGameRow }) {
-  const m = useMessages().mobileTournament.footballCard;
+  const m = useMessages().football.hub.card;
   const seats = game.playersAllowed ?? (game.football?.sideSize ?? 5) * 2;
   const taken = game.registeredUserCount;
   const open = Math.max(0, seats - taken);
@@ -204,14 +212,16 @@ function OpenBody({ game }: { game: HubGameRow }) {
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text size="meta">
           <Text size="meta" weight="semibold">
-            {m.seatsTaken(Math.min(taken, seats), seats)}
-          </Text>{" "}
-          <Text size="meta" tone="muted">
-            {open > 0 ? m.inWithOpen(open) : m.in}
+            {m.playersOf(Math.min(taken, seats), seats)}
           </Text>
+          {open > 0 ? (
+            <Text size="meta" tone="muted">
+              {m.openSpots(open)}
+            </Text>
+          ) : null}
         </Text>
         <Text size="meta" tone="muted">
-          {m.teamsNotSet}
+          {m.waitingForPlayers}
         </Text>
       </View>
     </>

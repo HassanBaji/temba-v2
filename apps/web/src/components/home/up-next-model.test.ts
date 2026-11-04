@@ -17,6 +17,7 @@ function game(overrides: Partial<UpNextGame> = {}): UpNextGame {
   return {
     id: "game-1",
     name: "Tuesday Night Padel",
+    hasCustomName: true,
     format: "friendly_game",
     registrationMode: "individual",
     sport: "padel",
@@ -145,10 +146,11 @@ describe("upNextRowView", () => {
     });
   });
 
-  it("counts a football roster instead of drawing seats", () => {
+  it("counts a football roster's open spots instead of drawing seats", () => {
     const [item] = upNextItems([
       game({
-        name: "First football",
+        name: "Thu 8:00 PM - 9:30 PM",
+        hasCustomName: false,
         sport: "football",
         registrationMode: "roster",
         courtName: null,
@@ -158,7 +160,9 @@ describe("upNextRowView", () => {
       }),
     ]);
     const row = upNextRowView(item!, NOW, "en");
-    assert.equal(row.detail, "Seef Padel Club, 7-a-side");
-    assert.deepEqual(row.trailing, { kind: "text", label: "11 of 14" });
+    assert.equal(row.title, "Seef Padel Club");
+    assert.equal(row.detail, "Football, 7-a-side");
+    assert.deepEqual(row.trailing, { kind: "text", label: "3 spots open" });
+    assert.equal(upNextRowView(item!, NOW, "ar").detail, "كرة القدم، 7 ضد 7");
   });
 });

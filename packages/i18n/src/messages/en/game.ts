@@ -19,6 +19,9 @@ export const game = {
   consequence: {
     cannotBeUndone: "This cannot be undone.",
     leaveGame: "Your spot can open for someone else.",
+    leaveGameOrganizer:
+      "You're the organizer. You keep organizing this Game after you leave your spot.",
+    closeRegistration: "Nobody else can join after this.",
     leaveWaitlist: "You'll lose your place on the Waitlist.",
     markAsNotPlayed: "No result is recorded and nobody's Level changes.",
     reportWrongScore: "The players are asked to check the score again.",
@@ -70,6 +73,11 @@ export const game = {
     shareResult: "Share result",
     waitlistLine: (place: number, ordinal: string) =>
       `You're ${ordinal} on the Waitlist`,
+    vacantSeatLineLive: (n: number) =>
+      plural("en", n, {
+        one: "Started with one spot open",
+        other: "Started with {n} spots open",
+      }),
     vacantSeatLine: (n: number) =>
       plural("en", n, {
         one: "One spot left to fill",
@@ -304,10 +312,12 @@ export const game = {
     left: "Left",
     right: "Right",
     seatNameYou: (name: string) => `${name} (You)`,
+    seatMeta: (position: string, band: string) => `${position} · ${band}`,
     figurePlayers: "Players",
     figureDuration: "Duration",
     figurePerPlayer: "Per player",
-    figurePriceNotSet: "Price not set",
+    figurePrice: "Price",
+    figurePriceNotSet: "Not set",
     scoreLockedFull: "Enter the result after the game.",
     scoreLockedOpen:
       "Opens when the court is full. Enter the result after the game.",
@@ -390,5 +400,6 @@ export const game = {
   window: {
     name: (weekday: string, start: string, finish: string) =>
       `${weekday} ${start} - ${finish}`,
+    fallbackTitle: "Game",
   },
 };

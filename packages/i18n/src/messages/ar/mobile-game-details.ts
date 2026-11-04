@@ -2,20 +2,20 @@ import { plural } from "../../plural";
 import type { mobileGameDetails as source } from "../en/mobile-game-details";
 
 export const mobileGameDetails = {
-  fallbackTitle: "لعبة",
+  fallbackTitle: "مباراة",
   listSeparator: "، ",
-  loadingGame: "جارٍ تحميل اللعبة",
-  loadFailed: "تعذّر تحميل اللعبة",
-  cancelledTitle: "أُلغيت هذه اللعبة",
+  loadingGame: "جارٍ تحميل المباراة",
+  loadFailed: "تعذّر تحميل المباراة",
+  cancelledTitle: "أُلغيت هذه المباراة",
   actionWithConsequence: (label: string, consequence: string) =>
     `${label}. ${consequence}`,
   figure: (label: string, value: string) => `${label}: ${value}`,
   unsupported: {
     title: "ليست على الجوال بعد",
-    description: "هذا النوع من الألعاب يُفتح على الويب حاليًا.",
+    description: "هذا النوع من المباريات يُفتح على الويب حاليًا.",
   },
   notFound: {
-    title: "اللعبة غير موجودة",
+    title: "المباراة غير موجودة",
     description: "ربما أُزيلت، أو ليست لديك صلاحية الوصول إليها.",
   },
   frozen: {
@@ -53,8 +53,8 @@ export const mobileGameDetails = {
     kickoff: (time: string, trailer: string) => `${time} ${trailer}`,
     directions: "الاتجاهات",
     directionsTo: (venue: string) => `الاتجاهات إلى ${venue}`,
-    shareGame: "مشاركة اللعبة",
-    gameActions: "إجراءات اللعبة",
+    shareGame: "مشاركة المباراة",
+    gameActions: "إجراءات المباراة",
   },
   levelRequest: {
     requesting: "جارٍ الإرسال…",
@@ -63,7 +63,7 @@ export const mobileGameDetails = {
     title: "التشكيلة",
     vs: "ضد",
     moveHere: "انتقل إلى هنا",
-    open: "مفتوح",
+    open: "شاغر",
     opensProfileHint: "يفتح الملف الشخصي للاعب",
     renameFor: (name: string) => `تعديل الاسم: ${name}`,
     kickName: (name: string) => `إخراج ${name}`,
@@ -72,10 +72,10 @@ export const mobileGameDetails = {
     invite: "دعوة",
   },
   addPlayer: {
-    phone: "الهاتف",
+    phone: "رقم الهاتف",
     lookingUp: "جارٍ البحث…",
     startingLevel: "المستوى الأولي",
-    playsAs: "يلعب كـ",
+    playsAs: "الدور",
     preferredPosition: "المركز المفضّل",
     side: "الجانب",
     position: "الجهة",
@@ -163,7 +163,7 @@ export const mobileGameDetails = {
     changeSeason: "تغيير الموسم",
     pickDayFirst: "اختر يومًا أولًا.",
     name: "الاسم",
-    gameName: "اسم اللعبة",
+    gameName: "اسم المباراة",
     day: "اليوم",
     startTime: "وقت البدء",
     finishTime: "وقت الانتهاء",
@@ -182,7 +182,7 @@ export const mobileGameDetails = {
     fewerPlayers: "لاعبون أقل",
     morePlayers: "لاعبون أكثر",
     aside: "لكل فريق",
-    asideValue: (n: number) => `${n} لكل فريق`,
+    asideValue: (n: number) => `${n} ضد ${n}`,
     smallerSide: "فريق أصغر",
     biggerSide: "فريق أكبر",
     priceNote: "تسري تغييرات السعر على اللاعبين الذين ينضمون من الآن فصاعدًا.",
@@ -193,7 +193,13 @@ export const mobileGameDetails = {
   },
   football: {
     seatsTaken: (filled: number, seats: number) =>
-      `شُغل ${filled} من ${seats} مقاعد`,
+      plural("ar", seats, {
+        one: `شُغل ${filled} من مكان واحد`,
+        two: `شُغل ${filled} من مكانين`,
+        few: `شُغل ${filled} من {n} أماكن`,
+        many: `شُغل ${filled} من {n} مكانًا`,
+        other: `شُغل ${filled} من {n} مكان`,
+      }),
     group: "المجموعة",
     season: "الموسم",
     pitchCost: "تكلفة الملعب",

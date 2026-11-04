@@ -69,21 +69,21 @@ export function ProfileAllTimeCard({ input }: { input: ProfileAllTimeInput }) {
               {view.matchesPlayed}
             </Text>
             <Text size="meta" tone="muted">
-              {m.mobileHome.allTime.matches}
+              {m.mobileHome.allTime.matches(view.matchesPlayed)}
             </Text>
           </View>
-          <View style={{ alignItems: "flex-end", gap: 2 }}>
-            <Text size="figure" width="expanded" weight="bold">
-              {view.record}
+          <View style={{ flexShrink: 1, alignItems: "flex-end", gap: 2 }}>
+            <Text weight="semibold">{view.record}</Text>
+            <Text size="meta" tone="muted">
+              {view.winRatePercent != null
+                ? m.mobileHome.allTime.percentWon(view.winRatePercent)
+                : view.winRateNote}
             </Text>
-            {view.winRatePercent != null ? (
-              <Text size="meta" tone="muted">
-                {m.mobileHome.allTime.percentWon(view.winRatePercent)}
-              </Text>
-            ) : null}
           </View>
         </View>
-        <MountFill percent={view.winRatePercent ?? 0} />
+        {view.winRatePercent != null ? (
+          <MountFill percent={view.winRatePercent} />
+        ) : null}
       </View>
       <Hairline />
       <StatRow label={m.profile.allTime.sets} value={view.sets} />

@@ -91,6 +91,7 @@ export const webDashboard = {
     gameCreatedToast: "Game created",
     tournamentCreatedToast: "Tournament created",
     createTournament: "Create tournament",
+    createGameAction: "Create Game",
     pickGroupFirst: "Pick a Group first. Venue rules depend on the Group.",
     noGroups: {
       title: "Games are created inside a Group",
@@ -143,6 +144,7 @@ export const webDashboard = {
     pickStartFirst: "Pick a start time first.",
     minutes: (n: number) => `${n} min`,
     setFinish: "Set",
+    endsAt: (clock: string) => `Ends ${clock}`,
     windowCopy:
       "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed.",
     gameLength: "Game length",

@@ -86,7 +86,7 @@ export function PlayedFriendlyGame({
               {
                 key: "add_player",
                 label: m.group.addPlayer.action,
-                hint: m.group.addPlayer.description,
+                hint: m.group.addPlayer.menuHint,
                 onPress: organizer.handlers.onAddPlayer,
               },
             ]
@@ -138,7 +138,7 @@ export function PlayedFriendlyGame({
       />
       <PlayedMenuSheet
         visible={menuOpen}
-        title={gameTitle(game.name, locale)}
+        title={gameTitle(game, locale)}
         items={menuItems}
         onClose={() => setMenuOpen(false)}
       />

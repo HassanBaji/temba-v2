@@ -20,6 +20,7 @@ import {
 } from "@repo/domain/group-empty-states";
 import {
   formatSeasonRange,
+  seasonDisplayName,
   seasonGamesCountedLine,
   seasonLensChips,
   seasonLockedLine,
@@ -33,10 +34,13 @@ import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import {
   paddedForm,
   standingDiffUnit,
+  standingLegend,
   standingRecordLabel,
   standingRulesLine,
+  standingShowsDraws,
   unrankedNote,
 } from "@repo/domain/season-standing";
+import { isRtl } from "@repo/i18n/locale";
 import { groupSeasonsHref, playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
@@ -135,9 +139,11 @@ function PlayerCell({
 function CountCells({
   entry,
   muted,
+  showDraws,
 }: {
   entry: StandingEntry;
   muted: boolean;
+  showDraws: boolean;
 }) {
   const count = cn(
     COL_COUNT,
@@ -149,7 +155,7 @@ function CountCells({
     <>
       <td className={count}>{entry.played}</td>
       <td className={count}>{entry.wins}</td>
-      <td className={count}>{entry.draws}</td>
+      {showDraws ? <td className={count}>{entry.draws}</td> : null}
       <td className={count}>{entry.losses}</td>
       <td
         className={cn(
@@ -168,9 +174,11 @@ function CountCells({
 function StandingRow({
   entry,
   linkToPlayers,
+  showDraws,
 }: {
   entry: StandingEntry;
   linkToPlayers: boolean;
+  showDraws: boolean;
 }) {
   const href = linkToPlayers ? playerProfilePath(entry.userId) : undefined;
   const className = cn(
@@ -199,7 +207,7 @@ function StandingRow({
           muted={!entry.ranked}
         />
       </td>
-      <CountCells entry={entry} muted={!entry.ranked} />
+      <CountCells entry={entry} muted={!entry.ranked} showDraws={showDraws} />
     </>
   );
   return href ? (
@@ -215,9 +223,11 @@ function StandingRow({
 function NotPlayedRow({
   entry,
   linkToPlayers,
+  showDraws,
 }: {
   entry: StandingEntry;
   linkToPlayers: boolean;
+  showDraws: boolean;
 }) {
   const hatched = (
     <span
@@ -238,7 +248,9 @@ function NotPlayedRow({
       </td>
       <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
       <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
-      <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
+      {showDraws ? (
+        <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
+      ) : null}
       <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
       <td className={cn(COL_POINTS, BODY_CELL)}>
         <span
@@ -254,12 +266,16 @@ function StandingTable({
   rows,
   linkToPlayers,
   notPlayedYet,
+  showDraws,
+  legend,
   footer,
 }: {
   rows: StandingEntry[];
   linkToPlayers: boolean;
   /** The lens has no result yet: rows hatch instead of counting. */
   notPlayedYet: boolean;
+  showDraws: boolean;
+  legend: string;
   footer: string;
 }) {
   const m = useMessages();
@@ -289,13 +305,15 @@ function StandingTable({
             <th scope="col" title={columns.won} className={cn(COL_COUNT, head)}>
               {columns.wonAbbrev}
             </th>
-            <th
-              scope="col"
-              title={columns.drawn}
-              className={cn(COL_COUNT, head)}
-            >
-              {columns.drawnAbbrev}
-            </th>
+            {showDraws ? (
+              <th
+                scope="col"
+                title={columns.drawn}
+                className={cn(COL_COUNT, head)}
+              >
+                {columns.drawnAbbrev}
+              </th>
+            ) : null}
             <th
               scope="col"
               title={columns.lost}
@@ -323,6 +341,7 @@ function StandingTable({
                   key={entry.userId}
                   entry={entry}
                   linkToPlayers={linkToPlayers}
+                  showDraws={showDraws}
                 />
               ))
             : null}
@@ -333,12 +352,13 @@ function StandingTable({
                   key={entry.userId}
                   entry={entry}
                   linkToPlayers={linkToPlayers}
+                  showDraws={showDraws}
                 />
               ))}
           {!notPlayedYet && unranked.length > 0 ? (
             <tr className="border-rule bg-wash border-t">
               <td
-                colSpan={7}
+                colSpan={showDraws ? 7 : 6}
                 className="text-eyebrow text-muted-foreground px-4 py-2"
               >
                 <div className="flex items-center justify-between">
@@ -356,14 +376,16 @@ function StandingTable({
                   key={entry.userId}
                   entry={entry}
                   linkToPlayers={linkToPlayers}
+                  showDraws={showDraws}
                 />
               ))
             : null}
         </tbody>
       </table>
-      <p className="border-rule text-meta text-muted-foreground border-t px-4 py-3.5">
-        {footer}
-      </p>
+      <div className="border-rule text-meta flex flex-col gap-1.5 border-t px-4 py-3.5">
+        <p>{legend}</p>
+        <p className="text-muted-foreground">{footer}</p>
+      </div>
     </div>
   );
 }
@@ -442,8 +464,13 @@ function SeasonHeader({
   const m = useMessages();
   const locale = useLocale();
   const title = (
-    <h2 className="font-expanded text-display uppercase leading-none tracking-[-0.03em]">
-      {season.name}
+    <h2
+      className={cn(
+        "font-expanded text-display leading-none tracking-[-0.03em]",
+        !isRtl(locale) && "uppercase",
+      )}
+    >
+      {seasonDisplayName(season.name, locale)}
     </h2>
   );
   const range = (
@@ -515,10 +542,12 @@ function SeasonHeader({
 function LensChips({
   seasons,
   lensId,
+  now,
   onPick,
 }: {
   seasons: StandingSeason[];
   lensId: string | null;
+  now: Date;
   onPick: (seasonId: string | null) => void;
 }) {
   const m = useMessages();
@@ -529,7 +558,7 @@ function LensChips({
       aria-label={m.webGroup.standing.seasonLens}
       className="border-rule -mx-1 flex gap-1 overflow-x-auto border-b px-1"
     >
-      {seasonLensChips(seasons, locale).map((chip) => {
+      {seasonLensChips(seasons, now, locale).map((chip) => {
         const selected = chip.seasonId === lensId;
         return (
           <button
@@ -796,6 +825,7 @@ export function GroupStandingTab({
   const counted = lensIsDefault ? gamesCounted : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
   const footer = standingRulesLine(standingDiffUnit(sport), locale);
+  const showDraws = standingShowsDraws(sport, rows);
 
   const state = groupStandingState({
     isMember,
@@ -897,6 +927,8 @@ export function GroupStandingTab({
         rows={rows}
         linkToPlayers={linkToPlayers}
         notPlayedYet={counted === 0}
+        showDraws={showDraws}
+        legend={standingLegend(showDraws, locale)}
         footer={footer}
       />
     );
@@ -908,7 +940,12 @@ export function GroupStandingTab({
         <SeasonHeader season={season} gamesCounted={counted} now={now} />
       ) : null}
       {seasons.length > 0 ? (
-        <LensChips seasons={seasons} lensId={lensId} onPick={setLensId} />
+        <LensChips
+          seasons={seasons}
+          lensId={lensId}
+          now={now}
+          onPick={setLensId}
+        />
       ) : null}
       {season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />

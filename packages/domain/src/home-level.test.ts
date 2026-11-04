@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import { homeLevelView } from "./home-level";
@@ -9,6 +10,7 @@ const base = {
   provisional: true,
   ratedMatchesRemaining: 4,
   history: ["3.1", "3.2", "3.4"],
+  historyMatchCount: 2,
   progressPercent: 16,
 } as const;
 
@@ -25,19 +27,46 @@ describe("homeLevelView", () => {
     assert.deepEqual(homeLevelView(base, "en").change, {
       direction: "up",
       amount: "0.3",
+      signedAmount: isolate("+0.3"),
       spoken: "Up",
-      windowLabel: "last 2 matches",
+      windowLabel: "in the last 2 matches",
     });
     assert.equal(
-      homeLevelView({ ...base, history: ["3.1", "3.2"] }, "en").change
-        ?.windowLabel,
-      "last 1 match",
+      homeLevelView(
+        { ...base, history: ["3.1", "3.2"], historyMatchCount: 1 },
+        "en",
+      ).change?.windowLabel,
+      "in the last match",
+    );
+  });
+
+  it("counts Rated Matches only, not Level sets, in the window", () => {
+    const view = homeLevelView(
+      { ...base, history: ["3.2", "2.9", "2.8"], historyMatchCount: 2 },
+      "ar",
+    );
+    assert.equal(view.change?.signedAmount, isolate("\u22120.4"));
+    assert.equal(view.change?.windowLabel, "في آخر مباراتين");
+    assert.equal(
+      homeLevelView(
+        { ...base, history: ["3.1", "4.0", "4.2"], historyMatchCount: 1 },
+        "en",
+      ).change?.windowLabel,
+      "in the last match",
     );
   });
 
   it("has no change line without a rated Match in the history", () => {
     assert.equal(
-      homeLevelView({ ...base, history: ["3.4"] }, "en").change,
+      homeLevelView({ ...base, history: ["3.4"], historyMatchCount: 0 }, "en")
+        .change,
+      null,
+    );
+    assert.equal(
+      homeLevelView(
+        { ...base, history: ["3.1", "4.0"], historyMatchCount: 0 },
+        "en",
+      ).change,
       null,
     );
     assert.equal(homeLevelView({ ...base, history: [] }, "en").change, null);
@@ -78,8 +107,9 @@ describe("homeLevelView", () => {
 
   it("reads the Level card in Arabic", () => {
     const view = homeLevelView(base, "ar");
-    assert.equal(view.legend.lead, "المستوى مبدئي.");
-    assert.equal(view.change?.windowLabel, "آخر مباراتين");
-    assert.equal(view.progress?.label, "16% من الطريق إلى C+");
+    assert.equal(view.legend.lead, "مستواك مبدئي.");
+    assert.equal(view.legend.rest, " العب 4 مباريات مصنّفة أخرى لتأكيده.");
+    assert.equal(view.change?.windowLabel, "في آخر مباراتين");
+    assert.equal(view.progress?.label, `16% نحو ${isolate("C+")}`);
   });
 });

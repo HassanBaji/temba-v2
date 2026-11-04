@@ -64,6 +64,7 @@ import {
   cancelGameConsequence,
   gameJoinToast,
   gameToast,
+  leaveGameOrganizerConsequence,
   teamRegisterToast,
   kickedToast,
 } from "@repo/domain/game-copy";
@@ -125,7 +126,7 @@ import {
   isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
-import { gameCustomName } from "@repo/domain/game-custom-name";
+import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
@@ -702,7 +703,7 @@ export default function GameHomePage({
     );
   }
 
-  const gameName = data.name ?? g.title;
+  const gameName = gameDisplayName(data, locale);
   const shellTitle = usesFriendlyChrome
     ? friendlyGameHomeTitle(data.groupId, data.groupName, locale)
     : g.title;
@@ -1556,11 +1557,15 @@ export default function GameHomePage({
         open={leaveGameOpen}
         onOpenChange={setLeaveGameOpen}
         title={g.leaveTitle(gameName)}
-        description={tournamentLeaveOrKickConfirmCopy({
-          partnerRequired: isPartnerRequiredGame(data),
-          drawPosted: Boolean(data.drawPostedAt),
-          locale,
-        })}
+        description={
+          usesFriendlyChrome && data.isOrganizer
+            ? leaveGameOrganizerConsequence(locale)
+            : tournamentLeaveOrKickConfirmCopy({
+                partnerRequired: isPartnerRequiredGame(data),
+                drawPosted: Boolean(data.drawPostedAt),
+                locale,
+              })
+        }
         confirmLabel={m.game.action.leaveGame}
         pending={leaveGame.isPending}
         onConfirm={async () => {

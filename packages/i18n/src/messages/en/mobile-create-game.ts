@@ -116,10 +116,11 @@ export const mobileCreateGame = {
   },
   when: {
     startTime: "Start time",
-    startNote: "30 minute steps",
     moreStartTimes: "More start times",
     duration: "Duration",
     set: "Set",
+    otherDuration: "Other",
+    endsAt: (clock: string) => `Ends ${clock}`,
     setFinishTime: "Set a finish time",
     finishTime: "Finish time",
     finish: "Finish",

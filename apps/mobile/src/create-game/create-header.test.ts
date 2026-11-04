@@ -157,7 +157,12 @@ describe("nextStepTitle", () => {
     expect(nextStepTitle("friendly_game", 1, "ar")).toBe("المكان");
     expect(
       stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "ar")?.title,
-    ).toEqual(["لعبة", "ودية"]);
+    ).toEqual(["مباراة", "ودية"]);
+    expect(stepHeader({ type: null, step: 1 }, NO_GROUP, "ar")).toEqual({
+      title: ["ماذا", "تنظّم؟"],
+      subtitle: "نبدأ بالملعب والوقت، ثم نكمل حسب اختيارك.",
+      context: null,
+    });
   });
 });
 
@@ -224,7 +229,10 @@ describe("friendlyGameTimeHeader", () => {
       title: [],
       hero: { value: "8:00", unit: "PM", trailing: "to 9:30 PM" },
       subtitle: null,
-      context: { parts: ["Tue 6 Oct 2026", "Seef Padel Club", "Court 1"] },
+      context: {
+        parts: ["Tue 6 Oct 2026", "Seef Padel Club, Court 1"],
+        stacked: true,
+      },
     });
   });
 

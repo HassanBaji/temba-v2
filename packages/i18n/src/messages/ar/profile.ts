@@ -1,4 +1,5 @@
 import type { profile as source } from "../en/profile";
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 
 export const profile = {
@@ -15,24 +16,24 @@ export const profile = {
     right: "يمين",
     either: "أي جهة",
     line: {
-      left: "الجهة اليسرى",
-      right: "الجهة اليمنى",
-      either: "أي جهة",
+      left: "يلعب على اليسار",
+      right: "يلعب على اليمين",
+      either: "يلعب على أي جهة",
     },
     note: {
-      unset: "غير محدد. نبدأ بك على اليسار عند التسجيل مع شريك.",
-      left: "نبدأ بك على اليسار عند التسجيل مع شريك.",
-      right: "نبدأ بك على اليمين عند التسجيل مع شريك.",
+      unset: "غير محدد. عند التسجيل مع شريك، نضعك على اليسار تلقائيًا.",
+      left: "عند التسجيل مع شريك، نضعك على اليسار تلقائيًا.",
+      right: "عند التسجيل مع شريك، نضعك على اليمين تلقائيًا.",
       either: "أي جهة. تفضيل شريكك هو ما يحدد.",
     },
   },
   player: {
     refusedTitle: "هذا الملف الشخصي غير متاح",
-    refusedDescription: "يمكنك رؤية من تشاركهم مجموعة أو لعبة.",
+    refusedDescription: "يمكنك رؤية من تشاركهم مجموعة أو مباراة.",
     headerSubtitle: (sport: string, venue: string) =>
       `${sport}، يلعب في ${venue}`,
     overall: "الإجمالي",
-    allTime: "كل الأوقات",
+    allTime: "الإجمالي",
     matches: "المباريات",
     won: "الفوز",
     winRate: "نسبة الفوز",
@@ -57,7 +58,7 @@ export const profile = {
   },
   football: {
     startingLevel: "المستوى الابتدائي",
-    startingLevelNote: "ألعاب كرة القدم لا تحرّكه بعد",
+    startingLevelNote: "مباريات كرة القدم لا تحرّكه بعد",
     keeper: "حارس",
     outfield: "لاعب ميدان",
     goalsScored: (n: number) =>
@@ -71,18 +72,24 @@ export const profile = {
     scored: (goals: string) => `سجّل ${goals}`,
   },
   level: {
-    footballStartingCaption: "المستوى الابتدائي. ألعاب كرة القدم لا تحرّكه بعد",
+    movement: {
+      up: "تقدّم بعد آخر مباراة",
+      down: "تراجع بعد آخر مباراة",
+      held: "ثابت بعد آخر مباراة",
+    },
+    footballStartingCaption:
+      "المستوى الابتدائي. مباريات كرة القدم لا تحرّكه بعد",
     confirmProgress: (count: number, total: number) =>
       plural("ar", total, {
-        one: `${count} من نحو لعبة مصنّفة واحدة للتأكيد`,
-        two: `${count} من نحو لعبتين مصنّفتين للتأكيد`,
-        few: `${count} من نحو {n} ألعاب مصنّفة للتأكيد`,
-        many: `${count} من نحو {n} لعبة مصنّفة للتأكيد`,
-        other: `${count} من نحو {n} لعبة مصنّفة للتأكيد`,
+        one: `${count} من مباراة مصنّفة واحدة لتأكيد مستواك`,
+        two: `${count} من مباراتين مصنّفتين لتأكيد مستواك`,
+        few: `${count} من {n} مباريات مصنّفة لتأكيد مستواك`,
+        many: `${count} من {n} مباراة مصنّفة لتأكيد مستواك`,
+        other: `${count} من {n} مباراة مصنّفة لتأكيد مستواك`,
       }),
     topBand: "أعلى فئة مستوى",
     progressTo: (percent: number, next: string) =>
-      `${percent}% من الطريق إلى ${next}`,
+      `${percent}% نحو ${isolate(next)}`,
   },
   levelCard: {
     noLevelYet: "لا مستوى بعد",
@@ -106,7 +113,7 @@ export const profile = {
       `المستوى ${band} ${level}. ${details}`,
   },
   matches: {
-    friendlyGame: "لعبة ودية",
+    friendlyGame: "مباراة ودية",
     friendlyTournament: "بطولة ودية",
     americano: "أمريكانو",
     tournamentRound: (name: string, round: string) => `${name}، ${round}`,
@@ -133,26 +140,26 @@ export const profile = {
     ratingDown: (amount: string) => `التصنيف انخفض ${amount}`,
   },
   lastTen: {
-    noGamesYet: "لا ألعاب بعد.",
+    noGamesYet: "لا مباريات بعد.",
     record: (won: number, lost: number) => `${won} فوز، ${lost} خسارة`,
     recordWithDrawn: (won: number, lost: number, drawn: number) =>
       `${won} فوز، ${lost} خسارة، ${drawn} تعادل`,
     latest: "الأحدث",
     seeAllGames: (n: number) =>
       plural("ar", n, {
-        one: "عرض اللعبة الوحيدة",
-        two: "عرض اللعبتين",
-        few: "عرض الألعاب الـ{n} كلها",
-        many: "عرض الألعاب الـ{n} كلها",
-        other: "عرض الألعاب الـ{n} كلها",
+        one: "عرض المباراة الوحيدة",
+        two: "عرض المباراتين",
+        few: "عرض المباريات الـ{n} كلها",
+        many: "عرض المباريات الـ{n} كلها",
+        other: "عرض المباريات الـ{n} كلها",
       }),
-    filterEmpty: "لا ألعاب هنا.",
+    filterEmpty: "لا مباريات هنا.",
     chipAll: (n: number) => `الكل ${n}`,
     chipWon: (n: number) => `فوز ${n}`,
     chipLost: (n: number) => `خسارة ${n}`,
   },
   matchSheet: {
-    openGame: "فتح اللعبة",
+    openGame: "فتح المباراة",
     playerLevel: (name: string, level: string) => `${name}، المستوى ${level}`,
     playerProvisional: (name: string) => `${name}، المستوى ما زال مبدئيًا`,
     ratingOf: (name: string) => `تصنيف ${name}`,
@@ -170,6 +177,7 @@ export const profile = {
     sets: "الأشواط",
     mostPlayedTeammate: "الزميل الأكثر لعبًا معه",
     mostPlayedPartner: "الشريك الأكثر لعبًا معه",
+    record: (won: number, lost: number) => `${won} فوز، ${lost} خسارة`,
   },
   checklist: {
     tasks: {
@@ -190,13 +198,13 @@ export const profile = {
       },
       sports: {
         title: "اختر رياضاتك ومستواك",
-        description: "يفتح لك الألعاب المناسبة والتصنيف.",
+        description: "يفتح لك المباريات المناسبة والتصنيف.",
         time: "دقيقتان",
       },
     },
     countOf: (done: number, total: number) => `${done} من ${total}`,
     allDone:
-      "اكتمل كل شيء. يرى المنظّمون ملفًا كاملًا وتُطابَق ألعابك مع مستواك.",
+      "اكتمل كل شيء. يرى المنظّمون ملفًا كاملًا وتُطابَق مبارياتك مع مستواك.",
     shortTasks: (n: number) =>
       plural("ar", n, {
         one: "مهمة قصيرة واحدة بأي ترتيب. كل واحدة تفتح لك شيئًا.",
@@ -213,8 +221,8 @@ export const profile = {
         many: "بقيت {n} مهمة. بأي ترتيب، كل واحدة تُحفظ وحدها.",
         other: "بقيت {n} مهمة. بأي ترتيب، كل واحدة تُحفظ وحدها.",
       }),
-    findGames: "ابحث عن ألعاب",
-    continueToGames: "تابع إلى الألعاب",
+    findGames: "ابحث عن مباريات",
+    continueToGames: "تابع إلى المباريات",
     moreTasks: (n: number) =>
       plural("ar", n, {
         one: "مهمة أخرى",

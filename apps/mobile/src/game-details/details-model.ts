@@ -1,5 +1,9 @@
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { friendlyGameResultsSaveSets } from "@repo/domain/friendly-game-results";
+import {
+  gameDisplayName,
+  type GameDisplayNameInput,
+} from "@repo/domain/game-custom-name";
 import { defaultJoinSeat } from "@repo/domain/preferred-seat";
 import { gameDetailsChrome } from "@repo/domain/tournament-home";
 import type { Locale } from "@repo/i18n/locale";
@@ -25,8 +29,8 @@ export function unsupportedFormatCopy(locale: Locale) {
   return messagesFor(locale).mobileGameDetails.unsupported;
 }
 
-export function gameTitle(name: string | null, locale: Locale) {
-  return name ?? messagesFor(locale).mobileGameDetails.fallbackTitle;
+export function gameTitle(game: GameDisplayNameInput, locale: Locale) {
+  return gameDisplayName(game, locale);
 }
 
 export type SeatSelection = {

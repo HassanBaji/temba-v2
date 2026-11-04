@@ -4,6 +4,11 @@ import { homeComingUpRows } from "@repo/domain/home-coming-up";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
+  homeGameKind,
+  homeHeroTitle,
+  homeHeroUntil,
+} from "@repo/domain/home-game-lines";
+import {
   homeNextGameActions,
   homeNextGameStatus,
 } from "@repo/domain/home-next-game";
@@ -19,12 +24,7 @@ import {
 } from "lucide-react-native";
 import { Pressable, Share, View } from "react-native";
 
-import {
-  bookingShareMessage,
-  minutesBetween,
-  relativeDay,
-  untilLabel,
-} from "../booking/booking-model";
+import { bookingShareMessage, relativeDay } from "../booking/booking-model";
 import { CardAction, nextActionButton } from "../booking/booking-cards";
 import { nextBookingAction, startsInLabel } from "../booking/my-bookings-model";
 import { useNow } from "../games/use-now";
@@ -83,6 +83,7 @@ export function UpNextHeading({ label }: { label: string }) {
 }
 
 function Chip({ sport, kind }: { sport: Sport; kind: string }) {
+  const m = useMessages();
   const locale = useLocale();
   return (
     <View
@@ -102,7 +103,7 @@ function Chip({ sport, kind }: { sport: Sport; kind: string }) {
       <Text size="eyebrow" mono uppercase>
         {sportLabel(sport, locale)}
         <Text size="eyebrow" mono uppercase style={{ color: colors.dim }}>
-          {` / ${kind}`}
+          {m.mobileHome.upNext.withEmphasis(kind)}
         </Text>
       </Text>
     </View>
@@ -120,7 +121,7 @@ function HeroFrame({
 }: {
   sport: Sport;
   kind: string;
-  when: { day: string; emphasis: string | null };
+  when: { day: string | null; emphasis: string | null };
   spoken: string;
   onPress: () => void;
   children: React.ReactNode;
@@ -152,7 +153,9 @@ function HeroFrame({
             {when.day}
             {when.emphasis ? (
               <Text size="meta">
-                {m.mobileHome.upNext.withEmphasis(when.emphasis)}
+                {when.day
+                  ? m.mobileHome.upNext.withEmphasis(when.emphasis)
+                  : when.emphasis}
               </Text>
             ) : null}
           </Text>
@@ -182,7 +185,6 @@ function Kickoff({
   startsAt: Date;
   endsAt: Date | null;
 }) {
-  const m = useMessages();
   const locale = useLocale();
   const kickoff = formatHomeKickoff(startsAt, locale);
   return (
@@ -206,11 +208,7 @@ function Kickoff({
       </View>
       {endsAt ? (
         <Text size="meta" style={{ color: colors.dim }}>
-          {untilLabel(endsAt, locale)}
-          <Text size="meta" style={{ color: colors.dimrule }}>
-            {" / "}
-          </Text>
-          {m.mobileHome.upNext.minutes(minutesBetween(startsAt, endsAt))}
+          {homeHeroUntil(startsAt, endsAt, locale)}
         </Text>
       ) : null}
     </View>
@@ -390,31 +388,27 @@ function GameHero({
     hasOpenSeat: seats.some((seat) => !seat.filled),
     locale,
   });
-  const status =
-    game.phase === "upcoming"
+  const live =
+    game.phase === "ongoing" ||
+    (game.phase === "upcoming" &&
+      startsAt.getTime() <= now.getTime() &&
+      (endsAt == null || endsAt.getTime() > now.getTime()));
+  const status = live
+    ? m.home.nextGame.playingNow
+    : game.phase === "upcoming"
       ? (startsInLabel(startsAt, endsAt ?? startsAt, now, locale) ??
         homeNextGameStatus(game.phase, startsAt, now, locale))
       : homeNextGameStatus(game.phase, startsAt, now, locale);
-  const title =
-    game.name ??
-    game.groupName ??
-    game.venue?.name ??
-    m.mobileHome.upNext.kind.game;
+  const title = homeHeroTitle(game, locale);
   const place = m.mobileHome.join.parts(
     [game.venue?.name, game.courtName].filter(isPresent),
-  );
-  const venueLine = m.mobileHome.join.parts(
-    [
-      game.venue?.name === title ? null : game.venue?.name,
-      game.courtName,
-    ].filter(isPresent),
   );
 
   return (
     <HeroFrame
       sport={item.sport}
-      kind={m.mobileHome.upNext.kind.game}
-      when={{ day, emphasis: status }}
+      kind={homeGameKind(game.format, locale)}
+      when={{ day: live ? null : day, emphasis: status }}
       spoken={m.mobileHome.upNext.gameHeroSpoken(
         title,
         day,
@@ -446,7 +440,7 @@ function GameHero({
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Headline title={title} detail={venueLine || null} pin />
+      <Headline title={title} detail={place || null} pin />
       {game.rated ? null : (
         <Text size="meta" weight="semibold">
           {unratedLabel(locale)}

@@ -17,7 +17,7 @@ describe("visibleTabs", () => {
   it("reads the titles from the Arabic catalog", () => {
     expect(visibleTabs(messagesFor("ar")).map((tab) => tab.title)).toEqual([
       "الرئيسية",
-      "الألعاب",
+      "المباريات",
       "حجز",
       "المجموعات",
       "الملف الشخصي",

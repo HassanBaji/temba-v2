@@ -24,6 +24,8 @@ import { ProfileView } from "./profile-view";
 import { useProfilePhoto } from "./use-profile-photo";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
+/** The Profile's Level, form and all-time cards all read padel. */
+const PROFILE_SPORT = "padel";
 
 export function ProfileScreen() {
   const m = useMessages();
@@ -38,13 +40,16 @@ export function ProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const [optimistic, setOptimistic] = useState<PreferredPosition | undefined>();
 
-  const rating = api.ratings.me.useQuery(undefined, REFETCH_ON_FOREGROUND);
+  const rating = api.ratings.me.useQuery(
+    { sport: PROFILE_SPORT },
+    REFETCH_ON_FOREGROUND,
+  );
   const stats = api.users.profileStats.useQuery(
-    undefined,
+    { sport: PROFILE_SPORT },
     REFETCH_ON_FOREGROUND,
   );
   const history = api.games.listMyMatchHistory.useQuery(
-    { limit: RECENT_FORM_MATCH_COUNT },
+    { limit: RECENT_FORM_MATCH_COUNT, sport: PROFILE_SPORT },
     REFETCH_ON_FOREGROUND,
   );
   const onboarding = api.users.onboardingState.useQuery(

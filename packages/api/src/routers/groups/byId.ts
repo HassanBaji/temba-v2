@@ -129,6 +129,10 @@ function slotUserIds(team: GroupSlotTeam): string[] {
 export type GroupPlayedGame = {
   id: string;
   name: string | null;
+  hasCustomName: boolean;
+  format: string;
+  windowStart: Date | null;
+  windowEnd: Date | null;
   venueName: string | null;
   displayTime: Date;
   cancelled: boolean;
@@ -213,6 +217,7 @@ function toGroupPlayedGame(
   game: {
     id: string;
     name: string | null;
+    hasCustomName: boolean;
     groupId: string | null;
     cancelledAt: Date | null;
     windowStart: Date | null;
@@ -240,6 +245,10 @@ function toGroupPlayedGame(
   return {
     id: game.id,
     name: game.name,
+    hasCustomName: game.hasCustomName,
+    format: game.format,
+    windowStart: game.windowStart,
+    windowEnd: game.windowEnd,
     venueName: game.venue?.name ?? null,
     displayTime: played?.match.startTime ?? gameListTime(game),
     cancelled: game.cancelledAt !== null,

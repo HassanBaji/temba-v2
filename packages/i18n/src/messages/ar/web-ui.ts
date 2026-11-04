@@ -11,13 +11,13 @@ export const webUi = {
     venueConsole: "لوحة النادي",
   },
   pageTitle: {
-    lastTenGames: "آخر 10 ألعاب",
+    lastTenGames: "آخر 10 مباريات",
     player: "اللاعب",
     createGroup: "إنشاء مجموعة",
     createCommunity: "إنشاء مجتمع",
     createTeam: "إنشاء فريق",
     createVenue: "إنشاء نادٍ",
-    createGame: "إنشاء لعبة",
+    createGame: "إنشاء مباراة",
     newSeason: "موسم جديد",
     editGroup: "تعديل المجموعة",
     seasons: "المواسم",
@@ -25,7 +25,7 @@ export const webUi = {
     community: "المجتمع",
     team: "الفريق",
     venue: "النادي",
-    game: "اللعبة",
+    game: "المباراة",
     myTeams: "فرقي",
   },
   sidebar: {
@@ -100,7 +100,7 @@ export const webUi = {
     community: "مجتمع",
     group: "مجموعة",
     team: "فريق",
-    game: "لعبة",
+    game: "مباراة",
   },
   player: {
     preferredPosition: "الجهة المفضّلة",
@@ -110,10 +110,10 @@ export const webUi = {
     bestStreak: "أفضل سلسلة",
     level: "المستوى",
     provisional: "مبدئي",
-    lastTenGames: "آخر 10 ألعاب",
+    lastTenGames: "آخر 10 مباريات",
     sets: (games: string[]) => `الأشواط: ${games.join("، ")}`,
-    filterGames: "تصفية الألعاب",
-    gamesLoadError: "تعذّر تحميل الألعاب",
+    filterGames: "تصفية المباريات",
+    gamesLoadError: "تعذّر تحميل المباريات",
     profileLoadError: "تعذّر تحميل الملف الشخصي",
   },
   notificationBell: {
@@ -184,7 +184,13 @@ export const webUi = {
   },
   password: {
     hint: (min: number) =>
-      `${min} أحرف على الأقل. أضف رقمًا أو رمزًا لتكون قوية.`,
+      plural("ar", min, {
+        one: `حرف واحد على الأقل. أضف رقمًا أو رمزًا لتكون قوية.`,
+        two: `حرفان على الأقل. أضف رقمًا أو رمزًا لتكون قوية.`,
+        few: `{n} أحرف على الأقل. أضف رقمًا أو رمزًا لتكون قوية.`,
+        many: `{n} حرفًا على الأقل. أضف رقمًا أو رمزًا لتكون قوية.`,
+        other: `{n} حرف على الأقل. أضف رقمًا أو رمزًا لتكون قوية.`,
+      }),
     tooShort: "قصيرة جدًا",
     weak: "ضعيفة",
     fair: "مقبولة",

@@ -24,7 +24,9 @@ export function ProfileFormCard({ bars }: { bars: RecentFormBar[] }) {
         {bars.map((bar, index) => (
           <FormSlot
             key={
-              bar.kind === "played" ? `${bar.label}-${index}` : `empty-${index}`
+              bar.kind === "played"
+                ? `${bar.outcome}-${index}`
+                : `empty-${index}`
             }
             bar={bar}
             size="compact"

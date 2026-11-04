@@ -22,7 +22,7 @@ describe("groupHomeHeader", () => {
       name: "Bromma Tuesday",
       imageUri:
         "https://api.example.com/api/media/group-images/group-bromma/image?v=1",
-      meta: "Padel, 4 members, season since Jan",
+      meta: "Padel, 4 members, since Jan",
     });
   });
 });

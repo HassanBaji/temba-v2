@@ -91,7 +91,7 @@ describe("footballSection", () => {
 
   it("titles the sections and sport filters in Arabic", () => {
     const sections = footballSections([football()], NOW, "ar");
-    expect(sections[0]?.title).toBe("مقاعد شاغرة");
+    expect(sections[0]?.title).toBe("أماكن شاغرة");
     expect(sections[0]?.meta).toBe("الفرق غير جاهزة");
     expect(sportFilters("ar").map((filter) => filter.label)).toEqual([
       "الكل",

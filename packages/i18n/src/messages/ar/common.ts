@@ -55,7 +55,7 @@ export const common = {
   signUp: "إنشاء حساب",
   signOut: "تسجيل الخروج",
   home: "الرئيسية",
-  games: "الألعاب",
+  games: "المباريات",
   book: "حجز",
   groups: "المجموعات",
   communities: "المجتمعات",

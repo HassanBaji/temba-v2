@@ -17,7 +17,7 @@ import {
   type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
-import { groupJoiningFooter } from "@repo/domain/group-settings";
+import { groupJoiningToggleHelp } from "@repo/domain/group-settings";
 import { DEFAULT_SPORT, SPORTS, type Sport } from "@repo/domain/sport";
 import {
   fieldErrorMessage,
@@ -204,6 +204,9 @@ export function GroupCreateForm({
             onSelect={setPickedSport}
             disabled={pending}
           />
+          <p className="text-eyebrow text-muted-foreground">
+            {screen.sportHelp}
+          </p>
         </FormBlock>
       ) : null}
 
@@ -235,12 +238,7 @@ export function GroupCreateForm({
           <ToggleCard
             id={ids.approval}
             title={joining.toggle}
-            help={joining.toggleHelp}
-            footer={groupJoiningFooter({
-              visibility: type,
-              requiresApproval,
-              locale,
-            })}
+            help={groupJoiningToggleHelp({ requiresApproval, locale })}
             checked={requiresApproval}
             onCheckedChange={setRequiresApproval}
             disabled={pending}

@@ -21,6 +21,10 @@ const member = (id: string, name: string, isViewer = false) => ({
 function row(overrides: Partial<HistoryRowInput> = {}): HistoryRowInput {
   return {
     name: null,
+    hasCustomName: false,
+    format: "friendly_game",
+    windowStart: null,
+    windowEnd: null,
     sport: "padel",
     groupName: " Tuesday ",
     venue: { name: "Padelhuset" },
@@ -196,6 +200,18 @@ describe("matchHistoryCardModel", () => {
     const named = matchHistoryCardModel(row({ name: "Cup" }), "en");
     assert.ok(named.meta.endsWith(", Padelhuset · Cup"));
     assert.equal(named.place, "Padelhuset · Cup");
+  });
+
+  it("names a Game by its window in the viewer's locale", () => {
+    const model = matchHistoryCardModel(
+      row({
+        name: "Wed 10:30 AM - 12:00 PM",
+        windowStart: "2026-11-04T07:30:00.000Z",
+        windowEnd: "2026-11-04T09:00:00.000Z",
+      }),
+      "ar",
+    );
+    assert.ok(model.place.endsWith("الأربعاء، 10:30 ص – 12:00 م"));
   });
 
   it("marks an unrated Match on the place line", () => {

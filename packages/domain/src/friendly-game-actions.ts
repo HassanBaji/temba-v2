@@ -145,7 +145,11 @@ export function friendlyGameCtaCopy(
     case "upcoming":
       return {
         title: m.cta.youreIn,
-        subline: friendlyGameVacantSeatLine(family.vacantSeatCount, locale),
+        subline: friendlyGameVacantSeatLine(
+          family.vacantSeatCount,
+          family.live,
+          locale,
+        ),
         actionLabel: family.showInvite ? m.cta.inviteAPlayer : null,
         pendingLabel: null,
       };

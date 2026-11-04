@@ -63,23 +63,23 @@ export function ProfileAllTimeCard({
               {view.matchesPlayed}
             </p>
             <p className="text-meta text-muted-foreground pb-[3px]">
-              {copy.matches}
+              {copy.matches(view.matchesPlayed)}
             </p>
           </div>
-          <div className="text-end">
-            <p className="font-expanded text-[20px] tabular-nums">
+          <div className="min-w-0 text-end">
+            <p className="text-body font-semibold tabular-nums">
               {view.record}
             </p>
-            {pct != null ? (
-              <p className="text-eyebrow text-muted-foreground">
-                {copy.percentWon(pct)}
-              </p>
-            ) : null}
+            <p className="text-eyebrow text-muted-foreground">
+              {pct != null ? copy.percentWon(pct) : view.winRateNote}
+            </p>
           </div>
         </div>
-        <div className="bg-wash mt-4 flex h-1.5 overflow-hidden rounded-[3px]">
-          <div className="bg-ink h-full" style={{ width: `${pct ?? 0}%` }} />
-        </div>
+        {pct != null ? (
+          <div className="bg-wash mt-4 flex h-1.5 overflow-hidden rounded-[3px]">
+            <div className="bg-ink h-full" style={{ width: `${pct}%` }} />
+          </div>
+        ) : null}
       </div>
       <div className="border-rule divide-rule divide-y border-t">
         <div className="flex items-center justify-between px-5 py-[14px]">

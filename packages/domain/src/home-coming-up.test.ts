@@ -264,9 +264,9 @@ describe("homeComingUpSeatBars", () => {
   it("speaks the open seats in Arabic", () => {
     assert.equal(
       homeComingUpSeatBars({ seatsTaken: 1, seatsTotal: 4 }, "ar").spokenLabel,
-      "3 مقاعد شاغرة",
+      "3 أماكن شاغرة",
     );
     const [row] = homeComingUpRows([friendly({ venue: null })], "ar");
-    assert.equal(row?.kind === "game" ? row.venueName : null, "لعبة");
+    assert.equal(row?.kind === "game" ? row.venueName : null, "مباراة");
   });
 });

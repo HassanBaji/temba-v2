@@ -39,6 +39,8 @@ const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
 
 type Row = {
   label: string;
+  hint?: string | null;
+  disabled?: boolean;
   icon: LucideIcon;
   href?: string;
   onSelect?: () => void;
@@ -50,6 +52,7 @@ export function GroupHomeOverflowMenu({
   groupId,
   groupName,
   roleLine,
+  leaveBlockedHint,
   communityId,
   communityName,
   venueName,
@@ -66,6 +69,8 @@ export function GroupHomeOverflowMenu({
   groupId: string;
   groupName: string;
   roleLine: string | null;
+  /** Why Leave is disabled, or `null` when the viewer may leave. */
+  leaveBlockedHint: string | null;
   communityId: string | null;
   communityName: string | null;
   venueName: string | null;
@@ -157,12 +162,15 @@ export function GroupHomeOverflowMenu({
       case "leave":
         return {
           label: groupMenuLabel("leave", locale),
+          hint: leaveBlockedHint,
+          disabled: leaveBlockedHint != null,
           icon: LogOutIcon,
           onSelect: onLeave,
         };
       case "delete":
         return {
           label: m.group.settings.delete.deleteLabel,
+          hint: m.group.settings.edit.deleteHint,
           icon: Trash2Icon,
           onSelect: onDelete,
         };
@@ -226,6 +234,8 @@ export function GroupHomeOverflowMenu({
                   <SheetMenuRow
                     key={row.item}
                     label={row.label}
+                    hint={row.hint}
+                    disabled={row.disabled}
                     icon={row.icon}
                     trailing={DESTRUCTIVE.has(row.item) ? undefined : "chevron"}
                     tone={DESTRUCTIVE.has(row.item) ? "danger" : "default"}

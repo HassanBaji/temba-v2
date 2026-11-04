@@ -244,6 +244,7 @@ function GamesHubTabPanel({
             key={game.matchId ?? game.id}
             gameId={game.id}
             name={game.name}
+            hasCustomName={game.hasCustomName}
             startTime={game.startTime}
             groupName={game.groupName}
             format={game.format}

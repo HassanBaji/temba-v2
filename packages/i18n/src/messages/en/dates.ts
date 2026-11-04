@@ -19,9 +19,13 @@ export const dates = {
     inMinutes: (minutes: number) => `in ${minutes}m`,
     inHoursMinutes: (hours: number, minutes: number) =>
       `in ${hours}h ${minutes}m`,
-    startingNow: "Starting now",
+    startsIn: (countdown: string) => `Starts ${countdown}`,
+    liveNow: "Live now",
+    endedEnterScore: "Ended, enter the score",
     until: (clock: string) => `until ${clock}`,
-    meridiemUntil: (meridiem: string, clock: string) =>
-      `${meridiem} until ${clock}`,
+    meridiemUntil: (
+      meridiem: string,
+      end: { clock: string; meridiem: string },
+    ) => `${meridiem} until ${end.clock}`,
   },
 };

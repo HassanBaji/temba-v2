@@ -5,6 +5,7 @@ import {
 } from "@repo/domain/booking-copy";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { courtFace } from "@repo/domain/court-sport-copy";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments } from "expo-router";
@@ -304,9 +305,7 @@ function GameBlock({
             <Text size="eyebrow" mono uppercase tone="muted">
               {m.mobileBooking.detail.game}
             </Text>
-            <Text weight="semibold">
-              {game.name ?? m.mobileBooking.detail.yourGame}
-            </Text>
+            <Text weight="semibold">{gameDisplayName(game, locale)}</Text>
           </View>
           <Text size="meta" tone="muted">
             {unratedLabel(locale)}

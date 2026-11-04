@@ -15,18 +15,18 @@ export const mobileGroup = {
     group: "تعذّر تحميل المجموعة",
     standing: "تعذّر تحميل الترتيب",
     level: "تعذّر تحميل المستوى",
-    moreGames: "تعذّر تحميل مزيد من الألعاب.",
+    moreGames: "تعذّر تحميل مزيد من المباريات.",
   },
   list: {
     tabs: { mine: "مجموعاتي", public: "عامة" },
     loading: "جارٍ تحميل المجموعات",
-    nextGame: "اللعبة القادمة",
+    nextGame: "المباراة القادمة",
     yourFormHere: "أداؤك الأخير هنا",
     filterBySport: "تصفية حسب الرياضة",
     rowNextGame: (name: string, meta: string, weekday: string) =>
-      `${name}، ${meta}، اللعبة القادمة ${weekday}`,
+      `${name}، ${meta}، المباراة القادمة ${weekday}`,
     rowNoGame: (name: string, meta: string) =>
-      `${name}، ${meta}، لا لعبة مجدولة`,
+      `${name}، ${meta}، لا مباراة مجدولة`,
     empty: {
       standing: "الترتيب",
       browsePublic: "تصفّح المجموعات العامة",
@@ -35,7 +35,7 @@ export const mobileGroup = {
     },
   },
   home: {
-    tabs: { standing: "الترتيب", games: "الألعاب", members: "الأعضاء" },
+    tabs: { standing: "الترتيب", games: "المباريات", members: "الأعضاء" },
     notFound: {
       title: "المجموعة غير موجودة",
       description: "ربما أُزيلت، أو ليس لديك صلاحية الوصول.",
@@ -62,15 +62,35 @@ export const mobileGroup = {
       record: string,
       points: number,
     ) =>
-      `${position}. ${name}. لعب ${played}، ${record} فوز تعادل خسارة، ${points} نقطة.`,
+      `${position}. ${name}. لعب ${played}، ${record} فوز تعادل خسارة، ${plural(
+        "ar",
+        points,
+        {
+          one: "نقطة واحدة",
+          two: "نقطتان",
+          few: "{n} نقاط",
+          many: "{n} نقطة",
+          other: "{n} نقطة",
+        },
+      )}.`,
     unrankedRow: (
       name: string,
       played: number,
       record: string,
       points: number,
     ) =>
-      `غير مرتّب. ${name}. لعب ${played}، ${record} فوز تعادل خسارة، ${points} نقطة.`,
-    stats: { gamesPlayed: "ألعاب ملعوبة", awaitingScore: "بانتظار النتيجة" },
+      `غير مرتّب. ${name}. لعب ${played}، ${record} فوز تعادل خسارة، ${plural(
+        "ar",
+        points,
+        {
+          one: "نقطة واحدة",
+          two: "نقطتان",
+          few: "{n} نقاط",
+          many: "{n} نقطة",
+          other: "{n} نقطة",
+        },
+      )}.`,
+    stats: { gamesPlayed: "مباريات ملعوبة", awaitingScore: "بانتظار النتيجة" },
     statLabel: (value: number, label: string) => `${value} ${label}`,
     notMember: {
       title: "انضم لترى ترتيبك",
@@ -81,13 +101,13 @@ export const mobileGroup = {
     pointsSuffix: " نقطة",
     final: "نهائي",
     seasonProgress: "تقدّم الموسم",
-    openSeat: "مقعد شاغر",
+    openSeat: "مكان شاغر",
     invite: "دعوة",
-    createFirstGame: "أنشئ اللعبة الأولى",
+    createFirstGame: "أنشئ المباراة الأولى",
   },
   games: {
-    emptyTitle: "لا ألعاب بعد",
-    nextGame: "اللعبة القادمة",
+    emptyTitle: "لا مباريات بعد",
+    nextGame: "المباراة القادمة",
     notScheduled: "غير مجدولة",
     when: "متى",
     where: "أين",
@@ -95,9 +115,9 @@ export const mobileGroup = {
     enter: "إدخال",
     noScoreYet: "لا نتيجة بعد، أدخلها",
     scheduled: "مجدولة",
-    played: "ملعوبة",
-    scheduledEmpty: "لا ألعاب قادمة مجدولة لهذه المجموعة.",
-    playedEmpty: "لا سجل ألعاب بعد.",
+    played: "سابقة",
+    scheduledEmpty: "لا مباريات قادمة مجدولة لهذه المجموعة.",
+    playedEmpty: "لا سجل مباريات بعد.",
     loadMore: "تحميل المزيد",
     row: (mark: string, title: string, subtitle: string, trailing: string) =>
       `${mark}. ${title}. ${subtitle}. ${trailing}`,
@@ -165,7 +185,14 @@ export const mobileGroup = {
   form: {
     changePhoto: "تغيير الصورة",
     addPhoto: "إضافة صورة",
-    nameCounter: (count: number, max: number) => `${count} من ${max} حرفًا`,
+    nameCounter: (count: number, max: number) =>
+      plural("ar", max, {
+        one: `${count} من حرف واحد`,
+        two: `${count} من حرفين`,
+        few: `${count} من {n} أحرف`,
+        many: `${count} من {n} حرفًا`,
+        other: `${count} من {n} حرف`,
+      }),
     sportChoice: (sport: string, sublabel: string) => `${sport}، ${sublabel}`,
     lockedSport: (sport: string, help: string) => `الرياضة ${sport}. ${help}`,
     sportNotSet: "غير محددة",

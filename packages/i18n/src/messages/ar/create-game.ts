@@ -29,15 +29,16 @@ export const createGame = {
       }),
   },
   typeCards: {
+    countsNote: "ودية، لكنها تُحتسب في مستواك.",
     friendlyGame: {
-      title: "لعبة ودية",
-      description: "مباراة واحدة. Temba يملأ المقاعد الشاغرة.",
-      rating: "تُحتسب في تصنيفك",
+      title: "مباراة ودية",
+      description: "مباراة واحدة، ويساعدك Temba في ملء الأماكن الشاغرة.",
+      rating: "تُحتسب في مستواك",
     },
     friendlyTournament: {
       title: "بطولة ودية",
-      description: "عدة فرق في يوم واحد.",
-      rating: "تُحتسب في تصنيفك",
+      description: "عدة فرق تتنافس في يوم واحد.",
+      rating: "تُحتسب في مستواك",
     },
   },
   steps: {
@@ -49,7 +50,7 @@ export const createGame = {
     entryAndReview: "الاشتراك والمراجعة",
     sizeAndPrice: "الحجم والسعر",
   },
-  openSeats: "4 مقاعد شاغرة",
+  openSeats: "4 أماكن شاغرة",
   tournamentFormat: "النظام",
   knockout: "خروج المغلوب",
   knockoutOnly: "خروج المغلوب فقط",
@@ -91,7 +92,7 @@ export const createGame = {
     skipPitch: "تخطَّ الملعب.",
     skipCourt: "تخطَّ الملعب.",
     lockedArchived: (skip: string) =>
-      `النادي المرتبط بهذا المجتمع مؤرشف. ما زال بإمكانك إنشاء هذه اللعبة هنا. ${skip}`,
+      `النادي المرتبط بهذا المجتمع مؤرشف. ما زال بإمكانك إنشاء هذه المباراة هنا. ${skip}`,
     lockedLinked: (optional: string) =>
       `النادي هو النادي المرتبط بهذا المجتمع ولا يمكن تغييره. ${optional}`,
     noLink: (optional: string) =>
@@ -102,7 +103,7 @@ export const createGame = {
   price: {
     currency: "د.ب",
     fieldDescription:
-      "اختياري. المبالغ بالدينار البحريني. حتى ثلاث خانات عشرية. اتركه فارغًا إن لم يُحدَّد. الصفر يعني مجانًا. Temba لا يحصّل أي مدفوعات.",
+      "اتركه فارغًا إن لم يُحدَّد بعد. الدفع بينكم مباشرة، وTemba لا يحصّل أي مبالغ.",
     negative: "لا يمكن أن يكون السعر للاعب سالبًا",
     tooManyDecimals: "استخدم حتى ثلاث خانات عشرية",
     invalid: "أدخل مبلغًا صحيحًا",
@@ -146,13 +147,15 @@ export const createGame = {
       `${pool} و${knockout}، تنتهي آخر مباراة في ${clock}`,
   },
   format: {
-    friendlyGame: "لعبة ودية",
+    friendlyGame: "مباراة ودية",
     americano: "أمريكانو",
     friendlyTournament: "بطولة ودية",
   },
   side: {
+    letter: (n: number): string | undefined =>
+      [..."أبجد", "هـ", ..."وزحطيكلمنسعفصقرشتثخذضظغ"][n - 1],
     team: (label: string) => `الفريق ${label}`,
-    gameTeam: "فريق اللعبة",
+    gameTeam: "فريق المباراة",
   },
   share: {
     open: "شاغر",
@@ -180,21 +183,21 @@ export const createGame = {
     logoType: "يجب أن يكون الشعار بصيغة JPEG أو PNG أو WebP",
     logoTooLarge: "يجب ألا يتجاوز حجم الشعار 2 ميغابايت",
   },
-  rosterNoSeats: "هذه اللعبة بلا مقاعد؛ سجّل باسمك",
-  sideSize: (n: number) => `${n} لكل فريق`,
+  rosterNoSeats: "هذه المباراة بلا أماكن؛ سجّل باسمك",
+  sideSize: (n: number) => `${n} ضد ${n}`,
   edit: {
-    title: "تعديل اللعبة",
+    title: "تعديل المباراة",
     saveChanges: "حفظ التغييرات",
     changes: "التغييرات",
     noChanges: "لا شيء بعد",
     changesSaved: "تم حفظ التغييرات",
     nameHint:
-      "يظهر على اللعبة وفي أعلى الدعوة. الفراغ يعني استخدام اليوم والوقت.",
+      "يظهر على المباراة وفي أعلى الدعوة. الفراغ يعني استخدام اليوم والوقت.",
     whenHint:
       "اليوم أو لاحقًا، بخطوات من 30 دقيقة. لليوم تُعرض الأوقات القادمة فقط.",
     playersAndPriceHint:
-      "خفض عدد اللاعبين دون عدد المنضمين ينقل آخر المنضمين إلى قائمة الانتظار. يستعيدون مقعدهم إن غادر أحد. تغييرات السعر تسري على من ينضم من الآن.",
-    everyoneKeepsSpot: "كل من انضم يحتفظ بمقعده.",
+      "خفض عدد اللاعبين دون عدد المنضمين ينقل آخر المنضمين إلى قائمة الانتظار. يستعيدون مكانهم إن غادر أحد. تغييرات السعر تسري على من ينضم من الآن.",
+    everyoneKeepsSpot: "كل من انضم يحتفظ بمكانه.",
     venueLocked: (place: string) => `${place}. لا يمكن تغيير النادي.`,
     venueLockedNoPlace: "لا يمكن تغيير النادي.",
     windowIncomplete: "اختر يومًا ووقت بداية ووقت نهاية",
@@ -226,14 +229,14 @@ export const createGame = {
       `${side}، ${onPitch} في الملعب`,
     footballNoteWithSubs: (side: string, onPitch: number, subs: number) =>
       plural("ar", subs, {
-        one: `${side}، ${onPitch} في الملعب، بديل واحد`,
-        two: `${side}، ${onPitch} في الملعب، بديلان`,
-        few: `${side}، ${onPitch} في الملعب، {n} بدلاء`,
-        many: `${side}، ${onPitch} في الملعب، {n} بديلًا`,
-        other: `${side}، ${onPitch} في الملعب، {n} بديل`,
+        one: `${side}، ${onPitch} في الملعب، احتياط واحد`,
+        two: `${side}، ${onPitch} في الملعب، لاعبا احتياط`,
+        few: `${side}، ${onPitch} في الملعب، {n} لاعبين احتياط`,
+        many: `${side}، ${onPitch} في الملعب، {n} لاعبًا احتياطًا`,
+        other: `${side}، ${onPitch} في الملعب، {n} لاعب احتياط`,
       }),
     capWait: (moving: number, joined: number) =>
-      `${moving} من ${joined} منضمين ينتقلون إلى قائمة الانتظار، آخر المنضمين أولًا.`,
+      `${moving} من المنضمين الـ${joined} ينتقلون إلى قائمة الانتظار، آخر المنضمين أولًا.`,
   },
   season: {
     none: "بلا موسم",
@@ -241,7 +244,7 @@ export const createGame = {
     noneNote: "لن تُحتسب النتيجة في أي ترتيب.",
     linkRowTitle: "ربط بموسم",
     sectionFriendlyNote:
-      "بدون موسم تكون اللعبة ودية. تظل تحدّث المستويات، لكن ليس الترتيب.",
+      "بدون موسم تكون المباراة ودية. تظل تحدّث المستويات، لكن ليس الترتيب.",
     pickerLockNote:
       "لا تُحتسب في الترتيب إلا النتيجة النهائية المؤكدة. يمكنك إلغاء الربط حتى تأكيد النتيجة.",
     countsLine: "تُحتسب في الترتيب",
@@ -257,8 +260,8 @@ export const createGame = {
     },
     closedAndLocked: "مغلق ومقفل.",
     fallsInside: (day: string) => `${day} يقع ضمن هذه الفترة.`,
-    startsAfter: "يبدأ بعد يوم اللعبة.",
-    endedBefore: "انتهى قبل يوم اللعبة.",
+    startsAfter: "يبدأ بعد يوم المباراة.",
+    endedBefore: "انتهى قبل يوم المباراة.",
     rowNote: (groupName: string, openCount: number, day: string) =>
       openCount === 0
         ? `لا يوجد موسم مفتوح لدى ${groupName} في ${day}.`
@@ -270,10 +273,10 @@ export const createGame = {
             other: `لدى ${groupName} {n} موسم مفتوح في ${day}.`,
           }),
     pickerSubtitle: (groupName: string, day: string) =>
-      `${groupName}. يوم اللعبة، ${day}، يحدد المواسم المناسبة.`,
+      `${groupName}. يوم المباراة، ${day}، يحدد المواسم المناسبة.`,
     link: (name: string) => `ربط ${name}`,
     linkedNote: (name: string) =>
-      `يرى اللاعبون «${name}» على اللعبة وفي الدعوة. ألغِ الربط في أي وقت قبل تأكيد النتيجة.`,
+      `يرى اللاعبون «${name}» على المباراة وفي الدعوة. ألغِ الربط في أي وقت قبل تأكيد النتيجة.`,
     starts: (edge: string) => `يبدأ ${edge}`,
     ends: (edge: string) => `ينتهي ${edge}`,
     outsideCovered: (day: string, linked: string, replacement: string) =>
@@ -285,10 +288,10 @@ export const createGame = {
     keepBack: (edge: string, linked: string) =>
       `أو أرجع اليوم إلى ${edge} أو قبله لإبقاء ${linked}.`,
     moveTo: (name: string) => `الانتقال إلى ${name}`,
-    notInGroup: "اختر موسمًا من مجموعة هذه اللعبة",
+    notInGroup: "اختر موسمًا من مجموعة هذه المباراة",
     closed: "ذلك الموسم مغلق",
     scoreConfirmed: "النتيجة مؤكدة، لذا لا يمكن تغيير الموسم",
-    noGroup: "لعبة المجموعة وحدها يمكن ربطها بموسم",
+    noGroup: "مباراة المجموعة وحدها يمكن ربطها بموسم",
     outsideDay: (day: string, name: string) => `${day} خارج ${name}`,
   },
 } satisfies typeof source;

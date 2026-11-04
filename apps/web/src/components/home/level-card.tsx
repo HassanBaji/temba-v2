@@ -1,31 +1,15 @@
 "use client";
 
-import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import { sportLabel, type Sport } from "@repo/domain/sport";
+import type { Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 
 import { noLevelCopy, type HomeLevel } from "./home-model";
-
-const CHANGE_ICONS = {
-  up: ArrowUpRight,
-  down: ArrowDownRight,
-  none: ArrowRight,
-} as const;
-
-function SportMeta({ sport }: { sport: Sport }) {
-  const locale = useLocale();
-  return (
-    <span className="text-eyebrow font-mono uppercase">
-      {sportLabel(sport, locale)}
-    </span>
-  );
-}
 
 export function LevelCard({
   level,
@@ -38,9 +22,7 @@ export function LevelCard({
   const locale = useLocale();
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <SurfaceLabel meta={<SportMeta sport={sport} />}>
-        {m.common.level}
-      </SurfaceLabel>
+      <SurfaceLabel>{m.home.level.heading[sport]}</SurfaceLabel>
       {level.kind === "rated" ? (
         <RatedLevel input={level.input} />
       ) : (
@@ -69,7 +51,6 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
   }, []);
 
   const view = homeLevelView(input, locale);
-  const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
 
   return (
     <>
@@ -85,15 +66,13 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
               {view.level}
             </span>
             <span className="text-meta text-muted-foreground">
-              {m.common.level}
+              {m.home.level.numberLabel}
             </span>
           </p>
-          {view.change && ChangeIcon ? (
-            <p className="flex items-center gap-1">
-              <ChangeIcon aria-hidden="true" className="size-5 shrink-0" />
-              <span className="sr-only">{view.change.spoken} </span>
+          {view.change ? (
+            <p className="flex items-baseline gap-1.5">
               <span className="font-expanded text-h2 tabular-nums">
-                {view.change.amount}
+                {view.change.signedAmount}
               </span>
               <span className="text-meta text-muted-foreground truncate">
                 {view.change.windowLabel}

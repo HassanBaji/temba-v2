@@ -297,7 +297,7 @@ export function AddPlayerDialog({
           >
             {add.isPending
               ? m.webGame.addPlayer.adding
-              : m.group.addPlayer.action}
+              : m.group.addPlayer.addToGame}
           </Button>
         </form>
       </ResponsiveDialogContent>

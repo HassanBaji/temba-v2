@@ -71,10 +71,10 @@ export const mobileGameDetails = {
     invite: "Invite",
   },
   addPlayer: {
-    phone: "Phone",
+    phone: "Phone number",
     lookingUp: "Looking up…",
     startingLevel: "Starting Level",
-    playsAs: "Plays as",
+    playsAs: "Role",
     preferredPosition: "Preferred position",
     side: "Side",
     position: "Position",

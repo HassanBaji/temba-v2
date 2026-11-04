@@ -37,10 +37,14 @@ describe("game side labels", () => {
   });
 
   it("labels the sides in Arabic", () => {
-    expect(formatGameSideLabel("friendly_game", 1, "ar")).toBe("الفريق A");
+    expect(formatGameSideLabel("friendly_game", 1, "ar")).toBe("الفريق أ");
+    expect(formatGameSideLabel("friendly_tournament", 5, "ar")).toBe(
+      "الفريق هـ",
+    );
+    expect(formatMatchSlotLabel("friendly_game", 2, "ar")).toBe("الفريق ب");
     expect(formatSeatSideHeading("Team", 3, 4, "ar")).toBe("الفريق 3");
     expect(gameTeamDisplayName({ members: [], name: null }, "ar")).toBe(
-      "فريق اللعبة",
+      "فريق المباراة",
     );
   });
 });

@@ -3,7 +3,7 @@ import type { team as source } from "../en/team";
 
 export const team = {
   title: "الفرق",
-  description: "الشراكات التي تلعب بها",
+  description: "الفرق والثنائيات التي تلعب فيها",
   errorTitle: "تعذّر تحميل الفرق",
   empty: {
     title: "لا فرق بعد",
@@ -37,7 +37,7 @@ export const team = {
   squadLookupNote: "اختر من تريد دعوتهم. الدعوات لا تنتهي.",
   squadInviteDescription: "ادعُ لاعبين إلى التشكيلة، أو انسخ رابطًا لمشاركته.",
   squadInviteLabel: "دعوة لاعبين",
-  inviteDescription: "ادعُ شريكًا للمقعد الشاغر، أو انسخ رابطًا لمشاركته.",
+  inviteDescription: "ادعُ شريكًا للمكان الشاغر، أو انسخ رابطًا لمشاركته.",
   invitePartnerLabel: "ادعُ شريكك",
   requestLinkLabel: "طلب الربط بمجتمع",
   requestLinkSubmitLabel: "طلب الربط",
@@ -100,7 +100,7 @@ export const team = {
       }),
   },
   stats: {
-    gamesPlayed: "الألعاب الملعوبة",
+    gamesPlayed: "المباريات الملعوبة",
     winRate: "نسبة الفوز",
   },
   creatorLabel: "المنشئ",

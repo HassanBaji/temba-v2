@@ -667,18 +667,19 @@ export function friendlyGameKickoff(
   };
 }
 
-export function friendlyGamePreviewLine(input: {
+/** The date on one line and the place on the next, so neither needs a separator. */
+export function friendlyGamePreviewLines(input: {
   day: string;
   groupName: string | null;
   venueName: string | null;
   courtName: string | null;
   locale: Locale;
-}) {
+}): string[] {
   const dayLabel = input.day ? formatDayLabel(input.day, input.locale) : null;
-  const place = input.venueName ?? input.groupName;
-  return [dayLabel, place, input.courtName]
+  const place = [input.venueName ?? input.groupName, input.courtName]
     .filter((part): part is string => Boolean(part))
-    .join(" · ");
+    .join(messagesFor(input.locale).createGame.edit.listSeparator);
+  return [dayLabel, place].filter((line): line is string => Boolean(line));
 }
 
 export function levelBandIndex(value: string): number | null {

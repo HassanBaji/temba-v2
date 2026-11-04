@@ -41,6 +41,7 @@ describe("friendlyGameDetailsPlan", () => {
       kind: "upcoming",
       vacantSeatCount: 2,
       showInvite: false,
+      live: false,
     });
     assert.equal(plan.canLeaveGame, true);
     assert.equal(plan.partnerBesideName, null);

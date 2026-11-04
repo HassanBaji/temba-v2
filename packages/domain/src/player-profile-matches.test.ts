@@ -265,7 +265,7 @@ describe("lastTenSummary", () => {
 
 describe("Last 10 in Arabic", () => {
   it("reads the kind, the row and the summary", () => {
-    expect(playerMatchKindLabel(FRIENDLY, "ar")).toBe("لعبة ودية");
+    expect(playerMatchKindLabel(FRIENDLY, "ar")).toBe("مباراة ودية");
     const row = playerMatchRowView(
       fixtures.confirmed.lastMatches[0]!,
       ELIN_ID,
@@ -278,8 +278,8 @@ describe("Last 10 in Arabic", () => {
     expect(row.accessibilityLabel.endsWith("التصنيف ارتفع 0.1")).toBe(true);
     const summary = lastTenSummary(fixtures.confirmed.lastMatches, "ar");
     expect(summary.record).toBe("7 فوز، 3 خسارة");
-    expect(summary.seeAll).toBe("عرض الألعاب الـ10 كلها");
-    expect(filterLastTen([], "all", "ar").empty).toBe("لا ألعاب هنا.");
+    expect(summary.seeAll).toBe("عرض المباريات الـ10 كلها");
+    expect(filterLastTen([], "all", "ar").empty).toBe("لا مباريات هنا.");
   });
 });
 

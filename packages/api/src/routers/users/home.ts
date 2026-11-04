@@ -66,7 +66,7 @@ export async function loadHome(
         groupId: membership.group.id,
         groupName: membership.group.name,
         sport: membership.group.sport as GroupSportEnum | null,
-        position: seasonStandingPosition(rows, args.userId) ?? 1,
+        position: seasonStandingPosition(rows, args.userId),
         memberCount: rows.length,
       };
     })

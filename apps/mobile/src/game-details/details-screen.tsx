@@ -18,6 +18,7 @@ import {
   gameJoinToast,
   gameToast,
   leaveGameAction,
+  leaveGameOrganizerConsequence,
   leaveWaitlistAction,
   leaveWaitlistConsequence,
   teamRegisterToast,
@@ -378,12 +379,15 @@ export function GameDetailsScreen({
       return;
     }
     setConfirm({
-      title: copy.confirm.leaveTitle(gameTitle(data.name, locale)),
-      description: tournamentLeaveOrKickConfirmCopy({
-        partnerRequired: isPartnerRequiredGame(data),
-        drawPosted: Boolean(data.drawPostedAt),
-        locale,
-      }),
+      title: copy.confirm.leaveTitle(gameTitle(data, locale)),
+      description:
+        friendly && data.isOrganizer
+          ? leaveGameOrganizerConsequence(locale)
+          : tournamentLeaveOrKickConfirmCopy({
+              partnerRequired: isPartnerRequiredGame(data),
+              drawPosted: Boolean(data.drawPostedAt),
+              locale,
+            }),
       confirmLabel: leaveGameAction(locale),
       onConfirm: () => leaveGame.mutate({ gameId }),
     });
@@ -506,7 +510,7 @@ export function GameDetailsScreen({
           initialSeat={initialSeat}
           onClose={() => setJoinOpen(false)}
           game={{
-            title: gameTitle(data.name, locale),
+            title: gameTitle(data, locale),
             sides: data.sides,
             pricePerPlayerFils: data.pricePerPlayerFils,
             windowStart: data.windowStart,
@@ -834,7 +838,7 @@ export function GameDetailsScreen({
         <>
           <PlayedMenuSheet
             visible={menuOpen}
-            title={gameTitle(details.name, locale)}
+            title={gameTitle(details, locale)}
             items={menuItems}
             onClose={() => setMenuOpen(false)}
           />

@@ -11,7 +11,7 @@ export const mobileBooking = {
   status: "الحالة",
   venue: "النادي",
   finishPayment: "أكمل الدفع",
-  openGame: "افتح اللعبة",
+  openGame: "افتح المباراة",
   payAtVenueShort: "الدفع في النادي",
   payAtTheVenue: "الدفع في النادي",
   todayInSentence: "اليوم",
@@ -24,8 +24,8 @@ export const mobileBooking = {
     pitch: "اختر وقت البدء لترى الملاعب المتاحة.",
   },
   gameBlurb: {
-    football: "حوّل الحجز إلى لعبة ويتولى Temba التشكيلة والدعوات.",
-    padel: "حوّل الحجز إلى لعبة ويتولى Temba المقاعد والدعوات والنتيجة.",
+    football: "حوّل الحجز إلى مباراة ويتولى Temba التشكيلة والدعوات.",
+    padel: "حوّل الحجز إلى مباراة ويتولى Temba الأماكن والدعوات والنتيجة.",
   },
   timeGroup: { am: "صباحًا", pm: "مساءً", afterMidnight: "بعد منتصف الليل" },
   shareMessage: (court: string, venue: string, start: string, end: string) =>
@@ -307,7 +307,7 @@ export const mobileBooking = {
     },
   },
   booked: {
-    createGame: "أنشئ لعبة لهذا الحجز",
+    createGame: "أنشئ مباراة لهذا الحجز",
     notNow: "ليس الآن",
     doLater: "يمكنك فعل ذلك لاحقًا من حجزك.",
     viewBooking: "عرض الحجز",
@@ -332,9 +332,10 @@ export const mobileBooking = {
         pitch: "يُفرج عن الملعب للآخرين.",
       },
     },
-    game: "اللعبة",
-    yourGame: "لعبتك",
-    gameCancelled: "أُلغيت لعبتك. الملعب ما زال لك، فيمكنك إعداد لعبة جديدة.",
+    game: "المباراة",
+    yourGame: "مباراتك",
+    gameCancelled:
+      "أُلغيت مباراتك. الملعب ما زال لك، فيمكنك إعداد مباراة جديدة.",
     holdRanOut: "انتهت مدة الحجز المؤقت",
     heldFor: {
       court: (countdown: string) => `الملعب محجوز لك لمدة ${countdown}.`,
@@ -367,7 +368,7 @@ export const mobileBooking = {
     ) => `الحجز التالي، ${day} ${clock}، ${court}، ${venue}، ${badge}`,
     directionsTo: (venue: string) => `الاتجاهات إلى ${venue}`,
     invite: "دعوة",
-    makeItAGame: "اجعلها لعبة",
+    makeItAGame: "اجعلها مباراة",
     rowLabel: (
       weekday: string,
       day: string,

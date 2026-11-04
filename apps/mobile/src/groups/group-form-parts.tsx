@@ -434,18 +434,16 @@ export function VisibilityCards({
   );
 }
 
-/** The Joining card: a labelled switch with the policy stated under it. */
+/** The Joining card: a labelled switch with what it does in its current state. */
 export function ToggleCard({
   title,
   help,
-  footer,
   value,
   onChange,
   disabled = false,
 }: {
   title: string;
   help: string;
-  footer: string;
   value: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
@@ -476,18 +474,6 @@ export function ToggleCard({
           thumbColor={colors.paper}
           ios_backgroundColor={colors.rule}
         />
-      </View>
-      <Hairline />
-      <View
-        style={{
-          paddingHorizontal: 18,
-          paddingVertical: 12,
-          backgroundColor: colors.wash,
-        }}
-      >
-        <Text size="eyebrow" tone="muted">
-          {footer}
-        </Text>
       </View>
     </Surface>
   );

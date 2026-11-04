@@ -2,7 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import {
-  footballPositionChoices,
+  FOOTBALL_POSITIONS,
   type FootballPosition,
   type FootballRole,
 } from "./football-lineup";
@@ -95,12 +95,11 @@ export const ADD_PLAYER_DEFAULT_FOOTBALL_POSITION: AddPlayerFootballPosition =
 export function addPlayerFootballRoleChoices(locale: Locale): {
   value: FootballRole;
   name: string;
-  detail: string;
 }[] {
-  const m = messagesFor(locale).group.addPlayer.footballRole;
+  const m = messagesFor(locale).group.addPlayer.roles;
   return [
-    { value: "outfield", name: m.player.name, detail: m.player.detail },
-    { value: "keeper", name: m.keeper.name, detail: m.keeper.detail },
+    { value: "outfield", name: m.outfield },
+    { value: "keeper", name: m.keeper },
   ];
 }
 
@@ -108,12 +107,10 @@ export function addPlayerFootballPositionChoices(locale: Locale): {
   value: AddPlayerFootballPosition;
   name: string;
 }[] {
+  const m = messagesFor(locale).group.addPlayer.positions;
   return [
-    { value: "none", name: messagesFor(locale).group.addPlayer.noPreference },
-    ...footballPositionChoices(locale).map((choice) => ({
-      value: choice.value,
-      name: choice.label,
-    })),
+    { value: "none", name: m.any },
+    ...FOOTBALL_POSITIONS.map((value) => ({ value, name: m[value] })),
   ];
 }
 

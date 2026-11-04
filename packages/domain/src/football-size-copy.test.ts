@@ -8,6 +8,6 @@ describe("footballSizeLabel", () => {
   });
 
   it("reads in Arabic", () => {
-    expect(footballSizeLabel(5, 12, "ar")).toMatch(/· 12 لاعبًا$/u);
+    expect(footballSizeLabel(5, 12, "ar")).toBe("5 ضد 5، حتى 12 لاعبًا");
   });
 });

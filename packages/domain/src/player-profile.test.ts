@@ -253,7 +253,7 @@ describe("playedSideView", () => {
 
   it("reads the side and streaks in Arabic", () => {
     expect(playedSideView(fixtures.confirmed.position, "ar").label).toBe(
-      "الجهة اليسرى",
+      "يلعب على اليسار",
     );
     expect(
       streaksView(

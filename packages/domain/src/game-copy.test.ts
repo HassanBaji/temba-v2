@@ -42,8 +42,11 @@ describe("cancelGameConsequence", () => {
     assert.equal(cancelGameConsequence(0, "en"), "Nobody has joined yet.");
   });
 
-  it("uses the Arabic dual for two players", () => {
-    assert.equal(cancelGameConsequence(2, "ar"), "يزيلها من تقويم لاعبَين.");
+  it("counts everyone registered in Arabic", () => {
+    assert.equal(
+      cancelGameConsequence(1, "ar"),
+      "تُحذف من تقويم كل المسجّلين (1).",
+    );
     assert.equal(cancelGameConsequence(0, "ar"), "لم ينضم أحد بعد.");
   });
 });
@@ -96,7 +99,7 @@ describe("Game action copy", () => {
   });
 
   it("writes the actions, toasts and Set labels in Arabic", () => {
-    assert.equal(joinGameAction("ar"), "انضم إلى اللعبة");
+    assert.equal(joinGameAction("ar"), "انضم إلى المباراة");
     assert.equal(gameJoinToast(true, "ar"), "انضممت إلى قائمة الانتظار");
     assert.equal(kickedToast("Dev", "ar"), "تم إخراج Dev");
     assert.equal(setLabel(0, "ar"), "الشوط 1");

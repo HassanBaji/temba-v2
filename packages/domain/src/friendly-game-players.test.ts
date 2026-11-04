@@ -140,7 +140,7 @@ describe("friendlyGameVacantSeatLabel", () => {
     );
     assert.equal(
       friendlyGamePlayersCancelledNote(true, "ar"),
-      "أُلغيت هذه اللعبة. يبقى الجالسون مدرجين.",
+      "أُلغيت هذه المباراة. يبقى الجالسون مدرجين.",
     );
   });
 });

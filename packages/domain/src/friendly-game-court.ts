@@ -35,7 +35,10 @@ export function courtSeatSubline(
 ) {
   const label = courtPositionLabel(position, locale);
   return levelBand
-    ? `${label} · ${displayLabelFromStoredBand(levelBand)}`
+    ? messagesFor(locale).game.court.seatMeta(
+        label,
+        displayLabelFromStoredBand(levelBand),
+      )
     : label;
 }
 
@@ -103,8 +106,8 @@ export function courtFigures(input: {
     },
     {
       key: "price",
-      value: price ?? "—",
-      label: price ? m.figurePerPlayer : m.figurePriceNotSet,
+      value: price ?? m.figurePriceNotSet,
+      label: price ? m.figurePerPlayer : m.figurePrice,
       unset: price == null,
     },
   ];

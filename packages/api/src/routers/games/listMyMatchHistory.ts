@@ -23,6 +23,9 @@ export type MatchHistoryMember = MatchSlotMember;
 export type MatchHistoryRow = {
   id: string;
   name: string | null;
+  hasCustomName: boolean;
+  windowStart: Date | null;
+  windowEnd: Date | null;
   format: string;
   sport: Sport;
   venue: { name: string };
@@ -105,6 +108,7 @@ export async function listMyMatchHistoryRows(
         columns: {
           id: true,
           name: true,
+          hasCustomName: true,
           format: true,
           sport: true,
           groupId: true,
@@ -262,6 +266,9 @@ export async function listMyMatchHistoryRows(
       rows.push({
         id: game.id,
         name: game.name,
+        hasCustomName: game.hasCustomName,
+        windowStart: game.windowStart,
+        windowEnd: game.windowEnd,
         format: game.format,
         sport,
         venue: { name: venueName },

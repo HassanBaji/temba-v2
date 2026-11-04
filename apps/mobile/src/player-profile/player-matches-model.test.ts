@@ -82,13 +82,13 @@ describe("playerMatchesModel", () => {
       ORIGIN,
       "ar",
     );
-    expect(model.subtitle).toBe("Elin Nilsson، لا ألعاب بعد.");
+    expect(model.subtitle).toBe("Elin Nilsson، لا مباريات بعد.");
     expect(model.chips.map((chip) => chip.label)).toEqual([
       "الكل 0",
       "فوز 0",
       "خسارة 0",
     ]);
-    expect(model.empty).toBe("لا ألعاب هنا.");
+    expect(model.empty).toBe("لا مباريات هنا.");
   });
 
   it("opens no sheet for a Match outside the Last 10", () => {

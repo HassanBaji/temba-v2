@@ -4,6 +4,7 @@ import {
   addGoal,
   confirmationLine,
   draftSummary,
+  footballHeroLines,
   footballInviteJoinSubtitle,
   initialTeamsDraft,
   joinActionLabel,
@@ -267,7 +268,7 @@ describe("score draft", () => {
         "ar",
       ),
     ).toBe("تلعب في أبيض كـDEF.");
-    expect(keeperSub([player("a")], "ar")).toBe("تبقّى مقعدان");
+    expect(keeperSub([player("a")], "ar")).toBe("تبقّى مكانان");
   });
 
   it("tells the viewer their team and position", () => {
@@ -279,5 +280,35 @@ describe("score draft", () => {
         "en",
       ),
     ).toBe("You play in White as DEF.");
+  });
+});
+
+describe("footballHeroLines", () => {
+  const start = new Date("2026-11-04T07:30:00.000Z");
+  const input = {
+    windowStart: start,
+    windowEnd: new Date("2026-11-04T09:00:00.000Z"),
+    cancelledAt: null,
+    sideSize: 5,
+    venueName: null,
+    pitchName: null,
+    teamsSet: false,
+    scored: false,
+  };
+  const at = (minutes: number) =>
+    new Date(start.getTime() + minutes * 60 * 1000);
+
+  it("reads live once kick-off has passed, not upcoming", () => {
+    expect(footballHeroLines(input, at(-15), "ar").status).toMatch(/^قادمة/);
+    expect(footballHeroLines(input, at(42), "ar").status).toBe("جارية الآن");
+  });
+
+  it("asks for the score once the window ends without one", () => {
+    expect(footballHeroLines(input, at(120), "ar").status).toBe(
+      "انتهت، أدخل النتيجة",
+    );
+    expect(
+      footballHeroLines({ ...input, scored: true }, at(120), "ar").status,
+    ).toBe("لُعبت");
   });
 });

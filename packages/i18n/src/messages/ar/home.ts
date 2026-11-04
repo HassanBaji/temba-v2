@@ -1,44 +1,60 @@
 import type { home as source } from "../en/home";
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 
 export const home = {
   comingUp: {
     tournamentFallback: "بطولة",
-    gameFallback: "لعبة",
+    gameFallback: "مباراة",
     versus: (opponent: string) => `ضد ${opponent}`,
-    allSeatsFilled: "جميع المقاعد ممتلئة",
+    allSeatsFilled: "جميع الأماكن ممتلئة",
     openSeats: (n: number) =>
       plural("ar", n, {
-        one: "مقعد شاغر",
-        two: "مقعدان شاغران",
-        few: "{n} مقاعد شاغرة",
-        many: "{n} مقعدًا شاغرًا",
-        other: "{n} مقعد شاغر",
+        one: "مكان شاغر",
+        two: "مكانان شاغران",
+        few: "{n} أماكن شاغرة",
+        many: "{n} مكانًا شاغرًا",
+        other: "{n} مكان شاغر",
+      }),
+    friendly: "ودية",
+    parts: (parts: string[]) => parts.join("، "),
+    until: (clock: string) => `حتى ${clock}`,
+    untilFor: (clock: string, minutes: number) =>
+      plural("ar", minutes, {
+        one: `حتى ${clock}، دقيقة واحدة`,
+        two: `حتى ${clock}، دقيقتان`,
+        few: `حتى ${clock}، {n} دقائق`,
+        many: `حتى ${clock}، {n} دقيقة`,
+        other: `حتى ${clock}، {n} دقيقة`,
       }),
   },
   level: {
+    heading: {
+      padel: "مستواك في البادل",
+      football: "مستواك في كرة القدم",
+    },
+    numberLabel: "التقييم",
     window: (n: number) =>
       plural("ar", n, {
-        one: "آخر مباراة",
-        two: "آخر مباراتين",
-        few: "آخر {n} مباريات",
-        many: "آخر {n} مباراة",
-        other: "آخر {n} مباراة",
+        one: "في آخر مباراة",
+        two: "في آخر مباراتين",
+        few: "في آخر {n} مباريات",
+        many: "في آخر {n} مباراة",
+        other: "في آخر {n} مباراة",
       }),
-    provisionalLead: "المستوى مبدئي.",
+    provisionalLead: "مستواك مبدئي.",
     provisionalRest: (remaining: number) =>
       plural("ar", remaining, {
-        one: " التظليل يعني غير مؤكد — العب نحو لعبة مصنّفة واحدة أخرى ويتأكد مستواك.",
-        two: " التظليل يعني غير مؤكد — العب نحو لعبتين مصنّفتين أخريين ويتأكد مستواك.",
-        few: " التظليل يعني غير مؤكد — العب نحو {n} ألعاب مصنّفة أخرى ويتأكد مستواك.",
-        many: " التظليل يعني غير مؤكد — العب نحو {n} لعبة مصنّفة أخرى ويتأكد مستواك.",
-        other:
-          " التظليل يعني غير مؤكد — العب نحو {n} لعبة مصنّفة أخرى ويتأكد مستواك.",
+        one: " العب مباراة مصنّفة واحدة أخرى لتأكيده.",
+        two: " العب مباراتين مصنّفتين أخريين لتأكيده.",
+        few: " العب {n} مباريات مصنّفة أخرى لتأكيده.",
+        many: " العب {n} مباراة مصنّفة أخرى لتأكيده.",
+        other: " العب {n} مباراة مصنّفة أخرى لتأكيده.",
       }),
-    confirmedLead: "المستوى مؤكد.",
-    confirmedRest: " يتحرك مستواك الآن مع كل لعبة مصنّفة تلعبها.",
+    confirmedLead: "مستواك مؤكد.",
+    confirmedRest: " يتحرك مستواك الآن مع كل مباراة مصنّفة تلعبها.",
     progressTo: (percent: number, next: string) =>
-      `${percent}% من الطريق إلى ${next}`,
+      `${percent}% نحو ${isolate(next)}`,
   },
   levelChange: {
     up: "ارتفاع",
@@ -48,32 +64,32 @@ export const home = {
   nextGame: {
     addResults: "أضف النتائج",
     invitePlayer: "ادعُ لاعبًا",
-    viewGame: "عرض اللعبة",
-    playingNow: "تُلعب الآن",
+    viewGame: "عرض المباراة",
+    playingNow: "جارية الآن",
   },
   noGames: {
     createGroup: "إنشاء مجموعة",
     create: "إنشاء",
-    createGroupFirst: "أنشئ مجموعة أولًا، ثم يمكنك إنشاء لعبة.",
-    browse: "تصفّح الألعاب المتاحة.",
+    createGroupFirst: "أنشئ مجموعة أولًا، ثم يمكنك إنشاء مباراة.",
+    browse: "تصفّح المباريات المتاحة.",
   },
   recentForm: {
     noStreak: "لا سلسلة",
     winStreak: (n: number) =>
       plural("ar", n, {
         one: "تبني سلسلة فوز",
-        two: "في سلسلة فوز من لعبتين",
-        few: "في سلسلة فوز من {n} ألعاب",
-        many: "في سلسلة فوز من {n} لعبة",
-        other: "في سلسلة فوز من {n} لعبة",
+        two: "في سلسلة فوز من مباراتين",
+        few: "في سلسلة فوز من {n} مباريات",
+        many: "في سلسلة فوز من {n} مباراة",
+        other: "في سلسلة فوز من {n} مباراة",
       }),
     loseStreak: (n: number) =>
       plural("ar", n, {
         one: "خسارة مؤلمة",
-        two: "في سلسلة خسارة من لعبتين",
-        few: "في سلسلة خسارة من {n} ألعاب",
-        many: "في سلسلة خسارة من {n} لعبة",
-        other: "في سلسلة خسارة من {n} لعبة",
+        two: "في سلسلة خسارة من مباراتين",
+        few: "في سلسلة خسارة من {n} مباريات",
+        many: "في سلسلة خسارة من {n} مباراة",
+        other: "في سلسلة خسارة من {n} مباراة",
       }),
     slotsLeft: (n: number) =>
       plural("ar", n, {
@@ -83,8 +99,16 @@ export const home = {
         many: "بقي {n} مكانًا لملئه",
         other: "بقي {n} مكان لملئه",
       }),
-    winRateAfterThree: "نسبة الفوز بعد 3 ألعاب",
+    winRateAfter: (n: number) =>
+      plural("ar", n, {
+        one: "تظهر نسبة الفوز بعد مباراة واحدة",
+        two: "تظهر نسبة الفوز بعد مباراتين",
+        few: "تظهر نسبة الفوز بعد {n} مباريات",
+        many: "تظهر نسبة الفوز بعد {n} مباراة",
+        other: "تظهر نسبة الفوز بعد {n} مباراة",
+      }),
     winRate: "نسبة الفوز",
+    outcomeLetter: { won: "ف", lost: "خ", draw: "ت" },
   },
   seats: {
     full: "ممتلئ",
@@ -100,6 +124,8 @@ export const home = {
   standing: {
     groupFallback: "مجموعة",
     ofCount: (n: number) => `من ${n}`,
+    unranked: "—",
+    noCountedGames: "لا مباريات محتسبة بعد",
   },
   stateLine: {
     invitesWaiting: (n: number) =>
@@ -112,11 +138,11 @@ export const home = {
       }),
     gamesBooked: (n: number) =>
       plural("ar", n, {
-        one: "لعبة واحدة محجوزة",
-        two: "لعبتان محجوزتان",
-        few: "{n} ألعاب محجوزة",
-        many: "{n} لعبة محجوزة",
-        other: "{n} لعبة محجوزة",
+        one: "مباراة واحدة محجوزة",
+        two: "مباراتان محجوزتان",
+        few: "{n} مباريات محجوزة",
+        many: "{n} مباراة محجوزة",
+        other: "{n} مباراة محجوزة",
       }),
   },
 } satisfies typeof source;

@@ -45,6 +45,8 @@ export type HubGameFootball = {
 export type HubGameRow = {
   id: string;
   name: string | null;
+  /** False when `name` is the window label the Game was created with. */
+  hasCustomName?: boolean;
   format: string;
   registrationMode: string;
   sport: string | null;
@@ -113,6 +115,9 @@ export type HubHistoryMember = {
 export type HubHistoryRow = {
   id: string;
   name: string | null;
+  hasCustomName: boolean;
+  windowStart: Date | null;
+  windowEnd: Date | null;
   format: string;
   sport: string | null;
   venue: { name: string };

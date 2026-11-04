@@ -39,7 +39,6 @@ import {
   groupEditCanSave,
   groupEditChanges,
   groupEditMetaLine,
-  groupJoiningFooter,
   groupJoiningToggleHelp,
   groupOwnershipTransferredToast,
   groupSeasonCount,
@@ -445,13 +444,9 @@ function EditGroupForm({
             <ToggleCard
               id={IDS.approval}
               title={m.group.settings.joining.toggle}
-              help={groupJoiningToggleHelp(
-                data.pendingJoinRequestCount,
-                locale,
-              )}
-              footer={groupJoiningFooter({
-                visibility: draft.visibility,
+              help={groupJoiningToggleHelp({
                 requiresApproval: draft.requiresApproval,
+                pendingRequestCount: data.pendingJoinRequestCount,
                 locale,
               })}
               checked={draft.requiresApproval}

@@ -67,6 +67,6 @@ describe("labels", () => {
 
   it("names the step in Arabic", () => {
     expect(sportsContinueLabel(footballOnly, "ar")).toBe("تابع مع كرة القدم");
-    expect(findGamesLabel(padelOnly, "ar")).toBe("ابحث عن ألعاب بادل");
+    expect(findGamesLabel(padelOnly, "ar")).toBe("ابحث عن مباريات بادل");
   });
 });

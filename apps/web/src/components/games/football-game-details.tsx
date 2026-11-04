@@ -94,7 +94,7 @@ import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message"
 import { gameInviteAccess } from "@repo/domain/invites";
 import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
-import { gameCustomName } from "@repo/domain/game-custom-name";
+import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type FootballGame = RouterOutputs["games"]["byId"];
@@ -317,7 +317,7 @@ export function FootballGameDetails({
         locale,
       )
     : null;
-  const gameName = game.name ?? m.football.details.fallbackTitle;
+  const gameName = gameDisplayName(game, locale);
   const organizer = model.organizer;
   const cta = model.cta;
 

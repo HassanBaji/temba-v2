@@ -67,6 +67,15 @@ export function leaveGameConsequence(locale: Locale) {
   return messagesFor(locale).game.consequence.leaveGame;
 }
 
+/** The Organizer keeps the Game; leaving only frees their Position. */
+export function leaveGameOrganizerConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.leaveGameOrganizer;
+}
+
+export function closeRegistrationConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.closeRegistration;
+}
+
 export function leaveWaitlistConsequence(locale: Locale) {
   return messagesFor(locale).game.consequence.leaveWaitlist;
 }

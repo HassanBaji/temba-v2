@@ -517,6 +517,7 @@ export function footballHeroLines(
   const start = input.windowStart;
   const played =
     input.windowEnd != null && input.windowEnd.getTime() < now.getTime();
+  const live = start != null && start.getTime() <= now.getTime();
   const weekday = start ? formatWeekday(start, "long", locale) : null;
   const status = input.cancelledAt
     ? m.cancelled
@@ -524,13 +525,15 @@ export function footballHeroLines(
       ? input.scored
         ? m.played
         : m.playedScoreMissing
-      : input.teamsSet
-        ? weekday
-          ? m.teamsSetOn(weekday)
-          : m.teamsSet
-        : weekday
-          ? m.upcomingOn(weekday)
-          : m.upcoming;
+      : live
+        ? messagesFor(locale).dates.countdown.liveNow
+        : input.teamsSet
+          ? weekday
+            ? m.teamsSetOn(weekday)
+            : m.teamsSet
+          : weekday
+            ? m.upcomingOn(weekday)
+            : m.upcoming;
   const kickoff = start ? formatHomeKickoff(start, locale) : null;
   const day = start
     ? formatDayMonth(start, locale, { weekday: "short" })

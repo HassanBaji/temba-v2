@@ -1,4 +1,5 @@
 import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { formatGameWindowName, splitGameWindow } from "./game-window";
 
@@ -34,5 +35,31 @@ export function gameWindowLabel(
     window.startTime,
     window.finishTime,
     locale,
+  );
+}
+
+export type GameDisplayNameInput = {
+  name: string | null | undefined;
+  hasCustomName?: boolean | null;
+  format: string;
+  windowStart: Date | string | null | undefined;
+  windowEnd: Date | string | null | undefined;
+};
+
+/**
+ * A Friendly game without a custom name stores its window label in the
+ * creator's locale, so the label is rebuilt in the viewer's locale. Other
+ * formats store the Organizer's name without setting `hasCustomName`.
+ */
+export function gameDisplayName(game: GameDisplayNameInput, locale: Locale) {
+  const windowLabel =
+    game.format === "friendly_game"
+      ? gameWindowLabel(game.windowStart, game.windowEnd, locale)
+      : null;
+  return (
+    gameCustomName(game) ??
+    windowLabel ??
+    normalizeGameCustomName(game.name) ??
+    messagesFor(locale).game.window.fallbackTitle
   );
 }

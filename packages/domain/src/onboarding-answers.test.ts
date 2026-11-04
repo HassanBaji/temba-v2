@@ -85,7 +85,7 @@ describe("onboardingSummary", () => {
   it("reads the summary in Arabic", () => {
     expect(onboardingSummary(answers, "ar")[0]).toEqual({
       sport: "بادل",
-      line: "C+، الجهة اليسرى",
+      line: "C+، يلعب على اليسار",
     });
     expect(padelLevelChoices("ar")[0]?.name).toBe("جديد في البادل");
     expect(padelNotSureLabel("ar")).toContain("D+");

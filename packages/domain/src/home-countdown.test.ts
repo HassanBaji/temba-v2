@@ -64,23 +64,46 @@ describe("formatHomeKickoff", () => {
 
 describe("formatHeroCountdown", () => {
   const now = new Date("2026-09-07T12:00:00.000Z");
+  const minutes = (n: number) => new Date(now.getTime() + n * 60 * 1000);
 
-  it("matches formatHomeCountdown while the start is in the future", () => {
-    const start = new Date(now.getTime() + 45 * 60 * 1000);
-    assert.equal(formatHeroCountdown("upcoming", start, now, "en"), "in 45m");
-  });
-
-  it("reads Starting now for an ongoing Game past its start", () => {
-    const start = new Date(now.getTime() - 5 * 60 * 1000);
+  it("counts down to the start", () => {
     assert.equal(
-      formatHeroCountdown("ongoing", start, now, "en"),
-      "Starting now",
+      formatHeroCountdown(minutes(15), minutes(105), now, "en"),
+      "Starts in 15m",
+    );
+    assert.equal(
+      formatHeroCountdown(minutes(15), minutes(105), now, "ar"),
+      "تبدأ بعد 15 د",
     );
   });
 
-  it("stays null for an upcoming Game that somehow has no future start", () => {
-    const start = new Date(now.getTime() - 5 * 60 * 1000);
-    assert.equal(formatHeroCountdown("upcoming", start, now, "en"), null);
+  it("reads live through the window, not starting now", () => {
+    assert.equal(
+      formatHeroCountdown(minutes(-42), minutes(48), now, "en"),
+      "Live now",
+    );
+    assert.equal(
+      formatHeroCountdown(minutes(-42), minutes(48), now, "ar"),
+      "جارية الآن",
+    );
+  });
+
+  it("stays live when the window has no end", () => {
+    assert.equal(
+      formatHeroCountdown(minutes(-5), null, now, "ar"),
+      "جارية الآن",
+    );
+  });
+
+  it("asks for the score once the window has ended", () => {
+    assert.equal(
+      formatHeroCountdown(minutes(-100), minutes(-10), now, "en"),
+      "Ended, enter the score",
+    );
+    assert.equal(
+      formatHeroCountdown(minutes(-100), minutes(-10), now, "ar"),
+      "انتهت، أدخل النتيجة",
+    );
   });
 });
 
@@ -89,6 +112,12 @@ describe("formatHeroKickoffTrailer", () => {
     const start = bahrainDate(2026, 8, 7, 21, 0, 0);
     const end = bahrainDate(2026, 8, 7, 22, 30, 0);
     assert.equal(formatHeroKickoffTrailer(start, end, "en"), "PM until 10:30");
+  });
+
+  it("keeps the end time's period in Arabic", () => {
+    const start = bahrainDate(2026, 8, 7, 10, 30, 0);
+    const end = bahrainDate(2026, 8, 7, 12, 0, 0);
+    assert.equal(formatHeroKickoffTrailer(start, end, "ar"), "ص حتى 12:00 م");
   });
 
   it("falls back to the bare meridiem when no window end exists", () => {

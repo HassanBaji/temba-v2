@@ -174,14 +174,8 @@ export const mobileHome = {
     kind: {
       booking: "Booking",
       tournament: "Tournament",
-      game: "Game",
     },
     withEmphasis: (emphasis: string) => `, ${emphasis}`,
-    minutes: (n: number) => `${n} min`,
-    rosterCount: (registered: number, allowed: number) =>
-      `${registered} of ${allowed}`,
-    rosterSpoken: (registered: number, allowed: number) =>
-      `${registered} of ${allowed} players`,
     bookingDetail: (court: string, minutes: number) =>
       `${court}, ${minutes} min`,
     bookingHeroSpoken: (
@@ -229,21 +223,16 @@ export const mobileHome = {
       `Level band ${band}, Level ${level}`,
     changeSpoken: (spoken: string, amount: string, window: string) =>
       `${spoken} ${amount}, ${window}`,
-    movement: {
-      up: "Up since the last match",
-      down: "Down since the last match",
-      held: "Held since the last match",
-    },
   },
   recentForm: {
     title: "Recent form",
     lastTen: "Last 10 matches",
-    recordSpoken: (record: string) => `Record ${record}`,
     played: "Played",
+    won: "Won",
     lost: "Lost",
   },
   allTime: {
-    matches: "matches",
+    matches: (n: number) => plural("en", n, { one: "match", other: "matches" }),
     matchesSpoken: (n: number) =>
       plural("en", n, { one: "1 match", other: "{n} matches" }),
     percentWon: (percent: number) => `${percent}% won`,

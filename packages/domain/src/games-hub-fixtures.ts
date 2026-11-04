@@ -110,6 +110,9 @@ function historyRow(args: {
   return {
     id: `game-${args.matchId}`,
     name: null,
+    hasCustomName: false,
+    windowStart: null,
+    windowEnd: null,
     format: "friendly_game",
     sport: "padel",
     venue: { name: "Padelhuset Bromma" },

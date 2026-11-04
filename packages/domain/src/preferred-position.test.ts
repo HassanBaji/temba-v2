@@ -94,6 +94,8 @@ describe("preferredPositionChoices", () => {
     ).toEqual(["left", "right", "either"]);
     expect(preferredPositionLabel("left", "ar")).toBe("يسار");
     expect(preferredPositionLabel(null, "ar")).toBe("غير محدد");
-    expect(preferredPositionProfileLine("either", "ar")).toBe("أي جهة");
+    expect(preferredPositionProfileLine("either", "ar")).toBe(
+      "يلعب على أي جهة",
+    );
   });
 });

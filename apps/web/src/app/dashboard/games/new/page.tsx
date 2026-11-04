@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -33,7 +33,7 @@ import {
   createVenueCopy,
   earliestCreateDay,
   friendlyGameKickoff,
-  friendlyGamePreviewLine,
+  friendlyGamePreviewLines,
   friendlyTournamentDefaultName,
   friendlyTournamentMatchCountLabel,
   friendlyTournamentPreviewDetail,
@@ -719,7 +719,7 @@ function NewGameForm() {
               : m.createGame.venue.courtOptional,
         );
   const kickoff = friendlyGameKickoff(day, startTime, finishTime, locale);
-  const previewDetail = friendlyGamePreviewLine({
+  const previewLines = friendlyGamePreviewLines({
     day: startTime ? day : "",
     groupName: selectedGroup?.name ?? selectedGroup?.communityName ?? null,
     venueName: selectedVenue?.name ?? null,
@@ -751,7 +751,7 @@ function NewGameForm() {
         ? m.webDashboard.creating
         : tournamentBranch
           ? c.createTournament
-          : m.webDashboard.games.createAction
+          : c.createGameAction
       : m.common.continue;
   const tournamentPlan = friendlyTournamentPlan({
     teamCount,
@@ -859,8 +859,12 @@ function NewGameForm() {
             {kickoff.trailer}
           </span>
         </h1>
-        {previewDetail ? (
-          <p className="text-dim text-meta mt-2">{previewDetail}</p>
+        {previewLines.length > 0 ? (
+          <div className="text-dim text-meta mt-2">
+            {previewLines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
         ) : null}
       </>
     ) : (
@@ -876,11 +880,15 @@ function NewGameForm() {
             m.createGame.format.friendlyGame
           )}
         </PageTitle>
-        <p className="text-dim text-meta mt-2.5 leading-normal">
-          {displayedStep === 1
-            ? c.hero.typeSubline
-            : previewDetail || c.hero.groupSubline}
-        </p>
+        <div className="text-dim text-meta mt-2.5 leading-normal">
+          {displayedStep === 1 ? (
+            <p>{c.hero.typeSubline}</p>
+          ) : previewLines.length > 0 ? (
+            previewLines.map((line) => <p key={line}>{line}</p>)
+          ) : (
+            <p>{c.hero.groupSubline}</p>
+          )}
+        </div>
       </>
     );
 
@@ -932,12 +940,6 @@ function NewGameForm() {
                 disabled={submitting || (displayedStep === 2 && emptyCatalog)}
               >
                 {primaryLabel}
-                {displayedStep < 4 ? (
-                  <ArrowRight
-                    aria-hidden="true"
-                    className="size-4 rtl:-scale-x-100"
-                  />
-                ) : null}
               </Button>
               <Button variant="outline" size="lg" asChild>
                 <Link href={cancelHref} onClick={onCancel}>

@@ -21,6 +21,7 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
 import {
   gameInviteSeatCopy,
   gameInviteLinkStage,
@@ -114,7 +115,9 @@ export function AcceptGameInviteLink({
     requesting: requestLevelRange.isPending,
     locale,
   });
-  const gameName = ready?.gameName ?? m.invite.kind.game;
+  const gameName = ready
+    ? gameDisplayName(ready.game, locale)
+    : m.invite.kind.game;
 
   React.useEffect(() => {
     if (!isSignedIn) {

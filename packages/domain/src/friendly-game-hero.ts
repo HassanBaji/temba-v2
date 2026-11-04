@@ -1,11 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import {
-  formatAbsoluteDay,
-  formatGameClock,
-  formatPlayedRelativeDay,
-} from "./format-game-start";
+import { formatAbsoluteDay, formatGameClock } from "./format-game-start";
 import type { FriendlyGameDetails } from "./friendly-game-details";
 import { friendlyGameDetailsPlan } from "./friendly-game-details";
 import {
@@ -245,8 +241,8 @@ export function friendlyGameHeroModel(
   const dateLabel = formatAbsoluteDay(windowStart, locale);
   const statusLabel =
     phase === "needs_results"
-      ? formatPlayedRelativeDay(windowStart, locale)
-      : formatHeroCountdown(phase, windowStart, now, locale);
+      ? messagesFor(locale).dates.countdown.endedEnterScore
+      : formatHeroCountdown(windowStart, input.windowEnd, now, locale);
   const duration = heroDurationFigure(match?.durationInMinutes ?? null, locale);
   const figures: FriendlyGameHeroFigure[] =
     phase === "needs_results"

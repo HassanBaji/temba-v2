@@ -5,12 +5,11 @@ import {
 } from "@repo/domain/create-game-flow";
 import { useFocusEffect, type Href } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
-import { ArrowRight, Lock, Trophy, Users } from "lucide-react-native";
+import { Lock, Trophy, Users } from "lucide-react-native";
 import { Fragment, useCallback } from "react";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
-import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { MountFill } from "../primitives/mount-fill";
 import { Screen } from "../primitives/screen";
@@ -135,7 +134,15 @@ function HeaderText({ header }: { header: StepHeaderText }) {
         </Text>
       )}
       {header.subtitle ? <Text tone="muted">{header.subtitle}</Text> : null}
-      {header.context ? (
+      {header.context?.stacked ? (
+        <View>
+          {header.context.parts.map((part, index) => (
+            <Text key={index} size="meta" tone="muted">
+              {part}
+            </Text>
+          ))}
+        </View>
+      ) : header.context ? (
         <ContextRow icon={header.context.icon} parts={header.context.parts} />
       ) : null}
     </View>
@@ -296,19 +303,7 @@ export function StepFooter({
           {next}
         </Text>
       </View>
-      <Button
-        label={m.common.continue}
-        size="lg"
-        icon={
-          <ArrowRight
-            size={sizes.iconAction}
-            color={colors.paper}
-            style={mirrorInRtl}
-          />
-        }
-        iconPlacement="trailing"
-        onPress={onContinue}
-      />
+      <Button label={m.common.continue} size="lg" onPress={onContinue} />
     </>
   );
 }

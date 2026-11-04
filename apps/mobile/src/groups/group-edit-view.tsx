@@ -1,7 +1,6 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
 import type { GroupCreateContext } from "@repo/domain/group-create";
 import {
-  groupJoiningFooter,
   groupJoiningToggleHelp,
   type GroupEditFields,
 } from "@repo/domain/group-settings";
@@ -248,13 +247,9 @@ export function GroupEditView(props: GroupEditViewProps) {
           <FormBlock label={joining.label}>
             <ToggleCard
               title={joining.toggle}
-              help={groupJoiningToggleHelp(
-                props.pendingJoinRequestCount,
-                locale,
-              )}
-              footer={groupJoiningFooter({
-                visibility: draft.visibility,
+              help={groupJoiningToggleHelp({
                 requiresApproval: draft.requiresApproval,
+                pendingRequestCount: props.pendingJoinRequestCount,
                 locale,
               })}
               value={draft.requiresApproval}

@@ -30,6 +30,7 @@ import {
   gameCardSubtitle,
   sideJoinAccessibleName,
 } from "@repo/domain/game-card";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
 import {
   gameCardActionLabel,
@@ -283,6 +284,7 @@ function OpenFlag({ openSpots }: { openSpots: number }) {
 
 export function GameSummaryCard({
   name,
+  hasCustomName,
   startTime,
   groupName,
   format,
@@ -315,6 +317,8 @@ export function GameSummaryCard({
   rated = true,
 }: {
   name: string | null;
+  /** Omitted by callers that predate it, which keep showing `name` as given. */
+  hasCustomName?: boolean;
   startTime: Date | string;
   groupName?: string | null;
   format?: string | null;
@@ -360,12 +364,20 @@ export function GameSummaryCard({
     return () => window.clearInterval(timer);
   }, []);
 
-  const title = venueName ?? name ?? m.webGame.summary.untitledGame;
+  const customName =
+    hasCustomName === undefined
+      ? name
+      : gameCustomName({ name, hasCustomName });
+  const title = venueName ?? customName ?? m.webGame.summary.untitledGame;
   const subtitle = gameCardSubtitle(
-    venueName,
-    location,
-    venueName ? name : null,
-    courtName,
+    {
+      venueName,
+      location,
+      customName: venueName ? customName : null,
+      courtName,
+      windowEnd,
+    },
+    locale,
   );
   const formatMeta =
     roundLabel ?? (format ? gameFormatLabel(format, locale) : null);
@@ -591,7 +603,11 @@ export function GameSummaryCard({
 
         <SummaryCardFooter>
           <div className="min-w-0 flex-1 text-[13.5px]">
-            {formatMeta ? <p className="truncate">{formatMeta}</p> : null}
+            {groupName ? (
+              <p className="truncate">{m.game.played.group}</p>
+            ) : formatMeta ? (
+              <p className="truncate">{formatMeta}</p>
+            ) : null}
             {groupName ? (
               <small className="text-muted-foreground mt-0.5 block truncate text-[12.5px]">
                 {groupName}

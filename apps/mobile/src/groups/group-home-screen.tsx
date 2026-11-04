@@ -15,6 +15,7 @@ import {
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import {
+  groupLeaveBlockedHint,
   groupMenuItems,
   groupMenuRoleLine,
   groupOwnerLeaveCopy,
@@ -381,6 +382,11 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             isOwner: data.isOwner,
             isOrganizer: viewerEntry?.isOrganizer ?? false,
             isMember,
+            locale,
+          }),
+          leaveBlockedHint: groupLeaveBlockedHint({
+            isOwner: data.isOwner,
+            isLoose: data.isLoose,
             locale,
           }),
           copyPending: inviteLink.copyPending,

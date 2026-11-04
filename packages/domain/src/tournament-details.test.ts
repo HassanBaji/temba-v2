@@ -315,7 +315,7 @@ describe("Arabic copy", () => {
         joinable: true,
         locale: "ar",
       }),
-      "خذ مقعد اليسار في Team C",
+      "خذ مكان اليسار في Team C",
     );
   });
 });

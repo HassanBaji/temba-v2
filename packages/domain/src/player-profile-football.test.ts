@@ -21,6 +21,9 @@ function match(
     goals: 2,
     game: {
       name: "Thursday 5s",
+      hasCustomName: true,
+      windowStart: null,
+      windowEnd: null,
       groupName: "Riffa Ballers",
       venueName: "Riffa Pitch",
     },
@@ -139,6 +142,9 @@ describe("footballMatchRowView", () => {
         match({
           game: {
             name: "Thursday 5s",
+            hasCustomName: true,
+            windowStart: null,
+            windowEnd: null,
             groupName: " ",
             venueName: "Riffa Pitch",
           },
@@ -149,11 +155,36 @@ describe("footballMatchRowView", () => {
     expect(
       footballMatchRowView(
         match({
-          game: { name: null, groupName: null, venueName: "Riffa Pitch" },
+          game: {
+            name: null,
+            hasCustomName: false,
+            windowStart: null,
+            windowEnd: null,
+            groupName: null,
+            venueName: "Riffa Pitch",
+          },
         }),
         "en",
       ).title,
     ).toBe("Friendly game");
+  });
+
+  it("names a Game by its window in the viewer's locale", () => {
+    expect(
+      footballMatchRowView(
+        match({
+          game: {
+            name: "Wed 10:30 AM - 12:00 PM",
+            hasCustomName: false,
+            windowStart: "2026-11-04T07:30:00.000Z",
+            windowEnd: "2026-11-04T09:00:00.000Z",
+            groupName: null,
+            venueName: "Riffa Pitch",
+          },
+        }),
+        "ar",
+      ).title,
+    ).toBe("الأربعاء، 10:30 ص – 12:00 م");
   });
 
   it("leaves goals out when the owner scored none", () => {
@@ -194,7 +225,7 @@ describe("football profile in Arabic", () => {
         "ar",
       ),
     ).toMatchObject({
-      lines: ["المستوى الابتدائي", "ألعاب كرة القدم لا تحرّكه بعد"],
+      lines: ["المستوى الابتدائي", "مباريات كرة القدم لا تحرّكه بعد"],
     });
   });
 });

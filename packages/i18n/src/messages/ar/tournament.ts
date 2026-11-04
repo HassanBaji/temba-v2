@@ -74,6 +74,7 @@ export const tournament = {
         one: "فريق",
         two: "فريقان",
         few: "فرق",
+        many: "فريقًا",
         other: "فريق",
       }),
     intoKnockout: (teamCount: number) =>
@@ -84,7 +85,14 @@ export const tournament = {
     topTwo: "أول فريقين",
     topThree: "أول ثلاثة فرق",
     topFour: "أول أربعة فرق",
-    topN: (n: number) => `أول ${n} فرق`,
+    topN: (n: number) =>
+      plural("ar", n, {
+        one: "أول فريق",
+        two: "أول فريقين",
+        few: "أول {n} فرق",
+        many: "أول {n} فريقًا",
+        other: "أول {n} فريق",
+      }),
     inEachGroup: (who: string) => `${who} من كل مجموعة`,
     stageFinal: "النهائي",
     stageSemis: "نصف النهائي ثم النهائي",
@@ -128,7 +136,7 @@ export const tournament = {
     entryDraftedTitle: "المجموعات جاهزة كمسودة",
     entryAction: "افتح القرعة",
     emptyDraft: "أجرِ قرعة المجموعات لترى أي الفرق تقع في أي مجموعة.",
-    postFooter: "النشر ينشئ كل مباريات المجموعات ويغلق المقاعد.",
+    postFooter: "النشر ينشئ كل مباريات المجموعات ويغلق الأماكن.",
     knockoutRandom: "القرعة عشوائية. لا تصنيف لأحد.",
     drawKnockout: "أجرِ قرعة خروج المغلوب",
     postKnockout: "انشر القرعة",
@@ -136,17 +144,17 @@ export const tournament = {
     knockoutEntryDraftedTitle: "خروج المغلوب جاهز كمسودة",
     knockoutEmptyDraft:
       "أجرِ قرعة خروج المغلوب لترى من يلعب ضد من في الدور الأول.",
-    postKnockoutFooter: "النشر ينشئ كل مباريات خروج المغلوب ويغلق المقاعد.",
+    postKnockoutFooter: "النشر ينشئ كل مباريات خروج المغلوب ويغلق الأماكن.",
     undoKnockout: "تراجع عن القرعة",
     undoKnockoutConfirmTitle: "التراجع عن القرعة؟",
     undoKnockoutConfirmCopy: "تُحذف كل مباريات خروج المغلوب وتُمسح القرعة.",
     entryStateLine: (completeTeams: number, teamCount: number) =>
       plural("ar", teamCount, {
         one: `${completeTeams} من فريق واحد مكتمل.`,
-        two: `${completeTeams} من فريقين مكتملان.`,
+        two: `${completeTeams} من فريقين مكتملين.`,
         few: `${completeTeams} من {n} فرق مكتملة.`,
-        many: `${completeTeams} من {n} فريقًا مكتملة.`,
-        other: `${completeTeams} من {n} فريق مكتملة.`,
+        many: `${completeTeams} من {n} فريقًا مكتملًا.`,
+        other: `${completeTeams} من {n} فريق مكتمل.`,
       }),
     drawerLead: (teamCount: number) =>
       `${teamsWord(teamCount)}. قرعة المجموعات عشوائية. لا تصنيف لأحد.`,
@@ -178,9 +186,9 @@ export const tournament = {
     createHeadingLead: "بطولة جديدة،",
     createHeadingTrail: "عدة جولات",
     createHeading: "بطولة جديدة، عدة جولات",
-    createSubline: "مثل إعداد لعبة ودية، لكنها تمتد لبضع جولات.",
+    createSubline: "مثل إعداد مباراة ودية، لكنها تمتد لبضع جولات.",
     createFooter:
-      "تظهر في الألعاب مثل أي لعبة أخرى. تُجري القرعة عندما تمتلئ المقاعد.",
+      "تظهر في المباريات مثل أي مباراة أخرى. تُجري القرعة عندما تمتلئ الأماكن.",
     unevenPools: "المجموعات غير متساوية. بعض الفرق تلعب مباراة إضافية.",
     poolMatchesRow: "مباريات المجموعات",
     matchesPerTeamRow: "المباريات لكل فريق",
@@ -191,7 +199,7 @@ export const tournament = {
     howLongItRuns: "مدة البطولة",
     oneDay: "يوم واحد",
     fewWeeks: "بضعة أسابيع",
-    whoCanTakeASeat: "من يمكنه أخذ مقعد",
+    whoCanTakeASeat: "من يمكنه أخذ مكان",
     thisGroupOnly: "هذه المجموعة فقط",
     anyoneWithTheLink: "أي شخص لديه الرابط",
     howPeopleJoin: "كيف ينضم اللاعبون",
@@ -208,11 +216,17 @@ export const tournament = {
       }),
     eachTeamPlays: (matches: number) => `يلعب كل فريق ${matchesWord(matches)}`,
     eachTeamPlaysRange: (min: number, max: number) =>
-      `يلعب كل فريق من ${min} إلى ${max} مباريات`,
+      `يلعب كل فريق من ${min} إلى ${matchesWord(max)}`,
     unevenMatchesPerTeam: (max: number, min: number) =>
-      `الفرق في المجموعة الأكبر تلعب ${max} مباريات؛ والفرق في المجموعة الأصغر تلعب ${min} مباريات`,
+      `الفرق في المجموعة الأكبر تلعب ${matchesWord(max)}؛ والفرق في المجموعة الأصغر تلعب ${matchesWord(min)}`,
     playersInPairs: (players: number) =>
-      `${players} لاعبًا في أزواج. مقعدان لكل فريق.`,
+      plural("ar", players, {
+        one: "لاعب واحد في أزواج. مكانان لكل فريق.",
+        two: "لاعبان في أزواج. مكانان لكل فريق.",
+        few: "{n} لاعبين في أزواج. مكانان لكل فريق.",
+        many: "{n} لاعبًا في أزواج. مكانان لكل فريق.",
+        other: "{n} لاعب في أزواج. مكانان لكل فريق.",
+      }),
     courtCount: (n: number) =>
       plural("ar", n, {
         zero: "لا ملاعب",
@@ -239,10 +253,10 @@ export const tournament = {
     eyebrowKnockout: "بطولة ودية، خروج المغلوب",
     eyebrowRounds: (n: number) => `بطولة ودية، ${roundsWord(n)}`,
     yourTeam: "فريقك",
-    leftSeat: "المقعد الأيسر",
-    rightSeat: "المقعد الأيمن",
-    leftSeatOpen: "المقعد الأيسر شاغر",
-    rightSeatOpen: "المقعد الأيمن شاغر",
+    leftSeat: "المكان الأيسر",
+    rightSeat: "المكان الأيمن",
+    leftSeatOpen: "المكان الأيسر شاغر",
+    rightSeatOpen: "المكان الأيمن شاغر",
     openPositionSr: "جهة شاغرة",
     youAreIn: "أنت مشارك.",
     drawRandomClause: "وهي عشوائية.",
@@ -261,10 +275,10 @@ export const tournament = {
     inviteFromGroup: "دعوة من مجموعة",
     pricePerMatch: "لكل مباراة",
     teamsHeading: "الفرق",
-    takeSeat: "خذ مقعدًا",
+    takeSeat: "خذ مكانًا",
     yourTeamTag: "فريقك",
-    seatsHeading: "المقاعد",
-    leaveTheSeat: "غادر المقعد",
+    seatsHeading: "الأماكن",
+    leaveTheSeat: "غادر المكان",
     yourRoundsPredrawCaption: "الخصوم بعد القرعة",
     notDrawn: "لم تُجرَ القرعة",
     standingsHeading: "الترتيب",
@@ -300,7 +314,13 @@ export const tournament = {
       }),
     seatsTaken: (taken: number, total: number) => `${taken} من ${total}`,
     seatsTakenSr: (taken: number, total: number) =>
-      `${taken} من ${total} مقاعد محجوزة`,
+      plural("ar", total, {
+        one: `حُجز ${taken} من مكان واحد`,
+        two: `حُجز ${taken} من مكانين`,
+        few: `حُجز ${taken} من {n} أماكن`,
+        many: `حُجز ${taken} من {n} مكانًا`,
+        other: `حُجز ${taken} من {n} مكان`,
+      }),
     sizeLine: (teamCount: number, poolClause: string) =>
       `${teamsWord(teamCount)}، ${poolClause}`,
     sizeLineThen: (teamCount: number, poolClause: string, start: string) =>
@@ -318,13 +338,13 @@ export const tournament = {
     ) => {
       const seats =
         seatsLeft <= 0
-          ? "لم يتبقَّ أي مقعد."
+          ? "لم يتبقَّ أي مكان."
           : plural("ar", seatsLeft, {
-              one: "تبقّى مقعد واحد.",
-              two: "تبقّى مقعدان.",
-              few: "تبقّت {n} مقاعد.",
-              many: "تبقّى {n} مقعدًا.",
-              other: "تبقّى {n} مقعد.",
+              one: "تبقّى مكان واحد.",
+              two: "تبقّى مكانان.",
+              few: "تبقّت {n} أماكن.",
+              many: "تبقّى {n} مكانًا.",
+              other: "تبقّى {n} مكان.",
             });
       const drawer = organizerFirstName
         ? `يُجري ${organizerFirstName} قرعة ${knockoutOnly ? "خروج المغلوب" : "المجموعات"} عندما تمتلئ الفرق`
@@ -346,28 +366,28 @@ export const tournament = {
     roundNResults: (roundNumber: number) => `نتائج الجولة ${roundNumber}`,
   },
   join: {
-    takeASeatTitle: "خذ مقعدًا",
+    takeASeatTitle: "خذ مكانًا",
     sitWithSomeone: "اجلس مع أحدهم",
     startATeam: "ابدأ فريقًا وحدك",
     startATeamSubline: "يأخذ أحدهم الجهة الأخرى، أو يضعك المنظّم مع شريك",
-    yourSeat: "مقعدك",
+    yourSeat: "مكانك",
     taken: "محجوز",
     roundsRow: "الجولات",
     drawRow: "القرعة",
     drawRandom: "عشوائية",
     pricePerPlayer: "لكل لاعب",
     pricePerPlayerValue: (price: string) => `${price} لكل لاعب`,
-    introSuffix: "مثل الانضمام إلى لعبة، لكنك تختار من تلعب معه.",
+    introSuffix: "مثل الانضمام إلى مباراة، لكنك تختار من تلعب معه.",
     headerWithLead: (lead: string) =>
-      `${lead}. مثل الانضمام إلى لعبة، لكنك تختار من تلعب معه.`,
+      `${lead}. مثل الانضمام إلى مباراة، لكنك تختار من تلعب معه.`,
     nameRoundsFrom: (name: string, rounds: string, day: string) =>
       `${name}، ${rounds} من ${day}`,
     nameRounds: (name: string, rounds: string) => `${name}، ${rounds}`,
     roundsFrom: (rounds: string, day: string) => `${rounds} من ${day}`,
-    leaveSeatUntilPoolDraw: "يمكنك مغادرة المقعد حتى قرعة المجموعات.",
-    leaveSeatUntilKnockoutDraw: "يمكنك مغادرة المقعد حتى القرعة.",
+    leaveSeatUntilPoolDraw: "يمكنك مغادرة المكان حتى قرعة المجموعات.",
+    leaveSeatUntilKnockoutDraw: "يمكنك مغادرة المكان حتى القرعة.",
     leaveSpotConfirm: "قد يُتاح مكانك لشخص آخر.",
-    partnerUnseatedConfirm: "يُزال شريكك من مقعده أيضًا.",
+    partnerUnseatedConfirm: "يُزال شريكك من مكانه أيضًا.",
     partnerVacantSideRace:
       "حُجز هذا الفريق أثناء تسجيلك. اختر شريكًا آخر إن كان هناك فريق لا يزال شاغرًا بالكامل.",
     partnerInviteLanding: "هذه البطولة مع شريك فقط. تابع لاختيار شريك.",
@@ -382,8 +402,8 @@ export const tournament = {
       }),
     playsLeft: "يلعب يسارًا",
     playsRight: "يلعب يمينًا",
-    takeTheLeftSeat: "خذ المقعد الأيسر",
-    takeTheRightSeat: "خذ المقعد الأيمن",
+    takeTheLeftSeat: "خذ المكان الأيسر",
+    takeTheRightSeat: "خذ المكان الأيمن",
     seatExplanationOccupied: (
       occupant: string,
       occupiedSeat: string,
@@ -404,13 +424,13 @@ export const tournament = {
     takesEffect: "يسري فورًا. يمكن لأي منهما المغادرة حتى قرعة المجموعات.",
     takesEffectKnockout: "يسري فورًا. يمكن لأي منهما المغادرة حتى القرعة.",
     bannerTitle: "فريقان لكل منهما جهة شاغرة",
-    bannerAction: "رتّب المقاعد",
+    bannerAction: "رتّب الأماكن",
     drawerTitle: "نصفا فريق",
     previewLabel: "فريق واحد بدلًا من اثنين",
     primaryAction: "ضعهما في فريق واحد",
     dismissAction: "اترك الجهتين شاغرتين",
     swap: "بدّل",
-    mergeSeats: "ادمج المقاعد",
+    mergeSeats: "ادمج الأماكن",
     manyTitle: "فرق لكل منها جهة شاغرة",
     samePosition: "سيلعب المستخدمان في الجهة نفسها",
     openPositionSr: "جهة شاغرة",
@@ -427,15 +447,21 @@ export const tournament = {
     putTogetherCompletes: (first: string, second: string) =>
       `ضع ${first} و${second} معًا. دمجهما يكمل الفرق.`,
     drawerLead: (first: string, second: string) =>
-      `أخذ كل من ${first} و${second} مقعدًا وحده. ضعهما معًا في فريق واحد.`,
+      `أخذ كل من ${first} و${second} مكانًا وحده. ضعهما معًا في فريق واحد.`,
     drawerLeadFull: (first: string, second: string, teamCount: number) =>
-      `أخذ كل من ${first} و${second} مقعدًا وحده. ضعهما معًا فتكتمل الفرق الـ${teamCount}.`,
+      `أخذ كل من ${first} و${second} مكانًا وحده. ضعهما معًا فتكتمل الفرق الـ${teamCount}.`,
     drawerLeadCompletes: (first: string, second: string) =>
-      `أخذ كل من ${first} و${second} مقعدًا وحده. دمجهما يكمل الفرق.`,
+      `أخذ كل من ${first} و${second} مكانًا وحده. دمجهما يكمل الفرق.`,
     swapHint: (name: string, seat: string) =>
-      `يحتفظ ${name} بمقعد ${seat} بدلًا من ذلك`,
+      `يحتفظ ${name} بمكان ${seat} بدلًا من ذلك`,
     manyHalfTeams: (halfTeamCount: number) =>
-      `${halfTeamCount} فرق لكل منها جهة شاغرة.`,
+      plural("ar", halfTeamCount, {
+        one: "فريق واحد له جهة شاغرة.",
+        two: "فريقان لكل منهما جهة شاغرة.",
+        few: "{n} فرق لكل منها جهة شاغرة.",
+        many: "{n} فريقًا لكل منها جهة شاغرة.",
+        other: "{n} فريق لكل منها جهة شاغرة.",
+      }),
   },
   card: {
     bandLabel: "بطولة ودية",
@@ -447,7 +473,15 @@ export const tournament = {
     dayWithHours: (day: string, start: string, end: string) =>
       `${day}، ${start} – ${end}`,
     roundsThenKnockout: (rounds: string) => `${rounds}، ثم خروج المغلوب`,
-    openCount: (openTeams: number) => `${openTeams} شاغر`,
+    openCount: (openTeams: number) =>
+      plural("ar", openTeams, {
+        zero: "لا أماكن شاغرة",
+        one: "مكان واحد شاغر",
+        two: "مكانان شاغران",
+        few: "{n} أماكن شاغرة",
+        many: "{n} مكانًا شاغرًا",
+        other: "{n} مكان شاغر",
+      }),
     full: "مكتمل",
     teamsKnockout: (teamCount: number) =>
       `${teamsWord(teamCount)}، خروج المغلوب`,
@@ -456,13 +490,19 @@ export const tournament = {
     teamsGroupsThen: (teamCount: number, groupCount: number, start: string) =>
       `${teamsWord(teamCount)}، ${plural("ar", groupCount, { one: "مجموعة واحدة", two: "مجموعتان", few: "{n} مجموعات", many: "{n} مجموعة", other: "{n} مجموعة" })}، ثم ${start}`,
     teamsIn: (registered: number, allowed: number) =>
-      `${registered} من ${allowed} فرق مشاركة`,
+      plural("ar", allowed, {
+        one: `${registered} من فريق واحد مشارك`,
+        two: `${registered} من فريقين مشاركين`,
+        few: `${registered} من {n} فرق مشاركة`,
+        many: `${registered} من {n} فريقًا مشاركًا`,
+        other: `${registered} من {n} فريق مشارك`,
+      }),
     teamsCount: (n: number) => teamsWord(n),
     joinAction: "انضم إلى البطولة",
     joinWaitlistAction: "انضم إلى قائمة الانتظار",
     invitePartnerAction: "ادعُ شريكًا",
     viewAction: "اعرض البطولة",
-    openSeat: "مقعد شاغر",
+    openSeat: "مكان شاغر",
     pair: (first: string, second: string) => `${first} و${second}`,
     roundN: (roundNumber: number) => `الجولة ${roundNumber}`,
     groupLower: (label: string) => `المجموعة ${label}`,
@@ -520,7 +560,7 @@ export const tournament = {
     round: "الجولة",
     roundN: (roundNumber: number) => `الجولة ${roundNumber}`,
     roundDay: (round: string, day: string) => `${round}، ${day}`,
-    takeSeatOn: (seat: string, team: string) => `خذ مقعد ${seat} في ${team}`,
-    openSeatOn: (seat: string, team: string) => `مقعد ${seat} شاغر في ${team}`,
+    takeSeatOn: (seat: string, team: string) => `خذ مكان ${seat} في ${team}`,
+    openSeatOn: (seat: string, team: string) => `مكان ${seat} شاغر في ${team}`,
   },
 } satisfies typeof source;

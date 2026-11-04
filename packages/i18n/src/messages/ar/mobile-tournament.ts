@@ -3,16 +3,16 @@ import type { mobileTournament as source } from "../en/mobile-tournament";
 
 export const mobileTournament = {
   games: {
-    createGame: "إنشاء لعبة",
+    createGame: "إنشاء مباراة",
     findAGroup: "ابحث عن مجموعة",
     upcomingTab: "القادمة",
     playedTab: "السابقة",
     sport: "الرياضة",
-    couldNotLoad: "تعذّر تحميل الألعاب",
-    loading: "جارٍ تحميل الألعاب",
+    couldNotLoad: "تعذّر تحميل المباريات",
+    loading: "جارٍ تحميل المباريات",
     loadMore: "تحميل المزيد",
     scoreConfirmed: "تم تأكيد النتيجة",
-    nextGame: "اللعبة التالية",
+    nextGame: "المباراة التالية",
     notScheduled: "غير مجدولة",
     when: "متى",
     where: "أين",
@@ -20,7 +20,7 @@ export const mobileTournament = {
     noResultsYet: "لا نتائج بعد",
   },
   card: {
-    untitledGame: "لعبة بلا اسم",
+    untitledGame: "مباراة بلا اسم",
     cancelled: "أُلغيت",
     perPlayerNote: "لكل لاعب",
     accessibleName: (title: string, day: string, time: string) =>
@@ -28,10 +28,10 @@ export const mobileTournament = {
     playersSr: (occupancy: string) => `${occupancy} من اللاعبين`,
     joinLeft: "انضم يسارًا",
     joinRight: "انضم يمينًا",
-    openSeat: "مقعد شاغر",
+    openSeat: "مكان شاغر",
     openTeam: "فريق شاغر",
     vs: "ضد",
-    pickASeat: "اختر مقعدًا",
+    pickASeat: "اختر مكانًا",
     levelSubline: (level: string) => `المستوى ${level}`,
     perPlayer: (amount: string) => `${amount} لكل لاعب`,
     starts: (day: string) => `تبدأ ${day}`,
@@ -43,7 +43,15 @@ export const mobileTournament = {
   footballCard: {
     youPlayed: "لعبت",
     seatsTaken: (taken: number, seats: number) => `${taken} من ${seats}`,
-    inWithOpen: (open: number) => `مشاركون، ${open} شاغرة`,
+    inWithOpen: (open: number) =>
+      plural("ar", open, {
+        zero: "مشاركون، لا أماكن شاغرة",
+        one: "مشاركون، مكان واحد شاغر",
+        two: "مشاركون، مكانان شاغران",
+        few: "مشاركون، {n} أماكن شاغرة",
+        many: "مشاركون، {n} مكانًا شاغرًا",
+        other: "مشاركون، {n} مكان شاغر",
+      }),
     in: "مشاركون",
     teamsNotSet: "الفرق غير جاهزة",
     youPlayIn: (team: string) => `تلعب في ${team}`,
@@ -54,11 +62,17 @@ export const mobileTournament = {
     enterScore: "أدخل النتيجة",
     each: "لكل لاعب",
     startCaptainsPick: (sideSize: number) =>
-      `${sideSize} أساسيون، القادة يختارون`,
+      plural("ar", sideSize, {
+        one: "أساسي واحد، القادة يختارون",
+        two: "أساسيان، القادة يختارون",
+        few: "{n} أساسيين، القادة يختارون",
+        many: "{n} أساسيًا، القادة يختارون",
+        other: "{n} أساسي، القادة يختارون",
+      }),
     captainsPickStarters: "القادة يختارون الأساسيين",
   },
   content: {
-    gameCancelled: "أُلغيت هذه اللعبة",
+    gameCancelled: "أُلغيت هذه المباراة",
     softArchivedTitle: "مجتمع مجموعة النادي هذه مؤرشف",
     softArchivedLine: "يبقى التسجيل وقائمة الانتظار والدعوات مغلقة.",
   },
@@ -115,7 +129,7 @@ export const mobileTournament = {
     opensProfileHint: "يفتح ملفه الشخصي",
     showFewerTeams: "عرض فرق أقل",
     needCompleteTeam:
-      "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه اللعبة.",
+      "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه المباراة.",
     teamGroup: "الفريق",
     teamWithMembers: (name: string, members: string) => `${name} (${members})`,
   },
@@ -144,7 +158,7 @@ export const mobileTournament = {
   },
   infoRow: (label: string, value: string) => `${label}: ${value}`,
   join: {
-    joinThisGame: "انضم إلى هذه اللعبة",
+    joinThisGame: "انضم إلى هذه المباراة",
     howYouPlay: "كيف تلعب",
     joinAs: "انضم كـ",
     player: "لاعب",
@@ -152,7 +166,7 @@ export const mobileTournament = {
     keeper: "حارس",
     preferredPosition: "المركز المفضّل",
     preferenceNotPromise: "تفضيل، لا وعد",
-    yourSeat: "مقعدك",
+    yourSeat: "مكانك",
     pitchCost: "تكلفة الملعب",
     choiceSr: (title: string, note: string) => `${title}، ${note}`,
   },
@@ -164,7 +178,7 @@ export const mobileTournament = {
     readyToPublish: (note: string) => `${note} جاهز للنشر.`,
     moveToOtherTeam: (name: string) => `انقل ${name} إلى الفريق الآخر`,
     noSubs:
-      "لا يُحدَّد البدلاء هنا. كل قائد يختار الأساسيين قبل البداية ويُجري التبديلات في الملعب.",
+      "لا يُحدَّد الاحتياط هنا. كل قائد يختار الأساسيين قبل البداية ويُجري التبديلات في الملعب.",
     putIn: (name: string, team: string) => `ضع ${name} في ${team}`,
     notPlaced: "غير موزَّعين",
     left: (n: number) => `${n} متبقّون`,
@@ -176,7 +190,13 @@ export const mobileTournament = {
     organizerOnly: "المنظّم وحده يكوّن الفرق، وحتى إدخال النتيجة فقط.",
     perTeam: (n: number) => `${n} لكل فريق`,
     perTeamStart: (n: number, sideSize: number) =>
-      `${n} لكل فريق، ${sideSize} أساسيون`,
+      plural("ar", sideSize, {
+        one: `${n} لكل فريق، أساسي واحد`,
+        two: `${n} لكل فريق، أساسيان`,
+        few: `${n} لكل فريق، {n} أساسيين`,
+        many: `${n} لكل فريق، {n} أساسيًا`,
+        other: `${n} لكل فريق، {n} أساسي`,
+      }),
     howLevel: "انقر السهم في صف لنقل ذلك اللاعب إلى الفريق الآخر.",
     howManual: "انقر لونًا لوضع لاعب؛ الصفوف الموضوعة تأخذ لون فريقها.",
     shuffle: "خلط",
@@ -196,7 +216,7 @@ export const mobileTournament = {
   scoreCard: {
     scorers: "المسجّلون",
     title: "النتيجة",
-    placeholderNote: "يُدخلها أحد الطرفين بعد اللعبة ويؤكدها الطرف الآخر.",
+    placeholderNote: "يُدخلها أحد الطرفين بعد المباراة ويؤكدها الطرف الآخر.",
     enterScore: "أدخل النتيجة",
     confirmed: "مؤكدة",
     waitingToConfirm: "بانتظار التأكيد",
@@ -209,13 +229,20 @@ export const mobileTournament = {
     oneGoalFewer: (name: string) => `هدف أقل لـ${name}`,
     oneGoalMore: (name: string) => `هدف أكثر لـ${name}`,
     scorerSr: (name: string, team: string, goals: number) =>
-      `${name}، ${team}، ${goals} أهداف`,
+      plural("ar", goals, {
+        zero: `${name}، ${team}، بلا أهداف`,
+        one: `${name}، ${team}، هدف واحد`,
+        two: `${name}، ${team}، هدفان`,
+        few: `${name}، ${team}، {n} أهداف`,
+        many: `${name}، ${team}، {n} هدفًا`,
+        other: `${name}، ${team}، {n} هدف`,
+      }),
     scorerHint: "انقر لإضافة هدف، واضغط مطوّلًا لإزالة هدف",
     addAGoal: "أضف هدفًا",
     takeAGoalAway: "أزل هدفًا",
     saved: "تم حفظ النتيجة",
     title: "النتيجة",
-    loadFailed: "تعذّر تحميل اللعبة",
+    loadFailed: "تعذّر تحميل المباراة",
     closed: "تسجيل النتيجة مغلق",
     closedLine:
       "يُفتح تسجيل النتيجة عند البداية للاعبي الفريقين والمنظّم، حتى يؤكدها الطرفان.",

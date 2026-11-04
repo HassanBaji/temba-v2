@@ -6,22 +6,26 @@ export const webAuth = {
     stepOf: (step: number, total: number) => `الخطوة ${step} من ${total}`,
   },
   welcome: {
-    headline: "ابحث عن لعبة،\nاملأ الملعب،\nسجّل النتيجة.",
+    headline: "ابحث عن مباراة،\nأكمِل العدد،\nوسجّل النتيجة.",
     tagline:
-      "ألعاب بادل وكرة قدم مفتوحة قربك، ومجموعاتك المعتادة، ومستوى يتبع نتائجك.",
+      "مباريات بادل وكرة قدم مفتوحة بالقرب منك، مع مجموعاتك المعتادة، ومستوى يتطوّر مع كل نتيجة.",
     sportsLabel: "الرياضات",
-    continueWithPhone: "المتابعة بالهاتف",
+    sportChips: {
+      padel: "بادل",
+      football: "كرة قدم",
+    },
+    continueWithPhone: "المتابعة برقم الجوال",
   },
   termsNote: {
     consent: (age: number) =>
-      `بمتابعتك تؤكد أن عمرك ${age} عامًا أو أكثر وتوافق على {terms} و{privacy}.`,
-    termsLink: "الشروط",
+      `بالمتابعة، فإنك تؤكد أن عمرك ${age} عامًا فأكثر، وتوافق على {terms} و{privacy}.`,
+    termsLink: "الشروط والأحكام",
     privacyLink: "سياسة الخصوصية",
     smsRates: "قد تُطبَّق رسوم الرسائل النصية المعتادة.",
   },
   oauth: {
     or: "أو",
-    continueWithGoogle: "المتابعة عبر Google",
+    continueWithGoogle: "المتابعة باستخدام Google",
   },
   sso: {
     finishingSignIn: "جارٍ إكمال تسجيل الدخول…",
@@ -36,7 +40,14 @@ export const webAuth = {
     show: "إظهار كلمة المرور",
     hide: "إخفاء كلمة المرور",
     strength: (label: string) => `قوة كلمة المرور: ${label}`,
-    placeholder: (min: number) => `${min} أحرف على الأقل`,
+    placeholder: (min: number) =>
+      plural("ar", min, {
+        one: `حرف واحد على الأقل`,
+        two: `حرفان على الأقل`,
+        few: `{n} أحرف على الأقل`,
+        many: `{n} حرفًا على الأقل`,
+        other: `{n} حرف على الأقل`,
+      }),
   },
   resend: {
     newCodeSent: "أُرسل رمز جديد",
@@ -121,7 +132,7 @@ export const webAuth = {
       metaTitle: "اختر رياضاتك",
       title: "ماذا تلعب؟",
       description:
-        "اختر واحدة أو كلتيهما. لكل رياضة مستواها وقائمة ألعابها الخاصة.",
+        "اختر واحدة أو كلتيهما. لكل رياضة مستواها وقائمة مبارياتها الخاصة.",
       separateNote: "المجموعات والحجوزات منفصلة لكل رياضة.",
     },
     padel: {
@@ -135,10 +146,11 @@ export const webAuth = {
     football: {
       title: "كيف تصطف؟",
       description:
-        "يستخدمها المنظّمون لموازنة الفرق. يمكنك تغييرها في كل لعبة.",
+        "يستخدمها المنظّمون لموازنة الفرق. يمكنك تغييرها في كل مباراة.",
       usuallyJoinAs: "تنضم عادةً بصفة",
       roleLabel: "دور كرة القدم",
-      keeperSeatsNote: "مقاعد الحراس محدودة باثنين في كل لعبة، واحد لكل جانب.",
+      keeperSeatsNote:
+        "أماكن الحراس محدودة باثنين في كل مباراة، واحد لكل جانب.",
       preferredPosition: "المركز المفضّل",
       positionLabel: "مركز كرة القدم المفضّل",
       yourLevel: "مستواك",
@@ -154,7 +166,7 @@ export const webAuth = {
     photo: {
       title: "أضف صورة",
       description:
-        "صورة واضحة لوجهك تساعد المنظّمين على التعرّف عليك في الملعب. تظهر لأعضاء المجموعة وللاعبين في ألعابك.",
+        "صورة واضحة لوجهك تساعد المنظّمين على التعرّف عليك في الملعب. تظهر لأعضاء المجموعة وللاعبين في مبارياتك.",
       chosenAlt: "الصورة التي اخترتها",
       currentAlt: "صورة ملفك الشخصي الحالية",
       placeholder: "صورة الملف الشخصي",
@@ -196,7 +208,7 @@ export const webAuth = {
       profile: "الملف الشخصي",
       tasksLabel: "مهام الملف الشخصي",
       completeProfile: "إكمال الملف الشخصي",
-      laterShowGames: "لاحقًا، أرني الألعاب",
+      laterShowGames: "لاحقًا، أرني المباريات",
       nameLabel: "الاسم",
       mobileNumberLabel: "رقم الجوال",
       countDone: (count: string) => `${count} مكتمل`,
@@ -217,10 +229,18 @@ export const webAuth = {
     notNow: "ليس الآن",
   },
   home: {
-    upNext: "التالي",
+    upNext: "مبارياتك القادمة",
     nothingThisWeek: "لا شيء هذا الأسبوع",
-    thisWeekCount: (n: number) => `${n} هذا الأسبوع`,
+    thisWeekCount: (n: number) =>
+      plural("ar", n, {
+        one: "مباراة واحدة هذا الأسبوع",
+        two: "مباراتان هذا الأسبوع",
+        few: "{n} مباريات هذا الأسبوع",
+        many: "{n} مباراة هذا الأسبوع",
+        other: "{n} مباراة هذا الأسبوع",
+      }),
     onNow: "جارية الآن",
+    withEmphasis: (emphasis: string) => `، ${emphasis}`,
     inMinutes: (minutes: number) => `بعد ${minutes} د`,
     inHours: (hours: number) => `بعد ${hours} س`,
     inHoursMinutes: (hours: number, minutes: number) =>
@@ -228,9 +248,15 @@ export const webAuth = {
     rosterOf: (registered: number, allowed: number) =>
       `${registered} من ${allowed}`,
     rosterPlayers: (registered: number, allowed: number) =>
-      `${registered} من ${allowed} لاعبًا`,
+      plural("ar", allowed, {
+        one: `${registered} من لاعب واحد`,
+        two: `${registered} من لاعبَين`,
+        few: `${registered} من {n} لاعبين`,
+        many: `${registered} من {n} لاعبًا`,
+        other: `${registered} من {n} لاعب`,
+      }),
     kind: {
-      game: "لعبة",
+      game: "مباراة",
       tournament: "بطولة",
     },
     toTime: (time: string) => `حتى ${time}`,
@@ -239,19 +265,19 @@ export const webAuth = {
     nextUpSpokenAt: (title: string, day: string, time: string, place: string) =>
       `التالي، ${title}، ${day} ${time}، ${place}`,
     details: "التفاصيل",
-    allGames: "كل الألعاب",
+    allGames: "كل المباريات",
     empty: {
       thisWeek: "هذا الأسبوع",
       free: "فارغ",
       headline: "أسبوعك\nمفتوح.",
-      description: "انضم إلى لعبة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
-      findAGame: "ابحث عن لعبة",
+      description: "انضم إلى مباراة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
+      findAGame: "ابحث عن مباراة",
     },
     noLevel: {
-      padel: "العب لعبة بادل مصنّفة ليظهر مستواك في البادل.",
-      football: "العب لعبة كرة قدم مصنّفة ليظهر مستواك في كرة القدم.",
+      padel: "العب مباراة بادل مصنّفة ليظهر مستواك في البادل.",
+      football: "العب مباراة كرة قدم مصنّفة ليظهر مستواك في كرة القدم.",
     },
-    levelBandSpoken: "فئة المستوى",
+    levelBandSpoken: "الفئة",
     groupsCount: (n: number) =>
       plural("ar", n, {
         one: "مجموعة واحدة",
@@ -260,12 +286,12 @@ export const webAuth = {
         many: "{n} مجموعة",
         other: "{n} مجموعة",
       }),
-    standing: "الترتيب",
+    standing: "ترتيبك",
     recentForm: {
       title: "الأداء الأخير",
       lastTen: "آخر 10 مباريات",
       record: "السجل",
-      played: "لُعبت",
+      played: "مباريات",
       won: "فوز",
       lost: "خسارة",
       slot: {
@@ -338,11 +364,11 @@ export const webAuth = {
     },
     seatsOpen: (n: number) =>
       plural("ar", n, {
-        one: "مقعد واحد متاح.",
-        two: "مقعدان متاحان.",
-        few: "{n} مقاعد متاحة.",
-        many: "{n} مقعدًا متاحًا.",
-        other: "{n} مقعد متاح.",
+        one: "مكان واحد شاغر.",
+        two: "مكانان شاغران.",
+        few: "{n} أماكن شاغرة.",
+        many: "{n} مكانًا شاغرًا.",
+        other: "{n} مكان شاغر.",
       }),
     door: {
       cancelInviteFor: (name: string) => `إلغاء دعوة ${name}`,
@@ -371,7 +397,15 @@ export const webAuth = {
       saveLevel: "حفظ المستوى",
     },
     allTime: {
-      matches: "مباراة",
+      matches: (n: number) =>
+        plural("ar", n, {
+          zero: "مباراة",
+          one: "مباراة",
+          two: "مباراتان",
+          few: "مباريات",
+          many: "مباراة",
+          other: "مباراة",
+        }),
       percentWon: (percent: number) => `${percent}% فوز`,
       longestStreak: "أطول سلسلة",
       failed: "تعذّر تحميل الإحصاءات الكاملة",
@@ -382,15 +416,14 @@ export const webAuth = {
     },
     level: {
       bandLevelSpoken: (band: string, level: string) =>
-        `${band}، المستوى ${level}`,
-      lastMatch: "آخر مباراة",
+        `${band}، التقييم ${level}`,
       failed: "تعذّر تحميل المستوى",
     },
   },
   settings: {
     preferredPosition: {
       title: "الجهة المفضّلة",
-      description: "جهتك الافتراضية عند اختيار مقعد في لعبة",
+      description: "جهتك الافتراضية عند اختيار مكانك في مباراة",
     },
     signingOut: "جارٍ تسجيل الخروج…",
   },

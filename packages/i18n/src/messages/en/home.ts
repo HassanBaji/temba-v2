@@ -31,10 +31,23 @@ export const home = {
     allSeatsFilled: "All seats filled",
     openSeats: (n: number) =>
       plural("en", n, { one: "Open seat", other: "{n} open seats" }),
+    friendly: "Friendly",
+    parts: (parts: string[]) => parts.join(", "),
+    until: (clock: string) => `until ${clock}`,
+    untilFor: (clock: string, minutes: number) =>
+      `until ${clock}, ${minutes} min`,
   },
   level: {
+    heading: {
+      padel: "Your padel Level",
+      football: "Your football Level",
+    },
+    numberLabel: "Level",
     window: (n: number) =>
-      plural("en", n, { one: "last 1 match", other: "last {n} matches" }),
+      plural("en", n, {
+        one: "in the last match",
+        other: "in the last {n} matches",
+      }),
     provisionalLead: "Provisional Level.",
     provisionalRest: (remaining: number) =>
       plural("en", remaining, {
@@ -81,8 +94,13 @@ export const home = {
         one: "One slot left to fill",
         other: `${cardinal(n)} slots left to fill`,
       }),
-    winRateAfterThree: "win rate after 3 games",
+    winRateAfter: (n: number) =>
+      plural("en", n, {
+        one: "Win rate shows after 1 match",
+        other: "Win rate shows after {n} matches",
+      }),
     winRate: "win rate",
+    outcomeLetter: { won: "W", lost: "L", draw: "D" },
   },
   seats: {
     full: "Full",
@@ -92,6 +110,8 @@ export const home = {
   standing: {
     groupFallback: "Group",
     ofCount: (n: number) => `of ${n}`,
+    unranked: "—",
+    noCountedGames: "No counted games yet",
   },
   stateLine: {
     invitesWaiting: (n: number) =>

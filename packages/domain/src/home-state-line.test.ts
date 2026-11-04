@@ -19,7 +19,7 @@ describe("homeStateLine", () => {
 
   it("reads in Arabic", () => {
     assert.equal(homeStateLine(2, 3, "ar"), "دعوتان بانتظارك");
-    assert.equal(homeStateLine(0, 5, "ar"), "5 ألعاب محجوزة");
+    assert.equal(homeStateLine(0, 5, "ar"), "5 مباريات محجوزة");
   });
 
   it("renders nothing when neither applies", () => {

@@ -40,15 +40,44 @@ describe("firstName", () => {
 });
 
 describe("gameCardSubtitle", () => {
-  it("joins the Game name, court and a city that differs from the venue", () => {
+  it("joins the custom name, court and a city that differs from the venue", () => {
     assert.equal(
-      gameCardSubtitle("Padelhuset", "Bromma", "Tuesday", "Court 2"),
-      "Tuesday — Court 2 — Bromma",
+      gameCardSubtitle(
+        {
+          venueName: "Padelhuset",
+          location: "Bromma",
+          customName: "Tuesday club",
+          courtName: "Court 2",
+        },
+        "en",
+      ),
+      "Tuesday club, Court 2, Bromma",
     );
   });
 
   it("drops a city equal to the venue name", () => {
-    assert.equal(gameCardSubtitle("Bromma", "Bromma", null), null);
+    assert.equal(
+      gameCardSubtitle(
+        { venueName: "Bromma", location: "Bromma", customName: null },
+        "en",
+      ),
+      null,
+    );
+  });
+
+  it("says when the Game ends instead of repeating the window", () => {
+    assert.equal(
+      gameCardSubtitle(
+        {
+          venueName: "A'ali Club",
+          location: "عالي",
+          customName: null,
+          windowEnd: new Date("2026-11-04T09:00:00Z"),
+        },
+        "ar",
+      ),
+      "حتى 12:00 م، عالي",
+    );
   });
 });
 

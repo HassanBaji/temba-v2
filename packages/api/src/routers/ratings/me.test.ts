@@ -151,6 +151,7 @@ describe("loadRatingsMe ratedMatchCount", () => {
       const result = await loadRatingsMe(db, { userId: viewer.id });
       expect(result.ratedMatchCount).toBe(3);
       expect(result.history).toHaveLength(4);
+      expect(result.historyMatchCount).toBe(3);
     } finally {
       await close();
     }
@@ -243,6 +244,7 @@ describe("loadRatingsMe history with Level sets", () => {
       ]);
       expect(result.history.at(-1)).toBe(result.rating?.level);
       expect(result.ratedMatchCount).toBe(1);
+      expect(result.historyMatchCount).toBe(1);
     } finally {
       await close();
     }
