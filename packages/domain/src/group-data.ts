@@ -1,3 +1,5 @@
+import type { FootballBib } from "./football-lineup";
+import type { GroupPlayedCounts } from "./group-played-filter";
 import type { HubGameRow } from "./hub-game-row";
 import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
@@ -68,6 +70,14 @@ export type GroupStandingData = {
   gamesCounted: number;
 };
 
+/** A member's Group Level in this Group (ADR-0053); null before one exists. */
+export type GroupMemberGroupLevelData = {
+  level: string;
+  rating: number;
+  levelBand: LevelBand;
+  provisional: boolean;
+};
+
 export type GroupLeaderboardEntryData = GroupStandingRowData & {
   isOrganizer: boolean;
   isAppointedOrganizer: boolean;
@@ -76,6 +86,7 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
   level: string | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
+  groupLevel?: GroupMemberGroupLevelData | null;
   formMarks: FormMark[];
   /** The member's latest completed Match in this Group; null before one. */
   lastPlayedAt: Date | string | null;
@@ -86,10 +97,19 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
 
 export type GroupPlayedGameData = {
   id: string;
+  name: string | null;
+  hasCustomName: boolean;
+  sport: string | null;
+  venueName: string | null;
+  courtName: string | null;
   displayTime: Date;
   cancelled: boolean;
+  joinedCount: number;
+  playersAllowed: number | null;
   slot1Members: MatchSlotMember[];
   slot2Members: MatchSlotMember[];
+  slot1Bib: FootballBib | null;
+  slot2Bib: FootballBib | null;
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2 | null;
   outcome: "won" | "lost" | "draw" | null;
@@ -119,6 +139,7 @@ export type GroupHomeData = {
   canManageSeasons: boolean;
   upcomingGames: HubGameRow[];
   gameHistory: GroupPlayedGameData[];
+  gameHistoryCounts: GroupPlayedCounts;
   joinMode: string;
   canJoinLoosePublic: boolean;
   canJoinClubPublic: boolean;

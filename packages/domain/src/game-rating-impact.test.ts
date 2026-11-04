@@ -6,6 +6,9 @@ import {
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
   ratingImpactView,
+  ratingScopeNotice,
+  ratingScopeOf,
+  ratingScopeTag,
   unratedLabel,
 } from "./game-rating-impact";
 
@@ -151,5 +154,48 @@ describe("ratingImpactView", () => {
 describe("unratedLabel", () => {
   it("is the user-facing word for an Unrated Game", () => {
     assert.equal(unratedLabel("en"), "Unrated");
+  });
+});
+
+describe("ratingScopeOf", () => {
+  it("reads the scope, falling back to rated when an endpoint has none", () => {
+    assert.equal(
+      ratingScopeOf({ rated: false, ratingScope: "group" }),
+      "group",
+    );
+    assert.equal(ratingScopeOf({ rated: true }), "temba");
+    assert.equal(ratingScopeOf({ rated: false }), "unrated");
+  });
+});
+
+describe("ratingScopeTag", () => {
+  it("tags every Game that is not Temba rated with its scope", () => {
+    assert.equal(
+      ratingScopeTag({ rated: true, ratingScope: "temba" }, "en"),
+      null,
+    );
+    assert.equal(
+      ratingScopeTag({ rated: false, ratingScope: "group" }, "en"),
+      "Counts for group rating",
+    );
+    assert.equal(
+      ratingScopeTag({ rated: false, ratingScope: "unrated" }, "en"),
+      "Unrated",
+    );
+    assert.equal(ratingScopeTag({ rated: false }, "en"), "Unrated");
+  });
+});
+
+describe("ratingScopeNotice", () => {
+  it("explains a group rated or Unrated Game and stays out of a Temba one", () => {
+    assert.equal(ratingScopeNotice("temba", "en"), null);
+    assert.deepEqual(ratingScopeNotice("group", "en"), {
+      title: "Counts for group rating",
+      line: "Moves levels in this group only. Temba levels move in verified groups.",
+    });
+    assert.deepEqual(ratingScopeNotice("unrated", "en"), {
+      title: "Unrated",
+      line: "This Game doesn't change anyone's Level.",
+    });
   });
 });

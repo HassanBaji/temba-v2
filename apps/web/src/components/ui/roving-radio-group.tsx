@@ -35,7 +35,9 @@ export function RovingRadioGroup({
   ...props
 }: Omit<React.ComponentProps<"div">, "role" | "ref">) {
   const groupRef = React.useRef<HTMLDivElement>(null);
-  const { direction } = useTextDirection();
+  const { direction: pageDirection } = useTextDirection();
+  const direction =
+    props.dir === "ltr" || props.dir === "rtl" ? props.dir : pageDirection;
 
   React.useEffect(() => {
     const group = groupRef.current;

@@ -58,6 +58,28 @@ describe("validateFriendlyGameSubmit", () => {
       assert.equal(result.input.courtId, undefined);
       assert.equal(result.input.format, "friendly_game");
       assert.equal("pricePerPlayerFils" in result.input, false);
+      assert.equal("rated" in result.input, false);
+    }
+  });
+
+  it("sends rated false only when the creator picked Unrated", () => {
+    const unrated = validateFriendlyGameSubmit(
+      { ...game, rated: false },
+      NOW,
+      "en",
+    );
+    assert.ok(unrated.ok);
+    if (unrated.ok) {
+      assert.equal(unrated.input.rated, false);
+    }
+    const rated = validateFriendlyGameSubmit(
+      { ...game, rated: true },
+      NOW,
+      "en",
+    );
+    assert.ok(rated.ok);
+    if (rated.ok) {
+      assert.equal("rated" in rated.input, false);
     }
   });
 
@@ -243,6 +265,7 @@ describe("validateFriendlyTournamentSubmit", () => {
       assert.equal(groups.input.poolCount, 3);
       assert.deepEqual(groups.input.courtIds, ["court-1"]);
       assert.equal("qualifiersPerPool" in groups.input, false);
+      assert.equal("rated" in groups.input, false);
     }
     const knockout = validateFriendlyTournamentSubmit(
       { ...tournament, tournamentShape: "knockout_only", courtIds: [] },
@@ -290,6 +313,21 @@ describe("validateFriendlyTournamentSubmit", () => {
     if (!name.ok) {
       assert.equal(name.step, 4);
       assert.equal(name.message, "Name the tournament");
+    }
+  });
+});
+
+describe("validateFriendlyTournamentSubmit Rating choice", () => {
+  it("sends rated false when the creator picked Unrated", () => {
+    const result = validateFriendlyTournamentSubmit(
+      { ...tournament, rated: false },
+      NOW,
+      false,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.rated, false);
     }
   });
 });

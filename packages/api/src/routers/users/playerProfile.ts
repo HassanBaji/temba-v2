@@ -52,6 +52,47 @@ const notFound = () =>
  * current Group membership or a Game seat with them. Everything else,
  * including an unknown User, reads as not found.
  */
+async function sharesGroup(
+  database: DbClient,
+  args: { viewerId: string; playerId: string },
+) {
+  const viewerMember = alias(groupMembers, "viewer_member");
+  const playerMember = alias(groupMembers, "player_member");
+  const [sharedGroup] = await database
+    .select({ id: viewerMember.id })
+    .from(viewerMember)
+    .innerJoin(playerMember, eq(viewerMember.groupId, playerMember.groupId))
+    .where(
+      and(
+        eq(viewerMember.userId, args.viewerId),
+        eq(playerMember.userId, args.playerId),
+      ),
+    )
+    .limit(1);
+  return sharedGroup != null;
+}
+
+/**
+ * Whether the owner's Match history visibility hides their form, stats and
+ * partners from this viewer, who then sees Level and side only.
+ */
+export async function matchHistoryHidden(
+  database: DbClient,
+  args: {
+    viewerId: string;
+    playerId: string;
+    visibility: "everyone" | "group_members" | "only_me";
+  },
+) {
+  if (args.viewerId === args.playerId || args.visibility === "everyone") {
+    return false;
+  }
+  if (args.visibility === "only_me") {
+    return true;
+  }
+  return !(await sharesGroup(database, args));
+}
+
 export async function mayViewPlayer(
   database: DbClient,
   args: { viewerId: string; playerId: string },
@@ -103,6 +144,7 @@ export type CountedMatch = {
   slotTeamIds: { 1: string | null; 2: string | null };
   sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
   venue: { id: string; name: string };
+  groupId: string | null;
   game: Omit<PlayerMatchInput["game"], "venueName"> & {
     hasCustomName: boolean;
     windowStart: Date | null;
@@ -211,6 +253,7 @@ export async function loadCountedMatches(
       slotTeamIds: { 1: row.slot1GameTeamId, 2: row.slot2GameTeamId },
       sets: row.sets,
       venue: game.venue,
+      groupId: game.groupId,
       rated: game.rated,
       game: {
         name: game.name,
@@ -278,7 +321,7 @@ async function currentLevels(
   );
 }
 
-async function teamPlayers(
+export async function teamPlayers(
   database: DbClient,
   teamIds: readonly string[],
   now: Date,
@@ -556,6 +599,7 @@ export async function loadPlayerProfile(
       image: true,
       preferredPosition: true,
       sports: true,
+      matchHistoryVisibility: true,
     },
   });
   if (!player) {
@@ -563,13 +607,20 @@ export async function loadPlayerProfile(
   }
 
   const now = args.now ?? new Date();
+  const historyHidden = await matchHistoryHidden(database, {
+    viewerId: args.viewerId,
+    playerId: player.id,
+    visibility: player.matchHistoryVisibility,
+  });
   const [rating, counted] = await Promise.all([
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.PADEL,
       now,
     }),
-    loadCountedMatches(database, player.id, GameSportEnum.PADEL),
+    historyHidden
+      ? Promise.resolve([])
+      : loadCountedMatches(database, player.id, GameSportEnum.PADEL),
   ]);
   const lastMatches = await lastMatchesFrom(
     database,
@@ -584,6 +635,7 @@ export async function loadPlayerProfile(
       image: player.image,
       isViewer: player.id === args.viewerId,
     },
+    historyHidden,
     sports: sportsPlayed(player.sports),
     venue: usualVenue(counted),
     rating,

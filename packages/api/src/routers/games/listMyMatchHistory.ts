@@ -17,6 +17,10 @@ import {
 import { gameListTime, isGameLive } from "#src/home/upcoming-games";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
+import {
+  gameRatingScope,
+  type GameRatingScope,
+} from "@repo/domain/game-rating-scope";
 
 export type MatchHistoryMember = MatchSlotMember;
 
@@ -39,6 +43,7 @@ export type MatchHistoryRow = {
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
   rated: boolean;
+  ratingScope: GameRatingScope;
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -117,6 +122,7 @@ export async function listMyMatchHistoryRows(
           windowEnd: true,
           createdAt: true,
           rated: true,
+          groupRated: true,
         },
         with: {
           group: {
@@ -281,6 +287,7 @@ export async function listMyMatchHistoryRows(
         viewerSlot: chosen.userSlot,
         outcome: chosen.outcome,
         rated: game.rated,
+        ratingScope: gameRatingScope(game),
       });
     }
   }

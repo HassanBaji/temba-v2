@@ -89,11 +89,8 @@ export const webGroup = {
     scheduled: "المجدولة",
     noUpcoming: "لا مباريات قادمة مجدولة لهذه المجموعة.",
     played: "السابقة",
-    noHistory: "لا سجل مباريات بعد.",
     loadMoreFailed: "تعذّر تحميل مزيد من المباريات.",
     loadMore: "تحميل المزيد",
-    cancelled: "ملغاة",
-    enterScore: "إدخال",
   },
   home: {
     inviteMembers: "دعوة أعضاء",
@@ -172,5 +169,12 @@ export const webGroup = {
     provisionalNote: (name: string) =>
       `لن يبقى ${name} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
     setTo: (level: string) => `تحديد إلى ${isolate(level)}`,
+  },
+  setGroupLevel: {
+    current: (level: string) => `مستواه في المجموعة الآن، ${level}`,
+    tembaMarker: (level: string) => `Temba ${level}`,
+    startsFrom: (level: string) => `يبدأ من مستوى Temba لديه، ${level}`,
+    startsFromDefault: "لا مستوى Temba بعد، لذا يبدأ من 3.0",
+    level: "مستوى المجموعة",
   },
 } satisfies typeof source;

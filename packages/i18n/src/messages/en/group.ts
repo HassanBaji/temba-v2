@@ -29,7 +29,6 @@ export const group = {
     backToCommunity: "Back to Community",
     backToGroups: "Back to Groups",
     openSeats: "Open seats",
-    playedOpponentLine: (team: string, day: string) => `${team}, ${day}`,
     organizerAction: {
       appoint: "Make Organizer",
       dismiss: "Remove as Organizer",
@@ -42,6 +41,44 @@ export const group = {
       appointed: (name: string) => `${name} is now an Organizer.`,
       dismissed: (name: string) => `${name} is no longer an Organizer.`,
     },
+  },
+  played: {
+    cancelled: "Cancelled",
+    noScoreYet: "No score yet",
+    untitled: "Game",
+    filtersLabel: "Filter played Games",
+    filters: {
+      finished: "Finished",
+      needs_score: "Needs score",
+      cancelled: "Cancelled",
+      all: "All",
+    },
+    filterSpoken: (label: string, n: number) =>
+      `${label}, ${plural("en", n, { one: "1 Game", other: "{n} Games" })}`,
+    filterEmpty: {
+      finished: "No finished games yet.",
+      needs_score: "Every game has a score.",
+      cancelled: "No cancelled games.",
+      all: "No games yet.",
+    },
+    showAll: "Show all games",
+    enterScore: "Enter score",
+    you: "You",
+    versus: (first: string, second: string) => `${first} vs ${second}`,
+    pair: (first: string, second: string) => `${first} & ${second}`,
+    record: (wins: number, draws: number | null, losses: number) =>
+      draws == null ? `W${wins} L${losses}` : `W${wins} D${draws} L${losses}`,
+    recordSpoken: (wins: number, draws: number | null, losses: number) =>
+      draws == null
+        ? `${wins} won, ${losses} lost`
+        : `${wins} won, ${draws} drawn, ${losses} lost`,
+    monthCount: (n: number) =>
+      plural("en", n, { one: "1 GAME", other: "{n} GAMES" }),
+    joined: (joined: number, allowed: number) =>
+      `${joined} of ${allowed} joined`,
+    joinedOpen: (joined: number) => `${joined} joined`,
+    sideSpoken: (name: string, score: string) => `${name} ${score}`,
+    card: (parts: string[]) => parts.join(". "),
   },
   empty: {
     standingAfterFirstResult: "Standings appear after the first result.",
@@ -246,7 +283,7 @@ export const group = {
           "You can’t make Invite links any more. You can still invite existing Community Members.",
         gamesHeldAt: (venue: string) => `New Games are held at ${venue}.`,
         verified:
-          "The Group is Verified, so it can host Rated Games and Games open to anyone with the link.",
+          "The Group is Verified, so its Games can count for the Temba rating and be open to anyone with the link.",
       },
     },
     declineConfirm: {
@@ -262,7 +299,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `Leave ${venue}’s Community?`,
       description: (group: string) =>
-        `${group} becomes a Loose Group again. New Games will be Unrated unless an Operator has verified the Group.`,
+        `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified the Group.`,
       confirmLabel: "Leave Community",
       cancelLabel: "Stay",
       pendingLabel: "Leaving…",
@@ -278,7 +315,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `Unlink ${group}?`,
       description: (group: string) =>
-        `${group} leaves your Venue's Community and becomes a Loose Group. New Games will be Unrated unless an Operator has verified it. Past Games and members stay as they are.`,
+        `${group} leaves your Venue's Community and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
       confirmLabel: "Unlink Group",
       cancelLabel: "Keep linked",
     },
@@ -288,8 +325,45 @@ export const group = {
     organizer: "Organizer",
     lastPlayed: (day: string) => `Last ${day}`,
     joined: (day: string) => `Joined ${day}`,
+    organizerLastPlayed: (day: string) => `Organizer, last ${day}`,
+    organizerJoined: (day: string) => `Organizer, joined ${day}`,
+    noGamesJoined: (day: string) => `No games yet, joined ${day}`,
+    organizerNoGamesJoined: (day: string) =>
+      `Organizer, no games yet, joined ${day}`,
     legend: "Hatched Levels are still Provisional.",
-    noMatch: "Nobody matches.",
+    lens: {
+      sort: {
+        title: "Sort members",
+        chip: (label: string) => `Sort members, ${label}`,
+        footnote:
+          "Your sort and filter stay set for this Group until you change them.",
+        options: {
+          recent: {
+            label: "Recently played",
+            hint: "Last game in this Group first",
+          },
+          joined: { label: "Recently joined", hint: "Newest members first" },
+          name: { label: "Name", hint: "A to Z" },
+          level: { label: "Level", hint: "Highest first, no Level last" },
+        },
+      },
+      filters: {
+        label: "Filter members",
+        all: "All",
+        organizers: "Organizers",
+        active: "Active",
+        inactive: "Inactive",
+        noGames: "No games",
+        notOnTemba: "Not on Temba",
+      },
+      filterSpoken: (label: string, count: string) => `${label}, ${count}`,
+      countOf: (shown: number, total: number) => `${shown} of ${total}`,
+      noMatchQuery: (query: string) => `Nobody matches “${query}”.`,
+      noMatchQueryIn: (query: string, filter: string) =>
+        `Nobody matches “${query}” in ${filter}.`,
+      noneIn: (filter: string) => `No members in ${filter}.`,
+      showAll: "Show all members",
+    },
     pendingInvitesTitle: (n: number) =>
       plural("en", n, {
         one: "1 invite pending",

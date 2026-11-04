@@ -51,6 +51,7 @@ type GameFields = {
   levelMin: LevelBandSelectValue;
   levelMax: LevelBandSelectValue;
   customName?: string;
+  rated?: boolean;
 };
 
 type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
@@ -69,6 +70,11 @@ type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
 function customNameInput(draft: Pick<GameFields, "customName">) {
   const customName = normalizeGameCustomName(draft.customName);
   return customName ? { customName } : {};
+}
+
+/** Rated is the server default, so only the Unrated choice is sent. */
+function ratedInput(draft: Pick<GameFields, "rated">) {
+  return draft.rated === false ? { rated: false } : {};
 }
 
 function issueAtStep(
@@ -197,6 +203,7 @@ export function validateFriendlyGameSubmit(
       venueId: draft.venueId,
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       ...customNameInput(draft),
+      ...ratedInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
@@ -208,7 +215,10 @@ export function validateFriendlyGameSubmit(
   };
 }
 
-export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
+export type FootballGameFields = Omit<
+  GameFields,
+  "levelMin" | "levelMax" | "rated"
+> & {
   sideSize: number;
   playersAllowed: number;
 };
@@ -377,6 +387,7 @@ export function validateFriendlyTournamentSubmit(
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
+      ...ratedInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }

@@ -1017,6 +1017,113 @@ describe("groupById Game history pagination", () => {
   });
 });
 
+describe("groupById Game history filters", () => {
+  it("filters the history by status and counts every filter", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "group-filter-viewer@example.com");
+      const rival = await insertUser(db, "group-filter-rival@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, viewer.id, { members: [rival.id] });
+      const seed = (hoursAgo: number) =>
+        insertGroupGame(db, {
+          createdBy: viewer.id,
+          venueId: venue.id,
+          groupId: group.id,
+          ...pastWindow(hoursAgo),
+        });
+
+      const won = await seed(24);
+      await seatAndScore(db, {
+        gameId: won.game.id,
+        matchId: won.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: rival.id,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+      });
+      await db
+        .update(gameTeams)
+        .set({ bib: "red" })
+        .where(eq(gameTeams.gameId, won.game.id));
+      const lost = await seed(48);
+      await seatAndScore(db, {
+        gameId: lost.game.id,
+        matchId: lost.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: rival.id,
+        sets: [{ slot1GamesWon: 3, slot2GamesWon: 6 }],
+      });
+      const unscored = await seed(72);
+      await seatAndScore(db, {
+        gameId: unscored.game.id,
+        matchId: unscored.matchId,
+        slot1UserId: viewer.id,
+        slot2UserId: rival.id,
+        sets: [],
+        status: MatchStatusEnum.CONFIRMED,
+      });
+      const cancelled = await seed(96);
+      await db
+        .update(games)
+        .set({ cancelledAt: NOW })
+        .where(eq(games.id, cancelled.game.id));
+
+      const read = (
+        status?: "finished" | "needs_score" | "cancelled" | "all",
+        cursor?: { id: string },
+      ) =>
+        groupById(db, {
+          groupId: group.id,
+          userId: viewer.id,
+          now: NOW,
+          gameHistory: { limit: 20, status, cursor },
+        });
+
+      const unfiltered = await read();
+      expect(unfiltered.gameHistory.map((game) => game.id)).toEqual([
+        won.game.id,
+        lost.game.id,
+        unscored.game.id,
+        cancelled.game.id,
+      ]);
+      expect(unfiltered.gameHistoryCounts).toEqual({
+        finished: 2,
+        needs_score: 1,
+        cancelled: 1,
+        all: 4,
+        record: { wins: 1, draws: 0, losses: 1 },
+      });
+      expect(unfiltered.gameHistory[0]).toMatchObject({
+        slot1Bib: "red",
+        slot2Bib: "red",
+        joinedCount: 2,
+        playersAllowed: 4,
+        venueName: venue.name,
+      });
+
+      const finished = await read("finished");
+      expect(finished.gameHistory.map((game) => game.id)).toEqual([
+        won.game.id,
+        lost.game.id,
+      ]);
+      expect(finished.gameHistoryCounts).toEqual(unfiltered.gameHistoryCounts);
+      expect((await read("needs_score")).gameHistory.map((g) => g.id)).toEqual([
+        unscored.game.id,
+      ]);
+      expect((await read("cancelled")).gameHistory.map((g) => g.id)).toEqual([
+        cancelled.game.id,
+      ]);
+      expect(
+        (await read("finished", { id: won.game.id })).gameHistory.map(
+          (game) => game.id,
+        ),
+      ).toEqual([lost.game.id]);
+    } finally {
+      await close();
+    }
+  });
+});
+
 describe("groupById Level setter fields", () => {
   const setterMetadata = async () => ({ levelSetter: true });
   const plainMetadata = async () => ({});

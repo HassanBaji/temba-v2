@@ -164,6 +164,7 @@ function NewGameForm() {
   const [playersAllowed, setPlayersAllowed] = React.useState(
     () => initialCreateGameDraft(session.now, locale).playersAllowed,
   );
+  const [rated, setRated] = React.useState(true);
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
   >({});
@@ -196,6 +197,7 @@ function NewGameForm() {
     setAllowSoloRegister(next.allowSoloRegister);
     setSideSize(next.sideSize);
     setPlayersAllowed(next.playersAllowed);
+    setRated(next.rated);
   }
 
   React.useEffect(() => {
@@ -296,6 +298,7 @@ function NewGameForm() {
     allowSoloRegister,
     sideSize,
     playersAllowed,
+    rated,
   };
   const initialGroupId =
     requestedGroupId &&
@@ -628,6 +631,7 @@ function NewGameForm() {
         name,
         isPublic,
         allowSoloRegister,
+        rated,
       },
       session.now,
       groupVerified,
@@ -684,6 +688,7 @@ function NewGameForm() {
         levelMin,
         levelMax,
         customName,
+        rated,
       },
       session.now,
       locale,
@@ -1128,6 +1133,8 @@ function NewGameForm() {
               onAllowSoloRegister={setAllowSoloRegister}
               groupName={reviewGroupName}
               groupVerified={groupVerified}
+              rated={rated}
+              onRated={setRated}
             />
           ) : (
             <FriendlyGameSteps
@@ -1252,6 +1259,8 @@ function NewGameForm() {
               }}
               reviewGroup={reviewGroupName}
               groupVerified={groupVerified}
+              rated={rated}
+              onRated={setRated}
               reviewVenue={
                 selectedVenue
                   ? courtId === "none"

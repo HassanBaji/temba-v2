@@ -1,17 +1,10 @@
 import type {
   GroupHomeData,
   GroupLeaderboardEntryData,
-  GroupPlayedGameData,
   GroupStandingRowData,
 } from "@repo/domain/group-data";
 import {
-  filterGroupMembersByName,
   groupHomeMetaLine,
-  groupHomeShowsMemberSearch,
-  groupPlayedMarkVariant,
-  groupPlayedOpponentLine,
-  groupPlayedScoreLine,
-  groupPlayedTeamLabel,
   levelCellView,
   type LevelCellView,
   groupMemberOrganizerAction,
@@ -28,8 +21,11 @@ import {
   type GroupJoinDoor,
 } from "@repo/domain/group-join";
 import {
+  groupMemberSortCaption,
+  groupMembersLens,
   groupMemberTableCaption,
-  sortGroupMembers,
+  type GroupMemberSort,
+  type GroupMembersLensInput,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
@@ -37,7 +33,6 @@ import {
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
-import { resultMarkLabel } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
@@ -169,63 +164,6 @@ export function standingStats(data: GroupHomeData, locale: Locale) {
   ];
 }
 
-export type PlayedTrailing =
-  | { kind: "cancelled" }
-  | { kind: "score"; text: string }
-  | { kind: "enter" };
-
-export type PlayedRowView = {
-  id: string;
-  mark: ResultMarkVariant;
-  title: string;
-  subtitle: string;
-  trailing: PlayedTrailing;
-  accessibilityLabel: string;
-};
-
-export function playedRowView(
-  game: GroupPlayedGameData,
-  locale: Locale,
-): PlayedRowView {
-  const m = messagesFor(locale).mobileGroup.games;
-  const viewerMembers =
-    game.viewerSlot === 2 ? game.slot2Members : game.slot1Members;
-  const otherMembers =
-    game.viewerSlot === 2 ? game.slot1Members : game.slot2Members;
-  const mark = groupPlayedMarkVariant(game.outcome);
-  const title = groupPlayedTeamLabel(viewerMembers, locale);
-  const subtitle = groupPlayedOpponentLine(
-    otherMembers,
-    game.displayTime,
-    locale,
-  );
-  const scoreLine = groupPlayedScoreLine(game.scoredSets, game.viewerSlot);
-  const trailing: PlayedTrailing = game.cancelled
-    ? { kind: "cancelled" }
-    : scoreLine
-      ? { kind: "score", text: scoreLine }
-      : { kind: "enter" };
-  const trailingLabel =
-    trailing.kind === "cancelled"
-      ? m.cancelled
-      : trailing.kind === "score"
-        ? trailing.text
-        : m.noScoreYet;
-  return {
-    id: game.id,
-    mark,
-    title,
-    subtitle,
-    trailing,
-    accessibilityLabel: m.row(
-      resultMarkLabel(mark, locale),
-      title,
-      subtitle,
-      trailingLabel,
-    ),
-  };
-}
-
 export type MemberRowView = {
   key: string;
   name: string;
@@ -274,11 +212,13 @@ export function memberRowView(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
+  sort: GroupMemberSort = "level",
+  canSetGroupLevel = false,
 ): MemberRowView {
   const m = messagesFor(locale);
   const name = entry.name ?? m.mobileGroup.unnamedMember;
   const caption = [
-    groupMemberTableCaption(entry, locale),
+    groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
@@ -297,7 +237,7 @@ export function memberRowView(
     level,
     levelText: entry.level,
     selectable:
-      (canSetLevel && !entry.isViewer) ||
+      ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null,
     accessibilityLabel: [
@@ -311,6 +251,17 @@ export function memberRowView(
   };
 }
 
+/** The sort and filter a viewer picked; `null` means the default. */
+export type MemberLens = Omit<GroupMembersLensInput, "query" | "locale">;
+
+const LEVEL_ORDER: MemberLens = {
+  sort: "level",
+  filter: "all",
+  showLevel: true,
+  canManage: false,
+  now: new Date(0),
+};
+
 export function memberList(
   leaderboard: readonly GroupLeaderboardEntryData[],
   query: string,
@@ -319,22 +270,30 @@ export function memberList(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
+  lens: MemberLens = LEVEL_ORDER,
+  canSetGroupLevel = false,
 ) {
-  const members = sortGroupMembers(leaderboard).map((entry) =>
-    memberRowView(
-      entry,
-      apiOrigin,
-      locale,
-      canSetLevel,
-      canRemovePlayers,
-      canAppointOrganizers,
-    ),
+  const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
+  const view = groupMembersLens(
+    leaderboard.map((entry) => ({ ...entry, name: entry.name ?? unnamed })),
+    { ...lens, query, locale },
   );
-  const showSearch = groupHomeShowsMemberSearch(members.length);
   return {
-    showSearch,
-    rows: showSearch ? filterGroupMembersByName(members, query) : members,
-    isEmpty: members.length === 0,
+    ...view,
+    showSearch: view.showControls,
+    isEmpty: leaderboard.length === 0,
+    rows: view.rows.map((entry) =>
+      memberRowView(
+        entry,
+        apiOrigin,
+        locale,
+        canSetLevel,
+        canRemovePlayers,
+        canAppointOrganizers,
+        view.sort,
+        canSetGroupLevel,
+      ),
+    ),
   };
 }
 

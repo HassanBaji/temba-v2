@@ -56,6 +56,16 @@ export function clampLevelTenths(value: number): number {
   return Math.min(LEVEL_TENTHS_MAX, Math.max(LEVEL_TENTHS_MIN, rounded));
 }
 
+/** A member with no Level yet starts from the default placement, 3.0. */
+export const LEVEL_SLIDER_DEFAULT_TENTHS = 30;
+
+/** Where the slider starts for a member whose Level reads `level` ("3.2"). */
+export function levelSliderStartTenths(level: string | null): number {
+  return level
+    ? clampLevelTenths(Number(level) * 10)
+    : LEVEL_SLIDER_DEFAULT_TENTHS;
+}
+
 function formatTenths(tenths: number): string {
   return (tenths / 10).toFixed(1);
 }

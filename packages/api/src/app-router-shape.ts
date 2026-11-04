@@ -209,7 +209,9 @@ type ExpectedRatings =
   | "selfDeclare"
   | "setLevel"
   | "listForOperator"
-  | "setLevelAsOperator";
+  | "setLevelAsOperator"
+  | "myGroupLevels"
+  | "setGroupLevel";
 
 type ExpectedTeams =
   | "create"
@@ -239,7 +241,14 @@ type ExpectedUsers =
   | "setPreferredPosition"
   | "setName"
   | "completeOnboarding"
-  | "renameUnclaimedPlayer";
+  | "renameUnclaimedPlayer"
+  | "myProfile"
+  | "profileDetails"
+  | "setProfileDetails"
+  | "setPlayWindows"
+  | "setMatchHistoryVisibility"
+  | "setSports"
+  | "setFootballPreferences";
 
 type ExpectedVenues =
   | "list"

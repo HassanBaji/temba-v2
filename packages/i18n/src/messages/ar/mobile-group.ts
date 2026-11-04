@@ -111,16 +111,10 @@ export const mobileGroup = {
     notScheduled: "غير مجدولة",
     when: "متى",
     where: "أين",
-    cancelled: "أُلغيت",
-    enter: "إدخال",
-    noScoreYet: "لا نتيجة بعد، أدخلها",
     scheduled: "مجدولة",
     played: "سابقة",
     scheduledEmpty: "لا مباريات قادمة مجدولة لهذه المجموعة.",
-    playedEmpty: "لا سجل مباريات بعد.",
     loadMore: "تحميل المزيد",
-    row: (mark: string, title: string, subtitle: string, trailing: string) =>
-      `${mark}. ${title}. ${subtitle}. ${trailing}`,
   },
   members: {
     empty: {
@@ -225,5 +219,11 @@ export const mobileGroup = {
       `حُدد مستوى ${name} على ${label}.`,
     savedReason: (reason: string) => `السبب: ${reason}.`,
     dismiss: "إغلاق",
+  },
+  setGroupLevel: {
+    groupLevel: (label: string) => `مستوى المجموعة ${label}`,
+    tembaLevel: (label: string) => `مستوى Temba ${label}`,
+    noTembaLevel: "لا مستوى Temba بعد",
+    tembaMarker: (label: string) => `Temba ${label}`,
   },
 } satisfies typeof source;

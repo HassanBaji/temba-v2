@@ -69,6 +69,7 @@ const PHYSICAL_SIDE_MESSAGE =
   "Use logical sides so RTL mirrors: marginStart/End, paddingStart/End, borderStart*/borderEnd*, start/end. Deliberately physical geometry takes an eslint-disable comment that says why.";
 
 // A `left` and `right` set together is a symmetric pair and mirrors on its own.
+// A lone `left` holding words or a choice of values is copy ("Left: …"), not geometry.
 const noPhysicalSide = [
   {
     selector: `Property[key.name=/${PHYSICAL_SIDE}/]`,
@@ -80,12 +81,12 @@ const noPhysicalSide = [
   },
   {
     selector:
-      "ObjectExpression:not(:has(> Property[key.name='right'])) > Property[key.name='left']",
+      "ObjectExpression:not(:has(> Property[key.name='right'])) > Property[key.name='left']:not([value.type='ConditionalExpression']):not([value.type='Literal'][value.value=/[A-Za-z]/])",
     message: PHYSICAL_SIDE_MESSAGE,
   },
   {
     selector:
-      "ObjectExpression:not(:has(> Property[key.name='left'])) > Property[key.name='right']",
+      "ObjectExpression:not(:has(> Property[key.name='left'])) > Property[key.name='right']:not([value.type='ConditionalExpression']):not([value.type='Literal'][value.value=/[A-Za-z]/])",
     message: PHYSICAL_SIDE_MESSAGE,
   },
 ];

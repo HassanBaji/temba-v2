@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
@@ -12,12 +11,9 @@ import {
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   groupShowsLevel,
-  groupPlayedMarkVariant,
-  groupPlayedOpponentLine,
-  groupPlayedScoreLine,
-  groupPlayedTeamLabel,
   groupStandingRecordLabel,
   levelCellView,
+  viewerMaySetGroupLevel,
 } from "./group-home-chrome";
 
 describe("groupHomeBackTarget", () => {
@@ -169,110 +165,6 @@ describe("groupStandingRecordLabel", () => {
   });
 });
 
-describe("groupPlayedTeamLabel", () => {
-  it("leads with the viewer, shortens the others, and joins with a comma", () => {
-    assert.equal(
-      groupPlayedTeamLabel(
-        [
-          { name: "Sofia Lindqvist", isViewer: false },
-          { name: "Mira Karlsson", isViewer: true },
-        ],
-        "en",
-      ),
-      "You, Sofia L",
-    );
-  });
-
-  it("names both seats when the viewer is on neither", () => {
-    assert.equal(
-      groupPlayedTeamLabel(
-        [
-          { name: "Jonas Berg", isViewer: false },
-          { name: "Adam Roos", isViewer: false },
-        ],
-        "en",
-      ),
-      "Jonas B, Adam R",
-    );
-  });
-
-  it("reads as open seats when the slot was never filled", () => {
-    assert.equal(groupPlayedTeamLabel([], "en"), "Open seats");
-  });
-});
-
-describe("groupPlayedOpponentLine", () => {
-  it("puts the date after the other team", () => {
-    assert.equal(
-      groupPlayedOpponentLine(
-        [{ name: "Jonas Berg", isViewer: false }],
-        new Date("2026-09-06T18:00:00.000Z"),
-        "en",
-      ),
-      "Jonas B, 6 Sep",
-    );
-  });
-
-  it("isolates each name and keeps the Arabic comma in Arabic", () => {
-    assert.equal(
-      groupPlayedOpponentLine(
-        [
-          { name: "Maya Chen", isViewer: false },
-          { name: "Tom Berg", isViewer: false },
-        ],
-        new Date("2026-11-03T18:00:00.000Z"),
-        "ar",
-      ),
-      `${isolate("Maya C")}، ${isolate("Tom B")}، 3 نوفمبر`,
-    );
-  });
-
-  it("drops the date when it cannot be read", () => {
-    assert.equal(
-      groupPlayedOpponentLine(
-        [{ name: "Jonas Berg", isViewer: false }],
-        "not-a-date",
-        "en",
-      ),
-      "Jonas B",
-    );
-  });
-});
-
-describe("groupPlayedScoreLine", () => {
-  it("reads the sets from the viewer's own slot", () => {
-    const sets = [
-      { slot1GamesWon: 6, slot2GamesWon: 4 },
-      { slot1GamesWon: 4, slot2GamesWon: 6 },
-    ];
-    assert.equal(groupPlayedScoreLine(sets, 1), "6–4 4–6");
-    assert.equal(groupPlayedScoreLine(sets, 2), "4–6 6–4");
-  });
-
-  it("reads from slot 1 when the viewer did not play", () => {
-    assert.equal(
-      groupPlayedScoreLine([{ slot1GamesWon: 6, slot2GamesWon: 2 }], null),
-      "6–2",
-    );
-  });
-
-  it("is null when the Match carries no scored Set", () => {
-    assert.equal(groupPlayedScoreLine([], 1), null);
-  });
-});
-
-describe("groupPlayedMarkVariant", () => {
-  it("draws won and lost as themselves", () => {
-    assert.equal(groupPlayedMarkVariant("won"), "won");
-    assert.equal(groupPlayedMarkVariant("lost"), "lost");
-  });
-
-  it("draws a draw and a missing result as not-played", () => {
-    assert.equal(groupPlayedMarkVariant("draw"), "not-played");
-    assert.equal(groupPlayedMarkVariant(null), "not-played");
-  });
-});
-
 describe("levelCellView", () => {
   it("shows the band label for a settled Rating", () => {
     assert.deepEqual(levelCellView("B3", false), {
@@ -344,6 +236,49 @@ describe("groupMemberOrganizerAction", () => {
     assert.equal(
       groupMemberOrganizerAction({ ...player, unclaimed: true }),
       null,
+    );
+  });
+});
+
+describe("viewerMaySetGroupLevel", () => {
+  const viewer = { isViewer: true, isOrganizer: false };
+  const organizer = { isViewer: true, isOrganizer: true };
+
+  it("lets an Organizer of a padel Group set Group Levels", () => {
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "padel",
+        canCreateGame: true,
+        leaderboard: [viewer],
+      }),
+      true,
+    );
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "padel",
+        canCreateGame: false,
+        leaderboard: [organizer],
+      }),
+      true,
+    );
+  });
+
+  it("refuses a member who does not organize, and a football Group", () => {
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "padel",
+        canCreateGame: false,
+        leaderboard: [viewer],
+      }),
+      false,
+    );
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "football",
+        canCreateGame: true,
+        leaderboard: [organizer],
+      }),
+      false,
     );
   });
 });

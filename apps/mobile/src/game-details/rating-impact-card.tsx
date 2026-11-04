@@ -2,9 +2,9 @@ import { spacing } from "@repo/design-tokens";
 import type { FriendlyGameDetailsRatingImpact } from "@repo/domain/friendly-game-details";
 import {
   ratingImpactView,
-  unratedGameLine,
-  unratedLabel,
+  ratingScopeNotice,
 } from "@repo/domain/game-rating-impact";
+import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react-native";
 import { View } from "react-native";
 
@@ -75,10 +75,14 @@ export function RatingImpactCard({
   );
 }
 
-export function UnratedCard() {
+export function RatingScopeCard({ scope }: { scope: GameRatingScope }) {
   const locale = useLocale();
+  const notice = ratingScopeNotice(scope, locale);
+  if (!notice) {
+    return null;
+  }
   return (
-    <Card title={unratedLabel(locale)}>
+    <Card title={notice.title}>
       <View
         style={{
           paddingHorizontal: spacing.surface,
@@ -86,7 +90,7 @@ export function UnratedCard() {
         }}
       >
         <Text size="meta" tone="muted">
-          {unratedGameLine(locale)}
+          {notice.line}
         </Text>
       </View>
     </Card>

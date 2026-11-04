@@ -82,11 +82,8 @@ export const webGroup = {
     scheduled: "Scheduled",
     noUpcoming: "No upcoming Games scheduled for this Group.",
     played: "Played",
-    noHistory: "No Game history yet.",
     loadMoreFailed: "More Games could not be loaded.",
     loadMore: "Load more",
-    cancelled: "Cancelled",
-    enterScore: "Enter",
   },
   home: {
     inviteMembers: "Invite members",
@@ -157,5 +154,12 @@ export const webGroup = {
     provisionalNote: (name: string) =>
       `${name} will no longer be Provisional, and setting again will not change that.`,
     setTo: (level: string) => `Set to ${level}`,
+  },
+  setGroupLevel: {
+    current: (level: string) => `Their group level now, ${level}`,
+    tembaMarker: (level: string) => `Temba ${level}`,
+    startsFrom: (level: string) => `Starts from their Temba level, ${level}`,
+    startsFromDefault: "No Temba level yet, so it starts from 3.0",
+    level: "Group level",
   },
 };

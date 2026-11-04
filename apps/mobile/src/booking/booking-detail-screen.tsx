@@ -6,7 +6,7 @@ import {
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { courtFace } from "@repo/domain/court-sport-copy";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments } from "expo-router";
 import { Phone, Share2 } from "lucide-react-native";
@@ -310,7 +310,7 @@ function GameBlock({
             <Text weight="semibold">{gameDisplayName(game, locale)}</Text>
           </View>
           <Text size="meta" tone="muted">
-            {unratedLabel(locale)}
+            {gameRatingScopeLabel(game.ratingScope, locale)}
           </Text>
         </View>
         <Button

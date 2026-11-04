@@ -6,6 +6,10 @@ import {
 import type { GroupHomeData } from "@repo/domain/group-data";
 import type { GroupHomeTab } from "@repo/domain/group-home-tab";
 import {
+  DEFAULT_GROUP_PLAYED_FILTER,
+  type GroupPlayedFilter,
+} from "@repo/domain/group-played-filter";
+import {
   GROUP_HISTORY_PAGE_SIZE,
   groupHistoryCanLoadMore,
   groupHistoryPageExhausted,
@@ -59,6 +63,7 @@ import { Notice } from "./notice";
 import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
   savedLevelFromParams,
+  setGroupLevelPath,
   setLevelPath,
   type SavedLevelParams,
 } from "./set-level-model";
@@ -102,10 +107,17 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const [older, setOlder] = useState<OlderPages | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  const [playedFilter, setPlayedFilter] = useState<GroupPlayedFilter>(
+    DEFAULT_GROUP_PLAYED_FILTER,
+  );
 
   const group = api.groups.byId.useQuery(
-    { id: groupId },
-    REFETCH_ON_FOREGROUND,
+    { id: groupId, gameHistory: { status: playedFilter } },
+    {
+      ...REFETCH_ON_FOREGROUND,
+      placeholderData: (previous) =>
+        previous?.id === groupId ? previous : undefined,
+    },
   );
   const lookupInvites = api.groups.listLookupInvites.useQuery(
     { groupId },
@@ -199,6 +211,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         gameHistory: {
           limit: GROUP_HISTORY_PAGE_SIZE,
           cursor: { id: last.id },
+          status: playedFilter,
         },
       });
       setOlder({
@@ -211,7 +224,15 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     } finally {
       setLoadingMore(false);
     }
-  }, [data, playedGames, loadingMore, utils, groupId, currentOlder]);
+  }, [
+    data,
+    playedGames,
+    loadingMore,
+    utils,
+    groupId,
+    currentOlder,
+    playedFilter,
+  ]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -224,6 +245,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
 
   const openSetLevelScreen = useCallback(
     (userId: string) => router.push(setLevelPath(groupId, userId)),
+    [router, groupId],
+  );
+  const openSetGroupLevelScreen = useCallback(
+    (userId: string) => router.push(setGroupLevelPath(groupId, userId)),
     [router, groupId],
   );
   const dismissSaved = useCallback(
@@ -436,15 +461,25 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         }
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}
         onSetLevel={openSetLevelScreen}
+        onSetGroupLevel={openSetGroupLevelScreen}
         saved={saved}
         onDismissSaved={dismissSaved}
         games={{
           playedGames,
+          playedCounts: data.gameHistoryCounts,
+          playedFilter,
+          onPlayedFilterChange: (filter) => {
+            setLoadMoreFailed(false);
+            setPlayedFilter(filter);
+          },
+          filtering: group.isPlaceholderData,
           pendingGameId,
-          canLoadMore: groupHistoryCanLoadMore({
-            loadedCount: playedGames.length,
-            exhausted: currentOlder?.exhausted ?? false,
-          }),
+          canLoadMore:
+            !group.isPlaceholderData &&
+            groupHistoryCanLoadMore({
+              loadedCount: playedGames.length,
+              exhausted: currentOlder?.exhausted ?? false,
+            }),
           loadingMore,
           loadMoreFailed,
           onPickSeat: setPickerGame,

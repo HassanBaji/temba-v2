@@ -25,6 +25,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
@@ -89,13 +90,14 @@ function CardBand({ label, meta }: { label: string; meta: string | null }) {
   );
 }
 
-function UnratedBadge() {
-  const m = useMessages();
-  return (
-    <Badge variant="outline" data-slot="game-card-unrated">
-      {m.common.unrated}
+function RatingScopeBadge({ game }: { game: TournamentCardGame }) {
+  const locale = useLocale();
+  const tag = ratingScopeTag(game, locale);
+  return tag ? (
+    <Badge variant="outline" data-slot="game-card-rating-scope">
+      {tag}
     </Badge>
-  );
+  ) : null;
 }
 
 function OpenFlag({ openTeams }: { openTeams: number }) {
@@ -309,7 +311,7 @@ export function TournamentSummaryCard({
                 : null}
             </span>
             <span className="flex shrink-0 items-center gap-2">
-              {game.rated ? null : <UnratedBadge />}
+              <RatingScopeBadge game={game} />
               {cancelled ? (
                 <GameStatusBadge status="cancelled" />
               ) : showsTournamentOpenFlag(game) ? (
@@ -553,7 +555,7 @@ export function TournamentMatchCard({
               ) : null}
             </div>
             <span className="flex shrink-0 items-center gap-2">
-              {game.rated ? null : <UnratedBadge />}
+              <RatingScopeBadge game={game} />
               {status ? (
                 <span className="text-muted-foreground text-meta tabular-nums">
                   {status}
@@ -669,7 +671,7 @@ export function HomeTournamentMatchCard({
           <div className="text-muted-foreground text-meta flex items-center justify-between gap-3">
             <h3 className="min-w-0 truncate">{title}</h3>
             <span className="flex shrink-0 items-center gap-2">
-              {game.rated ? null : <UnratedBadge />}
+              <RatingScopeBadge game={game} />
               {status ? <span className="tabular-nums">{status}</span> : null}
             </span>
           </div>

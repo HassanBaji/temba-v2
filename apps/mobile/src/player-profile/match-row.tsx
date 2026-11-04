@@ -1,9 +1,7 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { Pressable, View, type ViewStyle } from "react-native";
 
-import { useLocale } from "../i18n/locale-provider";
 import { ResultMark } from "../primitives/result-mark";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
@@ -28,7 +26,6 @@ export function PlayerMatchRow({
   showPartner?: boolean;
   selected?: boolean;
 }) {
-  const locale = useLocale();
   const content = (
     <>
       <ResultMark variant={row.outcome} size={20} decorative />
@@ -51,9 +48,9 @@ export function PlayerMatchRow({
             <ScoreLine key={index} score={set} size="body" weight="semibold" />
           ))}
         </View>
-        {row.unrated ? (
+        {row.ratingTag ? (
           <Text size="meta" tone="muted">
-            {unratedLabel(locale)}
+            {row.ratingTag}
           </Text>
         ) : row.delta ? (
           <Text size="meta" tone="muted">

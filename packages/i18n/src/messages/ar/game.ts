@@ -295,8 +295,6 @@ export const game = {
   },
   rating: {
     unratedGameLine: "هذه المباراة لا تغيّر مستوى أحد.",
-    unratedGroupLine:
-      "المباريات في هذه المجموعة غير مصنّفة. لا تغيّر مستوى أحد.",
     stillProvisional: (band: string, remaining: number) =>
       `ما زلت ${band}. ${plural("ar", remaining, {
         one: "نحو مباراة مصنّفة واحدة أخرى ويتأكد مستواك.",

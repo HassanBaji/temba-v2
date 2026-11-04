@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 
-import { useLocale } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { cn } from "~/lib/utils";
 
@@ -15,7 +13,6 @@ function RowContent({
   row: PlayerMatchRowView;
   showPartner: boolean;
 }) {
-  const locale = useLocale();
   return (
     <>
       <ResultMark variant={row.outcome} decorative className="size-5" />
@@ -36,9 +33,9 @@ function RowContent({
             <span key={index}>{set}</span>
           ))}
         </span>
-        {row.unrated ? (
+        {row.ratingTag ? (
           <span className="text-meta text-muted-foreground block">
-            {unratedLabel(locale)}
+            {row.ratingTag}
           </span>
         ) : row.delta ? (
           <span className="text-meta text-muted-foreground block">

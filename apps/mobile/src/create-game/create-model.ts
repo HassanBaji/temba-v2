@@ -76,7 +76,8 @@ export type CreateAction =
   | { kind: "setName"; name: string }
   | { kind: "setCustomName"; customName: string }
   | { kind: "setPublic"; isPublic: boolean }
-  | { kind: "setAllowSolo"; allowSoloRegister: boolean };
+  | { kind: "setAllowSolo"; allowSoloRegister: boolean }
+  | { kind: "setRated"; rated: boolean };
 
 export function initialCreateState(
   now: Date,
@@ -239,6 +240,8 @@ export function createReducer(
       return patch(state, { isPublic: action.isPublic });
     case "setAllowSolo":
       return patch(state, { allowSoloRegister: action.allowSoloRegister });
+    case "setRated":
+      return patch(state, { rated: action.rated });
   }
 }
 

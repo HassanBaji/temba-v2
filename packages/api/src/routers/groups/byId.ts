@@ -22,6 +22,7 @@ import {
   groupLinkRequests,
   GroupLinkRequestStatusEnum,
   groupMembers,
+  groupRatings,
   GroupTypeEnum,
   levelOverrides,
   MatchStatusEnum,
@@ -33,6 +34,7 @@ import {
 } from "@repo/db";
 
 import type { LevelBand } from "@repo/domain/level-bands";
+import { levelFromMu } from "@repo/domain/level";
 import { protectedProcedure } from "#src/trpc";
 import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -46,6 +48,13 @@ import {
   viewerHubContext,
 } from "#src/games/helpers/hub-list";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { isFootballBib, type FootballBib } from "@repo/domain/football-lineup";
+import {
+  GROUP_PLAYED_FILTERS,
+  groupPlayedCounts,
+  groupPlayedMatchesFilter,
+  type GroupPlayedCounts,
+} from "@repo/domain/group-played-filter";
 import {
   outcomeForSlot,
   scoredSetsFromMatch,
@@ -94,12 +103,15 @@ const GROUP_GAME_HISTORY_LIMIT = 20;
 const gameHistoryPageInput = z.object({
   limit: z.number().int().min(1).max(100).default(GROUP_GAME_HISTORY_LIMIT),
   cursor: z.object({ id: z.string().uuid() }).optional(),
+  /** Omitted reads every past Game, as clients before the filters did. */
+  status: z.enum(GROUP_PLAYED_FILTERS).optional(),
 });
 
 export type GroupGameHistoryPage = z.infer<typeof gameHistoryPageInput>;
 
 /** A Match slot as the Game teams seat it — `null` before the draw. */
 type GroupSlotTeam = {
+  bib?: string | null;
   players: readonly {
     position: string | null;
     gamePlayer: {
@@ -131,23 +143,34 @@ export type GroupPlayedGame = {
   name: string | null;
   hasCustomName: boolean;
   format: string;
+  sport: string | null;
   windowStart: Date | null;
   windowEnd: Date | null;
   venueName: string | null;
+  courtName: string | null;
   displayTime: Date;
   cancelled: boolean;
+  joinedCount: number;
+  playersAllowed: number | null;
   slot1Members: MatchSlotMember[];
   slot2Members: MatchSlotMember[];
+  slot1Bib: FootballBib | null;
+  slot2Bib: FootballBib | null;
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2 | null;
   outcome: "won" | "lost" | "draw" | null;
 };
+
+function slotBib(team: GroupSlotTeam): FootballBib | null {
+  return isFootballBib(team?.bib) ? team.bib : null;
+}
 
 type GroupGameMatch = {
   id: string;
   startTime: Date | null;
   status: string | null;
   createdAt: Date;
+  court?: { name: string } | null;
   slot1GameTeam: GroupSlotTeam;
   slot2GameTeam: GroupSlotTeam;
   sets: readonly {
@@ -224,6 +247,9 @@ function toGroupPlayedGame(
     windowEnd: Date | null;
     createdAt: Date;
     format: string;
+    sport: string | null;
+    playersAllowed: number | null;
+    players: readonly unknown[];
     venue: { name: string } | null;
     matches: readonly GroupGameMatch[];
   },
@@ -247,13 +273,19 @@ function toGroupPlayedGame(
     name: game.name,
     hasCustomName: game.hasCustomName,
     format: game.format,
+    sport: game.sport,
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     venueName: game.venue?.name ?? null,
+    courtName: played?.match.court?.name ?? null,
     displayTime: played?.match.startTime ?? gameListTime(game),
     cancelled: game.cancelledAt !== null,
+    joinedCount: game.players.length,
+    playersAllowed: game.playersAllowed,
     slot1Members: played ? slotMembers(played.match.slot1GameTeam, userId) : [],
     slot2Members: played ? slotMembers(played.match.slot2GameTeam, userId) : [],
+    slot1Bib: played ? slotBib(played.match.slot1GameTeam) : null,
+    slot2Bib: played ? slotBib(played.match.slot2GameTeam) : null,
     scoredSets,
     viewerSlot,
     outcome,
@@ -511,6 +543,28 @@ export async function groupById(
     }
   }
 
+  const groupLevelByUserId = new Map<
+    string,
+    { level: string; rating: number; levelBand: LevelBand; provisional: boolean }
+  >();
+  if (memberUserIds.length > 0) {
+    const groupRatingRows = await database.query.groupRatings.findMany({
+      where: and(
+        eq(groupRatings.groupId, group.id),
+        inArray(groupRatings.userId, memberUserIds),
+      ),
+    });
+    for (const row of groupRatingRows) {
+      const view = youRatingViewAfterIdle(row, now);
+      groupLevelByUserId.set(row.userId, {
+        level: view.level,
+        rating: Math.round(levelFromMu(row.mu) * 100) / 100,
+        levelBand: view.levelBand,
+        provisional: view.provisional,
+      });
+    }
+  }
+
   // One Clerk read per Group page view, and only for a member of a Group with
   // a sport — the only viewer a Level setter can act as.
   const viewerCanSetLevel =
@@ -589,7 +643,7 @@ export async function groupById(
             columns: { name: true },
           },
           slot1GameTeam: {
-            columns: { id: true },
+            columns: { id: true, bib: true },
             with: {
               players: {
                 columns: { position: true },
@@ -605,7 +659,7 @@ export async function groupById(
             },
           },
           slot2GameTeam: {
-            columns: { id: true },
+            columns: { id: true, bib: true },
             with: {
               players: {
                 columns: { position: true },
@@ -653,7 +707,7 @@ export async function groupById(
     args.userId,
   );
 
-  const gameHistoryCandidates = groupGameRows
+  const pastGames = groupGameRows
     .filter((game) => {
       if (game.groupId === null || game.groupId !== group.id) {
         return false;
@@ -666,22 +720,25 @@ export async function groupById(
         return timeDelta;
       }
       return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
-    });
+    })
+    .map((game) => toGroupPlayedGame(game, args.userId));
+  const gameHistoryCounts: GroupPlayedCounts = groupPlayedCounts(pastGames);
+  const historyStatus = args.gameHistory?.status ?? "all";
+  const gameHistoryCandidates = pastGames.filter((game) =>
+    groupPlayedMatchesFilter(game, historyStatus),
+  );
   const historyCursor = args.gameHistory?.cursor;
   const historyStart = historyCursor
     ? gameHistoryCandidates.findIndex((game) => game.id === historyCursor.id) +
       1
     : 0;
-  const historyPage =
+  const gameHistory =
     historyCursor && historyStart === 0
       ? []
       : gameHistoryCandidates.slice(
           historyStart,
           historyStart + (args.gameHistory?.limit ?? GROUP_GAME_HISTORY_LIMIT),
         );
-  const gameHistory = historyPage.map((game) =>
-    toGroupPlayedGame(game, args.userId),
-  );
 
   // Form marks derive over the Matches already loaded above
   // (`.scratch/groups-redesign/spec.md` §6.2). A cancelled Game never
@@ -735,6 +792,8 @@ export async function groupById(
       level: rating?.level ?? null,
       ratedMatchCount: rating?.ratedMatchCount ?? 0,
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
+      /** The member's Group Level (ADR-0053), null before their first. */
+      groupLevel: groupLevelByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
       joinedAt: memberRowByUserId.get(entry.userId)?.createdAt ?? null,
@@ -814,6 +873,7 @@ export async function groupById(
       canEdit && (await canManageSeasons(database, group, args.userId)),
     upcomingGames,
     gameHistory,
+    gameHistoryCounts,
     communityMembership: communityMembership
       ? { role: communityMembership.role }
       : null,

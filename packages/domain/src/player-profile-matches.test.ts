@@ -130,6 +130,7 @@ describe("playerMatchRowView", () => {
       sets: ["6–4", "6–3"],
       delta: "+0.1",
       unrated: false,
+      ratingTag: null,
       accessibilityLabel:
         "Won against Sofia L and Adam R, Thursday 1 October, Tuesday Crew, 6–4 6–3, rating up 0.1",
     });
@@ -142,8 +143,26 @@ describe("playerMatchRowView", () => {
       "en",
     );
     expect(row.unrated).toBe(true);
+    expect(row.ratingTag).toBe("Unrated");
     expect(row.delta).toBeNull();
     expect(row.accessibilityLabel.endsWith("Unrated")).toBe(true);
+  });
+
+  it("names a group rated Match by its Rating scope", () => {
+    const row = playerMatchRowView(
+      {
+        ...fixtures.confirmed.lastMatches[4]!,
+        rated: false,
+        ratingScope: "group",
+      },
+      ELIN_ID,
+      "en",
+    );
+    expect(row.unrated).toBe(false);
+    expect(row.ratingTag).toBe("Counts for group rating");
+    expect(row.accessibilityLabel.endsWith("Counts for group rating")).toBe(
+      true,
+    );
   });
 
   it("reads Set scores from the owner's side when they sat in slot 2", () => {

@@ -96,6 +96,25 @@ describe("create game draft", () => {
     );
   });
 
+  it("starts rated, round-trips Unrated and reads an older draft as rated", () => {
+    assert.equal(initialCreateGameDraft(now, "en").rated, true);
+    const draft = { ...filledDraft(), rated: false };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
+      string,
+      unknown
+    >;
+    delete stored.rated;
+    assert.equal(parseCreateGameDraft(JSON.stringify(stored))?.rated, true);
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, rated: "no" })),
+      null,
+    );
+  });
+
   it("starts at 5-a-side with ten players and reads an older draft the same way", () => {
     const initial = initialCreateGameDraft(now, "en");
     assert.equal(initial.sideSize, 5);

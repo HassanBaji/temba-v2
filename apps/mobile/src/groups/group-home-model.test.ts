@@ -9,7 +9,6 @@ import {
   memberIsRemovable,
   memberList,
   memberSheetView,
-  playedRowView,
   standingRowView,
   standingStats,
 } from "./group-home-model";
@@ -114,37 +113,6 @@ describe("standing rows", () => {
       { value: 7, label: "games played" },
       { value: 1, label: "awaiting score" },
     ]);
-  });
-});
-
-describe("playedRowView", () => {
-  const [won, lost, unscored, cancelled] = home.member.gameHistory.map((game) =>
-    playedRowView(game, "en"),
-  );
-
-  it("reads the score from the viewer's side with the viewer first", () => {
-    expect(won).toMatchObject({
-      mark: "won",
-      title: "You, Ada L",
-      trailing: { kind: "score", text: "6–4 4–6 7–5" },
-    });
-    expect(lost).toMatchObject({
-      mark: "lost",
-      title: "You, Ada L",
-      trailing: { kind: "score", text: "2–6 3–6" },
-    });
-  });
-
-  it("offers Enter for a Match with no score", () => {
-    expect(unscored).toMatchObject({
-      mark: "not-played",
-      trailing: { kind: "enter" },
-    });
-    expect(unscored!.accessibilityLabel).toContain("No score yet");
-  });
-
-  it("reads a cancelled Game as cancelled", () => {
-    expect(cancelled!.trailing).toEqual({ kind: "cancelled" });
   });
 });
 
@@ -332,5 +300,141 @@ describe("memberSheetView", () => {
     ).toMatchObject({
       name: "أنت",
     });
+  });
+});
+
+describe("memberList with a sort and filter", () => {
+  const base = home.member.standing.leaderboard[0]!;
+  const now = new Date("2026-11-04T12:00:00Z");
+  const member = (
+    userId: string,
+    name: string,
+    lastPlayedAt: string | null,
+    extra: Partial<typeof base> = {},
+  ) => ({
+    ...base,
+    userId,
+    name,
+    isOrganizer: false,
+    isViewer: false,
+    unclaimed: false,
+    lastPlayedAt: lastPlayedAt ? new Date(lastPlayedAt) : null,
+    joinedAt: new Date("2026-09-06T09:00:00Z"),
+    ...extra,
+  });
+  const members = [
+    member("org", "ahmed-adesha", "2026-11-02T17:00:00Z", {
+      isOrganizer: true,
+    }),
+    member("sayed", "sayed_ali", "2026-09-25T17:00:00Z"),
+    member("yousif", "Yousif K", "2026-09-21T17:00:00Z"),
+    member("abbas", "Abbas M", null, {
+      unclaimed: true,
+      joinedAt: new Date("2026-11-02T09:00:00Z"),
+    }),
+    ...Array.from({ length: 5 }, (_, index) =>
+      member(`p${index}`, `Player ${index}`, "2026-10-28T17:00:00Z"),
+    ),
+  ];
+  const lens = {
+    sort: null,
+    filter: null,
+    showLevel: false,
+    canManage: false,
+    now,
+  };
+
+  it("defaults to Recently played with a caption to match", () => {
+    const list = memberList(
+      members,
+      "",
+      ORIGIN,
+      "en",
+      false,
+      false,
+      false,
+      lens,
+    );
+    expect(list.sortLabel).toBe("Recently played");
+    expect(list.rows[0]!.caption).toBe("Organizer, last Mon 2 Nov");
+    expect(list.rows.at(-1)!.caption).toBe("No games yet, joined Mon 2 Nov");
+    expect(list.countLine).toBe("9");
+  });
+
+  it("counts every filter and narrows to the picked one", () => {
+    const list = memberList(members, "", ORIGIN, "en", false, false, false, {
+      ...lens,
+      filter: "inactive",
+    });
+    expect(list.filters.map((chip) => [chip.id, chip.count])).toEqual([
+      ["all", 9],
+      ["organizers", 1],
+      ["active", 6],
+      ["inactive", 2],
+      ["noGames", 1],
+    ]);
+    expect(list.rows.map((row) => row.name)).toEqual(["sayed_ali", "Yousif K"]);
+    expect(list.countLine).toBe("2 of 9");
+    expect(list.filters.find((chip) => chip.selected)!.accessibilityLabel).toBe(
+      "Inactive, 2 members",
+    );
+  });
+
+  it("offers Not on Temba only to a manager and ignores it otherwise", () => {
+    const hidden = memberList(members, "", ORIGIN, "en", false, false, false, {
+      ...lens,
+      filter: "notOnTemba",
+    });
+    expect(hidden.filters.some((chip) => chip.id === "notOnTemba")).toBe(false);
+    expect(hidden.rows).toHaveLength(9);
+    const managed = memberList(members, "", ORIGIN, "en", false, false, false, {
+      ...lens,
+      filter: "notOnTemba",
+      canManage: true,
+    });
+    expect(managed.rows.map((row) => row.key)).toEqual(["abbas"]);
+  });
+
+  it("names the search and the filter when nobody matches", () => {
+    const list = memberList(
+      members,
+      "yousif",
+      ORIGIN,
+      "en",
+      false,
+      false,
+      false,
+      {
+        ...lens,
+        filter: "noGames",
+      },
+    );
+    expect(list.rows).toEqual([]);
+    expect(list.countLine).toBe("0 of 9");
+    expect(list.emptyText).toBe("Nobody matches “yousif” in No games.");
+  });
+
+  it("falls back to the default sort when Level is not offered", () => {
+    const list = memberList(members, "", ORIGIN, "en", false, false, false, {
+      ...lens,
+      sort: "level",
+    });
+    expect(list.sortLabel).toBe("Recently played");
+    expect(list.sorts.map((option) => option.id)).toEqual([
+      "recent",
+      "joined",
+      "name",
+    ]);
+  });
+
+  it("reads join dates for everyone under Recently joined", () => {
+    const list = memberList(members, "", ORIGIN, "en", false, false, false, {
+      ...lens,
+      sort: "joined",
+    });
+    expect(list.rows[0]!.key).toBe("abbas");
+    expect(list.rows.find((row) => row.key === "org")!.caption).toBe(
+      "Organizer, joined Sun 6 Sep",
+    );
   });
 });

@@ -2,7 +2,11 @@
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
-import { ratingImpactView } from "@repo/domain/game-rating-impact";
+import {
+  ratingImpactView,
+  ratingScopeNotice,
+} from "@repo/domain/game-rating-impact";
+import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -85,18 +89,20 @@ export function GameRatingImpactBlock({
   );
 }
 
-export function GameUnratedBlock() {
-  const m = useMessages();
+export function GameRatingScopeBlock({ scope }: { scope: GameRatingScope }) {
+  const locale = useLocale();
+  const notice = ratingScopeNotice(scope, locale);
+  if (!notice) {
+    return null;
+  }
   return (
     <section
-      data-slot="game-unrated-block"
+      data-slot="game-rating-scope-block"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <div className="flex flex-col gap-1 px-[22px] py-[18px]">
-        <h2 className="text-sm font-semibold">{m.common.unrated}</h2>
-        <p className="text-muted-foreground text-meta">
-          {m.game.rating.unratedGameLine}
-        </p>
+        <h2 className="text-sm font-semibold">{notice.title}</h2>
+        <p className="text-muted-foreground text-meta">{notice.line}</p>
       </div>
     </section>
   );

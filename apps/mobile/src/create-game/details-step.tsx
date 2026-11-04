@@ -2,6 +2,7 @@ import { spacing } from "@repo/design-tokens";
 import {
   createFlowPriceChips,
   createFlowSeatsLabel,
+  createRatingChoice,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   gameTeamOfTwoCopy,
@@ -17,7 +18,6 @@ import {
   groupsThenKnockoutReviewValue,
   knockoutOnlyReviewValue,
 } from "@repo/domain/tournament-knockout";
-import { unratedGroupLine } from "@repo/domain/game-rating-impact";
 import {
   resolveRoundCount,
   reviewRoundsValue,
@@ -37,6 +37,7 @@ import {
   LevelRangeRows,
 } from "./level-range-field";
 import { MoneyField } from "./money-field";
+import { RatingField } from "./rating-field";
 import { ReviewCard, type ReviewRow } from "./review-card";
 import type { StepProps } from "./step-props";
 import { HelperNote, StepSection } from "./step-section";
@@ -160,8 +161,33 @@ export function FootballDetailsStep(props: DetailsProps) {
   );
 }
 
+function DetailsRatingField({ state, dispatch, groupVerified }: DetailsProps) {
+  return (
+    <RatingField
+      groupVerified={groupVerified}
+      rated={state.draft.rated}
+      onRated={(rated) => dispatch({ kind: "setRated", rated })}
+    />
+  );
+}
+
+function ratingReviewRow(
+  { state, groupVerified }: DetailsProps,
+  locale: Locale,
+): ReviewRow {
+  const choice = createRatingChoice({
+    groupVerified,
+    rated: state.draft.rated,
+    locale,
+  });
+  return {
+    label: messagesFor(locale).mobileCreateGame.review.rating,
+    value: choice.scopeLabel,
+  };
+}
+
 export function GameDetailsStep(props: DetailsProps) {
-  const { state, groupName, groupVerified, picker } = props;
+  const { state, groupName, picker } = props;
   const { draft } = state;
   const locale = useLocale();
   const review = useMessages().mobileCreateGame.review;
@@ -177,9 +203,7 @@ export function GameDetailsStep(props: DetailsProps) {
       <CustomNameField {...props} />
       <LevelRangeField {...props} />
       <PriceField {...props} />
-      {groupVerified ? null : (
-        <HelperNote>{unratedGroupLine(locale)}</HelperNote>
-      )}
+      <DetailsRatingField {...props} />
       <ReviewCard
         rows={[
           ...customNameReviewRows(draft.customName, locale),
@@ -194,6 +218,7 @@ export function GameDetailsStep(props: DetailsProps) {
             label: review.seats,
             value: createFlowSeatsLabel("padel", draft, locale),
           },
+          ratingReviewRow(props, locale),
         ]}
       />
     </View>
@@ -234,9 +259,10 @@ function WhoCanEnter(props: StepProps) {
 }
 
 function tournamentReviewRows(
-  { state, groupName, groupVerified, picker }: DetailsProps,
+  props: DetailsProps,
   locale: Locale,
 ): ReviewRow[] {
+  const { state, groupName, picker } = props;
   const { draft } = state;
   const m = messagesFor(locale);
   const review = m.mobileCreateGame.review;
@@ -300,10 +326,7 @@ function tournamentReviewRows(
       label: review.gameLength,
       value: minutes.ok ? m.dates.minutes(minutes.minutes) : review.gameLength,
     },
-    {
-      label: m.tournament.home.countsForRating,
-      value: groupVerified ? m.common.yes : m.common.no,
-    },
+    ratingReviewRow(props, locale),
   ];
 }
 
@@ -344,10 +367,8 @@ export function TournamentDetailsStep(props: DetailsProps) {
             dispatch({ kind: "setPublic", isPublic: value === "public" })
           }
         />
-        {groupVerified ? null : (
-          <HelperNote>{unratedGroupLine(locale)}</HelperNote>
-        )}
       </StepSection>
+      <DetailsRatingField {...props} />
       <StepSection title={sizingCopy.howPeopleJoin}>
         <ChipGrid
           label={sizingCopy.howPeopleJoin}

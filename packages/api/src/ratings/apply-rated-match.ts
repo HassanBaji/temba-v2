@@ -14,7 +14,11 @@ import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { type GameRow } from "#src/games/access";
 import { type ClassicGlicko } from "@repo/domain/glicko2";
-import { gameRates } from "@repo/domain/game-rating-eligibility";
+import {
+  gameRates,
+  gameRatesGroup,
+} from "@repo/domain/game-rating-eligibility";
+import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
 import {
   initialRatingFromChoice,
   type LevelBand,
@@ -44,7 +48,7 @@ export type RatedMatchWeight =
   | typeof CLUB_GROUP_RATING_WEIGHT
   | typeof LOOSE_OR_GROUPLESS_RATING_WEIGHT;
 
-type SlotUsers = {
+export type SlotUsers = {
   slot1: [string, string];
   slot2: [string, string];
 };
@@ -205,10 +209,11 @@ async function persistRatedUser(args: {
 }
 
 /**
- * Rate the four Users on a completed Match. Skips when the Match is not a
- * Rated Match (cancelled or Unrated Game, missing sides, not four Users). Idempotent per
- * User+Match. Idle RD inflation runs per User from lastRatedAt before
- * composites and the Glicko step.
+ * Rate the four Users on a completed Match: their Temba Ratings when the Game
+ * is Temba rated, their Group Levels when it is group rated (ADR-0053). Skips
+ * when the Match is not a Rated Match (cancelled or Unrated Game, missing
+ * sides, not four Users). Idempotent per User+Match. Group Levels go first so
+ * a first Group Level starts from the Temba Rating before this Match.
  */
 export async function applyRatedMatch(
   database: DbClient,
@@ -222,9 +227,20 @@ export async function applyRatedMatch(
 
   const liveGame = await database.query.games.findFirst({
     where: eq(games.id, game.id),
-    columns: { cancelledAt: true, groupId: true, sport: true, rated: true },
+    columns: {
+      cancelledAt: true,
+      groupId: true,
+      sport: true,
+      rated: true,
+      groupRated: true,
+    },
   });
-  if (!liveGame || !gameRates(liveGame)) {
+  if (!liveGame) {
+    return;
+  }
+  const ratesTemba = gameRates(liveGame);
+  const ratesGroup = gameRatesGroup(liveGame);
+  if (!ratesTemba && !ratesGroup) {
     return;
   }
 
@@ -234,7 +250,48 @@ export async function applyRatedMatch(
   }
 
   const sport = ratingSportFromGame(liveGame.sport);
-  const weight = await weightForGame(database, liveGame.groupId);
+  const now = new Date();
+  if (ratesGroup && liveGame.groupId) {
+    await applyGroupRatedMatch(database, {
+      groupId: liveGame.groupId,
+      sport,
+      matchId: match.id,
+      slots,
+      result,
+      now,
+    });
+  }
+  if (ratesTemba) {
+    await applyTembaRatedMatch(database, {
+      groupId: liveGame.groupId,
+      sport,
+      matchId: match.id,
+      slots,
+      result,
+      now,
+    });
+  }
+}
+
+/**
+ * Temba Ratings for the four Users. Idle RD inflation runs per User from
+ * lastRatedAt before composites and the Glicko step.
+ */
+async function applyTembaRatedMatch(
+  database: DbClient,
+  args: {
+    groupId: string | null;
+    sport: "padel" | "football";
+    matchId: string;
+    slots: SlotUsers;
+    result: RatedMatchOutcome;
+    now: Date;
+  },
+): Promise<void> {
+  const { sport, slots, now } = args;
+  const match = { id: args.matchId };
+  const result = args.result;
+  const weight = await weightForGame(database, args.groupId);
   const userIds = [...slots.slot1, ...slots.slot2];
 
   const existingEvents = await database.query.ratingEvents.findMany({
@@ -256,7 +313,6 @@ export async function applyRatedMatch(
     .for("update");
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
-  const now = new Date();
   const playerInput = (userId: string) => ({
     state: snapshotState(rowByUser.get(userId)),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,

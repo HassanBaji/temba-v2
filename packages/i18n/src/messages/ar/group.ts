@@ -53,7 +53,6 @@ export const group = {
     backToCommunity: "العودة إلى المجتمع",
     backToGroups: "العودة إلى المجموعات",
     openSeats: "أماكن شاغرة",
-    playedOpponentLine: (team: string, day: string) => `${team}، ${day}`,
     organizerAction: {
       appoint: "تعيين منظّمًا",
       dismiss: "إزالة كمنظّم",
@@ -66,6 +65,59 @@ export const group = {
       appointed: (name: string) => `${name} أصبح منظّمًا الآن.`,
       dismissed: (name: string) => `${name} لم يعد منظّمًا.`,
     },
+  },
+  played: {
+    cancelled: "ملغاة",
+    noScoreYet: "لا نتيجة بعد",
+    untitled: "مباراة",
+    filtersLabel: "تصفية المباريات السابقة",
+    filters: {
+      finished: "منتهية",
+      needs_score: "بانتظار النتيجة",
+      cancelled: "ملغاة",
+      all: "الكل",
+    },
+    filterSpoken: (label: string, n: number) =>
+      `${label}، ${plural("ar", n, {
+        zero: "لا مباريات",
+        one: "مباراة واحدة",
+        two: "مباراتان",
+        few: "{n} مباريات",
+        many: "{n} مباراة",
+        other: "{n} مباراة",
+      })}`,
+    filterEmpty: {
+      finished: "لا مباريات منتهية بعد.",
+      needs_score: "كل المباريات لها نتيجة.",
+      cancelled: "لا مباريات ملغاة.",
+      all: "لا مباريات بعد.",
+    },
+    showAll: "عرض كل المباريات",
+    enterScore: "أدخل النتيجة",
+    you: "فريقك",
+    versus: (first: string, second: string) => `${first} ضد ${second}`,
+    pair: (first: string, second: string) => `${first} و${second}`,
+    record: (wins: number, draws: number | null, losses: number) =>
+      draws == null
+        ? `فوز ${wins} · خسارة ${losses}`
+        : `فوز ${wins} · تعادل ${draws} · خسارة ${losses}`,
+    recordSpoken: (wins: number, draws: number | null, losses: number) =>
+      draws == null
+        ? `فوز ${wins}، خسارة ${losses}`
+        : `فوز ${wins}، تعادل ${draws}، خسارة ${losses}`,
+    monthCount: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات",
+        one: "مباراة واحدة",
+        two: "مباراتان",
+        few: "{n} مباريات",
+        many: "{n} مباراة",
+        other: "{n} مباراة",
+      }),
+    joined: (joined: number, allowed: number) => `انضم ${joined} من ${allowed}`,
+    joinedOpen: (joined: number) => `انضم ${joined}`,
+    sideSpoken: (name: string, score: string) => `${name} ${score}`,
+    card: (parts: string[]) => parts.join(". "),
   },
   empty: {
     standingAfterFirstResult: "يظهر الترتيب بعد أول نتيجة.",
@@ -286,7 +338,7 @@ export const group = {
           "لم يعد بإمكانك إنشاء روابط دعوة. ما زال بإمكانك دعوة أعضاء المجتمع الحاليين.",
         gamesHeldAt: (venue: string) => `تُقام المباريات الجديدة في ${venue}.`,
         verified:
-          "المجموعة موثّقة، فيمكنها استضافة مباريات مصنّفة ومباريات مفتوحة لأي شخص لديه الرابط.",
+          "المجموعة موثّقة، فيمكن أن تُحتسب مبارياتها في تصنيف Temba وأن تُفتح لأي شخص لديه الرابط.",
       },
     },
     declineConfirm: {
@@ -302,7 +354,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `مغادرة مجتمع ${venue}؟`,
       description: (group: string) =>
-        `تعود ${group} مجموعة حرة. ستكون المباريات الجديدة غير مصنّفة ما لم يوثّق مشغّل المجموعة.`,
+        `تعود ${group} مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّق مشغّل المجموعة.`,
       confirmLabel: "مغادرة المجتمع",
       cancelLabel: "البقاء",
       pendingLabel: "جارٍ المغادرة…",
@@ -317,7 +369,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `فك ارتباط ${group}؟`,
       description: (group: string) =>
-        `تغادر ${group} مجتمع ناديك وتصبح مجموعة حرة. ستكون المباريات الجديدة غير مصنّفة ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
+        `تغادر ${group} مجتمع ناديك وتصبح مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
       confirmLabel: "فك ارتباط المجموعة",
       cancelLabel: "إبقاء الارتباط",
     },
@@ -327,8 +379,48 @@ export const group = {
     organizer: "المنظّم",
     lastPlayed: (day: string) => `آخر لعب ${day}`,
     joined: (day: string) => `انضم ${day}`,
+    organizerLastPlayed: (day: string) => `المنظّم، آخر لعب ${day}`,
+    organizerJoined: (day: string) => `المنظّم، انضم ${day}`,
+    noGamesJoined: (day: string) => `لا ألعاب بعد، انضم ${day}`,
+    organizerNoGamesJoined: (day: string) =>
+      `المنظّم، لا ألعاب بعد، انضم ${day}`,
     legend: "المستويات المخطّطة ما زالت مبدئية.",
-    noMatch: "لا أحد يطابق البحث.",
+    lens: {
+      sort: {
+        title: "ترتيب الأعضاء",
+        chip: (label: string) => `ترتيب الأعضاء، ${label}`,
+        footnote:
+          "يبقى الترتيب والتصفية لهذه المجموعة كما اخترتهما حتى تغيّرهما.",
+        options: {
+          recent: {
+            label: "لعبوا مؤخرًا",
+            hint: "آخر لعبة في هذه المجموعة أولًا",
+          },
+          joined: { label: "انضموا مؤخرًا", hint: "الأعضاء الأحدث أولًا" },
+          name: { label: "الاسم", hint: "من أ إلى ي" },
+          level: {
+            label: "المستوى",
+            hint: "الأعلى أولًا، ومن بلا مستوى أخيرًا",
+          },
+        },
+      },
+      filters: {
+        label: "تصفية الأعضاء",
+        all: "الكل",
+        organizers: "المنظّمون",
+        active: "نشطون",
+        inactive: "غير نشطين",
+        noGames: "بلا ألعاب",
+        notOnTemba: "ليسوا على Temba",
+      },
+      filterSpoken: (label: string, count: string) => `${label}، ${count}`,
+      countOf: (shown: number, total: number) => `${shown} من ${total}`,
+      noMatchQuery: (query: string) => `لا أحد يطابق «${query}».`,
+      noMatchQueryIn: (query: string, filter: string) =>
+        `لا أحد يطابق «${query}» في ${filter}.`,
+      noneIn: (filter: string) => `لا أعضاء في ${filter}.`,
+      showAll: "عرض كل الأعضاء",
+    },
     pendingInvitesTitle: (n: number) =>
       plural("ar", n, {
         one: "دعوة واحدة معلّقة",

@@ -11,7 +11,7 @@ import {
 } from "@repo/domain/game-card";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { spotsOpenLabel } from "@repo/domain/game-occupancy";
 import {
   gameCardActionLabel,
@@ -78,6 +78,7 @@ export function GameCard({
   );
   const roundLabel = poolRoundLabel(game.roundNumber, game.roundCount, locale);
   const formatMeta = roundLabel ?? gameFormatLabel(game.format, locale);
+  const ratingTag = ratingScopeTag(game, locale);
   const durationMeta = formatWindowDuration(
     game.windowStart,
     game.windowEnd,
@@ -163,9 +164,9 @@ export function GameCard({
           {dayLabel}
         </Text>
         <View style={{ flexDirection: "row", columnGap: 12 }}>
-          {!game.rated ? (
-            <Text size="meta" weight="semibold">
-              {unratedLabel(locale)}
+          {ratingTag ? (
+            <Text size="meta" weight="semibold" numberOfLines={1}>
+              {ratingTag}
             </Text>
           ) : null}
           {cancelled ? (

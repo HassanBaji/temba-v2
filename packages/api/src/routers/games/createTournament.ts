@@ -32,6 +32,7 @@ import { assertMayCreateGameOnGroup } from "#src/games/access";
 import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-venue-and-court";
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -140,6 +141,8 @@ export const createTournamentInputSchema = z
     name: z.string().trim().min(1).max(255),
     groupId: z.string().uuid({ message: "Pick a Group" }),
     isPublic: z.boolean(),
+    /** False makes the Game Unrated (ADR-0053). */
+    rated: z.boolean().optional(),
     registrationMode: z.literal("individual").optional(),
     allowSoloRegister: z.boolean().optional().default(true),
     tournamentShape: z
@@ -255,8 +258,8 @@ export async function createTournament(
     });
   }
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
-  const rated = await groupIsVerified(database, group);
-  if (input.isPublic && !rated) {
+  const groupVerified = await groupIsVerified(database, group);
+  if (input.isPublic && !groupVerified) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Only a Verified Group can open a Game to anyone with the link",
@@ -293,7 +296,12 @@ export async function createTournament(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
-        rated,
+        ...ratingFlagsAtCreate({
+          hasGroup: true,
+          groupVerified,
+          sport: "padel",
+          rated: input.rated ?? true,
+        }),
         createdBy: input.createdBy,
       })
       .returning();

@@ -7,6 +7,7 @@ import {
 } from "@repo/domain/group-home-cta";
 import {
   groupShowsLevel,
+  viewerMaySetGroupLevel,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
@@ -88,6 +89,7 @@ export type GroupHomeViewProps = {
   pendingInviteNames?: string[];
   onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
+  onSetGroupLevel: (userId: string) => void;
   saved: SavedLevel | null;
   onDismissSaved: () => void;
   games: Omit<
@@ -298,6 +300,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
       ) : null}
       {props.tab === "members" ? (
         <MembersTab
+          groupId={data.id}
           leaderboard={data.standing.leaderboard}
           query={props.memberQuery}
           onQueryChange={props.onMemberQueryChange}
@@ -310,6 +313,15 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
           showLevel={groupShowsLevel(data.sport)}
           onSetLevel={props.onSetLevel}
+          onSetGroupLevel={
+            viewerMaySetGroupLevel({
+              sport: data.sport,
+              canCreateGame: data.canCreateGame,
+              leaderboard: data.standing.leaderboard,
+            })
+              ? props.onSetGroupLevel
+              : undefined
+          }
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
           canRemovePlayers={data.canRemovePlayers}

@@ -92,3 +92,53 @@ export function sportsTaskMeta(
     ),
   };
 }
+
+/** What Settings adds to the checklist: Your details and When you play. */
+export type SettingsChecklistExtras = {
+  hasDetails: boolean;
+  hasPlayWindows: boolean;
+};
+
+export type SettingsChecklist = {
+  done: number;
+  total: number;
+  complete: boolean;
+  /** "Left: verify email, when you usually play", or "All done." */
+  left: string;
+  /** Where the card opens: the checklist while it has open tasks, else the first open Settings screen. */
+  target: string;
+};
+
+export function settingsChecklist(
+  list: ProfileChecklist,
+  extras: SettingsChecklistExtras,
+  locale: Locale,
+): SettingsChecklist {
+  const messages = messagesFor(locale);
+  const m = messages.you.settings;
+  const items = m.leftItems;
+  const left = [
+    ...list.open.map((task) =>
+      task.id === "name" ? messages.mobileYou.leftName : items[task.id],
+    ),
+    ...(extras.hasDetails ? [] : [items.details]),
+    ...(extras.hasPlayWindows ? [] : [items.playWindows]),
+  ];
+  const extraDone =
+    (extras.hasDetails ? 1 : 0) + (extras.hasPlayWindows ? 1 : 0);
+  return {
+    done: list.done + extraDone,
+    total: list.total + 2,
+    complete: left.length === 0,
+    left:
+      left.length === 0
+        ? m.allDone
+        : m.left(messages.mobileHome.tasks.shortList(left)),
+    target:
+      list.open.length > 0
+        ? COMPLETE_PROFILE_PATH
+        : extras.hasDetails
+          ? "/profile/availability"
+          : "/profile/details",
+  };
+}

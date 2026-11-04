@@ -56,6 +56,8 @@ export const games = pgTable(
       .references(() => venues.id, { onDelete: "restrict" }),
     isPublic: boolean("is_public").notNull().default(false),
     rated: boolean("rated").notNull().default(true),
+    /** Moves the Group Level (ADR-0053). `rated` alone says whether it moves the Temba Level. */
+    groupRated: boolean("group_rated").notNull().default(false),
     windowStart: timestamp("window_start"),
     windowEnd: timestamp("window_end"),
     playersAllowed: integer("players_allowed"),

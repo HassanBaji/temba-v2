@@ -7,6 +7,10 @@ import {
   groupGamePlayersNeeded,
   groupGamesEmptyLine,
 } from "@repo/domain/group-empty-states";
+import type {
+  GroupPlayedCounts,
+  GroupPlayedFilter,
+} from "@repo/domain/group-played-filter";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import {
   groupArchiveGamesCopy,
@@ -14,7 +18,7 @@ import {
 } from "@repo/domain/group-join";
 import { useRouter, type Href } from "expo-router";
 import { UserPlus } from "lucide-react-native";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { FootballGameCard } from "../games/football-game-card";
 import { GameCard, type GameCardActions } from "../games/game-card";
@@ -31,17 +35,19 @@ import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
-import { ResultMark } from "../primitives/result-mark";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
-import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
-import { playedRowView, type PlayedRowView } from "./group-home-model";
 import { Notice } from "./notice";
+import { PlayedGames } from "./played-games";
 
 export type GamesTabProps = {
   upcomingGames: HubGameRow[];
   playedGames: GroupPlayedGameData[];
+  playedCounts: GroupPlayedCounts;
+  playedFilter: GroupPlayedFilter;
+  onPlayedFilterChange: (filter: GroupPlayedFilter) => void;
+  filtering: boolean;
   isCommunityArchived: boolean;
   pendingGameId: string | null;
   canLoadMore: boolean;
@@ -161,64 +167,6 @@ function NoGamesYet(props: GamesTabProps) {
   );
 }
 
-function PlayedRow({
-  row,
-  onOpen,
-}: {
-  row: PlayedRowView;
-  onOpen: (gameId: string) => void;
-}) {
-  const m = useMessages();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={row.accessibilityLabel}
-      onPress={() => onOpen(row.id)}
-      style={({ pressed }) => ({
-        minHeight: 64,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: spacing.surface,
-        paddingVertical: 14,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <ResultMark variant={row.mark} size={20} decorative />
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{ flex: 1, minWidth: 0 }}
-      >
-        <Text numberOfLines={1}>{row.title}</Text>
-        <Text size="meta" tone="muted" numberOfLines={1}>
-          {row.subtitle}
-        </Text>
-      </View>
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        {row.trailing.kind === "cancelled" ? (
-          <Text size="meta" tone="muted">
-            {m.mobileGroup.games.cancelled}
-          </Text>
-        ) : row.trailing.kind === "score" ? (
-          <ScoreLine
-            score={row.trailing.text}
-            width="expanded"
-            weight="semibold"
-          />
-        ) : (
-          <Text size="meta" weight="semibold">
-            {m.mobileGroup.games.enter}
-          </Text>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
 export function GamesTab(props: GamesTabProps) {
   const { upcomingGames, playedGames, actions } = props;
   const router = useRouter();
@@ -232,15 +180,13 @@ export function GamesTab(props: GamesTabProps) {
     onConfirm: (gameId: string) => actions.onOpen(gameId),
   };
 
-  if (
-    upcomingGames.length === 0 &&
-    playedGames.length === 0 &&
-    !props.isCommunityArchived
-  ) {
+  const noGames = upcomingGames.length === 0 && props.playedCounts.all === 0;
+
+  if (noGames && !props.isCommunityArchived) {
     return <NoGamesYet {...props} />;
   }
 
-  if (upcomingGames.length === 0 && playedGames.length === 0) {
+  if (noGames) {
     return (
       <Notice
         title={m.mobileGroup.games.emptyTitle}
@@ -295,40 +241,24 @@ export function GamesTab(props: GamesTabProps) {
         )}
       </Section>
 
-      <Section title={m.mobileGroup.games.played}>
-        {playedGames.length === 0 ? (
-          <Text tone="muted">{m.mobileGroup.games.playedEmpty}</Text>
-        ) : (
-          <>
-            <Surface padded={false} style={{ overflow: "hidden" }}>
-              {playedGames.map((game, index) => (
-                <View key={game.id}>
-                  {index > 0 ? <Hairline /> : null}
-                  <PlayedRow
-                    row={playedRowView(game, locale)}
-                    onOpen={actions.onOpen}
-                  />
-                </View>
-              ))}
-            </Surface>
-            {props.loadMoreFailed ? (
-              <Text tone="muted" accessibilityRole="alert">
-                {m.mobileGroup.loadFailed.moreGames}
-              </Text>
-            ) : null}
-            {props.canLoadMore ? (
-              <View style={{ alignItems: "center" }}>
-                <Button
-                  label={m.mobileGroup.games.loadMore}
-                  variant="outline"
-                  pending={props.loadingMore}
-                  onPress={props.onLoadMore}
-                />
-              </View>
-            ) : null}
-          </>
-        )}
-      </Section>
+      <PlayedGames
+        games={playedGames}
+        counts={props.playedCounts}
+        filter={props.playedFilter}
+        onFilterChange={props.onPlayedFilterChange}
+        filtering={props.filtering}
+        sport={props.sport}
+        canLoadMore={props.canLoadMore}
+        loadingMore={props.loadingMore}
+        loadMoreFailed={props.loadMoreFailed}
+        onLoadMore={props.onLoadMore}
+        onOpen={actions.onOpen}
+        onEnterScore={(card) =>
+          card.isFootball
+            ? router.push(footballScorePath(card.id))
+            : actions.onOpen(card.id)
+        }
+      />
     </View>
   );
 }

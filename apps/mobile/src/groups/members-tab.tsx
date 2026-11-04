@@ -14,6 +14,10 @@ import {
   EllipsisVertical,
   UserRoundPlus,
 } from "lucide-react-native";
+import {
+  levelSliderLabel,
+  levelSliderStartTenths,
+} from "@repo/domain/level-slider";
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
@@ -37,7 +41,9 @@ import {
 } from "./group-home-model";
 import { LevelCell } from "./level-cell";
 import { MemberSheet } from "./member-sheet";
+import { MemberLensRow, MemberSortSheet } from "./members-lens";
 import { Notice } from "./notice";
+import { useMemberLens } from "./use-member-lens";
 
 const LEVEL_WIDTH = 52;
 const ACTION_WIDTH = 44;
@@ -166,9 +172,11 @@ function MemberRow({
 function TableHeader({
   managing,
   showLevel,
+  countLine,
 }: {
   managing: boolean;
   showLevel: boolean;
+  countLine: string;
 }) {
   const m = useMessages();
   return (
@@ -185,6 +193,9 @@ function TableHeader({
     >
       <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
         {m.mobileGroup.members.columnMember}
+      </Text>
+      <Text size="eyebrow" tone="muted" mono>
+        {countLine}
       </Text>
       {showLevel ? (
         <Text
@@ -251,6 +262,7 @@ function PendingInvitesCard({
 }
 
 export function MembersTab({
+  groupId,
   leaderboard,
   query,
   onQueryChange,
@@ -258,6 +270,7 @@ export function MembersTab({
   canSetLevel,
   showLevel = true,
   onSetLevel,
+  onSetGroupLevel,
   onOpenMember,
   canAddPlayers = false,
   onRenameUnclaimed,
@@ -271,6 +284,7 @@ export function MembersTab({
   top,
   afterTable,
 }: {
+  groupId: string;
   leaderboard: GroupLeaderboardEntryData[];
   query: string;
   onQueryChange: (query: string) => void;
@@ -278,6 +292,8 @@ export function MembersTab({
   canSetLevel: boolean;
   showLevel?: boolean;
   onSetLevel: (userId: string) => void;
+  /** Given to an Organizer of the Group, who sets members' Group Levels. */
+  onSetGroupLevel?: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
   canAddPlayers?: boolean;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
@@ -302,8 +318,15 @@ export function MembersTab({
   const m = useMessages();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const { lens, setSort, setFilter } = useMemberLens(groupId);
+  const canSetGroupLevel = onSetGroupLevel != null;
   const canManage =
-    canSetLevel || canAddPlayers || canRemovePlayers || canAppointOrganizers;
+    canSetLevel ||
+    canSetGroupLevel ||
+    canAddPlayers ||
+    canRemovePlayers ||
+    canAppointOrganizers;
   const isManaging = canManage && managing;
   const legend = groupMembersLegend({ showLevel, locale });
   const list = memberList(
@@ -314,6 +337,8 @@ export function MembersTab({
     canSetLevel,
     canRemovePlayers,
     canAppointOrganizers,
+    { ...lens, showLevel, canManage, now: new Date() },
+    canSetGroupLevel,
   );
   const selected = leaderboard.find(
     (entry) =>
@@ -365,6 +390,14 @@ export function MembersTab({
           ) : null}
         </View>
       ) : null}
+      {list.showSearch ? (
+        <MemberLensRow
+          sortLabel={list.sortLabel}
+          filters={list.filters}
+          onOpenSort={() => setSortOpen(true)}
+          onPickFilter={(chip) => setFilter(chip.id)}
+        />
+      ) : null}
       {isManaging && canAddPlayers && onAddPlayer ? (
         <Button
           label={m.group.addPlayer.action}
@@ -374,17 +407,34 @@ export function MembersTab({
         />
       ) : null}
       <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
-        <TableHeader managing={isManaging} showLevel={showLevel} />
+        <TableHeader
+          managing={isManaging}
+          showLevel={showLevel}
+          countLine={list.countLine}
+        />
         {list.rows.length === 0 ? (
           <>
             <Hairline />
-            <Text
-              size="meta"
-              tone="muted"
-              style={{ paddingHorizontal: 18, paddingVertical: 22 }}
+            <View
+              style={{
+                paddingHorizontal: 18,
+                paddingVertical: 22,
+                alignItems: "flex-start",
+                gap: 14,
+              }}
             >
-              {m.group.members.noMatch}
-            </Text>
+              <Text size="meta" tone="muted">
+                {list.emptyText}
+              </Text>
+              <Button
+                label={m.group.members.lens.showAll}
+                variant="outline"
+                onPress={() => {
+                  onQueryChange("");
+                  setFilter("all");
+                }}
+              />
+            </View>
           </>
         ) : (
           list.rows.map((row) => (
@@ -419,6 +469,15 @@ export function MembersTab({
       {pendingInviteNames.length > 0 && onOpenInvites ? (
         <PendingInvitesCard names={pendingInviteNames} onOpen={onOpenInvites} />
       ) : null}
+      <MemberSortSheet
+        visible={sortOpen}
+        options={list.sorts}
+        onClose={() => setSortOpen(false)}
+        onPick={(sort) => {
+          setSort(sort);
+          setSortOpen(false);
+        }}
+      />
       <MemberSheet
         member={selected ? memberSheetView(selected, locale, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
@@ -430,6 +489,23 @@ export function MembersTab({
                   onSetLevel(selected.userId);
                 }
               }
+            : undefined
+        }
+        onSetGroupLevel={
+          selected && onSetGroupLevel && !selected.isViewer
+            ? () => {
+                setSelectedUserId(null);
+                onSetGroupLevel(selected.userId);
+              }
+            : undefined
+        }
+        groupLevelHint={
+          selected?.groupLevel
+            ? m.mobileGroup.setGroupLevel.groupLevel(
+                levelSliderLabel(
+                  levelSliderStartTenths(selected.groupLevel.level),
+                ),
+              )
             : undefined
         }
         onViewProfile={
