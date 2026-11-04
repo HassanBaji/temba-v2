@@ -14,8 +14,6 @@ export const mobileYou = {
   leftName: "your name",
   sportAdded: (sport: string) => `${sport} added to your profile`,
   sportRemoved: (sport: string) => `${sport} removed from your profile`,
-  footballPrefsLocked:
-    "Role and position come from sign up and cannot be changed here yet.",
   pickFromList: (label: string) => `${label}, choose from a list`,
   password: {
     current: "Current password",

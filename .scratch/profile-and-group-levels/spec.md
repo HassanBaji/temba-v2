@@ -55,7 +55,7 @@ One hub at `/profile/settings`: details row, Complete your profile, Sport profil
 
 New `user` columns, all nullable or defaulted: `gender`, `birth_date`, `home_area`, `nationality`, `play_windows`, `seat_alerts`, `match_history_visibility` (`everyone` default, which keeps today's rule, `group_members`, `only_me`). `users.playerProfile` shows only Level and side to a viewer the owner's visibility excludes.
 
-New procedures: `users.profileDetails`, `users.setProfileDetails`, `users.setPlayWindows`, `users.setMatchHistoryVisibility`, `users.setSports`.
+New procedures: `users.profileDetails`, `users.setProfileDetails`, `users.setPlayWindows`, `users.setMatchHistoryVisibility`, `users.setSports`, `users.setFootballPreferences`. `groups.byId` member rows gain `groupLevel`.
 
 ### Web
 

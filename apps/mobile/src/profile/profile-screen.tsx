@@ -1,150 +1,190 @@
-import { useAuth, useUser } from "@clerk/expo";
-import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
-import type { PreferredPosition } from "@repo/domain/preferred-position";
-import { useRouter, type Href } from "expo-router";
+import { useUser } from "@clerk/expo";
+import type { Sport } from "@repo/domain/sport";
+import { keepPreviousData } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { ScrollView, View } from "react-native";
 
-import { recentFormFromHistory } from "../home/home-model";
+import { gamePath } from "../games/games-model";
+import { Block } from "../home/slot-block";
 import { useLocale, useMessages } from "../i18n/locale-provider";
-import { splitTrpcFormError } from "../lib/form-error";
 import { slotOf } from "../lib/slot-of";
+import { playerPath } from "../player-profile/player-path";
 import { Screen } from "../primitives/screen";
-import { useToast } from "../primitives/toast";
-import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
+import { FootballTab } from "./football-tab";
+import { LevelHero } from "./level-hero";
+import { ProfileHeader } from "./profile-header";
 import {
-  allTimeFromApi,
-  levelFromApi,
-  positionFromApi,
-  profileDestinationPath,
-  type ProfileDestination,
-  type ProfileModel,
+  displayBand,
+  groupLevelRows,
+  groupScale,
+  headerLine,
+  heroView,
+  lastTenRecord,
+  lastTenSlots,
+  partnerRows,
+  recentRows,
+  sportChips,
+  sportProfilePath,
+  tilesView,
+  type GroupLevel,
+  type MyProfile,
 } from "./profile-model";
-import { ProfileView } from "./profile-view";
-import { useProfilePhoto } from "./use-profile-photo";
+import { Chip } from "./profile-parts";
+import {
+  LastTenStrip,
+  LevelsByGroup,
+  PartnersCard,
+  RecentMatches,
+  SECTION_GAP,
+  StatTile,
+} from "./profile-sections";
+import { SetupSportCard } from "./setup-sport-card";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
-/** The Profile's Level, form and all-time cards all read padel. */
-const PROFILE_SPORT = "padel";
+const PROFILE_TAB = ["profile"];
+
+function PadelScope({
+  profile,
+  groups,
+  onOpenGroup,
+  onOpenPlayer,
+  onOpenGame,
+}: {
+  profile: MyProfile;
+  groups: GroupLevel[];
+  onOpenGroup: (groupId: string) => void;
+  onOpenPlayer: (userId: string) => void;
+  onOpenGame: (gameId: string) => void;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const group = profile.group
+    ? (groups.find((row) => row.groupId === profile.group?.id) ?? null)
+    : null;
+  const hero = heroView(profile, group, locale);
+  const general = profile.group ? null : profile.level;
+  const tiles = tilesView(profile.stats, locale);
+
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <LevelHero view={hero} />
+      {general && groups.length > 0 ? (
+        <LevelsByGroup
+          title={m.you.groups.title}
+          meta={m.you.groups.vsGeneral(
+            displayBand(general.levelBand),
+            general.rating.toFixed(2),
+          )}
+          note={m.you.groups.note}
+          scale={groupScale(general.rating, groups, locale)}
+          rows={groupLevelRows(groups, locale)}
+          onOpenGroup={onOpenGroup}
+        />
+      ) : null}
+      <LastTenStrip
+        title={
+          profile.group
+            ? m.you.form.lastTenIn(profile.group.name)
+            : m.you.form.lastTen
+        }
+        record={lastTenRecord(profile.lastTen, locale)}
+        slots={lastTenSlots(profile.lastTen, locale)}
+      />
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <StatTile
+          label={m.you.tiles.sets}
+          value={tiles.sets.value}
+          sub={tiles.sets.sub}
+        />
+        <StatTile
+          label={m.you.tiles.longestStreak}
+          value={tiles.streak.value}
+          sub={tiles.streak.sub}
+        />
+      </View>
+      <PartnersCard
+        title={m.you.partners.title}
+        meta={
+          profile.group
+            ? m.you.partners.inGroup(profile.group.name)
+            : m.you.partners.mostPlayed
+        }
+        rows={partnerRows(profile.partners, "padel", locale)}
+        empty={m.you.partners.empty}
+        onOpen={onOpenPlayer}
+      />
+      <RecentMatches
+        title={m.you.recent.title}
+        meta={profile.group ? profile.group.name : m.you.recent.allGroups}
+        rows={recentRows(profile.recent, locale)}
+        onOpenGame={onOpenGame}
+      />
+    </View>
+  );
+}
 
 export function ProfileScreen() {
   const m = useMessages();
   const locale = useLocale();
   const { user } = useUser();
-  const { signOut } = useAuth();
   const router = useRouter();
-  const toast = useToast();
-  const utils = api.useUtils();
-  const { pickPhoto, savePhoto, pending: changingPhoto } = useProfilePhoto();
   const [refreshing, setRefreshing] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-  const [optimistic, setOptimistic] = useState<PreferredPosition | undefined>();
+  const [chosenSport, setChosenSport] = useState<Sport | null>(null);
+  const [chosenGroupId, setChosenGroupId] = useState<string | null>(null);
 
-  const rating = api.ratings.me.useQuery(
-    { sport: PROFILE_SPORT },
-    REFETCH_ON_FOREGROUND,
-  );
-  const stats = api.users.profileStats.useQuery(
-    { sport: PROFILE_SPORT },
-    REFETCH_ON_FOREGROUND,
-  );
-  const history = api.games.listMyMatchHistory.useQuery(
-    { limit: RECENT_FORM_MATCH_COUNT, sport: PROFILE_SPORT },
-    REFETCH_ON_FOREGROUND,
-  );
-  const onboarding = api.users.onboardingState.useQuery(
+  const details = api.users.profileDetails.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
   );
-  const teams = api.teams.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
-  const communityInvites = api.communities.pendingLookupInvites.useQuery(
-    undefined,
-    REFETCH_ON_FOREGROUND,
-  );
-  const groupInvites = api.groups.pendingLookupInvites.useQuery(
-    undefined,
-    REFETCH_ON_FOREGROUND,
-  );
-  const teamInvites = api.teams.pendingInvites.useQuery(
-    undefined,
-    REFETCH_ON_FOREGROUND,
-  );
+  const { setUp, addable } = sportChips(details.data?.sports ?? []);
+  const sport =
+    chosenSport && setUp.includes(chosenSport)
+      ? chosenSport
+      : (setUp[0] ?? null);
 
-  const setPreferredPosition = api.users.setPreferredPosition.useMutation({
-    onMutate: ({ preferredPosition }) => setOptimistic(preferredPosition),
-    onSuccess: async () => {
-      await utils.users.onboardingState.invalidate();
-      setOptimistic(undefined);
+  const groupLevels = api.ratings.myGroupLevels.useQuery(
+    { sport: sport ?? "padel" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sport !== null },
+  );
+  const groups = groupLevels.data ?? [];
+  const groupId =
+    sport === "padel" && groups.some((row) => row.groupId === chosenGroupId)
+      ? (chosenGroupId ?? undefined)
+      : undefined;
+
+  const padel = api.users.myProfile.useQuery(
+    { sport: "padel", groupId },
+    {
+      ...REFETCH_ON_FOREGROUND,
+      enabled: sport === "padel",
+      placeholderData: keepPreviousData,
     },
-    onError: (error) => {
-      setOptimistic(undefined);
-      toast.show(splitTrpcFormError(error).globalMessage ?? error.message);
+  );
+  const football = api.users.footballProfile.useQuery(
+    { userId: details.data?.id ?? "" },
+    {
+      ...REFETCH_ON_FOREGROUND,
+      enabled: sport === "football" && !!details.data,
     },
-  });
-
-  const position = slotOf({
-    data: onboarding.data ? positionFromApi(onboarding.data) : undefined,
-    error: onboarding.error,
-    isLoading: onboarding.isLoading,
-  });
-  const selectedPosition =
-    optimistic ??
-    (position.status === "ready" ? position.value.position : null);
-
-  const model: ProfileModel = {
-    name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
-    imageUri: user?.hasImage ? user.imageUrl : null,
-    position,
-    level: slotOf({
-      data: rating.data ? levelFromApi(rating.data) : undefined,
-      error: rating.error,
-      isLoading: rating.isLoading,
-    }),
-    recentForm: slotOf({
-      data: history.data
-        ? recentFormFromHistory(history.data, locale)
-        : undefined,
-      error: history.error,
-      isLoading: history.isLoading,
-    }),
-    allTime: slotOf({
-      data: stats.data ? allTimeFromApi(stats.data) : undefined,
-      error: stats.error,
-      isLoading: stats.isLoading,
-    }),
-    pendingInviteCount:
-      (communityInvites.data?.length ?? 0) +
-      (groupInvites.data?.length ?? 0) +
-      (teamInvites.data?.length ?? 0),
-    teamCount: teams.data?.length ?? 0,
-    checklistIncomplete:
-      checklistFrom(user, onboarding.data, locale)?.complete === false,
-  };
+  );
+  const teammates = api.users.myProfile.useQuery(
+    { sport: "football" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sport === "football" },
+  );
 
   const refetchAll = useCallback(
     () =>
       Promise.all([
-        rating.refetch(),
-        stats.refetch(),
-        history.refetch(),
-        onboarding.refetch(),
-        teams.refetch(),
-        communityInvites.refetch(),
-        groupInvites.refetch(),
-        teamInvites.refetch(),
+        details.refetch(),
+        sport ? groupLevels.refetch() : null,
+        sport === "padel" ? padel.refetch() : null,
+        sport === "football" ? football.refetch() : null,
+        sport === "football" ? teammates.refetch() : null,
         user?.reload(),
       ]),
-    [
-      rating,
-      stats,
-      history,
-      onboarding,
-      teams,
-      communityInvites,
-      groupInvites,
-      teamInvites,
-      user,
-    ],
+    [details, sport, groupLevels, padel, football, teammates, user],
   );
 
   const onRefresh = useCallback(async () => {
@@ -156,48 +196,126 @@ export function ProfileScreen() {
     }
   }, [refetchAll]);
 
-  const changePhoto = useCallback(async () => {
-    const picked = await pickPhoto("library");
-    if (!picked.ok) {
-      toast.show(picked.message);
-      return;
-    }
-    if (!picked.value) {
-      return;
-    }
-    const saved = await savePhoto(picked.value);
-    if (!saved.ok) {
-      toast.show(saved.message);
-    }
-  }, [pickPhoto, savePhoto, toast]);
-
-  const onOpen = useCallback(
-    (destination: ProfileDestination) =>
-      router.push(profileDestinationPath(destination) as Href),
-    [router],
-  );
+  const open = (href: string) => router.push(href);
+  const openPlayer = (userId: string) =>
+    open(playerPath(PROFILE_TAB, userId, sport ?? undefined));
+  const name =
+    user?.fullName ?? details.data?.name ?? user?.firstName ?? m.common.you;
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <ProfileView
-        model={model}
-        selectedPosition={selectedPosition}
-        savingPosition={setPreferredPosition.isPending}
-        changingPhoto={changingPhoto}
-        signingOut={signingOut}
-        onChangePhoto={() => void changePhoto()}
-        onSelectPosition={(preferredPosition) => {
-          if (preferredPosition !== selectedPosition) {
-            setPreferredPosition.mutate({ preferredPosition });
-          }
-        }}
-        onOpen={onOpen}
-        onSignOut={() => {
-          setSigningOut(true);
-          signOut().catch(() => setSigningOut(false));
-        }}
-        onRetry={() => void refetchAll()}
+    <Screen refreshing={refreshing} onRefresh={() => void onRefresh()}>
+      <ProfileHeader
+        name={name}
+        imageUri={user?.hasImage ? user.imageUrl : null}
+        line={details.data ? headerLine(details.data, locale) : null}
+        onEdit={() => open("/profile/details")}
+        onSettings={() => open("/profile/settings")}
       />
+      <Block
+        slot={slotOf(details)}
+        title={m.common.profile}
+        skeletonHeight={320}
+        onRetry={() => void details.refetch()}
+      >
+        {() =>
+          sport === null ? (
+            <SetupSportCard
+              onSetUp={(picked) => router.push(sportProfilePath(picked))}
+            />
+          ) : (
+            <View style={{ gap: SECTION_GAP }}>
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {setUp.map((value) => (
+                    <Chip
+                      key={value}
+                      label={m.common[value]}
+                      selected={value === sport}
+                      onPress={() => setChosenSport(value)}
+                    />
+                  ))}
+                  {addable.map((value) => (
+                    <Chip
+                      key={value}
+                      dashed
+                      label={`+ ${m.common[value]}`}
+                      accessibilityLabel={m.you.header.addSport(
+                        m.common[value],
+                      )}
+                      onPress={() => router.push(sportProfilePath(value))}
+                    />
+                  ))}
+                </View>
+                {sport === "padel" && groups.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8 }}
+                  >
+                    <Chip
+                      label={m.you.scope.general}
+                      meta={
+                        padel.data?.level && !padel.data.group
+                          ? displayBand(padel.data.level.levelBand)
+                          : undefined
+                      }
+                      selected={groupId === undefined}
+                      onPress={() => setChosenGroupId(null)}
+                    />
+                    {groups.map((row) => (
+                      <Chip
+                        key={row.groupId}
+                        label={row.name}
+                        meta={displayBand(row.levelBand)}
+                        accessibilityLabel={m.you.scope.chipSpoken(
+                          row.name,
+                          displayBand(row.levelBand),
+                        )}
+                        selected={groupId === row.groupId}
+                        onPress={() => setChosenGroupId(row.groupId)}
+                      />
+                    ))}
+                  </ScrollView>
+                ) : null}
+              </View>
+              {sport === "padel" ? (
+                <Block
+                  slot={slotOf(padel)}
+                  title={m.common.padel}
+                  skeletonHeight={360}
+                  onRetry={() => void padel.refetch()}
+                >
+                  {(profile) => (
+                    <PadelScope
+                      profile={profile}
+                      groups={groups}
+                      onOpenGroup={setChosenGroupId}
+                      onOpenPlayer={openPlayer}
+                      onOpenGame={(gameId) => open(gamePath(gameId))}
+                    />
+                  )}
+                </Block>
+              ) : (
+                <Block
+                  slot={slotOf(football)}
+                  title={m.common.football}
+                  skeletonHeight={360}
+                  onRetry={() => void football.refetch()}
+                >
+                  {(data) => (
+                    <FootballTab
+                      football={data}
+                      teammates={teammates.data?.partners ?? []}
+                      groups={groups}
+                      onOpenPlayer={openPlayer}
+                    />
+                  )}
+                </Block>
+              )}
+            </View>
+          )
+        }
+      </Block>
     </Screen>
   );
 }

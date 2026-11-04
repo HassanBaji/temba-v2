@@ -21,8 +21,6 @@ export const mobileYou = {
   leftName: "اسمك",
   sportAdded: (sport: string) => `أضيفت ${sport} إلى ملفك`,
   sportRemoved: (sport: string) => `أزيلت ${sport} من ملفك`,
-  footballPrefsLocked:
-    "الدور والمركز من التسجيل، ولا يمكن تغييرهما من هنا بعد.",
   pickFromList: (label: string) => `${label}، اختر من القائمة`,
   password: {
     current: "كلمة المرور الحالية",

@@ -13,6 +13,7 @@ import { loadMyGroupLevels } from "#src/routers/ratings/myGroupLevels";
 import { setGroupLevelForMember } from "#src/routers/ratings/setGroupLevel";
 import { loadMyProfile, winsToNextBand } from "#src/routers/users/myProfile";
 import { loadPlayerProfile } from "#src/routers/users/playerProfile";
+import { writeFootballPreferences } from "#src/routers/users/setFootballPreferences";
 import { writeProfileDetails } from "#src/routers/users/setProfileDetails";
 import { muFromLevel } from "@repo/domain/level";
 
@@ -230,6 +231,27 @@ describe("Your details", () => {
           now: new Date("2026-11-04T10:00:00Z"),
         }),
       ).rejects.toThrow("16 or older");
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("Football preferences", () => {
+  it("writes role and position after onboarding", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const me = await insertUser(db, "me");
+      await writeFootballPreferences(db as never, {
+        userId: me.id,
+        role: "outfield",
+        position: "mid",
+      });
+      const row = await db.query.user.findFirst({ where: eq(user.id, me.id) });
+      expect(row).toMatchObject({
+        preferredFootballRole: "outfield",
+        preferredFootballPosition: "mid",
+      });
     } finally {
       await close();
     }

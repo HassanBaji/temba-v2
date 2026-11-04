@@ -247,7 +247,8 @@ type ExpectedUsers =
   | "setProfileDetails"
   | "setPlayWindows"
   | "setMatchHistoryVisibility"
-  | "setSports";
+  | "setSports"
+  | "setFootballPreferences";
 
 type ExpectedVenues =
   | "list"

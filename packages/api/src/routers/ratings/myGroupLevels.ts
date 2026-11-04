@@ -27,6 +27,8 @@ export type GroupLevelRow = {
   name: string;
   imageUrl: string | null;
   level: string;
+  /** Group Level to two decimals, for the You page's rating face. */
+  rating: number;
   levelBand: LevelBand;
   provisional: boolean;
   ratedMatchesRemaining: number;
@@ -172,6 +174,7 @@ export async function loadMyGroupLevels(
         name: group.name ?? "",
         imageUrl: group.imageUrl ?? null,
         level: view.level,
+        rating: Math.round(levelFromMu(rating.mu) * 100) / 100,
         levelBand: view.levelBand,
         provisional: view.provisional,
         ratedMatchesRemaining: view.ratedMatchesRemaining,
