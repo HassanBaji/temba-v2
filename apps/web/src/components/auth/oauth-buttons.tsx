@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -13,6 +14,7 @@ import {
   ssoCallbackUrl,
 } from "~/lib/auth-redirect";
 import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
+import { withGoogleLocale } from "@repo/domain/google-locale";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 import { cn } from "~/lib/utils";
 
@@ -41,6 +43,7 @@ export function OauthButtons({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const clerk = useClerk();
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
   const [pending, setPending] = useState(false);
@@ -55,35 +58,47 @@ export function OauthButtons({
     }
     setError(null);
     setPending(true);
-    const redirectCallback = ssoCallbackUrl(
-      flow === "sign-in" ? "/login" : "/signup",
-      redirectUrl,
+    const redirectCallback = clerk.buildUrlWithAuth(
+      ssoCallbackUrl(flow === "sign-in" ? "/login" : "/signup", redirectUrl),
     );
     const complete = authCompleteUrl(redirectUrl);
     const signUpComplete = signUpCompleteUrl(redirectUrl);
+    // Clerk's authenticateWithRedirect gives no way to set Google's page
+    // language, so this is its create-then-redirect with `hl` added.
     try {
+      let googleUrl: URL | null;
       if (flow === "sign-in") {
         if (!signIn) {
           setPending(false);
           return;
         }
-        await signIn.authenticateWithRedirect({
+        const attempt = await signIn.create({
           strategy,
           redirectUrl: redirectCallback,
-          redirectUrlComplete: complete,
+          actionCompleteRedirectUrl: complete,
         });
-        return;
+        googleUrl =
+          attempt.firstFactorVerification.externalVerificationRedirectURL;
+      } else {
+        if (!signUp) {
+          setPending(false);
+          return;
+        }
+        const attempt = await signUp.create({
+          strategy,
+          redirectUrl: redirectCallback,
+          actionCompleteRedirectUrl: signUpComplete,
+          legalAccepted: true,
+        });
+        googleUrl =
+          attempt.verifications.externalAccount.externalVerificationRedirectURL;
       }
-      if (!signUp) {
+      if (!googleUrl) {
         setPending(false);
+        setError(m.auth.clerkError.generic);
         return;
       }
-      await signUp.authenticateWithRedirect({
-        strategy,
-        redirectUrl: redirectCallback,
-        redirectUrlComplete: signUpComplete,
-        legalAccepted: true,
-      });
+      window.location.assign(withGoogleLocale(googleUrl.toString(), locale));
     } catch (err) {
       setPending(false);
       setError(clerkGlobalErrorMessage(err, locale));

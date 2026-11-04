@@ -183,7 +183,7 @@ export function NextBooking({
           icon={Navigation}
           iconOnly
           onPress={() =>
-            void Linking.openURL(directionsUrl(item.venue, Platform.OS))
+            void Linking.openURL(directionsUrl(item.venue, Platform.OS, locale))
           }
         />
         <CardAction

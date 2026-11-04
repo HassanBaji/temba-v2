@@ -11,6 +11,7 @@ import {
   formatGameStart,
   formatWeekday,
 } from "@repo/domain/format-game-start";
+import { withGoogleLocale } from "@repo/domain/google-locale";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
@@ -79,7 +80,11 @@ type DirectionsVenue = {
 };
 
 /** Apple Maps on iOS, Google Maps elsewhere; the name and city when the Venue has no pin. */
-export function directionsUrl(venue: DirectionsVenue, os: string): string {
+export function directionsUrl(
+  venue: DirectionsVenue,
+  os: string,
+  locale: Locale,
+): string {
   const destination =
     venue.latitude && venue.longitude
       ? `${venue.latitude},${venue.longitude}`
@@ -87,7 +92,10 @@ export function directionsUrl(venue: DirectionsVenue, os: string): string {
   const encoded = encodeURIComponent(destination);
   return os === "ios"
     ? `https://maps.apple.com/?daddr=${encoded}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+    : withGoogleLocale(
+        `https://www.google.com/maps/dir/?api=1&destination=${encoded}`,
+        locale,
+      );
 }
 
 export function bookingShareMessage(
