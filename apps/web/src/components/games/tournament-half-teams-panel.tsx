@@ -313,7 +313,8 @@ function MergedPreview({
       <p className="text-muted-foreground text-meta">
         {m.tournament.halfTeams.previewLabel}
       </p>
-      <div className="mt-3.5 flex gap-2">
+      {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+      <div className="mt-3.5 flex gap-2 rtl:flex-row-reverse">
         <PreviewSeat occupant={left.team} position={left.position} />
         <PreviewSeat occupant={right.team} position={right.position} />
       </div>

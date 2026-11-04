@@ -3,7 +3,11 @@
 import { ArrowLeftRight } from "lucide-react";
 import { useState } from "react";
 
-import { useLocale, useMessages } from "~/components/locale-provider";
+import {
+  useLocale,
+  useMessages,
+  useTextDirection,
+} from "~/components/locale-provider";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -28,6 +32,7 @@ function storedPosition(
 export function PreferredPositionControl() {
   const m = useMessages();
   const locale = useLocale();
+  const { direction } = useTextDirection();
   const utils = api.useUtils();
   const state = api.users.onboardingState.useQuery();
   const [optimistic, setOptimistic] = useState<PreferredPosition | null>();
@@ -79,7 +84,9 @@ export function PreferredPositionControl() {
       {state.isLoading ? (
         <Skeleton className="mt-4 h-[54px] w-full rounded-lg" />
       ) : (
+        // Left and Right are court sides, so Left stays on the left in Arabic.
         <RovingRadioGroup
+          dir="ltr"
           aria-labelledby={TITLE_ID}
           aria-describedby={NOTE_ID}
           aria-disabled={disabled || undefined}
@@ -105,7 +112,7 @@ export function PreferredPositionControl() {
                   save(option.value);
                 }}
               >
-                {option.label}
+                <span dir={direction}>{option.label}</span>
               </button>
             );
           })}

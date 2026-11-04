@@ -240,7 +240,8 @@ function SideColumn({
       <h3 className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
         {sideLabel}
       </h3>
-      <div className="mt-2 flex gap-2">
+      {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+      <div className="mt-2 flex gap-2 rtl:flex-row-reverse">
         {(["left", "right"] as const).map((position) => (
           <PositionButton
             key={position}

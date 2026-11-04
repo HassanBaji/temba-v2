@@ -198,7 +198,8 @@ function SideHalf({
       )}
     >
       {labelBelow ? null : label}
-      <div className="flex">
+      {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+      <div className="flex rtl:flex-row-reverse">
         {(["left", "right"] as const).map((position, index) => {
           const seat = side[position];
           const cell = seat ? (

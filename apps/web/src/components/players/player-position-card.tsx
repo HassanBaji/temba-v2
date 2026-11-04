@@ -19,8 +19,10 @@ function NearSide({ fill }: { fill: CourtSideFill }) {
 
 function Court({ court }: { court: PlayedSideView["court"] }) {
   return (
+    // A court diagram, not reading order: the right half stays on the right in Arabic.
     <span
       aria-hidden="true"
+      dir="ltr"
       className="border-rule rounded-xs flex w-14 shrink-0 flex-col overflow-hidden border"
     >
       <span className="border-ink h-10 border-b" />

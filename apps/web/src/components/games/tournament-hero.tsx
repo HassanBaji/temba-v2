@@ -131,7 +131,8 @@ export function TournamentHero({
       {showYourTeam ? (
         <>
           <p className="text-dim text-meta">{m.tournament.home.yourTeam}</p>
-          <div className="mt-3 flex gap-2">
+          {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+          <div className="mt-3 flex gap-2 rtl:flex-row-reverse">
             <TournamentHeroSeatBlock
               occupant={left}
               position="left"
