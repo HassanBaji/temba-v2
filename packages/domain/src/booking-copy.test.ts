@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   bookedCourtLine,
@@ -59,6 +59,24 @@ describe("booking copy", () => {
       "استرداد كامل حتى الأربعاء 19:00، ثم استرداد 50%",
     );
     expect(describeNextRefundStep(null, "en")).toBeNull();
+  });
+
+  it("keeps the refund deadline in Latin digits when Intl does not", () => {
+    const step = {
+      currentPercent: 100,
+      nextPercent: 50,
+      deadline: new Date("2026-11-04T16:00:00.000Z"),
+    };
+    const spy = vi
+      .spyOn(Intl.DateTimeFormat.prototype, "format", "get")
+      .mockReturnValue(() => "الأربعاء ١٩:٠٠");
+    try {
+      expect(describeNextRefundStep(step, "ar")).toBe(
+        "استرداد كامل حتى الأربعاء 19:00، ثم استرداد 50%",
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("writes the Booked line in the product timezone", () => {

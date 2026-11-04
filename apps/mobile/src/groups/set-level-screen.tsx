@@ -77,6 +77,7 @@ function SetLevelForm({
   const readout = levelSliderReadout({
     tenths,
     currentTenths: view.currentTenths,
+    locale,
   });
   const error = setLevel.error
     ? splitTrpcFormError(setLevel.error).globalMessage

@@ -111,7 +111,7 @@ function KnockoutPlaceCard({
     <div className="border-rule rounded-card border px-4 pt-3">
       <div className="flex items-baseline justify-between gap-2.5">
         <span className="text-eyebrow font-semibold uppercase tracking-[0.06em]">
-          {place.code}
+          {place.label}
         </span>
         {meta ? (
           <span className="text-muted-foreground text-meta">{meta}</span>

@@ -215,7 +215,11 @@ function TeamsBody({ game }: { game: HubGameRow }) {
   const viewerSide = football.sides?.find(
     (side) => side.sideIndex === football.viewer.sideIndex,
   );
-  const code = footballSlotCode(football.viewer.role, football.viewer.position);
+  const code = footballSlotCode(
+    football.viewer.role,
+    football.viewer.position,
+    locale,
+  );
   return (
     <div className="space-y-4">
       <Kickoff game={game} />

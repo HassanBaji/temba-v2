@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import type { BoardPlayer } from "./football-board";
@@ -184,11 +185,25 @@ describe("playedPadelModel", () => {
     assert.equal(arabic.dateLine.startsWith("لُعبت، "), true);
     assert.equal(arabic.tag, "بادل");
     assert.deepEqual(arabic.setLabels, ["ش1", "ش2", "ش3"]);
-    assert.equal(arabic.board[0].line, "أنت وMaryam K");
+    assert.equal(
+      arabic.board[0].line,
+      `${isolate("أنت")} و${isolate("Maryam K")}`,
+    );
     assert.equal(arabic.board[0].word, "Won");
     assert.equal(playedWordLabel(arabic.board[0].word, "ar"), "فوز");
-    assert.equal(arabic.result.line, "أنت وMaryam يفوزون 2–1 في الأشواط");
-    assert.equal(arabic.you?.ratingLine, "تُحتسب في التصنيف، C+ يرتفع");
+    assert.equal(
+      arabic.result.line,
+      `${isolate("أنت")} و${isolate("Maryam")} يفوزون 2–1 في الأشواط`,
+    );
+    assert.equal(
+      arabic.you?.ratingLine,
+      `تُحتسب في التصنيف، ${isolate("C+")} يرتفع`,
+    );
+    assert.equal(
+      arabic.venueLine,
+      `${isolate("Padel Hub")}، ${isolate("Court 3")}`,
+    );
+    assert.equal(arabic.whenLine?.endsWith(`، ${isolate("Janabiyah")}`), true);
     assert.equal(arabic.you?.tag, "WON");
     assert.equal(playedTagLabel("WON", "ar"), "فوز");
     assert.equal(arabic.columns[0].players[0]?.meta, "يسار");

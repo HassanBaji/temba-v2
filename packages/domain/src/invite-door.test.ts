@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -41,6 +42,16 @@ describe("lookupResultView", () => {
       meta: null,
       accessibilityLabel: "Kim",
     });
+  });
+
+  it("isolates the handle and the phone in Arabic", () => {
+    expect(
+      lookupResultView(
+        { id: "u", name: "Ada", username: "ada", phoneNumber: "+97333112233" },
+        false,
+        "ar",
+      ).meta,
+    ).toBe(`${isolate("@ada")}، ${isolate("+97333112233")}`);
   });
 });
 

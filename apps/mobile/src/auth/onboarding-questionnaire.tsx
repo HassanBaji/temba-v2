@@ -1,7 +1,7 @@
 import { colors, radii } from "@repo/design-tokens";
 import {
   footballPositionChoices,
-  KEEPER_CODE,
+  footballKeeperCode,
   type FootballPosition,
 } from "@repo/domain/football-lineup";
 import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
@@ -304,7 +304,7 @@ export function SportsQuestionnaire({
                 }}
               >
                 <Text size="eyebrow" mono>
-                  {KEEPER_CODE}
+                  {footballKeeperCode(locale)}
                 </Text>
               </View>
             </SurfaceToneContext.Provider>

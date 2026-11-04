@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
   HISTORY_PAGE_SIZE,
+  historyTeamLabel,
   matchHistoryCardModel,
   nextHistoryCursor,
   setTally,
@@ -226,5 +228,19 @@ describe("matchHistoryCardModel", () => {
     assert.ok(model.place.endsWith(" · غير مصنّفة"));
     assert.equal(model.teams[0]!.note, "فريقك، فاز");
     assert.equal(model.teams[1]!.note, "خسر");
+  });
+});
+
+describe("historyTeamLabel in Arabic", () => {
+  it("keeps the +N overflow whole", () => {
+    const label = historyTeamLabel(
+      [
+        member("a", "Sofia Lindqvist"),
+        member("b", "Jonas Berg"),
+        member("c", "Omar Aziz"),
+      ],
+      "ar",
+    );
+    assert.ok(label.endsWith(` ${isolate("+1")}`), label);
   });
 });

@@ -157,7 +157,7 @@ export function SetLevelFields({
   const [tenths, setTenths] = React.useState(currentTenths);
   const [reason, setReason] = React.useState<LevelOverrideReason | null>(null);
 
-  const readout = levelSliderReadout({ tenths, currentTenths });
+  const readout = levelSliderReadout({ tenths, currentTenths, locale });
   const alreadyConfirmed = member.level !== null && !member.levelProvisional;
   const unchanged = alreadyConfirmed && tenths === currentTenths;
   const wasLabel = member.level

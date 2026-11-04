@@ -1,5 +1,4 @@
 import { radii } from "@repo/design-tokens";
-import { KEEPER_CODE } from "@repo/domain/football-lineup";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -25,8 +24,8 @@ type Cell =
   | { kind: "player"; player: BoardPlayer }
   | { kind: "open"; key: string };
 
-function CodeTag({ code }: { code: string | null }) {
-  if (code === KEEPER_CODE) {
+function CodeTag({ code, keeper }: { code: string | null; keeper: boolean }) {
+  if (keeper) {
     return (
       <SurfaceToneContext.Provider value="ink">
         <View
@@ -59,10 +58,11 @@ function PlayerTile({
   onPress?: (userId: string) => void;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   const tone = player.isViewer ? "ink" : "paper";
   const palette = tonePalette(tone);
   const name = player.isViewer ? messages.common.you : shortName(player.name);
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -91,7 +91,7 @@ function PlayerTile({
           }}
         >
           <Avatar name={player.name} uri={player.image} size="sm" />
-          <CodeTag code={code} />
+          <CodeTag code={code} keeper={player.role === "keeper"} />
         </View>
         <View
           style={{

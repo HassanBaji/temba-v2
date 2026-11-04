@@ -10,6 +10,12 @@ export const football = {
     upcoming: "Upcoming",
     upcomingOn: (weekday: string) => `Upcoming, ${weekday}`,
   },
+  positionCode: {
+    gk: "GK",
+    def: "DEF",
+    mid: "MID",
+    fwd: "FWD",
+  },
   lineup: {
     positions: {
       def: "Defender",

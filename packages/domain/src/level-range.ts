@@ -202,7 +202,8 @@ export function formatLevelRangeLabel(
   levelMaxTenths: number | null | undefined,
   locale: Locale,
 ): string | null {
-  const m = messagesFor(locale).level;
+  const messages = messagesFor(locale);
+  const m = messages.level;
   const minLabel =
     levelMinTenths == null
       ? null
@@ -213,9 +214,9 @@ export function formatLevelRangeLabel(
       : displayLabelFromStoredBand(tenthsToLevelBand(levelMaxTenths));
   if (minLabel && maxLabel) {
     if (minLabel === maxLabel) {
-      return `${minLabel}`;
+      return messages.common.isolate(minLabel);
     }
-    return `${minLabel}/${maxLabel}`;
+    return messages.common.isolate(`${minLabel}/${maxLabel}`);
   }
   if (minLabel) {
     return m.andUp(minLabel);

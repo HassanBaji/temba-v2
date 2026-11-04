@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import { bahrainDate } from "./bahrain-date.test-support";
@@ -12,7 +13,7 @@ import {
 } from "./level-slider";
 
 const readout = (tenths: number, currentTenths = 24) =>
-  levelSliderReadout({ tenths, currentTenths });
+  levelSliderReadout({ tenths, currentTenths, locale: "en" });
 
 describe("LEVEL_SLIDER_TICKS", () => {
   it("has the display-letter edges in tenths", () => {
@@ -84,6 +85,13 @@ describe("levelSliderReadout", () => {
   it("signs the delta", () => {
     expect(readout(18).deltaLabel).toBe("−0.6");
     expect(readout(24).deltaLabel).toBe("0.0");
+  });
+
+  it("isolates the signed delta in Arabic", () => {
+    expect(
+      levelSliderReadout({ tenths: 36, currentTenths: 24, locale: "ar" })
+        .deltaLabel,
+    ).toBe(isolate("+1.2"));
   });
 
   it("measures D+ against the 14 to 21 span", () => {

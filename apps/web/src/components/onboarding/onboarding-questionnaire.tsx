@@ -2,7 +2,7 @@
 
 import {
   footballPositionChoices,
-  KEEPER_CODE,
+  footballKeeperCode,
   type FootballPosition,
 } from "@repo/domain/football-lineup";
 import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
@@ -290,7 +290,7 @@ export function OnboardingQuestionnaire({
           {keeper ? (
             <div className="border-rule flex items-center gap-3 rounded-[14px] border px-4 py-3.5">
               <span className="bg-ink text-paper text-eyebrow rounded-[5px] px-1.5 py-0.5 font-mono">
-                {KEEPER_CODE}
+                {footballKeeperCode(locale)}
               </span>
               <p className="text-meta text-muted-foreground">
                 {copy.football.keeperSeatsNote}

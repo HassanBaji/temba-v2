@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import type { mobileHome as source } from "../en/mobile-home";
 import { plural } from "../../plural";
 
@@ -63,7 +64,7 @@ export const mobileHome = {
   },
   code: {
     enterTheCode: "أدخل الرمز",
-    sentTo: (destination: string) => `أُرسل إلى ${destination}.`,
+    sentTo: (destination: string) => `أُرسل إلى ${isolate(destination)}.`,
     codeLabel: "رمز من ستة أرقام",
     verify: "تحقق",
     unlocksAtSixDigits: "يُفعَّل الزر عند ستة أرقام",
@@ -88,12 +89,12 @@ export const mobileHome = {
     noPassword:
       "هذا الحساب بلا كلمة مرور. سجّل الدخول عبر Google بدلًا من ذلك.",
     enterYourPassword: "أدخل كلمة المرور",
-    forPhone: (phone: string) => `للرقم ${phone}.`,
+    forPhone: (phone: string) => `للرقم ${isolate(phone)}.`,
     forgotPassword: "نسيت كلمة المرور؟",
     toResetPassword: "لإعادة تعيين كلمة المرور.",
     pickNewPassword: "اختر كلمة مرور جديدة",
     forPhoneOtherDevices: (phone: string) =>
-      `للرقم ${phone}. سيُسجَّل الخروج من الأجهزة الأخرى.`,
+      `للرقم ${isolate(phone)}. سيُسجَّل الخروج من الأجهزة الأخرى.`,
     saveAndSignIn: "حفظ وتسجيل الدخول",
     yourName: "اسمك",
     nameFooter:

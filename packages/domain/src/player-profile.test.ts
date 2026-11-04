@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   groupMemberRowsLink,
@@ -130,6 +130,26 @@ describe("streaksView", () => {
         "en",
       ).best.reachedIn,
     ).toBe("March 2026");
+  });
+
+  it("writes the best streak's month in Latin digits in Arabic", () => {
+    const spy = vi
+      .spyOn(Date.prototype, "toLocaleDateString")
+      .mockReturnValue("مارس ٢٠٢٦");
+    try {
+      expect(
+        streaksView(
+          {
+            current: 0,
+            best: 3,
+            bestReachedAt: new Date("2026-03-10T12:00:00.000Z"),
+          },
+          "ar",
+        ).best.reachedIn,
+      ).toBe("مارس 2026");
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("has no current streak after a loss or a draw", () => {

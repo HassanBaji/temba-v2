@@ -126,12 +126,12 @@ describe("playedRowView", () => {
     expect(won).toMatchObject({
       mark: "won",
       title: "You, Ada L",
-      trailing: { kind: "score", text: "6-4 4-6 7-5" },
+      trailing: { kind: "score", text: "6–4 4–6 7–5" },
     });
     expect(lost).toMatchObject({
       mark: "lost",
       title: "You, Ada L",
-      trailing: { kind: "score", text: "2-6 3-6" },
+      trailing: { kind: "score", text: "2–6 3–6" },
     });
   });
 

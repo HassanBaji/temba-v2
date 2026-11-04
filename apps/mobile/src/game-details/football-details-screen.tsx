@@ -345,7 +345,7 @@ export function FootballGameDetails({
   };
   const teamsPath = `/games/${gameId}/teams` as Href;
   const scorePath = `/games/${gameId}/score` as Href;
-  const viewerCode = viewer ? slotCode(viewer) : null;
+  const viewerCode = viewer ? slotCode(viewer, locale) : null;
   const subtitle = [
     lines.dayLine,
     game.sideSize ? m.createGame.sideSize(game.sideSize) : null,

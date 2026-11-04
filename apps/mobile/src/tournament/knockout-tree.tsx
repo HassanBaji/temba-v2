@@ -135,7 +135,7 @@ function PlaceCard({
         }}
       >
         <Text size="eyebrow" weight="semibold" uppercase>
-          {place.code}
+          {place.label}
         </Text>
         {meta ? (
           <Text size="meta" tone="muted">
@@ -171,7 +171,7 @@ function PlaceCard({
               <Button
                 label={cancelMatchAction(locale)}
                 accessibilityLabel={messages.mobileTournament.organizer.cancelMatchSr(
-                  place.code,
+                  place.label,
                 )}
                 size="sm"
                 variant="outline"

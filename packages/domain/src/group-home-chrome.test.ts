@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
@@ -163,8 +164,8 @@ describe("groupHomeShowsMemberSearch", () => {
 
 describe("groupStandingRecordLabel", () => {
   it("draws the W-L pair, zero included", () => {
-    assert.equal(groupStandingRecordLabel(18, 6), "18-6");
-    assert.equal(groupStandingRecordLabel(0, 0), "0-0");
+    assert.equal(groupStandingRecordLabel(18, 6), "18–6");
+    assert.equal(groupStandingRecordLabel(0, 0), "0–0");
   });
 });
 
@@ -212,6 +213,20 @@ describe("groupPlayedOpponentLine", () => {
     );
   });
 
+  it("isolates each name and keeps the Arabic comma in Arabic", () => {
+    assert.equal(
+      groupPlayedOpponentLine(
+        [
+          { name: "Maya Chen", isViewer: false },
+          { name: "Tom Berg", isViewer: false },
+        ],
+        new Date("2026-11-03T18:00:00.000Z"),
+        "ar",
+      ),
+      `${isolate("Maya C")}، ${isolate("Tom B")}، 3 نوفمبر`,
+    );
+  });
+
   it("drops the date when it cannot be read", () => {
     assert.equal(
       groupPlayedOpponentLine(
@@ -230,14 +245,14 @@ describe("groupPlayedScoreLine", () => {
       { slot1GamesWon: 6, slot2GamesWon: 4 },
       { slot1GamesWon: 4, slot2GamesWon: 6 },
     ];
-    assert.equal(groupPlayedScoreLine(sets, 1), "6-4 4-6");
-    assert.equal(groupPlayedScoreLine(sets, 2), "4-6 6-4");
+    assert.equal(groupPlayedScoreLine(sets, 1), "6–4 4–6");
+    assert.equal(groupPlayedScoreLine(sets, 2), "4–6 6–4");
   });
 
   it("reads from slot 1 when the viewer did not play", () => {
     assert.equal(
       groupPlayedScoreLine([{ slot1GamesWon: 6, slot2GamesWon: 2 }], null),
-      "6-2",
+      "6–2",
     );
   });
 

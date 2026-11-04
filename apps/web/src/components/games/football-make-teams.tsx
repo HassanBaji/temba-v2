@@ -237,10 +237,11 @@ function ManualRow({
   onPlace: (side: Side) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const side = draft.sides[player.userId];
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   return (
     <li
       className={cn(

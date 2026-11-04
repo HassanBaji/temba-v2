@@ -123,6 +123,11 @@ export function levelChangeLabel(levelChange: number) {
   return tenths > 0 ? `+${magnitude}` : `−${magnitude}`;
 }
 
+/** The signed change as shown, kept whole when it sits in Arabic text. */
+function signedLevelChange(levelChange: number, locale: Locale) {
+  return messagesFor(locale).common.isolate(levelChangeLabel(levelChange));
+}
+
 /** "Last 10: +0.2" on the Level card, absent when no Match was rated. */
 export function levelTrendLabel(
   trend: { levelChange: number } | null,
@@ -130,7 +135,7 @@ export function levelTrendLabel(
 ) {
   return trend
     ? messagesFor(locale).profile.matches.lastTenTrend(
-        levelChangeLabel(trend.levelChange),
+        signedLevelChange(trend.levelChange, locale),
       )
     : null;
 }
@@ -213,7 +218,9 @@ export function playerMatchRowView(
       kind,
     ),
     sets,
-    delta: match.rating ? levelChangeLabel(match.rating.levelChange) : null,
+    delta: match.rating
+      ? signedLevelChange(match.rating.levelChange, locale)
+      : null,
     unrated: !match.rated,
     accessibilityLabel: m.spokenParts(
       spoken.filter((part): part is string => !!part),
@@ -368,7 +375,7 @@ function sheetRating(
     label,
     before,
     after,
-    delta: levelChangeLabel(rating.levelChange),
+    delta: signedLevelChange(rating.levelChange, locale),
     accessibilityLabel: m.ratingSpoken(
       label,
       before,

@@ -35,8 +35,12 @@ export function venueLockedLine(
   courtName: string | null,
   locale: Locale,
 ) {
-  const m = messagesFor(locale).createGame.edit;
-  const place = [venueName, courtName].filter(Boolean).join(", ");
+  const { common, createGame } = messagesFor(locale);
+  const m = createGame.edit;
+  const place = [venueName, courtName]
+    .filter((part): part is string => Boolean(part))
+    .map(common.isolate)
+    .join(common.listSeparator);
   return place ? m.venueLocked(place) : m.venueLockedNoPlace;
 }
 

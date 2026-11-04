@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -294,7 +295,10 @@ describe("Arabic copy", () => {
       "6 ضد 6، 12 في الملعب، احتياط واحد",
     );
     expect(venueLockedLine("Karbabad Turf", null, "ar")).toBe(
-      "Karbabad Turf. لا يمكن تغيير النادي.",
+      `${isolate("Karbabad Turf")}. لا يمكن تغيير النادي.`,
+    );
+    expect(venueLockedLine("Karbabad Turf", "Pitch 2", "ar")).toBe(
+      `${isolate("Karbabad Turf")}، ${isolate("Pitch 2")}. لا يمكن تغيير النادي.`,
     );
   });
 });

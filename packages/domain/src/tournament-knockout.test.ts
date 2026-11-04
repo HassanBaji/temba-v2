@@ -8,6 +8,7 @@ import {
   knockoutFedBy,
   knockoutFeeds,
   knockoutMatchCode,
+  knockoutMatchLabel,
   knockoutMatchRoundName,
   knockoutOnlyReviewValue,
   knockoutQualifierLabel,
@@ -166,6 +167,26 @@ describe("Knockout round names and Match codes", () => {
     assert.equal(knockoutMatchCode(2, 1, 3), "S1");
     assert.equal(knockoutMatchCode(3, 1, 3), "Final");
     assert.equal(knockoutMatchCode(1, 5, 4), "R16-5");
+  });
+
+  it("labels English places with the code in both forms", () => {
+    for (const form of ["full", "short"] as const) {
+      assert.equal(knockoutMatchLabel(1, 3, 3, "en", form), "Q3");
+      assert.equal(knockoutMatchLabel(2, 1, 3, "en", form), "S1");
+      assert.equal(knockoutMatchLabel(3, 1, 3, "en", form), "Final");
+      assert.equal(knockoutMatchLabel(1, 5, 4, "en", form), "R16-5");
+    }
+  });
+
+  it("spells Arabic places out in full and abbreviates them on chips", () => {
+    assert.equal(knockoutMatchLabel(3, 1, 3, "ar", "full"), "النهائي");
+    assert.equal(knockoutMatchLabel(2, 1, 3, "ar", "full"), "نصف النهائي 1");
+    assert.equal(knockoutMatchLabel(1, 1, 3, "ar", "full"), "ربع النهائي 1");
+    assert.equal(knockoutMatchLabel(1, 1, 4, "ar", "full"), "دور الـ16 – 1");
+    assert.equal(knockoutMatchLabel(3, 1, 3, "ar", "short"), "النهائي");
+    assert.equal(knockoutMatchLabel(2, 1, 3, "ar", "short"), "نصف 1");
+    assert.equal(knockoutMatchLabel(1, 1, 3, "ar", "short"), "ربع 1");
+    assert.equal(knockoutMatchLabel(1, 1, 4, "ar", "short"), "د16 – 1");
   });
 });
 

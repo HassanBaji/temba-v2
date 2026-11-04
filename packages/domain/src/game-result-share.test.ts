@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import type { BoardPlayer } from "./football-board";
@@ -143,14 +144,17 @@ describe("padelResultCard", () => {
     );
     assert.equal(arabic.typeLine, "ودية · بادل");
     assert.equal(arabic.typeNote, "مباراة مصنّفة");
-    assert.equal(arabic.winnerLine, "أنت وMaryam");
+    assert.equal(arabic.winnerLine, `${isolate("أنت")} و${isolate("Maryam")}`);
     assert.equal(arabic.setRows[0]?.label, "الشوط 1");
-    assert.equal(padelStickerLine(arabic, "ar"), "أنت وMARYAM يفوزون 2–1");
+    assert.equal(
+      padelStickerLine(arabic, "ar"),
+      `${isolate("أنت")} و${isolate("MARYAM")} يفوزون 2–1`,
+    );
     assert.equal(
       formatPadelResultShareMessage(arabic, "https://temba.app/g", "ar").split(
         "\n",
       )[1],
-      "🏆 أنت وMaryam تغلّبوا على Hassan وKhalid 2–1",
+      `🏆 ${isolate("أنت")} و${isolate("Maryam")} تغلّبوا على ${isolate("Hassan")} و${isolate("Khalid")} 2–1`,
     );
   });
 });

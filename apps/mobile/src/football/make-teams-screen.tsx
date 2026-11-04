@@ -294,13 +294,14 @@ function ManualRow({
   onPlace: (side: Side) => void;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   const m = messages.mobileTournament.makeTeams;
   const side = draft.sides[player.userId];
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
   const fill = bib ? bibColors[bib].fill : colors.paper;
   const on = bib ? bibColors[bib].on : colors.ink;
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   return (
     <View
       style={{

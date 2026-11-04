@@ -73,6 +73,7 @@ export function levelSliderLabel(tenths: number): string {
 export function levelSliderReadout(args: {
   tenths: number;
   currentTenths: number;
+  locale: Locale;
 }) {
   const tenths = clampLevelTenths(args.tenths);
   const delta = tenths - clampLevelTenths(args.currentTenths);
@@ -90,7 +91,7 @@ export function levelSliderReadout(args: {
   return {
     displayBand: rung.label,
     levelLabel: formatTenths(tenths),
-    deltaLabel,
+    deltaLabel: messagesFor(args.locale).common.isolate(deltaLabel),
     rung: {
       label: rung.label,
       lowerTenths: rung.lowerTenths,

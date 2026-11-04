@@ -163,9 +163,9 @@ export function groupMemberOrganizerToast(
   return action === "appoint" ? m.appointed(name) : m.dismissed(name);
 }
 
-/** The Standing W-L column: `{wins}-{losses}`, drawn even at `0-0`. */
+/** The Standing W-L column: `{wins}–{losses}`, drawn even at `0–0`. */
 export function groupStandingRecordLabel(wins: number, losses: number) {
-  return `${wins}-${losses}`;
+  return `${wins}–${losses}`;
 }
 
 /**
@@ -186,7 +186,9 @@ export function groupPlayedTeamLabel(
     return left.isViewer ? -1 : 1;
   });
   const names = ordered.map((member) =>
-    member.isViewer ? m.common.you : shortPlayerName(member.name),
+    member.isViewer
+      ? m.common.you
+      : m.common.isolate(shortPlayerName(member.name)),
   );
   return names.length > 0
     ? names.join(m.group.metaSeparator)
@@ -217,7 +219,7 @@ export function groupPlayedOpponentLine(
 
 /**
  * The Played row scoreline, read from the slot the viewer sat on so their own
- * games come first: `"6-4 4-6 7-5"`. A Game they did not play in reads from
+ * games come first: `"6–4 4–6 7–5"`. A Game they did not play in reads from
  * slot 1. `null` when the Match carries no scored Set — the row draws the
  * **Enter** affordance instead.
  */
@@ -231,8 +233,8 @@ export function groupPlayedScoreLine(
   return scoredSets
     .map((set) =>
       viewerSlot === 2
-        ? `${set.slot2GamesWon}-${set.slot1GamesWon}`
-        : `${set.slot1GamesWon}-${set.slot2GamesWon}`,
+        ? `${set.slot2GamesWon}–${set.slot1GamesWon}`
+        : `${set.slot1GamesWon}–${set.slot2GamesWon}`,
     )
     .join(" ");
 }

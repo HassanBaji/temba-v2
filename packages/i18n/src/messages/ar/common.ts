@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import type { common as source } from "../en/common";
 
 export const common = {
@@ -82,5 +83,6 @@ export const common = {
   goHome: "الانتقال إلى الرئيسية",
   restartToApplyLayout: "أعد تشغيل Temba لتطبيق اتجاه الواجهة الجديد.",
   listSeparator: "، ",
+  isolate: (text: string) => isolate(text),
   count: (n: number) => String(n),
 } satisfies typeof source;

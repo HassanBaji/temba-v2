@@ -1,11 +1,14 @@
 import { zonedParts } from "@repo/domain/product-timezone";
 import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { messagesFor } from "@repo/i18n/messages";
 import { describe, it } from "vitest";
 
 import { sizeFriendlyTournament } from "@repo/domain/tournament-sizing";
 import {
+  friendlyTournamentCourtsLabel,
+  friendlyTournamentPreviewDetail,
   createFlowPriceChips,
   createGameTypeCards,
   applyLevelBoundChange,
@@ -457,6 +460,28 @@ describe("when helpers", () => {
     });
     assert.equal(lines.length, 2);
     assert.equal(lines[1], "Karbabad Courts, Court 2");
+  });
+});
+
+describe("friendly tournament Courts", () => {
+  it("joins Court names with the list separator", () => {
+    assert.equal(
+      friendlyTournamentCourtsLabel(["Court 1", "Court 2"], "en"),
+      "Court 1, Court 2",
+    );
+    assert.equal(
+      friendlyTournamentCourtsLabel(["Court 1", "Court 2"], "ar"),
+      `${isolate("Court 1")}، ${isolate("Court 2")}`,
+    );
+    assert.equal(
+      friendlyTournamentPreviewDetail({
+        day: "",
+        venueName: "Padel Hub",
+        courtNames: ["Court 1", "Court 2"],
+        locale: "en",
+      }),
+      "Padel Hub · Court 1, Court 2",
+    );
   });
 });
 

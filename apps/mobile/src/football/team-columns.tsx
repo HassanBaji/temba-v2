@@ -2,7 +2,7 @@ import { bibColors, radii } from "@repo/design-tokens";
 import { type FootballBib } from "@repo/domain/football-lineup";
 import { Pressable, View } from "react-native";
 
-import { useMessages } from "../i18n/locale-provider";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
@@ -33,11 +33,12 @@ export function BibRow({
   onPress?: () => void;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   const palette = useTonePalette();
   const { fill, on } = bibColors[bib];
   const edge = fill === palette.background ? palette.muted : fill;
   const name = player.isViewer ? messages.common.you : shortName(player.name);
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}

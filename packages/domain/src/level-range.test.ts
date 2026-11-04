@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { messagesFor } from "@repo/i18n/messages";
 import { describe, expect, it } from "vitest";
 
@@ -297,9 +298,13 @@ describe("formatLevelRangeGateCopy", () => {
 describe("Arabic Level copy", () => {
   it("writes the range and the gate in Arabic", () => {
     expect(formatLevelRangeProseLabel(21, null, "ar")).toBe(
-      "المستوى C- فما فوق",
+      `المستوى ${isolate("C-")} فما فوق`,
     );
-    expect(formatLevelRangeLabel(null, 41, "ar")).toBe("C+ فما دون");
+    expect(formatLevelRangeLabel(null, 41, "ar")).toBe(
+      `${isolate("C+")} فما دون`,
+    );
+    expect(formatLevelRangeLabel(28, 42, "ar")).toBe(isolate("C/B-"));
+    expect(formatLevelRangeLabel(28, 30, "ar")).toBe(isolate("C"));
     expect(
       formatLevelRangeGateCopy({
         levelMinTenths: 30,

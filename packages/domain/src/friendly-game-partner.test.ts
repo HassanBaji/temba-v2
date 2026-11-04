@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import { displayLabelFromStoredBand } from "./level-bands";
@@ -397,6 +398,18 @@ describe("partner suggestion copy", () => {
     assert.equal(partnerSuggestionButtonLabel(row, "en"), "Select Sam Chen");
   });
 
+  it("isolates the band and the name, and joins with the Arabic comma", () => {
+    const meta = partnerSuggestionMetaLine(row, "ar");
+    assert.ok(
+      meta.startsWith(`${isolate(displayLabelFromStoredBand("C1"))}، `),
+      meta,
+    );
+    assert.equal(
+      partnerSuggestionButtonLabel(row, "ar"),
+      `اختر ${isolate("Sam Chen")}`,
+    );
+  });
+
   it("falls back to either side and omits the history for a first pairing", () => {
     assert.equal(
       partnerSuggestionMetaLine(
@@ -559,6 +572,9 @@ describe("join sheet copy", () => {
   it("labels the Continue button with the chosen partner", () => {
     assert.equal(partnerContinueLabel(null, "en"), "Continue");
     assert.equal(partnerContinueLabel("Sam", "en"), "Continue with Sam");
-    assert.equal(partnerContinueLabel("Sam", "ar"), "تابع مع Sam");
+    assert.equal(
+      partnerContinueLabel("Sam", "ar"),
+      `تابع مع ${isolate("Sam")}`,
+    );
   });
 });
