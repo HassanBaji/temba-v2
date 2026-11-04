@@ -45,8 +45,9 @@ export function BibRow({
     <>
       <UserAvatar name={player.name} image={player.image} size="sm" />
       <span
+        dir="auto"
         className={cn(
-          "text-meta min-w-0 flex-1 truncate",
+          "text-meta min-w-0 flex-1 truncate [text-align:match-parent]",
           player.isViewer && "font-semibold",
         )}
       >

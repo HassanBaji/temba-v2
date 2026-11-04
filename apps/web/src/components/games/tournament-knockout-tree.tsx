@@ -6,6 +6,8 @@ import {
   GameTeamPlayersSheet,
   type GameTeamPlayersSheetTeam,
 } from "~/components/games/game-team-players-sheet";
+import { PairLabel } from "~/components/temba/pair-label";
+import { ScoreText } from "~/components/temba/score-text";
 import { Button } from "~/components/ui/button";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import {
@@ -48,7 +50,7 @@ function KnockoutSideRow({
       ? gameTeamPlayers(gameTeams, side.team.gameTeamId)
       : [];
   const nameClass = cn(
-    "text-body min-w-0 flex-1 truncate",
+    "text-body min-w-0 flex-1",
     isTeam ? "text-foreground" : "text-muted-foreground",
     isViewer && "font-semibold",
   );
@@ -64,10 +66,10 @@ function KnockoutSideRow({
             "focus-visible:ring-ring/50 -my-2 min-h-11 rounded-sm text-start underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]",
           )}
         >
-          {label}
+          <PairLabel label={label} />
         </button>
       ) : (
-        <span className={nameClass}>{label}</span>
+        <PairLabel label={label} className={nameClass} />
       )}
       {isViewer ? (
         <span className="text-muted-foreground text-meta shrink-0">
@@ -133,8 +135,8 @@ function KnockoutPlaceCard({
               onOpenTeam={onOpenTeam}
             />
             {place.scoreLabel ? (
-              <p className="text-muted-foreground text-meta py-2 tabular-nums">
-                {place.scoreLabel}
+              <p className="text-muted-foreground text-meta py-2">
+                <ScoreText>{place.scoreLabel}</ScoreText>
               </p>
             ) : null}
             {place.needsDecidingSet ? (

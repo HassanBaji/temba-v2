@@ -3,6 +3,7 @@
 import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { ScoreText } from "~/components/temba/score-text";
 import { Skeleton } from "~/components/ui/skeleton";
 import { profileAllTimeView } from "@repo/domain/profile-all-time";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
@@ -67,8 +68,8 @@ export function ProfileAllTimeCard({
             </p>
           </div>
           <div className="min-w-0 text-end">
-            <p className="text-body font-semibold tabular-nums">
-              {view.record}
+            <p className="text-body font-semibold">
+              <ScoreText>{view.record}</ScoreText>
             </p>
             <p className="text-eyebrow text-muted-foreground">
               {pct != null ? copy.percentWon(pct) : view.winRateNote}
@@ -84,8 +85,8 @@ export function ProfileAllTimeCard({
       <div className="border-rule divide-rule divide-y border-t">
         <div className="flex items-center justify-between px-5 py-[14px]">
           <p className="text-meta text-muted-foreground">{view.tally.label}</p>
-          <p className="text-body font-semibold tabular-nums">
-            {view.tally.value}
+          <p className="text-body font-semibold">
+            <ScoreText>{view.tally.value}</ScoreText>
           </p>
         </div>
         <div className="flex items-center justify-between px-5 py-[14px]">

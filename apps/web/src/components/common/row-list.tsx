@@ -35,6 +35,7 @@ export function ListRow({
   footer,
   action,
   size = "default",
+  titleClamp = "truncate",
   stackTrailing = false,
   asChild = false,
   className,
@@ -52,6 +53,8 @@ export function ListRow({
   /** A control beside the row target, so it never nests inside a link. */
   action?: React.ReactNode;
   size?: "default" | "lg";
+  /** `lines` wraps the title onto two lines, so it loses whole words only. */
+  titleClamp?: "truncate" | "lines";
   /** Below `sm`, put `trailing` on its own line so actions never squeeze the title. */
   stackTrailing?: boolean;
   asChild?: boolean;
@@ -79,7 +82,18 @@ export function ListRow({
       <div className="flex min-w-0 flex-1 items-center gap-4">
         {icon ? <div className="shrink-0">{icon}</div> : null}
         <div className="min-w-0 flex-1">
-          <p className="text-lead truncate font-semibold">{title}</p>
+          <p
+            // A plain-text title is one name or line of copy: it truncates in
+            // its own direction, while match-parent keeps it on the page's
+            // start side.
+            dir={typeof title === "string" ? "auto" : undefined}
+            className={cn(
+              "text-lead font-semibold [text-align:match-parent]",
+              titleClamp === "lines" ? "line-clamp-2" : "truncate",
+            )}
+          >
+            {title}
+          </p>
 
           {subtitle ? (
             <p className="text-muted-foreground text-meta truncate">

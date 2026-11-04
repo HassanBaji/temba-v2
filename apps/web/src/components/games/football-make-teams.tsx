@@ -252,7 +252,7 @@ function ManualRow({
     >
       <UserAvatar name={player.name} image={player.image} />
       <div className="min-w-0 flex-1">
-        <p className="truncate">
+        <p dir="auto" className="truncate [text-align:match-parent]">
           {player.isViewer ? m.common.you : player.name}
         </p>
         {code ? (

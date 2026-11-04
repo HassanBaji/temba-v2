@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
+import { ScoreText } from "~/components/temba/score-text";
 import {
   groupPlayedMarkVariant,
   groupPlayedOpponentLine,
@@ -55,9 +56,9 @@ export function GroupPlayedRow({ game }: { game: GroupPlayedGame }) {
             {m.webGroup.games.cancelled}
           </span>
         ) : scoreLine ? (
-          <span className="font-expanded shrink-0 text-[16px] tabular-nums tracking-[-0.03em]">
+          <ScoreText className="font-expanded shrink-0 text-[16px] tracking-[-0.03em]">
             {scoreLine}
-          </span>
+          </ScoreText>
         ) : (
           <span className="text-meta shrink-0 font-semibold">
             {m.webGroup.games.enterScore}

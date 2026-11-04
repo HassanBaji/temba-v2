@@ -57,7 +57,12 @@ function TournamentHeroSeatBlock({
         className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-body truncate">{displayName}</span>
+        <span
+          dir="auto"
+          className="text-body truncate [text-align:match-parent]"
+        >
+          {displayName}
+        </span>
         <span className="text-dim text-[11px] leading-none">
           {positionLabel}
         </span>

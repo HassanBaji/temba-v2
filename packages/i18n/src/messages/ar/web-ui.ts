@@ -112,6 +112,8 @@ export const webUi = {
     level: "المستوى",
     provisional: "مبدئي",
     lastTenGames: "آخر 10 مباريات",
+    matchesSubtitle: (name: string, record: string) =>
+      `${isolate(name)}، ${record}`,
     sets: (games: string[]) => `الأشواط: ${games.join("، ")}`,
     filterGames: "تصفية المباريات",
     gamesLoadError: "تعذّر تحميل المباريات",
