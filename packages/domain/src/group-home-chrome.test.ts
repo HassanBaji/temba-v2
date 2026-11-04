@@ -11,10 +11,6 @@ import {
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   groupShowsLevel,
-  groupPlayedMarkVariant,
-  groupPlayedOpponentLine,
-  groupPlayedScoreLine,
-  groupPlayedTeamLabel,
   groupStandingRecordLabel,
   levelCellView,
 } from "./group-home-chrome";
@@ -165,96 +161,6 @@ describe("groupStandingRecordLabel", () => {
   it("draws the W-L pair, zero included", () => {
     assert.equal(groupStandingRecordLabel(18, 6), "18-6");
     assert.equal(groupStandingRecordLabel(0, 0), "0-0");
-  });
-});
-
-describe("groupPlayedTeamLabel", () => {
-  it("leads with the viewer, shortens the others, and joins with a comma", () => {
-    assert.equal(
-      groupPlayedTeamLabel(
-        [
-          { name: "Sofia Lindqvist", isViewer: false },
-          { name: "Mira Karlsson", isViewer: true },
-        ],
-        "en",
-      ),
-      "You, Sofia L",
-    );
-  });
-
-  it("names both seats when the viewer is on neither", () => {
-    assert.equal(
-      groupPlayedTeamLabel(
-        [
-          { name: "Jonas Berg", isViewer: false },
-          { name: "Adam Roos", isViewer: false },
-        ],
-        "en",
-      ),
-      "Jonas B, Adam R",
-    );
-  });
-
-  it("reads as open seats when the slot was never filled", () => {
-    assert.equal(groupPlayedTeamLabel([], "en"), "Open seats");
-  });
-});
-
-describe("groupPlayedOpponentLine", () => {
-  it("puts the date after the other team", () => {
-    assert.equal(
-      groupPlayedOpponentLine(
-        [{ name: "Jonas Berg", isViewer: false }],
-        new Date("2026-09-06T18:00:00.000Z"),
-        "en",
-      ),
-      "Jonas B, 6 Sep",
-    );
-  });
-
-  it("drops the date when it cannot be read", () => {
-    assert.equal(
-      groupPlayedOpponentLine(
-        [{ name: "Jonas Berg", isViewer: false }],
-        "not-a-date",
-        "en",
-      ),
-      "Jonas B",
-    );
-  });
-});
-
-describe("groupPlayedScoreLine", () => {
-  it("reads the sets from the viewer's own slot", () => {
-    const sets = [
-      { slot1GamesWon: 6, slot2GamesWon: 4 },
-      { slot1GamesWon: 4, slot2GamesWon: 6 },
-    ];
-    assert.equal(groupPlayedScoreLine(sets, 1), "6-4 4-6");
-    assert.equal(groupPlayedScoreLine(sets, 2), "4-6 6-4");
-  });
-
-  it("reads from slot 1 when the viewer did not play", () => {
-    assert.equal(
-      groupPlayedScoreLine([{ slot1GamesWon: 6, slot2GamesWon: 2 }], null),
-      "6-2",
-    );
-  });
-
-  it("is null when the Match carries no scored Set", () => {
-    assert.equal(groupPlayedScoreLine([], 1), null);
-  });
-});
-
-describe("groupPlayedMarkVariant", () => {
-  it("draws won and lost as themselves", () => {
-    assert.equal(groupPlayedMarkVariant("won"), "won");
-    assert.equal(groupPlayedMarkVariant("lost"), "lost");
-  });
-
-  it("draws a draw and a missing result as not-played", () => {
-    assert.equal(groupPlayedMarkVariant("draw"), "not-played");
-    assert.equal(groupPlayedMarkVariant(null), "not-played");
   });
 });
 

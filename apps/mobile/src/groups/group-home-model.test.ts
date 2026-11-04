@@ -8,10 +8,6 @@ import {
   memberIsRemovable,
   memberList,
   memberSheetView,
-  playedCardView,
-  playedFilterChips,
-  playedListItems,
-  playedRecordLine,
   standingRowView,
   standingStats,
 } from "./group-home-model";
@@ -116,126 +112,6 @@ describe("standing rows", () => {
       { value: 7, label: "games played" },
       { value: 1, label: "awaiting score" },
     ]);
-  });
-});
-
-describe("playedCardView", () => {
-  const [won, lost, unscored, cancelled] = home.member.gameHistory.map((game) =>
-    playedCardView(game, "en"),
-  );
-
-  it("titles an unnamed padel Game with the two pairs, the viewer's first", () => {
-    expect(won).toMatchObject({
-      status: "finished",
-      title: "You & Ada L vs Kim H & Elin N",
-      result: { mark: "won", label: "Won" },
-    });
-    expect(lost!.title).toBe("You & Ada L vs Kim H & Elin N");
-  });
-
-  it("draws games per set with the won sets strong", () => {
-    const [viewer, other] = won!.sides!;
-    expect(viewer.cells).toEqual([
-      { value: "6", strong: true },
-      { value: "4", strong: false },
-      { value: "7", strong: true },
-    ]);
-    expect(other.cells.map((cell) => cell.strong)).toEqual([
-      false,
-      true,
-      false,
-    ]);
-    expect(lost!.sides![0].cells.map((cell) => cell.value)).toEqual(["2", "3"]);
-  });
-
-  it("leads with a custom Game name", () => {
-    const card = playedCardView(
-      {
-        ...home.member.gameHistory[0]!,
-        name: "Sunday ladder",
-        hasCustomName: true,
-      },
-      "en",
-    );
-    expect(card.title).toBe("Sunday ladder");
-  });
-
-  it("reads football as goals per bib, slot order kept", () => {
-    const card = playedCardView(
-      {
-        ...home.member.gameHistory[1]!,
-        sport: "football",
-        slot1Bib: "red",
-        slot2Bib: null,
-        scoredSets: [{ slot1GamesWon: 9, slot2GamesWon: 12 }],
-      },
-      "en",
-    );
-    expect(card.title).toBe("Red vs White");
-    expect(card.sides!.map((side) => [side.name, side.bib])).toEqual([
-      ["Red", "red"],
-      ["White", "white"],
-    ]);
-    expect(card.sides![1]).toMatchObject({
-      isViewerSide: true,
-      cells: [{ value: "12", strong: true }],
-    });
-  });
-
-  it("asks for a score on an unscored Game", () => {
-    expect(unscored).toMatchObject({ status: "needs_score", result: null });
-    expect(unscored!.sides![0].cells).toEqual([{ value: "–", strong: false }]);
-    expect(unscored!.accessibilityLabel).toContain("No score yet");
-  });
-
-  it("reads a cancelled Game with its sign-ups and no teams", () => {
-    expect(cancelled).toMatchObject({
-      status: "cancelled",
-      sides: null,
-      cancelledLine: "Padel Pro Arad, 4 of 4 joined",
-    });
-  });
-});
-
-describe("playedListItems", () => {
-  it("heads each month with its Game count", () => {
-    const items = playedListItems(
-      home.member.gameHistory,
-      "en",
-      new Date("2026-03-10T12:00:00Z"),
-    );
-    const heads = items.filter((item) => item.kind === "month");
-    expect(heads.map((head) => [head.label, head.count])).toEqual([
-      ["March", "1 GAME"],
-      ["February", "3 GAMES"],
-    ]);
-    expect(items).toHaveLength(6);
-  });
-});
-
-describe("playedFilterChips", () => {
-  it("lists the four filters with counts and marks the selected one", () => {
-    const chips = playedFilterChips(
-      home.member.gameHistoryCounts,
-      "finished",
-      "en",
-    );
-    expect(
-      chips.map((chip) => [chip.label, chip.count, chip.selected, chip.dot]),
-    ).toEqual([
-      ["Finished", "2", true, false],
-      ["Needs score", "1", false, true],
-      ["Cancelled", "1", false, false],
-      ["All", "4", false, false],
-    ]);
-  });
-});
-
-describe("playedRecordLine", () => {
-  it("shows draws for football only", () => {
-    const counts = home.member.gameHistoryCounts;
-    expect(playedRecordLine(counts, "padel", "en")?.text).toBe("W1 L1");
-    expect(playedRecordLine(counts, "football", "en")?.text).toBe("W1 D0 L1");
   });
 });
 

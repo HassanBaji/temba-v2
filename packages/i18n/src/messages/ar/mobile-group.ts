@@ -111,64 +111,10 @@ export const mobileGroup = {
     notScheduled: "غير مجدولة",
     when: "متى",
     where: "أين",
-    cancelled: "أُلغيت",
-    enter: "إدخال",
-    noScoreYet: "لا نتيجة بعد، أدخلها",
     scheduled: "مجدولة",
     played: "سابقة",
     scheduledEmpty: "لا مباريات قادمة مجدولة لهذه المجموعة.",
-    playedEmpty: "لا سجل مباريات بعد.",
     loadMore: "تحميل المزيد",
-    row: (mark: string, title: string, subtitle: string, trailing: string) =>
-      `${mark}. ${title}. ${subtitle}. ${trailing}`,
-    filtersLabel: "تصفية المباريات السابقة",
-    filters: {
-      finished: "منتهية",
-      needs_score: "بانتظار النتيجة",
-      cancelled: "ملغاة",
-      all: "الكل",
-    },
-    filterSpoken: (label: string, n: number) =>
-      `${label}، ${plural("ar", n, {
-        zero: "لا مباريات",
-        one: "مباراة واحدة",
-        two: "مباراتان",
-        few: "{n} مباريات",
-        many: "{n} مباراة",
-        other: "{n} مباراة",
-      })}`,
-    filterEmpty: {
-      finished: "لا مباريات منتهية بعد.",
-      needs_score: "كل المباريات لها نتيجة.",
-      cancelled: "لا مباريات ملغاة.",
-      all: "لا مباريات بعد.",
-    },
-    showAll: "عرض كل المباريات",
-    enterScore: "أدخل النتيجة",
-    you: "فريقك",
-    versus: (first: string, second: string) => `${first} ضد ${second}`,
-    pair: (first: string, second: string) => `${first} و${second}`,
-    record: (wins: number, draws: number | null, losses: number) =>
-      draws == null
-        ? `فوز ${wins} · خسارة ${losses}`
-        : `فوز ${wins} · تعادل ${draws} · خسارة ${losses}`,
-    recordSpoken: (wins: number, draws: number | null, losses: number) =>
-      draws == null
-        ? `فوز ${wins}، خسارة ${losses}`
-        : `فوز ${wins}، تعادل ${draws}، خسارة ${losses}`,
-    monthCount: (n: number) =>
-      plural("ar", n, {
-        zero: "لا مباريات",
-        one: "مباراة واحدة",
-        two: "مباراتان",
-        few: "{n} مباريات",
-        many: "{n} مباراة",
-        other: "{n} مباراة",
-      }),
-    joined: (joined: number, allowed: number) => `انضم ${joined} من ${allowed}`,
-    joinedOpen: (joined: number) => `انضم ${joined}`,
-    sideSpoken: (name: string, score: string) => `${name} ${score}`,
-    card: (parts: string[]) => parts.join(". "),
   },
   members: {
     empty: {

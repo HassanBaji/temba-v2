@@ -88,11 +88,8 @@ export const webGroup = {
     scheduled: "المجدولة",
     noUpcoming: "لا مباريات قادمة مجدولة لهذه المجموعة.",
     played: "السابقة",
-    noHistory: "لا سجل مباريات بعد.",
     loadMoreFailed: "تعذّر تحميل مزيد من المباريات.",
     loadMore: "تحميل المزيد",
-    cancelled: "ملغاة",
-    enterScore: "إدخال",
   },
   home: {
     inviteMembers: "دعوة أعضاء",

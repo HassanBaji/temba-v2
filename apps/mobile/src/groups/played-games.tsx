@@ -1,5 +1,13 @@
 import { bibColors, colors, radii, spacing } from "@repo/design-tokens";
 import type { GroupPlayedGameData } from "@repo/domain/group-data";
+import {
+  groupPlayedFilterChips,
+  groupPlayedListItems,
+  groupPlayedRecordLine,
+  type GroupPlayedCard,
+  type GroupPlayedFilterChip,
+  type GroupPlayedSide,
+} from "@repo/domain/group-played-card";
 import type {
   GroupPlayedCounts,
   GroupPlayedFilter,
@@ -11,14 +19,6 @@ import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
-import {
-  playedFilterChips,
-  playedListItems,
-  playedRecordLine,
-  type PlayedCardView,
-  type PlayedFilterChip,
-  type PlayedSide,
-} from "./group-home-model";
 
 const CHIP_HEIGHT = 40;
 const CARD_PADDING_X = 16;
@@ -40,14 +40,14 @@ export type PlayedGamesProps = {
   loadMoreFailed: boolean;
   onLoadMore: () => void;
   onOpen: (gameId: string) => void;
-  onEnterScore: (card: PlayedCardView) => void;
+  onEnterScore: (card: GroupPlayedCard) => void;
 };
 
 function FilterChip({
   chip,
   onPress,
 }: {
-  chip: PlayedFilterChip;
+  chip: GroupPlayedFilterChip;
   onPress: () => void;
 }) {
   const { selected } = chip;
@@ -102,7 +102,7 @@ function SideRow({
   side,
   isFootball,
 }: {
-  side: PlayedSide;
+  side: GroupPlayedSide;
   isFootball: boolean;
 }) {
   const m = useMessages();
@@ -131,9 +131,7 @@ function SideRow({
       >
         {side.name}
         {isFootball && side.isViewerSide ? (
-          <Text
-            style={{ color: colors.dim }}
-          >{`  ${m.mobileGroup.games.you}`}</Text>
+          <Text style={{ color: colors.dim }}>{`  ${m.group.played.you}`}</Text>
         ) : null}
       </Text>
       <View style={{ flexDirection: "row", gap: 4, direction: "ltr" }}>
@@ -162,9 +160,9 @@ function PlayedCard({
   onOpen,
   onEnterScore,
 }: {
-  card: PlayedCardView;
+  card: GroupPlayedCard;
   onOpen: (gameId: string) => void;
-  onEnterScore: (card: PlayedCardView) => void;
+  onEnterScore: (card: GroupPlayedCard) => void;
 }) {
   const m = useMessages();
   const cancelled = card.status === "cancelled";
@@ -228,7 +226,7 @@ function PlayedCard({
             }}
           >
             <Text size="eyebrow" mono tone="muted" uppercase>
-              {m.mobileGroup.games.cancelled}
+              {m.group.played.cancelled}
             </Text>
           </View>
         ) : null}
@@ -250,7 +248,7 @@ function PlayedCard({
           </View>
           {card.status === "needs_score" ? (
             <Button
-              label={m.mobileGroup.games.enterScore}
+              label={m.group.played.enterScore}
               onPress={() => onEnterScore(card)}
             />
           ) : null}
@@ -274,9 +272,10 @@ export function PlayedGames(props: PlayedGamesProps) {
   const locale = useLocale();
   const m = useMessages();
   const copy = m.mobileGroup.games;
-  const record = playedRecordLine(props.counts, props.sport, locale);
-  const chips = playedFilterChips(props.counts, props.filter, locale);
-  const items = playedListItems(props.games, locale);
+  const played = m.group.played;
+  const record = groupPlayedRecordLine(props.counts, props.sport, locale);
+  const chips = groupPlayedFilterChips(props.counts, props.filter, locale);
+  const items = groupPlayedListItems(props.games, locale);
 
   return (
     <View style={{ gap: 12 }}>
@@ -306,7 +305,7 @@ export function PlayedGames(props: PlayedGamesProps) {
         horizontal
         showsHorizontalScrollIndicator={false}
         accessibilityRole="tablist"
-        accessibilityLabel={copy.filtersLabel}
+        accessibilityLabel={played.filtersLabel}
         style={{ marginHorizontal: -spacing.surface }}
         contentContainerStyle={{
           gap: 8,
@@ -365,10 +364,10 @@ export function PlayedGames(props: PlayedGamesProps) {
               gap: 14,
             }}
           >
-            <Text tone="muted">{copy.filterEmpty[props.filter]}</Text>
+            <Text tone="muted">{played.filterEmpty[props.filter]}</Text>
             {props.filter !== "all" ? (
               <Button
-                label={copy.showAll}
+                label={played.showAll}
                 variant="outline"
                 onPress={() => props.onFilterChange("all")}
               />

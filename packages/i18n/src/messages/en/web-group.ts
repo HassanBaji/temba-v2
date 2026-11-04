@@ -82,11 +82,8 @@ export const webGroup = {
     scheduled: "Scheduled",
     noUpcoming: "No upcoming Games scheduled for this Group.",
     played: "Played",
-    noHistory: "No Game history yet.",
     loadMoreFailed: "More Games could not be loaded.",
     loadMore: "Load more",
-    cancelled: "Cancelled",
-    enterScore: "Enter",
   },
   home: {
     inviteMembers: "Invite members",
