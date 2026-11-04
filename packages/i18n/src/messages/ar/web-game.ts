@@ -16,7 +16,9 @@ export const webGame = {
     timeUnset: "الوقت غير محدد",
     youAnd: (name: string) => `أنت و${name}`,
   },
+  fallbackTitle: "لعبة",
   directions: "الاتجاهات",
+  directionsTo: (venue: string) => `الاتجاهات إلى ${venue}`,
   overflow: {
     gameActions: "إجراءات اللعبة",
   },
@@ -102,6 +104,7 @@ export const webGame = {
   },
   lineup: {
     title: "التشكيلة",
+    seatLabel: (name: string, subline: string) => `${name}، ${subline}`,
     renameFor: (action: string, name: string) => `${action}: ${name}`,
     kickName: (name: string) => `أخرِج ${name}`,
   },

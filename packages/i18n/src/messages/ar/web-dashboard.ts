@@ -52,6 +52,9 @@ export const webDashboard = {
     errorTitle: "تعذّر تحميل اللعبة",
     actionsLabel: "إجراءات اللعبة",
     invite: "دعوة",
+    shareGame: "مشاركة اللعبة",
+    addPlayerTo: (side: string, position: string) =>
+      `إضافة لاعب إلى ${side} ${position}`,
     cancelledHeading: "أُلغيت هذه اللعبة",
     softArchived: {
       heading: "مجتمع مجموعة النادي هذه مؤرشف",

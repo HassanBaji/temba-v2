@@ -56,6 +56,7 @@ export function AddPlayerDialog({
   gameId,
   placement,
   sides,
+  initialSeat = null,
   onAdded,
 }: {
   open: boolean;
@@ -63,6 +64,8 @@ export function AddPlayerDialog({
   gameId: string;
   placement: AddPlayerPlacement;
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
+  /** The open spot the Organizer clicked on the court. */
+  initialSeat?: FriendlyGameJoinSeat | null;
   onAdded: () => Promise<unknown>;
 }) {
   const locale = useLocale();
@@ -86,6 +89,12 @@ export function AddPlayerDialog({
     );
   const [picked, setPicked] = React.useState<FriendlyGameJoinSeat | null>(null);
   const [pickedSide, setPickedSide] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      setPicked(initialSeat);
+    }
+  }, [open, initialSeat]);
 
   const isFootball = placement === "football";
   const seatChoices =

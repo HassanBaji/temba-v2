@@ -51,6 +51,9 @@ export const webDashboard = {
     errorTitle: "Game could not be loaded",
     actionsLabel: "Game actions",
     invite: "Invite",
+    shareGame: "Share Game",
+    addPlayerTo: (side: string, position: string) =>
+      `Add a player to ${side} ${position}`,
     cancelledHeading: "This Game is cancelled",
     softArchived: {
       heading: "This Club Group's Community is Soft-archived",

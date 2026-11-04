@@ -1,6 +1,14 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import {
+  Ban,
+  LockIcon,
+  LockOpenIcon,
+  PencilIcon,
+  ShirtIcon,
+  UserPlusIcon,
+  UserRoundPlusIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -9,9 +17,6 @@ import { toast } from "sonner";
 import {
   ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_PAPER_BOXED_TRIGGER,
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
@@ -31,6 +36,7 @@ import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
 import { PlayedGameView } from "~/components/games/played/played-game-view";
+import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
   gameInviteSubtitle,
@@ -551,59 +557,81 @@ export function FootballGameDetails({
       : null;
   const canAddPlayer = organizerCanAddPlayer(game);
   const menu = organizer ? (
-    <ActionMenu
-      label={m.webTournament.gameActions}
+    <GameActionsSheet
+      title={savedCustomName ?? m.football.details.fallbackTitle}
+      description={lines.dayLine}
       triggerClassName={
         playedModel || model.hero.tone === "ink"
           ? ACTION_MENU_INK_BOXED_TRIGGER
           : ACTION_MENU_PAPER_BOXED_TRIGGER
       }
-    >
-      <ActionMenuItem onSelect={() => setEditOpen(true)}>
-        {editGameAction(locale)}
-      </ActionMenuItem>
-      {canMakeTeams ? (
-        <ActionMenuItem asChild>
-          <Link href={teamsHref}>
-            {teams
-              ? m.webTournament.footballTeams.editTeams
-              : m.webTournament.footballTeams.makeTeams}
-          </Link>
-        </ActionMenuItem>
-      ) : null}
-      {organizer.registration === "reopen" ? (
-        <ActionMenuItem
-          disabled={game.joinFrozen || reopenRegistration.isPending}
-          onSelect={() => reopenRegistration.mutate({ gameId })}
-        >
-          {reopenRegistrationAction(locale)}
-        </ActionMenuItem>
-      ) : (
-        <ActionMenuItem
-          disabled={closeRegistration.isPending}
-          onSelect={() => closeRegistration.mutate({ gameId })}
-        >
-          {closeRegistrationAction(locale)}
-        </ActionMenuItem>
-      )}
-      {inviteAccess.canManage ? (
-        <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-          {m.tournament.home.inviteAction}
-        </ActionMenuItem>
-      ) : null}
-      {canAddPlayer ? (
-        <ActionMenuItem onSelect={() => setAddPlayerOpen(true)}>
-          {m.group.addPlayer.action}
-        </ActionMenuItem>
-      ) : null}
-      <ActionMenuSeparator />
-      <ActionMenuItem
-        variant="destructive"
-        onSelect={() => setCancelOpen(true)}
-      >
-        {organizer.cancelLabel}
-      </ActionMenuItem>
-    </ActionMenu>
+      groups={[
+        [
+          {
+            key: "edit",
+            label: editGameAction(locale),
+            icon: PencilIcon,
+            onSelect: () => setEditOpen(true),
+          },
+          ...(canMakeTeams
+            ? [
+                {
+                  key: "teams",
+                  label: teams
+                    ? m.webTournament.footballTeams.editTeams
+                    : m.webTournament.footballTeams.makeTeams,
+                  icon: ShirtIcon,
+                  href: teamsHref,
+                },
+              ]
+            : []),
+          organizer.registration === "reopen"
+            ? {
+                key: "reopen_registration",
+                label: reopenRegistrationAction(locale),
+                icon: LockOpenIcon,
+                disabled: game.joinFrozen || reopenRegistration.isPending,
+                onSelect: () => reopenRegistration.mutate({ gameId }),
+              }
+            : {
+                key: "close_registration",
+                label: closeRegistrationAction(locale),
+                icon: LockIcon,
+                disabled: closeRegistration.isPending,
+                onSelect: () => closeRegistration.mutate({ gameId }),
+              },
+          ...(inviteAccess.canManage
+            ? [
+                {
+                  key: "invite",
+                  label: m.tournament.home.inviteAction,
+                  icon: UserRoundPlusIcon,
+                  onSelect: () => setInvitesOpen(true),
+                },
+              ]
+            : []),
+          ...(canAddPlayer
+            ? [
+                {
+                  key: "add_player",
+                  label: m.group.addPlayer.action,
+                  icon: UserPlusIcon,
+                  onSelect: () => setAddPlayerOpen(true),
+                },
+              ]
+            : []),
+        ],
+        [
+          {
+            key: "cancel",
+            label: organizer.cancelLabel,
+            icon: Ban,
+            tone: "danger",
+            onSelect: () => setCancelOpen(true),
+          },
+        ],
+      ]}
+    />
   ) : null;
 
   return (

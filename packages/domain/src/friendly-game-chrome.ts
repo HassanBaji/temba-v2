@@ -90,6 +90,21 @@ export function friendlyGameDirectionsUrl(
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
+/** The pin when the Venue has one, otherwise a search for its name and city. */
+export function friendlyGameVenueDirectionsUrl(venue: {
+  name: string;
+  city: string | null;
+  latitude: string | null | undefined;
+  longitude: string | null | undefined;
+}) {
+  const pinned = friendlyGameDirectionsUrl(venue.latitude, venue.longitude);
+  if (pinned) {
+    return pinned;
+  }
+  const query = [venue.name, venue.city].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 export function friendlyGameDateDurationLine(
   windowStart: Date | string | null | undefined,
   durationInMinutes: number | null | undefined,

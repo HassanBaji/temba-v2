@@ -15,7 +15,9 @@ export const webGame = {
     timeUnset: "Time unset",
     youAnd: (name: string) => `You and ${name}`,
   },
+  fallbackTitle: "Game",
   directions: "Directions",
+  directionsTo: (venue: string) => `Directions to ${venue}`,
   overflow: {
     gameActions: "Game actions",
   },
@@ -83,6 +85,7 @@ export const webGame = {
   },
   lineup: {
     title: "Line-up",
+    seatLabel: (name: string, subline: string) => `${name}, ${subline}`,
     renameFor: (action: string, name: string) => `${action}: ${name}`,
     kickName: (name: string) => `Kick ${name}`,
   },

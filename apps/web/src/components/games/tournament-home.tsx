@@ -1,14 +1,18 @@
 "use client";
 
+import {
+  LockIcon,
+  LockOpenIcon,
+  Share2Icon,
+  UserMinusIcon,
+  UserPlusIcon,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import {
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
-} from "~/components/common/action-menu";
-import { FooterAction } from "~/components/games/friendly-game-actions-footer";
+import { ACTION_MENU_PAPER_BOXED_TRIGGER } from "~/components/common/action-menu";
+import { FooterAction } from "~/components/games/footer-action";
+import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import {
@@ -270,6 +274,8 @@ export function TournamentHome({
       </p>
 
       <TournamentHomeActions
+        title={view.hero.name}
+        description={view.hero.startLine}
         joinKind={joinKind}
         isWaitlisted={data.isWaitlisted}
         isOrganizerActive={isOrganizerActive}
@@ -608,6 +614,8 @@ function TournamentJoinBar({
 }
 
 function TournamentHomeActions({
+  title,
+  description,
   joinKind,
   isWaitlisted,
   isOrganizerActive,
@@ -636,6 +644,8 @@ function TournamentHomeActions({
   onInvite,
   onShare,
 }: {
+  title: string;
+  description: string | null;
   joinKind: TournamentHomeJoinKind | null;
   isWaitlisted: boolean;
   isOrganizerActive: boolean;
@@ -747,58 +757,71 @@ function TournamentHomeActions({
               </Button>
             ) : null}
             <div className="ms-auto">
-              <ActionMenu label={m.webTournament.gameActions}>
-                {onAddPlayer ? (
-                  <ActionMenuItem onSelect={onAddPlayer}>
-                    {m.group.addPlayer.action}
-                  </ActionMenuItem>
-                ) : null}
-                {onShare ? (
-                  <ActionMenuItem disabled={sharePending} onSelect={onShare}>
-                    {m.common.share}
-                  </ActionMenuItem>
-                ) : null}
-                {registrationClosed ? (
-                  <ActionMenuItem
-                    disabled={joinFrozen || reopenPending}
-                    onSelect={onReopenRegistration}
-                  >
-                    {m.game.action.reopenRegistration}
-                  </ActionMenuItem>
-                ) : (
-                  <ActionMenuItem
-                    disabled={closePending}
-                    onSelect={onCloseRegistration}
-                  >
-                    {m.game.action.closeRegistration}
-                  </ActionMenuItem>
-                )}
-                {showKick ? (
-                  <>
-                    <ActionMenuSeparator />
-                    {kickable.map((occupant) => (
-                      <ActionMenuItem
-                        key={occupant.userId}
-                        variant="destructive"
-                        disabled={kickPending}
-                        onSelect={() => onKick?.(occupant.userId)}
-                      >
-                        {m.webTournament.kickName(occupant.name)}
-                      </ActionMenuItem>
-                    ))}
-                    {waitlist.map((entry) => (
-                      <ActionMenuItem
-                        key={entry.id}
-                        variant="destructive"
-                        disabled={kickPending}
-                        onSelect={() => onKickWaitlist?.(entry.id)}
-                      >
-                        {m.webTournament.kickFromWaitlist(entry.name)}
-                      </ActionMenuItem>
-                    ))}
-                  </>
-                ) : null}
-              </ActionMenu>
+              <GameActionsSheet
+                title={title}
+                description={description}
+                triggerClassName={ACTION_MENU_PAPER_BOXED_TRIGGER}
+                groups={[
+                  [
+                    ...(onAddPlayer
+                      ? [
+                          {
+                            key: "add_player",
+                            label: m.group.addPlayer.action,
+                            icon: UserPlusIcon,
+                            onSelect: onAddPlayer,
+                          },
+                        ]
+                      : []),
+                    ...(onShare
+                      ? [
+                          {
+                            key: "share",
+                            label: m.common.share,
+                            icon: Share2Icon,
+                            disabled: sharePending,
+                            onSelect: onShare,
+                          },
+                        ]
+                      : []),
+                    registrationClosed
+                      ? {
+                          key: "reopen_registration",
+                          label: m.game.action.reopenRegistration,
+                          icon: LockOpenIcon,
+                          disabled: joinFrozen || reopenPending,
+                          onSelect: onReopenRegistration,
+                        }
+                      : {
+                          key: "close_registration",
+                          label: m.game.action.closeRegistration,
+                          icon: LockIcon,
+                          disabled: closePending,
+                          onSelect: onCloseRegistration,
+                        },
+                  ],
+                  showKick
+                    ? [
+                        ...kickable.map((occupant) => ({
+                          key: `kick-${occupant.userId}`,
+                          label: m.webTournament.kickName(occupant.name),
+                          icon: UserMinusIcon,
+                          tone: "danger" as const,
+                          disabled: kickPending,
+                          onSelect: () => onKick?.(occupant.userId),
+                        })),
+                        ...waitlist.map((entry) => ({
+                          key: `kick-waitlist-${entry.id}`,
+                          label: m.webTournament.kickFromWaitlist(entry.name),
+                          icon: UserMinusIcon,
+                          tone: "danger" as const,
+                          disabled: kickPending,
+                          onSelect: () => onKickWaitlist?.(entry.id),
+                        })),
+                      ]
+                    : [],
+                ]}
+              />
             </div>
           </div>
           {onEdit || onCancelGame ? (
