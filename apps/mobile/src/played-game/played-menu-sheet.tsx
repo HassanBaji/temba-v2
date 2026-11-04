@@ -10,6 +10,7 @@ export type PlayedMenuItem = {
   label: string;
   hint?: string | null;
   icon?: SheetMenuRowProps["icon"];
+  iconStyle?: SheetMenuRowProps["iconStyle"];
   disabled?: boolean;
   tone?: "default" | "danger";
   onPress: () => void;
@@ -42,6 +43,7 @@ export function PlayedMenuSheet({
             label={item.label}
             hint={item.hint}
             icon={item.icon}
+            iconStyle={item.iconStyle}
             disabled={item.disabled}
             tone={item.tone}
             onPress={() => {

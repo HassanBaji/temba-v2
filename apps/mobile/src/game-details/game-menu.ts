@@ -25,6 +25,7 @@ import {
   UserPlus,
 } from "lucide-react-native";
 
+import { mirrorInRtl } from "../i18n/rtl";
 import type { PlayedMenuItem } from "../played-game/played-menu-sheet";
 import type { OrganizerHandlers } from "./organizer-card";
 
@@ -116,6 +117,7 @@ export function gameMenuItems({
       label: action.label,
       hint: action.consequence,
       icon: FOOTER_ICONS[action.kind],
+      iconStyle: action.kind === "leave_game" ? mirrorInRtl : undefined,
       disabled: !action.enabled,
       tone: DESTRUCTIVE.includes(action.kind) ? "danger" : "default",
       onPress: () => onFooterAction(action.kind),

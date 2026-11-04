@@ -1,7 +1,13 @@
 import { colors, sizes } from "@repo/design-tokens";
 import { ChevronRight } from "lucide-react-native";
 import type { ComponentType } from "react";
-import { Pressable, View, type ColorValue } from "react-native";
+import {
+  Pressable,
+  View,
+  type ColorValue,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import { mirrorInRtl } from "../i18n/rtl";
 import { Hairline } from "./hairline";
@@ -14,7 +20,12 @@ const ROW_PADDING_X = 18;
 export type SheetMenuRowProps = {
   label: string;
   hint?: string | null;
-  icon?: ComponentType<{ size: number; color: ColorValue }>;
+  icon?: ComponentType<{
+    size: number;
+    color: ColorValue;
+    style?: StyleProp<ViewStyle>;
+  }>;
+  iconStyle?: StyleProp<ViewStyle>;
   trailing?: ComponentType<{ size: number; color: ColorValue }> | "chevron";
   /** "danger" marks a destructive door: leave, delete, remove. */
   tone?: "default" | "danger";
@@ -33,6 +44,7 @@ export function SheetMenuRow({
   label,
   hint,
   icon: Icon,
+  iconStyle,
   trailing,
   tone = "default",
   pending = false,
@@ -63,7 +75,9 @@ export function SheetMenuRow({
         opacity: disabled && !pending ? 0.5 : 1,
       })}
     >
-      {Icon ? <Icon size={sizes.iconAction} color={ink} /> : null}
+      {Icon ? (
+        <Icon size={sizes.iconAction} color={ink} style={iconStyle} />
+      ) : null}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text weight={hint ? "medium" : "regular"} style={{ color: ink }}>
           {pending ? `${label}…` : label}
