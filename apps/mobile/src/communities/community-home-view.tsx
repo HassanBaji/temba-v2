@@ -1,14 +1,5 @@
 import { spacing } from "@repo/design-tokens";
 import {
-  COMMUNITY_CREATE_CLUB_GROUP_LABEL,
-  COMMUNITY_LEAVE_LABEL,
-  COMMUNITY_MANAGE_INVITES_LABEL,
-  COMMUNITY_NO_GROUPS_EMPTY,
-  COMMUNITY_NO_TEAMS_EMPTY,
-  COMMUNITY_REQUEST_JOIN_LABEL,
-  COMMUNITY_SOFT_ARCHIVE_LABEL,
-  COMMUNITY_START_CLUB_GROUP_COPY,
-  COMMUNITY_UNARCHIVE_LABEL,
   communityArchiveBanner,
   communityAvailableTabs,
   communityCanRequestJoin,
@@ -28,6 +19,7 @@ import {
   type ConfirmRequest,
 } from "../game-details/confirm-sheet";
 import { Notice } from "../groups/notice";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -94,6 +86,8 @@ export type CommunityHomeViewProps = {
 
 function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
   const { data } = props;
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View style={{ gap: spacing.compact }}>
       {communityIsMember(data) ? (
@@ -112,11 +106,11 @@ function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
         />
       ) : null}
       {data.groups.length === 0 ? (
-        <Notice {...COMMUNITY_NO_GROUPS_EMPTY} />
+        <Notice {...m.community.noGroupsEmpty} />
       ) : (
         <Surface padded={false} style={{ overflow: "hidden" }}>
           {data.groups.map((group, index) => {
-            const row = communityClubGroupRow(group);
+            const row = communityClubGroupRow(group, locale);
             return (
               <View key={row.id}>
                 {index > 0 ? <Hairline /> : null}
@@ -148,7 +142,7 @@ function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
                   </View>
                   {row.joined ? (
                     <Text size="eyebrow" tone="muted" mono uppercase>
-                      Joined
+                      {m.community.joined}
                     </Text>
                   ) : null}
                 </Pressable>
@@ -160,14 +154,14 @@ function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
       {props.canCreate ? (
         <Surface style={{ gap: 8 }}>
           <Text size="lead" weight="semibold">
-            {COMMUNITY_START_CLUB_GROUP_COPY.title}
+            {m.community.startClubGroup.title}
           </Text>
           <Text size="meta" tone="muted">
-            {COMMUNITY_START_CLUB_GROUP_COPY.description}
+            {m.community.startClubGroup.description}
           </Text>
           <View style={{ flexDirection: "row", marginTop: 4 }}>
             <Button
-              label={COMMUNITY_CREATE_CLUB_GROUP_LABEL}
+              label={m.community.action.createClubGroup}
               onPress={props.onCreateClubGroup}
             />
           </View>
@@ -178,13 +172,15 @@ function GroupsTab(props: CommunityHomeViewProps & { canCreate: boolean }) {
 }
 
 function TeamsTab(props: CommunityHomeViewProps) {
+  const m = useMessages();
+  const locale = useLocale();
   if (props.data.teams.length === 0) {
-    return <Notice {...COMMUNITY_NO_TEAMS_EMPTY} />;
+    return <Notice {...m.community.noTeamsEmpty} />;
   }
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       {props.data.teams.map((team, index) => {
-        const row = communityTeamRow(team);
+        const row = communityTeamRow(team, locale);
         return (
           <View key={row.id}>
             {index > 0 ? <Hairline /> : null}
@@ -192,7 +188,7 @@ function TeamsTab(props: CommunityHomeViewProps) {
               accessibilityRole="button"
               accessibilityLabel={[row.displayName, row.sport]
                 .filter(Boolean)
-                .join(", ")}
+                .join(m.group.metaSeparator)}
               onPress={() => props.onOpenTeam(row.id)}
               style={({ pressed }) => ({
                 minHeight: 64,
@@ -229,9 +225,11 @@ function TeamsTab(props: CommunityHomeViewProps) {
 
 export function CommunityHomeView(props: CommunityHomeViewProps) {
   const { data } = props;
-  const header = communityHomeHeader(data);
+  const m = useMessages();
+  const locale = useLocale();
+  const header = communityHomeHeader(data, locale);
   const actions = communityHomeActions(data);
-  const banner = communityArchiveBanner(data);
+  const banner = communityArchiveBanner(data, locale);
   const tabs = communityAvailableTabs(data);
   const tab = tabs.includes(props.tab) ? props.tab : "groups";
 
@@ -269,7 +267,7 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {actions.canInvite ? (
             <Button
-              label={COMMUNITY_MANAGE_INVITES_LABEL}
+              label={m.community.action.manageInvites}
               size="sm"
               variant="outline"
               onPress={props.onInvite}
@@ -277,7 +275,7 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
           ) : null}
           {actions.canUnarchive ? (
             <Button
-              label={COMMUNITY_UNARCHIVE_LABEL}
+              label={m.community.action.unarchive}
               size="sm"
               variant="outline"
               pending={props.unarchivePending}
@@ -286,7 +284,7 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
           ) : null}
           {actions.canLeave ? (
             <Button
-              label={COMMUNITY_LEAVE_LABEL}
+              label={m.community.action.leave}
               size="sm"
               variant="outline"
               onPress={props.onLeave}
@@ -294,7 +292,7 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
           ) : null}
           {actions.canSoftArchive ? (
             <Button
-              label={COMMUNITY_SOFT_ARCHIVE_LABEL}
+              label={m.community.action.softArchive}
               size="sm"
               variant="outline"
               onPress={props.onArchive}
@@ -320,7 +318,7 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
 
       {communityCanRequestJoin(data) ? (
         <Button
-          label={COMMUNITY_REQUEST_JOIN_LABEL}
+          label={m.community.action.requestJoin}
           size="lg"
           pending={props.joinPending}
           onPress={props.onRequestJoin}
@@ -332,7 +330,7 @@ export function CommunityHomeView(props: CommunityHomeViewProps) {
           {tabs.map((entry) => (
             <Button
               key={entry}
-              label={communityTabLabel(entry, props.requestCount)}
+              label={communityTabLabel(entry, props.requestCount, locale)}
               size="sm"
               variant={entry === tab ? "default" : "outline"}
               selected={entry === tab}

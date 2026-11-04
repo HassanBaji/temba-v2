@@ -9,6 +9,7 @@ import {
   SummaryCardFooter,
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag, OpenSeat } from "~/components/temba/seat";
@@ -29,7 +30,7 @@ import {
   gameCardSubtitle,
   sideJoinAccessibleName,
 } from "@repo/domain/game-card";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
 import {
   gameCardActionLabel,
@@ -53,6 +54,7 @@ type HubListSide =
 type HubListSideOccupant = NonNullable<HubListSide["left"]>;
 
 function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
+  const m = useMessages();
   if (occupant) {
     return (
       <div
@@ -73,7 +75,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
             "text-muted-foreground text-eyebrow max-w-full truncate font-light leading-none",
           )}
         >
-          {occupant.isViewer ? "You" : firstName(occupant.name)}
+          {occupant.isViewer ? m.common.you : firstName(occupant.name)}
         </p>
       </div>
     );
@@ -83,7 +85,7 @@ function SeatChip({ occupant }: { occupant: HubListSideOccupant | null }) {
     <div className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
       <OpenSeat size="chip" />
       <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
-        Open
+        {m.webGame.seatBlocks.open}
       </small>
     </div>
   );
@@ -102,6 +104,8 @@ function SideJoinButton({
   pending: boolean;
   onJoin: (sideIndex: number, position: "left" | "right") => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <div
       className="pointer-events-auto relative z-10 flex min-h-9 min-w-0 flex-1 items-center"
@@ -116,7 +120,12 @@ function SideJoinButton({
         variant="ghost"
         className="text-body h-auto min-h-9 w-full rounded-lg px-2 py-1.5 font-semibold"
         disabled={pending}
-        aria-label={sideJoinAccessibleName(sideIndex, position, partnerName)}
+        aria-label={sideJoinAccessibleName(
+          sideIndex,
+          position,
+          partnerName,
+          locale,
+        )}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -126,7 +135,7 @@ function SideJoinButton({
         <span className="flex min-w-0 flex-1 flex-col items-center gap-[5px]">
           <OpenSeat size="chip" />
           <small className="text-muted-foreground text-eyebrow max-w-full truncate leading-none">
-            Join {position === "left" ? "Left" : "Right"}
+            {m.webGame.summary.joinPosition(m.game.players[position])}
           </small>
         </span>
       </Button>
@@ -206,6 +215,7 @@ function FriendlyRoster({
   actionPending: boolean;
   onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
 }) {
+  const m = useMessages();
   return (
     <div
       className="border-rule mt-[18px] flex items-center gap-2.5 border-t pt-[18px]"
@@ -218,7 +228,7 @@ function FriendlyRoster({
               aria-hidden="true"
               className="text-muted-foreground text-eyebrow shrink-0 font-semibold"
             >
-              vs
+              {m.webGame.joinSheet.versus}
             </span>
           ) : null}
           <SideRoster
@@ -246,7 +256,7 @@ function MetaCell({
     <div
       className={cn(
         "min-w-0 flex-1",
-        ruled ? "border-rule border-l pl-4" : null,
+        ruled ? "border-rule border-s ps-4" : null,
       )}
     >
       <b className="text-lead block font-semibold tracking-[-0.01em]">
@@ -262,15 +272,19 @@ function MetaCell({
 }
 
 function OpenFlag({ openSpots }: { openSpots: number }) {
+  const locale = useLocale();
   if (openSpots <= 0) {
-    return <span className="text-muted-foreground">{spotsOpenLabel(0)}</span>;
+    return (
+      <span className="text-muted-foreground">{spotsOpenLabel(0, locale)}</span>
+    );
   }
 
-  return <HatchFlag>{spotsOpenLabel(openSpots)}</HatchFlag>;
+  return <HatchFlag>{spotsOpenLabel(openSpots, locale)}</HatchFlag>;
 }
 
 export function GameSummaryCard({
   name,
+  hasCustomName,
   startTime,
   groupName,
   format,
@@ -303,6 +317,8 @@ export function GameSummaryCard({
   rated = true,
 }: {
   name: string | null;
+  /** Omitted by callers that predate it, which keep showing `name` as given. */
+  hasCustomName?: boolean;
   startTime: Date | string;
   groupName?: string | null;
   format?: string | null;
@@ -334,6 +350,8 @@ export function GameSummaryCard({
   courtName?: string | null;
   rated?: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [startAtPartner, setStartAtPartner] = React.useState(false);
   const [now, setNow] = React.useState(() => new Date());
@@ -346,38 +364,51 @@ export function GameSummaryCard({
     return () => window.clearInterval(timer);
   }, []);
 
-  const title = venueName ?? name ?? "Untitled Game";
+  const customName =
+    hasCustomName === undefined
+      ? name
+      : gameCustomName({ name, hasCustomName });
+  const title = venueName ?? customName ?? m.webGame.summary.untitledGame;
   const subtitle = gameCardSubtitle(
-    venueName,
-    location,
-    venueName ? name : null,
-    courtName,
+    {
+      venueName,
+      location,
+      customName: venueName ? customName : null,
+      courtName,
+      windowEnd,
+    },
+    locale,
   );
-  const formatMeta = roundLabel ?? (format ? gameFormatLabel(format) : null);
-  const durationMeta = formatWindowDuration(windowStart, windowEnd);
-  const levelMeta = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
-  const priceAmount = formatPricePerPlayerFils(pricePerPlayerFils);
+  const formatMeta =
+    roundLabel ?? (format ? gameFormatLabel(format, locale) : null);
+  const durationMeta = formatWindowDuration(windowStart, windowEnd, locale);
+  const levelMeta = formatLevelRangeLabel(
+    levelMinTenths,
+    levelMaxTenths,
+    locale,
+  );
+  const priceAmount = formatPricePerPlayerFils(pricePerPlayerFils, locale);
   const { showRoster, openSpots, hasOpenCount } = gameCardOpenSpots({
     sides,
     registeredUserCount,
     playersAllowed,
   });
-  const sportTag = gameCardSportTag(sport);
+  const sportTag = gameCardSportTag(sport, locale);
   const rosterOccupancy = gameCardRosterOccupancy({
     format: format ?? "",
     sport,
     registeredUserCount: registeredUserCount ?? 0,
     playersAllowed,
   });
-  const dayLabel = formatGameCardDay(startTime);
-  const kickoff = formatHomeKickoff(startDate);
-  const countdown = formatHomeCountdown(startDate, now);
+  const dayLabel = formatGameCardDay(startTime, locale);
+  const kickoff = formatHomeKickoff(startDate, locale);
+  const countdown = formatHomeCountdown(startDate, now, locale);
   const showFooterAction =
     primaryAction != null &&
     showsGameCardFooterAction(primaryAction, showRoster);
   const ctaText =
     showFooterAction && primaryAction
-      ? gameCardActionLabel(primaryAction, {
+      ? gameCardActionLabel(primaryAction, locale, {
           viewerIn: viewerStatus === "in",
           openSpots,
         })
@@ -389,7 +420,7 @@ export function GameSummaryCard({
   const solidCta =
     Boolean(ctaText) &&
     primaryAction != null &&
-    gameCardActionSolid(ctaText ?? "", primaryAction);
+    gameCardActionSolid(ctaText ?? "", primaryAction, locale);
 
   function handleCta() {
     if (primaryAction === "join") {
@@ -407,7 +438,7 @@ export function GameSummaryCard({
   }
 
   const pendingLabel =
-    primaryAction === "register" ? "Registering…" : "Joining…";
+    primaryAction === "register" ? m.webGame.registering : m.game.cta.joining;
   const actionVariant = solidCta ? "default" : "outline";
   const actionControl =
     interactiveCta && ctaText ? (
@@ -469,7 +500,12 @@ export function GameSummaryCard({
     <li data-slot="game-summary-card">
       <SummaryCardShell
         href={href}
-        linkLabel={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
+        linkLabel={m.webGame.summary.linkLabel(
+          title,
+          dayLabel,
+          kickoff.time,
+          kickoff.meridiem,
+        )}
       >
         <SummaryCardBody>
           <div className="text-muted-foreground text-meta flex items-center justify-between font-medium">
@@ -484,7 +520,7 @@ export function GameSummaryCard({
             </span>
             {!rated ? (
               <Badge variant="outline" data-slot="game-card-unrated">
-                {UNRATED_LABEL}
+                {m.common.unrated}
               </Badge>
             ) : null}
             {cancelled ? (
@@ -494,7 +530,9 @@ export function GameSummaryCard({
                 {rosterOccupancy ? (
                   <span
                     className="tabular-nums"
-                    aria-label={`${rosterOccupancy.label} players`}
+                    aria-label={m.webGame.summary.occupancyPlayers(
+                      rosterOccupancy.label,
+                    )}
                   >
                     {rosterOccupancy.label}
                   </span>
@@ -512,7 +550,7 @@ export function GameSummaryCard({
               {kickoff.meridiem}
             </i>
             {countdown ? (
-              <i className="text-muted-foreground ml-auto text-[13.5px] not-italic">
+              <i className="text-muted-foreground ms-auto text-[13.5px] not-italic">
                 {countdown}
               </i>
             ) : null}
@@ -528,14 +566,18 @@ export function GameSummaryCard({
           {showPrice || formatCell ? (
             <div className="border-rule mt-4 flex gap-4 border-t pt-4">
               {levelMeta ? (
-                <MetaCell value={levelMeta ?? ""} note={"Level"} />
+                <MetaCell value={levelMeta ?? ""} note={m.common.level} />
               ) : null}
 
               {showPrice && priceAmount ? (
                 <MetaCell
                   ruled={levelMeta != null}
                   value={priceAmount}
-                  note={priceAmount === "Free" ? null : "per player"}
+                  note={
+                    priceAmount === m.createGame.price.free
+                      ? null
+                      : m.webGame.summary.perPlayer
+                  }
                 />
               ) : null}
 
@@ -561,7 +603,11 @@ export function GameSummaryCard({
 
         <SummaryCardFooter>
           <div className="min-w-0 flex-1 text-[13.5px]">
-            {formatMeta ? <p className="truncate">{formatMeta}</p> : null}
+            {groupName ? (
+              <p className="truncate">{m.game.played.group}</p>
+            ) : formatMeta ? (
+              <p className="truncate">{formatMeta}</p>
+            ) : null}
             {groupName ? (
               <small className="text-muted-foreground mt-0.5 block truncate text-[12.5px]">
                 {groupName}
@@ -590,7 +636,7 @@ export function GameSummaryCard({
                       setPickerOpen(true);
                     }}
                   >
-                    Join with a partner
+                    {m.game.joinSheet.joinWithPartner.title}
                   </Button>
                 </div>
               ) : null}

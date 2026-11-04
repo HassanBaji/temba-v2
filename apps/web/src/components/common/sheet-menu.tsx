@@ -50,7 +50,7 @@ export function SheetMenuRow({
   const Trailing = trailing === "chevron" ? ChevronRight : trailing;
   const inactive = disabled || pending;
   const className = cn(
-    "hover:bg-wash focus-visible:ring-ring/50 flex min-h-[54px] w-full items-center gap-3.5 px-[18px] text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
+    "hover:bg-wash focus-visible:ring-ring/50 flex min-h-[54px] w-full items-center gap-3.5 px-[18px] text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
     hint ? "py-3" : "py-0",
     tone === "danger" ? "text-destructive" : "text-ink",
     inactive && "pointer-events-none opacity-50",

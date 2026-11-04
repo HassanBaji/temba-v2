@@ -6,7 +6,7 @@ import {
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
   ratingImpactView,
-  UNRATED_LABEL,
+  unratedLabel,
 } from "./game-rating-impact";
 
 describe("ratingImpactChangeMagnitude", () => {
@@ -43,6 +43,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "C2",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: 4,
+      locale: "en",
     });
     assert.equal(
       sentence,
@@ -55,6 +56,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "C2",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: 1,
+      locale: "en",
     });
     assert.match(sentence, /1 more rated game and/);
   });
@@ -64,6 +66,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "D1",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: null,
+      locale: "en",
     });
     assert.match(sentence, /1 more rated game and/);
   });
@@ -73,6 +76,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "B1",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,
+      locale: "en",
     });
     assert.doesNotMatch(sentence, /locks in/i);
     assert.match(sentence, /confirmed/i);
@@ -83,6 +87,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "D2",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,
+      locale: "en",
     });
     assert.match(sentence, /^Still D\. /);
   });
@@ -98,38 +103,53 @@ describe("ratingImpactView", () => {
   };
 
   it("reads a rise with an unsigned magnitude and the new Level", () => {
-    const view = ratingImpactView(base);
+    const view = ratingImpactView(base, "en");
     assert.equal(view.direction, "up");
     assert.equal(view.magnitude, "0.2");
     assert.equal(view.newLevelLabel, "3.6");
     assert.equal(view.directionText, "Level increased by 0.2");
   });
 
+  it("reads the change in Arabic", () => {
+    const view = ratingImpactView(
+      { ...base, isProvisional: true, ratedMatchesRemainingToConfirm: 2 },
+      "ar",
+    );
+    assert.equal(view.directionText, "ارتفع المستوى بمقدار 0.2");
+    assert.equal(
+      view.sentence,
+      "ما زلت C. نحو مباراتين مصنّفتين أخريين ويتأكد مستواك.",
+    );
+  });
+
   it("reads a drop and no change in words", () => {
     assert.equal(
-      ratingImpactView({ ...base, levelChange: -0.4 }).directionText,
+      ratingImpactView({ ...base, levelChange: -0.4 }, "en").directionText,
       "Level decreased by 0.4",
     );
     assert.equal(
-      ratingImpactView({ ...base, levelChange: 0 }).directionText,
+      ratingImpactView({ ...base, levelChange: 0 }, "en").directionText,
       "Level unchanged",
     );
   });
 
   it("uses the Provisional sentence while the Level is unconfirmed", () => {
     assert.match(
-      ratingImpactView({
-        ...base,
-        isProvisional: true,
-        ratedMatchesRemainingToConfirm: 3,
-      }).sentence,
+      ratingImpactView(
+        {
+          ...base,
+          isProvisional: true,
+          ratedMatchesRemainingToConfirm: 3,
+        },
+        "en",
+      ).sentence,
       /About 3 more rated games/,
     );
   });
 });
 
-describe("UNRATED_LABEL", () => {
+describe("unratedLabel", () => {
   it("is the user-facing word for an Unrated Game", () => {
-    assert.equal(UNRATED_LABEL, "Unrated");
+    assert.equal(unratedLabel("en"), "Unrated");
   });
 });

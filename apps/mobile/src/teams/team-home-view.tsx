@@ -1,17 +1,8 @@
 import { colors, spacing } from "@repo/design-tokens";
 import { sportGlyph } from "@repo/domain/sport";
-import {
-  TEAM_DISSOLVE_LABEL,
-  TEAM_LEAVE_LABEL,
-  TEAM_NO_MEMBERS_COPY,
-  TEAM_REQUEST_LINK_DESCRIPTION,
-  TEAM_REQUEST_LINK_LABEL,
-  TEAM_REQUEST_LINK_SUBMIT_LABEL,
-  TEAM_UNLINK_LABEL,
-  type TeamHomeView as TeamHomeViewData,
-} from "@repo/domain/teams";
+import { type TeamHomeView as TeamHomeViewData } from "@repo/domain/teams";
 import type { TeamLinkCommunityPicker } from "@repo/domain/team-link-community-picker";
-import { NO_LINKABLE_COMMUNITY_COPY } from "@repo/domain/team-link-community-picker";
+import { noLinkableCommunityCopy } from "@repo/domain/team-link-community-picker";
 import { View } from "react-native";
 
 import {
@@ -19,6 +10,7 @@ import {
   type ConfirmRequest,
 } from "../game-details/confirm-sheet";
 import { Notice } from "../groups/notice";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { SportGlyph } from "../lib/sport-glyph";
@@ -59,6 +51,7 @@ export type TeamHomeViewProps = {
 };
 
 function Stats({ stats }: { stats: TeamHomeViewData["stats"] }) {
+  const m = useMessages();
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View style={{ flexDirection: "row" }}>
@@ -66,7 +59,10 @@ function Stats({ stats }: { stats: TeamHomeViewData["stats"] }) {
           <View key={stat.label} style={{ flex: 1, flexDirection: "row" }}>
             <View
               accessible
-              accessibilityLabel={`${stat.label} ${stat.value}`}
+              accessibilityLabel={m.mobileCommunity.team.statA11y(
+                stat.label,
+                stat.value,
+              )}
               style={{
                 flex: 1,
                 gap: 2,
@@ -95,11 +91,12 @@ function Stats({ stats }: { stats: TeamHomeViewData["stats"] }) {
 }
 
 function Members({ members }: { members: TeamHomeViewData["members"] }) {
+  const m = useMessages();
   if (members.length === 0) {
     return (
       <Notice
-        title={TEAM_NO_MEMBERS_COPY.title}
-        description={TEAM_NO_MEMBERS_COPY.description}
+        title={m.team.noMembers.title}
+        description={m.team.noMembers.description}
       />
     );
   }
@@ -112,11 +109,11 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
             accessible
             accessibilityLabel={[
               member.name,
-              member.isViewer ? "you" : null,
+              member.isViewer ? m.common.you : null,
               member.creatorLabel,
             ]
               .filter(Boolean)
-              .join(", ")}
+              .join(m.group.metaSeparator)}
             style={{
               minHeight: 56,
               flexDirection: "row",
@@ -132,7 +129,7 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
               </Text>
               {member.isViewer ? (
                 <Text size="meta" tone="muted">
-                  You
+                  {m.common.you}
                 </Text>
               ) : null}
             </View>
@@ -150,14 +147,16 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
 
 function LinkSheet(props: TeamHomeViewProps) {
   const { linkPicker } = props;
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <Sheet
       visible={props.linkOpen}
       onClose={props.onCloseLink}
-      title={TEAM_REQUEST_LINK_LABEL}
+      title={m.team.requestLinkLabel}
     >
       <Text size="meta" tone="muted">
-        {TEAM_REQUEST_LINK_DESCRIPTION}
+        {m.team.requestLinkDescription}
       </Text>
       {props.linkError ? (
         <Text size="meta" weight="medium" accessibilityRole="alert">
@@ -169,20 +168,20 @@ function LinkSheet(props: TeamHomeViewProps) {
       ) : linkPicker.status === "error" ? (
         <Notice
           alert
-          title="Communities could not be loaded"
+          title={m.community.errorTitle}
           description={props.linkPickerMessage}
           onRetry={props.onRetryCommunities}
         />
       ) : linkPicker.status === "empty" ? (
         <Notice
-          title="No Community to link"
-          description={NO_LINKABLE_COMMUNITY_COPY}
+          title={m.mobileCommunity.team.noCommunityToLink}
+          description={noLinkableCommunityCopy(locale)}
         />
       ) : (
         <View style={{ gap: 12 }}>
           <View
             accessibilityRole="radiogroup"
-            accessibilityLabel="Community"
+            accessibilityLabel={m.community.fallbackName}
             style={{ gap: 8 }}
           >
             {linkPicker.communities.map((community) => (
@@ -202,7 +201,7 @@ function LinkSheet(props: TeamHomeViewProps) {
           </View>
           <View style={{ flexDirection: "row" }}>
             <Button
-              label={TEAM_REQUEST_LINK_SUBMIT_LABEL}
+              label={m.team.requestLinkSubmitLabel}
               pending={props.linkPending}
               disabled={props.selectedCommunityId == null}
               onPress={props.onSubmitLink}
@@ -216,6 +215,7 @@ function LinkSheet(props: TeamHomeViewProps) {
 
 export function TeamHomeView(props: TeamHomeViewProps) {
   const { view } = props;
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.section }}>
       <View style={{ gap: spacing.compact }}>
@@ -244,7 +244,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
         </View>
         {view.linkedCommunity ? (
           <Text size="meta" tone="muted">
-            Linked to {view.linkedCommunity.name}
+            {m.mobileCommunity.team.linkedTo(view.linkedCommunity.name)}
           </Text>
         ) : null}
         {props.actionError ? (
@@ -277,7 +277,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
 
       <Stats stats={view.stats} />
 
-      <Section title="Members">
+      <Section title={m.community.tab.members}>
         {view.roster.label ? (
           <Text size="eyebrow" tone="muted" mono uppercase>
             {[view.roster.label, view.roster.status]
@@ -293,7 +293,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
       view.canUnlink ||
       view.canLeave ||
       view.canDissolve ? (
-        <Section title="Team actions">
+        <Section title={m.mobileCommunity.team.actionsTitle}>
           <View style={{ gap: 8 }}>
             {view.canInvite && !view.primaryInvite ? (
               <View style={{ flexDirection: "row" }}>
@@ -307,7 +307,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             {view.canRequestLink ? (
               <View style={{ flexDirection: "row" }}>
                 <Button
-                  label={TEAM_REQUEST_LINK_LABEL}
+                  label={m.team.requestLinkLabel}
                   variant="outline"
                   onPress={props.onOpenLink}
                 />
@@ -316,7 +316,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             {view.canUnlink ? (
               <View style={{ flexDirection: "row" }}>
                 <Button
-                  label={TEAM_UNLINK_LABEL}
+                  label={m.team.unlinkLabel}
                   variant="outline"
                   onPress={props.onUnlink}
                 />
@@ -325,7 +325,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             {view.canLeave ? (
               <View style={{ flexDirection: "row" }}>
                 <Button
-                  label={TEAM_LEAVE_LABEL}
+                  label={m.team.leaveLabel}
                   variant="outline"
                   onPress={props.onLeave}
                 />
@@ -334,7 +334,7 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             {view.canDissolve ? (
               <View style={{ flexDirection: "row" }}>
                 <Button
-                  label={TEAM_DISSOLVE_LABEL}
+                  label={m.team.dissolveLabel}
                   variant="outline"
                   onPress={props.onDissolve}
                 />

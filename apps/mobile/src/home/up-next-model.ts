@@ -4,13 +4,18 @@ import {
   formatWeekday,
 } from "@repo/domain/format-game-start";
 import { gameCardRosterOccupancy } from "@repo/domain/game-card";
-import { sideSizeLabel } from "@repo/domain/game-shape";
 import {
   homeComingUpRows,
   homeComingUpSeatBars,
 } from "@repo/domain/home-coming-up";
+import {
+  homeGameRowLines,
+  homeOpenSpotsLabel,
+} from "@repo/domain/home-game-lines";
 import { productDaysBetween } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { minutesBetween } from "../booking/booking-model";
 import { rowBadge } from "../booking/my-bookings-model";
@@ -96,38 +101,38 @@ export function upNextItems(
 export function upNextWeekLabel(
   items: readonly UpNextItem[],
   now: Date,
+  locale: Locale,
 ): string {
+  const m = messagesFor(locale).mobileHome.upNext;
   const count = items.filter(
     (item) => productDaysBetween(now, item.startsAt) < WEEK_DAYS,
   ).length;
-  return count === 0 ? "Nothing this week" : `${count} this week`;
+  return count === 0 ? m.nothingThisWeek : m.thisWeek(count);
 }
 
 /** "Today", a weekday inside the coming week, then a date. */
-export function upNextDayLabel(startsAt: Date, now: Date): string {
+export function upNextDayLabel(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string {
   const days = productDaysBetween(now, startsAt);
   if (days <= 0) {
-    return "Today";
+    return messagesFor(locale).common.today;
   }
   if (days < WEEK_DAYS) {
-    return formatWeekday(startsAt, "short");
+    return formatWeekday(startsAt, "short", locale);
   }
-  return formatDayMonth(startsAt);
-}
-
-function gamePlace(game: UpNextGame): string | null {
-  const side = game.football?.sideSize
-    ? sideSizeLabel(game.football.sideSize)
-    : null;
-  return [game.venue?.name, game.courtName ?? side].filter(Boolean).join(", ");
+  return formatDayMonth(startsAt, locale);
 }
 
 function gameRow(
   item: Extract<UpNextItem, { kind: "game" }>,
   shared: Pick<UpNextRowView, "key" | "day" | "time" | "sport">,
+  locale: Locale,
 ): UpNextRowView {
   const { game } = item;
-  const [row] = homeComingUpRows([game]);
+  const [row] = homeComingUpRows([game], locale);
 
   if (row?.kind === "tournament_match") {
     return {
@@ -135,9 +140,10 @@ function gameRow(
       title: row.title,
       detail: row.opponentLine,
       trailing: row.roundTag ? { kind: "tag", label: row.roundTag } : null,
-      spoken: [row.title, shared.day, shared.time, row.opponentLine]
-        .filter(Boolean)
-        .join(", "),
+      spoken: spokenParts(
+        [row.title, shared.day, shared.time, row.opponentLine],
+        locale,
+      ),
     };
   }
   if (row?.kind === "tournament") {
@@ -148,60 +154,79 @@ function gameRow(
       trailing: row.actionLabel
         ? { kind: "tag", label: row.actionLabel }
         : null,
-      spoken: [row.title, shared.day, shared.time, row.teamsLine]
-        .filter(Boolean)
-        .join(", "),
+      spoken: spokenParts(
+        [row.title, shared.day, shared.time, row.teamsLine],
+        locale,
+      ),
     };
   }
 
-  const place = gamePlace(game);
-  const title = game.name ?? game.groupName ?? game.venue?.name ?? "Game";
-  const detail = place && place !== title ? place : null;
-  const roster = gameCardRosterOccupancy(game)
-    ? `${game.registeredUserCount} of ${game.playersAllowed}`
-    : null;
-  const seats = row?.kind === "game" ? homeComingUpSeatBars(row) : null;
+  const { title, detail } = homeGameRowLines(game, locale);
+  const allowed = gameCardRosterOccupancy(game) ? game.playersAllowed : null;
+  const roster =
+    allowed != null
+      ? homeOpenSpotsLabel(game.registeredUserCount, allowed, locale)
+      : null;
+  const seats = row?.kind === "game" ? homeComingUpSeatBars(row, locale) : null;
   const trailing: UpNextTrailing | null = roster
     ? { kind: "text", label: roster }
     : seats && seats.bars.length > 0
       ? { kind: "bars", bars: seats.bars }
       : null;
-  const occupancy = roster ? `${roster} players` : (seats?.spokenLabel ?? null);
+  const occupancy = roster ?? seats?.spokenLabel ?? null;
 
   return {
     ...shared,
     title,
     detail,
     trailing,
-    spoken: [title, shared.day, shared.time, detail, occupancy]
-      .filter(Boolean)
-      .join(", "),
+    spoken: spokenParts(
+      [title, shared.day, shared.time, detail, occupancy],
+      locale,
+    ),
   };
 }
 
-export function upNextRowView(item: UpNextItem, now: Date): UpNextRowView {
+function spokenParts(
+  parts: readonly (string | null | undefined)[],
+  locale: Locale,
+): string {
+  return messagesFor(locale).mobileHome.join.parts(
+    parts.filter((part): part is string => Boolean(part)),
+  );
+}
+
+export function upNextRowView(
+  item: UpNextItem,
+  now: Date,
+  locale: Locale,
+): UpNextRowView {
   const shared = {
     key: item.key,
-    day: upNextDayLabel(item.startsAt, now),
-    time: formatGameClock(item.startsAt),
+    day: upNextDayLabel(item.startsAt, now, locale),
+    time: formatGameClock(item.startsAt, locale),
     sport: item.sport,
   };
   if (item.kind === "game") {
-    return gameRow(item, shared);
+    return gameRow(item, shared, locale);
   }
 
   const { booking } = item;
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
-  const detail = `${booking.court.name}, ${minutesBetween(startsAt, endsAt)} min`;
-  const badge = rowBadge({ ...booking, startsAt, endsAt }, now);
+  const detail = messagesFor(locale).mobileHome.upNext.bookingDetail(
+    booking.court.name,
+    minutesBetween(startsAt, endsAt),
+  );
+  const badge = rowBadge({ ...booking, startsAt, endsAt }, now, locale);
   return {
     ...shared,
     title: booking.venue.name,
     detail,
     trailing: { kind: "text", label: badge },
-    spoken: [booking.venue.name, shared.day, shared.time, detail, badge].join(
-      ", ",
+    spoken: spokenParts(
+      [booking.venue.name, shared.day, shared.time, detail, badge],
+      locale,
     ),
   };
 }

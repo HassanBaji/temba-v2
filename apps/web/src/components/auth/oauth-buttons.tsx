@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { GoogleIcon } from "~/components/ui/icons/google";
@@ -12,6 +14,7 @@ import {
   ssoCallbackUrl,
 } from "~/lib/auth-redirect";
 import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
+import { withGoogleLocale } from "@repo/domain/google-locale";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 import { cn } from "~/lib/utils";
 
@@ -23,7 +26,6 @@ import { cn } from "~/lib/utils";
 const ENABLED_OAUTH_PROVIDERS = [
   {
     strategy: "oauth_google" as const,
-    label: "Continue with Google",
     Icon: GoogleIcon,
   },
 ] as const;
@@ -39,6 +41,9 @@ export function OauthButtons({
   disabled?: boolean;
   surface?: SurfaceTone;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const clerk = useClerk();
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
   const [pending, setPending] = useState(false);
@@ -53,38 +58,50 @@ export function OauthButtons({
     }
     setError(null);
     setPending(true);
-    const redirectCallback = ssoCallbackUrl(
-      flow === "sign-in" ? "/login" : "/signup",
-      redirectUrl,
+    const redirectCallback = clerk.buildUrlWithAuth(
+      ssoCallbackUrl(flow === "sign-in" ? "/login" : "/signup", redirectUrl),
     );
     const complete = authCompleteUrl(redirectUrl);
     const signUpComplete = signUpCompleteUrl(redirectUrl);
+    // Clerk's authenticateWithRedirect gives no way to set Google's page
+    // language, so this is its create-then-redirect with `hl` added.
     try {
+      let googleUrl: URL | null;
       if (flow === "sign-in") {
         if (!signIn) {
           setPending(false);
           return;
         }
-        await signIn.authenticateWithRedirect({
+        const attempt = await signIn.create({
           strategy,
           redirectUrl: redirectCallback,
-          redirectUrlComplete: complete,
+          actionCompleteRedirectUrl: complete,
         });
-        return;
+        googleUrl =
+          attempt.firstFactorVerification.externalVerificationRedirectURL;
+      } else {
+        if (!signUp) {
+          setPending(false);
+          return;
+        }
+        const attempt = await signUp.create({
+          strategy,
+          redirectUrl: redirectCallback,
+          actionCompleteRedirectUrl: signUpComplete,
+          legalAccepted: true,
+        });
+        googleUrl =
+          attempt.verifications.externalAccount.externalVerificationRedirectURL;
       }
-      if (!signUp) {
+      if (!googleUrl) {
         setPending(false);
+        setError(m.auth.clerkError.generic);
         return;
       }
-      await signUp.authenticateWithRedirect({
-        strategy,
-        redirectUrl: redirectCallback,
-        redirectUrlComplete: signUpComplete,
-        legalAccepted: true,
-      });
+      window.location.assign(withGoogleLocale(googleUrl.toString(), locale));
     } catch (err) {
       setPending(false);
-      setError(clerkGlobalErrorMessage(err));
+      setError(clerkGlobalErrorMessage(err, locale));
     }
   }
 
@@ -100,12 +117,12 @@ export function OauthButtons({
             onInk ? "text-dim" : "text-muted-foreground",
           )}
         >
-          OR
+          {m.webAuth.oauth.or}
         </span>
         <div className={cn("h-px flex-1", onInk ? "bg-dimrule" : "bg-rule")} />
       </div>
       {error ? <FormErrorSummary message={error} /> : null}
-      {ENABLED_OAUTH_PROVIDERS.map(({ strategy, label, Icon }) => (
+      {ENABLED_OAUTH_PROVIDERS.map(({ strategy, Icon }) => (
         <Button
           key={strategy}
           type="button"
@@ -122,7 +139,7 @@ export function OauthButtons({
           }}
         >
           <Icon />
-          {label}
+          {m.webAuth.oauth.continueWithGoogle}
         </Button>
       ))}
     </div>

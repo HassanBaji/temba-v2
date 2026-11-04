@@ -11,6 +11,8 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import {
   communities,
   communityMembers,
@@ -127,6 +129,10 @@ function slotUserIds(team: GroupSlotTeam): string[] {
 export type GroupPlayedGame = {
   id: string;
   name: string | null;
+  hasCustomName: boolean;
+  format: string;
+  windowStart: Date | null;
+  windowEnd: Date | null;
   venueName: string | null;
   displayTime: Date;
   cancelled: boolean;
@@ -211,6 +217,7 @@ function toGroupPlayedGame(
   game: {
     id: string;
     name: string | null;
+    hasCustomName: boolean;
     groupId: string | null;
     cancelledAt: Date | null;
     windowStart: Date | null;
@@ -238,6 +245,10 @@ function toGroupPlayedGame(
   return {
     id: game.id,
     name: game.name,
+    hasCustomName: game.hasCustomName,
+    format: game.format,
+    windowStart: game.windowStart,
+    windowEnd: game.windowEnd,
     venueName: game.venue?.name ?? null,
     displayTime: played?.match.startTime ?? gameListTime(game),
     cancelled: game.cancelledAt !== null,
@@ -257,6 +268,7 @@ export async function groupById(
     now?: Date;
     gameHistory?: GroupGameHistoryPage;
     getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>;
+    locale?: Locale;
   },
 ) {
   const group = await requireGroup(database, args.groupId);
@@ -624,7 +636,11 @@ export async function groupById(
   // reads are built by the hub's own `toHubListRow` — one shape, not two
   // (spec §4.1). The viewer's Level range gates `canRegister` here exactly as
   // it does on the hub.
-  const viewer = await viewerHubContext(database, args.userId);
+  const viewer = await viewerHubContext(
+    database,
+    args.userId,
+    args.locale ?? DEFAULT_LOCALE,
+  );
   const upcomingRows = filterAndSortHomeUpcomingGames(
     groupGameRows,
     new Set([group.id]),
@@ -848,5 +864,6 @@ export const byId = protectedProcedure
       userId: appUser.id,
       gameHistory: input.gameHistory,
       getPublicMetadata: ctx.getPublicMetadata,
+      locale: ctx.locale,
     });
   });

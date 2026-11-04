@@ -6,11 +6,9 @@ import {
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
-  GROUP_MEMBERS_NO_MATCH_COPY,
   groupMembersLegend,
   groupPendingInvitesTitle,
 } from "@repo/domain/group-members-table";
-import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
 import {
   ChevronRight,
   EllipsisVertical,
@@ -19,6 +17,8 @@ import {
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -29,7 +29,6 @@ import { SearchField } from "../primitives/search-field";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import {
-  MEMBERS_EMPTY_COPY,
   memberIsRemovable,
   memberList,
   memberOrganizerAction,
@@ -46,6 +45,7 @@ const ROW_PADDING_LEFT = 16;
 const ROW_PADDING_RIGHT = 10;
 
 function YouMark() {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -56,7 +56,7 @@ function YouMark() {
       }}
     >
       <Text size="eyebrow" mono>
-        YOU
+        {m.mobileGroup.members.youMark}
       </Text>
     </View>
   );
@@ -75,6 +75,7 @@ function MemberRow({
   onOpen?: () => void;
   onManage?: () => void;
 }) {
+  const m = useMessages();
   const content = (
     <>
       <Avatar name={row.name} uri={row.imageUri} />
@@ -122,7 +123,7 @@ function MemberRow({
         {onManage ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Manage ${row.name}`}
+            accessibilityLabel={m.mobileGroup.members.manageName(row.name)}
             onPress={onManage}
             style={({ pressed }) => ({
               width: ACTION_WIDTH,
@@ -146,7 +147,7 @@ function MemberRow({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={row.accessibilityLabel}
-        accessibilityHint="Opens their Player profile"
+        accessibilityHint={m.mobileGroup.opensPlayerProfile}
         onPress={onOpen}
         style={({ pressed }) => ({ ...style, opacity: pressed ? 0.6 : 1 })}
       >
@@ -169,6 +170,7 @@ function TableHeader({
   managing: boolean;
   showLevel: boolean;
 }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -182,17 +184,17 @@ function TableHeader({
       }}
     >
       <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
-        Member
+        {m.mobileGroup.members.columnMember}
       </Text>
       {showLevel ? (
         <Text
           size="eyebrow"
           tone="muted"
           mono
-          accessibilityLabel="Level"
+          accessibilityLabel={m.common.level}
           style={{ width: LEVEL_WIDTH, textAlign: "center" }}
         >
-          LVL
+          {m.mobileGroup.members.columnLevel}
         </Text>
       ) : null}
       {managing ? <View style={{ width: ACTION_WIDTH }} /> : null}
@@ -207,11 +209,16 @@ function PendingInvitesCard({
   names: string[];
   onOpen: () => void;
 }) {
-  const title = groupPendingInvitesTitle(names.length);
+  const locale = useLocale();
+  const m = useMessages();
+  const title = groupPendingInvitesTitle(names.length, locale);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${names.join(", ")}`}
+      accessibilityLabel={m.mobileGroup.members.pendingInvites(
+        title,
+        names.join(", "),
+      )}
       onPress={onOpen}
       style={({ pressed }) => ({
         flexDirection: "row",
@@ -234,7 +241,11 @@ function PendingInvitesCard({
           {names.join(", ")}
         </Text>
       </View>
-      <ChevronRight size={sizes.iconRow + 2} color={colors.dim} />
+      <ChevronRight
+        size={sizes.iconRow + 2}
+        color={colors.dim}
+        style={mirrorInRtl}
+      />
     </Pressable>
   );
 }
@@ -287,16 +298,19 @@ export function MembersTab({
   /** Between the table and the pending invites card. */
   afterTable?: ReactNode;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const canManage =
     canSetLevel || canAddPlayers || canRemovePlayers || canAppointOrganizers;
   const isManaging = canManage && managing;
-  const legend = groupMembersLegend({ showLevel });
+  const legend = groupMembersLegend({ showLevel, locale });
   const list = memberList(
     leaderboard,
     query,
     apiOrigin,
+    locale,
     canSetLevel,
     canRemovePlayers,
     canAppointOrganizers,
@@ -318,7 +332,7 @@ export function MembersTab({
     return (
       <View style={{ gap: 14 }}>
         {top}
-        <Notice {...MEMBERS_EMPTY_COPY} />
+        <Notice {...m.mobileGroup.members.empty} />
         {afterTable}
       </View>
     );
@@ -334,8 +348,8 @@ export function MembersTab({
               <SearchField
                 value={query}
                 onChangeText={onQueryChange}
-                placeholder="Search members"
-                accessibilityLabel="Search members"
+                placeholder={m.mobileGroup.members.searchPlaceholder}
+                accessibilityLabel={m.mobileGroup.members.searchPlaceholder}
                 autoCorrect={false}
                 returnKeyType="search"
               />
@@ -343,7 +357,7 @@ export function MembersTab({
           </View>
           {canManage ? (
             <Button
-              label={isManaging ? "Done" : "Manage"}
+              label={isManaging ? m.common.done : m.mobileGroup.members.manage}
               variant={isManaging ? "default" : "outline"}
               selected={isManaging}
               onPress={() => setManaging((current) => !current)}
@@ -353,7 +367,7 @@ export function MembersTab({
       ) : null}
       {isManaging && canAddPlayers && onAddPlayer ? (
         <Button
-          label={ADD_PLAYER_ACTION}
+          label={m.group.addPlayer.action}
           variant="outline"
           icon={<UserRoundPlus size={sizes.iconRow} color={colors.ink} />}
           onPress={onAddPlayer}
@@ -369,7 +383,7 @@ export function MembersTab({
               tone="muted"
               style={{ paddingHorizontal: 18, paddingVertical: 22 }}
             >
-              {GROUP_MEMBERS_NO_MATCH_COPY}
+              {m.group.members.noMatch}
             </Text>
           </>
         ) : (
@@ -406,7 +420,7 @@ export function MembersTab({
         <PendingInvitesCard names={pendingInviteNames} onOpen={onOpenInvites} />
       ) : null}
       <MemberSheet
-        member={selected ? memberSheetView(selected, apiOrigin) : null}
+        member={selected ? memberSheetView(selected, locale, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
         onSetLevel={
           canSetLevel
@@ -430,12 +444,12 @@ export function MembersTab({
         }
         organizerLabel={
           organizerAction
-            ? groupMemberOrganizerActionLabel(organizerAction)
+            ? groupMemberOrganizerActionLabel(organizerAction, locale)
             : undefined
         }
         organizerHint={
           organizerAction
-            ? groupMemberOrganizerActionHint(organizerAction)
+            ? groupMemberOrganizerActionHint(organizerAction, locale)
             : undefined
         }
         onOrganizerAction={
@@ -443,7 +457,10 @@ export function MembersTab({
             ? () => {
                 setSelectedUserId(null);
                 onOrganizerAction(
-                  { userId: selected.userId, name: selected.name ?? "Member" },
+                  {
+                    userId: selected.userId,
+                    name: selected.name ?? m.mobileGroup.unnamedMember,
+                  },
                   organizerAction,
                 );
               }
@@ -455,7 +472,7 @@ export function MembersTab({
                 setSelectedUserId(null);
                 onRenameUnclaimed({
                   userId: selected.userId,
-                  name: selected.name ?? "Member",
+                  name: selected.name ?? m.mobileGroup.unnamedMember,
                 });
               }
             : undefined
@@ -468,7 +485,7 @@ export function MembersTab({
                 setSelectedUserId(null);
                 onRemovePlayer({
                   userId: selected.userId,
-                  name: selected.name ?? "Member",
+                  name: selected.name ?? m.mobileGroup.unnamedMember,
                 });
               }
             : undefined

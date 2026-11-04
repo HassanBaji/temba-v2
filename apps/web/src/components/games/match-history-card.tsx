@@ -1,217 +1,197 @@
 "use client";
 
 import { UserAvatar } from "~/components/common/user-avatar";
-import {
-  SummaryCardBody,
-  SummaryCardShell,
-} from "~/components/games/summary-card-shell";
+import { InkWonMark } from "~/components/games/played/played-hero";
+import { SummaryCardShell } from "~/components/games/summary-card-shell";
 import { ResultMark } from "~/components/temba/result-mark";
-import { setLabel, setShortLabel } from "@repo/domain/game-copy";
 import {
   matchHistoryCardModel,
   PENDING_SET_COLUMNS,
+  type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
-import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { resultMarkLabel } from "@repo/domain/result-mark";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type MatchHistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
-type MatchHistoryMember = MatchHistoryRow["slot1Members"][number];
 
-function SeatTile({
-  member,
-  onInk,
-}: {
-  member: MatchHistoryMember | null;
-  onInk: boolean;
-}) {
-  const shared = "-ml-1.5 size-[26px] shrink-0 rounded-sm first:ml-0";
+const CARD_INSET = "px-4";
 
-  if (!member) {
-    return <span aria-hidden="true" className={cn("hatch", shared)} />;
+const AVATAR_TILE =
+  "-ms-2 size-[30px] shrink-0 rounded-full border-2 border-paper first:ms-0";
+
+function AvatarStack({ team }: { team: HistoryTeamRow }) {
+  if (team.avatars.length === 0) {
+    return (
+      <span aria-hidden="true" className="flex shrink-0 ps-2">
+        <span className={cn("hatch", AVATAR_TILE)} />
+      </span>
+    );
   }
 
   return (
-    <UserAvatar
-      name={member.name}
-      image={member.image}
-      className={cn(
-        shared,
-        "[&_[data-slot=avatar-fallback]]:rounded-sm [&_[data-slot=avatar-fallback]]:text-[10px]",
-        onInk
-          ? "[&_[data-slot=avatar-fallback]]:bg-dimrule [&_[data-slot=avatar-fallback]]:text-paper"
-          : member.isViewer
-            ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
-            : "border-rule bg-paper [&_[data-slot=avatar-fallback]]:bg-paper border",
-      )}
-    />
+    <span className="flex shrink-0 ps-2">
+      {team.avatars.map((member) => (
+        <UserAvatar
+          key={member.id}
+          name={member.name}
+          image={member.image}
+          className={cn(
+            AVATAR_TILE,
+            "[&_[data-slot=avatar-fallback]]:bg-wash [&_[data-slot=avatar-fallback]]:text-ink [&_[data-slot=avatar-fallback]]:text-[9px] [&_[data-slot=avatar-fallback]]:font-semibold",
+          )}
+        />
+      ))}
+    </span>
   );
 }
 
-function SetHeader({ columns }: { columns: number }) {
-  return (
-    <div className="flex items-center gap-2 pr-3">
-      <span className="min-w-0 flex-1" />
-      <span className="flex shrink-0 gap-1.5">
-        {Array.from({ length: columns }, (_, index) => (
-          <span
-            key={index}
-            className="text-muted-foreground w-7 text-center font-mono text-[10px]"
-          >
-            <abbr title={setLabel(index)} className="no-underline">
-              {setShortLabel(index)}
-            </abbr>
-          </span>
+function TeamScores({ team }: { team: HistoryTeamRow }) {
+  if (!team.scores) {
+    return (
+      <span aria-hidden="true" className="flex shrink-0 gap-1.5">
+        {Array.from({ length: PENDING_SET_COLUMNS }, (_, index) => (
+          <span key={index} className="hatch h-[22px] w-[22px] rounded-md" />
         ))}
       </span>
-    </div>
+    );
+  }
+
+  const sets = team.scores.length > 1;
+
+  return (
+    <span className="flex shrink-0 items-baseline gap-1.5">
+      {team.scores.map((score, index) => (
+        <span
+          key={index}
+          className={cn(
+            "font-expanded min-w-[22px] text-end tabular-nums leading-none",
+            sets ? "text-title" : "text-h2",
+            score.lostSet ? "text-muted-foreground" : null,
+          )}
+        >
+          {score.games}
+        </span>
+      ))}
+    </span>
   );
 }
 
-function TeamRow({
-  members,
-  seats,
-  label,
-  note,
-  scores,
-  filled,
-  outlined,
-}: {
-  members: MatchHistoryMember[];
-  seats: number;
-  label: string;
-  note: string;
-  /** One entry per scored set, or `null` while the Match has no score. */
-  scores: { games: number; wonSet: boolean }[] | null;
-  /** Winners carry the ink fill; the viewer's losing side carries the outline. */
-  filled: boolean;
-  outlined: boolean;
-}) {
-  const openSeats = Math.max(seats - members.length, 0);
-
+function TeamRow({ team }: { team: HistoryTeamRow }) {
   return (
-    <div
-      className={cn(
-        "mt-1.5 flex items-center gap-2 rounded-lg px-3 py-2.5",
-        filled
-          ? "bg-ink text-paper"
-          : cn("border", outlined ? "border-ink" : "border-rule"),
-      )}
-    >
-      <span className="flex shrink-0">
-        {members.map((member) => (
-          <SeatTile key={member.id} member={member} onInk={filled} />
-        ))}
-        {Array.from({ length: openSeats }, (_, index) => (
-          <SeatTile key={`open-${index}`} member={null} onInk={filled} />
-        ))}
-      </span>
+    <div className="border-rule flex items-center gap-3 border-t py-3 first:border-t-0">
+      <AvatarStack team={team} />
 
-      <span className="flex min-w-0 flex-1 flex-col gap-px">
+      <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "text-body truncate",
-            filled || outlined ? "font-semibold" : null,
+            "text-body block truncate",
+            team.side === "mine" ? "font-semibold" : null,
+            team.lost ? "text-muted-foreground" : null,
           )}
         >
-          {label}
+          {team.label}
         </span>
-        <span
-          className={cn(
-            "font-mono text-[10px] uppercase",
-            filled ? "text-dim" : "text-muted-foreground",
-          )}
-        >
-          {note}
+        <span className="text-muted-foreground text-eyebrow mt-px block">
+          {team.note}
         </span>
       </span>
 
-      <span className="flex shrink-0 gap-1.5">
-        {scores
-          ? scores.map((score, index) => (
-              <span
-                key={index}
-                className={cn(
-                  "font-expanded text-lead w-7 text-center tabular-nums",
-                  score.wonSet
-                    ? null
-                    : filled
-                      ? "text-dim"
-                      : "text-muted-foreground",
-                )}
-              >
-                {score.games}
-              </span>
-            ))
-          : Array.from({ length: PENDING_SET_COLUMNS }, (_, index) => (
-              <span
-                key={index}
-                aria-hidden="true"
-                className="hatch h-[26px] w-7 rounded-md"
-              />
-            ))}
-      </span>
+      <TeamScores team={team} />
     </div>
   );
 }
 
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
-  const { scored, tally, setColumns, meta, groupName, teams } =
-    matchHistoryCardModel(row);
-  const won = row.outcome === "won";
+  const locale = useLocale();
+  const m = useMessages();
+  const model = matchHistoryCardModel(row, locale);
+  const won = model.outcome === "won";
+  const outcomeLabel = resultMarkLabel(model.outcome, locale);
 
   return (
     <li data-slot="match-history-card">
       <SummaryCardShell
         emphasis={won}
         href={`/dashboard/games/${row.id}`}
-        linkLabel={`${RESULT_MARK_LABEL[row.outcome]}, ${meta}`}
+        linkLabel={m.webGame.history.linkLabel(
+          outcomeLabel,
+          model.scoreLine,
+          model.meta,
+        )}
       >
-        <SummaryCardBody className="flex items-start gap-3 pb-4">
-          <ResultMark
-            variant={row.outcome}
-            decorative
-            className="mt-0.5 size-6"
-          />
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
-              <h3
-                className={cn(
-                  "font-expanded text-[22px]",
-                  won ? null : "text-muted-foreground",
-                )}
-              >
-                {RESULT_MARK_LABEL[row.outcome]}
-              </h3>
-              {scored ? (
-                <span className="font-expanded text-muted-foreground text-body tabular-nums">
-                  {tally.won}&ndash;{tally.lost} in sets
-                </span>
-              ) : (
-                <span className="text-muted-foreground text-meta">
-                  No score yet
-                </span>
+        <div className="pointer-events-none relative z-10 flex min-w-0 flex-col">
+          <div
+            className={cn(
+              "flex items-center gap-2.5 py-3",
+              CARD_INSET,
+              won ? "bg-ink text-paper" : "bg-wash text-ink",
+            )}
+          >
+            {won ? (
+              <InkWonMark className="size-4" />
+            ) : (
+              <ResultMark
+                variant={model.outcome}
+                decorative
+                className="size-4"
+              />
+            )}
+            <span className="text-body font-semibold">{outcomeLabel}</span>
+            <span
+              className={cn(
+                "text-meta tabular-nums",
+                won ? "text-dim" : "text-muted-foreground",
               )}
-            </div>
-            <p className="text-muted-foreground text-meta mt-0.5 truncate">
-              {meta}
-            </p>
+            >
+              {model.scoreLine}
+            </span>
+            <span
+              className={cn(
+                "text-eyebrow ms-auto whitespace-nowrap",
+                won ? "text-dim" : "text-muted-foreground",
+              )}
+            >
+              {model.day}
+            </span>
           </div>
 
-          {groupName ? (
-            <span className="text-muted-foreground mt-1 max-w-[38%] shrink-0 truncate text-right font-mono text-[10px] uppercase">
-              {groupName}
-            </span>
+          {model.sport || model.groupName ? (
+            <div
+              className={cn(
+                "flex items-center justify-between gap-3 pt-2.5",
+                CARD_INSET,
+              )}
+            >
+              {model.sport ? (
+                <span className="border-rule text-muted-foreground shrink-0 rounded-md border px-[7px] py-1 font-mono text-[10px] uppercase leading-none tracking-[0.08em]">
+                  {model.sport}
+                </span>
+              ) : null}
+              {model.groupName ? (
+                <span className="text-muted-foreground ms-auto min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.06em]">
+                  {model.groupName}
+                </span>
+              ) : null}
+            </div>
           ) : null}
-        </SummaryCardBody>
 
-        <SummaryCardBody className="pt-0">
-          {scored ? <SetHeader columns={setColumns} /> : null}
-          {teams.map((team) => (
-            <TeamRow key={team.side} {...team} />
-          ))}
-        </SummaryCardBody>
+          <div className={cn("flex flex-col pt-1", CARD_INSET)}>
+            {model.teams.map((team) => (
+              <TeamRow key={team.side} team={team} />
+            ))}
+          </div>
+
+          <div
+            className={cn(
+              "border-rule text-muted-foreground text-eyebrow border-t pb-3 pt-2.5",
+              CARD_INSET,
+            )}
+          >
+            <span className="block truncate">{model.place}</span>
+          </div>
+        </div>
       </SummaryCardShell>
     </li>
   );

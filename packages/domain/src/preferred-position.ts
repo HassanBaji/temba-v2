@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 /**
  * Preferred Position display: a User's standing preference for Left or Right,
  * or Either. The stored values are the `user_preferred_position` enum
@@ -15,21 +18,6 @@ export const PREFERRED_POSITIONS = ["left", "right", "either"] as const;
 
 export type PreferredPosition = (typeof PREFERRED_POSITIONS)[number];
 
-/** What an unanswered Preferred Position reads as. */
-export const PREFERRED_POSITION_UNSET_LABEL = "Not set";
-
-const PREFERRED_POSITION_LABELS: Record<PreferredPosition, string> = {
-  left: "Left",
-  right: "Right",
-  either: "Either",
-};
-
-const PREFERRED_POSITION_PROFILE_LINES: Record<PreferredPosition, string> = {
-  left: "Left side",
-  right: "Right side",
-  either: "Either side",
-};
-
 /** Narrows a stored column value onto the enum; anything else is unanswered. */
 export function isPreferredPosition(
   value: string | null | undefined,
@@ -38,39 +26,39 @@ export function isPreferredPosition(
 }
 
 /** The answer as a person reads it, or `Not set` when there is no answer. */
-export function preferredPositionLabel(value: string | null | undefined) {
+export function preferredPositionLabel(
+  value: string | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
   return isPreferredPosition(value)
-    ? PREFERRED_POSITION_LABELS[value]
-    : PREFERRED_POSITION_UNSET_LABEL;
+    ? m.profile.preferredPosition[value]
+    : m.common.notSet;
 }
-
-const PREFERRED_POSITION_UNSET_NOTE =
-  "Not set. We start you on the left when you register with a partner.";
-
-const PREFERRED_POSITION_NOTES: Record<PreferredPosition, string> = {
-  left: "We start you on the left when you register with a partner.",
-  right: "We start you on the right when you register with a partner.",
-  either: "Either side. Your partner's preference decides.",
-};
 
 /** Settings note line: how Preferred Position seeds partner-register side. */
-export function preferredPositionNote(value: string | null | undefined) {
-  return isPreferredPosition(value)
-    ? PREFERRED_POSITION_NOTES[value]
-    : PREFERRED_POSITION_UNSET_NOTE;
+export function preferredPositionNote(
+  value: string | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).profile.preferredPosition.note;
+  return isPreferredPosition(value) ? m[value] : m.unset;
 }
 
-export function preferredPositionProfileLine(value: string | null | undefined) {
+export function preferredPositionProfileLine(
+  value: string | null | undefined,
+  locale: Locale,
+) {
   return isPreferredPosition(value)
-    ? PREFERRED_POSITION_PROFILE_LINES[value]
+    ? messagesFor(locale).profile.preferredPosition.line[value]
     : null;
 }
 
 /** The choices the picker offers. `Not set` is absent: it is not an answer. */
-export const PREFERRED_POSITION_CHOICES: {
+export function preferredPositionChoices(locale: Locale): {
   value: PreferredPosition;
   label: string;
-}[] = PREFERRED_POSITIONS.map((value) => ({
-  value,
-  label: PREFERRED_POSITION_LABELS[value],
-}));
+}[] {
+  const m = messagesFor(locale).profile.preferredPosition;
+  return PREFERRED_POSITIONS.map((value) => ({ value, label: m[value] }));
+}

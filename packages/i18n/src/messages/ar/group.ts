@@ -1,0 +1,644 @@
+import { isolate } from "../../bidi";
+import { plural } from "../../plural";
+import type { group as source } from "../en/group";
+
+function winPoints(n: number) {
+  return plural("ar", n, {
+    one: "نقطة واحدة",
+    two: "نقطتان",
+    few: "{n} نقاط",
+    many: "{n} نقطة",
+    other: "{n} نقطة",
+  });
+}
+
+export const group = {
+  untitled: "مجموعة بلا اسم",
+  metaSeparator: "، ",
+  memberCount: (n: number) =>
+    plural("ar", n, {
+      zero: "0 أعضاء",
+      one: "عضو واحد",
+      two: "عضوان",
+      few: "{n} أعضاء",
+      many: "{n} عضوًا",
+      other: "{n} عضو",
+    }),
+  pastDay: {
+    today: "اليوم",
+    yesterday: "أمس",
+    daysAgo: (n: number) =>
+      plural("ar", n, {
+        one: "قبل يوم",
+        two: "قبل يومين",
+        few: "قبل {n} أيام",
+        many: "قبل {n} يومًا",
+        other: "قبل {n} يوم",
+      }),
+    requested: (when: string) => `طُلب ${when}`,
+  },
+  list: {
+    rowMeta: (members: string, rank: number) => `${members}، ترتيبك ${rank}`,
+    mineEmptyTitle: "لا مجموعات بعد",
+    mineEmptyCopy:
+      "اختر البادل أو كرة القدم، وادعُ اللاعبين، وتتولى Temba الترتيب والسجل.",
+    placeholderTitle: "مجموعتك الأولى",
+    publicEmptyTitle: "لا مجموعات عامة للانضمام إليها الآن",
+    publicEmptyLine: "تظهر المجموعات العامة هنا. أنشئ واحدة ليجدها اللاعبون.",
+    publicEmptyLineSport: (sport: string) =>
+      `تظهر مجموعات ${sport} العامة هنا. أنشئ واحدة ليجدها اللاعبون.`,
+  },
+  home: {
+    since: (month: string) => `منذ ${month}`,
+    backToCommunity: "العودة إلى المجتمع",
+    backToGroups: "العودة إلى المجموعات",
+    openSeats: "أماكن شاغرة",
+    playedOpponentLine: (team: string, day: string) => `${team}، ${day}`,
+    organizerAction: {
+      appoint: "تعيين منظّمًا",
+      dismiss: "إزالة كمنظّم",
+    },
+    organizerHint: {
+      appoint: "يمكنه إنشاء المباريات وتحديد الفرق وإضافة اللاعبين",
+      dismiss: "يفقد حق إنشاء المباريات وتحديد الفرق وإضافة اللاعبين",
+    },
+    organizerToast: {
+      appointed: (name: string) => `${name} أصبح منظّمًا الآن.`,
+      dismissed: (name: string) => `${name} لم يعد منظّمًا.`,
+    },
+  },
+  empty: {
+    standingAfterFirstResult: "يظهر الترتيب بعد أول نتيجة.",
+    standingSeatsFilled: (filled: number, total: number) =>
+      plural("ar", total, {
+        one: `شُغل ${filled} من مكان واحد. يظهر الترتيب بعد أول نتيجة.`,
+        two: `شُغل ${filled} من مكانين. يظهر الترتيب بعد أول نتيجة.`,
+        few: `شُغل ${filled} من {n} أماكن. يظهر الترتيب بعد أول نتيجة.`,
+        many: `شُغل ${filled} من {n} مكانًا. يظهر الترتيب بعد أول نتيجة.`,
+        other: `شُغل ${filled} من {n} مكان. يظهر الترتيب بعد أول نتيجة.`,
+      }),
+    games: "حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، تظهر هنا.",
+    gamesNeedPlayers: (sport: string, needed: number, have: number) =>
+      plural("ar", needed, {
+        one: `${sport}: يلزم لاعب واحد، ولديك ${have}. حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، تظهر هنا.`,
+        two: `${sport}: يلزم لاعبان، ولديك ${have}. حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، تظهر هنا.`,
+        few: `${sport}: يلزم {n} لاعبين، ولديك ${have}. حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، تظهر هنا.`,
+        many: `${sport}: يلزم {n} لاعبًا، ولديك ${have}. حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، تظهر هنا.`,
+        other: `${sport}: يلزم {n} لاعب، ولديك ${have}. حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، تظهر هنا.`,
+      }),
+    aGame: "المباراة",
+  },
+  join: {
+    archiveGamesCopy:
+      "تبقى المباريات الحالية مدرجة هنا، لا في المباريات العامة. الانضمام وقائمة الانتظار ودعوات المباريات مغلقة ما دام المجتمع مؤرشفًا.",
+    gamesEmptyDescription:
+      "حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، ستظهر هنا.",
+    requiresApprovalMeta: (members: string) => `${members} · تتطلب موافقة`,
+    label: {
+      requested: "تم الطلب",
+      requestToJoin: "طلب الانضمام",
+      requesting: "جارٍ الطلب…",
+      joining: "جارٍ الانضمام…",
+      joinGroup: "انضم إلى المجموعة",
+      join: "انضم",
+    },
+    toast: {
+      requested: "تم طلب الانضمام",
+      joined: "انضممت إلى المجموعة",
+      leftClub: "غادرت المجموعة، وما زلت في المجتمع",
+      left: "غادرت المجموعة",
+    },
+    leaveConfirm: {
+      title: (name: string) => `مغادرة ${name}؟`,
+      description: "ستغادر هذه المجموعة.",
+      confirmLabel: "مغادرة المجموعة",
+    },
+    banner: {
+      archivedVisitor: {
+        heading: "مجتمع هذه المجموعة النادوية مؤرشف",
+        body: "الانضمام مغلق. ما زال بإمكان أعضاء المجتمع فتح السجل والمباريات. هذه ليست صفحة مفقودة.",
+      },
+      archivedMember: {
+        heading: "المجتمع مؤرشف",
+        body: "تبقى هذه المجموعة النادوية مرتبطة بمجتمعها. ما زال بإمكانك فتحها ورؤية السجل والمباريات ما دام المجتمع مؤرشفًا.",
+      },
+      approvalJoinsCommunity: (community: string) =>
+        `إذا قُبل طلبك، تصبح أيضًا عضوًا في ${community}.`,
+      thisCommunity: "هذا المجتمع",
+    },
+  },
+  admin: {
+    requireApproval: "تتطلب موافقة",
+    requestsErrorTitle: "تعذّر تحميل طلبات الانضمام",
+    imageSavedToast: "تم حفظ الصورة",
+    imageRemovedToast: "تمت إزالة الصورة",
+    deletedToast: "تم حذف المجموعة",
+    deleteConfirm: {
+      title: (name: string) => `حذف ${name}؟`,
+      description: "لا يمكن التراجع عن هذا.",
+      confirmLabel: "حذف المجموعة",
+    },
+    removeImageConfirm: {
+      title: (name: string) => `إزالة صورة ${name}؟`,
+      description: "ستُزال الصورة الحالية.",
+      confirmLabel: "إزالة الصورة",
+    },
+    requestMeta: {
+      viaInviteLinkFrom: (name: string, when: string) =>
+        `عبر رابط دعوة من ${name}، ${when}`,
+      viaInviteLink: (when: string) => `عبر رابط دعوة، ${when}`,
+      foundInCommunity: (community: string, when: string) =>
+        `وجد المجموعة في ${community}، ${when}`,
+      theCommunity: "المجتمع",
+    },
+    requestsBanner: (n: number) =>
+      plural("ar", n, {
+        one: "شخص واحد يريد الانضمام",
+        two: "شخصان يريدان الانضمام",
+        few: "{n} أشخاص يريدون الانضمام",
+        many: "{n} شخصًا يريدون الانضمام",
+        other: "{n} شخص يريدون الانضمام",
+      }),
+    requestsHeading: (n: number) =>
+      plural("ar", n, {
+        one: "1 يريد الانضمام",
+        two: "2 يريدان الانضمام",
+        other: "{n} يريدون الانضمام",
+      }),
+    reviewLabel: "مراجعة",
+    changeLabel: "تغيير",
+    policy: {
+      approve: "يوافق المنظّمون على الأعضاء الجدد",
+      open: "يمكن لأي شخص لديه الرابط الانضمام",
+    },
+    requestsSummary: {
+      openLine: "انضمام فوري، بلا مراجعة",
+      waitingTitle: "لا طلبات بانتظار الرد",
+      approvedToday: (n: number) =>
+        `يوافق المنظّمون على الأعضاء الجدد، تمت الموافقة على ${n} اليوم`,
+    },
+    whoCanJoin: {
+      title: "من يمكنه الانضمام",
+      approve: {
+        title: "يوافق المنظّمون",
+        description: "تنتظر الطلبات في تبويب الأعضاء حتى تقرر.",
+      },
+      open: {
+        title: "أي شخص لديه الرابط",
+        description: "ينضمون فورًا. الطلبات المعلّقة لا تُقبل تلقائيًا.",
+      },
+      descriptionIn: (community: string) =>
+        `ينطبق على رابط الدعوة وعلى من يجد المجموعة في ${community}.`,
+      description: "ينطبق على رابط الدعوة وعلى من يجد المجموعة.",
+    },
+    reject: {
+      title: (name: string) => `رفض ${name}؟`,
+      description:
+        "لن يُشعَر بالرفض ويمكنه الطلب مجددًا. الرفض مع الحظر يوقف الطلبات اللاحقة.",
+      rejectLabel: "رفض الطلب",
+      blockLabel: "رفض وحظر",
+    },
+    decided: {
+      approved: (name: string) => `أُضيف ${name} إلى المجموعة`,
+      rejected: (name: string) => `رُفض ${name}`,
+      blocked: (name: string) => `رُفض ${name} وحُظر`,
+    },
+    undoLabel: "تراجع",
+    requestJoinSheet: {
+      title: "طلب الانضمام",
+      description:
+        "يوافق المنظّمون على الأعضاء الجدد. ملاحظة قصيرة تساعدهم على معرفة مستواك.",
+      notePlaceholder: "أضف ملاحظة (اختياري)",
+      submitLabel: "إرسال الطلب",
+    },
+  },
+  create: {
+    loose: {
+      publicLabel: "عامة (أي شخص لديه الرابط)",
+      privateLabel: "خاصة (بالدعوة فقط)",
+      publicHelp:
+        "يمكن لأي شخص لديه رابط المجموعة الانضمام، أو طلب الانضمام إذا اشترطت الموافقة.",
+      privateHelp: "أنت وحدك من يمكنه دعوة الأشخاص.",
+      approvalHelp:
+        "يطلب الأشخاص الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
+      submit: "إنشاء مجموعة",
+    },
+    club: {
+      publicLabel: "عامة (أعضاء المجتمع)",
+      privateLabel: "خاصة (بالدعوة فقط)",
+      publicHelp:
+        "يمكن لأي عضو في المجتمع الانضمام، أو طلب الانضمام إذا اشترطت الموافقة.",
+      privateHelp:
+        "يمكن للمالكين والمشرفين دعوة أي شخص. ويمكن لمنشئ المجموعة والمنظّمين دعوة أعضاء المجتمع.",
+      approvalHelp:
+        "يطلب أعضاء المجتمع الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
+      submit: "إنشاء مجموعة نادوية",
+    },
+    looseDescription:
+      "مجموعة من الأشخاص الذين تلعب معهم، خارج أي مجتمع. تنضم إليها كأول عضو.",
+    clubDescription: "مجموعة داخل مجتمعك. تنضم إليها كأول عضو.",
+    createdToast: "تم إنشاء المجموعة",
+    screen: {
+      title: "إنشاء مجموعة",
+      description: {
+        loose:
+          "المجموعة هي رفاقك المعتادون: رياضة واحدة، ترتيب واحد، ومباريات بلا حدود.",
+        club: "مجموعة داخل مجتمعك: رياضة واحدة، ترتيب واحد، ومباريات بلا حدود.",
+      },
+      photo: "صورة",
+      photoHelp: "صورة اختيارية، JPEG أو PNG",
+      nameLabel: "اسم المجموعة",
+      namePlaceholder: "مثلًا: رفاق بادل الثلاثاء",
+      sportLabel: "الرياضة",
+      sportHelp: "لا يمكن تغيير الرياضة بعد أول مباراة.",
+      visibilityLabel: "الظهور",
+      footnote: "يمكنك تغيير كل هذا لاحقًا.",
+    },
+    submitNamed: (name: string) => `إنشاء ${name}`,
+  },
+  linkRequest: {
+    venueRequestsTitle: "طلبات النوادي",
+    rowMeta: "أنت وحدك من يقرر، بصفتك منشئ المجموعة.",
+    acceptLabel: "قبول",
+    declineLabel: "رفض",
+    declinedToast: "تم رفض الطلب",
+    rowTitle: (venue: string, group: string) =>
+      `يريد ${venue} إضافة ${group} إلى مجتمعه`,
+    yourGroup: "مجموعتك",
+    thisGroup: "هذه المجموعة",
+    bannerText: (venue: string) =>
+      `يريد ${venue} إضافة هذه المجموعة إلى مجتمعه.`,
+    acceptedToast: (group: string, venue: string) =>
+      `${group} الآن جزء من ${venue}`,
+    acceptConfirm: {
+      title: (group: string, venue: string) =>
+        `إضافة ${group} إلى مجتمع ${venue}؟`,
+      description: (group: string) =>
+        `تصبح ${group} مجموعة نادوية. إليك ما يتغير.`,
+      confirmLabel: "إضافة المجموعة",
+      cancelLabel: "ليس الآن",
+      pendingLabel: "جارٍ الإضافة…",
+      consequences: {
+        members: "يصبح كل من في المجموعة عضوًا في المجتمع.",
+        noDirectJoin:
+          "لا يمكن للأشخاص الجدد الانضمام مباشرة. يرسلون طلبًا بدلًا من ذلك.",
+        noInviteLinks:
+          "لم يعد بإمكانك إنشاء روابط دعوة. ما زال بإمكانك دعوة أعضاء المجتمع الحاليين.",
+        gamesHeldAt: (venue: string) => `تُقام المباريات الجديدة في ${venue}.`,
+        verified:
+          "المجموعة موثّقة، فيمكنها استضافة مباريات مصنّفة ومباريات مفتوحة لأي شخص لديه الرابط.",
+      },
+    },
+    declineConfirm: {
+      title: (venue: string) => `رفض طلب ${venue}؟`,
+      description: (venue: string) =>
+        `سيرى ${venue} أنك رفضت. يمكنه إرسال طلب جديد لاحقًا.`,
+      confirmLabel: "رفض الطلب",
+      cancelLabel: "إبقاء الطلب",
+    },
+    partOf: (venue: string) => `جزء من ${venue}`,
+    unlinkLabel: "فك الارتباط",
+    leaveVenueLabel: (venue: string) => `مغادرة مجتمع ${venue}`,
+    leaveVenueConfirm: {
+      title: (venue: string) => `مغادرة مجتمع ${venue}؟`,
+      description: (group: string) =>
+        `تعود ${group} مجموعة حرة. ستكون المباريات الجديدة غير مصنّفة ما لم يوثّق مشغّل المجموعة.`,
+      confirmLabel: "مغادرة المجتمع",
+      cancelLabel: "البقاء",
+      pendingLabel: "جارٍ المغادرة…",
+      consequences: {
+        historyStays: "يبقى الأعضاء والمباريات السابقة والنتائج كما هي.",
+        membersStay: "يبقى الأعضاء في المجتمع حتى يغادروه بأنفسهم.",
+        anyVenue: "يمكن إقامة المباريات الجديدة في أي نادٍ.",
+        inviteLinks: "يمكنك إنشاء روابط دعوة مجددًا.",
+      },
+    },
+    leftVenueToast: (venue: string) => `غادرت مجتمع ${venue}`,
+    venueUnlinkConfirm: {
+      title: (group: string) => `فك ارتباط ${group}؟`,
+      description: (group: string) =>
+        `تغادر ${group} مجتمع ناديك وتصبح مجموعة حرة. ستكون المباريات الجديدة غير مصنّفة ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
+      confirmLabel: "فك ارتباط المجموعة",
+      cancelLabel: "إبقاء الارتباط",
+    },
+    venueUnlinkedToast: "تم فك ارتباط المجموعة",
+  },
+  members: {
+    organizer: "المنظّم",
+    lastPlayed: (day: string) => `آخر لعب ${day}`,
+    joined: (day: string) => `انضم ${day}`,
+    legend: "المستويات المخطّطة ما زالت مبدئية.",
+    noMatch: "لا أحد يطابق البحث.",
+    pendingInvitesTitle: (n: number) =>
+      plural("ar", n, {
+        one: "دعوة واحدة معلّقة",
+        two: "دعوتان معلّقتان",
+        few: "{n} دعوات معلّقة",
+        many: "{n} دعوة معلّقة",
+        other: "{n} دعوة معلّقة",
+      }),
+    invited: (day: string) => `دُعي ${day}`,
+  },
+  season: {
+    settingsIntro:
+      "يحصر الموسم الترتيب في فترة زمنية. المستويات لا تُعاد أبدًا مع الموسم.",
+    newStandingNote:
+      "يبدأ الترتيب فارغًا في الموسم الجديد. تبقى المستويات وسجل الفوز والخسارة والمواسم السابقة كما هي.",
+    status: {
+      upcoming: "قادم",
+      active: "جارٍ",
+      closed: "مغلق",
+    },
+    progress: (day: number, total: number) => `اليوم ${day} من ${total}`,
+    range: (start: string, end: string) => isolate(`${start} – ${end}`),
+    startsLine: (weekday: string, day: string) => `يبدأ ${weekday} ${day}`,
+    lockedLine: (day: string) => `يُقفل عند الإغلاق، ${day}`,
+    gamesCounted: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات محتسبة بعد",
+        one: "مباراة واحدة محتسبة",
+        two: "مباراتان محتسبتان",
+        few: "{n} مباريات محتسبة",
+        many: "{n} مباراة محتسبة",
+        other: "{n} مباراة محتسبة",
+      }),
+    overlapMessage: "لا يمكن أن تتداخل المواسم.",
+    orderMessage: "يجب أن ينتهي الموسم بعد بدايته.",
+    pickDaysMessage: "اختر يوم بداية ويوم نهاية.",
+    allTime: "كل المواسم",
+    suggestedName: (n: number) => `الموسم ${n}`,
+    upcomingName: (name: string) => `${name} (قادم)`,
+    summaryDays: (n: number) =>
+      plural("ar", n, {
+        one: "يوم واحد.",
+        two: "يومان.",
+        few: "{n} أيام.",
+        many: "{n} يومًا.",
+        other: "{n} يوم.",
+      }),
+    startsDayAfter: (previous: string) =>
+      `يبدأ في اليوم التالي لإغلاق ${previous}.`,
+    startsDaysAfter: (n: number, previous: string) =>
+      plural("ar", n, {
+        one: `يبدأ بعد يوم واحد من إغلاق ${previous}.`,
+        two: `يبدأ بعد يومين من إغلاق ${previous}.`,
+        few: `يبدأ بعد {n} أيام من إغلاق ${previous}.`,
+        many: `يبدأ بعد {n} يومًا من إغلاق ${previous}.`,
+        other: `يبدأ بعد {n} يوم من إغلاق ${previous}.`,
+      }),
+    closeEndsToday: "اليوم",
+    closeEndsEarly: (n: number) =>
+      plural("ar", n, {
+        one: "اليوم، قبل الموعد بيوم واحد",
+        two: "اليوم، قبل الموعد بيومين",
+        few: "اليوم، قبل الموعد بـ{n} أيام",
+        many: "اليوم، قبل الموعد بـ{n} يومًا",
+        other: "اليوم، قبل الموعد بـ{n} يوم",
+      }),
+    closeTitle: (name: string) => `إغلاق ${name}؟`,
+    closeAction: (name: string) => `إغلاق ${name} مبكرًا`,
+    closeBodyLead: "يُقفل الترتيب على وضعه الحالي.",
+    closeBodyCounted: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات مؤكدة تُحسب.",
+        one: "تُحسب مباراة واحدة مؤكدة.",
+        two: "تُحسب مباراتان مؤكدتان.",
+        few: "تُحسب {n} مباريات مؤكدة.",
+        many: "تُحسب {n} مباراة مؤكدة.",
+        other: "تُحسب {n} مباراة مؤكدة.",
+      }),
+    closeBodyWaiting: (n: number) =>
+      plural("ar", n, {
+        one: "مباراة واحدة ما زالت بانتظار النتيجة لن تُحسب.",
+        two: "مباراتان ما زالتا بانتظار النتيجة لن تُحسبا.",
+        few: "{n} مباريات ما زالت بانتظار النتيجة لن تُحسب.",
+        many: "{n} مباراة ما زالت بانتظار النتيجة لن تُحسب.",
+        other: "{n} مباراة ما زالت بانتظار النتيجة لن تُحسب.",
+      }),
+    createdToast: (name: string) => `تم إنشاء ${name}`,
+    closedToast: (name: string) => `تم إغلاق ${name}`,
+  },
+  standing: {
+    noGamesYet: "لا مباريات بعد",
+    fewerThan: (n: number) =>
+      plural("ar", n, {
+        one: "أقل من مباراة واحدة",
+        two: "أقل من مباراتين",
+        few: "أقل من {n} مباريات",
+        many: "أقل من {n} مباراة",
+        other: "أقل من {n} مباراة",
+      }),
+    setDifference: "فارق الأشواط",
+    scoreDifference: "فارق النتيجة",
+    rulesLine: (difference: string) =>
+      `تُمنح النقاط لكل لاعب في الفريق. تُحسب فقط المباريات ذات النتيجة النهائية المؤكدة. عند تساوي النقاط: الانتصارات، ثم المواجهات المباشرة، ثم ${difference}، ثم الأقل لعبًا.`,
+    legend: {
+      played: "ل لعب",
+      won: "ف فوز",
+      drawn: "ت تعادل",
+      lost: "خ خسارة",
+      points: (win: number) => `الفوز ${winPoints(win)}.`,
+      pointsWithDraw: (win: number, draw: number) =>
+        `الفوز ${winPoints(win)} والتعادل ${draw}.`,
+    },
+    oneGameRanks: "مباراة واحدة تكفي لترتيبك.",
+    playGamesToRank: (n: number) =>
+      plural("ar", n, {
+        one: "العب مباراة واحدة لتُرتَّب.",
+        two: "العب مباراتين لتُرتَّب.",
+        few: "العب {n} مباريات لتُرتَّب.",
+        many: "العب {n} مباراة لتُرتَّب.",
+        other: "العب {n} مباراة لتُرتَّب.",
+      }),
+  },
+  settings: {
+    sportSublabel: {
+      padel: "2 ضد 2",
+      football: "من 5 ضد 5 إلى 11 ضد 11",
+    },
+    visibility: {
+      public: {
+        title: "عامة",
+        descriptionClub: "تظهر في البحث وفي المجتمع.",
+        descriptionLoose: "تظهر في البحث وفي المجتمعات.",
+      },
+      private: {
+        title: "خاصة",
+        description: "مخفية عن البحث. لا يجدها إلا من لديه رابط الدعوة.",
+      },
+    },
+    joining: {
+      label: "الانضمام",
+      toggle: "مراجعة طلبات الانضمام",
+      toggleHelpOff: "ينضم أي شخص يجد المجموعة مباشرة.",
+      toggleHelpOn: "توافق على كل طلب قبل انضمامه.",
+      requestsWaiting: (n: number) =>
+        plural("ar", n, {
+          one: "طلب واحد بانتظارك في صفحة المجموعة.",
+          two: "طلبان بانتظارك في صفحة المجموعة.",
+          few: "{n} طلبات بانتظارك في صفحة المجموعة.",
+          many: "{n} طلبًا بانتظارك في صفحة المجموعة.",
+          other: "{n} طلب بانتظارك في صفحة المجموعة.",
+        }),
+    },
+    menu: {
+      edit: "تعديل المجموعة",
+      invite: "دعوة لاعبين",
+      copyLink: "نسخ رابط المجموعة",
+      leave: "مغادرة المجموعة",
+      leaveOwnerHint: "انقل الملكية أولًا.",
+    },
+    role: {
+      owner: "أنت مالك هذه المجموعة",
+      organizer: "أنت منظّم هذه المجموعة",
+      member: "أنت عضو",
+    },
+    linkCopiedToast: "تم نسخ رابط المجموعة",
+    linkResetToast: "أُعيد تعيين الرابط. الروابط القديمة لم تعد تعمل.",
+    ownerLeave: {
+      title: (name: string) => `سلّم ${name} لشخص آخر أولًا`,
+      description:
+        "أنت مالك هذه المجموعة. انقل الملكية إلى عضو آخر قبل المغادرة، أو احذف المجموعة.",
+      confirmLabel: "نقل الملكية",
+      cancelLabel: "ليس الآن",
+    },
+    edit: {
+      title: "تعديل المجموعة",
+      nameLabel: "اسم المجموعة",
+      nameHelp: "يرى الأعضاء الاسم الجديد فورًا",
+      photoChange: "تغيير",
+      photoRemove: "إزالة الصورة",
+      sportLabel: "الرياضة",
+      sportLocked:
+        "لا يمكن تغيير الرياضة بعد أول مباراة، لأن الترتيب مبني عليها.",
+      sportOpen: "تُقفل الرياضة بعد أول مباراة، لأن الترتيب مبني عليها.",
+      visibilityLabel: "الظهور",
+      inviteLinkLabel: "رابط الدعوة",
+      inviteLinkNone: "لا يوجد رابط دعوة بعد.",
+      inviteLinkCreate: "إنشاء رابط",
+      inviteLinkReset: "إعادة تعيين الرابط. الروابط القديمة لم تعد تعمل.",
+      ownershipLabel: "الملكية",
+      transferTitle: "نقل الملكية",
+      transferHint: "سلّم المجموعة إلى عضو آخر.",
+      deleteTitle: "حذف المجموعة",
+      deleteHint:
+        "يُحذف الترتيب للجميع وتُلغى المباريات القادمة. تبقى المباريات السابقة في سجل كل لاعب.",
+      save: "حفظ التغييرات",
+      discard: "تجاهل",
+      nothingChanged: "لم يتغير شيء بعد.",
+      unsavedChanges: "تغييرات غير محفوظة.",
+      savedToast: "تم حفظ التغييرات",
+    },
+    delete: {
+      title: (name: string) => `حذف ${name}؟`,
+      description:
+        "تُحذف المجموعة وترتيبها وأعضاؤها معها. تبقى المباريات السابقة في سجل كل لاعب. لا يُشعَر أحد. لا يمكن التراجع عن هذا.",
+      gamesStat: (n: number) =>
+        plural("ar", n, {
+          one: "مباراة",
+          two: "مباراتان",
+          few: "مباريات",
+          many: "مباراة",
+          other: "مباراة",
+        }),
+      membersStat: (n: number) =>
+        plural("ar", n, {
+          one: "عضو",
+          two: "عضوان",
+          few: "أعضاء",
+          many: "عضوًا",
+          other: "عضو",
+        }),
+      seasonsStat: (n: number) =>
+        plural("ar", n, {
+          one: "موسم",
+          two: "موسمان",
+          few: "مواسم",
+          many: "موسمًا",
+          other: "موسم",
+        }),
+      confirmPrompt: "اكتب اسم المجموعة للتأكيد",
+      deleteLabel: "حذف المجموعة",
+      keepLabel: "إبقاء المجموعة",
+    },
+    transfer: {
+      title: "نقل الملكية",
+      description: (name: string) =>
+        `سلّم ${name} إلى عضو آخر. يتولى المجموعة، وتبقى أنت منظّمًا.`,
+      empty:
+        "لا أحد آخر يمكنه امتلاك هذه المجموعة بعد. ادعُ لاعبًا على Temba أولًا.",
+      confirmLabel: "نقل الملكية",
+      confirmTo: (name: string) => `نقل إلى ${name}`,
+      transferredToast: (name: string, group: string) =>
+        `${name} يملك ${group} الآن`,
+      transferredToastUnnamed: (group: string) => `انتقلت ملكية ${group} الآن`,
+    },
+  },
+  addPlayer: {
+    action: "إضافة لاعب",
+    notOnTembaYet: "ليس على Temba بعد",
+    nameLabel: "اسمه",
+    description: "أضِف لاعبًا برقم هاتفه. لا يحتاج إلى التطبيق ليلعب.",
+    menuHint: "برقم الهاتف، دون حاجة إلى التطبيق",
+    addToGame: "إضافة إلى المباراة",
+    notSure: {
+      name: "غير متأكد",
+      detail: (level: string) => `يبدأ من ${level}.`,
+    },
+    noSeat: "كل المراكز مشغولة.",
+    noSide: "كل الجوانب ممتلئة.",
+    footballRole: {
+      player: { name: "لاعب", detail: "في الملعب" },
+      keeper: { name: "حارس", detail: "في المرمى" },
+    },
+    roles: { outfield: "لاعب ميدان", keeper: "حارس مرمى" },
+    positions: {
+      any: "أي مركز",
+      def: "مدافع",
+      mid: "وسط",
+      fwd: "مهاجم",
+    },
+    sideWith: (name: string) => `مع ${name}`,
+    sideOpen: "شاغر",
+    preview: {
+      thisPlayer: "هذا اللاعب",
+      alreadyOnGame: (name: string) => `${name} موجود في هذه المباراة بالفعل`,
+      account: (name: string) => `هذا ${name} (لديه حساب)`,
+      unclaimed: (name: string) =>
+        `موجود على Temba باسم ${name} (بلا حساب بعد)`,
+      new: "ليس على Temba بعد. أضف اسمه ومستواه الأولي.",
+      alreadyInGroup: (name: string) => `${name} في هذه المجموعة بالفعل`,
+      accountInvited: (name: string) =>
+        `هذا ${name} (لديه حساب). سيتلقى دعوة لقبولها.`,
+    },
+    addedToast: (name: string) => `أُضيف ${name}`,
+    groupDescription:
+      "أضف شخصًا برقم هاتفه. إن كان على Temba، يتلقى دعوة لقبولها.",
+    inviteSentToast: (name: string) => `أُرسلت دعوة إلى ${name}`,
+    removeAction: "إزالة من المجموعة",
+    removeConfirm: (name: string) =>
+      `إزالة ${name} من هذه المجموعة؟ تبقى مبارياته في السجل.`,
+    removedToast: (name: string) => `أُزيل ${name}`,
+    renameAction: "تعديل الاسم",
+    renameDescription:
+      "يبقى هاتفه كما هو. إن كان الرقم خاطئًا، أزله ثم أضفه مجددًا.",
+    renamedToast: (name: string) => `تغيّر الاسم إلى ${name}`,
+    seat: {
+      left: "يسار",
+      right: "يمين",
+      label: (team: string, side: string) => `${team} · ${side}`,
+    },
+  },
+  userName: {
+    firstRequired: "أدخل اسمك الأول",
+    lastRequired: "أدخل اسم عائلتك",
+    tooLong: (max: number) =>
+      plural("ar", max, {
+        one: "لا يتجاوز حرفًا واحدًا",
+        two: "لا يتجاوز حرفين",
+        few: "لا يتجاوز {n} أحرف",
+        many: "لا يتجاوز {n} حرفًا",
+        other: "لا يتجاوز {n} حرف",
+      }),
+  },
+} satisfies typeof source;

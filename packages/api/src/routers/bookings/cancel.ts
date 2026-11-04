@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings, venues } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { cancelWindowClosedMessage } from "@repo/domain/booking-copy";
 import { customerMayCancelAt } from "@repo/domain/booking-refund";
 import { isOccupyingBooking } from "@repo/domain/booking-slots";
@@ -17,7 +18,7 @@ type DbClient = typeof db;
 
 export async function cancelMyBooking(
   database: DbClient,
-  args: { bookingId: string; userId: string; now?: Date },
+  args: { bookingId: string; userId: string; now?: Date; locale?: Locale },
 ) {
   const now = args.now ?? new Date();
 
@@ -49,7 +50,10 @@ export async function cancelMyBooking(
       });
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: cancelWindowClosedMessage(venue?.phone ?? null),
+        message: cancelWindowClosedMessage(
+          venue?.phone ?? null,
+          args.locale ?? DEFAULT_LOCALE,
+        ),
       });
     }
 
@@ -75,5 +79,6 @@ export const cancelProcedure = protectedProcedure
     return cancelMyBooking(ctx.db, {
       bookingId: input.bookingId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

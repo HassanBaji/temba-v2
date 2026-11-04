@@ -15,18 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
-  MERGE_DISMISS_ACTION_LABEL,
-  MERGE_OPEN_POSITION_SR,
-  MERGE_PREVIEW_LABEL,
-  MERGE_PRIMARY_ACTION_LABEL,
-  MERGE_SAME_POSITION_COPY,
-  MERGE_SWAP_LABEL,
-  MERGE_TAKES_EFFECT_COPY,
-  MERGE_TAKES_EFFECT_KNOCKOUT_COPY,
   halfTeamsFromSides,
   mergeOccupantSubline,
   mergeOpenPositionLabel,
@@ -36,10 +29,6 @@ import {
   type MergePositionAssignment,
 } from "@repo/domain/tournament-half-teams";
 import { mergeSelection } from "@repo/domain/tournament-organizer";
-import {
-  LEFT_SEAT_LABEL,
-  RIGHT_SEAT_LABEL,
-} from "@repo/domain/tournament-home";
 
 type Side = {
   sideIndex: number;
@@ -85,6 +74,7 @@ export function TournamentHalfTeamsPanel({
   }) => void | Promise<void>;
   onDismiss: () => void;
 }) {
+  const m = useMessages();
   const halfTeams = halfTeamsFromSides(sides);
   const [firstId, setFirstId] = React.useState("");
   const [secondId, setSecondId] = React.useState("");
@@ -121,7 +111,9 @@ export function TournamentHalfTeamsPanel({
         {halfTeams.length > 2 && first && second ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field>
-              <FieldLabel htmlFor="first-half-team">First Half team</FieldLabel>
+              <FieldLabel htmlFor="first-half-team">
+                {m.webTournament.merge.firstHalfTeam}
+              </FieldLabel>
               <Select
                 value={first.gameTeamId}
                 onValueChange={(value) => {
@@ -146,7 +138,7 @@ export function TournamentHalfTeamsPanel({
             </Field>
             <Field>
               <FieldLabel htmlFor="second-half-team">
-                Second Half team
+                {m.webTournament.merge.secondHalfTeam}
               </FieldLabel>
               <Select
                 value={second.gameTeamId}
@@ -201,7 +193,7 @@ export function TournamentHalfTeamsPanel({
         <FormErrorSummary
           message={
             invalidPair
-              ? MERGE_SAME_POSITION_COPY
+              ? m.tournament.halfTeams.samePosition
               : globalFormErrorMessage(mergeError)
           }
         />
@@ -218,7 +210,9 @@ export function TournamentHalfTeamsPanel({
             void confirmMerge();
           }}
         >
-          {mergePending ? "Merging…" : MERGE_PRIMARY_ACTION_LABEL}
+          {mergePending
+            ? m.webTournament.merge.merging
+            : m.tournament.halfTeams.primaryAction}
         </Button>
         <Button
           type="button"
@@ -231,12 +225,12 @@ export function TournamentHalfTeamsPanel({
             onDismiss();
           }}
         >
-          {MERGE_DISMISS_ACTION_LABEL}
+          {m.tournament.halfTeams.dismissAction}
         </Button>
         <p className="text-muted-foreground text-meta text-center leading-relaxed">
           {knockoutOnly
-            ? MERGE_TAKES_EFFECT_KNOCKOUT_COPY
-            : MERGE_TAKES_EFFECT_COPY}
+            ? m.tournament.halfTeams.takesEffectKnockout
+            : m.tournament.halfTeams.takesEffect}
         </p>
       </div>
     </div>
@@ -244,13 +238,15 @@ export function TournamentHalfTeamsPanel({
 }
 
 function HalfTeamCard({ team, linked }: { team: HalfTeam; linked: boolean }) {
+  const m = useMessages();
+  const locale = useLocale();
   const levelLabel = occupantLevelLabel(team);
-  const openLabel = mergeOpenPositionLabel(team.openPosition);
+  const openLabel = mergeOpenPositionLabel(team.openPosition, locale);
 
   return (
     <div className="border-rule rounded-card min-w-0 flex-1 border p-4">
       <p className="text-eyebrow text-muted-foreground tabular-nums">
-        {mergeTeamEyebrow(team.sideIndex)}
+        {mergeTeamEyebrow(team.sideIndex, locale)}
       </p>
       <div className="mt-3 flex items-center gap-2.5">
         <UserAvatar
@@ -270,13 +266,13 @@ function HalfTeamCard({ team, linked }: { team: HalfTeam; linked: boolean }) {
             <span className="text-body truncate">{team.occupant.name}</span>
           )}
           <span className="text-muted-foreground text-eyebrow">
-            {mergeOccupantSubline(team.takenPosition, levelLabel)}
+            {mergeOccupantSubline(team.takenPosition, levelLabel, locale)}
           </span>
         </span>
       </div>
       <div className="border-rule relative mt-2 flex h-[52px] min-h-[52px] items-center justify-center overflow-hidden rounded-md border">
         <span aria-hidden="true" className="hatch absolute inset-0" />
-        <span className="sr-only">{MERGE_OPEN_POSITION_SR}</span>
+        <span className="sr-only">{m.tournament.halfTeams.openPositionSr}</span>
         <span
           aria-hidden="true"
           className="text-muted-foreground text-eyebrow relative"
@@ -301,6 +297,8 @@ function MergedPreview({
   mergePending: boolean;
   onSwap: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const left =
     assignment.firstPosition === "left"
       ? { team: first, position: assignment.firstPosition }
@@ -312,14 +310,20 @@ function MergedPreview({
 
   return (
     <div className="border-ink rounded-card border p-5">
-      <p className="text-muted-foreground text-meta">{MERGE_PREVIEW_LABEL}</p>
+      <p className="text-muted-foreground text-meta">
+        {m.tournament.halfTeams.previewLabel}
+      </p>
       <div className="mt-3.5 flex gap-2">
         <PreviewSeat occupant={left.team} position={left.position} />
         <PreviewSeat occupant={right.team} position={right.position} />
       </div>
       <div className="mt-3.5 flex items-center justify-between gap-3">
         <p className="text-muted-foreground text-meta min-w-0 flex-1">
-          {mergeSwapHint(second.occupant.name, assignment.firstPosition)}
+          {mergeSwapHint(
+            second.occupant.name,
+            assignment.firstPosition,
+            locale,
+          )}
         </p>
         <button
           type="button"
@@ -327,7 +331,7 @@ function MergedPreview({
           disabled={mergePending}
           className="focus-visible:ring-ring/50 text-meta min-h-11 min-w-11 shrink-0 rounded-sm font-semibold underline underline-offset-2 outline-none focus-visible:ring-[3px] disabled:opacity-50"
         >
-          {MERGE_SWAP_LABEL}
+          {m.tournament.halfTeams.swap}
         </button>
       </div>
     </div>
@@ -341,8 +345,11 @@ function PreviewSeat({
   occupant: HalfTeam;
   position: MergePositionAssignment["firstPosition"];
 }) {
+  const m = useMessages();
   const positionLabel =
-    position === "left" ? LEFT_SEAT_LABEL : RIGHT_SEAT_LABEL;
+    position === "left"
+      ? m.tournament.home.leftSeat
+      : m.tournament.home.rightSeat;
 
   return (
     <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">

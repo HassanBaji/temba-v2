@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   base64ByteLength,
-  GROUP_IMAGE_UNREADABLE,
+  groupImageUnreadable,
   pickedImage,
 } from "./group-image";
 
@@ -22,32 +22,38 @@ describe("base64ByteLength", () => {
 describe("pickedImage", () => {
   it("accepts a JPEG within the cap", () => {
     const dataBase64 = base64OfSize(1024);
-    expect(pickedImage({ mimeType: "image/jpeg", base64: dataBase64 })).toEqual(
-      { ok: true, contentType: "image/jpeg", dataBase64 },
-    );
+    expect(
+      pickedImage({ mimeType: "image/jpeg", base64: dataBase64 }, "en"),
+    ).toEqual({ ok: true, contentType: "image/jpeg", dataBase64 });
   });
 
   it("accepts an image exactly at the cap", () => {
     expect(
-      pickedImage({
-        mimeType: "image/png",
-        base64: base64OfSize(ENTITY_IMAGE_MAX_BYTES),
-      }).ok,
+      pickedImage(
+        {
+          mimeType: "image/png",
+          base64: base64OfSize(ENTITY_IMAGE_MAX_BYTES),
+        },
+        "en",
+      ).ok,
     ).toBe(true);
   });
 
   it("refuses an image over 2 MB with the web message", () => {
     expect(
-      pickedImage({
-        mimeType: "image/jpeg",
-        base64: base64OfSize(ENTITY_IMAGE_MAX_BYTES + 1),
-      }),
+      pickedImage(
+        {
+          mimeType: "image/jpeg",
+          base64: base64OfSize(ENTITY_IMAGE_MAX_BYTES + 1),
+        },
+        "en",
+      ),
     ).toEqual({ ok: false, error: "Image must be at most 2 MB" });
   });
 
   it("refuses the wrong type with the web message", () => {
     expect(
-      pickedImage({ mimeType: "image/heic", base64: base64OfSize(10) }),
+      pickedImage({ mimeType: "image/heic", base64: base64OfSize(10) }, "en"),
     ).toEqual({
       ok: false,
       error: "Image must be a JPEG, PNG, or WebP image",
@@ -55,9 +61,17 @@ describe("pickedImage", () => {
   });
 
   it("refuses an image with no bytes", () => {
-    expect(pickedImage({ mimeType: "image/jpeg", base64: null })).toEqual({
-      ok: false,
-      error: GROUP_IMAGE_UNREADABLE,
-    });
+    expect(pickedImage({ mimeType: "image/jpeg", base64: null }, "en")).toEqual(
+      {
+        ok: false,
+        error: groupImageUnreadable("en"),
+      },
+    );
+  });
+
+  it("refuses an image with no bytes in Arabic", () => {
+    const result = pickedImage({ mimeType: "image/jpeg", base64: null }, "ar");
+    expect(result.ok).toBe(false);
+    expect(groupImageUnreadable("ar")).toMatch(/[؀-ۿ]/);
   });
 });

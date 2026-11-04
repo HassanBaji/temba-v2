@@ -1,8 +1,7 @@
-import {
-  formatAbsoluteDay,
-  formatGameClock,
-  formatPlayedRelativeDay,
-} from "./format-game-start";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+import { formatAbsoluteDay, formatGameClock } from "./format-game-start";
 import type { FriendlyGameDetails } from "./friendly-game-details";
 import { friendlyGameDetailsPlan } from "./friendly-game-details";
 import {
@@ -82,11 +81,13 @@ export function friendlyGameHeroInput(
 
 export type FriendlyGameHeroVerdict = "won" | "lost" | "draw";
 
-export const HERO_VERDICT_WORD: Record<FriendlyGameHeroVerdict, string> = {
-  won: "Win",
-  lost: "Loss",
-  draw: "Draw",
-};
+export function heroVerdictWord(
+  verdict: FriendlyGameHeroVerdict,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).common;
+  return verdict === "won" ? m.win : verdict === "lost" ? m.loss : m.draw;
+}
 
 /**
  * Viewer-perspective read of the Match's outcome: which slot the viewer's
@@ -127,15 +128,23 @@ export function friendlyGameViewerPerspective(
   return { verdict, viewerSetWins, opponentSetWins, sets };
 }
 
-export function heroPriceFigure(pricePerPlayerFils: number | null) {
+export function heroPriceFigure(
+  pricePerPlayerFils: number | null,
+  locale: Locale,
+) {
   if (pricePerPlayerFils == null) {
     return "—";
   }
-  return formatPricePerPlayerFils(pricePerPlayerFils) ?? "—";
+  return formatPricePerPlayerFils(pricePerPlayerFils, locale) ?? "—";
 }
 
-export function heroDurationFigure(durationInMinutes: number | null) {
-  return durationInMinutes != null ? `${durationInMinutes}m` : "—";
+export function heroDurationFigure(
+  durationInMinutes: number | null,
+  locale: Locale,
+) {
+  return durationInMinutes != null
+    ? messagesFor(locale).game.hero.durationShort(durationInMinutes)
+    : "—";
 }
 
 export type FriendlyGameHeroFigure = {
@@ -176,7 +185,9 @@ export type FriendlyGameHeroModel =
 export function friendlyGameHeroModel(
   input: FriendlyGameHeroInput,
   now: Date,
+  locale: Locale,
 ): FriendlyGameHeroModel | null {
+  const m = messagesFor(locale).game.hero;
   const { windowStart, phase, match } = input;
   if (!windowStart) {
     return { kind: "time_unset", tone: "ink" };
@@ -191,10 +202,10 @@ export function friendlyGameHeroModel(
     return {
       kind: "final",
       tone: "paper",
-      dateLabel: formatAbsoluteDay(windowStart),
-      tag: "Rated match",
+      dateLabel: formatAbsoluteDay(windowStart, locale),
+      tag: m.ratedMatch,
       verdict,
-      verdictWord: verdict ? HERO_VERDICT_WORD[verdict] : null,
+      verdictWord: verdict ? heroVerdictWord(verdict, locale) : null,
       setLine:
         sets.length > 0
           ? sets
@@ -202,46 +213,50 @@ export function friendlyGameHeroModel(
               .join("  ")
           : null,
       venueName: input.venueName,
-      courtClockLine: [input.courtName, formatGameClock(windowStart)]
+      courtClockLine: [input.courtName, formatGameClock(windowStart, locale)]
         .filter(Boolean)
         .join(" · "),
       venueCity: input.venueCity,
       figures: [
         {
           key: "duration",
-          value: heroDurationFigure(match.durationInMinutes),
-          label: "Duration",
+          value: heroDurationFigure(match.durationInMinutes, locale),
+          label: m.duration,
         },
         {
           key: "won-by",
           value: `${viewerSetWins}–${opponentSetWins}`,
-          label: "Won by",
+          label: m.wonBy,
         },
       ],
     };
   }
 
-  const kickoff = formatHomeKickoff(windowStart);
-  const trailer = formatHeroKickoffTrailer(windowStart, input.windowEnd);
-  const dateLabel = formatAbsoluteDay(windowStart);
+  const kickoff = formatHomeKickoff(windowStart, locale);
+  const trailer = formatHeroKickoffTrailer(
+    windowStart,
+    input.windowEnd,
+    locale,
+  );
+  const dateLabel = formatAbsoluteDay(windowStart, locale);
   const statusLabel =
     phase === "needs_results"
-      ? formatPlayedRelativeDay(windowStart)
-      : formatHeroCountdown(phase, windowStart, now);
-  const duration = heroDurationFigure(match?.durationInMinutes ?? null);
+      ? messagesFor(locale).dates.countdown.endedEnterScore
+      : formatHeroCountdown(windowStart, input.windowEnd, now, locale);
+  const duration = heroDurationFigure(match?.durationInMinutes ?? null, locale);
   const figures: FriendlyGameHeroFigure[] =
     phase === "needs_results"
       ? [
-          { key: "score", value: "No score", label: "Nobody has added one" },
-          { key: "duration", value: duration, label: "Duration" },
+          { key: "score", value: m.noScore, label: m.nobodyAddedOne },
+          { key: "duration", value: duration, label: m.duration },
         ]
       : [
           {
             key: "price",
-            value: heroPriceFigure(input.pricePerPlayerFils),
-            label: "Price",
+            value: heroPriceFigure(input.pricePerPlayerFils, locale),
+            label: m.price,
           },
-          { key: "duration", value: duration, label: "Duration" },
+          { key: "duration", value: duration, label: m.duration },
         ];
   const partnerName =
     input.partnerBesideName === "" ? null : input.partnerBesideName;
@@ -254,12 +269,12 @@ export function friendlyGameHeroModel(
     kind: "scheduled",
     tone: surfaceToneForPhase(phase),
     phase,
-    leftLabel: partnerName ? "Seats booked" : dateLabel,
+    leftLabel: partnerName ? m.seatsBooked : dateLabel,
     statusLabel,
     partnerName,
     kickoffTime: kickoff.time,
     trailer,
-    dateLine: `${dateLabel}, ${kickoff.time}${trailer ? ` ${trailer}` : ""}`,
+    dateLine: m.dateLine(dateLabel, kickoff.time, trailer || null),
     scheduleLine,
     figures,
   };

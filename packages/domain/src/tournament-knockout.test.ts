@@ -156,7 +156,7 @@ describe("knockoutFeeds", () => {
 describe("Knockout round names and Match codes", () => {
   it("names each round by the teams left in it", () => {
     assert.deepEqual(
-      [1, 2, 3, 4, 5].map((round) => knockoutRoundName(round, 5)),
+      [1, 2, 3, 4, 5].map((round) => knockoutRoundName(round, 5, "en")),
       ["Round of 32", "Round of 16", "Quarter-finals", "Semi-finals", "Final"],
     );
   });
@@ -172,19 +172,25 @@ describe("Knockout round names and Match codes", () => {
 describe("knockoutOnlyReviewValue", () => {
   it("reads the first round and the Bye count", () => {
     assert.equal(
-      knockoutOnlyReviewValue(treeFor(12)),
+      knockoutOnlyReviewValue(treeFor(12), "en"),
       "Round of 16 onward. 4 byes",
     );
     assert.equal(
-      knockoutOnlyReviewValue(treeFor(14)),
+      knockoutOnlyReviewValue(treeFor(14), "en"),
       "Round of 16 onward. 2 byes",
     );
     assert.equal(
-      knockoutOnlyReviewValue(treeFor(7)),
+      knockoutOnlyReviewValue(treeFor(7), "en"),
       "Quarter-finals onward. 1 bye",
     );
-    assert.equal(knockoutOnlyReviewValue(treeFor(8)), "Quarter-finals onward");
-    assert.equal(knockoutOnlyReviewValue(treeFor(4)), "Semi-finals onward");
+    assert.equal(
+      knockoutOnlyReviewValue(treeFor(8), "en"),
+      "Quarter-finals onward",
+    );
+    assert.equal(
+      knockoutOnlyReviewValue(treeFor(4), "en"),
+      "Semi-finals onward",
+    );
   });
 });
 
@@ -347,11 +353,11 @@ describe("Qualifiers per Pool", () => {
 describe("Groups then knockout copy", () => {
   it("states the teams into the knockout and the Byes", () => {
     assert.equal(
-      qualifiersConsequenceLine(poolTreeFor(3, 2)),
+      qualifiersConsequenceLine(poolTreeFor(3, 2), "en"),
       "6 teams into the knockout, 2 byes.",
     );
     assert.equal(
-      qualifiersConsequenceLine(poolTreeFor(4, 2)),
+      qualifiersConsequenceLine(poolTreeFor(4, 2), "en"),
       "8 teams into the knockout.",
     );
   });
@@ -362,6 +368,7 @@ describe("Groups then knockout copy", () => {
         tree: poolTreeFor(3, 2),
         poolCount: 3,
         qualifiersPerPool: 2,
+        locale: "en",
       }),
       "Top two in each group, quarters onward. 2 byes",
     );
@@ -370,6 +377,7 @@ describe("Groups then knockout copy", () => {
         tree: poolTreeFor(1, 2),
         poolCount: 1,
         qualifiersPerPool: 2,
+        locale: "en",
       }),
       "Top two, final",
     );
@@ -378,6 +386,7 @@ describe("Groups then knockout copy", () => {
         tree: poolTreeFor(2, 2),
         poolCount: 2,
         qualifiersPerPool: 2,
+        locale: "en",
       }),
       "Top two in each group, semis, then the final",
     );
@@ -387,7 +396,7 @@ describe("Groups then knockout copy", () => {
 describe("knockoutMatchRoundName", () => {
   it("names one Match of each Knockout round", () => {
     assert.deepEqual(
-      [1, 2, 3, 4, 5].map((round) => knockoutMatchRoundName(round, 5)),
+      [1, 2, 3, 4, 5].map((round) => knockoutMatchRoundName(round, 5, "en")),
       ["Round of 32", "Round of 16", "Quarter-final", "Semi-final", "Final"],
     );
   });
@@ -396,8 +405,26 @@ describe("knockoutMatchRoundName", () => {
 describe("knockoutStartWord", () => {
   it("names where the Knockout starts in a size line", () => {
     assert.deepEqual(
-      [1, 2, 3, 4].map((roundCount) => knockoutStartWord(roundCount)),
+      [1, 2, 3, 4].map((roundCount) => knockoutStartWord(roundCount, "en")),
       ["the final", "semis", "quarters", "the round of 16"],
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("names the rounds and the review rows in Arabic", () => {
+    assert.deepEqual(
+      [1, 2, 3].map((round) => knockoutRoundName(round, 3, "ar")),
+      ["ربع النهائي", "نصف النهائي", "النهائي"],
+    );
+    assert.equal(knockoutRoundName(1, 4, "ar"), "دور الـ16");
+    assert.equal(
+      knockoutOnlyReviewValue(treeFor(12), "ar"),
+      "من دور الـ16 فصاعدًا. 4 إعفاءات",
+    );
+    assert.equal(
+      qualifiersConsequenceLine(poolTreeFor(3, 2), "ar"),
+      "6 فرق إلى خروج المغلوب، إعفاءان.",
     );
   });
 });

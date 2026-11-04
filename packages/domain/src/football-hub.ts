@@ -1,12 +1,22 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import type { HubGameRow } from "./hub-game-row";
 
 export type SportFilter = "all" | "padel" | "football";
 
-export const SPORT_FILTERS: { key: SportFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "padel", label: "Padel" },
-  { key: "football", label: "Football" },
+export const SPORT_FILTER_KEYS: readonly SportFilter[] = [
+  "all",
+  "padel",
+  "football",
 ];
+
+export function sportFilters(
+  locale: Locale,
+): { key: SportFilter; label: string }[] {
+  const m = messagesFor(locale).common;
+  return SPORT_FILTER_KEYS.map((key) => ({ key, label: m[key] }));
+}
 
 export function filterBySport<T extends { sport: string | null }>(
   rows: readonly T[],
@@ -20,20 +30,25 @@ export function filterBySport<T extends { sport: string | null }>(
 
 export type FootballSection = "result" | "open" | "teams" | "full";
 
-export const FOOTBALL_SECTIONS: {
+export const FOOTBALL_SECTION_KEYS: readonly FootballSection[] = [
+  "result",
+  "open",
+  "teams",
+  "full",
+];
+
+export function footballSectionList(locale: Locale): {
   key: FootballSection;
   title: string;
   meta: string;
-}[] = [
-  {
-    key: "result",
-    title: "Needs your confirmation",
-    meta: "score in or missing",
-  },
-  { key: "open", title: "Seats open", meta: "teams not set" },
-  { key: "teams", title: "Teams set", meta: "see your team" },
-  { key: "full", title: "Full", meta: "waitlist open" },
-];
+}[] {
+  const m = messagesFor(locale).football.hub.sections;
+  return FOOTBALL_SECTION_KEYS.map((key) => ({
+    key,
+    title: m[key].title,
+    meta: m[key].meta,
+  }));
+}
 
 /** A played Game the viewer lined up in still needs its Score agreed. */
 export function footballAwaitsResult(row: HubGameRow, now: Date) {
@@ -64,11 +79,17 @@ export function footballSection(row: HubGameRow, now: Date): FootballSection {
   return row.registrationStatus === "full" ? "full" : "open";
 }
 
-export function footballSections(rows: readonly HubGameRow[], now: Date) {
-  return FOOTBALL_SECTIONS.map((section) => ({
-    ...section,
-    rows: rows.filter(
-      (row) => row.football && footballSection(row, now) === section.key,
-    ),
-  })).filter((section) => section.rows.length > 0);
+export function footballSections(
+  rows: readonly HubGameRow[],
+  now: Date,
+  locale: Locale,
+) {
+  return footballSectionList(locale)
+    .map((section) => ({
+      ...section,
+      rows: rows.filter(
+        (row) => row.football && footballSection(row, now) === section.key,
+      ),
+    }))
+    .filter((section) => section.rows.length > 0);
 }

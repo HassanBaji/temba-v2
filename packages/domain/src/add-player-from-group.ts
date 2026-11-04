@@ -1,0 +1,178 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+import type { AddPlayerFootballPosition } from "./add-player-by-phone";
+import { footballPositionChoices, type FootballRole } from "./football-lineup";
+import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+
+export type AddPlayerMode = "group" | "phone";
+
+export type GroupMemberToAdd = {
+  userId: string;
+  name: string;
+  levelBand: LevelBand | null;
+  footballRole: FootballRole | null;
+  footballPosition: Exclude<AddPlayerFootballPosition, "none"> | null;
+  status: "in_game" | "waitlisted" | null;
+};
+
+export type GroupMemberFootballPick = {
+  role: FootballRole;
+  position: AddPlayerFootballPosition;
+};
+
+export type GroupMemberRowView = {
+  userId: string;
+  name: string;
+  meta: string;
+  /** "In game" or "On waitlist"; such a member cannot be picked. */
+  status: string | null;
+  selected: boolean;
+  /** Not picked, and every open spot is already taken by a pick. */
+  blocked: boolean;
+};
+
+/** The member's profile, so a pick starts from how they say they play. */
+export function groupMemberFootballDefaults(
+  member: Pick<GroupMemberToAdd, "footballRole" | "footballPosition">,
+): GroupMemberFootballPick {
+  return {
+    role: member.footballRole ?? "outfield",
+    position: member.footballPosition ?? "none",
+  };
+}
+
+function matchesQuery(name: string, query: string) {
+  const needle = query.trim().toLocaleLowerCase();
+  return needle === "" || name.toLocaleLowerCase().includes(needle);
+}
+
+function footballLabel(pick: GroupMemberFootballPick, locale: Locale): string {
+  const m = messagesFor(locale).group.addPlayer;
+  if (pick.role === "keeper") {
+    return m.roles.keeper;
+  }
+  return pick.position === "none"
+    ? m.positions.any
+    : m.positions[pick.position];
+}
+
+/**
+ * Members matching the search, those who can still be added first. A picked
+ * member's line drops the role, since the choices under the row show it.
+ */
+export function groupMemberRows(
+  input: {
+    members: readonly GroupMemberToAdd[];
+    query: string;
+    picked: readonly string[];
+    openSpots: number;
+    isFootball: boolean;
+  },
+  locale: Locale,
+): GroupMemberRowView[] {
+  const m = messagesFor(locale).mobileGameDetails.addPlayer;
+  const full = input.picked.length >= input.openSpots;
+  return input.members
+    .filter((member) => matchesQuery(member.name, input.query))
+    .sort((a, b) => Number(a.status != null) - Number(b.status != null))
+    .map((member) => {
+      const selected = input.picked.includes(member.userId);
+      const blocked = member.status == null && !selected && full;
+      const level = member.levelBand
+        ? m.level(displayLabelFromStoredBand(member.levelBand))
+        : null;
+      const role =
+        input.isFootball && !selected
+          ? footballLabel(groupMemberFootballDefaults(member), locale)
+          : null;
+      const parts = [role, level, blocked ? m.noSpotsLeft : null].filter(
+        (part): part is string => part != null,
+      );
+      return {
+        userId: member.userId,
+        name: member.name,
+        meta: parts.join(" · "),
+        status:
+          member.status === "in_game"
+            ? m.inGame
+            : member.status === "waitlisted"
+              ? m.onWaitlist
+              : null,
+        selected,
+        blocked,
+      };
+    });
+}
+
+/** Picking stops at the number of open spots; unpicking always works. */
+export function toggleGroupMemberPick(
+  picked: readonly string[],
+  userId: string,
+  openSpots: number,
+): string[] {
+  if (picked.includes(userId)) {
+    return picked.filter((id) => id !== userId);
+  }
+  return picked.length < openSpots ? [...picked, userId] : [...picked];
+}
+
+export function groupSpotsLine(
+  openSpots: number,
+  pickedCount: number,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).mobileGameDetails.addPlayer;
+  return openSpots <= 0
+    ? m.gameFull
+    : m.spotsLeft(Math.max(0, openSpots - pickedCount), openSpots);
+}
+
+export function groupAddActionLabel(pickedCount: number, locale: Locale) {
+  const m = messagesFor(locale).mobileGameDetails.addPlayer;
+  return pickedCount === 0 ? m.selectPlayers : m.addCount(pickedCount);
+}
+
+/** First names of the picks, in the order they were picked. */
+export function groupPickedNames(
+  members: readonly Pick<GroupMemberToAdd, "userId" | "name">[],
+  picked: readonly string[],
+  locale: Locale,
+): string {
+  const byId = new Map(members.map((member) => [member.userId, member.name]));
+  return picked
+    .map((userId) => byId.get(userId)?.trim().split(/\s+/)[0])
+    .filter((name): name is string => Boolean(name))
+    .join(messagesFor(locale).mobileGameDetails.listSeparator);
+}
+
+export function groupAddedToast(
+  added: readonly { name: string }[],
+  locale: Locale,
+): string {
+  const [only] = added;
+  return added.length === 1 && only
+    ? messagesFor(locale).group.addPlayer.addedToast(only.name)
+    : messagesFor(locale).mobileGameDetails.addPlayer.addedCount(added.length);
+}
+
+export function groupNoMatchLine(query: string, locale: Locale) {
+  return messagesFor(locale).mobileGameDetails.addPlayer.noMatch(query.trim());
+}
+
+/** The compact position choices under a picked member. */
+export function groupMemberPositionChoices(locale: Locale): {
+  value: AddPlayerFootballPosition;
+  name: string;
+}[] {
+  return [
+    {
+      value: "none",
+      name: messagesFor(locale).mobileGameDetails.addPlayer.noPreferenceShort,
+    },
+    ...footballPositionChoices(locale).map((choice) => ({
+      value: choice.value,
+      name: choice.label,
+    })),
+  ];
+}

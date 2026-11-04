@@ -41,7 +41,11 @@ describe("paymentCopy", () => {
   const open = { kind: "open", redirectUrl: "https://pay.example" } as const;
 
   it("names the method the Customer is paying with", () => {
-    const copy = paymentCopy(open, { method: "benefitpay", slow: false });
+    const copy = paymentCopy(open, {
+      method: "benefitpay",
+      slow: false,
+      locale: "en",
+    });
     expect(copy.title).toBe("Finish paying in your browser.");
     expect(copy.body).toMatch(/^Approve in the BenefitPay app/);
     expect(copy.status).toBe("Waiting for BenefitPay");
@@ -50,7 +54,11 @@ describe("paymentCopy", () => {
 
   it("switches to the slow copy for both open and checking waits", () => {
     for (const view of [open, { kind: "checking" } as const]) {
-      const copy = paymentCopy(view, { method: "card", slow: true });
+      const copy = paymentCopy(view, {
+        method: "card",
+        slow: true,
+        locale: "en",
+      });
       expect(copy.title).toBe("Still waiting.");
       expect(copy.body).toMatch(/^Card has not confirmed yet/);
       expect(copy.status).toBe("Taking longer than usual");
@@ -59,7 +67,10 @@ describe("paymentCopy", () => {
 
   it("never calls preparing slow", () => {
     expect(
-      paymentCopy({ kind: "preparing" }, { method: "card", slow: true }).title,
+      paymentCopy(
+        { kind: "preparing" },
+        { method: "card", slow: true, locale: "en" },
+      ).title,
     ).toBe("Getting the payment page ready.");
   });
 
@@ -67,35 +78,38 @@ describe("paymentCopy", () => {
     expect(
       paymentCopy(
         { kind: "failed", reason: "Declined by the bank" },
-        { method: "card", slow: false },
+        { method: "card", slow: false, locale: "en" },
       ).body,
     ).toBe("Declined by the bank");
     expect(
       paymentCopy(
         { kind: "failed", reason: null },
-        { method: null, slow: false },
+        { method: null, slow: false, locale: "en" },
       ).body,
     ).toBe("Nothing was charged. Try again, or pay another way.");
     expect(
       paymentCopy(
         { kind: "failed", reason: null },
-        { method: "card", slow: false },
+        { method: "card", slow: false, locale: "en" },
       ).body,
     ).toBe("Nothing was charged to Card. Try again, or pay another way.");
   });
 
   it("has no live status once the wait is over", () => {
     expect(
-      paymentCopy({ kind: "expired" }, { method: "card", slow: false }).status,
+      paymentCopy(
+        { kind: "expired" },
+        { method: "card", slow: false, locale: "en" },
+      ).status,
     ).toBeNull();
   });
 });
 
 describe("methodName", () => {
   it("is the checkout title for online methods only", () => {
-    expect(methodName("apple_pay")).toBe("Apple Pay");
-    expect(methodName("at_venue")).toBeNull();
-    expect(methodName(null)).toBeNull();
+    expect(methodName("apple_pay", "en")).toBe("Apple Pay");
+    expect(methodName("at_venue", "en")).toBeNull();
+    expect(methodName(null, "en")).toBeNull();
   });
 });
 
@@ -147,15 +161,29 @@ describe("isSlowWait", () => {
 
 describe("paymentPageHint", () => {
   it("tells the Customer what the page for their method asks", () => {
-    expect(paymentPageHint("benefitpay")).toBe(
+    expect(paymentPageHint("benefitpay", "en")).toBe(
       "Approve in the BenefitPay app or scan the QR code, then come back here.",
     );
-    expect(paymentPageHint("card")).toMatch(/Enter your card/);
+    expect(paymentPageHint("card", "en")).toMatch(/Enter your card/);
   });
 
   it("falls back to the page in general without a known method", () => {
-    expect(paymentPageHint(null)).toBe(
+    expect(paymentPageHint(null, "en")).toBe(
       "Finish paying on the payment page, then come back here.",
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the waiting copy in Arabic", () => {
+    const copy = paymentCopy(
+      { kind: "open", redirectUrl: "https://pay.example" },
+      { method: "benefitpay", slow: false, locale: "ar" },
+    );
+    expect(copy.title).toBe("أكمل الدفع في متصفحك.");
+    expect(copy.status).toBe("بانتظار BenefitPay");
+    expect(paymentPageHint(null, "ar")).toBe(
+      "أكمل الدفع في صفحة الدفع، ثم عُد إلى هنا.",
     );
   });
 });

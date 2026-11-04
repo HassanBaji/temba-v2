@@ -1,11 +1,9 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const SPORTS = ["padel", "football"] as const;
 
 export type Sport = (typeof SPORTS)[number];
-
-export const SPORT_LABELS: Record<Sport, string> = {
-  padel: "Padel",
-  football: "Football",
-};
 
 export type SportGlyph = "circle-dot" | "goal";
 
@@ -18,12 +16,20 @@ export function isSport(value: unknown): value is Sport {
   return (SPORTS as readonly unknown[]).includes(value);
 }
 
-export function sportLabel(sport: string | null | undefined): string | null {
+function knownSportLabel(sport: Sport, locale: Locale): string {
+  const m = messagesFor(locale).common;
+  return sport === "football" ? m.football : m.padel;
+}
+
+export function sportLabel(
+  sport: string | null | undefined,
+  locale: Locale,
+): string | null {
   const value = sport?.trim();
   if (!value) {
     return null;
   }
-  return isSport(value) ? SPORT_LABELS[value] : value;
+  return isSport(value) ? knownSportLabel(value, locale) : value;
 }
 
 export function sportGlyph(
@@ -53,8 +59,11 @@ export const DEFAULT_PUBLIC_GROUP_SPORT_FILTER: PublicGroupSportFilter = "all";
 
 export function publicGroupSportFilterLabel(
   filter: PublicGroupSportFilter,
+  locale: Locale,
 ): string {
-  return filter === "all" ? "All" : SPORT_LABELS[filter];
+  return filter === "all"
+    ? messagesFor(locale).common.all
+    : knownSportLabel(filter, locale);
 }
 
 export function publicGroupSportFilterInput(

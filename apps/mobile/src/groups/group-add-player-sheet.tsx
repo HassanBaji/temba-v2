@@ -1,6 +1,4 @@
 import {
-  ADD_GROUP_PLAYER_DESCRIPTION,
-  ADD_PLAYER_ACTION,
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
   ADD_PLAYER_DEFAULT_LEVEL,
   addGroupPlayerCanSubmit,
@@ -16,6 +14,7 @@ import { View } from "react-native";
 
 import { FieldError } from "../create-game/chips";
 import { AddPlayerIdentityFields } from "../game-details/add-player-identity-fields";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { useToast } from "../primitives/toast";
@@ -34,6 +33,8 @@ export function GroupAddPlayerSheet({
   isFootball: boolean;
   onDone: () => Promise<unknown>;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const toast = useToast();
   const utils = api.useUtils();
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
@@ -54,7 +55,7 @@ export function GroupAddPlayerSheet({
 
   const add = api.groups.addPlayerByPhone.useMutation({
     onSuccess: async (result) => {
-      toast.show(addGroupPlayerDoneToast(result));
+      toast.show(addGroupPlayerDoneToast(result, locale));
       setNational("");
       setName("");
       setLevel(ADD_PLAYER_DEFAULT_LEVEL);
@@ -91,15 +92,15 @@ export function GroupAddPlayerSheet({
     <Sheet
       visible={visible}
       onClose={close}
-      title={ADD_PLAYER_ACTION}
-      subtitle={ADD_GROUP_PLAYER_DESCRIPTION}
+      title={m.group.addPlayer.action}
+      subtitle={m.group.addPlayer.groupDescription}
       tall
       keyboardShouldPersistTaps="handled"
       footer={
         <View style={{ gap: 8 }}>
           <FieldError message={add.error?.message} />
           <Button
-            label={ADD_PLAYER_ACTION}
+            label={m.group.addPlayer.action}
             size="lg"
             pending={add.isPending}
             disabled={!canSubmit}
@@ -117,7 +118,7 @@ export function GroupAddPlayerSheet({
         preview={
           previewData
             ? {
-                line: addGroupPlayerPreviewLine(previewData),
+                line: addGroupPlayerPreviewLine(previewData, locale),
                 kind: previewData.kind,
                 phoneMasked: previewData.phoneMasked,
               }

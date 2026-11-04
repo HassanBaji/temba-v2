@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Screen } from "../primitives/screen";
 import { Text } from "../primitives/text";
 
@@ -30,10 +32,11 @@ export function goBackOrWelcome() {
 }
 
 function BackButton(props: { onPress: () => void }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Back"
+      accessibilityLabel={m.common.back}
       hitSlop={8}
       onPress={props.onPress}
       style={{
@@ -44,7 +47,11 @@ function BackButton(props: { onPress: () => void }) {
         justifyContent: "center",
       }}
     >
-      <ArrowLeft size={sizes.iconAction} color={colors.ink} />
+      <ArrowLeft
+        size={sizes.iconAction}
+        color={colors.ink}
+        style={mirrorInRtl}
+      />
     </Pressable>
   );
 }
@@ -68,10 +75,13 @@ function ProgressSegments(props: {
   total: number;
   label?: string;
 }) {
+  const m = useMessages();
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={props.label ?? `Step ${props.step} of ${props.total}`}
+      accessibilityLabel={
+        props.label ?? m.mobileHome.authScreen.stepOf(props.step, props.total)
+      }
       accessibilityValue={{ min: 0, max: props.total, now: props.step }}
       style={{ flexDirection: "row", gap: 6, marginTop: -12 }}
     >
@@ -102,6 +112,7 @@ export function AuthScreen({
   action,
   children,
 }: AuthScreenProps) {
+  const m = useMessages();
   const headerMeta = meta ?? progress?.label;
   return (
     <Screen
@@ -137,7 +148,7 @@ export function AuthScreen({
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
-            Step {progress.step} of {progress.total}
+            {m.mobileHome.authScreen.stepOf(progress.step, progress.total)}
           </Text>
         ) : null}
       </View>

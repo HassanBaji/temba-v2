@@ -67,9 +67,9 @@ describe("product timezone", () => {
 
   it("reads 23:30 Bahrain time as the same day and time whatever the process timezone", () => {
     const text = assertIdenticalEverywhere(() => [
-      formatGameStart(LATE_EVENING),
-      formatAbsoluteDay(LATE_EVENING),
-      formatGameClock(LATE_EVENING),
+      formatGameStart(LATE_EVENING, "en"),
+      formatAbsoluteDay(LATE_EVENING, "en"),
+      formatGameClock(LATE_EVENING, "en"),
       formatDateInputValue(LATE_EVENING),
       splitGameWindow(LATE_EVENING, LATE_EVENING),
     ]);
@@ -144,8 +144,8 @@ describe("product timezone", () => {
         new Date("2026-10-10T21:01:00.000Z"),
       ),
       startOfProductDay(NOW).toISOString(),
-      formatRequestedAt(new Date("2026-10-09T20:59:00.000Z"), NOW),
-      formatRequestedAt(new Date("2026-10-08T21:30:00.000Z"), NOW),
+      formatRequestedAt(new Date("2026-10-09T20:59:00.000Z"), "en", NOW),
+      formatRequestedAt(new Date("2026-10-08T21:30:00.000Z"), "en", NOW),
       earliestGameWindowDay(new Date("2026-10-10T20:50:00.000Z")).toISOString(),
     ]);
     assert.deepEqual(result, [

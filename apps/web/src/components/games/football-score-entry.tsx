@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
@@ -53,6 +54,8 @@ function SideStepper({
   members: readonly BoardPlayer[];
   onStep: (delta: -1 | 1) => void;
 }) {
+  const m = useMessages();
+  const t = m.webTournament.footballScore;
   return (
     <div className="flex flex-1 flex-col items-center gap-2.5 py-5">
       <span className="text-meta flex items-center gap-1.5 font-semibold">
@@ -60,7 +63,7 @@ function SideStepper({
         {name}
       </span>
       <output
-        aria-label={`${name} goals`}
+        aria-label={t.goalsOutput(name)}
         className="font-expanded text-[56px] tabular-nums leading-none"
       >
         {goals}
@@ -70,7 +73,7 @@ function SideStepper({
           type="button"
           variant="outline"
           size="icon"
-          aria-label={`One goal fewer for ${name}`}
+          aria-label={t.oneGoalFewer(name)}
           onClick={() => onStep(-1)}
         >
           <Minus aria-hidden="true" />
@@ -78,14 +81,14 @@ function SideStepper({
         <Button
           type="button"
           size="icon"
-          aria-label={`One goal more for ${name}`}
+          aria-label={t.oneGoalMore(name)}
           onClick={() => onStep(1)}
         >
           <Plus aria-hidden="true" />
         </Button>
       </div>
       <span className="text-muted-foreground text-meta">
-        avg {sideAverage(members)}
+        {m.game.played.avg(sideAverage(members))}
       </span>
     </div>
   );
@@ -104,8 +107,10 @@ function ScorerChip({
   onAdd: () => void;
   onRemove: () => void;
 }) {
+  const m = useMessages();
+  const t = m.webTournament.footballScore;
   const scored = goals > 0;
-  const name = player.isViewer ? "You" : shortName(player.name);
+  const name = player.isViewer ? m.common.you : shortName(player.name);
   return (
     <li
       className={cn(
@@ -115,9 +120,9 @@ function ScorerChip({
     >
       <button
         type="button"
-        aria-label={`Add a goal for ${player.name}, ${team}, ${goals} so far`}
+        aria-label={t.addGoalLabel(player.name, team, goals)}
         onClick={onAdd}
-        className="focus-visible:ring-ring/50 flex items-center gap-1.5 py-1 pl-1 pr-2.5 outline-none focus-visible:ring-[3px]"
+        className="focus-visible:ring-ring/50 flex items-center gap-1.5 py-1 pe-2.5 ps-1 outline-none focus-visible:ring-[3px]"
       >
         <UserAvatar name={player.name} image={player.image} size="sm" />
         <span className="text-meta font-semibold">{name}</span>
@@ -127,15 +132,15 @@ function ScorerChip({
             scored ? "text-dim" : "text-muted-foreground",
           )}
         >
-          {scored ? `${goals} ${goals === 1 ? "goal" : "goals"}` : team}
+          {scored ? m.game.played.goals(goals) : team}
         </span>
       </button>
       {scored ? (
         <button
           type="button"
-          aria-label={`Take a goal away from ${player.name}`}
+          aria-label={t.takeGoalAway(player.name)}
           onClick={onRemove}
-          className="border-dimrule focus-visible:ring-ring/50 flex h-full items-center border-l px-2 outline-none focus-visible:ring-[3px]"
+          className="border-dimrule focus-visible:ring-ring/50 flex h-full items-center border-s px-2 outline-none focus-visible:ring-[3px]"
         >
           <Minus aria-hidden="true" className="size-3.5" />
         </button>
@@ -149,6 +154,9 @@ function ScorerChip({
  * who scored. The other side confirms the Score from the Game.
  */
 export function FootballScoreEntry({ gameId }: { gameId: string }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const t = m.webTournament.footballScore;
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
@@ -174,7 +182,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
 
   const save = api.games.saveFootballScore.useMutation({
     onSuccess: async () => {
-      toast.success("Score saved");
+      toast.success(t.savedToast);
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
@@ -186,15 +194,21 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
 
   const start = game.data?.windowStart ?? null;
   const teams = board.data?.teams ?? null;
-  const title = start ? formatDayMonth(start, { weekday: "short" }) : "Score";
+  const title = start
+    ? formatDayMonth(start, locale, { weekday: "short" })
+    : m.game.played.score;
   const description = [
     [game.data?.venue?.name, game.data?.recordedCourts[0]?.name]
       .filter(Boolean)
       .join(", "),
     [
-      start ? formatGameClock(start) : null,
-      formatWindowDuration(game.data?.windowStart, game.data?.windowEnd),
-      game.data?.sideSize ? sideSizeLabel(game.data.sideSize) : null,
+      start ? formatGameClock(start, locale) : null,
+      formatWindowDuration(
+        game.data?.windowStart,
+        game.data?.windowEnd,
+        locale,
+      ),
+      game.data?.sideSize ? sideSizeLabel(game.data.sideSize, locale) : null,
     ]
       .filter(Boolean)
       .join(", "),
@@ -206,7 +220,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   if (board.error) {
     body = (
       <ErrorState
-        title="The game could not be loaded"
+        title={t.loadFailed}
         message={board.error.message}
         onRetry={() => void board.refetch()}
       />
@@ -214,18 +228,15 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   } else if (board.data && (!teams || !board.data.viewer.canEnterScore)) {
     body = (
       <section className="border-rule bg-paper space-y-1 rounded-xl border p-5">
-        <h2 className="font-semibold">The score is closed</h2>
-        <p className="text-muted-foreground text-meta">
-          The score opens at kick-off for players on the teams and the
-          organizer, until both sides confirm it.
-        </p>
+        <h2 className="font-semibold">{t.closedTitle}</h2>
+        <p className="text-muted-foreground text-meta">{t.closedBody}</p>
       </section>
     );
   } else if (!board.data || !teams || !draft) {
     body = <Skeleton className="h-80 w-full rounded-xl" />;
   } else {
     const players = board.data.players;
-    const names = bibNames(teams.bibs);
+    const names = bibNames(teams.bibs, locale);
     const viewerSide = board.data.viewer.sideIndex;
     const otherName =
       viewerSide === 1 ? names.slot2 : viewerSide === 2 ? names.slot1 : null;
@@ -261,15 +272,15 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
             />
           </div>
           <p aria-live="polite" className="border-rule border-t p-5">
-            {footballResultLine(draft, names)}
+            {footballResultLine(draft, names, locale)}
           </p>
         </section>
 
         <section className="border-rule bg-paper overflow-hidden rounded-xl border">
           <div className="flex justify-between px-5 pb-3 pt-5">
-            <h2 className="text-muted-foreground">Scorers, optional</h2>
+            <h2 className="text-muted-foreground">{t.scorersOptional}</h2>
             <span className="text-muted-foreground text-meta">
-              select a name to add a goal
+              {t.selectNameHint}
             </span>
           </div>
           <ul className="border-rule flex flex-wrap gap-2 border-t p-5">
@@ -285,7 +296,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
             ))}
           </ul>
           <p className="border-rule text-muted-foreground text-meta border-t p-5">
-            {scorersNote(draft, players, names)}
+            {scorersNote(draft, players, names, locale)}
           </p>
         </section>
 
@@ -310,12 +321,10 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
               })
             }
           >
-            Save score
+            {t.saveScore}
           </Button>
           <p className="text-muted-foreground text-meta text-center">
-            {otherName
-              ? `One player from ${otherName} confirms the score.`
-              : "One player from each side confirms the score."}
+            {otherName ? t.otherConfirms(otherName) : t.eachSideConfirms}
           </p>
         </div>
       </div>
@@ -328,7 +337,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
       description={description || undefined}
       action={
         <Button variant="outline" asChild>
-          <Link href={gameHref}>Back to the game</Link>
+          <Link href={gameHref}>{m.webTournament.backToGame}</Link>
         </Button>
       }
       isSubPage

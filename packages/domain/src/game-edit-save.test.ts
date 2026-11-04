@@ -2,33 +2,33 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import { gameLevelRangeSaveInput, gameWindowSaveInput } from "./game-edit-save";
-import { LEVEL_RANGE_INVERTED_MESSAGE } from "./level-range";
+import { levelRangeInvertedMessage } from "./level-range";
 import { gameEditWindowChoices } from "./game-window";
 
 describe("gameWindowSaveInput", () => {
   it("names the window and returns both instants", () => {
-    const input = gameWindowSaveInput("2030-01-15", "18:00", "19:30");
+    const input = gameWindowSaveInput("2030-01-15", "18:00", "19:30", "en");
     assert.ok(input);
     assert.equal(input.name.includes("6:00"), true);
     assert.ok(input.windowStart.getTime() < input.windowEnd.getTime());
   });
 
   it("returns null when the day or a time is missing", () => {
-    assert.equal(gameWindowSaveInput("", "18:00", "19:30"), null);
-    assert.equal(gameWindowSaveInput("2030-01-15", "", "19:30"), null);
+    assert.equal(gameWindowSaveInput("", "18:00", "19:30", "en"), null);
+    assert.equal(gameWindowSaveInput("2030-01-15", "", "19:30", "en"), null);
   });
 });
 
 describe("gameLevelRangeSaveInput", () => {
   it("treats none on both bounds as no range", () => {
-    assert.deepEqual(gameLevelRangeSaveInput("none", "none"), {
+    assert.deepEqual(gameLevelRangeSaveInput("none", "none", "en"), {
       ok: true,
       input: { levelMinTenths: null, levelMaxTenths: null },
     });
   });
 
   it("turns bands into the widest tenths for each bound", () => {
-    const result = gameLevelRangeSaveInput("C", "B");
+    const result = gameLevelRangeSaveInput("C", "B", "en");
     assert.equal(result.ok, true);
     if (result.ok) {
       assert.equal(typeof result.input.levelMinTenths, "number");
@@ -37,9 +37,16 @@ describe("gameLevelRangeSaveInput", () => {
   });
 
   it("refuses a minimum above the maximum", () => {
-    assert.deepEqual(gameLevelRangeSaveInput("B", "C"), {
+    assert.deepEqual(gameLevelRangeSaveInput("B", "C", "en"), {
       ok: false,
-      message: LEVEL_RANGE_INVERTED_MESSAGE,
+      message: levelRangeInvertedMessage("en"),
+    });
+  });
+
+  it("refuses in Arabic", () => {
+    assert.deepEqual(gameLevelRangeSaveInput("B", "C", "ar"), {
+      ok: false,
+      message: "لا يمكن أن يكون الحد الأدنى للمستوى أكبر من الحد الأقصى",
     });
   });
 });

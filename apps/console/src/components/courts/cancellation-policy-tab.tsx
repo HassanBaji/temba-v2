@@ -17,6 +17,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { describeCancellationPolicy } from "@repo/domain/booking-refund";
 import {
   CANCELLATION_POLICY_PRESETS,
@@ -257,9 +258,11 @@ function CancellationPolicyDialog({
             <p className="eyebrow-mono mb-1.5">What players see</p>
             {parsed.success ? (
               <ul className="text-meta flex flex-col gap-0.5">
-                {describeCancellationPolicy(parsed.data).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
+                {describeCancellationPolicy(parsed.data, CONSOLE_LOCALE).map(
+                  (line) => (
+                    <li key={line}>{line}</li>
+                  ),
+                )}
               </ul>
             ) : (
               <p role="alert" className="text-destructive text-meta">

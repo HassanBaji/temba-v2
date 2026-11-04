@@ -7,10 +7,12 @@ import {
   PATHNAME_HEADER,
 } from "~/lib/dashboard-onboarding-gate";
 import { loadCallerOnboardingState } from "~/lib/caller-onboarding-state";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export const metadata: Metadata = {
-  title: "Home",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.common.home };
+}
 
 /**
  * The provisioning gate: a User whose `user` row has not landed yet waits on

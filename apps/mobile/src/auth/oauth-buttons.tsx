@@ -1,13 +1,16 @@
-import { useSSO } from "@clerk/expo";
+import { useSignIn, useSignUp } from "@clerk/expo/legacy";
 import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
+import { withGoogleLocale } from "@repo/domain/google-locale";
+import * as AuthSession from "expo-auth-session";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button, type ButtonVariant } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
-import { SOMETHING_WENT_WRONG } from "./clerk-forms";
 import { FormErrorSummary } from "./form-error-summary";
 
 type OAuthOutcome = {
@@ -26,9 +29,45 @@ export function OauthButtons({
   variant?: ButtonVariant;
   divider?: boolean;
 }) {
-  const { startSSOFlow } = useSSO();
+  const m = useMessages();
+  const locale = useLocale();
+  const { signIn, setActive, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded } = useSignUp();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Clerk's useSSO gives no way to set Google's page language, so this is its
+  // create, browse, reload and transfer steps with `hl` added.
+  async function continueWithGoogle(): Promise<OAuthOutcome> {
+    if (!signInLoaded || !signUpLoaded) {
+      return { createdSessionId: null, cancelled: true };
+    }
+    const redirectUrl = AuthSession.makeRedirectUri({ path: "sso-callback" });
+    await signIn.create({ strategy: "oauth_google", redirectUrl });
+    const googleUrl =
+      signIn.firstFactorVerification.externalVerificationRedirectURL;
+    if (!googleUrl) {
+      return { createdSessionId: null };
+    }
+    const session = await WebBrowser.openAuthSessionAsync(
+      withGoogleLocale(googleUrl.toString(), locale),
+      redirectUrl,
+    );
+    if (session.type !== "success") {
+      return { createdSessionId: null, cancelled: true };
+    }
+    const rotatingTokenNonce =
+      new URL(session.url).searchParams.get("rotating_token_nonce") ?? "";
+    await signIn.reload({ rotatingTokenNonce });
+    if (signIn.firstFactorVerification.status === "transferable") {
+      await signUp.create({ transfer: true });
+    }
+    return {
+      createdSessionId: signUp.createdSessionId ?? signIn.createdSessionId,
+      setActive,
+      signUp,
+    };
+  }
 
   async function run(start: () => Promise<OAuthOutcome>) {
     if (pending) {
@@ -47,10 +86,10 @@ export function OauthButtons({
         return;
       }
       if (!outcome.cancelled) {
-        setError(SOMETHING_WENT_WRONG.globalMessage);
+        setError(m.auth.clerkError.generic);
       }
     } catch (err) {
-      setError(clerkGlobalErrorMessage(err));
+      setError(clerkGlobalErrorMessage(err, locale));
     } finally {
       setPending(false);
     }
@@ -64,7 +103,7 @@ export function OauthButtons({
             <Hairline />
           </View>
           <Text size="eyebrow" tone="muted" mono>
-            OR
+            {m.mobileHome.oauth.or}
           </Text>
           <View style={{ flex: 1 }}>
             <Hairline />
@@ -73,21 +112,13 @@ export function OauthButtons({
       ) : null}
       <FormErrorSummary message={error} />
       <Button
-        label="Continue with Google"
+        label={m.mobileHome.oauth.continueWithGoogle}
         size="lg"
         variant={variant}
         pending={pending}
         disabled={pending || disabled}
         onPress={() => {
-          void run(async () => {
-            const result = await startSSOFlow({ strategy: "oauth_google" });
-            return {
-              createdSessionId: result.createdSessionId,
-              setActive: result.setActive,
-              signUp: result.signUp,
-              cancelled: result.authSessionResult?.type !== "success",
-            };
-          });
+          void run(continueWithGoogle);
         }}
       />
     </View>

@@ -1,14 +1,9 @@
 import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
 import { EntityMonogram } from "~/components/common/entity-monogram";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  COMMUNITY_LINK_VENUE_LABEL,
-  COMMUNITY_NO_COURTS_COPY,
-  COMMUNITY_NO_VENUE_COPY,
-  COMMUNITY_UNLINK_VENUE_LABEL,
-  communityVenueView,
-} from "@repo/domain/community";
+import { communityVenueView } from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type CommunityHome = RouterOutputs["communities"]["byId"];
@@ -22,18 +17,20 @@ export function CommunityVenueBlock({
   onUnlink: () => void;
   onLinkVenue: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const { venue, location, notes, canRequestLink, canUnlink } =
-    communityVenueView(community);
+    communityVenueView(community, locale);
   return (
     <section className="border-rule flex flex-col gap-4 rounded-[14px] border p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-muted-foreground font-mono text-[11px] font-normal uppercase tracking-[0.04em]">
-          Venue
+          {m.webGroup.venue.title}
         </h2>
         {canUnlink ? (
-          <ActionMenu label="Venue actions">
+          <ActionMenu label={m.webGroup.venue.actions}>
             <ActionMenuItem variant="destructive" onSelect={onUnlink}>
-              {COMMUNITY_UNLINK_VENUE_LABEL}
+              {m.community.action.unlinkVenue}
             </ActionMenuItem>
           </ActionMenu>
         ) : null}
@@ -56,14 +53,14 @@ export function CommunityVenueBlock({
               </p>
               {venue.archivedAt ? (
                 <Badge variant="outline" className="mt-2">
-                  Venue Soft-archived
+                  {m.webGroup.venue.softArchived}
                 </Badge>
               ) : null}
             </div>
           </div>
           {venue.courts.length === 0 ? (
             <p className="text-meta text-muted-foreground">
-              {COMMUNITY_NO_COURTS_COPY}
+              {m.community.venue.noCourts}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -80,7 +77,7 @@ export function CommunityVenueBlock({
         </div>
       ) : (
         <p className="text-body text-muted-foreground">
-          {COMMUNITY_NO_VENUE_COPY}
+          {m.community.venue.noVenue}
         </p>
       )}
 
@@ -96,7 +93,7 @@ export function CommunityVenueBlock({
           className="bg-ink text-paper hover:bg-dimrule h-11 w-full rounded-[10px] font-semibold"
           onClick={onLinkVenue}
         >
-          {COMMUNITY_LINK_VENUE_LABEL}
+          {m.community.action.linkVenue}
         </Button>
       ) : null}
     </section>

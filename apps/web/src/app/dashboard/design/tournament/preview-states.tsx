@@ -23,53 +23,55 @@ import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import type { TournamentMatchPhase } from "@repo/domain/tournament-card";
 import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_YES,
-  PRICE_ROW_LABEL,
-} from "@repo/domain/tournament-home";
-import {
-  DRAW_RANDOM_VALUE,
-  DRAW_ROW_LABEL,
-  PRICE_PER_PLAYER_JOIN_SUFFIX,
-  ROUNDS_ROW_LABEL,
-} from "@repo/domain/tournament-join";
-import {
-  ALONE_OR_WITH_A_PARTNER_LABEL,
-  ANYONE_WITH_THE_LINK_LABEL,
-  COURTS_ROW_LABEL,
-  CREATE_FOOTER_COPY,
-  CREATE_PRIMARY_ACTION,
-  CREATE_SUBLINE,
-  CREATE_TOURNAMENT_HEADING_LEAD,
-  CREATE_TOURNAMENT_HEADING_TRAIL,
   courtCountValue,
   defaultPoolCount,
-  EACH_MATCH_ROW_LABEL,
   formatMatchesPerTeam,
   formatPoolSizeLine,
-  HOW_PEOPLE_JOIN_LABEL,
   lastMatchFinishCopy,
-  MATCHES_PER_TEAM_ROW_LABEL,
-  ONE_DAY_CALLOUT_LABEL,
-  ONE_DAY_OVERRUN_MESSAGE,
   oneDayFit,
   playersInPairsLine,
-  POOL_MATCHES_ROW_LABEL,
   poolCountOptions,
   sizeFriendlyTournament,
-  THIS_GROUP_ONLY_LABEL,
   tournamentMatchMinutes,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
-  UNEVEN_POOLS_COPY,
-  WHO_CAN_TAKE_A_SEAT_LABEL,
-  WITH_A_PARTNER_ONLY_LABEL,
 } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
 import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import { cn } from "~/lib/utils";
 
 const FIELD_LABEL = "text-muted-foreground text-meta font-normal";
+
+const PREVIEW = messagesFor("en");
+const COUNTS_FOR_RATING_LABEL = PREVIEW.tournament.home.countsForRating;
+const COUNTS_FOR_RATING_YES = PREVIEW.common.yes;
+const PRICE_ROW_LABEL = PREVIEW.tournament.home.priceRow;
+const DRAW_RANDOM_VALUE = PREVIEW.tournament.join.drawRandom;
+const DRAW_ROW_LABEL = PREVIEW.tournament.join.drawRow;
+const PRICE_PER_PLAYER_JOIN_SUFFIX = PREVIEW.tournament.join.pricePerPlayer;
+const ROUNDS_ROW_LABEL = PREVIEW.tournament.join.roundsRow;
+const ALONE_OR_WITH_A_PARTNER_LABEL =
+  PREVIEW.tournament.sizing.aloneOrWithPartner;
+const ANYONE_WITH_THE_LINK_LABEL = PREVIEW.tournament.sizing.anyoneWithTheLink;
+const COURTS_ROW_LABEL = PREVIEW.tournament.sizing.courtsRow;
+const CREATE_FOOTER_COPY = PREVIEW.tournament.sizing.createFooter;
+const CREATE_PRIMARY_ACTION = PREVIEW.tournament.sizing.createPrimaryAction;
+const CREATE_SUBLINE = PREVIEW.tournament.sizing.createSubline;
+const CREATE_TOURNAMENT_HEADING_LEAD =
+  PREVIEW.tournament.sizing.createHeadingLead;
+const CREATE_TOURNAMENT_HEADING_TRAIL =
+  PREVIEW.tournament.sizing.createHeadingTrail;
+const EACH_MATCH_ROW_LABEL = PREVIEW.tournament.sizing.eachMatchRow;
+const HOW_PEOPLE_JOIN_LABEL = PREVIEW.tournament.sizing.howPeopleJoin;
+const MATCHES_PER_TEAM_ROW_LABEL = PREVIEW.tournament.sizing.matchesPerTeamRow;
+const ONE_DAY_CALLOUT_LABEL = PREVIEW.tournament.sizing.oneDayCallout;
+const ONE_DAY_OVERRUN_MESSAGE = PREVIEW.tournament.sizing.oneDayOverrun;
+const POOL_MATCHES_ROW_LABEL = PREVIEW.tournament.sizing.poolMatchesRow;
+const THIS_GROUP_ONLY_LABEL = PREVIEW.tournament.sizing.thisGroupOnly;
+const UNEVEN_POOLS_COPY = PREVIEW.tournament.sizing.unevenPools;
+const WHO_CAN_TAKE_A_SEAT_LABEL = PREVIEW.tournament.sizing.whoCanTakeASeat;
+const WITH_A_PARTNER_ONLY_LABEL = PREVIEW.tournament.sizing.withPartnerOnly;
 
 export function TournamentPreviewStates({
   fixtures,
@@ -337,7 +339,7 @@ function TournamentCreateControlsPreview() {
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
-  const priceLabel = formatPricePerPlayerFils(12000);
+  const priceLabel = formatPricePerPlayerFils(12000, "en");
   const start = zonedDateTimeToInstant({
     year: 2026,
     month: 9,
@@ -388,7 +390,7 @@ function TournamentCreateControlsPreview() {
         increaseLabel="More Game teams"
         description={
           <p className="text-muted-foreground text-meta">
-            {playersInPairsLine(teamCount)}
+            {playersInPairsLine(teamCount, "en")}
           </p>
         }
       />
@@ -408,7 +410,7 @@ function TournamentCreateControlsPreview() {
           sizing ? (
             <div className="flex flex-col gap-1">
               <p className="text-muted-foreground text-meta">
-                {formatPoolSizeLine(sizing)}
+                {formatPoolSizeLine(sizing, "en")}
               </p>
               {sizing.uneven ? (
                 <p className="text-muted-foreground text-meta">
@@ -454,7 +456,7 @@ function TournamentCreateControlsPreview() {
             },
             {
               label: MATCHES_PER_TEAM_ROW_LABEL,
-              value: formatMatchesPerTeam(sizing),
+              value: formatMatchesPerTeam(sizing, "en"),
             },
             {
               label: ROUNDS_ROW_LABEL,
@@ -469,7 +471,7 @@ function TournamentCreateControlsPreview() {
             },
             {
               label: COURTS_ROW_LABEL,
-              value: courtCountValue(2),
+              value: courtCountValue(2, "en"),
             },
             {
               label: PRICE_ROW_LABEL,
@@ -496,7 +498,7 @@ function TournamentCreateControlsPreview() {
           </p>
           {fit.lastFinish ? (
             <p className="text-lead mt-2 leading-snug">
-              {lastMatchFinishCopy(formatGameClock(fit.lastFinish))}
+              {lastMatchFinishCopy(formatGameClock(fit.lastFinish, "en"), "en")}
             </p>
           ) : null}
           {fit.overruns ? (

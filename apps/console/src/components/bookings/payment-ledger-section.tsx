@@ -8,6 +8,7 @@ import {
 } from "~/components/console/console-card";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import {
   formatDayMonth,
   formatGameClock,
@@ -33,7 +34,7 @@ const PROVIDER_LABELS = {
 const controlClass = "h-10 min-h-10 shadow-none";
 
 function when(value: Date) {
-  return `${formatDayMonth(value)}, ${formatGameClock(value)}`;
+  return `${formatDayMonth(value, CONSOLE_LOCALE)}, ${formatGameClock(value, CONSOLE_LOCALE)}`;
 }
 
 const ONLINE_METHOD_LABELS = {
@@ -161,7 +162,7 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
                 Record refund
               </Button>
               <span className="text-muted-foreground text-[13px]">
-                Refundable {formatBookingPriceFils(refundable)}
+                Refundable {formatBookingPriceFils(refundable, CONSOLE_LOCALE)}
               </span>
             </>
           ) : null}
@@ -203,7 +204,7 @@ function LedgerItem({
     <li className="space-y-1.5 px-5 py-4 text-[13px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold tabular-nums">
-          {formatBookingPriceFils(payment.amountFils)}
+          {formatBookingPriceFils(payment.amountFils, CONSOLE_LOCALE)}
           <span className="text-muted-foreground font-normal">
             {" "}
             · {PROVIDER_LABELS[payment.provider]}
@@ -228,7 +229,8 @@ function LedgerItem({
         ) : null}
         {payment.refundedFils > 0 ? (
           <div>
-            Refunded {formatBookingPriceFils(payment.refundedFils)}
+            Refunded{" "}
+            {formatBookingPriceFils(payment.refundedFils, CONSOLE_LOCALE)}
             {payment.refundedAt ? ` ${when(payment.refundedAt)}` : ""}
             {payment.refundedByName ? ` by ${payment.refundedByName}` : ""}
             {payment.refundReference ? ` · ${payment.refundReference}` : ""}

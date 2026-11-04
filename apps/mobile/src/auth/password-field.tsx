@@ -3,6 +3,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { TextField, type TextFieldProps } from "../primitives/text-field";
@@ -28,6 +29,7 @@ export function PasswordField({
   editable,
   ...props
 }: PasswordFieldProps) {
+  const m = useMessages();
   const [visible, setVisible] = useState(false);
   const segments = passwordStrength(value);
 
@@ -44,7 +46,11 @@ export function PasswordField({
         trailing={
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={visible ? "Hide password" : "Show password"}
+            accessibilityLabel={
+              visible
+                ? m.mobileHome.passwordField.hide
+                : m.mobileHome.passwordField.show
+            }
             disabled={editable === false}
             onPress={() => setVisible((current) => !current)}
             style={{
@@ -86,7 +92,7 @@ export function PasswordField({
             ))}
           </View>
           <Text size="eyebrow" tone="muted">
-            At least 8 characters. Mix in a number or symbol to make it strong.
+            {m.mobileHome.passwordField.strengthHint}
           </Text>
         </View>
       ) : null}

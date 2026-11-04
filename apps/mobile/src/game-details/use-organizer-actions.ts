@@ -4,17 +4,17 @@ import {
   type FriendlyGameOrganizerInput,
 } from "@repo/domain/friendly-game-organizer";
 import {
-  CANCEL_GAME_ACTION,
-  COMPLETE_MATCH_ACTION,
-  COMPLETE_MATCH_CONSEQUENCE,
-  GAME_TOAST,
-  KICK_ACTION,
-  MARK_AS_NOT_PLAYED_ACTION,
-  MARK_AS_NOT_PLAYED_CONSEQUENCE,
-  REPORT_WRONG_SCORE_ACTION,
-  REPORT_WRONG_SCORE_CONSEQUENCE,
+  cancelGameAction,
   cancelGameConsequence,
+  completeMatchAction,
+  completeMatchConsequence,
+  gameToast,
+  kickAction,
   kickedToast,
+  markAsNotPlayedAction,
+  markAsNotPlayedConsequence,
+  reportWrongScoreAction,
+  reportWrongScoreConsequence,
 } from "@repo/domain/game-copy";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import {
@@ -28,6 +28,7 @@ import {
 } from "@repo/domain/game-edit-form";
 import { useMemo, useState } from "react";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
@@ -68,14 +69,18 @@ export function useOrganizerActions({
   refresh,
   setConfirm,
 }: Options) {
+  const m = useMessages();
+  const locale = useLocale();
   const toast = useToast();
   const utils = api.useUtils();
   const [section, setSection] = useState<EditSection | null>(null);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const plan = useMemo(
-    () => (game ? friendlyGameOrganizerPlan(game) : null),
-    [game],
+    () => (game ? friendlyGameOrganizerPlan(game, locale) : null),
+    [game, locale],
   );
+  const toasts = gameToast(locale);
+  const copy = m.mobileGameDetails;
   const editSections = gameEditSectionsFor({
     format: game?.format ?? "friendly_game",
     sport: game?.sport,
@@ -103,12 +108,12 @@ export function useOrganizerActions({
   };
 
   const closeRegistration = api.games.closeRegistration.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.registrationClosed),
+    onSuccess: () => toast.show(toasts.registrationClosed),
     onError: failure,
     onSettled: refresh,
   });
   const reopenRegistration = api.games.reopenRegistration.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.registrationReopened),
+    onSuccess: () => toast.show(toasts.registrationReopened),
     onError: failure,
     onSettled: refresh,
   });
@@ -117,22 +122,20 @@ export function useOrganizerActions({
     onSettled: settled,
   });
   const cancelGame = api.games.cancel.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.gameCancelled),
+    onSuccess: () => toast.show(toasts.gameCancelled),
     onError: failure,
     onSettled: settled,
   });
   const cancelMatch = api.games.cancelMatch.useMutation({
     onSuccess: (result) =>
       toast.show(
-        result.cancelledGame
-          ? GAME_TOAST.gameCancelled
-          : GAME_TOAST.matchCancelled,
+        result.cancelledGame ? toasts.gameCancelled : toasts.matchCancelled,
       ),
     onError: failure,
     onSettled: settled,
   });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
-    onSuccess: () => toast.show("Score reopened"),
+    onSuccess: () => toast.show(copy.toast.scoreReopened),
     onError: failure,
     onSettled: async () => {
       await settled();
@@ -140,7 +143,7 @@ export function useOrganizerActions({
     },
   });
   const completeMatch = api.games.completeMatch.useMutation({
-    onSuccess: () => toast.show("Match completed"),
+    onSuccess: () => toast.show(copy.toast.matchCompleted),
     onError: failure,
     onSettled: async () => {
       await settled();
@@ -148,18 +151,18 @@ export function useOrganizerActions({
     },
   });
   const approve = api.games.approveLevelRangeRequest.useMutation({
-    onSuccess: () => toast.show("Request approved"),
+    onSuccess: () => toast.show(copy.toast.requestApproved),
     onError: failure,
     onSettled: refresh,
   });
   const reject = api.games.rejectLevelRangeRequest.useMutation({
-    onSuccess: () => toast.show("Request rejected"),
+    onSuccess: () => toast.show(copy.toast.requestRejected),
     onError: failure,
     onSettled: refresh,
   });
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: () => {
-      toast.show("Match updated");
+      toast.show(copy.toast.matchUpdated);
       setSection(null);
     },
     onSettled: refresh,
@@ -170,37 +173,38 @@ export function useOrganizerActions({
     { enabled: plan != null && section === "court" },
   );
 
-  const title = gameTitle(game?.name ?? null);
+  const title = game ? gameTitle(game, locale) : copy.fallbackTitle;
   const firstMatchId = game?.matches[0]?.id;
 
   function askKick(request: GameKickRequest) {
     if (!game) {
       return;
     }
-    const target = gameKickTarget(game, request);
-    const copy = gameKickConfirmCopy(target, {
-      partnerRequired,
-      drawPosted: false,
-    });
+    const target = gameKickTarget(game, request, locale);
+    const kickCopy = gameKickConfirmCopy(
+      target,
+      { partnerRequired, drawPosted: false },
+      locale,
+    );
     setConfirm({
-      title: copy.title,
-      description: copy.description,
-      confirmLabel: KICK_ACTION,
+      title: kickCopy.title,
+      description: kickCopy.description,
+      confirmLabel: kickAction(locale),
       onConfirm: () =>
         kick.mutate(
           target.kind === "player"
             ? { gameId, userId: target.userId }
             : { gameId, waitlistId: target.waitlistId },
-          { onSuccess: () => toast.show(kickedToast(target.name)) },
+          { onSuccess: () => toast.show(kickedToast(target.name, locale)) },
         ),
     });
   }
 
   function askCompleteMatch(matchId: string) {
     setConfirm({
-      title: "Complete Match and update ratings?",
-      description: COMPLETE_MATCH_CONSEQUENCE,
-      confirmLabel: COMPLETE_MATCH_ACTION,
+      title: copy.confirm.completeMatchTitle,
+      description: completeMatchConsequence(locale),
+      confirmLabel: completeMatchAction(locale),
       onConfirm: () => completeMatch.mutate({ gameId, matchId }),
     });
   }
@@ -215,19 +219,20 @@ export function useOrganizerActions({
         return true;
       case "cancel_game":
         setConfirm({
-          title: `Cancel ${title}?`,
+          title: copy.confirm.cancelTitle(title),
           description: cancelGameConsequence(
             occupiedFriendlyPositions(game.sides),
+            locale,
           ),
-          confirmLabel: CANCEL_GAME_ACTION,
+          confirmLabel: cancelGameAction(locale),
           onConfirm: () => cancelGame.mutate({ gameId }),
         });
         return true;
       case "mark_as_not_played":
         setConfirm({
-          title: "Mark as not played?",
-          description: MARK_AS_NOT_PLAYED_CONSEQUENCE,
-          confirmLabel: MARK_AS_NOT_PLAYED_ACTION,
+          title: copy.confirm.markAsNotPlayedTitle,
+          description: markAsNotPlayedConsequence(locale),
+          confirmLabel: markAsNotPlayedAction(locale),
           onConfirm: () =>
             firstMatchId &&
             cancelMatch.mutate({ gameId, matchId: firstMatchId }),
@@ -235,9 +240,9 @@ export function useOrganizerActions({
         return true;
       case "report_wrong_score":
         setConfirm({
-          title: "Report a wrong score?",
-          description: REPORT_WRONG_SCORE_CONSEQUENCE,
-          confirmLabel: REPORT_WRONG_SCORE_ACTION,
+          title: copy.confirm.reportWrongScoreTitle,
+          description: reportWrongScoreConsequence(locale),
+          confirmLabel: reportWrongScoreAction(locale),
           onConfirm: () =>
             firstMatchId &&
             reportWrongScore.mutate({ gameId, matchId: firstMatchId }),

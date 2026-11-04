@@ -11,6 +11,7 @@ const player = {
   canLeaveGame: true,
   canReportWrongScore: null,
   playerCount: 3,
+  locale: "en" as const,
 };
 
 describe("friendlyGameFooterActions", () => {
@@ -66,6 +67,18 @@ describe("friendlyGameFooterActions", () => {
     assert.equal(action?.kind, "mark_as_not_played");
   });
 
+  it("writes the labels and consequences in Arabic", () => {
+    const actions = friendlyGameFooterActions({
+      ...player,
+      isOrganizer: true,
+      canLeaveGame: false,
+      phase: "ongoing",
+      locale: "ar",
+    });
+    assert.equal(actions[0]?.label, "تعديل المباراة");
+    assert.equal(actions[1]?.consequence, "تُحذف من تقويم كل المسجّلين (3).");
+  });
+
   it("locks Report a wrong score when it is not eligible", () => {
     const [action] = friendlyGameFooterActions({
       ...player,
@@ -81,16 +94,20 @@ describe("friendlyGameFooterActions", () => {
 
 describe("friendlyGameCtaCopy", () => {
   it("has no bar for none", () => {
-    assert.equal(friendlyGameCtaCopy({ kind: "none" }), null);
+    assert.equal(friendlyGameCtaCopy({ kind: "none" }, "en"), null);
   });
 
   it("states the viewer's status once, with the open seats", () => {
     assert.deepEqual(
-      friendlyGameCtaCopy({
-        kind: "upcoming",
-        vacantSeatCount: 1,
-        showInvite: false,
-      }),
+      friendlyGameCtaCopy(
+        {
+          kind: "upcoming",
+          vacantSeatCount: 1,
+          showInvite: false,
+          live: false,
+        },
+        "en",
+      ),
       {
         title: "You're in",
         subline: "One spot left to fill",
@@ -101,25 +118,56 @@ describe("friendlyGameCtaCopy", () => {
   });
 
   it("names the Waitlist place and offers to leave", () => {
-    const copy = friendlyGameCtaCopy({ kind: "waitlisted", place: 3 });
+    const copy = friendlyGameCtaCopy({ kind: "waitlisted", place: 3 }, "en");
     assert.equal(copy?.title, "You're 3rd on the Waitlist");
     assert.equal(copy?.actionLabel, "Leave waitlist");
   });
 
   it("reports the new Level after a final Game", () => {
-    const copy = friendlyGameCtaCopy({
-      kind: "final",
-      newLevelBand: "C2",
-      newLevel: 3.6,
-    });
+    const copy = friendlyGameCtaCopy(
+      {
+        kind: "final",
+        newLevelBand: "C2",
+        newLevel: 3.6,
+      },
+      "en",
+    );
     assert.equal(copy?.title, "Level updated");
     assert.match(copy?.subline ?? "", /3\.6 after this game$/);
   });
 
   it("offers browsing for a cancelled Game", () => {
     assert.equal(
-      friendlyGameCtaCopy({ kind: "browse" })?.actionLabel,
+      friendlyGameCtaCopy({ kind: "browse" }, "en")?.actionLabel,
       "Browse open games",
+    );
+  });
+
+  it("writes the bar in Arabic", () => {
+    const copy = friendlyGameCtaCopy({ kind: "waitlisted", place: 3 }, "ar");
+    assert.equal(copy?.title, "أنت في المرتبة 3 في قائمة الانتظار");
+    assert.equal(copy?.actionLabel, "مغادرة قائمة الانتظار");
+  });
+
+  it("says the Game has started when spots are still open", () => {
+    const upcoming = {
+      kind: "upcoming",
+      vacantSeatCount: 3,
+      showInvite: false,
+    };
+    const before = friendlyGameCtaCopy(
+      { ...upcoming, live: false } as const,
+      "ar",
+    );
+    assert.equal(before?.title, "أنت في التشكيلة");
+    assert.equal(before?.subline, "ينقص 3 لاعبين");
+    assert.equal(
+      friendlyGameCtaCopy({ ...upcoming, live: true } as const, "ar")?.subline,
+      "بدأت المباراة وينقص 3 لاعبين",
+    );
+    assert.equal(
+      friendlyGameCtaCopy({ ...upcoming, live: true } as const, "en")?.subline,
+      "Started with 3 spots open",
     );
   });
 });

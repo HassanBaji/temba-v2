@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 export const TOURNAMENT_TEAM_MIN = 4;
 export const TOURNAMENT_TEAM_MAX = 32;
 export const TOURNAMENT_TEAM_STEP = 2;
@@ -10,35 +13,6 @@ export function tournamentMatchMinutes(
 ) {
   return matchMinutes ?? TOURNAMENT_SLOT_MINUTES;
 }
-
-export const ONE_DAY_OVERRUN_MESSAGE =
-  "This runs past your finish time. Add a Court, cut Rounds, or take fewer Game teams.";
-
-export const CREATE_TOURNAMENT_HEADING_LEAD = "New tournament,";
-export const CREATE_TOURNAMENT_HEADING_TRAIL = "several Rounds";
-export const CREATE_TOURNAMENT_HEADING = `${CREATE_TOURNAMENT_HEADING_LEAD} ${CREATE_TOURNAMENT_HEADING_TRAIL}`;
-export const CREATE_SUBLINE =
-  "Same as setting up a Friendly game, only it runs a few Rounds.";
-export const CREATE_FOOTER_COPY =
-  "It shows up in Games like any other Game. You draw once the seats are full.";
-export const UNEVEN_POOLS_COPY =
-  "Groups are uneven. Some Game teams play one more Match than others.";
-export const POOL_MATCHES_ROW_LABEL = "group Matches";
-export const MATCHES_PER_TEAM_ROW_LABEL = "Matches per Game team";
-export const EACH_MATCH_ROW_LABEL = "Each Match";
-export const COURTS_ROW_LABEL = "Courts";
-export const ONE_DAY_CALLOUT_LABEL = "The day";
-export const CREATE_PRIMARY_ACTION = "Create tournament";
-export const HOW_LONG_IT_RUNS_LABEL = "How long it runs";
-export const ONE_DAY_DURATION_LABEL = "One day";
-export const FEW_WEEKS_DURATION_LABEL = "A few weeks";
-export const WHO_CAN_TAKE_A_SEAT_LABEL = "Who can take a seat";
-export const THIS_GROUP_ONLY_LABEL = "This Group only";
-export const ANYONE_WITH_THE_LINK_LABEL = "Anyone with the link";
-export const HOW_PEOPLE_JOIN_LABEL = "How people join";
-export const ALONE_OR_WITH_A_PARTNER_LABEL = "Alone or with a partner";
-export const WITH_A_PARTNER_ONLY_LABEL = "With a partner only";
-export const LAST_MATCH_FINISH_PREFIX = "The last Match would finish at";
 
 export const TOURNAMENT_TEAM_COUNTS: readonly number[] = Array.from(
   {
@@ -377,73 +351,80 @@ export function oneDayFit(input: {
   };
 }
 
-export function formatPoolSizeLine(sizing: TournamentSizing) {
+export function formatPoolSizeLine(sizing: TournamentSizing, locale: Locale) {
+  const m = messagesFor(locale).tournament;
   const counts = new Map<number, number>();
   for (const size of sizing.poolSizes) {
     counts.set(size, (counts.get(size) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(
-      ([size, count]) =>
-        `${count} ${count === 1 ? "group" : "groups"} of ${size}`,
-    )
-    .join(", ");
+    .map(([size, count]) => m.sizing.poolSizeClause(count, size))
+    .join(m.listSeparator);
 }
 
-export function formatMatchesPerTeam(sizing: TournamentSizing) {
+export function formatMatchesPerTeam(sizing: TournamentSizing, locale: Locale) {
+  const m = messagesFor(locale).tournament.sizing;
   if (sizing.matchesPerTeamMin === sizing.matchesPerTeamMax) {
-    return `Each Game team plays ${sizing.matchesPerTeamMin} Matches`;
+    return m.eachTeamPlays(sizing.matchesPerTeamMin);
   }
-  return `Game teams in a larger group play ${sizing.matchesPerTeamMax} Matches; Game teams in a smaller group play ${sizing.matchesPerTeamMin} Matches`;
+  return m.unevenMatchesPerTeam(
+    sizing.matchesPerTeamMax,
+    sizing.matchesPerTeamMin,
+  );
 }
 
-export function playersInPairsLine(teamCount: number) {
-  return `${teamCount * 2} players in pairs. Two seats per team.`;
+export function playersInPairsLine(teamCount: number, locale: Locale) {
+  return messagesFor(locale).tournament.sizing.playersInPairs(teamCount * 2);
 }
 
-export function courtCountValue(courtCount: number) {
+export function courtCountValue(courtCount: number, locale: Locale) {
+  const m = messagesFor(locale);
   if (courtCount === 0) {
-    return "None";
+    return m.common.none;
   }
-  return courtCount === 1 ? "1 Court" : `${courtCount} Courts`;
+  return m.tournament.sizing.courtCount(courtCount);
 }
 
-export function lastMatchFinishCopy(clock: string) {
-  return `${LAST_MATCH_FINISH_PREFIX} ${clock}.`;
+export function lastMatchFinishCopy(clock: string, locale: Locale) {
+  return messagesFor(locale).tournament.sizing.lastMatchFinish(clock);
 }
 
 export type RoundMeets = "once" | "partial" | "twice" | "somePartialSecond";
 
-export const ROUND_MEETS_COPY: Record<RoundMeets, string> = {
-  once: "Everyone meets once",
-  partial: "Not everyone meets",
-  twice: "Everyone meets twice",
-  somePartialSecond: "Some meet twice",
-};
-
-export const ROUNDS_LABEL = "Rounds";
-export const SUGGESTED_ROUNDS_TAG = "Suggested";
-
-export function suggestedRoundsResetLabel(suggested: number) {
-  return `Use suggested (${suggested})`;
+export function roundMeetsCopy(meets: RoundMeets, locale: Locale) {
+  return messagesFor(locale).tournament.sizing.roundMeets[meets];
 }
 
-export function roundCountLabel(roundCount: number) {
-  return roundCount === 1 ? "1 Round" : `${roundCount} Rounds`;
+export function suggestedRoundsResetLabel(suggested: number, locale: Locale) {
+  return messagesFor(locale).tournament.sizing.useSuggested(suggested);
 }
 
-export function reviewRoundsValue(roundCount: number, suggested: number) {
-  const label = roundCountLabel(roundCount);
-  return roundCount === suggested ? `${label} · suggested` : label;
+export function roundCountLabel(roundCount: number, locale: Locale) {
+  return messagesFor(locale).tournament.sizing.roundCount(roundCount);
 }
 
-export function formatRoundMatchesPerTeam(range: {
-  matchesPerTeamMin: number;
-  matchesPerTeamMax: number;
-}) {
+export function reviewRoundsValue(
+  roundCount: number,
+  suggested: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.sizing;
+  return roundCount === suggested
+    ? m.roundCountSuggested(roundCount)
+    : m.roundCount(roundCount);
+}
+
+export function formatRoundMatchesPerTeam(
+  range: {
+    matchesPerTeamMin: number;
+    matchesPerTeamMax: number;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament.sizing;
   const { matchesPerTeamMin: min, matchesPerTeamMax: max } = range;
   if (min === max) {
-    return `Each Game team plays ${min} ${min === 1 ? "Match" : "Matches"}`;
+    return m.eachTeamPlays(min);
   }
-  return `Each Game team plays ${min} to ${max} Matches`;
+  return m.eachTeamPlaysRange(min, max);
 }

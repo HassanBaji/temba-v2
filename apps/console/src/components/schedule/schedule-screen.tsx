@@ -12,6 +12,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { productDayKey } from "@repo/domain/product-timezone";
 
@@ -102,8 +103,8 @@ export function ScheduleScreen() {
 
   const label =
     view === "week"
-      ? `${formatDayMonth(dayStart(range.from))} to ${formatDayMonth(dayStart(range.to))}`
-      : formatDayMonth(dayStart(day), { weekday: "short" });
+      ? `${formatDayMonth(dayStart(range.from), CONSOLE_LOCALE)} to ${formatDayMonth(dayStart(range.to), CONSOLE_LOCALE)}`
+      : formatDayMonth(dayStart(day), CONSOLE_LOCALE, { weekday: "short" });
   const hint =
     view === "week"
       ? week.includes(today)

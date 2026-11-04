@@ -7,6 +7,7 @@ import type {
 } from "@repo/domain/game-result-share";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import {
   Big,
   BibSquare,
@@ -18,10 +19,11 @@ import {
 import { STORY_HEIGHT, STORY_WIDTH } from "./story-canvas";
 
 const PAD_X = 72;
-const PAD_Y = 80;
+const PAD_TOP = 180;
+const PAD_BOTTOM = 160;
 const RULE = 1;
-const MAX_SCORERS = 6;
-const MAX_LINEUP = 8;
+const MAX_SCORERS = 5;
+const MAX_LINEUP = 6;
 
 function StoryFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -31,7 +33,8 @@ function StoryFrame({ children }: { children: React.ReactNode }) {
         height: STORY_HEIGHT,
         backgroundColor: colors.ink,
         paddingHorizontal: PAD_X,
-        paddingVertical: PAD_Y,
+        paddingTop: PAD_TOP,
+        paddingBottom: PAD_BOTTOM,
         gap: 64,
       }}
     >
@@ -155,19 +158,21 @@ function PadelSide({
 }
 
 function PadelStory({ card }: { card: PadelResultCard }) {
+  const m = useMessages();
+  const tag = m.game.played.tag;
   return (
     <StoryFrame>
       <StoryHead typeLine={card.typeLine} />
       <View style={{ flex: 1, justifyContent: "center", gap: 56 }}>
         <PadelSide
-          word={card.draw ? "DRAW" : "WON"}
+          word={card.draw ? tag.draw : tag.won}
           people={card.winners}
           count={card.winCount}
           strong
         />
         <View style={{ marginTop: -20 }}>
           <PadelSide
-            word={card.draw ? "DRAW" : "LOST"}
+            word={card.draw ? tag.draw : tag.lost}
             people={card.losers}
             count={card.loseCount}
             strong={false}
@@ -188,7 +193,7 @@ function PadelStory({ card }: { card: PadelResultCard }) {
               tracking={0.14}
               style={{ flex: 1, color: colors.muted }}
             >
-              SETS
+              {m.mobilePlayer.share.sets}
             </Label>
             <Label
               px={24}
@@ -333,6 +338,7 @@ function FootballScoreRow({
 }
 
 function ScorerSheet({ card }: { card: FootballResultCard }) {
+  const m = useMessages().mobilePlayer.share;
   return (
     <View
       style={{
@@ -347,7 +353,7 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
         tracking={0.14}
         style={{ color: colors.muted, paddingBottom: 6 }}
       >
-        SCORERS
+        {m.scorers}
       </Label>
       {card.scorers.slice(0, MAX_SCORERS).map((scorer) => {
         const ink = scorer.isYou
@@ -380,7 +386,7 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
             </Big>
             {scorer.isYou ? (
               <Label px={26} style={{ color: sub }}>
-                YOU
+                {m.you}
               </Label>
             ) : null}
             <Big
@@ -409,6 +415,7 @@ function LineupGrid({
   people: ResultCardPerson[];
   strong: boolean;
 }) {
+  const m = useMessages().mobilePlayer.share;
   const itemWidth = (STORY_WIDTH - 2 * PAD_X - 24) / 2;
   return (
     <View style={{ gap: 16 }}>
@@ -474,7 +481,7 @@ function LineupGrid({
               </Big>
               {you ? (
                 <Label px={20} style={{ color: colors.muted }}>
-                  YOU
+                  {m.you}
                 </Label>
               ) : null}
             </View>
@@ -486,18 +493,15 @@ function LineupGrid({
 }
 
 function FootballStory({ card }: { card: FootballResultCard }) {
-  const winWord = card.draw ? "DRAW" : "WON";
-  const loseWord = card.draw ? "DRAW" : "LOST";
+  const tag = useMessages().game.played.tag;
+  const winWord = card.draw ? tag.draw : tag.won;
+  const loseWord = card.draw ? tag.draw : tag.lost;
   return (
     <StoryFrame>
       <StoryHead typeLine={card.typeLine} />
       <FootballScoreRow side={card.win} word={winWord} strong />
       <View style={{ marginTop: -28 }}>
-        <FootballScoreRow
-          side={card.lose}
-          word={loseWord}
-          strong={card.draw}
-        />
+        <FootballScoreRow side={card.lose} word={loseWord} strong={card.draw} />
       </View>
       {card.scorers.length > 0 ? (
         <ScorerSheet card={card} />

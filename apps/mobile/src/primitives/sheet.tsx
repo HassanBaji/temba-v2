@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
 import { Text } from "./text";
@@ -59,6 +60,7 @@ export function Sheet({
   keyboardShouldPersistTaps,
   children,
 }: SheetProps) {
+  const m = useMessages();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
   const bottomPadding = Math.max(PADDING_BOTTOM, insets.bottom + BODY_GAP);
@@ -76,7 +78,7 @@ export function Sheet({
       <View style={styles.root}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          accessibilityLabel={m.common.close}
           onPress={onClose}
           style={[
             StyleSheet.absoluteFill,
@@ -144,10 +146,11 @@ export function Sheet({
 }
 
 export function SheetCloseButton({ onPress }: { onPress: () => void }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Close"
+      accessibilityLabel={m.common.close}
       hitSlop={(sizes.touchTarget - CLOSE_BUTTON) / 2}
       onPress={onPress}
       style={({ pressed }) => ({

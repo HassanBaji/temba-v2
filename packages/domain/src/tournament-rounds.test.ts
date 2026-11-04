@@ -228,12 +228,12 @@ describe("isPartnerRequiredGame", () => {
 
 describe("poolRoundLabel", () => {
   it("labels a Round against the tournament total", () => {
-    assert.equal(poolRoundLabel(2, 3), "R2 of 3");
+    assert.equal(poolRoundLabel(2, 3, "en"), "R2 of 3");
   });
 
   it("is null without a Round number or total", () => {
-    assert.equal(poolRoundLabel(null, 3), null);
-    assert.equal(poolRoundLabel(2, null), null);
+    assert.equal(poolRoundLabel(null, 3, "en"), null);
+    assert.equal(poolRoundLabel(2, null, "en"), null);
   });
 });
 
@@ -255,6 +255,7 @@ describe("roundsPlayedLabel", () => {
           ],
         },
         3,
+        "en",
       ),
       "Round 1 of 3 played",
     );
@@ -280,14 +281,15 @@ describe("roundsPlayedLabel", () => {
           ],
         },
         3,
+        "en",
       ),
       "Round 2 of 3 played",
     );
   });
 
   it("is null without pool tables or a Round count", () => {
-    assert.equal(roundsPlayedLabel(null, 3), null);
-    assert.equal(roundsPlayedLabel({ pools: [] }, null), null);
+    assert.equal(roundsPlayedLabel(null, 3, "en"), null);
+    assert.equal(roundsPlayedLabel({ pools: [] }, null, "en"), null);
   });
 });
 
@@ -320,10 +322,14 @@ describe("tournamentRoundSummary", () => {
         windowStart: start,
         windowEnd: end,
         matchMinutes: null,
+        locale: "en",
       }),
       {
         roundCount: 3,
-        dateLines: [formatAbsoluteDay(start), formatAbsoluteDay(end)],
+        dateLines: [
+          formatAbsoluteDay(start, "en"),
+          formatAbsoluteDay(end, "en"),
+        ],
       },
     );
   });
@@ -337,10 +343,14 @@ describe("tournamentRoundSummary", () => {
         windowStart: start,
         windowEnd: end,
         matchMinutes: null,
+        locale: "en",
       }),
       {
         roundCount: 5,
-        dateLines: [formatAbsoluteDay(start), formatAbsoluteDay(end)],
+        dateLines: [
+          formatAbsoluteDay(start, "en"),
+          formatAbsoluteDay(end, "en"),
+        ],
       },
     );
   });
@@ -354,10 +364,11 @@ describe("tournamentRoundSummary", () => {
         windowStart: start,
         windowEnd: end,
         matchMinutes: null,
+        locale: "en",
       }),
       {
         roundCount: 1,
-        dateLines: [formatAbsoluteDay(start)],
+        dateLines: [formatAbsoluteDay(start, "en")],
       },
     );
   });
@@ -371,10 +382,11 @@ describe("tournamentRoundSummary", () => {
         windowStart: start,
         windowEnd: end,
         matchMinutes: null,
+        locale: "en",
       }),
       {
         roundCount: 3,
-        dateLines: [formatAbsoluteDay(start)],
+        dateLines: [formatAbsoluteDay(start, "en")],
       },
     );
   });
@@ -386,6 +398,7 @@ describe("tournamentRoundSummary", () => {
         windowStart: new Date(),
         windowEnd: new Date(),
         matchMinutes: null,
+        locale: "en",
       }),
       null,
     );
@@ -507,5 +520,19 @@ describe("tournamentRoundSchedule", () => {
       assert.ok(previous && current);
       assert.ok(current.start.getTime() > previous.start.getTime());
     }
+  });
+});
+
+describe("Arabic copy", () => {
+  it("labels the Round and the Rounds played in Arabic", () => {
+    assert.equal(poolRoundLabel(2, 3, "ar"), "ج2 من 3");
+    assert.equal(
+      roundsPlayedLabel(
+        { pools: [{ matches: [{ roundNumber: 1, status: "completed" }] }] },
+        3,
+        "ar",
+      ),
+      "لُعبت الجولة 1 من 3",
+    );
   });
 });

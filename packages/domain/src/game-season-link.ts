@@ -5,6 +5,9 @@
  * game day and is not closed can be picked.
  */
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth } from "./format-game-start";
 import {
   dayKeyToInstant,
@@ -15,31 +18,20 @@ import {
   type GroupSeasonStatus,
 } from "./group-season";
 
-export const NO_SEASON_LABEL = "No season";
-export const NO_SEASON_DATES = "Friendly";
-export const NO_SEASON_NOTE = "Result won't count in any standing.";
-export const SEASON_LINK_ROW_TITLE = "Link to a season";
-export const SEASON_SECTION_FRIENDLY_NOTE =
-  "Without a season the game is a friendly. It still updates levels, just not a standing.";
-export const SEASON_PICKER_LOCK_NOTE =
-  "Only a confirmed final score counts in the standing. You can unlink until the score is confirmed.";
-export const SEASON_COUNTS_LINE = "Counts in the standing";
-export const SEASON_NEEDS_FIX_TAG = "Needs a fix";
-export const SEASON_LOCKED_NOTE =
-  "The score is confirmed, so the season can't change.";
-export const KEEP_FRIENDLY_ACTION = "Keep as a friendly";
-export const UNLINK_SEASON_ACTION = "Unlink season";
-export const SEASON_CHANGE_ACTION = "Change";
-
+/** The badge is an id the Apps compare against; `seasonBadgeLabel` is its copy. */
 export const SEASON_BADGE: Record<GroupSeasonStatus, string> = {
   upcoming: "UPCOMING",
   active: "ACTIVE",
   closed: "CLOSED",
 };
 
+export function seasonBadgeLabel(status: GroupSeasonStatus, locale: Locale) {
+  return messagesFor(locale).createGame.season.badge[status];
+}
+
 /** `"Mon 2 Nov"` for a `YYYY-MM-DD` day key. */
-export function formatGameDayKey(dayKey: string) {
-  return formatDayMonth(dayKeyToInstant(dayKey), { weekday: "short" });
+export function formatGameDayKey(dayKey: string, locale: Locale) {
+  return formatDayMonth(dayKeyToInstant(dayKey), locale, { weekday: "short" });
 }
 
 export function seasonContainsDay(
@@ -83,16 +75,16 @@ function seasonChoiceNote(
   season: GroupSeasonData,
   dayKey: string,
   now: Date,
+  locale: Locale,
 ): string {
+  const m = messagesFor(locale).createGame.season;
   if (groupSeasonStatus(season, now) === "closed") {
-    return "Closed and locked.";
+    return m.closedAndLocked;
   }
   if (seasonContainsDay(season, dayKey)) {
-    return `${formatGameDayKey(dayKey)} falls inside this window.`;
+    return m.fallsInside(formatGameDayKey(dayKey, locale));
   }
-  return season.startsOn > dayKey
-    ? "Starts after the game day."
-    : "Ended before the game day.";
+  return season.startsOn > dayKey ? m.startsAfter : m.endedBefore;
 }
 
 /**
@@ -103,7 +95,9 @@ export function gameSeasonChoices(
   seasons: readonly GroupSeasonData[],
   dayKey: string,
   now: Date,
+  locale: Locale,
 ): GameSeasonChoice[] {
+  const m = messagesFor(locale).createGame.season;
   const ordered = sortSeasonsNewestFirst(seasons);
   const fitting = ordered.filter((season) =>
     seasonOpenForDay(season, dayKey, now),
@@ -114,17 +108,17 @@ export function gameSeasonChoices(
   return [
     {
       id: null,
-      name: NO_SEASON_LABEL,
-      dates: NO_SEASON_DATES,
-      note: NO_SEASON_NOTE,
+      name: m.none,
+      dates: m.friendly,
+      note: m.noneNote,
       badge: null,
       selectable: true,
     },
     ...[...fitting, ...rest].map((season) => ({
       id: season.id,
       name: season.name,
-      dates: formatSeasonRange(season),
-      note: seasonChoiceNote(season, dayKey, now),
+      dates: formatSeasonRange(season, locale),
+      note: seasonChoiceNote(season, dayKey, now, locale),
       badge: SEASON_BADGE[groupSeasonStatus(season, now)],
       selectable: seasonOpenForDay(season, dayKey, now),
     })),
@@ -136,31 +130,44 @@ export function seasonLinkRowNote(
   groupName: string,
   openCount: number,
   dayKey: string,
+  locale: Locale,
 ) {
-  const count =
-    openCount === 0
-      ? "no season"
-      : `${openCount} ${openCount === 1 ? "season" : "seasons"}`;
-  return `${groupName} has ${count} open for ${formatGameDayKey(dayKey)}.`;
+  return messagesFor(locale).createGame.season.rowNote(
+    groupName,
+    openCount,
+    formatGameDayKey(dayKey, locale),
+  );
 }
 
 /** `"Gooz of Arad. The game day, Mon 2 Nov, decides which seasons fit."` */
-export function seasonPickerSubtitle(groupName: string, dayKey: string) {
-  return `${groupName}. The game day, ${formatGameDayKey(dayKey)}, decides which seasons fit.`;
+export function seasonPickerSubtitle(
+  groupName: string,
+  dayKey: string,
+  locale: Locale,
+) {
+  return messagesFor(locale).createGame.season.pickerSubtitle(
+    groupName,
+    formatGameDayKey(dayKey, locale),
+  );
 }
 
 export function seasonLinkActionLabel(
   choice: Pick<GameSeasonChoice, "id" | "name">,
+  locale: Locale,
 ) {
-  return choice.id === null ? KEEP_FRIENDLY_ACTION : `Link ${choice.name}`;
+  const m = messagesFor(locale).createGame.season;
+  return choice.id === null ? m.keepFriendly : m.link(choice.name);
 }
 
 /**
  * `"Players see “Season 3” on the game and in the invite. Unlink any time
  * before the score is confirmed."`
  */
-export function seasonLinkedNote(season: Pick<GroupSeasonData, "name">) {
-  return `Players see “${season.name}” on the game and in the invite. Unlink any time before the score is confirmed.`;
+export function seasonLinkedNote(
+  season: Pick<GroupSeasonData, "name">,
+  locale: Locale,
+) {
+  return messagesFor(locale).createGame.season.linkedNote(season.name);
 }
 
 export type GameSeasonFix = {
@@ -182,42 +189,41 @@ export function gameSeasonFix(
   seasons: readonly GroupSeasonData[],
   dayKey: string,
   now: Date,
+  locale: Locale,
 ): GameSeasonFix | null {
   if (!linked || seasonContainsDay(linked, dayKey)) {
     return null;
   }
+  const m = messagesFor(locale).createGame.season;
   const replacement = seasonsOpenForDay(seasons, dayKey, now)[0] ?? null;
-  const day = formatGameDayKey(dayKey);
+  const day = formatGameDayKey(dayKey, locale);
   const before = dayKey < linked.startsOn;
   const edge = formatDayMonth(
     dayKeyToInstant(before ? linked.startsOn : linked.endsOn),
+    locale,
   );
   return {
     season: linked,
     replacement,
-    endsLine: before ? `starts ${edge}` : `ends ${edge}`,
+    endsLine: before ? m.starts(edge) : m.ends(edge),
     line: replacement
-      ? `${day} is outside ${linked.name}. ${replacement.name} covers that day.`
-      : `${day} is outside ${linked.name}. No season covers that day.`,
+      ? m.outsideCovered(day, linked.name, replacement.name)
+      : m.outsideNone(day, linked.name),
     keepLine: before
-      ? `Or move the day forward to ${edge} or later to keep ${linked.name}.`
-      : `Or move the day back to ${edge} or earlier to keep ${linked.name}.`,
-    moveLabel: replacement ? `Move to ${replacement.name}` : null,
+      ? m.keepForward(edge, linked.name)
+      : m.keepBack(edge, linked.name),
+    moveLabel: replacement ? m.moveTo(replacement.name) : null,
   };
 }
-
-export const GAME_SEASON_NOT_IN_GROUP_MESSAGE =
-  "Pick a season of this Game's Group";
-export const GAME_SEASON_CLOSED_MESSAGE = "That season is closed";
-export const GAME_SEASON_SCORE_CONFIRMED_MESSAGE =
-  "The score is confirmed, so the season can't change";
-export const GAME_SEASON_NO_GROUP_MESSAGE =
-  "Only a Group Game can link to a season";
 
 /** `"Sun 1 Feb is outside Season 3"` */
 export function seasonOutsideDayMessage(
   season: Pick<GroupSeasonData, "name">,
   dayKey: string,
+  locale: Locale,
 ) {
-  return `${formatGameDayKey(dayKey)} is outside ${season.name}`;
+  return messagesFor(locale).createGame.season.outsideDay(
+    formatGameDayKey(dayKey, locale),
+    season.name,
+  );
 }

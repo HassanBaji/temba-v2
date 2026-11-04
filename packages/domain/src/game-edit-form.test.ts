@@ -115,17 +115,17 @@ describe("gameEditDraftFrom", () => {
 
 describe("gameEditPlan", () => {
   it("has nothing to send while the draft matches the Game", () => {
-    expect(gameEditPlan(saved, { ...saved }, football)).toEqual({
+    expect(gameEditPlan(saved, { ...saved }, football, "en")).toEqual({
       ok: true,
       steps: [],
       changed: [],
     });
-    expect(gameEditChangeNote(saved, saved, football)).toBe("None yet");
+    expect(gameEditChangeNote(saved, saved, football, "en")).toBe("None yet");
   });
 
   it("ignores whitespace in the name and trailing zeros in the price", () => {
     const draft = { ...saved, customName: " مباراة رقم 174 ", price: "2" };
-    expect(gameEditPlan(saved, draft, football)).toMatchObject({
+    expect(gameEditPlan(saved, draft, football, "en")).toMatchObject({
       ok: true,
       steps: [],
     });
@@ -142,7 +142,7 @@ describe("gameEditPlan", () => {
       price: "2.500",
       seasonId: null,
     };
-    const plan = gameEditPlan(saved, draft, football);
+    const plan = gameEditPlan(saved, draft, football, "en");
     expect(plan.ok).toBe(true);
     if (!plan.ok) {
       return;
@@ -165,26 +165,26 @@ describe("gameEditPlan", () => {
       sideSize: 5,
     });
     expect(plan.steps[3]).toEqual({ kind: "price", pricePerPlayerFils: 2500 });
-    expect(gameEditChangeNote(saved, draft, football)).toBe(
+    expect(gameEditChangeNote(saved, draft, football, "en")).toBe(
       "Name, time changed, players, a-side, price, season unlinked",
     );
   });
 
   it("sends a season change alone when the window stays", () => {
     const draft = { ...saved, seasonId: null };
-    expect(gameEditPlan(saved, draft, football)).toEqual({
+    expect(gameEditPlan(saved, draft, football, "en")).toEqual({
       ok: true,
       steps: [{ kind: "season", seasonId: null }],
       changed: ["season"],
     });
     expect(
-      gameEditChangeNote({ ...saved, seasonId: null }, saved, football),
+      gameEditChangeNote({ ...saved, seasonId: null }, saved, football, "en"),
     ).toBe("Season linked");
   });
 
   it("refuses a price it cannot read", () => {
     expect(
-      gameEditPlan(saved, { ...saved, price: "2.0000" }, football),
+      gameEditPlan(saved, { ...saved, price: "2.0000" }, football, "en"),
     ).toEqual({
       ok: false,
       field: "price",
@@ -200,37 +200,39 @@ describe("gameEditPlan", () => {
       tournamentRounds: false,
     });
     const draft = { ...saved, levelMin: "B", levelMax: "D" } as GameEditDraft;
-    expect(gameEditPlan(saved, draft, padel)).toMatchObject({
+    expect(gameEditPlan(saved, draft, padel, "en")).toMatchObject({
       ok: false,
       field: "level",
     });
   });
 
   it("refuses a half-picked window", () => {
-    expect(gameEditPlan(saved, { ...saved, finishTime: "" }, football)).toEqual(
-      {
-        ok: false,
-        field: "window",
-        message: "Pick a day, a start time and a finish time",
-      },
-    );
+    expect(
+      gameEditPlan(saved, { ...saved, finishTime: "" }, football, "en"),
+    ).toEqual({
+      ok: false,
+      field: "window",
+      message: "Pick a day, a start time and a finish time",
+    });
   });
 });
 
 describe("season fix", () => {
   it("flags the day leaving the linked Season in the change note", () => {
     const draft = { ...saved, day: "2027-02-01" };
-    const fix = gameEditSeasonFix(draft, [s3, s4], NOW);
+    const fix = gameEditSeasonFix(draft, [s3, s4], NOW, "en");
     expect(fix?.moveLabel).toBe("Move to Season 4");
     expect(
-      gameEditChangeNote(saved, draft, football, { seasonNeedsFix: true }),
+      gameEditChangeNote(saved, draft, football, "en", {
+        seasonNeedsFix: true,
+      }),
     ).toBe("Day moved. Season needs a fix.");
   });
 
   it("clears once the link moves with the day", () => {
     const draft = { ...saved, day: "2027-02-01", seasonId: "s4" };
-    expect(gameEditSeasonFix(draft, [s3, s4], NOW)).toBeNull();
-    expect(gameEditChangeNote(saved, draft, football)).toBe(
+    expect(gameEditSeasonFix(draft, [s3, s4], NOW, "en")).toBeNull();
+    expect(gameEditChangeNote(saved, draft, football, "en")).toBe(
       "Day moved, season changed",
     );
   });
@@ -238,16 +240,20 @@ describe("season fix", () => {
 
 describe("players and price copy", () => {
   it("describes the pitch and the subs", () => {
-    expect(footballFormatNote(6, 12)).toBe("6-a-side, 12 on the pitch");
-    expect(footballFormatNote(6, 13)).toBe("6-a-side, 12 on the pitch, 1 sub");
-    expect(footballFormatNote(5, 14)).toBe("5-a-side, 10 on the pitch, 4 subs");
+    expect(footballFormatNote(6, 12, "en")).toBe("6-a-side, 12 on the pitch");
+    expect(footballFormatNote(6, 13, "en")).toBe(
+      "6-a-side, 12 on the pitch, 1 sub",
+    );
+    expect(footballFormatNote(5, 14, "en")).toBe(
+      "5-a-side, 10 on the pitch, 4 subs",
+    );
   });
 
   it("counts who moves to the waiting list", () => {
-    expect(playersCapWaitNote(12, 9)).toBe(
+    expect(playersCapWaitNote(12, 9, "en")).toBe(
       "Everyone who joined keeps their spot.",
     );
-    expect(playersCapWaitNote(7, 9)).toBe(
+    expect(playersCapWaitNote(7, 9, "en")).toBe(
       "2 of the 9 joined move to the waiting list, latest to join first.",
     );
   });
@@ -266,13 +272,29 @@ describe("players and price copy", () => {
   });
 
   it("formats the duration and the venue line", () => {
-    expect(windowDurationLabel("2026-11-02", "19:00", "20:30")).toBe("90 min");
-    expect(windowDurationLabel("2026-11-02", "19:00", "")).toBeNull();
-    expect(venueLockedLine("Karbabad Turf", "Pitch 2")).toBe(
+    expect(windowDurationLabel("2026-11-02", "19:00", "20:30", "en")).toBe(
+      "90 min",
+    );
+    expect(windowDurationLabel("2026-11-02", "19:00", "", "en")).toBeNull();
+    expect(venueLockedLine("Karbabad Turf", "Pitch 2", "en")).toBe(
       "Karbabad Turf, Pitch 2. Venue can't change.",
     );
-    expect(venueLockedLine("Karbabad Turf", null)).toBe(
+    expect(venueLockedLine("Karbabad Turf", null, "en")).toBe(
       "Karbabad Turf. Venue can't change.",
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the change note and the football note in Arabic", () => {
+    expect(
+      gameEditChangeNote(saved, { ...saved, seasonId: null }, football, "ar"),
+    ).toBe("أُلغي ربط الموسم");
+    expect(footballFormatNote(6, 13, "ar")).toBe(
+      "6 ضد 6، 12 في الملعب، احتياط واحد",
+    );
+    expect(venueLockedLine("Karbabad Turf", null, "ar")).toBe(
+      "Karbabad Turf. لا يمكن تغيير النادي.",
     );
   });
 });

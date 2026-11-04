@@ -3,12 +3,13 @@
 import { ArrowLeftRight } from "lucide-react";
 import { useState } from "react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   isPreferredPosition,
-  PREFERRED_POSITION_CHOICES,
+  preferredPositionChoices,
   preferredPositionNote,
   type PreferredPosition,
 } from "@repo/domain/preferred-position";
@@ -25,6 +26,8 @@ function storedPosition(
 }
 
 export function PreferredPositionControl() {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const state = api.users.onboardingState.useQuery();
   const [optimistic, setOptimistic] = useState<PreferredPosition | null>();
@@ -60,10 +63,10 @@ export function PreferredPositionControl() {
       <div className="flex items-start justify-between gap-3.5">
         <div className="min-w-0">
           <h3 id={TITLE_ID} className="text-ink text-lead font-semibold">
-            Preferred Position
+            {m.webAuth.settings.preferredPosition.title}
           </h3>
           <p className="text-muted-foreground text-meta mt-[3px] leading-[1.45]">
-            Your default side when you pick a Game seat
+            {m.webAuth.settings.preferredPosition.description}
           </p>
         </div>
         <ArrowLeftRight
@@ -82,7 +85,7 @@ export function PreferredPositionControl() {
           aria-disabled={disabled || undefined}
           className="bg-wash mt-4 grid grid-cols-3 gap-1.5 rounded-lg p-[5px]"
         >
-          {PREFERRED_POSITION_CHOICES.map((option) => {
+          {preferredPositionChoices(locale).map((option) => {
             const isSelected = selected === option.value;
 
             return (
@@ -111,7 +114,7 @@ export function PreferredPositionControl() {
 
       {state.isLoading ? null : (
         <p id={NOTE_ID} className="text-muted-foreground text-eyebrow mt-2.5">
-          {preferredPositionNote(selected)}
+          {preferredPositionNote(selected, locale)}
         </p>
       )}
     </div>

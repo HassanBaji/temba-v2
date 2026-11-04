@@ -151,11 +151,12 @@ export function FootballPreviewStates() {
         scored: false,
       },
       now,
+      "en",
     );
   const pool = players(false);
   const teams = players(true);
   const scored = players(true, true);
-  const names = bibNames(BIBS);
+  const names = bibNames(BIBS, "en");
   const playedRow = {
     windowStart: new Date(now.getTime() - 3 * 60 * 60 * 1000),
     windowEnd: new Date(now.getTime() - 2 * 60 * 60 * 1000),
@@ -282,7 +283,7 @@ export function FootballPreviewStates() {
       <Block title="F5 score in">
         <FootballScoreCard
           bibs={{ slot1: "red", slot2: "sky" }}
-          names={bibNames({ slot1: "red", slot2: "sky" })}
+          names={bibNames({ slot1: "red", slot2: "sky" }, "en")}
           players={scored}
           match={{
             status: "pending",

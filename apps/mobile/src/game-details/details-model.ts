@@ -1,7 +1,13 @@
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { friendlyGameResultsSaveSets } from "@repo/domain/friendly-game-results";
+import {
+  gameDisplayName,
+  type GameDisplayNameInput,
+} from "@repo/domain/game-custom-name";
 import { defaultJoinSeat } from "@repo/domain/preferred-seat";
 import { gameDetailsChrome } from "@repo/domain/tournament-home";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export function isFriendlyGameDetails(game: {
   format: string;
@@ -19,13 +25,12 @@ export function isFriendlyGameDetails(game: {
   );
 }
 
-export const UNSUPPORTED_FORMAT_COPY = {
-  title: "Not on mobile yet",
-  description: "This kind of Game opens on the web for now.",
-} as const;
+export function unsupportedFormatCopy(locale: Locale) {
+  return messagesFor(locale).mobileGameDetails.unsupported;
+}
 
-export function gameTitle(name: string | null) {
-  return name ?? "Game";
+export function gameTitle(game: GameDisplayNameInput, locale: Locale) {
+  return gameDisplayName(game, locale);
 }
 
 export type SeatSelection = {

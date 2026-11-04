@@ -1,3 +1,5 @@
+"use client";
+
 import { colors } from "@repo/design-tokens";
 import type {
   FootballResultCard,
@@ -6,13 +8,16 @@ import type {
   ResultCardPerson,
 } from "@repo/domain/game-result-share";
 
+import { useMessages } from "~/components/locale-provider";
+
 import { STORY_HEIGHT, STORY_WIDTH } from "./scaled-canvas";
 import { Big, BibSquare, InitialsSquare, Label, Wordmark } from "./story-parts";
 
 const PAD_X = 72;
-const PAD_Y = 80;
-const MAX_SCORERS = 6;
-const MAX_LINEUP = 8;
+const PAD_TOP = 180;
+const PAD_BOTTOM = 160;
+const MAX_SCORERS = 5;
+const MAX_LINEUP = 6;
 
 function StoryFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -21,7 +26,7 @@ function StoryFrame({ children }: { children: React.ReactNode }) {
       style={{
         width: STORY_WIDTH,
         height: STORY_HEIGHT,
-        padding: `${PAD_Y}px ${PAD_X}px`,
+        padding: `${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px`,
         gap: 64,
       }}
     >
@@ -112,19 +117,20 @@ function PadelSide({
 }
 
 function PadelStory({ card }: { card: PadelResultCard }) {
+  const tag = useMessages().game.played.tag;
   return (
     <StoryFrame>
       <StoryHead typeLine={card.typeLine} />
       <div className="flex flex-1 flex-col justify-center" style={{ gap: 56 }}>
         <PadelSide
-          word={card.draw ? "DRAW" : "WON"}
+          word={card.draw ? tag.draw : tag.won}
           people={card.winners}
           count={card.winCount}
           strong
         />
         <div style={{ marginTop: -20 }}>
           <PadelSide
-            word={card.draw ? "DRAW" : "LOST"}
+            word={card.draw ? tag.draw : tag.lost}
             people={card.losers}
             count={card.loseCount}
             strong={false}
@@ -283,7 +289,7 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
               ratio={1}
               tracking={-0.04}
               expanded
-              className="w-[72px] text-right"
+              className="w-[72px] text-end"
             >
               {scorer.goals}
             </Big>
@@ -365,18 +371,19 @@ function LineupGrid({
 }
 
 function FootballStory({ card }: { card: FootballResultCard }) {
+  const tag = useMessages().game.played.tag;
   return (
     <StoryFrame>
       <StoryHead typeLine={card.typeLine} />
       <FootballScoreRow
         side={card.win}
-        word={card.draw ? "DRAW" : "WON"}
+        word={card.draw ? tag.draw : tag.won}
         strong
       />
       <div style={{ marginTop: -28 }}>
         <FootballScoreRow
           side={card.lose}
-          word={card.draw ? "DRAW" : "LOST"}
+          word={card.draw ? tag.draw : tag.lost}
           strong={card.draw}
         />
       </div>

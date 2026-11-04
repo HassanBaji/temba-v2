@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   comparePoolRecords,
+  computePoolTables,
   sortPoolRecords,
   type PoolRecordOrderInput,
 } from "./pool-table";
@@ -168,5 +169,33 @@ describe("comparePoolRecords", () => {
       poolOrder: 2,
     });
     assert.deepEqual(ids(sortPoolRecords([later, earlier])), ["a", "b"]);
+  });
+});
+
+describe("computePoolTables", () => {
+  const args = {
+    format: "friendly_tournament",
+    poolCount: 1,
+    gameTeams: [
+      { id: "t1", name: null, sideIndex: 1, poolIndex: 1, members: [] },
+      { id: "t2", name: "Named", sideIndex: 2, poolIndex: 1, members: [] },
+    ],
+    matches: [],
+    viewerUserId: "viewer",
+  };
+
+  it("labels the group and falls back to Game team in English", () => {
+    const tables = computePoolTables({ ...args, locale: "en" });
+    assert.equal(tables?.pools[0]?.label, "group A");
+    assert.deepEqual(
+      tables?.pools[0]?.rows.map((row) => row.name),
+      ["Game team", "Named"],
+    );
+  });
+
+  it("labels the group and the fallback in Arabic", () => {
+    const tables = computePoolTables({ ...args, locale: "ar" });
+    assert.equal(tables?.pools[0]?.label, "المجموعة A");
+    assert.equal(tables?.pools[0]?.rows[0]?.name, "فريق");
   });
 });

@@ -1,4 +1,6 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -27,7 +29,6 @@ import {
 } from "#src/games/invites";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { acceptLink, throwInviteFrozen } from "#src/invites/doors";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
@@ -43,8 +44,10 @@ export async function acceptInviteLink(
     sideIndex?: number;
     position?: "left" | "right";
     football?: { role: FootballRole; position: FootballPosition };
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const link = await database.query.gameInviteLinks.findFirst({
     where: eq(gameInviteLinks.token, args.token),
   });
@@ -77,7 +80,7 @@ export async function acceptInviteLink(
   if (!(await userAllowedByLevelRange(database, game, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+      message: messagesFor(locale).level.rangeOutside,
     });
   }
 
@@ -97,6 +100,7 @@ export async function acceptInviteLink(
     const accepted = await acceptLink(tx, "game", {
       token: args.token,
       userId: args.userId,
+      locale,
       seat:
         args.sideIndex != null && args.position
           ? { sideIndex: args.sideIndex, position: args.position }
@@ -174,5 +178,6 @@ export const acceptInviteLinkProcedure = protectedProcedure
       sideIndex: input.sideIndex,
       position: input.position,
       football: input.football,
+      locale: ctx.locale,
     });
   });

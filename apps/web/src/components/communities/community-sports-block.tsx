@@ -1,12 +1,9 @@
 "use client";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Button } from "~/components/ui/button";
-import {
-  COMMUNITY_SPORTS_DESCRIPTION,
-  COMMUNITY_SPORTS_TITLE,
-  communitySportsView,
-} from "@repo/domain/community-sports";
+import { communitySportsView } from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 
 export function CommunitySportsBlock({
@@ -22,15 +19,17 @@ export function CommunitySportsBlock({
   onAdd: (sport: Sport) => void;
   onRemove: (sport: Sport) => void;
 }) {
-  const view = communitySportsView(sports, canManage);
+  const m = useMessages();
+  const locale = useLocale();
+  const view = communitySportsView(sports, canManage, locale);
   return (
     <section className="border-rule flex flex-col gap-4 rounded-[14px] border p-5">
       <div className="space-y-1">
         <h2 className="text-muted-foreground font-mono text-[11px] font-normal uppercase tracking-[0.04em]">
-          {COMMUNITY_SPORTS_TITLE}
+          {m.community.sports.title}
         </h2>
         <p className="text-meta text-muted-foreground">
-          {COMMUNITY_SPORTS_DESCRIPTION}
+          {m.community.sports.description}
         </p>
       </div>
 
@@ -52,9 +51,9 @@ export function CommunitySportsBlock({
                 pending={pendingSport === row.sport}
                 disabled={pendingSport !== null}
                 onClick={() => onRemove(row.sport)}
-                aria-label={`Remove ${row.label}`}
+                aria-label={m.webGroup.sports.removeSport(row.label)}
               >
-                Remove
+                {m.common.remove}
               </Button>
             ) : null}
           </li>
@@ -71,7 +70,7 @@ export function CommunitySportsBlock({
           disabled={pendingSport !== null}
           onClick={() => onAdd(row.sport)}
         >
-          Add {row.label}
+          {m.webGroup.sports.addSport(row.label)}
         </Button>
       ))}
     </section>

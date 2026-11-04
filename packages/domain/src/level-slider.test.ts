@@ -112,13 +112,25 @@ describe("levelSliderLabel", () => {
 
 describe("level override reasons", () => {
   it("labels the five reasons", () => {
-    expect(LEVEL_OVERRIDE_REASONS.map(levelOverrideReasonLabel)).toEqual([
+    expect(
+      LEVEL_OVERRIDE_REASONS.map((reason) =>
+        levelOverrideReasonLabel(reason, "en"),
+      ),
+    ).toEqual([
       "New to the Group",
       "Plays above results",
       "Plays below results",
       "Back from injury",
       "Correcting a mistake",
     ]);
+  });
+});
+
+describe("level override reasons in Arabic", () => {
+  it("labels a reason", () => {
+    expect(levelOverrideReasonLabel("back_from_injury", "ar")).toBe(
+      "عائد من إصابة",
+    );
   });
 });
 
@@ -131,6 +143,7 @@ describe("levelOverrideCaption", () => {
         setByIsViewer: true,
         setByName: "Hassan Baji",
         createdAt: bahrainDate(2026, 9, 10, 1, 0, 0),
+        locale: "en",
         now,
       }),
     ).toBe("Set by you, today");
@@ -142,6 +155,7 @@ describe("levelOverrideCaption", () => {
         setByIsViewer: false,
         setByName: "Sara Khan",
         createdAt: bahrainDate(2026, 9, 7, 12, 0, 0),
+        locale: "en",
         now,
       }),
     ).toBe("Set by Sara K, 3 days ago");
@@ -153,8 +167,21 @@ describe("levelOverrideCaption", () => {
         setByIsViewer: false,
         setByName: "Sara Khan",
         createdAt: bahrainDate(2026, 9, 1, 12, 0, 0),
+        locale: "en",
         now,
       }),
     ).toBe("Set by Sara K, 1 Oct");
+  });
+
+  it("names the viewer in Arabic", () => {
+    expect(
+      levelOverrideCaption({
+        setByIsViewer: true,
+        setByName: "Hassan Baji",
+        createdAt: bahrainDate(2026, 9, 10, 1, 0, 0),
+        locale: "ar",
+        now,
+      }).startsWith("حدّده أنت، "),
+    ).toBe(true);
   });
 });

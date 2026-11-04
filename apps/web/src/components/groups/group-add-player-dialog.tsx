@@ -11,11 +11,10 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { AddPlayerIdentityFields } from "~/components/games/add-player-identity-fields";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
 import {
-  ADD_GROUP_PLAYER_DESCRIPTION,
-  ADD_PLAYER_ACTION,
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
   ADD_PLAYER_DEFAULT_LEVEL,
   addGroupPlayerCanSubmit,
@@ -41,6 +40,8 @@ export function GroupAddPlayerDialog({
   isFootball: boolean;
   onDone: () => Promise<unknown>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [countryIso, setCountryIso] = React.useState(
     DEFAULT_CALLING_COUNTRY_ISO,
   );
@@ -62,7 +63,7 @@ export function GroupAddPlayerDialog({
 
   const add = api.groups.addPlayerByPhone.useMutation({
     onSuccess: async (result) => {
-      toast.success(addGroupPlayerDoneToast(result));
+      toast.success(addGroupPlayerDoneToast(result, locale));
       setNational("");
       setName("");
       setLevel(ADD_PLAYER_DEFAULT_LEVEL);
@@ -104,9 +105,11 @@ export function GroupAddPlayerDialog({
     >
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>{ADD_PLAYER_ACTION}</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            {m.group.addPlayer.action}
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {ADD_GROUP_PLAYER_DESCRIPTION}
+            {m.group.addPlayer.groupDescription}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
@@ -123,7 +126,7 @@ export function GroupAddPlayerDialog({
             preview={
               previewData
                 ? {
-                    line: addGroupPlayerPreviewLine(previewData),
+                    line: addGroupPlayerPreviewLine(previewData, locale),
                     kind: previewData.kind,
                     phoneMasked: previewData.phoneMasked,
                   }
@@ -149,7 +152,7 @@ export function GroupAddPlayerDialog({
             className="w-full font-semibold"
             disabled={!canSubmit}
           >
-            {add.isPending ? "Adding…" : ADD_PLAYER_ACTION}
+            {add.isPending ? m.webGroup.adding : m.group.addPlayer.action}
           </Button>
         </form>
       </ResponsiveDialogContent>

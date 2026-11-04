@@ -8,6 +8,9 @@
  * ranked rows without a position.
  */
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { MATCH_STATUS } from "./match-status";
 import { matchOutcome } from "./match-outcome";
 import {
@@ -36,6 +39,17 @@ export function standingDiffUnit(
   sport: string | null | undefined,
 ): StandingDiffUnit {
   return sport === "football" ? "games" : "sets";
+}
+
+/**
+ * Whether the Standing draws a D column. Football has draws; a padel Match
+ * cannot end level, so its column stays hidden unless a row carries one.
+ */
+export function standingShowsDraws(
+  sport: string | null | undefined,
+  rows: readonly { draws: number }[],
+) {
+  return sport === "football" || rows.some((row) => row.draws > 0);
 }
 
 export const STANDING_FORM_LIMIT = 5;
@@ -271,27 +285,50 @@ export function seasonStandingTable<
 }
 
 /** `"No games yet"` or `"Fewer than 3 games"`, the UNRANKED divider's note. */
-export function unrankedNote(minRankedGames = SEASON_MIN_RANKED_GAMES) {
-  if (minRankedGames <= 1) {
-    return "No games yet";
-  }
-  return `Fewer than ${minRankedGames} games`;
-}
-
-/** The footer under the table, by sport. */
-export function standingRulesLine(
-  diffUnit: StandingDiffUnit,
+export function unrankedNote(
+  locale: Locale,
   minRankedGames = SEASON_MIN_RANKED_GAMES,
 ) {
-  const difference =
-    diffUnit === "sets" ? "set difference" : "score difference";
-  return `Win ${SEASON_POINTS.win}, draw ${SEASON_POINTS.draw}, loss ${SEASON_POINTS.loss}, to every player on the team. Only games with a confirmed final score count. Ties: wins, then head-to-head, then ${difference}, then fewer games played. ${rankedAfterLine(minRankedGames)}`;
+  const m = messagesFor(locale).group.standing;
+  if (minRankedGames <= 1) {
+    return m.noGamesYet;
+  }
+  return m.fewerThan(minRankedGames);
 }
 
-function rankedAfterLine(minRankedGames: number) {
+/**
+ * The key under the table: what each column letter means and what a result
+ * is worth, `"P played, W won, D drawn, L lost. A win is 3 points, a draw 1."`
+ * The draw parts drop out with the D column.
+ */
+export function standingLegend(showDraws: boolean, locale: Locale) {
+  const m = messagesFor(locale).group;
+  const legend = m.standing.legend;
+  const columns = showDraws
+    ? [legend.played, legend.won, legend.drawn, legend.lost]
+    : [legend.played, legend.won, legend.lost];
+  const points = showDraws
+    ? legend.pointsWithDraw(SEASON_POINTS.win, SEASON_POINTS.draw)
+    : legend.points(SEASON_POINTS.win);
+  return `${columns.join(m.metaSeparator)}. ${points}`;
+}
+
+/** The footer under the legend, by sport. */
+export function standingRulesLine(
+  diffUnit: StandingDiffUnit,
+  locale: Locale,
+  minRankedGames = SEASON_MIN_RANKED_GAMES,
+) {
+  const m = messagesFor(locale).group.standing;
+  const difference = diffUnit === "sets" ? m.setDifference : m.scoreDifference;
+  return `${m.rulesLine(difference)} ${rankedAfterLine(minRankedGames, locale)}`;
+}
+
+function rankedAfterLine(minRankedGames: number, locale: Locale) {
+  const m = messagesFor(locale).group.standing;
   return minRankedGames <= 1
-    ? "One game ranks you."
-    : `Play ${minRankedGames} games to be ranked.`;
+    ? m.oneGameRanks
+    : m.playGamesToRank(minRankedGames);
 }
 
 /** `"5–2–1"`: wins, draws, losses. */

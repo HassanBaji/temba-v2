@@ -3,11 +3,12 @@
 import { useState, type ReactNode } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { SportSegments } from "~/components/temba/sport-segments";
 import { Skeleton } from "~/components/ui/skeleton";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
-  PLAYER_PROFILE_REFUSED,
+  playerProfileRefused,
   overallView,
   playedSideView,
   playerHeaderSubtitle,
@@ -40,15 +41,15 @@ import { PlayerPositionCard } from "./player-position-card";
 import { PlayerStreaksCard } from "./player-streaks-card";
 
 export function PlayerProfileRefused() {
+  const locale = useLocale();
+  const refused = playerProfileRefused(locale);
   return (
     <div className="space-y-5">
       <PlayerBackButton surface="paper" />
       <section className="border-rule rounded-card border p-5">
-        <h1 className="text-lead font-semibold">
-          {PLAYER_PROFILE_REFUSED.title}
-        </h1>
+        <h1 className="text-lead font-semibold">{refused.title}</h1>
         <p className="text-meta text-muted-foreground mt-1.5">
-          {PLAYER_PROFILE_REFUSED.description}
+          {refused.description}
         </p>
       </section>
     </div>
@@ -71,6 +72,7 @@ export function PlayerProfile({
   userId: string;
   requestedSport?: unknown;
 }) {
+  const m = useMessages();
   const [chosen, setChosen] = useState<Sport | null>(null);
   const padel = api.users.playerProfile.useQuery({ userId });
   const sport = chosen ?? profileSport(requestedSport, padel.data?.sports);
@@ -104,7 +106,7 @@ export function PlayerProfile({
 
   return (
     <ErrorState
-      title="Profile could not be loaded"
+      title={m.webUi.player.profileLoadError}
       message={profile.error?.message}
       onRetry={() => {
         void profile.refetch();
@@ -122,25 +124,26 @@ function PadelProfile({
   data: RouterOutputs["users"]["playerProfile"];
   switcher: ReactNode;
 }) {
+  const locale = useLocale();
   return (
     <div className="space-y-[26px]">
       <PlayerHeader
         name={data.player.name}
         image={data.player.image}
-        subtitle={playerHeaderSubtitle(data.venue)}
-        level={playerLevelCardView(data.rating)}
-        trend={levelTrendLabel(data.trend)}
+        subtitle={playerHeaderSubtitle(data.venue, locale)}
+        level={playerLevelCardView(data.rating, locale)}
+        trend={levelTrendLabel(data.trend, locale)}
       />
       {switcher}
-      <PlayerStreaksCard view={streaksView(data.streaks)} />
-      <PlayerPositionCard view={playedSideView(data.position)} />
-      <PlayerOverallCard view={overallView(data.overall)} />
+      <PlayerStreaksCard view={streaksView(data.streaks, locale)} />
+      <PlayerPositionCard view={playedSideView(data.position, locale)} />
+      <PlayerOverallCard view={overallView(data.overall, locale)} />
       <PlayerLastTenCard
         userId={userId}
-        summary={lastTenSummary(data.lastMatches)}
+        summary={lastTenSummary(data.lastMatches, locale)}
         rows={data.lastMatches
           .slice(0, LAST_TEN_RECENT_ROWS)
-          .map((match) => playerMatchRowView(match, data.player.id))}
+          .map((match) => playerMatchRowView(match, data.player.id, locale))}
       />
     </div>
   );
@@ -153,22 +156,25 @@ function FootballProfile({
   data: RouterOutputs["users"]["footballProfile"];
   switcher: ReactNode;
 }) {
+  const locale = useLocale();
   return (
     <div className="space-y-[26px]">
       <PlayerHeader
         name={data.player.name}
         image={data.player.image}
-        subtitle={playerHeaderSubtitle(data.venue, "football")}
-        level={footballLevelCardView(data.rating)}
+        subtitle={playerHeaderSubtitle(data.venue, locale, "football")}
+        level={footballLevelCardView(data.rating, locale)}
         trend={null}
       />
       {switcher}
-      <PlayerStreaksCard view={streaksView(data.streaks)} />
-      <PlayerFootballRoleCard view={footballRoleView(data.role)} />
-      <PlayerOverallCard view={footballOverallView(data.overall)} />
+      <PlayerStreaksCard view={streaksView(data.streaks, locale)} />
+      <PlayerFootballRoleCard view={footballRoleView(data.role, locale)} />
+      <PlayerOverallCard view={footballOverallView(data.overall, locale)} />
       <PlayerFootballLastTenCard
-        summary={footballLastTenSummary(data.lastMatches)}
-        rows={data.lastMatches.map(footballMatchRowView)}
+        summary={footballLastTenSummary(data.lastMatches, locale)}
+        rows={data.lastMatches.map((match) =>
+          footballMatchRowView(match, locale),
+        )}
       />
     </div>
   );

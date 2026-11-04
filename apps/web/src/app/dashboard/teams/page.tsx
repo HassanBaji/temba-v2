@@ -11,29 +11,24 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { PendingInvitesSection } from "~/components/invites/pending-invites-section";
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { entityListIsEmpty } from "@repo/domain/entity-list-empty";
-import {
-  TEAMS_DESCRIPTION,
-  TEAMS_EMPTY_COPY,
-  TEAMS_ERROR_TITLE,
-  TEAMS_TITLE,
-  TEAM_CREATE_LABEL,
-  TEAM_JOINED_TOAST,
-  teamListRowView,
-} from "@repo/domain/teams";
+import { teamListRowView } from "@repo/domain/teams";
 import { api } from "~/trpc/react";
 
 export default function TeamsIndexPage() {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const teams = api.teams.mine.useQuery();
   const pending = api.teams.pendingInvites.useQuery();
   const acceptTeam = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async () => {
-      toast.success(TEAM_JOINED_TOAST);
+      toast.success(m.team.toast.joined);
       await utils.teams.pendingInvites.invalidate();
       await utils.teams.mine.invalidate();
     },
@@ -56,12 +51,12 @@ export default function TeamsIndexPage() {
 
   return (
     <DashboardShell
-      title={TEAMS_TITLE}
-      description={TEAMS_DESCRIPTION}
+      title={m.team.title}
+      description={m.team.description}
       action={
         <PageCreateAction
           href="/dashboard/teams/new"
-          label={TEAM_CREATE_LABEL}
+          label={m.team.createLabel}
         />
       }
     >
@@ -69,7 +64,7 @@ export default function TeamsIndexPage() {
 
       {teams.error ? (
         <ErrorState
-          title={TEAMS_ERROR_TITLE}
+          title={m.team.errorTitle}
           message={teams.error.message}
           onRetry={() => {
             void teams.refetch();
@@ -83,13 +78,13 @@ export default function TeamsIndexPage() {
             id: invite.id,
             leading: (
               <UserAvatar
-                name={invite.invitedBy.name ?? "Member"}
+                name={invite.invitedBy.name ?? m.team.memberFallback}
                 image={invite.invitedBy.image}
                 size="lg"
               />
             ),
             title: invite.displayName,
-            invitedBy: invite.invitedBy.name ?? "Member",
+            invitedBy: invite.invitedBy.name ?? m.team.memberFallback,
           }))}
           pendingId={acceptingId}
           error={pending.error}
@@ -102,11 +97,11 @@ export default function TeamsIndexPage() {
         {isEmpty ? (
           <EmptyState
             icon={Users}
-            title={TEAMS_EMPTY_COPY.title}
-            description={TEAMS_EMPTY_COPY.description}
+            title={m.team.empty.title}
+            description={m.team.empty.description}
             action={
               <Button asChild>
-                <Link href="/dashboard/teams/new">{TEAM_CREATE_LABEL}</Link>
+                <Link href="/dashboard/teams/new">{m.team.createLabel}</Link>
               </Button>
             }
           />
@@ -115,7 +110,7 @@ export default function TeamsIndexPage() {
         {teams.data && teams.data.length > 0 ? (
           <RowList>
             {teams.data.map((team) => {
-              const row = teamListRowView(team);
+              const row = teamListRowView(team, locale);
               return (
                 <ListRow
                   key={team.id}

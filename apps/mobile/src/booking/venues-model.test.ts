@@ -8,6 +8,7 @@ import {
   openToLabel,
   sortVenues,
   venueListMinHeight,
+  venueSorts,
   venuesEmptyCopy,
 } from "./venues-model";
 
@@ -53,11 +54,11 @@ describe("sortVenues", () => {
 
 describe("minutesLabel", () => {
   it("writes the Venue's wall clock", () => {
-    expect(minutesLabel(6 * 60)).toBe("6 AM");
-    expect(minutesLabel(12 * 60)).toBe("12 PM");
-    expect(minutesLabel(23 * 60 + 30)).toBe("11:30 PM");
-    expect(minutesLabel(24 * 60)).toBe("Midnight");
-    expect(minutesLabel(25 * 60)).toBe("1 AM");
+    expect(minutesLabel(6 * 60, "en")).toBe("6 AM");
+    expect(minutesLabel(12 * 60, "en")).toBe("12 PM");
+    expect(minutesLabel(23 * 60 + 30, "en")).toBe("11:30 PM");
+    expect(minutesLabel(24 * 60, "en")).toBe("Midnight");
+    expect(minutesLabel(25 * 60, "en")).toBe("1 AM");
   });
 });
 
@@ -68,27 +69,44 @@ describe("hours", () => {
   ];
 
   it("lists each window", () => {
-    expect(hoursLabel(windows)).toBe("6 AM to 12 PM, 4 PM to 11 PM");
-    expect(hoursLabel([])).toBe("Closed");
+    expect(hoursLabel(windows, "en")).toBe("6 AM to 12 PM, 4 PM to 11 PM");
+    expect(hoursLabel([], "en")).toBe("Closed");
   });
 
   it("reads the last closing time", () => {
-    expect(openToLabel(windows)).toBe("Open to 11 PM");
-    expect(openToLabel([])).toBe("Closed today");
+    expect(openToLabel(windows, "en")).toBe("Open to 11 PM");
+    expect(openToLabel([], "en")).toBe("Closed today");
   });
 });
 
 describe("copy", () => {
   it("counts Courts", () => {
-    expect(courtCountLabel(1)).toBe("1 court");
-    expect(courtCountLabel(4)).toBe("4 courts");
-    expect(courtCountLabel(1, "football")).toBe("1 pitch");
-    expect(courtCountLabel(2, "football")).toBe("2 pitches");
+    expect(courtCountLabel(1, "en")).toBe("1 court");
+    expect(courtCountLabel(4, "en")).toBe("4 courts");
+    expect(courtCountLabel(1, "en", "football")).toBe("1 pitch");
+    expect(courtCountLabel(2, "en", "football")).toBe("2 pitches");
   });
 
   it("tells an empty catalog from an empty search", () => {
-    expect(venuesEmptyCopy("").title).toBe("No venues to book yet");
-    expect(venuesEmptyCopy("zz").title).toBe("No venue matches");
+    expect(venuesEmptyCopy("", "en").title).toBe("No venues to book yet");
+    expect(venuesEmptyCopy("zz", "en").title).toBe("No venue matches");
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the clock, hours and empty state in Arabic", () => {
+    expect(minutesLabel(23 * 60 + 30, "ar")).toBe("11:30 م");
+    expect(minutesLabel(24 * 60, "ar")).toBe("منتصف الليل");
+    expect(
+      hoursLabel([{ opensAtMinutes: 6 * 60, closesAtMinutes: 12 * 60 }], "ar"),
+    ).toBe("من 6 ص إلى 12 م");
+    expect(openToLabel([], "ar")).toBe("مغلق اليوم");
+    expect(courtCountLabel(2, "ar")).toBe("ملعبان");
+    expect(venuesEmptyCopy("", "ar").title).toBe("لا أندية للحجز بعد");
+    expect(venueSorts("ar").map((entry) => entry.label)).toEqual([
+      "أبجديًا",
+      "الأرخص",
+    ]);
   });
 });
 

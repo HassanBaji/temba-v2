@@ -3,6 +3,7 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { env } from "./env";
+import { LocaleProvider } from "./i18n/locale-provider";
 import { useQueryEnvironment } from "./lib/query-environment";
 import { ToastProvider } from "./primitives/toast";
 import { TRPCReactProvider } from "./trpc/react";
@@ -21,14 +22,16 @@ export function Providers(props: { children: React.ReactNode }) {
 
   return (
     <SafeAreaProvider>
-      <ClerkProvider
-        publishableKey={requirePublishableKey()}
-        tokenCache={tokenCache}
-      >
-        <TRPCReactProvider>
-          <ToastProvider>{props.children}</ToastProvider>
-        </TRPCReactProvider>
-      </ClerkProvider>
+      <LocaleProvider>
+        <ClerkProvider
+          publishableKey={requirePublishableKey()}
+          tokenCache={tokenCache}
+        >
+          <TRPCReactProvider>
+            <ToastProvider>{props.children}</ToastProvider>
+          </TRPCReactProvider>
+        </ClerkProvider>
+      </LocaleProvider>
     </SafeAreaProvider>
   );
 }

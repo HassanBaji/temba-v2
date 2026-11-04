@@ -1,5 +1,6 @@
 import { AuthScreen } from "~/components/auth/auth-screen";
 import { SsoCallback } from "~/components/auth/sso-callback";
+import { getRequestMessages } from "~/lib/request-locale";
 import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
 export default async function SignupSsoCallbackPage({
@@ -9,9 +10,10 @@ export default async function SignupSsoCallbackPage({
 }) {
   const params = await searchParams;
   const redirectUrl = safeInternalRedirect(params.redirect_url);
+  const m = await getRequestMessages();
 
   return (
-    <AuthScreen title="Creating account">
+    <AuthScreen title={m.webAuth.sso.creatingAccount}>
       <SsoCallback redirectUrl={redirectUrl} />
     </AuthScreen>
   );

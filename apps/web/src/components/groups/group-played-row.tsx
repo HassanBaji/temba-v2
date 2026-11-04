@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import {
   groupPlayedMarkVariant,
@@ -21,6 +22,8 @@ type GroupPlayedGame = RouterOutputs["groups"]["byId"]["gameHistory"][number];
  * Compact by design: `MatchHistoryCard` stays the Games hub card.
  */
 export function GroupPlayedRow({ game }: { game: GroupPlayedGame }) {
+  const m = useMessages();
+  const locale = useLocale();
   const viewerMembers =
     game.viewerSlot === 2 ? game.slot2Members : game.slot1Members;
   const otherMembers =
@@ -40,23 +43,25 @@ export function GroupPlayedRow({ game }: { game: GroupPlayedGame }) {
 
         <span className="min-w-0 flex-1">
           <span className="text-body block truncate">
-            {groupPlayedTeamLabel(viewerMembers)}
+            {groupPlayedTeamLabel(viewerMembers, locale)}
           </span>
           <span className="text-meta text-muted-foreground block truncate">
-            {groupPlayedOpponentLine(otherMembers, game.displayTime)}
+            {groupPlayedOpponentLine(otherMembers, game.displayTime, locale)}
           </span>
         </span>
 
         {game.cancelled ? (
           <span className="text-meta text-muted-foreground shrink-0">
-            Cancelled
+            {m.webGroup.games.cancelled}
           </span>
         ) : scoreLine ? (
           <span className="font-expanded shrink-0 text-[16px] tabular-nums tracking-[-0.03em]">
             {scoreLine}
           </span>
         ) : (
-          <span className="text-meta shrink-0 font-semibold">Enter</span>
+          <span className="text-meta shrink-0 font-semibold">
+            {m.webGroup.games.enterScore}
+          </span>
         )}
       </Link>
     </li>

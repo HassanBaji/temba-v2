@@ -9,6 +9,7 @@ import {
 import type { ProfileAllTimeInput } from "@repo/domain/profile-all-time";
 import type { ProfileFixture } from "@repo/domain/profile-fixtures";
 import type { ProfileLevelInput } from "@repo/domain/profile-level";
+import type { Locale } from "@repo/i18n/locale";
 
 import type { Slot } from "../home/home-model";
 import type { RouterOutputs } from "../trpc/react";
@@ -88,7 +89,10 @@ export function positionFromApi(data: ApiOnboardingState): PositionSetting {
   };
 }
 
-export function profileModelFromFixture(fixture: ProfileFixture): ProfileModel {
+export function profileModelFromFixture(
+  fixture: ProfileFixture,
+  locale: Locale,
+): ProfileModel {
   return {
     name: fixture.userName,
     imageUri: null,
@@ -101,6 +105,7 @@ export function profileModelFromFixture(fixture: ProfileFixture): ProfileModel {
       status: "ready",
       value: deriveRecentForm(
         fixture.recentForm.map((outcome) => ({ outcome })),
+        locale,
       ),
     },
     allTime: { status: "ready", value: fixture.allTime },

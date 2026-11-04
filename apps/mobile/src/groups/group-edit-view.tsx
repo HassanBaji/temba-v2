@@ -1,9 +1,6 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
 import type { GroupCreateContext } from "@repo/domain/group-create";
 import {
-  GROUP_EDIT_COPY,
-  GROUP_JOINING_COPY,
-  groupJoiningFooter,
   groupJoiningToggleHelp,
   type GroupEditFields,
 } from "@repo/domain/group-settings";
@@ -11,6 +8,7 @@ import type { Sport } from "@repo/domain/sport";
 import { ArrowRightLeft, Copy, RefreshCw, Trash2 } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -66,6 +64,8 @@ function InviteLinkCard({
 }: {
   link: NonNullable<GroupEditViewProps["inviteLink"]>;
 }) {
+  const m = useMessages();
+  const edit = m.group.settings.edit;
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
       <View
@@ -86,11 +86,11 @@ function InviteLinkCard({
           tone={link.url ? "default" : "muted"}
           style={{ flex: 1, minWidth: 0 }}
         >
-          {link.loading ? "…" : (link.url ?? GROUP_EDIT_COPY.inviteLinkNone)}
+          {link.loading ? "…" : (link.url ?? edit.inviteLinkNone)}
         </Text>
         {link.url ? (
           <Button
-            label={GROUP_EDIT_COPY.inviteLinkCopy}
+            label={m.common.copy}
             variant="outline"
             size="sm"
             icon={<Copy size={sizes.iconRow} color={colors.ink} />}
@@ -99,7 +99,7 @@ function InviteLinkCard({
           />
         ) : (
           <Button
-            label={GROUP_EDIT_COPY.inviteLinkCreate}
+            label={edit.inviteLinkCreate}
             variant="outline"
             size="sm"
             pending={link.createPending}
@@ -113,7 +113,7 @@ function InviteLinkCard({
           <Hairline />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={GROUP_EDIT_COPY.inviteLinkReset}
+            accessibilityLabel={edit.inviteLinkReset}
             accessibilityState={{ busy: link.resetPending }}
             disabled={link.resetPending}
             onPress={link.onReset}
@@ -129,7 +129,7 @@ function InviteLinkCard({
             })}
           >
             <Text size="meta" tone="muted" style={{ flex: 1 }}>
-              {GROUP_EDIT_COPY.inviteLinkReset}
+              {edit.inviteLinkReset}
             </Text>
             <RefreshCw size={sizes.iconRow} color={colors.ink} />
           </Pressable>
@@ -140,6 +140,10 @@ function InviteLinkCard({
 }
 
 export function GroupEditView(props: GroupEditViewProps) {
+  const m = useMessages();
+  const locale = useLocale();
+  const edit = m.group.settings.edit;
+  const joining = m.group.settings.joining;
   const { draft } = props;
   const set = (patch: Partial<GroupEditFields>) =>
     props.onChange({ ...draft, ...patch });
@@ -151,12 +155,12 @@ export function GroupEditView(props: GroupEditViewProps) {
       <ScreenHeader
         nav="back"
         fallback="/groups"
-        title={GROUP_EDIT_COPY.title}
+        title={edit.title}
         actions={
           props.dirty ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={GROUP_EDIT_COPY.discard}
+              accessibilityLabel={edit.discard}
               disabled={disabled}
               onPress={props.onDiscard}
               hitSlop={10}
@@ -165,7 +169,7 @@ export function GroupEditView(props: GroupEditViewProps) {
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text tone="muted">{GROUP_EDIT_COPY.discard}</Text>
+              <Text tone="muted">{edit.discard}</Text>
             </Pressable>
           ) : undefined
         }
@@ -182,8 +186,8 @@ export function GroupEditView(props: GroupEditViewProps) {
           <View style={{ gap: 6, alignItems: "center" }}>
             <PhotoTile
               uri={props.imageUri}
-              name={draft.name || "Group"}
-              label={GROUP_EDIT_COPY.photoChange}
+              name={draft.name || m.mobileGroup.photoFallbackName}
+              label={edit.photoChange}
               empty="initials"
               disabled={props.imagePending || disabled}
               onPress={props.onChangeImage}
@@ -191,28 +195,28 @@ export function GroupEditView(props: GroupEditViewProps) {
             {props.imageUri ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={GROUP_EDIT_COPY.photoRemove}
+                accessibilityLabel={edit.photoRemove}
                 disabled={props.imagePending || disabled}
                 onPress={props.onRemoveImage}
                 hitSlop={8}
               >
                 <Text size="eyebrow" tone="muted">
-                  Remove
+                  {m.common.remove}
                 </Text>
               </Pressable>
             ) : null}
           </View>
           <GroupNameField
-            label={GROUP_EDIT_COPY.nameLabel}
+            label={edit.nameLabel}
             value={draft.name}
             onChangeText={(name) => set({ name })}
-            help={GROUP_EDIT_COPY.nameHelp}
+            help={edit.nameHelp}
             error={props.nameError}
             disabled={disabled}
           />
         </View>
 
-        <FormBlock label={GROUP_EDIT_COPY.sportLabel}>
+        <FormBlock label={edit.sportLabel}>
           {props.canChangeSport && draft.sport ? (
             <View style={{ gap: 6 }}>
               <SportSegment
@@ -222,18 +226,15 @@ export function GroupEditView(props: GroupEditViewProps) {
                 disabled={disabled}
               />
               <Text size="eyebrow" tone="muted">
-                {GROUP_EDIT_COPY.sportOpen}
+                {edit.sportOpen}
               </Text>
             </View>
           ) : (
-            <LockedSportCard
-              sport={draft.sport}
-              help={GROUP_EDIT_COPY.sportLocked}
-            />
+            <LockedSportCard sport={draft.sport} help={edit.sportLocked} />
           )}
         </FormBlock>
 
-        <FormBlock label={GROUP_EDIT_COPY.visibilityLabel}>
+        <FormBlock label={edit.visibilityLabel}>
           <VisibilityCards
             context={props.context}
             value={draft.visibility}
@@ -243,13 +244,13 @@ export function GroupEditView(props: GroupEditViewProps) {
         </FormBlock>
 
         {draft.visibility === "public" ? (
-          <FormBlock label={GROUP_JOINING_COPY.label}>
+          <FormBlock label={joining.label}>
             <ToggleCard
-              title={GROUP_JOINING_COPY.toggle}
-              help={groupJoiningToggleHelp(props.pendingJoinRequestCount)}
-              footer={groupJoiningFooter({
-                visibility: draft.visibility,
+              title={joining.toggle}
+              help={groupJoiningToggleHelp({
                 requiresApproval: draft.requiresApproval,
+                pendingRequestCount: props.pendingJoinRequestCount,
+                locale,
               })}
               value={draft.requiresApproval}
               onChange={(requiresApproval) => set({ requiresApproval })}
@@ -259,20 +260,20 @@ export function GroupEditView(props: GroupEditViewProps) {
         ) : null}
 
         {props.inviteLink ? (
-          <FormBlock label={GROUP_EDIT_COPY.inviteLinkLabel}>
+          <FormBlock label={edit.inviteLinkLabel}>
             <InviteLinkCard link={props.inviteLink} />
           </FormBlock>
         ) : null}
 
         {showOwnership ? (
-          <FormBlock label={GROUP_EDIT_COPY.ownershipLabel}>
+          <FormBlock label={edit.ownershipLabel}>
             <SheetMenu>
               {[
                 props.canTransferOwnership ? (
                   <SheetMenuRow
                     key="transfer"
-                    label={GROUP_EDIT_COPY.transferTitle}
-                    hint={GROUP_EDIT_COPY.transferHint}
+                    label={edit.transferTitle}
+                    hint={edit.transferHint}
                     icon={ArrowRightLeft}
                     trailing="chevron"
                     disabled={disabled}
@@ -282,8 +283,8 @@ export function GroupEditView(props: GroupEditViewProps) {
                 props.canDelete ? (
                   <SheetMenuRow
                     key="delete"
-                    label={GROUP_EDIT_COPY.deleteTitle}
-                    hint={GROUP_EDIT_COPY.deleteHint}
+                    label={edit.deleteTitle}
+                    hint={edit.deleteHint}
                     trailing={Trash2}
                     tone="danger"
                     disabled={disabled}
@@ -310,11 +311,12 @@ export function GroupEditFooter({
   footer: string | null;
   onSave: () => void;
 }) {
+  const m = useMessages();
   return (
     <View style={{ flex: 1, gap: 8, alignItems: "center" }}>
       <View style={{ alignSelf: "stretch" }}>
         <Button
-          label={GROUP_EDIT_COPY.save}
+          label={m.group.settings.edit.save}
           size="lg"
           pending={saving}
           disabled={!canSave}

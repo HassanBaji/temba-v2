@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment } from "react";
+import { Lock } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { formatAbsoluteDay } from "@repo/domain/format-game-start";
@@ -14,15 +15,21 @@ import {
   clampFriendlySetGames,
   friendlyGameResultsSaveSets,
 } from "@repo/domain/friendly-game-results";
+import {
+  scoreDeciderNote,
+  scoreLockedLine,
+  scoreSetsMeta,
+  scoreTeamFirstNames,
+} from "@repo/domain/friendly-game-court";
 import { setLabel } from "@repo/domain/game-copy";
 import {
-  ORGANIZER_CONFIRM_NOTE,
-  SCORE_INCOMPLETE_MESSAGE,
+  organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
+  scoreIncompleteMessage,
   scoreNameByUserId,
   scoreOrganizerCanConfirm,
   scoreOrganizerWaitingLines,
@@ -31,7 +38,6 @@ import {
   scoreSetNeverPlayed,
   scoreShowsConfirmations,
   scorePhaseFlags,
-  scoreTeamNamesLabel,
   type FriendlyScorePhase,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
@@ -48,27 +54,14 @@ export type GameScoreSectionPhase = FriendlyScorePhase;
 
 type SetDraft = { slot1: number | null; slot2: number | null };
 
-function ScoreTeamHeader({ side }: { side: GameScoreSectionSide }) {
-  return (
-    <div className="min-w-0 flex-1">
-      <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-        {formatGameSideLabel("friendly_game", side.sideIndex)}
-      </p>
-      <p className="text-meta mt-0.5 truncate font-medium">
-        {scoreTeamNamesLabel(side)}
-      </p>
-    </div>
-  );
-}
-
 /**
- * One 44×40 set box. Hatch always means "unentered" or "unplayed" here —
+ * One 56×48 set box. Hatch always means "unentered" or "unplayed" here —
  * never anything else (spec: "Hatch in this section only ever means
  * 'unentered set' or 'unplayed set'"). Five visual states:
  * - `locked`: Upcoming/ongoing — hatched, `aria-hidden`, no digit.
  * - `unplayed`: Final, but this Set never happened — hatched, `aria-hidden`.
- * - `enterable`: Needs a score, viewer may write — hatched background on a
- *   real `<input>` so the box still reads "unentered" even mid-edit.
+ * - `enterable`: Needs a score, viewer may write — a plain `<input>` with a
+ *   hairline while empty and an ink outline once it holds a number.
  * - `readonly`: Needs a score, viewer may not write — hatched, shows the
  *   entered digit (if any) as plain text.
  * - `solid` / `outline`: Final, this side won / lost this Set.
@@ -86,20 +79,21 @@ function SetBox({
   saving?: boolean;
   onChange?: (value: number | null) => void;
 }) {
+  const locale = useLocale();
   if (state === "locked" || state === "unplayed") {
     return (
       <span
         aria-hidden="true"
-        className="hatch rounded-xs inline-block h-10 w-11 shrink-0"
+        className="hatch inline-block h-12 w-14 shrink-0 rounded-lg"
       />
     );
   }
 
   if (state === "solid") {
     return (
-      <div className="bg-ink text-paper rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums">
+      <div className="bg-ink text-paper flex h-12 w-14 shrink-0 items-center justify-center rounded-lg text-xl font-bold tabular-nums">
         <span className="sr-only">
-          {scoreSetBoxAccessibleLabel(state, label, value)}
+          {scoreSetBoxAccessibleLabel(state, label, value, locale)}
         </span>
         <span aria-hidden="true">{value}</span>
       </div>
@@ -108,9 +102,9 @@ function SetBox({
 
   if (state === "outline") {
     return (
-      <div className="border-ink bg-paper text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center border-[1.5px] text-base font-semibold tabular-nums">
+      <div className="border-ink bg-paper text-ink flex h-12 w-14 shrink-0 items-center justify-center rounded-lg border-[1.5px] text-base font-semibold tabular-nums">
         <span className="sr-only">
-          {scoreSetBoxAccessibleLabel(state, label, value)}
+          {scoreSetBoxAccessibleLabel(state, label, value, locale)}
         </span>
         <span aria-hidden="true">{value}</span>
       </div>
@@ -120,8 +114,8 @@ function SetBox({
   if (state === "readonly") {
     return (
       <div
-        className="hatch text-ink rounded-xs flex h-10 w-11 shrink-0 items-center justify-center text-base font-semibold tabular-nums"
-        aria-label={scoreSetBoxAccessibleLabel(state, label, value)}
+        className="hatch text-ink flex h-12 w-14 shrink-0 items-center justify-center rounded-lg text-xl font-bold tabular-nums"
+        aria-label={scoreSetBoxAccessibleLabel(state, label, value, locale)}
       >
         <span aria-hidden="true">{value ?? ""}</span>
       </div>
@@ -149,7 +143,8 @@ function SetBox({
         );
       }}
       className={cn(
-        "hatch rounded-xs h-10 w-11 shrink-0 p-0 text-center text-base font-semibold tabular-nums",
+        "h-12 w-14 shrink-0 rounded-lg p-0 text-center text-xl font-bold tabular-nums",
+        value == null ? "border-rule" : "border-ink border-[1.5px]",
         "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
       )}
     />
@@ -165,8 +160,14 @@ function ScoreFooterNote({
   confirmedAtLabel: string | null;
   confirmedByOrganizer: boolean;
 }) {
+  const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
-  const copy = scoreFooterNote(phase, confirmedAtLabel, confirmedByOrganizer);
+  const copy = scoreFooterNote(
+    phase,
+    confirmedAtLabel,
+    locale,
+    confirmedByOrganizer,
+  );
 
   return (
     <div className="flex items-start gap-2.5">
@@ -199,12 +200,14 @@ function MatchResultConfirmations({
   confirmPending: boolean;
   onConfirm: () => void;
 }) {
-  const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
-  const waitingLines = scoreOrganizerWaitingLines(confirmation);
+  const locale = useLocale();
+  const m = useMessages();
+  const rows = scoreConfirmationRows(confirmation, viewerUserId, names, locale);
+  const waitingLines = scoreOrganizerWaitingLines(confirmation, locale);
 
   return (
     <div className="border-rule space-y-2.5 border-t pt-4">
-      <p className="text-meta font-medium">Confirmations</p>
+      <p className="text-meta font-medium">{m.webGame.score.confirmations}</p>
       <ul className="space-y-1.5">
         {rows.map((row) => (
           <li
@@ -239,10 +242,10 @@ function MatchResultConfirmations({
             onClick={onConfirm}
             disabled={confirmPending}
           >
-            Confirm score
+            {m.webGame.score.confirmScore}
           </Button>
           <p className="text-muted-foreground text-meta">
-            {ORGANIZER_CONFIRM_NOTE}
+            {organizerConfirmNote(locale)}
           </p>
         </div>
       ) : canConfirm ? (
@@ -253,10 +256,40 @@ function MatchResultConfirmations({
           onClick={onConfirm}
           disabled={confirmPending}
         >
-          Confirm result
+          {m.webGame.score.confirmResult}
         </Button>
       ) : null}
     </div>
+  );
+}
+
+/** Before the Game: one row that says when the score opens. */
+function LockedScore({ courtFull }: { courtFull: boolean }) {
+  const locale = useLocale();
+  const m = useMessages();
+  return (
+    <section
+      data-slot="game-score-section"
+      className="border-rule bg-paper flex items-center gap-3.5 rounded-xl border px-[18px] py-4"
+    >
+      <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-[10px]">
+        <Lock
+          aria-hidden="true"
+          className="text-muted-foreground size-[17px]"
+        />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="text-body font-semibold">{m.webGame.score.title}</h2>
+        <p className="text-muted-foreground text-meta">
+          {scoreLockedLine(courtFull, locale)}
+        </p>
+      </div>
+      <div aria-hidden="true" className="flex shrink-0 gap-1">
+        {[0, 1, 2].map((index) => (
+          <span key={index} className="hatch h-[22px] w-3.5 rounded-[3px]" />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -276,6 +309,7 @@ export function GameScoreSection({
   winningGameTeamId,
   matchResultConfirmation,
   isOrganizer,
+  courtFull,
   scorePending,
   confirmPending,
   onScoreSet,
@@ -288,6 +322,7 @@ export function GameScoreSection({
   winningGameTeamId: string | null;
   matchResultConfirmation: GameScoreSectionConfirmation | null;
   isOrganizer: boolean;
+  courtFull: boolean;
   scorePending: boolean;
   confirmPending: boolean;
   onScoreSet: (input: {
@@ -297,6 +332,8 @@ export function GameScoreSection({
   }) => void | Promise<unknown>;
   onConfirm: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
 
   React.useEffect(() => {
@@ -306,6 +343,10 @@ export function GameScoreSection({
     }
     setDrafts(next);
   }, [match.sets]);
+
+  if (scorePhaseFlags(phase).isUpcoming) {
+    return <LockedScore courtFull={courtFull} />;
+  }
 
   const canEnter = scoreCanEnter(phase, match.canScoreSets);
   const hasResult = match.outcome.result !== "none";
@@ -320,7 +361,7 @@ export function GameScoreSection({
       })),
     );
     if (payloads.length === 0) {
-      toast.error(SCORE_INCOMPLETE_MESSAGE);
+      toast.error(scoreIncompleteMessage(locale));
       return;
     }
     try {
@@ -345,128 +386,126 @@ export function GameScoreSection({
     isOrganizer,
   });
 
+  const deciderNote = canEnter
+    ? scoreDeciderNote(match.sets.length, locale)
+    : null;
+
+  function box(
+    set: GameScoreSectionMatch["sets"][number],
+    index: number,
+    side: GameScoreSectionSide,
+  ) {
+    const draft = drafts[set.id] ?? {
+      slot1: set.slot1GamesWon,
+      slot2: set.slot2GamesWon,
+    };
+    const setName = setLabel(index, locale);
+    const boxLabel = m.webGame.score.boxLabel(
+      formatGameSideLabel("friendly_game", side.sideIndex, locale),
+      setName,
+    );
+    const state = scoreSetBoxState({
+      phase,
+      neverPlayed: scoreSetNeverPlayed(set),
+      canEnter,
+      isWinningSide:
+        side.gameTeamId != null && side.gameTeamId === winningGameTeamId,
+    });
+    if (state === "locked" || state === "unplayed") {
+      return (
+        <SetBox key={set.id} state={state} value={null} label={boxLabel} />
+      );
+    }
+    if (state === "solid" || state === "outline") {
+      return (
+        <SetBox
+          key={set.id}
+          state={state}
+          value={scoreGamesWonForSide(set, side.sideIndex)}
+          label={boxLabel}
+        />
+      );
+    }
+    const value = side.sideIndex === 1 ? draft.slot1 : draft.slot2;
+    if (state === "readonly") {
+      return (
+        <SetBox key={set.id} state="readonly" value={value} label={boxLabel} />
+      );
+    }
+    return (
+      <SetBox
+        key={set.id}
+        state="enterable"
+        value={value}
+        label={boxLabel}
+        saving={scorePending}
+        onChange={(next) =>
+          setDrafts((current) => ({
+            ...current,
+            [set.id]: {
+              slot1: side.sideIndex === 1 ? next : draft.slot1,
+              slot2: side.sideIndex === 2 ? next : draft.slot2,
+            },
+          }))
+        }
+      />
+    );
+  }
+
   return (
     <section
       data-slot="game-score-section"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
-      <h2 className="text-muted-foreground px-[22px] pb-3 pt-[22px] text-sm">
-        Score
-      </h2>
-      <div className="border-rule space-y-4 border-t px-[22px] pb-[22px] pt-[18px]">
-        <div className="flex items-start gap-3">
-          {sides.map((side, index) => (
-            <Fragment key={side.sideIndex}>
-              {index > 0 ? (
-                <span
-                  aria-hidden="true"
-                  className="text-muted-foreground shrink-0 self-center px-1 text-xs font-semibold"
-                >
-                  vs
-                </span>
-              ) : null}
-              <ScoreTeamHeader side={side} />
-            </Fragment>
+      <div className="flex items-baseline justify-between gap-3 px-[18px] py-3.5">
+        <h2 className="text-base font-semibold">{m.webGame.score.title}</h2>
+        <p className="text-muted-foreground text-meta">
+          {scoreSetsMeta(match.sets.length, locale)}
+        </p>
+      </div>
+      <div className="space-y-2.5 px-[18px] pb-[18px]">
+        <div aria-hidden="true" className="flex gap-2">
+          <span className="flex-1" />
+          {match.sets.map((set, index) => (
+            <span
+              key={set.id}
+              className="text-muted-foreground w-14 text-center text-[11px] uppercase tracking-[0.06em]"
+            >
+              {setLabel(index, locale)}
+            </span>
           ))}
         </div>
 
-        <ul className="space-y-2.5">
-          {match.sets.map((set, index) => {
-            const draft = drafts[set.id] ?? {
-              slot1: set.slot1GamesWon,
-              slot2: set.slot2GamesWon,
-            };
-            const setName = setLabel(index);
-            const neverPlayed = scoreSetNeverPlayed(set);
-
-            return (
-              <li
-                key={set.id}
-                className="flex flex-wrap items-center justify-between gap-3"
-              >
-                <span className="text-muted-foreground text-meta w-14 shrink-0">
-                  {setName}
-                </span>
-                <div className="flex items-center gap-2">
-                  {sides.map((side) => {
-                    const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setName}`;
-                    const state = scoreSetBoxState({
-                      phase,
-                      neverPlayed,
-                      canEnter,
-                      isWinningSide:
-                        side.gameTeamId != null &&
-                        side.gameTeamId === winningGameTeamId,
-                    });
-                    if (state === "locked" || state === "unplayed") {
-                      return (
-                        <SetBox
-                          key={side.sideIndex}
-                          state={state}
-                          value={null}
-                          label={boxLabel}
-                        />
-                      );
-                    }
-                    if (state === "solid" || state === "outline") {
-                      return (
-                        <SetBox
-                          key={side.sideIndex}
-                          state={state}
-                          value={scoreGamesWonForSide(set, side.sideIndex)}
-                          label={boxLabel}
-                        />
-                      );
-                    }
-                    const value =
-                      side.sideIndex === 1 ? draft.slot1 : draft.slot2;
-                    if (state === "readonly") {
-                      return (
-                        <SetBox
-                          key={side.sideIndex}
-                          state="readonly"
-                          value={value}
-                          label={boxLabel}
-                        />
-                      );
-                    }
-                    return (
-                      <SetBox
-                        key={side.sideIndex}
-                        state="enterable"
-                        value={value}
-                        label={boxLabel}
-                        saving={scorePending}
-                        onChange={(next) =>
-                          setDrafts((current) => ({
-                            ...current,
-                            [set.id]: {
-                              slot1: side.sideIndex === 1 ? next : draft.slot1,
-                              slot2: side.sideIndex === 2 ? next : draft.slot2,
-                            },
-                          }))
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        {sides.map((side) => (
+          <div key={side.sideIndex} className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
+                {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
+              </p>
+              <p className="truncate text-sm font-medium">
+                {scoreTeamFirstNames(side, locale)}
+              </p>
+            </div>
+            {match.sets.map((set, index) => box(set, index, side))}
+          </div>
+        ))}
 
         {canEnter ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              void saveSets();
-            }}
-            pending={scorePending}
-            pendingLabel="Saving…"
-          >
-            Save score
-          </Button>
+          <div className="flex items-center justify-between gap-3 pt-1.5">
+            <p className="text-muted-foreground text-meta">{deciderNote}</p>
+            <Button
+              type="button"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                void saveSets();
+              }}
+              pending={scorePending}
+              pendingLabel={m.common.saving}
+            >
+              {m.webGame.score.saveScore}
+            </Button>
+          </div>
         ) : null}
 
         {matchResultConfirmation &&
@@ -486,17 +525,19 @@ export function GameScoreSection({
           />
         ) : null}
 
-        <ScoreFooterNote
-          phase={phase}
-          confirmedAtLabel={
-            matchResultConfirmation?.confirmedAt
-              ? formatAbsoluteDay(matchResultConfirmation.confirmedAt)
-              : null
-          }
-          confirmedByOrganizer={
-            matchResultConfirmation?.confirmedByOrganizer ?? false
-          }
-        />
+        {canEnter ? null : (
+          <ScoreFooterNote
+            phase={phase}
+            confirmedAtLabel={
+              matchResultConfirmation?.confirmedAt
+                ? formatAbsoluteDay(matchResultConfirmation.confirmedAt, locale)
+                : null
+            }
+            confirmedByOrganizer={
+              matchResultConfirmation?.confirmedByOrganizer ?? false
+            }
+          />
+        )}
       </div>
     </section>
   );

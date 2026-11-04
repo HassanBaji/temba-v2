@@ -1,4 +1,5 @@
 import type { DbClient } from "@repo/db";
+import { type Locale } from "@repo/i18n/locale";
 import { asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import {
@@ -55,6 +56,7 @@ export type HubListDb = DbClient;
 export const hubListColumns = {
   id: true,
   name: true,
+  hasCustomName: true,
   isPublic: true,
   rated: true,
   groupId: true,
@@ -185,6 +187,7 @@ export const hubListWith = {
 export type HubQueryRow = {
   id: string;
   name: string | null;
+  hasCustomName: boolean;
   isPublic: boolean;
   rated: boolean;
   groupId: string | null;
@@ -259,7 +262,18 @@ export type HubQueryRow = {
   }[];
 };
 
-export async function viewerHubContext(database: HubListDb, userId: string) {
+export type HubViewer = {
+  userId: string;
+  memberGroupIds: ReadonlySet<string>;
+  myTeamIds: ReadonlySet<string>;
+  locale: Locale;
+};
+
+export async function viewerHubContext(
+  database: HubListDb,
+  userId: string,
+  locale: Locale,
+): Promise<HubViewer> {
   const memberships = await database.query.groupMembers.findMany({
     where: eq(groupMembers.userId, userId),
     columns: { groupId: true },
@@ -272,6 +286,7 @@ export async function viewerHubContext(database: HubListDb, userId: string) {
     userId,
     memberGroupIds: new Set(memberships.map((row) => row.groupId)),
     myTeamIds: new Set(teams.map((row) => row.teamId)),
+    locale,
   };
 }
 
@@ -454,6 +469,7 @@ function tournamentTeamsFromRow(
 function tournamentFromRow(
   row: HubQueryRow,
   viewerUserId: string,
+  locale: Locale,
 ): HubListTournament | null {
   if (!isDrawnTournament(row.format, row.poolCount, row.tournamentShape)) {
     return null;
@@ -467,13 +483,18 @@ function tournamentFromRow(
     allowSoloRegister: row.allowSoloRegister,
     teams: tournamentTeamsFromRow(row, viewerUserId),
     joinSides: sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
-    knockout: tournamentKnockoutFromRow(row, viewerUserId),
+    knockout: tournamentKnockoutFromRow(row, viewerUserId, locale),
   };
 }
 
-function knockoutRoundsFromRow(row: HubQueryRow, viewerUserId: string) {
+function knockoutRoundsFromRow(
+  row: HubQueryRow,
+  viewerUserId: string,
+  locale: Locale,
+) {
   return postedKnockoutRounds({
     viewerUserId,
+    locale,
     gameTeams: row.teams.map((team) => ({
       id: team.id,
       name: null,
@@ -500,12 +521,15 @@ function knockoutRoundsFromRow(row: HubQueryRow, viewerUserId: string) {
 function tournamentKnockoutFromRow(
   row: HubQueryRow,
   viewerUserId: string,
+  locale: Locale,
 ): HubListTournamentKnockout | null {
   if (!hasKnockout(row.format, row.tournamentShape)) {
     return null;
   }
   const rounds =
-    row.drawPostedAt != null ? knockoutRoundsFromRow(row, viewerUserId) : null;
+    row.drawPostedAt != null
+      ? knockoutRoundsFromRow(row, viewerUserId, locale)
+      : null;
   if (!rounds) {
     return {
       roundCount: plannedKnockoutRoundCount(row),
@@ -598,11 +622,7 @@ export async function participantGameIdsForViewer(
 
 export function toHubListRow(
   row: HubQueryRow,
-  viewer: {
-    userId: string;
-    memberGroupIds: ReadonlySet<string>;
-    myTeamIds: ReadonlySet<string>;
-  },
+  viewer: HubViewer,
   now: Date,
 ): HubListRow {
   const joinFrozen = consult({
@@ -640,6 +660,7 @@ export function toHubListRow(
   return {
     id: row.id,
     name: row.name,
+    hasCustomName: row.hasCustomName,
     format: row.format,
     registrationMode: row.registrationMode,
     sport: row.sport,
@@ -683,7 +704,7 @@ export function toHubListRow(
     sides: sidesFromRow(row, viewer.userId),
     poolCount: row.poolCount,
     tournamentShape: row.tournamentShape,
-    tournament: tournamentFromRow(row, viewer.userId),
+    tournament: tournamentFromRow(row, viewer.userId, viewer.locale),
     matchId: null,
     roundNumber: null,
     roundCount: null,
@@ -733,11 +754,13 @@ function isOpenMatch(match: HubQueryRow["matches"][number]) {
 function viewerPoolMatch(
   row: HubQueryRow,
   viewerUserId: string,
+  locale: Locale,
 ): HubListPoolMatch | null {
   const tables = computePoolTables({
     format: row.format,
     poolCount: row.poolCount,
     viewerUserId,
+    locale,
     gameTeams: row.teams.map((team) => ({
       id: team.id,
       name: null,
@@ -821,8 +844,9 @@ function knockoutRoundCount(row: HubQueryRow) {
 export function expandDrawnTournamentHubRows(
   row: HubQueryRow,
   hubRow: HubListRow,
-  viewerUserId: string,
+  viewer: Pick<HubViewer, "userId" | "locale">,
 ): HubListRow[] {
+  const viewerUserId = viewer.userId;
   if (
     !isDrawnTournament(row.format, row.poolCount, row.tournamentShape) ||
     row.drawPostedAt == null
@@ -838,7 +862,9 @@ export function expandDrawnTournamentHubRows(
   }
   const withPools = hasPools(row.format, row.poolCount);
   const roundCount = withPools ? poolRoundCount(row) : null;
-  const poolMatch = withPools ? viewerPoolMatch(row, viewerUserId) : null;
+  const poolMatch = withPools
+    ? viewerPoolMatch(row, viewerUserId, viewer.locale)
+    : null;
   const knockoutRounds = knockoutRoundCount(row);
   return [...mine]
     .sort((left, right) => {

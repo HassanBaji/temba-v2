@@ -8,17 +8,13 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { communityListMetaLine } from "@repo/domain/community-chrome";
-import {
-  COMMUNITIES_ERROR_TITLE,
-  COMMUNITY_NO_GROUPS_COPY,
-  COMMUNITY_START_COPY,
-  communityClubGroupRow,
-} from "@repo/domain/community";
+import { communityClubGroupRow } from "@repo/domain/community";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type CommunityRow = RouterOutputs["communities"]["mine"][number];
@@ -59,7 +55,9 @@ function CommunitiesListSkeleton() {
 }
 
 function ClubGroupRowLink({ group }: { group: ClubGroupRow }) {
-  const row = communityClubGroupRow(group);
+  const m = useMessages();
+  const locale = useLocale();
+  const row = communityClubGroupRow(group, locale);
   return (
     <li className="border-rule border-t">
       <Link
@@ -73,7 +71,7 @@ function ClubGroupRowLink({ group }: { group: ClubGroupRow }) {
         </div>
         {row.joined ? (
           <span className="text-eyebrow text-muted-foreground shrink-0">
-            Joined
+            {m.community.joined}
           </span>
         ) : null}
       </Link>
@@ -82,6 +80,8 @@ function ClubGroupRowLink({ group }: { group: ClubGroupRow }) {
 }
 
 function CommunityCard({ community }: { community: CommunityRow }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <li className={communityCard}>
       <Link
@@ -102,11 +102,12 @@ function CommunityCard({ community }: { community: CommunityRow }) {
               type: community.type,
               memberCount: community.memberCount,
               role: community.role,
+              locale,
             })}
           </p>
           {community.archivedAt ? (
             <Badge variant="outline" className="mt-2">
-              Soft-archived
+              {m.community.badge.softArchived}
             </Badge>
           ) : null}
         </div>
@@ -114,7 +115,7 @@ function CommunityCard({ community }: { community: CommunityRow }) {
       <ul>
         {community.groups.length === 0 ? (
           <li className="border-rule text-meta text-muted-foreground border-t px-5 py-[18px]">
-            {COMMUNITY_NO_GROUPS_COPY}
+            {m.community.noGroups}
           </li>
         ) : (
           community.groups.map((group) => (
@@ -127,18 +128,19 @@ function CommunityCard({ community }: { community: CommunityRow }) {
 }
 
 function StartACommunityCard() {
+  const m = useMessages();
   return (
     <section className="border-rule rounded-[14px] border p-5">
-      <h2 className="text-body font-semibold">{COMMUNITY_START_COPY.title}</h2>
+      <h2 className="text-body font-semibold">{m.community.start.title}</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        {COMMUNITY_START_COPY.description}
+        {m.community.start.description}
       </p>
       <Button
         asChild
         className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
       >
         <Link href="/dashboard/communities/new">
-          {COMMUNITY_START_COPY.action}
+          {m.community.start.action}
         </Link>
       </Button>
     </section>
@@ -146,6 +148,7 @@ function StartACommunityCard() {
 }
 
 export default function CommunitiesPage() {
+  const m = useMessages();
   const { isLoaded, hasCreateAccess } = useCreateAccess();
   const mine = api.communities.mine.useQuery(undefined, {
     enabled: isLoaded && hasCreateAccess,
@@ -153,7 +156,7 @@ export default function CommunitiesPage() {
 
   if (!isLoaded) {
     return (
-      <DashboardShell title="Communities">
+      <DashboardShell title={m.common.communities}>
         <CommunitiesListSkeleton />
       </DashboardShell>
     );
@@ -161,14 +164,14 @@ export default function CommunitiesPage() {
 
   if (!hasCreateAccess) {
     return (
-      <DashboardShell title="Communities">
+      <DashboardShell title={m.common.communities}>
         <EmptyState
           icon={Lock}
-          title="Communities list is limited"
-          description="This list is set up by Temba staff."
+          title={m.webDashboard.communities.limited.title}
+          description={m.webDashboard.communities.limited.description}
           action={
             <Button asChild>
-              <Link href="/dashboard">Back to Home</Link>
+              <Link href="/dashboard">{m.webDashboard.backToHome}</Link>
             </Button>
           }
         />
@@ -178,11 +181,11 @@ export default function CommunitiesPage() {
 
   return (
     <DashboardShell
-      title="Communities"
+      title={m.common.communities}
       action={
         <PageCreateAction
           href="/dashboard/communities/new"
-          label="Create Community"
+          label={m.community.start.action}
         />
       }
     >
@@ -191,7 +194,7 @@ export default function CommunitiesPage() {
 
         {mine.error ? (
           <ErrorState
-            title={COMMUNITIES_ERROR_TITLE}
+            title={m.community.errorTitle}
             message={mine.error.message}
             onRetry={() => {
               void mine.refetch();

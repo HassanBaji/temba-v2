@@ -24,6 +24,7 @@ import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { managerDurationOptions } from "@repo/domain/booking-slots";
 import {
   formatDayMonth,
@@ -316,11 +317,11 @@ function EditBookingDialog({
 function refundLine(fils: number, cancelledBy: "venue" | "customer") {
   if (cancelledBy === "venue") {
     return fils > 0
-      ? `Full refund, ${formatBookingPriceFils(fils)}`
+      ? `Full refund, ${formatBookingPriceFils(fils, CONSOLE_LOCALE)}`
       : "Nothing was paid, so nothing is refunded";
   }
   return fils > 0
-    ? `Policy applies: ${formatBookingPriceFils(fils)} refunded`
+    ? `Policy applies: ${formatBookingPriceFils(fils, CONSOLE_LOCALE)} refunded`
     : "Policy applies: no refund";
 }
 
@@ -356,7 +357,7 @@ function CancelBookingDialog({
       (payment.status === "paid" || payment.status === "partially_refunded"),
   );
   const context = [
-    `${holderName(manager.holder)}, ${booking.court.name}, ${formatDayMonth(booking.startsAt, { weekday: "short" })} ${formatGameClock(booking.startsAt)}.`,
+    `${holderName(manager.holder)}, ${booking.court.name}, ${formatDayMonth(booking.startsAt, CONSOLE_LOCALE, { weekday: "short" })} ${formatGameClock(booking.startsAt, CONSOLE_LOCALE)}.`,
     booking.game ? "The Game on this Booking is cancelled too." : null,
   ]
     .filter(Boolean)

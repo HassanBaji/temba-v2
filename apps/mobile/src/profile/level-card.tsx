@@ -6,19 +6,20 @@ import {
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { MountFill } from "../primitives/mount-fill";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
-const MOVEMENT_WORD = { up: "Up", down: "Down", held: "Held" } as const;
-
 export function ProfileLevelCard({ input }: { input: ProfileLevelInput }) {
+  const m = useMessages();
+  const locale = useLocale();
   const palette = useTonePalette();
-  const view = profileLevelView(input);
+  const view = profileLevelView(input, locale);
 
   return (
-    <Card title="Level" meta="Padel">
+    <Card title={m.home.level.heading.padel}>
       <View
         style={{
           flexDirection: "row",
@@ -32,7 +33,10 @@ export function ProfileLevelCard({ input }: { input: ProfileLevelInput }) {
           size="levelBand"
           width="expanded"
           weight="bold"
-          accessibilityLabel={`Level band ${view.displayBand}, Level ${view.level}`}
+          accessibilityLabel={m.mobileHome.level.bandLevelSpoken(
+            view.displayBand,
+            view.level,
+          )}
         >
           {view.displayBand}
         </Text>
@@ -47,12 +51,12 @@ export function ProfileLevelCard({ input }: { input: ProfileLevelInput }) {
               {view.level}
             </Text>
             <Text size="meta" tone="muted">
-              Level
+              {m.home.level.numberLabel}
             </Text>
           </View>
-          {view.movement ? (
+          {view.movementLabel ? (
             <Text size="meta" tone="muted">
-              {MOVEMENT_WORD[view.movement]} since the last match
+              {view.movementLabel}
             </Text>
           ) : null}
         </View>

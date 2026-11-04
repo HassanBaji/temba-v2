@@ -10,8 +10,6 @@ import {
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
-  GROUP_LINK_REQUEST_ACCEPT_LABEL,
-  GROUP_LINK_REQUEST_DECLINE_LABEL,
   groupLeaveVenueActionLabel,
   groupLinkRequestBannerText,
   groupPartOfVenueLine,
@@ -30,6 +28,7 @@ import {
 } from "../game-details/confirm-sheet";
 import type { GameCardActions } from "../games/game-card";
 import { SeatPickerSheet } from "../games/seat-picker-sheet";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
@@ -55,6 +54,8 @@ export type GroupMenuProps = {
   visible: boolean;
   items: GroupMenuItem[];
   roleLine: string | null;
+  /** Why Leave is disabled, or `null` when the viewer may leave. */
+  leaveBlockedHint: string | null;
   copyPending: boolean;
   onOpen: () => void;
   onPick: (item: GroupMenuItem) => void;
@@ -118,17 +119,15 @@ export type GroupHomeViewProps = {
   onScrollTo: (target: View | null) => void;
 };
 
-const TABS: { key: GroupHomeTab; label: string }[] = [
-  { key: "standing", label: "Standing" },
-  { key: "games", label: "Games" },
-  { key: "members", label: "Members" },
-];
+const TABS: GroupHomeTab[] = ["standing", "games", "members"];
 
 export function GroupHomeView(props: GroupHomeViewProps) {
   const { data } = props;
-  const header = groupHomeHeader(data, props.apiOrigin);
-  const cta = groupJoinCta(data, props.joinPending);
-  const banner = groupBanner(data);
+  const locale = useLocale();
+  const m = useMessages();
+  const header = groupHomeHeader(data, props.apiOrigin, locale);
+  const cta = groupJoinCta(data, props.joinPending, locale);
+  const banner = groupBanner(data, locale);
   const door = cta?.door;
   const onInvite = groupHomeCanManageInvites(data) ? props.onInvite : undefined;
   const createGameHref = groupHomeCanShowCreateGame(data)
@@ -151,7 +150,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               <HeaderIconButton
                 framed
                 icon={UserRoundPlus}
-                accessibilityLabel="Invite players"
+                accessibilityLabel={m.group.settings.menu.invite}
                 onPress={props.onInvite}
               />
             ) : null}
@@ -159,7 +158,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               <HeaderIconButton
                 framed
                 icon={EllipsisVertical}
-                accessibilityLabel="More"
+                accessibilityLabel={m.common.more}
                 onPress={props.menu.onOpen}
               />
             ) : null}
@@ -183,14 +182,17 @@ export function GroupHomeView(props: GroupHomeViewProps) {
 
       {data.venueCommunity ? (
         <Text size="meta" tone="muted">
-          {groupPartOfVenueLine(data.venueCommunity.venueName)}
+          {groupPartOfVenueLine(data.venueCommunity.venueName, locale)}
         </Text>
       ) : null}
 
       {data.canUnlinkFromVenue && data.venueCommunity ? (
         <View style={{ flexDirection: "row" }}>
           <Button
-            label={groupLeaveVenueActionLabel(data.venueCommunity.venueName)}
+            label={groupLeaveVenueActionLabel(
+              data.venueCommunity.venueName,
+              locale,
+            )}
             size="sm"
             variant="outline"
             onPress={props.onLeaveVenue}
@@ -201,20 +203,24 @@ export function GroupHomeView(props: GroupHomeViewProps) {
       {props.venueRequests.map((request) => (
         <Surface key={request.id} style={{ gap: 10 }}>
           <Text size="meta">
-            {groupLinkRequestBannerText(request.venueName)}
+            {groupLinkRequestBannerText(request.venueName, locale)}
           </Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Button
-              label={GROUP_LINK_REQUEST_DECLINE_LABEL}
-              accessibilityLabel={`Decline the request from ${request.venueName}`}
+              label={m.group.linkRequest.declineLabel}
+              accessibilityLabel={m.mobileGroup.home.declineVenueRequest(
+                request.venueName,
+              )}
               size="sm"
               variant="outline"
               disabled={props.venueRequestPendingId === request.id}
               onPress={() => props.onDeclineVenueRequest(request)}
             />
             <Button
-              label={GROUP_LINK_REQUEST_ACCEPT_LABEL}
-              accessibilityLabel={`Review the request from ${request.venueName}`}
+              label={m.group.linkRequest.acceptLabel}
+              accessibilityLabel={m.mobileGroup.home.reviewVenueRequest(
+                request.venueName,
+              )}
               size="sm"
               pending={props.venueRequestPendingId === request.id}
               onPress={() => props.onAcceptVenueRequest(request)}
@@ -245,14 +251,14 @@ export function GroupHomeView(props: GroupHomeViewProps) {
       ) : null}
 
       <View style={{ flexDirection: "row", gap: 8 }}>
-        {TABS.map((entry) => (
+        {TABS.map((key) => (
           <Button
-            key={entry.key}
-            label={entry.label}
+            key={key}
+            label={m.mobileGroup.home.tabs[key]}
             size="sm"
-            variant={entry.key === props.tab ? "default" : "outline"}
-            selected={entry.key === props.tab}
-            onPress={() => props.onTabChange(entry.key)}
+            variant={key === props.tab ? "default" : "outline"}
+            selected={key === props.tab}
+            onPress={() => props.onTabChange(key)}
           />
         ))}
       </View>
@@ -377,6 +383,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         name={header.name}
         roleLine={props.menu.roleLine}
         items={props.menu.items}
+        leaveBlockedHint={props.menu.leaveBlockedHint}
         copyPending={props.menu.copyPending}
         onPick={props.menu.onPick}
         onClose={props.menu.onClose}

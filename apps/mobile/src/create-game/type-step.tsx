@@ -1,11 +1,12 @@
 import { radii } from "@repo/design-tokens";
 import {
-  CREATE_GAME_TYPE_CARDS,
+  createGameTypeCards,
   type CreateGameTypeId,
 } from "@repo/domain/create-game-flow";
 import { Shuffle, Trophy } from "lucide-react-native";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -22,8 +23,12 @@ const BRACKET_COLUMNS = 4;
 const BRACKET_TOP_ROW = ["solid", "hatch", "solid", "hatch"] as const;
 
 export function TypeStep({ state, errors, dispatch }: StepProps) {
+  const note = useMessages().createGame.typeCards.countsNote;
   return (
     <View style={{ gap: 12 }}>
+      <Text size="meta" tone="muted">
+        {note}
+      </Text>
       <TypeCards
         selected={state.type}
         onSelect={(type) => dispatch({ kind: "selectType", type })}
@@ -40,28 +45,31 @@ function TypeCards({
   selected: CreateGameTypeId | null;
   onSelect: (type: CreateGameTypeId) => void;
 }) {
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.type;
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel="Game type"
+      accessibilityLabel={copy.title}
       style={{ gap: 14 }}
     >
-      {CREATE_GAME_TYPE_CARDS.map((card) => (
+      {createGameTypeCards(locale).map((card) => (
         <ChoiceCard
           key={card.id}
           role="radio"
           selected={selected === card.id}
           title={card.title}
           description={card.description}
-          accessibilityLabel={`${card.title}, ${card.description}, ${card.rating}`}
+          accessibilityLabel={copy.cardA11y(
+            card.title,
+            card.description,
+            card.rating,
+          )}
           leading={ICONS[card.id]}
           trailing="chevron"
           onPress={() => onSelect(card.id)}
         >
           {card.id === "friendly_game" ? <SeatStrip /> : <MiniBracket />}
-          <Text size="eyebrow" mono uppercase tone="muted">
-            {card.rating}
-          </Text>
         </ChoiceCard>
       ))}
     </View>

@@ -10,6 +10,7 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { useInviteInboxCount } from "~/hooks/use-invite-inbox-count";
 import { notificationHref } from "~/lib/notification-href";
@@ -55,6 +56,7 @@ function NotificationLeading({
   type: string;
   actor: { name: string; image: string | null } | null;
 }) {
+  const m = useMessages();
   if (type === "game_finished") {
     return (
       <span className="border-rule text-ink flex size-10 items-center justify-center rounded-full border">
@@ -71,7 +73,7 @@ function NotificationLeading({
   }
   return (
     <UserAvatar
-      name={actor?.name ?? "Someone"}
+      name={actor?.name ?? m.common.someone}
       image={actor?.image}
       size="lg"
     />
@@ -79,10 +81,11 @@ function NotificationLeading({
 }
 
 function UnreadDot() {
+  const m = useMessages();
   return (
     <span className="flex items-center">
       <span aria-hidden="true" className="bg-ink size-2 rounded-full" />
-      <span className="sr-only">Unread</span>
+      <span className="sr-only">{m.webDashboard.notifications.unread}</span>
     </span>
   );
 }
@@ -96,6 +99,7 @@ function LoadMoreSentinel({
   isFetchingNextPage: boolean;
   onLoadMore: () => void;
 }) {
+  const m = useMessages();
   const ref = React.useRef<HTMLDivElement>(null);
   const onLoadMoreRef = React.useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
@@ -123,16 +127,18 @@ function LoadMoreSentinel({
       <Button
         variant="outline"
         pending={isFetchingNextPage}
-        pendingLabel="Loading…"
+        pendingLabel={m.common.loading}
         onClick={onLoadMore}
       >
-        Show more
+        {m.common.showMore}
       </Button>
     </div>
   );
 }
 
 export default function NotificationsPage() {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const inviteCount = useInviteInboxCount();
   const notifications = api.notifications.list.useInfiniteQuery(
@@ -158,18 +164,18 @@ export default function NotificationsPage() {
     () =>
       (notifications.data?.pages ?? []).flatMap((page) =>
         page.items.flatMap((item) => {
-          const copy = notificationCopy(item);
+          const copy = notificationCopy(item, locale);
           const href = notificationHref(item);
           return copy && href ? [{ item, copy, href }] : [];
         }),
       ),
-    [notifications.data],
+    [notifications.data, locale],
   );
   const newestLoadedAt = notifications.data?.pages[0]?.items[0]?.createdAt;
   const hasUnread = rows.some(({ item }) => item.readAt === null);
 
   return (
-    <DashboardShell title="Notifications">
+    <DashboardShell title={m.common.notifications}>
       {inviteCount > 0 ? (
         <RowList className="mb-4">
           <ListRow
@@ -179,7 +185,7 @@ export default function NotificationsPage() {
                 <Inbox aria-hidden="true" className="size-5" />
               </span>
             }
-            title={invitesWaitingLabel(inviteCount)}
+            title={invitesWaitingLabel(inviteCount, locale)}
           >
             <Link href="/dashboard/invites" />
           </ListRow>
@@ -190,7 +196,7 @@ export default function NotificationsPage() {
 
       {notifications.error ? (
         <ErrorState
-          title="Notifications could not be loaded"
+          title={m.webDashboard.notifications.errorTitle}
           message={notifications.error.message}
           onRetry={() => void notifications.refetch()}
         />
@@ -199,8 +205,8 @@ export default function NotificationsPage() {
       {!notifications.isLoading && !notifications.error && rows.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title="No notifications yet"
-          description="When someone joins a Group or Game you run, it shows up here."
+          title={m.webDashboard.notifications.empty.title}
+          description={m.webDashboard.notifications.empty.description}
         />
       ) : null}
 
@@ -210,10 +216,10 @@ export default function NotificationsPage() {
             variant="ghost"
             size="sm"
             pending={markAllRead.isPending}
-            pendingLabel="Marking…"
+            pendingLabel={m.webDashboard.notifications.marking}
             onClick={() => markAllRead.mutate({ upTo: newestLoadedAt })}
           >
-            Mark all as read
+            {m.webDashboard.notifications.markAllRead}
           </Button>
         </div>
       ) : null}
@@ -231,7 +237,7 @@ export default function NotificationsPage() {
                 }
                 title={<NotificationTitle parts={copy.title} unread={unread} />}
                 subtitle={copy.subline}
-                meta={notificationMeta(item)}
+                meta={notificationMeta(item, locale)}
                 trailing={unread ? <UnreadDot /> : null}
               >
                 <Link

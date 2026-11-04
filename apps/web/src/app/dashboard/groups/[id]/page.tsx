@@ -15,6 +15,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
 import { GroupAddPlayerDialog } from "~/components/groups/group-add-player-dialog";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
@@ -44,7 +45,6 @@ import { groupMembersTabHref } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
-  REMOVE_PLAYER_ACTION,
   addGroupPlayerIsFootball,
   removePlayerConfirmLine,
   removePlayerToast,
@@ -78,15 +78,12 @@ import {
   type GroupJoinMode,
 } from "@repo/domain/group-join";
 import {
-  GROUP_DELETED_TOAST,
-  GROUP_IMAGE_REMOVED_TOAST,
-  GROUP_IMAGE_SAVED_TOAST,
-  GROUP_JOIN_REQUEST_UNDO_LABEL,
   groupJoinRequestDecidedToast,
   type GroupJoinRequestDecision,
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
 import {
+  groupLeaveBlockedHint,
   groupMenuRoleLine,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
@@ -120,6 +117,8 @@ export default function GroupHomePage({
   const savedUserId =
     (Array.isArray(query.saved) ? query.saved[0] : query.saved) ?? null;
   const { hasCreateAccess } = useCreateAccess();
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/groups/${id}`;
   const utils = api.useUtils();
@@ -160,7 +159,7 @@ export default function GroupHomePage({
   );
   const joinClubPublic = api.groups.joinClubPublic.useMutation({
     onSuccess: async () => {
-      toast.success(groupJoinToast("joinClubPublic"));
+      toast.success(groupJoinToast("joinClubPublic", locale));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
       if (group.data?.communityId) {
@@ -177,7 +176,7 @@ export default function GroupHomePage({
 
   const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
     onSuccess: async () => {
-      toast.success(groupJoinToast("joinLoosePublic"));
+      toast.success(groupJoinToast("joinLoosePublic", locale));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
     },
@@ -189,7 +188,7 @@ export default function GroupHomePage({
   const requestJoin = api.groups.requestJoin.useMutation({
     onSuccess: async () => {
       setRequestJoinOpen(false);
-      toast.success(groupJoinToast("requestJoin"));
+      toast.success(groupJoinToast("requestJoin", locale));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
       await utils.groups.listJoinRequests.invalidate({ groupId: id });
@@ -248,10 +247,14 @@ export default function GroupHomePage({
     decision: GroupJoinRequestDecision,
   ) {
     toast.success(
-      groupJoinRequestDecidedToast(request.user.name ?? "User", decision),
+      groupJoinRequestDecidedToast(
+        request.user.name ?? m.community.userFallback,
+        decision,
+        locale,
+      ),
       {
         action: {
-          label: GROUP_JOIN_REQUEST_UNDO_LABEL,
+          label: m.group.admin.undoLabel,
           onClick: () =>
             undoJoinRequestDecision.mutate({ requestId: request.id }),
         },
@@ -275,7 +278,7 @@ export default function GroupHomePage({
 
   const leaveGroup = api.groups.leave.useMutation({
     onSuccess: async (result) => {
-      toast.success(groupLeaveToast(result.communityId));
+      toast.success(groupLeaveToast(result.communityId, locale));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
       if (result.communityId) {
@@ -298,7 +301,9 @@ export default function GroupHomePage({
     onSuccess: async () => {
       toast.success(
         groupLeftVenueToast(
-          group.data?.venueCommunity?.venueName ?? "the Venue",
+          group.data?.venueCommunity?.venueName ??
+            m.webDashboard.group.theVenue,
+          locale,
         ),
       );
       await Promise.all([
@@ -312,7 +317,7 @@ export default function GroupHomePage({
 
   const deleteGroup = api.groups.delete.useMutation({
     onSuccess: async (result) => {
-      toast.success(GROUP_DELETED_TOAST);
+      toast.success(m.group.admin.deletedToast);
       await utils.groups.mine.invalidate();
       if (result.communityId) {
         await utils.communities.byId.invalidate({ id: result.communityId });
@@ -335,7 +340,7 @@ export default function GroupHomePage({
 
   const uploadImage = api.groups.uploadImage.useMutation({
     onSuccess: async () => {
-      toast.success(GROUP_IMAGE_SAVED_TOAST);
+      toast.success(m.group.admin.imageSavedToast);
       await invalidateGroupImage();
     },
     onError: (error) => {
@@ -345,7 +350,7 @@ export default function GroupHomePage({
 
   const clearImage = api.groups.clearImage.useMutation({
     onSuccess: async () => {
-      toast.success(GROUP_IMAGE_REMOVED_TOAST);
+      toast.success(m.group.admin.imageRemovedToast);
       await invalidateGroupImage();
     },
   });
@@ -368,7 +373,7 @@ export default function GroupHomePage({
 
   const revokeLookupInvite = api.groups.revokeLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success("Lookup invite revoked");
+      toast.success(m.invite.inbox.lookupRevokedToast);
       await utils.groups.listLookupInvites.invalidate({ groupId: id });
     },
     onError: (error) => {
@@ -392,7 +397,7 @@ export default function GroupHomePage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(gameJoinToast(result.waitlisted));
+      toast.success(gameJoinToast(result.waitlisted, locale));
       await refreshAfterGameJoin();
     },
     onError: async (error) => {
@@ -403,7 +408,11 @@ export default function GroupHomePage({
 
   const registerGame = api.games.register.useMutation({
     onSuccess: async (result) => {
-      toast.success(result.waitlisted ? "Joined waitlist" : "Registered");
+      toast.success(
+        result.waitlisted
+          ? m.game.toast.joinedWaitlist
+          : m.game.card.registered,
+      );
       await refreshAfterGameJoin();
     },
     onError: async (error) => {
@@ -472,7 +481,7 @@ export default function GroupHomePage({
   async function copyGroupUrl() {
     const url = `${window.location.origin}/dashboard/groups/${id}`;
     await navigator.clipboard.writeText(url);
-    toast.success("Group URL copied");
+    toast.success(m.webDashboard.group.urlCopied);
   }
 
   function onChangeImageFile(event: ChangeEvent<HTMLInputElement>) {
@@ -481,12 +490,12 @@ export default function GroupHomePage({
     if (!file || uploadImage.isPending) {
       return;
     }
-    const pickedError = entityImageFileError(file);
+    const pickedError = entityImageFileError(file, locale);
     if (pickedError) {
       toast.error(pickedError);
       return;
     }
-    void entityImageUploadInput(file)
+    void entityImageUploadInput(file, locale)
       .then((input) =>
         uploadImage.mutateAsync({
           groupId: id,
@@ -503,7 +512,11 @@ export default function GroupHomePage({
 
   if (group.isLoading) {
     return (
-      <DashboardShell title="Group" hidePageHeader hideMobileTopBar>
+      <DashboardShell
+        title={m.invite.kind.group}
+        hidePageHeader
+        hideMobileTopBar
+      >
         <GroupHomeSkeleton />
       </DashboardShell>
     );
@@ -511,9 +524,9 @@ export default function GroupHomePage({
 
   if (group.error) {
     return (
-      <DashboardShell title="Group">
+      <DashboardShell title={m.invite.kind.group}>
         <ErrorState
-          title="Group could not be loaded"
+          title={m.webDashboard.group.errorTitle}
           message={group.error.message}
           onRetry={() => {
             void group.refetch();
@@ -525,9 +538,9 @@ export default function GroupHomePage({
 
   if (!group.data) {
     return (
-      <DashboardShell title="Group">
+      <DashboardShell title={m.invite.kind.group}>
         <ErrorState
-          title="Group could not be loaded"
+          title={m.webDashboard.group.errorTitle}
           onRetry={() => {
             void group.refetch();
           }}
@@ -537,8 +550,9 @@ export default function GroupHomePage({
   }
 
   const data = group.data;
-  const groupName = data.name ?? "Group";
-  const venueName = data.venueCommunity?.venueName ?? "the Venue";
+  const groupName = data.name ?? m.invite.kind.group;
+  const venueName =
+    data.venueCommunity?.venueName ?? m.webDashboard.group.theVenue;
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
   });
@@ -570,15 +584,20 @@ export default function GroupHomePage({
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
   });
-  const leaveConfirm = groupLeaveConfirm(groupName);
-  const leaveVenueConfirm = groupLeaveVenueConfirm(groupName, venueName);
+  const leaveConfirm = groupLeaveConfirm(groupName, locale);
+  const leaveVenueConfirm = groupLeaveVenueConfirm(
+    groupName,
+    venueName,
+    locale,
+  );
   const viewerEntry = data.standing.leaderboard.find((entry) => entry.isViewer);
   const menuRoleLine = groupMenuRoleLine({
     isOwner: data.isOwner,
     isOrganizer: viewerEntry?.isOrganizer ?? false,
     isMember: data.membership != null,
+    locale,
   });
-  const removeImageConfirm = groupRemoveImageConfirm(groupName);
+  const removeImageConfirm = groupRemoveImageConfirm(groupName, locale);
   const restoreFocusRef =
     restoreFocus === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef;
 
@@ -588,6 +607,11 @@ export default function GroupHomePage({
       groupId={id}
       groupName={groupName}
       roleLine={menuRoleLine}
+      leaveBlockedHint={groupLeaveBlockedHint({
+        isOwner: data.isOwner,
+        isLoose: data.isLoose,
+        locale,
+      })}
       communityId={data.community?.id ?? null}
       communityName={data.community?.name ?? null}
       venueName={data.venueCommunity?.venueName ?? null}
@@ -630,6 +654,7 @@ export default function GroupHomePage({
     communityId: data.communityId,
     communityName: data.community?.name ?? null,
     joinMode: data.joinMode,
+    locale,
   });
   const venueRequestBanners = (pendingLinkRequests.data ?? [])
     .filter((request) => request.groupId === id)
@@ -640,7 +665,7 @@ export default function GroupHomePage({
         className="bg-muted flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 md:p-5"
       >
         <p className="text-body min-w-0 flex-1">
-          {groupLinkRequestBannerText(request.venueName)}
+          {groupLinkRequestBannerText(request.venueName, locale)}
         </p>
         <VenueLinkRequestActions request={request} />
       </section>
@@ -687,7 +712,7 @@ export default function GroupHomePage({
           {venueRequestBanners}
           {data.venueCommunity ? (
             <p className="text-body text-muted-foreground">
-              {groupPartOfVenueLine(data.venueCommunity.venueName)}
+              {groupPartOfVenueLine(data.venueCommunity.venueName, locale)}
             </p>
           ) : null}
           {banners}
@@ -706,6 +731,7 @@ export default function GroupHomePage({
                 data.joinMode as GroupJoinMode,
                 joinPending,
                 "home",
+                locale,
               )}
             </Button>
           ) : null}
@@ -763,7 +789,7 @@ export default function GroupHomePage({
                 }
                 members={data.standing.leaderboard.map((entry) => ({
                   userId: entry.userId,
-                  name: entry.name ?? "Member",
+                  name: entry.name ?? m.community.memberFallback,
                   image: entry.image,
                   isViewer: entry.isViewer,
                   isOrganizer: entry.isOrganizer,
@@ -869,7 +895,11 @@ export default function GroupHomePage({
                     {
                       onSuccess: () => {
                         toast.success(
-                          groupMemberOrganizerToast(action, member.name),
+                          groupMemberOrganizerToast(
+                            action,
+                            member.name,
+                            locale,
+                          ),
                         );
                       },
                     },
@@ -1000,11 +1030,11 @@ export default function GroupHomePage({
             setRemoving(null);
           }
         }}
-        title={REMOVE_PLAYER_ACTION}
+        title={m.group.addPlayer.removeAction}
         description={
-          removing ? removePlayerConfirmLine(removing.name) : undefined
+          removing ? removePlayerConfirmLine(removing.name, locale) : undefined
         }
-        confirmLabel="Remove"
+        confirmLabel={m.common.remove}
         pending={removePlayer.isPending}
         onConfirm={async () => {
           if (removing) {
@@ -1012,7 +1042,7 @@ export default function GroupHomePage({
               groupId: id,
               userId: removing.userId,
             });
-            toast.success(removePlayerToast(removing.name));
+            toast.success(removePlayerToast(removing.name, locale));
           }
         }}
       />
@@ -1052,12 +1082,13 @@ export default function GroupHomePage({
           groupId: id,
           canLookup: data.canManageLookupInvites,
           canLink: data.canManageInviteLinks,
-          subtitle: groupLookupNote(data.isLoose),
+          subtitle: groupLookupNote(data.isLoose, locale),
           shareMessage: (inviteUrl) =>
             groupInviteClipboardText({
               groupName: data.name,
               sport: data.sport,
               inviteUrl,
+              locale,
             }),
         }}
         open={invitesOpen}

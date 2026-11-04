@@ -6,6 +6,7 @@ import { ArrowLeft, X, type LucideIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { MouseEvent, MouseEventHandler } from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { buttonVariants } from "~/components/ui/button";
 import { currentBackSteps, isDashboardPath } from "~/lib/navigation-trail";
 import { cn } from "~/lib/utils";
@@ -115,12 +116,13 @@ function opensElsewhere(event: MouseEvent<HTMLAnchorElement>) {
  * page the player came from, and replaces the entry with `href` when there is
  * no such page (opened from a shared link or a new tab).
  */
-export function BackButton({ label = "Back", ...props }: NavIconButtonProps) {
+export function BackButton({ label, ...props }: NavIconButtonProps) {
   const router = useRouter();
+  const m = useMessages();
   const style = {
     icon: ArrowLeft,
     iconClassName: "rtl:-scale-x-100",
-    label,
+    label: label ?? m.common.back,
   };
 
   if (props.href === undefined) {
@@ -154,6 +156,7 @@ export function BackButton({ label = "Back", ...props }: NavIconButtonProps) {
   );
 }
 
-export function CloseButton({ label = "Close", ...props }: NavIconButtonProps) {
-  return <NavIconButton icon={X} label={label} {...props} />;
+export function CloseButton({ label, ...props }: NavIconButtonProps) {
+  const m = useMessages();
+  return <NavIconButton icon={X} label={label ?? m.common.close} {...props} />;
 }

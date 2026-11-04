@@ -1,5 +1,6 @@
 "use client";
 
+import { useMessages } from "~/components/locale-provider";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { AvatarGroup, AvatarGroupCount } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
@@ -24,6 +25,7 @@ export function AvatarStack({
   surface?: "background" | "raised";
   className?: string;
 }) {
+  const m = useMessages();
   const visible = people.slice(0, VISIBLE_COUNT);
   const overflow = people.length - visible.length;
   const total = people.length + openSeats;
@@ -38,7 +40,7 @@ export function AvatarStack({
 
   return (
     <AvatarGroup
-      aria-label={`${total} ${total === 1 ? "person" : "people"}`}
+      aria-label={m.webUi.people(total)}
       className={cn(ringClass, className)}
     >
       {visible.map((person, index) => (

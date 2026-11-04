@@ -1,7 +1,4 @@
 import {
-  ADD_PLAYER_NAME_LABEL,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-  RENAME_UNCLAIMED_PLAYER_DESCRIPTION,
   UNCLAIMED_PLAYER_NAME_MAX_LENGTH,
   renameUnclaimedPlayerCanSubmit,
   renameUnclaimedPlayerToast,
@@ -10,6 +7,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { FieldError } from "../create-game/chips";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { TextField } from "../primitives/text-field";
@@ -23,6 +21,8 @@ export function RenamePlayerSheet({
   player: { userId: string; name: string } | null;
   onClose: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const toast = useToast();
   const utils = api.useUtils();
   const [name, setName] = useState(player?.name ?? "");
@@ -35,7 +35,7 @@ export function RenamePlayerSheet({
 
   const rename = api.users.renameUnclaimedPlayer.useMutation({
     onSuccess: async (result) => {
-      toast.show(renameUnclaimedPlayerToast(result.name));
+      toast.show(renameUnclaimedPlayerToast(result.name, locale));
       await Promise.all([
         utils.games.byId.invalidate(),
         utils.groups.byId.invalidate(),
@@ -59,14 +59,14 @@ export function RenamePlayerSheet({
     <Sheet
       visible={player != null}
       onClose={close}
-      title={RENAME_UNCLAIMED_PLAYER_ACTION}
-      subtitle={RENAME_UNCLAIMED_PLAYER_DESCRIPTION}
+      title={m.group.addPlayer.renameAction}
+      subtitle={m.group.addPlayer.renameDescription}
       keyboardShouldPersistTaps="handled"
       footer={
         <View style={{ gap: 8 }}>
           <FieldError message={rename.error?.message} />
           <Button
-            label="Save name"
+            label={m.mobileGameDetails.addPlayer.saveName}
             size="lg"
             pending={rename.isPending}
             disabled={!canSubmit}
@@ -80,7 +80,7 @@ export function RenamePlayerSheet({
       }
     >
       <TextField
-        label={ADD_PLAYER_NAME_LABEL}
+        label={m.group.addPlayer.nameLabel}
         value={name}
         maxLength={UNCLAIMED_PLAYER_NAME_MAX_LENGTH}
         autoCapitalize="words"

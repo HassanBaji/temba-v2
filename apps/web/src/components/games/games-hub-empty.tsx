@@ -6,15 +6,16 @@ import { ResultMark } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import type { SportFilter } from "@repo/domain/football-hub";
 import {
-  GAMES_HISTORY_EMPTY_COPY,
-  GAMES_HISTORY_EMPTY_TITLE,
-  GAMES_HISTORY_PREVIEW_FIGURES,
   GAMES_HISTORY_PREVIEW_MARKS,
-  GAMES_HUB_EMPTY_TITLE,
+  gamesHistoryEmptyCopy,
+  gamesHistoryEmptyTitle,
+  gamesHistoryPreviewFigures,
   gamesHubEmptyLine,
   gamesHubEmptySeats,
+  gamesHubEmptyTitle,
 } from "@repo/domain/games-hub-empty-states";
 import { groupsTabQuery } from "@repo/domain/groups-tab";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cardFrame } from "~/lib/page-layout";
 
 function EmptyHeading({ title, line }: { title: string; line: string }) {
@@ -35,13 +36,15 @@ export function GamesHubUpcomingEmpty({
 }: {
   sportFilter: SportFilter;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <div className="flex flex-col gap-[22px]">
       <section className={cardFrame}>
         <div className="flex flex-col gap-[18px] p-5">
           <p className="text-meta text-muted-foreground flex justify-between gap-3">
-            <span>Next Game</span>
-            <span>Not scheduled</span>
+            <span>{m.webGame.hubEmpty.nextGame}</span>
+            <span>{m.webGame.hubEmpty.notScheduled}</span>
           </p>
           <div aria-hidden="true" className="flex flex-wrap gap-1.5">
             {Array.from({ length: gamesHubEmptySeats(sportFilter) }, (_, i) => (
@@ -49,18 +52,20 @@ export function GamesHubUpcomingEmpty({
             ))}
           </div>
           <EmptyHeading
-            title={GAMES_HUB_EMPTY_TITLE}
-            line={gamesHubEmptyLine(sportFilter)}
+            title={gamesHubEmptyTitle(locale)}
+            line={gamesHubEmptyLine(sportFilter, locale)}
           />
         </div>
         <dl className="border-rule divide-rule grid grid-cols-2 divide-x border-t">
-          <NotSetCell label="When" />
-          <NotSetCell label="Where" />
+          <NotSetCell label={m.createGame.steps.when} />
+          <NotSetCell label={m.createGame.steps.where} />
         </dl>
       </section>
       <div className="flex flex-col gap-2">
         <Button asChild size="lg" className="text-body w-full font-semibold">
-          <Link href="/dashboard/games/new">Create Game</Link>
+          <Link href="/dashboard/games/new">
+            {m.webGame.hubEmpty.createGame}
+          </Link>
         </Button>
         <Button
           asChild
@@ -70,7 +75,7 @@ export function GamesHubUpcomingEmpty({
         >
           <Link href={`/dashboard/groups${groupsTabQuery("public")}`}>
             <Users aria-hidden="true" />
-            Find a Group
+            {m.webGame.hubEmpty.findAGroup}
           </Link>
         </Button>
       </div>
@@ -83,12 +88,14 @@ export function GamesHubUpcomingEmpty({
  * not-played marks and its figures at zero.
  */
 export function GamesHubPlayedEmpty() {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <section className={cardFrame}>
       <div className="flex flex-col gap-[18px] p-5">
         <p className="text-meta text-muted-foreground flex justify-between gap-3">
-          <span>Recent form</span>
-          <span>No results yet</span>
+          <span>{m.webGame.hubEmpty.recentForm}</span>
+          <span>{m.webGame.hubEmpty.noResultsYet}</span>
         </p>
         <div aria-hidden="true" className="flex gap-1.5">
           {Array.from({ length: GAMES_HISTORY_PREVIEW_MARKS }, (_, i) => (
@@ -101,12 +108,12 @@ export function GamesHubPlayedEmpty() {
           ))}
         </div>
         <EmptyHeading
-          title={GAMES_HISTORY_EMPTY_TITLE}
-          line={GAMES_HISTORY_EMPTY_COPY}
+          title={gamesHistoryEmptyTitle(locale)}
+          line={gamesHistoryEmptyCopy(locale)}
         />
       </div>
       <dl className="border-rule divide-rule flex divide-x border-t">
-        {GAMES_HISTORY_PREVIEW_FIGURES.map((label) => (
+        {gamesHistoryPreviewFigures(locale).map((label) => (
           <div
             key={label}
             className="flex min-w-0 flex-1 flex-col-reverse items-center gap-1 py-4"

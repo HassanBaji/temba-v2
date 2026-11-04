@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const FOOTBALL_SIDE_SIZES = [5, 6, 7, 8, 9, 11] as const;
 
 export type FootballSideSize = (typeof FOOTBALL_SIDE_SIZES)[number];
@@ -5,9 +8,6 @@ export type FootballSideSize = (typeof FOOTBALL_SIDE_SIZES)[number];
 export const DEFAULT_FOOTBALL_SIDE_SIZE: FootballSideSize = 5;
 
 export const FOOTBALL_PLAYERS_ALLOWED_MAX = 40;
-
-export const ROSTER_GAME_NO_SEATS_MESSAGE =
-  "This Game has no seats; register as yourself";
 
 export type GameShape = {
   format: string;
@@ -33,6 +33,6 @@ export function footballPlayersAllowedBounds(sideSize: number) {
   return { min: 2 * sideSize, max: FOOTBALL_PLAYERS_ALLOWED_MAX };
 }
 
-export function sideSizeLabel(sideSize: number) {
-  return `${sideSize}-a-side`;
+export function sideSizeLabel(sideSize: number, locale: Locale) {
+  return messagesFor(locale).createGame.sideSize(sideSize);
 }

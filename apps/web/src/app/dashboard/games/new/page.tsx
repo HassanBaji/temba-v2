@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -17,6 +17,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
@@ -32,7 +33,7 @@ import {
   createVenueCopy,
   earliestCreateDay,
   friendlyGameKickoff,
-  friendlyGamePreviewLine,
+  friendlyGamePreviewLines,
   friendlyTournamentDefaultName,
   friendlyTournamentMatchCountLabel,
   friendlyTournamentPreviewDetail,
@@ -101,6 +102,9 @@ function focusElement(id: string) {
 }
 
 function NewGameForm() {
+  const m = useMessages();
+  const locale = useLocale();
+  const c = m.webDashboard.createGame;
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedGroupId = searchParams.get("groupId") ?? undefined;
@@ -148,17 +152,17 @@ function NewGameForm() {
   );
   const [nameTouched, setNameTouched] = React.useState(false);
   const [name, setName] = React.useState(() =>
-    friendlyTournamentDefaultName(earliestCreateDay(session.now)),
+    friendlyTournamentDefaultName(earliestCreateDay(session.now), locale),
   );
   const [customName, setCustomName] = React.useState("");
   const [preferLevelRange, setPreferLevelRange] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(false);
   const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
   const [sideSize, setSideSize] = React.useState(
-    () => initialCreateGameDraft(session.now).sideSize,
+    () => initialCreateGameDraft(session.now, locale).sideSize,
   );
   const [playersAllowed, setPlayersAllowed] = React.useState(
-    () => initialCreateGameDraft(session.now).playersAllowed,
+    () => initialCreateGameDraft(session.now, locale).playersAllowed,
   );
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
@@ -257,8 +261,8 @@ function NewGameForm() {
       setSelectedGroupId((current) => current || requestedGroupId);
       return;
     }
-    setGroupFieldError("You cannot create a Game in that Group.");
-  }, [createGroups.data, requestedGroupId]);
+    setGroupFieldError(c.cannotCreateInGroup);
+  }, [c.cannotCreateInGroup, createGroups.data, requestedGroupId]);
 
   React.useEffect(() => {
     if (!linkedVenueId) {
@@ -299,7 +303,7 @@ function NewGameForm() {
       ? requestedGroupId
       : "";
   const draftDirty = isCreateGameDraftDirty(createDraft, {
-    ...initialCreateGameDraft(session.now),
+    ...initialCreateGameDraft(session.now, locale),
     groupId: initialGroupId,
     venueId:
       initialGroupId && selectedGroupId === initialGroupId
@@ -346,7 +350,7 @@ function NewGameForm() {
   const createGame = api.games.create.useMutation({
     onSuccess: async (game) => {
       leaveCreateFlow();
-      toast.success("Game created");
+      toast.success(c.gameCreatedToast);
       await utils.users.home.invalidate();
       await utils.games.listPublicPickup.invalidate();
       await utils.games.listMyGames.invalidate();
@@ -362,7 +366,7 @@ function NewGameForm() {
   const createTournament = api.games.createTournament.useMutation({
     onSuccess: async (game) => {
       leaveCreateFlow();
-      toast.success("Tournament created");
+      toast.success(c.tournamentCreatedToast);
       await utils.users.home.invalidate();
       await utils.games.listPublicPickup.invalidate();
       await utils.games.listMyGames.invalidate();
@@ -450,7 +454,7 @@ function NewGameForm() {
   }
 
   function resetBranch(type: CreateGameTypeId) {
-    applyDraft(resetCreateBranch(createDraft, type));
+    applyDraft(resetCreateBranch(createDraft, type, locale));
     setErrors((current) =>
       type === "friendly_game"
         ? {
@@ -485,7 +489,7 @@ function NewGameForm() {
   }
 
   function onDayChange(next: string) {
-    const changed = changeCreateDay(createDraft, next);
+    const changed = changeCreateDay(createDraft, next, locale);
     setDay(changed.day);
     setName(changed.name);
     clearField("windowStart");
@@ -518,6 +522,7 @@ function NewGameForm() {
         poolCount,
       },
       session.now,
+      locale,
     );
     if (issue) {
       setErrors((current) => ({ ...current, [issue.field]: issue.message }));
@@ -535,7 +540,7 @@ function NewGameForm() {
       ) {
         setErrors((current) => ({
           ...current,
-          type: "Pick a Game type",
+          type: c.pickGameType,
         }));
         focusElement("game-type");
         return;
@@ -551,7 +556,7 @@ function NewGameForm() {
         focusElement("game-venue");
         return;
       }
-      const where = validateFriendlyGameWhere(selectedGroupId, venueId);
+      const where = validateFriendlyGameWhere(selectedGroupId, venueId, locale);
       if (!where.ok) {
         const message =
           where.field === "groupId" && groupFieldError
@@ -576,6 +581,7 @@ function NewGameForm() {
         day,
         startTime,
         finishTime,
+        locale,
         session.now,
       );
       if (!when.ok) {
@@ -625,6 +631,7 @@ function NewGameForm() {
       },
       session.now,
       groupVerified,
+      locale,
     );
     if (!result.ok) {
       reportSubmitIssue(result);
@@ -656,6 +663,7 @@ function NewGameForm() {
           customName,
         },
         session.now,
+        locale,
       );
       if (!footballResult.ok) {
         reportSubmitIssue(footballResult);
@@ -678,6 +686,7 @@ function NewGameForm() {
         customName,
       },
       session.now,
+      locale,
     );
     if (!result.ok) {
       reportSubmitIssue(result);
@@ -696,16 +705,21 @@ function NewGameForm() {
     ? createTournament.error
     : createGame.error;
   const venueCopy = !selectedGroupId
-    ? "Pick a Group first. Venue rules depend on the Group."
+    ? c.pickGroupFirst
     : picker.data
-      ? createVenueCopy(picker.data, { manyCourts: tournamentBranch, sport })
-      : tournamentBranch
-        ? "Pick a Venue. Courts are optional."
-        : football
-          ? "Pick a Venue. Pitch is optional."
-          : "Pick a Venue. Court is optional.";
-  const kickoff = friendlyGameKickoff(day, startTime, finishTime);
-  const previewDetail = friendlyGamePreviewLine({
+      ? createVenueCopy(picker.data, locale, {
+          manyCourts: tournamentBranch,
+          sport,
+        })
+      : m.createGame.venue.pick(
+          tournamentBranch
+            ? m.createGame.venue.courtsOptional
+            : football
+              ? m.createGame.venue.pitchOptional
+              : m.createGame.venue.courtOptional,
+        );
+  const kickoff = friendlyGameKickoff(day, startTime, finishTime, locale);
+  const previewLines = friendlyGamePreviewLines({
     day: startTime ? day : "",
     groupName: selectedGroup?.name ?? selectedGroup?.communityName ?? null,
     venueName: selectedVenue?.name ?? null,
@@ -714,6 +728,7 @@ function NewGameForm() {
         ? (selectedVenue?.courts.find((court) => court.id === courtId)?.name ??
           null)
         : null,
+    locale,
   });
   const groupError =
     errors.groupId ??
@@ -725,7 +740,7 @@ function NewGameForm() {
     errors.courtIds ??
     fieldErrorMessage(formError, "courtId") ??
     fieldErrorMessage(formError, "courtIds");
-  const laterSteps = createFlowLaterSteps(flowType, sport);
+  const laterSteps = createFlowLaterSteps(flowType, locale, sport);
   const nextTitle = laterSteps.find(
     (item) => item.step === displayedStep + 1,
   )?.title;
@@ -733,11 +748,11 @@ function NewGameForm() {
   const primaryLabel =
     displayedStep === 4
       ? submitting
-        ? "Creating…"
+        ? m.webDashboard.creating
         : tournamentBranch
-          ? "Create tournament"
-          : "Create Game"
-      : "Continue";
+          ? c.createTournament
+          : c.createGameAction
+      : m.common.continue;
   const tournamentPlan = friendlyTournamentPlan({
     teamCount,
     poolCount,
@@ -754,18 +769,23 @@ function NewGameForm() {
       selectedVenue?.courts
         .filter((court) => courtIds.includes(court.id))
         .map((court) => court.name) ?? [],
+    locale,
   });
   const showLevelRange =
     preferLevelRange ||
     levelMin !== LEVEL_BAND_SELECT_NONE ||
     levelMax !== LEVEL_BAND_SELECT_NONE;
   const reviewGroupName = selectedGroup
-    ? (selectedGroup.name ?? "Untitled Group")
-    : "Group";
+    ? (selectedGroup.name ?? m.group.untitled)
+    : m.invite.kind.group;
 
   if (createGroups.isLoading || !draftRestored) {
     return (
-      <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
+      <DashboardShell
+        title={m.webDashboard.games.createAction}
+        hidePageHeader
+        hideMobileTopBar
+      >
         <CreateFlowSkeleton />
       </DashboardShell>
     );
@@ -773,9 +793,9 @@ function NewGameForm() {
 
   if (createGroups.error) {
     return (
-      <DashboardShell title="Create Game">
+      <DashboardShell title={m.webDashboard.games.createAction}>
         <ErrorState
-          title="Groups could not be loaded"
+          title={m.webDashboard.groups.errorTitle}
           message={createGroups.error.message}
           onRetry={() => {
             void createGroups.refetch();
@@ -787,14 +807,14 @@ function NewGameForm() {
 
   if (createGroups.data?.length === 0) {
     return (
-      <DashboardShell title="Create Game">
+      <DashboardShell title={m.webDashboard.games.createAction}>
         <EmptyState
           icon={Users}
-          title="Games are created inside a Group"
-          description="Create a Group first, then you can create a Game."
+          title={c.noGroups.title}
+          description={c.noGroups.description}
           action={
             <Button asChild>
-              <Link href="/dashboard/groups/new">Create Group</Link>
+              <Link href="/dashboard/groups/new">{c.noGroups.action}</Link>
             </Button>
           }
         />
@@ -809,14 +829,19 @@ function NewGameForm() {
           <span className="font-expanded text-[44px] tabular-nums leading-none">
             {teamCount}
           </span>
-          <span className="text-dim text-[18px] leading-none">Game teams</span>
+          <span className="text-dim text-[18px] leading-none">
+            {c.gameTeams}
+          </span>
           {tournamentKnockout ? (
             <span className="text-dim text-body leading-none">
-              {knockoutMatchCountLabel(tournamentKnockout.matchCount)}
+              {knockoutMatchCountLabel(tournamentKnockout.matchCount, locale)}
             </span>
           ) : tournamentRounds ? (
             <span className="text-dim text-body leading-none">
-              {friendlyTournamentMatchCountLabel(tournamentRounds.poolMatches)}
+              {friendlyTournamentMatchCountLabel(
+                tournamentRounds.poolMatches,
+                locale,
+              )}
             </span>
           ) : null}
         </h1>
@@ -834,8 +859,12 @@ function NewGameForm() {
             {kickoff.trailer}
           </span>
         </h1>
-        {previewDetail ? (
-          <p className="text-dim text-meta mt-2">{previewDetail}</p>
+        {previewLines.length > 0 ? (
+          <div className="text-dim text-meta mt-2">
+            {previewLines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
         ) : null}
       </>
     ) : (
@@ -843,25 +872,32 @@ function NewGameForm() {
         <PageTitle variant="hero">
           {displayedStep === 1 ? (
             <>
-              What are you
+              {c.hero.titleLead}
               <br />
-              setting up?
+              {c.hero.titleTrail}
             </>
           ) : (
-            "Friendly game"
+            m.createGame.format.friendlyGame
           )}
         </PageTitle>
-        <p className="text-dim text-meta mt-2.5 leading-normal">
-          {displayedStep === 1
-            ? "Both start with a court and a time. The rest of the form follows your pick."
-            : previewDetail ||
-              "Start with the Group. Venues, levels and prices follow from it."}
-        </p>
+        <div className="text-dim text-meta mt-2.5 leading-normal">
+          {displayedStep === 1 ? (
+            <p>{c.hero.typeSubline}</p>
+          ) : previewLines.length > 0 ? (
+            previewLines.map((line) => <p key={line}>{line}</p>)
+          ) : (
+            <p>{c.hero.groupSubline}</p>
+          )}
+        </div>
       </>
     );
 
   return (
-    <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
+    <DashboardShell
+      title={m.webDashboard.games.createAction}
+      hidePageHeader
+      hideMobileTopBar
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -887,7 +923,9 @@ function NewGameForm() {
             <div className="flex items-center gap-2.5">
               {displayedStep > 1 && displayedStep < 4 ? (
                 <div className="min-w-0 flex-1">
-                  <p className="text-muted-foreground text-meta">Next</p>
+                  <p className="text-muted-foreground text-meta">
+                    {m.common.next}
+                  </p>
                   <p className="text-body font-semibold">{nextTitle}</p>
                 </div>
               ) : null}
@@ -902,13 +940,10 @@ function NewGameForm() {
                 disabled={submitting || (displayedStep === 2 && emptyCatalog)}
               >
                 {primaryLabel}
-                {displayedStep < 4 ? (
-                  <ArrowRight aria-hidden="true" className="size-4" />
-                ) : null}
               </Button>
               <Button variant="outline" size="lg" asChild>
                 <Link href={cancelHref} onClick={onCancel}>
-                  Cancel
+                  {m.common.cancel}
                 </Link>
               </Button>
             </div>
@@ -918,9 +953,7 @@ function NewGameForm() {
             ref={summaryRef}
             message={
               globalFormErrorMessage(formError) ??
-              (displayedStep === 2 && emptyCatalog
-                ? "No live Venues. Create is not available."
-                : null) ??
+              (displayedStep === 2 && emptyCatalog ? c.noLiveVenues : null) ??
               (picker.error ? picker.error.message : null)
             }
           />
@@ -1008,14 +1041,15 @@ function NewGameForm() {
               }}
               day={day}
               dayError={
-                errors.windowStart === "Pick a day"
+                errors.windowStart === m.createGame.validation.pickDay
                   ? errors.windowStart
                   : undefined
               }
               onDay={onDayChange}
               startTime={startTime}
               startError={
-                errors.windowStart && errors.windowStart !== "Pick a day"
+                errors.windowStart &&
+                errors.windowStart !== m.createGame.validation.pickDay
                   ? errors.windowStart
                   : fieldErrorMessage(formError, "windowStart")
               }
@@ -1038,7 +1072,7 @@ function NewGameForm() {
               }
               onMatchMinutes={(next) => {
                 setMatchMinutesInput(next);
-                if (parseCreateMatchMinutes(next).ok) {
+                if (parseCreateMatchMinutes(next, locale).ok) {
                   clearField("matchMinutes");
                 }
               }}
@@ -1157,14 +1191,15 @@ function NewGameForm() {
               }}
               day={day}
               dayError={
-                errors.windowStart === "Pick a day"
+                errors.windowStart === m.createGame.validation.pickDay
                   ? errors.windowStart
                   : undefined
               }
               onDay={onDayChange}
               startTime={startTime}
               startError={
-                errors.windowStart && errors.windowStart !== "Pick a day"
+                errors.windowStart &&
+                errors.windowStart !== m.createGame.validation.pickDay
                   ? errors.windowStart
                   : fieldErrorMessage(createGame.error, "windowStart")
               }
@@ -1224,9 +1259,9 @@ function NewGameForm() {
                     : `${selectedVenue.name}, ${
                         selectedVenue.courts.find(
                           (court) => court.id === courtId,
-                        )?.name ?? "Court"
+                        )?.name ?? m.webDashboard.venue.courtFallback
                       }`
-                  : "Venue"
+                  : m.webDashboard.venue.title
               }
             />
           )}
@@ -1235,9 +1270,9 @@ function NewGameForm() {
       <ConfirmDialog
         open={discardOpen}
         onOpenChange={setDiscardOpen}
-        title="Discard this Game?"
-        description="Your choices so far will be lost."
-        confirmLabel="Discard"
+        title={c.discard.title}
+        description={c.discard.description}
+        confirmLabel={c.discard.confirm}
         onConfirm={() => {
           leaveCreateFlow();
           router.push(cancelHref);
@@ -1248,10 +1283,15 @@ function NewGameForm() {
 }
 
 export default function NewGamePage() {
+  const m = useMessages();
   return (
     <React.Suspense
       fallback={
-        <DashboardShell title="Create Game" hidePageHeader hideMobileTopBar>
+        <DashboardShell
+          title={m.webDashboard.games.createAction}
+          hidePageHeader
+          hideMobileTopBar
+        >
           <CreateFlowSkeleton />
         </DashboardShell>
       }

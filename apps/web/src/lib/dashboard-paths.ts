@@ -1,4 +1,5 @@
 import type { Sport } from "@repo/domain/sport";
+import type { Messages } from "@repo/i18n/messages";
 
 const PLAYER_PROFILE = /^\/dashboard\/players\/[^/]+\/?$/;
 const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
@@ -15,86 +16,87 @@ export function playerMatchesPath(userId: string, matchId?: string) {
   return matchId ? `${path}?match=${matchId}` : path;
 }
 
-export function titleFromPath(pathname: string) {
+export function titleFromPath(pathname: string, m: Messages) {
+  const titles = m.webUi.pageTitle;
   if (pathname === "/dashboard") {
-    return "Home";
+    return m.common.home;
   }
   if (PLAYER_MATCHES.test(pathname)) {
-    return "Last 10 games";
+    return titles.lastTenGames;
   }
   if (pathname.startsWith("/dashboard/players/")) {
-    return "Player";
+    return titles.player;
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
-    return "Settings";
+    return m.common.settings;
   }
   if (pathname.startsWith("/dashboard/you")) {
-    return "Profile";
+    return m.common.profile;
   }
   if (pathname.startsWith("/dashboard/invites")) {
-    return "Invites";
+    return m.common.invites;
   }
   if (pathname.startsWith("/dashboard/notifications")) {
-    return "Notifications";
+    return m.common.notifications;
   }
   if (pathname.startsWith("/dashboard/operator/groups")) {
-    return "Verify Groups";
+    return m.webUi.nav.verifyGroups;
   }
   if (pathname.startsWith("/dashboard/groups/new")) {
-    return "Create Group";
+    return titles.createGroup;
   }
   if (pathname.startsWith("/dashboard/communities/new")) {
-    return "Create Community";
+    return titles.createCommunity;
   }
   if (pathname.startsWith("/dashboard/teams/new")) {
-    return "Create Team";
+    return titles.createTeam;
   }
   if (pathname.startsWith("/dashboard/venues/new")) {
-    return "Create Venue";
+    return titles.createVenue;
   }
   if (pathname.startsWith("/dashboard/games/new")) {
-    return "Create Game";
+    return titles.createGame;
   }
   if (/^\/dashboard\/groups\/[^/]+\/seasons\/new/.test(pathname)) {
-    return "New season";
+    return titles.newSeason;
   }
   if (/^\/dashboard\/groups\/[^/]+\/edit/.test(pathname)) {
-    return "Edit Group";
+    return titles.editGroup;
   }
   if (/^\/dashboard\/groups\/[^/]+\/seasons/.test(pathname)) {
-    return "Seasons";
+    return titles.seasons;
   }
   if (pathname.startsWith("/dashboard/groups/")) {
-    return "Group";
+    return titles.group;
   }
   if (pathname.startsWith("/dashboard/communities/")) {
-    return "Community";
+    return titles.community;
   }
   if (pathname.startsWith("/dashboard/teams/")) {
-    return "Team";
+    return titles.team;
   }
   if (pathname.startsWith("/dashboard/venues/")) {
-    return "Venue";
+    return titles.venue;
   }
   if (pathname.startsWith("/dashboard/games/")) {
-    return "Game";
+    return titles.game;
   }
   if (pathname.startsWith("/dashboard/groups")) {
-    return "Groups";
+    return m.common.groups;
   }
   if (pathname.startsWith("/dashboard/communities")) {
-    return "Communities";
+    return m.common.communities;
   }
   if (pathname.startsWith("/dashboard/teams")) {
-    return "My Teams";
+    return titles.myTeams;
   }
   if (pathname.startsWith("/dashboard/venues")) {
-    return "Venues";
+    return m.webUi.nav.venues;
   }
   if (pathname.startsWith("/dashboard/games")) {
-    return "Games";
+    return m.common.games;
   }
-  return "Home";
+  return m.common.home;
 }
 
 /** Mirrors the pages that pass `hideMobileTopBar` to `DashboardShell`. */

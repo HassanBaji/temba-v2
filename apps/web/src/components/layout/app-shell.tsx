@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { AppRail } from "~/components/layout/app-rail";
 import { BottomNav } from "~/components/layout/bottom-nav";
 import { MobileTopBarFromPath } from "~/components/layout/mobile-top-bar";
@@ -33,6 +34,7 @@ export function AppShell({
   isSubPage?: boolean;
   hideNav?: boolean;
 }) {
+  const m = useMessages();
   return (
     <SidebarProvider
       className="min-h-svh"
@@ -45,9 +47,9 @@ export function AppShell({
     >
       <a
         href="#main"
-        className="bg-background text-foreground text-body focus-visible:ring-ring/50 sr-only z-50 rounded-md border font-semibold outline-none focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:px-4 focus:py-3 focus-visible:ring-[3px]"
+        className="bg-background text-foreground text-body focus-visible:ring-ring/50 sr-only z-50 rounded-md border font-semibold outline-none focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:px-4 focus:py-3 focus-visible:ring-[3px]"
       >
-        Skip to content
+        {m.webUi.skipToContent}
       </a>
       <div className="flex min-h-svh w-full min-w-0 overflow-x-clip">
         <AppRail />

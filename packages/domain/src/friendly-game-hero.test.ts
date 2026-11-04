@@ -12,10 +12,10 @@ import {
 const NOW = new Date("2026-10-04T12:00:00Z");
 const fixtures = createFriendlyGameDetailsFixtures(NOW);
 
-function hero(key: keyof typeof fixtures) {
+function hero(key: keyof typeof fixtures, locale: "en" | "ar" = "en") {
   const input = friendlyGameHeroInput(fixtures[key]);
   assert.ok(input);
-  return friendlyGameHeroModel(input, NOW);
+  return friendlyGameHeroModel(input, NOW, locale);
 }
 
 describe("friendlyGameHeroInput", () => {
@@ -88,10 +88,34 @@ describe("friendlyGameHeroModel", () => {
       windowStart: null,
     });
     assert.ok(input);
-    assert.deepEqual(friendlyGameHeroModel(input, NOW), {
+    assert.deepEqual(friendlyGameHeroModel(input, NOW, "en"), {
       kind: "time_unset",
       tone: "ink",
     });
+  });
+
+  it("reads the status pill by the clock in Arabic", () => {
+    const ongoing = hero("ongoing", "ar");
+    assert.equal(
+      ongoing?.kind === "scheduled" ? ongoing.statusLabel : null,
+      "جارية الآن",
+    );
+    const needsScore = hero("needsScore", "ar");
+    assert.equal(
+      needsScore?.kind === "scheduled" ? needsScore.statusLabel : null,
+      "انتهت، أدخل النتيجة",
+    );
+  });
+
+  it("labels the final hero in Arabic", () => {
+    const model = hero("final", "ar");
+    assert.equal(model?.kind, "final");
+    if (model?.kind !== "final") {
+      return;
+    }
+    assert.equal(model.tag, "مباراة مصنّفة");
+    assert.equal(model.verdictWord, "فوز");
+    assert.equal(model.figures[1]?.label, "الفوز بـ");
   });
 });
 

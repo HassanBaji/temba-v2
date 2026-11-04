@@ -1,9 +1,10 @@
 import {
-  GROUP_MENU_LABELS,
+  groupMenuLabel,
   type GroupMenuItem,
 } from "@repo/domain/group-settings";
 import { Link, LogOut, Pencil, UserRoundPlus } from "lucide-react-native";
 
+import { useLocale } from "../i18n/locale-provider";
 import { Sheet } from "../primitives/sheet";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 
@@ -20,6 +21,7 @@ export function GroupMenuSheet({
   name,
   roleLine,
   items,
+  leaveBlockedHint,
   copyPending,
   onPick,
   onClose,
@@ -28,10 +30,12 @@ export function GroupMenuSheet({
   name: string;
   roleLine: string | null;
   items: GroupMenuItem[];
+  leaveBlockedHint: string | null;
   copyPending: boolean;
   onPick: (item: GroupMenuItem) => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   const actions = items.filter((item) => item !== "leave");
   const canLeave = items.includes("leave");
   return (
@@ -48,7 +52,7 @@ export function GroupMenuSheet({
           {actions.map((item) => (
             <SheetMenuRow
               key={item}
-              label={GROUP_MENU_LABELS[item]}
+              label={groupMenuLabel(item, locale)}
               icon={ICONS[item]}
               trailing="chevron"
               pending={item === "copy_link" && copyPending}
@@ -62,9 +66,11 @@ export function GroupMenuSheet({
           {[
             <SheetMenuRow
               key="leave"
-              label={GROUP_MENU_LABELS.leave}
+              label={groupMenuLabel("leave", locale)}
+              hint={leaveBlockedHint}
               icon={LogOut}
               tone="danger"
+              disabled={leaveBlockedHint != null}
               onPress={() => onPick("leave")}
             />,
           ]}

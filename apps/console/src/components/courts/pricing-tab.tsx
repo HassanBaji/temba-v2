@@ -19,7 +19,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
-import { PRICE_PER_PLAYER_CURRENCY } from "@repo/domain/price-per-player";
+import { messagesFor } from "@repo/i18n/messages";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import {
   controlClass,
@@ -29,7 +30,7 @@ import {
 } from "./classes";
 import { toastMutationError } from "./mutation-error";
 import { NativeSelect } from "./native-select";
-import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
+import { sportLabel } from "@repo/domain/sport";
 import {
   ALL_WEEKDAYS,
   WEEKDAY_SHORT,
@@ -44,6 +45,8 @@ import {
   rateTimeOptions,
   withBaseRate,
 } from "./pricing-model";
+
+const CURRENCY = messagesFor(CONSOLE_LOCALE).createGame.price.currency;
 
 const rowGrid = "grid grid-cols-[1.3fr_1fr_1fr_1fr_32px] items-center gap-2.5";
 
@@ -160,7 +163,7 @@ export function RateCard() {
               className={cn(controlClass, "w-32")}
               inputMode="decimal"
               placeholder="0.000"
-              aria-label={`Base hourly rate in ${PRICE_PER_PLAYER_CURRENCY}`}
+              aria-label={`Base hourly rate in ${CURRENCY}`}
               value={baseRate}
               onChange={(event) => setBaseRate(event.target.value)}
             />
@@ -186,7 +189,7 @@ export function RateCard() {
           >
             <span>Band</span>
             <span>Courts</span>
-            <span>{PRICE_PER_PLAYER_CURRENCY} / 60 min</span>
+            <span>{CURRENCY} / 60 min</span>
             <span>Days</span>
             <span />
           </div>
@@ -223,7 +226,7 @@ export function RateCard() {
                       )}
                       inputMode="decimal"
                       placeholder="0.000"
-                      aria-label={`${name} hourly rate in ${PRICE_PER_PLAYER_CURRENCY}`}
+                      aria-label={`${name} hourly rate in ${CURRENCY}`}
                       value={draft.rate}
                       onChange={(event) =>
                         update(draft.key, { rate: event.target.value })
@@ -304,7 +307,8 @@ export function RateCard() {
                           <option value="">All courts</option>
                           {venue.courts.map((court) => (
                             <option key={court.id} value={court.id}>
-                              {court.name} · {COURT_SPORT_LABELS[court.sport]}
+                              {court.name} ·{" "}
+                              {sportLabel(court.sport, CONSOLE_LOCALE)}
                             </option>
                           ))}
                         </NativeSelect>
@@ -393,7 +397,7 @@ export function RateCard() {
         <p className="text-muted-foreground text-eyebrow">
           A Booking is charged at the band its start time falls in, for its
           whole length, even when it runs into the next band. Prices in
-          {" " + PRICE_PER_PLAYER_CURRENCY}, fils kept.
+          {" " + CURRENCY}, fils kept.
         </p>
         {drafts.length > 0 || dirty ? (
           <Button

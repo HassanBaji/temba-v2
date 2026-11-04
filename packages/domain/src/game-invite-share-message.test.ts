@@ -32,14 +32,15 @@ describe("formatGameInviteShareMessage", () => {
         },
       ],
       shortUrl,
+      locale: "en",
     });
 
     expect(message).toBe(
       [
         "📍 Padel Club",
         "🎾 Court 2",
-        `📅 ${formatRelativeDay(windowStart)}`,
-        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart)}`,
+        `📅 ${formatRelativeDay(windowStart, "en")}`,
+        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart, "en")}`,
         "",
         "👕 Team 1",
         "- Left: Ada",
@@ -65,6 +66,7 @@ describe("formatGameInviteShareMessage", () => {
       windowEnd: windowStart,
       sides: [],
       shortUrl,
+      locale: "en",
     });
     expect(message).not.toContain("🎾");
     expect(message.startsWith("📍 Padel Club\n📅 ")).toBe(true);
@@ -83,6 +85,7 @@ describe("formatGameInviteShareMessage", () => {
       windowEnd: windowStart,
       sides: [],
       shortUrl,
+      locale: "en",
     });
     expect(message.startsWith("Thursday Smash\n\n📍 Padel Club\n")).toBe(true);
   });
@@ -97,6 +100,7 @@ describe("formatGameInviteShareMessage", () => {
       windowEnd: windowStart,
       sides: [],
       shortUrl,
+      locale: "en",
     });
     expect(message.startsWith("📍 Padel Club\n")).toBe(true);
   });
@@ -111,6 +115,7 @@ describe("gameInviteClipboardText", () => {
       windowEnd: new Date(),
       sides: [],
       shortUrl,
+      locale: "en" as const,
     };
     expect(
       gameInviteClipboardText({
@@ -170,6 +175,7 @@ describe("gameInviteClipboardText", () => {
             { name: "Lin", role: "outfield" },
           ],
         },
+        locale: "en",
       },
     });
 
@@ -177,8 +183,8 @@ describe("gameInviteClipboardText", () => {
       [
         "📍 Pitch Club",
         "⚽ Pitch 1",
-        `📅 ${formatRelativeDay(windowStart)}`,
-        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart)}`,
+        `📅 ${formatRelativeDay(windowStart, "en")}`,
+        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart, "en")}`,
         "👥 2-a-side",
         "",
         "👕 Players",
@@ -206,6 +212,7 @@ describe("gameInviteClipboardText", () => {
         windowEnd: new Date(),
         sides: [],
         shortUrl,
+        locale: "en",
       },
       { sideSize: null, playersAllowed: null, players: [{ name: "Ada" }] },
     );
@@ -230,6 +237,7 @@ describe("gameInviteClipboardText", () => {
           windowEnd: new Date(),
           sides: [],
           shortUrl,
+          locale: "en",
         },
       }),
     ).toBe(shortUrl);
@@ -250,8 +258,26 @@ describe("gameInviteClipboardText", () => {
           windowEnd: new Date(),
           sides: [],
           shortUrl,
+          locale: "en",
         },
       }),
     ).toBe(`Friday Five\n${shortUrl}`);
+  });
+});
+
+describe("Arabic share message", () => {
+  it("writes the roster lines in Arabic", () => {
+    const windowStart = bahrainDayFromToday(0, 19);
+    const message = formatGameInviteShareMessage({
+      venueName: "Padel Club",
+      courtName: null,
+      windowStart,
+      windowEnd: windowStart,
+      sides: [{ sideIndex: 1, left: { name: "Ada" }, right: null }],
+      shortUrl,
+      locale: "ar",
+    });
+    expect(message).toContain("👕 الفريق 1\n- يسار: Ada\n- يمين: شاغر");
+    expect(message).toContain("🔗 انضم:");
   });
 });

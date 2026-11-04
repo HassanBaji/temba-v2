@@ -1,10 +1,13 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
-  FOOTBALL_POSITION_CHOICES,
+  FOOTBALL_POSITIONS,
   type FootballPosition,
   type FootballRole,
 } from "./football-lineup";
 import {
-  FOOTBALL_SELF_PLACEMENT_CHOICES,
+  footballSelfPlacementChoices,
   type FootballSelfPlacement,
 } from "./football-self-placement";
 import {
@@ -13,56 +16,51 @@ import {
 } from "./friendly-game-cta";
 import { formatGameSideLabel } from "./game-side-label";
 import {
-  PADEL_LEVEL_CHOICES,
+  padelLevelChoices,
   PADEL_NOT_SURE_LEVEL,
   type PadelLevelChoice,
 } from "./onboarding-answers";
 import { assembleE164 } from "./phone-number";
 
-export const ADD_PLAYER_ACTION = "Add player";
-
-export const NOT_ON_TEMBA_YET_LABEL = "Not on Temba yet";
-
-export const ADD_PLAYER_NAME_LABEL = "Their name";
-
-export const ADD_PLAYER_DESCRIPTION =
-  "Add someone by phone. They don't need Temba to play.";
-
 export type AddPlayerLevel = PadelLevelChoice | "not_sure";
 
 export const ADD_PLAYER_DEFAULT_LEVEL: AddPlayerLevel = "not_sure";
 
-export const ADD_PLAYER_LEVEL_CHOICES: {
+export function addPlayerLevelChoices(locale: Locale): {
   value: AddPlayerLevel;
   mark: string;
   name: string;
   detail: string;
-}[] = [
-  {
-    value: "not_sure",
-    mark: "?",
-    name: "Not sure",
-    detail: `Starts at ${PADEL_NOT_SURE_LEVEL}.`,
-  },
-  ...PADEL_LEVEL_CHOICES.map((choice) => ({ ...choice, mark: choice.value })),
-];
+}[] {
+  const m = messagesFor(locale).group.addPlayer.notSure;
+  return [
+    {
+      value: "not_sure",
+      mark: "?",
+      name: m.name,
+      detail: m.detail(PADEL_NOT_SURE_LEVEL),
+    },
+    ...padelLevelChoices(locale).map((choice) => ({
+      ...choice,
+      mark: choice.value,
+    })),
+  ];
+}
 
 export const ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL: FootballSelfPlacement =
   "beginner";
 
-export const ADD_PLAYER_FOOTBALL_LEVEL_CHOICES: {
+export function addPlayerFootballLevelChoices(locale: Locale): {
   value: FootballSelfPlacement;
   name: string;
   detail: string;
-}[] = FOOTBALL_SELF_PLACEMENT_CHOICES.map((choice) => ({
-  value: choice.value,
-  name: choice.label,
-  detail: choice.description,
-}));
-
-export const ADD_PLAYER_NO_SEAT_COPY = "Every Position is taken.";
-
-export const ADD_PLAYER_NO_SIDE_COPY = "Every side is full.";
+}[] {
+  return footballSelfPlacementChoices(locale).map((choice) => ({
+    value: choice.value,
+    name: choice.label,
+    detail: choice.description,
+  }));
+}
 
 /** How the Add player sheet places someone, by Game format. */
 export type AddPlayerPlacement = "seat" | "side" | "roster" | "football";
@@ -94,25 +92,27 @@ export const ADD_PLAYER_DEFAULT_FOOTBALL_ROLE: FootballRole = "outfield";
 export const ADD_PLAYER_DEFAULT_FOOTBALL_POSITION: AddPlayerFootballPosition =
   "none";
 
-export const ADD_PLAYER_FOOTBALL_ROLE_CHOICES: {
+export function addPlayerFootballRoleChoices(locale: Locale): {
   value: FootballRole;
   name: string;
-  detail: string;
-}[] = [
-  { value: "outfield", name: "Player", detail: "outfield" },
-  { value: "keeper", name: "Keeper", detail: "in goal" },
-];
+}[] {
+  const m = messagesFor(locale).group.addPlayer.roles;
+  return [
+    { value: "outfield", name: m.outfield },
+    { value: "keeper", name: m.keeper },
+  ];
+}
 
-export const ADD_PLAYER_FOOTBALL_POSITION_CHOICES: {
+export function addPlayerFootballPositionChoices(locale: Locale): {
   value: AddPlayerFootballPosition;
   name: string;
-}[] = [
-  { value: "none", name: "No preference" },
-  ...FOOTBALL_POSITION_CHOICES.map((choice) => ({
-    value: choice.value,
-    name: choice.label,
-  })),
-];
+}[] {
+  const m = messagesFor(locale).group.addPlayer.positions;
+  return [
+    { value: "none", name: m.any },
+    ...FOOTBALL_POSITIONS.map((value) => ({ value, name: m[value] })),
+  ];
+}
 
 /** A keeper has no outfield position; "No preference" stores none. */
 export function addPlayerFootballInput(
@@ -130,7 +130,9 @@ type NamedSeat = { name: string } | null;
 /** Fully vacant sides and Half teams, each with who already holds the side. */
 export function addPlayerSideChoices(
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[],
+  locale: Locale,
 ): { sideIndex: number; team: string; detail: string }[] {
+  const m = messagesFor(locale).group.addPlayer;
   return sides.flatMap((side) => {
     if (side.left && side.right) {
       return [];
@@ -139,8 +141,12 @@ export function addPlayerSideChoices(
     return [
       {
         sideIndex: side.sideIndex,
-        team: formatGameSideLabel("friendly_tournament", side.sideIndex),
-        detail: partner ? `With ${partner.name}` : "Open",
+        team: formatGameSideLabel(
+          "friendly_tournament",
+          side.sideIndex,
+          locale,
+        ),
+        detail: partner ? m.sideWith(partner.name) : m.sideOpen,
       },
     ];
   });
@@ -162,18 +168,22 @@ export function addPlayerCompletePhone(
   return assembled.ok ? assembled.e164 : null;
 }
 
-export function addPlayerPreviewLine(preview: PhonePlayerPreview): string {
-  const name = preview.name ?? "This player";
+export function addPlayerPreviewLine(
+  preview: PhonePlayerPreview,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).group.addPlayer.preview;
+  const name = preview.name ?? m.thisPlayer;
   if (preview.alreadyOnGame) {
-    return `${name} is already on this Game`;
+    return m.alreadyOnGame(name);
   }
   if (preview.kind === "account") {
-    return `This is ${name} (has an account)`;
+    return m.account(name);
   }
   if (preview.kind === "unclaimed") {
-    return `Already on Temba as ${name} (no account yet)`;
+    return m.unclaimed(name);
   }
-  return "Not on Temba yet. Add their name and starting Level.";
+  return m.new;
 }
 
 export function addPlayerCanSubmit(input: {
@@ -187,8 +197,8 @@ export function addPlayerCanSubmit(input: {
   return input.preview.kind !== "new" || input.name.trim().length > 0;
 }
 
-export function addPlayerAddedToast(name: string) {
-  return `${name} added`;
+export function addPlayerAddedToast(name: string, locale: Locale) {
+  return messagesFor(locale).group.addPlayer.addedToast(name);
 }
 
 export type GroupPhonePlayerPreview = {
@@ -202,20 +212,19 @@ export function addGroupPlayerIsFootball(sport: string | null | undefined) {
   return sport === "football";
 }
 
-export const ADD_GROUP_PLAYER_DESCRIPTION =
-  "Add someone by phone. If they're on Temba, they get an invite to accept.";
-
 export function addGroupPlayerPreviewLine(
   preview: GroupPhonePlayerPreview,
+  locale: Locale,
 ): string {
-  const name = preview.name ?? "This player";
+  const m = messagesFor(locale).group.addPlayer.preview;
+  const name = preview.name ?? m.thisPlayer;
   if (preview.alreadyInGroup) {
-    return `${name} is already in this Group`;
+    return m.alreadyInGroup(name);
   }
   if (preview.kind === "account") {
-    return `This is ${name} (has an account). They get an invite to accept.`;
+    return m.accountInvited(name);
   }
-  return addPlayerPreviewLine({ ...preview, alreadyOnGame: false });
+  return addPlayerPreviewLine({ ...preview, alreadyOnGame: false }, locale);
 }
 
 export function addGroupPlayerCanSubmit(input: {
@@ -232,29 +241,25 @@ export function addGroupPlayerCanSubmit(input: {
   });
 }
 
-export function addGroupPlayerDoneToast(result: {
-  outcome: "added" | "invited";
-  name: string;
-}) {
+export function addGroupPlayerDoneToast(
+  result: {
+    outcome: "added" | "invited";
+    name: string;
+  },
+  locale: Locale,
+) {
   return result.outcome === "invited"
-    ? `Invite sent to ${result.name}`
-    : addPlayerAddedToast(result.name);
+    ? messagesFor(locale).group.addPlayer.inviteSentToast(result.name)
+    : addPlayerAddedToast(result.name, locale);
 }
 
-export const REMOVE_PLAYER_ACTION = "Remove from Group";
-
-export function removePlayerConfirmLine(name: string) {
-  return `Remove ${name} from this Group? Their Games stay in history.`;
+export function removePlayerConfirmLine(name: string, locale: Locale) {
+  return messagesFor(locale).group.addPlayer.removeConfirm(name);
 }
 
-export function removePlayerToast(name: string) {
-  return `${name} removed`;
+export function removePlayerToast(name: string, locale: Locale) {
+  return messagesFor(locale).group.addPlayer.removedToast(name);
 }
-
-export const RENAME_UNCLAIMED_PLAYER_ACTION = "Edit name";
-
-export const RENAME_UNCLAIMED_PLAYER_DESCRIPTION =
-  "Their phone stays the same. If the number is wrong, remove them and add them again.";
 
 export const UNCLAIMED_PLAYER_NAME_MAX_LENGTH = 255;
 
@@ -270,22 +275,24 @@ export function renameUnclaimedPlayerCanSubmit(input: {
   );
 }
 
-export function renameUnclaimedPlayerToast(name: string) {
-  return `Name changed to ${name}`;
+export function renameUnclaimedPlayerToast(name: string, locale: Locale) {
+  return messagesFor(locale).group.addPlayer.renamedToast(name);
 }
 
 export function addPlayerSeatChoices(
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[],
+  locale: Locale,
 ): {
   seat: FriendlyGameJoinSeat;
   team: string;
   side: string;
   label: string;
 }[] {
+  const m = messagesFor(locale).group.addPlayer.seat;
   return vacantJoinSeats(sides).map((seat) => {
-    const team = formatGameSideLabel("friendly_game", seat.sideIndex);
-    const side = seat.position === "left" ? "Left" : "Right";
-    return { seat, team, side, label: `${team} · ${side}` };
+    const team = formatGameSideLabel("friendly_game", seat.sideIndex, locale);
+    const side = seat.position === "left" ? m.left : m.right;
+    return { seat, team, side, label: m.label(team, side) };
   });
 }
 

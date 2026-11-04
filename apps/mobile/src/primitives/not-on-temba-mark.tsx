@@ -1,12 +1,13 @@
 import { radii } from "@repo/design-tokens";
-import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "./hairline-width";
 import { useTonePalette } from "./surface-context";
 import { Text } from "./text";
 
 export function NotOnTembaMark() {
+  const m = useMessages();
   const palette = useTonePalette();
   return (
     <View
@@ -19,7 +20,7 @@ export function NotOnTembaMark() {
       }}
     >
       <Text size="eyebrow" weight="medium">
-        {NOT_ON_TEMBA_YET_LABEL}
+        {m.group.addPlayer.notOnTembaYet}
       </Text>
     </View>
   );

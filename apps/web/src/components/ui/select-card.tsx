@@ -32,7 +32,7 @@ export function SelectCard({
       aria-checked={role === "radio" ? selected : undefined}
       data-selected={selected}
       className={cn(
-        "group/select-card focus-visible:ring-ring/50 flex min-h-11 w-full flex-col text-left outline-none transition-colors focus-visible:ring-[3px]",
+        "group/select-card focus-visible:ring-ring/50 flex min-h-11 w-full flex-col text-start outline-none transition-colors focus-visible:ring-[3px]",
         layout === "card"
           ? "rounded-card gap-3 border px-5 py-[18px]"
           : "border-b px-[18px] py-4 last:border-b-0",
@@ -72,7 +72,10 @@ export function SelectCard({
         {trailing === "chevron" ? (
           <ChevronRight
             aria-hidden="true"
-            className={cn("size-[18px] shrink-0", ON_INK_MUTED)}
+            className={cn(
+              "size-[18px] shrink-0 rtl:-scale-x-100",
+              ON_INK_MUTED,
+            )}
           />
         ) : null}
         {trailing === "check" && selected ? (

@@ -5,10 +5,12 @@ import {
   UNTOUCHED_SELECTION,
   digitsOnly,
   draftsFromSets,
+  gameTitle,
   isFriendlyGameDetails,
   pickedSeat,
   setsToSave,
   togglePickedSeat,
+  unsupportedFormatCopy,
   withDraftChange,
 } from "./details-model";
 
@@ -40,6 +42,45 @@ describe("isFriendlyGameDetails", () => {
       }),
       false,
     );
+  });
+});
+
+describe("gameTitle", () => {
+  const noWindow = {
+    format: "friendly_game",
+    windowStart: null,
+    windowEnd: null,
+  };
+
+  it("keeps the Game's own name", () => {
+    assert.equal(
+      gameTitle(
+        { ...noWindow, name: "Friday padel", hasCustomName: true },
+        "en",
+      ),
+      "Friday padel",
+    );
+  });
+
+  it("shows the window label in the viewer's locale", () => {
+    const game = {
+      name: "Wed 10:30 AM - 12:00 PM",
+      hasCustomName: false,
+      format: "friendly_game",
+      windowStart: "2026-11-04T07:30:00.000Z",
+      windowEnd: "2026-11-04T09:00:00.000Z",
+    };
+    assert.equal(gameTitle(game, "ar"), "الأربعاء، 10:30 ص – 12:00 م");
+  });
+
+  it("falls back to the catalog word", () => {
+    assert.equal(gameTitle({ ...noWindow, name: null }, "en"), "Game");
+    assert.equal(gameTitle({ ...noWindow, name: null }, "ar"), "مباراة");
+  });
+
+  it("reads the unsupported-format copy in Arabic", () => {
+    assert.equal(unsupportedFormatCopy("en").title, "Not on mobile yet");
+    assert.match(unsupportedFormatCopy("ar").title, /[؀-ۿ]/);
   });
 });
 

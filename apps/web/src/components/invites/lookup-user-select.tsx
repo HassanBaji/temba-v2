@@ -14,6 +14,7 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "~/components/ui/combobox";
+import { useMessages } from "~/components/locale-provider";
 import type { LookupUserSearchRow } from "@repo/api/types";
 
 export const LOOKUP_USER_SELECT_MAX = 20;
@@ -31,7 +32,7 @@ export function LookupUserSelect({
   disabled = false,
   error = false,
   describedBy,
-  placeholder = "Search Users",
+  placeholder,
 }: {
   id: string;
   query: string;
@@ -47,6 +48,7 @@ export function LookupUserSelect({
   describedBy?: string;
   placeholder?: string;
 }) {
+  const m = useMessages();
   const anchor = useComboboxAnchor();
   const [container, setContainer] = React.useState<HTMLElement | null>(null);
   const selectedIds = new Set(selected.map((row) => row.id));
@@ -100,7 +102,7 @@ export function LookupUserSelect({
         <ComboboxChipsInput
           id={id}
           disabled={disabled}
-          placeholder={placeholder}
+          placeholder={placeholder ?? m.webAuth.invites.lookup.searchUsers}
           autoComplete="off"
           aria-invalid={error || undefined}
           aria-describedby={describedBy}
@@ -108,7 +110,9 @@ export function LookupUserSelect({
       </ComboboxChips>
       <ComboboxContent anchor={anchor} container={container ?? undefined}>
         <ComboboxEmpty>
-          {pending && !options ? "Searching…" : "No Users match."}
+          {pending && !options
+            ? m.webAuth.invites.lookup.searching
+            : m.webAuth.invites.lookup.noMatch}
         </ComboboxEmpty>
         <ComboboxList>
           {(option: LookupUserSearchRow) => {

@@ -5,7 +5,9 @@ import { Building2, FileText, Mail, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
+import { LanguageControl } from "~/components/settings/language-control";
 import { PreferredPositionControl } from "~/components/settings/preferred-position-control";
 import { SettingsFooter } from "~/components/settings/settings-footer";
 import { SettingsLinkRow } from "~/components/settings/settings-link-row";
@@ -20,10 +22,14 @@ const settingsPageClassName =
   "mx-auto flex min-h-[calc(100svh-var(--bottom-nav-height)-env(safe-area-inset-bottom,0px)-1.5rem)] w-full min-w-0 max-w-[1000px] flex-col md:min-h-[calc(100svh-3rem)]";
 
 function SettingsHeader() {
+  const m = useMessages();
   return (
     <header className="mt-6 flex items-center gap-1.5 lg:mt-2">
-      <BackButton href="/dashboard/you" label="Back to Profile" />
-      <PageTitle className="text-ink">Settings</PageTitle>
+      <BackButton
+        href="/dashboard/you"
+        label={m.webDashboard.settings.backToProfile}
+      />
+      <PageTitle className="text-ink">{m.common.settings}</PageTitle>
     </header>
   );
 }
@@ -51,6 +57,8 @@ function SettingsLoadingBody() {
 }
 
 export default function SettingsPage() {
+  const m = useMessages();
+  const locale = useLocale();
   const { isLoaded, user } = useUser();
   const clerk = useClerk();
   const invites = usePendingInviteCount();
@@ -59,11 +67,11 @@ export default function SettingsPage() {
   const venues = api.venues.list.useQuery(undefined, { enabled: isOperator });
 
   const displayName =
-    user?.fullName ?? user?.firstName ?? user?.username ?? "You";
+    user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you;
   const phoneNumber = user?.primaryPhoneNumber?.phoneNumber;
   const teamCount = teams.isSuccess ? teams.data.length : 0;
   const venueTrailing = venues.isSuccess
-    ? activeVenueCountLabel(venues.data)
+    ? activeVenueCountLabel(venues.data, locale)
     : null;
 
   if (!isLoaded) {
@@ -82,18 +90,18 @@ export default function SettingsPage() {
       <SettingsPageFrame>
         <SettingsHeader />
         <div className="flex flex-col gap-7 pt-[26px]">
-          <SettingsSection eyebrow="Playing">
+          <SettingsSection eyebrow={m.webDashboard.settings.playing}>
             <PreferredPositionControl />
           </SettingsSection>
 
-          <SettingsSection eyebrow="People">
+          <SettingsSection eyebrow={m.webDashboard.settings.people}>
             <SettingsLinkRow
               href="/dashboard/teams"
               icon={
                 <Users aria-hidden="true" className="size-5" strokeWidth={2} />
               }
-              title="Teams"
-              subtitle="Partnerships you play as"
+              title={m.common.teams}
+              subtitle={m.team.description}
               trailing={
                 teamCount > 0 ? (
                   <span className="text-muted-foreground text-meta shrink-0">
@@ -107,13 +115,15 @@ export default function SettingsPage() {
               icon={
                 <Mail aria-hidden="true" className="size-5" strokeWidth={2} />
               }
-              title="Invites"
-              subtitle="Lookup invites addressed to you"
+              title={m.common.invites}
+              subtitle={m.webDashboard.settings.invitesSubtitle}
               trailing={
                 invites.showCount ? (
                   <span
                     role="status"
-                    aria-label={`${invites.count} pending invites`}
+                    aria-label={m.webDashboard.settings.pendingInvites(
+                      invites.count,
+                    )}
                     className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
                   >
                     <span aria-hidden="true">{invites.count}</span>
@@ -125,7 +135,11 @@ export default function SettingsPage() {
             />
           </SettingsSection>
 
-          <SettingsSection eyebrow="About">
+          <SettingsSection eyebrow={m.common.language}>
+            <LanguageControl />
+          </SettingsSection>
+
+          <SettingsSection eyebrow={m.webDashboard.settings.about}>
             <SettingsLinkRow
               href="/terms"
               icon={
@@ -135,13 +149,13 @@ export default function SettingsPage() {
                   strokeWidth={2}
                 />
               }
-              title="Terms and Conditions"
-              subtitle="What you agree to by using Temba"
+              title={m.webDashboard.settings.terms}
+              subtitle={m.webDashboard.settings.termsSubtitle}
             />
           </SettingsSection>
 
           {isOperator ? (
-            <SettingsSection eyebrow="Operator tools">
+            <SettingsSection eyebrow={m.webDashboard.settings.operatorTools}>
               <SettingsLinkRow
                 href="/dashboard/venues"
                 icon={
@@ -151,8 +165,8 @@ export default function SettingsPage() {
                     strokeWidth={2}
                   />
                 }
-                title="Venues"
-                subtitle="Venue and Court catalogue"
+                title={m.webDashboard.meta.venues}
+                subtitle={m.webDashboard.settings.venuesSubtitle}
                 trailing={
                   venueTrailing ? (
                     <span className="text-muted-foreground text-meta shrink-0">

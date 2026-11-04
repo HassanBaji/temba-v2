@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { groupDisplayName } from "./group-join";
 import { memberCountLabel } from "./member-count-label";
 import { shortPlayerName } from "./player-name";
@@ -10,68 +13,52 @@ import type { Sport } from "./sport";
 
 export const GROUP_NAME_MAX_LENGTH = 40;
 
-export const GROUP_SPORT_SUBLABELS: Record<Sport, string> = {
-  padel: "2 v 2",
-  football: "5 to 11 a side",
-};
+export function groupSportSublabel(sport: Sport, locale: Locale) {
+  return messagesFor(locale).group.settings.sportSublabel[sport];
+}
 
 export type GroupVisibility = "public" | "private";
 
-export function groupVisibilityCopy(context: "loose" | "club") {
+export function groupVisibilityCopy(context: "loose" | "club", locale: Locale) {
+  const m = messagesFor(locale).group.settings.visibility;
   return {
     public: {
-      title: "Public",
+      title: m.public.title,
       description:
         context === "club"
-          ? "Shows up in search and on the Community."
-          : "Shows up in search and on Communities.",
+          ? m.public.descriptionClub
+          : m.public.descriptionLoose,
     },
     private: {
-      title: "Private",
-      description: "Hidden from search. Only people with the link can find it.",
+      title: m.private.title,
+      description: m.private.description,
     },
   } as const;
 }
 
-export const GROUP_JOINING_COPY = {
-  label: "Joining",
-  toggle: "Require approval",
-  toggleHelp: "Anyone who finds the Group joins instantly.",
-  openFooter: "Anyone can find the Group and joins instantly.",
-  approvalFooter:
-    "Anyone can find the Group. Everyone who joins waits for your approval.",
-  privateFooter: "Only people you invite can join.",
-} as const;
-
-export function groupJoiningToggleHelp(pendingRequestCount: number) {
-  if (pendingRequestCount <= 0) {
-    return GROUP_JOINING_COPY.toggleHelp;
-  }
-  return pendingRequestCount === 1
-    ? "1 request waiting on Group home."
-    : `${pendingRequestCount} requests waiting on Group home.`;
-}
-
-export function groupJoiningFooter(input: {
-  visibility: GroupVisibility;
+/**
+ * The line under "Review join requests": what the switch does in its current
+ * state, or the requests already waiting when there are some.
+ */
+export function groupJoiningToggleHelp(input: {
   requiresApproval: boolean;
+  pendingRequestCount?: number;
+  locale: Locale;
 }) {
-  if (input.visibility === "private") {
-    return GROUP_JOINING_COPY.privateFooter;
+  const m = messagesFor(input.locale).group.settings.joining;
+  const pending = input.pendingRequestCount ?? 0;
+  if (pending > 0) {
+    return m.requestsWaiting(pending);
   }
-  return input.requiresApproval
-    ? GROUP_JOINING_COPY.approvalFooter
-    : GROUP_JOINING_COPY.openFooter;
+  return input.requiresApproval ? m.toggleHelpOn : m.toggleHelpOff;
 }
 
 export type GroupMenuItem = "edit" | "invite" | "copy_link" | "leave";
 
-export const GROUP_MENU_LABELS: Record<GroupMenuItem, string> = {
-  edit: "Edit Group",
-  invite: "Invite players",
-  copy_link: "Copy Group link",
-  leave: "Leave Group",
-};
+export function groupMenuLabel(item: GroupMenuItem, locale: Locale) {
+  const m = messagesFor(locale).group.settings.menu;
+  return item === "copy_link" ? m.copyLink : m[item];
+}
 
 export function groupMenuItems(input: {
   isMember: boolean;
@@ -99,70 +86,60 @@ export function groupMenuRoleLine(input: {
   isOwner: boolean;
   isOrganizer: boolean;
   isMember: boolean;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).group.settings.role;
   if (input.isOwner) {
-    return "You own this Group";
+    return m.owner;
   }
   if (input.isOrganizer) {
-    return "You organize this Group";
+    return m.organizer;
   }
-  return input.isMember ? "You are a member" : null;
+  return input.isMember ? m.member : null;
 }
 
-export const GROUP_LINK_COPIED_TOAST = "Group link copied";
-
-export const GROUP_LINK_RESET_TOAST = "Link reset. Old links stop working.";
+/**
+ * Why Leave is disabled in the More menu, or `null` when it is not: the
+ * owner of a Loose Group hands it on first. A Club Group's creator may leave;
+ * its Community's Owner and Admin still run it.
+ */
+export function groupLeaveBlockedHint(input: {
+  isOwner: boolean;
+  isLoose: boolean;
+  locale: Locale;
+}) {
+  return input.isOwner && input.isLoose
+    ? messagesFor(input.locale).group.settings.menu.leaveOwnerHint
+    : null;
+}
 
 /** The owner cannot leave; the Group would have nobody to run it. */
-export function groupOwnerLeaveCopy(groupName: string | null | undefined) {
+export function groupOwnerLeaveCopy(
+  groupName: string | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.settings.ownerLeave;
   return {
-    title: `Hand ${groupDisplayName(groupName)} to someone first`,
-    description:
-      "You own this Group. Transfer ownership to another member before you leave, or delete the Group.",
-    confirmLabel: "Transfer ownership",
-    cancelLabel: "Not now",
+    title: m.title(groupDisplayName(groupName, locale)),
+    description: m.description,
+    confirmLabel: m.confirmLabel,
+    cancelLabel: m.cancelLabel,
   };
 }
-
-export const GROUP_EDIT_COPY = {
-  title: "Edit Group",
-  nameLabel: "Group name",
-  nameHelp: "Members see the new name right away",
-  photoChange: "Change",
-  photoRemove: "Remove photo",
-  sportLabel: "Sport",
-  sportLocked: "Locked after the first Game. Standings depend on it.",
-  sportOpen: "Locks after the first Game. Standings depend on it.",
-  visibilityLabel: "Visibility",
-  inviteLinkLabel: "Invite link",
-  inviteLinkCopy: "Copy",
-  inviteLinkNone: "No live link yet. Create one to share.",
-  inviteLinkCreate: "Create link",
-  inviteLinkReset: "Reset link. Old links stop working.",
-  ownershipLabel: "Ownership",
-  transferTitle: "Transfer ownership",
-  transferHint: "Hand the Group to another member.",
-  deleteTitle: "Delete Group",
-  deleteHint: "Removes the Group. Games stay in each player's history.",
-  save: "Save changes",
-  discard: "Discard",
-  nothingChanged: "Nothing changed yet.",
-  unsavedChanges: "Unsaved changes.",
-  savedToast: "Changes saved",
-} as const;
 
 export function groupEditMetaLine(input: {
   name: string | null | undefined;
   sportLabel: string | null;
   memberCount: number;
+  locale: Locale;
 }) {
   return [
-    groupDisplayName(input.name),
+    groupDisplayName(input.name, input.locale),
     input.sportLabel,
-    memberCountLabel(input.memberCount),
+    memberCountLabel(input.memberCount, input.locale),
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(messagesFor(input.locale).group.metaSeparator);
 }
 
 export type GroupEditFields = {
@@ -242,30 +219,22 @@ export function groupDeleteSheetCopy(input: {
   gameCount: number;
   memberCount: number;
   seasonCount: number;
+  locale: Locale;
 }) {
-  const name = groupDisplayName(input.name);
+  const m = messagesFor(input.locale).group.settings.delete;
+  const name = groupDisplayName(input.name, input.locale);
   return {
-    title: `Delete ${name}?`,
-    description:
-      "The Group, its standing and its members go with it. Played Games stay in each player's history. Nobody is notified. This can't be undone.",
+    title: m.title(name),
+    description: m.description,
     stats: [
-      {
-        value: input.gameCount,
-        label: input.gameCount === 1 ? "Game" : "Games",
-      },
-      {
-        value: input.memberCount,
-        label: input.memberCount === 1 ? "member" : "members",
-      },
-      {
-        value: input.seasonCount,
-        label: input.seasonCount === 1 ? "season" : "seasons",
-      },
+      { value: input.gameCount, label: m.gamesStat(input.gameCount) },
+      { value: input.memberCount, label: m.membersStat(input.memberCount) },
+      { value: input.seasonCount, label: m.seasonsStat(input.seasonCount) },
     ],
-    confirmPrompt: "Type the Group name to confirm",
+    confirmPrompt: m.confirmPrompt,
     confirmPlaceholder: name,
-    deleteLabel: "Delete Group",
-    keepLabel: "Keep Group",
+    deleteLabel: m.deleteLabel,
+    keepLabel: m.keepLabel,
   };
 }
 
@@ -273,25 +242,35 @@ export function groupDeleteSheetCopy(input: {
 export function groupDeleteNameMatches(
   name: string | null | undefined,
   typed: string,
+  locale: Locale,
 ) {
-  return typed.trim().toLowerCase() === groupDisplayName(name).toLowerCase();
+  return (
+    typed.trim().toLowerCase() === groupDisplayName(name, locale).toLowerCase()
+  );
 }
 
 export function groupTransferOwnershipCopy(
   groupName: string | null | undefined,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale);
   return {
-    title: "Transfer ownership",
-    description: `Hand ${groupDisplayName(groupName)} to another member. They take over the Group. You stay on as an Organizer.`,
-    empty:
-      "Nobody else can own this Group yet. Invite a player on Temba first.",
-    confirmLabel: "Transfer ownership",
-    cancelLabel: "Cancel",
+    title: m.group.settings.transfer.title,
+    description: m.group.settings.transfer.description(
+      groupDisplayName(groupName, locale),
+    ),
+    empty: m.group.settings.transfer.empty,
+    confirmLabel: m.group.settings.transfer.confirmLabel,
+    cancelLabel: m.common.cancel,
   };
 }
 
-export function groupTransferConfirmLabel(name: string | null | undefined) {
-  return name ? `Transfer to ${shortPlayerName(name)}` : "Transfer ownership";
+export function groupTransferConfirmLabel(
+  name: string | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.settings.transfer;
+  return name ? m.confirmTo(shortPlayerName(name)) : m.confirmLabel;
 }
 
 /** Only a signed-up member can own a Group. Never the owner themself. */
@@ -304,6 +283,11 @@ export function groupTransferCandidates<
 export function groupOwnershipTransferredToast(
   name: string | null | undefined,
   groupName: string | null | undefined,
+  locale: Locale,
 ) {
-  return `${name ?? "They"} now own${name ? "s" : ""} ${groupDisplayName(groupName)}`;
+  const m = messagesFor(locale).group.settings.transfer;
+  const group = groupDisplayName(groupName, locale);
+  return name
+    ? m.transferredToast(name, group)
+    : m.transferredToastUnnamed(group);
 }

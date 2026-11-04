@@ -1,6 +1,7 @@
 import { colors, radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 
@@ -26,6 +27,7 @@ export function ChipTile({
   accessibilityLabel,
   onPress,
 }: ChipTileProps) {
+  const m = useMessages();
   const inactive = struck || disabled;
   const foreground = selected
     ? colors.paper
@@ -39,9 +41,9 @@ export function ChipTile({
       accessibilityRole="button"
       accessibilityLabel={
         accessibilityLabel ??
-        [label, sublabel, struck ? "Unavailable" : null]
+        [label, sublabel, struck ? m.mobileBooking.unavailable : null]
           .filter(Boolean)
-          .join(", ")
+          .join(m.mobileBooking.listSeparator)
       }
       accessibilityState={{ selected, disabled: inactive }}
       disabled={inactive}

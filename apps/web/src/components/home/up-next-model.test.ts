@@ -17,6 +17,7 @@ function game(overrides: Partial<UpNextGame> = {}): UpNextGame {
   return {
     id: "game-1",
     name: "Tuesday Night Padel",
+    hasCustomName: true,
     format: "friendly_game",
     registrationMode: "individual",
     sport: "padel",
@@ -70,32 +71,38 @@ describe("upNextWeekLabel", () => {
   it("counts what starts in the coming seven days", () => {
     const later = game({ id: "later", startTime: new Date("2026-11-09") });
     const items = upNextItems([game(), later]);
-    assert.equal(upNextWeekLabel(items, NOW), "1 this week");
-    assert.equal(upNextWeekLabel([], NOW), "Nothing this week");
+    assert.equal(upNextWeekLabel(items, NOW, "en"), "1 this week");
+    assert.equal(upNextWeekLabel([], NOW, "en"), "Nothing this week");
   });
 });
 
 describe("day labels", () => {
   it("says Today, then the weekday, then the date past a week", () => {
     assert.equal(
-      upNextDayLabel(new Date("2026-10-26T15:00:00Z"), NOW),
+      upNextDayLabel(new Date("2026-10-26T15:00:00Z"), NOW, "en"),
       "Today",
     );
-    assert.equal(upNextDayLabel(new Date("2026-10-29T15:00:00Z"), NOW), "Thu");
     assert.equal(
-      upNextDayLabel(new Date("2026-11-05T15:00:00Z"), NOW),
+      upNextDayLabel(new Date("2026-10-29T15:00:00Z"), NOW, "en"),
+      "Thu",
+    );
+    assert.equal(
+      upNextDayLabel(new Date("2026-11-05T15:00:00Z"), NOW, "en"),
       "5 Nov",
     );
   });
 
   it("says Tonight for an evening start today, then Tomorrow", () => {
-    assert.equal(upNextHeroDay(new Date("2026-10-26T10:00:00Z"), NOW), "Today");
     assert.equal(
-      upNextHeroDay(new Date("2026-10-26T16:00:00Z"), NOW),
+      upNextHeroDay(new Date("2026-10-26T10:00:00Z"), NOW, "en"),
+      "Today",
+    );
+    assert.equal(
+      upNextHeroDay(new Date("2026-10-26T16:00:00Z"), NOW, "en"),
       "Tonight",
     );
     assert.equal(
-      upNextHeroDay(new Date("2026-10-27T10:00:00Z"), NOW),
+      upNextHeroDay(new Date("2026-10-27T10:00:00Z"), NOW, "en"),
       "Tomorrow",
     );
   });
@@ -103,15 +110,15 @@ describe("day labels", () => {
   it("counts down inside the coming day", () => {
     const end = new Date("2026-10-26T12:00:00Z");
     assert.equal(
-      startsInLabel(new Date("2026-10-26T09:40:00Z"), end, NOW),
+      startsInLabel(new Date("2026-10-26T09:40:00Z"), end, NOW, "en"),
       "in 40 min",
     );
     assert.equal(
-      startsInLabel(new Date("2026-10-26T11:15:00Z"), end, NOW),
+      startsInLabel(new Date("2026-10-26T11:15:00Z"), end, NOW, "en"),
       "in 2 h 15 min",
     );
     assert.equal(
-      startsInLabel(new Date("2026-10-26T08:00:00Z"), end, NOW),
+      startsInLabel(new Date("2026-10-26T08:00:00Z"), end, NOW, "en"),
       "on now",
     );
     assert.equal(
@@ -119,6 +126,7 @@ describe("day labels", () => {
         new Date("2026-10-28T09:00:00Z"),
         new Date("2026-10-28T10:00:00Z"),
         NOW,
+        "en",
       ),
       null,
     );
@@ -128,7 +136,7 @@ describe("day labels", () => {
 describe("upNextRowView", () => {
   it("names a padel Game by its name, with the Venue and Court and seat bars", () => {
     const [item] = upNextItems([game()]);
-    const row = upNextRowView(item!, NOW);
+    const row = upNextRowView(item!, NOW, "en");
     assert.equal(row.day, "Thu");
     assert.equal(row.title, "Tuesday Night Padel");
     assert.equal(row.detail, "Seef Padel Club, Court 2");
@@ -138,10 +146,11 @@ describe("upNextRowView", () => {
     });
   });
 
-  it("counts a football roster instead of drawing seats", () => {
+  it("counts a football roster's open spots instead of drawing seats", () => {
     const [item] = upNextItems([
       game({
-        name: "First football",
+        name: "Thu 8:00 PM - 9:30 PM",
+        hasCustomName: false,
         sport: "football",
         registrationMode: "roster",
         courtName: null,
@@ -150,8 +159,10 @@ describe("upNextRowView", () => {
         football: { sideSize: 7 } as UpNextGame["football"],
       }),
     ]);
-    const row = upNextRowView(item!, NOW);
-    assert.equal(row.detail, "Seef Padel Club, 7-a-side");
-    assert.deepEqual(row.trailing, { kind: "text", label: "11 of 14" });
+    const row = upNextRowView(item!, NOW, "en");
+    assert.equal(row.title, "Seef Padel Club");
+    assert.equal(row.detail, "Football, 7-a-side");
+    assert.deepEqual(row.trailing, { kind: "text", label: "3 spots open" });
+    assert.equal(upNextRowView(item!, NOW, "ar").detail, "كرة القدم، 7 ضد 7");
   });
 });

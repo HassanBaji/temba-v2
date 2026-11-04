@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { Section } from "~/components/layout/section";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 export type PendingInviteRow = {
@@ -29,13 +30,15 @@ export function PendingInvitesSection({
   onAccept: (inviteId: string) => void;
   onRetry: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.webAuth.invites;
   if (error) {
     return (
-      <Section title="Invitations">
+      <Section title={copy.invitations}>
         <ErrorState
           headingLevel={3}
           className="py-6"
-          title="Invitations could not be loaded"
+          title={copy.invitationsFailed}
           message={error.message}
           onRetry={onRetry}
         />
@@ -48,7 +51,7 @@ export function PendingInvitesSection({
   }
 
   return (
-    <Section title="Invitations">
+    <Section title={copy.invitations}>
       <RowList variant={variant}>
         {invites.map((invite) => (
           <ListRow
@@ -56,16 +59,16 @@ export function PendingInvitesSection({
             stackTrailing
             leading={invite.leading}
             title={invite.title}
-            meta={`Invited by ${invite.invitedBy}`}
+            meta={copy.invitedBy(invite.invitedBy)}
             trailing={
               <Button
                 type="button"
-                aria-label={`Accept the invite to ${invite.title}`}
+                aria-label={copy.acceptInviteTo(invite.title)}
                 pending={pendingId === invite.id}
-                pendingLabel="Accepting…"
+                pendingLabel={copy.accepting}
                 onClick={() => onAccept(invite.id)}
               >
-                Accept
+                {m.invite.inbox.acceptLabel}
               </Button>
             }
           />

@@ -1,12 +1,9 @@
 import { colors } from "@repo/design-tokens";
-import {
-  COMMUNITY_SPORTS_DESCRIPTION,
-  COMMUNITY_SPORTS_TITLE,
-  communitySportsView,
-} from "@repo/domain/community-sports";
+import { communitySportsView } from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { SportGlyph } from "../lib/sport-glyph";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -22,14 +19,16 @@ export type CommunitySportsViewProps = {
 };
 
 export function CommunitySportsBlock(props: CommunitySportsViewProps) {
-  const view = communitySportsView(props.sports, props.canManage);
+  const m = useMessages();
+  const locale = useLocale();
+  const view = communitySportsView(props.sports, props.canManage, locale);
   return (
     <Surface style={{ gap: 8 }}>
       <Text size="lead" weight="semibold">
-        {COMMUNITY_SPORTS_TITLE}
+        {m.community.sports.title}
       </Text>
       <Text size="meta" tone="muted">
-        {COMMUNITY_SPORTS_DESCRIPTION}
+        {m.community.sports.description}
       </Text>
       {view.rows.map((row, index) => (
         <View key={row.sport}>
@@ -51,8 +50,10 @@ export function CommunitySportsBlock(props: CommunitySportsViewProps) {
             </View>
             {view.canRemove ? (
               <Button
-                label="Remove"
-                accessibilityLabel={`Remove ${row.label}`}
+                label={m.common.remove}
+                accessibilityLabel={m.mobileCommunity.sports.removeA11y(
+                  row.label,
+                )}
                 size="sm"
                 variant="outline"
                 pending={props.pendingSport === row.sport}
@@ -66,7 +67,7 @@ export function CommunitySportsBlock(props: CommunitySportsViewProps) {
       {view.addable.map((row) => (
         <View key={row.sport} style={{ flexDirection: "row" }}>
           <Button
-            label={`Add ${row.label}`}
+            label={m.mobileCommunity.sports.add(row.label)}
             variant="outline"
             pending={props.pendingSport === row.sport}
             disabled={props.pendingSport !== null}

@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import {
   averageLevelLabel,
   balanceFootballSides,
@@ -88,6 +91,7 @@ export function keepersIn(players: readonly Pick<BoardPlayer, "role">[]) {
 export function poolSections<Player extends Pick<BoardPlayer, "role">>(
   pool: readonly Player[],
   seats: number,
+  locale: Locale,
 ) {
   const keepers = pool.filter((player) => player.role === "keeper");
   const outfield = pool.filter((player) => player.role !== "keeper");
@@ -99,8 +103,11 @@ export function poolSections<Player extends Pick<BoardPlayer, "role">>(
     outfield,
     keeperOpenSeats,
     outfieldOpenSeats: openSeats - keeperOpenSeats,
-    keepersLine: keepersInLine(keepers.length),
-    outfieldLine: `${outfield.length} of ${Math.max(outfieldSeats, outfield.length)} in`,
+    keepersLine: keepersInLine(keepers.length, locale),
+    outfieldLine: messagesFor(locale).football.board.outfieldLine(
+      outfield.length,
+      Math.max(outfieldSeats, outfield.length),
+    ),
   };
 }
 
@@ -111,63 +118,79 @@ export type JoinPlayer = Pick<BoardPlayer, "name" | "role" | "position"> & {
 
 export function keeperNote(
   players: readonly Pick<JoinPlayer, "name" | "role">[],
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).football.board;
   const first = players.find((player) => player.role === "keeper");
-  const lead = `One keeper per team, so ${KEEPERS_PER_GAME} per game.`;
   return first
-    ? `${lead} ${shortName(first.name)} has the first.`
-    : `${lead} Nobody has claimed one yet.`;
+    ? m.keeperNoteClaimed(KEEPERS_PER_GAME, shortName(first.name))
+    : m.keeperNoteUnclaimed(KEEPERS_PER_GAME);
 }
 
-export function keeperSub(players: readonly Pick<BoardPlayer, "role">[]) {
+export function keeperSub(
+  players: readonly Pick<BoardPlayer, "role">[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.board;
   const left = keeperSeatsLeft(keepersIn(players));
   if (left === 0) {
-    return "both taken";
+    return m.keeperSeatsBothTaken;
   }
-  return left === 1 ? "1 seat left" : `${left} seats left`;
+  return m.keeperSeatsLeft(left);
 }
 
-export function seatSummary(role: FootballRole, position: FootballPosition) {
+export function seatSummary(
+  role: FootballRole,
+  position: FootballPosition,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.board;
   return role === "keeper"
-    ? "Keeper"
-    : `Player, prefers ${footballPositionCode(position)}`;
+    ? m.seatKeeper
+    : m.seatPlayerPrefers(footballPositionCode(position));
 }
 
 export function joinActionLabel(
   role: FootballRole,
   position: FootballPosition,
   price: string | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).football.board;
   const lead =
     role === "keeper"
-      ? "Join as keeper"
-      : `Join as ${footballPositionCode(position)}`;
-  return price && price !== "Free" ? `${lead}, ${price}` : lead;
+      ? m.joinAsKeeper
+      : m.joinAsPosition(footballPositionCode(position));
+  const free = messagesFor(locale).createGame.price.free;
+  return price && price !== free ? m.joinWithPrice(lead, price) : lead;
 }
 
 /** The line under the join choice reached from an Invite link. */
-export function footballInviteJoinSubtitle(football: {
-  players: readonly unknown[];
-  sideSize: number | null;
-  playersAllowed: number | null;
-}) {
+export function footballInviteJoinSubtitle(
+  football: {
+    players: readonly unknown[];
+    sideSize: number | null;
+    playersAllowed: number | null;
+  },
+  locale: Locale,
+) {
   const { openSeats } = poolLayout(
     football.players,
     football.sideSize,
     football.playersAllowed,
   );
   return [
-    football.sideSize ? `${football.sideSize}-a-side` : null,
-    `${openSeats} seats open`,
+    football.sideSize ? sideSizeLabel(football.sideSize, locale) : null,
+    messagesFor(locale).football.board.seatsOpen(openSeats),
   ]
     .filter(Boolean)
     .join(", ");
 }
 
-export function bibNames(bibs: Bibs) {
+export function bibNames(bibs: Bibs, locale: Locale) {
   return {
-    slot1: footballBibName(bibs.slot1, 1),
-    slot2: footballBibName(bibs.slot2, 2),
+    slot1: footballBibName(bibs.slot1, 1, locale),
+    slot2: footballBibName(bibs.slot2, 2, locale),
   };
 }
 
@@ -284,6 +307,7 @@ export function byKeeperThenLevel(a: BoardPlayer, b: BoardPlayer) {
 export function draftSummary(
   draft: TeamsDraft,
   players: readonly BoardPlayer[],
+  locale: Locale,
 ) {
   const slot1 = players
     .filter((player) => draft.sides[player.userId] === 1)
@@ -294,7 +318,7 @@ export function draftSummary(
   const unplaced = players
     .filter((player) => !draft.sides[player.userId])
     .sort(byKeeperThenLevel);
-  const names = bibNames(draft.bibs);
+  const names = bibNames(draft.bibs, locale);
   const problem = footballSidesProblem(
     {
       slot1: slot1.map((player) => player.userId),
@@ -302,6 +326,7 @@ export function draftSummary(
       unplaced: unplaced.length,
     },
     names,
+    locale,
   );
   const teamSize = Math.ceil(players.length / 2);
   return {
@@ -313,7 +338,12 @@ export function draftSummary(
     problem,
     note:
       problem ??
-      `Everyone placed. ${names.slot1} avg ${sideAverage(slot1)}, ${names.slot2} avg ${sideAverage(slot2)}.`,
+      messagesFor(locale).football.board.everyonePlaced(
+        names.slot1,
+        sideAverage(slot1),
+        names.slot2,
+        sideAverage(slot2),
+      ),
   };
 }
 
@@ -323,9 +353,11 @@ export function sideAverage(
   return averageLevelLabel(players.map((player) => player.levelBand)) ?? "–";
 }
 
-export function keeperWord(players: readonly Pick<BoardPlayer, "role">[]) {
-  const count = keepersIn(players);
-  return count === 1 ? "1 keeper" : `${count} keepers`;
+export function keeperWord(
+  players: readonly Pick<BoardPlayer, "role">[],
+  locale: Locale,
+) {
+  return messagesFor(locale).football.board.keeperCount(keepersIn(players));
 }
 
 export type ScoreDraft = {
@@ -389,12 +421,21 @@ export function scorersNote(
   draft: ScoreDraft,
   players: readonly BoardPlayer[],
   names: { slot1: string; slot2: string },
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).football.board;
   const named = namedGoals(draft, players);
   if (named.slot1 + named.slot2 === 0) {
-    return "Goals count toward player form, not rating. Skip if nobody kept track.";
+    return m.goalsNote;
   }
-  return `${named.slot1} of ${draft.slot1} ${names.slot1} goals and ${named.slot2} of ${draft.slot2} ${names.slot2} goals named.`;
+  return m.goalsNamed(
+    named.slot1,
+    draft.slot1,
+    names.slot1,
+    named.slot2,
+    draft.slot2,
+    names.slot2,
+  );
 }
 
 export function scorersPayload(draft: ScoreDraft) {
@@ -407,48 +448,52 @@ export function confirmationLine(
   confirmed: { slot1: boolean; slot2: boolean },
   names: { slot1: string; slot2: string },
   completed: boolean,
+  locale: Locale,
   organizerSides: readonly { slot: Side }[] = [],
 ) {
+  const m = messagesFor(locale).football.board;
   if (completed) {
     return confirmed.slot1 && confirmed.slot2
-      ? "Both sides confirmed."
-      : "Confirmed by the Organizer.";
+      ? m.bothSidesConfirmed
+      : m.confirmedByOrganizer;
   }
   const byOrganizer = (slot: Side) =>
     organizerSides.some((side) => side.slot === slot);
   const waitingOn = (slot: Side) => {
     const name = slot === 1 ? names.slot1 : names.slot2;
     return byOrganizer(slot)
-      ? `the Organizer to confirm for ${name}`
-      : `one player from ${name} to confirm`;
+      ? m.waitingOrganizerFor(name)
+      : m.waitingPlayerFrom(name);
   };
   if (confirmed.slot1 && !confirmed.slot2) {
-    return `Waiting for ${waitingOn(2)}.`;
+    return m.waitingFor(waitingOn(2));
   }
   if (confirmed.slot2 && !confirmed.slot1) {
-    return `Waiting for ${waitingOn(1)}.`;
+    return m.waitingFor(waitingOn(1));
   }
   if (byOrganizer(1) && byOrganizer(2)) {
-    return "Waiting for the Organizer to confirm for both sides.";
+    return m.waitingOrganizerBoth;
   }
   if (byOrganizer(1) || byOrganizer(2)) {
-    return `Waiting for ${waitingOn(1)} and ${waitingOn(2)}.`;
+    return m.waitingForBoth(waitingOn(1), waitingOn(2));
   }
-  return "Waiting for one player from each side to confirm.";
+  return m.waitingEachSide;
 }
 
 export function viewerSideLine(
   viewer: { sideIndex: Side | null },
   players: readonly BoardPlayer[],
   names: { slot1: string; slot2: string },
+  locale: Locale,
 ) {
   if (!viewer.sideIndex) {
     return null;
   }
+  const m = messagesFor(locale).football.board;
   const you = players.find((player) => player.isViewer);
   const code = you ? slotCode(you) : null;
   const team = viewer.sideIndex === 1 ? names.slot1 : names.slot2;
-  return code ? `You play in ${team} as ${code}.` : `You play in ${team}.`;
+  return code ? m.youPlayInAs(team, code) : m.youPlayIn(team);
 }
 
 export type HeroLinesInput = {
@@ -463,27 +508,45 @@ export type HeroLinesInput = {
 };
 
 /** The words around the kick-off time at the top of a football Game. */
-export function footballHeroLines(input: HeroLinesInput, now: Date) {
+export function footballHeroLines(
+  input: HeroLinesInput,
+  now: Date,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.status;
   const start = input.windowStart;
   const played =
     input.windowEnd != null && input.windowEnd.getTime() < now.getTime();
-  const weekday = start ? formatWeekday(start, "long") : null;
+  const live = start != null && start.getTime() <= now.getTime();
+  const weekday = start ? formatWeekday(start, "long", locale) : null;
   const status = input.cancelledAt
-    ? "Cancelled"
+    ? m.cancelled
     : played
       ? input.scored
-        ? "Played"
-        : "Played, score missing"
-      : input.teamsSet
-        ? `Teams set${weekday ? `, ${weekday}` : ""}`
-        : `Upcoming${weekday ? `, ${weekday}` : ""}`;
-  const kickoff = start ? formatHomeKickoff(start) : null;
-  const day = start ? formatDayMonth(start, { weekday: "short" }) : null;
-  const duration = formatWindowDuration(input.windowStart, input.windowEnd);
+        ? m.played
+        : m.playedScoreMissing
+      : live
+        ? messagesFor(locale).dates.countdown.liveNow
+        : input.teamsSet
+          ? weekday
+            ? m.teamsSetOn(weekday)
+            : m.teamsSet
+          : weekday
+            ? m.upcomingOn(weekday)
+            : m.upcoming;
+  const kickoff = start ? formatHomeKickoff(start, locale) : null;
+  const day = start
+    ? formatDayMonth(start, locale, { weekday: "short" })
+    : null;
+  const duration = formatWindowDuration(
+    input.windowStart,
+    input.windowEnd,
+    locale,
+  );
   return {
     status,
     sizeTag: input.sideSize
-      ? sideSizeLabel(input.sideSize).toUpperCase()
+      ? sideSizeLabel(input.sideSize, locale).toUpperCase()
       : null,
     time: kickoff?.time ?? null,
     meridiem: kickoff?.meridiem ?? null,

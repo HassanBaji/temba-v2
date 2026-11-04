@@ -67,7 +67,9 @@ describe("checklistInputFrom", () => {
 
 describe("checklistFrom", () => {
   it("is null until both the user and the state are loaded", () => {
-    expect(checklistFrom(null, { onboardingCompletedAt: null })).toBeNull();
+    expect(
+      checklistFrom(null, { onboardingCompletedAt: null }, "en"),
+    ).toBeNull();
     expect(
       checklistFrom(
         {
@@ -77,6 +79,7 @@ describe("checklistFrom", () => {
           primaryEmailAddress: null,
         },
         undefined,
+        "en",
       ),
     ).toBeNull();
   });
@@ -90,6 +93,7 @@ describe("checklistFrom", () => {
         primaryEmailAddress: null,
       },
       { onboardingCompletedAt: null },
+      "en",
     );
     expect(list?.done).toBe(3);
     expect(list?.open.map((task) => task.id)).toEqual(["email", "sports"]);
@@ -100,6 +104,7 @@ describe("chip and paths", () => {
   const list = checklistFrom(
     { firstName: "", lastName: "", hasImage: false, primaryEmailAddress: null },
     { onboardingCompletedAt: null },
+    "en",
   )!;
 
   it("routes each task under the checklist", () => {
@@ -107,12 +112,17 @@ describe("chip and paths", () => {
   });
 
   it("labels the collapsed chip and lists the optional open tasks only", () => {
-    expect(checklistChipLabel(list)).toBe("Profile 1 OF 5 · Show");
-    expect(checklistChipTasks(list)).toBe("Photo, Email, Sports");
+    expect(checklistChipLabel(list, "en")).toBe("Profile 1 OF 5 · Show");
+    expect(checklistChipTasks(list, "en")).toBe("Photo, Email, Sports");
+  });
+
+  it("labels the chip in Arabic", () => {
+    expect(checklistChipLabel(list, "ar")).toBe("الملف الشخصي 1 من 5 · عرض");
+    expect(checklistChipTasks(list, "ar")).toBe("الصورة، البريد، الرياضات");
   });
 
   it("drops the old summary step from the sports progress", () => {
-    expect(sportsTaskMeta({ step: 2, total: 4 })).toEqual({
+    expect(sportsTaskMeta({ step: 2, total: 4 }, "en")).toEqual({
       step: 2,
       total: 3,
       label: "Profile / Sports 2 of 3",

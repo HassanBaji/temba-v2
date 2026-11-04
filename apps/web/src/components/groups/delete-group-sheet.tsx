@@ -11,6 +11,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { Button } from "~/components/ui/button";
 import { FORM_INPUT } from "~/components/groups/group-form-parts";
+import { useLocale } from "~/components/locale-provider";
 import {
   groupDeleteNameMatches,
   groupDeleteSheetCopy,
@@ -38,6 +39,7 @@ export function DeleteGroupSheet({
   onOpenChange: (open: boolean) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const locale = useLocale();
   const [typed, setTyped] = useState("");
   useEffect(() => {
     if (open) {
@@ -49,8 +51,9 @@ export function DeleteGroupSheet({
     gameCount,
     memberCount,
     seasonCount,
+    locale,
   });
-  const matches = groupDeleteNameMatches(name, typed);
+  const matches = groupDeleteNameMatches(name, typed, locale);
 
   return (
     <ResponsiveDialog

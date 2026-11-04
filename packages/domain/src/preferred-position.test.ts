@@ -2,9 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   isPreferredPosition,
-  PREFERRED_POSITION_CHOICES,
-  PREFERRED_POSITION_UNSET_LABEL,
   PREFERRED_POSITIONS,
+  preferredPositionChoices,
   preferredPositionLabel,
   preferredPositionNote,
   preferredPositionProfileLine,
@@ -13,40 +12,40 @@ import {
 describe("preferredPositionLabel", () => {
   it("reads each stored answer as the You row shows it", () => {
     expect(
-      PREFERRED_POSITIONS.map((value) => preferredPositionLabel(value)),
+      PREFERRED_POSITIONS.map((value) => preferredPositionLabel(value, "en")),
     ).toEqual(["Left", "Right", "Either"]);
   });
 
   it("reads an unanswered Preferred Position as Not set", () => {
-    expect(preferredPositionLabel(null)).toBe(PREFERRED_POSITION_UNSET_LABEL);
-    expect(preferredPositionLabel(undefined)).toBe("Not set");
+    expect(preferredPositionLabel(null, "en")).toBe("Not set");
+    expect(preferredPositionLabel(undefined, "en")).toBe("Not set");
   });
 
   it("reads a value outside the enum as Not set rather than echoing it", () => {
-    expect(preferredPositionLabel("")).toBe("Not set");
-    expect(preferredPositionLabel("centre")).toBe("Not set");
-    expect(preferredPositionLabel("LEFT")).toBe("Not set");
+    expect(preferredPositionLabel("", "en")).toBe("Not set");
+    expect(preferredPositionLabel("centre", "en")).toBe("Not set");
+    expect(preferredPositionLabel("LEFT", "en")).toBe("Not set");
   });
 });
 
 describe("preferredPositionNote", () => {
   it("covers unset, left, right, and either", () => {
-    expect(preferredPositionNote(null)).toBe(
+    expect(preferredPositionNote(null, "en")).toBe(
       "Not set. We start you on the left when you register with a partner.",
     );
-    expect(preferredPositionNote(undefined)).toBe(
+    expect(preferredPositionNote(undefined, "en")).toBe(
       "Not set. We start you on the left when you register with a partner.",
     );
-    expect(preferredPositionNote("centre")).toBe(
+    expect(preferredPositionNote("centre", "en")).toBe(
       "Not set. We start you on the left when you register with a partner.",
     );
-    expect(preferredPositionNote("left")).toBe(
+    expect(preferredPositionNote("left", "en")).toBe(
       "We start you on the left when you register with a partner.",
     );
-    expect(preferredPositionNote("right")).toBe(
+    expect(preferredPositionNote("right", "en")).toBe(
       "We start you on the right when you register with a partner.",
     );
-    expect(preferredPositionNote("either")).toBe(
+    expect(preferredPositionNote("either", "en")).toBe(
       "Either side. Your partner's preference decides.",
     );
   });
@@ -54,15 +53,15 @@ describe("preferredPositionNote", () => {
 
 describe("preferredPositionProfileLine", () => {
   it("reads each stored answer as the Profile identity line", () => {
-    expect(preferredPositionProfileLine("left")).toBe("Left side");
-    expect(preferredPositionProfileLine("right")).toBe("Right side");
-    expect(preferredPositionProfileLine("either")).toBe("Either side");
+    expect(preferredPositionProfileLine("left", "en")).toBe("Left side");
+    expect(preferredPositionProfileLine("right", "en")).toBe("Right side");
+    expect(preferredPositionProfileLine("either", "en")).toBe("Either side");
   });
 
   it("omits the line when Preferred Position is unset", () => {
-    expect(preferredPositionProfileLine(null)).toBeNull();
-    expect(preferredPositionProfileLine(undefined)).toBeNull();
-    expect(preferredPositionProfileLine("centre")).toBeNull();
+    expect(preferredPositionProfileLine(null, "en")).toBeNull();
+    expect(preferredPositionProfileLine(undefined, "en")).toBeNull();
+    expect(preferredPositionProfileLine("centre", "en")).toBeNull();
   });
 });
 
@@ -77,15 +76,26 @@ describe("isPreferredPosition", () => {
   });
 });
 
-describe("PREFERRED_POSITION_CHOICES", () => {
+describe("preferredPositionChoices", () => {
   it("offers the three answers in order and never offers Not set", () => {
-    expect(PREFERRED_POSITION_CHOICES).toEqual([
+    expect(preferredPositionChoices("en")).toEqual([
       { value: "left", label: "Left" },
       { value: "right", label: "Right" },
       { value: "either", label: "Either" },
     ]);
     expect(
-      PREFERRED_POSITION_CHOICES.map((choice) => choice.label),
-    ).not.toContain(PREFERRED_POSITION_UNSET_LABEL);
+      preferredPositionChoices("en").map((choice) => choice.label),
+    ).not.toContain("Not set");
+  });
+
+  it("keeps the stored values and reads the labels in Arabic", () => {
+    expect(
+      preferredPositionChoices("ar").map((choice) => choice.value),
+    ).toEqual(["left", "right", "either"]);
+    expect(preferredPositionLabel("left", "ar")).toBe("يسار");
+    expect(preferredPositionLabel(null, "ar")).toBe("غير محدد");
+    expect(preferredPositionProfileLine("either", "ar")).toBe(
+      "يلعب على أي جهة",
+    );
   });
 });

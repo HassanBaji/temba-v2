@@ -43,6 +43,13 @@ export async function pendingLookupInvites(
       id: row.id,
       gameId: row.gameId,
       gameName: row.game.name ?? "Untitled Game",
+      game: {
+        name: game.name,
+        hasCustomName: game.hasCustomName,
+        format: game.format,
+        windowStart: game.windowStart,
+        windowEnd: game.windowEnd,
+      },
       invitedBy: {
         id: row.invitedBy.id,
         name: row.invitedBy.name,

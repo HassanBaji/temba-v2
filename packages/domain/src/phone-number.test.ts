@@ -4,11 +4,13 @@ import { describe, it } from "vitest";
 import {
   CALLING_COUNTRIES,
   assembleE164,
+  callingCountryName,
   countryFlagEmoji,
   formatInternationalNumber,
   formatNationalNumber,
   nationalDigits,
   parseE164,
+  phoneShapePlaceholder,
 } from "./phone-number";
 
 const SAMPLES: Record<
@@ -161,5 +163,24 @@ describe("parseE164", () => {
   it("rejects malformed E.164", () => {
     assert.equal(parseE164("97336124408"), null);
     assert.equal(parseE164("+9733612"), null);
+  });
+});
+
+describe("phoneShapePlaceholder", () => {
+  it("keeps the leading digit and masks the rest", () => {
+    assert.equal(phoneShapePlaceholder("BH"), "3XXX XXXX");
+    assert.equal(phoneShapePlaceholder("SA"), "5X XXX XXXX");
+    assert.equal(phoneShapePlaceholder("ZZ"), undefined);
+  });
+});
+
+describe("callingCountryName", () => {
+  it("names every listed country in each language", () => {
+    for (const country of CALLING_COUNTRIES) {
+      assert.equal(callingCountryName(country.iso, "en"), country.name);
+      assert.match(callingCountryName(country.iso, "ar"), /[؀-ۿ]/);
+    }
+    assert.equal(callingCountryName("BH", "ar"), "البحرين");
+    assert.equal(callingCountryName("ZZ", "en"), "ZZ");
   });
 });

@@ -1,5 +1,7 @@
+import type { Locale } from "@repo/i18n/locale";
+
 import {
-  LEVEL_RANGE_INVERTED_MESSAGE,
+  levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
 } from "./level-range";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
@@ -8,13 +10,14 @@ export function gameWindowSaveInput(
   day: string,
   startTime: string,
   finishTime: string,
+  locale: Locale,
 ) {
   const gameWindow = parseRequiredGameWindow(day, startTime, finishTime);
   if (!gameWindow) {
     return null;
   }
   return {
-    name: formatGameWindowName(day, startTime, finishTime),
+    name: formatGameWindowName(day, startTime, finishTime, locale),
     windowStart: gameWindow.windowStart,
     windowEnd: gameWindow.windowEnd,
   };
@@ -30,6 +33,7 @@ export type GameLevelRangeSave =
 export function gameLevelRangeSaveInput(
   levelMin: string,
   levelMax: string,
+  locale: Locale,
 ): GameLevelRangeSave {
   const levelMinTenths = parseLevelBandSelectTenths(levelMin, "min");
   const levelMaxTenths = parseLevelBandSelectTenths(levelMax, "max");
@@ -38,7 +42,7 @@ export function gameLevelRangeSaveInput(
     levelMaxTenths != null &&
     levelMinTenths > levelMaxTenths
   ) {
-    return { ok: false, message: LEVEL_RANGE_INVERTED_MESSAGE };
+    return { ok: false, message: levelRangeInvertedMessage(locale) };
   }
   return { ok: true, input: { levelMinTenths, levelMaxTenths } };
 }

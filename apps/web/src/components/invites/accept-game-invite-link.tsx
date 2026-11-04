@@ -13,6 +13,7 @@ import {
   InviteOutcome,
   InvitePreviewError,
 } from "~/components/invites/invite-outcome";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { footballInviteJoinSubtitle } from "@repo/domain/football-board";
@@ -20,12 +21,11 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
 import {
   gameInviteSeatCopy,
   gameInviteLinkStage,
   gameInviteSeatState,
-  INVITE_JOIN_WAITLIST_LABEL,
-  INVITE_SIT_HERE_LABEL,
   inviteLinkAcceptToast,
   levelRangeGateAction,
 } from "@repo/domain/invites";
@@ -35,11 +35,7 @@ import {
 } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import {
-  PARTNER_REQUIRED_INVITE_LANDING_COPY,
-  PARTNER_REQUIRED_INVITE_LANDING_CTA,
-  tournamentPartnerInviteLandingHref,
-} from "@repo/domain/tournament-join";
+import { tournamentPartnerInviteLandingHref } from "@repo/domain/tournament-join";
 import { api } from "~/trpc/react";
 
 export function AcceptGameInviteLink({
@@ -52,11 +48,13 @@ export function AcceptGameInviteLink({
   returnPath: string;
 }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   const [footballOpen, setFootballOpen] = React.useState(true);
   const preview = api.games.previewInviteLink.useQuery({ token });
   const requestLevelRange = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
-      toast.success("Request sent");
+      toast.success(m.webAuth.invites.requestSent);
       await preview.refetch();
     },
     onError: (error) => {
@@ -66,7 +64,12 @@ export function AcceptGameInviteLink({
   const accept = api.games.acceptInviteLink.useMutation({
     onSuccess: (result) => {
       toast.success(
-        inviteLinkAcceptToast("game", result.outcome, result.joinedGroup),
+        inviteLinkAcceptToast(
+          "game",
+          locale,
+          result.outcome,
+          result.joinedGroup,
+        ),
       );
       if (result.outcome === "waiting_for_partner") {
         return;
@@ -104,12 +107,17 @@ export function AcceptGameInviteLink({
   const rangeLabel = formatLevelRangeLabel(
     ready?.levelMinTenths,
     ready?.levelMaxTenths,
+    locale,
   );
   const levelAction = levelRangeGateAction({
     requestStatus: ready?.levelRangeRequest?.status ?? null,
     canRequest: ready?.canRequestLevelRange ?? false,
     requesting: requestLevelRange.isPending,
+    locale,
   });
+  const gameName = ready
+    ? gameDisplayName(ready.game, locale)
+    : m.invite.kind.game;
 
   React.useEffect(() => {
     if (!isSignedIn) {
@@ -198,7 +206,7 @@ export function AcceptGameInviteLink({
   if (accept.isError && !seatRaceError && !footballJoinError) {
     return (
       <ErrorState
-        title="Could not join"
+        title={m.webAuth.invites.couldNotJoin}
         message={accept.error.message}
         onRetry={() => accept.mutate(accept.variables ?? { token })}
         headingLevel={1}
@@ -211,7 +219,7 @@ export function AcceptGameInviteLink({
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
-            Join {ready.gameName ?? "Game"}
+            {m.invite.link.joinLabel(gameName)}
           </h1>
           {rangeLabel ? (
             <p className="text-body text-muted-foreground">{rangeLabel}</p>
@@ -221,6 +229,7 @@ export function AcceptGameInviteLink({
               levelMinTenths: ready.levelMinTenths,
               levelMaxTenths: ready.levelMaxTenths,
               viewerLevelTenths: ready.viewerLevelTenths,
+              locale,
             })}
           </p>
         </div>
@@ -249,19 +258,19 @@ export function AcceptGameInviteLink({
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
-            Join {ready.gameName ?? "Game"}
+            {m.invite.link.joinLabel(gameName)}
           </h1>
           {rangeLabel ? (
             <p className="text-body text-muted-foreground">{rangeLabel}</p>
           ) : null}
           <p className="text-body text-muted-foreground">
-            {PARTNER_REQUIRED_INVITE_LANDING_COPY}
+            {m.tournament.join.partnerInviteLanding}
           </p>
         </div>
         {isSignedIn ? (
           <Button className="min-h-11" asChild>
             <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
-              {PARTNER_REQUIRED_INVITE_LANDING_CTA}
+              {m.tournament.join.pickAPartner}
             </Link>
           </Button>
         ) : (
@@ -279,7 +288,7 @@ export function AcceptGameInviteLink({
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
-            Join {ready?.gameName ?? "Game"}
+            {m.invite.link.joinLabel(gameName)}
           </h1>
           {rangeLabel ? (
             <p className="text-body text-muted-foreground">{rangeLabel}</p>
@@ -288,13 +297,14 @@ export function AcceptGameInviteLink({
             {gameInviteSeatCopy(
               { joinFrozen, waitlistOnly },
               isSignedIn ? "link" : "link-signed-out",
+              locale,
             )}
           </p>
         </div>
         <GameSeatGrid
           sides={sides}
           canJoinVacant={canJoinVacant}
-          joinLabel={INVITE_SIT_HERE_LABEL}
+          joinLabel={m.invite.inbox.sitHereLabel}
           joining={accept.isPending}
           canMove={false}
           moving={false}
@@ -313,7 +323,9 @@ export function AcceptGameInviteLink({
               onClick={onJoinWaitlist}
               disabled={accept.isPending}
             >
-              {accept.isPending ? "Joining…" : INVITE_JOIN_WAITLIST_LABEL}
+              {accept.isPending
+                ? m.webAuth.invites.joiningShort
+                : m.invite.inbox.joinWaitlistLabel}
             </Button>
           ) : null
         ) : (
@@ -327,20 +339,20 @@ export function AcceptGameInviteLink({
   }
 
   if (footballJoin && football && !accept.isSuccess) {
-    const subtitle = footballInviteJoinSubtitle(football);
+    const subtitle = footballInviteJoinSubtitle(football, locale);
     return (
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
-            Join {ready?.gameName ?? "Game"}
+            {m.invite.link.joinLabel(gameName)}
           </h1>
           <p className="text-body text-muted-foreground">{subtitle}</p>
           <p className="text-body text-muted-foreground">
-            Pick player or keeper, and the position you prefer.
+            {m.webAuth.invites.football.pickRole}
           </p>
         </div>
         <Button className="min-h-11" onClick={() => setFootballOpen(true)}>
-          Choose how you play
+          {m.webAuth.invites.football.chooseHowYouPlay}
         </Button>
         <FootballJoinDialog
           open={footballOpen}
@@ -349,8 +361,12 @@ export function AcceptGameInviteLink({
           subtitle={subtitle}
           players={football.players}
           viewer={football.preferred}
-          price={formatPricePerPlayerFils(football.pricePerPlayerFils)}
-          teamsLine={football.teamsSet ? "Set" : "Made by the organizer"}
+          price={formatPricePerPlayerFils(football.pricePerPlayerFils, locale)}
+          teamsLine={
+            football.teamsSet
+              ? m.webAuth.invites.football.teamsSet
+              : m.webAuth.invites.football.teamsByOrganizer
+          }
           pending={accept.isPending}
           error={accept.error?.message ?? null}
           onSubmit={onJoinFootball}
@@ -364,13 +380,13 @@ export function AcceptGameInviteLink({
       <div className="space-y-4">
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
-            Join {ready?.gameName ?? "Game"}
+            {m.invite.link.joinLabel(gameName)}
           </h1>
           {rangeLabel ? (
             <p className="text-body text-muted-foreground">{rangeLabel}</p>
           ) : null}
           <p className="text-body text-muted-foreground">
-            Sign in or create an account to join {ready?.gameName ?? "Game"}.
+            {m.webAuth.invites.signInToJoin(gameName)}
           </p>
         </div>
         <InviteAuthButtons
@@ -384,7 +400,7 @@ export function AcceptGameInviteLink({
   return (
     <div aria-busy="true" className="space-y-3">
       <h1 className="text-title font-semibold">
-        Joining {ready?.gameName ?? "Game"}…
+        {m.webAuth.invites.joining(gameName)}
       </h1>
       {rangeLabel ? (
         <p className="text-body text-muted-foreground">{rangeLabel}</p>

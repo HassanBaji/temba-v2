@@ -2,6 +2,7 @@
 
 import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   deriveRecentForm,
   RECENT_FORM_MATCH_COUNT,
@@ -13,16 +14,19 @@ import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 export function ProfileFormCard({ bars }: { bars: RecentFormBar[] }) {
+  const m = useMessages();
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile" meta="Last 10 matches">
-        Recent form
+      <SurfaceLabel inset="profile" meta={m.webAuth.home.recentForm.lastTen}>
+        {m.webAuth.home.recentForm.title}
       </SurfaceLabel>
       <div className="flex gap-1.5 px-5 pb-[18px]">
         {bars.map((bar, index) => (
           <FormSlot
             key={
-              bar.kind === "played" ? `${bar.label}-${index}` : `empty-${index}`
+              bar.kind === "played"
+                ? `${bar.outcome}-${index}`
+                : `empty-${index}`
             }
             bar={bar}
             size="compact"
@@ -53,6 +57,8 @@ function ProfileFormSkeleton() {
 }
 
 export function ProfileForm({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
+  const m = useMessages();
+  const locale = useLocale();
   const history = api.games.listMyMatchHistory.useQuery({
     limit: RECENT_FORM_MATCH_COUNT,
     sport,
@@ -67,7 +73,7 @@ export function ProfileForm({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
       <ErrorState
         variant="inline"
         className="rounded-card px-5"
-        title="Recent form could not be loaded"
+        title={m.webAuth.you.recentFormFailed}
         message={history.error.message}
         onRetry={() => {
           void history.refetch();
@@ -76,6 +82,6 @@ export function ProfileForm({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
     );
   }
 
-  const form = deriveRecentForm(history.data ?? []);
+  const form = deriveRecentForm(history.data ?? [], locale);
   return <ProfileFormCard bars={form.bars} />;
 }

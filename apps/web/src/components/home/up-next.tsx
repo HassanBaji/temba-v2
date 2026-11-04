@@ -14,22 +14,27 @@ import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Hatch } from "~/components/ui/hatch";
 import { Surface } from "~/components/ui/surface";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
+import {
+  homeGameKind,
+  homeHeroTitle,
+  homeHeroUntil,
+} from "@repo/domain/home-game-lines";
 import {
   homeNextGameActions,
   homeNextGameStatus,
 } from "@repo/domain/home-next-game";
 import type { HomeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import { homeNextGameSeats } from "@repo/domain/home-seats";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { sportLabel, type Sport } from "@repo/domain/sport";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { useNow } from "~/hooks/use-now";
 import { cn } from "~/lib/utils";
 
 import { createHref, gameHref } from "./home-model";
 import {
-  minutesBetween,
   startsInLabel,
   upNextHeroDay,
   upNextRowView,
@@ -41,9 +46,10 @@ const FOCUS_RING =
   "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]";
 
 export function UpNextHeading({ label }: { label: string }) {
+  const m = useMessages();
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <h2 className="text-lead font-semibold">Up next</h2>
+      <h2 className="text-lead font-semibold">{m.webAuth.home.upNext}</h2>
       <p className="text-eyebrow text-muted-foreground font-mono uppercase">
         {label}
       </p>
@@ -52,12 +58,14 @@ export function UpNextHeading({ label }: { label: string }) {
 }
 
 function Chip({ sport, kind }: { sport: Sport; kind: string }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
-    <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] pl-1.5 pr-2 font-mono uppercase">
+    <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] pe-2 ps-1.5 font-mono uppercase">
       <SportGlyph sport={sport} className="text-paper size-[13px]" />
       <span>
-        {SPORT_LABELS[sport]}
-        <span className="text-dim">{` / ${kind}`}</span>
+        {sportLabel(sport, locale)}
+        <span className="text-dim">{m.webAuth.home.withEmphasis(kind)}</span>
       </span>
     </span>
   );
@@ -103,11 +111,12 @@ function HeroFrame({
   href: string;
   sport: Sport;
   kind: string;
-  when: { day: string; emphasis: string | null };
+  when: { day: string | null; emphasis: string | null };
   spoken: string;
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
     <Surface as="article" tone="ink" radius="surface" className="p-[18px]">
       <Link
@@ -120,7 +129,11 @@ function HeroFrame({
           <p className="text-meta text-dim min-w-0 truncate">
             {when.day}
             {when.emphasis ? (
-              <span className="text-paper">{`, ${when.emphasis}`}</span>
+              <span className="text-paper">
+                {when.day
+                  ? m.webAuth.home.withEmphasis(when.emphasis)
+                  : when.emphasis}
+              </span>
             ) : null}
           </p>
         </div>
@@ -140,7 +153,8 @@ function Kickoff({
   startsAt: Date;
   endsAt: Date | null;
 }) {
-  const kickoff = formatHomeKickoff(startsAt);
+  const locale = useLocale();
+  const kickoff = formatHomeKickoff(startsAt, locale);
   return (
     <div className="flex flex-wrap items-baseline gap-x-2.5">
       <p className="flex items-baseline gap-[5px]">
@@ -155,9 +169,7 @@ function Kickoff({
       </p>
       {endsAt ? (
         <p className="text-meta text-dim">
-          {`to ${formatGameClock(endsAt)}`}
-          <span className="text-dimrule">{" / "}</span>
-          {`${minutesBetween(startsAt, endsAt)} min`}
+          {homeHeroUntil(startsAt, endsAt, locale)}
         </p>
       ) : null}
     </div>
@@ -177,7 +189,7 @@ function Headline({
     <div className="flex min-w-0 flex-col gap-1">
       <p
         dir="auto"
-        className="text-lead line-clamp-2 text-left font-semibold leading-snug"
+        className="text-lead line-clamp-2 text-start font-semibold leading-snug"
       >
         {title}
       </p>
@@ -196,12 +208,14 @@ function Headline({
 }
 
 export function UpNextHero({ item }: { item: UpNextItem }) {
+  const m = useMessages();
+  const locale = useLocale();
   const now = useNow();
   const { game, startsAt, sport } = item;
   const endsAt = game.windowEnd ? new Date(game.windowEnd) : null;
-  const day = upNextHeroDay(startsAt, now);
+  const day = upNextHeroDay(startsAt, now, locale);
   const href = gameHref({ kind: "game", gameId: game.id });
-  const [row] = homeComingUpRows([game]);
+  const [row] = homeComingUpRows([game], locale);
 
   if (row && row.kind !== "game") {
     const subline =
@@ -209,17 +223,21 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
     const label =
       row.kind === "tournament" && row.actionLabel
         ? row.actionLabel
-        : "View game";
+        : m.home.nextGame.viewGame;
     return (
       <HeroFrame
         href={href}
         sport={sport}
-        kind="Tournament"
+        kind={m.webAuth.home.kind.tournament}
         when={{
           day,
           emphasis: row.kind === "tournament_match" ? row.roundTag : null,
         }}
-        spoken={`Next up, ${row.title}, ${day} ${formatGameClock(startsAt)}`}
+        spoken={m.webAuth.home.nextUpSpoken(
+          row.title,
+          day,
+          formatGameClock(startsAt, locale),
+        )}
         actions={<CardAction primary href={href} label={label} />}
       >
         <Kickoff startsAt={startsAt} endsAt={null} />
@@ -237,46 +255,63 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
     gameId: game.id,
     phase: game.phase,
     hasOpenSeat: seats.some((seat) => !seat.filled),
+    locale,
   });
-  const status =
-    game.phase === "upcoming"
-      ? (startsInLabel(startsAt, endsAt ?? startsAt, now) ??
-        homeNextGameStatus(game.phase, startsAt, now))
-      : homeNextGameStatus(game.phase, startsAt, now);
-  const title = game.name ?? game.groupName ?? game.venue?.name ?? "Game";
-  const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
-  const venueLine = [
-    game.venue?.name === title ? null : game.venue?.name,
-    game.courtName,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const live =
+    game.phase === "ongoing" ||
+    (game.phase === "upcoming" &&
+      startsAt.getTime() <= now.getTime() &&
+      (endsAt == null || endsAt.getTime() > now.getTime()));
+  const status = live
+    ? m.home.nextGame.playingNow
+    : game.phase === "upcoming"
+      ? (startsInLabel(startsAt, endsAt ?? startsAt, now, locale) ??
+        homeNextGameStatus(game.phase, startsAt, now, locale))
+      : homeNextGameStatus(game.phase, startsAt, now, locale);
+  const title = homeHeroTitle(game, locale);
+  const place = m.home.comingUp.parts(
+    [game.venue?.name, game.courtName].filter((part): part is string =>
+      Boolean(part),
+    ),
+  );
 
   return (
     <HeroFrame
       href={href}
       sport={sport}
-      kind="Game"
-      when={{ day, emphasis: status }}
-      spoken={`Next up, ${title}, ${day} ${formatGameClock(startsAt)}, ${place}`}
+      kind={homeGameKind(game.format, locale)}
+      when={{ day: live ? null : day, emphasis: status }}
+      spoken={m.webAuth.home.nextUpSpokenAt(
+        title,
+        day,
+        formatGameClock(startsAt, locale),
+        place,
+      )}
       actions={
         <>
           {details ? (
-            <CardAction href={gameHref(details)} label="Details" />
+            <CardAction
+              href={gameHref(details)}
+              label={m.webAuth.home.details}
+            />
           ) : null}
           <CardAction
             primary
             href={gameHref(primary.target)}
             label={primary.label}
-            icon={primary.label === "Invite a player" ? UserPlus : undefined}
+            icon={
+              primary.label === m.home.nextGame.invitePlayer
+                ? UserPlus
+                : undefined
+            }
           />
         </>
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Headline title={title} detail={venueLine || null} icon={MapPin} />
+      <Headline title={title} detail={place || null} icon={MapPin} />
       {game.rated ? null : (
-        <p className="text-meta font-semibold">{UNRATED_LABEL}</p>
+        <p className="text-meta font-semibold">{unratedLabel(locale)}</p>
       )}
     </HeroFrame>
   );
@@ -319,6 +354,8 @@ function Trailing({ row }: { row: UpNextRowView }) {
 }
 
 export function UpNextList({ items }: { items: readonly UpNextItem[] }) {
+  const m = useMessages();
+  const locale = useLocale();
   const now = useNow();
   return (
     <Surface
@@ -328,7 +365,7 @@ export function UpNextList({ items }: { items: readonly UpNextItem[] }) {
       {items.length > 0 ? (
         <ul className="divide-rule divide-y">
           {items.map((item) => {
-            const row = upNextRowView(item, now);
+            const row = upNextRowView(item, now, locale);
             return (
               <li key={row.key}>
                 <Link
@@ -373,8 +410,8 @@ export function UpNextList({ items }: { items: readonly UpNextItem[] }) {
           "focus-visible:ring-inset",
         )}
       >
-        All games
-        <ArrowRight aria-hidden="true" className="size-3.5" />
+        {m.webAuth.home.allGames}
+        <ArrowRight aria-hidden="true" className="size-3.5 rtl:-scale-x-100" />
       </Link>
     </Surface>
   );
@@ -408,27 +445,26 @@ export function UpNextEmpty({
 }: {
   createAction: HomeNoGamesCreateAction;
 }) {
+  const m = useMessages();
   return (
     <Surface radius="surface" className="border-rule overflow-hidden border">
       <div className="border-rule relative flex flex-col gap-3 border-b px-[18px] pb-4 pt-[18px]">
         <Hatch className="absolute inset-0 shadow-none" />
         <p className="border-rule bg-paper text-eyebrow rounded-xs relative self-start border px-2 py-[3px] font-mono uppercase">
-          This week
-          <span className="text-muted-foreground">{" / Free"}</span>
+          {m.webAuth.home.empty.thisWeek}
+          <span className="text-muted-foreground">{` / ${m.webAuth.home.empty.free}`}</span>
         </p>
-        <h3 className="font-expanded text-h1-lg relative">
-          Your week
-          <br />
-          is open.
+        <h3 className="font-expanded text-h1-lg relative whitespace-pre-line">
+          {m.webAuth.home.empty.headline}
         </h3>
         <p className="text-meta text-muted-foreground relative">
-          Join an open game, or start one with your group.
+          {m.webAuth.home.empty.description}
         </p>
       </div>
       <div className="flex gap-2 px-[18px] pb-4 pt-3">
         <OutlineTile
           href="/dashboard/games"
-          label="Find a game"
+          label={m.webAuth.home.empty.findAGame}
           icon={Search}
         />
         <OutlineTile

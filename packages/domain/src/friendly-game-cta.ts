@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 /**
@@ -24,7 +27,12 @@ export type FriendlyGameCtaFamily =
   | { kind: "join_waitlist" }
   | { kind: "waitlisted"; place: number }
   | { kind: "join" }
-  | { kind: "upcoming"; vacantSeatCount: number; showInvite: boolean }
+  | {
+      kind: "upcoming";
+      vacantSeatCount: number;
+      showInvite: boolean;
+      live: boolean;
+    }
   | { kind: "needs_score" }
   | { kind: "final"; newLevelBand: LevelBand; newLevel: number }
   | { kind: "none" };
@@ -107,6 +115,7 @@ export function friendlyGameCtaFamily(
         kind: "upcoming",
         vacantSeatCount: game.vacantSeatCount,
         showInvite: game.canMintInvite,
+        live: game.phase === "ongoing",
       };
     }
     return { kind: "none" };
@@ -114,8 +123,11 @@ export function friendlyGameCtaFamily(
   return { kind: "none" };
 }
 
-export function friendlyGameWaitlistLine(place: number) {
-  return `You're ${friendlyGameWaitlistOrdinal(place)} on the Waitlist`;
+export function friendlyGameWaitlistLine(place: number, locale: Locale) {
+  return messagesFor(locale).game.cta.waitlistLine(
+    place,
+    friendlyGameWaitlistOrdinal(place),
+  );
 }
 
 export function friendlyGameWaitlistOrdinal(place: number) {
@@ -146,14 +158,16 @@ export function friendlyGameWaitlistOrdinal(place: number) {
  */
 export function friendlyGameVacantSeatLine(
   vacantSeatCount: number,
+  live: boolean,
+  locale: Locale,
 ): string | null {
   if (vacantSeatCount <= 0) {
     return null;
   }
-  if (vacantSeatCount === 1) {
-    return "One spot left to fill";
-  }
-  return `${vacantSeatCount} spots left to fill`;
+  const m = messagesFor(locale).game.cta;
+  return live
+    ? m.vacantSeatLineLive(vacantSeatCount)
+    : m.vacantSeatLine(vacantSeatCount);
 }
 
 /**
@@ -166,8 +180,12 @@ export function friendlyGameVacantSeatLine(
 export function friendlyGameLevelUpdatedLine(
   newLevelBand: LevelBand,
   newLevel: number,
+  locale: Locale,
 ): string {
-  return `${displayLabelFromStoredBand(newLevelBand)} · ${newLevel.toFixed(1)} after this game`;
+  return messagesFor(locale).game.cta.levelUpdatedLine(
+    displayLabelFromStoredBand(newLevelBand),
+    newLevel.toFixed(1),
+  );
 }
 
 /**
@@ -271,21 +289,21 @@ export function friendlyGameJoinSheetCaption(
     right: { name: string } | null;
   }[],
   picked: FriendlyGameJoinSeat | null,
+  locale: Locale,
 ): string {
+  const m = messagesFor(locale).game.joinSheet;
   if (picked) {
     const side = sides.find((row) => row.sideIndex === picked.sideIndex);
     const partner = picked.position === "left" ? side?.right : side?.left;
-    return partner
-      ? `You'll play with ${partner.name}`
-      : "Your partner spot is still open — anyone can take it";
+    return partner ? m.playWith(partner.name) : m.partnerSpotOpen;
   }
 
   const vacantCount = vacantJoinSeats(sides).length;
   if (vacantCount === 0) {
-    return "Every spot on this Game is taken";
+    return m.everySpotTaken;
   }
   if (vacantCount === 1) {
-    return "One spot still open. Tap it to take it";
+    return m.oneSpotOpen;
   }
-  return `${vacantCount} of ${sides.length * 2} spots still open. Tap one to take it`;
+  return m.spotsOpen(vacantCount, sides.length * 2);
 }

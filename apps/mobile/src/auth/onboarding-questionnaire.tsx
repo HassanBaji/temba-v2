@@ -1,17 +1,17 @@
 import { colors, radii } from "@repo/design-tokens";
 import {
-  FOOTBALL_POSITION_CHOICES,
+  footballPositionChoices,
   KEEPER_CODE,
   type FootballPosition,
 } from "@repo/domain/football-lineup";
-import { FOOTBALL_SELF_PLACEMENT_CHOICES } from "@repo/domain/football-self-placement";
+import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
 import {
-  FOOTBALL_ROLE_CHOICES,
-  PADEL_LEVEL_CHOICES,
-  PADEL_NOT_SURE_LABEL,
+  footballRoleChoices,
+  padelLevelChoices,
+  padelNotSureLabel,
   PADEL_NOT_SURE_LEVEL,
-  PADEL_SIDE_CHOICES,
-  SPORT_CHOICES,
+  padelSideChoices,
+  sportChoices,
   initialOnboardingAnswers,
   onboardingSubmission,
   type OnboardingAnswers,
@@ -26,6 +26,7 @@ import { type Sport } from "@repo/domain/sport";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { ChoiceCard } from "../primitives/choice-card";
@@ -39,8 +40,6 @@ import { FormErrorSummary } from "./form-error-summary";
 import { RowChoices, TileChoices } from "./onboarding-choices";
 
 type OnboardingState = RouterOutputs["users"]["onboardingState"];
-
-const SAVE_LABEL = "Save sports";
 
 function SectionLabel(props: { label: string; hint?: string }) {
   return (
@@ -64,10 +63,11 @@ function SectionLabel(props: { label: string; hint?: string }) {
   );
 }
 
-function LevelAlreadySet(props: { sport: string }) {
+function LevelAlreadySet(props: { sport: Sport }) {
+  const m = useMessages();
   return (
     <Text size="meta" tone="muted">
-      Your {props.sport} Level is already set, so this step only saves the rest.
+      {m.mobileHome.questionnaire.levelAlreadySet[props.sport]}
     </Text>
   );
 }
@@ -86,6 +86,9 @@ export function SportsQuestionnaire({
   onDone: () => void;
   onBack: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const q = m.mobileHome.questionnaire;
   const utils = api.useUtils();
   const [question, setQuestion] = useState<OnboardingQuestion>("sports");
   const [answers, setAnswers] = useState(() => initialOnboardingAnswers(state));
@@ -99,7 +102,10 @@ export function SportsQuestionnaire({
     },
   });
 
-  const progress = sportsTaskMeta(onboardingProgress(answers.picked, question));
+  const progress = sportsTaskMeta(
+    onboardingProgress(answers.picked, question),
+    locale,
+  );
   const saving = complete.isPending || complete.isSuccess;
   const split = complete.error ? splitTrpcFormError(complete.error) : null;
   const update = (patch: Partial<OnboardingAnswers>) =>
@@ -135,11 +141,11 @@ export function SportsQuestionnaire({
       <AuthScreen
         onBack={onBack}
         progress={progress}
-        title="What do you play?"
-        description="Pick one or both. Each sport keeps its own Level and its own Games list."
+        title={q.sports.title}
+        description={q.sports.description}
         action={
           <Button
-            label={sportsContinueLabel(answers.picked)}
+            label={sportsContinueLabel(answers.picked, locale)}
             size="lg"
             disabled={nonePicked}
             onPress={() => next()}
@@ -147,7 +153,7 @@ export function SportsQuestionnaire({
         }
       >
         <View style={{ gap: 12 }}>
-          {SPORT_CHOICES.map((choice) => (
+          {sportChoices(locale).map((choice) => (
             <ChoiceCard
               key={choice.value}
               role="checkbox"
@@ -163,7 +169,7 @@ export function SportsQuestionnaire({
           ))}
         </View>
         <Text size="eyebrow" tone="muted">
-          Groups and bookings stay separate per sport.
+          {q.sports.note}
         </Text>
       </AuthScreen>
     );
@@ -175,18 +181,18 @@ export function SportsQuestionnaire({
       <AuthScreen
         onBack={saving ? undefined : back}
         progress={progress}
-        eyebrow="Padel"
-        title="Where would you place yourself?"
-        description="A starting point only. Rated matches confirm it."
+        eyebrow={m.common.padel}
+        title={q.padel.title}
+        description={q.padel.description}
         action={
           <>
             <Button
               label={
                 levelSet || answers.padelLevel
                   ? lastQuestion
-                    ? SAVE_LABEL
-                    : "Continue"
-                  : "Pick a Level"
+                    ? q.saveSports
+                    : m.common.continue
+                  : q.padel.pickLevel
               }
               size="lg"
               pending={saving}
@@ -213,7 +219,7 @@ export function SportsQuestionnaire({
                     textDecorationLine: "underline",
                   }}
                 >
-                  {PADEL_NOT_SURE_LABEL}
+                  {padelNotSureLabel(locale)}
                 </Text>
               </Pressable>
             )}
@@ -225,8 +231,8 @@ export function SportsQuestionnaire({
           <LevelAlreadySet sport="padel" />
         ) : (
           <RowChoices
-            label="Padel Level"
-            choices={PADEL_LEVEL_CHOICES.map((choice) => ({
+            label={q.padel.levelLabel}
+            choices={padelLevelChoices(locale).map((choice) => ({
               ...choice,
               mark: choice.value,
             }))}
@@ -235,13 +241,10 @@ export function SportsQuestionnaire({
           />
         )}
         <View style={{ gap: 10 }}>
-          <SectionLabel
-            label="Preferred side"
-            hint="a preference, not a promise"
-          />
+          <SectionLabel label={q.padel.preferredSide} hint={q.preferenceHint} />
           <TileChoices
-            label="Preferred side"
-            choices={PADEL_SIDE_CHOICES}
+            label={q.padel.preferredSide}
+            choices={padelSideChoices(locale)}
             value={answers.padelSide}
             onSelect={(padelSide) => update({ padelSide })}
           />
@@ -256,12 +259,12 @@ export function SportsQuestionnaire({
       <AuthScreen
         onBack={saving ? undefined : back}
         progress={progress}
-        eyebrow="Football"
-        title="How do you line up?"
-        description="Organizers use this to balance teams. You can change it per Game."
+        eyebrow={m.common.football}
+        title={q.football.title}
+        description={q.football.description}
         action={
           <Button
-            label={lastQuestion ? SAVE_LABEL : "Continue"}
+            label={lastQuestion ? q.saveSports : m.common.continue}
             size="lg"
             pending={saving}
             onPress={() => next()}
@@ -270,10 +273,10 @@ export function SportsQuestionnaire({
       >
         <FormErrorSummary message={split?.globalMessage} />
         <View style={{ gap: 10 }}>
-          <SectionLabel label="Usually join as" />
+          <SectionLabel label={q.football.usuallyJoinAs} />
           <TileChoices
-            label="Football role"
-            choices={FOOTBALL_ROLE_CHOICES}
+            label={q.football.roleLabel}
+            choices={footballRoleChoices(locale)}
             value={answers.footballRole}
             onSelect={(footballRole) => update({ footballRole })}
           />
@@ -306,18 +309,18 @@ export function SportsQuestionnaire({
               </View>
             </SurfaceToneContext.Provider>
             <Text size="meta" tone="muted" style={{ flex: 1 }}>
-              Keeper seats are limited to two a Game, one for each side.
+              {q.football.keeperSeats}
             </Text>
           </View>
         ) : (
           <View style={{ gap: 10 }}>
             <SectionLabel
-              label="Preferred position"
-              hint="a preference, not a promise"
+              label={q.football.preferredPosition}
+              hint={q.preferenceHint}
             />
             <TileChoices<FootballPosition>
-              label="Preferred football position"
-              choices={FOOTBALL_POSITION_CHOICES.map((choice) => ({
+              label={q.football.positionLabel}
+              choices={footballPositionChoices(locale).map((choice) => ({
                 value: choice.value,
                 name: choice.code,
                 detail: choice.label.toLowerCase(),
@@ -329,13 +332,13 @@ export function SportsQuestionnaire({
           </View>
         )}
         <View style={{ gap: 10 }}>
-          <SectionLabel label="Your level" />
+          <SectionLabel label={q.football.yourLevel} />
           {state.hasFootballRating ? (
             <LevelAlreadySet sport="football" />
           ) : (
             <>
               <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
-                {FOOTBALL_SELF_PLACEMENT_CHOICES.map((choice) => (
+                {footballSelfPlacementChoices(locale).map((choice) => (
                   <ChoiceCard
                     key={choice.value}
                     role="radio"
@@ -348,8 +351,7 @@ export function SportsQuestionnaire({
                 ))}
               </View>
               <Text size="eyebrow" tone="muted">
-                Self-placed for now. It balances teams until football results
-                are rated.
+                {q.football.selfPlaced}
               </Text>
             </>
           )}

@@ -6,18 +6,14 @@ import {
   levelSliderLabel,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { firstName } from "./group-home-model";
 import { groupPath } from "./groups-model";
 
 /** A member with no Rating starts from the default placement, Level 3.0. */
 const DEFAULT_CURRENT_TENTHS = 30;
-
-export const SET_LEVEL_NOT_FOUND_COPY = {
-  title: "Member not found",
-  description:
-    "They may have left the Group, or you may not be able to set their Level.",
-};
 
 export type SetLevelView = {
   userId: string;
@@ -28,16 +24,18 @@ export type SetLevelView = {
   note: string;
 };
 
-export function setLevelView(entry: GroupLeaderboardEntryData): SetLevelView {
-  const name = entry.name ?? "Member";
+export function setLevelView(
+  entry: GroupLeaderboardEntryData,
+  locale: Locale,
+): SetLevelView {
+  const m = messagesFor(locale).mobileGroup;
+  const name = entry.name ?? m.unnamedMember;
   const currentTenths = entry.level
     ? clampLevelTenths(Number(entry.level) * 10)
     : DEFAULT_CURRENT_TENTHS;
   const note = [
-    "A Level you set counts as confirmed. Rated Matches keep moving it from here.",
-    entry.levelProvisional
-      ? `${firstName(name)} will no longer be Provisional, and setting again will not change that.`
-      : null,
+    m.setLevel.note,
+    entry.levelProvisional ? m.setLevel.noteProvisional(firstName(name)) : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -46,8 +44,8 @@ export function setLevelView(entry: GroupLeaderboardEntryData): SetLevelView {
     name,
     currentTenths,
     wasLabel: entry.level
-      ? `was ${levelSliderLabel(currentTenths)}`
-      : "no Level yet",
+      ? m.setLevel.was(levelSliderLabel(currentTenths))
+      : m.setLevel.noLevelYet,
     alreadyConfirmed: entry.level !== null && !entry.levelProvisional,
     note,
   };
@@ -57,8 +55,10 @@ export function setLevelUnchanged(view: SetLevelView, tenths: number) {
   return view.alreadyConfirmed && tenths === view.currentTenths;
 }
 
-export function setLevelConfirmLabel(tenths: number) {
-  return `Set to ${levelSliderLabel(tenths)}`;
+export function setLevelConfirmLabel(tenths: number, locale: Locale) {
+  return messagesFor(locale).mobileGroup.setLevel.confirm(
+    levelSliderLabel(tenths),
+  );
 }
 
 export function setLevelPath(groupId: string, userId: string) {
@@ -108,12 +108,15 @@ export function savedLevelFromParams(
   };
 }
 
-export function savedLevelText(saved: SavedLevel) {
-  const reason = saved.reason ? levelOverrideReasonLabel(saved.reason) : null;
+export function savedLevelText(saved: SavedLevel, locale: Locale) {
+  const m = messagesFor(locale).mobileGroup.setLevel;
+  const reason = saved.reason
+    ? levelOverrideReasonLabel(saved.reason, locale)
+    : null;
   return {
-    headline: `${saved.name} set to ${saved.levelLabel}.`,
+    headline: m.savedHeadline(saved.name, saved.levelLabel),
     reason: reason
-      ? `Reason: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`
+      ? m.savedReason(`${reason.charAt(0).toLowerCase()}${reason.slice(1)}`)
       : null,
   };
 }

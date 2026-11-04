@@ -8,6 +8,7 @@ import {
   footballScorersProblem,
   footballSidesProblem,
   footballSlotCode,
+  footballTeamsMethodLabel,
   keeperSeatsLine,
   keepersInLine,
   pickFootballBib,
@@ -26,31 +27,34 @@ describe("footballSlotCode", () => {
 
 describe("keeper lines", () => {
   it("counts the two keeper seats down", () => {
-    expect(keeperSeatsLine(0)).toBe("2 of 2 keeper seats open");
-    expect(keeperSeatsLine(1)).toBe("1 of 2 keeper seats open");
-    expect(keeperSeatsLine(2)).toBe("both keeper seats taken");
-    expect(keepersInLine(0)).toBe("no keeper yet");
-    expect(keepersInLine(1)).toBe("1 keeper, one more needed");
-    expect(keepersInLine(2)).toBe("2 keepers in");
+    expect(keeperSeatsLine(0, "en")).toBe("2 of 2 keeper seats open");
+    expect(keeperSeatsLine(1, "en")).toBe("1 of 2 keeper seats open");
+    expect(keeperSeatsLine(2, "en")).toBe("both keeper seats taken");
+    expect(keepersInLine(0, "en")).toBe("no keeper yet");
+    expect(keepersInLine(1, "en")).toBe("1 keeper, one more needed");
+    expect(keepersInLine(2, "en")).toBe("2 keepers in");
   });
 
   it("counts positions with keepers apart", () => {
     expect(
-      positionCountsLine([
-        { role: "outfield", position: "def" },
-        { role: "keeper", position: "def" },
-        { role: "outfield", position: "mid" },
-        { role: null, position: null },
-      ]),
+      positionCountsLine(
+        [
+          { role: "outfield", position: "def" },
+          { role: "keeper", position: "def" },
+          { role: "outfield", position: "mid" },
+          { role: null, position: null },
+        ],
+        "en",
+      ),
     ).toBe("In so far: 1 DEF, 1 MID, 0 FWD, 1 GK.");
   });
 });
 
 describe("bibs", () => {
   it("names a side by its bib, defaulting to Black and White", () => {
-    expect(footballBibName("navy", 1)).toBe("Dark blue");
-    expect(footballBibName(null, 1)).toBe("Black");
-    expect(footballBibName(null, 2)).toBe("White");
+    expect(footballBibName("navy", 1, "en")).toBe("Dark blue");
+    expect(footballBibName(null, 1, "en")).toBe("Black");
+    expect(footballBibName(null, 2, "en")).toBe("White");
   });
 
   it("swaps the bibs when one side picks the other's colour", () => {
@@ -100,15 +104,24 @@ describe("footballSidesProblem", () => {
 
   it("blocks unplaced players, an empty side and a lopsided split", () => {
     expect(
-      footballSidesProblem({ slot1: ["a"], slot2: [], unplaced: 2 }, names),
+      footballSidesProblem(
+        { slot1: ["a"], slot2: [], unplaced: 2 },
+        names,
+        "en",
+      ),
     ).toBe("2 still to place.");
     expect(
-      footballSidesProblem({ slot1: ["a"], slot2: [], unplaced: 0 }, names),
+      footballSidesProblem(
+        { slot1: ["a"], slot2: [], unplaced: 0 },
+        names,
+        "en",
+      ),
     ).toBe("Both teams need players.");
     expect(
       footballSidesProblem(
         { slot1: ["a", "b", "c", "d"], slot2: ["e", "f"], unplaced: 0 },
         names,
+        "en",
       ),
     ).toBe("Black has 2 extra. Move one across before publishing.");
   });
@@ -118,6 +131,7 @@ describe("footballSidesProblem", () => {
       footballSidesProblem(
         { slot1: ["a", "b", "c"], slot2: ["d", "e"], unplaced: 0 },
         names,
+        "en",
       ),
     ).toBeNull();
   });
@@ -133,13 +147,15 @@ describe("score", () => {
   });
 
   it("reads the winner and the margin", () => {
-    expect(footballResultLine({ slot1: 4, slot2: 3 }, names)).toBe(
+    expect(footballResultLine({ slot1: 4, slot2: 3 }, names, "en")).toBe(
       "Black win by 1.",
     );
-    expect(footballResultLine({ slot1: 1, slot2: 3 }, names)).toBe(
+    expect(footballResultLine({ slot1: 1, slot2: 3 }, names, "en")).toBe(
       "White win by 2.",
     );
-    expect(footballResultLine({ slot1: 2, slot2: 2 }, names)).toBe("Draw.");
+    expect(footballResultLine({ slot1: 2, slot2: 2 }, names, "en")).toBe(
+      "Draw.",
+    );
   });
 
   it("refuses more named goals than the Score", () => {
@@ -148,6 +164,7 @@ describe("score", () => {
         { slot1: 2, slot2: 1 },
         { slot1: 3, slot2: 0 },
         names,
+        "en",
       ),
     ).toBe("Black scorers add up to more than 2.");
     expect(
@@ -155,8 +172,24 @@ describe("score", () => {
         { slot1: 2, slot2: 1 },
         { slot1: 1, slot2: 1 },
         names,
+        "en",
       ),
     ).toBeNull();
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads keeper seats, bibs and the result line in Arabic", () => {
+    expect(keeperSeatsLine(2, "ar")).toBe("مكانا الحارسين محجوزان");
+    expect(footballBibName("navy", 1, "ar")).toBe("أزرق داكن");
+    expect(footballTeamsMethodLabel("level", "ar")).toBe("متوازنة حسب المستوى");
+    expect(
+      footballResultLine(
+        { slot1: 4, slot2: 3 },
+        { slot1: "أسود", slot2: "أبيض" },
+        "ar",
+      ),
+    ).toBe("أسود يفوز بفارق 1.");
   });
 });
 

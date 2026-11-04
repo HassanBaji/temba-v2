@@ -32,17 +32,17 @@ function day(date: string) {
 describe("playerMatchKindLabel", () => {
   it("names a Friendly game by its Group, or plainly without one", () => {
     expect(
-      playerMatchKindLabel({ ...FRIENDLY, groupName: "Tuesday Crew" }),
+      playerMatchKindLabel({ ...FRIENDLY, groupName: "Tuesday Crew" }, "en"),
     ).toBe("Tuesday Crew");
-    expect(playerMatchKindLabel(FRIENDLY)).toBe("Friendly game");
+    expect(playerMatchKindLabel(FRIENDLY, "en")).toBe("Friendly game");
   });
 
   it("names a Pool Match by the tournament and its Round", () => {
     const pool = { ...FRIENDLY, format: "friendly_tournament", roundNumber: 2 };
-    expect(playerMatchKindLabel({ ...pool, name: "Autumn Cup" })).toBe(
+    expect(playerMatchKindLabel({ ...pool, name: "Autumn Cup" }, "en")).toBe(
       "Autumn Cup, Round 2",
     );
-    expect(playerMatchKindLabel({ ...pool, name: null })).toBe(
+    expect(playerMatchKindLabel({ ...pool, name: null }, "en")).toBe(
       "Friendly tournament, Round 2",
     );
   });
@@ -55,28 +55,37 @@ describe("playerMatchKindLabel", () => {
       roundNumber: null,
     };
     expect(
-      playerMatchKindLabel({
-        ...knockout,
-        knockoutRound: { round: 2, roundCount: 2 },
-      }),
+      playerMatchKindLabel(
+        {
+          ...knockout,
+          knockoutRound: { round: 2, roundCount: 2 },
+        },
+        "en",
+      ),
     ).toBe("Autumn Cup, Final");
     expect(
-      playerMatchKindLabel({
-        ...knockout,
-        name: " ",
-        knockoutRound: { round: 1, roundCount: 3 },
-      }),
+      playerMatchKindLabel(
+        {
+          ...knockout,
+          name: " ",
+          knockoutRound: { round: 1, roundCount: 3 },
+        },
+        "en",
+      ),
     ).toBe("Friendly tournament, Quarter-final");
   });
 
   it("names every Americano Match plainly", () => {
     expect(
-      playerMatchKindLabel({
-        ...FRIENDLY,
-        format: "americano",
-        groupName: "Tuesday Crew",
-        roundNumber: 3,
-      }),
+      playerMatchKindLabel(
+        {
+          ...FRIENDLY,
+          format: "americano",
+          groupName: "Tuesday Crew",
+          roundNumber: 3,
+        },
+        "en",
+      ),
     ).toBe("Americano");
   });
 });
@@ -92,15 +101,19 @@ describe("levelChangeLabel", () => {
 
 describe("levelTrendLabel", () => {
   it("reads the Last 10 trend and hides with no rated Match", () => {
-    expect(levelTrendLabel({ levelChange: 0.2 })).toBe("Last 10: +0.2");
-    expect(levelTrendLabel({ levelChange: -0.3 })).toBe("Last 10: −0.3");
-    expect(levelTrendLabel(null)).toBeNull();
+    expect(levelTrendLabel({ levelChange: 0.2 }, "en")).toBe("Last 10: +0.2");
+    expect(levelTrendLabel({ levelChange: -0.3 }, "en")).toBe("Last 10: −0.3");
+    expect(levelTrendLabel(null, "en")).toBeNull();
   });
 });
 
 describe("playerMatchRowView", () => {
   it("reads opponents, date, kind, Sets and the delta", () => {
-    const row = playerMatchRowView(fixtures.confirmed.lastMatches[0]!, ELIN_ID);
+    const row = playerMatchRowView(
+      fixtures.confirmed.lastMatches[0]!,
+      ELIN_ID,
+      "en",
+    );
     expect(row).toEqual({
       matchId: "match-2026-10-01",
       outcome: "won",
@@ -119,6 +132,7 @@ describe("playerMatchRowView", () => {
     const row = playerMatchRowView(
       { ...fixtures.confirmed.lastMatches[4]!, rated: false },
       ELIN_ID,
+      "en",
     );
     expect(row.unrated).toBe(true);
     expect(row.delta).toBeNull();
@@ -129,6 +143,7 @@ describe("playerMatchRowView", () => {
     const row = playerMatchRowView(
       fixtures.provisional.lastMatches[0]!,
       ELIN_ID,
+      "en",
     );
     expect(row.opponents).toBe("vs Sofia L & Adam R");
     expect(row.sets).toEqual(["6–4", "7–6"]);
@@ -136,17 +151,21 @@ describe("playerMatchRowView", () => {
 
   it("names the partner from the owner's side, or just the Venue alone", () => {
     const slot2 = fixtures.provisional.lastMatches[0]!;
-    expect(playerMatchRowView(slot2, ELIN_ID).partnerVenue).toBe(
+    expect(playerMatchRowView(slot2, ELIN_ID, "en").partnerVenue).toBe(
       "with Jonas B, Padelhuset Bromma",
     );
     const alone = { ...slot2, slot2: slot2.slot2.slice(0, 1) };
-    expect(playerMatchRowView(alone, ELIN_ID).partnerVenue).toBe(
+    expect(playerMatchRowView(alone, ELIN_ID, "en").partnerVenue).toBe(
       "Padelhuset Bromma",
     );
   });
 
   it("shows no delta for an unrated Match", () => {
-    const row = playerMatchRowView(fixtures.confirmed.lastMatches[4]!, ELIN_ID);
+    const row = playerMatchRowView(
+      fixtures.confirmed.lastMatches[4]!,
+      ELIN_ID,
+      "en",
+    );
     expect(row.delta).toBeNull();
     expect(row.meta).toBe("Sun 20 Sep, Friendly game");
     expect(row.accessibilityLabel).not.toContain("rating");
@@ -154,11 +173,11 @@ describe("playerMatchRowView", () => {
 
   it("speaks a flat and a falling rating", () => {
     expect(
-      playerMatchRowView(fixtures.confirmed.lastMatches[1]!, ELIN_ID)
+      playerMatchRowView(fixtures.confirmed.lastMatches[1]!, ELIN_ID, "en")
         .accessibilityLabel,
     ).toMatch(/rating unchanged$/);
     expect(
-      playerMatchRowView(fixtures.confirmed.lastMatches[7]!, ELIN_ID)
+      playerMatchRowView(fixtures.confirmed.lastMatches[7]!, ELIN_ID, "en")
         .accessibilityLabel,
     ).toMatch(/^Lost against .*rating down 0\.1$/);
   });
@@ -167,7 +186,7 @@ describe("playerMatchRowView", () => {
     expect(
       fixtures.confirmed.lastMatches
         .slice(0, 5)
-        .map((match) => playerMatchKindLabel(match.game)),
+        .map((match) => playerMatchKindLabel(match.game, "en")),
     ).toEqual([
       "Tuesday Crew",
       "Autumn Cup, Round 2",
@@ -180,7 +199,7 @@ describe("playerMatchRowView", () => {
 
 describe("lastTenSummary", () => {
   it("counts the record and puts the newest mark first", () => {
-    const summary = lastTenSummary(fixtures.confirmed.lastMatches);
+    const summary = lastTenSummary(fixtures.confirmed.lastMatches, "en");
     expect(summary.record).toBe("7 won, 3 lost");
     expect(summary.marks).toEqual([
       "won",
@@ -199,11 +218,14 @@ describe("lastTenSummary", () => {
   });
 
   it("adds draws to the record and fills hatched slots", () => {
-    const summary = lastTenSummary([
-      { outcome: "draw", playedAt: day("2026-10-01") },
-      { outcome: "won", playedAt: day("2026-09-28") },
-      { outcome: "lost", playedAt: day("2026-09-26") },
-    ]);
+    const summary = lastTenSummary(
+      [
+        { outcome: "draw", playedAt: day("2026-10-01") },
+        { outcome: "won", playedAt: day("2026-09-28") },
+        { outcome: "lost", playedAt: day("2026-09-26") },
+      ],
+      "en",
+    );
     expect(summary.record).toBe("1 won, 1 lost, 1 drawn");
     expect(summary.marks).toEqual([
       "draw",
@@ -217,12 +239,13 @@ describe("lastTenSummary", () => {
 
   it("reads one game in the singular", () => {
     expect(
-      lastTenSummary([{ outcome: "won", playedAt: day("2026-10-01") }]).seeAll,
+      lastTenSummary([{ outcome: "won", playedAt: day("2026-10-01") }], "en")
+        .seeAll,
     ).toBe("See all 1 game");
   });
 
   it("reads No games yet with ten hatched slots and no See all", () => {
-    expect(lastTenSummary([])).toEqual({
+    expect(lastTenSummary([], "en")).toEqual({
       record: "No games yet.",
       marks: Array.from({ length: 10 }, () => "not-played"),
       ends: null,
@@ -235,8 +258,28 @@ describe("lastTenSummary", () => {
       outcome: "won" as const,
       playedAt: day("2026-10-01"),
     }));
-    expect(lastTenSummary(eleven).marks).toHaveLength(10);
-    expect(lastTenSummary(eleven).record).toBe("10 won, 0 lost");
+    expect(lastTenSummary(eleven, "en").marks).toHaveLength(10);
+    expect(lastTenSummary(eleven, "en").record).toBe("10 won, 0 lost");
+  });
+});
+
+describe("Last 10 in Arabic", () => {
+  it("reads the kind, the row and the summary", () => {
+    expect(playerMatchKindLabel(FRIENDLY, "ar")).toBe("مباراة ودية");
+    const row = playerMatchRowView(
+      fixtures.confirmed.lastMatches[0]!,
+      ELIN_ID,
+      "ar",
+    );
+    expect(row.opponents).toBe("ضد Sofia L وAdam R");
+    expect(row.accessibilityLabel.startsWith("فاز ضد Sofia L وAdam R، ")).toBe(
+      true,
+    );
+    expect(row.accessibilityLabel.endsWith("التصنيف ارتفع 0.1")).toBe(true);
+    const summary = lastTenSummary(fixtures.confirmed.lastMatches, "ar");
+    expect(summary.record).toBe("7 فوز، 3 خسارة");
+    expect(summary.seeAll).toBe("عرض المباريات الـ10 كلها");
+    expect(filterLastTen([], "all", "ar").empty).toBe("لا مباريات هنا.");
   });
 });
 
@@ -244,7 +287,7 @@ describe("filterLastTen", () => {
   const matches = fixtures.confirmed.lastMatches;
 
   it("labels the chips with live counts", () => {
-    expect(filterLastTen(matches, "all").chips).toEqual([
+    expect(filterLastTen(matches, "all", "en").chips).toEqual([
       { filter: "all", label: "All 10", count: 10 },
       { filter: "won", label: "Won 7", count: 7 },
       { filter: "lost", label: "Lost 3", count: 3 },
@@ -252,15 +295,15 @@ describe("filterLastTen", () => {
   });
 
   it("keeps the newest-first order inside a filter", () => {
-    const lost = filterLastTen(matches, "lost");
+    const lost = filterLastTen(matches, "lost", "en");
     expect(lost.matches.map((match) => match.matchId)).toEqual([
       "match-2026-09-20",
       "match-2026-09-11",
       "match-2026-09-05",
     ]);
     expect(lost.empty).toBeNull();
-    expect(filterLastTen(matches, "won").matches).toHaveLength(7);
-    expect(filterLastTen(matches, "all").matches).toHaveLength(10);
+    expect(filterLastTen(matches, "won", "en").matches).toHaveLength(7);
+    expect(filterLastTen(matches, "all", "en").matches).toHaveLength(10);
   });
 
   it("shows draws under All only and reads All N below ten", () => {
@@ -269,35 +312,37 @@ describe("filterLastTen", () => {
       { outcome: "won" as const },
       { outcome: "draw" as const },
     ];
-    const all = filterLastTen(draws, "all");
+    const all = filterLastTen(draws, "all", "en");
     expect(all.chips.map((chip) => chip.label)).toEqual([
       "All 3",
       "Won 1",
       "Lost 0",
     ]);
     expect(all.matches).toHaveLength(3);
-    expect(filterLastTen(draws, "won").matches).toEqual([{ outcome: "won" }]);
+    expect(filterLastTen(draws, "won", "en").matches).toEqual([
+      { outcome: "won" },
+    ]);
   });
 
   it("reads No games here. for an empty filter", () => {
-    const lost = filterLastTen([{ outcome: "won" as const }], "lost");
+    const lost = filterLastTen([{ outcome: "won" as const }], "lost", "en");
     expect(lost.matches).toEqual([]);
     expect(lost.empty).toBe("No games here.");
-    expect(filterLastTen([], "all").empty).toBe("No games here.");
+    expect(filterLastTen([], "all", "en").empty).toBe("No games here.");
   });
 
   it("never lists more than ten Matches", () => {
     const eleven = Array.from({ length: 11 }, () => ({
       outcome: "won" as const,
     }));
-    expect(filterLastTen(eleven, "all").chips[0]?.label).toBe("All 10");
-    expect(filterLastTen(eleven, "won").matches).toHaveLength(10);
+    expect(filterLastTen(eleven, "all", "en").chips[0]?.label).toBe("All 10");
+    expect(filterLastTen(eleven, "won", "en").matches).toHaveLength(10);
   });
 });
 
 describe("playerMatchSheetView", () => {
   it("reads the kind, date, Venue, badge, both teams and Set chips", () => {
-    const sheet = playerMatchSheetView(matchAt(0), "Elin Nilsson");
+    const sheet = playerMatchSheetView(matchAt(0), "Elin Nilsson", "en");
     expect(sheet.title).toBe("Tuesday Crew");
     expect(sheet.subtitle).toBe("Thu 1 Oct, Padelhuset Bromma");
     expect(sheet.badge).toBe("Won");
@@ -318,7 +363,7 @@ describe("playerMatchSheetView", () => {
   });
 
   it("hatches a Provisional player's Level", () => {
-    const adam = playerMatchSheetView(matchAt(0), "Elin Nilsson").teams[1]
+    const adam = playerMatchSheetView(matchAt(0), "Elin Nilsson", "en").teams[1]
       .players[1];
     expect(adam?.level).toBeNull();
     expect(adam?.accessibilityLabel).toBe("Adam Ross, Level still Provisional");
@@ -328,6 +373,7 @@ describe("playerMatchSheetView", () => {
     const sheet = playerMatchSheetView(
       fixtures.provisional.lastMatches[0]!,
       "Elin Nilsson",
+      "en",
     );
     expect(sheet.teams[0].players[0]?.userId).toBe(ELIN_ID);
     expect(sheet.teams[0].sets.map((set) => set.games)).toEqual([6, 7]);
@@ -343,7 +389,7 @@ describe("playerMatchSheetView", () => {
         { slot1GamesWon: 6, slot2GamesWon: 4 },
       ],
     };
-    const sheet = playerMatchSheetView(drawn, "Elin Nilsson");
+    const sheet = playerMatchSheetView(drawn, "Elin Nilsson", "en");
     expect(sheet.badge).toBe("Draw");
     expect(sheet.teams[0].sets[0]).toEqual({ games: 6, won: false });
     expect(sheet.teams[1].sets[0]).toEqual({ games: 6, won: false });
@@ -362,6 +408,7 @@ describe("playerMatchSheetView", () => {
         },
       },
       "Elin Nilsson",
+      "en",
     );
     expect(sheet.rating).toEqual({
       label: "Elin N's rating",
@@ -373,7 +420,7 @@ describe("playerMatchSheetView", () => {
   });
 
   it("has no rating line for an unrated Match and hides Open game", () => {
-    const sheet = playerMatchSheetView(matchAt(4), "Elin Nilsson");
+    const sheet = playerMatchSheetView(matchAt(4), "Elin Nilsson", "en");
     expect(sheet.rating).toBeNull();
     expect(sheet.canOpenGame).toBe(false);
   });

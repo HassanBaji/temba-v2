@@ -40,63 +40,80 @@ describe("sortGroupMembers", () => {
 describe("groupMemberTableCaption", () => {
   it("reads Organizer first", () => {
     expect(
-      groupMemberTableCaption({
-        isOrganizer: true,
-        lastPlayedAt: "2026-10-24T17:00:00Z",
-        joinedAt: null,
-      }),
+      groupMemberTableCaption(
+        {
+          isOrganizer: true,
+          lastPlayedAt: "2026-10-24T17:00:00Z",
+          joinedAt: null,
+        },
+        "en",
+      ),
     ).toBe("Organizer");
   });
 
   it("reads when the member last played, in Bahrain time", () => {
     expect(
-      groupMemberTableCaption({
-        isOrganizer: false,
-        lastPlayedAt: "2026-10-24T17:00:00Z",
-        joinedAt: "2026-10-01T09:00:00Z",
-      }),
+      groupMemberTableCaption(
+        {
+          isOrganizer: false,
+          lastPlayedAt: "2026-10-24T17:00:00Z",
+          joinedAt: "2026-10-01T09:00:00Z",
+        },
+        "en",
+      ),
     ).toBe("Last Sat 24 Oct");
   });
 
   it("falls back to the join date, then to nothing", () => {
     expect(
-      groupMemberTableCaption({
-        isOrganizer: false,
-        lastPlayedAt: null,
-        joinedAt: new Date("2026-10-22T09:00:00Z"),
-      }),
+      groupMemberTableCaption(
+        {
+          isOrganizer: false,
+          lastPlayedAt: null,
+          joinedAt: new Date("2026-10-22T09:00:00Z"),
+        },
+        "en",
+      ),
     ).toBe("Joined Thu 22 Oct");
     expect(
-      groupMemberTableCaption({
-        isOrganizer: false,
-        lastPlayedAt: null,
-        joinedAt: null,
-      }),
+      groupMemberTableCaption(
+        { isOrganizer: false, lastPlayedAt: null, joinedAt: null },
+        "en",
+      ),
     ).toBeNull();
+  });
+
+  it("reads in Arabic", () => {
+    expect(
+      groupMemberTableCaption(
+        { isOrganizer: true, lastPlayedAt: null, joinedAt: null },
+        "ar",
+      ),
+    ).toBe("المنظّم");
   });
 });
 
 describe("groupMembersLegend", () => {
   it("explains the hatch only on a Group with Levels", () => {
-    expect(groupMembersLegend({ showLevel: true })).toBe(
+    expect(groupMembersLegend({ showLevel: true, locale: "en" })).toBe(
       "Hatched Levels are still Provisional.",
     );
-    expect(groupMembersLegend({ showLevel: false })).toBeNull();
+    expect(groupMembersLegend({ showLevel: false, locale: "en" })).toBeNull();
   });
 });
 
 describe("groupPendingInvitesTitle", () => {
   it("pluralises invite", () => {
-    expect(groupPendingInvitesTitle(1)).toBe("1 invite pending");
-    expect(groupPendingInvitesTitle(2)).toBe("2 invites pending");
+    expect(groupPendingInvitesTitle(1, "en")).toBe("1 invite pending");
+    expect(groupPendingInvitesTitle(2, "en")).toBe("2 invites pending");
   });
 });
 
 describe("groupPendingInviteCaption", () => {
   it("reads the day the invite was sent", () => {
-    expect(groupPendingInviteCaption("2026-10-26T08:00:00Z")).toBe(
+    expect(groupPendingInviteCaption("2026-10-26T08:00:00Z", "en")).toBe(
       "Invited Mon 26 Oct",
     );
-    expect(groupPendingInviteCaption("not a date")).toBeNull();
+    expect(groupPendingInviteCaption("not a date", "en")).toBeNull();
   });
 });

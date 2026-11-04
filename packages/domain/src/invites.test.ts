@@ -19,51 +19,69 @@ const inviter = { name: "Sam Chen", image: null };
 
 describe("inviteRowMeta", () => {
   it("names the host kind and the inviter", () => {
-    expect(inviteRowMeta("team", "Sam Chen")).toBe("Team invite from Sam Chen");
-    expect(inviteRowMeta("game", null)).toBe("Game invite from Someone");
+    expect(inviteRowMeta("team", "Sam Chen", "en")).toBe(
+      "Team invite from Sam Chen",
+    );
+    expect(inviteRowMeta("game", null, "en")).toBe("Game invite from Someone");
+  });
+
+  it("reads in Arabic", () => {
+    expect(inviteRowMeta("team", "Sam Chen", "ar")).toBe(
+      "دعوة إلى فريق من Sam Chen",
+    );
   });
 });
 
 describe("mergeInviteInbox", () => {
   it("merges all four hosts, newest first", () => {
-    const items = mergeInviteInbox({
-      community: [
-        {
-          id: "c1",
-          createdAt: new Date("2026-09-01T10:00:00Z"),
-          invitedBy: inviter,
-          communityName: "Bromma",
-        },
-      ],
-      group: [
-        {
-          id: "g1",
-          createdAt: new Date("2026-09-03T10:00:00Z"),
-          invitedBy: { name: null, image: null },
-          groupName: null,
-        },
-      ],
-      team: [
-        {
-          id: "t1",
-          createdAt: "2026-09-02T10:00:00Z",
-          invitedBy: inviter,
-          displayName: "Sam & you",
-        },
-      ],
-      game: [
-        {
-          id: "x1",
-          createdAt: new Date("2026-09-04T10:00:00Z"),
-          invitedBy: inviter,
-          gameName: "Tuesday",
-          needsSeatPick: false,
-          registrationStatus: "open",
-          sides: [],
-          vacantSeats: [],
-        },
-      ],
-    });
+    const items = mergeInviteInbox(
+      {
+        community: [
+          {
+            id: "c1",
+            createdAt: new Date("2026-09-01T10:00:00Z"),
+            invitedBy: inviter,
+            communityName: "Bromma",
+          },
+        ],
+        group: [
+          {
+            id: "g1",
+            createdAt: new Date("2026-09-03T10:00:00Z"),
+            invitedBy: { name: null, image: null },
+            groupName: null,
+          },
+        ],
+        team: [
+          {
+            id: "t1",
+            createdAt: "2026-09-02T10:00:00Z",
+            invitedBy: inviter,
+            displayName: "Sam & you",
+          },
+        ],
+        game: [
+          {
+            id: "x1",
+            createdAt: new Date("2026-09-04T10:00:00Z"),
+            invitedBy: inviter,
+            gameName: "Tuesday",
+            game: {
+              name: "Tuesday",
+              hasCustomName: true,
+              format: "friendly_game",
+              windowStart: null,
+              windowEnd: null,
+            },
+            needsSeatPick: false,
+            registrationStatus: "open",
+            sides: [],
+            vacantSeats: [],
+          },
+        ],
+      },
+      "en",
+    );
     expect(items.map((item) => item.key)).toEqual([
       "game-x1",
       "group-g1",
@@ -79,20 +97,30 @@ describe("mergeInviteInbox", () => {
   });
 
   it("carries the seat state for a Game that needs a seat pick", () => {
-    const [item] = mergeInviteInbox({
-      game: [
-        {
-          id: "x1",
-          createdAt: new Date(),
-          invitedBy: inviter,
-          gameName: "Tuesday",
-          needsSeatPick: true,
-          registrationStatus: "full",
-          sides: [{ sideIndex: 1, left: { name: "Ada" }, right: null }],
-          vacantSeats: [{ sideIndex: 1, position: "right" }],
-        },
-      ],
-    });
+    const [item] = mergeInviteInbox(
+      {
+        game: [
+          {
+            id: "x1",
+            createdAt: new Date(),
+            invitedBy: inviter,
+            gameName: "Tuesday",
+            game: {
+              name: "Tuesday",
+              hasCustomName: true,
+              format: "friendly_game",
+              windowStart: null,
+              windowEnd: null,
+            },
+            needsSeatPick: true,
+            registrationStatus: "full",
+            sides: [{ sideIndex: 1, left: { name: "Ada" }, right: null }],
+            vacantSeats: [{ sideIndex: 1, position: "right" }],
+          },
+        ],
+      },
+      "en",
+    );
     expect(item?.seatPick).toMatchObject({
       joinFrozen: false,
       waitlistOnly: true,
@@ -130,51 +158,57 @@ describe("gameInviteSeatCopy", () => {
   const frozen = { joinFrozen: true, waitlistOnly: false };
 
   it("asks for a vacant Position when one is open", () => {
-    expect(gameInviteSeatCopy(open, "inbox")).toContain("Pick a vacant");
+    expect(gameInviteSeatCopy(open, "inbox", "en")).toContain("Pick a vacant");
   });
 
   it("tells a full Game's invitee about the waitlist on a link only", () => {
-    expect(gameInviteSeatCopy(waitlist, "link")).toContain("waitlist");
-    expect(gameInviteSeatCopy(waitlist, "inbox")).not.toContain("waitlist");
+    expect(gameInviteSeatCopy(waitlist, "link", "en")).toContain("waitlist");
+    expect(gameInviteSeatCopy(waitlist, "inbox", "en")).not.toContain(
+      "waitlist",
+    );
   });
 
   it("explains a frozen Game and a signed-out visitor", () => {
-    expect(gameInviteSeatCopy(frozen, "link")).toContain("not open");
-    expect(gameInviteSeatCopy(open, "link-signed-out")).toContain("Sign in");
+    expect(gameInviteSeatCopy(frozen, "link", "en")).toContain("not open");
+    expect(gameInviteSeatCopy(open, "link-signed-out", "en")).toContain(
+      "Sign in",
+    );
   });
 });
 
 describe("toasts", () => {
   it("reads the accepted host", () => {
-    expect(lookupInviteAcceptToast("community")).toBe("Joined Community");
-    expect(lookupInviteAcceptToast("game", { waitlisted: true })).toBe(
+    expect(lookupInviteAcceptToast("community", "en")).toBe("Joined Community");
+    expect(lookupInviteAcceptToast("game", "en", { waitlisted: true })).toBe(
       "Joined waitlist",
     );
-    expect(lookupInviteAcceptToast("game", { waitlisted: false })).toBe(
+    expect(lookupInviteAcceptToast("game", "en", { waitlisted: false })).toBe(
       "Joined Game",
     );
   });
 
   it("reads the Invite link outcome", () => {
-    expect(inviteLinkAcceptToast("group")).toBe("Joined Group");
-    expect(inviteLinkAcceptToast("game", "already")).toBe(
+    expect(inviteLinkAcceptToast("group", "en")).toBe("Joined Group");
+    expect(inviteLinkAcceptToast("game", "en", "already")).toBe(
       "Already on this Game",
     );
-    expect(inviteLinkAcceptToast("game", "waiting_for_partner")).toBe(
+    expect(inviteLinkAcceptToast("game", "en", "waiting_for_partner")).toBe(
       "Waiting for your Team partner to accept",
     );
-    expect(inviteLinkAcceptToast("game", "waitlisted")).toBe("Joined waitlist");
-    expect(inviteLinkAcceptToast("game", "registered", true)).toBe(
+    expect(inviteLinkAcceptToast("game", "en", "waitlisted")).toBe(
+      "Joined waitlist",
+    );
+    expect(inviteLinkAcceptToast("game", "en", "registered", true)).toBe(
       "Joined Game and its Group",
     );
-    expect(inviteLinkAcceptToast("game", "waitlisted", true)).toBe(
+    expect(inviteLinkAcceptToast("game", "en", "waitlisted", true)).toBe(
       "Joined waitlist and the Group",
     );
   });
 
   it("counts sent Lookup invites", () => {
-    expect(lookupInviteSentToast(1)).toBe("Lookup invite sent");
-    expect(lookupInviteSentToast(3)).toBe("3 Lookup invites sent");
+    expect(lookupInviteSentToast(1, "en")).toBe("Lookup invite sent");
+    expect(lookupInviteSentToast(3, "en")).toBe("3 Lookup invites sent");
   });
 });
 
@@ -278,8 +312,8 @@ describe("gameInviteLinkStage", () => {
 
 describe("groupLookupNote", () => {
   it("differs for Loose and Club Groups", () => {
-    expect(groupLookupNote(true)).toContain("Organizers");
-    expect(groupLookupNote(false)).toContain("Owners and Admins");
+    expect(groupLookupNote(true, "en")).toContain("Organizers");
+    expect(groupLookupNote(false, "en")).toContain("Owners and Admins");
   });
 });
 
@@ -325,6 +359,7 @@ describe("levelRangeGateAction", () => {
         requestStatus: "pending",
         canRequest: false,
         requesting: false,
+        locale: "en",
       }),
     ).toEqual({
       kind: "pending-note",
@@ -338,6 +373,7 @@ describe("levelRangeGateAction", () => {
         requestStatus: null,
         canRequest: true,
         requesting: false,
+        locale: "en",
       }),
     ).toEqual({ kind: "button", label: "Request to play", disabled: false });
     expect(
@@ -345,6 +381,7 @@ describe("levelRangeGateAction", () => {
         requestStatus: "rejected",
         canRequest: true,
         requesting: false,
+        locale: "en",
       }),
     ).toMatchObject({ label: "Request again" });
   });
@@ -355,6 +392,7 @@ describe("levelRangeGateAction", () => {
         requestStatus: null,
         canRequest: true,
         requesting: true,
+        locale: "en",
       }),
     ).toEqual({ kind: "button", label: "Requesting…", disabled: true });
     expect(
@@ -362,6 +400,7 @@ describe("levelRangeGateAction", () => {
         requestStatus: null,
         canRequest: false,
         requesting: false,
+        locale: "en",
       }),
     ).toMatchObject({ disabled: true });
   });

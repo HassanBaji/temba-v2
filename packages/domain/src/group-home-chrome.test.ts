@@ -21,7 +21,7 @@ import {
 
 describe("groupHomeBackTarget", () => {
   it("returns a Club Group home to its Community home", () => {
-    assert.deepEqual(groupHomeBackTarget("community-1"), {
+    assert.deepEqual(groupHomeBackTarget("community-1", "en"), {
       kind: "community",
       communityId: "community-1",
       label: "Back to Community",
@@ -30,28 +30,29 @@ describe("groupHomeBackTarget", () => {
 
   it("returns a Loose Group home to the Groups index", () => {
     const loose = { kind: "groups", label: "Back to Groups" };
-    assert.deepEqual(groupHomeBackTarget(null), loose);
-    assert.deepEqual(groupHomeBackTarget(undefined), loose);
-    assert.deepEqual(groupHomeBackTarget(""), loose);
+    assert.deepEqual(groupHomeBackTarget(null, "en"), loose);
+    assert.deepEqual(groupHomeBackTarget(undefined, "en"), loose);
+    assert.deepEqual(groupHomeBackTarget("", "en"), loose);
   });
 });
 
 describe("groupHomeSportLabel", () => {
   it("maps padel and football to display labels", () => {
-    assert.equal(groupHomeSportLabel("padel"), "Padel");
-    assert.equal(groupHomeSportLabel("football"), "Football");
+    assert.equal(groupHomeSportLabel("padel", "en"), "Padel");
+    assert.equal(groupHomeSportLabel("football", "en"), "Football");
   });
 });
 
 describe("groupHomeMetaLine", () => {
-  it("joins Sport, members, and the season month when every part is present", () => {
+  it("joins Sport, members, and the month the Group started when every part is present", () => {
     assert.equal(
       groupHomeMetaLine({
         sport: "padel",
         memberCount: 14,
         createdAt: new Date("2024-01-15T12:00:00Z"),
+        locale: "en",
       }),
-      "Padel, 14 members, season since Jan",
+      "Padel, 14 members, since Jan",
     );
   });
 
@@ -61,8 +62,9 @@ describe("groupHomeMetaLine", () => {
         sport: null,
         memberCount: 14,
         createdAt: new Date("2024-01-15T12:00:00Z"),
+        locale: "en",
       }),
-      "14 members, season since Jan",
+      "14 members, since Jan",
     );
   });
 
@@ -72,17 +74,19 @@ describe("groupHomeMetaLine", () => {
         sport: "football",
         memberCount: null,
         createdAt: new Date("2024-09-15T12:00:00Z"),
+        locale: "en",
       }),
-      "Football, season since Sep",
+      "Football, since Sep",
     );
   });
 
-  it("pluralises a single member and drops the season with no createdAt", () => {
+  it("pluralises a single member and drops the month with no createdAt", () => {
     assert.equal(
       groupHomeMetaLine({
         sport: "padel",
         memberCount: 1,
         createdAt: null,
+        locale: "en",
       }),
       "Padel, 1 member",
     );
@@ -94,8 +98,33 @@ describe("groupHomeMetaLine", () => {
         sport: null,
         memberCount: null,
         createdAt: null,
+        locale: "en",
       }),
       "",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    assert.equal(
+      groupHomeMetaLine({
+        sport: "padel",
+        memberCount: 1,
+        createdAt: null,
+        locale: "ar",
+      }),
+      "بادل، عضو واحد",
+    );
+  });
+
+  it("names the month the Group started, not a Season, in Arabic", () => {
+    assert.equal(
+      groupHomeMetaLine({
+        sport: "padel",
+        memberCount: 5,
+        createdAt: new Date("2026-09-15T12:00:00Z"),
+        locale: "ar",
+      }),
+      "بادل، 5 أعضاء، منذ سبتمبر",
     );
   });
 });
@@ -142,26 +171,32 @@ describe("groupStandingRecordLabel", () => {
 describe("groupPlayedTeamLabel", () => {
   it("leads with the viewer, shortens the others, and joins with a comma", () => {
     assert.equal(
-      groupPlayedTeamLabel([
-        { name: "Sofia Lindqvist", isViewer: false },
-        { name: "Mira Karlsson", isViewer: true },
-      ]),
+      groupPlayedTeamLabel(
+        [
+          { name: "Sofia Lindqvist", isViewer: false },
+          { name: "Mira Karlsson", isViewer: true },
+        ],
+        "en",
+      ),
       "You, Sofia L",
     );
   });
 
   it("names both seats when the viewer is on neither", () => {
     assert.equal(
-      groupPlayedTeamLabel([
-        { name: "Jonas Berg", isViewer: false },
-        { name: "Adam Roos", isViewer: false },
-      ]),
+      groupPlayedTeamLabel(
+        [
+          { name: "Jonas Berg", isViewer: false },
+          { name: "Adam Roos", isViewer: false },
+        ],
+        "en",
+      ),
       "Jonas B, Adam R",
     );
   });
 
   it("reads as open seats when the slot was never filled", () => {
-    assert.equal(groupPlayedTeamLabel([]), "Open seats");
+    assert.equal(groupPlayedTeamLabel([], "en"), "Open seats");
   });
 });
 
@@ -171,6 +206,7 @@ describe("groupPlayedOpponentLine", () => {
       groupPlayedOpponentLine(
         [{ name: "Jonas Berg", isViewer: false }],
         new Date("2026-09-06T18:00:00.000Z"),
+        "en",
       ),
       "Jonas B, 6 Sep",
     );
@@ -181,6 +217,7 @@ describe("groupPlayedOpponentLine", () => {
       groupPlayedOpponentLine(
         [{ name: "Jonas Berg", isViewer: false }],
         "not-a-date",
+        "en",
       ),
       "Jonas B",
     );
@@ -270,9 +307,12 @@ describe("groupMemberOrganizerAction", () => {
       }),
       "dismiss",
     );
-    assert.equal(groupMemberOrganizerActionLabel("appoint"), "Make Organizer");
     assert.equal(
-      groupMemberOrganizerActionLabel("dismiss"),
+      groupMemberOrganizerActionLabel("appoint", "en"),
+      "Make Organizer",
+    );
+    assert.equal(
+      groupMemberOrganizerActionLabel("dismiss", "en"),
       "Remove as Organizer",
     );
   });

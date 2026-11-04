@@ -8,17 +8,22 @@ import {
 
 describe("communitySportsView", () => {
   it("lists offered sports and, for staff, the sports that can be added", () => {
-    const view = communitySportsView(["padel"], true);
+    const view = communitySportsView(["padel"], true, "en");
     expect(view.rows.map((row) => row.label)).toEqual(["Padel"]);
     expect(view.addable.map((row) => row.sport)).toEqual(["football"]);
     expect(view.canRemove).toBe(true);
   });
 
   it("offers no controls to a non-manager", () => {
-    const view = communitySportsView(["football"], false);
+    const view = communitySportsView(["football"], false, "en");
     expect(view.rows.map((row) => row.sport)).toEqual(["football"]);
     expect(view.addable).toEqual([]);
     expect(view.canRemove).toBe(false);
+  });
+
+  it("labels the sports in Arabic", () => {
+    const view = communitySportsView(["padel", "football"], false, "ar");
+    expect(view.rows.map((row) => row.label)).toEqual(["بادل", "كرة القدم"]);
   });
 });
 

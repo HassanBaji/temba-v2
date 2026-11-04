@@ -10,6 +10,7 @@ import {
 } from "@repo/domain/format-game-start";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 type TileTone = "neutral" | "warning" | "success";
@@ -19,13 +20,6 @@ const ICON_TONE: Record<TileTone, string> = {
   warning: "bg-warning-subtle text-warning",
   success: "bg-success-subtle text-success",
 };
-
-function durationLabel(minutes: number | null | undefined) {
-  if (minutes == null) {
-    return null;
-  }
-  return `${minutes} min`;
-}
 
 function DetailTile({
   icon: Icon,
@@ -76,47 +70,55 @@ export function GameDetailTiles({
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
 }) {
-  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils);
-  const levelLabel = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
+  const locale = useLocale();
+  const m = useMessages();
+  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils, locale);
+  const levelLabel = formatLevelRangeLabel(
+    levelMinTenths,
+    levelMaxTenths,
+    locale,
+  );
   const proximity = windowStart ? gameDayProximity(windowStart) : null;
   const imminent = proximity === "today";
   // A far-off date already spells out its weekday, so the detail line only
   // earns its space while the Game is near.
   const relativeDay =
     windowStart && proximity !== "later"
-      ? formatRelativeDay(windowStart)
+      ? formatRelativeDay(windowStart, locale)
       : null;
   const dateValue = windowStart
-    ? formatDayMonth(windowStart, {
+    ? formatDayMonth(windowStart, locale, {
         weekday: "long",
         month: "long",
         year: true,
       })
-    : "Not set";
+    : m.common.notSet;
   const windowLabel = windowStart
-    ? formatGameTimeWindow(windowStart, windowEnd, windowStart)
-    : "Not set";
+    ? formatGameTimeWindow(windowStart, windowEnd, windowStart, locale)
+    : m.common.notSet;
 
   return (
     <div className="flex flex-wrap gap-3">
       <DetailTile
         icon={CalendarDays}
-        label="Date"
+        label={m.webGame.detailTiles.date}
         value={dateValue}
         detail={relativeDay}
         tone={imminent ? "warning" : "neutral"}
       />
       <DetailTile
         icon={Clock}
-        label="Time"
+        label={m.webGame.detailTiles.time}
         value={windowLabel}
-        detail={durationLabel(durationInMinutes)}
+        detail={
+          durationInMinutes == null ? null : m.dates.minutes(durationInMinutes)
+        }
         tone={imminent ? "warning" : "neutral"}
       />
       {priceLabel ? (
         <DetailTile
           icon={Coins}
-          label="Price per player"
+          label={m.game.partner.pricePerPlayer}
           value={priceLabel}
           tone={pricePerPlayerFils === 0 ? "success" : "neutral"}
         />
@@ -124,7 +126,7 @@ export function GameDetailTiles({
       {levelLabel ? (
         <DetailTile
           icon={Gauge}
-          label="Level range"
+          label={m.webGame.detailTiles.levelRange}
           value={levelLabel}
           tone="neutral"
         />

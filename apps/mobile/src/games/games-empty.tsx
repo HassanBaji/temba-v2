@@ -1,17 +1,18 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import type { SportFilter } from "@repo/domain/football-hub";
 import {
-  GAMES_HISTORY_EMPTY_COPY,
-  GAMES_HISTORY_EMPTY_TITLE,
-  GAMES_HISTORY_PREVIEW_FIGURES,
   GAMES_HISTORY_PREVIEW_MARKS,
-  GAMES_HUB_EMPTY_TITLE,
+  gamesHistoryEmptyCopy,
+  gamesHistoryEmptyTitle,
+  gamesHistoryPreviewFigures,
   gamesHubEmptyLine,
   gamesHubEmptySeats,
+  gamesHubEmptyTitle,
 } from "@repo/domain/games-hub-empty-states";
 import { Users } from "lucide-react-native";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { NotSetCell } from "../lib/not-set-cell";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -60,11 +61,13 @@ export function UpcomingEmpty({
   onCreate: () => void;
   onFindGroup: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.games;
   return (
     <View style={{ gap: spacing.compact }}>
       <Surface padded={false} style={{ overflow: "hidden" }}>
         <View style={{ padding: spacing.surface, gap: spacing.compact }}>
-          <MetaRow start="Next Game" end="Not scheduled" />
+          <MetaRow start={m.nextGame} end={m.notScheduled} />
           <View
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
@@ -83,20 +86,20 @@ export function UpcomingEmpty({
             )}
           </View>
           <EmptyHeading
-            title={GAMES_HUB_EMPTY_TITLE}
-            line={gamesHubEmptyLine(sportFilter)}
+            title={gamesHubEmptyTitle(locale)}
+            line={gamesHubEmptyLine(sportFilter, locale)}
           />
         </View>
         <Hairline />
         <View style={{ flexDirection: "row" }}>
-          <NotSetCell label="When" divided={false} />
-          <NotSetCell label="Where" divided />
+          <NotSetCell label={m.when} divided={false} />
+          <NotSetCell label={m.where} divided />
         </View>
       </Surface>
       <View style={{ gap: 8 }}>
-        <Button label="Create Game" size="lg" onPress={onCreate} />
+        <Button label={m.createGame} size="lg" onPress={onCreate} />
         <Button
-          label="Find a Group"
+          label={m.findAGroup}
           size="lg"
           variant="outline"
           icon={<Users size={sizes.iconAction} color={colors.ink} />}
@@ -112,10 +115,12 @@ export function UpcomingEmpty({
  * not-played marks and its figures at zero.
  */
 export function PlayedEmpty() {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.games;
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View style={{ padding: spacing.surface, gap: spacing.compact }}>
-        <MetaRow start="Recent form" end="No results yet" />
+        <MetaRow start={m.recentForm} end={m.noResultsYet} />
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -131,13 +136,13 @@ export function PlayedEmpty() {
           ))}
         </View>
         <EmptyHeading
-          title={GAMES_HISTORY_EMPTY_TITLE}
-          line={GAMES_HISTORY_EMPTY_COPY}
+          title={gamesHistoryEmptyTitle(locale)}
+          line={gamesHistoryEmptyCopy(locale)}
         />
       </View>
       <Hairline />
       <View style={{ flexDirection: "row" }}>
-        {GAMES_HISTORY_PREVIEW_FIGURES.map((label, index) => (
+        {gamesHistoryPreviewFigures(locale).map((label, index) => (
           <View
             key={label}
             style={{

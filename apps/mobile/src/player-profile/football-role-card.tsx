@@ -3,6 +3,7 @@ import type { FootballRoleView } from "@repo/domain/player-profile-football";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { useTonePalette } from "../primitives/surface-context";
@@ -37,8 +38,9 @@ function RoleTile({ code }: { code: string | null }) {
 }
 
 export function PlayerFootballRoleCard({ view }: { view: FootballRoleView }) {
+  const m = useMessages();
   return (
-    <Card title="Preferred position">
+    <Card title={m.mobilePlayer.profile.preferredPosition}>
       <View
         accessible
         accessibilityLabel={view.label}

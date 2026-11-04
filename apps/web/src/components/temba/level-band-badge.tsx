@@ -1,3 +1,6 @@
+"use client";
+
+import { useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 import {
   displayLabelFromStoredBand,
@@ -14,12 +17,13 @@ const BAND_GROUP_STYLES: Record<string, string> = {
 };
 
 export function LevelBandBadge({ band }: { band: LevelBand }) {
+  const m = useMessages();
   const label = displayLabelFromStoredBand(band);
   const group = label.charAt(0);
   return (
     <Badge
       variant="outline"
-      aria-label={`Level band ${label}`}
+      aria-label={m.webUi.levelBand(label)}
       className={cn(BAND_GROUP_STYLES[group])}
     >
       {label}

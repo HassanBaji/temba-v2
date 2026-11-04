@@ -1,14 +1,20 @@
+"use client";
+
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import type { PlayerStreaksView } from "@repo/domain/player-profile";
 
 export function PlayerStreaksCard({ view }: { view: PlayerStreaksView }) {
+  const m = useMessages();
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile">Streaks</SurfaceLabel>
+      <SurfaceLabel inset="profile">{m.webUi.player.streaks}</SurfaceLabel>
       <dl className="border-rule divide-rule grid grid-cols-2 divide-x border-t">
         <div className="px-5 py-4">
-          <dt className="text-meta text-muted-foreground">Current streak</dt>
+          <dt className="text-meta text-muted-foreground">
+            {m.webUi.player.currentStreak}
+          </dt>
           <dd className="mt-1">
             <p className="text-lead font-semibold tabular-nums">
               {view.current.headline}
@@ -28,7 +34,9 @@ export function PlayerStreaksCard({ view }: { view: PlayerStreaksView }) {
           </dd>
         </div>
         <div className="px-5 py-4">
-          <dt className="text-meta text-muted-foreground">Best streak</dt>
+          <dt className="text-meta text-muted-foreground">
+            {m.webUi.player.bestStreak}
+          </dt>
           <dd className="mt-1">
             <p className="text-lead font-semibold tabular-nums">
               {view.best.headline}

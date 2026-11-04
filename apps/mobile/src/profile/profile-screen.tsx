@@ -5,6 +5,7 @@ import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { recentFormFromHistory } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
@@ -23,8 +24,12 @@ import { ProfileView } from "./profile-view";
 import { useProfilePhoto } from "./use-profile-photo";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
+/** The Profile's Level, form and all-time cards all read padel. */
+const PROFILE_SPORT = "padel";
 
 export function ProfileScreen() {
+  const m = useMessages();
+  const locale = useLocale();
   const { user } = useUser();
   const { signOut } = useAuth();
   const router = useRouter();
@@ -35,13 +40,16 @@ export function ProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const [optimistic, setOptimistic] = useState<PreferredPosition | undefined>();
 
-  const rating = api.ratings.me.useQuery(undefined, REFETCH_ON_FOREGROUND);
+  const rating = api.ratings.me.useQuery(
+    { sport: PROFILE_SPORT },
+    REFETCH_ON_FOREGROUND,
+  );
   const stats = api.users.profileStats.useQuery(
-    undefined,
+    { sport: PROFILE_SPORT },
     REFETCH_ON_FOREGROUND,
   );
   const history = api.games.listMyMatchHistory.useQuery(
-    { limit: RECENT_FORM_MATCH_COUNT },
+    { limit: RECENT_FORM_MATCH_COUNT, sport: PROFILE_SPORT },
     REFETCH_ON_FOREGROUND,
   );
   const onboarding = api.users.onboardingState.useQuery(
@@ -84,7 +92,7 @@ export function ProfileScreen() {
     (position.status === "ready" ? position.value.position : null);
 
   const model: ProfileModel = {
-    name: user?.fullName ?? user?.firstName ?? user?.username ?? "You",
+    name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
     imageUri: user?.hasImage ? user.imageUrl : null,
     position,
     level: slotOf({
@@ -93,7 +101,9 @@ export function ProfileScreen() {
       isLoading: rating.isLoading,
     }),
     recentForm: slotOf({
-      data: history.data ? recentFormFromHistory(history.data) : undefined,
+      data: history.data
+        ? recentFormFromHistory(history.data, locale)
+        : undefined,
       error: history.error,
       isLoading: history.isLoading,
     }),
@@ -108,7 +118,7 @@ export function ProfileScreen() {
       (teamInvites.data?.length ?? 0),
     teamCount: teams.data?.length ?? 0,
     checklistIncomplete:
-      checklistFrom(user, onboarding.data)?.complete === false,
+      checklistFrom(user, onboarding.data, locale)?.complete === false,
   };
 
   const refetchAll = useCallback(

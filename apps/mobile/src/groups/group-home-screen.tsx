@@ -1,5 +1,4 @@
 import {
-  REMOVE_PLAYER_ACTION,
   addGroupPlayerIsFootball,
   removePlayerConfirmLine,
   removePlayerToast,
@@ -16,6 +15,7 @@ import {
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { groupHomeCanManageInvites } from "@repo/domain/group-home-cta";
 import {
+  groupLeaveBlockedHint,
   groupMenuItems,
   groupMenuRoleLine,
   groupOwnerLeaveCopy,
@@ -41,6 +41,7 @@ import {
   waitlistJoinRequest,
 } from "../games/games-model";
 import { useGameJoin } from "../games/use-game-join";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { playerPath } from "../player-profile/player-path";
@@ -78,6 +79,8 @@ type OlderPages = {
 const SCROLL_TARGET_INSET = 16;
 
 export function GroupHomeScreen({ groupId }: { groupId: string }) {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const segments = useSegments();
   const params = useLocalSearchParams<SavedLevelParams>();
@@ -117,7 +120,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
 
   const leave = api.groups.leave.useMutation({
     onSuccess: async (result) => {
-      toast.show(groupLeaveToast(result.communityId));
+      toast.show(groupLeaveToast(result.communityId, locale));
       await Promise.all([
         utils.groups.byId.invalidate(),
         utils.groups.mine.invalidate(),
@@ -134,7 +137,8 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     onSuccess: async () => {
       toast.show(
         groupLeftVenueToast(
-          group.data?.venueCommunity?.venueName ?? "the Venue",
+          group.data?.venueCommunity?.venueName ?? m.mobileGroup.theVenue,
+          locale,
         ),
       );
       await Promise.all([
@@ -253,10 +257,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     return (
       <Screen>
         {header}
-        <Notice
-          title="Group not found"
-          description="It may have been removed, or you may not have access."
-        />
+        <Notice {...m.mobileGroup.home.notFound} />
       </Screen>
     );
   }
@@ -267,7 +268,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         {header}
         <Notice
           alert
-          title="Group could not be loaded"
+          title={m.mobileGroup.loadFailed.group}
           description={group.error.message}
           onRetry={() => void group.refetch()}
         />
@@ -285,17 +286,17 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     );
   }
 
-  const name = groupHomeHeader(data, apiOrigin).name;
+  const name = groupHomeHeader(data, apiOrigin, locale).name;
   const isMember = data.membership != null;
   const viewerEntry = data.standing.leaderboard.find((entry) => entry.isViewer);
   const askLeave = () =>
     setConfirm({
-      ...groupLeaveConfirm(name),
+      ...groupLeaveConfirm(name, locale),
       onConfirm: () => leave.mutate({ groupId }),
     });
   const askOwnerLeave = () =>
     setConfirm({
-      ...groupOwnerLeaveCopy(data.name),
+      ...groupOwnerLeaveCopy(data.name, locale),
       onConfirm: () => {
         setConfirm(null);
         transfer.setOpen(true);
@@ -337,15 +338,15 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onRenameUnclaimed={setRenaming}
         onRemovePlayer={(member) =>
           setConfirm({
-            title: REMOVE_PLAYER_ACTION,
-            description: removePlayerConfirmLine(member.name),
-            confirmLabel: "Remove",
+            title: m.group.addPlayer.removeAction,
+            description: removePlayerConfirmLine(member.name, locale),
+            confirmLabel: m.common.remove,
             onConfirm: () =>
               removePlayer.mutate(
                 { groupId, userId: member.userId },
                 {
                   onSuccess: () => {
-                    toast.show(removePlayerToast(member.name));
+                    toast.show(removePlayerToast(member.name, locale));
                     void utils.groups.byId.invalidate({ id: groupId });
                   },
                 },
@@ -361,7 +362,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             },
             {
               onSuccess: () => {
-                toast.show(groupMemberOrganizerToast(action, member.name));
+                toast.show(
+                  groupMemberOrganizerToast(action, member.name, locale),
+                );
                 void utils.groups.byId.invalidate({ id: groupId });
               },
             },
@@ -379,6 +382,12 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             isOwner: data.isOwner,
             isOrganizer: viewerEntry?.isOrganizer ?? false,
             isMember,
+            locale,
+          }),
+          leaveBlockedHint: groupLeaveBlockedHint({
+            isOwner: data.isOwner,
+            isLoose: data.isLoose,
+            locale,
           }),
           copyPending: inviteLink.copyPending,
           onOpen: () => setMenuOpen(true),
@@ -388,7 +397,8 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onLeaveVenue={() => {
           const copy = groupLeaveVenueConfirm(
             name,
-            data.venueCommunity?.venueName ?? "the Venue",
+            data.venueCommunity?.venueName ?? m.mobileGroup.theVenue,
+            locale,
           );
           setConfirm({
             title: copy.title,
@@ -489,7 +499,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             groupId,
             name: data.name,
             sport: data.sport,
-            note: groupLookupNote(data.isLoose),
+            note: groupLookupNote(data.isLoose, locale),
             canLookup: data.canManageLookupInvites,
             canLink: data.canManageInviteLinks,
           }}

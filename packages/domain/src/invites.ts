@@ -1,45 +1,38 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import type { FootballPosition, FootballRole } from "./football-lineup";
 import { friendlyGameCanMintInvite } from "./friendly-game-cta";
-import { gameJoinToast, GAME_TOAST } from "./game-copy";
+import { gameDisplayName, type GameDisplayNameInput } from "./game-custom-name";
+import { gameJoinToast } from "./game-copy";
 import type { InviteHostLabel } from "./invite-outcome-copy";
 
 export type InviteKind = "community" | "group" | "team" | "game";
 
-const KIND_LABELS: Record<InviteKind, InviteHostLabel> = {
+const KIND_HOST_LABELS: Record<InviteKind, InviteHostLabel> = {
   community: "Community",
   group: "Group",
   team: "Team",
   game: "Game",
 };
 
+/** The host kind as `inviteOutcomeCopy` names it; an id, not copy. */
 export function inviteKindLabel(kind: InviteKind): InviteHostLabel {
-  return KIND_LABELS[kind];
+  return KIND_HOST_LABELS[kind];
 }
 
-export function inviteRowMeta(kind: InviteKind, inviterName: string | null) {
-  return `${inviteKindLabel(kind)} invite from ${inviterName ?? "Someone"}`;
+export function inviteRowMeta(
+  kind: InviteKind,
+  inviterName: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  return m.invite.inbox.rowMeta[kind](inviterName ?? m.common.someone);
 }
 
-export const INVITES_EMPTY_COPY = {
-  title: "Nothing waiting",
-  description: "Invites to Games, Groups, Teams and Communities show up here.",
-};
-
-export const INVITES_ERROR_TITLE = "Invites could not be loaded";
-export const INVITE_ACCEPT_LABEL = "Accept";
-export const INVITE_SIT_HERE_LABEL = "Sit here";
-export const INVITE_JOIN_WAITLIST_LABEL = "Join waitlist";
-export const INVITE_LINK_COPIED_TOAST = "Invite link copied";
-export const INVITE_LINK_COPY_FAILED_TOAST = "Couldn't copy the link";
-export const LOOKUP_INVITE_REVOKED_TOAST = "Lookup invite revoked";
-
-export const GROUP_LOOSE_LOOKUP_NOTE =
-  "You and the Group's Organizers can invite people here. Invites don't expire.";
-export const GROUP_CLUB_LOOKUP_NOTE =
-  "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator and Organizers can invite Community Members.";
-
-export function groupLookupNote(isLoose: boolean) {
-  return isLoose ? GROUP_LOOSE_LOOKUP_NOTE : GROUP_CLUB_LOOKUP_NOTE;
+export function groupLookupNote(isLoose: boolean, locale: Locale) {
+  const m = messagesFor(locale).invite.inbox.groupLookupNote;
+  return isLoose ? m.loose : m.club;
 }
 
 export type InviteInviter = {
@@ -67,6 +60,7 @@ export type InviteInboxSources<Side extends InviteSide = InviteSide> = {
   team: (InviteRowBase & { displayName: string })[];
   game: (InviteRowBase & {
     gameName: string;
+    game: GameDisplayNameInput;
     needsSeatPick: boolean;
     registrationStatus: string;
     sides: Side[];
@@ -114,15 +108,16 @@ function inboxItem<Side extends InviteSide>(
   kind: InviteKind,
   row: InviteRowBase,
   title: string,
+  locale: Locale,
   seatPick: InviteInboxSeatPick<Side> | null = null,
 ): InviteInboxItem<Side> {
-  const inviterName = row.invitedBy.name ?? "Someone";
+  const inviterName = row.invitedBy.name ?? messagesFor(locale).common.someone;
   return {
     key: `${kind}-${row.id}`,
     kind,
     id: row.id,
     title,
-    meta: inviteRowMeta(kind, inviterName),
+    meta: inviteRowMeta(kind, inviterName, locale),
     inviterName,
     inviterImage: row.invitedBy.image,
     createdAt: row.createdAt,
@@ -132,22 +127,25 @@ function inboxItem<Side extends InviteSide>(
 
 export function mergeInviteInbox<Side extends InviteSide = InviteSide>(
   sources: Partial<InviteInboxSources<Side>>,
+  locale: Locale,
 ): InviteInboxItem<Side>[] {
+  const untitledGroup = messagesFor(locale).group.untitled;
   const items: InviteInboxItem<Side>[] = [
     ...(sources.community ?? []).map((row) =>
-      inboxItem<Side>("community", row, row.communityName),
+      inboxItem<Side>("community", row, row.communityName, locale),
     ),
     ...(sources.group ?? []).map((row) =>
-      inboxItem<Side>("group", row, row.groupName ?? "Untitled Group"),
+      inboxItem<Side>("group", row, row.groupName ?? untitledGroup, locale),
     ),
     ...(sources.team ?? []).map((row) =>
-      inboxItem<Side>("team", row, row.displayName),
+      inboxItem<Side>("team", row, row.displayName, locale),
     ),
     ...(sources.game ?? []).map((row) =>
       inboxItem<Side>(
         "game",
         row,
-        row.gameName,
+        gameDisplayName(row.game, locale),
+        locale,
         row.needsSeatPick
           ? {
               sides: row.sides,
@@ -167,34 +165,33 @@ export function mergeInviteInbox<Side extends InviteSide = InviteSide>(
 
 export type GameInviteSeatCopyMode = "inbox" | "link" | "link-signed-out";
 
-const OCCUPIED_SEATS = "Occupied seats show who is already registered.";
-
 export function gameInviteSeatCopy(
   state: GameInviteSeatState,
   mode: GameInviteSeatCopyMode,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).invite.inbox.seatCopy;
   if (state.joinFrozen) {
-    return `${OCCUPIED_SEATS} This Game is not open for registration.`;
+    return m.frozen;
   }
   if (mode === "link-signed-out") {
-    return `${OCCUPIED_SEATS} Sign in or create an account to pick a vacant Position.`;
+    return m.signedOut;
   }
   if (state.waitlistOnly) {
-    return mode === "link"
-      ? `No vacant Position. ${OCCUPIED_SEATS} Accept to join the waitlist.`
-      : `No vacant Position. ${OCCUPIED_SEATS}`;
+    return mode === "link" ? m.waitlistLink : m.waitlistInbox;
   }
-  return `${OCCUPIED_SEATS} Pick a vacant Position to sit.`;
+  return m.pick;
 }
 
 export function lookupInviteAcceptToast(
   kind: InviteKind,
+  locale: Locale,
   result: { waitlisted?: boolean } = {},
 ) {
   if (kind === "game") {
-    return gameJoinToast(result.waitlisted ?? false);
+    return gameJoinToast(result.waitlisted ?? false, locale);
   }
-  return `Joined ${inviteKindLabel(kind)}`;
+  return messagesFor(locale).invite.inbox.joinedToast[kind];
 }
 
 export type GameInviteLinkOutcome =
@@ -203,36 +200,43 @@ export type GameInviteLinkOutcome =
   | "already"
   | "waiting_for_partner";
 
-export function inviteLinkJoinLabel(name: string, requiresApproval = false) {
-  return requiresApproval ? `Request to join ${name}` : `Join ${name}`;
+export function inviteLinkJoinLabel(
+  name: string,
+  locale: Locale,
+  requiresApproval = false,
+) {
+  const m = messagesFor(locale).invite.link;
+  return requiresApproval ? m.requestJoinLabel(name) : m.joinLabel(name);
 }
 
 export function inviteLinkAcceptToast(
   kind: InviteKind,
+  locale: Locale,
   outcome?: GameInviteLinkOutcome,
   joinedGroup = false,
 ) {
+  const m = messagesFor(locale).invite;
   if (kind !== "game") {
-    return `Joined ${inviteKindLabel(kind)}`;
+    return m.inbox.joinedToast[kind];
   }
   if (outcome === "waiting_for_partner") {
-    return "Waiting for your Team partner to accept";
+    return m.link.waitingForPartnerToast;
   }
   if (outcome === "waitlisted") {
     return joinedGroup
-      ? `${GAME_TOAST.joinedWaitlist} and the Group`
-      : GAME_TOAST.joinedWaitlist;
+      ? m.link.joinedWaitlistAndGroupToast
+      : gameJoinToast(true, locale);
   }
   if (outcome === "already") {
-    return "Already on this Game";
+    return m.link.alreadyOnGameToast;
   }
-  return joinedGroup ? `${GAME_TOAST.joined} and its Group` : GAME_TOAST.joined;
+  return joinedGroup
+    ? m.link.joinedGameAndGroupToast
+    : gameJoinToast(false, locale);
 }
 
-export function lookupInviteSentToast(sentCount: number) {
-  return sentCount === 1
-    ? "Lookup invite sent"
-    : `${sentCount} Lookup invites sent`;
+export function lookupInviteSentToast(sentCount: number, locale: Locale) {
+  return messagesFor(locale).invite.inbox.lookupSent(sentCount);
 }
 
 export function gameInviteAccess(game: {
@@ -268,6 +272,7 @@ export type GameInviteFootball = {
 export type GameInviteLinkReady = {
   gameId: string;
   gameName: string | null;
+  game: GameDisplayNameInput;
   registrationStatus: string;
   needsSeatPick: boolean;
   partnerRequiredJoin: boolean;
@@ -294,24 +299,23 @@ export type InviteLinkPreview =
     }
   | { status: "ready"; kind: "game"; game: GameInviteLinkReady };
 
-export const LEVEL_RANGE_REQUEST_PENDING_NOTE =
-  "Request pending. Organizers have not decided yet.";
-
 export function levelRangeGateAction(args: {
   requestStatus: string | null;
   canRequest: boolean;
   requesting: boolean;
+  locale: Locale;
 }):
   | { kind: "pending-note"; text: string }
   | { kind: "button"; label: string; disabled: boolean } {
+  const m = messagesFor(args.locale).invite.link;
   if (args.requestStatus === "pending") {
-    return { kind: "pending-note", text: LEVEL_RANGE_REQUEST_PENDING_NOTE };
+    return { kind: "pending-note", text: m.levelRangePendingNote };
   }
   const label = args.requesting
-    ? "Requesting…"
+    ? m.requesting
     : args.requestStatus === "rejected"
-      ? "Request again"
-      : "Request to play";
+      ? m.requestAgain
+      : m.requestToPlay;
   return {
     kind: "button",
     label,

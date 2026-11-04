@@ -73,7 +73,7 @@ export function StepperField({
             stepBy(-step);
           }}
           className={cn(
-            "border-rule text-ink hover:bg-wash flex size-14 min-h-11 min-w-11 shrink-0 items-center justify-center border-r",
+            "border-rule text-ink hover:bg-wash flex size-14 min-h-11 min-w-11 shrink-0 items-center justify-center border-e",
             "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
             "disabled:text-muted-foreground disabled:opacity-40 disabled:hover:bg-transparent",
           )}
@@ -98,7 +98,7 @@ export function StepperField({
             stepBy(step);
           }}
           className={cn(
-            "border-rule text-ink hover:bg-wash flex size-14 min-h-11 min-w-11 shrink-0 items-center justify-center border-l",
+            "border-rule text-ink hover:bg-wash flex size-14 min-h-11 min-w-11 shrink-0 items-center justify-center border-s",
             "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
             "disabled:text-muted-foreground disabled:opacity-40 disabled:hover:bg-transparent",
           )}

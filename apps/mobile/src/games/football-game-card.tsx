@@ -9,6 +9,7 @@ import {
   isFootballBib,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { footballSection } from "@repo/domain/football-hub";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
@@ -21,6 +22,7 @@ import { View } from "react-native";
 
 import { BibChip } from "../football/bib-picker";
 import { SeatBar } from "../game-details/football-hero";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { CardFooter, CardShell } from "./card-parts";
@@ -46,16 +48,23 @@ function bibOf(side: HubGameFootballSide): FootballBib {
 }
 
 function SizeTag({ sideSize }: { sideSize: number | null }) {
+  const locale = useLocale();
   return sideSize ? (
     <Text size="eyebrow" tone="muted" mono>
-      {sideSizeLabel(sideSize).toUpperCase()}
+      {sideSizeLabel(sideSize, locale).toUpperCase()}
     </Text>
   ) : null;
 }
 
 function Kickoff({ game }: { game: HubGameRow }) {
-  const kickoff = formatHomeKickoff(game.startTime);
-  const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
+  const locale = useLocale();
+  const m = useMessages();
+  const kickoff = formatHomeKickoff(game.startTime, locale);
+  const customName = gameCustomName(game);
+  const place = [game.venue?.name, game.courtName].filter(
+    (part): part is string => Boolean(part),
+  );
+  const day = formatGameCardDay(game.startTime, locale);
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 16 }}>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
@@ -68,10 +77,13 @@ function Kickoff({ game }: { game: HubGameRow }) {
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold" numberOfLines={2}>
-          {place.length > 0 ? place : (game.name ?? "Football")}
+          {customName ??
+            (place.length > 0
+              ? m.home.comingUp.parts(place)
+              : m.common.football)}
         </Text>
         <Text size="meta" tone="muted">
-          {formatGameCardDay(game.startTime)}
+          {customName ? m.home.comingUp.parts([...place, day]) : day}
         </Text>
       </View>
       <SizeTag sideSize={game.football?.sideSize ?? null} />
@@ -80,6 +92,7 @@ function Kickoff({ game }: { game: HubGameRow }) {
 }
 
 function SideLine({ side }: { side: HubGameFootballSide }) {
+  const locale = useLocale();
   const bib = bibOf(side);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -93,7 +106,7 @@ function SideLine({ side }: { side: HubGameFootballSide }) {
       >
         <BibChip bib={bib} />
         <Text size="meta" weight="semibold" numberOfLines={1}>
-          {footballBibName(bib, side.sideIndex)}
+          {footballBibName(bib, side.sideIndex, locale)}
         </Text>
       </View>
       <View
@@ -126,6 +139,9 @@ function SideLine({ side }: { side: HubGameFootballSide }) {
 }
 
 function ResultBody({ game }: { game: HubGameRow }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.footballCard;
   const football = game.football!;
   const sides = football.sides ?? [];
   const score = football.score;
@@ -134,12 +150,12 @@ function ResultBody({ game }: { game: HubGameRow }) {
   const name = (index: 1 | 2) => {
     const row = side(index);
     return row
-      ? footballBibName(bibOf(row), index)
+      ? footballBibName(bibOf(row), index, locale)
       : index === 1
-        ? "Black"
-        : "White";
+        ? messages.football.lineup.bibs.black
+        : messages.football.lineup.bibs.white;
   };
-  const note = (index: 1 | 2) => (viewerSide === index ? "You played" : null);
+  const note = (index: 1 | 2) => (viewerSide === index ? m.youPlayed : null);
   const chip = (index: 1 | 2) => {
     const row = side(index);
     return row ? <BibChip bib={bibOf(row)} size={24} /> : null;
@@ -148,12 +164,12 @@ function ResultBody({ game }: { game: HubGameRow }) {
     <>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text size="meta" tone="muted">
-          {[
-            formatDayMonth(game.startTime, { weekday: "short" }),
-            game.venue?.name,
-          ]
-            .filter(Boolean)
-            .join(", ")}
+          {messages.home.comingUp.parts(
+            [
+              formatDayMonth(game.startTime, locale, { weekday: "short" }),
+              game.venue?.name,
+            ].filter((part): part is string => Boolean(part)),
+          )}
         </Text>
         <SizeTag sideSize={football.sideSize} />
       </View>
@@ -185,6 +201,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
 }
 
 function OpenBody({ game }: { game: HubGameRow }) {
+  const m = useMessages().football.hub.card;
   const seats = game.playersAllowed ?? (game.football?.sideSize ?? 5) * 2;
   const taken = game.registeredUserCount;
   const open = Math.max(0, seats - taken);
@@ -195,14 +212,16 @@ function OpenBody({ game }: { game: HubGameRow }) {
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text size="meta">
           <Text size="meta" weight="semibold">
-            {Math.min(taken, seats)} of {seats}
-          </Text>{" "}
-          <Text size="meta" tone="muted">
-            {open > 0 ? `in, ${open} open` : "in"}
+            {m.playersOf(Math.min(taken, seats), seats)}
           </Text>
+          {open > 0 ? (
+            <Text size="meta" tone="muted">
+              {m.openSpots(open)}
+            </Text>
+          ) : null}
         </Text>
         <Text size="meta" tone="muted">
-          Teams not set
+          {m.waitingForPlayers}
         </Text>
       </View>
     </>
@@ -210,6 +229,8 @@ function OpenBody({ game }: { game: HubGameRow }) {
 }
 
 function TeamsBody({ game }: { game: HubGameRow }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.footballCard;
   const football = game.football!;
   const viewerSide = football.sides?.find(
     (side) => side.sideIndex === football.viewer.sideIndex,
@@ -226,13 +247,14 @@ function TeamsBody({ game }: { game: HubGameRow }) {
       {viewerSide ? (
         <Text size="meta">
           <Text size="meta" weight="semibold">
-            You play in{" "}
-            {footballBibName(bibOf(viewerSide), viewerSide.sideIndex)}
+            {m.youPlayIn(
+              footballBibName(bibOf(viewerSide), viewerSide.sideIndex, locale),
+            )}
           </Text>
           {code ? (
             <Text size="meta" tone="muted">
               {" "}
-              as {code}
+              {m.asCode(code)}
             </Text>
           ) : null}
         </Text>
@@ -251,11 +273,18 @@ export function FootballGameCard({
   actions: FootballCardActions;
 }) {
   const now = useNow();
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.footballCard;
   const football = game.football!;
   const section = footballSection(game, now);
-  const price = formatPricePerPlayerFils(game.pricePerPlayerFils);
-  const kickoff = formatHomeKickoff(game.startTime);
-  const label = `${game.venue?.name ?? "Football"}, ${formatGameCardDay(game.startTime)} ${kickoff.time} ${kickoff.meridiem}`;
+  const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
+  const kickoff = formatHomeKickoff(game.startTime, locale);
+  const label = messages.mobileTournament.card.accessibleName(
+    game.venue?.name ?? messages.common.football,
+    formatGameCardDay(game.startTime, locale),
+    `${kickoff.time} ${kickoff.meridiem}`,
+  );
 
   let footer: React.ReactNode = null;
   if (section === "result") {
@@ -265,13 +294,13 @@ export function FootballGameCard({
         <Text size="meta" tone="muted" style={{ flex: 1 }} numberOfLines={1}>
           {football.score
             ? football.enteredByName
-              ? `Entered by ${football.enteredByName}`
-              : "Score in"
-            : "Score missing"}
+              ? m.enteredBy(football.enteredByName)
+              : m.scoreIn
+            : m.scoreMissing}
         </Text>
         {football.score && matchId ? (
           <Button
-            label="Confirm"
+            label={messages.common.confirm}
             size="sm"
             variant="outline"
             pending={pending}
@@ -279,7 +308,7 @@ export function FootballGameCard({
           />
         ) : (
           <Button
-            label="Enter score"
+            label={m.enterScore}
             size="sm"
             onPress={() => actions.onEnterScore(game.id)}
           />
@@ -288,10 +317,14 @@ export function FootballGameCard({
     );
   } else if (section === "open" || section === "full") {
     const action = game.canRegister ? (
-      <Button label="Join" size="sm" onPress={() => actions.onJoin(game.id)} />
+      <Button
+        label={messages.game.cta.join}
+        size="sm"
+        onPress={() => actions.onJoin(game.id)}
+      />
     ) : game.canWaitlist ? (
       <Button
-        label="Join waitlist"
+        label={messages.game.cta.joinWaitlist}
         size="sm"
         variant="outline"
         pending={pending}
@@ -299,11 +332,11 @@ export function FootballGameCard({
       />
     ) : game.isRegistered ? (
       <Text size="meta" weight="semibold">
-        You&apos;re in
+        {messages.game.cta.youreIn}
       </Text>
     ) : game.isWaitlisted ? (
       <Text size="meta" weight="semibold">
-        On the waitlist
+        {messages.game.partner.onTheWaitlist}
       </Text>
     ) : null;
     footer = (
@@ -312,7 +345,7 @@ export function FootballGameCard({
           {price ? (
             <>
               <Text weight="semibold">{price}</Text>
-              {price === "Free" ? "" : " each"}
+              {price === messages.createGame.price.free ? "" : ` ${m.each}`}
             </>
           ) : (
             (game.groupName ?? "")
@@ -326,11 +359,11 @@ export function FootballGameCard({
       <CardFooter>
         <Text size="meta" tone="muted" style={{ flex: 1 }}>
           {football.sideSize
-            ? `${football.sideSize} start, captains pick`
-            : "Captains pick starters"}
+            ? m.startCaptainsPick(football.sideSize)
+            : m.captainsPickStarters}
         </Text>
         <Button
-          label="Open"
+          label={messages.common.open}
           size="sm"
           variant="outline"
           onPress={() => actions.onOpen(game.id)}

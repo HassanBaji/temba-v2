@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  MATCH_NOT_PLAYED_LABEL,
   isDrawnTournamentDetails,
   knockoutPlaceSideTags,
   matchTrailing,
@@ -18,7 +17,6 @@ import {
   createKnockoutTournamentFixtures,
   createTournamentFixtures,
 } from "./tournament-details-fixtures";
-import { KNOCKOUT_CHAMPION_TAG } from "./tournament-knockout-view";
 
 const now = new Date("2026-09-20T12:00:00.000Z");
 const pool = createTournamentFixtures(now);
@@ -41,7 +39,7 @@ describe("isDrawnTournamentDetails", () => {
 
 describe("tournamentHomeView", () => {
   it("offers a join and a seat to an unseated viewer before the draw", () => {
-    const view = tournamentHomeView(pool.preDrawWithoutSeat);
+    const view = tournamentHomeView(pool.preDrawWithoutSeat, "en");
     assert.equal(view.drawn, false);
     assert.equal(view.seated, false);
     assert.equal(view.canJoin, true);
@@ -51,7 +49,7 @@ describe("tournamentHomeView", () => {
   });
 
   it("shows the viewer's team and a leave action once seated", () => {
-    const view = tournamentHomeView(pool.preDrawSeatedHalfOpen);
+    const view = tournamentHomeView(pool.preDrawSeatedHalfOpen, "en");
     assert.equal(view.seated, true);
     assert.equal(view.canTakeSeat, false);
     assert.equal(view.canLeaveGame, true);
@@ -59,22 +57,28 @@ describe("tournamentHomeView", () => {
   });
 
   it("marks a posted draw as drawn", () => {
-    assert.equal(tournamentHomeView(pool.postedMid).drawn, true);
+    assert.equal(tournamentHomeView(pool.postedMid, "en").drawn, true);
   });
 
   it("flags knockout-only and groups-then-knockout shapes", () => {
     assert.equal(
-      tournamentHomeView(knockout.knockoutOnlyMid).knockoutOnly,
+      tournamentHomeView(knockout.knockoutOnlyMid, "en").knockoutOnly,
       true,
     );
-    const groups = tournamentHomeView(knockout.groupsThenKnockout);
+    const groups = tournamentHomeView(knockout.groupsThenKnockout, "en");
     assert.equal(groups.thenKnockout, true);
     assert.equal(groups.knockoutOnly, false);
   });
 
   it("lists detail rows with the viewer's cost only when seated", () => {
-    const seated = tournamentHomeView(pool.preDrawSeatedHalfOpen).detailRows;
-    const unseated = tournamentHomeView(pool.preDrawWithoutSeat).detailRows;
+    const seated = tournamentHomeView(
+      pool.preDrawSeatedHalfOpen,
+      "en",
+    ).detailRows;
+    const unseated = tournamentHomeView(
+      pool.preDrawWithoutSeat,
+      "en",
+    ).detailRows;
     assert.equal(
       unseated.some((row) => row.label === "You owe"),
       false,
@@ -92,6 +96,7 @@ describe("tournamentDetailRows", () => {
       pricePerPlayerFils: null,
       seated: false,
       totalFils: null,
+      locale: "en",
     });
     assert.deepEqual(
       rows.map((row) => [row.label, row.value]),
@@ -112,6 +117,7 @@ describe("tournamentDetailRows", () => {
       pricePerPlayerFils: 12000,
       seated: true,
       totalFils: 36000,
+      locale: "en",
     });
     assert.equal(
       rows.find((row) => row.label === "Price")?.value,
@@ -134,7 +140,7 @@ describe("tournamentPeople", () => {
 
 describe("tournamentStandingsView", () => {
   it("uses the Standings heading and the finished line for a finished Pool", () => {
-    const view = tournamentStandingsView(pool.finished);
+    const view = tournamentStandingsView(pool.finished, "en");
     assert.equal(view.heading, "Standings");
     assert.equal(view.finished, true);
     assert.equal(view.showPoolTables, true);
@@ -143,7 +149,7 @@ describe("tournamentStandingsView", () => {
   });
 
   it("names the Champion for a finished knockout", () => {
-    const view = tournamentStandingsView(knockout.knockoutOnlyChampion);
+    const view = tournamentStandingsView(knockout.knockoutOnlyChampion, "en");
     assert.equal(view.heading, "Knockout");
     assert.equal(view.showKnockoutTree, true);
     assert.equal(view.showPoolTables, false);
@@ -152,15 +158,17 @@ describe("tournamentStandingsView", () => {
 
   it("tells a viewer who missed the Knockout", () => {
     assert.equal(
-      tournamentStandingsView(knockout.groupsThenKnockoutNotThrough).notThrough,
+      tournamentStandingsView(knockout.groupsThenKnockoutNotThrough, "en")
+        .notThrough,
       true,
     );
     assert.equal(
-      tournamentStandingsView(knockout.groupsThenKnockout).notThrough,
+      tournamentStandingsView(knockout.groupsThenKnockout, "en").notThrough,
       false,
     );
     assert.equal(
-      tournamentStandingsView(knockout.groupsThenKnockout).knockoutSectionTitle,
+      tournamentStandingsView(knockout.groupsThenKnockout, "en")
+        .knockoutSectionTitle,
       "Knockout",
     );
   });
@@ -186,23 +194,27 @@ describe("poolRoundGroups", () => {
 describe("matchTrailing", () => {
   it("prefers not played, then the score, then a draw, then open", () => {
     assert.equal(
-      matchTrailing({ cancelled: true, scoreLabel: "6-4" }).label,
-      MATCH_NOT_PLAYED_LABEL,
+      matchTrailing({ cancelled: true, scoreLabel: "6-4", locale: "en" }).label,
+      "Not played",
     );
-    assert.deepEqual(matchTrailing({ cancelled: false, scoreLabel: "6-4" }), {
-      kind: "score",
-      label: "6-4",
-    });
+    assert.deepEqual(
+      matchTrailing({ cancelled: false, scoreLabel: "6-4", locale: "en" }),
+      {
+        kind: "score",
+        label: "6-4",
+      },
+    );
     assert.equal(
       matchTrailing({
         cancelled: false,
         scoreLabel: null,
         viewerOutcome: "draw",
+        locale: "en",
       }).kind,
       "draw",
     );
     assert.equal(
-      matchTrailing({ cancelled: false, scoreLabel: null }).kind,
+      matchTrailing({ cancelled: false, scoreLabel: null, locale: "en" }).kind,
       "open",
     );
   });
@@ -210,10 +222,10 @@ describe("matchTrailing", () => {
 
 describe("viewerRoundSubtitle", () => {
   it("reads Round with an optional day", () => {
-    assert.equal(viewerRoundSubtitle(null, null), "Round");
-    assert.equal(viewerRoundSubtitle(2, null), "Round 2");
+    assert.equal(viewerRoundSubtitle(null, null, "en"), "Round");
+    assert.equal(viewerRoundSubtitle(2, null, "en"), "Round 2");
     assert.match(
-      viewerRoundSubtitle(2, new Date("2026-09-20T12:00:00.000Z")),
+      viewerRoundSubtitle(2, new Date("2026-09-20T12:00:00.000Z"), "en"),
       /^Round 2, /,
     );
   });
@@ -228,10 +240,10 @@ describe("knockoutPlaceSideTags", () => {
   it("tags the Final's winner as Champion", () => {
     assert.ok(final && final.kind === "match");
     const tags = [1, 2].map((slot) =>
-      knockoutPlaceSideTags(final, slot as 1 | 2, true),
+      knockoutPlaceSideTags(final, slot as 1 | 2, true, "en"),
     );
     assert.equal(
-      tags.some((tag) => tag.resultTag === KNOCKOUT_CHAMPION_TAG),
+      tags.some((tag) => tag.resultTag === "Champion"),
       true,
     );
   });
@@ -242,7 +254,10 @@ describe("knockoutPlaceSideTags", () => {
     );
     assert.ok(walkover && walkover.kind === "match");
     const slot = walkover.walkover as 1 | 2;
-    assert.equal(knockoutPlaceSideTags(walkover, slot, false).walkover, true);
+    assert.equal(
+      knockoutPlaceSideTags(walkover, slot, false, "en").walkover,
+      true,
+    );
   });
 });
 
@@ -253,6 +268,7 @@ describe("tournamentSeatLabel", () => {
         position: "left",
         teamLabel: "Team C",
         joinable: true,
+        locale: "en",
       }),
       "Take the left seat on Team C",
     );
@@ -261,8 +277,45 @@ describe("tournamentSeatLabel", () => {
         position: "right",
         teamLabel: "Team C",
         joinable: false,
+        locale: "en",
       }),
       "Open right seat on Team C",
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the detail rows, the standings heading and the seat label in Arabic", () => {
+    const rows = tournamentDetailRows({
+      organizerName: null,
+      groupName: null,
+      matchMinutes: null,
+      pricePerPlayerFils: null,
+      seated: false,
+      totalFils: null,
+      locale: "ar",
+    });
+    assert.deepEqual(
+      rows.map((row) => [row.label, row.value]),
+      [
+        ["المنظّم", "المنظّم"],
+        ["المجموعة", "—"],
+        ["كل مباراة", "45 دقيقة"],
+        ["تُحتسب في التصنيف", "نعم"],
+      ],
+    );
+    assert.equal(
+      tournamentStandingsView(pool.finished, "ar").heading,
+      "الترتيب",
+    );
+    assert.equal(
+      tournamentSeatLabel({
+        position: "left",
+        teamLabel: "Team C",
+        joinable: true,
+        locale: "ar",
+      }),
+      "خذ مكان اليسار في Team C",
     );
   });
 });

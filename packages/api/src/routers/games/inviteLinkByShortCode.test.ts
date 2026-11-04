@@ -1,7 +1,7 @@
 import { games, GameFormatEnum, matches, user, venues } from "@repo/db/schema";
 import { describe, expect, it } from "vitest";
 
-import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
+import { genericTembaOpenGraph } from "@repo/domain/game-invite-open-graph";
 import { mintLink } from "#src/invites/doors";
 import { inviteLinkByShortCode } from "#src/routers/games/inviteLinkByShortCode";
 import { createPgliteDb } from "@repo/db/testing";
@@ -49,7 +49,7 @@ describe("games.inviteLinkByShortCode", () => {
 
       expect(await inviteLinkByShortCode(db, { code: "ZZZZZZZZ" })).toEqual({
         token: null,
-        ...GENERIC_TEMBA_OPEN_GRAPH,
+        ...genericTembaOpenGraph("en"),
       });
     } finally {
       await close();

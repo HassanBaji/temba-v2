@@ -25,9 +25,10 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import type { GroupHomeOverflowItem } from "@repo/domain/group-home-cta";
 import { groupLeaveVenueActionLabel } from "@repo/domain/group-link-request";
-import { GROUP_MENU_LABELS } from "@repo/domain/group-settings";
+import { groupMenuLabel } from "@repo/domain/group-settings";
 import { groupEditHref, groupSeasonsHref } from "~/lib/dashboard-paths";
 
 const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
@@ -38,6 +39,8 @@ const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
 
 type Row = {
   label: string;
+  hint?: string | null;
+  disabled?: boolean;
   icon: LucideIcon;
   href?: string;
   onSelect?: () => void;
@@ -49,6 +52,7 @@ export function GroupHomeOverflowMenu({
   groupId,
   groupName,
   roleLine,
+  leaveBlockedHint,
   communityId,
   communityName,
   venueName,
@@ -65,6 +69,8 @@ export function GroupHomeOverflowMenu({
   groupId: string;
   groupName: string;
   roleLine: string | null;
+  /** Why Leave is disabled, or `null` when the viewer may leave. */
+  leaveBlockedHint: string | null;
   communityId: string | null;
   communityName: string | null;
   venueName: string | null;
@@ -77,6 +83,8 @@ export function GroupHomeOverflowMenu({
   onLeave: () => void;
   onDelete: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
 
   if (items.length === 0) {
@@ -87,76 +95,85 @@ export function GroupHomeOverflowMenu({
     switch (item) {
       case "edit":
         return {
-          label: GROUP_MENU_LABELS.edit,
+          label: groupMenuLabel("edit", locale),
           icon: PencilIcon,
           href: groupEditHref(groupId),
         };
       case "open_community":
         return communityId
           ? {
-              label: `Open ${communityName ?? "Community"}`,
+              label: m.webGroup.overflow.openCommunity(
+                communityName ?? m.community.fallbackName,
+              ),
               icon: UsersIcon,
               href: `/dashboard/communities/${communityId}`,
             }
           : null;
       case "all_communities":
         return {
-          label: "All Communities",
+          label: m.webGroup.overflow.allCommunities,
           icon: UsersIcon,
           href: "/dashboard/communities",
         };
       case "create_game":
         return {
-          label: "Create Game",
+          label: m.webGroup.createGame,
           icon: PlusIcon,
           href: `/dashboard/games/new?groupId=${groupId}`,
         };
       case "copy_group_url":
         return {
-          label: GROUP_MENU_LABELS.copy_link,
+          label: groupMenuLabel("copy_link", locale),
           icon: LinkIcon,
           onSelect: onCopyGroupUrl,
         };
       case "manage_invites":
         return {
-          label: GROUP_MENU_LABELS.invite,
+          label: groupMenuLabel("invite", locale),
           icon: UserRoundPlusIcon,
           onSelect: onManageInvites,
         };
       case "change_image":
         return {
-          label: "Change image",
+          label: m.webGroup.overflow.changeImage,
           icon: ImageIcon,
           onSelect: onChangeImage,
         };
       case "remove_image":
         return {
-          label: "Remove image",
+          label: m.group.admin.removeImageConfirm.confirmLabel,
           icon: ImageOffIcon,
           onSelect: onRemoveImage,
         };
       case "seasons":
         return {
-          label: "Seasons",
+          label: m.webGroup.overflow.seasons,
           icon: CalendarRangeIcon,
           href: groupSeasonsHref(groupId),
         };
       case "leave_venue_community":
         return venueName
           ? {
-              label: groupLeaveVenueActionLabel(venueName),
+              label: groupLeaveVenueActionLabel(venueName, locale),
               icon: UnlinkIcon,
               onSelect: onLeaveVenueCommunity,
             }
           : null;
       case "leave":
         return {
-          label: GROUP_MENU_LABELS.leave,
+          label: groupMenuLabel("leave", locale),
+          hint: leaveBlockedHint,
+          disabled: leaveBlockedHint != null,
           icon: LogOutIcon,
           onSelect: onLeave,
         };
       case "delete":
-        return { label: "Delete Group", icon: Trash2Icon, onSelect: onDelete };
+        return {
+          label: m.group.settings.delete.deleteLabel,
+          hint: m.group.settings.edit.deleteHint,
+          icon: Trash2Icon,
+          onSelect: onDelete,
+        };
     }
   };
 
@@ -177,7 +194,7 @@ export function GroupHomeOverflowMenu({
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Group actions"
+        aria-label={m.webGroup.overflow.groupActions}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
@@ -186,7 +203,7 @@ export function GroupHomeOverflowMenu({
         <MoreVerticalIcon aria-hidden="true" className="size-5" />
       </button>
       <ResponsiveDialogContent showCloseButton restoreFocusRef={triggerRef}>
-        <ResponsiveDialogHeader className="pr-14">
+        <ResponsiveDialogHeader className="pe-14">
           <ResponsiveDialogTitle className="text-lead font-semibold tracking-normal [font-variation-settings:normal]">
             {groupName}
           </ResponsiveDialogTitle>
@@ -196,7 +213,7 @@ export function GroupHomeOverflowMenu({
             </ResponsiveDialogDescription>
           ) : (
             <ResponsiveDialogDescription className="sr-only">
-              Group actions
+              {m.webGroup.overflow.groupActions}
             </ResponsiveDialogDescription>
           )}
         </ResponsiveDialogHeader>
@@ -217,6 +234,8 @@ export function GroupHomeOverflowMenu({
                   <SheetMenuRow
                     key={row.item}
                     label={row.label}
+                    hint={row.hint}
+                    disabled={row.disabled}
                     icon={row.icon}
                     trailing={DESTRUCTIVE.has(row.item) ? undefined : "chevron"}
                     tone={DESTRUCTIVE.has(row.item) ? "danger" : "default"}

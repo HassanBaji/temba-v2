@@ -1,11 +1,7 @@
 import { sizes } from "@repo/design-tokens";
 import { knockoutPlaceSideTags } from "@repo/domain/tournament-details";
-import { YOUR_TEAM_TAG } from "@repo/domain/tournament-home";
-import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
+import { cancelMatchAction } from "@repo/domain/game-copy";
 import {
-  KNOCKOUT_BYE_LABEL,
-  KNOCKOUT_DECIDING_SET_COPY,
-  KNOCKOUT_WALKOVER_TAG,
   canCancelKnockoutPlace,
   knockoutPlaceMetaLine,
   knockoutRoundDayLine,
@@ -17,6 +13,7 @@ import {
 } from "@repo/domain/tournament-knockout-view";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { gameTeamPlayers } from "../player-profile/game-player-links";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -44,9 +41,11 @@ function SideRow({
   walkover?: boolean;
   links?: GameTeamLinks;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
   const isTeam = side.kind === "team";
   const isViewer = side.kind === "team" && side.team.isViewer;
-  const label = knockoutSideLabel(side);
+  const label = knockoutSideLabel(side, locale);
   const players =
     side.kind === "team" && links
       ? gameTeamPlayers(links.gameTeams, side.team.gameTeamId)
@@ -74,12 +73,12 @@ function SideRow({
       </View>
       {isViewer ? (
         <Text size="meta" tone="muted">
-          {YOUR_TEAM_TAG}
+          {messages.tournament.home.yourTeamTag}
         </Text>
       ) : null}
       {walkover ? (
         <Text size="meta" tone="muted" weight="semibold">
-          {KNOCKOUT_WALKOVER_TAG}
+          {messages.tournament.knockoutView.walkover}
         </Text>
       ) : null}
       {resultTag ? (
@@ -96,7 +95,7 @@ function SideRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityHint="Lists this Game team's players"
+      accessibilityHint={messages.mobileTournament.knockout.teamPlayersHint}
       onPress={() => links.onOpenTeam({ name: label, players })}
       style={({ pressed }) => ({ ...SIDE_ROW, opacity: pressed ? 0.6 : 1 })}
     >
@@ -118,9 +117,12 @@ function PlaceCard({
   onCancelMatch?: CancelMatch;
   links?: GameTeamLinks;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const knockoutView = messages.tournament.knockoutView;
   const meta =
     place.kind === "match"
-      ? knockoutPlaceMetaLine(place.startTime, place.courtName)
+      ? knockoutPlaceMetaLine(place.startTime, place.courtName, locale)
       : null;
   return (
     <Surface style={{ gap: 4 }}>
@@ -145,13 +147,13 @@ function PlaceCard({
         <View>
           <SideRow
             side={place.slot1}
-            {...knockoutPlaceSideTags(place, 1, isFinal)}
+            {...knockoutPlaceSideTags(place, 1, isFinal, locale)}
             links={links}
           />
           <Hairline />
           <SideRow
             side={place.slot2}
-            {...knockoutPlaceSideTags(place, 2, isFinal)}
+            {...knockoutPlaceSideTags(place, 2, isFinal, locale)}
             links={links}
           />
           {place.scoreLabel ? (
@@ -161,14 +163,16 @@ function PlaceCard({
           ) : null}
           {place.needsDecidingSet ? (
             <Text size="meta" tone="muted" style={{ paddingTop: 8 }}>
-              {KNOCKOUT_DECIDING_SET_COPY}
+              {knockoutView.decidingSet}
             </Text>
           ) : null}
           {onCancelMatch && canCancelKnockoutPlace(place) ? (
             <View style={{ flexDirection: "row", paddingTop: 8 }}>
               <Button
-                label={CANCEL_MATCH_ACTION}
-                accessibilityLabel={`${CANCEL_MATCH_ACTION} ${place.code}`}
+                label={cancelMatchAction(locale)}
+                accessibilityLabel={messages.mobileTournament.organizer.cancelMatchSr(
+                  place.code,
+                )}
                 size="sm"
                 variant="outline"
                 onPress={() => onCancelMatch(place)}
@@ -182,7 +186,7 @@ function PlaceCard({
           <Hairline />
           <View
             accessible
-            accessibilityLabel={KNOCKOUT_BYE_LABEL}
+            accessibilityLabel={knockoutView.bye}
             style={{
               minHeight: sizes.touchTarget,
               justifyContent: "center",
@@ -197,7 +201,7 @@ function PlaceCard({
               accessibilityElementsHidden
               importantForAccessibility="no"
             >
-              {KNOCKOUT_BYE_LABEL}
+              {knockoutView.bye}
             </Text>
           </View>
         </View>
@@ -217,7 +221,8 @@ function Round({
   onCancelMatch?: CancelMatch;
   links?: GameTeamLinks;
 }) {
-  const day = knockoutRoundDayLine(round);
+  const locale = useLocale();
+  const day = knockoutRoundDayLine(round, locale);
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10 }}>

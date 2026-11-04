@@ -4,10 +4,11 @@ import { z } from "zod";
 
 import { bookings, courts, games } from "@repo/db";
 import {
-  LEVEL_RANGE_INVERTED_MESSAGE,
+  levelRangeInvertedMessage,
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
+import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
@@ -58,7 +59,7 @@ export const createBookingGameInputSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: LEVEL_RANGE_INVERTED_MESSAGE,
+        message: levelRangeInvertedMessage(DEFAULT_LOCALE),
         path: ["levelMinTenths"],
       });
     }

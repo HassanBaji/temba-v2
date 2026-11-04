@@ -1,14 +1,15 @@
 import {
-  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
-  ADD_PLAYER_LEVEL_CHOICES,
-  ADD_PLAYER_NAME_LABEL,
+  addPlayerFootballLevelChoices,
+  addPlayerLevelChoices,
   type AddPlayerLevel,
 } from "@repo/domain/add-player-by-phone";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
+import { phoneShapePlaceholder } from "@repo/domain/phone-number";
 import { View } from "react-native";
 
 import { RowChoices } from "../auth/onboarding-choices";
 import { PhoneField } from "../auth/phone-field";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
@@ -70,13 +71,16 @@ export function AddPlayerIdentityFields({
   onFootballLevelChange: (level: FootballSelfPlacement) => void;
   disabled: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <>
       <View style={{ gap: 8 }}>
         <PhoneField
-          label="Phone"
+          label={m.mobileGameDetails.addPlayer.phone}
           countryIso={countryIso}
           national={national}
+          placeholder={phoneShapePlaceholder(countryIso)}
           onCountryIsoChange={onCountryIsoChange}
           onNationalChange={onNationalChange}
           error={complete ? previewError : undefined}
@@ -87,7 +91,7 @@ export function AddPlayerIdentityFields({
             <Text size="meta">{preview.line}</Text>
           ) : complete && previewFetching ? (
             <Text size="meta" tone="muted">
-              Looking up…
+              {m.mobileGameDetails.addPlayer.lookingUp}
             </Text>
           ) : null}
           {preview?.kind === "unclaimed" ? (
@@ -106,7 +110,7 @@ export function AddPlayerIdentityFields({
       {preview?.kind === "new" ? (
         <>
           <TextField
-            label={ADD_PLAYER_NAME_LABEL}
+            label={m.group.addPlayer.nameLabel}
             value={name}
             maxLength={100}
             autoCapitalize="words"
@@ -114,19 +118,19 @@ export function AddPlayerIdentityFields({
             editable={!disabled}
             onChangeText={onNameChange}
           />
-          <AddPlayerSection label="Starting Level">
+          <AddPlayerSection label={m.mobileGameDetails.addPlayer.startingLevel}>
             {isFootball ? (
               <RowChoices
-                label="Starting Level"
-                choices={ADD_PLAYER_FOOTBALL_LEVEL_CHOICES}
+                label={m.mobileGameDetails.addPlayer.startingLevel}
+                choices={addPlayerFootballLevelChoices(locale)}
                 value={footballLevel}
                 onSelect={onFootballLevelChange}
                 disabled={disabled}
               />
             ) : (
               <RowChoices
-                label="Starting Level"
-                choices={ADD_PLAYER_LEVEL_CHOICES}
+                label={m.mobileGameDetails.addPlayer.startingLevel}
+                choices={addPlayerLevelChoices(locale)}
                 value={level}
                 onSelect={onLevelChange}
                 disabled={disabled}

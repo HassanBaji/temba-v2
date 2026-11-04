@@ -1,9 +1,10 @@
 "use client";
 
+import { useLocale } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
+import { sportLabel, SPORTS, type Sport } from "@repo/domain/sport";
 
 export function SportPicker({
   id,
@@ -20,6 +21,7 @@ export function SportPicker({
   sports?: readonly Sport[];
   disabled?: boolean;
 }) {
+  const locale = useLocale();
   return (
     <RovingRadioGroup
       id={id}
@@ -35,7 +37,7 @@ export function SportPicker({
           onClick={() => onChange(sport)}
         >
           <SportGlyph sport={sport} className="size-4" />
-          {SPORT_LABELS[sport]}
+          {sportLabel(sport, locale)}
         </ChoiceChip>
       ))}
     </RovingRadioGroup>
@@ -55,6 +57,7 @@ export function SportCheckboxes({
   onToggle: (sport: Sport) => void;
   disabled?: boolean;
 }) {
+  const locale = useLocale();
   return (
     <div
       id={id}
@@ -72,7 +75,7 @@ export function SportCheckboxes({
           onClick={() => onToggle(sport)}
         >
           <SportGlyph sport={sport} className="size-4" />
-          {SPORT_LABELS[sport]}
+          {sportLabel(sport, locale)}
         </ChoiceChip>
       ))}
     </div>

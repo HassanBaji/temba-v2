@@ -1,15 +1,11 @@
 import { useUser } from "@clerk/expo";
-import {
-  COMMUNITY_CREATED_TOAST,
-  COMMUNITY_CREATE_COPY,
-  COMMUNITY_CREATE_NOT_AVAILABLE,
-} from "@repo/domain/community";
 import { toggleCommunitySport } from "@repo/domain/community-sports";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import type { CommunityVisibility } from "@repo/domain/community-chrome";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
+import { useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -24,6 +20,7 @@ export function CommunityCreateScreen() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
   const utils = api.useUtils();
   const [name, setName] = useState("");
   const [type, setType] = useState<CommunityVisibility>("public");
@@ -33,7 +30,7 @@ export function CommunityCreateScreen() {
 
   const create = api.communities.create.useMutation({
     onSuccess: async (community) => {
-      toast.show(COMMUNITY_CREATED_TOAST);
+      toast.show(m.community.toast.created);
       await utils.communities.mine.invalidate();
       router.replace(communityPath(community.id));
     },
@@ -64,14 +61,14 @@ export function CommunityCreateScreen() {
         <ScreenHeader
           nav="close"
           fallback={COMMUNITIES_PATH}
-          title={COMMUNITY_CREATE_COPY.title}
+          title={m.community.create.title}
         />
         <Surface style={{ gap: 8 }} accessibilityRole="alert">
           <Text size="lead" weight="semibold">
-            {COMMUNITY_CREATE_NOT_AVAILABLE.title}
+            {m.community.create.notAvailable.title}
           </Text>
           <Text size="meta" tone="muted">
-            {COMMUNITY_CREATE_NOT_AVAILABLE.description}
+            {m.community.create.notAvailable.description}
           </Text>
         </Surface>
       </Screen>

@@ -1,5 +1,4 @@
 import {
-  CHANGES_SAVED_TOAST,
   gameEditChangeNote,
   gameEditChangedSections,
   gameEditDraftFrom,
@@ -13,28 +12,13 @@ import {
 import type { GroupSeasonData } from "@repo/domain/group-season";
 import { useEffect, useMemo, useState } from "react";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 
 export type GameEditField = GameEditStep["kind"];
 
 export type GameEditError = { field: GameEditField | null; message: string };
-
-const STEP_LABEL: Record<GameEditField, string> = {
-  name: "Name",
-  window: "When",
-  caps: "Players",
-  price: "Price",
-  level: "Level range",
-  rounds: "Rounds",
-  season: "Season",
-};
-
-export function movedToWaitlistToast(count: number) {
-  return count === 1
-    ? "1 player moved to the waiting list"
-    : `${count} players moved to the waiting list`;
-}
 
 /**
  * The Edit game sheet's state: one draft, one Save that sends the changed
@@ -58,6 +42,8 @@ export function useGameEdit({
   onSaved: () => Promise<unknown>;
   onClose: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const toast = useToast();
   const [now] = useState(() => new Date());
   const saved = useMemo(() => gameEditDraftFrom(game), [game]);
@@ -125,10 +111,10 @@ export function useGameEdit({
   }
 
   const seasonFix = sections.season
-    ? gameEditSeasonFix(draft, seasons, now)
+    ? gameEditSeasonFix(draft, seasons, now, locale)
     : null;
   const changed = gameEditChangedSections(saved, draft, sections);
-  const note = gameEditChangeNote(saved, draft, sections, {
+  const note = gameEditChangeNote(saved, draft, sections, locale, {
     seasonNeedsFix: seasonFix != null,
   });
   const canSave = changed.length > 0 && seasonFix == null && !pending;
@@ -142,7 +128,7 @@ export function useGameEdit({
     if (!canSave) {
       return;
     }
-    const plan = gameEditPlan(saved, draft, sections);
+    const plan = gameEditPlan(saved, draft, sections, locale);
     if (!plan.ok) {
       setError({ field: plan.field, message: plan.message });
       return;
@@ -156,22 +142,30 @@ export function useGameEdit({
         moved += await runStep(step);
       } catch (caught) {
         const message =
-          caught instanceof Error ? caught.message : "Something went wrong";
+          caught instanceof Error
+            ? caught.message
+            : m.common.somethingWentWrong;
         failed = { field: step.kind, message };
         break;
       }
     }
     await onSaved();
     setPending(false);
+    const copy = m.mobileGameDetails.edit;
     if (failed) {
       setError(failed);
-      toast.show(`${STEP_LABEL[failed.field ?? "name"]}: ${failed.message}`);
+      toast.show(
+        copy.stepError(copy.step[failed.field ?? "name"], failed.message),
+      );
       return;
     }
     toast.show(
       moved > 0
-        ? `${CHANGES_SAVED_TOAST}. ${movedToWaitlistToast(moved)}`
-        : CHANGES_SAVED_TOAST,
+        ? copy.savedWithMoved(
+            m.createGame.edit.changesSaved,
+            copy.movedToWaitlist(moved),
+          )
+        : m.createGame.edit.changesSaved,
     );
     onClose();
   }

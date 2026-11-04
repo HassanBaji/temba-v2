@@ -4,8 +4,10 @@ import {
   paddedForm,
   seasonStandingPosition,
   seasonStandingTable,
+  standingLegend,
   standingRecordLabel,
   standingRulesLine,
+  standingShowsDraws,
   type SeasonStandingMatch,
   unrankedNote,
 } from "./season-standing";
@@ -274,13 +276,54 @@ describe("seasonStandingTable", () => {
 describe("standing copy", () => {
   it("reads the record, the unranked note and the rules", () => {
     expect(standingRecordLabel({ wins: 5, draws: 2, losses: 1 })).toBe("5–2–1");
-    expect(unrankedNote(3)).toBe("Fewer than 3 games");
-    expect(unrankedNote(1)).toBe("No games yet");
-    expect(standingRulesLine("sets", 3)).toContain(
+    expect(unrankedNote("en", 3)).toBe("Fewer than 3 games");
+    expect(unrankedNote("en", 1)).toBe("No games yet");
+    expect(standingRulesLine("sets", "en", 3)).toContain(
       "Play 3 games to be ranked.",
     );
-    expect(standingRulesLine("sets", 1)).toContain("One game ranks you.");
-    expect(standingRulesLine("sets")).toContain("set difference");
-    expect(standingRulesLine("games")).toContain("score difference");
+    expect(standingRulesLine("sets", "en", 1)).toContain("One game ranks you.");
+    expect(standingRulesLine("sets", "en")).toContain("set difference");
+    expect(standingRulesLine("games", "en")).toContain("score difference");
+  });
+
+  it("keys the column letters and the points under the table", () => {
+    expect(standingLegend(true, "en")).toBe(
+      "P played, W won, D drawn, L lost. A win is 3 points, a draw 1.",
+    );
+    expect(standingLegend(false, "en")).toBe(
+      "P played, W won, L lost. A win is 3 points.",
+    );
+  });
+
+  it("leaves the points to the legend", () => {
+    expect(standingRulesLine("sets", "en")).not.toContain("draw");
+  });
+
+  it("reads in Arabic", () => {
+    expect(unrankedNote("ar", 1)).toBe("لا مباريات بعد");
+    expect(standingRulesLine("sets", "ar")).toContain("فارق الأشواط");
+    expect(standingLegend(true, "ar")).toBe(
+      "ل لعب، ف فوز، ت تعادل، خ خسارة. الفوز 3 نقاط والتعادل 1.",
+    );
+    expect(standingLegend(false, "ar")).toBe(
+      "ل لعب، ف فوز، خ خسارة. الفوز 3 نقاط.",
+    );
+  });
+});
+
+describe("standingShowsDraws", () => {
+  it("always shows draws on football", () => {
+    expect(standingShowsDraws("football", [])).toBe(true);
+    expect(standingShowsDraws("football", [{ draws: 0 }])).toBe(true);
+  });
+
+  it("hides draws on padel until a row has one", () => {
+    expect(standingShowsDraws("padel", [{ draws: 0 }, { draws: 0 }])).toBe(
+      false,
+    );
+    expect(standingShowsDraws("padel", [{ draws: 0 }, { draws: 1 }])).toBe(
+      true,
+    );
+    expect(standingShowsDraws(null, [])).toBe(false);
   });
 });

@@ -82,24 +82,29 @@ describe("roleChangeNeedsConfirmation", () => {
 
 describe("roleChangeConfirmCopy", () => {
   it("names the member being made an Owner", () => {
-    const copy = roleChangeConfirmCopy({
-      name: "Ana",
-      isSelf: false,
-      from: "member",
-      to: "owner",
-    });
+    const copy = roleChangeConfirmCopy(
+      { name: "Ana", isSelf: false, from: "member", to: "owner" },
+      "en",
+    );
     assert.equal(copy.title, "Make Ana an Owner?");
     assert.equal(copy.confirmLabel, "Make Owner");
   });
 
   it("names the viewer's new role", () => {
-    const copy = roleChangeConfirmCopy({
-      name: "Me",
-      isSelf: true,
-      from: "owner",
-      to: "admin",
-    });
+    const copy = roleChangeConfirmCopy(
+      { name: "Me", isSelf: true, from: "owner", to: "admin" },
+      "en",
+    );
     assert.equal(copy.title, "Change your role to Admin?");
     assert.equal(copy.confirmLabel, "Become Admin");
+  });
+
+  it("reads in Arabic", () => {
+    const copy = roleChangeConfirmCopy(
+      { name: "Ana", isSelf: false, from: "member", to: "owner" },
+      "ar",
+    );
+    assert.equal(copy.title, "جعل Ana مالكًا؟");
+    assert.equal(copy.confirmLabel, "جعله مالكًا");
   });
 });

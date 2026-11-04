@@ -22,6 +22,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
   InputGroup,
@@ -32,15 +33,15 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   copyLinkLabel,
-  INVITE_LINK_EMPTY_NOTE,
+  inviteLinkEmptyNote,
   inviteLinkLifetimeNote,
-  INVITE_MODE_LABELS,
+  inviteModeLabel,
   inviteButtonLabel,
   inviteLinkNote,
   lookupResultView,
-  NO_PENDING_COPY,
+  noPendingCopy,
   noPlayersMatchCopy,
-  PENDING_NOTE,
+  pendingNote,
   pendingHeading,
   phoneInviteLabel,
   phoneInviteNote,
@@ -135,6 +136,7 @@ function Eyebrow({ className, ...props }: React.ComponentProps<"p">) {
 }
 
 function ModeSwitch({ modes }: { modes: InviteMode[] }) {
+  const locale = useLocale();
   return (
     <TabsList className="bg-wash h-auto w-full gap-1 p-1">
       {modes.map((entry) => {
@@ -146,7 +148,7 @@ function ModeSwitch({ modes }: { modes: InviteMode[] }) {
             className="text-muted-foreground text-meta data-[state=active]:bg-ink data-[state=active]:text-paper h-[38px] gap-1.5 border-none font-semibold"
           >
             <Icon className="size-3.5" aria-hidden="true" />
-            {INVITE_MODE_LABELS[entry]}
+            {inviteModeLabel(entry, locale)}
           </TabsTrigger>
         );
       })}
@@ -169,7 +171,9 @@ function PlayerRow({
   onInvite: () => void;
   onUninvite: () => void;
 }) {
-  const view = lookupResultView(row, invited);
+  const m = useMessages();
+  const locale = useLocale();
+  const view = lookupResultView(row, invited, locale);
   return (
     <li className="border-rule min-h-15 flex items-center gap-3 border-b py-2.5">
       <UserAvatar name={view.name} size="lg" />
@@ -182,20 +186,24 @@ function PlayerRow({
         size="sm"
         variant={invited ? "outline" : "default"}
         aria-label={
-          invited ? `Cancel invite for ${view.name}` : `Invite ${view.name}`
+          invited
+            ? m.webAuth.invites.door.cancelInviteFor(view.name)
+            : m.webAuth.invites.door.invite(view.name)
         }
         aria-pressed={invited}
         pending={busy}
         disabled={!invited && blocked}
         onClick={invited ? onUninvite : onInvite}
       >
-        {inviteButtonLabel(invited)}
+        {inviteButtonLabel(invited, locale)}
       </Button>
     </li>
   );
 }
 
 function PlayersMode({ players }: { players: PlayersModeProps }) {
+  const m = useMessages();
+  const locale = useLocale();
   const { results } = players;
   const hasPick = players.singlePick && players.invitedUserIds.size > 0;
   return (
@@ -208,8 +216,8 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
           type="search"
           value={players.query}
           onChange={(event) => players.onQueryChange(event.target.value)}
-          placeholder="Name or phone number"
-          aria-label="Search players"
+          placeholder={m.webAuth.invites.door.searchPlaceholder}
+          aria-label={m.webAuth.invites.door.searchLabel}
           autoComplete="off"
         />
       </InputGroup>
@@ -222,7 +230,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
           ))}
         </ul>
       ) : null}
-      <Eyebrow>{playersHeading(players.query)}</Eyebrow>
+      <Eyebrow>{playersHeading(players.query, locale)}</Eyebrow>
       {results.status === "loading" ? (
         <div className="space-y-2">
           <Skeleton className="h-12 rounded-lg" />
@@ -234,7 +242,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
         </p>
       ) : results.value.length === 0 ? (
         <p className="text-muted-foreground text-meta whitespace-pre-line py-5 text-center">
-          {noPlayersMatchCopy(players.query, players.canLink)}
+          {noPlayersMatchCopy(players.query, players.canLink, locale)}
         </p>
       ) : (
         <ul className="-mt-2.5">
@@ -256,6 +264,8 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
 }
 
 function PhoneMode({ phone }: { phone: PhoneModeProps }) {
+  const m = useMessages();
+  const locale = useLocale();
   const id = React.useId();
   return (
     <form
@@ -269,7 +279,7 @@ function PhoneMode({ phone }: { phone: PhoneModeProps }) {
     >
       <div className="space-y-2">
         <label htmlFor={id} className="text-meta font-semibold">
-          Phone number
+          {m.webAuth.invites.door.phoneNumber}
         </label>
         <PhoneField
           id={id}
@@ -281,7 +291,7 @@ function PhoneMode({ phone }: { phone: PhoneModeProps }) {
         />
       </div>
       <p className="text-muted-foreground text-meta">
-        {phoneInviteNote(phone.canLookup)}
+        {phoneInviteNote(phone.canLookup, locale)}
       </p>
       <Button
         type="submit"
@@ -290,13 +300,15 @@ function PhoneMode({ phone }: { phone: PhoneModeProps }) {
         pending={phone.sending}
         disabled={!phone.ready}
       >
-        {phoneInviteLabel(phone.ready, phone.sending)}
+        {phoneInviteLabel(phone.ready, phone.sending, locale)}
       </Button>
     </form>
   );
 }
 
 function LinkMode({ link }: { link: LinkModeProps }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="space-y-3.5">
       <div className="border-rule flex items-center gap-3 rounded-lg border px-4 py-3.5">
@@ -306,23 +318,23 @@ function LinkMode({ link }: { link: LinkModeProps }) {
           ) : null}
           <Eyebrow>
             {link.currentUrl
-              ? inviteLinkLifetimeNote(link.kind)
-              : INVITE_LINK_EMPTY_NOTE}
+              ? inviteLinkLifetimeNote(link.kind, locale)
+              : inviteLinkEmptyNote(locale)}
           </Eyebrow>
         </div>
         <Button
           type="button"
           size="sm"
           variant={link.copied ? "outline" : "default"}
-          aria-label="Copy link"
+          aria-label={m.webAuth.invites.door.copyLink}
           disabled={link.pending}
           onClick={link.onCopy}
         >
-          {copyLinkLabel(link.copied)}
+          {copyLinkLabel(link.copied, locale)}
         </Button>
       </div>
       <p className="text-muted-foreground text-meta">
-        {inviteLinkNote(link.kind)}
+        {inviteLinkNote(link.kind, locale)}
       </p>
       <Button
         type="button"
@@ -332,7 +344,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         onClick={link.onShare}
       >
         <Share aria-hidden="true" />
-        Share link
+        {m.webAuth.invites.door.shareLink}
       </Button>
       <div className="flex gap-2">
         <Button
@@ -353,7 +365,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
           onClick={link.onMessages}
         >
           <MessageSquare aria-hidden="true" />
-          Messages
+          {m.webAuth.invites.door.messages}
         </Button>
       </div>
     </div>
@@ -369,18 +381,19 @@ function PendingChip({
   revoking: boolean;
   onRevoke: () => void;
 }) {
-  const name = row.user.name ?? "User";
+  const m = useMessages();
+  const name = row.user.name ?? m.webAuth.invites.door.userFallback;
   return (
     <li
       className={cn(
-        "border-rule flex h-8 items-center gap-1.5 rounded-full border pl-3 pr-[5px]",
+        "border-rule flex h-8 items-center gap-1.5 rounded-full border pe-[5px] ps-3",
         revoking && "opacity-50",
       )}
     >
       <span className="text-meta truncate">{name}</span>
       <button
         type="button"
-        aria-label={`Cancel invite for ${name}`}
+        aria-label={m.webAuth.invites.door.cancelInviteFor(name)}
         disabled={revoking}
         onClick={onRevoke}
         className="bg-wash text-muted-foreground hover:text-ink focus-visible:ring-ring/50 relative flex size-[22px] items-center justify-center rounded-full outline-none after:absolute after:size-11 focus-visible:ring-[3px]"
@@ -392,14 +405,15 @@ function PendingChip({
 }
 
 function PendingFooter({ pending }: { pending: PendingProps }) {
+  const locale = useLocale();
   const rows = pending.rows.status === "ready" ? pending.rows.value : [];
   return (
     <section className="border-rule space-y-2.5 border-t pt-4">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-meta font-semibold">
-          {pendingHeading(rows.length)}
+          {pendingHeading(rows.length, locale)}
         </h3>
-        {rows.length > 0 ? <Eyebrow>{PENDING_NOTE}</Eyebrow> : null}
+        {rows.length > 0 ? <Eyebrow>{pendingNote(locale)}</Eyebrow> : null}
       </div>
       {pending.rows.status === "loading" ? (
         <Skeleton className="h-8 rounded-full" />
@@ -408,7 +422,9 @@ function PendingFooter({ pending }: { pending: PendingProps }) {
           {pending.rows.message}
         </p>
       ) : rows.length === 0 ? (
-        <p className="text-muted-foreground text-meta">{NO_PENDING_COPY}</p>
+        <p className="text-muted-foreground text-meta">
+          {noPendingCopy(locale)}
+        </p>
       ) : (
         <ul className="flex flex-wrap gap-1.5">
           {rows.map((row) => (
@@ -439,6 +455,7 @@ export function InviteDialogView({
   link,
   pending,
 }: InviteDialogViewProps) {
+  const m = useMessages();
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent
@@ -450,7 +467,7 @@ export function InviteDialogView({
           <ResponsiveDialogDescription
             className={subtitle ? undefined : "sr-only"}
           >
-            {subtitle ?? "Invite players to join."}
+            {subtitle ?? m.webAuth.invites.door.description}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 

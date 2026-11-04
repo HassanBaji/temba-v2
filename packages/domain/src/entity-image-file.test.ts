@@ -32,7 +32,7 @@ describe("asEntityImageContentType", () => {
 describe("entityImageFileError", () => {
   it("rejects non-JPEG/PNG/WebP before mutate", () => {
     expect(
-      entityImageFileError(fakeFile({ type: "image/gif", size: 12 })),
+      entityImageFileError(fakeFile({ type: "image/gif", size: 12 }), "en"),
     ).toBe("Image must be a JPEG, PNG, or WebP image");
   });
 
@@ -40,35 +40,57 @@ describe("entityImageFileError", () => {
     expect(
       entityImageFileError(
         fakeFile({ type: "image/jpeg", size: ENTITY_IMAGE_MAX_BYTES + 1 }),
+        "en",
       ),
     ).toBe("Image must be at most 2 MB");
   });
 
   it("checks a picked image that is not a File", () => {
-    expect(entityImageFileError({ type: "image/heic", size: 1024 })).toBe(
+    expect(entityImageFileError({ type: "image/heic", size: 1024 }, "en")).toBe(
       "Image must be a JPEG, PNG, or WebP image",
     );
     expect(
-      entityImageFileError({ type: "image/png", size: ENTITY_IMAGE_MAX_BYTES }),
+      entityImageFileError(
+        { type: "image/png", size: ENTITY_IMAGE_MAX_BYTES },
+        "en",
+      ),
     ).toBeNull();
   });
 
   it("accepts a JPEG within the cap", () => {
     expect(
-      entityImageFileError(fakeFile({ type: "image/jpeg", size: 1024 })),
+      entityImageFileError(fakeFile({ type: "image/jpeg", size: 1024 }), "en"),
     ).toBeNull();
   });
 
   it("names a Venue logo in its errors", () => {
     expect(
-      entityImageFileError(fakeFile({ type: "image/gif", size: 12 }), "Logo"),
+      entityImageFileError(
+        fakeFile({ type: "image/gif", size: 12 }),
+        "en",
+        "Logo",
+      ),
     ).toBe("Logo must be a JPEG, PNG, or WebP image");
     expect(
       entityImageFileError(
         fakeFile({ type: "image/png", size: ENTITY_IMAGE_MAX_BYTES + 1 }),
+        "en",
         "Logo",
       ),
     ).toBe("Logo must be at most 2 MB");
+  });
+
+  it("writes the errors in Arabic", () => {
+    expect(
+      entityImageFileError(fakeFile({ type: "image/gif", size: 12 }), "ar"),
+    ).toBe("يجب أن تكون الصورة بصيغة JPEG أو PNG أو WebP");
+    expect(
+      entityImageFileError(
+        fakeFile({ type: "image/png", size: ENTITY_IMAGE_MAX_BYTES + 1 }),
+        "ar",
+        "Logo",
+      ),
+    ).toBe("يجب ألا يتجاوز حجم الشعار 2 ميغابايت");
   });
 });
 
@@ -78,7 +100,7 @@ describe("entityImageUploadInput", () => {
       type: "image/jpg",
     });
 
-    await expect(entityImageUploadInput(file, "Logo")).resolves.toEqual({
+    await expect(entityImageUploadInput(file, "en", "Logo")).resolves.toEqual({
       contentType: "image/jpeg",
       dataBase64: "AQID",
     });
@@ -86,7 +108,11 @@ describe("entityImageUploadInput", () => {
 
   it("refuses a file the check rejects", async () => {
     await expect(
-      entityImageUploadInput(fakeFile({ type: "image/gif", size: 12 }), "Logo"),
+      entityImageUploadInput(
+        fakeFile({ type: "image/gif", size: 12 }),
+        "en",
+        "Logo",
+      ),
     ).rejects.toThrow("Logo must be a JPEG, PNG, or WebP image");
   });
 });

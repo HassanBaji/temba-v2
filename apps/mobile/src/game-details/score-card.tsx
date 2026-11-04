@@ -1,12 +1,18 @@
-import { sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { formatAbsoluteDay } from "@repo/domain/format-game-start";
+import {
+  scoreDeciderNote,
+  scoreLockedLine,
+  scoreSetsMeta,
+  scoreTeamFirstNames,
+} from "@repo/domain/friendly-game-court";
 import type {
   FriendlyGameDetailsConfirmation,
   FriendlyGameDetailsMatch,
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import {
-  ORGANIZER_CONFIRM_NOTE,
+  organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
   scoreConfirmationRows,
@@ -20,20 +26,21 @@ import {
   scoreSetBoxState,
   scoreSetNeverPlayed,
   scoreShowsConfirmations,
-  scoreTeamNamesLabel,
   type FriendlyScorePhase,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
 import { setLabel } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import { Lock } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
-import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
+import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
@@ -44,9 +51,12 @@ import {
   type ScoreDrafts,
 } from "./details-model";
 
-const BOX_WIDTH = 64;
+const BOX_WIDTH = 56;
 const BOX_HEIGHT = sizes.touchTarget + 4;
+const BOX_GAP = 8;
 const OUTLINE_WIDTH = 1.5;
+const LOCK_TILE = 40;
+const LOCKED_BARS = 3;
 
 function SetBox({
   state,
@@ -64,6 +74,7 @@ function SetBox({
   onChangeText: (text: string) => void;
 }) {
   const palette = useTonePalette();
+  const locale = useLocale();
   const frame = { width: BOX_WIDTH, height: BOX_HEIGHT, borderRadius: 5 };
 
   if (state === "locked" || state === "unplayed") {
@@ -95,7 +106,12 @@ function SetBox({
   return (
     <View
       accessible
-      accessibilityLabel={scoreSetBoxAccessibleLabel(state, label, value)}
+      accessibilityLabel={scoreSetBoxAccessibleLabel(
+        state,
+        label,
+        value,
+        locale,
+      )}
       style={[
         frame,
         {
@@ -136,6 +152,7 @@ function FooterNote({
   confirmedByOrganizer: boolean;
 }) {
   const palette = useTonePalette();
+  const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
   return (
     <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
@@ -151,7 +168,7 @@ function FooterNote({
         {isFinal ? null : <Hatch radius={2} />}
       </View>
       <Text size="meta" tone="muted" style={{ flex: 1 }}>
-        {scoreFooterNote(phase, confirmedAtLabel, confirmedByOrganizer)}
+        {scoreFooterNote(phase, confirmedAtLabel, locale, confirmedByOrganizer)}
       </Text>
     </View>
   );
@@ -174,13 +191,15 @@ function Confirmations({
   confirmPending: boolean;
   onConfirm: () => void;
 }) {
-  const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
-  const waitingLines = scoreOrganizerWaitingLines(confirmation);
+  const m = useMessages();
+  const locale = useLocale();
+  const rows = scoreConfirmationRows(confirmation, viewerUserId, names, locale);
+  const waitingLines = scoreOrganizerWaitingLines(confirmation, locale);
   return (
     <View style={{ gap: 10 }}>
       <Hairline />
       <Text size="meta" weight="medium">
-        Confirmations
+        {m.mobileGameDetails.score.confirmations}
       </Text>
       {rows.map((row) => (
         <View
@@ -211,7 +230,11 @@ function Confirmations({
       {organizerCanConfirm || canConfirm ? (
         <View style={{ flexDirection: "row" }}>
           <Button
-            label={organizerCanConfirm ? "Confirm score" : "Confirm result"}
+            label={
+              organizerCanConfirm
+                ? m.mobileGameDetails.score.confirmScore
+                : m.mobileGameDetails.score.confirmResult
+            }
             variant="outline"
             size="sm"
             pending={confirmPending}
@@ -221,10 +244,51 @@ function Confirmations({
       ) : null}
       {organizerCanConfirm ? (
         <Text size="meta" tone="muted">
-          {ORGANIZER_CONFIRM_NOTE}
+          {organizerConfirmNote(locale)}
         </Text>
       ) : null}
     </View>
+  );
+}
+
+/** Before the Game: one row that says when the score opens. */
+function LockedScore({ courtFull }: { courtFull: boolean }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const palette = useTonePalette();
+  const lockedLine = scoreLockedLine(courtFull, locale);
+  return (
+    <Surface
+      accessible
+      accessibilityLabel={m.mobileGameDetails.score.lockedLabel(lockedLine)}
+      style={{ flexDirection: "row", alignItems: "center", gap: 14 }}
+    >
+      <View
+        style={{
+          width: LOCK_TILE,
+          height: LOCK_TILE,
+          borderRadius: radii.md,
+          backgroundColor: palette.wash,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Lock size={17} color={palette.muted} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text weight="semibold">{m.mobileGameDetails.score.title}</Text>
+        <Text size="meta" tone="muted">
+          {lockedLine}
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 4 }}>
+        {Array.from({ length: LOCKED_BARS }, (_, index) => (
+          <View key={index} style={{ width: 14, height: 22 }}>
+            <Hatch radius={3} />
+          </View>
+        ))}
+      </View>
+    </Surface>
   );
 }
 
@@ -236,6 +300,7 @@ export function ScoreCard({
   winningGameTeamId,
   confirmation,
   isOrganizer,
+  courtFull,
   scorePending,
   confirmPending,
   onSaveSets,
@@ -248,17 +313,24 @@ export function ScoreCard({
   winningGameTeamId: string | null;
   confirmation: FriendlyGameDetailsConfirmation | null;
   isOrganizer: boolean;
+  courtFull: boolean;
   scorePending: boolean;
   confirmPending: boolean;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [drafts, setDrafts] = useState<ScoreDrafts>(() =>
     draftsFromSets(match.sets),
   );
   useEffect(() => {
     setDrafts(draftsFromSets(match.sets));
   }, [match.sets]);
+
+  if (scorePhaseFlags(phase).isUpcoming) {
+    return <LockedScore courtFull={courtFull} />;
+  }
 
   const canEnter = scoreCanEnter(phase, match.canScoreSets);
   const hasResult = match.outcome.result !== "none";
@@ -275,53 +347,85 @@ export function ScoreCard({
     phase,
     isOrganizer,
   });
+  const deciderNote = canEnter
+    ? scoreDeciderNote(match.sets.length, locale)
+    : null;
 
   return (
-    <Card title="Score">
+    <Surface padded={false} style={{ overflow: "hidden" }}>
       <View
         style={{
-          paddingHorizontal: spacing.surface,
-          paddingBottom: spacing.surface,
-          gap: 16,
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+          paddingHorizontal: spacing.compact,
+          paddingTop: 14,
+          paddingBottom: 14,
+        }}
+      >
+        <Text size="lead" weight="semibold" accessibilityRole="header">
+          {m.mobileGameDetails.score.title}
+        </Text>
+        <Text size="meta" tone="muted">
+          {scoreSetsMeta(match.sets.length, locale)}
+        </Text>
+      </View>
+      <View
+        style={{
+          paddingHorizontal: spacing.compact,
+          paddingBottom: spacing.compact,
+          gap: 10,
         }}
       >
         <View
-          style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ flexDirection: "row", gap: BOX_GAP }}
         >
-          <View style={{ width: 52 }} />
-          {sides.map((side) => (
-            <View key={side.sideIndex} style={{ width: BOX_WIDTH }}>
-              <Text size="eyebrow" weight="medium" tone="muted" uppercase>
-                {formatGameSideLabel("friendly_game", side.sideIndex)}
-              </Text>
-            </View>
-          ))}
-        </View>
-        <View style={{ gap: 4 }}>
-          {sides.map((side) => (
-            <Text key={side.sideIndex} size="meta" numberOfLines={1}>
-              {formatGameSideLabel("friendly_game", side.sideIndex)}:{" "}
-              {scoreTeamNamesLabel(side)}
+          <View style={{ flex: 1 }} />
+          {match.sets.map((set, index) => (
+            <Text
+              key={set.id}
+              size="eyebrow"
+              tone="muted"
+              uppercase
+              style={{ width: BOX_WIDTH, textAlign: "center" }}
+            >
+              {setLabel(index, locale)}
             </Text>
           ))}
         </View>
 
-        {match.sets.map((set, index) => {
-          const setName = setLabel(index);
-          const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
-          const neverPlayed = scoreSetNeverPlayed(set);
+        {sides.map((side) => {
+          const sideLabel = formatGameSideLabel(
+            "friendly_game",
+            side.sideIndex,
+            locale,
+          );
           return (
             <View
-              key={set.id}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              key={side.sideIndex}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: BOX_GAP,
+              }}
             >
-              <Text size="meta" tone="muted" style={{ width: 52 }}>
-                {setName}
-              </Text>
-              {sides.map((side) => {
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text size="eyebrow" weight="semibold" tone="muted" uppercase>
+                  {sideLabel}
+                </Text>
+                <Text weight="medium" numberOfLines={1}>
+                  {scoreTeamFirstNames(side, locale)}
+                </Text>
+              </View>
+              {match.sets.map((set, index) => {
+                const setName = setLabel(index, locale);
+                const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
                 const state = scoreSetBoxState({
                   phase,
-                  neverPlayed,
+                  neverPlayed: scoreSetNeverPlayed(set),
                   canEnter,
                   isWinningSide:
                     side.gameTeamId != null &&
@@ -329,10 +433,10 @@ export function ScoreCard({
                 });
                 return (
                   <SetBox
-                    key={side.sideIndex}
+                    key={set.id}
                     state={state}
                     value={scoreGamesWonForSide(set, side.sideIndex)}
-                    label={`${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setName}`}
+                    label={m.mobileGameDetails.score.setBox(sideLabel, setName)}
                     draft={side.sideIndex === 1 ? draft.slot1 : draft.slot2}
                     saving={scorePending}
                     onChangeText={(text) =>
@@ -348,9 +452,20 @@ export function ScoreCard({
         })}
 
         {canEnter ? (
-          <View style={{ flexDirection: "row" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              paddingTop: 6,
+            }}
+          >
+            <Text size="meta" tone="muted" style={{ flex: 1 }}>
+              {deciderNote ?? ""}
+            </Text>
             <Button
-              label="Save score"
+              label={m.mobileGameDetails.score.save}
               size="sm"
               pending={scorePending}
               onPress={() => onSaveSets(setsToSave(match.sets, drafts))}
@@ -371,16 +486,18 @@ export function ScoreCard({
           />
         ) : null}
 
-        <FooterNote
-          phase={phase}
-          confirmedAtLabel={
-            confirmation?.confirmedAt
-              ? formatAbsoluteDay(confirmation.confirmedAt)
-              : null
-          }
-          confirmedByOrganizer={confirmation?.confirmedByOrganizer ?? false}
-        />
+        {canEnter ? null : (
+          <FooterNote
+            phase={phase}
+            confirmedAtLabel={
+              confirmation?.confirmedAt
+                ? formatAbsoluteDay(confirmation.confirmedAt, locale)
+                : null
+            }
+            confirmedByOrganizer={confirmation?.confirmedByOrganizer ?? false}
+          />
+        )}
       </View>
-    </Card>
+    </Surface>
   );
 }

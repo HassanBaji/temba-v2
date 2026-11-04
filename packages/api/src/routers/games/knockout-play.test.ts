@@ -29,14 +29,12 @@ import { scoreSet } from "#src/routers/games/scoreSet";
 import { requireGame } from "#src/games/access";
 import {
   KNOCKOUT_EMPTY_SIDE_MESSAGE,
-  KNOCKOUT_LEVEL_MESSAGE,
   KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE,
+  knockoutLevelMessage,
 } from "#src/games/knockout-advance";
 import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
-import {
-  KNOCKOUT_DECIDING_SET_COPY,
-  knockoutChampion,
-} from "@repo/domain/tournament-knockout-view";
+import { knockoutChampion } from "@repo/domain/tournament-knockout-view";
+import { messagesFor } from "@repo/i18n/messages";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const AFTER_THE_DAY = new Date("2026-09-21T12:00:00");
@@ -380,9 +378,11 @@ describe("a level Knockout Match", () => {
             userId: seeded.owner.id,
           }),
         "BAD_REQUEST",
-        KNOCKOUT_LEVEL_MESSAGE,
+        knockoutLevelMessage("en"),
       );
-      expect(KNOCKOUT_LEVEL_MESSAGE).toBe(KNOCKOUT_DECIDING_SET_COPY);
+      expect(knockoutLevelMessage("en")).toBe(
+        messagesFor("en").tournament.knockoutView.decidingSet,
+      );
       expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
         MatchStatusEnum.PENDING,
       );
@@ -410,7 +410,7 @@ describe("a level Knockout Match", () => {
             userId: side5Left!,
           }),
         "FORBIDDEN",
-        KNOCKOUT_LEVEL_MESSAGE,
+        knockoutLevelMessage("en"),
       );
 
       const detail = await gameById(db, {

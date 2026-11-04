@@ -10,6 +10,7 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   SetLevelFields,
   SetLevelMemberSummary,
@@ -30,7 +31,8 @@ import {
 } from "~/components/ui/sheet";
 import { api } from "~/trpc/react";
 import { levelSliderLabel } from "@repo/domain/level-slider";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { sportLabel, type Sport } from "@repo/domain/sport";
+import type { Messages } from "@repo/i18n/messages";
 
 function useDebouncedValue(value: string, delayMs: number) {
   const [debounced, setDebounced] = React.useState(value);
@@ -41,23 +43,29 @@ function useDebouncedValue(value: string, delayMs: number) {
   return debounced;
 }
 
-function playerMeta(player: {
-  username: string | null;
-  unclaimed: boolean;
-  ratedMatchCount: number;
-}) {
+function playerMeta(
+  player: {
+    username: string | null;
+    unclaimed: boolean;
+    ratedMatchCount: number;
+  },
+  o: Messages["webDashboard"]["operator"]["levels"],
+) {
   const parts = [
     player.unclaimed
-      ? "Unclaimed player"
+      ? o.unclaimedPlayer
       : player.username
         ? `@${player.username}`
         : null,
-    `${player.ratedMatchCount} Rated ${player.ratedMatchCount === 1 ? "Match" : "Matches"}`,
+    o.ratedMatches(player.ratedMatchCount),
   ];
   return parts.filter(Boolean).join(" · ");
 }
 
 export default function OperatorLevelsPage() {
+  const m = useMessages();
+  const locale = useLocale();
+  const o = m.webDashboard.operator.levels;
   const utils = api.useUtils();
   const [sport, setSport] = React.useState<Sport>("padel");
   const [query, setQuery] = React.useState("");
@@ -73,7 +81,10 @@ export default function OperatorLevelsPage() {
   const setLevel = api.ratings.setLevelAsOperator.useMutation({
     onSuccess: async (_result, variables) => {
       toast.success(
-        `${target?.name ?? "Player"} set to ${levelSliderLabel(variables.levelTenths)}`,
+        o.setToast(
+          target?.name ?? o.playerFallback,
+          levelSliderLabel(variables.levelTenths),
+        ),
       );
       setTarget(null);
       await utils.ratings.listForOperator.invalidate();
@@ -86,22 +97,19 @@ export default function OperatorLevelsPage() {
   }
 
   return (
-    <DashboardShell
-      title="Player Levels"
-      description="Set any player's Level by hand. A Level you set counts as confirmed, and every set is recorded with your name."
-    >
+    <DashboardShell title={o.title} description={o.description}>
       <div className="space-y-4">
         <SportSegments value={sport} onSelect={setSport} />
 
         <Field>
           <FieldLabel htmlFor="operator-player-search">
-            Search players
+            {o.searchLabel}
           </FieldLabel>
           <Input
             id="operator-player-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Name, phone or email"
+            placeholder={o.searchPlaceholder}
             maxLength={100}
             autoComplete="off"
           />
@@ -111,7 +119,7 @@ export default function OperatorLevelsPage() {
 
         {players.error ? (
           <ErrorState
-            title="Players could not be loaded"
+            title={o.errorTitle}
             message={players.error.message}
             onRetry={() => {
               void players.refetch();
@@ -122,12 +130,8 @@ export default function OperatorLevelsPage() {
         {players.data && rows.length === 0 ? (
           <EmptyState
             icon={Gauge}
-            title="No players found"
-            description={
-              debouncedQuery
-                ? "Try a different name, phone or email."
-                : "Players will show up here once they sign up."
-            }
+            title={o.empty.title}
+            description={debouncedQuery ? o.empty.tryOther : o.empty.none}
           />
         ) : null}
 
@@ -144,7 +148,7 @@ export default function OperatorLevelsPage() {
                   />
                 }
                 title={player.name}
-                meta={playerMeta(player)}
+                meta={playerMeta(player, o)}
                 stackTrailing
                 trailing={
                   <div className="flex items-center gap-3">
@@ -155,14 +159,14 @@ export default function OperatorLevelsPage() {
                       className="w-16 shrink-0"
                     />
                     {player.isViewer ? (
-                      <Badge variant="secondary">You</Badge>
+                      <Badge variant="secondary">{m.common.you}</Badge>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openSetLevel(player)}
                       >
-                        Set Level
+                        {m.webDashboard.setLevel.title}
                       </Button>
                     )}
                   </div>
@@ -180,7 +184,7 @@ export default function OperatorLevelsPage() {
               void players.fetchNextPage();
             }}
           >
-            Show more
+            {m.common.showMore}
           </Button>
         ) : null}
       </div>
@@ -195,11 +199,10 @@ export default function OperatorLevelsPage() {
       >
         <SheetContent className="w-full overflow-y-auto sm:max-w-[480px]">
           <SheetHeader>
-            <SheetTitle>Set {SPORT_LABELS[sport]} Level</SheetTitle>
-            <SheetDescription>
-              Recorded with your name. A mistake is corrected by setting it
-              again.
-            </SheetDescription>
+            <SheetTitle>
+              {o.sheetTitle(sportLabel(sport, locale) ?? "")}
+            </SheetTitle>
+            <SheetDescription>{o.sheetDescription}</SheetDescription>
           </SheetHeader>
           {target ? (
             <div className="flex flex-col gap-5 px-4 pb-6">

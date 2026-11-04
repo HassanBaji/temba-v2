@@ -5,15 +5,15 @@ import {
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
 import {
-  JOIN_ALONE_COPY,
-  JOIN_WITH_PARTNER_COPY,
-  PARTNER_PICKER_COPY,
-  PARTNER_REVIEW_COPY,
   friendlyGameJoinOpeningStep,
   friendlyGameJoinSheetHeader,
   firstFullyVacantSideIndex,
+  joinAloneCopy,
+  joinWithPartnerCopy,
   partnerContinueLabel,
+  partnerPickerCopy,
   partnerPlayerMeta,
+  partnerReviewCopy,
   partnerReviewDetails,
   partnerReviewGameLine,
   partnerSeatsChip,
@@ -22,13 +22,14 @@ import {
   seedPartnerCallerPosition,
   type PartnerSuggestion,
 } from "@repo/domain/friendly-game-partner";
-import { JOIN_GAME_ACTION } from "@repo/domain/game-copy";
+import { joinGameAction } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hatch } from "../primitives/hatch";
@@ -216,7 +217,10 @@ function SeatStep({
   onPick: (seat: FriendlyGameJoinSeat) => void;
   onConfirm: () => void;
 }) {
-  const priceLabel = formatPricePerPlayerFils(game.pricePerPlayerFils);
+  const m = useMessages();
+  const copy = m.mobileGameDetails.join;
+  const locale = useLocale();
+  const priceLabel = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   return (
     <View style={{ gap: 16 }}>
       <View style={{ flexDirection: "row", gap: 12 }}>
@@ -224,6 +228,7 @@ function SeatStep({
           const sideLabel = formatGameSideLabel(
             "friendly_game",
             side.sideIndex,
+            locale,
           );
           return (
             <View key={side.sideIndex} style={{ flex: 1, gap: 6 }}>
@@ -233,16 +238,19 @@ function SeatStep({
               <View style={{ flexDirection: "row", gap: 6 }}>
                 {(["left", "right"] as const).map((position) => {
                   const occupant = side[position];
-                  const seatName = `${sideLabel} ${position}`;
+                  const seatName = copy.seatName(
+                    sideLabel,
+                    copy.positionWord[position],
+                  );
                   return (
                     <SeatTile
                       key={position}
                       occupant={occupant}
-                      caption={position === "left" ? "Left" : "Right"}
+                      caption={m.game.players[position]}
                       label={
                         occupant
-                          ? `${seatName}, taken by ${occupant.name}`
-                          : `Take ${seatName}`
+                          ? copy.takenBy(seatName, occupant.name)
+                          : copy.take(seatName)
                       }
                       selected={
                         picked?.sideIndex === side.sideIndex &&
@@ -261,7 +269,7 @@ function SeatStep({
         })}
       </View>
       <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
-        {friendlyGameJoinSheetCaption(game.sides, picked)}
+        {friendlyGameJoinSheetCaption(game.sides, picked, locale)}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
         {priceLabel ? (
@@ -270,13 +278,13 @@ function SeatStep({
               {priceLabel}
             </Text>
             <Text size="eyebrow" tone="muted">
-              per player
+              {copy.perPlayer}
             </Text>
           </View>
         ) : null}
         <View style={{ flex: 1 }}>
           <Button
-            label={JOIN_GAME_ACTION}
+            label={joinGameAction(locale)}
             size="lg"
             disabled={!picked}
             pending={pending}
@@ -297,12 +305,13 @@ function PartnerRow({
   selected: boolean;
   onPress: () => void;
 }) {
+  const locale = useLocale();
   const palette = useTonePalette();
   const blocked = row.ineligible != null;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={partnerSuggestionButtonLabel(row)}
+      accessibilityLabel={partnerSuggestionButtonLabel(row, locale)}
       accessibilityState={{ disabled: blocked, selected }}
       disabled={blocked}
       onPress={onPress}
@@ -324,7 +333,7 @@ function PartnerRow({
           {row.name}
         </Text>
         <Text size="meta" tone="muted">
-          {partnerSuggestionMetaLine(row)}
+          {partnerSuggestionMetaLine(row, locale)}
         </Text>
       </View>
     </Pressable>
@@ -381,11 +390,18 @@ function PartnerStep({
   onSelect: (partner: PartnerPick | null) => void;
   onContinue: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.join;
+  const locale = useLocale();
+  const pickerCopy = partnerPickerCopy(locale);
   const results = searchResults.status === "ready" ? searchResults.value : [];
   return (
     <View style={{ gap: 16 }}>
       <Text size="meta" tone="muted">
-        {PARTNER_PICKER_COPY.description} {partnerSeatsChip(vacantSeatCount)}.
+        {copy.partnerPickerLine(
+          pickerCopy.description,
+          partnerSeatsChip(vacantSeatCount, locale),
+        )}
       </Text>
       <View style={{ gap: 16 }}>
         <View style={{ gap: 16 }}>
@@ -397,13 +413,13 @@ function PartnerStep({
           {suggestions.status === "ready" ? (
             <>
               <SuggestionGroup
-                title="Played with before"
+                title={copy.playedWithBefore}
                 rows={suggestions.value.playedWithBefore}
                 selectedId={selected?.id ?? null}
                 onPick={(row) => onSelect(pickFromSuggestion(row))}
               />
               <SuggestionGroup
-                title="From your groups"
+                title={copy.fromYourGroups}
                 rows={suggestions.value.fromYourGroups}
                 selectedId={selected?.id ?? null}
                 onPick={(row) => onSelect(pickFromSuggestion(row))}
@@ -411,8 +427,8 @@ function PartnerStep({
             </>
           ) : null}
           <TextField
-            label="Search"
-            placeholder="Search Users"
+            label={m.common.search}
+            placeholder={copy.searchPlaceholder}
             value={query}
             onChangeText={onQueryChange}
             autoCapitalize="none"
@@ -427,7 +443,7 @@ function PartnerStep({
           searchResults.status === "ready" &&
           results.length === 0 ? (
             <Text size="meta" tone="muted">
-              No Users found
+              {copy.noUsersFound}
             </Text>
           ) : null}
           {query.trim() !== ""
@@ -452,13 +468,13 @@ function PartnerStep({
         </View>
       </View>
       <Button
-        label={partnerContinueLabel(selected?.name ?? null)}
+        label={partnerContinueLabel(selected?.name ?? null, locale)}
         size="lg"
         disabled={!selected}
         onPress={onContinue}
       />
       <Text size="eyebrow" tone="muted">
-        {PARTNER_PICKER_COPY.footnote}
+        {pickerCopy.footnote}
       </Text>
     </View>
   );
@@ -489,6 +505,10 @@ function ReviewStep({
   error: string | null;
   onRegister: (position: Position) => void;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.join;
+  const locale = useLocale();
+  const reviewCopy = partnerReviewCopy(locale);
   const palette = useTonePalette();
   const [touched, setTouched] = useState(false);
   const [caller, setCaller] = useState<Position>(() =>
@@ -514,6 +534,18 @@ function ReviewStep({
     pricePerPlayerFils: game.pricePerPlayerFils,
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
+    locale,
+  });
+
+  const callerMeta = partnerPlayerMeta({
+    levelBand: null,
+    position: caller,
+    locale,
+  });
+  const partnerMeta = partnerPlayerMeta({
+    levelBand: partner.levelBand,
+    position: partnerPosition,
+    locale,
   });
 
   function choose(position: Position) {
@@ -527,6 +559,7 @@ function ReviewStep({
         {partnerReviewGameLine({
           windowStart: game.windowStart,
           venueName: game.venueName,
+          locale,
         })}
       </Text>
       {error ? (
@@ -536,40 +569,37 @@ function ReviewStep({
       ) : null}
       <View style={{ gap: 8 }}>
         <Text size="title" weight="semibold" accessibilityRole="header">
-          {PARTNER_REVIEW_COPY.yourTeam}
+          {reviewCopy.yourTeam}
         </Text>
         <View
           accessible
-          accessibilityLabel={`You, ${partnerPlayerMeta({ levelBand: null, position: caller })}`}
+          accessibilityLabel={copy.youWithMeta(callerMeta)}
           style={{ gap: 2 }}
         >
-          <Text weight="semibold">You</Text>
+          <Text weight="semibold">{m.common.you}</Text>
           <Text size="meta" tone="muted">
-            {partnerPlayerMeta({ levelBand: null, position: caller })}
+            {callerMeta}
           </Text>
         </View>
         <View
           accessible
-          accessibilityLabel={`${partner.name}, ${partnerPlayerMeta({ levelBand: partner.levelBand, position: partnerPosition })}`}
+          accessibilityLabel={copy.nameWithMeta(partner.name, partnerMeta)}
           style={{ gap: 2 }}
         >
           <Text weight="semibold">{partner.name}</Text>
           <Text size="meta" tone="muted">
-            {partnerPlayerMeta({
-              levelBand: partner.levelBand,
-              position: partnerPosition,
-            })}
+            {partnerMeta}
           </Text>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button
-            label={PARTNER_REVIEW_COPY.keepSides}
+            label={reviewCopy.keepSides}
             variant={caller === "left" ? "default" : "outline"}
             selected={caller === "left"}
             onPress={() => choose("left")}
           />
           <Button
-            label={PARTNER_REVIEW_COPY.swapSides}
+            label={reviewCopy.swapSides}
             variant={caller === "right" ? "default" : "outline"}
             selected={caller === "right"}
             onPress={() => choose("right")}
@@ -603,13 +633,13 @@ function ReviewStep({
         ))}
       </View>
       <Button
-        label={PARTNER_REVIEW_COPY.register}
+        label={reviewCopy.register}
         size="lg"
         pending={pending}
         onPress={() => onRegister(caller)}
       />
       <Text size="eyebrow" tone="muted">
-        {PARTNER_REVIEW_COPY.footnote}
+        {reviewCopy.footnote}
       </Text>
     </View>
   );
@@ -617,6 +647,8 @@ function ReviewStep({
 
 export function JoinSheet(props: JoinSheetProps) {
   const { visible, game, preferredPosition } = props;
+  const m = useMessages();
+  const locale = useLocale();
   const [step, setStep] = useState<Step>("seat");
   const [selection, setSelection] =
     useState<SeatSelection>(UNTOUCHED_SELECTION);
@@ -648,12 +680,13 @@ export function JoinSheet(props: JoinSheetProps) {
     step: step === "chooser" ? "chooser" : "seat",
     isFull,
     title: game.title,
+    locale,
   });
   const title =
     step === "partner"
-      ? PARTNER_PICKER_COPY.title
+      ? partnerPickerCopy(locale).title
       : step === "review"
-        ? PARTNER_REVIEW_COPY.title
+        ? partnerReviewCopy(locale).title
         : header.title;
   const vacantSideIndex = firstFullyVacantSideIndex(game.sides);
 
@@ -677,14 +710,14 @@ export function JoinSheet(props: JoinSheetProps) {
         {step === "chooser" ? (
           <View style={{ gap: 12 }}>
             <Option
-              {...JOIN_ALONE_COPY}
+              {...joinAloneCopy(locale)}
               onPress={() => {
                 setSelection({ touched: true, seat: null });
                 setStep("seat");
               }}
             />
             <Option
-              {...JOIN_WITH_PARTNER_COPY}
+              {...joinWithPartnerCopy(locale)}
               onPress={() => setStep("partner")}
             />
           </View>
@@ -700,7 +733,7 @@ export function JoinSheet(props: JoinSheetProps) {
             />
             {game.offersPartner ? (
               <Button
-                label={JOIN_WITH_PARTNER_COPY.title}
+                label={joinWithPartnerCopy(locale).title}
                 variant="outline"
                 onPress={() => setStep("partner")}
               />
@@ -737,7 +770,7 @@ export function JoinSheet(props: JoinSheetProps) {
               }
             />
             <Button
-              label="Back"
+              label={m.common.back}
               variant="outline"
               onPress={() => setStep("partner")}
             />

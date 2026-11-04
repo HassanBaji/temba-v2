@@ -2,6 +2,7 @@ import { bibColors, colors } from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { ResultMark } from "../primitives/result-mark";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text, type TextProps } from "../primitives/text";
@@ -39,11 +40,12 @@ export function Label({
 }
 
 export function Wordmark({ mark, px }: { mark: number; px: number }) {
+  const m = useMessages();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: mark / 3 }}>
       <ResultMark variant="won" size={mark} decorative />
       <Big px={px} ratio={1.2} tracking={0.18}>
-        TEMBA
+        {m.common.appName.toUpperCase()}
       </Big>
     </View>
   );

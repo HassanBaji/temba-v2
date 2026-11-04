@@ -1,6 +1,10 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   clubGroupRowMetaLine,
   communityHomeMetaLine,
+  communityRoleLabel,
   type CommunityRoleName,
   type CommunityVisibility,
 } from "./community-chrome";
@@ -30,136 +34,18 @@ import { requestRowMeta } from "./request-meta";
 import { isSport } from "./sport";
 import { teamSeatsToComplete } from "./team-roster";
 
-export const COMMUNITIES_TITLE = "Communities";
-export const COMMUNITIES_ERROR_TITLE = "Communities could not be loaded";
-export const COMMUNITY_ERROR_TITLE = "Community could not be loaded";
-export const COMMUNITY_NOT_FOUND_COPY = {
-  title: "Community not found",
-  description: "It may have been removed, or you may not have access.",
-};
-
-export const COMMUNITY_START_COPY = {
-  title: "Start a Community",
-  description: "Communities organise Club Groups around a Venue.",
-  action: "Create Community",
-};
-
-export const COMMUNITY_NO_GROUPS_COPY = "No Groups yet";
-
-export const COMMUNITY_CREATE_COPY = {
-  title: "Create Community",
-  description: "You become the Owner. Groups are optional.",
-  publicHelp:
-    "People with the Community link ask to join. It isn't listed anywhere yet.",
-  privateHelp: "Only people you invite can join.",
-  submit: "Create Community",
-};
-
-export const COMMUNITY_TYPE_LABELS: Record<CommunityVisibility, string> = {
-  public: "Public",
-  private: "Private",
-};
-
-export const COMMUNITY_ROLE_LABELS: Record<CommunityRoleName, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  member: "Member",
-};
-
-export const COMMUNITY_TAB_LABELS: Record<CommunityHomeTab, string> = {
-  groups: "Groups",
-  teams: "Teams",
-  members: "Members",
-  requests: "Requests",
-};
-
-export const COMMUNITY_CREATED_TOAST = "Community created";
-export const COMMUNITY_JOIN_REQUESTED_TOAST = "Join request sent";
-export const COMMUNITY_REQUEST_APPROVED_TOAST = "Request approved";
-export const COMMUNITY_REQUEST_REJECTED_TOAST = "Request rejected";
-export const COMMUNITY_TEAM_LINKED_TOAST = "Team linked";
-export const COMMUNITY_TEAM_LINK_REJECTED_TOAST = "Link request rejected";
-export const COMMUNITY_VENUE_LINK_REQUESTED_TOAST = "Venue link requested";
-export const COMMUNITY_VENUE_UNLINKED_TOAST = "Venue unlinked";
-export const COMMUNITY_LEFT_TOAST = "Left Community and its Club Groups";
-export const COMMUNITY_ARCHIVED_TOAST = "Community Soft-archived";
-export const COMMUNITY_UNARCHIVED_TOAST = "Community unarchived";
-export const COMMUNITY_CLUB_GROUP_CREATED_TOAST = "Club Group created";
-
-export function communityRoleUpdatedToast(role: CommunityRoleName) {
-  return `Role updated to ${role}`;
+export function communityRoleUpdatedToast(
+  role: CommunityRoleName,
+  locale: Locale,
+) {
+  return messagesFor(locale).community.toast.roleUpdated(
+    communityRoleLabel(role, locale),
+  );
 }
 
-export const COMMUNITY_REQUEST_JOIN_LABEL = "Request to join";
-export const COMMUNITY_CREATE_CLUB_GROUP_LABEL = "Create Club Group";
-export const COMMUNITY_MANAGE_INVITES_LABEL = "Manage invites";
-export const COMMUNITY_UNARCHIVE_LABEL = "Unarchive";
-export const COMMUNITY_LEAVE_LABEL = "Leave Community";
-export const COMMUNITY_SOFT_ARCHIVE_LABEL = "Soft-archive";
-export const COMMUNITY_LINK_VENUE_LABEL = "Link a Venue";
-export const COMMUNITY_UNLINK_VENUE_LABEL = "Unlink Venue";
-
-export const COMMUNITY_START_CLUB_GROUP_COPY = {
-  title: "Start a Club Group",
-  description: "Club Groups stay inside this Community.",
-};
-
-export const COMMUNITY_CREATE_CLUB_GROUP_DESCRIPTION =
-  "A Group inside this Community.";
-
-export const COMMUNITY_NO_GROUPS_EMPTY = {
-  title: "No Groups yet",
-  description: "This Community has no Groups yet.",
-};
-
-export const COMMUNITY_NO_TEAMS_EMPTY = {
-  title: "No linked Teams",
-  description: "This Community has no linked Teams yet.",
-};
-
-export const COMMUNITY_NO_MEMBERS_EMPTY = {
-  title: "No members yet",
-  description: "People who join this Community will show up here.",
-};
-
-export const COMMUNITY_MEMBERS_NO_MATCH_COPY = "No members match that name.";
-
-export const COMMUNITY_INVITE_BLOCK_COPY = {
-  title: "Invite players",
-  description: "Invite players to this Community and its Club Groups.",
-  action: "Share invite link",
-};
-
-export const COMMUNITY_LOOKUP_NOTE =
-  "Owners and Admins can invite people. Invites don't expire.";
-
-export const COMMUNITY_REQUESTS_EMPTY = {
-  title: "No pending requests",
-  description:
-    "Community join requests and Team link requests will show up here.",
-};
-
-export const COMMUNITY_JOIN_REQUESTS_TITLE = "Join requests";
-export const COMMUNITY_JOIN_REQUESTS_ERROR_TITLE =
-  "Join requests could not be loaded";
-export const COMMUNITY_TEAM_LINK_REQUESTS_TITLE = "Team link requests";
-export const COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE =
-  "Team link requests could not be loaded";
-export const COMMUNITY_MEMBERS_ERROR_TITLE = "Members could not be loaded";
-
-export const COMMUNITY_LINK_VENUE_COPY = {
-  title: "Link a Venue",
-  description: "Search live Venues by name, city, or country.",
-  searchLabel: "Search Venues",
-  none: "No live Venues match.",
-  errorTitle: "Venues could not be loaded",
-  requestLabel: "Request link",
-};
-
-export function communityTypeHelp(type: CommunityVisibility) {
-  return type === "private"
-    ? COMMUNITY_CREATE_COPY.privateHelp
-    : COMMUNITY_CREATE_COPY.publicHelp;
+export function communityTypeHelp(type: CommunityVisibility, locale: Locale) {
+  const m = messagesFor(locale).community.create;
+  return type === "private" ? m.privateHelp : m.publicHelp;
 }
 
 export function communityIsLive(data: Pick<CommunityHomeData, "archivedAt">) {
@@ -222,16 +108,18 @@ export function communityCanInvite(
 export function communityStatusBadges(input: {
   isArchived: boolean;
   joinStatus: string | null;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).community.badge;
   const badges: string[] = [];
   if (input.isArchived) {
-    badges.push("Soft-archived");
+    badges.push(m.softArchived);
   }
   if (input.joinStatus === "pending") {
-    badges.push("Join request pending");
+    badges.push(m.joinPending);
   }
   if (input.joinStatus === "rejected") {
-    badges.push("Join request rejected");
+    badges.push(m.joinRejected);
   }
   return badges;
 }
@@ -244,19 +132,22 @@ export type CommunityHomeHeader = {
 
 export function communityHomeHeader(
   data: CommunityHomeData,
+  locale: Locale,
 ): CommunityHomeHeader {
   const member = communityIsMember(data);
   return {
-    name: data.name || "Community",
+    name: data.name || messagesFor(locale).community.fallbackName,
     meta: communityHomeMetaLine({
       type: data.type,
       sports: data.sports,
       memberCount: data.memberCount,
       role: data.membership?.role ?? null,
+      locale,
     }),
     badges: communityStatusBadges({
       isArchived: !communityIsLive(data),
       joinStatus: member ? null : (data.joinRequest?.status ?? null),
+      locale,
     }),
   };
 }
@@ -265,44 +156,36 @@ export type CommunityBanner = { heading: string; body: string };
 
 export function communityArchiveBanner(
   data: Pick<CommunityHomeData, "archivedAt" | "membership">,
+  locale: Locale,
 ): CommunityBanner | null {
   if (communityIsLive(data)) {
     return null;
   }
+  const m = messagesFor(locale).community.archiveBanner;
   if (communityIsMember(data)) {
-    return {
-      heading: "Soft-archived",
-      body: "Club Groups stay attached. You can still open Groups and see history and Games. New joins, requests, Lookup invites, and Invite links are paused until an Owner or Admin unarchives.",
-    };
+    return { heading: m.member.heading, body: m.member.body };
   }
-  return {
-    heading: "This Community is Soft-archived",
-    body: "It is not open for new joins, requests, or invites. Members can still open history and Games. This is not a missing page.",
-  };
+  return { heading: m.visitor.heading, body: m.visitor.body };
 }
-
-export const COMMUNITY_LINKED_TEAM_BLOCKS_LEAVE_COPY =
-  "Leave is refused while you sit on a Team linked to this Community. Unlink or dissolve the Team first.";
-
-export const COMMUNITY_LAST_OWNER_COPY =
-  "You are the last Owner. Promote someone else before leaving or demoting yourself. Leaving does not Soft-archive this Community.";
 
 export function communityLeaveNotices(
   data: Pick<
     CommunityHomeData,
     "membership" | "canLeave" | "linkedTeamBlocksLeave"
   >,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).community;
   const notices: string[] = [];
   if (data.linkedTeamBlocksLeave) {
-    notices.push(COMMUNITY_LINKED_TEAM_BLOCKS_LEAVE_COPY);
+    notices.push(m.linkedTeamBlocksLeave);
   }
   if (
     data.membership?.role === "owner" &&
     data.canLeave === false &&
     !data.linkedTeamBlocksLeave
   ) {
-    notices.push(COMMUNITY_LAST_OWNER_COPY);
+    notices.push(m.lastOwner);
   }
   return notices;
 }
@@ -327,33 +210,46 @@ export function communityHomeActions(
   };
 }
 
-export function communityLeaveConfirm(name: string) {
+export function communityLeaveConfirm(name: string, locale: Locale) {
+  const m = messagesFor(locale).community;
   return {
-    title: `Leave ${name}?`,
-    description: "You will leave this Community and its Club Groups.",
-    confirmLabel: COMMUNITY_LEAVE_LABEL,
+    title: m.leaveConfirm.title(name),
+    description: m.leaveConfirm.description,
+    confirmLabel: m.action.leave,
   };
 }
 
-export function communityArchiveConfirm(name: string) {
+export function communityArchiveConfirm(name: string, locale: Locale) {
+  const m = messagesFor(locale).community;
   return {
-    title: `Soft-archive ${name}?`,
-    description:
-      "New joins, requests, and invites pause until an Owner or Admin unarchives.",
-    confirmLabel: COMMUNITY_SOFT_ARCHIVE_LABEL,
+    title: m.archiveConfirm.title(name),
+    description: m.archiveConfirm.description,
+    confirmLabel: m.action.softArchive,
   };
 }
 
-export function communityUnlinkVenueConfirm(venueName: string | null) {
+export function communityUnlinkVenueConfirm(
+  venueName: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).community;
   return {
-    title: venueName ? `Unlink ${venueName}?` : "Unlink Venue?",
-    description: "This Community will no longer be linked to that Venue.",
-    confirmLabel: "Unlink Venue",
+    title: venueName
+      ? m.unlinkVenueConfirm.title(venueName)
+      : m.unlinkVenueConfirm.titleGeneric,
+    description: m.unlinkVenueConfirm.description,
+    confirmLabel: m.action.unlinkVenue,
   };
 }
 
-export function venueLocation(venue: { city: string; country: string }) {
-  return `${venue.city}, ${venue.country}`;
+export function venueLocation(
+  venue: { city: string; country: string },
+  locale: Locale,
+) {
+  return messagesFor(locale).community.venue.location(
+    venue.city,
+    venue.country,
+  );
 }
 
 export type CommunityVenueView = {
@@ -369,38 +265,35 @@ function venueRequestNotes(
   request: CommunityVenueLinkRequestData | null,
   hasVenue: boolean,
   canManage: boolean,
+  locale: Locale,
 ) {
   if (!canManage || !request) {
     return [];
   }
-  const where = `${request.venue.name} (${venueLocation(request.venue)})`;
+  const m = messagesFor(locale).community.venue;
+  const where = `${request.venue.name} (${venueLocation(request.venue, locale)})`;
   if (request.status === "pending") {
-    return [`Venue link request pending for ${where}.`];
+    return [m.requestPending(where)];
   }
   if (request.status === "rejected" && !hasVenue) {
-    return [
-      `Last Venue link request for ${request.venue.name} was rejected. You may request again.`,
-    ];
+    return [m.requestRejected(request.venue.name)];
   }
   return [];
 }
 
-export const COMMUNITY_NO_VENUE_COPY =
-  "This Community is not linked to a Venue.";
-
-export const COMMUNITY_NO_COURTS_COPY = "No Courts.";
-
 export function communityVenueView(
   data: CommunityHomeData,
+  locale: Locale,
 ): CommunityVenueView {
   return {
     venue: data.venue,
-    location: data.venue ? venueLocation(data.venue) : null,
+    location: data.venue ? venueLocation(data.venue, locale) : null,
     courtNames: data.venue?.courts.map((court) => court.name) ?? [],
     notes: venueRequestNotes(
       data.venueLinkRequest,
       data.venue != null,
       data.canManageVenueLink,
+      locale,
     ),
     canRequestLink: data.venue == null && data.canRequestVenueLink,
     canUnlink: data.venue != null && data.canUnlinkVenue,
@@ -418,11 +311,14 @@ export type CommunityClubGroupRow = {
 
 export function communityClubGroupRow(
   group: CommunityClubGroupData,
+  locale: Locale,
 ): CommunityClubGroupRow {
-  const name = group.name ?? "Untitled Group";
+  const m = messagesFor(locale);
+  const name = group.name ?? m.group.untitled;
   const meta = clubGroupRowMetaLine({
     type: group.type,
     memberCount: group.memberCount,
+    locale,
   });
   return {
     id: group.id,
@@ -430,17 +326,17 @@ export function communityClubGroupRow(
     imageUrl: group.imageUrl,
     meta,
     joined: group.isMember,
-    accessibilityLabel: [name, meta, group.isMember ? "Joined" : null]
+    accessibilityLabel: [name, meta, group.isMember ? m.community.joined : null]
       .filter(Boolean)
-      .join(", "),
+      .join(m.group.metaSeparator),
   };
 }
 
-export function communityTeamRow(team: CommunityTeamData) {
+export function communityTeamRow(team: CommunityTeamData, locale: Locale) {
   return {
     id: team.id,
     displayName: team.displayName,
-    sport: groupHomeSportLabel(team.sport),
+    sport: groupHomeSportLabel(team.sport, locale),
     people: team.members,
     openSeats: teamSeatsToComplete(
       team.members.length,
@@ -465,19 +361,21 @@ export function communityMemberList(
   members: readonly CommunityMemberData[],
   viewerUserId: string | undefined,
   query: string,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale);
   const rows: CommunityMemberRow[] = members.map((member) => {
-    const name = member.user.name ?? "Member";
+    const name = member.user.name ?? m.community.memberFallback;
     const isSelf = member.user.id === viewerUserId;
     return {
       id: member.id,
       userId: member.user.id,
       name,
-      displayName: isSelf ? "You" : name,
+      displayName: isSelf ? m.common.you : name,
       image: member.user.image,
       email: member.user.email,
       role: member.role,
-      roleLabel: COMMUNITY_ROLE_LABELS[member.role],
+      roleLabel: communityRoleLabel(member.role, locale),
       isSelf,
     };
   });
@@ -500,33 +398,38 @@ export function communityRoleChangeAction(
   return roleChangeNeedsConfirmation(change) ? "confirm" : "apply";
 }
 
-export const COMMUNITY_ROLE_CHOICES = COMMUNITY_ROLES.map((role) => ({
-  value: role,
-  label: COMMUNITY_ROLE_LABELS[role],
-}));
+export function communityRoleChoices(locale: Locale) {
+  return COMMUNITY_ROLES.map((role) => ({
+    value: role,
+    label: communityRoleLabel(role, locale),
+  }));
+}
 
 export function communityJoinRequestRow(
   request: CommunityJoinRequestData,
+  locale: Locale,
   now?: Date,
 ) {
-  const name = request.user.name ?? "User";
+  const name = request.user.name ?? messagesFor(locale).community.userFallback;
   return {
     id: request.id,
     title: name,
     image: request.user.image,
-    meta: requestRowMeta(request.createdAt, [], now),
+    meta: requestRowMeta(request.createdAt, locale, [], now),
   };
 }
 
 export function communityTeamLinkRequestRow(
   request: CommunityTeamLinkRequestData,
+  locale: Locale,
   now?: Date,
 ) {
-  const requester = request.requestedBy.name ?? "User";
+  const m = messagesFor(locale).community;
+  const requester = request.requestedBy.name ?? m.userFallback;
   return {
     id: request.id,
     title: request.team.displayName,
-    meta: requestRowMeta(request.createdAt, [`From ${requester}`], now),
+    meta: requestRowMeta(request.createdAt, locale, [m.from(requester)], now),
   };
 }
 
@@ -543,23 +446,28 @@ export function communityRequestsAreEmpty(input: {
   return joinEmpty && teamEmpty && !input.loading && !input.failed;
 }
 
-export function communityLiveVenueRow(venue: CommunityLiveVenueData) {
+export function communityLiveVenueRow(
+  venue: CommunityLiveVenueData,
+  locale: Locale,
+) {
   return {
     id: venue.id,
     name: venue.name,
-    location: venueLocation(venue),
-    accessibilityLabel: `Request a link to ${venue.name}`,
+    location: venueLocation(venue, locale),
+    accessibilityLabel: messagesFor(locale).community.linkVenue.requestLinkTo(
+      venue.name,
+    ),
   };
 }
 
-export const COMMUNITY_CREATE_NOT_AVAILABLE = {
-  title: "Creating is limited",
-  description: "New Communities are set up by Temba staff.",
-};
-
-export function communityTabLabel(tab: CommunityHomeTab, requestCount: number) {
-  const label = COMMUNITY_TAB_LABELS[tab];
+export function communityTabLabel(
+  tab: CommunityHomeTab,
+  requestCount: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).community.tab;
+  const label = m[tab];
   return tab === "requests" && requestCount > 0
-    ? `${label} (${requestCount})`
+    ? m.withCount(label, requestCount)
     : label;
 }

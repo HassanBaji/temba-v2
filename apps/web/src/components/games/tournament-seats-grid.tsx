@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
-  INVITE_FROM_A_GROUP_LABEL,
-  SEATS_HEADING,
   tournamentFieldSummary,
   tournamentSeatsTakenLine,
   tournamentSeatsTakenSrLabel,
@@ -18,6 +17,8 @@ export function TournamentSeatsGrid({
   sides: readonly TournamentHomeSide[];
   onInvite?: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const field = tournamentFieldSummary(sides);
   if (field.seatTotal < 1) {
     return null;
@@ -27,12 +28,18 @@ export function TournamentSeatsGrid({
     { key: `${side.sideIndex}-left`, filled: side.left != null },
     { key: `${side.sideIndex}-right`, filled: side.right != null },
   ]);
-  const countLine = tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal);
+  const countLine = tournamentSeatsTakenLine(
+    field.seatsTaken,
+    field.seatTotal,
+    locale,
+  );
 
   return (
     <section className="border-rule rounded-card border p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-body font-semibold">{SEATS_HEADING}</h2>
+        <h2 className="text-body font-semibold">
+          {m.tournament.home.seatsHeading}
+        </h2>
         <p aria-hidden="true" className="text-muted-foreground text-meta">
           {countLine}
         </p>
@@ -49,7 +56,7 @@ export function TournamentSeatsGrid({
         ))}
       </div>
       <p className="sr-only">
-        {tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal)}
+        {tournamentSeatsTakenSrLabel(field.seatsTaken, field.seatTotal, locale)}
       </p>
       {onInvite ? (
         <Button
@@ -58,7 +65,7 @@ export function TournamentSeatsGrid({
           onClick={onInvite}
           className="border-ink mt-[18px] w-full font-semibold"
         >
-          {INVITE_FROM_A_GROUP_LABEL}
+          {m.tournament.home.inviteFromGroup}
         </Button>
       ) : null}
     </section>

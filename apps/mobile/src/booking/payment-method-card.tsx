@@ -6,6 +6,7 @@ import { Image, Pressable, View } from "react-native";
 import applePayMark from "../../assets/payment/apple-pay.png";
 import benefitMark from "../../assets/payment/benefit.png";
 import benefitPayMark from "../../assets/payment/benefitpay.png";
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 
@@ -54,13 +55,14 @@ export function PaymentMethodCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const m = useMessages();
   const border = selected ? SELECTED_BORDER : hairline;
   const inset = border - hairline;
 
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityLabel={`${title}, ${description}`}
+      accessibilityLabel={`${title}${m.mobileBooking.listSeparator}${description}`}
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={({ pressed }) => ({

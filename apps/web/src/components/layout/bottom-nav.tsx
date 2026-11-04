@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { isNavItemActive, APP_NAV_ITEMS } from "~/components/layout/app-nav";
+import { isNavItemActive, appNavItems } from "~/components/layout/app-nav";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const items = APP_NAV_ITEMS;
+  const m = useMessages();
+  const items = appNavItems(m);
 
   return (
     <nav
       data-slot="bottom-nav"
-      aria-label="Primary"
+      aria-label={m.webUi.primaryNav}
       className="border-rule bg-paper fixed inset-x-0 bottom-0 z-50 grid border-t lg:hidden"
       style={{
         gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,

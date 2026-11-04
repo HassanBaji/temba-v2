@@ -1,7 +1,7 @@
 import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import {
   LEVEL_BAND_SELECT_NONE,
-  LEVEL_RANGE_INVERTED_MESSAGE,
+  levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
 } from "@repo/domain/level-range";
 import { describe, expect, it } from "vitest";
@@ -31,7 +31,7 @@ const open = {
 
 describe("bookingGameHeader", () => {
   it("locks where and when to the Booking", () => {
-    expect(bookingGameHeader(booking, NOW)).toEqual({
+    expect(bookingGameHeader(booking, NOW, "en")).toEqual({
       title: ["New game"],
       subtitle:
         "Where and when come from the booking. Only the rest is yours to set.",
@@ -45,7 +45,7 @@ describe("bookingGameHeader", () => {
 
 describe("bookingGameReviewRows", () => {
   it("says the Game is private and Unrated", () => {
-    expect(bookingGameReviewRows(booking)).toEqual([
+    expect(bookingGameReviewRows(booking, "en")).toEqual([
       { label: "Court", value: "Karbabad Courts, Court 2" },
       { label: "Time", value: "7:00 PM to 8:30 PM" },
       { label: "Seats", value: "4 open seats" },
@@ -55,7 +55,7 @@ describe("bookingGameReviewRows", () => {
   });
 
   it("names the Group, its members and its rating when the Game is on one", () => {
-    const rows = bookingGameReviewRows(booking, undefined, {
+    const rows = bookingGameReviewRows(booking, "en", undefined, {
       name: "Ladder",
       rated: true,
     });
@@ -65,11 +65,18 @@ describe("bookingGameReviewRows", () => {
       { label: "Rating", value: "Rated" },
     ]);
     expect(
-      bookingGameReviewRows(booking, undefined, {
+      bookingGameReviewRows(booking, "en", undefined, {
         name: "Thursday padel",
         rated: false,
       }).at(-1),
     ).toEqual({ label: "Rating", value: "Unrated" });
+  });
+
+  it("reads Arabic", () => {
+    expect(bookingGameReviewRows(booking, "ar")[3]).toEqual({
+      label: "من يمكنه الانضمام",
+      value: "من تدعوهم",
+    });
   });
 });
 
@@ -82,7 +89,7 @@ describe("splitCourtCost", () => {
 
 describe("bookingGameRequest", () => {
   it("sends only the Booking when nothing is set", () => {
-    expect(bookingGameRequest("booking-1", open)).toEqual({
+    expect(bookingGameRequest("booking-1", open, "en")).toEqual({
       ok: true,
       input: { bookingId: "booking-1" },
     });
@@ -90,11 +97,15 @@ describe("bookingGameRequest", () => {
 
   it("sends the price in fils and the Level bounds in tenths", () => {
     expect(
-      bookingGameRequest("booking-1", {
-        pricePerPlayer: "4.500",
-        levelMin: "C",
-        levelMax: "B",
-      }),
+      bookingGameRequest(
+        "booking-1",
+        {
+          pricePerPlayer: "4.500",
+          levelMin: "C",
+          levelMax: "B",
+        },
+        "en",
+      ),
     ).toEqual({
       ok: true,
       input: {
@@ -108,33 +119,36 @@ describe("bookingGameRequest", () => {
 
   it("sends the Group only when one is picked", () => {
     expect(
-      bookingGameRequest("booking-1", { ...open, groupId: "group-1" }),
+      bookingGameRequest("booking-1", { ...open, groupId: "group-1" }, "en"),
     ).toEqual({
       ok: true,
       input: { bookingId: "booking-1", groupId: "group-1" },
     });
-    expect(bookingGameRequest("booking-1", { ...open, groupId: "" })).toEqual({
+    expect(
+      bookingGameRequest("booking-1", { ...open, groupId: "" }, "en"),
+    ).toEqual({
       ok: true,
       input: { bookingId: "booking-1" },
     });
   });
 
   it("refuses a bad price and an inverted range", () => {
-    const badPrice = bookingGameRequest("booking-1", {
-      ...open,
-      pricePerPlayer: "abc",
-    });
+    const badPrice = bookingGameRequest(
+      "booking-1",
+      { ...open, pricePerPlayer: "abc" },
+      "en",
+    );
     expect(badPrice.ok).toBe(false);
     expect(!badPrice.ok && badPrice.errors.pricePerPlayerFils).toBeTruthy();
     expect(
-      bookingGameRequest("booking-1", {
-        ...open,
-        levelMin: "B",
-        levelMax: "C",
-      }),
+      bookingGameRequest(
+        "booking-1",
+        { ...open, levelMin: "B", levelMax: "C" },
+        "en",
+      ),
     ).toEqual({
       ok: false,
-      errors: { levelMinTenths: LEVEL_RANGE_INVERTED_MESSAGE },
+      errors: { levelMinTenths: levelRangeInvertedMessage("en") },
     });
   });
 });
@@ -161,7 +175,7 @@ describe("a football Booking Game", () => {
   });
 
   it("names the pitch and the size in the review", () => {
-    const rows = bookingGameReviewRows(pitch, {
+    const rows = bookingGameReviewRows(pitch, "en", {
       sideSize: 7,
       playersAllowed: 16,
     });
@@ -173,7 +187,7 @@ describe("a football Booking Game", () => {
   });
 
   it("keeps four seats in a padel review", () => {
-    expect(bookingGameReviewRows(booking)[2]).toEqual({
+    expect(bookingGameReviewRows(booking, "en")[2]).toEqual({
       label: "Seats",
       value: "4 open seats",
     });
@@ -184,6 +198,7 @@ describe("a football Booking Game", () => {
       bookingGameRequest(
         "booking-1",
         { ...open, pricePerPlayer: "1.125", levelMin: "C" },
+        "en",
         "football",
       ),
     ).toEqual({
@@ -202,6 +217,7 @@ describe("a football Booking Game", () => {
       const result = bookingGameRequest(
         "booking-1",
         { ...open, playersAllowed },
+        "en",
         "football",
       );
       expect(result.ok).toBe(false);
@@ -215,12 +231,14 @@ describe("a football Booking Game", () => {
     const size = bookingGameRequest(
       "booking-1",
       { ...open, sideSize: 4 },
+      "en",
       "football",
     );
     expect(!size.ok && size.errors.sideSize).toBeTruthy();
     const price = bookingGameRequest(
       "booking-1",
       { ...open, pricePerPlayer: "abc" },
+      "en",
       "football",
     );
     expect(!price.ok && price.errors.pricePerPlayerFils).toBeTruthy();

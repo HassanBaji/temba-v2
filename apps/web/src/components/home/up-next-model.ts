@@ -4,13 +4,18 @@ import {
   formatWeekday,
 } from "@repo/domain/format-game-start";
 import { gameCardRosterOccupancy } from "@repo/domain/game-card";
-import { sideSizeLabel } from "@repo/domain/game-shape";
 import {
   homeComingUpRows,
   homeComingUpSeatBars,
 } from "@repo/domain/home-coming-up";
+import {
+  homeGameRowLines,
+  homeOpenSpotsLabel,
+} from "@repo/domain/home-game-lines";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "~/trpc/react";
 
@@ -66,35 +71,48 @@ export function upNextItems(games: readonly UpNextGame[]): UpNextItem[] {
 export function upNextWeekLabel(
   items: readonly UpNextItem[],
   now: Date,
+  locale: Locale,
 ): string {
+  const m = messagesFor(locale).webAuth.home;
   const count = items.filter(
     (item) => productDaysBetween(now, item.startsAt) < WEEK_DAYS,
   ).length;
-  return count === 0 ? "Nothing this week" : `${count} this week`;
+  return count === 0 ? m.nothingThisWeek : m.thisWeekCount(count);
 }
 
 /** "Today", a weekday inside the coming week, then a date. */
-export function upNextDayLabel(startsAt: Date, now: Date): string {
+export function upNextDayLabel(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string {
   const days = productDaysBetween(now, startsAt);
   if (days <= 0) {
-    return "Today";
+    return messagesFor(locale).common.today;
   }
   if (days < WEEK_DAYS) {
-    return formatWeekday(startsAt, "short");
+    return formatWeekday(startsAt, "short", locale);
   }
-  return formatDayMonth(startsAt);
+  return formatDayMonth(startsAt, locale);
 }
 
 /** "Tonight", "Today", "Tomorrow" or "Tue 20 Oct". */
-export function upNextHeroDay(startsAt: Date, now: Date): string {
+export function upNextHeroDay(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale);
   const days = productDaysBetween(now, startsAt);
   if (days === 0) {
-    return zonedParts(startsAt).hour >= EVENING_HOUR ? "Tonight" : "Today";
+    return zonedParts(startsAt).hour >= EVENING_HOUR
+      ? m.dates.tonight
+      : m.common.today;
   }
   if (days === 1) {
-    return "Tomorrow";
+    return m.common.tomorrow;
   }
-  return formatDayMonth(startsAt, { weekday: "short" });
+  return formatDayMonth(startsAt, locale, { weekday: "short" });
 }
 
 /** "in 2 h 15 min" inside the coming day, "on now" while it runs. */
@@ -102,9 +120,11 @@ export function startsInLabel(
   startsAt: Date,
   endsAt: Date,
   now: Date,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).webAuth.home;
   if (startsAt.getTime() <= now.getTime()) {
-    return endsAt.getTime() > now.getTime() ? "on now" : null;
+    return endsAt.getTime() > now.getTime() ? m.onNow : null;
   }
   const total = Math.max(
     1,
@@ -116,31 +136,25 @@ export function startsInLabel(
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
   if (hours === 0) {
-    return `in ${minutes} min`;
+    return m.inMinutes(minutes);
   }
-  return minutes === 0 ? `in ${hours} h` : `in ${hours} h ${minutes} min`;
+  return minutes === 0 ? m.inHours(hours) : m.inHoursMinutes(hours, minutes);
 }
 
-export function minutesBetween(startsAt: Date, endsAt: Date): number {
-  return Math.round((endsAt.getTime() - startsAt.getTime()) / MS_PER_MINUTE);
-}
-
-function gamePlace(game: UpNextGame): string | null {
-  const side = game.football?.sideSize
-    ? sideSizeLabel(game.football.sideSize)
-    : null;
-  return [game.venue?.name, game.courtName ?? side].filter(Boolean).join(", ");
-}
-
-export function upNextRowView(item: UpNextItem, now: Date): UpNextRowView {
+export function upNextRowView(
+  item: UpNextItem,
+  now: Date,
+  locale: Locale,
+): UpNextRowView {
   const { game } = item;
+  const join = messagesFor(locale).home.comingUp.parts;
   const shared = {
     key: item.key,
-    day: upNextDayLabel(item.startsAt, now),
-    time: formatGameClock(item.startsAt),
+    day: upNextDayLabel(item.startsAt, now, locale),
+    time: formatGameClock(item.startsAt, locale),
     sport: item.sport,
   };
-  const [row] = homeComingUpRows([game]);
+  const [row] = homeComingUpRows([game], locale);
 
   if (row?.kind === "tournament_match") {
     return {
@@ -148,9 +162,11 @@ export function upNextRowView(item: UpNextItem, now: Date): UpNextRowView {
       title: row.title,
       detail: row.opponentLine,
       trailing: row.roundTag ? { kind: "tag", label: row.roundTag } : null,
-      spoken: [row.title, shared.day, shared.time, row.opponentLine]
-        .filter(Boolean)
-        .join(", "),
+      spoken: join(
+        [row.title, shared.day, shared.time, row.opponentLine].filter(
+          (part): part is string => Boolean(part),
+        ),
+      ),
     };
   }
   if (row?.kind === "tournament") {
@@ -161,33 +177,39 @@ export function upNextRowView(item: UpNextItem, now: Date): UpNextRowView {
       trailing: row.actionLabel
         ? { kind: "tag", label: row.actionLabel }
         : null,
-      spoken: [row.title, shared.day, shared.time, row.teamsLine]
-        .filter(Boolean)
-        .join(", "),
+      spoken: join(
+        [row.title, shared.day, shared.time, row.teamsLine].filter(
+          (part): part is string => Boolean(part),
+        ),
+      ),
     };
   }
 
-  const place = gamePlace(game);
-  const title = game.name ?? game.groupName ?? game.venue?.name ?? "Game";
-  const detail = place && place !== title ? place : null;
+  const { title, detail } = homeGameRowLines(game, locale);
   const roster = gameCardRosterOccupancy(game)
-    ? `${game.registeredUserCount} of ${game.playersAllowed}`
+    ? homeOpenSpotsLabel(
+        game.registeredUserCount,
+        game.playersAllowed ?? 0,
+        locale,
+      )
     : null;
-  const seats = row?.kind === "game" ? homeComingUpSeatBars(row) : null;
+  const seats = row?.kind === "game" ? homeComingUpSeatBars(row, locale) : null;
   const trailing: UpNextTrailing | null = roster
     ? { kind: "text", label: roster }
     : seats && seats.bars.length > 0
       ? { kind: "bars", bars: seats.bars }
       : null;
-  const occupancy = roster ? `${roster} players` : (seats?.spokenLabel ?? null);
+  const occupancy = roster ?? seats?.spokenLabel ?? null;
 
   return {
     ...shared,
     title,
     detail,
     trailing,
-    spoken: [title, shared.day, shared.time, detail, occupancy]
-      .filter(Boolean)
-      .join(", "),
+    spoken: join(
+      [title, shared.day, shared.time, detail, occupancy].filter(
+        (part): part is string => Boolean(part),
+      ),
+    ),
   };
 }

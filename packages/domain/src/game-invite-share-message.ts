@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
 import { KEEPERS_PER_GAME } from "./football-lineup";
 import {
@@ -26,6 +29,7 @@ export type GameInviteShareMessageInput = {
   sides: readonly GameInviteShareSide[];
   shortUrl: string;
   football?: GameInviteShareFootball;
+  locale: Locale;
 };
 
 export type GameInviteShareFootball = {
@@ -34,10 +38,10 @@ export type GameInviteShareFootball = {
   players: readonly { name: string; role?: string | null }[];
 };
 
-function occupantLabel(occupant: GameInviteShareOccupant) {
+function occupantLabel(occupant: GameInviteShareOccupant, locale: Locale) {
   const name = occupant?.name.trim();
   if (!name) {
-    return "Open";
+    return messagesFor(locale).createGame.share.open;
   }
   return name;
 }
@@ -45,11 +49,12 @@ function occupantLabel(occupant: GameInviteShareOccupant) {
 function sideSeats(
   sides: readonly GameInviteShareSide[],
   sideIndex: number,
+  locale: Locale,
 ): { left: string; right: string } {
   const side = sides.find((row) => row.sideIndex === sideIndex);
   return {
-    left: occupantLabel(side?.left ?? null),
-    right: occupantLabel(side?.right ?? null),
+    left: occupantLabel(side?.left ?? null, locale),
+    right: occupantLabel(side?.right ?? null, locale),
   };
 }
 
@@ -67,9 +72,9 @@ function whereAndWhenLines(
   if (input.courtName) {
     lines.push(`${courtEmoji} ${input.courtName}`);
   }
-  lines.push(`📅 ${formatRelativeDay(start)}`);
+  lines.push(`📅 ${formatRelativeDay(start, input.locale)}`);
   lines.push(
-    `🕗 ${formatGameTimeWindow(input.windowStart, input.windowEnd, start)}`,
+    `🕗 ${formatGameTimeWindow(input.windowStart, input.windowEnd, start, input.locale)}`,
   );
   return lines;
 }
@@ -77,19 +82,20 @@ function whereAndWhenLines(
 export function formatGameInviteShareMessage(
   input: GameInviteShareMessageInput,
 ) {
+  const m = messagesFor(input.locale).createGame.share;
   const lines = whereAndWhenLines(input, "🎾");
   lines.push("");
-  const team1 = sideSeats(input.sides, 1);
-  const team2 = sideSeats(input.sides, 2);
-  lines.push("👕 Team 1");
-  lines.push(`- Left: ${team1.left}`);
-  lines.push(`- Right: ${team1.right}`);
+  const team1 = sideSeats(input.sides, 1, input.locale);
+  const team2 = sideSeats(input.sides, 2, input.locale);
+  lines.push(m.team(1));
+  lines.push(m.left(team1.left));
+  lines.push(m.right(team1.right));
   lines.push("");
-  lines.push("👕 Team 2");
-  lines.push(`- Left: ${team2.left}`);
-  lines.push(`- Right: ${team2.right}`);
+  lines.push(m.team(2));
+  lines.push(m.left(team2.left));
+  lines.push(m.right(team2.right));
   lines.push("");
-  lines.push("🔗 Join:");
+  lines.push(m.join);
   lines.push(input.shortUrl);
   return lines.join("\n");
 }
@@ -117,9 +123,10 @@ export function formatFootballInviteShareMessage(
   input: GameInviteShareMessageInput,
   football: GameInviteShareFootball,
 ) {
+  const m = messagesFor(input.locale).createGame.share;
   const lines = whereAndWhenLines(input, "⚽");
   if (football.sideSize) {
-    lines.push(`👥 ${sideSizeLabel(football.sideSize)}`);
+    lines.push(`👥 ${sideSizeLabel(football.sideSize, input.locale)}`);
   }
   const named = (role: "keeper" | "outfield") =>
     football.players
@@ -131,15 +138,15 @@ export function formatFootballInviteShareMessage(
   lines.push("");
   lines.push(
     ...numberedSlots(
-      "👕 Players",
+      m.players,
       outfield,
       cap ? Math.max(0, cap - KEEPERS_PER_GAME) : null,
     ),
   );
   lines.push("");
-  lines.push(...numberedSlots("🧤 Keepers", keepers, KEEPERS_PER_GAME));
+  lines.push(...numberedSlots(m.keepers, keepers, KEEPERS_PER_GAME));
   lines.push("");
-  lines.push("🔗 Join:");
+  lines.push(m.join);
   lines.push(input.shortUrl);
   return lines.join("\n");
 }

@@ -7,6 +7,7 @@ import {
   HEADER_BLEED,
 } from "~/components/groups/group-home-chrome";
 import { PageTitle } from "~/components/layout/page-title";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -15,10 +16,7 @@ import {
   type CommunityRoleName,
   type CommunityVisibility,
 } from "@repo/domain/community-chrome";
-import {
-  COMMUNITY_TAB_LABELS,
-  communityStatusBadges,
-} from "@repo/domain/community";
+import { communityStatusBadges } from "@repo/domain/community";
 import type { CommunityHomeTab } from "@repo/domain/community-home-tab";
 import { cn } from "~/lib/utils";
 
@@ -63,10 +61,18 @@ export function CommunityHomeChrome({
   onCreateClubGroup: () => void;
   overflow?: ReactNode;
 }) {
-  const meta = communityHomeMetaLine({ type, sports, memberCount, role });
+  const m = useMessages();
+  const locale = useLocale();
+  const meta = communityHomeMetaLine({
+    type,
+    sports,
+    memberCount,
+    role,
+    locale,
+  });
   const showInviteBox = tab !== "groups" && canInvite;
   const showCreateBox = tab === "groups" && canCreateClubGroup;
-  const badges = communityStatusBadges({ isArchived, joinStatus });
+  const badges = communityStatusBadges({ isArchived, joinStatus, locale });
 
   return (
     <div className={cn("border-rule border-b pb-5", HEADER_BLEED)}>
@@ -75,10 +81,14 @@ export function CommunityHomeChrome({
           <BackButton
             variant="boxed"
             href="/dashboard/communities"
-            label="Back to Communities"
+            label={m.webGroup.communityHome.backToCommunities}
           />
         ) : (
-          <BackButton variant="boxed" href="/dashboard" label="Back to Home" />
+          <BackButton
+            variant="boxed"
+            href="/dashboard"
+            label={m.webGroup.communityHome.backToHome}
+          />
         )}
 
         <div className="flex items-center gap-2">
@@ -86,7 +96,7 @@ export function CommunityHomeChrome({
             <button
               type="button"
               onClick={onInvite}
-              aria-label="Manage invites"
+              aria-label={m.community.action.manageInvites}
               className={ACTION_BOX}
             >
               <UserPlusIcon aria-hidden="true" className="size-[18px]" />
@@ -97,7 +107,7 @@ export function CommunityHomeChrome({
             <button
               type="button"
               onClick={onCreateClubGroup}
-              aria-label="Create Club Group"
+              aria-label={m.community.action.createClubGroup}
               className={ACTION_BOX}
             >
               <PlusIcon aria-hidden="true" className="size-5" />
@@ -135,7 +145,7 @@ export function CommunityHomeChrome({
         <TabsList variant="segmented" className="mt-5">
           {availableTabs.map((value) => (
             <TabsTrigger key={value} value={value}>
-              {COMMUNITY_TAB_LABELS[value]}
+              {m.community.tab[value]}
               {value === "requests" && requestCount > 0 ? (
                 <Badge variant="secondary" size="sm">
                   {requestCount}

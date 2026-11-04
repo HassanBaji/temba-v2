@@ -22,7 +22,9 @@ import { admit } from "#src/games/admit";
 import type { GameRow } from "#src/games/access";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_PHI, INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
+import { messagesFor } from "@repo/i18n/messages";
+
+const LEVEL_RANGE_OUTSIDE_MESSAGE = messagesFor("en").level.rangeOutside;
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database

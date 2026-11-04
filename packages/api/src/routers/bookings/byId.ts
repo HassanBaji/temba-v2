@@ -3,6 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings, courts, games, user, venues } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import {
   bookingStatusLabel,
   describeNextRefundStep,
@@ -41,9 +42,11 @@ export async function bookingById(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const now = args.now ?? new Date();
+  const locale = args.locale ?? DEFAULT_LOCALE;
 
   const booking = await database.query.bookings.findFirst({
     where: eq(bookings.id, args.bookingId),
@@ -89,6 +92,10 @@ export async function bookingById(
         .select({
           id: games.id,
           name: games.name,
+          hasCustomName: games.hasCustomName,
+          format: games.format,
+          windowStart: games.windowStart,
+          windowEnd: games.windowEnd,
           cancelledAt: games.cancelledAt,
         })
         .from(games)
@@ -151,7 +158,7 @@ export async function bookingById(
     startsAt: booking.startsAt,
     endsAt: booking.endsAt,
     status: booking.status,
-    statusLabel: bookingStatusLabel(booking.status),
+    statusLabel: bookingStatusLabel(booking.status, locale),
     holdExpiresAt: booking.holdExpiresAt,
     source: booking.source,
     priceFils: booking.priceFils,
@@ -172,7 +179,7 @@ export async function bookingById(
     },
     court: court!,
     cancellationPolicy: policy,
-    cancellationPolicyLines: describeCancellationPolicy(policy),
+    cancellationPolicyLines: describeCancellationPolicy(policy, locale),
     manager: isManager
       ? {
           holder: holderUser
@@ -227,7 +234,9 @@ export async function bookingById(
       ),
       refundPercentNow: refundPercentAt(policy, booking.startsAt, now),
       refundDueFilsNow: refundNow.refundDueFils,
-      nextStep: step ? { ...step, text: describeNextRefundStep(step) } : null,
+      nextStep: step
+        ? { ...step, text: describeNextRefundStep(step, locale) }
+        : null,
     },
   };
 }
@@ -242,5 +251,6 @@ export const byIdProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

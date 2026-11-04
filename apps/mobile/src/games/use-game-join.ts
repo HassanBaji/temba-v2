@@ -2,12 +2,14 @@ import { hubRegisterToast } from "@repo/domain/game-card";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import { useCallback } from "react";
 
+import { useLocale } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import type { JoinRequest } from "./games-model";
 
 export function useGameJoin() {
   const toast = useToast();
+  const locale = useLocale();
   const utils = api.useUtils();
 
   const refreshLists = useCallback(
@@ -24,14 +26,14 @@ export function useGameJoin() {
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: (result) => {
-      toast.show(gameJoinToast(result.waitlisted));
+      toast.show(gameJoinToast(result.waitlisted, locale));
     },
     onError: (error) => toast.show(error.message),
     onSettled: refreshLists,
   });
   const register = api.games.register.useMutation({
     onSuccess: (result) => {
-      toast.show(hubRegisterToast(result.waitlisted));
+      toast.show(hubRegisterToast(result.waitlisted, locale));
     },
     onError: (error) => toast.show(error.message),
     onSettled: refreshLists,

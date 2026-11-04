@@ -1,8 +1,11 @@
 import { type Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Profile",
-};
+import { getRequestMessages } from "~/lib/request-locale";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.common.profile };
+}
 
 export default function ProfileLayout({
   children,

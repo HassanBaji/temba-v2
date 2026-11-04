@@ -9,7 +9,7 @@ describe("createTeamsFixtures", () => {
 
   it("reaches every Team home state", () => {
     const view = (key: keyof typeof fixtures.home) =>
-      teamHomeView(fixtures.home[key]);
+      teamHomeView(fixtures.home[key], "en");
     expect(view("incomplete").primaryInvite).toBe(true);
     expect(view("waiting").waitingNote).toBe(true);
     expect(view("linked").canUnlink).toBe(true);

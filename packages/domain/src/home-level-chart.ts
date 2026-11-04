@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const HOME_CHART_WIDTH = 100;
 export const HOME_CHART_HEIGHT = 58;
 
@@ -60,16 +63,20 @@ export function parseLevelHistory(history: readonly string[]): {
 
 export type LevelChangeDirection = "up" | "down" | "none";
 
-export function levelChangeView(delta: number): {
+export function levelChangeView(
+  delta: number,
+  locale: Locale,
+): {
   direction: LevelChangeDirection;
   amount: string;
   spoken: string;
 } {
+  const m = messagesFor(locale).home.levelChange;
   const amount = Math.abs(delta).toFixed(1);
   if (amount === "0.0") {
-    return { direction: "none", amount, spoken: "No change" };
+    return { direction: "none", amount, spoken: m.none };
   }
   return delta > 0
-    ? { direction: "up", amount, spoken: "Up" }
-    : { direction: "down", amount, spoken: "Down" };
+    ? { direction: "up", amount, spoken: m.up }
+    : { direction: "down", amount, spoken: m.down };
 }

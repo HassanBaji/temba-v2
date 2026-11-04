@@ -20,11 +20,12 @@ describe("levelFromApi", () => {
       progressPercent: null,
       nextBand: null,
       history: [],
+      historyMatchCount: 0,
       ratedMatchCount: 0,
     } as ApiRating;
     assert.deepEqual(levelFromApi(data), { kind: "none" });
     assert.equal(
-      noLevelCopy("football"),
+      noLevelCopy("football", "en"),
       "Play a rated football game and your football Level appears.",
     );
   });
@@ -39,12 +40,14 @@ describe("levelFromApi", () => {
       },
       progressPercent: 1,
       history: ["3.2", "2.8"],
+      historyMatchCount: 1,
     } as unknown as ApiRating;
     const level = levelFromApi(data);
     assert.equal(level.kind, "rated");
     if (level.kind !== "rated") return;
     assert.equal(level.input.level, "2.8");
     assert.equal(level.input.progressPercent, 1);
+    assert.equal(level.input.historyMatchCount, 1);
   });
 });
 
@@ -81,14 +84,23 @@ describe("per-sport sections", () => {
       standingInSport(rows, "football").map((row) => row.groupId),
       ["b"],
     );
-    assert.equal(standingCountLabel(1), "1 group");
-    assert.equal(standingCountLabel(7), "7 groups");
+    assert.equal(standingCountLabel(1, "en"), "1 group");
+    assert.equal(standingCountLabel(7, "en"), "7 groups");
   });
 
   it("counts bookable Venues for the empty Up next", () => {
-    assert.equal(venueCountLabel(null), null);
-    assert.equal(venueCountLabel(0), "No venues yet");
-    assert.equal(venueCountLabel(1), "1 venue nearby");
-    assert.equal(venueCountLabel(3), "3 venues nearby");
+    assert.equal(venueCountLabel(null, "en"), null);
+    assert.equal(venueCountLabel(0, "en"), "No venues yet");
+    assert.equal(venueCountLabel(1, "en"), "1 venue nearby");
+    assert.equal(venueCountLabel(3, "en"), "3 venues nearby");
+  });
+
+  it("reads its labels from the Arabic catalog", () => {
+    assert.equal(
+      noLevelCopy("padel", "ar"),
+      "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
+    );
+    assert.equal(standingCountLabel(2, "ar"), "مجموعتان");
+    assert.equal(venueCountLabel(3, "ar"), "3 أندية قريبة");
   });
 });

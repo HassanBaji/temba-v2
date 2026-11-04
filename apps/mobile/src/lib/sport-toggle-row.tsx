@@ -1,7 +1,8 @@
 import { colors } from "@repo/design-tokens";
-import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
+import { SPORTS, type Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { SportGlyph } from "./sport-glyph";
 
@@ -10,10 +11,11 @@ export function SportToggleRow(props: {
   onToggle: (sport: Sport) => void;
   disabled: boolean;
 }) {
+  const m = useMessages();
   return (
     <View
       accessibilityRole="toolbar"
-      accessibilityLabel="Sports"
+      accessibilityLabel={m.mobilePlayer.lib.sports}
       style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
     >
       {SPORTS.map((sport) => {
@@ -21,7 +23,7 @@ export function SportToggleRow(props: {
         return (
           <View key={sport} style={{ minWidth: "30%", flexGrow: 1 }}>
             <Button
-              label={SPORT_LABELS[sport]}
+              label={m.common[sport]}
               variant={on ? "default" : "outline"}
               selected={on}
               disabled={props.disabled}

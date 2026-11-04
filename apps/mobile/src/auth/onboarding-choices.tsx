@@ -1,6 +1,7 @@
 import { radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
@@ -53,6 +54,7 @@ export function TileChoices<T extends string>(props: {
   onSelect: (value: T) => void;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -64,7 +66,9 @@ export function TileChoices<T extends string>(props: {
           key={choice.value}
           selected={choice.value === props.value}
           accessibilityLabel={
-            choice.detail ? `${choice.name}, ${choice.detail}` : choice.name
+            choice.detail
+              ? m.mobileHome.join.nameWithDetail(choice.name, choice.detail)
+              : choice.name
           }
           disabled={props.disabled}
           onPress={() => props.onSelect(choice.value)}
@@ -104,6 +108,7 @@ export function RowChoices<T extends string>(props: {
   onSelect: (value: T) => void;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -114,9 +119,11 @@ export function RowChoices<T extends string>(props: {
         <ChoiceSurface
           key={choice.value}
           selected={choice.value === props.value}
-          accessibilityLabel={[choice.mark, choice.name, choice.detail]
-            .filter(Boolean)
-            .join(", ")}
+          accessibilityLabel={m.mobileHome.join.parts(
+            [choice.mark, choice.name, choice.detail].filter(
+              (part): part is string => Boolean(part),
+            ),
+          )}
           disabled={props.disabled}
           onPress={() => props.onSelect(choice.value)}
           style={{

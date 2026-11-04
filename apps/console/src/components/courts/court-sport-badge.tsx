@@ -1,8 +1,8 @@
 import { CircleDot, Goal } from "lucide-react";
 
-import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
-import type { Sport } from "@repo/domain/sport";
+import { sportLabel, type Sport } from "@repo/domain/sport";
 
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { cn } from "~/lib/utils";
 
 export function CourtSportBadge({
@@ -21,7 +21,7 @@ export function CourtSportBadge({
       )}
     >
       <Glyph aria-hidden="true" className="size-3" />
-      {COURT_SPORT_LABELS[sport]}
+      {sportLabel(sport, CONSOLE_LOCALE)}
     </span>
   );
 }

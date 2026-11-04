@@ -1,6 +1,7 @@
 import type { LevelCellView } from "@repo/domain/group-home-chrome";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 
@@ -15,6 +16,7 @@ export function LevelCell({
   view: LevelCellView;
   level?: string | null;
 }) {
+  const m = useMessages();
   const text = view.label && level ? `${view.label} ${level}` : view.label;
 
   if (view.kind === "provisional") {
@@ -23,8 +25,8 @@ export function LevelCell({
       <View
         accessibilityLabel={
           hatchText
-            ? `Level ${hatchText}, still Provisional`
-            : "Level still Provisional"
+            ? m.mobileGroup.members.levelSpokenProvisional(hatchText)
+            : m.mobileGroup.members.levelStillProvisional
         }
         style={{
           width: hatchText ? undefined : CELL_WIDTH,

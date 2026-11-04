@@ -1,29 +1,15 @@
 "use client";
 
-import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import type { Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 
 import { noLevelCopy, type HomeLevel } from "./home-model";
-
-const CHANGE_ICONS = {
-  up: ArrowUpRight,
-  down: ArrowDownRight,
-  none: ArrowRight,
-} as const;
-
-function SportMeta({ sport }: { sport: Sport }) {
-  return (
-    <span className="text-eyebrow font-mono uppercase">
-      {SPORT_LABELS[sport]}
-    </span>
-  );
-}
 
 export function LevelCard({
   level,
@@ -32,18 +18,22 @@ export function LevelCard({
   level: HomeLevel;
   sport: Sport;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <SurfaceLabel meta={<SportMeta sport={sport} />}>Level</SurfaceLabel>
+      <SurfaceLabel>{m.home.level.heading[sport]}</SurfaceLabel>
       {level.kind === "rated" ? (
         <RatedLevel input={level.input} />
       ) : (
         <div className="flex items-center gap-5 px-[22px] pb-[22px]">
           <Hatch radius="lg" className="size-[74px] shrink-0" />
           <div className="flex min-w-0 flex-col gap-1.5">
-            <p className="text-lead font-semibold">No Level yet</p>
+            <p className="text-lead font-semibold">
+              {m.profile.levelCard.noLevelYet}
+            </p>
             <p className="text-meta text-muted-foreground">
-              {noLevelCopy(sport)}
+              {noLevelCopy(sport, locale)}
             </p>
           </div>
         </div>
@@ -53,19 +43,20 @@ export function LevelCard({
 }
 
 function RatedLevel({ input }: { input: HomeLevelInput }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     setDrawn(true);
   }, []);
 
-  const view = homeLevelView(input);
-  const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
+  const view = homeLevelView(input, locale);
 
   return (
     <>
       <div className="flex items-stretch gap-4 px-[22px] pb-[22px]">
         <p className="font-expanded text-[88px] leading-none">
-          <span className="sr-only">Level band </span>
+          <span className="sr-only">{`${m.webAuth.home.levelBandSpoken} `}</span>
           {view.displayBand}
         </p>
         <div className="bg-rule w-px self-stretch" />
@@ -74,14 +65,14 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
             <span className="font-expanded text-h2 tabular-nums">
               {view.level}
             </span>
-            <span className="text-meta text-muted-foreground">Level</span>
+            <span className="text-meta text-muted-foreground">
+              {m.home.level.numberLabel}
+            </span>
           </p>
-          {view.change && ChangeIcon ? (
-            <p className="flex items-center gap-1">
-              <ChangeIcon aria-hidden="true" className="size-5 shrink-0" />
-              <span className="sr-only">{view.change.spoken} </span>
+          {view.change ? (
+            <p className="flex items-baseline gap-1.5">
               <span className="font-expanded text-h2 tabular-nums">
-                {view.change.amount}
+                {view.change.signedAmount}
               </span>
               <span className="text-meta text-muted-foreground truncate">
                 {view.change.windowLabel}
@@ -114,7 +105,7 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
         </div>
       ) : (
         <p className="border-rule text-meta border-t px-[22px] py-3">
-          Top Level band
+          {m.profile.level.topBand}
         </p>
       )}
 

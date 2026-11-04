@@ -1,4 +1,7 @@
-import { PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY } from "./tournament-join";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+import { partnerRequiredUnseatPartnerConfirmCopy } from "./tournament-join";
 
 type KickRosterSeat = { userId: string; name: string } | null;
 
@@ -17,14 +20,7 @@ export type GameKickTarget =
   | { kind: "player"; userId: string; name: string }
   | { kind: "waitlist"; waitlistId: string; name: string };
 
-export const KICK_FALLBACK_NAME = "this player";
-export const KICK_SPOT_CONFIRM_COPY = "Their spot can open for someone else.";
-export const KICK_AFTER_DRAW_CONFIRM_COPY =
-  "Their team's unplayed Matches are cancelled.";
-export const KICK_WAITLIST_CONFIRM_COPY =
-  "They lose their place on the Waitlist.";
-
-function playerName(roster: GameKickRoster, userId: string) {
+function playerName(roster: GameKickRoster, userId: string, locale: Locale) {
   const registered = roster.registeredPlayers.find(
     (player) => player.id === userId,
   );
@@ -38,12 +34,13 @@ function playerName(roster: GameKickRoster, userId: string) {
       }
     }
   }
-  return KICK_FALLBACK_NAME;
+  return messagesFor(locale).game.kick.fallbackName;
 }
 
 export function gameKickTarget(
   roster: GameKickRoster,
   request: GameKickRequest,
+  locale: Locale,
 ): GameKickTarget {
   if ("waitlistId" in request) {
     const entry = roster.waitlist.find(
@@ -52,32 +49,37 @@ export function gameKickTarget(
     return {
       kind: "waitlist",
       waitlistId: request.waitlistId,
-      name: entry?.name ?? KICK_FALLBACK_NAME,
+      name: entry?.name ?? messagesFor(locale).game.kick.fallbackName,
     };
   }
   return {
     kind: "player",
     userId: request.userId,
-    name: playerName(roster, request.userId),
+    name: playerName(roster, request.userId, locale),
   };
 }
 
 export function gameKickConfirmCopy(
   target: GameKickTarget,
   game: { partnerRequired: boolean; drawPosted: boolean },
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.kick;
   if (target.kind === "waitlist") {
     return {
-      title: `Kick ${target.name} from the waitlist?`,
-      description: KICK_WAITLIST_CONFIRM_COPY,
+      title: m.waitlistTitle(target.name),
+      description: m.waitlistConfirm,
     };
   }
-  const title = `Kick ${target.name}?`;
+  const title = m.title(target.name);
   if (game.drawPosted) {
-    return { title, description: KICK_AFTER_DRAW_CONFIRM_COPY };
+    return { title, description: m.afterDrawConfirm };
   }
   if (game.partnerRequired) {
-    return { title, description: PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY };
+    return {
+      title,
+      description: partnerRequiredUnseatPartnerConfirmCopy(locale),
+    };
   }
-  return { title, description: KICK_SPOT_CONFIRM_COPY };
+  return { title, description: m.spotConfirm };
 }

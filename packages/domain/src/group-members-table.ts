@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth } from "./format-game-start";
 
 /**
@@ -40,36 +43,52 @@ function asValidDate(value: Date | string | null | undefined) {
  * here (`"Last Fri 24 Oct"`), otherwise when they joined (`"Joined Wed 22
  * Oct"`). `null` when none of those is known.
  */
-export function groupMemberTableCaption(member: {
-  isOrganizer: boolean;
-  lastPlayedAt: Date | string | null | undefined;
-  joinedAt: Date | string | null | undefined;
-}) {
+export function groupMemberTableCaption(
+  member: {
+    isOrganizer: boolean;
+    lastPlayedAt: Date | string | null | undefined;
+    joinedAt: Date | string | null | undefined;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.members;
   if (member.isOrganizer) {
-    return "Organizer";
+    return m.organizer;
   }
   const lastPlayed = asValidDate(member.lastPlayedAt);
   if (lastPlayed) {
-    return `Last ${formatDayMonth(lastPlayed, { weekday: "short" })}`;
+    return m.lastPlayed(
+      formatDayMonth(lastPlayed, locale, { weekday: "short" }),
+    );
   }
   const joined = asValidDate(member.joinedAt);
   return joined
-    ? `Joined ${formatDayMonth(joined, { weekday: "short" })}`
+    ? m.joined(formatDayMonth(joined, locale, { weekday: "short" }))
     : null;
 }
 
 /** The table footer; nothing to explain on a Group without Levels. */
-export function groupMembersLegend(input: { showLevel: boolean }) {
-  return input.showLevel ? "Hatched Levels are still Provisional." : null;
+export function groupMembersLegend(input: {
+  showLevel: boolean;
+  locale: Locale;
+}) {
+  return input.showLevel
+    ? messagesFor(input.locale).group.members.legend
+    : null;
 }
 
-export const GROUP_MEMBERS_NO_MATCH_COPY = "Nobody matches.";
-
-export function groupPendingInvitesTitle(count: number) {
-  return `${count} ${count === 1 ? "invite" : "invites"} pending`;
+export function groupPendingInvitesTitle(count: number, locale: Locale) {
+  return messagesFor(locale).group.members.pendingInvitesTitle(count);
 }
 
-export function groupPendingInviteCaption(invitedAt: Date | string) {
+export function groupPendingInviteCaption(
+  invitedAt: Date | string,
+  locale: Locale,
+) {
   const date = asValidDate(invitedAt);
-  return date ? `Invited ${formatDayMonth(date, { weekday: "short" })}` : null;
+  return date
+    ? messagesFor(locale).group.members.invited(
+        formatDayMonth(date, locale, { weekday: "short" }),
+      )
+    : null;
 }

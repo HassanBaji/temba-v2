@@ -9,6 +9,7 @@ import { Share } from "lucide-react";
 import Link from "next/link";
 
 import { FootballInfoRows } from "~/components/games/football-info-rows";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 import { PlayedColumns } from "./played-columns";
@@ -40,6 +41,7 @@ export function PlayedGameView({
   facts,
   onPressPlayer,
 }: PlayedGameViewProps) {
+  const m = useMessages();
   const href = shareResultHref(gameId);
   return (
     <div className="space-y-6">
@@ -47,10 +49,13 @@ export function PlayedGameView({
         {...hero}
         actions={
           <>
-            <Button variant="outline-inverse" size="sm" asChild>
-              <Link href={href}>
-                <Share aria-hidden="true" />
-                Share result
+            <Button
+              size="icon"
+              className="bg-raised text-paper hover:bg-raised/80 rounded-md"
+              asChild
+            >
+              <Link href={href} aria-label={m.game.cta.shareResult}>
+                <Share aria-hidden="true" className="size-5" />
               </Link>
             </Button>
             {menu}
@@ -68,7 +73,7 @@ export function PlayedGameView({
       <Button size="lg" className="w-full" asChild>
         <Link href={href}>
           <Share aria-hidden="true" />
-          Share result
+          {m.game.cta.shareResult}
         </Link>
       </Button>
     </div>

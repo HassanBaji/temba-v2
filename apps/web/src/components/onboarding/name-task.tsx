@@ -6,6 +6,7 @@ import * as React from "react";
 
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotNowLink, TaskActions } from "~/components/onboarding/task-actions";
 import { Button } from "~/components/ui/button";
 import {
@@ -46,6 +47,8 @@ function Fields({
   };
   backHref: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
@@ -87,7 +90,7 @@ function Fields({
     if (pending) {
       return;
     }
-    const names = validateUserNames({ firstName, lastName });
+    const names = validateUserNames({ firstName, lastName }, locale);
     if (!names.ok) {
       setFieldErrors(names.fieldErrors);
       document
@@ -109,7 +112,7 @@ function Fields({
         lastName: names.lastName,
       });
     } catch (err) {
-      setClerkError(splitClerkAuthError(err));
+      setClerkError(splitClerkAuthError(err, locale));
       setSavingClerk(false);
       return;
     }
@@ -120,10 +123,10 @@ function Fields({
   return (
     <AuthScreen
       backHref={backHref}
-      backLabel="Back"
-      eyebrow="Profile / Name"
-      title="Add your name"
-      description="Shown to organizers and the people you play with."
+      backLabel={m.common.back}
+      eyebrow={m.webAuth.onboarding.eyebrow.name}
+      title={m.webAuth.onboarding.name.title}
+      description={m.webAuth.onboarding.name.description}
     >
       <form className="flex flex-col gap-[18px]" onSubmit={onSubmit} noValidate>
         <FormErrorSummary ref={summaryRef} message={globalMessage} />
@@ -133,7 +136,7 @@ function Fields({
               htmlFor={FIELD_IDS.firstName}
               className="text-meta text-muted-foreground"
             >
-              First name
+              {m.webAuth.phoneAuth.firstName}
             </FieldLabel>
             <Input
               id={FIELD_IDS.firstName}
@@ -159,7 +162,7 @@ function Fields({
               htmlFor={FIELD_IDS.lastName}
               className="text-meta text-muted-foreground"
             >
-              Last name
+              {m.webAuth.phoneAuth.lastName}
             </FieldLabel>
             <Input
               id={FIELD_IDS.lastName}
@@ -186,10 +189,10 @@ function Fields({
             type="submit"
             size="lg"
             pending={pending}
-            pendingLabel="Saving…"
+            pendingLabel={m.common.saving}
             className="w-full font-semibold"
           >
-            Save name
+            {m.webAuth.onboarding.name.saveName}
           </Button>
           <NotNowLink href={backHref} disabled={pending} />
         </TaskActions>

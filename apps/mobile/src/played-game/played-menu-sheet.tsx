@@ -1,10 +1,15 @@
 import { Sheet } from "../primitives/sheet";
-import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
+import {
+  SheetMenu,
+  SheetMenuRow,
+  type SheetMenuRowProps,
+} from "../primitives/sheet-menu";
 
 export type PlayedMenuItem = {
   key: string;
   label: string;
   hint?: string | null;
+  icon?: SheetMenuRowProps["icon"];
   disabled?: boolean;
   tone?: "default" | "danger";
   onPress: () => void;
@@ -36,6 +41,7 @@ export function PlayedMenuSheet({
             key={item.key}
             label={item.label}
             hint={item.hint}
+            icon={item.icon}
             disabled={item.disabled}
             tone={item.tone}
             onPress={() => {

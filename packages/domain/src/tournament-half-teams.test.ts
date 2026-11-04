@@ -1,20 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
-  MERGE_BANNER_ACTION_LABEL,
-  MERGE_BANNER_TITLE,
-  MERGE_COMPLETES_FIELD_COPY,
-  MERGE_DISMISS_ACTION_LABEL,
-  MERGE_DRAWER_TITLE,
-  MERGE_MANY_TITLE,
-  MERGE_OPEN_POSITION_SR,
-  MERGE_PREVIEW_LABEL,
-  MERGE_PRIMARY_ACTION_LABEL,
-  MERGE_SEATS_ACTION_LABEL,
-  MERGE_SWAP_LABEL,
-  MERGE_TAKES_EFFECT_COPY,
-  ORGANIZER_EYEBROW,
   canOpenOrganizerMergeDrawer,
   defaultMergePositions,
   halfTeamMergeHint,
@@ -32,6 +21,8 @@ import {
   showOrganizerMergeBanner,
   swapMergePositions,
 } from "./tournament-half-teams";
+
+const HALF = messagesFor("en").tournament.halfTeams;
 
 const FORBIDDEN = /message|notified|Ask them first|quarter|knockout|champion/iu;
 
@@ -104,17 +95,17 @@ describe("half team merge copy", () => {
       },
     ]);
     assert.equal(mergeCompletesTheField(two), true);
-    assert.equal(halfTeamMergeHint(two.length), MERGE_COMPLETES_FIELD_COPY);
+    assert.equal(halfTeamMergeHint(two.length, "en"), HALF.mergeCompletesField);
   });
 
   it("does not claim the field is complete when more than two Half teams remain", () => {
-    assert.equal(halfTeamMergeHint(3), null);
-    assert.equal(halfTeamMergeHint(1), null);
+    assert.equal(halfTeamMergeHint(3, "en"), null);
+    assert.equal(halfTeamMergeHint(1, "en"), null);
     assert.equal(mergeCompletesTheField([]), false);
   });
 
   it("does not claim a message was sent", () => {
-    const copy = `${MERGE_COMPLETES_FIELD_COPY} ${MERGE_TAKES_EFFECT_COPY}`;
+    const copy = `${HALF.mergeCompletesField} ${HALF.takesEffect}`;
     assert.equal(/message|notified|sent|email|push/iu.test(copy), false);
   });
 });
@@ -196,6 +187,7 @@ describe("merge screen copy", () => {
         secondName: "Kim H",
         completesField: true,
         teamCount: 12,
+        locale: "en",
       }),
       "Put Rashid and Kim together and the 12 Game teams are full.",
     );
@@ -205,6 +197,7 @@ describe("merge screen copy", () => {
         secondName: "Kim H",
         completesField: false,
         teamCount: 12,
+        locale: "en",
       }),
       "Put Rashid and Kim together.",
     );
@@ -217,6 +210,7 @@ describe("merge screen copy", () => {
         secondName: "Kim H",
         completesField: true,
         teamCount: 12,
+        locale: "en",
       }),
       "Rashid and Kim each took a seat on their own. Put them together and the 12 Game teams are full.",
     );
@@ -226,6 +220,7 @@ describe("merge screen copy", () => {
         secondName: "Jonas B",
         completesField: false,
         teamCount: 12,
+        locale: "en",
       }),
       "Ada and Jonas each took a seat on their own. Put them together into one Game team.",
     );
@@ -233,50 +228,52 @@ describe("merge screen copy", () => {
 
   it("describes Swap as exchanging the preview Positions", () => {
     assert.equal(
-      mergeSwapHint("Kim H", "left"),
+      mergeSwapHint("Kim H", "left", "en"),
       "Kim keeps the left seat instead",
     );
   });
 
   it("labels the merged preview, open Position, and Half team index without knockout copy", () => {
-    assert.equal(mergeTeamEyebrow(12), "TEAM 12");
-    assert.equal(mergeOccupantSubline("left", "C+"), "Left, C+");
-    assert.equal(mergeOccupantSubline("right", null), "Right");
-    assert.equal(mergeOpenPositionLabel("right"), "Right open");
+    assert.equal(mergeTeamEyebrow(12, "en"), "TEAM 12");
+    assert.equal(mergeOccupantSubline("left", "C+", "en"), "Left, C+");
+    assert.equal(mergeOccupantSubline("right", null, "en"), "Right");
+    assert.equal(mergeOpenPositionLabel("right", "en"), "Right open");
     assert.equal(
-      mergeManyHalfTeamsCopy(3),
+      mergeManyHalfTeamsCopy(3, "en"),
       "3 Game teams have one Position each.",
     );
   });
 
   it("does not claim a message, a notification, or a knockout", () => {
     const copy = [
-      ORGANIZER_EYEBROW,
-      MERGE_BANNER_TITLE,
-      MERGE_BANNER_ACTION_LABEL,
-      MERGE_DRAWER_TITLE,
-      MERGE_PREVIEW_LABEL,
-      MERGE_PRIMARY_ACTION_LABEL,
-      MERGE_DISMISS_ACTION_LABEL,
-      MERGE_SWAP_LABEL,
-      MERGE_SEATS_ACTION_LABEL,
-      MERGE_MANY_TITLE,
-      MERGE_OPEN_POSITION_SR,
-      MERGE_TAKES_EFFECT_COPY,
+      HALF.organizerEyebrow,
+      HALF.bannerTitle,
+      HALF.bannerAction,
+      HALF.drawerTitle,
+      HALF.previewLabel,
+      HALF.primaryAction,
+      HALF.dismissAction,
+      HALF.swap,
+      HALF.mergeSeats,
+      HALF.manyTitle,
+      HALF.openPositionSr,
+      HALF.takesEffect,
       mergePairCopy({
         firstName: "Rashid N",
         secondName: "Kim H",
         completesField: true,
         teamCount: 12,
+        locale: "en",
       }),
       mergeDrawerLead({
         firstName: "Rashid N",
         secondName: "Kim H",
         completesField: true,
         teamCount: 12,
+        locale: "en",
       }),
-      mergeSwapHint("Kim H", "left"),
-      mergeManyHalfTeamsCopy(3),
+      mergeSwapHint("Kim H", "left", "en"),
+      mergeManyHalfTeamsCopy(3, "en"),
     ].join(" ");
     assert.equal(FORBIDDEN.test(copy), false);
   });
@@ -315,7 +312,24 @@ describe("merge Position assignment", () => {
 
 describe("openPositionLabel", () => {
   it("names the vacant Position", () => {
-    assert.equal(openPositionLabel("left"), "Open left");
-    assert.equal(openPositionLabel("right"), "Open right");
+    assert.equal(openPositionLabel("left", "en"), "Open left");
+    assert.equal(openPositionLabel("right", "en"), "Open right");
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the merge pair copy and the Position labels in Arabic", () => {
+    assert.equal(
+      mergePairCopy({
+        firstName: "Rashid N",
+        secondName: "Kim H",
+        completesField: false,
+        teamCount: 12,
+        locale: "ar",
+      }),
+      "ضع Rashid وKim معًا.",
+    );
+    assert.equal(openPositionLabel("left", "ar"), "اليسار شاغر");
+    assert.equal(mergeTeamEyebrow(12, "ar"), "الفريق 12");
   });
 });

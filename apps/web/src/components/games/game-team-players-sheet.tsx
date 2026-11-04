@@ -10,6 +10,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { type GameTeamPlayer } from "~/lib/game-player-links";
 
@@ -25,6 +26,7 @@ export function GameTeamPlayersSheet({
   team: GameTeamPlayersSheetTeam | null;
   onClose: () => void;
 }) {
+  const m = useMessages();
   return (
     <ResponsiveDialog
       open={team != null}
@@ -37,12 +39,12 @@ export function GameTeamPlayersSheet({
       <ResponsiveDialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[420px]">
         {team ? (
           <>
-            <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
-              <ResponsiveDialogTitle className="text-h2 pr-8 tracking-[-0.02em] sm:pr-6">
+            <ResponsiveDialogHeader className="px-[22px] pb-0 pt-[22px] text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
+              <ResponsiveDialogTitle className="text-h2 pe-8 tracking-[-0.02em] sm:pe-6">
                 {team.name}
               </ResponsiveDialogTitle>
               <ResponsiveDialogDescription className="text-meta">
-                Game team
+                {m.createGame.side.gameTeam}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <ul className="border-rule rounded-card divide-rule mx-[22px] mb-[max(22px,env(safe-area-inset-bottom))] mt-[18px] divide-y overflow-hidden border">

@@ -9,6 +9,7 @@ import type { HubGameOccupant, HubGameSide } from "@repo/domain/hub-game-row";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hatch } from "../primitives/hatch";
 import { useTonePalette } from "../primitives/surface-context";
@@ -18,10 +19,11 @@ const CHIP_HEIGHT = 56;
 
 function FilledChip({ occupant }: { occupant: HubGameOccupant }) {
   const palette = useTonePalette();
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={occupant.isViewer ? "You" : occupant.name}
+      accessibilityLabel={occupant.isViewer ? m.common.you : occupant.name}
       style={{
         flex: 1,
         minWidth: 0,
@@ -42,7 +44,7 @@ function FilledChip({ occupant }: { occupant: HubGameOccupant }) {
         importantForAccessibility="no"
         style={{ paddingHorizontal: 4 }}
       >
-        {occupant.isViewer ? "You" : firstName(occupant.name)}
+        {occupant.isViewer ? m.common.you : firstName(occupant.name)}
       </Text>
     </View>
   );
@@ -92,6 +94,8 @@ function JoinChip({
   pending: boolean;
   onJoin: (sideIndex: number, position: CardSeatPosition) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.card;
   const partner = position === "left" ? side.right : side.left;
   return (
     <Pressable
@@ -100,6 +104,7 @@ function JoinChip({
         side.sideIndex,
         position,
         partner?.name ?? null,
+        locale,
       )}
       accessibilityState={{ disabled: pending, busy: pending }}
       disabled={pending}
@@ -121,7 +126,7 @@ function JoinChip({
         accessibilityElementsHidden
         importantForAccessibility="no"
       >
-        Join {position === "left" ? "Left" : "Right"}
+        {position === "left" ? m.joinLeft : m.joinRight}
       </Text>
     </Pressable>
   );
@@ -140,6 +145,7 @@ function SideSeat({
   pending: boolean;
   onJoin?: (sideIndex: number, position: CardSeatPosition) => void;
 }) {
+  const m = useMessages();
   const occupant = position === "left" ? side.left : side.right;
   if (occupant) {
     return <FilledChip occupant={occupant} />;
@@ -156,7 +162,12 @@ function SideSeat({
       />
     );
   }
-  return <OpenChip caption="Open" accessibilityLabel="Open seat" />;
+  return (
+    <OpenChip
+      caption={m.game.court.open}
+      accessibilityLabel={m.mobileTournament.card.openSeat}
+    />
+  );
 }
 
 export function FriendlyRoster({
@@ -170,6 +181,7 @@ export function FriendlyRoster({
   pending: boolean;
   onJoin?: (sideIndex: number, position: CardSeatPosition) => void;
 }) {
+  const m = useMessages().mobileTournament.card;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
       {sides.map((side, index) => {
@@ -184,7 +196,7 @@ export function FriendlyRoster({
                 accessibilityElementsHidden
                 importantForAccessibility="no"
               >
-                vs
+                {m.vs}
               </Text>
             ) : null}
             <View

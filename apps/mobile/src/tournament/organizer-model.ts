@@ -1,19 +1,23 @@
-import { GAME_TOAST } from "@repo/domain/game-copy";
+import { gameToast } from "@repo/domain/game-copy";
+import type { Locale } from "@repo/i18n/locale";
 
 export type DrawStep = "drawn" | "posted" | "undone";
 
-const POOL_TOASTS: Record<DrawStep, string> = {
-  drawn: GAME_TOAST.poolsDrawn,
-  posted: GAME_TOAST.poolDrawPosted,
-  undone: GAME_TOAST.poolDrawUndone,
-};
-
-const KNOCKOUT_TOASTS: Record<DrawStep, string> = {
-  drawn: GAME_TOAST.knockoutDrawn,
-  posted: GAME_TOAST.knockoutDrawPosted,
-  undone: GAME_TOAST.knockoutDrawUndone,
-};
-
-export function drawToast(step: DrawStep, knockoutOnly: boolean) {
-  return (knockoutOnly ? KNOCKOUT_TOASTS : POOL_TOASTS)[step];
+export function drawToast(
+  step: DrawStep,
+  knockoutOnly: boolean,
+  locale: Locale,
+) {
+  const toast = gameToast(locale);
+  const poolToasts: Record<DrawStep, string> = {
+    drawn: toast.poolsDrawn,
+    posted: toast.poolDrawPosted,
+    undone: toast.poolDrawUndone,
+  };
+  const knockoutToasts: Record<DrawStep, string> = {
+    drawn: toast.knockoutDrawn,
+    posted: toast.knockoutDrawPosted,
+    undone: toast.knockoutDrawUndone,
+  };
+  return (knockoutOnly ? knockoutToasts : poolToasts)[step];
 }

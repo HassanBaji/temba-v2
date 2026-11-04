@@ -8,10 +8,12 @@ import * as React from "react";
 
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { SlotText } from "~/components/auth/auth-terms-note";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { PasswordField } from "~/components/auth/password-field";
 import { PhoneField } from "~/components/auth/phone-field";
 import { VerifyCodeForm } from "~/components/auth/verify-code-form";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -22,16 +24,14 @@ import {
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import { authCrossLinkUrl, signUpCompleteUrl } from "~/lib/auth-redirect";
-import {
-  CLERK_AUTH_ERROR_COPY,
-  splitClerkAuthError,
-} from "@repo/domain/clerk-auth-error";
+import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import type { SplitFormError } from "~/lib/form-mutation-error";
 import {
   DEFAULT_CALLING_COUNTRY_ISO,
   assembleE164,
   formatInternationalNumber,
 } from "@repo/domain/phone-number";
+import { PASSWORD_MIN_LENGTH } from "~/lib/password-strength";
 
 const FIELD_IDS = {
   emailAddress: "signup-continue-email",
@@ -96,6 +96,8 @@ export function SignUpContinueForm({
   redirectUrl: string | null;
 }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   const { setActive } = useClerk();
   const { signUp, isLoaded } = useSignUp();
   const summaryRef = React.useRef<HTMLDivElement>(null);
@@ -218,9 +220,7 @@ export function SignUpContinueForm({
       if (!assembled.ok) {
         const next: SplitFormError = {
           fieldErrors: {
-            phoneNumber:
-              CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
-              "That doesn't look right. Check the format and try again.",
+            phoneNumber: m.auth.clerkError.paramFormatInvalid,
           },
           globalMessage: null,
         };
@@ -258,7 +258,7 @@ export function SignUpContinueForm({
       await prepareFrom(updated);
       setPending(false);
     } catch (err) {
-      const next = splitClerkAuthError(err);
+      const next = splitClerkAuthError(err, locale);
       setSplit(next);
       setPending(false);
     }
@@ -297,10 +297,10 @@ export function SignUpContinueForm({
       setPending(false);
       setSplit({
         fieldErrors: {},
-        globalMessage: "Something went wrong. Try again.",
+        globalMessage: m.auth.clerkError.generic,
       });
     } catch (err) {
-      const next = splitClerkAuthError(err);
+      const next = splitClerkAuthError(err, locale);
       setSplit(next);
       setPending(false);
     }
@@ -324,7 +324,7 @@ export function SignUpContinueForm({
       setStartedAt(Date.now());
       setPending(false);
     } catch (err) {
-      const next = splitClerkAuthError(err);
+      const next = splitClerkAuthError(err, locale);
       setSplit(next);
       setPending(false);
     }
@@ -332,7 +332,7 @@ export function SignUpContinueForm({
 
   if (!isLoaded) {
     return (
-      <AuthScreen title="Almost there">
+      <AuthScreen title={m.webAuth.signUpContinue.almostThere}>
         <AuthLoading />
       </AuthScreen>
     );
@@ -342,17 +342,24 @@ export function SignUpContinueForm({
     return (
       <AuthScreen
         backHref={signInUrl}
-        backLabel="Back"
-        title="Almost there"
-        description="Finish creating your account, or start from the beginning."
+        title={m.webAuth.signUpContinue.almostThere}
+        description={m.webAuth.signUpContinue.finishOrStart}
       >
         <div className="flex flex-col gap-[18px]">
           <p className="text-body text-muted-foreground">
-            Start from{" "}
-            <Link className="text-ink font-medium underline" href={signInUrl}>
-              your phone number
-            </Link>{" "}
-            or continue with Google.
+            <SlotText
+              text={m.webAuth.signUpContinue.startFrom}
+              slots={{
+                phone: (
+                  <Link
+                    className="text-ink font-medium underline"
+                    href={signInUrl}
+                  >
+                    {m.webAuth.signUpContinue.yourPhoneNumber}
+                  </Link>
+                ),
+              }}
+            />
           </p>
           <OauthButtons flow="sign-up" redirectUrl={redirectUrl} />
         </div>
@@ -375,10 +382,10 @@ export function SignUpContinueForm({
     step === "verify-email"
       ? emailAddress.length > 0
         ? emailAddress
-        : (signUp.emailAddress ?? "your email")
+        : (signUp.emailAddress ?? m.webAuth.signUpContinue.yourEmail)
       : national.length > 0
         ? formatInternationalNumber(countryIso, national)
-        : (signUp.phoneNumber ?? "your number");
+        : (signUp.phoneNumber ?? m.webAuth.signUpContinue.yourNumber);
 
   if (verifying) {
     return (
@@ -388,19 +395,21 @@ export function SignUpContinueForm({
           setSplit(null);
           setCode("");
         }}
-        backLabel="Back"
-        title="Enter the code"
+        title={m.webAuth.signUpContinue.enterTheCode}
         footer={
           <p className="text-eyebrow text-muted-foreground leading-[1.5]">
-            Codes expire after a short time. Too many wrong tries will lock this{" "}
-            {step === "verify-email" ? "email" : "number"}.
+            {step === "verify-email"
+              ? m.webAuth.phoneAuth.codesExpire.email
+              : m.webAuth.phoneAuth.codesExpire.number}
           </p>
         }
       >
         <VerifyCodeForm
           destination={destination}
           changeLabel={
-            step === "verify-email" ? "Change email" : "Change number"
+            step === "verify-email"
+              ? m.webAuth.signUpContinue.changeEmail
+              : m.webAuth.phoneAuth.changeNumber
           }
           onChangeIdentifier={() => {
             setStep("fields");
@@ -427,9 +436,8 @@ export function SignUpContinueForm({
   return (
     <AuthScreen
       backHref={signInUrl}
-      backLabel="Back"
-      title="Almost there"
-      description="A few details are still needed to finish your account."
+      title={m.webAuth.signUpContinue.almostThere}
+      description={m.webAuth.signUpContinue.detailsNeeded}
     >
       <form
         className="flex flex-col gap-[18px]"
@@ -445,7 +453,7 @@ export function SignUpContinueForm({
                 htmlFor={FIELD_IDS.firstName}
                 className="text-meta text-muted-foreground"
               >
-                First name
+                {m.webAuth.phoneAuth.firstName}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.firstName}
@@ -473,7 +481,7 @@ export function SignUpContinueForm({
                 htmlFor={FIELD_IDS.lastName}
                 className="text-meta text-muted-foreground"
               >
-                Last name
+                {m.webAuth.phoneAuth.lastName}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.lastName}
@@ -501,7 +509,7 @@ export function SignUpContinueForm({
                 htmlFor={FIELD_IDS.emailAddress}
                 className="text-meta text-muted-foreground"
               >
-                Email
+                {m.webAuth.signUpContinue.email}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.emailAddress}
@@ -530,7 +538,7 @@ export function SignUpContinueForm({
                 htmlFor={FIELD_IDS.phoneNumber}
                 className="text-meta text-muted-foreground"
               >
-                Mobile number
+                {m.webAuth.phoneAuth.mobileNumber}
               </FieldLabel>
               <PhoneField
                 id={FIELD_IDS.phoneNumber}
@@ -558,14 +566,16 @@ export function SignUpContinueForm({
                 htmlFor={FIELD_IDS.password}
                 className="text-meta text-muted-foreground"
               >
-                Password
+                {m.webAuth.phoneAuth.passwordLabel}
               </FieldLabel>
               <PasswordField
                 id={FIELD_IDS.password}
                 value={password}
                 onChange={setPassword}
                 autoComplete="new-password"
-                placeholder="At least 8 characters"
+                placeholder={m.webAuth.password.placeholder(
+                  PASSWORD_MIN_LENGTH,
+                )}
                 invalid={Boolean(passwordError)}
                 describedBy={
                   passwordError ? `${FIELD_IDS.password}-error` : undefined
@@ -584,10 +594,10 @@ export function SignUpContinueForm({
           type="submit"
           size="lg"
           pending={pending}
-          pendingLabel="Continuing…"
+          pendingLabel={m.webAuth.signUpContinue.continuing}
           className="w-full font-semibold"
         >
-          Continue
+          {m.common.continue}
         </Button>
       </form>
     </AuthScreen>

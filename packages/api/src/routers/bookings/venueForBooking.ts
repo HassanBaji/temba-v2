@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { venues } from "@repo/db";
 import { describeCancellationPolicy } from "@repo/domain/booking-refund";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import {
@@ -19,7 +20,7 @@ type DbClient = typeof db;
 
 export async function venueForBooking(
   database: DbClient,
-  args: { venueId: string; now?: Date },
+  args: { venueId: string; now?: Date; locale?: Locale },
 ) {
   const now = args.now ?? new Date();
   const context = await loadVenueSlotContext(database, args.venueId, now);
@@ -80,6 +81,7 @@ export async function venueForBooking(
     minLeadMinutes: settings.minLeadMinutes,
     cancellationPolicyLines: describeCancellationPolicy(
       venue.cancellationPolicy,
+      args.locale ?? DEFAULT_LOCALE,
     ),
     payment: {
       mode:
@@ -91,4 +93,6 @@ export async function venueForBooking(
 
 export const venueForBookingProcedure = protectedProcedure
   .input(z.object({ venueId: z.string().uuid() }))
-  .query(async ({ ctx, input }) => venueForBooking(ctx.db, input));
+  .query(async ({ ctx, input }) =>
+    venueForBooking(ctx.db, { ...input, locale: ctx.locale }),
+  );

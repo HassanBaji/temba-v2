@@ -7,14 +7,16 @@ import { View } from "react-native";
 
 import { Card } from "../home/card";
 import { Hairline } from "../primitives/hairline";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { MountFill } from "../primitives/mount-fill";
 import { Text } from "../primitives/text";
 
 function StatRow({ label, value }: { label: string; value: string }) {
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={`${label} ${value}`}
+      accessibilityLabel={m.mobileHome.join.labelValue(label, value)}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -35,10 +37,12 @@ function StatRow({ label, value }: { label: string; value: string }) {
 }
 
 export function ProfileAllTimeCard({ input }: { input: ProfileAllTimeInput }) {
-  const view = profileAllTimeView(input);
+  const m = useMessages();
+  const locale = useLocale();
+  const view = profileAllTimeView(input, locale);
 
   return (
-    <Card title="All time" meta={view.sinceLabel ?? undefined}>
+    <Card title={m.profile.player.allTime} meta={view.sinceLabel ?? undefined}>
       <View
         style={{
           paddingHorizontal: spacing.surface,
@@ -56,35 +60,43 @@ export function ProfileAllTimeCard({ input }: { input: ProfileAllTimeInput }) {
         >
           <View
             accessible
-            accessibilityLabel={`${view.matchesPlayed} matches`}
+            accessibilityLabel={m.mobileHome.allTime.matchesSpoken(
+              view.matchesPlayed,
+            )}
             style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}
           >
             <Text size="statTotal" width="expanded" weight="bold">
               {view.matchesPlayed}
             </Text>
             <Text size="meta" tone="muted">
-              matches
+              {m.mobileHome.allTime.matches(view.matchesPlayed)}
             </Text>
           </View>
-          <View style={{ alignItems: "flex-end", gap: 2 }}>
-            <Text size="figure" width="expanded" weight="bold">
-              {view.record}
+          <View style={{ flexShrink: 1, alignItems: "flex-end", gap: 2 }}>
+            <Text weight="semibold">{view.record}</Text>
+            <Text size="meta" tone="muted">
+              {view.winRatePercent != null
+                ? m.mobileHome.allTime.percentWon(view.winRatePercent)
+                : view.winRateNote}
             </Text>
-            {view.winRatePercent != null ? (
-              <Text size="meta" tone="muted">
-                {view.winRatePercent}% won
-              </Text>
-            ) : null}
           </View>
         </View>
-        <MountFill percent={view.winRatePercent ?? 0} />
+        {view.winRatePercent != null ? (
+          <MountFill percent={view.winRatePercent} />
+        ) : null}
       </View>
       <Hairline />
-      <StatRow label="Sets" value={view.sets} />
+      <StatRow label={m.profile.allTime.sets} value={view.sets} />
       <Hairline />
-      <StatRow label="Longest streak" value={view.longestStreak} />
+      <StatRow
+        label={m.mobileHome.allTime.longestStreak}
+        value={view.longestStreak}
+      />
       <Hairline />
-      <StatRow label="Most played partner" value={view.mostPlayedPartner} />
+      <StatRow
+        label={m.profile.allTime.mostPlayedPartner}
+        value={view.mostPlayedPartner}
+      />
     </Card>
   );
 }

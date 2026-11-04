@@ -1,10 +1,12 @@
 import { groupJoinToast, type GroupJoinDoor } from "@repo/domain/group-join";
 import { useCallback, useState } from "react";
 
+import { useLocale } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 
 export function useGroupJoin() {
+  const locale = useLocale();
   const toast = useToast();
   const utils = api.useUtils();
 
@@ -22,7 +24,7 @@ export function useGroupJoin() {
   );
 
   const options = (door: GroupJoinDoor) => ({
-    onSuccess: () => toast.show(groupJoinToast(door)),
+    onSuccess: () => toast.show(groupJoinToast(door, locale)),
     onError: (error: { message: string }) => toast.show(error.message),
     onSettled: refresh,
   });
@@ -40,7 +42,7 @@ export function useGroupJoin() {
     ...options("requestJoin"),
     onSuccess: () => {
       setRequestingGroupId(null);
-      toast.show(groupJoinToast("requestJoin"));
+      toast.show(groupJoinToast("requestJoin", locale));
     },
   });
 

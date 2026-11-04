@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { organizerCanAddPlayer } from "./add-player-by-phone";
 import { friendlyGameOverflowItems } from "./friendly-game-cta";
 import type {
@@ -51,6 +54,7 @@ export type FriendlyGameOrganizerPlan = {
 
 export function friendlyGameOrganizerPlan(
   game: FriendlyGameOrganizerInput,
+  locale: Locale,
   now?: Date,
 ): FriendlyGameOrganizerPlan | null {
   if (!game.isOrganizer || game.cancelledAt) {
@@ -83,9 +87,10 @@ export function friendlyGameOrganizerPlan(
     showLevelRequests: levelRangeQueueVisible(game),
     levelRequests: game.pendingLevelRangeRequests.map((request) => ({
       id: request.id,
-      name: request.user.name ?? "User",
+      name:
+        request.user.name ?? messagesFor(locale).game.organizer.userFallback,
       image: request.user.image,
-      meta: levelRangeRequestRowMeta(request, now),
+      meta: levelRangeRequestRowMeta(request, locale, now),
     })),
     waitlist: game.waitlist.map(({ id, name, image }) => ({ id, name, image })),
     unseated: game.unseatedPlayers.filter((player) => kickable(player.id)),

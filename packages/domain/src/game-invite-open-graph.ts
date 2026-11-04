@@ -1,11 +1,14 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatAbsoluteDay, formatGameTimeWindow } from "./format-game-start";
 import { showsFriendlyRoster } from "./game-summary-cta";
 import { formatLevelRangeProseLabel } from "./level-range";
 
-export const GENERIC_TEMBA_OPEN_GRAPH = {
-  title: "Temba - the future of competitive sports",
-  description: "Temba - the future of competitive sport",
-} as const;
+export function genericTembaOpenGraph(locale: Locale) {
+  const m = messagesFor(locale).createGame.openGraph;
+  return { title: m.genericTitle, description: m.genericDescription };
+}
 
 export type GameInviteOpenGraphInput = {
   venueName: string;
@@ -16,6 +19,7 @@ export type GameInviteOpenGraphInput = {
   occupiedCount: number;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  locale: Locale;
 };
 
 export function occupiedFriendlyPositions(
@@ -42,16 +46,26 @@ export function occupiedFriendlyPositions(
 
 function withLevelRange(
   description: string,
-  input: Pick<GameInviteOpenGraphInput, "levelMinTenths" | "levelMaxTenths">,
+  input: Pick<
+    GameInviteOpenGraphInput,
+    "levelMinTenths" | "levelMaxTenths" | "locale"
+  >,
 ) {
   const range = formatLevelRangeProseLabel(
     input.levelMinTenths,
     input.levelMaxTenths,
+    input.locale,
   );
-  return range ? `${description}, ${range}` : description;
+  return range
+    ? messagesFor(input.locale).createGame.openGraph.withLevelRange(
+        description,
+        range,
+      )
+    : description;
 }
 
 export function gameInviteOpenGraphMetadata(input: GameInviteOpenGraphInput) {
+  const m = messagesFor(input.locale).createGame.openGraph;
   const start = input.windowStart ?? input.windowEnd;
   if (!start) {
     return {
@@ -59,23 +73,24 @@ export function gameInviteOpenGraphMetadata(input: GameInviteOpenGraphInput) {
       description: withLevelRange(input.venueName, input),
     };
   }
-  const day = formatAbsoluteDay(start);
+  const day = formatAbsoluteDay(start, input.locale);
   const timeWindow = formatGameTimeWindow(
     input.windowStart,
     input.windowEnd,
     start,
+    input.locale,
   );
   if (showsFriendlyRoster(input.format, input.registrationMode)) {
     return {
       title: input.venueName,
       description: withLevelRange(
-        `${day}, ${timeWindow}, ${input.occupiedCount}/4 sitting`,
+        m.dayTimeSitting(day, timeWindow, input.occupiedCount),
         input,
       ),
     };
   }
   return {
     title: input.venueName,
-    description: withLevelRange(`${day}, ${timeWindow}`, input),
+    description: withLevelRange(m.dayTime(day, timeWindow), input),
   };
 }

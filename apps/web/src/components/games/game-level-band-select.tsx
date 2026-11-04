@@ -15,6 +15,7 @@ import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
+import { useMessages } from "~/components/locale-provider";
 
 export function GameLevelBandSelect({
   id,
@@ -29,6 +30,7 @@ export function GameLevelBandSelect({
   invalid?: boolean;
   describedBy?: string;
 }) {
+  const m = useMessages();
   return (
     <Select
       value={value}
@@ -47,10 +49,10 @@ export function GameLevelBandSelect({
         aria-invalid={invalid ? true : undefined}
         aria-describedby={describedBy}
       >
-        <SelectValue placeholder="None" />
+        <SelectValue placeholder={m.common.none} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={LEVEL_BAND_SELECT_NONE}>None</SelectItem>
+        <SelectItem value={LEVEL_BAND_SELECT_NONE}>{m.common.none}</SelectItem>
         {ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => (
           <SelectItem key={band} value={band}>
             {band}

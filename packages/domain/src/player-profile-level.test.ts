@@ -17,14 +17,16 @@ describe("displayBandSpan", () => {
 
 describe("playerLevelCardView", () => {
   it("shows a hatched No Level yet without a Rating", () => {
-    expect(playerLevelCardView(fixtures.newPlayer.rating)).toEqual({
+    expect(playerLevelCardView(fixtures.newPlayer.rating, "en")).toEqual({
       kind: "none",
       label: "No Level yet",
     });
   });
 
   it("uses the confirmation caption and fraction while Provisional", () => {
-    expect(playerLevelCardView(fixtures.provisional.rating)).toMatchObject({
+    expect(
+      playerLevelCardView(fixtures.provisional.rating, "en"),
+    ).toMatchObject({
       kind: "rated",
       displayBand: "C",
       level: "3.4",
@@ -35,7 +37,9 @@ describe("playerLevelCardView", () => {
   });
 
   it("reads a self-declared Rating with no rated Matches as Provisional", () => {
-    expect(playerLevelCardView(fixtures.selfDeclared.rating)).toMatchObject({
+    expect(
+      playerLevelCardView(fixtures.selfDeclared.rating, "en"),
+    ).toMatchObject({
       provisional: true,
       lines: ["0 of about 5 rated games to confirm"],
       fillPercent: 0,
@@ -43,7 +47,7 @@ describe("playerLevelCardView", () => {
   });
 
   it("measures distance and progress on the display band when Confirmed", () => {
-    expect(playerLevelCardView(fixtures.confirmed.rating)).toMatchObject({
+    expect(playerLevelCardView(fixtures.confirmed.rating, "en")).toMatchObject({
       displayBand: "B-",
       level: "4.8",
       provisional: false,
@@ -53,26 +57,32 @@ describe("playerLevelCardView", () => {
   });
 
   it("measures the next rung from the Level where the band changes", () => {
-    const view = playerLevelCardView({
-      levelBand: "B2",
-      levelValue: 5.5,
-      provisional: false,
-      ratedMatchCount: 1,
-      ratedMatchesRemaining: 0,
-    });
+    const view = playerLevelCardView(
+      {
+        levelBand: "B2",
+        levelValue: 5.5,
+        provisional: false,
+        ratedMatchCount: 1,
+        ratedMatchesRemaining: 0,
+      },
+      "en",
+    );
     expect(view).toMatchObject({
       lines: ["Confirmed, 1 rated match", "0.2 to B+ · 86% through B"],
     });
   });
 
   it("never reads 0.0 while hysteresis holds the band", () => {
-    const view = playerLevelCardView({
-      levelBand: "B2",
-      levelValue: 5.68,
-      provisional: false,
-      ratedMatchCount: 10,
-      ratedMatchesRemaining: 0,
-    });
+    const view = playerLevelCardView(
+      {
+        levelBand: "B2",
+        levelValue: 5.68,
+        provisional: false,
+        ratedMatchCount: 10,
+        ratedMatchesRemaining: 0,
+      },
+      "en",
+    );
     expect(view).toMatchObject({
       level: "5.7",
       lines: ["Confirmed, 10 rated matches", "0.1 to B+ · 100% through B"],
@@ -81,31 +91,48 @@ describe("playerLevelCardView", () => {
   });
 
   it("clamps progress to zero when hysteresis keeps a band below its span", () => {
-    expect(playerLevelCardView(fixtures.hysteresis.rating)).toMatchObject({
-      displayBand: "B-",
-      level: "4.2",
-      lines: ["Confirmed, 40 rated matches", "0.9 to B · 0% through B-"],
-      fillPercent: 0,
-    });
+    expect(playerLevelCardView(fixtures.hysteresis.rating, "en")).toMatchObject(
+      {
+        displayBand: "B-",
+        level: "4.2",
+        lines: ["Confirmed, 40 rated matches", "0.9 to B · 0% through B-"],
+        fillPercent: 0,
+      },
+    );
   });
 
   it("names the next distinct rung from a plus band", () => {
     expect(
-      playerLevelCardView({
-        levelBand: "C1",
-        levelValue: 3.85,
-        provisional: false,
-        ratedMatchCount: 8,
-        ratedMatchesRemaining: 0,
-      }),
+      playerLevelCardView(
+        {
+          levelBand: "C1",
+          levelValue: 3.85,
+          provisional: false,
+          ratedMatchCount: 8,
+          ratedMatchesRemaining: 0,
+        },
+        "en",
+      ),
     ).toMatchObject({
       displayBand: "C+",
       lines: ["Confirmed, 8 rated matches", "0.5 to B- · 50% through C+"],
     });
   });
 
+  it("reads the card in Arabic", () => {
+    expect(playerLevelCardView(null, "ar")).toEqual({
+      kind: "none",
+      label: "لا مستوى بعد",
+    });
+    expect(playerLevelCardView(fixtures.topBand.rating, "ar")).toMatchObject({
+      lines: ["مؤكد، 120 مباراة مصنّفة", "أعلى فئة مستوى"],
+      accessibilityLabel:
+        "المستوى A 6.8. مؤكد، 120 مباراة مصنّفة. أعلى فئة مستوى",
+    });
+  });
+
   it("fills the top band and says so", () => {
-    expect(playerLevelCardView(fixtures.topBand.rating)).toMatchObject({
+    expect(playerLevelCardView(fixtures.topBand.rating, "en")).toMatchObject({
       displayBand: "A",
       level: "6.8",
       lines: ["Confirmed, 120 rated matches", "Top Level band"],

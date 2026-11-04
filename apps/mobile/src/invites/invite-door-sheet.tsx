@@ -1,9 +1,4 @@
-import {
-  INVITE_LINK_COPIED_TOAST,
-  INVITE_LINK_COPY_FAILED_TOAST,
-  LOOKUP_INVITE_REVOKED_TOAST,
-  lookupInviteSentToast,
-} from "@repo/domain/invites";
+import { lookupInviteSentToast } from "@repo/domain/invites";
 import {
   assembleE164,
   DEFAULT_CALLING_COUNTRY_ISO,
@@ -22,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { Linking, Platform, Share } from "react-native";
 
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
@@ -95,6 +91,8 @@ export function InviteDoorSheet({
   onClose: () => void;
 }) {
   const toast = useToast();
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const isGroup = door.kind === "group";
   const isTeam = door.kind === "team";
@@ -213,7 +211,7 @@ export function InviteDoorSheet({
   }) {
     setRefused(result.refused.length > 0 ? result.refused : null);
     if (result.sent.length > 0) {
-      toast.show(lookupInviteSentToast(result.sent.length));
+      toast.show(lookupInviteSentToast(result.sent.length, locale));
     }
     // Search results are left cached on purpose: the row stays put and
     // flips to Invited once the pending list refetches.
@@ -252,7 +250,7 @@ export function InviteDoorSheet({
   });
   const revokeCommunity = api.communities.revokeLookupInvite.useMutation({
     onSuccess: () => {
-      toast.show(LOOKUP_INVITE_REVOKED_TOAST);
+      toast.show(m.invite.inbox.lookupRevokedToast);
       void utils.communities.listLookupInvites.invalidate({ communityId });
     },
     onError: (error) => toast.show(error.message),
@@ -268,7 +266,7 @@ export function InviteDoorSheet({
   });
   const revokeTeam = api.teams.revokeInAppInvite.useMutation({
     onSuccess: () => {
-      toast.show(LOOKUP_INVITE_REVOKED_TOAST);
+      toast.show(m.invite.inbox.lookupRevokedToast);
       void utils.teams.byId.invalidate({ id: teamId });
       void utils.teams.listInAppInvites.invalidate({ teamId });
       void utils.teams.searchLookupUsers.invalidate({ teamId });
@@ -277,14 +275,14 @@ export function InviteDoorSheet({
   });
   const revokeGroup = api.groups.revokeLookupInvite.useMutation({
     onSuccess: () => {
-      toast.show(LOOKUP_INVITE_REVOKED_TOAST);
+      toast.show(m.invite.inbox.lookupRevokedToast);
       void utils.groups.listLookupInvites.invalidate({ groupId });
     },
     onError: (error) => toast.show(error.message),
   });
   const revokeGame = api.games.revokeLookupInvite.useMutation({
     onSuccess: () => {
-      toast.show(LOOKUP_INVITE_REVOKED_TOAST);
+      toast.show(m.invite.inbox.lookupRevokedToast);
       void utils.games.listLookupInvites.invalidate({ gameId });
     },
     onError: (error) => toast.show(error.message),
@@ -308,8 +306,8 @@ export function InviteDoorSheet({
       return link.shortUrl ?? link.inviteUrl;
     }
     return door.kind === "group"
-      ? groupShareMessage({ name: door.name, sport: door.sport, link })
-      : gameShareMessage(door.share, link);
+      ? groupShareMessage({ name: door.name, sport: door.sport, link }, locale)
+      : gameShareMessage(door.share, link, locale);
   }
 
   async function mintLink(): Promise<LinkResult | null> {
@@ -333,10 +331,10 @@ export function InviteDoorSheet({
   async function copyMessage(message: string) {
     try {
       await Clipboard.setStringAsync(message);
-      toast.show(INVITE_LINK_COPIED_TOAST);
+      toast.show(m.invite.inbox.linkCopiedToast);
       return true;
     } catch {
-      toast.show(INVITE_LINK_COPY_FAILED_TOAST);
+      toast.show(m.invite.inbox.linkCopyFailedToast);
       return false;
     }
   }
@@ -504,16 +502,16 @@ export function InviteDoorSheet({
     createTeamLink.isPending;
   const subtitle =
     door.kind === "game"
-      ? gameInviteSubtitle(door.share, now)
+      ? gameInviteSubtitle(door.share, now, locale)
       : door.kind === "team"
-        ? teamLookupNote(door.squad)
+        ? teamLookupNote(door.squad, locale)
         : door.note;
 
   return (
     <InviteSheetView
       visible={visible}
       onClose={close}
-      title={inviteSheetTitle(door.kind, isTeam && door.squad)}
+      title={inviteSheetTitle(door.kind, locale, isTeam && door.squad)}
       subtitle={subtitle}
       modes={modes}
       mode={mode}

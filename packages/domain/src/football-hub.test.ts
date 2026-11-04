@@ -5,6 +5,7 @@ import {
   footballAwaitsResult,
   footballSection,
   footballSections,
+  sportFilters,
 } from "./football-hub";
 import { createGamesHubFixtures } from "./games-hub-fixtures";
 import type { HubGameFootball, HubGameRow } from "./hub-game-row";
@@ -82,8 +83,20 @@ describe("footballSection", () => {
   });
 
   it("drops empty sections and skips non-football rows", () => {
-    const sections = footballSections([football(), base], NOW);
+    const sections = footballSections([football(), base], NOW, "en");
     expect(sections.map((section) => section.key)).toEqual(["open"]);
+    expect(sections[0]?.title).toBe("Seats open");
     expect(sections[0]?.rows).toHaveLength(1);
+  });
+
+  it("titles the sections and sport filters in Arabic", () => {
+    const sections = footballSections([football()], NOW, "ar");
+    expect(sections[0]?.title).toBe("أماكن شاغرة");
+    expect(sections[0]?.meta).toBe("الفرق غير جاهزة");
+    expect(sportFilters("ar").map((filter) => filter.label)).toEqual([
+      "الكل",
+      "بادل",
+      "كرة القدم",
+    ]);
   });
 });

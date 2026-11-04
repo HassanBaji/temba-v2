@@ -11,6 +11,7 @@ describe("groupInviteClipboardText", () => {
         groupName: "Friday Night",
         sport: "padel",
         inviteUrl,
+        locale: "en",
       }),
     ).toBe(
       `You are invited to join "Friday Night" for "Padel"\nJoin: ${inviteUrl}`,
@@ -23,6 +24,7 @@ describe("groupInviteClipboardText", () => {
         groupName: "Sunday Kickabout",
         sport: "football",
         inviteUrl,
+        locale: "en",
       }),
     ).toBe(
       `You are invited to join "Sunday Kickabout" for "Football"\nJoin: ${inviteUrl}`,
@@ -35,6 +37,7 @@ describe("groupInviteClipboardText", () => {
         groupName: "  ",
         sport: "padel",
         inviteUrl,
+        locale: "en",
       }),
     ).toBe(`You are invited to join "Group" for "Padel"\nJoin: ${inviteUrl}`);
   });
@@ -45,7 +48,21 @@ describe("groupInviteClipboardText", () => {
         groupName: "Friday Night",
         sport: null,
         inviteUrl,
+        locale: "en",
       }),
     ).toBe(`You are invited to join "Friday Night"\nJoin: ${inviteUrl}`);
+  });
+
+  it("writes the invitation in Arabic", () => {
+    expect(
+      groupInviteClipboardText({
+        groupName: "Friday Night",
+        sport: "padel",
+        inviteUrl,
+        locale: "ar",
+      }),
+    ).toBe(
+      `أنت مدعو للانضمام إلى «Friday Night» للعب «بادل»\nانضم: ${inviteUrl}`,
+    );
   });
 });

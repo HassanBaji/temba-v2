@@ -1,18 +1,15 @@
 import {
-  ADD_PLAYER_ACTION,
-  ADD_PLAYER_DESCRIPTION,
-} from "@repo/domain/add-player-by-phone";
-import {
-  CLOSE_REGISTRATION_ACTION,
-  EDIT_GAME_ACTION,
-  KICK_ACTION,
-  REOPEN_REGISTRATION_ACTION,
+  closeRegistrationAction,
+  editGameAction,
+  kickAction,
+  reopenRegistrationAction,
 } from "@repo/domain/game-copy";
 import type { FootballGameDetailsModel } from "@repo/domain/football-game-details";
 import { Fragment } from "react";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
@@ -42,12 +39,15 @@ export function FootballOrganizerCard({
   teams: { status: string; actionLabel: string } | null;
   handlers: FootballOrganizerHandlers & { onMakeTeams: () => void };
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGameDetails.organizer;
   const blocks: React.ReactNode[] = [];
   if (teams) {
     blocks.push(
       <Block key="teams">
         <View>
-          <Text weight="medium">Teams</Text>
+          <Text weight="medium">{copy.teams}</Text>
           <Text size="meta" tone="muted">
             {teams.status}
           </Text>
@@ -62,14 +62,14 @@ export function FootballOrganizerCard({
     blocks.push(
       <Block key="add-player">
         <View>
-          <Text weight="medium">Players</Text>
+          <Text weight="medium">{copy.players}</Text>
           <Text size="meta" tone="muted">
-            {ADD_PLAYER_DESCRIPTION}
+            {m.group.addPlayer.description}
           </Text>
         </View>
         <View style={{ flexDirection: "row" }}>
           <Button
-            label={ADD_PLAYER_ACTION}
+            label={m.group.addPlayer.action}
             variant="outline"
             onPress={handlers.onAddPlayer}
           />
@@ -79,13 +79,13 @@ export function FootballOrganizerCard({
   }
   blocks.push(
     <Block key="registration">
-      <Text weight="medium">Registration</Text>
+      <Text weight="medium">{copy.registration}</Text>
       <View style={{ flexDirection: "row" }}>
         <Button
           label={
             organizer.registration === "close"
-              ? CLOSE_REGISTRATION_ACTION
-              : REOPEN_REGISTRATION_ACTION
+              ? closeRegistrationAction(locale)
+              : reopenRegistrationAction(locale)
           }
           variant="outline"
           pending={handlers.registrationPending}
@@ -95,14 +95,14 @@ export function FootballOrganizerCard({
     </Block>,
     <Block key="cap">
       <View>
-        <Text weight="medium">Players allowed</Text>
+        <Text weight="medium">{copy.playersAllowed}</Text>
         <Text size="meta" tone="muted">
-          {playersAllowed ?? "No cap"}
+          {playersAllowed ?? copy.noCap}
         </Text>
       </View>
       <View style={{ flexDirection: "row" }}>
         <Button
-          label="Change players allowed"
+          label={copy.changePlayersAllowed}
           variant="outline"
           onPress={handlers.onChangeCap}
         />
@@ -114,13 +114,13 @@ export function FootballOrganizerCard({
     blocks.push(
       <Block key="waitlist">
         <Text weight="medium" accessibilityRole="header">
-          Waitlist
+          {copy.waitlist}
         </Text>
         {waitlist.map((entry) => (
           <PersonRow key={entry.id} name={entry.name} image={entry.image}>
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${entry.name} from the waitlist`}
+              label={kickAction(locale)}
+              accessibilityLabel={copy.kickFromWaitlist(entry.name)}
               size="sm"
               variant="outline"
               onPress={() => handlers.onKickWaitlist(entry.id)}
@@ -135,7 +135,7 @@ export function FootballOrganizerCard({
     <Block key="manage">
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
-          label={EDIT_GAME_ACTION}
+          label={editGameAction(locale)}
           variant="outline"
           onPress={handlers.onEdit}
         />
@@ -150,7 +150,7 @@ export function FootballOrganizerCard({
   );
 
   return (
-    <Card title="Organizer" flush>
+    <Card title={copy.title} flush>
       {blocks.map((block, index) => (
         <Fragment key={index}>
           {index > 0 ? <Hairline /> : null}

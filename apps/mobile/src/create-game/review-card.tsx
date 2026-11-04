@@ -2,6 +2,7 @@ import { radii } from "@repo/design-tokens";
 import { Fragment } from "react";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
@@ -11,6 +12,7 @@ export type ReviewRow = { label: string; value: string };
 
 export function ReviewCard({ rows }: { rows: readonly ReviewRow[] }) {
   const palette = useTonePalette();
+  const copy = useMessages().mobileCreateGame.review;
   return (
     <View
       style={{
@@ -25,7 +27,7 @@ export function ReviewCard({ rows }: { rows: readonly ReviewRow[] }) {
           {index > 0 ? <Hairline /> : null}
           <View
             accessible
-            accessibilityLabel={`${row.label}: ${row.value}`}
+            accessibilityLabel={copy.rowA11y(row.label, row.value)}
             style={{
               flexDirection: "row",
               justifyContent: "space-between",

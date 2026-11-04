@@ -10,13 +10,11 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import {
-  ADD_PLAYER_NAME_LABEL,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-  RENAME_UNCLAIMED_PLAYER_DESCRIPTION,
   UNCLAIMED_PLAYER_NAME_MAX_LENGTH,
   renameUnclaimedPlayerCanSubmit,
   renameUnclaimedPlayerToast,
@@ -34,11 +32,13 @@ function RenameForm({
   player: Player;
   onDone: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [name, setName] = React.useState(player.name);
   const utils = api.useUtils();
   const rename = api.users.renameUnclaimedPlayer.useMutation({
     onSuccess: async (result) => {
-      toast.success(renameUnclaimedPlayerToast(result.name));
+      toast.success(renameUnclaimedPlayerToast(result.name, locale));
       await Promise.all([
         utils.games.byId.invalidate(),
         utils.games.footballBoard.invalidate(),
@@ -63,7 +63,7 @@ function RenameForm({
       className="space-y-6 px-4 pb-4 md:px-0 md:pb-0"
     >
       <Field>
-        <FieldLabel htmlFor={NAME_ID}>{ADD_PLAYER_NAME_LABEL}</FieldLabel>
+        <FieldLabel htmlFor={NAME_ID}>{m.group.addPlayer.nameLabel}</FieldLabel>
         <Input
           id={NAME_ID}
           value={name}
@@ -80,7 +80,7 @@ function RenameForm({
         className="w-full font-semibold"
         disabled={!canSubmit}
       >
-        {rename.isPending ? "Saving…" : "Save name"}
+        {rename.isPending ? m.common.saving : m.webUi.saveName}
       </Button>
     </form>
   );
@@ -93,6 +93,7 @@ export function RenameUnclaimedPlayerDialog({
   player: Player | null;
   onClose: () => void;
 }) {
+  const m = useMessages();
   return (
     <ResponsiveDialog
       open={player != null}
@@ -105,10 +106,10 @@ export function RenameUnclaimedPlayerDialog({
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>
-            {RENAME_UNCLAIMED_PLAYER_ACTION}
+            {m.group.addPlayer.renameAction}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {RENAME_UNCLAIMED_PLAYER_DESCRIPTION}
+            {m.group.addPlayer.renameDescription}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         {player ? (

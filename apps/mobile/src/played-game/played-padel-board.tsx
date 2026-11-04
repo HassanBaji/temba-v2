@@ -1,7 +1,11 @@
 import { colors } from "@repo/design-tokens";
-import type { PlayedPadelBoardRow } from "@repo/domain/played-game";
+import {
+  playedWordLabel,
+  type PlayedPadelBoardRow,
+} from "@repo/domain/played-game";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 
@@ -31,11 +35,17 @@ function SetCells({ sets }: { sets: PlayedPadelBoardRow["sets"] }) {
 }
 
 function PairRow({ row }: { row: PlayedPadelBoardRow }) {
-  const sets = row.sets.map((set) => set.value).join(", ");
+  const locale = useLocale();
+  const m = useMessages();
+  const word = playedWordLabel(row.word, locale);
   return (
     <View
       accessible
-      accessibilityLabel={`${row.line}, ${row.word}. Sets ${sets}`}
+      accessibilityLabel={m.mobilePlayer.played.pairRowSpoken(
+        row.line,
+        word,
+        row.sets.map((set) => String(set.value)),
+      )}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -52,7 +62,7 @@ function PairRow({ row }: { row: PlayedPadelBoardRow }) {
           {row.line}
         </Text>
         <Text size="meta" tone="muted">
-          {row.word}
+          {word}
         </Text>
       </View>
       <SetCells sets={row.sets} />

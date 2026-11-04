@@ -1,6 +1,7 @@
 import { colors, spacing } from "@repo/design-tokens";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
@@ -13,6 +14,7 @@ export function NotSetCell({
   label: string;
   divided: boolean;
 }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -28,7 +30,7 @@ export function NotSetCell({
       <Text size="eyebrow" tone="muted">
         {label}
       </Text>
-      <Text weight="semibold">Not set</Text>
+      <Text weight="semibold">{m.common.notSet}</Text>
     </View>
   );
 }

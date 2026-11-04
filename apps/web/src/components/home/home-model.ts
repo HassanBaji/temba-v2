@@ -3,6 +3,8 @@ import type { HomeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import type { HomeTarget } from "@repo/domain/home-next-game";
 import type { HomeStandingRow } from "@repo/domain/home-standing";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { gameHomeIntentHref } from "~/lib/game-home-tab";
 import type { RouterOutputs } from "~/trpc/react";
@@ -47,13 +49,14 @@ export function levelFromApi(data: ApiRating): HomeLevel {
       provisional: data.rating.provisional,
       ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
       history: data.history,
+      historyMatchCount: data.historyMatchCount,
       progressPercent: data.progressPercent,
     },
   };
 }
 
-export function noLevelCopy(sport: Sport): string {
-  return `Play a rated ${sport} game and your ${sport} Level appears.`;
+export function noLevelCopy(sport: Sport, locale: Locale): string {
+  return messagesFor(locale).webAuth.home.noLevel[sport];
 }
 
 export function standingInSport(
@@ -63,8 +66,8 @@ export function standingInSport(
   return rows.filter((row) => sportOrDefault(row.sport) === sport);
 }
 
-export function standingCountLabel(count: number): string {
-  return `${count} ${count === 1 ? "group" : "groups"}`;
+export function standingCountLabel(count: number, locale: Locale): string {
+  return messagesFor(locale).webAuth.home.groupsCount(count);
 }
 
 export function gameHref(target: HomeTarget): string {

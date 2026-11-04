@@ -9,8 +9,9 @@ import {
   gameCardSubtitle,
   type CardSeatPosition,
 } from "@repo/domain/game-card";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { spotsOpenLabel } from "@repo/domain/game-occupancy";
 import {
   gameCardActionLabel,
@@ -28,6 +29,7 @@ import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { poolRoundLabel } from "@repo/domain/tournament-rounds";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { SportTag } from "../lib/sport-tag";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
@@ -58,22 +60,35 @@ export function GameCard({
 }) {
   const { game, plan } = item;
   const now = useNow();
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.card;
   const { primaryAction, rosterSides } = plan;
-  const title = game.venue?.name ?? game.name ?? "Untitled Game";
+  const customName = gameCustomName(game);
+  const title = game.venue?.name ?? customName ?? m.untitledGame;
   const subtitle = gameCardSubtitle(
-    game.venue?.name,
-    game.venue?.city ?? game.venue?.name,
-    game.venue?.name ? game.name : null,
-    game.courtName,
+    {
+      venueName: game.venue?.name,
+      location: game.venue?.city ?? game.venue?.name,
+      customName: game.venue?.name ? customName : null,
+      courtName: game.courtName,
+      windowEnd: game.windowEnd,
+    },
+    locale,
   );
-  const roundLabel = poolRoundLabel(game.roundNumber, game.roundCount);
-  const formatMeta = roundLabel ?? gameFormatLabel(game.format);
-  const durationMeta = formatWindowDuration(game.windowStart, game.windowEnd);
+  const roundLabel = poolRoundLabel(game.roundNumber, game.roundCount, locale);
+  const formatMeta = roundLabel ?? gameFormatLabel(game.format, locale);
+  const durationMeta = formatWindowDuration(
+    game.windowStart,
+    game.windowEnd,
+    locale,
+  );
   const levelMeta = formatLevelRangeLabel(
     game.levelMinTenths,
     game.levelMaxTenths,
+    locale,
   );
-  const priceAmount = formatPricePerPlayerFils(game.pricePerPlayerFils);
+  const priceAmount = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const formatCell = gameCardFormatCell({
     formatMeta,
     durationMeta,
@@ -85,13 +100,13 @@ export function GameCard({
     playersAllowed: game.playersAllowed,
   });
   const rosterOccupancy = gameCardRosterOccupancy(game);
-  const dayLabel = formatGameCardDay(game.startTime);
-  const kickoff = formatHomeKickoff(game.startTime);
-  const countdown = formatHomeCountdown(game.startTime, now);
+  const dayLabel = formatGameCardDay(game.startTime, locale);
+  const kickoff = formatHomeKickoff(game.startTime, locale);
+  const countdown = formatHomeCountdown(game.startTime, now, locale);
   const cancelled = game.registrationStatus === "cancelled";
   const viewerStatus = gameViewerStatus(game);
   const footerAction = showsGameCardFooterAction(primaryAction, showRoster)
-    ? gameCardActionLabel(primaryAction, {
+    ? gameCardActionLabel(primaryAction, locale, {
         viewerIn: viewerStatus === "in",
         openSpots,
       })
@@ -99,17 +114,22 @@ export function GameCard({
   const interactive =
     primaryAction === "join_waitlist" || primaryAction === "register";
   const solid =
-    footerAction != null && gameCardActionSolid(footerAction, primaryAction);
+    footerAction != null &&
+    gameCardActionSolid(footerAction, primaryAction, locale);
 
   return (
     <CardShell
-      label={`${title}, ${dayLabel} ${kickoff.time} ${kickoff.meridiem}`}
+      label={m.accessibleName(
+        title,
+        dayLabel,
+        `${kickoff.time} ${kickoff.meridiem}`,
+      )}
       onPress={() => actions.onOpen(game.id)}
       footer={
         <CardFooter>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="meta" numberOfLines={1}>
-              {formatMeta}
+              {game.groupName ? messages.game.played.group : formatMeta}
             </Text>
             {game.groupName ? (
               <Text size="eyebrow" tone="muted" numberOfLines={1}>
@@ -145,22 +165,26 @@ export function GameCard({
         <View style={{ flexDirection: "row", columnGap: 12 }}>
           {!game.rated ? (
             <Text size="meta" weight="semibold">
-              {UNRATED_LABEL}
+              {unratedLabel(locale)}
             </Text>
           ) : null}
           {cancelled ? (
             <Text size="meta" weight="semibold">
-              Cancelled
+              {m.cancelled}
             </Text>
           ) : (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <SportTag sport={game.sport} />
               {rosterOccupancy ? (
                 <Text
                   size="meta"
                   tone="muted"
-                  weight={rosterOccupancy.seatsLeft > 0 ? "semibold" : "regular"}
-                  accessibilityLabel={`${rosterOccupancy.label} players`}
+                  weight={
+                    rosterOccupancy.seatsLeft > 0 ? "semibold" : "regular"
+                  }
+                  accessibilityLabel={m.playersSr(rosterOccupancy.label)}
                 >
                   {rosterOccupancy.label}
                 </Text>
@@ -170,7 +194,7 @@ export function GameCard({
                   tone="muted"
                   weight={openSpots > 0 ? "semibold" : "regular"}
                 >
-                  {spotsOpenLabel(openSpots)}
+                  {spotsOpenLabel(openSpots, locale)}
                 </Text>
               ) : null}
             </View>
@@ -207,11 +231,17 @@ export function GameCard({
 
       {levelMeta || priceAmount || formatCell ? (
         <View style={{ flexDirection: "row", gap: 16 }}>
-          {levelMeta ? <MetaCell value={levelMeta} note="Level" /> : null}
+          {levelMeta ? (
+            <MetaCell value={levelMeta} note={messages.common.level} />
+          ) : null}
           {priceAmount ? (
             <MetaCell
               value={priceAmount}
-              note={priceAmount === "Free" ? null : "per player"}
+              note={
+                priceAmount === messages.createGame.price.free
+                  ? null
+                  : m.perPlayerNote
+              }
             />
           ) : null}
           {formatCell ? (

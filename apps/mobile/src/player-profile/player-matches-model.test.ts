@@ -12,6 +12,7 @@ describe("playerMatchesModel", () => {
       fixtures.confirmed,
       { filter: "all", matchId: null },
       ORIGIN,
+      "en",
     );
     expect(model.subtitle).toBe("Elin Nilsson, 7 won, 3 lost");
     expect(model.chips.map((chip) => chip.label)).toEqual([
@@ -30,6 +31,7 @@ describe("playerMatchesModel", () => {
       fixtures.confirmed,
       { filter: "lost", matchId: "match-2026-10-01" },
       ORIGIN,
+      "en",
     );
     expect(model.rows.map((row) => row.outcome)).toEqual([
       "lost",
@@ -44,6 +46,7 @@ describe("playerMatchesModel", () => {
       fixtures.newPlayer,
       { filter: "won", matchId: null },
       ORIGIN,
+      "en",
     );
     expect(model.rows).toEqual([]);
     expect(model.empty).toBe("No games here.");
@@ -64,11 +67,28 @@ describe("playerMatchesModel", () => {
       data,
       { filter: "all", matchId: "match-2026-10-01" },
       ORIGIN,
+      "en",
     );
     expect(model.sheet?.teams[1]?.players[0]?.imageUri).toBe(
       `${ORIGIN}/media/avatar.png`,
     );
     expect(model.sheet?.teams[0]?.players[0]?.imageUri).toBeNull();
+  });
+
+  it("reads the subtitle, chips and empty line in Arabic", () => {
+    const model = playerMatchesModel(
+      fixtures.newPlayer,
+      { filter: "won", matchId: null },
+      ORIGIN,
+      "ar",
+    );
+    expect(model.subtitle).toBe("Elin Nilsson، لا مباريات بعد.");
+    expect(model.chips.map((chip) => chip.label)).toEqual([
+      "الكل 0",
+      "فوز 0",
+      "خسارة 0",
+    ]);
+    expect(model.empty).toBe("لا مباريات هنا.");
   });
 
   it("opens no sheet for a Match outside the Last 10", () => {
@@ -77,6 +97,7 @@ describe("playerMatchesModel", () => {
         fixtures.confirmed,
         { filter: "all", matchId: "unknown" },
         ORIGIN,
+        "en",
       ).sheet,
     ).toBeNull();
   });

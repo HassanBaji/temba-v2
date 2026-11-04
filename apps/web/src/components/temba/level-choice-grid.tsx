@@ -1,5 +1,6 @@
 "use client";
 
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
@@ -19,13 +20,17 @@ export type LevelChoiceValue =
  * `@repo/domain/level-bands`. PRO is absent by construction: it is the reserved elite
  * display rung and is not in `ASSIGNABLE_DISPLAY_LEVEL_BANDS`.
  */
-const LEVEL_CHOICES: { value: LevelChoiceValue; label: string }[] = [
-  ...ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
-    value: band,
-    label: band,
-  })),
-  { value: UNKNOWN_LEVEL_CHOICE, label: "I don’t know" },
-];
+function levelChoices(
+  unknownLabel: string,
+): { value: LevelChoiceValue; label: string }[] {
+  return [
+    ...ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
+      value: band,
+      label: band,
+    })),
+    { value: UNKNOWN_LEVEL_CHOICE, label: unknownLabel },
+  ];
+}
 
 /**
  * The Level band choice grid, shared by the You Declare Level dialog and step
@@ -49,6 +54,7 @@ export function LevelChoiceGrid({
   describedBy?: string;
   invalid?: boolean;
 }) {
+  const m = useMessages();
   return (
     <RovingRadioGroup
       id={id}
@@ -57,7 +63,7 @@ export function LevelChoiceGrid({
       aria-describedby={describedBy}
       className="grid grid-cols-3 gap-2"
     >
-      {LEVEL_CHOICES.map((option) => {
+      {levelChoices(m.webUi.levelChoice.unknown).map((option) => {
         const selected = value === option.value;
         return (
           <Button

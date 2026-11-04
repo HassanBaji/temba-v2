@@ -3,16 +3,15 @@ import Link from "next/link";
 
 import { AvatarStack } from "~/components/common/avatar-stack";
 import { EmptyState } from "~/components/common/empty-state";
-import {
-  COMMUNITY_NO_TEAMS_EMPTY,
-  communityTeamRow,
-} from "@repo/domain/community";
+import { useLocale, useMessages } from "~/components/locale-provider";
+import { communityTeamRow } from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type ClubTeam = RouterOutputs["communities"]["byId"]["teams"][number];
 
 function ClubTeamRow({ team }: { team: ClubTeam }) {
-  const row = communityTeamRow(team);
+  const locale = useLocale();
+  const row = communityTeamRow(team, locale);
   return (
     <li>
       <Link
@@ -38,8 +37,9 @@ function ClubTeamRow({ team }: { team: ClubTeam }) {
 }
 
 export function CommunityTeamsTab({ teams }: { teams: ClubTeam[] }) {
+  const m = useMessages();
   if (teams.length === 0) {
-    return <EmptyState icon={Users} {...COMMUNITY_NO_TEAMS_EMPTY} />;
+    return <EmptyState icon={Users} {...m.community.noTeamsEmpty} />;
   }
 
   return (

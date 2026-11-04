@@ -7,6 +7,7 @@ import {
 import { groupHasGames, groupStandingState } from "@repo/domain/group-join";
 import {
   formatSeasonRange,
+  seasonDisplayName,
   seasonGamesCountedLine,
   seasonLensChips,
   seasonLockedLine,
@@ -18,15 +19,19 @@ import {
 } from "@repo/domain/group-season";
 import {
   standingDiffUnit,
+  standingLegend,
   standingRecordLabel,
   standingRulesLine,
+  standingShowsDraws,
   unrankedNote,
 } from "@repo/domain/season-standing";
+import { isRtl } from "@repo/i18n/locale";
 import { useRouter, type Href } from "expo-router";
 import { Lock, Plus, UserPlus } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -40,8 +45,6 @@ import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import {
-  STANDING_NOT_MEMBER_COPY,
-  STANDING_NO_RESULTS_COPY,
   standingRowView,
   standingStats,
   type StandingRowView,
@@ -107,12 +110,15 @@ function HatchedCell({ width, size = 12 }: { width: number; size?: number }) {
 function StandingRow({
   row,
   notPlayedYet,
+  showDraws,
   onOpen,
 }: {
   row: StandingRowView;
   notPlayedYet: boolean;
+  showDraws: boolean;
   onOpen?: (userId: string) => void;
 }) {
+  const m = useMessages();
   const muted = notPlayedYet || !row.ranked;
   const count = (value: number) => (
     <Text
@@ -170,7 +176,7 @@ function StandingRow({
         <>
           <HatchedCell width={COUNT_WIDTH} />
           <HatchedCell width={COUNT_WIDTH} />
-          <HatchedCell width={COUNT_WIDTH} />
+          {showDraws ? <HatchedCell width={COUNT_WIDTH} /> : null}
           <HatchedCell width={COUNT_WIDTH} />
           <HatchedCell width={POINTS_WIDTH} />
         </>
@@ -182,7 +188,7 @@ function StandingRow({
         >
           {count(row.played)}
           {count(row.wins)}
-          {count(row.draws)}
+          {showDraws ? count(row.draws) : null}
           {count(row.losses)}
           <Text
             size="lead"
@@ -205,7 +211,7 @@ function StandingRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={row.accessibilityLabel}
-      accessibilityHint="Opens their Player profile"
+      accessibilityHint={m.mobileGroup.opensPlayerProfile}
       onPress={() => onOpen(row.key)}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
@@ -217,14 +223,21 @@ function StandingRow({
 function StandingTable({
   rows,
   notPlayedYet,
+  showDraws,
+  legend,
   footer,
   onOpenMember,
 }: {
   rows: StandingRowView[];
   notPlayedYet: boolean;
+  showDraws: boolean;
+  legend: string;
   footer: string;
   onOpenMember?: (userId: string) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const columns = m.mobileGroup.standing.columns;
   const ranked = notPlayedYet ? rows : rows.filter((row) => row.ranked);
   const unranked = notPlayedYet ? [] : rows.filter((row) => !row.ranked);
   return (
@@ -242,12 +255,19 @@ function StandingTable({
         }}
       >
         <View style={{ width: POSITION_WIDTH }} />
-        <HeaderCell label="Player" align="left" />
-        <HeaderCell label="P" width={COUNT_WIDTH} />
-        <HeaderCell label="W" width={COUNT_WIDTH} />
-        <HeaderCell label="D" width={COUNT_WIDTH} />
-        <HeaderCell label="L" width={COUNT_WIDTH} />
-        <HeaderCell label="PTS" width={POINTS_WIDTH} strong align="right" />
+        <HeaderCell label={columns.player} align="left" />
+        <HeaderCell label={columns.played} width={COUNT_WIDTH} />
+        <HeaderCell label={columns.wins} width={COUNT_WIDTH} />
+        {showDraws ? (
+          <HeaderCell label={columns.draws} width={COUNT_WIDTH} />
+        ) : null}
+        <HeaderCell label={columns.losses} width={COUNT_WIDTH} />
+        <HeaderCell
+          label={columns.points}
+          width={POINTS_WIDTH}
+          strong
+          align="right"
+        />
       </View>
       {ranked.map((row) => (
         <View key={row.key}>
@@ -255,6 +275,7 @@ function StandingTable({
           <StandingRow
             row={row}
             notPlayedYet={notPlayedYet}
+            showDraws={showDraws}
             onOpen={onOpenMember}
           />
         </View>
@@ -272,10 +293,10 @@ function StandingTable({
             }}
           >
             <Text size="eyebrow" tone="muted" mono uppercase>
-              Unranked
+              {m.mobileGroup.standing.unranked}
             </Text>
             <Text size="eyebrow" tone="muted">
-              {unrankedNote()}
+              {unrankedNote(locale)}
             </Text>
           </View>
         </>
@@ -283,11 +304,17 @@ function StandingTable({
       {unranked.map((row) => (
         <View key={row.key}>
           <Hairline />
-          <StandingRow row={row} notPlayedYet={false} onOpen={onOpenMember} />
+          <StandingRow
+            row={row}
+            notPlayedYet={false}
+            showDraws={showDraws}
+            onOpen={onOpenMember}
+          />
         </View>
       ))}
       <Hairline />
-      <View style={{ padding: spacing.surface }}>
+      <View style={{ padding: spacing.surface, gap: 6 }}>
+        <Text size="meta">{legend}</Text>
         <Text size="meta" tone="muted">
           {footer}
         </Text>
@@ -297,6 +324,8 @@ function StandingTable({
 }
 
 function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
+  const locale = useLocale();
+  const m = useMessages();
   const palette = useTonePalette();
   const top = rows.filter((row) => row.ranked).slice(0, 3);
   if (top.length === 0) {
@@ -304,7 +333,7 @@ function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
   }
   return (
     <View
-      accessibilityLabel="Final top three"
+      accessibilityLabel={m.mobileGroup.standing.podium}
       style={{
         borderWidth: 1.5,
         borderColor: colors.ink,
@@ -348,7 +377,7 @@ function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
             <Text size="lead" width="expanded" weight="bold">
               {row.points}
               <Text size="eyebrow" tone="muted">
-                {" pts"}
+                {m.mobileGroup.standing.pointsSuffix}
               </Text>
             </Text>
           </View>
@@ -365,7 +394,7 @@ function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
         }}
       >
         <Text size="eyebrow" tone="muted">
-          {seasonLockedLine(season)}
+          {seasonLockedLine(season, locale)}
         </Text>
         <Lock size={14} color={palette.muted} />
       </View>
@@ -382,6 +411,10 @@ function SeasonHeader({
   gamesCounted: number;
   now: Date;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const name = seasonDisplayName(season.name, locale);
+  const uppercase = !isRtl(locale);
   if (season.status === "upcoming") {
     return (
       <Surface tone="ink" radius="card">
@@ -393,14 +426,19 @@ function SeasonHeader({
             gap: 12,
           }}
         >
-          <Text size="display" width="expanded" weight="bold" uppercase>
-            {season.name}
+          <Text
+            size="display"
+            width="expanded"
+            weight="bold"
+            uppercase={uppercase}
+          >
+            {name}
           </Text>
           <Text size="meta" tone="muted">
-            {formatSeasonRange(season)}
+            {formatSeasonRange(season, locale)}
           </Text>
         </View>
-        <Text style={{ marginTop: 8 }}>{seasonStartsLine(season)}</Text>
+        <Text style={{ marginTop: 8 }}>{seasonStartsLine(season, locale)}</Text>
       </Surface>
     );
   }
@@ -416,11 +454,16 @@ function SeasonHeader({
             gap: 12,
           }}
         >
-          <Text size="display" width="expanded" weight="bold" uppercase>
-            {season.name}
+          <Text
+            size="display"
+            width="expanded"
+            weight="bold"
+            uppercase={uppercase}
+          >
+            {name}
           </Text>
           <Text size="meta" tone="muted">
-            {formatSeasonRange(season)}
+            {formatSeasonRange(season, locale)}
           </Text>
         </View>
         <View
@@ -441,11 +484,11 @@ function SeasonHeader({
             }}
           >
             <Text size="eyebrow" weight="semibold" mono uppercase>
-              Final
+              {m.mobileGroup.standing.final}
             </Text>
           </View>
           <Text size="eyebrow" tone="muted">
-            {seasonGamesCountedLine(gamesCounted)}
+            {seasonGamesCountedLine(gamesCounted, locale)}
           </Text>
         </View>
       </Surface>
@@ -463,16 +506,21 @@ function SeasonHeader({
           gap: 12,
         }}
       >
-        <Text size="display" width="expanded" weight="bold" uppercase>
-          {season.name}
+        <Text
+          size="display"
+          width="expanded"
+          weight="bold"
+          uppercase={uppercase}
+        >
+          {name}
         </Text>
         <Text size="meta" tone="muted">
-          {formatSeasonRange(season)}
+          {formatSeasonRange(season, locale)}
         </Text>
       </View>
       <View
         accessibilityRole="progressbar"
-        accessibilityLabel="Season progress"
+        accessibilityLabel={m.mobileGroup.standing.seasonProgress}
         accessibilityValue={{ min: 0, max: 100, now: progress }}
         style={{
           height: 3,
@@ -498,10 +546,10 @@ function SeasonHeader({
         }}
       >
         <Text size="eyebrow" tone="muted">
-          {seasonProgressLine(season, now)}
+          {seasonProgressLine(season, now, locale)}
         </Text>
         <Text size="eyebrow" tone="muted">
-          {seasonGamesCountedLine(gamesCounted)}
+          {seasonGamesCountedLine(gamesCounted, locale)}
         </Text>
       </View>
     </View>
@@ -511,12 +559,15 @@ function SeasonHeader({
 function LensChips({
   seasons,
   lensId,
+  now,
   onPick,
 }: {
   seasons: Season[];
   lensId: string | null;
+  now: Date;
   onPick: (seasonId: string | null) => void;
 }) {
+  const locale = useLocale();
   return (
     <View
       style={{
@@ -529,7 +580,7 @@ function LensChips({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 4 }}
       >
-        {seasonLensChips(seasons).map((chip) => {
+        {seasonLensChips(seasons, now, locale).map((chip) => {
           const selected = chip.seasonId === lensId;
           return (
             <Pressable
@@ -566,6 +617,7 @@ function OpenSeatRow({
   position: number;
   onInvite?: () => void;
 }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -599,12 +651,12 @@ function OpenSeatRow({
         <View style={{ width: SEAT_SIZE, height: SEAT_SIZE }}>
           <Hatch radius={radii.sm} />
         </View>
-        <Text tone="muted">Open seat</Text>
+        <Text tone="muted">{m.mobileGroup.standing.openSeat}</Text>
       </View>
       {onInvite ? (
         <Button
-          label="Invite"
-          accessibilityLabel="Invite players"
+          label={m.mobileGroup.standing.invite}
+          accessibilityLabel={m.group.settings.menu.invite}
           size="sm"
           variant="outline"
           icon={<Plus size={sizes.iconAction} color={colors.ink} />}
@@ -630,6 +682,9 @@ function StandingPreview({
   onOpenMember?: (userId: string) => void;
   onInvite?: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const columns = m.mobileGroup.standing.columns;
   const leaderboard = data.standing.leaderboard;
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -643,12 +698,16 @@ function StandingPreview({
           paddingVertical: 12,
         }}
       >
-        <HeaderCell label="#" width={POSITION_WIDTH} align="left" />
-        <HeaderCell label="Player" align="left" />
-        <HeaderCell label="PTS" width={POINTS_WIDTH} align="right" />
+        <HeaderCell
+          label={columns.position}
+          width={POSITION_WIDTH}
+          align="left"
+        />
+        <HeaderCell label={columns.player} align="left" />
+        <HeaderCell label={columns.points} width={POINTS_WIDTH} align="right" />
       </View>
       {leaderboard.map((entry, index) => {
-        const row = standingRowView(entry);
+        const row = standingRowView(entry, locale);
         const body = (
           <View
             accessible={onOpenMember == null}
@@ -668,7 +727,7 @@ function StandingPreview({
               </Text>
             </View>
             <Avatar
-              name={entry.name ?? "Member"}
+              name={entry.name ?? m.mobileGroup.unnamedMember}
               uri={mediaUrl(entry.image, apiOrigin)}
               radius={radii.sm}
             />
@@ -719,7 +778,7 @@ function StandingPreview({
       <Hairline />
       <View style={{ padding: spacing.surface }}>
         <Text size="meta" tone="muted">
-          {groupStandingEmptyFooter(leaderboard.length)}
+          {groupStandingEmptyFooter(leaderboard.length, locale)}
         </Text>
       </View>
     </Surface>
@@ -737,11 +796,12 @@ function StatCell({
   divided: boolean;
   muted: boolean;
 }) {
+  const m = useMessages();
   const palette = useTonePalette();
   return (
     <View
       accessible
-      accessibilityLabel={`${value} ${label}`}
+      accessibilityLabel={m.mobileGroup.standing.statLabel(value, label)}
       style={{
         flex: 1,
         padding: spacing.surface,
@@ -772,9 +832,10 @@ function StatPair({
   data: GroupHomeData;
   muted?: boolean;
 }) {
+  const locale = useLocale();
   return (
     <Surface padded={false} style={{ flexDirection: "row" }}>
-      {standingStats(data).map((stat, index) => (
+      {standingStats(data, locale).map((stat, index) => (
         <StatCell
           key={stat.label}
           {...stat}
@@ -810,6 +871,8 @@ export function StandingTab({
   createGameHref?: Href;
 }) {
   const router = useRouter();
+  const locale = useLocale();
+  const m = useMessages();
   const now = new Date();
   const seasons = data.seasons;
   const defaultLens = data.standing.seasonId;
@@ -822,12 +885,13 @@ export function StandingTab({
   );
   const rows = (
     lensIsDefault ? data.standing.leaderboard : (lens.data?.rows ?? [])
-  ).map(standingRowView);
+  ).map((entry) => standingRowView(entry, locale));
   const counted = lensIsDefault
     ? data.standing.gamesCounted
     : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
-  const footer = standingRulesLine(standingDiffUnit(data.sport));
+  const footer = standingRulesLine(standingDiffUnit(data.sport), locale);
+  const showDraws = standingShowsDraws(data.sport, rows);
 
   const state = groupStandingState({
     isMember,
@@ -835,7 +899,7 @@ export function StandingTab({
     leaderboard: data.standing.leaderboard,
   });
   if (state.kind === "not-member") {
-    return <Notice {...STANDING_NOT_MEMBER_COPY} />;
+    return <Notice {...m.mobileGroup.standing.notMember} />;
   }
   if (seasons.length === 0 && state.showNoResultsNotice && state.showTable) {
     const firstGameHref = state.showCreateFirstGame
@@ -853,7 +917,7 @@ export function StandingTab({
           <View style={{ gap: 8 }}>
             {onInvite ? (
               <Button
-                label="Invite players"
+                label={m.group.settings.menu.invite}
                 size="lg"
                 icon={<UserPlus size={sizes.iconAction} color={colors.paper} />}
                 onPress={onInvite}
@@ -861,7 +925,7 @@ export function StandingTab({
             ) : null}
             {firstGameHref ? (
               <Button
-                label="Create the first Game"
+                label={m.mobileGroup.standing.createFirstGame}
                 size="lg"
                 variant={onInvite ? "outline" : "default"}
                 onPress={() => router.push(firstGameHref)}
@@ -880,17 +944,19 @@ export function StandingTab({
   } else if (!lensIsDefault && lens.error) {
     table = (
       <Notice
-        title="Standing could not be loaded"
+        title={m.mobileGroup.loadFailed.standing}
         description={lens.error.message}
       />
     );
   } else if (rows.length === 0) {
-    table = <Notice {...STANDING_NO_RESULTS_COPY} />;
+    table = <Notice title={m.mobileGroup.standing.noResultsTitle} />;
   } else {
     table = (
       <StandingTable
         rows={rows}
         notPlayedYet={counted === 0}
+        showDraws={showDraws}
+        legend={standingLegend(showDraws, locale)}
         footer={footer}
         onOpenMember={onOpenMember}
       />
@@ -903,7 +969,12 @@ export function StandingTab({
         <SeasonHeader season={season} gamesCounted={counted} now={now} />
       ) : null}
       {seasons.length > 0 ? (
-        <LensChips seasons={seasons} lensId={lensId} onPick={setLensId} />
+        <LensChips
+          seasons={seasons}
+          lensId={lensId}
+          now={now}
+          onPick={setLensId}
+        />
       ) : null}
       {season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />

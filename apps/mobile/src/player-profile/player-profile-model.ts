@@ -1,3 +1,4 @@
+import type { Locale } from "@repo/i18n/locale";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   overallView,
@@ -96,20 +97,21 @@ function profileState<Data, Model>(
 export function playerProfileModel(
   data: ApiPlayerProfile | PlayerProfileFixture,
   apiOrigin: string,
+  locale: Locale,
 ): PlayerProfileModel {
   const matches = data.lastMatches.map((match) =>
-    playerMatchRowView(match, data.player.id),
+    playerMatchRowView(match, data.player.id, locale),
   );
   return {
     name: data.player.name,
     imageUri: mediaUrl(data.player.image, apiOrigin),
-    subtitle: playerHeaderSubtitle(data.venue),
-    level: playerLevelCardView(data.rating),
-    trend: levelTrendLabel(data.trend),
-    streaks: streaksView(data.streaks),
-    position: playedSideView(data.position),
-    overall: overallView(data.overall),
-    lastTen: lastTenSummary(data.lastMatches),
+    subtitle: playerHeaderSubtitle(data.venue, locale),
+    level: playerLevelCardView(data.rating, locale),
+    trend: levelTrendLabel(data.trend, locale),
+    streaks: streaksView(data.streaks, locale),
+    position: playedSideView(data.position, locale),
+    overall: overallView(data.overall, locale),
+    lastTen: lastTenSummary(data.lastMatches, locale),
     matches,
     recentMatches: matches.slice(0, LAST_TEN_RECENT_ROWS),
   };
@@ -118,31 +120,40 @@ export function playerProfileModel(
 export function playerProfileState(
   query: ProfileQuery<ApiPlayerProfile>,
   apiOrigin: string,
+  locale: Locale,
 ): PlayerProfileState {
-  return profileState(query, (data) => playerProfileModel(data, apiOrigin));
+  return profileState(query, (data) =>
+    playerProfileModel(data, apiOrigin, locale),
+  );
 }
 
 export function footballProfileModel(
   data: ApiFootballProfile,
   apiOrigin: string,
+  locale: Locale,
 ): FootballProfileModel {
   return {
     name: data.player.name,
     imageUri: mediaUrl(data.player.image, apiOrigin),
-    subtitle: playerHeaderSubtitle(data.venue, "football"),
-    level: footballLevelCardView(data.rating),
+    subtitle: playerHeaderSubtitle(data.venue, locale, "football"),
+    level: footballLevelCardView(data.rating, locale),
     trend: null,
-    streaks: streaksView(data.streaks),
-    role: footballRoleView(data.role),
-    overall: footballOverallView(data.overall),
-    lastTen: footballLastTenSummary(data.lastMatches),
-    matches: data.lastMatches.map(footballMatchRowView),
+    streaks: streaksView(data.streaks, locale),
+    role: footballRoleView(data.role, locale),
+    overall: footballOverallView(data.overall, locale),
+    lastTen: footballLastTenSummary(data.lastMatches, locale),
+    matches: data.lastMatches.map((match) =>
+      footballMatchRowView(match, locale),
+    ),
   };
 }
 
 export function footballProfileState(
   query: ProfileQuery<ApiFootballProfile>,
   apiOrigin: string,
+  locale: Locale,
 ): ProfileState<FootballProfileModel> {
-  return profileState(query, (data) => footballProfileModel(data, apiOrigin));
+  return profileState(query, (data) =>
+    footballProfileModel(data, apiOrigin, locale),
+  );
 }

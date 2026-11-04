@@ -2,6 +2,7 @@
 
 import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
 import { profileAllTimeView } from "@repo/domain/profile-all-time";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
@@ -30,24 +31,30 @@ export function ProfileAllTimeCard({
   mostPlayedPartnerName: string | null;
   firstMatchAt: Date | string | null;
 }) {
-  const view = profileAllTimeView({
-    sport,
-    matchesPlayed,
-    matchesWon,
-    matchesLost,
-    setsWon,
-    setsLost,
-    goalsScored,
-    longestWinStreak,
-    mostPlayedPartnerName,
-    firstMatchAt,
-  });
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.you.allTime;
+  const view = profileAllTimeView(
+    {
+      sport,
+      matchesPlayed,
+      matchesWon,
+      matchesLost,
+      setsWon,
+      setsLost,
+      goalsScored,
+      longestWinStreak,
+      mostPlayedPartnerName,
+      firstMatchAt,
+    },
+    locale,
+  );
   const pct = view.winRatePercent;
 
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
       <SurfaceLabel inset="profile" meta={view.sinceLabel}>
-        All time
+        {m.profile.player.allTime}
       </SurfaceLabel>
       <div className="px-5 pb-5">
         <div className="flex items-end justify-between gap-4">
@@ -55,20 +62,24 @@ export function ProfileAllTimeCard({
             <p className="font-expanded text-[44px] tabular-nums leading-[0.9]">
               {view.matchesPlayed}
             </p>
-            <p className="text-meta text-muted-foreground pb-[3px]">matches</p>
+            <p className="text-meta text-muted-foreground pb-[3px]">
+              {copy.matches(view.matchesPlayed)}
+            </p>
           </div>
-          <div className="text-right">
-            <p className="font-expanded text-[20px] tabular-nums">
+          <div className="min-w-0 text-end">
+            <p className="text-body font-semibold tabular-nums">
               {view.record}
             </p>
-            {pct != null ? (
-              <p className="text-eyebrow text-muted-foreground">{pct}% won</p>
-            ) : null}
+            <p className="text-eyebrow text-muted-foreground">
+              {pct != null ? copy.percentWon(pct) : view.winRateNote}
+            </p>
           </div>
         </div>
-        <div className="bg-wash mt-4 flex h-1.5 overflow-hidden rounded-[3px]">
-          <div className="bg-ink h-full" style={{ width: `${pct ?? 0}%` }} />
-        </div>
+        {pct != null ? (
+          <div className="bg-wash mt-4 flex h-1.5 overflow-hidden rounded-[3px]">
+            <div className="bg-ink h-full" style={{ width: `${pct}%` }} />
+          </div>
+        ) : null}
       </div>
       <div className="border-rule divide-rule divide-y border-t">
         <div className="flex items-center justify-between px-5 py-[14px]">
@@ -78,14 +89,16 @@ export function ProfileAllTimeCard({
           </p>
         </div>
         <div className="flex items-center justify-between px-5 py-[14px]">
-          <p className="text-meta text-muted-foreground">Longest streak</p>
+          <p className="text-meta text-muted-foreground">
+            {copy.longestStreak}
+          </p>
           <p className="text-body font-semibold tabular-nums">
             {view.longestStreak}
           </p>
         </div>
         <div className="flex items-center justify-between px-5 py-[14px]">
           <p className="text-meta text-muted-foreground">{view.partnerLabel}</p>
-          <p className="text-body truncate pl-3 font-semibold">
+          <p className="text-body truncate ps-3 font-semibold">
             {view.mostPlayedPartner}
           </p>
         </div>
@@ -124,6 +137,7 @@ function ProfileAllTimeSkeleton() {
 }
 
 export function ProfileAllTime({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
+  const m = useMessages();
   const stats = api.users.profileStats.useQuery({ sport });
 
   if (stats.isLoading) {
@@ -135,7 +149,7 @@ export function ProfileAllTime({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
       <ErrorState
         variant="inline"
         className="rounded-card px-5"
-        title="All time could not be loaded"
+        title={m.webAuth.you.allTime.failed}
         message={stats.error.message}
         onRetry={() => {
           void stats.refetch();

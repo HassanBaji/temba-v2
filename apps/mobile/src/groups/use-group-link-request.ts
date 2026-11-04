@@ -1,5 +1,4 @@
 import {
-  GROUP_LINK_REQUEST_DECLINED_TOAST,
   groupLinkRequestAcceptConfirm,
   groupLinkRequestAcceptedToast,
   groupLinkRequestDeclineConfirm,
@@ -7,6 +6,7 @@ import {
 import { useRef, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 
@@ -17,6 +17,8 @@ export type GroupLinkRequestRow = {
 };
 
 export function useGroupLinkRequest() {
+  const locale = useLocale();
+  const m = useMessages();
   const toast = useToast();
   const utils = api.useUtils();
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
@@ -36,7 +38,9 @@ export function useGroupLinkRequest() {
     onSuccess: async () => {
       const row = accepting.current;
       if (row) {
-        toast.show(groupLinkRequestAcceptedToast(row.groupName, row.venueName));
+        toast.show(
+          groupLinkRequestAcceptedToast(row.groupName, row.venueName, locale),
+        );
       }
       await refresh();
     },
@@ -48,7 +52,7 @@ export function useGroupLinkRequest() {
   });
   const decline = api.groups.declineLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.show(GROUP_LINK_REQUEST_DECLINED_TOAST);
+      toast.show(m.group.linkRequest.declinedToast);
       await refresh();
     },
     onError: (error) => {
@@ -68,7 +72,11 @@ export function useGroupLinkRequest() {
         ? (decline.variables?.requestId ?? null)
         : null,
     askAccept: (row: GroupLinkRequestRow) => {
-      const copy = groupLinkRequestAcceptConfirm(row.groupName, row.venueName);
+      const copy = groupLinkRequestAcceptConfirm(
+        row.groupName,
+        row.venueName,
+        locale,
+      );
       setConfirm({
         title: copy.title,
         description: copy.description,
@@ -82,7 +90,7 @@ export function useGroupLinkRequest() {
       });
     },
     askDecline: (row: GroupLinkRequestRow) => {
-      const copy = groupLinkRequestDeclineConfirm(row.venueName);
+      const copy = groupLinkRequestDeclineConfirm(row.venueName, locale);
       setConfirm({
         ...copy,
         onConfirm: () => decline.mutate({ requestId: row.id }),

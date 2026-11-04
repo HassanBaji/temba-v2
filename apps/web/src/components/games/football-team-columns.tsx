@@ -9,10 +9,10 @@ import {
   type Bibs,
   type BoardPlayer,
 } from "@repo/domain/football-board";
-import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import type { FootballBib } from "@repo/domain/football-lineup";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 import { BibChip, bibStyle } from "./football-bibs";
@@ -29,16 +29,17 @@ export function BibRow({
   trailing?: React.ReactNode;
   onPress?: () => void;
 }) {
-  const name = player.isViewer ? "You" : shortName(player.name);
+  const m = useMessages();
+  const name = player.isViewer ? m.common.you : shortName(player.name);
   const code = slotCode(player);
   const label = [
     name,
     code,
     levelLabel(player.levelBand),
-    player.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+    player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(m.tournament.listSeparator);
   const body = (
     <>
       <UserAvatar name={player.name} image={player.image} size="sm" />
@@ -59,7 +60,7 @@ export function BibRow({
     </>
   );
   const className = cn(
-    "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left",
+    "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-start",
     player.unclaimed && "border-dashed",
     player.isViewer &&
       "ring-current ring-2 ring-offset-1 ring-offset-transparent",
@@ -71,7 +72,7 @@ export function BibRow({
           type="button"
           onClick={onPress}
           aria-label={label}
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-left outline-none focus-visible:underline"
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-start outline-none focus-visible:underline"
         >
           {body}
         </button>
@@ -99,6 +100,7 @@ export function TeamHeader({
   players: readonly BoardPlayer[];
   muted?: string;
 }) {
+  const m = useMessages();
   return (
     <div className="flex items-center justify-between gap-1.5">
       <span className="text-meta flex items-center gap-1.5 font-semibold">
@@ -106,7 +108,7 @@ export function TeamHeader({
         {name}
       </span>
       <span className={cn("text-[12px]", muted)}>
-        avg {sideAverage(players)}
+        {m.game.played.avg(sideAverage(players))}
       </span>
     </div>
   );
@@ -132,6 +134,7 @@ export function TeamColumns({
   muted?: string;
   onOpenPlayer?: (userId: string) => void;
 }) {
+  const m = useMessages();
   const column = (side: 1 | 2) => {
     const bib = side === 1 ? bibs.slot1 : bibs.slot2;
     const members = sideMembers(players, side);
@@ -162,7 +165,9 @@ export function TeamColumns({
   return (
     <div className="flex gap-2">
       {column(1)}
-      <span className={cn("pt-1 text-[12px]", muted)}>vs</span>
+      <span className={cn("pt-1 text-[12px]", muted)}>
+        {m.webTournament.vs}
+      </span>
       {column(2)}
     </div>
   );

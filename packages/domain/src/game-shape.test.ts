@@ -42,7 +42,11 @@ describe("football sizes", () => {
   });
 
   it("labels the size", () => {
-    expect(sideSizeLabel(5)).toBe("5-a-side");
-    expect(footballSizeLabel(5, 10)).toBe("5-a-side · 10 players");
+    expect(sideSizeLabel(5, "en")).toBe("5-a-side");
+    expect(footballSizeLabel(5, 10, "en")).toBe("5-a-side · 10 players");
+  });
+
+  it("labels the size in Arabic", () => {
+    expect(sideSizeLabel(5, "ar")).toBe("5 ضد 5");
   });
 });

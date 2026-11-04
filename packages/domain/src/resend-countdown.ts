@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 /**
  * Resend cooldown for auth verification codes.
  *
@@ -29,10 +32,13 @@ export function isResendAvailable(secondsRemaining: number): boolean {
   return secondsRemaining <= 0;
 }
 
-export function resendAccessibleName(secondsRemaining: number): string {
+export function resendAccessibleName(
+  secondsRemaining: number,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).auth;
   if (isResendAvailable(secondsRemaining)) {
-    return "Resend code";
+    return m.resendCode;
   }
-  const unit = secondsRemaining === 1 ? "second" : "seconds";
-  return `Resend code, available in ${secondsRemaining} ${unit}`;
+  return m.resendCodeAvailableIn(secondsRemaining);
 }

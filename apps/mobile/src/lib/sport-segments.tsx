@@ -1,7 +1,8 @@
 import { colors, radii, sizes } from "@repo/design-tokens";
-import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
+import { SPORTS, type Sport } from "@repo/domain/sport";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { SportGlyph } from "./sport-glyph";
@@ -13,10 +14,11 @@ export function SportSegments({
   value: Sport;
   onSelect: (sport: Sport) => void;
 }) {
+  const m = useMessages();
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel="Sport"
+      accessibilityLabel={m.mobilePlayer.lib.sport}
       style={{
         flexDirection: "row",
         borderRadius: radii.lg,
@@ -49,7 +51,7 @@ export function SportSegments({
           >
             <SportGlyph sport={sport} color={color} size={18} />
             <Text weight={selected ? "semibold" : "regular"} style={{ color }}>
-              {SPORT_LABELS[sport]}
+              {m.common[sport]}
             </Text>
           </Pressable>
         );

@@ -491,13 +491,12 @@ describe("Standing agrees across Group home, the Groups list and Home", () => {
       }
 
       const before = await positions();
-      // Nobody holds a rank before a result; Home reads a first place
-      // for a member with none.
+      // Nobody holds a rank before a result, Home included.
       expect(before[0]).toMatchObject({
         list: null,
         groupHome: null,
         leaderboard: null,
-        home: 1,
+        home: null,
       });
 
       // One result each way, so the next one decides the order.

@@ -2,11 +2,13 @@ import { type Metadata } from "next";
 
 import { EmailTask } from "~/components/onboarding/email-task";
 import { profileChecklistHref } from "~/lib/onboarding-step";
+import { getRequestMessages } from "~/lib/request-locale";
 import { safeInternalRedirect } from "@repo/domain/safe-internal-redirect";
 
-export const metadata: Metadata = {
-  title: "Add your email",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.webAuth.onboarding.email.title };
+}
 
 export default async function EmailTaskPage({
   searchParams,

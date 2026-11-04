@@ -103,7 +103,11 @@ export type CountedMatch = {
   slotTeamIds: { 1: string | null; 2: string | null };
   sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
   venue: { id: string; name: string };
-  game: Omit<PlayerMatchInput["game"], "venueName">;
+  game: Omit<PlayerMatchInput["game"], "venueName"> & {
+    hasCustomName: boolean;
+    windowStart: Date | null;
+    windowEnd: Date | null;
+  };
   rated: boolean;
 };
 
@@ -160,6 +164,7 @@ export async function loadCountedMatches(
         columns: {
           id: true,
           name: true,
+          hasCustomName: true,
           groupId: true,
           cancelledAt: true,
           sport: true,
@@ -209,6 +214,9 @@ export async function loadCountedMatches(
       rated: game.rated,
       game: {
         name: game.name,
+        hasCustomName: game.hasCustomName,
+        windowStart: game.windowStart,
+        windowEnd: game.windowEnd,
         format: game.format,
         groupName: game.group?.name ?? null,
         roundNumber: row.roundNumber,

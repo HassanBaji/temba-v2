@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PAYMENT_HOLD_MINUTES,
   paymentHoldExpiresAt,
+  paymentStatusLabel,
   paymentStateFor,
   summarisePaymentStatus,
   type PaymentStatus,
@@ -132,5 +133,16 @@ describe("paymentStateFor", () => {
         T(1),
       ),
     ).toEqual({ kind: "paid" });
+  });
+});
+
+describe("paymentStatusLabel", () => {
+  it("labels a status in each language", () => {
+    expect(paymentStatusLabel("partially_refunded", "en")).toBe(
+      "Partially refunded",
+    );
+    expect(paymentStatusLabel("partially_refunded", "ar")).toBe(
+      "مستردّ جزئيًا",
+    );
   });
 });

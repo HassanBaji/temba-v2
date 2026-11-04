@@ -4,6 +4,7 @@ import { Check, Search } from "lucide-react";
 import * as React from "react";
 
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
+import { useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -18,6 +19,7 @@ import {
   visibleCreateGroups,
   VISIBLE_GROUP_CHIP_COUNT,
 } from "@repo/domain/create-game-flow";
+import type { Messages } from "@repo/i18n/messages";
 
 export type CreateGroup = {
   id: string;
@@ -27,8 +29,8 @@ export type CreateGroup = {
   verified: boolean;
 };
 
-function groupOptionLabel(group: CreateGroup) {
-  const name = group.name ?? "Untitled Group";
+function groupOptionLabel(group: CreateGroup, m: Messages) {
+  const name = group.name ?? m.group.untitled;
   if (!group.communityName) {
     return name;
   }
@@ -46,9 +48,10 @@ function GroupChips({
   labelledBy?: string;
   onSelect: (groupId: string) => void;
 }) {
+  const m = useMessages();
   return (
     <RovingRadioGroup
-      aria-label={labelledBy ? undefined : "Group"}
+      aria-label={labelledBy ? undefined : m.invite.kind.group}
       aria-labelledby={labelledBy}
       className="flex flex-wrap gap-2"
     >
@@ -66,7 +69,7 @@ function GroupChips({
             {selected ? (
               <Check aria-hidden="true" className="size-3.5" />
             ) : null}
-            {groupOptionLabel(group)}
+            {groupOptionLabel(group, m)}
           </ChoiceChip>
         );
       })}
@@ -85,18 +88,24 @@ export function GroupField({
   groupError?: string;
   onGroupId: (groupId: string) => void;
 }) {
+  const m = useMessages();
+  const c = m.webDashboard.createGame;
   const [groupsOpen, setGroupsOpen] = React.useState(false);
   const [groupQuery, setGroupQuery] = React.useState("");
   const visibleGroups = visibleCreateGroups(groups, selectedGroupId);
   const filteredGroups = groups.filter((group) =>
-    groupOptionLabel(group)
+    groupOptionLabel(group, m)
       .toLowerCase()
       .includes(groupQuery.trim().toLowerCase()),
   );
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading id="game-group-label" title="Group" meta="Required" />
+      <SectionHeading
+        id="game-group-label"
+        title={m.invite.kind.group}
+        meta={m.common.required}
+      />
       <div
         id="game-group"
         tabIndex={-1}
@@ -120,14 +129,14 @@ export function GroupField({
           }}
         >
           <Search aria-hidden="true" className="size-3.5" />
-          All {groups.length} groups
+          {c.allGroups(groups.length)}
         </ChoiceChip>
       ) : null}
       <FieldError id="game-group-error">{groupError}</FieldError>
       <Sheet open={groupsOpen} onOpenChange={setGroupsOpen}>
         <SheetContent side="bottom" className="max-h-[85svh]">
           <SheetHeader>
-            <SheetTitle>All {groups.length} groups</SheetTitle>
+            <SheetTitle>{c.allGroups(groups.length)}</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-3 overflow-y-auto px-4 pb-4">
             <Input
@@ -135,12 +144,12 @@ export function GroupField({
               onChange={(event) => {
                 setGroupQuery(event.target.value);
               }}
-              placeholder="Search groups"
-              aria-label="Search groups"
+              placeholder={c.searchGroups}
+              aria-label={c.searchGroups}
             />
             {filteredGroups.length === 0 ? (
               <p className="text-muted-foreground text-body">
-                No groups match.
+                {c.noGroupsMatch}
               </p>
             ) : (
               <GroupChips

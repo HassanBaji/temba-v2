@@ -1,355 +1,320 @@
 "use client";
 
+import { Plus, UserPlus } from "lucide-react";
 import { Fragment } from "react";
 
 import {
-  ADD_PLAYER_ACTION,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-} from "@repo/domain/add-player-by-phone";
-import { KICK_ACTION } from "@repo/domain/game-copy";
+  courtPositionLabel,
+  courtSeatName,
+  courtSeatRow,
+  courtSeatSubline,
+  courtSpotsLabel,
+} from "@repo/domain/friendly-game-court";
+import { friendlyGameOpenSeatLabel } from "@repo/domain/friendly-game-players";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
-import { ResultTag } from "~/components/temba/result-mark";
-import { OpenSeat, SeatRow } from "~/components/temba/seat";
+import type { PlayedRow } from "@repo/domain/played-game";
+import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
+import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
-import { vacantJoinSeats } from "@repo/domain/friendly-game-cta";
-import {
-  friendlyGameCanKickPlayer,
-  friendlyGameInviteSeatLabel,
-  friendlyGameLineupVacantAction,
-  friendlyGameOpenSeatLabel,
-  friendlyGameSeatSubline,
-  friendlyGameVacantSeatLabel,
-} from "@repo/domain/friendly-game-players";
-import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
 type GameDetailsSide = RouterOutputs["games"]["byId"]["sides"][number];
 type GameDetailsSeat = NonNullable<GameDetailsSide["left"]>;
 type SeatPosition = "left" | "right";
-type RenameTarget = { userId: string; name: string };
 
-const VS_DIVIDER =
-  "text-muted-foreground before:bg-rule after:bg-rule flex shrink-0 items-center gap-3 self-stretch text-xs font-semibold before:h-px before:flex-1 after:h-px after:flex-1 sm:self-center sm:px-1 sm:before:hidden sm:after:hidden";
+export type OpenSeatAction = { label: string; onClick: () => void };
 
-function LineupSeatRow({
-  occupant,
-  position,
-  vacant,
-  isViewer,
-  showInvite,
-  onInvite,
-  sideLabel,
-  canMove,
-  moving,
-  onMove,
-  canKick,
-  kickPending,
-  onKick,
-  onRename,
-  linked,
+const SEAT_CELL =
+  "flex min-w-0 flex-1 flex-col items-center gap-2 px-1 py-1.5 text-center";
+
+function SeatLabels({
+  title,
+  subline,
+  strong,
+  unclaimed = false,
 }: {
-  occupant: GameDetailsSeat | null;
-  position: SeatPosition;
-  vacant: boolean;
-  isViewer: boolean;
-  showInvite: boolean;
-  onInvite: () => void;
-  sideLabel: string;
-  canMove: boolean;
-  moving: boolean;
-  onMove: () => void;
-  canKick: boolean;
-  kickPending: boolean;
-  onKick: (userId: string) => void;
-  onRename?: (player: RenameTarget) => void;
-  linked: boolean;
+  title: string;
+  subline: string;
+  strong: boolean;
+  unclaimed?: boolean;
 }) {
-  if (vacant || !occupant) {
-    const vacantAction = friendlyGameLineupVacantAction(canMove);
-    const moveLabel = friendlyGameVacantSeatLabel(
-      vacantAction,
-      sideLabel,
-      position === "left" ? "Left" : "Right",
-    );
-    return (
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {vacantAction === "move" && moveLabel ? (
-            <button
-              type="button"
-              disabled={moving}
-              aria-label={moveLabel}
-              className="focus-visible:ring-ring/50 flex size-[42px] shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={onMove}
-            >
-              <OpenSeat size="lg" />
-            </button>
-          ) : (
-            <>
-              <OpenSeat size="lg" />
-              <span className="sr-only">
-                {friendlyGameOpenSeatLabel(position)}
-              </span>
-            </>
-          )}
-        </div>
-        {showInvite ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            aria-label={friendlyGameInviteSeatLabel(sideLabel, position)}
-            onClick={onInvite}
-          >
-            Invite
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-
-  const canRename = onRename != null && occupant.unclaimed;
-
   return (
-    <SeatRow
-      occupant={occupant}
-      isViewer={isViewer}
-      unclaimed={occupant.unclaimed}
-      phoneMasked={occupant.phoneMasked}
-      href={linked ? playerProfilePath(occupant.userId) : undefined}
-      subline={friendlyGameSeatSubline(position, occupant.levelBand)}
-      trailing={
-        canKick || canRename ? (
-          <div className="flex items-center gap-2">
-            {canRename ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${occupant.name}`}
-                onClick={() =>
-                  onRename?.({ userId: occupant.userId, name: occupant.name })
-                }
-              >
-                {RENAME_UNCLAIMED_PLAYER_ACTION}
-              </Button>
-            ) : null}
-            {canKick ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label={`${KICK_ACTION} ${occupant.name}`}
-                disabled={kickPending}
-                onClick={() => onKick(occupant.userId)}
-              >
-                {KICK_ACTION}
-              </Button>
-            ) : null}
-          </div>
-        ) : undefined
-      }
-    />
+    <span className="flex max-w-full flex-col items-center gap-0.5">
+      <span
+        className={cn(
+          "max-w-full truncate text-sm",
+          strong ? "font-semibold" : "font-medium",
+        )}
+      >
+        {title}
+      </span>
+      {unclaimed ? <NotOnTembaTag /> : null}
+      <span className="text-muted-foreground text-meta max-w-full truncate">
+        {subline}
+      </span>
+    </span>
   );
 }
 
-function LineupTeamColumn({
-  side,
-  isWinner,
-  showWonTag,
+function OpenSeat({
+  position,
+  action,
+  busy,
+}: {
+  position: SeatPosition;
+  action: OpenSeatAction | null;
+  busy: boolean;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const body = (
+    <>
+      <span
+        aria-hidden="true"
+        className="hatch border-rule flex size-[52px] items-center justify-center rounded-full border border-dashed"
+      >
+        {action ? <Plus className="text-muted-foreground size-[18px]" /> : null}
+      </span>
+      <SeatLabels
+        title={m.game.court.open}
+        subline={courtPositionLabel(position, locale)}
+        strong={false}
+      />
+    </>
+  );
+
+  if (!action) {
+    return (
+      <div
+        className={SEAT_CELL}
+        aria-label={friendlyGameOpenSeatLabel(position, locale)}
+      >
+        {body}
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      aria-label={action.label}
+      disabled={busy}
+      onClick={action.onClick}
+      className={cn(
+        SEAT_CELL,
+        "hover:bg-muted/60 focus-visible:ring-ring/50 rounded-lg outline-none transition-colors focus-visible:ring-[3px] disabled:opacity-50",
+      )}
+    >
+      {body}
+    </button>
+  );
+}
+
+function TakenSeat({
+  seat,
+  position,
   viewerUserId,
-  showInvite,
-  onInvite,
-  isVacant,
-  canMove,
-  moving,
-  onMove,
-  canKick,
-  kickPending,
-  onKick,
-  onRename,
-  linkToPlayers,
+  onPress,
+}: {
+  seat: GameDetailsSeat;
+  position: SeatPosition;
+  viewerUserId: string;
+  onPress?: (row: PlayedRow) => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const row = courtSeatRow(seat, position, viewerUserId, locale);
+  const name = courtSeatName(row, locale);
+  const subline = courtSeatSubline(position, seat.levelBand, locale);
+  const body = (
+    <>
+      <UserAvatar
+        name={seat.name}
+        image={seat.image}
+        className={cn(
+          "size-[52px] [&_[data-slot=avatar-fallback]]:text-base [&_[data-slot=avatar-fallback]]:font-bold",
+          row.isYou
+            ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
+            : "[&_[data-slot=avatar-fallback]]:text-ink",
+        )}
+      />
+      <SeatLabels
+        title={name}
+        subline={subline}
+        strong={row.isYou}
+        unclaimed={row.unclaimed}
+      />
+    </>
+  );
+
+  if (!onPress) {
+    return <div className={SEAT_CELL}>{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      aria-label={m.webGame.lineup.seatLabel(name, subline)}
+      onClick={() => onPress(row)}
+      className={cn(
+        SEAT_CELL,
+        "hover:bg-muted/60 focus-visible:ring-ring/50 rounded-lg outline-none transition-colors focus-visible:ring-[3px]",
+      )}
+    >
+      {body}
+    </button>
+  );
+}
+
+function SideHalf({
+  side,
+  labelBelow,
+  viewerUserId,
+  busy,
+  openSeatAction,
+  onPressPlayer,
 }: {
   side: GameDetailsSide;
-  isWinner: boolean;
-  showWonTag: boolean;
+  labelBelow: boolean;
   viewerUserId: string;
-  showInvite: boolean;
-  onInvite: () => void;
-  isVacant: (position: SeatPosition) => boolean;
-  canMove: boolean;
-  moving: boolean;
-  onMove: (position: SeatPosition) => void;
-  canKick: (userId: string) => boolean;
-  kickPending: boolean;
-  onKick: (userId: string) => void;
-  onRename?: (player: RenameTarget) => void;
-  linkToPlayers: boolean;
+  busy: boolean;
+  openSeatAction: (
+    sideIndex: number,
+    position: SeatPosition,
+  ) => OpenSeatAction | null;
+  onPressPlayer?: (row: PlayedRow) => void;
 }) {
-  const sideLabel = formatGameSideLabel("friendly_game", side.sideIndex);
+  const locale = useLocale();
+  const label = (
+    <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
+      {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
+    </p>
+  );
   return (
-    <div className="min-w-0 flex-1 space-y-3">
-      <div className="flex items-center gap-1.5">
-        <h3 className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-          {sideLabel}
-        </h3>
-        {showWonTag && isWinner ? (
-          <ResultTag variant="won">Won</ResultTag>
-        ) : null}
+    <div
+      className={cn(
+        "flex flex-col gap-2.5 px-3",
+        labelBelow ? "pb-3 pt-4" : "pb-3.5 pt-3",
+      )}
+    >
+      {labelBelow ? null : label}
+      <div className="flex">
+        {(["left", "right"] as const).map((position, index) => {
+          const seat = side[position];
+          const cell = seat ? (
+            <TakenSeat
+              key={position}
+              seat={seat}
+              position={position}
+              viewerUserId={viewerUserId}
+              onPress={onPressPlayer}
+            />
+          ) : (
+            <OpenSeat
+              key={position}
+              position={position}
+              action={openSeatAction(side.sideIndex, position)}
+              busy={busy}
+            />
+          );
+          return (
+            <Fragment key={position}>
+              {index > 0 ? (
+                <span aria-hidden="true" className="bg-rule w-px shrink-0" />
+              ) : null}
+              {cell}
+            </Fragment>
+          );
+        })}
       </div>
-      <div className="space-y-3">
-        <LineupSeatRow
-          occupant={side.left}
-          position="left"
-          vacant={isVacant("left")}
-          isViewer={side.left?.userId === viewerUserId}
-          showInvite={showInvite}
-          onInvite={onInvite}
-          sideLabel={sideLabel}
-          canMove={canMove}
-          moving={moving}
-          onMove={() => onMove("left")}
-          canKick={side.left != null && canKick(side.left.userId)}
-          kickPending={kickPending}
-          onKick={onKick}
-          onRename={onRename}
-          linked={linkToPlayers}
-        />
-        <LineupSeatRow
-          occupant={side.right}
-          position="right"
-          vacant={isVacant("right")}
-          isViewer={side.right?.userId === viewerUserId}
-          showInvite={showInvite}
-          onInvite={onInvite}
-          sideLabel={sideLabel}
-          canMove={canMove}
-          moving={moving}
-          onMove={() => onMove("right")}
-          canKick={side.right != null && canKick(side.right.userId)}
-          kickPending={kickPending}
-          onKick={onKick}
-          onRename={onRename}
-          linked={linkToPlayers}
-        />
-      </div>
+      {labelBelow ? label : null}
+    </div>
+  );
+}
+
+function Net() {
+  const m = useMessages();
+  return (
+    <div aria-hidden="true" className="border-ink relative border-t-[1.5px]">
+      <span className="bg-paper absolute left-1/2 top-[-10px] -translate-x-1/2 px-2 text-[11px] font-bold uppercase tracking-[0.08em]">
+        {m.webGame.joinSheet.versus}
+      </span>
     </div>
   );
 }
 
 /**
- * Line-up section (game-details redesign, TEM-180): both teams divided by a
- * "vs" rule, replacing the Players tab content for the individual Friendly
- * game details page across all three phases. Distinct from, and deliberately
- * less summarized than, the hero's own compact seat row (`home-seat-row.tsx`
- * pattern) — the hero states the aggregate ("3 of 4 players in"), this
- * section is where an open slot is actionable (per-row Invite, and a move
- * hatch when the viewer is seated and `canMove` — TEM-193).
+ * The padel court from above: Team A across the top, the net, Team B below,
+ * each side's left and right spot. Open spots are hatched until filled.
  */
 export function GameLineupSection({
   sides,
   viewerUserId,
-  isFinal,
-  winningGameTeamId,
-  canMintInvite,
+  vacantSeatCount,
+  hint,
+  busy,
+  openSeatAction,
   onInvite,
-  canMove,
-  moving,
-  onMove,
-  isOrganizer,
-  cancelled,
-  kickPending,
-  onKick,
-  linkToPlayers,
-  onAddPlayer,
-  onRenameUnclaimed,
+  onPressPlayer,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
-  isFinal: boolean;
-  winningGameTeamId: string | null;
-  canMintInvite: boolean;
-  onInvite: () => void;
-  canMove: boolean;
-  moving: boolean;
-  onMove: (sideIndex: number, position: SeatPosition) => void;
-  isOrganizer: boolean;
-  cancelled: boolean;
-  kickPending: boolean;
-  onKick: (userId: string) => void;
-  linkToPlayers: boolean;
-  onAddPlayer?: () => void;
-  onRenameUnclaimed?: (player: RenameTarget) => void;
+  vacantSeatCount: number;
+  hint: string | null;
+  busy: boolean;
+  openSeatAction: (
+    sideIndex: number,
+    position: SeatPosition,
+  ) => OpenSeatAction | null;
+  onInvite?: () => void;
+  onPressPlayer?: (row: PlayedRow) => void;
 }) {
-  // Final phase never shows invite affordances in this section, regardless
-  // of the caller's organizer-only `canMintInvite` value (spec: "no invite
-  // affordances anywhere in the section" once a Match is Final).
-  const showInvite = canMintInvite && !isFinal;
-  const vacantSeats = vacantJoinSeats(sides);
-  const vacantLookup = (sideIndex: number, position: SeatPosition) =>
-    vacantSeats.some(
-      (seat) => seat.sideIndex === sideIndex && seat.position === position,
-    );
-  const canKick = (userId: string) =>
-    friendlyGameCanKickPlayer({
-      isOrganizer,
-      cancelled,
-      isViewer: userId === viewerUserId,
-    });
-
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <section
       data-slot="game-lineup-section"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
-      <div className="flex items-center justify-between gap-3 px-[22px] pb-3 pt-[22px]">
-        <h2 className="text-muted-foreground text-sm">Line-up</h2>
-        {onAddPlayer ? (
+      <div className="flex min-h-[68px] items-center justify-between gap-3 px-[18px] py-3.5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="text-base font-semibold">{m.webGame.lineup.title}</h2>
+          <p className="text-muted-foreground text-meta truncate">
+            {courtSpotsLabel(vacantSeatCount, locale)}
+          </p>
+        </div>
+        {onInvite ? (
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={onAddPlayer}
+            className="shrink-0"
+            onClick={onInvite}
           >
-            {ADD_PLAYER_ACTION}
+            <UserPlus aria-hidden="true" className="size-[15px]" />
+            {m.invite.door.inviteButton}
           </Button>
         ) : null}
       </div>
-      <div
-        className={cn(
-          "border-rule flex flex-col gap-4 border-t px-[22px] pb-[22px] pt-[18px] sm:flex-row sm:items-start sm:gap-3",
-        )}
-      >
-        {sides.map((side, index) => (
-          <Fragment key={side.sideIndex}>
-            {index > 0 ? (
-              <span aria-hidden="true" className={VS_DIVIDER}>
-                vs
-              </span>
-            ) : null}
-            <LineupTeamColumn
-              side={side}
-              isWinner={
-                side.gameTeamId != null && side.gameTeamId === winningGameTeamId
-              }
-              showWonTag={isFinal}
-              viewerUserId={viewerUserId}
-              showInvite={showInvite}
-              onInvite={onInvite}
-              isVacant={(position) => vacantLookup(side.sideIndex, position)}
-              canMove={canMove}
-              moving={moving}
-              onMove={(position) => onMove(side.sideIndex, position)}
-              canKick={canKick}
-              kickPending={kickPending}
-              onKick={onKick}
-              onRename={onRenameUnclaimed}
-              linkToPlayers={linkToPlayers}
-            />
-          </Fragment>
-        ))}
+      <div className="px-3.5 pb-3.5">
+        <div className="border-ink overflow-hidden rounded-xl border-[1.5px]">
+          {sides.map((side, index) => (
+            <Fragment key={side.sideIndex}>
+              {index > 0 ? <Net /> : null}
+              <SideHalf
+                side={side}
+                labelBelow={index > 0}
+                viewerUserId={viewerUserId}
+                busy={busy}
+                openSeatAction={openSeatAction}
+                onPressPlayer={onPressPlayer}
+              />
+            </Fragment>
+          ))}
+        </div>
+        {hint ? (
+          <p className="text-muted-foreground text-meta px-1 pt-3">{hint}</p>
+        ) : null}
       </div>
     </section>
   );

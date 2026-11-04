@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { InviteShell } from "~/components/invites/invite-shell";
+import { useMessages } from "~/components/locale-provider";
 
 export default function RootError({
   error,
@@ -12,6 +13,7 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const m = useMessages();
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -20,8 +22,8 @@ export default function RootError({
     <InviteShell>
       <ErrorState
         headingLevel={1}
-        title="This page could not be loaded"
-        message="Try again, or go back to the previous page."
+        title={m.webAuth.errors.pageFailedTitle}
+        message={m.webAuth.errors.pageFailedMessage}
         onRetry={reset}
       />
     </InviteShell>

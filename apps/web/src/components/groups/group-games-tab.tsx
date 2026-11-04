@@ -12,6 +12,7 @@ import { GameSummaryCard } from "~/components/games/game-summary-card";
 import { TournamentSummaryCard } from "~/components/games/tournament-summary-card";
 import { NotSetCell } from "~/components/temba/not-set-cell";
 import { GroupPlayedRow } from "~/components/groups/group-played-row";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   seasonBoundaryLabel,
   seasonForDate,
@@ -19,8 +20,8 @@ import {
 } from "@repo/domain/group-season";
 import { Button } from "~/components/ui/button";
 import {
-  GROUP_ARCHIVE_GAMES_COPY,
   GROUP_HISTORY_PAGE_SIZE,
+  groupArchiveGamesCopy,
   groupGamesEmptyDescription,
   groupHistoryCanLoadMore,
   groupHistoryPageExhausted,
@@ -70,6 +71,8 @@ function NoGamesYet({
   createGameHref: string | null;
   onInvite: (() => void) | null;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const needed = groupGamePlayersNeeded(sport);
   const seated = [...members]
     .sort((a, b) => Number(b.isViewer) - Number(a.isViewer))
@@ -81,14 +84,14 @@ function NoGamesYet({
       <section className={cardFrame}>
         <div className="flex flex-col gap-[18px] p-5">
           <p className="text-meta text-muted-foreground flex justify-between gap-3">
-            <span>Next Game</span>
-            <span>Not scheduled</span>
+            <span>{m.webGroup.nextGame}</span>
+            <span>{m.webGroup.games.notScheduled}</span>
           </p>
           <div aria-hidden="true" className="flex flex-wrap gap-1.5">
             {seated.map((member) => (
               <UserAvatar
                 key={member.userId}
-                name={member.name ?? "Member"}
+                name={member.name ?? m.community.memberFallback}
                 image={member.image}
                 className={cn(
                   "size-[34px] rounded-[9px] [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",
@@ -103,20 +106,21 @@ function NoGamesYet({
           </div>
           <div className="flex flex-col gap-2">
             <h2 className="font-expanded text-h1 leading-tight">
-              No Games yet
+              {m.webGroup.games.noGamesYet}
             </h2>
             <p className="text-body text-muted-foreground">
               {groupGamesEmptyLine({
                 sport,
                 memberCount: members.length,
                 isMember,
+                locale,
               })}
             </p>
           </div>
         </div>
         <dl className="border-rule divide-rule grid grid-cols-2 divide-x border-t">
-          <NotSetCell label="When" />
-          <NotSetCell label="Where" />
+          <NotSetCell label={m.webGroup.games.when} />
+          <NotSetCell label={m.webGroup.games.where} />
         </dl>
       </section>
       {createGameHref || onInvite ? (
@@ -127,7 +131,7 @@ function NoGamesYet({
               size="lg"
               className="text-body w-full font-semibold"
             >
-              <Link href={createGameHref}>Create the first Game</Link>
+              <Link href={createGameHref}>{m.webGroup.games.createFirst}</Link>
             </Button>
           ) : null}
           {onInvite ? (
@@ -139,7 +143,7 @@ function NoGamesYet({
               onClick={onInvite}
             >
               <UserRoundPlus aria-hidden="true" />
-              Invite players
+              {m.invite.door.invitePlayers}
             </Button>
           ) : null}
         </div>
@@ -187,6 +191,8 @@ export function GroupGamesTab({
   onJoinWaitlist: (game: ScheduledGame) => void;
   onRegister: (gameId: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const router = useRouter();
   const [olderPages, setOlderPages] = React.useState<{
@@ -234,7 +240,7 @@ export function GroupGamesTab({
   const createFirstGame = canShowCreateGame ? (
     <Button asChild variant="outline">
       <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        Create the first Game
+        {m.webGroup.games.createFirst}
       </Link>
     </Button>
   ) : null;
@@ -257,8 +263,8 @@ export function GroupGamesTab({
     return (
       <EmptyState
         icon={Calendar}
-        title="No Games yet"
-        description={groupGamesEmptyDescription(isCommunityArchived)}
+        title={m.webGroup.games.noGamesYet}
+        description={groupGamesEmptyDescription(isCommunityArchived, locale)}
         action={createFirstGame}
       />
     );
@@ -267,15 +273,15 @@ export function GroupGamesTab({
   return (
     <div className="flex flex-col gap-[26px]">
       <section>
-        <h2 className={HEADING}>Scheduled</h2>
+        <h2 className={HEADING}>{m.webGroup.games.scheduled}</h2>
         {isCommunityArchived ? (
           <p className="text-body text-muted-foreground pb-2.5">
-            {GROUP_ARCHIVE_GAMES_COPY}
+            {groupArchiveGamesCopy(locale)}
           </p>
         ) : null}
         {upcomingGames.length === 0 ? (
           <p className="text-body text-muted-foreground">
-            No upcoming Games scheduled for this Group.
+            {m.webGroup.games.noUpcoming}
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -378,10 +384,10 @@ export function GroupGamesTab({
       </section>
 
       <section>
-        <h2 className={HEADING}>Played</h2>
+        <h2 className={HEADING}>{m.webGroup.games.played}</h2>
         {playedGames.length === 0 ? (
           <p className="text-body text-muted-foreground">
-            No Game history yet.
+            {m.webGroup.games.noHistory}
           </p>
         ) : (
           <>
@@ -408,7 +414,7 @@ export function GroupGamesTab({
                           className="bg-rule h-px flex-1"
                         />
                         <span className="shrink-0 font-mono">
-                          {seasonBoundaryLabel(boundary)}
+                          {seasonBoundaryLabel(boundary, locale)}
                         </span>
                         <span
                           aria-hidden="true"
@@ -425,7 +431,7 @@ export function GroupGamesTab({
               <div className="mt-3 flex flex-col items-center gap-2">
                 {loadMoreFailed ? (
                   <p className="text-body text-muted-foreground">
-                    More Games could not be loaded.
+                    {m.webGroup.games.loadMoreFailed}
                   </p>
                 ) : null}
                 <Button
@@ -435,7 +441,7 @@ export function GroupGamesTab({
                     void loadMoreHistory();
                   }}
                 >
-                  {loadingMore ? "Loading…" : "Load more"}
+                  {loadingMore ? m.common.loading : m.webGroup.games.loadMore}
                 </Button>
               </div>
             ) : null}

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
@@ -28,6 +29,7 @@ type Booking = RouterOutputs["bookings"]["byId"];
 export function BookedScreen({ bookingId }: { bookingId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const m = useMessages();
   const booking = api.bookings.byId.useQuery({ bookingId });
   useLightStatusBar();
 
@@ -65,31 +67,31 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
         {booking.data?.canCreateGame ? (
           <View style={{ gap: 10 }}>
             <Button
-              label="Create a game for this booking"
+              label={m.mobileBooking.booked.createGame}
               size="lg"
               variant="inverse"
               onPress={() => router.replace(bookingGamePath(bookingId))}
             />
             <Button
-              label="Not now"
+              label={m.mobileBooking.booked.notNow}
               size="lg"
               variant="outline-inverse"
               onPress={() => router.dismissTo("/book")}
             />
             <Text size="meta" tone="muted" style={{ textAlign: "center" }}>
-              You can do this later from your booking.
+              {m.mobileBooking.booked.doLater}
             </Text>
           </View>
         ) : (
           <View style={{ gap: 10 }}>
             <Button
-              label="View booking"
+              label={m.mobileBooking.booked.viewBooking}
               size="lg"
               variant="inverse"
               onPress={() => router.replace(bookingPath(bookingId))}
             />
             <Button
-              label="Done"
+              label={m.common.done}
               size="lg"
               variant="outline-inverse"
               onPress={() => router.dismissTo("/book")}
@@ -104,17 +106,19 @@ export function BookedScreen({ bookingId }: { bookingId: string }) {
 function Confirmation({ booking }: { booking: Booking }) {
   const now = useNow();
   const palette = useTonePalette();
-  const price = formatBookingPriceFils(booking.priceFils);
+  const m = useMessages();
+  const locale = useLocale();
+  const price = formatBookingPriceFils(booking.priceFils, locale);
   const paid = booking.paymentStatus === "paid";
 
   return (
     <View style={{ gap: spacing.section }}>
       <View style={{ gap: 14 }} accessibilityLiveRegion="polite">
         <Text size="eyebrow" mono uppercase tone="muted">
-          {`Booked, ref ${bookingRef(booking.id)}`}
+          {m.mobileBooking.booked.ref(bookingRef(booking.id))}
         </Text>
         <Text size="display" width="expanded" accessibilityRole="header">
-          {bookedHeadline(booking.court.name, booking.startsAt, now)}
+          {bookedHeadline(booking.court.name, booking.startsAt, now, locale)}
         </Text>
         <View
           style={{
@@ -125,14 +129,19 @@ function Confirmation({ booking }: { booking: Booking }) {
           }}
         >
           <Text size="h1" width="expanded">
-            {formatGameClock(booking.startsAt)}
+            {formatGameClock(booking.startsAt, locale)}
           </Text>
           <Text tone="muted" style={{ flexShrink: 1 }}>
-            {`to ${formatGameClock(booking.endsAt)}, ${booking.venue.name}`}
+            {m.mobileBooking.booked.toClockAt(
+              formatGameClock(booking.endsAt, locale),
+              booking.venue.name,
+            )}
           </Text>
         </View>
         <Text size="meta" tone="muted">
-          {paid ? `${price} paid.` : `${price} to pay at the venue.`}
+          {paid
+            ? m.mobileBooking.booked.pricePaid(price)
+            : m.mobileBooking.booked.priceToPayAtVenue(price)}
         </Text>
       </View>
       <View
@@ -144,14 +153,14 @@ function Confirmation({ booking }: { booking: Booking }) {
         }}
       >
         <Text size="title" weight="bold" width="expanded">
-          Cancellation
+          {m.mobileBooking.cancellation}
         </Text>
         <Text size="meta" tone="muted">
           {booking.cancel.nextStep?.text ??
             booking.cancellationPolicyLines.join(". ")}
         </Text>
         <Text size="meta" tone="muted">
-          You can find this booking any time under Book.
+          {m.mobileBooking.booked.findUnderBook}
         </Text>
       </View>
       {booking.canCreateGame ? (
@@ -164,10 +173,10 @@ function Confirmation({ booking }: { booking: Booking }) {
           }}
         >
           <Text size="title" weight="bold" width="expanded">
-            Who is playing?
+            {m.mobileBooking.booked.whoIsPlaying}
           </Text>
           <Text size="meta" tone="muted">
-            {bookingGameBlurb(booking.court.sport)}
+            {bookingGameBlurb(booking.court.sport, locale)}
           </Text>
         </View>
       ) : null}

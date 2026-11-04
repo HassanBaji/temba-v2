@@ -3,6 +3,7 @@ import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import type { InviteSide } from "@repo/domain/invites";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
@@ -22,10 +23,24 @@ export function SeatChoice({
   pending: boolean;
   onPick: (sideIndex: number, position: Position) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const seatLabel = {
+    left: m.game.partner.leftSeat,
+    right: m.game.partner.rightSeat,
+  };
+  const sitLabel = {
+    left: m.mobileCommunity.seatChoice.sitLeft,
+    right: m.mobileCommunity.seatChoice.sitRight,
+  };
   return (
     <View>
       {sides.map((side, index) => {
-        const label = formatGameSideLabel("friendly_game", side.sideIndex);
+        const label = formatGameSideLabel(
+          "friendly_game",
+          side.sideIndex,
+          locale,
+        );
         return (
           <View key={side.sideIndex}>
             {index > 0 ? <Hairline /> : null}
@@ -42,7 +57,11 @@ export function SeatChoice({
                       <View
                         key={position}
                         accessible
-                        accessibilityLabel={`${label} ${position} seat, ${occupant.name}`}
+                        accessibilityLabel={m.mobileCommunity.seatChoice.occupiedA11y(
+                          label,
+                          seatLabel[position],
+                          occupant.name,
+                        )}
                         style={{ minHeight: 44, justifyContent: "center" }}
                       >
                         <Text numberOfLines={1}>{occupant.name}</Text>
@@ -52,11 +71,12 @@ export function SeatChoice({
                   return (
                     <View key={position} style={{ flexDirection: "row" }}>
                       <Button
-                        label={position === "left" ? "Sit left" : "Sit right"}
+                        label={sitLabel[position]}
                         accessibilityLabel={sideJoinAccessibleName(
                           side.sideIndex,
                           position,
                           other?.name ?? null,
+                          locale,
                         )}
                         variant="outline"
                         disabled={!canPick || pending}

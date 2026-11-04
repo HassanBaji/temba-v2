@@ -1,0 +1,229 @@
+import { plural } from "../../plural";
+import type { mobileGroup as source } from "../en/mobile-group";
+
+export const mobileGroup = {
+  unnamedMember: "عضو",
+  unnamedUser: "مستخدم",
+  theVenue: "النادي",
+  photoFallbackName: "مجموعة",
+  opensPlayerProfile: "يفتح ملف اللاعب",
+  copyFailed: "تعذّر النسخ",
+  imageUnreadable: "تعذّرت قراءة هذه الصورة. جرّب صورة أخرى.",
+  loadFailed: {
+    groups: "تعذّر تحميل المجموعات",
+    publicGroups: "تعذّر تحميل المجموعات العامة",
+    group: "تعذّر تحميل المجموعة",
+    standing: "تعذّر تحميل الترتيب",
+    level: "تعذّر تحميل المستوى",
+    moreGames: "تعذّر تحميل مزيد من المباريات.",
+  },
+  list: {
+    tabs: { mine: "مجموعاتي", public: "عامة" },
+    loading: "جارٍ تحميل المجموعات",
+    nextGame: "المباراة القادمة",
+    yourFormHere: "أداؤك الأخير هنا",
+    filterBySport: "تصفية حسب الرياضة",
+    rowNextGame: (name: string, meta: string, weekday: string) =>
+      `${name}، ${meta}، المباراة القادمة ${weekday}`,
+    rowNoGame: (name: string, meta: string) =>
+      `${name}، ${meta}، لا مباراة مجدولة`,
+    empty: {
+      standing: "الترتيب",
+      browsePublic: "تصفّح المجموعات العامة",
+      publicGroups: "المجموعات العامة",
+      noneOpen: "لا شيء مفتوح",
+    },
+  },
+  home: {
+    tabs: { standing: "الترتيب", games: "المباريات", members: "الأعضاء" },
+    notFound: {
+      title: "المجموعة غير موجودة",
+      description: "ربما أُزيلت، أو ليس لديك صلاحية الوصول.",
+    },
+    declineVenueRequest: (venue: string) => `رفض طلب ${venue}`,
+    reviewVenueRequest: (venue: string) => `مراجعة طلب ${venue}`,
+  },
+  standing: {
+    columns: {
+      position: "#",
+      player: "اللاعب",
+      played: "ل",
+      wins: "ف",
+      draws: "ت",
+      losses: "خ",
+      points: "نقاط",
+    },
+    unranked: "غير مرتّب",
+    nameNotOnTemba: (name: string) => `${name}، ليس على Temba بعد`,
+    rankedRow: (
+      position: number,
+      name: string,
+      played: number,
+      record: string,
+      points: number,
+    ) =>
+      `${position}. ${name}. لعب ${played}، ${record} فوز تعادل خسارة، ${plural(
+        "ar",
+        points,
+        {
+          one: "نقطة واحدة",
+          two: "نقطتان",
+          few: "{n} نقاط",
+          many: "{n} نقطة",
+          other: "{n} نقطة",
+        },
+      )}.`,
+    unrankedRow: (
+      name: string,
+      played: number,
+      record: string,
+      points: number,
+    ) =>
+      `غير مرتّب. ${name}. لعب ${played}، ${record} فوز تعادل خسارة، ${plural(
+        "ar",
+        points,
+        {
+          one: "نقطة واحدة",
+          two: "نقطتان",
+          few: "{n} نقاط",
+          many: "{n} نقطة",
+          other: "{n} نقطة",
+        },
+      )}.`,
+    stats: { gamesPlayed: "مباريات ملعوبة", awaitingScore: "بانتظار النتيجة" },
+    statLabel: (value: number, label: string) => `${value} ${label}`,
+    notMember: {
+      title: "انضم لترى ترتيبك",
+      description: "انضم إلى هذه المجموعة لتحصل على ترتيب بين أعضائها.",
+    },
+    noResultsTitle: "يظهر الترتيب بعد أول نتيجة",
+    podium: "المراكز الثلاثة الأولى النهائية",
+    pointsSuffix: " نقطة",
+    final: "نهائي",
+    seasonProgress: "تقدّم الموسم",
+    openSeat: "مكان شاغر",
+    invite: "دعوة",
+    createFirstGame: "أنشئ المباراة الأولى",
+  },
+  games: {
+    emptyTitle: "لا مباريات بعد",
+    nextGame: "المباراة القادمة",
+    notScheduled: "غير مجدولة",
+    when: "متى",
+    where: "أين",
+    cancelled: "أُلغيت",
+    enter: "إدخال",
+    noScoreYet: "لا نتيجة بعد، أدخلها",
+    scheduled: "مجدولة",
+    played: "سابقة",
+    scheduledEmpty: "لا مباريات قادمة مجدولة لهذه المجموعة.",
+    playedEmpty: "لا سجل مباريات بعد.",
+    loadMore: "تحميل المزيد",
+    row: (mark: string, title: string, subtitle: string, trailing: string) =>
+      `${mark}. ${title}. ${subtitle}. ${trailing}`,
+  },
+  members: {
+    empty: {
+      title: "لا أعضاء بعد",
+      description: "من ينضم إلى هذه المجموعة يظهر هنا.",
+    },
+    youMark: "أنت",
+    manage: "إدارة",
+    manageName: (name: string) => `إدارة ${name}`,
+    columnMember: "العضو",
+    columnLevel: "المستوى",
+    searchPlaceholder: "ابحث في الأعضاء",
+    pendingInvites: (title: string, names: string) => `${title}. ${names}`,
+    rowYou: (name: string) => `${name}، أنت`,
+    levelSpoken: (label: string) => `المستوى ${label}`,
+    levelSpokenProvisional: (label: string) =>
+      `المستوى ${label}، ما زال مبدئيًا`,
+    levelStillProvisional: "المستوى ما زال مبدئيًا",
+    noLevelYet: "لا مستوى بعد",
+    ratedMatches: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات مصنّفة",
+        one: "مباراة مصنّفة واحدة",
+        two: "مباراتان مصنّفتان",
+        few: "{n} مباريات مصنّفة",
+        many: "{n} مباراة مصنّفة",
+        other: "{n} مباراة مصنّفة",
+      }),
+    provisionalNote: (firstName: string) =>
+      `هذا المستوى ما زال مبدئيًا. حدّده يدويًا إن كنت تعرف أن ${firstName} يلعب بمستوى مختلف.`,
+    latestSetWithReason: (caption: string, reason: string) =>
+      `${caption}. ${reason}`,
+    latestSet: (text: string) => `آخر تحديد للمستوى: ${text}`,
+    sheet: {
+      viewProfile: "عرض الملف",
+      setLevel: "تحديد المستوى",
+      stillProvisional: "ما زال مبدئيًا",
+      noLevelMark: "–",
+    },
+  },
+  requests: {
+    review: "مراجعة طلبات الانضمام",
+    changeWhoCanJoin: "تغيير من يمكنه الانضمام",
+    row: (name: string, meta: string) => `${name}. ${meta}`,
+    quotedNote: (note: string) => `«${note}»`,
+    approve: "موافقة",
+    approveName: (name: string) => `الموافقة على ${name}`,
+    reject: "رفض",
+    rejectName: (name: string) => `رفض ${name}`,
+    pending: (label: string) => `${label}…`,
+  },
+  edit: {
+    notFound: {
+      title: "المجموعة غير موجودة",
+      description: "ربما حُذفت، أو ليس بإمكانك تعديلها.",
+    },
+    forbidden: {
+      title: "المالك وحده يمكنه تعديل هذه المجموعة",
+      description: "اطلب من مالك المجموعة تغيير إعداداتها.",
+    },
+  },
+  form: {
+    changePhoto: "تغيير الصورة",
+    addPhoto: "إضافة صورة",
+    nameCounter: (count: number, max: number) =>
+      plural("ar", max, {
+        one: `${count} من حرف واحد`,
+        two: `${count} من حرفين`,
+        few: `${count} من {n} أحرف`,
+        many: `${count} من {n} حرفًا`,
+        other: `${count} من {n} حرف`,
+      }),
+    sportChoice: (sport: string, sublabel: string) => `${sport}، ${sublabel}`,
+    lockedSport: (sport: string, help: string) => `الرياضة ${sport}. ${help}`,
+    sportNotSet: "غير محددة",
+    radio: (title: string, description: string) => `${title}، ${description}`,
+  },
+  setLevel: {
+    notFound: {
+      title: "العضو غير موجود",
+      description: "ربما غادر المجموعة، أو ليس بإمكانك تحديد مستواه.",
+    },
+    title: (name: string) => `تحديد مستوى ${name}`,
+    newLevel: "المستوى الجديد",
+    readout: (band: string, level: string, delta: string) =>
+      `المستوى الجديد ${band} ${level}، ${delta}`,
+    toNext: (distance: string, label: string) => `${distance} حتى ${label}`,
+    topOfScale: "أعلى المقياس",
+    throughRung: (percent: number, rung: string) => `${percent}% من ${rung}`,
+    nowMarker: (label: string) => `الآن ${label}`,
+    decrease: "خفض المستوى بمقدار 0.1",
+    increase: "رفع المستوى بمقدار 0.1",
+    reset: "إعادة ضبط",
+    reason: "السبب",
+    note: "المستوى الذي تحدده يُعدّ مؤكدًا. تواصل المباريات المصنّفة تحريكه من هنا.",
+    noteProvisional: (firstName: string) =>
+      `لن يعود ${firstName} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
+    was: (label: string) => `كان ${label}`,
+    noLevelYet: "لا مستوى بعد",
+    confirm: (label: string) => `تحديد على ${label}`,
+    savedHeadline: (name: string, label: string) =>
+      `حُدد مستوى ${name} على ${label}.`,
+    savedReason: (reason: string) => `السبب: ${reason}.`,
+    dismiss: "إغلاق",
+  },
+} satisfies typeof source;

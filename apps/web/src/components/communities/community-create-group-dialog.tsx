@@ -29,9 +29,10 @@ import { clubGroupSportChoice } from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { entityImageFileError } from "@repo/domain/entity-image-file";
 import {
-  GROUP_CREATE_COPY,
+  groupCreateCopy,
   type GroupCreateType,
 } from "@repo/domain/group-create";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -43,8 +44,6 @@ type CreateError = {
   data?: { zodError?: unknown } | null;
 } | null;
 
-const COPY = GROUP_CREATE_COPY.club;
-
 const FIELD_IDS = {
   name: "club-group-name",
   type: "club-group-type",
@@ -53,10 +52,7 @@ const FIELD_IDS = {
   image: "club-group-image",
 };
 
-const TYPE_OPTIONS: { value: GroupCreateType; label: string }[] = [
-  { value: "public", label: "Public" },
-  { value: "private", label: "Private" },
-];
+const TYPE_OPTIONS: GroupCreateType[] = ["public", "private"];
 
 function ClubGroupForm({
   communitySports,
@@ -76,6 +72,9 @@ function ClubGroupForm({
   ) => void;
   onCreatePrivate: (name: string, sport: Sport, image: File | null) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = groupCreateCopy("club", locale);
   const sportChoice = clubGroupSportChoice(communitySports);
   const [sport, setSport] = React.useState<Sport>(sportChoice.defaultSport);
   const summaryRef = React.useRef<HTMLDivElement>(null);
@@ -119,7 +118,7 @@ function ClubGroupForm({
       return;
     }
     if (image) {
-      const pickedError = entityImageFileError(image);
+      const pickedError = entityImageFileError(image, locale);
       if (pickedError) {
         setImageError(pickedError);
         return;
@@ -140,7 +139,9 @@ function ClubGroupForm({
       />
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor={FIELD_IDS.name}>Name</FieldLabel>
+          <FieldLabel htmlFor={FIELD_IDS.name}>
+            {m.webGroup.createClubGroup.nameLabel}
+          </FieldLabel>
           <Input
             id={FIELD_IDS.name}
             value={name}
@@ -155,7 +156,9 @@ function ClubGroupForm({
 
         {sportChoice.showPicker ? (
           <Field>
-            <FieldTitle id={`${FIELD_IDS.sport}-label`}>Sport</FieldTitle>
+            <FieldTitle id={`${FIELD_IDS.sport}-label`}>
+              {m.group.create.screen.sportLabel}
+            </FieldTitle>
             <SportPicker
               id={FIELD_IDS.sport}
               labelledBy={`${FIELD_IDS.sport}-label`}
@@ -168,7 +171,9 @@ function ClubGroupForm({
         ) : null}
 
         <Field>
-          <FieldTitle id={`${FIELD_IDS.type}-label`}>Type</FieldTitle>
+          <FieldTitle id={`${FIELD_IDS.type}-label`}>
+            {m.webGroup.createClubGroup.typeLabel}
+          </FieldTitle>
           <RovingRadioGroup
             id={FIELD_IDS.type}
             aria-labelledby={`${FIELD_IDS.type}-label`}
@@ -177,18 +182,18 @@ function ClubGroupForm({
           >
             {TYPE_OPTIONS.map((option) => (
               <ChoiceChip
-                key={option.value}
+                key={option}
                 role="radio"
-                selected={type === option.value}
+                selected={type === option}
                 disabled={pending}
-                onClick={() => chooseType(option.value)}
+                onClick={() => chooseType(option)}
               >
-                {option.label}
+                {m.community.type[option]}
               </ChoiceChip>
             ))}
           </RovingRadioGroup>
           <FieldDescription id={`${FIELD_IDS.type}-description`}>
-            {type === "private" ? COPY.privateHelp : COPY.publicHelp}
+            {type === "private" ? copy.privateHelp : copy.publicHelp}
           </FieldDescription>
         </Field>
 
@@ -203,10 +208,10 @@ function ClubGroupForm({
                 }
               />
               <FieldLabel htmlFor={FIELD_IDS.approval}>
-                Require approval
+                {m.group.admin.requireApproval}
               </FieldLabel>
             </div>
-            <FieldDescription>{COPY.approvalHelp}</FieldDescription>
+            <FieldDescription>{copy.approvalHelp}</FieldDescription>
           </Field>
         ) : null}
 
@@ -223,10 +228,10 @@ function ClubGroupForm({
       <Button
         type="submit"
         pending={pending}
-        pendingLabel="Creating…"
+        pendingLabel={m.webGroup.creating}
         className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
       >
-        {COPY.submit}
+        {copy.submit}
       </Button>
     </form>
   );
@@ -254,13 +259,16 @@ export function CommunityCreateGroupDialog({
   ) => void;
   onCreatePrivate: (name: string, sport: Sport, image: File | null) => void;
 }) {
+  const m = useMessages();
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Create Club Group</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            {m.community.action.createClubGroup}
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            A Group inside this Community.
+            {m.community.createClubGroupDescription}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 

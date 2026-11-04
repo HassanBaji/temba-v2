@@ -1,7 +1,5 @@
 "use client";
 
-import { RENAME_UNCLAIMED_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
-import { KICK_ACTION } from "@repo/domain/game-copy";
 import type { PlayedRow } from "@repo/domain/played-game";
 import type { Sport } from "@repo/domain/sport";
 import Link from "next/link";
@@ -14,6 +12,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useMessages } from "~/components/locale-provider";
 import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
@@ -41,17 +40,18 @@ export function PlayedPlayerDialog({
   onKick: (userId: string) => void;
   onRename: (player: { userId: string; name: string }) => void;
 }) {
+  const m = useMessages();
   const meta = player
-    ? [player.meta, `Level ${player.level}`, player.trailing]
+    ? [player.meta, m.level.prose(player.level), player.trailing]
         .filter(Boolean)
-        .join(", ")
+        .join(m.tournament.listSeparator)
     : "";
   return (
     <ResponsiveDialog open={player != null} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="sm:max-w-[420px]">
         {player ? (
           <>
-            <ResponsiveDialogHeader className="flex-row items-center gap-3 text-left">
+            <ResponsiveDialogHeader className="flex-row items-center gap-3 text-start">
               <UserAvatar
                 name={player.fullName}
                 image={player.image}
@@ -78,28 +78,31 @@ export function PlayedPlayerDialog({
               {canOpenProfile ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId, sport)}>
-                    View profile
+                    {m.webGame.played.viewProfile}
                   </Link>
                 </Button>
               ) : null}
               {canRename && player.unclaimed ? (
                 <Button
                   variant="outline"
-                  aria-label={`${RENAME_UNCLAIMED_PLAYER_ACTION}: ${player.fullName}`}
+                  aria-label={m.webGame.lineup.renameFor(
+                    m.group.addPlayer.renameAction,
+                    player.fullName,
+                  )}
                   onClick={() =>
                     onRename({ userId: player.userId, name: player.fullName })
                   }
                 >
-                  {RENAME_UNCLAIMED_PLAYER_ACTION}
+                  {m.group.addPlayer.renameAction}
                 </Button>
               ) : null}
               {canKick ? (
                 <Button
                   variant="outline"
-                  aria-label={`${KICK_ACTION} ${player.fullName}`}
+                  aria-label={m.webGame.lineup.kickName(player.fullName)}
                   onClick={() => onKick(player.userId)}
                 >
-                  {KICK_ACTION}
+                  {m.game.action.kick}
                 </Button>
               ) : null}
             </div>

@@ -14,6 +14,7 @@ import {
   VenueField,
   type CreateVenue,
 } from "~/app/dashboard/games/new/_parts/venue-field";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
 import { RoundCountField } from "~/components/games/round-count-field";
@@ -24,12 +25,8 @@ import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { SelectCard } from "~/components/ui/select-card";
 import {
   CREATE_FLOW_MATCH_MINUTE_CHIPS,
-  CREATE_FLOW_PRICE_CHIPS,
-  FRIENDLY_TOURNAMENT_UNEVEN_GROUPS,
-  KNOCKOUT_ONLY_FORMAT_LABEL,
-  KNOCKOUT_REVIEW_LABEL,
-  TOURNAMENT_FORMAT_LABEL,
-  TOURNAMENT_SHAPE_OPTIONS,
+  createFlowPriceChips,
+  tournamentShapeOptions,
   applyLevelBoundChange,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
@@ -44,46 +41,30 @@ import {
   type CreateTournamentShape,
 } from "@repo/domain/create-game-flow";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
+import { unratedGroupLine } from "@repo/domain/game-rating-impact";
 import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
-import {
-  LEVEL_RANGE_FIELD_DESCRIPTION,
-  type LevelBandSelectValue,
-} from "@repo/domain/level-range";
-import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
-import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_NO,
-  COUNTS_FOR_RATING_YES,
-} from "@repo/domain/tournament-home";
+import { type LevelBandSelectValue } from "@repo/domain/level-range";
 import {
   groupsThenKnockoutReviewValue,
   knockoutOnlyReviewValue,
   qualifierUnit,
   qualifiersConsequenceLine,
-  THROUGH_FROM_EACH_GROUP_LABEL,
+  throughFromEachGroupLabel,
 } from "@repo/domain/tournament-knockout";
 import {
   friendlyTournamentPlan,
   friendlyTournamentScheduleFor,
 } from "@repo/domain/create-game-submit";
 import {
-  ALONE_OR_WITH_A_PARTNER_LABEL,
-  ANYONE_WITH_THE_LINK_LABEL,
-  HOW_PEOPLE_JOIN_LABEL,
-  ONE_DAY_OVERRUN_MESSAGE,
   playersInPairsLine,
   poolCountOptions,
   reviewRoundsValue,
-  ROUNDS_LABEL,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
-  WHO_CAN_TAKE_A_SEAT_LABEL,
-  WITH_A_PARTNER_ONLY_LABEL,
 } from "@repo/domain/tournament-sizing";
 import { cn } from "~/lib/utils";
 
@@ -221,6 +202,10 @@ export function FriendlyTournamentSteps({
   groupName: string;
   groupVerified: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const c = m.webDashboard.createGame;
+  const sizingCopy = m.tournament.sizing;
   const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
     string | null
   >(null);
@@ -261,7 +246,7 @@ export function FriendlyTournamentSteps({
   const poolOptions = poolCountOptions(teamCount);
   const poolMin = poolOptions[0] ?? 1;
   const poolMax = poolOptions[poolOptions.length - 1] ?? poolMin;
-  const parsedMinutes = parseCreateMatchMinutes(matchMinutes);
+  const parsedMinutes = parseCreateMatchMinutes(matchMinutes, locale);
   const schedule = friendlyTournamentScheduleFor({
     plan,
     day,
@@ -270,12 +255,13 @@ export function FriendlyTournamentSteps({
     matchMinutes,
     courtCount: courtIds.length,
     now,
-    clock: formatGameClock,
+    clock: (date) => formatGameClock(date, locale),
+    locale,
   });
   const selectedCourtNames = courts
     .filter((court) => courtIds.includes(court.id))
     .map((court) => court.name);
-  const teamPrice = gameTeamOfTwoCopy(price);
+  const teamPrice = gameTeamOfTwoCopy(price, locale);
 
   function selectDay(next: string) {
     onDay(next);
@@ -321,8 +307,8 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-court-label"
-              title="Courts"
-              meta="Optional"
+              title={c.courts}
+              meta={m.common.optional}
             />
             <div
               id="game-court"
@@ -333,9 +319,7 @@ export function FriendlyTournamentSteps({
             >
               {courts.length === 0 ? (
                 <p className="text-muted-foreground text-body">
-                  {selectedVenue
-                    ? "This Venue has no Courts to record."
-                    : "Pick a Venue to choose Courts."}
+                  {selectedVenue ? c.noCourtsToRecord : c.pickVenueForCourts}
                 </p>
               ) : (
                 <>
@@ -361,7 +345,7 @@ export function FriendlyTournamentSteps({
                         setCourtsExpandedVenueId(venueId);
                       }}
                     >
-                      All {courts.length} courts
+                      {c.allCourts(courts.length)}
                     </ChoiceChip>
                   ) : null}
                 </>
@@ -372,20 +356,20 @@ export function FriendlyTournamentSteps({
 
           <StepperField
             id="tournament-team-count"
-            label="Game teams"
+            label={c.gameTeams}
             labelClassName={STEPPER_LABEL}
             value={teamCount}
-            unit="Game teams"
+            unit={c.gameTeams}
             min={TOURNAMENT_TEAM_MIN}
             max={TOURNAMENT_TEAM_MAX}
             step={TOURNAMENT_TEAM_STEP}
             onChange={onTeamCount}
-            decreaseLabel="Fewer Game teams"
-            increaseLabel="More Game teams"
+            decreaseLabel={c.fewerGameTeams}
+            increaseLabel={c.moreGameTeams}
             error={teamCountError}
             description={
               <p className="text-muted-foreground text-meta">
-                {playersInPairsLine(teamCount)}
+                {playersInPairsLine(teamCount, locale)}
               </p>
             }
           />
@@ -397,7 +381,7 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-shape-label"
-              title={TOURNAMENT_FORMAT_LABEL}
+              title={m.createGame.tournamentFormat}
             />
             <RovingRadioGroup
               id="tournament-shape"
@@ -405,7 +389,7 @@ export function FriendlyTournamentSteps({
               tabIndex={-1}
               className="border-rule rounded-card flex flex-col overflow-hidden border outline-none"
             >
-              {TOURNAMENT_SHAPE_OPTIONS.map((option) => (
+              {tournamentShapeOptions(locale).map((option) => (
                 <SelectCard
                   key={option.id}
                   role="radio"
@@ -425,26 +409,26 @@ export function FriendlyTournamentSteps({
           {knockoutOnly ? null : (
             <StepperField
               id="tournament-pool-count"
-              label="Groups"
+              label={c.groups}
               labelClassName={STEPPER_LABEL}
               value={poolCount}
-              unit={poolCount === 1 ? "group" : "groups"}
+              unit={c.groupUnit(poolCount)}
               min={poolMin}
               max={poolMax}
               step={1}
               onChange={onPoolCount}
-              decreaseLabel="Fewer groups"
-              increaseLabel="More groups"
+              decreaseLabel={c.fewerGroups}
+              increaseLabel={c.moreGroups}
               error={poolCountError}
               description={
                 sizing ? (
                   <div className="flex flex-col gap-1">
                     <p className="text-muted-foreground text-meta">
-                      {friendlyTournamentGroupsLine(sizing)}
+                      {friendlyTournamentGroupsLine(sizing, locale)}
                     </p>
                     {sizing.uneven ? (
                       <p className="text-muted-foreground text-meta">
-                        {FRIENDLY_TOURNAMENT_UNEVEN_GROUPS}
+                        {m.createGame.unevenGroups}
                       </p>
                     ) : null}
                   </div>
@@ -467,21 +451,21 @@ export function FriendlyTournamentSteps({
           {qualifiersRange ? (
             <StepperField
               id="tournament-qualifiers-per-pool"
-              label={THROUGH_FROM_EACH_GROUP_LABEL}
+              label={throughFromEachGroupLabel(locale)}
               labelClassName={STEPPER_LABEL}
               value={qualifiersPerPool}
-              unit={qualifierUnit(qualifiersPerPool)}
+              unit={qualifierUnit(qualifiersPerPool, locale)}
               min={qualifiersRange.min}
               max={qualifiersRange.max}
               step={1}
               onChange={onQualifiersPerPool}
-              decreaseLabel="Fewer teams through"
-              increaseLabel="More teams through"
+              decreaseLabel={c.fewerTeamsThrough}
+              increaseLabel={c.moreTeamsThrough}
               error={qualifiersPerPoolError}
               description={
                 poolKnockoutTree ? (
                   <p className="text-muted-foreground text-meta">
-                    {qualifiersConsequenceLine(poolKnockoutTree)}
+                    {qualifiersConsequenceLine(poolKnockoutTree, locale)}
                   </p>
                 ) : null
               }
@@ -498,8 +482,8 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-window-start-label"
-              title="Start time"
-              meta="30 minute steps"
+              title={c.startTime}
+              meta={c.halfHourSteps}
             />
             <div id="game-window-start" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
@@ -529,7 +513,7 @@ export function FriendlyTournamentSteps({
                         }
                       }}
                     >
-                      {formatTimeSlotLabel(slot)}
+                      {formatTimeSlotLabel(slot, locale)}
                     </ChoiceChip>
                   ))}
                 </RovingRadioGroup>
@@ -540,14 +524,14 @@ export function FriendlyTournamentSteps({
                       setStartExpanded((open) => !open);
                     }}
                   >
-                    {startExpanded ? "Less" : "More"}
+                    {startExpanded ? m.common.less : m.common.more}
                   </ChoiceChip>
                 ) : null}
               </div>
             </div>
             {startSlots.length === 0 ? (
               <p className="text-muted-foreground text-body">
-                No upcoming times for this day.
+                {c.noUpcomingTimes}
               </p>
             ) : null}
             <FieldError id="game-window-start-error">{startError}</FieldError>
@@ -556,8 +540,10 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-window-finish-label"
-              title="Finish"
-              meta={finishTime ? formatTimeSlotLabel(finishTime) : undefined}
+              title={c.finish}
+              meta={
+                finishTime ? formatTimeSlotLabel(finishTime, locale) : undefined
+              }
             />
             <div id="game-window-finish" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
@@ -579,7 +565,7 @@ export function FriendlyTournamentSteps({
                         onFinishTime(slot);
                       }}
                     >
-                      {formatTimeSlotLabel(slot)}
+                      {formatTimeSlotLabel(slot, locale)}
                     </ChoiceChip>
                   ))}
                 </RovingRadioGroup>
@@ -592,14 +578,14 @@ export function FriendlyTournamentSteps({
                       setFinishExpanded((open) => !open);
                     }}
                   >
-                    {finishExpanded ? "Less" : "More"}
+                    {finishExpanded ? m.common.less : m.common.more}
                   </ChoiceChip>
                 ) : null}
               </div>
             </div>
             {!startTime ? (
               <p className="text-muted-foreground text-body">
-                Pick a start time first.
+                {c.pickStartFirst}
               </p>
             ) : null}
             <FieldError id="game-window-finish-error">{finishError}</FieldError>
@@ -608,8 +594,8 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-match-minutes-label"
-              title="Game length"
-              meta="Required"
+              title={c.gameLength}
+              meta={m.common.required}
             />
             <RovingRadioGroup
               aria-labelledby="tournament-match-minutes-label"
@@ -627,7 +613,7 @@ export function FriendlyTournamentSteps({
                       onMatchMinutes(String(minutes));
                     }}
                   >
-                    {minutes} min
+                    {c.minutes(minutes)}
                   </ChoiceChip>
                 );
               })}
@@ -640,7 +626,7 @@ export function FriendlyTournamentSteps({
               max={120}
               step={5}
               value={matchMinutes}
-              aria-label="Custom minutes"
+              aria-label={c.customMinutes}
               aria-invalid={matchMinutesError ? true : undefined}
               aria-describedby={
                 matchMinutesError
@@ -652,7 +638,7 @@ export function FriendlyTournamentSteps({
               }}
             />
             <FieldDescription id="tournament-match-minutes-copy">
-              10 to 120 minutes, in steps of 5.
+              {c.matchMinutesCopy}
             </FieldDescription>
             <FieldError id="tournament-match-minutes-error">
               {matchMinutesError}
@@ -671,7 +657,7 @@ export function FriendlyTournamentSteps({
                     schedule.line && "mt-2",
                   )}
                 >
-                  {ONE_DAY_OVERRUN_MESSAGE}
+                  {sizingCopy.oneDayOverrun}
                 </p>
               ) : null}
             </div>
@@ -684,8 +670,8 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-name-label"
-              title="Name"
-              meta="Required"
+              title={c.name}
+              meta={m.common.required}
             />
             <Input
               id="tournament-name"
@@ -703,8 +689,8 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-entry-label"
-              title="Who can enter"
-              meta="Optional"
+              title={c.whoCanEnter}
+              meta={m.common.optional}
             />
             <RovingRadioGroup
               aria-labelledby="tournament-entry-label"
@@ -717,7 +703,7 @@ export function FriendlyTournamentSteps({
                   onEntryMode("anyone");
                 }}
               >
-                Anyone
+                {c.anyone}
               </ChoiceChip>
               <ChoiceChip
                 role="radio"
@@ -726,14 +712,14 @@ export function FriendlyTournamentSteps({
                   onEntryMode("range");
                 }}
               >
-                Set a Level range
+                {c.setLevelRange}
               </ChoiceChip>
             </RovingRadioGroup>
             {showLevelRange ? (
               <>
                 <LevelBandRow
                   id="game-level-min"
-                  label="Minimum Level"
+                  label={c.minimumLevel}
                   bound="min"
                   value={levelMin}
                   other={levelMax}
@@ -758,7 +744,7 @@ export function FriendlyTournamentSteps({
                 </FieldError>
                 <LevelBandRow
                   id="game-level-max"
-                  label="Maximum Level"
+                  label={c.maximumLevel}
                   bound="max"
                   value={levelMax}
                   other={levelMin}
@@ -779,7 +765,7 @@ export function FriendlyTournamentSteps({
                   }}
                 />
                 <FieldDescription id="game-level-range-copy">
-                  {LEVEL_RANGE_FIELD_DESCRIPTION}
+                  {m.level.rangeFieldDescription}
                 </FieldDescription>
                 <FieldError id="game-level-max-error">
                   {levelMaxError}
@@ -791,8 +777,8 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-price-label"
-              title="Price per player"
-              meta="Optional"
+              title={c.pricePerPlayer}
+              meta={m.common.optional}
             />
             <PricePerPlayerAmountInput
               id="game-price-per-player"
@@ -810,7 +796,7 @@ export function FriendlyTournamentSteps({
               }
             />
             <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-              {CREATE_FLOW_PRICE_CHIPS.map((chip) => {
+              {createFlowPriceChips(locale).map((chip) => {
                 const selected = priceChipIsSelected(chip.value, price);
                 return (
                   <ChoiceChip
@@ -827,7 +813,7 @@ export function FriendlyTournamentSteps({
               })}
             </div>
             <FieldDescription id="game-price-per-player-copy">
-              {PRICE_PER_PLAYER_FIELD_DESCRIPTION}
+              {m.createGame.price.fieldDescription}
               {teamPrice ? ` ${teamPrice}` : ""}
             </FieldDescription>
             <FieldError id="game-price-per-player-error">
@@ -838,7 +824,7 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-public-label"
-              title={WHO_CAN_TAKE_A_SEAT_LABEL}
+              title={sizingCopy.whoCanTakeASeat}
             />
             <RovingRadioGroup
               aria-labelledby="tournament-public-label"
@@ -861,13 +847,13 @@ export function FriendlyTournamentSteps({
                     onIsPublic(true);
                   }}
                 >
-                  {ANYONE_WITH_THE_LINK_LABEL}
+                  {sizingCopy.anyoneWithTheLink}
                 </ChoiceChip>
               ) : null}
             </RovingRadioGroup>
             {groupVerified ? null : (
               <FieldDescription id="tournament-unrated-copy">
-                {UNRATED_GROUP_LINE}
+                {unratedGroupLine(locale)}
               </FieldDescription>
             )}
           </section>
@@ -875,7 +861,7 @@ export function FriendlyTournamentSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-join-label"
-              title={HOW_PEOPLE_JOIN_LABEL}
+              title={sizingCopy.howPeopleJoin}
             />
             <RovingRadioGroup
               aria-labelledby="tournament-join-label"
@@ -888,7 +874,7 @@ export function FriendlyTournamentSteps({
                   onAllowSoloRegister(true);
                 }}
               >
-                {ALONE_OR_WITH_A_PARTNER_LABEL}
+                {sizingCopy.aloneOrWithPartner}
               </ChoiceChip>
               <ChoiceChip
                 role="radio"
@@ -897,64 +883,71 @@ export function FriendlyTournamentSteps({
                   onAllowSoloRegister(false);
                 }}
               >
-                {WITH_A_PARTNER_ONLY_LABEL}
+                {sizingCopy.withPartnerOnly}
               </ChoiceChip>
             </RovingRadioGroup>
           </section>
 
           <div className="border-rule rounded-card overflow-hidden border">
-            <ReviewRow label="Group" value={groupName} />
-            <ReviewRow label="Venue" value={selectedVenue?.name ?? "Venue"} />
+            <ReviewRow label={m.invite.kind.group} value={groupName} />
             <ReviewRow
-              label={TOURNAMENT_FORMAT_LABEL}
+              label={m.webDashboard.venue.title}
+              value={selectedVenue?.name ?? m.webDashboard.venue.title}
+            />
+            <ReviewRow
+              label={m.createGame.tournamentFormat}
               value={
                 knockoutOnly
-                  ? KNOCKOUT_ONLY_FORMAT_LABEL
+                  ? m.createGame.knockoutOnly
                   : friendlyTournamentFormatLabel(
                       sizing?.poolCount ?? poolCount,
+                      locale,
                       poolKnockoutTree != null,
                     )
               }
             />
             {knockoutTree ? (
               <ReviewRow
-                label={KNOCKOUT_REVIEW_LABEL}
-                value={knockoutOnlyReviewValue(knockoutTree)}
+                label={m.createGame.knockout}
+                value={knockoutOnlyReviewValue(knockoutTree, locale)}
               />
             ) : null}
             {poolKnockoutTree && sizing ? (
               <ReviewRow
-                label={KNOCKOUT_REVIEW_LABEL}
+                label={m.createGame.knockout}
                 value={groupsThenKnockoutReviewValue({
                   tree: poolKnockoutTree,
                   poolCount: sizing.poolCount,
                   qualifiersPerPool,
+                  locale,
                 })}
               />
             ) : null}
             {sizing && rounds ? (
               <ReviewRow
-                label={ROUNDS_LABEL}
-                value={reviewRoundsValue(rounds.roundCount, sizing.roundCount)}
+                label={sizingCopy.roundsLabel}
+                value={reviewRoundsValue(
+                  rounds.roundCount,
+                  sizing.roundCount,
+                  locale,
+                )}
               />
             ) : null}
             <ReviewRow
-              label="Courts"
-              value={friendlyTournamentCourtsLabel(selectedCourtNames)}
+              label={c.courts}
+              value={friendlyTournamentCourtsLabel(selectedCourtNames, locale)}
             />
             <ReviewRow
-              label="Game length"
+              label={c.gameLength}
               value={
                 parsedMinutes.ok
-                  ? `${parsedMinutes.minutes} min`
-                  : "Game length"
+                  ? c.minutes(parsedMinutes.minutes)
+                  : c.gameLength
               }
             />
             <ReviewRow
-              label={COUNTS_FOR_RATING_LABEL}
-              value={
-                groupVerified ? COUNTS_FOR_RATING_YES : COUNTS_FOR_RATING_NO
-              }
+              label={m.tournament.home.countsForRating}
+              value={groupVerified ? m.common.yes : m.common.no}
             />
           </div>
         </>

@@ -9,13 +9,21 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.temba.mobile",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleLocalizations": [
+          "en",
+          "ar"
+        ]
+      }
     },
     "android": {
       "package": "app.temba.mobile"
     },
     "plugins": [
       "expo-router",
+      "expo-localization",
       "expo-secure-store",
       "expo-web-browser",
       [
@@ -50,6 +58,9 @@
           "savePhotosPermission": "Temba saves result cards and stickers to your photo library."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "supportsRTL": true
+    }
   }
 }

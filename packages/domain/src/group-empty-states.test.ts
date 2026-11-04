@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  GROUP_GAMES_EMPTY_COPY,
-  GROUP_STANDING_AFTER_FIRST_RESULT,
   groupGamePlayersNeeded,
+  groupGamesEmptyCopy,
   groupGamesEmptyLine,
+  groupStandingAfterFirstResult,
   groupStandingEmptyFooter,
   groupStandingOpenSeats,
 } from "./group-empty-states";
@@ -31,13 +31,24 @@ describe("groupStandingOpenSeats", () => {
 
 describe("groupStandingEmptyFooter", () => {
   it("counts filled seats while some are open", () => {
-    expect(groupStandingEmptyFooter(1)).toBe(
-      `1 of 4 seats filled. ${GROUP_STANDING_AFTER_FIRST_RESULT}`,
+    expect(groupStandingEmptyFooter(1, "en")).toBe(
+      "1 of 4 seats filled. Standings appear after the first result.",
     );
   });
 
   it("drops the count once every seat is filled", () => {
-    expect(groupStandingEmptyFooter(6)).toBe(GROUP_STANDING_AFTER_FIRST_RESULT);
+    expect(groupStandingEmptyFooter(6, "en")).toBe(
+      groupStandingAfterFirstResult("en"),
+    );
+    expect(groupStandingAfterFirstResult("en")).toBe(
+      "Standings appear after the first result.",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    expect(groupStandingEmptyFooter(6, "ar")).toBe(
+      "يظهر الترتيب بعد أول نتيجة.",
+    );
   });
 });
 
@@ -48,11 +59,17 @@ describe("groupGamesEmptyLine", () => {
         sport: "football",
         memberCount: 1,
         isMember: true,
+        locale: "en",
       }),
-    ).toBe(`Football needs 10. You have 1. ${GROUP_GAMES_EMPTY_COPY}`);
+    ).toBe(`Football needs 10. You have 1. ${groupGamesEmptyCopy("en")}`);
     expect(
-      groupGamesEmptyLine({ sport: "padel", memberCount: 2, isMember: true }),
-    ).toBe(`Padel needs 4. You have 2. ${GROUP_GAMES_EMPTY_COPY}`);
+      groupGamesEmptyLine({
+        sport: "padel",
+        memberCount: 2,
+        isMember: true,
+        locale: "en",
+      }),
+    ).toBe(`Padel needs 4. You have 2. ${groupGamesEmptyCopy("en")}`);
   });
 
   it("drops the count for visitors and full Groups", () => {
@@ -61,10 +78,16 @@ describe("groupGamesEmptyLine", () => {
         sport: "football",
         memberCount: 1,
         isMember: false,
+        locale: "en",
       }),
-    ).toBe(GROUP_GAMES_EMPTY_COPY);
+    ).toBe(groupGamesEmptyCopy("en"));
     expect(
-      groupGamesEmptyLine({ sport: "padel", memberCount: 4, isMember: true }),
-    ).toBe(GROUP_GAMES_EMPTY_COPY);
+      groupGamesEmptyLine({
+        sport: "padel",
+        memberCount: 4,
+        isMember: true,
+        locale: "en",
+      }),
+    ).toBe(groupGamesEmptyCopy("en"));
   });
 });

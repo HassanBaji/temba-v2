@@ -4,6 +4,7 @@ import type { LastTenSummary } from "@repo/domain/player-profile-matches";
 import { Pressable, View, type ViewStyle } from "react-native";
 
 import { Card } from "../home/card";
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
@@ -79,8 +80,9 @@ export function PlayerFootballLastTenCard({
   rows: FootballMatchRowView[];
   onOpenGame: (gameId: string) => void;
 }) {
+  const m = useMessages();
   return (
-    <Card title="Last 10 games" meta={summary.record}>
+    <Card title={m.mobilePlayer.profile.lastTenTitle} meta={summary.record}>
       <LastTenMarks summary={summary} />
       {rows.map((row) => (
         <View key={row.matchId}>

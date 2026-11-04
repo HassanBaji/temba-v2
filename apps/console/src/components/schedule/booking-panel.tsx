@@ -14,6 +14,7 @@ import { settleActions } from "~/components/bookings/booking-ledger-model";
 import { MarkPaidDialog } from "~/components/bookings/payment-dialogs";
 import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { paymentStatusLabel } from "@repo/domain/booking-payment";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -63,7 +64,7 @@ export function BookingPanel({
         </button>
       </div>
       <p className="text-muted-foreground px-[22px] pt-1 text-[13px]">
-        {formatDayMonth(booking.startsAt, { weekday: "long" })},{" "}
+        {formatDayMonth(booking.startsAt, CONSOLE_LOCALE, { weekday: "long" })},{" "}
         {bookingTimeLabel(booking)}
       </p>
 
@@ -76,13 +77,15 @@ export function BookingPanel({
         <Row label="Court">{booking.courtName}</Row>
         <Row label="Time">{bookingTimeLabel(booking)}</Row>
         <Row label="Duration">{durationMinutes(booking)} min</Row>
-        <Row label="Price">{formatBookingPriceFils(booking.priceFils)}</Row>
+        <Row label="Price">
+          {formatBookingPriceFils(booking.priceFils, CONSOLE_LOCALE)}
+        </Row>
         <Row label="Payment">
           {settled ? (
             <Badge
               variant={booking.paymentStatus === "paid" ? "default" : "outline"}
             >
-              {paymentStatusLabel(booking.paymentStatus)}
+              {paymentStatusLabel(booking.paymentStatus, CONSOLE_LOCALE)}
             </Badge>
           ) : (
             <Badge variant="outline">{booking.statusLabel}</Badge>

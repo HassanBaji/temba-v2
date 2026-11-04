@@ -1,24 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import { preferredJoinSeat } from "./preferred-seat";
 import {
-  DRAW_RANDOM_VALUE,
-  DRAW_ROW_LABEL,
-  GAME_LEAVE_SPOT_CONFIRM_COPY,
-  JOIN_SHEET_INTRO_SUFFIX,
-  LEAVE_SEAT_UNTIL_POOL_DRAW_COPY,
-  PARTNER_REQUIRED_INVITE_LANDING_COPY,
-  PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
-  PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE,
-  PRICE_PER_PLAYER_JOIN_SUFFIX,
-  ROUNDS_ROW_LABEL,
-  SIT_WITH_SOMEONE_HEADING,
-  START_A_TEAM_ON_YOUR_OWN_LABEL,
-  START_A_TEAM_ON_YOUR_OWN_SUBLINE,
-  TAKE_A_SEAT_TITLE,
-  TAKEN_SEAT_LABEL,
-  YOUR_SEAT_HEADING,
   isFullyVacantJoinSide,
   isTournamentJoinSheet,
   tournamentInviteLandingOpensPartnerSheet,
@@ -42,6 +28,8 @@ import {
   tournamentYourSeatAvailability,
 } from "./tournament-join";
 import { resolvePlannedRoundCount } from "./tournament-sizing";
+
+const JOIN = messagesFor("en").tournament.join;
 
 const FORBIDDEN =
   /quarter|knockout|champion|then quarters|message|notified|\bGroup\b/u;
@@ -261,14 +249,17 @@ describe("partner-required join surfaces", () => {
 
   it("does not tell the User to Join alone after a vacant-side race", () => {
     assert.equal(
-      tournamentPartnerVacantSideRaceMessage(true).includes("Join alone"),
+      tournamentPartnerVacantSideRaceMessage(true, "en").includes("Join alone"),
       false,
     );
     assert.equal(
-      tournamentPartnerVacantSideRaceMessage(true),
-      PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE,
+      tournamentPartnerVacantSideRaceMessage(true, "en"),
+      JOIN.partnerVacantSideRace,
     );
-    assert.match(tournamentPartnerVacantSideRaceMessage(false), /Join alone/u);
+    assert.match(
+      tournamentPartnerVacantSideRaceMessage(false, "en"),
+      /Join alone/u,
+    );
   });
 
   it("says the partner is unseated too on leave or kick before the draw", () => {
@@ -276,22 +267,25 @@ describe("partner-required join surfaces", () => {
       tournamentLeaveOrKickConfirmCopy({
         partnerRequired: true,
         drawPosted: false,
+        locale: "en",
       }),
-      PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
+      JOIN.partnerUnseatedConfirm,
     );
     assert.equal(
       tournamentLeaveOrKickConfirmCopy({
         partnerRequired: true,
         drawPosted: true,
+        locale: "en",
       }),
-      GAME_LEAVE_SPOT_CONFIRM_COPY,
+      JOIN.leaveSpotConfirm,
     );
     assert.equal(
       tournamentLeaveOrKickConfirmCopy({
         partnerRequired: false,
         drawPosted: false,
+        locale: "en",
       }),
-      GAME_LEAVE_SPOT_CONFIRM_COPY,
+      JOIN.leaveSpotConfirm,
     );
   });
 
@@ -318,10 +312,7 @@ describe("partner-required join surfaces", () => {
       }),
       true,
     );
-    assert.equal(
-      PARTNER_REQUIRED_INVITE_LANDING_COPY.includes("Join alone"),
-      false,
-    );
+    assert.equal(JOIN.partnerInviteLanding.includes("Join alone"), false);
   });
 });
 
@@ -381,8 +372,14 @@ describe("tournamentJoinResolvedSeat", () => {
 
 describe("tournamentJoinTakeSeatLabel", () => {
   it("names the Position actually being taken", () => {
-    assert.equal(tournamentJoinTakeSeatLabel("left"), "Take the Left seat");
-    assert.equal(tournamentJoinTakeSeatLabel("right"), "Take the Right seat");
+    assert.equal(
+      tournamentJoinTakeSeatLabel("left", "en"),
+      "Take the Left seat",
+    );
+    assert.equal(
+      tournamentJoinTakeSeatLabel("right", "en"),
+      "Take the Right seat",
+    );
   });
 });
 
@@ -393,8 +390,9 @@ describe("tournamentJoinHeaderLine", () => {
         name: "Bromma Winter Friendly",
         roundCount: 3,
         firstRoundDay: "Thu 25 Sep",
+        locale: "en",
       }),
-      `Bromma Winter Friendly, 3 Rounds from Thu 25 Sep. ${JOIN_SHEET_INTRO_SUFFIX}`,
+      `Bromma Winter Friendly, 3 Rounds from Thu 25 Sep. ${JOIN.introSuffix}`,
     );
   });
 
@@ -405,8 +403,9 @@ describe("tournamentJoinHeaderLine", () => {
         name: "Bromma Winter Friendly",
         roundCount,
         firstRoundDay: "Thu 25 Sep",
+        locale: "en",
       }),
-      `Bromma Winter Friendly, 5 Rounds from Thu 25 Sep. ${JOIN_SHEET_INTRO_SUFFIX}`,
+      `Bromma Winter Friendly, 5 Rounds from Thu 25 Sep. ${JOIN.introSuffix}`,
     );
     assert.equal(
       tournamentJoinSeatExplanation({
@@ -414,6 +413,7 @@ describe("tournamentJoinHeaderLine", () => {
         occupiedPosition: null,
         freePosition: "left",
         roundCount,
+        locale: "en",
       }),
       "Both Positions are open. You pick Left or Right for all 5 Rounds.",
     );
@@ -422,6 +422,7 @@ describe("tournamentJoinHeaderLine", () => {
         roundDates: [],
         roundCount,
         priceLabel: null,
+        locale: "en",
       })[0]?.value,
       "5 Rounds",
     );
@@ -433,8 +434,9 @@ describe("tournamentJoinHeaderLine", () => {
         name: "Bromma Winter Friendly",
         roundCount: resolvePlannedRoundCount(12, 3, null),
         firstRoundDay: null,
+        locale: "en",
       }),
-      `Bromma Winter Friendly, 3 Rounds. ${JOIN_SHEET_INTRO_SUFFIX}`,
+      `Bromma Winter Friendly, 3 Rounds. ${JOIN.introSuffix}`,
     );
   });
 });
@@ -442,53 +444,57 @@ describe("tournamentJoinHeaderLine", () => {
 describe("tournamentJoin copy", () => {
   it("says group, never Group, and never claims anyone was messaged", () => {
     const copy = [
-      TAKE_A_SEAT_TITLE,
-      SIT_WITH_SOMEONE_HEADING,
-      START_A_TEAM_ON_YOUR_OWN_LABEL,
-      START_A_TEAM_ON_YOUR_OWN_SUBLINE,
-      YOUR_SEAT_HEADING,
-      TAKEN_SEAT_LABEL,
-      ROUNDS_ROW_LABEL,
-      DRAW_ROW_LABEL,
-      DRAW_RANDOM_VALUE,
-      PRICE_PER_PLAYER_JOIN_SUFFIX,
-      JOIN_SHEET_INTRO_SUFFIX,
-      LEAVE_SEAT_UNTIL_POOL_DRAW_COPY,
-      GAME_LEAVE_SPOT_CONFIRM_COPY,
-      PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
-      PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE,
-      PARTNER_REQUIRED_INVITE_LANDING_COPY,
-      tournamentJoinSeatsTakenLine(18, 24),
-      tournamentSitWithCountLine(2),
+      JOIN.takeASeatTitle,
+      JOIN.sitWithSomeone,
+      JOIN.startATeam,
+      JOIN.startATeamSubline,
+      JOIN.yourSeat,
+      JOIN.taken,
+      JOIN.roundsRow,
+      JOIN.drawRow,
+      JOIN.drawRandom,
+      JOIN.pricePerPlayer,
+      JOIN.introSuffix,
+      JOIN.leaveSeatUntilPoolDraw,
+      JOIN.leaveSpotConfirm,
+      JOIN.partnerUnseatedConfirm,
+      JOIN.partnerVacantSideRace,
+      JOIN.partnerInviteLanding,
+      tournamentJoinSeatsTakenLine(18, 24, "en"),
+      tournamentSitWithCountLine(2, "en"),
       tournamentJoinOccupantSubline({
         occupantPosition: "left",
         levelLabel: "C+",
         openPosition: "right",
+        locale: "en",
       }),
       tournamentJoinSeatExplanation({
         occupantName: "Rashid N",
         occupiedPosition: "left",
         freePosition: "right",
         roundCount: 3,
+        locale: "en",
       }),
       tournamentJoinSeatExplanation({
         occupantName: null,
         occupiedPosition: null,
         freePosition: "left",
         roundCount: 3,
+        locale: "en",
       }),
-      tournamentJoinTakeSeatLabel("right"),
+      tournamentJoinTakeSeatLabel("right", "en"),
       tournamentJoinDetailRows({
         roundDates: ["Thu 25 Sep", "Thu 2 Oct"],
         roundCount: 3,
         priceLabel: "12.00 BD",
+        locale: "en",
       })
         .map((row) => `${row.label} ${row.value}`)
         .join("\n"),
     ].join("\n");
     assert.equal(FORBIDDEN.test(copy), false);
-    assert.match(LEAVE_SEAT_UNTIL_POOL_DRAW_COPY, /group draw/u);
-    assert.equal(DRAW_RANDOM_VALUE, "Random");
+    assert.match(JOIN.leaveSeatUntilPoolDraw, /group draw/u);
+    assert.equal(JOIN.drawRandom, "Random");
   });
 });
 
@@ -498,14 +504,43 @@ describe("tournamentJoinDetailRows", () => {
       roundDates: ["Thu 25 Sep", "Thu 2 Oct", "Sat 11 Oct"],
       roundCount: 3,
       priceLabel: "12.00 BD",
+      locale: "en",
     });
     assert.deepEqual(
       rows.map((row) => row.label),
-      [ROUNDS_ROW_LABEL, "Price", "Counts for rating", DRAW_ROW_LABEL],
+      [JOIN.roundsRow, "Price", "Counts for rating", JOIN.drawRow],
     );
     assert.equal(rows[0]?.value, "Thu 25 Sep, Thu 2 Oct, Sat 11 Oct");
     assert.equal(rows[1]?.value, "12.00 BD per player");
     assert.equal(rows[2]?.value, "Yes");
-    assert.equal(rows[3]?.value, DRAW_RANDOM_VALUE);
+    assert.equal(rows[3]?.value, JOIN.drawRandom);
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the header line and the seat explanation in Arabic", () => {
+    assert.equal(
+      tournamentJoinHeaderLine({
+        name: "Bromma Winter Friendly",
+        roundCount: 3,
+        firstRoundDay: "الخميس 25 سبتمبر",
+        locale: "ar",
+      }),
+      "Bromma Winter Friendly، 3 جولات من الخميس 25 سبتمبر. مثل الانضمام إلى مباراة، لكنك تختار من تلعب معه.",
+    );
+    assert.equal(
+      tournamentJoinSeatExplanation({
+        occupantName: "Rashid N",
+        occupiedPosition: "left",
+        freePosition: "right",
+        roundCount: 3,
+        locale: "ar",
+      }),
+      "Rashid في جهة اليسار، فتأخذ أنت جهة اليمين طوال 3 جولات.",
+    );
+    assert.equal(
+      tournamentJoinTakeSeatLabel("right", "ar"),
+      "خذ المكان الأيمن",
+    );
   });
 });

@@ -32,7 +32,7 @@ export function SettingsLinkRow({
       {trailing}
       <ChevronRight
         aria-hidden="true"
-        className="text-muted-foreground size-[18px] shrink-0"
+        className="text-muted-foreground size-[18px] shrink-0 rtl:-scale-x-100"
         strokeWidth={2}
       />
     </Link>

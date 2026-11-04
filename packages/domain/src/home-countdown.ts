@@ -1,7 +1,10 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
+  formatDayMonth,
   formatGameClock,
-  formatGameClockWithoutMeridiem,
-  formatRelativeDay,
+  gameDayProximity,
 } from "./format-game-start";
 
 const MINUTE_MS = 60_000;
@@ -10,7 +13,12 @@ const MINUTE_MS = 60_000;
  * Live countdown for an upcoming Home game. Returns null when the start is
  * not in the future so the UI never shows a negative or zero-minute value.
  */
-export function formatHomeCountdown(startsAt: Date, now: Date): string | null {
+export function formatHomeCountdown(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string | null {
+  const m = messagesFor(locale).dates.countdown;
   const remainingMs = startsAt.getTime() - now.getTime();
   if (remainingMs <= 0) {
     return null;
@@ -19,38 +27,38 @@ export function formatHomeCountdown(startsAt: Date, now: Date): string | null {
   const totalMinutes = Math.floor(remainingMs / MINUTE_MS);
   const dayMinutes = 24 * 60;
   if (totalMinutes >= dayMinutes) {
-    const days = Math.floor(totalMinutes / dayMinutes);
-    return days === 1 ? "in 1 day" : `in ${days} days`;
+    return m.inDays(Math.floor(totalMinutes / dayMinutes));
   }
   if (totalMinutes < 60) {
-    return `in ${Math.max(1, totalMinutes)}m`;
+    return m.inMinutes(Math.max(1, totalMinutes));
   }
 
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return `in ${hours}h ${minutes}m`;
+  return m.inHoursMinutes(hours, minutes);
 }
 
 /**
- * Live countdown for the Game-details hero's Upcoming/Ongoing treatment
- * (game-details redesign, TEM-179). `formatHomeCountdown` returns `null`
- * once `startsAt` is no longer in the future, which is correct for Home
- * (an ongoing Game simply drops the countdown) but would leave the hero's
- * countdown slot blank while `ongoing` visually collapses into the Upcoming
- * treatment — this wraps it with the one small addition Home doesn't need:
- * "Starting now" for the window between kickoff and the countdown running
- * out, so the hero never shows a negative or missing duration.
+ * The Game-details hero's status pill: a countdown before kick-off, "Live
+ * now" through the window, then a prompt for the score once it has ended.
+ * Reads the clock rather than the server phase so a screen left open moves
+ * on by itself.
  */
 export function formatHeroCountdown(
-  phase: "upcoming" | "ongoing",
   startsAt: Date,
+  endsAt: Date | null,
   now: Date,
-): string | null {
-  const countdown = formatHomeCountdown(startsAt, now);
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).dates.countdown;
+  const countdown = formatHomeCountdown(startsAt, now, locale);
   if (countdown) {
-    return countdown;
+    return m.startsIn(countdown);
   }
-  return phase === "ongoing" ? "Starting now" : null;
+  if (endsAt && endsAt.getTime() <= now.getTime()) {
+    return m.endedEnterScore;
+  }
+  return m.liveNow;
 }
 
 /**
@@ -63,33 +71,45 @@ export function formatHeroCountdown(
 export function formatHeroKickoffTrailer(
   startsAt: Date,
   windowEnd: Date | string | null | undefined,
+  locale: Locale,
 ): string {
-  const kickoff = formatHomeKickoff(startsAt);
+  const m = messagesFor(locale).dates.countdown;
+  const kickoff = formatHomeKickoff(startsAt, locale);
   if (!windowEnd) {
     return kickoff.meridiem;
   }
-  const endClock = formatGameClockWithoutMeridiem(windowEnd);
+  const end = splitClock(formatGameClock(windowEnd, locale));
   return kickoff.meridiem
-    ? `${kickoff.meridiem} until ${endClock}`
-    : `until ${endClock}`;
+    ? m.meridiemUntil(kickoff.meridiem, end)
+    : m.until(end.clock);
 }
 
-export function formatHomeKickoff(startsAt: Date): {
+function splitClock(clock: string) {
+  const parts = clock.trim().split(/\s+/);
+  return parts.length > 1
+    ? { clock: parts.slice(0, -1).join(" "), meridiem: parts.at(-1) ?? "" }
+    : { clock, meridiem: "" };
+}
+
+export function formatHomeKickoff(
+  startsAt: Date,
+  locale: Locale,
+): {
   time: string;
   meridiem: string;
   relativeDay: string;
 } {
-  const clock = formatGameClock(startsAt);
-  const parts = clock.trim().split(/\s+/);
-  const meridiem = parts.length > 1 ? (parts[parts.length - 1] ?? "") : "";
-  const time = parts.length > 1 ? parts.slice(0, -1).join(" ") : clock;
-  const relative = formatRelativeDay(startsAt, { sameDayLabel: "Tonight" });
+  const m = messagesFor(locale).dates;
+  const { clock: time, meridiem } = splitClock(
+    formatGameClock(startsAt, locale),
+  );
+  const proximity = gameDayProximity(startsAt);
   const relativeDay =
-    relative === "Tonight"
-      ? "tonight"
-      : relative === "Tomorrow"
-        ? "tomorrow"
-        : relative;
+    proximity === "today"
+      ? m.tonightInSentence
+      : proximity === "tomorrow"
+        ? m.tomorrowInSentence
+        : formatDayMonth(startsAt, locale, { weekday: "short" });
 
   return { time, meridiem, relativeDay };
 }

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useMessages } from "~/components/locale-provider";
 import { NotificationBell } from "~/components/notifications/notification-bell";
-import { APP_NAV_ITEMS, isNavItemActive } from "~/components/layout/app-nav";
+import { appNavItems, isNavItemActive } from "~/components/layout/app-nav";
 import {
   Sidebar,
   SidebarContent,
@@ -19,15 +20,16 @@ import { cn } from "~/lib/utils";
 
 export function AppRail() {
   const pathname = usePathname();
-  const items = APP_NAV_ITEMS;
+  const m = useMessages();
+  const items = appNavItems(m);
 
   return (
     <Sidebar
       collapsible="none"
-      className="hidden border-r lg:sticky lg:top-0 lg:flex lg:h-svh"
+      className="hidden border-e lg:sticky lg:top-0 lg:flex lg:h-svh"
       style={{ width: "var(--rail-width)" }}
       role="navigation"
-      aria-label="Primary"
+      aria-label={m.webUi.primaryNav}
     >
       <SidebarHeader className="flex-row items-center">
         <SidebarMenu className="min-w-0 flex-1">
@@ -56,7 +58,7 @@ export function AppRail() {
                       className={cn(
                         "[&>svg]:size-[21px]",
                         active &&
-                          "border-l-sidebar-foreground text-sidebar-foreground [&>svg]:text-sidebar-foreground border-l-[3px] font-semibold",
+                          "border-s-sidebar-foreground text-sidebar-foreground [&>svg]:text-sidebar-foreground border-s-[3px] font-semibold",
                       )}
                     >
                       <Link

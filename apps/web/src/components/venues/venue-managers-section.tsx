@@ -8,6 +8,7 @@ import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { Section } from "~/components/layout/section";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
@@ -23,6 +24,8 @@ function useDebouncedValue(value: string, delayMs: number) {
 }
 
 export function VenueManagersSection({ venueId }: { venueId: string }) {
+  const m = useMessages().webUi.venueManagers;
+  const common = useMessages().common;
   const utils = api.useUtils();
   const managers = api.venues.managedById.useQuery({ venueId });
   const [query, setQuery] = React.useState("");
@@ -36,7 +39,7 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
 
   const addManager = api.venues.addManager.useMutation({
     onSuccess: async () => {
-      toast.success("Venue manager added");
+      toast.success(m.addedToast);
       setQuery("");
       await utils.venues.managedById.invalidate({ venueId });
       await utils.venues.listManaged.invalidate();
@@ -48,7 +51,7 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
 
   const removeManager = api.venues.removeManager.useMutation({
     onSuccess: async () => {
-      toast.success("Venue manager removed");
+      toast.success(m.removedToast);
       await utils.venues.managedById.invalidate({ venueId });
       await utils.venues.listManaged.invalidate();
     },
@@ -61,17 +64,14 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
   );
   const removeName =
     current.find((manager) => manager.userId === removeUserId)?.name ??
-    "this User";
+    m.thisUser;
 
   return (
-    <Section
-      title="Venue managers"
-      description="Users who run this Venue from the Manage area. Only Operators can grant or revoke."
-    >
+    <Section title={m.title} description={m.description}>
       {managers.error ? (
         <ErrorState
           headingLevel={3}
-          title="Venue managers could not be loaded"
+          title={m.loadError}
           message={managers.error.message}
           onRetry={() => {
             void managers.refetch();
@@ -80,9 +80,7 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
       ) : null}
 
       {managers.data && current.length === 0 ? (
-        <p className="text-body text-muted-foreground">
-          No Venue managers yet.
-        </p>
+        <p className="text-body text-muted-foreground">{m.none}</p>
       ) : null}
 
       {current.length > 0 ? (
@@ -99,10 +97,10 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
                 <Button
                   type="button"
                   variant="outline"
-                  aria-label={`Remove ${manager.name}`}
+                  aria-label={m.removeNamed(manager.name)}
                   onClick={() => setRemoveUserId(manager.userId)}
                 >
-                  Remove
+                  {common.remove}
                 </Button>
               }
             />
@@ -111,21 +109,19 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
       ) : null}
 
       <Field>
-        <FieldLabel htmlFor="venue-manager-search">
-          Add a Venue manager
-        </FieldLabel>
+        <FieldLabel htmlFor="venue-manager-search">{m.addLabel}</FieldLabel>
         <Input
           id="venue-manager-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name, phone or email"
+          placeholder={m.searchPlaceholder}
           maxLength={100}
           autoComplete="off"
         />
       </Field>
 
       {debouncedQuery.length > 0 && search.data && candidates.length === 0 ? (
-        <p className="text-body text-muted-foreground">No Users found.</p>
+        <p className="text-body text-muted-foreground">{m.noUsers}</p>
       ) : null}
 
       {candidates.length > 0 ? (
@@ -141,18 +137,18 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
               trailing={
                 <Button
                   type="button"
-                  aria-label={`Add ${candidate.name} as Venue manager`}
+                  aria-label={m.addNamed(candidate.name)}
                   pending={
                     addManager.isPending &&
                     addManager.variables?.userId === candidate.id
                   }
-                  pendingLabel="Adding…"
+                  pendingLabel={m.adding}
                   disabled={addManager.isPending}
                   onClick={() =>
                     addManager.mutate({ venueId, userId: candidate.id })
                   }
                 >
-                  Add
+                  {m.add}
                 </Button>
               }
             />
@@ -167,9 +163,9 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
             setRemoveUserId(null);
           }
         }}
-        title={`Remove ${removeName}?`}
-        description="They lose access to this Venue's Manage area."
-        confirmLabel="Remove Venue manager"
+        title={m.removeTitle(removeName)}
+        description={m.removeDescription}
+        confirmLabel={m.removeConfirm}
         pending={removeManager.isPending}
         onConfirm={async () => {
           if (!removeUserId) {

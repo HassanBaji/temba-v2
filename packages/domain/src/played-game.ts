@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   byKeeperThenLevel,
   bibNames,
@@ -17,6 +20,7 @@ import { formatDayMonth, formatGameClock } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
+import { setShortLabel } from "./game-copy";
 import { formatGameSideLabel } from "./game-side-label";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
@@ -76,15 +80,17 @@ export type PlayedPlace = {
   courtName: string | null;
 };
 
-export function playedDateLine(windowStart: Date | null) {
+export function playedDateLine(windowStart: Date | null, locale: Locale) {
+  const m = messagesFor(locale).game.played;
   return windowStart
-    ? `Played, ${formatDayMonth(windowStart, { weekday: "short" })}`
-    : "Played";
+    ? m.playedOn(formatDayMonth(windowStart, locale, { weekday: "short" }))
+    : m.played;
 }
 
 export function playedDurationLabel(
   windowStart: Date | null,
   windowEnd: Date | null,
+  locale: Locale,
 ) {
   if (!windowStart || !windowEnd) {
     return null;
@@ -92,7 +98,7 @@ export function playedDurationLabel(
   const minutes = Math.round(
     (windowEnd.getTime() - windowStart.getTime()) / 60_000,
   );
-  return minutes >= 1 ? `${minutes} min` : null;
+  return minutes >= 1 ? messagesFor(locale).game.played.minutes(minutes) : null;
 }
 
 /** "Padel Hub, Court 3" */
@@ -102,10 +108,10 @@ export function playedVenueLine(place: PlayedPlace) {
 }
 
 /** "8:00 PM, 90 min, Janabiyah" */
-export function playedWhenLine(place: PlayedPlace) {
+export function playedWhenLine(place: PlayedPlace, locale: Locale) {
   const line = [
-    place.windowStart ? formatGameClock(place.windowStart) : null,
-    playedDurationLabel(place.windowStart, place.windowEnd),
+    place.windowStart ? formatGameClock(place.windowStart, locale) : null,
+    playedDurationLabel(place.windowStart, place.windowEnd, locale),
     place.venue?.city,
   ]
     .filter(Boolean)
@@ -116,25 +122,39 @@ export function playedWhenLine(place: PlayedPlace) {
 export function playedRatingLine(
   rated: boolean,
   impact: PlayedRatingImpact | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.played;
   if (!rated) {
-    return "Friendly, does not count for rating";
+    return m.friendlyNoRating;
   }
   if (!impact) {
-    return "Counts for rating";
+    return m.countsForRating;
   }
   const band = displayLabelFromStoredBand(impact.newLevelBand);
-  const move =
-    impact.levelChange > 0
-      ? "moves up"
-      : impact.levelChange < 0
-        ? "moves down"
-        : "holds";
-  return `Counts for rating, ${band} ${move}`;
+  if (impact.levelChange > 0) {
+    return m.ratingMovesUp(band);
+  }
+  if (impact.levelChange < 0) {
+    return m.ratingMovesDown(band);
+  }
+  return m.ratingHolds(band);
 }
 
 export function playedWord(won: boolean, hasWinner: boolean): PlayedWord {
   return won ? "Won" : hasWinner ? "Lost" : "Draw";
+}
+
+/** The word a column or board row shows for its `word`. */
+export function playedWordLabel(word: PlayedWord, locale: Locale) {
+  const m = messagesFor(locale).game.played.word;
+  return word === "Won" ? m.won : word === "Lost" ? m.lost : m.draw;
+}
+
+/** The pill text for a `PlayedYouLine["tag"]`. */
+export function playedTagLabel(tag: PlayedYouLine["tag"], locale: Locale) {
+  const m = messagesFor(locale).game.played.tag;
+  return tag === "WON" ? m.won : tag === "LOST" ? m.lost : m.draw;
 }
 
 function youTag(word: PlayedWord): PlayedYouLine["tag"] {
@@ -157,25 +177,28 @@ function seatsOf(side: FriendlyGameDetailsSide | null) {
 export function padelPairLine(
   side: FriendlyGameDetailsSide | null,
   viewerUserId: string,
+  locale: Locale,
   style: "short" | "first" = "short",
 ) {
+  const messages = messagesFor(locale);
+  const m = messages.game.played;
   if (!side) {
-    return "Open";
+    return m.open;
   }
   const label = (seat: PadelSeat | null) => {
     if (!seat) {
-      return "Open";
+      return m.open;
     }
     if (seat.userId === viewerUserId) {
-      return "You";
+      return messages.common.you;
     }
     return style === "first" ? firstName(seat.name) : shortName(seat.name);
   };
-  const ordered =
+  const [first, second] =
     side.right?.userId === viewerUserId
       ? [side.right, side.left]
       : [side.left, side.right];
-  return ordered.map(label).join(" & ");
+  return m.pair(label(first), label(second));
 }
 
 /** Which Match slot each side backs: its Game team, else its index. */
@@ -265,10 +288,12 @@ export type PlayedPadelModel = {
 function padelRows(
   side: FriendlyGameDetailsSide | null,
   viewerUserId: string,
+  locale: Locale,
 ): PlayedRow[] {
   if (!side) {
     return [];
   }
+  const messages = messagesFor(locale);
   return (["left", "right"] as const).flatMap((position) => {
     const seat = side[position];
     if (!seat) {
@@ -278,11 +303,11 @@ function padelRows(
     return [
       {
         userId: seat.userId,
-        name: isYou ? "You" : shortName(seat.name),
+        name: isYou ? messages.common.you : shortName(seat.name),
         fullName: seat.name,
         image: seat.image,
         isYou,
-        meta: position.toUpperCase(),
+        meta: messages.game.played.seatCode[position],
         level: levelLabel(seat.levelBand),
         trailing: null,
         unclaimed: Boolean(seat.unclaimed),
@@ -292,7 +317,12 @@ function padelRows(
   });
 }
 
-export function playedPadelModel(input: PlayedPadelInput): PlayedPadelModel {
+export function playedPadelModel(
+  input: PlayedPadelInput,
+  locale: Locale,
+): PlayedPadelModel {
+  const messages = messagesFor(locale);
+  const m = messages.game.played;
   const { a, b } = padelSidesInOrder(input.sides, input.viewerUserId);
   const viewerPlayed = padelViewerSide(input.sides, input.viewerUserId) != null;
   const slotA = a ? padelSlotOfSide(a, input.match) : 1;
@@ -315,7 +345,7 @@ export function playedPadelModel(input: PlayedPadelInput): PlayedPadelModel {
     slot: 1 | 2,
     won: boolean,
   ): PlayedPadelBoardRow => ({
-    line: padelPairLine(side, input.viewerUserId),
+    line: padelPairLine(side, input.viewerUserId, locale),
     word: playedWord(won, hasWinner),
     won,
     sets: pairs.map((pair) => ({
@@ -328,10 +358,14 @@ export function playedPadelModel(input: PlayedPadelInput): PlayedPadelModel {
   const winnerSetWins = aWon ? aSetWins : bSetWins;
   const loserSetWins = aWon ? bSetWins : aSetWins;
   const resultLine = winner
-    ? `${padelPairLine(winner, input.viewerUserId, "first")} win ${winnerSetWins}–${loserSetWins} in sets`
+    ? m.winInSets(
+        padelPairLine(winner, input.viewerUserId, locale, "first"),
+        winnerSetWins,
+        loserSetWins,
+      )
     : result === "draw"
-      ? "Draw, both sides level"
-      : "No result";
+      ? m.drawLevel
+      : m.noResult;
 
   const viewerSide = viewerPlayed ? a : null;
   const partner = viewerSide
@@ -340,10 +374,8 @@ export function playedPadelModel(input: PlayedPadelInput): PlayedPadelModel {
   const youWord = playedWord(aWon, hasWinner);
   const you: PlayedYouLine | null = viewerSide
     ? {
-        line: partner
-          ? `You played with ${shortName(partner.name)}`
-          : "You played alone",
-        ratingLine: playedRatingLine(input.rated, input.ratingImpact),
+        line: partner ? m.playedWith(shortName(partner.name)) : m.playedAlone,
+        ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
         tag: youTag(youWord),
         won: aWon,
       }
@@ -357,41 +389,44 @@ export function playedPadelModel(input: PlayedPadelInput): PlayedPadelModel {
     key,
     title: viewerPlayed
       ? key === "a"
-        ? "Your pair"
-        : "Opponents"
+        ? m.yourPair
+        : m.opponents
       : side
-        ? formatGameSideLabel("friendly_game", side.sideIndex)
-        : "Open",
+        ? formatGameSideLabel("friendly_game", side.sideIndex, locale)
+        : m.open,
     word: playedWord(won, hasWinner),
     won,
     fill: key === "a" ? "ink" : "paper",
     bib: null,
-    players: padelRows(side, input.viewerUserId),
+    players: padelRows(side, input.viewerUserId, locale),
   });
 
   const facts: PlayedFact[] = [
-    ...(input.groupName ? [{ label: "Group", value: input.groupName }] : []),
+    ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
     {
-      label: "Confirmed",
+      label: m.confirmed,
       value: input.confirmation?.confirmedByOrganizer
-        ? "By the organizer"
-        : "By both pairs",
+        ? m.byTheOrganizer
+        : m.byBothPairs,
     },
     {
-      label: "Format",
-      value: pairs.length === 1 ? "1 set" : `${pairs.length} sets`,
+      label: m.format,
+      value: m.sets(pairs.length),
     },
-    { label: "Counts for rating", value: input.rated ? "Yes" : "No" },
+    {
+      label: m.countsForRatingLabel,
+      value: input.rated ? messages.common.yes : messages.common.no,
+    },
   ];
 
   return {
-    dateLine: playedDateLine(input.windowStart),
-    tag: "PADEL",
-    setLabels: pairs.map((_, index) => `S${index + 1}`),
+    dateLine: playedDateLine(input.windowStart, locale),
+    tag: m.padel,
+    setLabels: pairs.map((_, index) => setShortLabel(index, locale)),
     board: [row(a, slotA, aWon), row(b, slotB, bWon)],
     result: { line: resultLine, hasWinner },
     venueLine: playedVenueLine(input),
-    whenLine: playedWhenLine(input),
+    whenLine: playedWhenLine(input, locale),
     you,
     columns: [column("a", a, aWon), column("b", b, bWon)],
     facts,
@@ -441,20 +476,22 @@ export type PlayedFootballModel = {
   facts: PlayedFact[];
 };
 
-export function goalsLabel(goals: number) {
-  return goals === 1 ? "1 goal" : `${goals} goals`;
+export function goalsLabel(goals: number, locale: Locale) {
+  return messagesFor(locale).game.played.goals(goals);
 }
 
-function footballRow(player: BoardPlayer): PlayedRow {
+function footballRow(player: BoardPlayer, locale: Locale): PlayedRow {
   return {
     userId: player.userId,
-    name: player.isViewer ? "You" : shortName(player.name),
+    name: player.isViewer
+      ? messagesFor(locale).common.you
+      : shortName(player.name),
     fullName: player.name,
     image: player.image,
     isYou: player.isViewer,
     meta: slotCode(player),
     level: levelLabel(player.levelBand),
-    trailing: player.goals > 0 ? goalsLabel(player.goals) : null,
+    trailing: player.goals > 0 ? goalsLabel(player.goals, locale) : null,
     unclaimed: Boolean(player.unclaimed),
     phoneMasked: player.phoneMasked ?? null,
   };
@@ -463,18 +500,23 @@ function footballRow(player: BoardPlayer): PlayedRow {
 export function footballResultLine(
   score: { slot1: number; slot2: number },
   names: { slot1: string; slot2: string },
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.played;
   if (score.slot1 === score.slot2) {
-    return "Draw, both sides level";
+    return m.drawLevel;
   }
   const winner = score.slot1 > score.slot2 ? names.slot1 : names.slot2;
-  return `${winner} win by ${Math.abs(score.slot1 - score.slot2)}`;
+  return m.winBy(winner, Math.abs(score.slot1 - score.slot2));
 }
 
 export function playedFootballModel(
   input: PlayedFootballInput,
+  locale: Locale,
 ): PlayedFootballModel {
-  const names = bibNames(input.bibs);
+  const messages = messagesFor(locale);
+  const m = messages.game.played;
+  const names = bibNames(input.bibs, locale);
   const onSide = (index: 1 | 2) =>
     input.players
       .filter((player) => player.sideIndex === index)
@@ -491,7 +533,7 @@ export function playedFootballModel(
   ): PlayedFootballSide => ({
     name: index === 1 ? names.slot1 : names.slot2,
     bib: index === 1 ? input.bibs.slot1 : input.bibs.slot2,
-    average: `avg ${sideAverage(players)}`,
+    average: m.avg(sideAverage(players)),
     score: index === 1 ? input.score.slot1 : input.score.slot2,
     won,
   });
@@ -501,7 +543,7 @@ export function playedFootballModel(
       .sort((left, right) => right.goals - left.goals)
       .map((player) => ({
         userId: player.userId,
-        name: player.isViewer ? "You" : shortName(player.name),
+        name: player.isViewer ? messages.common.you : shortName(player.name),
         isYou: player.isViewer,
         count: `×${player.goals}`,
       }));
@@ -519,11 +561,9 @@ export function playedFootballModel(
           line: (() => {
             const team = viewerSide === 1 ? names.slot1 : names.slot2;
             const code = slotCode(viewer);
-            return code
-              ? `You played ${code} for ${team}`
-              : `You played for ${team}`;
+            return code ? m.playedCodeFor(code, team) : m.playedFor(team);
           })(),
-          ratingLine: playedRatingLine(input.rated, input.ratingImpact),
+          ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
           tag: youTag(youWord),
           won: viewerWon,
         }
@@ -541,45 +581,56 @@ export function playedFootballModel(
     won,
     fill: "paper",
     bib: index === 1 ? input.bibs.slot1 : input.bibs.slot2,
-    players: players.map(footballRow),
+    players: players.map((player) => footballRow(player, locale)),
   });
 
   const facts: PlayedFact[] = [
-    ...(input.groupName ? [{ label: "Group", value: input.groupName }] : []),
+    ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
     ...(input.enteredByName
-      ? [{ label: "Score", value: `Entered by ${input.enteredByName}` }]
+      ? [{ label: m.score, value: m.enteredBy(input.enteredByName) }]
       : []),
     {
-      label: "Confirmed",
+      label: m.confirmed,
       value:
         input.confirmed.slot1 && input.confirmed.slot2
-          ? "By both sides"
-          : "By the organizer",
+          ? m.byBothSides
+          : m.byTheOrganizer,
     },
-    { label: "Teams", value: footballTeamsMethodLabel(input.teamsMethod) },
     {
-      label: "Bibs",
-      value: `${names.slot1} and ${names.slot2}, organizer brings`,
+      label: m.teams,
+      value: footballTeamsMethodLabel(input.teamsMethod, locale),
     },
-    { label: "Counts for rating", value: input.rated ? "Yes" : "No" },
+    {
+      label: m.bibs,
+      value: m.bibsLine(names.slot1, names.slot2),
+    },
+    {
+      label: m.countsForRatingLabel,
+      value: input.rated ? messages.common.yes : messages.common.no,
+    },
   ];
 
   return {
-    dateLine: playedDateLine(input.windowStart),
-    tag: input.sideSize ? sideSizeLabel(input.sideSize).toUpperCase() : null,
+    dateLine: playedDateLine(input.windowStart, locale),
+    tag: input.sideSize
+      ? sideSizeLabel(input.sideSize, locale).toUpperCase()
+      : null,
     board: [side(1, slot1, slot1Won), side(2, slot2, slot2Won)],
     scorers:
       scorersA.length + scorersB.length > 0
         ? { a: scorersA, b: scorersB }
         : null,
-    result: { line: footballResultLine(input.score, names), hasWinner },
+    result: {
+      line: footballResultLine(input.score, names, locale),
+      hasWinner,
+    },
     venueLine: playedVenueLine(input),
-    whenLine: playedWhenLine(input),
+    whenLine: playedWhenLine(input, locale),
     you,
     columns: [column("a", 1, slot1, slot1Won), column("b", 2, slot2, slot2Won)],
     unplaced: input.players
       .filter((player) => player.sideIndex == null)
-      .map(footballRow),
+      .map((player) => footballRow(player, locale)),
     facts,
   };
 }

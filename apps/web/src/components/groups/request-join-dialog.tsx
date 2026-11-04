@@ -10,11 +10,9 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
-import {
-  GROUP_JOIN_NOTE_MAX_LENGTH,
-  GROUP_REQUEST_JOIN_SHEET,
-} from "@repo/domain/group-admin";
+import { GROUP_JOIN_NOTE_MAX_LENGTH } from "@repo/domain/group-admin";
 
 export function RequestJoinDialog({
   open,
@@ -27,6 +25,8 @@ export function RequestJoinDialog({
   pending: boolean;
   onSend: (note: string) => void;
 }) {
+  const m = useMessages();
+  const copy = m.group.admin.requestJoinSheet;
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -46,18 +46,16 @@ export function RequestJoinDialog({
           className="flex flex-col gap-4"
         >
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>
-              {GROUP_REQUEST_JOIN_SHEET.title}
-            </ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {GROUP_REQUEST_JOIN_SHEET.description}
+              {copy.description}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder={GROUP_REQUEST_JOIN_SHEET.notePlaceholder}
-            aria-label={GROUP_REQUEST_JOIN_SHEET.notePlaceholder}
+            placeholder={copy.notePlaceholder}
+            aria-label={copy.notePlaceholder}
             maxLength={GROUP_JOIN_NOTE_MAX_LENGTH}
             disabled={pending}
             rows={3}
@@ -70,7 +68,7 @@ export function RequestJoinDialog({
               pending={pending}
               className="w-full font-semibold"
             >
-              {GROUP_REQUEST_JOIN_SHEET.submitLabel}
+              {copy.submitLabel}
             </Button>
           </ResponsiveDialogFooter>
         </form>

@@ -1,15 +1,20 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
+import {
+  homeGameKind,
+  homeHeroTitle,
+  homeHeroUntil,
+} from "@repo/domain/home-game-lines";
 import {
   homeNextGameActions,
   homeNextGameStatus,
 } from "@repo/domain/home-next-game";
 import type { HomeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import { homeNextGameSeats } from "@repo/domain/home-seats";
-import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
+import { SPORTS, sportLabel, type Sport } from "@repo/domain/sport";
 import {
   ArrowRight,
   MapPin,
@@ -19,15 +24,12 @@ import {
 } from "lucide-react-native";
 import { Pressable, Share, View } from "react-native";
 
-import {
-  bookingShareMessage,
-  minutesBetween,
-  relativeDay,
-  untilLabel,
-} from "../booking/booking-model";
+import { bookingShareMessage, relativeDay } from "../booking/booking-model";
 import { CardAction, nextActionButton } from "../booking/booking-cards";
 import { nextBookingAction, startsInLabel } from "../booking/my-bookings-model";
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { SportGlyph } from "../lib/sport-glyph";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -45,6 +47,10 @@ import {
 
 type Navigate = (target: HomeNavTarget) => void;
 
+function isPresent(value: string | null | undefined): value is string {
+  return Boolean(value);
+}
+
 const CHIP_ICON = 13;
 const PIN_ICON = 14;
 const ROW_ICON = 16;
@@ -56,6 +62,7 @@ const BOOK_ICON = 17;
 const ACTION_TILE_HEIGHT = 44;
 
 export function UpNextHeading({ label }: { label: string }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -66,7 +73,7 @@ export function UpNextHeading({ label }: { label: string }) {
       }}
     >
       <Text size="lead" weight="semibold" accessibilityRole="header">
-        Up next
+        {m.mobileHome.upNext.title}
       </Text>
       <Text size="eyebrow" mono uppercase tone="muted">
         {label}
@@ -76,6 +83,8 @@ export function UpNextHeading({ label }: { label: string }) {
 }
 
 function Chip({ sport, kind }: { sport: Sport; kind: string }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View
       style={{
@@ -92,9 +101,9 @@ function Chip({ sport, kind }: { sport: Sport; kind: string }) {
     >
       <SportGlyph sport={sport} color={colors.paper} size={CHIP_ICON} />
       <Text size="eyebrow" mono uppercase>
-        {SPORT_LABELS[sport]}
+        {sportLabel(sport, locale)}
         <Text size="eyebrow" mono uppercase style={{ color: colors.dim }}>
-          {` / ${kind}`}
+          {m.mobileHome.upNext.withEmphasis(kind)}
         </Text>
       </Text>
     </View>
@@ -112,12 +121,13 @@ function HeroFrame({
 }: {
   sport: Sport;
   kind: string;
-  when: { day: string; emphasis: string | null };
+  when: { day: string | null; emphasis: string | null };
   spoken: string;
   onPress: () => void;
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
     <Surface tone="ink" padded={false} style={{ padding: spacing.compact }}>
       <Pressable
@@ -142,7 +152,11 @@ function HeroFrame({
           >
             {when.day}
             {when.emphasis ? (
-              <Text size="meta">{`, ${when.emphasis}`}</Text>
+              <Text size="meta">
+                {when.day
+                  ? m.mobileHome.upNext.withEmphasis(when.emphasis)
+                  : when.emphasis}
+              </Text>
             ) : null}
           </Text>
         </View>
@@ -171,7 +185,8 @@ function Kickoff({
   startsAt: Date;
   endsAt: Date | null;
 }) {
-  const kickoff = formatHomeKickoff(startsAt);
+  const locale = useLocale();
+  const kickoff = formatHomeKickoff(startsAt, locale);
   return (
     <View
       style={{
@@ -193,11 +208,7 @@ function Kickoff({
       </View>
       {endsAt ? (
         <Text size="meta" style={{ color: colors.dim }}>
-          {untilLabel(endsAt)}
-          <Text size="meta" style={{ color: colors.dimrule }}>
-            {" / "}
-          </Text>
-          {`${minutesBetween(startsAt, endsAt)} min`}
+          {homeHeroUntil(startsAt, endsAt, locale)}
         </Text>
       ) : null}
     </View>
@@ -247,10 +258,12 @@ function BookingHero({
   now: Date;
   onNavigate: Navigate;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const { booking } = item;
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
-  const day = relativeDay(startsAt, now);
+  const day = relativeDay(startsAt, now, locale);
   const action = nextBookingAction(booking);
   const target: HomeNavTarget | null =
     action === "finish_payment"
@@ -264,22 +277,30 @@ function BookingHero({
   return (
     <HeroFrame
       sport={item.sport}
-      kind="Booking"
-      when={{ day, emphasis: startsInLabel(startsAt, endsAt, now) }}
-      spoken={`Next up, booking, ${day} ${formatGameClock(startsAt)}, ${booking.court.name}, ${booking.venue.name}`}
+      kind={m.mobileHome.upNext.kind.booking}
+      when={{ day, emphasis: startsInLabel(startsAt, endsAt, now, locale) }}
+      spoken={m.mobileHome.upNext.bookingHeroSpoken(
+        day,
+        formatGameClock(startsAt, locale),
+        booking.court.name,
+        booking.venue.name,
+      )}
       onPress={() => onNavigate({ kind: "booking", bookingId: booking.id })}
       actions={
         <>
           <CardAction
-            label="Invite"
+            label={m.mobileHome.upNext.invite}
             icon={UserPlus}
             onPress={() =>
               void Share.share({
-                message: bookingShareMessage({
-                  ...booking,
-                  startsAt,
-                  endsAt,
-                }),
+                message: bookingShareMessage(
+                  {
+                    ...booking,
+                    startsAt,
+                    endsAt,
+                  },
+                  locale,
+                ),
               })
             }
           />
@@ -287,7 +308,7 @@ function BookingHero({
             <Grow>
               <CardAction
                 primary
-                {...nextActionButton(action)}
+                {...nextActionButton(action, locale)}
                 onPress={() => onNavigate(target)}
               />
             </Grow>
@@ -310,12 +331,14 @@ function GameHero({
   now: Date;
   onNavigate: Navigate;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const { game } = item;
   const startsAt = item.startsAt;
   const endsAt = game.windowEnd ? new Date(game.windowEnd) : null;
-  const day = relativeDay(startsAt, now);
+  const day = relativeDay(startsAt, now, locale);
   const open = { kind: "game", gameId: game.id } as const;
-  const [row] = homeComingUpRows([game]);
+  const [row] = homeComingUpRows([game], locale);
 
   if (row && row.kind !== "game") {
     const subline =
@@ -323,16 +346,20 @@ function GameHero({
     const label =
       row.kind === "tournament" && row.actionLabel
         ? row.actionLabel
-        : "View game";
+        : m.home.nextGame.viewGame;
     return (
       <HeroFrame
         sport={item.sport}
-        kind="Tournament"
+        kind={m.mobileHome.upNext.kind.tournament}
         when={{
           day,
           emphasis: row.kind === "tournament_match" ? row.roundTag : null,
         }}
-        spoken={`Next up, ${row.title}, ${day} ${formatGameClock(startsAt)}`}
+        spoken={m.mobileHome.upNext.heroSpoken(
+          row.title,
+          day,
+          formatGameClock(startsAt, locale),
+        )}
         onPress={() => onNavigate(open)}
         actions={
           <Grow>
@@ -359,38 +386,53 @@ function GameHero({
     gameId: game.id,
     phase: game.phase,
     hasOpenSeat: seats.some((seat) => !seat.filled),
+    locale,
   });
-  const status =
-    game.phase === "upcoming"
-      ? (startsInLabel(startsAt, endsAt ?? startsAt, now) ??
-        homeNextGameStatus(game.phase, startsAt, now))
-      : homeNextGameStatus(game.phase, startsAt, now);
-  const title = game.name ?? game.groupName ?? game.venue?.name ?? "Game";
-  const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
-  const venueLine = [
-    game.venue?.name === title ? null : game.venue?.name,
-    game.courtName,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const live =
+    game.phase === "ongoing" ||
+    (game.phase === "upcoming" &&
+      startsAt.getTime() <= now.getTime() &&
+      (endsAt == null || endsAt.getTime() > now.getTime()));
+  const status = live
+    ? m.home.nextGame.playingNow
+    : game.phase === "upcoming"
+      ? (startsInLabel(startsAt, endsAt ?? startsAt, now, locale) ??
+        homeNextGameStatus(game.phase, startsAt, now, locale))
+      : homeNextGameStatus(game.phase, startsAt, now, locale);
+  const title = homeHeroTitle(game, locale);
+  const place = m.mobileHome.join.parts(
+    [game.venue?.name, game.courtName].filter(isPresent),
+  );
 
   return (
     <HeroFrame
       sport={item.sport}
-      kind="Game"
-      when={{ day, emphasis: status }}
-      spoken={`Next up, ${title}, ${day} ${formatGameClock(startsAt)}, ${place}`}
+      kind={homeGameKind(game.format, locale)}
+      when={{ day: live ? null : day, emphasis: status }}
+      spoken={m.mobileHome.upNext.gameHeroSpoken(
+        title,
+        day,
+        formatGameClock(startsAt, locale),
+        place,
+      )}
       onPress={() => onNavigate(open)}
       actions={
         <>
           {details ? (
-            <CardAction label="Details" onPress={() => onNavigate(details)} />
+            <CardAction
+              label={m.mobileHome.upNext.details}
+              onPress={() => onNavigate(details)}
+            />
           ) : null}
           <Grow>
             <CardAction
               primary
               label={primary.label}
-              icon={primary.label === "Invite a player" ? UserPlus : undefined}
+              icon={
+                primary.label === m.home.nextGame.invitePlayer
+                  ? UserPlus
+                  : undefined
+              }
               onPress={() => onNavigate(primary.target)}
             />
           </Grow>
@@ -398,10 +440,10 @@ function GameHero({
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Headline title={title} detail={venueLine || null} pin />
+      <Headline title={title} detail={place || null} pin />
       {game.rated ? null : (
         <Text size="meta" weight="semibold">
-          {UNRATED_LABEL}
+          {unratedLabel(locale)}
         </Text>
       )}
     </HeroFrame>
@@ -484,12 +526,14 @@ export function UpNextList({
   items: readonly UpNextItem[];
   onNavigate: Navigate;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const now = useNow();
   const palette = useTonePalette();
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
       {items.map((item, index) => {
-        const row = upNextRowView(item, now);
+        const row = upNextRowView(item, now, locale);
         return (
           <View key={row.key}>
             {index === 0 ? null : <Hairline />}
@@ -548,9 +592,13 @@ export function UpNextList({
         })}
       >
         <Text size="meta" weight="semibold">
-          All bookings and games
+          {m.mobileHome.upNext.allBookingsAndGames}
         </Text>
-        <ArrowRight size={PIN_ICON} color={palette.foreground} />
+        <ArrowRight
+          size={PIN_ICON}
+          color={palette.foreground}
+          style={mirrorInRtl}
+        />
       </Pressable>
     </Surface>
   );
@@ -565,11 +613,14 @@ function BookRow({
   venues: string | null;
   onPress: () => void;
 }) {
-  const label = `Book ${sport}`;
+  const m = useMessages();
+  const label = m.mobileHome.upNext.book[sport];
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={venues ? `${label}, ${venues}` : label}
+      accessibilityLabel={
+        venues ? m.mobileHome.join.nameWithDetail(label, venues) : label
+      }
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: "row",
@@ -602,7 +653,7 @@ function BookRow({
           </Text>
         ) : null}
       </View>
-      <ArrowRight size={ROW_ICON} color={colors.ink} />
+      <ArrowRight size={ROW_ICON} color={colors.ink} style={mirrorInRtl} />
     </Pressable>
   );
 }
@@ -650,6 +701,8 @@ export function UpNextEmpty({
   createAction: HomeNoGamesCreateAction;
   onNavigate: Navigate;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View
@@ -675,24 +728,24 @@ export function UpNextEmpty({
           }}
         >
           <Text size="eyebrow" mono uppercase>
-            This week
+            {m.mobileHome.upNext.thisWeekTag}
             <Text size="eyebrow" mono uppercase tone="muted">
-              {" / Free"}
+              {` / ${m.mobileHome.upNext.free}`}
             </Text>
           </Text>
         </View>
         <Text size="h1Lg" width="expanded" accessibilityRole="header">
-          {"Your week\nis open."}
+          {m.mobileHome.upNext.weekOpen}
         </Text>
         <Text size="meta" tone="muted">
-          Book a court, join an open game, or start one with your group.
+          {m.mobileHome.upNext.emptyBody}
         </Text>
       </View>
       {SPORTS.map((sport) => (
         <BookRow
           key={sport}
           sport={sport}
-          venues={venueCountLabel(venueCounts[sport])}
+          venues={venueCountLabel(venueCounts[sport], locale)}
           onPress={() => onNavigate({ kind: "book", sport })}
         />
       ))}
@@ -706,7 +759,7 @@ export function UpNextEmpty({
         }}
       >
         <OutlineTile
-          label="Find a game"
+          label={m.mobileHome.upNext.findAGame}
           icon={Search}
           onPress={() => onNavigate({ kind: "browse-games" })}
         />

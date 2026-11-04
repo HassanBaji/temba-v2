@@ -14,7 +14,7 @@ import {
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Button } from "~/components/ui/button";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { CANCEL_MATCH_ACTION } from "@repo/domain/game-copy";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   knockoutCancelDescription,
   knockoutCancelPrompt,
@@ -34,6 +34,8 @@ export function TournamentKnockoutCancelDialog({
   pending?: boolean;
   onConfirm: (advancingGameTeamId: string | undefined) => Promise<void>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [advancingGameTeamId, setAdvancingGameTeamId] = React.useState<
     string | null
   >(null);
@@ -58,7 +60,7 @@ export function TournamentKnockoutCancelDialog({
       onOpenChange(false);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Something went wrong.";
+        error instanceof Error ? error.message : m.common.somethingWentWrong;
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -78,18 +80,20 @@ export function TournamentKnockoutCancelDialog({
       <ResponsiveDialogContent showCloseButton={false}>
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>
-            {place ? `Cancel ${place.code}?` : `${CANCEL_MATCH_ACTION}?`}
+            {place
+              ? m.webTournament.knockoutCancel.title(place.code)
+              : m.webTournament.knockoutCancel.titleFallback}
           </ResponsiveDialogTitle>
           {prompt ? (
             <ResponsiveDialogDescription>
-              {knockoutCancelDescription(prompt)}
+              {knockoutCancelDescription(prompt, locale)}
             </ResponsiveDialogDescription>
           ) : null}
         </ResponsiveDialogHeader>
         {prompt?.kind === "choose" ? (
           <div className="space-y-2">
             <p id={GOES_THROUGH_LABEL_ID} className="text-body font-semibold">
-              Goes through
+              {m.webTournament.knockoutCancel.goesThrough}
             </p>
             <RovingRadioGroup
               aria-labelledby={GOES_THROUGH_LABEL_ID}
@@ -118,7 +122,7 @@ export function TournamentKnockoutCancelDialog({
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {m.common.cancel}
           </Button>
           <Button
             type="button"
@@ -130,7 +134,9 @@ export function TournamentKnockoutCancelDialog({
               void handleConfirm();
             }}
           >
-            {busy ? `${CANCEL_MATCH_ACTION}…` : CANCEL_MATCH_ACTION}
+            {busy
+              ? m.webTournament.knockoutCancel.cancelling
+              : m.game.action.cancelMatch}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

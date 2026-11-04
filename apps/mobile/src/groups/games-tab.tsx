@@ -9,7 +9,7 @@ import {
 } from "@repo/domain/group-empty-states";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import {
-  GROUP_ARCHIVE_GAMES_COPY,
+  groupArchiveGamesCopy,
   groupGamesEmptyDescription,
 } from "@repo/domain/group-join";
 import { useRouter, type Href } from "expo-router";
@@ -24,6 +24,7 @@ import {
   hubItems,
 } from "../games/games-model";
 import { TournamentCard } from "../games/tournament-cards";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { NotSetCell } from "../lib/not-set-cell";
 import { Avatar } from "../primitives/avatar";
@@ -34,13 +35,7 @@ import { ResultMark } from "../primitives/result-mark";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import {
-  GAMES_EMPTY_TITLE,
-  PLAYED_EMPTY_COPY,
-  SCHEDULED_EMPTY_COPY,
-  playedRowView,
-  type PlayedRowView,
-} from "./group-home-model";
+import { playedRowView, type PlayedRowView } from "./group-home-model";
 import { Notice } from "./notice";
 
 export type GamesTabProps = {
@@ -70,6 +65,8 @@ const SEAT_SIZE = 32;
  */
 function NoGamesYet(props: GamesTabProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const m = useMessages();
   const { onInvite, createGameHref } = props;
   const needed = groupGamePlayersNeeded(props.sport);
   const seated = [...props.members]
@@ -84,10 +81,10 @@ function NoGamesYet(props: GamesTabProps) {
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
             <Text size="meta" tone="muted">
-              Next Game
+              {m.mobileGroup.games.nextGame}
             </Text>
             <Text size="meta" tone="muted">
-              Not scheduled
+              {m.mobileGroup.games.notScheduled}
             </Text>
           </View>
           <View
@@ -98,7 +95,7 @@ function NoGamesYet(props: GamesTabProps) {
             {seated.map((member) => (
               <Avatar
                 key={member.userId}
-                name={member.name ?? "Member"}
+                name={member.name ?? m.mobileGroup.unnamedMember}
                 uri={mediaUrl(member.image, props.apiOrigin)}
                 radius={radii.sm}
               />
@@ -116,35 +113,36 @@ function NoGamesYet(props: GamesTabProps) {
               weight="bold"
               accessibilityRole="header"
             >
-              {GAMES_EMPTY_TITLE}
+              {m.mobileGroup.games.emptyTitle}
             </Text>
             <Text tone="muted">
               {groupGamesEmptyLine({
                 sport: props.sport,
                 memberCount: props.members.length,
                 isMember: props.isMember,
+                locale,
               })}
             </Text>
           </View>
         </View>
         <Hairline />
         <View style={{ flexDirection: "row" }}>
-          <NotSetCell label="When" divided={false} />
-          <NotSetCell label="Where" divided />
+          <NotSetCell label={m.mobileGroup.games.when} divided={false} />
+          <NotSetCell label={m.mobileGroup.games.where} divided />
         </View>
       </Surface>
       {createGameHref || onInvite ? (
         <View style={{ gap: 8 }}>
           {createGameHref ? (
             <Button
-              label="Create the first Game"
+              label={m.mobileGroup.standing.createFirstGame}
               size="lg"
               onPress={() => router.push(createGameHref)}
             />
           ) : null}
           {onInvite ? (
             <Button
-              label="Invite players"
+              label={m.group.settings.menu.invite}
               size="lg"
               variant={createGameHref ? "outline" : "default"}
               icon={
@@ -169,6 +167,7 @@ function PlayedRow({
   row: PlayedRowView;
   onOpen: (gameId: string) => void;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
@@ -201,7 +200,7 @@ function PlayedRow({
       >
         {row.trailing.kind === "cancelled" ? (
           <Text size="meta" tone="muted">
-            Cancelled
+            {m.mobileGroup.games.cancelled}
           </Text>
         ) : row.trailing.kind === "score" ? (
           <Text width="expanded" weight="semibold">
@@ -209,7 +208,7 @@ function PlayedRow({
           </Text>
         ) : (
           <Text size="meta" weight="semibold">
-            Enter
+            {m.mobileGroup.games.enter}
           </Text>
         )}
       </View>
@@ -220,6 +219,8 @@ function PlayedRow({
 export function GamesTab(props: GamesTabProps) {
   const { upcomingGames, playedGames, actions } = props;
   const router = useRouter();
+  const locale = useLocale();
+  const m = useMessages();
   const footballActions = {
     onOpen: actions.onOpen,
     onJoinWaitlist: actions.onJoinWaitlist,
@@ -239,20 +240,23 @@ export function GamesTab(props: GamesTabProps) {
   if (upcomingGames.length === 0 && playedGames.length === 0) {
     return (
       <Notice
-        title={GAMES_EMPTY_TITLE}
-        description={groupGamesEmptyDescription(props.isCommunityArchived)}
+        title={m.mobileGroup.games.emptyTitle}
+        description={groupGamesEmptyDescription(
+          props.isCommunityArchived,
+          locale,
+        )}
       />
     );
   }
 
   return (
     <View style={{ gap: spacing.section }}>
-      <Section title="Scheduled">
+      <Section title={m.mobileGroup.games.scheduled}>
         {props.isCommunityArchived ? (
-          <Text tone="muted">{GROUP_ARCHIVE_GAMES_COPY}</Text>
+          <Text tone="muted">{groupArchiveGamesCopy(locale)}</Text>
         ) : null}
         {upcomingGames.length === 0 ? (
-          <Text tone="muted">{SCHEDULED_EMPTY_COPY}</Text>
+          <Text tone="muted">{m.mobileGroup.games.scheduledEmpty}</Text>
         ) : (
           <View style={{ gap: 12 }}>
             {hubItems(upcomingGames).map((item) => {
@@ -288,9 +292,9 @@ export function GamesTab(props: GamesTabProps) {
         )}
       </Section>
 
-      <Section title="Played">
+      <Section title={m.mobileGroup.games.played}>
         {playedGames.length === 0 ? (
-          <Text tone="muted">{PLAYED_EMPTY_COPY}</Text>
+          <Text tone="muted">{m.mobileGroup.games.playedEmpty}</Text>
         ) : (
           <>
             <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -298,7 +302,7 @@ export function GamesTab(props: GamesTabProps) {
                 <View key={game.id}>
                   {index > 0 ? <Hairline /> : null}
                   <PlayedRow
-                    row={playedRowView(game)}
+                    row={playedRowView(game, locale)}
                     onOpen={actions.onOpen}
                   />
                 </View>
@@ -306,13 +310,13 @@ export function GamesTab(props: GamesTabProps) {
             </Surface>
             {props.loadMoreFailed ? (
               <Text tone="muted" accessibilityRole="alert">
-                More Games could not be loaded.
+                {m.mobileGroup.loadFailed.moreGames}
               </Text>
             ) : null}
             {props.canLoadMore ? (
               <View style={{ alignItems: "center" }}>
                 <Button
-                  label="Load more"
+                  label={m.mobileGroup.games.loadMore}
                   variant="outline"
                   pending={props.loadingMore}
                   onPress={props.onLoadMore}

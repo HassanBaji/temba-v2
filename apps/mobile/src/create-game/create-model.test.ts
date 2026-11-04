@@ -1,6 +1,6 @@
 import { createCreateGameFixtures } from "@repo/domain/create-game-fixtures";
 import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
-import { LEVEL_RANGE_INVERTED_MESSAGE } from "@repo/domain/level-range";
+import { levelRangeInvertedMessage } from "@repo/domain/level-range";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -27,18 +27,19 @@ function stateAt(
     type,
     step,
     draft: { ...draft, day: "2026-10-09" },
+    locale: "en",
   };
 }
 
 describe("createReducer", () => {
   it("starts on the type step without a type", () => {
-    const state = initialCreateState(NOW, "group-friends");
+    const state = initialCreateState(NOW, "en", "group-friends");
     expect(state.step).toBe(1);
     expect(state.draft.groupId).toBe("group-friends");
   });
 
   it("resets the other branch when the type changes", () => {
-    const game = createReducer(initialCreateState(NOW), {
+    const game = createReducer(initialCreateState(NOW, "en"), {
       kind: "selectType",
       type: "friendly_game",
     });
@@ -113,7 +114,7 @@ describe("createReducer", () => {
 
 describe("advance", () => {
   it("asks for a type, then moves to Where", () => {
-    const empty = initialCreateState(NOW);
+    const empty = initialCreateState(NOW, "en");
     expect(advance(empty, context)).toEqual({
       moved: false,
       errors: { type: "Pick a Game type" },
@@ -180,6 +181,13 @@ describe("advance", () => {
     const state = stateAt(3, "friendly_game", fixtures.drafts.gameWhereFilled);
     const result = advance(state, context);
     expect(result.moved).toBe(false);
+  });
+
+  it("reads Arabic", () => {
+    expect(advance(initialCreateState(NOW, "ar"), context)).toEqual({
+      moved: false,
+      errors: { type: "اختر نوع المباراة" },
+    });
   });
 });
 
@@ -253,7 +261,7 @@ describe("submitRequest", () => {
     );
     expect(level).toMatchObject({
       ok: false,
-      errors: { levelMinTenths: LEVEL_RANGE_INVERTED_MESSAGE },
+      errors: { levelMinTenths: levelRangeInvertedMessage("en") },
     });
     const price = submitRequest(
       stateAt(4, "friendly_game", fixtures.drafts.badPrice),
@@ -319,7 +327,7 @@ describe("football create flow", () => {
   }
 
   it("skips the Type step when a football Group is picked", () => {
-    const picked = createReducer(initialCreateState(NOW), {
+    const picked = createReducer(initialCreateState(NOW, "en"), {
       kind: "setGroup",
       groupId: "group-football",
       sport: "football",
@@ -330,7 +338,7 @@ describe("football create flow", () => {
   });
 
   it("turns a chosen tournament into a Friendly game on a football Group", () => {
-    const tournament = createReducer(initialCreateState(NOW), {
+    const tournament = createReducer(initialCreateState(NOW, "en"), {
       kind: "selectType",
       type: "friendly_tournament",
     });
@@ -344,7 +352,7 @@ describe("football create flow", () => {
   });
 
   it("keeps the padel flow when a padel Group is picked", () => {
-    const picked = createReducer(initialCreateState(NOW), {
+    const picked = createReducer(initialCreateState(NOW, "en"), {
       kind: "setGroup",
       groupId: "group-padel",
       sport: "padel",
@@ -352,7 +360,7 @@ describe("football create flow", () => {
     expect(picked.sport).toBe("padel");
     expect(picked.type).toBeNull();
     expect(picked.step).toBe(1);
-    const unknown = createReducer(initialCreateState(NOW), {
+    const unknown = createReducer(initialCreateState(NOW, "en"), {
       kind: "setGroup",
       groupId: "group-padel",
     });
@@ -360,7 +368,7 @@ describe("football create flow", () => {
   });
 
   it("returns to padel when the Group changes back", () => {
-    const football = createReducer(initialCreateState(NOW), {
+    const football = createReducer(initialCreateState(NOW, "en"), {
       kind: "setGroup",
       groupId: "group-football",
       sport: "football",

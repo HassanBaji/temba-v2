@@ -1,8 +1,4 @@
-import {
-  ADD_PLAYER_ACTION,
-  ADD_PLAYER_DESCRIPTION,
-  organizerCanAddPlayer,
-} from "@repo/domain/add-player-by-phone";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -15,15 +11,16 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import {
-  GAME_TOAST,
-  LEAVE_GAME_ACTION,
-  LEAVE_GAME_CONSEQUENCE,
-  LEAVE_WAITLIST_ACTION,
-  LEAVE_WAITLIST_CONSEQUENCE,
-  KICK_ACTION,
+  cancelGameAction,
   cancelGameConsequence,
   gameJoinToast,
+  gameToast,
+  kickAction,
   kickedToast,
+  leaveGameAction,
+  leaveGameConsequence,
+  leaveWaitlistAction,
+  leaveWaitlistConsequence,
 } from "@repo/domain/game-copy";
 import {
   gameKickConfirmCopy,
@@ -56,8 +53,9 @@ import { PoolSections } from "../football/pool-grid";
 import { FootballScoreCard } from "../football/score-card";
 import { TeamColumns } from "../football/team-columns";
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
-import { InviteEntry } from "../invites/invite-entry";
+import { InviteIconEntry } from "../invites/invite-entry";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
 import { PlayedGameView } from "../played-game/played-game-view";
@@ -72,6 +70,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
+import { BottomBar } from "./bottom-bar";
 import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
@@ -119,6 +118,9 @@ export function FootballGameDetails({
   refreshing: boolean;
   onRefresh: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails;
+  const locale = useLocale();
   const router = useRouter();
   const segments = useSegments();
   const toast = useToast();
@@ -140,7 +142,7 @@ export function FootballGameDetails({
   );
   const players = board.data?.players ?? [];
   const teams = board.data?.teams ?? null;
-  const names = teams ? bibNames(teams.bibs) : null;
+  const names = teams ? bibNames(teams.bibs, locale) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
 
@@ -148,12 +150,12 @@ export function FootballGameDetails({
     ...game,
     roster: game.roster ?? { users: [], count: 0, cap: game.playersAllowed },
   };
-  const model = footballGameDetailsModel(input, now);
+  const model = footballGameDetailsModel(input, now, locale);
   const played = gameIsPlayed(
     { windowEnd: game.windowEnd, matches: game.matches },
     now,
   );
-  const price = formatPricePerPlayerFils(game.pricePerPlayerFils);
+  const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
   const lines = footballHeroLines(
     {
@@ -167,6 +169,7 @@ export function FootballGameDetails({
       scored: board.data?.match?.score != null,
     },
     now,
+    locale,
   );
 
   const refresh = () =>
@@ -187,29 +190,29 @@ export function FootballGameDetails({
   const register = api.games.register.useMutation({
     onSuccess: (result) => {
       setJoinMode(null);
-      toast.show(gameJoinToast(result.waitlisted));
+      toast.show(gameJoinToast(result.waitlisted, locale));
     },
     onSettled: refresh,
   });
   const setRole = api.games.setFootballRole.useMutation({
     onSuccess: () => {
       setJoinMode(null);
-      toast.show("Saved");
+      toast.show(m.common.saved);
     },
     onSettled: refresh,
   });
   const confirmScore = api.games.confirmMatchResult.useMutation({
-    onSuccess: () => toast.show("Score confirmed"),
+    onSuccess: () => toast.show(copy.toast.scoreConfirmed),
     onError: failure,
     onSettled: refresh,
   });
   const leave = api.games.leave.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.left),
+    onSuccess: () => toast.show(gameToast(locale).left),
     onError: failure,
     onSettled: settled,
   });
   const leaveWaitlist = api.games.leaveWaitlist.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.leftWaitlist),
+    onSuccess: () => toast.show(gameToast(locale).leftWaitlist),
     onError: failure,
     onSettled: settled,
   });
@@ -218,17 +221,17 @@ export function FootballGameDetails({
     onSettled: settled,
   });
   const cancel = api.games.cancel.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.gameCancelled),
+    onSuccess: () => toast.show(gameToast(locale).gameCancelled),
     onError: failure,
     onSettled: settled,
   });
   const closeRegistration = api.games.closeRegistration.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.registrationClosed),
+    onSuccess: () => toast.show(gameToast(locale).registrationClosed),
     onError: failure,
     onSettled: refresh,
   });
   const reopenRegistration = api.games.reopenRegistration.useMutation({
-    onSuccess: () => toast.show(GAME_TOAST.registrationReopened),
+    onSuccess: () => toast.show(gameToast(locale).registrationReopened),
     onError: failure,
     onSettled: refresh,
   });
@@ -257,18 +260,18 @@ export function FootballGameDetails({
 
   function askLeave() {
     setConfirm({
-      title: `Leave ${gameTitle(game.name)}?`,
-      description: LEAVE_GAME_CONSEQUENCE,
-      confirmLabel: LEAVE_GAME_ACTION,
+      title: copy.confirm.leaveTitle(gameTitle(game, locale)),
+      description: leaveGameConsequence(locale),
+      confirmLabel: leaveGameAction(locale),
       onConfirm: () => leave.mutate({ gameId }),
     });
   }
 
   function askLeaveWaitlist() {
     setConfirm({
-      title: `${LEAVE_WAITLIST_ACTION}?`,
-      description: LEAVE_WAITLIST_CONSEQUENCE,
-      confirmLabel: LEAVE_WAITLIST_ACTION,
+      title: copy.confirm.leaveWaitlistTitle(leaveWaitlistAction(locale)),
+      description: leaveWaitlistConsequence(locale),
+      confirmLabel: leaveWaitlistAction(locale),
       onConfirm: () => leaveWaitlist.mutate({ gameId }),
     });
   }
@@ -281,31 +284,33 @@ export function FootballGameDetails({
         waitlist: game.waitlist,
       },
       request,
+      locale,
     );
-    const copy = gameKickConfirmCopy(target, {
-      partnerRequired: false,
-      drawPosted: false,
-    });
+    const kickCopy = gameKickConfirmCopy(
+      target,
+      { partnerRequired: false, drawPosted: false },
+      locale,
+    );
     setSelected(null);
     setConfirm({
-      title: copy.title,
-      description: copy.description,
-      confirmLabel: KICK_ACTION,
+      title: kickCopy.title,
+      description: kickCopy.description,
+      confirmLabel: kickAction(locale),
       onConfirm: () =>
         kick.mutate(
           target.kind === "player"
             ? { gameId, userId: target.userId }
             : { gameId, waitlistId: target.waitlistId },
-          { onSuccess: () => toast.show(kickedToast(target.name)) },
+          { onSuccess: () => toast.show(kickedToast(target.name, locale)) },
         ),
     });
   }
 
   function askCancel() {
     setConfirm({
-      title: `Cancel ${gameTitle(game.name)}?`,
-      description: cancelGameConsequence(model.rosterRows.length),
-      confirmLabel: model.organizer?.cancelLabel ?? "Cancel Game",
+      title: copy.confirm.cancelTitle(gameTitle(game, locale)),
+      description: cancelGameConsequence(model.rosterRows.length, locale),
+      confirmLabel: model.organizer?.cancelLabel ?? cancelGameAction(locale),
       onConfirm: () => cancel.mutate({ gameId }),
     });
   }
@@ -343,70 +348,68 @@ export function FootballGameDetails({
   const viewerCode = viewer ? slotCode(viewer) : null;
   const subtitle = [
     lines.dayLine,
-    game.sideSize ? `${game.sideSize}-a-side` : null,
-    `${layout.openSeats} seats open`,
+    game.sideSize ? m.createGame.sideSize(game.sideSize) : null,
+    m.football.board.seatsOpen(layout.openSeats),
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(copy.listSeparator);
 
   const infoRows: InfoRow[] = [
-    ...(game.groupName ? [{ label: "Group", value: game.groupName }] : []),
-    ...(game.season ? [{ label: "Season", value: game.season.name }] : []),
+    ...(game.groupName
+      ? [{ label: copy.football.group, value: game.groupName }]
+      : []),
+    ...(game.season
+      ? [{ label: copy.football.season, value: game.season.name }]
+      : []),
     ...(price
       ? [
           {
-            label: "Pitch cost",
-            value: price === "Free" ? price : `${price} each`,
+            label: copy.football.pitchCost,
+            value:
+              price === m.createGame.price.free
+                ? price
+                : m.game.partner.priceEach(price),
           },
         ]
       : []),
     {
-      label: "Teams",
+      label: copy.football.teams,
       value: teams
-        ? footballTeamsMethodLabel(teams.method)
-        : "The organizer makes them",
+        ? footballTeamsMethodLabel(teams.method, locale)
+        : copy.football.organizerMakesTeams,
     },
     ...(names
       ? [
           {
-            label: "Bibs",
-            value: `${names.slot1} and ${names.slot2}, organizer brings`,
+            label: copy.football.bibs,
+            value: m.game.played.bibsLine(names.slot1, names.slot2),
           },
         ]
       : []),
-    { label: "Counts for rating", value: game.rated ? "Yes" : "No" },
+    {
+      label: m.game.partner.countsForRating,
+      value: game.rated ? m.common.yes : m.common.no,
+    },
   ];
 
-  const heroActions = (
+  const showHeroActions =
+    model.cta?.kind === "registered" ||
+    model.cta?.kind === "waitlisted" ||
+    (inviteAccess.canManage && !teams);
+  const heroActions = showHeroActions ? (
     <View style={{ gap: 8 }}>
-      {model.cta?.kind === "join" ? (
-        <Button
-          label={price && price !== "Free" ? `Join, ${price}` : "Join"}
-          size="lg"
-          onPress={() => {
-            register.reset();
-            setJoinMode("join");
-          }}
-        />
-      ) : null}
-      {model.cta?.kind === "join_waitlist" ? (
-        <Button
-          label="Join waitlist"
-          size="lg"
-          pending={register.isPending}
-          onPress={() => register.mutate({ gameId })}
-        />
-      ) : null}
       {model.cta?.kind === "registered" ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text weight="semibold">
-              {viewerCode ? `You're in as ${viewerCode}` : "You're in"}
+              {viewerCode
+                ? copy.football.youreInAs(viewerCode)
+                : m.game.cta.youreIn}
             </Text>
           </View>
           {board.data?.match?.score == null && !played ? (
             <Button
-              label="Change"
+              label={copy.football.change}
               variant="outline-inverse"
               size="sm"
               onPress={() => {
@@ -417,7 +420,7 @@ export function FootballGameDetails({
           ) : null}
           {played ? null : (
             <Button
-              label={LEAVE_GAME_ACTION}
+              label={leaveGameAction(locale)}
               variant="outline-inverse"
               size="sm"
               pending={leave.isPending}
@@ -432,7 +435,7 @@ export function FootballGameDetails({
             <Text weight="semibold">{model.cta.title}</Text>
           </View>
           <Button
-            label={LEAVE_WAITLIST_ACTION}
+            label={leaveWaitlistAction(locale)}
             variant="outline-inverse"
             size="sm"
             pending={leaveWaitlist.isPending}
@@ -442,14 +445,14 @@ export function FootballGameDetails({
       ) : null}
       {inviteAccess.canManage && !teams ? (
         <Button
-          label="Invite players"
+          label={copy.football.invitePlayers}
           variant="outline-inverse"
           size="lg"
           onPress={() => setInviteOpen(true)}
         />
       ) : null}
     </View>
-  );
+  ) : null;
 
   const heroBody =
     teams && names ? (
@@ -466,8 +469,9 @@ export function FootballGameDetails({
               board.data?.viewer ?? { sideIndex: null },
               players,
               names,
+              locale,
             ),
-            "Captains pick starters before kick-off.",
+            copy.football.captainsNote,
           ]
             .filter(Boolean)
             .join(" ")}
@@ -486,7 +490,7 @@ export function FootballGameDetails({
         >
           <View>
             <Text size="meta" tone="muted">
-              Players in
+              {copy.football.playersIn}
             </Text>
             <View
               style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}
@@ -494,11 +498,11 @@ export function FootballGameDetails({
               <Text size="display" width="expanded" weight="bold">
                 {String(players.length)}
               </Text>
-              <Text tone="muted">of {layout.seats}</Text>
+              <Text tone="muted">{copy.football.ofSeats(layout.seats)}</Text>
             </View>
           </View>
           <Text size="meta" tone="muted" style={{ textAlign: "right" }}>
-            Teams by the organizer
+            {copy.football.teamsByOrganizer}
           </Text>
         </View>
         <SeatBar seats={layout.seats} filled={players.length} />
@@ -509,29 +513,32 @@ export function FootballGameDetails({
   const score = board.data?.match?.score ?? null;
   const playedModel =
     teams && names && score && board.data?.match?.status === "completed"
-      ? playedFootballModel({
-          players,
-          bibs: teams.bibs,
-          score,
-          confirmed: board.data.match.confirmed,
-          enteredByName: board.data.match.enteredByName,
-          teamsMethod: teams.method,
-          sideSize: game.sideSize,
-          windowStart: game.windowStart,
-          windowEnd: game.windowEnd,
-          venue: game.venue,
-          courtName: game.recordedCourts[0]?.name ?? null,
-          groupName: game.groupName,
-          rated: game.rated,
-          ratingImpact: game.ratingImpact,
-        })
+      ? playedFootballModel(
+          {
+            players,
+            bibs: teams.bibs,
+            score,
+            confirmed: board.data.match.confirmed,
+            enteredByName: board.data.match.enteredByName,
+            teamsMethod: teams.method,
+            sideSize: game.sideSize,
+            windowStart: game.windowStart,
+            windowEnd: game.windowEnd,
+            venue: game.venue,
+            courtName: game.recordedCourts[0]?.name ?? null,
+            groupName: game.groupName,
+            rated: game.rated,
+            ratingImpact: game.ratingImpact,
+          },
+          locale,
+        )
       : null;
   const playedMenuItems = organizerCanAddPlayer(game)
     ? [
         {
           key: "add_player",
-          label: ADD_PLAYER_ACTION,
-          hint: ADD_PLAYER_DESCRIPTION,
+          label: m.group.addPlayer.action,
+          hint: m.group.addPlayer.menuHint,
           onPress: () => setAddPlayerOpen(true),
         },
       ]
@@ -546,7 +553,6 @@ export function FootballGameDetails({
       hero={{
         dateLine: playedModel.dateLine,
         tag: playedModel.tag,
-        fallback: "/games",
         result: playedModel.result,
         venueLine: playedModel.venueLine,
         whenLine: playedModel.whenLine,
@@ -582,10 +588,9 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
-          fallback="/games"
           actions={
             inviteAccess.canManage ? (
-              <InviteEntry onPress={() => setInviteOpen(true)} />
+              <InviteIconEntry onPress={() => setInviteOpen(true)} />
             ) : null
           }
         >
@@ -597,23 +602,23 @@ export function FootballGameDetails({
         {game.cancelledAt ? (
           <Surface accessibilityRole="alert">
             <Text size="title" weight="semibold">
-              This Game is cancelled
+              {copy.cancelledTitle}
             </Text>
           </Surface>
         ) : null}
         {game.joinFrozen && !game.cancelledAt ? (
           <Surface style={{ gap: 4 }}>
             <Text size="lead" weight="semibold" accessibilityRole="header">
-              This Club Group&apos;s Community is Soft-archived
+              {copy.frozen.title}
             </Text>
             <Text size="meta" tone="muted">
-              Registration, the waitlist, and invites stay closed.
+              {copy.frozen.description}
             </Text>
           </Surface>
         ) : null}
         {board.error ? (
           <Surface accessibilityRole="alert" style={{ gap: 8 }}>
-            <Text weight="semibold">The lineup could not be loaded</Text>
+            <Text weight="semibold">{copy.football.lineupLoadFailed}</Text>
             <Text size="meta" tone="muted">
               {board.error.message}
             </Text>
@@ -623,9 +628,9 @@ export function FootballGameDetails({
           <View style={{ gap: 12 }}>
             {players.length === 0 && layout.openSeats === 0 ? (
               <>
-                <SectionHead title="Players" />
+                <SectionHead title={copy.football.players} />
                 <Text size="meta" tone="muted">
-                  Nobody has joined yet.
+                  {copy.football.nobodyJoined}
                 </Text>
               </>
             ) : (
@@ -636,8 +641,7 @@ export function FootballGameDetails({
               />
             )}
             <Text size="meta" tone="muted">
-              Positions are preferences, not promises. The organizer makes the
-              teams, with a keeper on each side.
+              {copy.football.positionsNote}
             </Text>
           </View>
         ) : null}
@@ -672,9 +676,11 @@ export function FootballGameDetails({
               board.data?.viewer.canMakeTeams
                 ? {
                     status: teams
-                      ? footballTeamsMethodLabel(teams.method)
-                      : "Not set yet. Split the pool when it fills.",
-                    actionLabel: teams ? "Edit teams" : "Make teams",
+                      ? footballTeamsMethodLabel(teams.method, locale)
+                      : copy.football.teamsNotSet,
+                    actionLabel: teams
+                      ? copy.football.editTeams
+                      : copy.football.makeTeams,
                   }
                 : null
             }
@@ -701,14 +707,46 @@ export function FootballGameDetails({
     </Screen>
   );
 
+  const joinFamily =
+    model.cta?.kind === "join" || model.cta?.kind === "join_waitlist"
+      ? { kind: model.cta.kind }
+      : null;
+
   return (
     <View style={{ flex: 1 }}>
       {screen}
+      {joinFamily && !playedModel ? (
+        <BottomBar
+          family={joinFamily}
+          lines={
+            joinFamily.kind === "join"
+              ? {
+                  title: m.football.board.seatsOpen(layout.openSeats),
+                  subline:
+                    price && price !== m.createGame.price.free
+                      ? m.game.partner.priceEach(price)
+                      : null,
+                }
+              : null
+          }
+          handlers={{
+            joinPending: register.isPending && joinMode == null,
+            leaveWaitlistPending: leaveWaitlist.isPending,
+            onJoin: () => {
+              register.reset();
+              setJoinMode("join");
+            },
+            onJoinWaitlist: () => register.mutate({ gameId }),
+            onLeaveWaitlist: askLeaveWaitlist,
+            onBrowse: () => router.push("/games"),
+          }}
+        />
+      ) : null}
       {playedModel ? (
         <>
           <PlayedMenuSheet
             visible={playedMenuOpen}
-            title={gameTitle(game.name)}
+            title={gameTitle(game, locale)}
             items={playedMenuItems}
             onClose={() => setPlayedMenuOpen(false)}
           />
@@ -773,7 +811,9 @@ export function FootballGameDetails({
             viewer?.position ?? preferences?.preferredFootballPosition ?? null,
         }}
         price={price}
-        teamsLine={teams ? "Set" : "Made by the organizer"}
+        teamsLine={
+          teams ? copy.football.teamsSet : copy.football.teamsMadeByOrganizer
+        }
         pending={register.isPending || setRole.isPending}
         error={
           (joinMode === "edit" ? setRole.error : register.error)?.message ??
@@ -799,6 +839,7 @@ export function FootballGameDetails({
           gameId={gameId}
           placement="football"
           sides={[]}
+          groupName={game.groupName}
           onAdded={refresh}
         />
       ) : null}

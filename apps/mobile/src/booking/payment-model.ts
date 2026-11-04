@@ -4,6 +4,8 @@ import {
   type OnlinePaymentMethod,
   type PaymentState,
 } from "@repo/domain/booking-payment";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { paymentMethod } from "./booking-model";
 
@@ -47,77 +49,85 @@ export type PaymentCopy = {
 };
 
 /** "BenefitPay", or null when the Payment has no known online method. */
-export function methodName(method: string | null | undefined): string | null {
-  return isOnlinePaymentMethod(method) ? paymentMethod(method).title : null;
+export function methodName(
+  method: string | null | undefined,
+  locale: Locale,
+): string | null {
+  return isOnlinePaymentMethod(method)
+    ? paymentMethod(method, locale).title
+    : null;
 }
 
-const PAGE_HINTS: Record<OnlinePaymentMethod, string> = {
-  card: "Enter your card on the payment page, then come back here.",
-  benefit:
-    "Enter your BENEFIT card and PIN on the payment page, then come back here.",
-  benefitpay:
-    "Approve in the BenefitPay app or scan the QR code, then come back here.",
-  apple_pay: "Confirm with Apple Pay on the payment page, then come back here.",
-};
+const PAGE_HINT_KEYS = {
+  card: "card",
+  benefit: "benefit",
+  benefitpay: "benefitpay",
+  apple_pay: "applePay",
+} as const satisfies Record<OnlinePaymentMethod, string>;
 
 /** What to do on the hosted page for the method the Customer picked. */
-export function paymentPageHint(method: string | null | undefined): string {
-  return isOnlinePaymentMethod(method)
-    ? PAGE_HINTS[method]
-    : "Finish paying on the payment page, then come back here.";
+export function paymentPageHint(
+  method: string | null | undefined,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).mobileBooking.pageHints;
+  return isOnlinePaymentMethod(method) ? m[PAGE_HINT_KEYS[method]] : m.generic;
 }
 
 export function paymentCopy(
   view: Exclude<PaymentView, { kind: "done" }>,
-  options: { method: string | null | undefined; slow: boolean },
+  options: { method: string | null | undefined; slow: boolean; locale: Locale },
 ): PaymentCopy {
-  const name = methodName(options.method);
+  const m = messagesFor(options.locale).mobileBooking;
+  const name = methodName(options.method, options.locale);
   const waiting = view.kind === "open" || view.kind === "checking";
 
   if (waiting && options.slow) {
     return {
-      title: "Still waiting.",
-      body: `${name ?? "The payment page"} has not confirmed yet. This can take a minute. Keep this screen open, it updates the moment it lands.`,
-      status: "Taking longer than usual",
-      hint: "If the payment page showed success but this has not updated, check status. Checking never charges you twice.",
+      title: m.payment.slow.title,
+      body: m.payment.slow.body(name ?? m.paymentPageName),
+      status: m.payment.slow.status,
+      hint: m.payment.slow.hint,
     };
   }
 
   switch (view.kind) {
     case "preparing":
       return {
-        title: "Getting the payment page ready.",
-        body: "Your court is held while we set up the payment.",
-        status: "Preparing",
+        title: m.payment.preparing.title,
+        body: m.payment.preparing.body,
+        status: m.payment.preparing.status,
         hint: null,
       };
     case "open":
       return {
-        title: "Finish paying in your browser.",
-        body: `${paymentPageHint(options.method)} This screen updates on its own.`,
-        status: name ? `Waiting for ${name}` : "Waiting for payment",
-        hint: "Closed the browser by mistake? Open it again below.",
+        title: m.payment.open.title,
+        body: m.payment.open.body(
+          paymentPageHint(options.method, options.locale),
+        ),
+        status: name ? m.payment.open.statusFor(name) : m.payment.open.status,
+        hint: m.payment.open.hint,
       };
     case "checking":
       return {
-        title: "Checking your payment.",
-        body: "This takes a few seconds. Keep this screen open.",
-        status: "Confirming",
+        title: m.payment.checking.title,
+        body: m.payment.checking.body,
+        status: m.payment.checking.status,
         hint: null,
       };
     case "failed":
       return {
-        title: "Payment did not go through.",
+        title: m.payment.failed.title,
         body:
           view.reason ??
-          `Nothing was charged${name ? ` to ${name}` : ""}. Try again, or pay another way.`,
+          (name ? m.payment.failed.bodyFor(name) : m.payment.failed.body),
         status: null,
         hint: null,
       };
     case "expired":
       return {
-        title: "Your hold ran out.",
-        body: "The court was released so others can book it. Pick a time again.",
+        title: m.payment.expired.title,
+        body: m.payment.expired.body,
         status: null,
         hint: null,
       };

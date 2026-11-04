@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { teamLinkCommunityPicker } from "./team-link-community-picker";
+import {
+  noLinkableCommunityCopy,
+  teamLinkCommunityPicker,
+} from "./team-link-community-picker";
 
 const live = { id: "c-live", archivedAt: null };
 const archived = { id: "c-archived", archivedAt: new Date("2026-01-01") };
@@ -46,6 +49,19 @@ describe("teamLinkCommunityPicker", () => {
         data: [archived, live],
       }),
       { status: "ready", communities: [live] },
+    );
+  });
+});
+
+describe("noLinkableCommunityCopy", () => {
+  it("reads in both languages", () => {
+    assert.equal(
+      noLinkableCommunityCopy("en"),
+      "You're not in a Community that can link this Team.",
+    );
+    assert.equal(
+      noLinkableCommunityCopy("ar"),
+      "لست في مجتمع يمكنه ربط هذا الفريق.",
     );
   });
 });

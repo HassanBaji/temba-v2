@@ -101,6 +101,7 @@ describe("friendlyGameLineupVacantAction", () => {
         friendlyGameLineupVacantAction(true),
         "Team A",
         "Left",
+        "en",
       ),
       "Move to Team A Left",
     );
@@ -109,6 +110,7 @@ describe("friendlyGameLineupVacantAction", () => {
         friendlyGameLineupVacantAction(false),
         "Team A",
         "Left",
+        "en",
       ),
       null,
     );
@@ -118,14 +120,28 @@ describe("friendlyGameLineupVacantAction", () => {
 describe("friendlyGameVacantSeatLabel", () => {
   it("names the vacant Plus as join or self-move", () => {
     assert.equal(
-      friendlyGameVacantSeatLabel("join", "Team A", "Left"),
+      friendlyGameVacantSeatLabel("join", "Team A", "Left", "en"),
       "Join Team A Left",
     );
     assert.equal(
-      friendlyGameVacantSeatLabel("move", "Team B", "Right"),
+      friendlyGameVacantSeatLabel("move", "Team B", "Right", "en"),
       "Move to Team B Right",
     );
-    assert.equal(friendlyGameVacantSeatLabel(null, "Team A", "Left"), null);
+    assert.equal(
+      friendlyGameVacantSeatLabel(null, "Team A", "Left", "en"),
+      null,
+    );
+  });
+
+  it("names the vacant Plus in Arabic", () => {
+    assert.equal(
+      friendlyGameVacantSeatLabel("join", "الفريق أ", "يسار", "ar"),
+      "انضم إلى الفريق أ يسار",
+    );
+    assert.equal(
+      friendlyGamePlayersCancelledNote(true, "ar"),
+      "أُلغيت هذه المباراة. يبقى الجالسون مدرجين.",
+    );
   });
 });
 
@@ -180,9 +196,9 @@ describe("friendlyGameOccupantActions", () => {
 describe("friendlyGamePlayersCancelledNote", () => {
   it("notes the cancel without wiping seats", () => {
     assert.equal(
-      friendlyGamePlayersCancelledNote(true),
+      friendlyGamePlayersCancelledNote(true, "en"),
       "This Game was cancelled. Seated people stay listed.",
     );
-    assert.equal(friendlyGamePlayersCancelledNote(false), null);
+    assert.equal(friendlyGamePlayersCancelledNote(false, "en"), null);
   });
 });

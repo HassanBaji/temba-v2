@@ -2,12 +2,14 @@ import { colors, radii } from "@repo/design-tokens";
 import {
   CALLING_COUNTRIES,
   callingCountryByIso,
+  callingCountryName,
   countryFlagEmoji,
   formatNationalNumber,
 } from "@repo/domain/phone-number";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
@@ -21,6 +23,7 @@ export type PhoneFieldProps = {
   onNationalChange: (value: string) => void;
   error?: string;
   disabled?: boolean;
+  placeholder?: string;
 };
 
 export function PhoneField({
@@ -31,7 +34,10 @@ export function PhoneField({
   onNationalChange,
   error,
   disabled = false,
+  placeholder,
 }: PhoneFieldProps) {
+  const m = useMessages();
+  const locale = useLocale();
   const [picking, setPicking] = useState(false);
   const country = callingCountryByIso(countryIso);
 
@@ -44,13 +50,15 @@ export function PhoneField({
         textContentType="telephoneNumber"
         autoComplete="tel"
         editable={!disabled}
-        placeholder={country?.placeholder}
+        placeholder={placeholder ?? country?.placeholder}
         value={formatNationalNumber(countryIso, national)}
         onChangeText={onNationalChange}
         leading={
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Country code, ${country?.name ?? countryIso}`}
+            accessibilityLabel={m.mobileHome.phoneField.countryCode(
+              country ? callingCountryName(countryIso, locale) : countryIso,
+            )}
             disabled={disabled}
             onPress={() => setPicking(true)}
             style={{
@@ -73,7 +81,7 @@ export function PhoneField({
       <Sheet
         visible={picking}
         onClose={() => setPicking(false)}
-        title="Country code"
+        title={m.mobileHome.phoneField.countryCodeTitle}
       >
         {CALLING_COUNTRIES.map((item) => (
           <Pressable
@@ -96,7 +104,7 @@ export function PhoneField({
               weight={item.iso === countryIso ? "semibold" : "regular"}
               style={{ flex: 1 }}
             >
-              {item.name}
+              {callingCountryName(item.iso, locale)}
             </Text>
             <Text tone="muted">+{item.callingCode}</Text>
           </Pressable>

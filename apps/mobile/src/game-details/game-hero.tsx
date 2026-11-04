@@ -1,55 +1,129 @@
-import { spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import type { FriendlyGameHeroModel } from "@repo/domain/friendly-game-hero";
-import type { Href } from "expo-router";
+import type { CourtFigure } from "@repo/domain/friendly-game-court";
+import { MoreVertical, Navigation, Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { useMessages } from "../i18n/locale-provider";
+import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
-import { ScreenHeader } from "../primitives/screen-header";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
+import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { FigurePair } from "./figure-pair";
+import { HeroTopLine } from "./hero-top-line";
 
 const HERO_PADDING_BOTTOM = 22;
+const HERO_GAP = 14;
+const GAMES_FALLBACK = "/games";
 
-function TopLine({ left, right }: { left: string; right: string | null }) {
-  return (
-    <View
-      style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
-    >
-      <Text
-        size="meta"
-        tone="muted"
-        numberOfLines={1}
-        style={{ flexShrink: 1 }}
-      >
-        {left}
-      </Text>
-      {right ? (
-        <Text size="meta" tone="muted">
-          {right}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
+export type GameHeroPlace = {
+  name: string | null;
+  line: string | null;
+  onDirections: (() => void) | null;
+};
 
 function LightStatusBar() {
   useLightStatusBar();
   return null;
 }
 
-/** The full-bleed header of Game details: back, actions, then the Game. */
+/** The countdown tag: outlined while the Game is ahead, solid once it has started. */
+function StatusPill({ label, solid }: { label: string; solid: boolean }) {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        borderRadius: radii.surface,
+        paddingVertical: 3,
+        paddingHorizontal: 9,
+        borderWidth: hairline,
+        borderColor: solid ? palette.foreground : palette.rule,
+        backgroundColor: solid ? palette.foreground : "transparent",
+      }}
+    >
+      <Text
+        size="eyebrow"
+        weight={solid ? "semibold" : "regular"}
+        style={{ color: solid ? palette.background : palette.foreground }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function PlaceRow({ place }: { place: GameHeroPlace }) {
+  const m = useMessages();
+  const palette = useTonePalette();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        {place.name ? (
+          <Text weight="semibold" numberOfLines={1}>
+            {place.name}
+          </Text>
+        ) : null}
+        {place.line ? (
+          <Text size="meta" tone="muted" numberOfLines={1}>
+            {place.line}
+          </Text>
+        ) : null}
+      </View>
+      {place.onDirections ? (
+        <Button
+          label={m.mobileGameDetails.hero.directions}
+          accessibilityLabel={
+            place.name
+              ? m.mobileGameDetails.hero.directionsTo(place.name)
+              : m.mobileGameDetails.hero.directions
+          }
+          variant="outline-inverse"
+          size="sm"
+          icon={<Navigation size={14} color={palette.foreground} />}
+          onPress={place.onDirections}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function Figures({ figures }: { figures: CourtFigure[] }) {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        borderTopWidth: hairline,
+        borderTopColor: palette.rule,
+        paddingTop: 16,
+      }}
+    >
+      <FigurePair figures={figures} />
+    </View>
+  );
+}
+
+/**
+ * The full-bleed head of Game details: back and the Game's actions, when it
+ * is, where, and how full the court is.
+ */
 export function GameHero({
   model,
-  fallback,
-  actions,
+  place,
+  figures,
+  onShare,
+  onMore,
 }: {
   model: FriendlyGameHeroModel;
-  fallback: Href;
-  actions?: React.ReactNode;
+  place: GameHeroPlace | null;
+  figures: CourtFigure[];
+  onShare?: () => void;
+  onMore?: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface
       tone={model.tone}
@@ -62,18 +136,49 @@ export function GameHero({
       }}
     >
       {model.tone === "ink" ? <LightStatusBar /> : null}
-      <ScreenHeader nav="back" fallback={fallback} actions={actions}>
+      <View style={{ gap: HERO_GAP }}>
+        <ScreenHeader
+          nav="back"
+          fallback={GAMES_FALLBACK}
+          actions={
+            onShare || onMore ? (
+              <>
+                {onShare ? (
+                  <HeaderIconButton
+                    framed
+                    icon={Share}
+                    accessibilityLabel={m.mobileGameDetails.hero.shareGame}
+                    onPress={onShare}
+                  />
+                ) : null}
+                {onMore ? (
+                  <HeaderIconButton
+                    framed
+                    icon={MoreVertical}
+                    accessibilityLabel={m.mobileGameDetails.hero.gameActions}
+                    onPress={onMore}
+                  />
+                ) : null}
+              </>
+            ) : undefined
+          }
+        />
         <HeroBody model={model} />
-      </ScreenHeader>
+        {model.kind !== "final" && place && (place.name || place.line) ? (
+          <PlaceRow place={place} />
+        ) : null}
+        {model.kind !== "final" ? <Figures figures={figures} /> : null}
+      </View>
     </Surface>
   );
 }
 
 function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
+  const m = useMessages();
   if (model.kind === "time_unset") {
     return (
       <Text size="meta" tone="muted">
-        Time unset
+        {m.mobileGameDetails.hero.timeUnset}
       </Text>
     );
   }
@@ -81,7 +186,14 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
   if (model.kind === "final") {
     return (
       <View style={{ gap: 12 }}>
-        <TopLine left={model.dateLabel} right={model.tag} />
+        <HeroTopLine
+          left={model.dateLabel}
+          right={
+            <Text size="meta" tone="muted">
+              {model.tag}
+            </Text>
+          }
+        />
         {model.verdict && model.verdictWord ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <ResultMark variant={model.verdict} size={32} decorative />
@@ -116,24 +228,42 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
   }
 
   return (
-    <View style={{ gap: 12 }}>
-      <TopLine left={model.leftLabel} right={model.statusLabel} />
+    <View style={{ gap: HERO_GAP }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Text
+          size="meta"
+          tone="muted"
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {model.leftLabel}
+        </Text>
+        {model.statusLabel ? (
+          <StatusPill
+            label={model.statusLabel}
+            solid={model.phase !== "upcoming"}
+          />
+        ) : null}
+      </View>
       {model.partnerName ? (
         <View style={{ gap: 8 }}>
           <Text size="display" width="expanded" weight="bold">
-            You and {model.partnerName}
+            {m.mobileGameDetails.hero.youAnd(model.partnerName)}
           </Text>
           <Text size="lead">{model.dateLine}</Text>
         </View>
       ) : (
         <View
           accessible
-          accessibilityLabel={`${model.kickoffTime} ${model.trailer}`}
+          accessibilityLabel={m.mobileGameDetails.hero.kickoff(
+            model.kickoffTime,
+            model.trailer,
+          )}
           style={{
             flexDirection: "row",
             flexWrap: "wrap",
             alignItems: "baseline",
-            columnGap: 8,
+            columnGap: 10,
           }}
         >
           <Text size="heroTime" width="expanded" weight="bold">
@@ -144,12 +274,6 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
           </Text>
         </View>
       )}
-      {model.scheduleLine ? (
-        <Text size="meta" tone="muted">
-          {model.scheduleLine}
-        </Text>
-      ) : null}
-      <FigurePair figures={model.figures} />
     </View>
   );
 }

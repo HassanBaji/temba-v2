@@ -68,11 +68,24 @@ describe("allTimeFromApi", () => {
 
 describe("profileModelFromFixture", () => {
   it("renders every slot ready from a fixture", () => {
-    const model = profileModelFromFixture(createProfileFixtures().confirmed);
+    const model = profileModelFromFixture(
+      createProfileFixtures().confirmed,
+      "en",
+    );
     assert.equal(model.level.status, "ready");
     assert.equal(model.allTime.status, "ready");
     assert.equal(model.recentForm.status, "ready");
     assert.equal(model.position.status, "ready");
+  });
+
+  it("derives the recent form copy in Arabic", () => {
+    const model = profileModelFromFixture(
+      createProfileFixtures().confirmed,
+      "ar",
+    );
+    assert.equal(model.recentForm.status, "ready");
+    if (model.recentForm.status !== "ready") return;
+    assert.match(model.recentForm.value.streak.label, /[؀-ۿ]/);
   });
 });
 

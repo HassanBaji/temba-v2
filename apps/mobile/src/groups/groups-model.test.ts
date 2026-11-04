@@ -8,7 +8,7 @@ const fixtures = createGroupFixtures(new Date("2026-03-10T12:00:00Z"));
 
 describe("groupRowView", () => {
   it("shows the viewer's rank, the next Game weekday and an absolute image", () => {
-    const row = groupRowView(fixtures.mine[0]!, ORIGIN);
+    const row = groupRowView(fixtures.mine[0]!, ORIGIN, "en");
     expect(row.meta).toBe("14 members, you are rank 3");
     expect(row.nextGameWeekday).toBe("Thu");
     expect(row.imageUri).toBe(
@@ -20,14 +20,22 @@ describe("groupRowView", () => {
   });
 
   it("leaves rank and next Game out before the Group has either", () => {
-    const row = groupRowView(fixtures.mine[1]!, ORIGIN);
+    const row = groupRowView(fixtures.mine[1]!, ORIGIN, "en");
     expect(row.meta).toBe("1 member");
     expect(row.nextGameWeekday).toBeNull();
     expect(row.accessibilityLabel).toContain("no Game scheduled");
   });
 
   it("names an unnamed Group", () => {
-    expect(groupRowView(fixtures.mine[2]!, ORIGIN).name).toBe("Untitled Group");
+    expect(groupRowView(fixtures.mine[2]!, ORIGIN, "en").name).toBe(
+      "Untitled Group",
+    );
+  });
+
+  it("reads the row in Arabic", () => {
+    const row = groupRowView(fixtures.mine[0]!, ORIGIN, "ar");
+    expect(row.meta).toBe("14 عضوًا، ترتيبك 3");
+    expect(row.accessibilityLabel).toContain("المباراة القادمة");
   });
 });
 
@@ -35,7 +43,7 @@ describe("publicGroupRowView", () => {
   const [open, approval, requested] = fixtures.publicGroups;
 
   it("offers Join on an open Group", () => {
-    const row = publicGroupRowView(open!, null, ORIGIN);
+    const row = publicGroupRowView(open!, null, ORIGIN, "en");
     expect(row).toMatchObject({
       joinLabel: "Join",
       joinDisabled: false,
@@ -45,17 +53,17 @@ describe("publicGroupRowView", () => {
   });
 
   it("carries the sport word for the row", () => {
-    expect(publicGroupRowView(open!, null, ORIGIN)).toMatchObject({
+    expect(publicGroupRowView(open!, null, ORIGIN, "en")).toMatchObject({
       sport: "padel",
       sportLabel: "Padel",
     });
-    expect(publicGroupRowView(requested!, null, ORIGIN).sportLabel).toBe(
+    expect(publicGroupRowView(requested!, null, ORIGIN, "en").sportLabel).toBe(
       "Football",
     );
   });
 
   it("offers Request to join when approval is required", () => {
-    const row = publicGroupRowView(approval!, null, ORIGIN);
+    const row = publicGroupRowView(approval!, null, ORIGIN, "en");
     expect(row).toMatchObject({
       joinLabel: "Request to join",
       joinOutlined: true,
@@ -66,16 +74,18 @@ describe("publicGroupRowView", () => {
   });
 
   it("disables a requested Group and marks only the pending row", () => {
-    expect(publicGroupRowView(requested!, null, ORIGIN)).toMatchObject({
+    expect(publicGroupRowView(requested!, null, ORIGIN, "en")).toMatchObject({
       joinLabel: "Requested",
       joinDisabled: true,
       door: null,
     });
-    expect(publicGroupRowView(open!, open!.id, ORIGIN)).toMatchObject({
+    expect(publicGroupRowView(open!, open!.id, ORIGIN, "en")).toMatchObject({
       joinLabel: "Joining…",
       joinDisabled: true,
     });
-    expect(publicGroupRowView(open!, "other", ORIGIN).joinLabel).toBe("Join");
+    expect(publicGroupRowView(open!, "other", ORIGIN, "en").joinLabel).toBe(
+      "Join",
+    );
   });
 });
 

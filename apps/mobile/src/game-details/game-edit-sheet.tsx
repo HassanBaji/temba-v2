@@ -2,13 +2,6 @@ import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
-  CHANGES_LABEL,
-  EDIT_GAME_TITLE,
-  NAME_SECTION_HINT,
-  OPTIONAL_TAG,
-  PLAYERS_AND_PRICE_HINT,
-  SAVE_CHANGES_ACTION,
-  WHEN_SECTION_HINT,
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
@@ -20,13 +13,6 @@ import {
   type GameEditSections,
 } from "@repo/domain/game-edit-form";
 import {
-  SEASON_CHANGE_ACTION,
-  SEASON_COUNTS_LINE,
-  SEASON_LOCKED_NOTE,
-  SEASON_NEEDS_FIX_TAG,
-  SEASON_PICKER_LOCK_NOTE,
-  SEASON_SECTION_FRIENDLY_NOTE,
-  UNLINK_SEASON_ACTION,
   gameSeasonChoices,
   seasonLinkActionLabel,
   seasonLinkRowNote,
@@ -46,7 +32,6 @@ import {
 } from "@repo/domain/group-season";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
-import { PRICE_PER_PLAYER_CURRENCY } from "@repo/domain/price-per-player";
 import {
   Check,
   ChevronRight,
@@ -59,6 +44,8 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { ChipGrid, FieldError, StepperButton } from "../create-game/chips";
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
@@ -146,6 +133,7 @@ function ValueStepper({
   decreaseLabel: string;
   increaseLabel: string;
 }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -168,7 +156,10 @@ function ValueStepper({
       />
       <View
         accessible
-        accessibilityLabel={`${label}: ${accessibilityValue}`}
+        accessibilityLabel={m.mobileGameDetails.figure(
+          label,
+          accessibilityValue,
+        )}
         accessibilityLiveRegion="polite"
         style={{ flex: 1, alignItems: "center" }}
       >
@@ -199,15 +190,24 @@ function SeasonPicker({
   context: GameEditContext;
   onBack: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.edit;
+  const locale = useLocale();
   const [picked, setPicked] = useState<string | null>(edit.draft.seasonId);
-  const choices = gameSeasonChoices(context.seasons, edit.draft.day, edit.now);
+  const choices = gameSeasonChoices(
+    context.seasons,
+    edit.draft.day,
+    edit.now,
+    locale,
+  );
   const chosen = choices.find((choice) => choice.id === picked) ?? choices[0]!;
   return (
     <View style={{ gap: spacing.compact }}>
       <Text size="meta" tone="muted">
         {seasonPickerSubtitle(
-          context.groupName ?? "This group",
+          context.groupName ?? copy.thisGroup,
           edit.draft.day,
+          locale,
         )}
       </Text>
       <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -225,10 +225,10 @@ function SeasonPicker({
               disabled={!choice.selectable}
               title={
                 choice.badge
-                  ? `${choice.name}  ·  ${choice.badge}`
+                  ? copy.nameWithBadge(choice.name, choice.badge)
                   : choice.name
               }
-              description={`${choice.note} ${choice.dates}`}
+              description={copy.noteWithDates(choice.note, choice.dates)}
               onPress={() => setPicked(choice.id)}
             />
           </View>
@@ -246,11 +246,11 @@ function SeasonPicker({
       >
         <Lock size={sizes.iconRow} color={colors.muted} />
         <View style={{ flex: 1 }}>
-          <Hint>{SEASON_PICKER_LOCK_NOTE}</Hint>
+          <Hint>{m.createGame.season.pickerLockNote}</Hint>
         </View>
       </View>
       <Button
-        label={seasonLinkActionLabel(chosen)}
+        label={seasonLinkActionLabel(chosen, locale)}
         size="lg"
         icon={<Trophy size={sizes.iconRow} color={colors.paper} />}
         onPress={() => {
@@ -271,16 +271,20 @@ function SeasonSection({
   context: GameEditContext;
   onOpenPicker: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.edit;
+  const seasonCopy = m.createGame.season;
+  const locale = useLocale();
   const { draft, seasonFix, now } = edit;
   const linked =
     context.seasons.find((season) => season.id === draft.seasonId) ?? null;
-  const groupName = context.groupName ?? "This group";
+  const groupName = context.groupName ?? copy.thisGroup;
   const locked = !context.canChangeSeason;
 
   if (seasonFix) {
     return (
       <View style={{ gap: SECTION_GAP }}>
-        <SectionHead title="Season" meta={SEASON_NEEDS_FIX_TAG} tag />
+        <SectionHead title={copy.season} meta={seasonCopy.needsFixTag} tag />
         <View
           style={{
             borderRadius: radii.lg,
@@ -341,7 +345,7 @@ function SeasonSection({
             ) : null}
             <View style={{ flex: 1 }}>
               <Button
-                label={UNLINK_SEASON_ACTION}
+                label={seasonCopy.unlink}
                 variant="outline"
                 onPress={() => edit.update({ seasonId: null })}
               />
@@ -357,17 +361,17 @@ function SeasonSection({
     return (
       <View style={{ gap: SECTION_GAP }}>
         <SectionHead
-          title="Season"
+          title={copy.season}
           action={
             locked ? null : (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${SEASON_CHANGE_ACTION} season`}
+                accessibilityLabel={copy.changeSeason}
                 hitSlop={12}
                 onPress={onOpenPicker}
               >
                 <Text size="meta" style={{ textDecorationLine: "underline" }}>
-                  {SEASON_CHANGE_ACTION}
+                  {seasonCopy.change}
                 </Text>
               </Pressable>
             )
@@ -386,7 +390,7 @@ function SeasonSection({
               {linked.name.toUpperCase()}
             </Text>
             <Text size="meta" tone="muted">
-              {formatSeasonRange(linked)}
+              {formatSeasonRange(linked, locale)}
             </Text>
           </View>
           <View
@@ -405,12 +409,14 @@ function SeasonSection({
             >
               <Check size={sizes.iconRow} color={colors.paper} />
               <Text size="meta" weight="medium">
-                {SEASON_COUNTS_LINE}
+                {seasonCopy.countsLine}
               </Text>
             </View>
           </View>
         </Surface>
-        <Hint>{locked ? SEASON_LOCKED_NOTE : seasonLinkedNote(linked)}</Hint>
+        <Hint>
+          {locked ? seasonCopy.lockedNote : seasonLinkedNote(linked, locale)}
+        </Hint>
       </View>
     );
   }
@@ -420,10 +426,10 @@ function SeasonSection({
     : 0;
   return (
     <View style={{ gap: SECTION_GAP }}>
-      <SectionHead title="Season" meta={OPTIONAL_TAG} />
+      <SectionHead title={copy.season} meta={m.common.optional} />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Link to a season"
+        accessibilityLabel={seasonCopy.linkRowTitle}
         accessibilityState={{ disabled: locked || !draft.day }}
         disabled={locked || !draft.day}
         onPress={onOpenPicker}
@@ -454,16 +460,22 @@ function SeasonSection({
           <Trophy size={sizes.iconRow} color={colors.ink} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text weight="semibold">Link to a season</Text>
+          <Text weight="semibold">{seasonCopy.linkRowTitle}</Text>
           <Text size="meta" tone="muted">
             {draft.day
-              ? seasonLinkRowNote(groupName, openCount, draft.day)
-              : "Pick a day first."}
+              ? seasonLinkRowNote(groupName, openCount, draft.day, locale)
+              : copy.pickDayFirst}
           </Text>
         </View>
-        <ChevronRight size={sizes.iconRow} color={colors.muted} />
+        <ChevronRight
+          size={sizes.iconRow}
+          color={colors.muted}
+          style={mirrorInRtl}
+        />
       </Pressable>
-      <Hint>{locked ? SEASON_LOCKED_NOTE : SEASON_SECTION_FRIENDLY_NOTE}</Hint>
+      <Hint>
+        {locked ? seasonCopy.lockedNote : seasonCopy.sectionFriendlyNote}
+      </Hint>
     </View>
   );
 }
@@ -481,6 +493,10 @@ export function GameEditSheet({
   sections: GameEditSections;
   context: GameEditContext;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.edit;
+  const editCopy = m.createGame.edit;
+  const locale = useLocale();
   const [view, setView] = useState<"form" | "season">("form");
   const { draft, update, error, pending } = edit;
 
@@ -497,6 +513,7 @@ export function GameEditSheet({
     draft.day,
     draft.startTime,
     draft.finishTime,
+    locale,
   );
   const sideSize = draft.sideSize;
   const capBounds = footballPlayersAllowedBounds(sideSize ?? 5);
@@ -504,7 +521,7 @@ export function GameEditSheet({
   const showSeason = sections.season && context.seasons.length > 0;
 
   const bands = (bound: "min" | "max") => [
-    { value: LEVEL_BAND_SELECT_NONE, label: "Any", disabled: false },
+    { value: LEVEL_BAND_SELECT_NONE, label: copy.any, disabled: false },
     ...ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
       value: band,
       label: band,
@@ -524,15 +541,15 @@ export function GameEditSheet({
       visible={visible}
       onClose={pickingSeason ? back : onClose}
       tall
-      title={pickingSeason ? "Link to a season" : EDIT_GAME_TITLE}
+      title={pickingSeason ? m.createGame.season.linkRowTitle : editCopy.title}
       subtitle={
         pickingSeason
           ? null
-          : venueLockedLine(context.venueName, context.courtName)
+          : venueLockedLine(context.venueName, context.courtName, locale)
       }
       action={
         <Button
-          label={pickingSeason ? "Back" : "Cancel"}
+          label={pickingSeason ? m.common.back : m.common.cancel}
           variant="outline"
           size="sm"
           onPress={pickingSeason ? back : onClose}
@@ -551,14 +568,14 @@ export function GameEditSheet({
           >
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text size="eyebrow" tone="muted">
-                {CHANGES_LABEL}
+                {editCopy.changes}
               </Text>
               <Text weight="semibold" accessibilityLiveRegion="polite">
                 {edit.note}
               </Text>
             </View>
             <Button
-              label={SAVE_CHANGES_ACTION}
+              label={editCopy.saveChanges}
               size="lg"
               disabled={!edit.canSave}
               pending={pending}
@@ -577,77 +594,79 @@ export function GameEditSheet({
           ) : null}
           {sections.name ? (
             <View style={{ gap: SECTION_GAP }}>
-              <SectionHead title="Name" meta={OPTIONAL_TAG} />
+              <SectionHead title={copy.name} meta={m.common.optional} />
               <TextField
-                label="Game name"
+                label={copy.gameName}
                 value={draft.customName}
                 maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
                 onChangeText={(customName) => update({ customName })}
                 error={errorFor("name")}
               />
-              <Hint>{NAME_SECTION_HINT}</Hint>
+              <Hint>{editCopy.nameHint}</Hint>
             </View>
           ) : null}
           <View style={{ gap: SECTION_GAP }}>
-            <SectionHead title="When" meta={duration} />
-            <Text weight="medium">Day</Text>
+            <SectionHead title={copy.step.window} meta={duration} />
+            <Text weight="medium">{copy.day}</Text>
             <ChipGrid
-              label="Day"
+              label={copy.day}
               columns={3}
               chips={choices.days.map((day) => ({
                 value: day,
-                label: formatDayLabel(day) ?? day,
+                label: formatDayLabel(day, locale) ?? day,
               }))}
               isSelected={(day) => day === draft.day}
               onSelect={(day) => update({ day })}
             />
-            <Text weight="medium">Start time</Text>
+            <Text weight="medium">{copy.startTime}</Text>
             <ChipGrid
-              label="Start time"
+              label={copy.startTime}
               columns={3}
               chips={choices.startSlots.map((slot) => ({
                 value: slot,
-                label: formatTimeSlotLabel(slot),
+                label: formatTimeSlotLabel(slot, locale),
               }))}
               isSelected={(slot) => slot === draft.startTime}
               onSelect={(startTime) => update({ startTime })}
             />
-            <Text weight="medium">Finish time</Text>
+            <Text weight="medium">{copy.finishTime}</Text>
             <ChipGrid
-              label="Finish time"
+              label={copy.finishTime}
               columns={3}
               chips={choices.finishSlots.map((slot) => ({
                 value: slot,
-                label: formatTimeSlotLabel(slot),
+                label: formatTimeSlotLabel(slot, locale),
               }))}
               isSelected={(slot) => slot === draft.finishTime}
               onSelect={(finishTime) => update({ finishTime })}
             />
             <FieldError message={errorFor("window")} />
-            <Hint>{WHEN_SECTION_HINT}</Hint>
+            <Hint>{editCopy.whenHint}</Hint>
           </View>
           <View style={{ gap: SECTION_GAP }}>
             <SectionHead
-              title={sections.caps ? "Players and price" : "Price"}
-              meta={sections.caps ? joinedCountLabel(context.joined) : null}
+              title={sections.caps ? copy.playersAndPrice : copy.price}
+              meta={
+                sections.caps ? joinedCountLabel(context.joined, locale) : null
+              }
             />
             {sections.caps && sideSize != null ? (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <ValueStepper
-                  label="Players"
+                  label={copy.players}
                   display={String(players)}
-                  accessibilityValue={`${players} players`}
+                  accessibilityValue={copy.playersValue(players)}
                   canDecrease={players - 1 >= capBounds.min}
                   canIncrease={players + 1 <= capBounds.max}
                   onDecrease={() => update({ playersAllowed: players - 1 })}
                   onIncrease={() => update({ playersAllowed: players + 1 })}
-                  decreaseLabel="Fewer players"
-                  increaseLabel="More players"
+                  decreaseLabel={copy.fewerPlayers}
+                  increaseLabel={copy.morePlayers}
                 />
                 <ValueStepper
-                  label="A-side"
+                  label={copy.aside}
                   display={asideLabel(sideSize)}
-                  accessibilityValue={`${sideSize} a side`}
+                  accessibilityValue={copy.asideValue(sideSize)}
                   canDecrease={footballSideSizeStep(sideSize, -1) != null}
                   canIncrease={footballSideSizeStep(sideSize, 1) != null}
                   onDecrease={() => {
@@ -668,13 +687,13 @@ export function GameEditSheet({
                       });
                     }
                   }}
-                  decreaseLabel="Smaller side"
-                  increaseLabel="Bigger side"
+                  decreaseLabel={copy.smallerSide}
+                  increaseLabel={copy.biggerSide}
                 />
               </View>
             ) : null}
             <TextField
-              label="Price per player"
+              label={m.game.partner.pricePerPlayer}
               value={draft.price}
               keyboardType="decimal-pad"
               onChangeText={(price) => update({ price })}
@@ -682,34 +701,36 @@ export function GameEditSheet({
               trailing={
                 <View style={{ justifyContent: "center" }}>
                   <Text size="meta" tone="muted">
-                    {PRICE_PER_PLAYER_CURRENCY}
+                    {m.createGame.price.currency}
                   </Text>
                 </View>
               }
             />
             {sections.caps && sideSize != null ? (
               <>
-                <Hint>{footballFormatNote(sideSize, players)}</Hint>
-                <Hint>{playersCapWaitNote(players, context.joined)}</Hint>
-                <Hint>{PLAYERS_AND_PRICE_HINT}</Hint>
+                <Hint>{footballFormatNote(sideSize, players, locale)}</Hint>
+                <Hint>
+                  {playersCapWaitNote(players, context.joined, locale)}
+                </Hint>
+                <Hint>{editCopy.playersAndPriceHint}</Hint>
               </>
             ) : (
-              <Hint>Price changes apply to players who join from now on.</Hint>
+              <Hint>{copy.priceNote}</Hint>
             )}
           </View>
           {sections.level ? (
             <View style={{ gap: SECTION_GAP }}>
-              <SectionHead title="Level range" meta={OPTIONAL_TAG} />
-              <Text weight="medium">Minimum Level</Text>
+              <SectionHead title={copy.levelRange} meta={m.common.optional} />
+              <Text weight="medium">{copy.minLevel}</Text>
               <ChipGrid
-                label="Minimum Level"
+                label={copy.minLevel}
                 chips={bands("min")}
                 isSelected={(value) => value === draft.levelMin}
                 onSelect={(levelMin) => update({ levelMin })}
               />
-              <Text weight="medium">Maximum Level</Text>
+              <Text weight="medium">{copy.maxLevel}</Text>
               <ChipGrid
-                label="Maximum Level"
+                label={copy.maxLevel}
                 chips={bands("max")}
                 isSelected={(value) => value === draft.levelMax}
                 onSelect={(levelMax) => update({ levelMax })}

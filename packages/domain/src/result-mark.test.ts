@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { RESULT_MARK_LABEL, resultMarkVariant } from "./result-mark";
+import { resultMarkLabel, resultMarkVariant } from "./result-mark";
 
 describe("resultMarkVariant", () => {
   it("maps each Match outcome onto its own mark", () => {
@@ -16,11 +16,16 @@ describe("resultMarkVariant", () => {
   });
 });
 
-describe("RESULT_MARK_LABEL", () => {
+describe("resultMarkLabel", () => {
   it("announces a draw as a draw, never as a loss", () => {
-    assert.equal(RESULT_MARK_LABEL[resultMarkVariant("draw")], "Draw");
-    assert.equal(RESULT_MARK_LABEL[resultMarkVariant("lost")], "Lost");
-    assert.equal(RESULT_MARK_LABEL[resultMarkVariant("won")], "Won");
-    assert.equal(RESULT_MARK_LABEL[resultMarkVariant(null)], "Not played");
+    assert.equal(resultMarkLabel(resultMarkVariant("draw"), "en"), "Draw");
+    assert.equal(resultMarkLabel(resultMarkVariant("lost"), "en"), "Lost");
+    assert.equal(resultMarkLabel(resultMarkVariant("won"), "en"), "Won");
+    assert.equal(resultMarkLabel(resultMarkVariant(null), "en"), "Not played");
+  });
+
+  it("announces the marks in Arabic", () => {
+    assert.equal(resultMarkLabel("draw", "ar"), "تعادل");
+    assert.equal(resultMarkLabel("not-played", "ar"), "لم تُلعب");
   });
 });

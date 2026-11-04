@@ -1,8 +1,15 @@
 "use client";
 
-import type { PlayedResultLine, PlayedYouLine } from "@repo/domain/played-game";
+import {
+  playedTagLabel,
+  type PlayedResultLine,
+  type PlayedYouLine,
+} from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { HeroNavRow } from "~/components/games/hero-nav-row";
+import { HeroTopLine } from "~/components/games/hero-top-line";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
 
@@ -53,7 +60,7 @@ export type PlayedHeroProps = {
   whenLine: string | null;
   you: PlayedYouLine | null;
   avatar: { name: string; image: string | null } | null;
-  /** Share and the organizer's menu, top right. */
+  /** Share and the organizer's menu, top right across from back. */
   actions?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -74,20 +81,24 @@ export function PlayedHero({
   actions,
   children,
 }: PlayedHeroProps) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
-      {actions ? (
-        <div className="mb-5 flex items-center justify-end gap-2">
-          {actions}
-        </div>
-      ) : null}
-      <div className="text-dim text-meta flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate">{dateLine}</p>
-        {tag ? (
-          <p className="shrink-0 font-mono text-[11px] tracking-[0.08em]">
-            {tag}
-          </p>
-        ) : null}
+      <HeroNavRow tone="ink" actions={actions} />
+
+      <div className="mt-6">
+        <HeroTopLine
+          tone="ink"
+          left={dateLine}
+          right={
+            tag ? (
+              <p className="shrink-0 font-mono text-[11px] tracking-[0.08em]">
+                {tag}
+              </p>
+            ) : null
+          }
+        />
       </div>
 
       <div className="mt-4">{children}</div>
@@ -96,7 +107,7 @@ export function PlayedHero({
         {result.hasWinner ? <InkWonMark className="size-4" /> : null}
         <p className="min-w-0 flex-1 font-semibold">{result.line}</p>
         <span className="text-dim border-dimrule text-eyebrow rounded-[6px] border px-[7px] py-1 font-mono tracking-[0.08em]">
-          CONFIRMED
+          {m.webGame.played.confirmed}
         </span>
       </div>
 
@@ -121,7 +132,7 @@ export function PlayedHero({
             <p className="truncate font-semibold">{you.line}</p>
             <p className="text-dim text-meta">{you.ratingLine}</p>
           </div>
-          <Pill label={you.tag} solid={you.won} />
+          <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
         </div>
       ) : null}
     </Surface>

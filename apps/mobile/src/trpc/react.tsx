@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
+import { useLocale } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
 
 export const api = createTRPCReact<AppRouter>();
@@ -23,6 +24,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   );
   const { getToken, userId } = useAuth();
   const lastUserId = useRef(userId);
+  const lastLocale = useRef<string | null>(null);
   useEffect(() => {
     if (lastUserId.current !== userId) {
       lastUserId.current = userId;
@@ -31,6 +33,15 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   }, [queryClient, userId]);
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
+  const locale = useLocale();
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
+  useEffect(() => {
+    if (lastLocale.current !== locale) {
+      lastLocale.current = locale;
+      queryClient.clear();
+    }
+  }, [locale, queryClient]);
 
   const [trpcClient] = useState(() =>
     api.createClient({
@@ -40,7 +51,10 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           url: `${apiOrigin}/api/trpc`,
           headers: async () => {
             const token = await getTokenRef.current();
-            return token ? { authorization: `Bearer ${token}` } : {};
+            return {
+              "accept-language": localeRef.current,
+              ...(token ? { authorization: `Bearer ${token}` } : {}),
+            };
           },
         }),
       ],

@@ -1,8 +1,6 @@
 import { clubGroupSportChoice } from "@repo/domain/community-sports";
 import type { GroupHomeData } from "@repo/domain/group-data";
-import { GROUP_DELETED_TOAST } from "@repo/domain/group-admin";
 import {
-  GROUP_EDIT_COPY,
   groupEditCanSave,
   groupEditChanges,
   groupSeasonCount,
@@ -13,6 +11,7 @@ import { SPORTS } from "@repo/domain/sport";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { Screen } from "../primitives/screen";
@@ -22,8 +21,6 @@ import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { DeleteGroupSheet } from "./delete-group-sheet";
 import {
-  GROUP_EDIT_FORBIDDEN_COPY,
-  GROUP_EDIT_NOT_FOUND_COPY,
   groupEditInitialFields,
   groupEditSaveFooter,
   groupEditSubtitle,
@@ -43,6 +40,8 @@ function GroupEditForm({
   groupId: string;
   data: GroupHomeData;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
@@ -83,7 +82,7 @@ function GroupEditForm({
 
   const save = api.groups.edit.useMutation({
     onSuccess: async () => {
-      toast.show(GROUP_EDIT_COPY.savedToast);
+      toast.show(m.group.settings.edit.savedToast);
       await refreshGroup();
       leaveToGroups();
     },
@@ -99,7 +98,7 @@ function GroupEditForm({
   const remove = api.groups.delete.useMutation({
     onSuccess: async () => {
       setDeleteOpen(false);
-      toast.show(GROUP_DELETED_TOAST);
+      toast.show(m.group.admin.deletedToast);
       await Promise.all([refreshGroup(), utils.communities.mine.invalidate()]);
       router.replace("/groups");
     },
@@ -116,7 +115,7 @@ function GroupEditForm({
         <GroupEditFooter
           canSave={canSave}
           saving={save.isPending}
-          footer={groupEditSaveFooter(dirty)}
+          footer={groupEditSaveFooter(dirty, locale)}
           onSave={() => {
             const changes = groupEditChanges(initial, draft);
             if (!changes) {
@@ -130,14 +129,14 @@ function GroupEditForm({
     >
       <GroupEditView
         context={context}
-        subtitle={groupEditSubtitle(data)}
+        subtitle={groupEditSubtitle(data, locale)}
         draft={draft}
         onChange={setDraft}
         nameError={nameError}
         sports={sports}
         canChangeSport={data.canChangeSport}
         pendingJoinRequestCount={data.pendingJoinRequestCount}
-        imageUri={groupHomeHeader(data, apiOrigin).imageUri}
+        imageUri={groupHomeHeader(data, apiOrigin, locale).imageUri}
         imagePending={admin.imagePending}
         onChangeImage={() => void admin.changeImage()}
         onRemoveImage={admin.clearImage}
@@ -190,6 +189,7 @@ function GroupEditForm({
 }
 
 export function GroupEditScreen({ groupId }: { groupId: string }) {
+  const m = useMessages();
   const group = api.groups.byId.useQuery({ id: groupId });
   const header = <ScreenHeader nav="back" fallback="/groups" />;
 
@@ -197,7 +197,7 @@ export function GroupEditScreen({ groupId }: { groupId: string }) {
     return (
       <Screen>
         {header}
-        <Notice {...GROUP_EDIT_NOT_FOUND_COPY} />
+        <Notice {...m.mobileGroup.edit.notFound} />
       </Screen>
     );
   }
@@ -207,7 +207,7 @@ export function GroupEditScreen({ groupId }: { groupId: string }) {
         {header}
         <Notice
           alert
-          title="Group could not be loaded"
+          title={m.mobileGroup.loadFailed.group}
           description={group.error.message}
           onRetry={() => void group.refetch()}
         />
@@ -227,7 +227,7 @@ export function GroupEditScreen({ groupId }: { groupId: string }) {
     return (
       <Screen>
         {header}
-        <Notice {...GROUP_EDIT_FORBIDDEN_COPY} />
+        <Notice {...m.mobileGroup.edit.forbidden} />
       </Screen>
     );
   }

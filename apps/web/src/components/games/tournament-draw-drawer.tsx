@@ -14,19 +14,10 @@ import {
 } from "~/components/ui/drawer";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { CloseButton } from "~/components/ui/nav-icon-button";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
-import { ORGANIZER_EYEBROW } from "@repo/domain/tournament-half-teams";
 import { type KnockoutViewGameTeam } from "@repo/domain/tournament-knockout-view";
 import {
-  DRAW_DRAWER_TITLE,
-  DRAW_ENTRY_ACTION_LABEL,
-  UNDO_POOL_DRAW_ACTION,
-  UNDO_POOL_DRAW_CONFIRM_COPY,
-  UNDO_POOL_DRAW_CONFIRM_LABEL,
-  UNDO_POOL_DRAW_CONFIRM_TITLE,
-  UNDO_KNOCKOUT_DRAW_ACTION,
-  UNDO_KNOCKOUT_DRAW_CONFIRM_COPY,
-  UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE,
   drawDrawerLead,
   knockoutDrawDrawerLead,
   drawEntryStateLine,
@@ -47,16 +38,18 @@ export function TournamentDrawEntry({
   knockoutOnly: boolean;
   onOpen: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="border-rule rounded-card border p-5">
       <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
-        {ORGANIZER_EYEBROW}
+        {m.tournament.halfTeams.organizerEyebrow}
       </p>
       <p className="text-body mt-2 font-semibold">
-        {drawEntryTitle(hasDraft, knockoutOnly)}
+        {drawEntryTitle(hasDraft, locale, knockoutOnly)}
       </p>
       <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
-        {drawEntryStateLine(completeTeams, teamCount)}
+        {drawEntryStateLine(completeTeams, teamCount, locale)}
       </p>
       <Button
         type="button"
@@ -64,7 +57,7 @@ export function TournamentDrawEntry({
         onClick={onOpen}
         className="border-ink mt-4 w-full font-semibold"
       >
-        {DRAW_ENTRY_ACTION_LABEL}
+        {m.tournament.poolDraw.entryAction}
       </Button>
     </div>
   );
@@ -81,6 +74,7 @@ export function TournamentUndoPoolDraw({
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
 }) {
+  const m = useMessages();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const undoButtonRef = React.useRef<HTMLButtonElement>(null);
 
@@ -97,25 +91,25 @@ export function TournamentUndoPoolDraw({
         onClick={() => setConfirmOpen(true)}
       >
         {undoPending
-          ? "Undoing…"
+          ? m.webTournament.draw.undoing
           : knockoutOnly
-            ? UNDO_KNOCKOUT_DRAW_ACTION
-            : UNDO_POOL_DRAW_ACTION}
+            ? m.tournament.poolDraw.undoKnockout
+            : m.tournament.poolDraw.undo}
       </Button>
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title={
           knockoutOnly
-            ? UNDO_KNOCKOUT_DRAW_CONFIRM_TITLE
-            : UNDO_POOL_DRAW_CONFIRM_TITLE
+            ? m.tournament.poolDraw.undoKnockoutConfirmTitle
+            : m.tournament.poolDraw.undoConfirmTitle
         }
         description={
           knockoutOnly
-            ? UNDO_KNOCKOUT_DRAW_CONFIRM_COPY
-            : UNDO_POOL_DRAW_CONFIRM_COPY
+            ? m.tournament.poolDraw.undoKnockoutConfirmCopy
+            : m.tournament.poolDraw.undoConfirmCopy
         }
-        confirmLabel={UNDO_POOL_DRAW_CONFIRM_LABEL}
+        confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
         pending={undoPending}
         restoreFocusRef={undoButtonRef}
         onConfirm={async () => {
@@ -169,6 +163,8 @@ export function TournamentDrawDrawer({
   postError: { message: string; data?: { zodError?: unknown } | null } | null;
   onPost: () => void | Promise<void>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const busy = drawPending || postPending;
 
   function close() {
@@ -203,16 +199,16 @@ export function TournamentDrawDrawer({
             <div className="flex items-center justify-between">
               <CloseButton variant="boxed" onClick={close} disabled={busy} />
               <p className="text-eyebrow text-muted-foreground uppercase tracking-[0.06em]">
-                {ORGANIZER_EYEBROW}
+                {m.tournament.halfTeams.organizerEyebrow}
               </p>
             </div>
             <DrawerTitle className="font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
-              {DRAW_DRAWER_TITLE}
+              {m.tournament.poolDraw.drawerTitle}
             </DrawerTitle>
             <DrawerDescription className="text-ink text-body mt-2.5 leading-relaxed">
               {knockoutOnly
-                ? knockoutDrawDrawerLead(completeTeams)
-                : drawDrawerLead(teamCount)}
+                ? knockoutDrawDrawerLead(completeTeams, locale)
+                : drawDrawerLead(teamCount, locale)}
             </DrawerDescription>
           </div>
           {knockoutOnly ? (

@@ -9,5 +9,5 @@ import { listMyGamesHubRows } from "#src/games/list-my-games";
  */
 export const listMyGames = protectedProcedure.query(async ({ ctx }) => {
   const appUser = await resolveAppUser(ctx.userId);
-  return listMyGamesHubRows(ctx.db, appUser.id);
+  return listMyGamesHubRows(ctx.db, appUser.id, new Date(), ctx.locale);
 });

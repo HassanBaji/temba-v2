@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameCtaFamily } from "@repo/domain/friendly-game-cta";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -26,6 +27,7 @@ export function FriendlyGameCtaBar({
   onAddResult,
   onInvite,
   onShareResult,
+  lines = null,
 }: {
   family: FriendlyGameCtaFamily;
   joinPending: boolean;
@@ -36,11 +38,15 @@ export function FriendlyGameCtaBar({
   onAddResult: () => void;
   onInvite?: () => void;
   onShareResult?: () => void;
+  /** Replaces the family's own title and subline. */
+  lines?: { title: string; subline: string | null } | null;
 }) {
-  const copy = friendlyGameCtaCopy(family);
-  if (!copy) {
+  const locale = useLocale();
+  const familyCopy = friendlyGameCtaCopy(family, locale);
+  if (!familyCopy) {
     return null;
   }
+  const copy = lines ? { ...familyCopy, ...lines } : familyCopy;
 
   return (
     <div
@@ -89,15 +95,27 @@ export function FriendlyGameCtaBar({
       ) : null}
 
       {family.kind === "join" ? (
-        <Button
-          type="button"
-          className="w-full"
-          pending={joinPending}
-          pendingLabel={copy.pendingLabel ?? undefined}
-          onClick={onJoin}
-        >
-          {copy.actionLabel}
-        </Button>
+        <div className="flex items-center gap-3">
+          {copy.title ? (
+            <div className="min-w-0 flex-1">
+              <p className="text-body font-semibold">{copy.title}</p>
+              {copy.subline ? (
+                <p className="text-muted-foreground text-meta">
+                  {copy.subline}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <Button
+            type="button"
+            className={copy.title ? "h-[52px] shrink-0 px-8" : "w-full"}
+            pending={joinPending}
+            pendingLabel={copy.pendingLabel ?? undefined}
+            onClick={onJoin}
+          >
+            {copy.actionLabel}
+          </Button>
+        </div>
       ) : null}
 
       {family.kind === "upcoming" ? (

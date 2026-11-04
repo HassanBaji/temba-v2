@@ -12,9 +12,11 @@ import {
   directionsUrl,
   endsAfter,
   payButtonLabel,
+  paymentMethod,
   paymentStatusLine,
   placeLine,
   refundTerms,
+  relativeDay,
   slotLine,
   whenLine,
 } from "./booking-model";
@@ -75,13 +77,13 @@ describe("booking references and paths", () => {
 
 describe("whenLine", () => {
   it("names today and tomorrow", () => {
-    expect(whenLine(at("2026-10-15T20:30:00"), 90, NOW)).toBe(
+    expect(whenLine(at("2026-10-15T20:30:00"), 90, NOW, "en")).toBe(
       "Today, Thu 15 Oct / 90 min",
     );
-    expect(whenLine(at("2026-10-16T20:30:00"), 60, NOW)).toBe(
+    expect(whenLine(at("2026-10-16T20:30:00"), 60, NOW, "en")).toBe(
       "Tomorrow, Fri 16 Oct / 60 min",
     );
-    expect(whenLine(at("2026-10-20T08:00:00"), 120, NOW)).toBe(
+    expect(whenLine(at("2026-10-20T08:00:00"), 120, NOW, "en")).toBe(
       "Tue 20 Oct / 120 min",
     );
   });
@@ -89,7 +91,7 @@ describe("whenLine", () => {
 
 describe("slotLine", () => {
   it("adds the start and end clock", () => {
-    expect(slotLine(at("2026-10-15T19:30:00"), 60, NOW)).toBe(
+    expect(slotLine(at("2026-10-15T19:30:00"), 60, NOW, "en")).toBe(
       "Today, Thu 15 Oct / 7:30 PM to 8:30 PM / 60 min",
     );
   });
@@ -98,46 +100,52 @@ describe("slotLine", () => {
 describe("placeLine", () => {
   it("joins day, Venue and Court", () => {
     expect(
-      placeLine(at("2026-10-20T08:00:00"), "Karbabad Courts", "Court 2", NOW),
+      placeLine(
+        at("2026-10-20T08:00:00"),
+        "Karbabad Courts",
+        "Court 2",
+        NOW,
+        "en",
+      ),
     ).toBe("Tue 20 Oct / Karbabad Courts / Court 2");
   });
 
   it("says tonight for an evening start today", () => {
-    expect(placeLine(at("2026-10-15T20:30:00"), "K", "Court 2", NOW)).toBe(
-      "Tonight / K / Court 2",
-    );
+    expect(
+      placeLine(at("2026-10-15T20:30:00"), "K", "Court 2", NOW, "en"),
+    ).toBe("Tonight / K / Court 2");
   });
 });
 
 describe("bookedHeadline", () => {
   it("says tonight for an evening Booking today", () => {
-    expect(bookedHeadline("Court 2", at("2026-10-15T20:30:00"), NOW)).toBe(
-      "Court 2 is yours tonight.",
-    );
-    expect(bookedHeadline("Court 2", at("2026-10-15T16:00:00"), NOW)).toBe(
-      "Court 2 is yours today.",
-    );
+    expect(
+      bookedHeadline("Court 2", at("2026-10-15T20:30:00"), NOW, "en"),
+    ).toBe("Court 2 is yours tonight.");
+    expect(
+      bookedHeadline("Court 2", at("2026-10-15T16:00:00"), NOW, "en"),
+    ).toBe("Court 2 is yours today.");
   });
 
   it("names tomorrow and later days", () => {
-    expect(bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW)).toBe(
-      "Court 1 is yours tomorrow.",
-    );
-    expect(bookedHeadline("Court 1", at("2026-10-17T09:00:00"), NOW)).toBe(
-      "Court 1 is yours on Saturday.",
-    );
+    expect(
+      bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW, "en"),
+    ).toBe("Court 1 is yours tomorrow.");
+    expect(
+      bookedHeadline("Court 1", at("2026-10-17T09:00:00"), NOW, "en"),
+    ).toBe("Court 1 is yours on Saturday.");
   });
 });
 
 describe("payButtonLabel", () => {
   it("reserves and names the amount due at the Venue", () => {
-    expect(payButtonLabel("at_venue", 18000)).toBe(
+    expect(payButtonLabel("at_venue", 18000, "en")).toBe(
       "Reserve, pay 18.000 BD at venue",
     );
   });
 
   it("shows the amount when paid online", () => {
-    expect(payButtonLabel("benefitpay", 18000)).toBe("Pay 18.000 BD");
+    expect(payButtonLabel("benefitpay", 18000, "en")).toBe("Pay 18.000 BD");
   });
 });
 
@@ -195,6 +203,7 @@ describe("refundTerms", () => {
         ["Full refund until 24 hours before"],
         at("2026-10-20T18:00:00"),
         NOW,
+        "en",
       ),
     ).toBe("Free cancellation until 6:00 PM Mon 19 Oct.");
     expect(
@@ -203,6 +212,7 @@ describe("refundTerms", () => {
         [],
         at("2026-10-15T19:30:00"),
         NOW,
+        "en",
       ),
     ).toBe("Free cancellation until 6:30 PM today.");
   });
@@ -218,6 +228,7 @@ describe("refundTerms", () => {
         [],
         at("2026-10-20T18:00:00"),
         NOW,
+        "en",
       ),
     ).toBe("50% refund until Mon 18:00, then no refund.");
   });
@@ -229,6 +240,7 @@ describe("refundTerms", () => {
         ["No refund after that"],
         at("2026-10-15T20:00:00"),
         NOW,
+        "en",
       ),
     ).toBe("No refund after that.");
   });
@@ -236,37 +248,50 @@ describe("refundTerms", () => {
 
 describe("paymentStatusLine", () => {
   it("reads a confirmed unpaid Booking as paid at the Venue", () => {
-    expect(paymentStatusLine("pending", "confirmed")).toBe("Pay at the venue");
-    expect(paymentStatusLine("pending", "pending_payment")).toBe("Pending");
-    expect(paymentStatusLine("paid", "confirmed")).toBe("Paid");
+    expect(paymentStatusLine("pending", "confirmed", "en")).toBe(
+      "Pay at the venue",
+    );
+    expect(paymentStatusLine("pending", "pending_payment", "en")).toBe(
+      "Pending",
+    );
+    expect(paymentStatusLine("paid", "confirmed", "en")).toBe("Paid");
   });
 });
 
 describe("cancelConsequence", () => {
   it("states the refund amount and percent", () => {
     expect(
-      cancelConsequence({
-        paymentStatus: "paid",
-        refundDueFilsNow: 9000,
-        refundPercentNow: 50,
-      }),
+      cancelConsequence(
+        {
+          paymentStatus: "paid",
+          refundDueFilsNow: 9000,
+          refundPercentNow: 50,
+        },
+        "en",
+      ),
     ).toBe("You'll be refunded 9.000 BD (50%).");
   });
 
   it("says nothing comes back late or unpaid", () => {
     expect(
-      cancelConsequence({
-        paymentStatus: "paid",
-        refundDueFilsNow: 0,
-        refundPercentNow: 0,
-      }),
+      cancelConsequence(
+        {
+          paymentStatus: "paid",
+          refundDueFilsNow: 0,
+          refundPercentNow: 0,
+        },
+        "en",
+      ),
     ).toMatch(/too late/);
     expect(
-      cancelConsequence({
-        paymentStatus: "pending",
-        refundDueFilsNow: 0,
-        refundPercentNow: 100,
-      }),
+      cancelConsequence(
+        {
+          paymentStatus: "pending",
+          refundDueFilsNow: 0,
+          refundPercentNow: 100,
+        },
+        "en",
+      ),
     ).toMatch(/nothing to refund/);
   });
 });
@@ -280,17 +305,42 @@ describe("directionsUrl", () => {
   };
 
   it("routes to the pin in Apple Maps on iOS and Google Maps elsewhere", () => {
-    expect(directionsUrl(venue, "ios")).toBe(
+    expect(directionsUrl(venue, "ios", "en")).toBe(
       "https://maps.apple.com/?daddr=26.21%2C50.58",
     );
-    expect(directionsUrl(venue, "android")).toBe(
+    expect(directionsUrl(venue, "android", "en")).toBe(
       "https://www.google.com/maps/dir/?api=1&destination=26.21%2C50.58",
     );
   });
 
   it("searches the name and city when the Venue has no pin", () => {
     expect(
-      directionsUrl({ ...venue, latitude: null, longitude: null }, "ios"),
+      directionsUrl({ ...venue, latitude: null, longitude: null }, "ios", "en"),
     ).toBe("https://maps.apple.com/?daddr=Padel%20Central%2C%20Manama");
+  });
+
+  it("opens Google Maps in Arabic for an Arabic reader", () => {
+    expect(directionsUrl(venue, "android", "ar")).toBe(
+      "https://www.google.com/maps/dir/?api=1&destination=26.21%2C50.58&hl=ar",
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the day, headline and button in Arabic", () => {
+    expect(relativeDay(at("2026-10-15T20:30:00"), NOW, "ar")).toBe("الليلة");
+    expect(whenLine(at("2026-10-16T20:30:00"), 60, NOW, "ar")).toMatch(
+      /^غدًا، .* \/ 60 د$/,
+    );
+    expect(
+      bookedHeadline("Court 1", at("2026-10-16T09:00:00"), NOW, "ar"),
+    ).toBe("Court 1 لك غدًا.");
+    expect(payButtonLabel("at_venue", 18000, "ar")).toBe(
+      "احجز وادفع 18.000 د.ب في النادي",
+    );
+    expect(paymentMethod("apple_pay", "ar").title).toBe("Apple Pay");
+    expect(paymentStatusLine("pending", "confirmed", "ar")).toBe(
+      "الدفع في النادي",
+    );
   });
 });

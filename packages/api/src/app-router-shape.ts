@@ -103,6 +103,8 @@ type ExpectedGames =
   | "kick"
   | "previewPlayerByPhone"
   | "addPlayerByPhone"
+  | "listGroupMembersToAdd"
+  | "addGroupMembers"
   | "closeRegistration"
   | "reopenRegistration"
   | "cancel"

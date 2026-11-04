@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { profileLevelView } from "@repo/domain/profile-level";
-import { DEFAULT_SPORT, SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 export function ProfileLevelCard({
@@ -30,27 +31,30 @@ export function ProfileLevelCard({
   progressPercent: number | null;
   history: string[];
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     setDrawn(true);
   }, []);
 
-  const view = profileLevelView({
-    sport,
-    band,
-    level,
-    provisional,
-    ratedMatchCount,
-    ratedMatchesRemaining,
-    progressPercent,
-    history,
-  });
+  const view = profileLevelView(
+    {
+      sport,
+      band,
+      level,
+      provisional,
+      ratedMatchCount,
+      ratedMatchesRemaining,
+      progressPercent,
+      history,
+    },
+    locale,
+  );
 
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile" meta={SPORT_LABELS[sport]}>
-        Level
-      </SurfaceLabel>
+      <SurfaceLabel inset="profile">{m.home.level.heading[sport]}</SurfaceLabel>
       <div className="px-5 pb-5">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -61,14 +65,16 @@ export function ProfileLevelCard({
               {view.displayBand}
             </p>
             <span className="sr-only">
-              {view.displayBand}, Level {view.level}
+              {m.webAuth.you.level.bandLevelSpoken(
+                view.displayBand,
+                view.level,
+              )}
             </span>
           </div>
-          {view.movement ? (
-            <div className="text-right">
-              <p className="font-expanded text-[20px]">{view.movement}</p>
-              <p className="text-eyebrow text-muted-foreground">last match</p>
-            </div>
+          {view.movementLabel ? (
+            <p className="text-eyebrow text-muted-foreground text-end">
+              {view.movementLabel}
+            </p>
           ) : null}
         </div>
         {view.atTopBand ? (
@@ -117,6 +123,7 @@ function ProfileLevelSkeleton() {
 }
 
 export function ProfileLevel({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
+  const m = useMessages();
   const me = api.ratings.me.useQuery({ sport });
 
   if (me.isLoading) {
@@ -128,7 +135,7 @@ export function ProfileLevel({ sport = DEFAULT_SPORT }: { sport?: Sport }) {
       <ErrorState
         variant="inline"
         className="rounded-card px-5"
-        title="Level could not be loaded"
+        title={m.webAuth.you.level.failed}
         message={me.error.message}
         onRetry={() => {
           void me.refetch();

@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Button } from "~/components/ui/button";
 import {
@@ -26,17 +27,8 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import {
-  COMMUNITY_CREATED_TOAST,
-  COMMUNITY_CREATE_COPY,
-  COMMUNITY_TYPE_LABELS,
-  communityTypeHelp,
-} from "@repo/domain/community";
-import {
-  COMMUNITY_CREATE_SPORTS_HELP,
-  COMMUNITY_CREATE_SPORTS_LABEL,
-  toggleCommunitySport,
-} from "@repo/domain/community-sports";
+import { communityTypeHelp } from "@repo/domain/community";
+import { toggleCommunitySport } from "@repo/domain/community-sports";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api, type RouterInputs } from "~/trpc/react";
 
@@ -44,12 +36,11 @@ type CommunityType = RouterInputs["communities"]["create"]["type"];
 
 const FIELD_IDS = { name: "community-name", type: "community-type" };
 
-const TYPE_OPTIONS: { value: CommunityType; label: string }[] = [
-  { value: "public", label: COMMUNITY_TYPE_LABELS.public },
-  { value: "private", label: COMMUNITY_TYPE_LABELS.private },
-];
+const TYPE_VALUES: CommunityType[] = ["public", "private"];
 
 export default function NewCommunityPage() {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
@@ -59,7 +50,7 @@ export default function NewCommunityPage() {
 
   const createCommunity = api.communities.create.useMutation({
     onSuccess: async (community) => {
-      toast.success(COMMUNITY_CREATED_TOAST);
+      toast.success(m.community.toast.created);
       await utils.communities.mine.invalidate();
       router.push(`/dashboard/communities/${community.id}`);
     },
@@ -85,8 +76,8 @@ export default function NewCommunityPage() {
 
   return (
     <DashboardShell
-      title={COMMUNITY_CREATE_COPY.title}
-      description={COMMUNITY_CREATE_COPY.description}
+      title={m.community.create.title}
+      description={m.community.create.description}
     >
       <section className="border-rule rounded-[14px] border p-5">
         <form onSubmit={onSubmit} className="space-y-6">
@@ -96,7 +87,9 @@ export default function NewCommunityPage() {
           />
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="community-name">Name</FieldLabel>
+              <FieldLabel htmlFor="community-name">
+                {m.webDashboard.communities.new.name}
+              </FieldLabel>
               <Input
                 id="community-name"
                 value={name}
@@ -112,32 +105,34 @@ export default function NewCommunityPage() {
             </Field>
 
             <Field>
-              <FieldTitle id="community-type-label">Type</FieldTitle>
+              <FieldTitle id="community-type-label">
+                {m.webDashboard.communities.new.type}
+              </FieldTitle>
               <RovingRadioGroup
                 id="community-type"
                 aria-labelledby="community-type-label"
                 aria-describedby="community-type-description"
                 className="grid grid-cols-2 gap-2"
               >
-                {TYPE_OPTIONS.map((option) => (
+                {TYPE_VALUES.map((value) => (
                   <ChoiceChip
-                    key={option.value}
+                    key={value}
                     role="radio"
-                    selected={type === option.value}
-                    onClick={() => setType(option.value)}
+                    selected={type === value}
+                    onClick={() => setType(value)}
                   >
-                    {option.label}
+                    {m.community.type[value]}
                   </ChoiceChip>
                 ))}
               </RovingRadioGroup>
               <FieldDescription id="community-type-description">
-                {communityTypeHelp(type)}
+                {communityTypeHelp(type, locale)}
               </FieldDescription>
             </Field>
 
             <Field>
               <FieldTitle id="community-sports-label">
-                {COMMUNITY_CREATE_SPORTS_LABEL}
+                {m.community.sports.createLabel}
               </FieldTitle>
               <SportCheckboxes
                 id="community-sports"
@@ -149,7 +144,7 @@ export default function NewCommunityPage() {
                 disabled={createCommunity.isPending}
               />
               <FieldDescription>
-                {COMMUNITY_CREATE_SPORTS_HELP}
+                {m.community.sports.createHelp}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -161,15 +156,15 @@ export default function NewCommunityPage() {
               className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
             >
               {createCommunity.isPending
-                ? "Creating…"
-                : COMMUNITY_CREATE_COPY.submit}
+                ? m.webDashboard.creating
+                : m.community.create.submit}
             </Button>
             <Button
               variant="outline"
               asChild
               className="h-[46px] w-full rounded-[12px]"
             >
-              <Link href="/dashboard/communities">Cancel</Link>
+              <Link href="/dashboard/communities">{m.common.cancel}</Link>
             </Button>
           </div>
         </form>

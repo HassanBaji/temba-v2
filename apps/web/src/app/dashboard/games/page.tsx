@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import {
@@ -26,7 +27,7 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   filterBySport,
   footballSections,
-  SPORT_FILTERS,
+  sportFilters,
   type SportFilter,
 } from "@repo/domain/football-hub";
 import { gameJoinToast } from "@repo/domain/game-copy";
@@ -83,6 +84,8 @@ function GamesHubTabPanel({
   onRegister: (gameId: string) => void;
   pendingGameId: string | null;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   if (isLoading) {
     return (
       <div aria-busy="true" aria-live="polite" className="flex flex-col gap-3">
@@ -98,7 +101,7 @@ function GamesHubTabPanel({
             <div className="flex items-baseline gap-2.5">
               <Skeleton className="h-12 w-28" />
               <Skeleton className="h-5 w-10" />
-              <Skeleton className="ml-auto h-4 w-16" />
+              <Skeleton className="ms-auto h-4 w-16" />
             </div>
             <div className="space-y-1">
               <Skeleton className="h-5 w-48 max-w-full" />
@@ -140,7 +143,7 @@ function GamesHubTabPanel({
   if (errorMessage) {
     return (
       <ErrorState
-        title="Games could not be loaded"
+        title={m.webDashboard.games.errorTitle}
         message={errorMessage}
         onRetry={onRetry}
       />
@@ -175,7 +178,7 @@ function GamesHubTabPanel({
   if (sportFilter === "football") {
     return (
       <div className="flex flex-col gap-6">
-        {footballSections(games, new Date()).map((section) => (
+        {footballSections(games, new Date(), locale).map((section) => (
           <section
             key={section.key}
             aria-labelledby={`football-section-${section.key}`}
@@ -241,6 +244,7 @@ function GamesHubTabPanel({
             key={game.matchId ?? game.id}
             gameId={game.id}
             name={game.name}
+            hasCustomName={game.hasCustomName}
             startTime={game.startTime}
             groupName={game.groupName}
             format={game.format}
@@ -262,7 +266,11 @@ function GamesHubTabPanel({
             actionPending={pendingGameId === game.id}
             href={`/dashboard/games/${game.id}`}
             showPartnerJoin={showPartnerJoin}
-            roundLabel={poolRoundLabel(game.roundNumber, game.roundCount)}
+            roundLabel={poolRoundLabel(
+              game.roundNumber,
+              game.roundCount,
+              locale,
+            )}
             courtName={game.courtName}
             rated={game.rated}
             onJoinSeat={(sideIndex, position) => {
@@ -300,6 +308,7 @@ function HistoryTabPanel({
   onLoadMore: () => void;
   emptyState: React.ReactNode;
 }) {
+  const m = useMessages();
   if (isLoading) {
     return (
       <div aria-busy="true" aria-live="polite" className="flex flex-col gap-3">
@@ -329,7 +338,7 @@ function HistoryTabPanel({
   if (errorMessage) {
     return (
       <ErrorState
-        title="Games could not be loaded"
+        title={m.webDashboard.games.errorTitle}
         message={errorMessage}
         onRetry={onRetry}
       />
@@ -369,6 +378,7 @@ function LoadMoreSentinel({
   isFetchingNextPage: boolean;
   onLoadMore: () => void;
 }) {
+  const m = useMessages();
   const ref = React.useRef<HTMLDivElement>(null);
   const onLoadMoreRef = React.useRef(onLoadMore);
   onLoadMoreRef.current = onLoadMore;
@@ -398,7 +408,7 @@ function LoadMoreSentinel({
         disabled={isFetchingNextPage}
         onClick={onLoadMore}
       >
-        {isFetchingNextPage ? "Loading…" : "Load more"}
+        {isFetchingNextPage ? m.common.loading : m.webDashboard.games.loadMore}
       </Button>
     </div>
   );
@@ -424,6 +434,8 @@ export default function GamesHubPage({
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const tab = gamesHubTabFromQuery(tabParam);
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/games";
 
@@ -461,7 +473,7 @@ export default function GamesHubPage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(gameJoinToast(result.waitlisted));
+      toast.success(gameJoinToast(result.waitlisted, locale));
       await refreshLists();
     },
     onError: async (error) => {
@@ -472,7 +484,7 @@ export default function GamesHubPage({
 
   const register = api.games.register.useMutation({
     onSuccess: async (result) => {
-      toast.success(hubRegisterToast(result.waitlisted));
+      toast.success(hubRegisterToast(result.waitlisted, locale));
       await refreshLists();
     },
     onError: async (error) => {
@@ -483,7 +495,7 @@ export default function GamesHubPage({
 
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: async () => {
-      toast.success("Score confirmed");
+      toast.success(m.webDashboard.games.scoreConfirmedToast);
       await refreshLists();
     },
     onError: toastGlobalFormError,
@@ -518,19 +530,22 @@ export default function GamesHubPage({
 
   return (
     <DashboardShell
-      title="Games"
+      title={m.common.games}
       action={
-        <PageCreateAction href="/dashboard/games/new" label="Create Game" />
+        <PageCreateAction
+          href="/dashboard/games/new"
+          label={m.webDashboard.games.createAction}
+        />
       }
     >
       <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
         <TabsList variant="segmented">
           <TabsTrigger value="my-games" className="group/tab">
-            Upcoming
+            {m.webDashboard.games.tabs.upcoming}
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
           <TabsTrigger value="history" className="group/tab">
-            Played
+            {m.webDashboard.games.tabs.played}
             <TabCount
               count={history.hasNextPage ? undefined : historyRows?.length}
             />
@@ -539,10 +554,10 @@ export default function GamesHubPage({
         <TabsContent value="my-games" className="space-y-4">
           <div
             role="radiogroup"
-            aria-label="Sport"
+            aria-label={m.team.sportLabel}
             className="flex flex-wrap gap-2"
           >
-            {SPORT_FILTERS.map((entry) => (
+            {sportFilters(locale).map((entry) => (
               <Button
                 key={entry.key}
                 type="button"

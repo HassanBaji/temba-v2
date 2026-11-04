@@ -5,6 +5,9 @@
  * door the API already has.
  */
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { gameLevelRangeSaveInput, gameWindowSaveInput } from "./game-edit-save";
 import { gameCustomName, normalizeGameCustomName } from "./game-custom-name";
 import { gameSeasonFix } from "./game-season-link";
@@ -26,27 +29,15 @@ import {
   parseOptionalPricePerPlayerFils,
 } from "./price-per-player";
 
-export const EDIT_GAME_TITLE = "Edit game";
-export const SAVE_CHANGES_ACTION = "Save changes";
-export const CHANGES_LABEL = "Changes";
-export const NO_CHANGES_NOTE = "None yet";
-export const CHANGES_SAVED_TOAST = "Changes saved";
-export const OPTIONAL_TAG = "Optional";
-export const NAME_SECTION_HINT =
-  "Shown on the game and at the top of the invite. Empty uses the day and time.";
-export const WHEN_SECTION_HINT =
-  "Today or later, 30-minute steps. For today only upcoming times are listed.";
-export const PLAYERS_AND_PRICE_HINT =
-  "Dropping players below the number joined moves the latest joiners to the waiting list. They get a spot back if someone leaves. Price changes apply to players who join from now on.";
-export const EVERYONE_KEEPS_SPOT_NOTE = "Everyone who joined keeps their spot.";
-
 /** `"Karbabad Turf, Pitch 2. Venue can't change."` */
 export function venueLockedLine(
   venueName: string | null,
   courtName: string | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).createGame.edit;
   const place = [venueName, courtName].filter(Boolean).join(", ");
-  return place ? `${place}. Venue can't change.` : "Venue can't change.";
+  return place ? m.venueLocked(place) : m.venueLockedNoPlace;
 }
 
 export type GameEditDraft = {
@@ -152,9 +143,6 @@ export type GameEditPlan =
   | { ok: true; steps: GameEditStep[]; changed: GameEditSectionKey[] }
   | { ok: false; field: "window" | "price" | "level"; message: string };
 
-export const WINDOW_INCOMPLETE_MESSAGE =
-  "Pick a day, a start time and a finish time";
-
 function sameLevel(saved: GameEditDraft, draft: GameEditDraft) {
   return (
     parseLevelBandSelectTenths(saved.levelMin, "min") ===
@@ -193,8 +181,9 @@ export function gameEditChangedSections(
     changed.push("caps");
   }
   if (sections.price) {
-    const before = parseOptionalPricePerPlayerFils(saved.price);
-    const after = parseOptionalPricePerPlayerFils(draft.price);
+    // Only `.ok` and the fils are read here, so the message's language is moot.
+    const before = parseOptionalPricePerPlayerFils(saved.price, DEFAULT_LOCALE);
+    const after = parseOptionalPricePerPlayerFils(draft.price, DEFAULT_LOCALE);
     if (!after.ok || !before.ok || before.fils !== after.fils) {
       changed.push("price");
     }
@@ -219,6 +208,7 @@ export function gameEditPlan(
   saved: GameEditDraft,
   draft: GameEditDraft,
   sections: GameEditSections,
+  locale: Locale,
 ): GameEditPlan {
   const changed = gameEditChangedSections(saved, draft, sections);
   const steps: GameEditStep[] = [];
@@ -235,9 +225,14 @@ export function gameEditPlan(
       draft.day,
       draft.startTime,
       draft.finishTime,
+      locale,
     );
     if (!input) {
-      return { ok: false, field: "window", message: WINDOW_INCOMPLETE_MESSAGE };
+      return {
+        ok: false,
+        field: "window",
+        message: messagesFor(locale).createGame.edit.windowIncomplete,
+      };
     }
     steps.push({
       kind: "window",
@@ -258,14 +253,18 @@ export function gameEditPlan(
     });
   }
   if (has("price")) {
-    const parsed = parseOptionalPricePerPlayerFils(draft.price);
+    const parsed = parseOptionalPricePerPlayerFils(draft.price, locale);
     if (!parsed.ok) {
       return { ok: false, field: "price", message: parsed.message };
     }
     steps.push({ kind: "price", pricePerPlayerFils: parsed.fils });
   }
   if (has("level")) {
-    const result = gameLevelRangeSaveInput(draft.levelMin, draft.levelMax);
+    const result = gameLevelRangeSaveInput(
+      draft.levelMin,
+      draft.levelMax,
+      locale,
+    );
     if (!result.ok) {
       return { ok: false, field: "level", message: result.message };
     }
@@ -284,35 +283,37 @@ function changePhrase(
   key: GameEditSectionKey,
   saved: GameEditDraft,
   draft: GameEditDraft,
+  locale: Locale,
 ): string[] {
+  const m = messagesFor(locale).createGame.edit.change;
   switch (key) {
     case "name":
-      return ["name"];
+      return [m.name];
     case "window":
-      return [saved.day !== draft.day ? "day moved" : "time changed"];
+      return [saved.day !== draft.day ? m.dayMoved : m.timeChanged];
     case "caps": {
       const phrases: string[] = [];
       if (saved.playersAllowed !== draft.playersAllowed) {
-        phrases.push("players");
+        phrases.push(m.players);
       }
       if (saved.sideSize !== draft.sideSize) {
-        phrases.push("a-side");
+        phrases.push(m.aside);
       }
       return phrases;
     }
     case "price":
-      return ["price"];
+      return [m.price];
     case "level":
-      return ["level range"];
+      return [m.levelRange];
     case "rounds":
-      return ["rounds"];
+      return [m.rounds];
     case "season":
       return [
         draft.seasonId === null
-          ? "season unlinked"
+          ? m.seasonUnlinked
           : saved.seasonId === null
-            ? "season linked"
-            : "season changed",
+            ? m.seasonLinked
+            : m.seasonChanged,
       ];
   }
 }
@@ -325,19 +326,19 @@ export function gameEditChangeNote(
   saved: GameEditDraft,
   draft: GameEditDraft,
   sections: GameEditSections,
+  locale: Locale,
   options: { seasonNeedsFix?: boolean } = {},
 ) {
+  const m = messagesFor(locale).createGame.edit;
   const phrases = gameEditChangedSections(saved, draft, sections).flatMap(
-    (key) => changePhrase(key, saved, draft),
+    (key) => changePhrase(key, saved, draft, locale),
   );
-  const list = phrases.join(", ");
+  const list = phrases.join(m.listSeparator);
   const sentence = list.charAt(0).toUpperCase() + list.slice(1);
   if (options.seasonNeedsFix) {
-    return sentence
-      ? `${sentence}. Season needs a fix.`
-      : "Season needs a fix.";
+    return sentence ? m.withSeasonFix(sentence) : m.seasonNeedsFix;
   }
-  return sentence || NO_CHANGES_NOTE;
+  return sentence || m.noChanges;
 }
 
 /** The fix the Season section asks for once the day leaves the linked Season. */
@@ -345,12 +346,13 @@ export function gameEditSeasonFix(
   draft: Pick<GameEditDraft, "day" | "seasonId">,
   seasons: readonly GroupSeasonData[],
   now: Date,
+  locale: Locale,
 ) {
   if (!draft.day) {
     return null;
   }
   const linked = seasons.find((season) => season.id === draft.seasonId) ?? null;
-  return gameSeasonFix(linked, seasons, draft.day, now);
+  return gameSeasonFix(linked, seasons, draft.day, now, locale);
 }
 
 /** `"90 min"` from the draft's times, or `null` while they are incomplete. */
@@ -358,6 +360,7 @@ export function windowDurationLabel(
   day: string,
   startTime: string,
   finishTime: string,
+  locale: Locale,
 ): string | null {
   const start = parseGameDateTime(day || "2000-01-01", startTime);
   const end = parseGameDateTime(day || "2000-01-01", finishTime);
@@ -365,30 +368,40 @@ export function windowDurationLabel(
     return null;
   }
   const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
-  return minutes > 0 ? `${minutes} min` : null;
+  return minutes > 0 ? messagesFor(locale).dates.minutes(minutes) : null;
 }
 
-export function joinedCountLabel(count: number) {
-  return `${count} joined`;
+export function joinedCountLabel(count: number, locale: Locale) {
+  return messagesFor(locale).createGame.edit.joined(count);
 }
 
 /** `"6-a-side, 12 on the pitch, 2 subs"` */
-export function footballFormatNote(sideSize: number, playersAllowed: number) {
+export function footballFormatNote(
+  sideSize: number,
+  playersAllowed: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).createGame.edit;
   const onPitch = sideSize * 2;
   const subs = playersAllowed - onPitch;
-  const base = `${sideSizeLabel(sideSize)}, ${onPitch} on the pitch`;
+  const side = sideSizeLabel(sideSize, locale);
   if (subs <= 0) {
-    return base;
+    return m.footballNote(side, onPitch);
   }
-  return `${base}, ${subs} ${subs === 1 ? "sub" : "subs"}`;
+  return m.footballNoteWithSubs(side, onPitch, subs);
 }
 
 /** `"3 of the 9 joined move to the waiting list, latest to join first."` */
-export function playersCapWaitNote(playersAllowed: number, joined: number) {
+export function playersCapWaitNote(
+  playersAllowed: number,
+  joined: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).createGame.edit;
   if (playersAllowed >= joined) {
-    return EVERYONE_KEEPS_SPOT_NOTE;
+    return m.everyoneKeepsSpot;
   }
-  return `${joined - playersAllowed} of the ${joined} joined move to the waiting list, latest to join first.`;
+  return m.capWait(joined - playersAllowed, joined);
 }
 
 export function asideLabel(sideSize: number) {

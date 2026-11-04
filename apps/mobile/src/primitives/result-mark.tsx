@@ -1,11 +1,12 @@
 import { resultMark } from "@repo/design-tokens";
 import {
-  RESULT_MARK_LABEL,
+  resultMarkLabel,
   type ResultMarkVariant,
 } from "@repo/domain/result-mark";
 import { View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
+import { useLocale } from "../i18n/locale-provider";
 import { Hatch } from "./hatch";
 import { useTonePalette } from "./surface-context";
 
@@ -20,6 +21,7 @@ export function ResultMark({
   size = 24,
   decorative = false,
 }: ResultMarkProps) {
+  const locale = useLocale();
   const palette = useTonePalette();
   const notPlayed = variant === "not-played";
   const stroke = notPlayed ? palette.rule : palette.foreground;
@@ -28,7 +30,9 @@ export function ResultMark({
     <View
       accessible={!decorative}
       accessibilityRole={decorative ? undefined : "image"}
-      accessibilityLabel={decorative ? undefined : RESULT_MARK_LABEL[variant]}
+      accessibilityLabel={
+        decorative ? undefined : resultMarkLabel(variant, locale)
+      }
       importantForAccessibility={decorative ? "no-hide-descendants" : "yes"}
       accessibilityElementsHidden={decorative}
       style={{ width: size, height: size }}

@@ -1,15 +1,14 @@
 import {
-  GROUP_CREATED_TOAST,
   groupCreateDoor,
   groupCreateRequiresApproval,
   type GroupCreateType,
 } from "@repo/domain/group-create";
 import { clubGroupSportChoice } from "@repo/domain/community-sports";
 import { DEFAULT_SPORT, SPORTS, type Sport } from "@repo/domain/sport";
-import { GROUP_CREATED_WITHOUT_IMAGE_TOAST } from "@repo/domain/entity-image-file";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
@@ -23,6 +22,8 @@ type Picked = { uri: string; upload: PickedImage & { ok: true } };
 
 export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   const context = communityId ? "club" : "loose";
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
@@ -119,7 +120,7 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
       setSubmitting(false);
       return;
     }
-    let message = GROUP_CREATED_TOAST;
+    let message = m.group.create.createdToast;
     if (picked) {
       try {
         await uploadImage.mutateAsync({
@@ -128,7 +129,7 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
           dataBase64: picked.upload.dataBase64,
         });
       } catch {
-        message = GROUP_CREATED_WITHOUT_IMAGE_TOAST;
+        message = m.createGame.image.groupCreatedWithoutImage;
       }
     }
     toast.show(message);
@@ -138,7 +139,7 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   }
 
   async function pickImage() {
-    const result = await pickGroupImage();
+    const result = await pickGroupImage(locale);
     if (!result) {
       return;
     }

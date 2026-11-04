@@ -1,19 +1,15 @@
-import {
-  CLERK_AUTH_ERROR_COPY,
-  GENERIC_CLERK_AUTH_ERROR,
-} from "@repo/domain/clerk-auth-error";
 import { assembleE164 } from "@repo/domain/phone-number";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type SplitFormError } from "../lib/form-error";
 
-export const SOMETHING_WENT_WRONG: SplitFormError = {
-  fieldErrors: {},
-  globalMessage: GENERIC_CLERK_AUTH_ERROR,
-};
-
-const PHONE_FORMAT_MESSAGE =
-  CLERK_AUTH_ERROR_COPY.form_param_format_invalid ??
-  "That doesn't look right. Check the format and try again.";
+export function somethingWentWrong(locale: Locale): SplitFormError {
+  return {
+    fieldErrors: {},
+    globalMessage: messagesFor(locale).auth.clerkError.generic,
+  };
+}
 
 export type PhoneResult =
   | { ok: true; e164: string }
@@ -23,6 +19,7 @@ export function resolvePhone(
   countryIso: string,
   national: string,
   field: string,
+  locale: Locale,
 ): PhoneResult {
   const assembled = assembleE164(countryIso, national);
   if (assembled.ok) {
@@ -31,7 +28,9 @@ export function resolvePhone(
   return {
     ok: false,
     split: {
-      fieldErrors: { [field]: PHONE_FORMAT_MESSAGE },
+      fieldErrors: {
+        [field]: messagesFor(locale).auth.clerkError.paramFormatInvalid,
+      },
       globalMessage: null,
     },
   };
@@ -105,6 +104,7 @@ export type ContinuePayload = {
 export function buildContinuePayload(
   missingFields: string[],
   values: ContinueValues,
+  locale: Locale,
 ):
   | { ok: true; payload: ContinuePayload }
   | { ok: false; split: SplitFormError } {
@@ -114,6 +114,7 @@ export function buildContinuePayload(
       values.countryIso,
       values.national,
       "phoneNumber",
+      locale,
     );
     if (!phone.ok) {
       return phone;

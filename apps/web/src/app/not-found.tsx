@@ -5,22 +5,25 @@ import Link from "next/link";
 import { EmptyState } from "~/components/common/empty-state";
 import { InviteShell } from "~/components/invites/invite-shell";
 import { Button } from "~/components/ui/button";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export const metadata: Metadata = {
-  title: "Page not found",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.common.pageNotFound };
+}
 
-export default function NotFound() {
+export default async function NotFound() {
+  const m = await getRequestMessages();
   return (
     <InviteShell>
       <EmptyState
         icon={SearchX}
         headingLevel={1}
-        title="Page not found"
-        description="This page does not exist or is no longer available."
+        title={m.common.pageNotFound}
+        description={m.webAuth.notFound.description}
         action={
           <Button asChild>
-            <Link href="/">Go to Temba</Link>
+            <Link href="/">{m.webAuth.notFound.goToTemba}</Link>
           </Button>
         }
       />

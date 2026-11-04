@@ -10,17 +10,17 @@ Use the glossary in `CONTEXT.md`. Say **Workspace**, **App** and **Package**, no
 
 Tickets are in Linear as TEM-294 … TEM-344. Section 6 of the spec maps them to phases. Update this table in the same pull request that completes a phase.
 
-| Phase | What it delivers | Status |
-| --- | --- | --- |
-| 0 | `apps/temba` renamed to `apps/web` | Done in code, human steps pending |
-| Fix | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Done |
-| 1 | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting | Done in code, human steps pending |
-| 2 | `@repo/api` Package and the `apps/api` Hono host | Done in code, human steps pending |
-| 3 | Web App calls the API over HTTP and drops its database access | Done in code, human steps pending |
-| 4 | Bearer-only session check in the API context | Done in code, human steps pending |
-| 5 | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell | Done in code, human steps pending |
-| 6 | Mobile screens and flows: everything except Venue administration | Done in code, human steps pending |
-| 7 | Push, universal links, App Store build (iOS first) | Not started |
+| Phase | What it delivers                                                                               | Status                            |
+| ----- | ---------------------------------------------------------------------------------------------- | --------------------------------- |
+| 0     | `apps/temba` renamed to `apps/web`                                                             | Done in code, human steps pending |
+| Fix   | Standing and Team records from Matches, Set bounds, one win rate, one timezone, prices in fils | Done                              |
+| 1     | `@repo/domain`, `@repo/validators`, `@repo/db` importable without connecting                   | Done in code, human steps pending |
+| 2     | `@repo/api` Package and the `apps/api` Hono host                                               | Done in code, human steps pending |
+| 3     | Web App calls the API over HTTP and drops its database access                                  | Done in code, human steps pending |
+| 4     | Bearer-only session check in the API context                                                   | Done in code, human steps pending |
+| 5     | `apps/mobile` scaffold, `@repo/design-tokens`, primitives, tab shell                           | Done in code, human steps pending |
+| 6     | Mobile screens and flows: everything except Venue administration                               | Done in code, human steps pending |
+| 7     | Push, universal links, App Store build (iOS first)                                             | Not started                       |
 
 Until a phase lands, its paths below do not exist. Do not create them outside that phase's tickets.
 
@@ -39,6 +39,7 @@ packages/api                 @repo/api: tRPC routers, procedures, shared server 
 packages/db                  @repo/db: Drizzle schema, client, migrations, PGlite harness
 packages/domain              @repo/domain: pure rules and calculations
 packages/design-tokens       @repo/design-tokens: tokens as data, generates the web theme stylesheet
+packages/i18n                @repo/i18n: Locale, the English and Arabic Message catalogs, `plural`
 packages/validators          @repo/validators: Zod schemas with two or more callers
 packages/eslint-config       @repo/eslint-config
 packages/typescript-config   @repo/typescript-config
@@ -55,6 +56,7 @@ packages/db             @repo/db             schema, client, migrations, PGlite 
 packages/domain         @repo/domain         pure rules and calculations
 packages/validators     @repo/validators     Zod schemas with two or more callers
 packages/design-tokens  @repo/design-tokens  colors, spacing, radii, type scale, hatch geometry
+packages/i18n           @repo/i18n           Locale, Message catalogs (en, ar), plural
 ```
 
 ## Commands
@@ -83,15 +85,17 @@ pnpm exec turbo run db:migrate
 These bind all new code. Existing code is brought into line by the phase that moves it.
 
 ```text
-apps/web, apps/console, apps/mobile  ──► @repo/domain, @repo/validators, @repo/design-tokens, @repo/api/types
+apps/web, apps/console, apps/mobile  ──► @repo/domain, @repo/validators, @repo/design-tokens, @repo/i18n, @repo/api/types
 apps/api               ──► @repo/api, @repo/db
-@repo/api              ──► @repo/db, @repo/domain, @repo/validators
+@repo/api              ──► @repo/db, @repo/domain, @repo/validators, @repo/i18n
 @repo/validators       ──► @repo/domain
-@repo/domain, @repo/db, @repo/design-tokens ──► no Workspace imports
+@repo/domain           ──► @repo/i18n
+@repo/i18n, @repo/db, @repo/design-tokens ──► no Workspace imports
 ```
 
 - **Clients never import server code.** `apps/web/src`, `apps/console/src` and `apps/mobile` may import `@repo/api/types` with `import type` and nothing else from `@repo/api`. They never import `@repo/db`. Scripts under `apps/web/scripts` are exempt.
-- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. The one exception is `friendly-game-partner` and `tournament-join`, which keep their routes until Phase 6 (spec section 9). A function goes there only if a client uses it, or two or more server callers do.
+- **Every user-facing string comes from `@repo/i18n`** (ADR-0052). No English literal in JSX, props, toasts, `aria-*` or accessibility labels. Client Components call `useMessages()`; Server Components call `getRequestMessages()`; domain copy functions take `locale` as their last required parameter. Add keys to the catalog file your feature owns in both `en/` and `ar/`; counts go through `plural()`.
+- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. Its one Workspace import is `@repo/i18n`. The one exception is `friendly-game-partner` and `tournament-join`, which keep their routes until Phase 6 (spec section 9). A function goes there only if a client uses it, or two or more server callers do.
 - **`@repo/validators` is for shared schemas only.** A schema used by one procedure stays inline in that procedure file.
 - **`@repo/api` is host-neutral.** No `next/*`, `@clerk/nextjs`, `react` or `server-only`. Auth, role metadata and the web origin arrive through the context.
 - **`apps/api` holds no business logic.** It verifies the session, builds the context and mounts routes.

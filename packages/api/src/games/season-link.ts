@@ -4,10 +4,6 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { games, groupSeasons, matches } from "@repo/db";
 
 import {
-  GAME_SEASON_CLOSED_MESSAGE,
-  GAME_SEASON_NOT_IN_GROUP_MESSAGE,
-  GAME_SEASON_NO_GROUP_MESSAGE,
-  GAME_SEASON_SCORE_CONFIRMED_MESSAGE,
   seasonContainsDay,
   seasonOutsideDayMessage,
   seasonsOpenForDay,
@@ -15,6 +11,8 @@ import {
 import { groupSeasonStatus } from "@repo/domain/group-season";
 import { MATCH_STATUS } from "@repo/domain/match-status";
 import { productDayKey } from "@repo/domain/product-timezone";
+import { type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
 
@@ -151,12 +149,14 @@ export async function resolveGameSeasonLink(
     seasonId: string | null;
     windowStart: Date;
     now: Date;
+    locale: Locale;
   },
 ): Promise<SeasonRow | null> {
+  const m = messagesFor(args.locale).createGame.season;
   if (!args.game.groupId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: GAME_SEASON_NO_GROUP_MESSAGE,
+      message: m.noGroup,
     });
   }
   if (
@@ -165,7 +165,7 @@ export async function resolveGameSeasonLink(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: GAME_SEASON_SCORE_CONFIRMED_MESSAGE,
+      message: m.scoreConfirmed,
     });
   }
   if (args.seasonId === null) {
@@ -180,14 +180,14 @@ export async function resolveGameSeasonLink(
   if (!season) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: GAME_SEASON_NOT_IN_GROUP_MESSAGE,
+      message: m.notInGroup,
     });
   }
   const dayKey = productDayKey(args.windowStart);
   if (!seasonContainsDay(season, dayKey)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: seasonOutsideDayMessage(season, dayKey),
+      message: seasonOutsideDayMessage(season, dayKey, args.locale),
     });
   }
   if (
@@ -196,7 +196,7 @@ export async function resolveGameSeasonLink(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: GAME_SEASON_CLOSED_MESSAGE,
+      message: m.closed,
     });
   }
   return season;

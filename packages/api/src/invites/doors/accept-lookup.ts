@@ -1,3 +1,4 @@
+import { type Locale } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
@@ -95,7 +96,7 @@ async function markLookupAccepted(
 export async function acceptLookup(
   database: InviteDb,
   host: InviteHost,
-  args: { inviteId: string; userId: string; seat?: AcceptSeat },
+  args: { inviteId: string; userId: string; seat?: AcceptSeat; locale: Locale },
 ): Promise<AcceptLookupResult> {
   const invite = await loadLookupInvite(database, host, args.inviteId);
   if (!invite || invite.acceptedAt || invite.revokedAt) {
@@ -238,6 +239,7 @@ export async function acceptLookup(
     database as Tx,
     game,
     args.userId,
+    args.locale,
     new Date(),
     args.seat,
   );

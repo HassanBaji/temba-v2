@@ -1,10 +1,5 @@
 import { spacing } from "@repo/design-tokens";
 import {
-  COMMUNITY_JOIN_REQUESTS_ERROR_TITLE,
-  COMMUNITY_JOIN_REQUESTS_TITLE,
-  COMMUNITY_REQUESTS_EMPTY,
-  COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE,
-  COMMUNITY_TEAM_LINK_REQUESTS_TITLE,
   communityJoinRequestRow,
   communityRequestsAreEmpty,
   communityTeamLinkRequestRow,
@@ -17,6 +12,7 @@ import { View } from "react-native";
 
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -65,11 +61,12 @@ function RequestRow({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const m = useMessages();
   return (
     <View style={{ gap: 10, padding: spacing.surface }}>
       <View
         accessible
-        accessibilityLabel={`${title}. ${meta}`}
+        accessibilityLabel={m.mobileCommunity.requests.rowA11y(title, meta)}
         style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
       >
         {showAvatar ? (
@@ -86,15 +83,15 @@ function RequestRow({
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
-          label="Approve"
-          accessibilityLabel={`Approve ${title}`}
+          label={m.mobileCommunity.requests.approve}
+          accessibilityLabel={m.mobileCommunity.requests.approveA11y(title)}
           pending={approving}
           disabled={rejecting}
           onPress={onApprove}
         />
         <Button
-          label="Reject"
-          accessibilityLabel={`Reject ${title}`}
+          label={m.mobileCommunity.requests.reject}
+          accessibilityLabel={m.mobileCommunity.requests.rejectA11y(title)}
           variant="outline"
           pending={rejecting}
           disabled={approving}
@@ -149,6 +146,8 @@ function countOf<T>(slot: Slot<T[]>) {
 }
 
 export function CommunityRequestsView(props: CommunityRequestsViewProps) {
+  const m = useMessages();
+  const locale = useLocale();
   const empty = communityRequestsAreEmpty({
     canManageJoinRequests: props.canManageJoinRequests,
     canManageTeamLinks: props.canManageTeamLinks,
@@ -163,18 +162,18 @@ export function CommunityRequestsView(props: CommunityRequestsViewProps) {
       (props.canManageTeamLinks && props.teamLinkRequests.status === "error"),
   });
   if (empty) {
-    return <Notice {...COMMUNITY_REQUESTS_EMPTY} />;
+    return <Notice {...m.community.requestsEmpty} />;
   }
   return (
     <View style={{ gap: spacing.section }}>
       {props.canManageJoinRequests ? (
-        <Section title={COMMUNITY_JOIN_REQUESTS_TITLE}>
+        <Section title={m.community.joinRequestsTitle}>
           <RequestList
             slot={props.joinRequests}
-            errorTitle={COMMUNITY_JOIN_REQUESTS_ERROR_TITLE}
+            errorTitle={m.community.joinRequestsErrorTitle}
             onRetry={props.onRetryJoin}
             renderRow={(request) => {
-              const row = communityJoinRequestRow(request);
+              const row = communityJoinRequestRow(request, locale);
               return (
                 <RequestRow
                   title={row.title}
@@ -193,13 +192,13 @@ export function CommunityRequestsView(props: CommunityRequestsViewProps) {
         </Section>
       ) : null}
       {props.canManageTeamLinks ? (
-        <Section title={COMMUNITY_TEAM_LINK_REQUESTS_TITLE}>
+        <Section title={m.community.teamLinkRequestsTitle}>
           <RequestList
             slot={props.teamLinkRequests}
-            errorTitle={COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE}
+            errorTitle={m.community.teamLinkRequestsErrorTitle}
             onRetry={props.onRetryTeam}
             renderRow={(request) => {
-              const row = communityTeamLinkRequestRow(request);
+              const row = communityTeamLinkRequestRow(request, locale);
               return (
                 <RequestRow
                   title={row.title}

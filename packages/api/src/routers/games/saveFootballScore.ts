@@ -8,6 +8,7 @@ import {
   matchGoals,
   matchSets,
 } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
   FOOTBALL_GOALS_MAX,
@@ -68,9 +69,11 @@ export async function saveFootballScore(
     slot1Goals: number;
     slot2Goals: number;
     scorers: { userId: string; goals: number }[];
+    locale?: Locale;
   },
   now: Date = new Date(),
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   assertFootballGame(game);
   assertGameNotCancelled(game);
@@ -116,9 +119,10 @@ export async function saveFootballScore(
     { slot1: args.slot1Goals, slot2: args.slot2Goals },
     named,
     {
-      slot1: footballBibName(sides.slot1.bib, 1),
-      slot2: footballBibName(sides.slot2.bib, 2),
+      slot1: footballBibName(sides.slot1.bib, 1, locale),
+      slot2: footballBibName(sides.slot2.bib, 2, locale),
     },
+    locale,
   );
   if (scorersProblem) {
     refuse("BAD_REQUEST", scorersProblem);
@@ -198,5 +202,9 @@ export const saveFootballScoreProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return saveFootballScore(ctx.db, { ...input, userId: appUser.id });
+    return saveFootballScore(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

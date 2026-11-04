@@ -14,6 +14,7 @@ import {
   VenueField,
   type CreateVenue,
 } from "~/app/dashboard/games/new/_parts/venue-field";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { StepperField } from "~/components/games/stepper-field";
 import { PricePerPlayerAmountInput } from "~/components/games/price-per-player-amount-input";
@@ -22,13 +23,12 @@ import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   LEVEL_BAND_SELECT_NONE,
-  LEVEL_RANGE_FIELD_DESCRIPTION,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   CREATE_FLOW_DURATIONS,
-  CREATE_FLOW_PRICE_CHIPS,
+  createFlowPriceChips,
   FOOTBALL_SIDE_SIZE_PRESETS,
   applyLevelBoundChange,
   createFlowSeatsLabel,
@@ -54,8 +54,7 @@ import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
-import { UNRATED_GROUP_LINE } from "@repo/domain/game-rating-impact";
-import { PRICE_PER_PLAYER_FIELD_DESCRIPTION } from "@repo/domain/price-per-player";
+import { unratedGroupLine } from "@repo/domain/game-rating-impact";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 const SMALLEST_SIDE_SIZE = Math.min(...FOOTBALL_SIDE_SIZES);
@@ -163,6 +162,9 @@ export function FriendlyGameSteps({
   reviewVenue: string;
   groupVerified: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const c = m.webDashboard.createGame;
   const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
     string | null
   >(null);
@@ -189,7 +191,7 @@ export function FriendlyGameSteps({
       );
   const football = sport === "football";
   const courtWord = courtFace(sport);
-  const courtTitle = football ? "Pitch" : "Court";
+  const courtTitle = football ? c.pitch : c.court;
   const playerBounds = footballPlayersAllowedBounds(sideSize);
   const levelOpen =
     levelMin === LEVEL_BAND_SELECT_NONE && levelMax === LEVEL_BAND_SELECT_NONE;
@@ -258,7 +260,7 @@ export function FriendlyGameSteps({
             <SectionHeading
               id="game-court-label"
               title={courtTitle}
-              meta="Optional"
+              meta={m.common.optional}
             />
             <RovingRadioGroup
               id="game-court"
@@ -278,7 +280,7 @@ export function FriendlyGameSteps({
                   onCourtId("none");
                 }}
               >
-                None
+                {m.common.none}
               </ChoiceChip>
               {visibleCourts.map((court) => (
                 <ChoiceChip
@@ -299,12 +301,12 @@ export function FriendlyGameSteps({
                     setCourtsExpandedVenueId(venueId);
                   }}
                 >
-                  All {courtCountLabel(courts.length, sport)}
+                  {c.allCount(courtCountLabel(courts.length, sport, locale))}
                 </ChoiceChip>
               ) : null}
             </RovingRadioGroup>
             <FieldDescription id="game-court-copy">
-              Leave on None to settle the {courtWord} at the venue.
+              {c.settleAtVenue[courtWord]}
             </FieldDescription>
             <FieldError id="game-court-error">{courtError}</FieldError>
           </section>
@@ -321,11 +323,7 @@ export function FriendlyGameSteps({
           />
 
           <section className="flex flex-col gap-3">
-            <SectionHeading
-              id="game-window-start-label"
-              title="Start time"
-              meta="30 minute steps"
-            />
+            <SectionHeading id="game-window-start-label" title={c.startTime} />
             <div id="game-window-start" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
                 <RovingRadioGroup
@@ -346,7 +344,7 @@ export function FriendlyGameSteps({
                         selectStart(slot);
                       }}
                     >
-                      {formatTimeSlotLabel(slot)}
+                      {formatTimeSlotLabel(slot, locale)}
                     </ChoiceChip>
                   ))}
                 </RovingRadioGroup>
@@ -357,14 +355,14 @@ export function FriendlyGameSteps({
                       setStartExpanded((open) => !open);
                     }}
                   >
-                    {startExpanded ? "Less" : "More"}
+                    {startExpanded ? m.common.less : m.common.more}
                   </ChoiceChip>
                 ) : null}
               </div>
             </div>
             {startSlots.length === 0 ? (
               <p className="text-muted-foreground text-body">
-                No upcoming times for this day.
+                {c.noUpcomingTimes}
               </p>
             ) : null}
             <FieldError id="game-window-start-error">{startError}</FieldError>
@@ -373,8 +371,12 @@ export function FriendlyGameSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-window-finish-label"
-              title="Duration"
-              meta={finishTime ? formatTimeSlotLabel(finishTime) : undefined}
+              title={c.duration}
+              meta={
+                finishTime
+                  ? c.endsAt(formatTimeSlotLabel(finishTime, locale))
+                  : undefined
+              }
             />
             <RovingRadioGroup
               id={showCustomFinish ? undefined : "game-window-finish"}
@@ -400,7 +402,7 @@ export function FriendlyGameSteps({
                       selectDuration(minutes);
                     }}
                   >
-                    {minutes} min
+                    {c.minutes(minutes)}
                   </ChoiceChip>
                 );
               })}
@@ -413,13 +415,13 @@ export function FriendlyGameSteps({
                   setCustomFinishOpen(true);
                 }}
               >
-                Set
+                {c.setFinish}
               </ChoiceChip>
             </RovingRadioGroup>
             {showCustomFinish ? (
               <RovingRadioGroup
                 id="game-window-finish"
-                aria-label="Finish time"
+                aria-label={c.finishTime}
                 tabIndex={-1}
                 className="flex flex-wrap gap-1.5 outline-none"
               >
@@ -432,15 +434,13 @@ export function FriendlyGameSteps({
                       onFinishTime(slot);
                     }}
                   >
-                    {formatTimeSlotLabel(slot)}
+                    {formatTimeSlotLabel(slot, locale)}
                   </ChoiceChip>
                 ))}
               </RovingRadioGroup>
             ) : null}
             <FieldDescription id="game-window-copy">
-              Day, start time, and finish time are required. Pick today or a
-              later day. Times are in 30-minute intervals; for today, only
-              upcoming times are listed.
+              {c.windowCopy}
             </FieldDescription>
             <FieldError id="game-window-finish-error">{finishError}</FieldError>
           </section>
@@ -452,14 +452,16 @@ export function FriendlyGameSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-custom-name-label"
-              title="Name"
-              meta="Optional"
+              title={c.name}
+              meta={m.common.optional}
             />
             <Input
               id="game-custom-name"
               value={customName}
               maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
-              placeholder={football ? "Friday five-a-side" : "Thursday smash"}
+              placeholder={
+                football ? c.namePlaceholder.football : c.namePlaceholder.padel
+              }
               aria-labelledby="game-custom-name-label"
               aria-invalid={customNameError ? true : undefined}
               aria-describedby={
@@ -472,7 +474,7 @@ export function FriendlyGameSteps({
               }}
             />
             <FieldDescription id="game-custom-name-copy">
-              Shown on the Game and at the top of the invite message.
+              {c.nameCopy}
             </FieldDescription>
             <FieldError id="game-custom-name-error">
               {customNameError}
@@ -482,7 +484,7 @@ export function FriendlyGameSteps({
           {football ? (
             <>
               <section className="flex flex-col gap-3">
-                <SectionHeading id="game-side-size-label" title="Side size" />
+                <SectionHeading id="game-side-size-label" title={c.sideSize} />
                 <RovingRadioGroup
                   id="game-side-size"
                   aria-labelledby="game-side-size-label"
@@ -499,15 +501,16 @@ export function FriendlyGameSteps({
                         onSideSize(size);
                       }}
                     >
-                      {sideSizeLabel(size)}
+                      {sideSizeLabel(size, locale)}
                     </ChoiceChip>
                   ))}
                 </RovingRadioGroup>
                 <StepperField
                   id="game-side-size-stepper"
-                  label="Side size"
+                  label={c.sideSize}
+                  labelClassName="sr-only"
                   value={sideSize}
-                  unit="a side"
+                  unit={c.aSide}
                   min={SMALLEST_SIDE_SIZE}
                   max={LARGEST_SIDE_SIZE}
                   step={1}
@@ -516,8 +519,8 @@ export function FriendlyGameSteps({
                       footballSideSizeStep(sideSize, next > sideSize ? 1 : -1),
                     );
                   }}
-                  decreaseLabel="Smaller side"
-                  increaseLabel="Larger side"
+                  decreaseLabel={c.smallerSide}
+                  increaseLabel={c.largerSide}
                 />
                 <FieldError id="game-side-size-error">
                   {sideSizeError}
@@ -526,19 +529,19 @@ export function FriendlyGameSteps({
 
               <StepperField
                 id="game-players-allowed"
-                label="Players allowed"
+                label={c.playersAllowed}
                 value={playersAllowed}
-                unit="players"
+                unit={c.playersUnit}
                 min={playerBounds.min}
                 max={FOOTBALL_PLAYERS_ALLOWED_MAX}
                 step={1}
                 onChange={onPlayersAllowed}
-                decreaseLabel="Fewer players"
-                increaseLabel="More players"
+                decreaseLabel={c.fewerPlayers}
+                increaseLabel={c.morePlayers}
                 error={playersAllowedError}
                 description={
                   <p className="text-muted-foreground text-meta">
-                    At least two full sides. Anyone past that is a substitute.
+                    {c.playersAllowedCopy}
                   </p>
                 }
               />
@@ -548,12 +551,12 @@ export function FriendlyGameSteps({
               <section className="flex flex-col gap-3">
                 <SectionHeading
                   id="game-level-label"
-                  title="Level range"
-                  meta="Optional"
+                  title={c.levelRange}
+                  meta={m.common.optional}
                 />
                 <LevelBandRow
                   id="game-level-min"
-                  label="Minimum Level"
+                  label={c.minimumLevel}
                   bound="min"
                   value={levelMin}
                   other={levelMax}
@@ -578,7 +581,7 @@ export function FriendlyGameSteps({
                 </FieldError>
                 <LevelBandRow
                   id="game-level-max"
-                  label="Maximum Level"
+                  label={c.maximumLevel}
                   bound="max"
                   value={levelMax}
                   other={levelMin}
@@ -601,20 +604,20 @@ export function FriendlyGameSteps({
                 <div className="text-body flex items-center justify-between gap-3">
                   <p className="text-muted-foreground">
                     {levelOpen ? (
-                      "Open to anyone"
+                      c.openToAnyone
                     ) : (
                       <>
-                        Minimum{" "}
+                        {c.minimum}{" "}
                         <span className="text-foreground font-semibold">
                           {levelMin === LEVEL_BAND_SELECT_NONE
-                            ? "Open"
+                            ? c.openBound
                             : levelMin}
                         </span>
                         {" · "}
-                        Maximum{" "}
+                        {c.maximum}{" "}
                         <span className="text-foreground font-semibold">
                           {levelMax === LEVEL_BAND_SELECT_NONE
-                            ? "Open"
+                            ? c.openBound
                             : levelMax}
                         </span>
                       </>
@@ -628,12 +631,12 @@ export function FriendlyGameSteps({
                         onLevelRange(openLevelRange());
                       }}
                     >
-                      Open to anyone
+                      {c.openToAnyone}
                     </button>
                   )}
                 </div>
                 <FieldDescription id="game-level-range-copy">
-                  {LEVEL_RANGE_FIELD_DESCRIPTION}
+                  {m.level.rangeFieldDescription}
                 </FieldDescription>
                 <FieldError id="game-level-max-error">
                   {levelMaxError}
@@ -645,8 +648,8 @@ export function FriendlyGameSteps({
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="game-price-label"
-              title="Price per player"
-              meta="Optional"
+              title={c.pricePerPlayer}
+              meta={m.common.optional}
             />
             <PricePerPlayerAmountInput
               id="game-price-per-player"
@@ -664,7 +667,7 @@ export function FriendlyGameSteps({
               }
             />
             <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-              {CREATE_FLOW_PRICE_CHIPS.map((chip) => {
+              {createFlowPriceChips(locale).map((chip) => {
                 const selected = priceChipIsSelected(chip.value, price);
                 return (
                   <ChoiceChip
@@ -681,7 +684,7 @@ export function FriendlyGameSteps({
               })}
             </div>
             <FieldDescription id="game-price-per-player-copy">
-              {PRICE_PER_PLAYER_FIELD_DESCRIPTION}
+              {m.createGame.price.fieldDescription}
             </FieldDescription>
             <FieldError id="game-price-per-player-error">
               {priceError}
@@ -690,19 +693,23 @@ export function FriendlyGameSteps({
 
           {groupVerified ? null : (
             <FieldDescription id="game-unrated-copy">
-              {UNRATED_GROUP_LINE}
+              {unratedGroupLine(locale)}
             </FieldDescription>
           )}
 
           <div className="border-rule rounded-card overflow-hidden border">
             {customName.trim() ? (
-              <ReviewRow label="Name" value={customName.trim()} />
+              <ReviewRow label={c.name} value={customName.trim()} />
             ) : null}
-            <ReviewRow label="Group" value={reviewGroup} />
-            <ReviewRow label="Venue" value={reviewVenue} />
+            <ReviewRow label={m.invite.kind.group} value={reviewGroup} />
+            <ReviewRow label={m.webDashboard.venue.title} value={reviewVenue} />
             <ReviewRow
-              label={football ? "Players" : "Seats"}
-              value={createFlowSeatsLabel(sport, { sideSize, playersAllowed })}
+              label={football ? m.common.players : c.seats}
+              value={createFlowSeatsLabel(
+                sport,
+                { sideSize, playersAllowed },
+                locale,
+              )}
             />
           </div>
         </>

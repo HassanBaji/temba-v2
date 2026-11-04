@@ -14,20 +14,26 @@ const fixtures = createPlayerProfileFixtures();
 
 describe("playerHeaderSubtitle", () => {
   it("names the usual Venue", () => {
-    expect(playerHeaderSubtitle(fixtures.confirmed.venue)).toBe(
+    expect(playerHeaderSubtitle(fixtures.confirmed.venue, "en")).toBe(
       "Padel, plays at Padelhuset Bromma",
     );
   });
 
   it("reads Padel without one", () => {
-    expect(playerHeaderSubtitle(fixtures.newPlayer.venue)).toBe("Padel");
+    expect(playerHeaderSubtitle(fixtures.newPlayer.venue, "en")).toBe("Padel");
   });
 
   it("names the sport shown", () => {
-    expect(playerHeaderSubtitle({ name: "Riffa Pitch" }, "football")).toBe(
-      "Football, plays at Riffa Pitch",
+    expect(
+      playerHeaderSubtitle({ name: "Riffa Pitch" }, "en", "football"),
+    ).toBe("Football, plays at Riffa Pitch");
+    expect(playerHeaderSubtitle(null, "en", "football")).toBe("Football");
+  });
+
+  it("reads the subtitle in Arabic", () => {
+    expect(playerHeaderSubtitle({ name: "Riffa Pitch" }, "ar")).toBe(
+      "بادل، يلعب في Riffa Pitch",
     );
-    expect(playerHeaderSubtitle(null, "football")).toBe("Football");
   });
 });
 
@@ -50,7 +56,7 @@ describe("profileSport", () => {
 
 describe("overallView", () => {
   it("shows four All time tiles", () => {
-    expect(overallView(fixtures.confirmed.overall)).toEqual({
+    expect(overallView(fixtures.confirmed.overall, "en")).toEqual({
       title: "Overall",
       scope: "All time",
       tiles: [
@@ -63,7 +69,7 @@ describe("overallView", () => {
   });
 
   it("shows zeros and dashes before the first Match", () => {
-    expect(overallView(fixtures.newPlayer.overall).tiles).toEqual([
+    expect(overallView(fixtures.newPlayer.overall, "en").tiles).toEqual([
       { label: "Matches", value: "0" },
       { label: "Won", value: "0" },
       { label: "Win rate", value: "—" },
@@ -72,14 +78,17 @@ describe("overallView", () => {
   });
 
   it("counts a draw as played", () => {
-    const tiles = overallView({
-      played: 2,
-      won: 1,
-      lost: 0,
-      drawn: 1,
-      setsWon: 3,
-      setsPlayed: 4,
-    }).tiles;
+    const tiles = overallView(
+      {
+        played: 2,
+        won: 1,
+        lost: 0,
+        drawn: 1,
+        setsWon: 3,
+        setsPlayed: 4,
+      },
+      "en",
+    ).tiles;
     expect(tiles[2]).toEqual({ label: "Win rate", value: "50%" });
     expect(tiles[3]).toEqual({ label: "Sets won", value: "75%" });
   });
@@ -98,7 +107,7 @@ describe("groupMemberRowsLink", () => {
 
 describe("streaksView", () => {
   it("shows the current run with a won mark per win and the best with its month", () => {
-    expect(streaksView(fixtures.confirmed.streaks)).toEqual({
+    expect(streaksView(fixtures.confirmed.streaks, "en")).toEqual({
       current: { headline: "4 wins in a row", wonMarks: 4 },
       best: { headline: "7 wins", reachedIn: "March 2026" },
     });
@@ -106,22 +115,25 @@ describe("streaksView", () => {
 
   it("caps the won marks at ten", () => {
     expect(
-      streaksView({ current: 13, best: 13, bestReachedAt: null }).current,
+      streaksView({ current: 13, best: 13, bestReachedAt: null }, "en").current,
     ).toEqual({ headline: "13 wins in a row", wonMarks: 10 });
   });
 
   it("reads the month in Asia/Bahrain", () => {
     expect(
-      streaksView({
-        current: 0,
-        best: 3,
-        bestReachedAt: new Date("2026-02-28T22:30:00.000Z"),
-      }).best.reachedIn,
+      streaksView(
+        {
+          current: 0,
+          best: 3,
+          bestReachedAt: new Date("2026-02-28T22:30:00.000Z"),
+        },
+        "en",
+      ).best.reachedIn,
     ).toBe("March 2026");
   });
 
   it("has no current streak after a loss or a draw", () => {
-    expect(streaksView(fixtures.provisional.streaks).current).toEqual({
+    expect(streaksView(fixtures.provisional.streaks, "en").current).toEqual({
       headline: "No current streak",
       wonMarks: 0,
     });
@@ -129,11 +141,14 @@ describe("streaksView", () => {
 
   it("reads one win in the singular", () => {
     expect(
-      streaksView({
-        current: 1,
-        best: 1,
-        bestReachedAt: "2026-10-01T17:00:00.000Z",
-      }),
+      streaksView(
+        {
+          current: 1,
+          best: 1,
+          bestReachedAt: "2026-10-01T17:00:00.000Z",
+        },
+        "en",
+      ),
     ).toEqual({
       current: { headline: "1 win in a row", wonMarks: 1 },
       best: { headline: "1 win", reachedIn: "October 2026" },
@@ -141,7 +156,7 @@ describe("streaksView", () => {
   });
 
   it("shows a dash before the first win", () => {
-    expect(streaksView(fixtures.newPlayer.streaks)).toEqual({
+    expect(streaksView(fixtures.newPlayer.streaks, "en")).toEqual({
       current: { headline: "No current streak", wonMarks: 0 },
       best: { headline: "—", reachedIn: null },
     });
@@ -150,7 +165,7 @@ describe("streaksView", () => {
 
 describe("playedSideView", () => {
   it("fills the declared side and names the share played there", () => {
-    expect(playedSideView(fixtures.confirmed.position)).toEqual({
+    expect(playedSideView(fixtures.confirmed.position, "en")).toEqual({
       label: "Left side",
       subtitle: "Played left in 72% of matches",
       court: { left: "ink", right: "paper" },
@@ -159,12 +174,15 @@ describe("playedSideView", () => {
 
   it("names the right side's share for a right-side player", () => {
     expect(
-      playedSideView({
-        declared: "right",
-        recordedCount: 5,
-        leftCount: 1,
-        rightCount: 4,
-      }),
+      playedSideView(
+        {
+          declared: "right",
+          recordedCount: 5,
+          leftCount: 1,
+          rightCount: 4,
+        },
+        "en",
+      ),
     ).toEqual({
       label: "Right side",
       subtitle: "Played right in 80% of matches",
@@ -174,12 +192,15 @@ describe("playedSideView", () => {
 
   it("fills both sides for Either and splits the share", () => {
     expect(
-      playedSideView({
-        declared: "either",
-        recordedCount: 20,
-        leftCount: 11,
-        rightCount: 9,
-      }),
+      playedSideView(
+        {
+          declared: "either",
+          recordedCount: 20,
+          leftCount: 11,
+          rightCount: 9,
+        },
+        "en",
+      ),
     ).toEqual({
       label: "Either side",
       subtitle: "Left 55%, right 45% of matches",
@@ -189,12 +210,15 @@ describe("playedSideView", () => {
 
   it("hatches the near half with no answer and still splits the share", () => {
     expect(
-      playedSideView({
-        declared: null,
-        recordedCount: 6,
-        leftCount: 3,
-        rightCount: 3,
-      }),
+      playedSideView(
+        {
+          declared: null,
+          recordedCount: 6,
+          leftCount: 3,
+          rightCount: 3,
+        },
+        "en",
+      ),
     ).toEqual({
       label: "No preference set",
       subtitle: "Left 50%, right 50% of matches",
@@ -204,25 +228,46 @@ describe("playedSideView", () => {
 
   it("hides the subtitle below five recorded Matches", () => {
     expect(
-      playedSideView({
-        declared: "left",
-        recordedCount: 4,
-        leftCount: 4,
-        rightCount: 0,
-      }).subtitle,
+      playedSideView(
+        {
+          declared: "left",
+          recordedCount: 4,
+          leftCount: 4,
+          rightCount: 0,
+        },
+        "en",
+      ).subtitle,
     ).toBeNull();
     expect(
-      playedSideView({
-        declared: "left",
-        recordedCount: 5,
-        leftCount: 5,
-        rightCount: 0,
-      }).subtitle,
+      playedSideView(
+        {
+          declared: "left",
+          recordedCount: 5,
+          leftCount: 5,
+          rightCount: 0,
+        },
+        "en",
+      ).subtitle,
     ).toBe("Played left in 100% of matches");
   });
 
+  it("reads the side and streaks in Arabic", () => {
+    expect(playedSideView(fixtures.confirmed.position, "ar").label).toBe(
+      "يلعب على اليسار",
+    );
+    expect(
+      streaksView(
+        { current: 2, best: 3, bestReachedAt: "2026-03-14T17:00:00.000Z" },
+        "ar",
+      ),
+    ).toEqual({
+      current: { headline: "فوزان على التوالي", wonMarks: 2 },
+      best: { headline: "3 انتصارات", reachedIn: "مارس 2026" },
+    });
+  });
+
   it("reads No preference set for a new player", () => {
-    expect(playedSideView(fixtures.newPlayer.position)).toEqual({
+    expect(playedSideView(fixtures.newPlayer.position, "en")).toEqual({
       label: "No preference set",
       subtitle: null,
       court: { left: "hatch", right: "hatch" },

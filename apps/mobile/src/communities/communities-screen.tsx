@@ -1,10 +1,10 @@
 import { useUser } from "@clerk/expo";
-import { COMMUNITIES_TITLE } from "@repo/domain/community";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { Notice } from "../groups/notice";
 import { groupPath } from "../groups/groups-model";
+import { useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
@@ -18,6 +18,7 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 export function CommunitiesScreen() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
+  const m = useMessages();
   const [refreshing, setRefreshing] = useState(false);
   const hasCreateAccess = user?.publicMetadata.groupCreator === true;
 
@@ -38,10 +39,10 @@ export function CommunitiesScreen() {
   if (isLoaded && !hasCreateAccess) {
     return (
       <Screen>
-        <ScreenHeader title={COMMUNITIES_TITLE} />
+        <ScreenHeader title={m.community.title} />
         <Notice
-          title="Communities list is limited"
-          description="This list is set up by Temba staff."
+          title={m.mobileCommunity.list.limitedTitle}
+          description={m.mobileCommunity.list.limitedDescription}
         />
       </Screen>
     );

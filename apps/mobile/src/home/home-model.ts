@@ -8,6 +8,8 @@ import {
 import type { HomeStandingRow } from "@repo/domain/home-standing";
 import type { ProfileChecklist } from "@repo/domain/profile-checklist";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "../trpc/react";
 import type { UpNextItem } from "./up-next-model";
@@ -52,19 +54,21 @@ export function levelFromApi(data: ApiRating): HomeLevel {
       provisional: data.rating.provisional,
       ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
       history: data.history,
+      historyMatchCount: data.historyMatchCount,
       progressPercent: data.progressPercent,
     },
   };
 }
 
-export function noLevelCopy(sport: Sport): string {
-  return `Play a rated ${sport} game and your ${sport} Level appears.`;
+export function noLevelCopy(sport: Sport, locale: Locale): string {
+  return messagesFor(locale).mobileHome.level.noLevel[sport];
 }
 
 export function recentFormFromHistory(
   rows: readonly RecentFormHistoryRow[],
+  locale: Locale,
 ): RecentFormView {
-  return deriveRecentForm(rows);
+  return deriveRecentForm(rows, locale);
 }
 
 export function standingInSport(
@@ -81,16 +85,17 @@ export function homeChecklist(
   return list && !list.complete ? { list, skipped } : null;
 }
 
-export function standingCountLabel(count: number): string {
-  return `${count} ${count === 1 ? "group" : "groups"}`;
+export function standingCountLabel(count: number, locale: Locale): string {
+  return messagesFor(locale).mobileHome.standing.groupCount(count);
 }
 
-export function venueCountLabel(count: number | null): string | null {
+export function venueCountLabel(
+  count: number | null,
+  locale: Locale,
+): string | null {
   if (count == null) {
     return null;
   }
-  if (count === 0) {
-    return "No venues yet";
-  }
-  return `${count} ${count === 1 ? "venue" : "venues"} nearby`;
+  const m = messagesFor(locale).mobileHome.venues;
+  return count === 0 ? m.none : m.nearby(count);
 }

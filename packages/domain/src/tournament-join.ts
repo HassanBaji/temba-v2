@@ -1,45 +1,24 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatGameCardDay } from "./format-game-start";
 import type { FriendlyGameJoinSeat } from "./friendly-game-cta";
 import {
   firstFullyVacantSideIndex,
-  PARTNER_VACANT_SIDE_RACE_MESSAGE,
+  partnerVacantSideRaceMessage,
 } from "./friendly-game-partner";
 import { isPreferredPosition } from "./preferred-position";
 import { remainingJoinSeatOnSide, defaultJoinSeat } from "./preferred-seat";
-import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_YES,
-  PRICE_ROW_LABEL,
-  tournamentSeatsTakenSrLabel,
-} from "./tournament-home";
+import { tournamentSeatsTakenSrLabel } from "./tournament-home";
 import { isDrawnTournament } from "./tournament-rounds";
 
-export const TAKE_A_SEAT_TITLE = "Take a seat";
-export const SIT_WITH_SOMEONE_HEADING = "Sit with someone";
-export const START_A_TEAM_ON_YOUR_OWN_LABEL = "Start a team on your own";
-export const START_A_TEAM_ON_YOUR_OWN_SUBLINE =
-  "Someone takes the other Position, or the Organizer pairs you";
-export const YOUR_SEAT_HEADING = "Your seat";
-export const TAKEN_SEAT_LABEL = "taken";
-export const ROUNDS_ROW_LABEL = "Rounds";
-export const DRAW_ROW_LABEL = "Draw";
-export const DRAW_RANDOM_VALUE = "Random";
-export const PRICE_PER_PLAYER_JOIN_SUFFIX = "per player";
-export const JOIN_SHEET_INTRO_SUFFIX =
-  "Same as joining a game, you just pick who you play with.";
-export const LEAVE_SEAT_UNTIL_POOL_DRAW_COPY =
-  "You can leave the seat up until the group draw.";
-export const LEAVE_SEAT_UNTIL_KNOCKOUT_DRAW_COPY =
-  "You can leave the seat up until the draw.";
-export const GAME_LEAVE_SPOT_CONFIRM_COPY =
-  "Your spot can open for someone else.";
-export const PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY =
-  "Your partner is unseated too.";
-export const PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE =
-  "That side was taken while you were registering. Pick another partner if a side is still fully open.";
-export const PARTNER_REQUIRED_INVITE_LANDING_COPY =
-  "This tournament is with a partner only. Continue to pick a partner.";
-export const PARTNER_REQUIRED_INVITE_LANDING_CTA = "Pick a partner";
+export function gameLeaveSpotConfirmCopy(locale: Locale) {
+  return messagesFor(locale).tournament.join.leaveSpotConfirm;
+}
+
+export function partnerRequiredUnseatPartnerConfirmCopy(locale: Locale) {
+  return messagesFor(locale).tournament.join.partnerUnseatedConfirm;
+}
 
 export type TournamentJoinSide = {
   sideIndex: number;
@@ -72,66 +51,76 @@ export function tournamentJoinHeaderLine(args: {
   name: string;
   roundCount: number | null;
   firstRoundDay: string | null;
+  locale: Locale;
 }): string {
+  const m = messagesFor(args.locale).tournament;
   const name = args.name.trim();
-  const rounds = roundCountLabel(args.roundCount);
+  const rounds =
+    args.roundCount == null ? null : m.sizing.roundCount(args.roundCount);
   let lead = name;
   if (name && rounds && args.firstRoundDay) {
-    lead = `${name}, ${rounds} from ${args.firstRoundDay}`;
+    lead = m.join.nameRoundsFrom(name, rounds, args.firstRoundDay);
   } else if (name && rounds) {
-    lead = `${name}, ${rounds}`;
+    lead = m.join.nameRounds(name, rounds);
   } else if (!name && rounds && args.firstRoundDay) {
-    lead = `${rounds} from ${args.firstRoundDay}`;
+    lead = m.join.roundsFrom(rounds, args.firstRoundDay);
   } else if (!name && rounds) {
     lead = rounds;
   }
   if (!lead) {
-    return JOIN_SHEET_INTRO_SUFFIX;
+    return m.join.introSuffix;
   }
-  return `${lead}. ${JOIN_SHEET_INTRO_SUFFIX}`;
+  return m.join.headerWithLead(lead);
 }
 
 export function tournamentJoinFirstRoundDay(
   start: Date | string | null | undefined,
+  locale: Locale,
 ): string | null {
   if (!start) {
     return null;
   }
-  return formatGameCardDay(start);
+  return formatGameCardDay(start, locale);
 }
 
-export function tournamentSitWithCountLine(halfOpen: number): string {
+export function tournamentSitWithCountLine(
+  halfOpen: number,
+  locale: Locale,
+): string {
   if (halfOpen <= 0) {
     return "";
   }
-  if (halfOpen === 1) {
-    return "1 Game team with a Position open";
-  }
-  return `${halfOpen} Game teams with a Position open`;
+  return messagesFor(locale).tournament.join.sitWithCount(halfOpen);
 }
 
 export function tournamentJoinOccupantSubline(args: {
   occupantPosition: "left" | "right";
   levelLabel: string | null;
   openPosition: "left" | "right";
+  locale: Locale;
 }): string {
-  const plays = args.occupantPosition === "left" ? "Plays left" : "Plays right";
+  const m = messagesFor(args.locale).tournament;
+  const plays =
+    args.occupantPosition === "left" ? m.join.playsLeft : m.join.playsRight;
   const open =
-    args.openPosition === "left" ? "Left seat open" : "Right seat open";
-  return [plays, args.levelLabel, open].filter(Boolean).join(", ");
+    args.openPosition === "left" ? m.home.leftSeatOpen : m.home.rightSeatOpen;
+  return [plays, args.levelLabel, open].filter(Boolean).join(m.listSeparator);
 }
 
 export function tournamentJoinTakeSeatLabel(
   position: "left" | "right",
+  locale: Locale,
 ): string {
-  return `Take the ${position === "left" ? "Left" : "Right"} seat`;
+  const m = messagesFor(locale).tournament.join;
+  return position === "left" ? m.takeTheLeftSeat : m.takeTheRightSeat;
 }
 
 export function tournamentJoinSeatsTakenLine(
   seatsTaken: number,
   seatTotal: number,
+  locale: Locale,
 ): string {
-  return tournamentSeatsTakenSrLabel(seatsTaken, seatTotal);
+  return tournamentSeatsTakenSrLabel(seatsTaken, seatTotal, locale);
 }
 
 export function tournamentYourSeatAvailability(
@@ -174,20 +163,23 @@ export function tournamentJoinSheetOpeningStep(args: {
 
 export function tournamentPartnerVacantSideRaceMessage(
   partnerRequired: boolean,
+  locale: Locale,
 ) {
   return partnerRequired
-    ? PARTNER_REQUIRED_VACANT_SIDE_RACE_MESSAGE
-    : PARTNER_VACANT_SIDE_RACE_MESSAGE;
+    ? messagesFor(locale).tournament.join.partnerVacantSideRace
+    : partnerVacantSideRaceMessage(locale);
 }
 
 export function tournamentLeaveOrKickConfirmCopy(args: {
   partnerRequired: boolean;
   drawPosted: boolean;
+  locale: Locale;
 }) {
+  const m = messagesFor(args.locale).tournament.join;
   if (args.partnerRequired && !args.drawPosted) {
-    return PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY;
+    return m.partnerUnseatedConfirm;
   }
-  return GAME_LEAVE_SPOT_CONFIRM_COPY;
+  return m.leaveSpotConfirm;
 }
 
 export function tournamentShowsTakeSeat(args: {
@@ -278,44 +270,53 @@ export function tournamentJoinSeatExplanation(args: {
   occupiedPosition: "left" | "right" | null;
   freePosition: "left" | "right";
   roundCount: number | null;
+  locale: Locale;
 }): string {
-  const rounds = roundsForAllClause(args.roundCount);
+  const m = messagesFor(args.locale).tournament;
   const occupant = firstName(args.occupantName);
   if (occupant && args.occupiedPosition) {
-    return `${occupant} has the ${args.occupiedPosition} seat, so you take the ${args.freePosition}${rounds}.`;
+    return m.join.seatExplanationOccupied(
+      occupant,
+      m.position[`${args.occupiedPosition}Lower`],
+      m.position[`${args.freePosition}Lower`],
+      args.roundCount,
+    );
   }
-  return `Both Positions are open. You pick Left or Right${rounds}.`;
+  return m.join.seatExplanationOpen(args.roundCount);
 }
 
 export function tournamentJoinDetailRows(args: {
   roundDates: readonly string[];
   roundCount: number | null;
   priceLabel: string | null;
+  locale: Locale;
 }): { label: string; value: string }[] {
+  const m = messagesFor(args.locale);
   const rows: { label: string; value: string }[] = [];
   const roundsValue = tournamentJoinRoundsValue(
     args.roundDates,
     args.roundCount,
+    args.locale,
   );
   if (roundsValue) {
-    rows.push({ label: ROUNDS_ROW_LABEL, value: roundsValue });
+    rows.push({ label: m.tournament.join.roundsRow, value: roundsValue });
   }
   if (args.priceLabel) {
     rows.push({
-      label: PRICE_ROW_LABEL,
+      label: m.tournament.home.priceRow,
       value:
-        args.priceLabel === "Free"
+        args.priceLabel === m.createGame.price.free
           ? args.priceLabel
-          : `${args.priceLabel} ${PRICE_PER_PLAYER_JOIN_SUFFIX}`,
+          : m.tournament.join.pricePerPlayerValue(args.priceLabel),
     });
   }
   rows.push({
-    label: COUNTS_FOR_RATING_LABEL,
-    value: COUNTS_FOR_RATING_YES,
+    label: m.tournament.home.countsForRating,
+    value: m.common.yes,
   });
   rows.push({
-    label: DRAW_ROW_LABEL,
-    value: DRAW_RANDOM_VALUE,
+    label: m.tournament.join.drawRow,
+    value: m.tournament.join.drawRandom,
   });
   return rows;
 }
@@ -323,23 +324,13 @@ export function tournamentJoinDetailRows(args: {
 export function tournamentJoinRoundsValue(
   roundDates: readonly string[],
   roundCount: number | null,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).tournament;
   if (roundDates.length > 0) {
-    return roundDates.join(", ");
+    return roundDates.join(m.listSeparator);
   }
-  return roundCountLabel(roundCount);
-}
-
-function roundCountLabel(roundCount: number | null): string | null {
-  if (roundCount == null) {
-    return null;
-  }
-  return roundCount === 1 ? "1 Round" : `${roundCount} Rounds`;
-}
-
-function roundsForAllClause(roundCount: number | null): string {
-  const label = roundCountLabel(roundCount);
-  return label ? ` for all ${label}` : "";
+  return roundCount == null ? null : m.sizing.roundCount(roundCount);
 }
 
 function firstName(name: string | null): string | null {

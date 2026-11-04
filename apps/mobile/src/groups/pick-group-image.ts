@@ -1,10 +1,13 @@
+import type { Locale } from "@repo/i18n/locale";
 import * as ImagePicker from "expo-image-picker";
 
 import { pickedImage, type PickedImage } from "./group-image";
 
 export type PickedGroupImage = { uri: string; image: PickedImage };
 
-export async function pickGroupImage(): Promise<PickedGroupImage | null> {
+export async function pickGroupImage(
+  locale: Locale,
+): Promise<PickedGroupImage | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
     quality: 0.8,
@@ -14,5 +17,5 @@ export async function pickGroupImage(): Promise<PickedGroupImage | null> {
   if (!asset) {
     return null;
   }
-  return { uri: asset.uri, image: pickedImage(asset) };
+  return { uri: asset.uri, image: pickedImage(asset, locale) };
 }
