@@ -283,18 +283,48 @@ export function defaultSeasonLens(
 
 export type SeasonLensChip = { seasonId: string | null; label: string };
 
-/** The chip row under the Season header: Seasons newest first, then All-time. */
+/**
+ * The chip row under the Season header: Seasons newest first, then All-time.
+ * A Season that has not started reads `"Season 2 (upcoming)"`.
+ */
 export function seasonLensChips(
   seasons: readonly GroupSeasonData[],
+  now: Date,
   locale: Locale,
 ): SeasonLensChip[] {
+  const m = messagesFor(locale).group.season;
   return [
-    ...sortSeasonsNewestFirst(seasons).map((season) => ({
-      seasonId: season.id,
-      label: season.name,
-    })),
-    { seasonId: null, label: messagesFor(locale).group.season.allTime },
+    ...sortSeasonsNewestFirst(seasons).map((season) => {
+      const name = seasonDisplayName(season.name, locale);
+      return {
+        seasonId: season.id,
+        label:
+          groupSeasonStatus(season, now) === "upcoming"
+            ? m.upcomingName(name)
+            : name,
+      };
+    }),
+    { seasonId: null, label: m.allTime },
   ];
+}
+
+const DEFAULT_SEASON_NAMES = [/^Season (\d+)$/i, /^الموسم (\d+)$/];
+
+/**
+ * A Season name as the reader's language writes it. Names are stored as
+ * typed, prefilled from `suggestedSeasonName` in the creator's language, so a
+ * default name (`"Season 2"` or `"الموسم 2"`) is re-rendered in `locale`; any
+ * other name is the admin's own and shows unchanged.
+ */
+export function seasonDisplayName(name: string, locale: Locale) {
+  const trimmed = name.trim();
+  for (const pattern of DEFAULT_SEASON_NAMES) {
+    const match = pattern.exec(trimmed);
+    if (match) {
+      return messagesFor(locale).group.season.suggestedName(Number(match[1]));
+    }
+  }
+  return name;
 }
 
 /** `"Season 4"` when the Group has three Seasons. */
@@ -350,10 +380,11 @@ export function newSeasonSummaryLine(
       dayKeyToInstant(previous.endsOn),
       dayKeyToInstant(dates.startsOn),
     );
+    const previousName = seasonDisplayName(previous.name, locale);
     parts.push(
       gap === 1
-        ? m.startsDayAfter(previous.name)
-        : m.startsDaysAfter(gap - 1, previous.name),
+        ? m.startsDayAfter(previousName)
+        : m.startsDaysAfter(gap - 1, previousName),
     );
   }
   parts.push(m.overlapMessage);
@@ -370,7 +401,7 @@ export function seasonForDate<T extends GroupSeasonData>(
 
 /** The hairline in the Games list (design 1d): `"SEASON 2 / 1 AUG – 31 OCT"`. */
 export function seasonBoundaryLabel(season: GroupSeasonData, locale: Locale) {
-  return `${season.name} / ${formatSeasonRange(season, locale)}`.toUpperCase();
+  return `${seasonDisplayName(season.name, locale)} / ${formatSeasonRange(season, locale)}`.toUpperCase();
 }
 
 /** `"Today, 60 days early"` for the close sheet (design 1l). */
@@ -391,14 +422,18 @@ export function closeSeasonTitle(
   season: Pick<GroupSeasonData, "name">,
   locale: Locale,
 ) {
-  return messagesFor(locale).group.season.closeTitle(season.name);
+  return messagesFor(locale).group.season.closeTitle(
+    seasonDisplayName(season.name, locale),
+  );
 }
 
 export function closeSeasonActionLabel(
   season: Pick<GroupSeasonData, "name">,
   locale: Locale,
 ) {
-  return messagesFor(locale).group.season.closeAction(season.name);
+  return messagesFor(locale).group.season.closeAction(
+    seasonDisplayName(season.name, locale),
+  );
 }
 
 /**
@@ -422,12 +457,16 @@ export function seasonCreatedToast(
   season: Pick<GroupSeasonData, "name">,
   locale: Locale,
 ) {
-  return messagesFor(locale).group.season.createdToast(season.name);
+  return messagesFor(locale).group.season.createdToast(
+    seasonDisplayName(season.name, locale),
+  );
 }
 
 export function seasonClosedToast(
   season: Pick<GroupSeasonData, "name">,
   locale: Locale,
 ) {
-  return messagesFor(locale).group.season.closedToast(season.name);
+  return messagesFor(locale).group.season.closedToast(
+    seasonDisplayName(season.name, locale),
+  );
 }

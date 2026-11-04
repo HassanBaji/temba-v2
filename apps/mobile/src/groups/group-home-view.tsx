@@ -54,6 +54,8 @@ export type GroupMenuProps = {
   visible: boolean;
   items: GroupMenuItem[];
   roleLine: string | null;
+  /** Why Leave is disabled, or `null` when the viewer may leave. */
+  leaveBlockedHint: string | null;
   copyPending: boolean;
   onOpen: () => void;
   onPick: (item: GroupMenuItem) => void;
@@ -381,6 +383,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         name={header.name}
         roleLine={props.menu.roleLine}
         items={props.menu.items}
+        leaveBlockedHint={props.menu.leaveBlockedHint}
         copyPending={props.menu.copyPending}
         onPick={props.menu.onPick}
         onClose={props.menu.onClose}

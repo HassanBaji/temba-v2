@@ -11,6 +11,7 @@ import {
   seasonBoundaryLabel,
   seasonCloseEndsLine,
   seasonDatesError,
+  seasonDisplayName,
   seasonForDate,
   seasonLengthDays,
   seasonLensChips,
@@ -131,6 +132,9 @@ describe("season copy", () => {
   });
 
   it("reads in Arabic", () => {
+    expect(
+      formatSeasonRange(season("1", "2026-11-02", "2027-02-01"), "ar"),
+    ).toBe("\u20682 نوفمبر – 1 فبراير\u2069");
     expect(seasonProgressLine(s3, new Date("2026-12-05T10:00:00Z"), "ar")).toBe(
       "اليوم 35 من 92",
     );
@@ -188,9 +192,21 @@ describe("lens", () => {
   });
 
   it("lists chips newest first and all-time last", () => {
+    const now = new Date("2026-11-04T10:00:00Z");
     expect(
-      seasonLensChips([s1, s3, s2], "en").map((chip) => chip.label),
+      seasonLensChips([s1, s3, s2], now, "en").map((chip) => chip.label),
     ).toEqual(["Season 3", "Season 2", "Season 1", "All-time"]);
+  });
+
+  it("marks an upcoming Season and reads default names in Arabic", () => {
+    const now = new Date("2026-11-04T10:00:00Z");
+    const next = season("4", "2027-02-01", "2027-04-30");
+    expect(
+      seasonLensChips([s3, next], now, "ar").map((chip) => chip.label),
+    ).toEqual(["الموسم 4 (قادم)", "الموسم 3", "كل المواسم"]);
+    expect(
+      seasonLensChips([next], now, "en").map((chip) => chip.label),
+    ).toEqual(["Season 4 (upcoming)", "All-time"]);
   });
 
   it("finds the Season a Match counts toward", () => {
@@ -200,6 +216,26 @@ describe("lens", () => {
     expect(
       seasonForDate([s1, s2], new Date("2026-12-01T10:00:00Z")),
     ).toBeNull();
+  });
+});
+
+describe("seasonDisplayName", () => {
+  it("re-renders a default name in the reader's language", () => {
+    expect(seasonDisplayName("Season 1", "ar")).toBe("الموسم 1");
+    expect(seasonDisplayName("SEASON 12", "ar")).toBe("الموسم 12");
+    expect(seasonDisplayName("الموسم 2", "en")).toBe("Season 2");
+    expect(seasonDisplayName("الموسم 2", "ar")).toBe("الموسم 2");
+    expect(seasonDisplayName(" Season 3 ", "en")).toBe("Season 3");
+  });
+
+  it("keeps a name the admin wrote", () => {
+    expect(seasonDisplayName("Winter league", "ar")).toBe("Winter league");
+    expect(seasonDisplayName("Season 1 finals", "ar")).toBe("Season 1 finals");
+    expect(seasonDisplayName("الموسم الأول", "en")).toBe("الموسم الأول");
+  });
+
+  it("reads Season names in the Season copy", () => {
+    expect(seasonBoundaryLabel(s2, "ar")).toContain("الموسم 2 / ");
   });
 });
 

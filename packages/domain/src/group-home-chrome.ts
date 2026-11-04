@@ -14,7 +14,7 @@ export function groupHomeSportLabel(
   return sportLabel(sport, locale);
 }
 
-function seasonSinceMonth(
+function sinceMonth(
   createdAt: Date | string | null | undefined,
   locale: Locale,
 ) {
@@ -29,10 +29,12 @@ function seasonSinceMonth(
 }
 
 /**
- * The Group home header meta line: `"{Sport}, {n} members, season since {Mon}"`.
+ * The Group home header meta line: `"{Sport}, {n} members, since {Mon}"`, the
+ * month the Group was created. It names no Season: a Season has its own dates
+ * and may start long after the Group.
  *
  * Parts with no value are dropped and the remainder joined with `", "`, so a
- * Group with no sport reads `"14 members, season since Jan"`. Returns an empty
+ * Group with no sport reads `"14 members, since Jan"`. Returns an empty
  * string when nothing is known; the header renders no meta line then.
  */
 export function groupHomeMetaLine(input: {
@@ -54,9 +56,9 @@ export function groupHomeMetaLine(input: {
     parts.push(memberCountLabel(memberCount, input.locale));
   }
 
-  const since = seasonSinceMonth(input.createdAt, input.locale);
+  const since = sinceMonth(input.createdAt, input.locale);
   if (since) {
-    parts.push(m.home.seasonSince(since));
+    parts.push(m.home.since(since));
   }
 
   return parts.join(m.metaSeparator);

@@ -83,6 +83,7 @@ import {
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
 import {
+  groupLeaveBlockedHint,
   groupMenuRoleLine,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
@@ -606,6 +607,11 @@ export default function GroupHomePage({
       groupId={id}
       groupName={groupName}
       roleLine={menuRoleLine}
+      leaveBlockedHint={groupLeaveBlockedHint({
+        isOwner: data.isOwner,
+        isLoose: data.isLoose,
+        locale,
+      })}
       communityId={data.community?.id ?? null}
       communityName={data.community?.name ?? null}
       venueName={data.venueCommunity?.venueName ?? null}

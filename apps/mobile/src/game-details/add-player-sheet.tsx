@@ -291,7 +291,7 @@ export function AddPlayerSheet({
           <View style={{ gap: 8 }}>
             <FieldError message={add.error?.message} />
             <Button
-              label={m.group.addPlayer.action}
+              label={m.group.addPlayer.addToGame}
               size="lg"
               pending={add.isPending}
               disabled={!canSubmit}

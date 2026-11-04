@@ -291,7 +291,7 @@ describe("Arabic copy", () => {
       gameEditChangeNote(saved, { ...saved, seasonId: null }, football, "ar"),
     ).toBe("أُلغي ربط الموسم");
     expect(footballFormatNote(6, 13, "ar")).toBe(
-      "6 لكل فريق، 12 في الملعب، بديل واحد",
+      "6 ضد 6، 12 في الملعب، احتياط واحد",
     );
     expect(venueLockedLine("Karbabad Turf", null, "ar")).toBe(
       "Karbabad Turf. لا يمكن تغيير النادي.",

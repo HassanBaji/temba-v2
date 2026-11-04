@@ -23,8 +23,12 @@ const BRACKET_COLUMNS = 4;
 const BRACKET_TOP_ROW = ["solid", "hatch", "solid", "hatch"] as const;
 
 export function TypeStep({ state, errors, dispatch }: StepProps) {
+  const note = useMessages().createGame.typeCards.countsNote;
   return (
     <View style={{ gap: 12 }}>
+      <Text size="meta" tone="muted">
+        {note}
+      </Text>
       <TypeCards
         selected={state.type}
         onSelect={(type) => dispatch({ kind: "selectType", type })}
@@ -66,9 +70,6 @@ function TypeCards({
           onPress={() => onSelect(card.id)}
         >
           {card.id === "friendly_game" ? <SeatStrip /> : <MiniBracket />}
-          <Text size="eyebrow" mono uppercase tone="muted">
-            {card.rating}
-          </Text>
         </ChoiceCard>
       ))}
     </View>

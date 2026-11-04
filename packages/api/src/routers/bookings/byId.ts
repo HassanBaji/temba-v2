@@ -92,6 +92,10 @@ export async function bookingById(
         .select({
           id: games.id,
           name: games.name,
+          hasCustomName: games.hasCustomName,
+          format: games.format,
+          windowStart: games.windowStart,
+          windowEnd: games.windowEnd,
           cancelledAt: games.cancelledAt,
         })
         .from(games)

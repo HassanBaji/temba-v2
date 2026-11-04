@@ -15,6 +15,7 @@ import {
   type AddPlayerLevel,
 } from "@repo/domain/add-player-by-phone";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
+import { phoneShapePlaceholder } from "@repo/domain/phone-number";
 import { useLocale, useMessages } from "~/components/locale-provider";
 
 const PHONE_ID = "add-player-phone";
@@ -70,6 +71,7 @@ export function AddPlayerIdentityFields({
           id={PHONE_ID}
           countryIso={countryIso}
           national={national}
+          placeholder={phoneShapePlaceholder(countryIso)}
           onCountryIsoChange={onCountryIsoChange}
           onNationalChange={onNationalChange}
           invalid={Boolean(previewError && complete)}

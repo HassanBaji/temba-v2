@@ -244,7 +244,7 @@ describe("gameCardActionLabel", () => {
   });
 
   it("labels the card action in Arabic", () => {
-    assert.equal(gameCardActionLabel("join", "ar"), "انضم إلى اللعبة");
+    assert.equal(gameCardActionLabel("join", "ar"), "انضم إلى المباراة");
     assert.equal(gameCardActionLabel("view", "ar"), "التفاصيل");
     assert.equal(
       gameSummaryCtaLabel("join_waitlist", "ar"),

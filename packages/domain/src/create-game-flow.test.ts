@@ -23,7 +23,7 @@ import {
   firstIncompleteFriendlyGameStep,
   firstIncompleteFriendlyTournamentStep,
   friendlyGameKickoff,
-  friendlyGamePreviewLine,
+  friendlyGamePreviewLines,
   friendlyTournamentCreateTarget,
   friendlyTournamentDefaultName,
   friendlyTournamentGroupsLine,
@@ -448,16 +448,15 @@ describe("when helpers", () => {
     const kickoff = friendlyGameKickoff("2026-09-23", "20:00", "21:30", "en");
     assert.equal(kickoff?.time, "8:00");
     assert.equal(kickoff?.trailer, "PM until 9:30");
-    assert.match(
-      friendlyGamePreviewLine({
-        day: "2026-09-23",
-        groupName: "Tuesday Crew",
-        venueName: "Karbabad Courts",
-        courtName: "Court 2",
-        locale: "en",
-      }),
-      /Karbabad Courts · Court 2/,
-    );
+    const lines = friendlyGamePreviewLines({
+      day: "2026-09-23",
+      groupName: "Tuesday Crew",
+      venueName: "Karbabad Courts",
+      courtName: "Court 2",
+      locale: "en",
+    });
+    assert.equal(lines.length, 2);
+    assert.equal(lines[1], "Karbabad Courts, Court 2");
   });
 });
 
@@ -1031,10 +1030,32 @@ describe("Arabic copy", () => {
       friendlyTournamentFormatLabel(3, "ar", true),
       "3 مجموعات، ثم خروج المغلوب",
     );
-    assert.equal(createGameTypeCards("ar")[0]?.title, "لعبة ودية");
+    assert.equal(createGameTypeCards("ar")[0]?.title, "مباراة ودية");
     assert.equal(
       createFlowSeatsLabel("padel", { sideSize: 5, playersAllowed: 10 }, "ar"),
-      "4 مقاعد شاغرة",
+      "4 أماكن شاغرة",
+    );
+    assert.equal(
+      createFlowSeatsLabel(
+        "football",
+        { sideSize: 5, playersAllowed: 10 },
+        "ar",
+      ),
+      "5 ضد 5، حتى 10 لاعبين",
+    );
+    assert.equal(
+      friendlyGameKickoff("2026-11-04", "14:00", "15:30", "ar")?.trailer,
+      "م حتى 3:30 م",
+    );
+    assert.deepEqual(
+      friendlyGamePreviewLines({
+        day: "2026-11-04",
+        groupName: null,
+        venueName: "نادي الأهلي",
+        courtName: "الملعب 2",
+        locale: "ar",
+      }).slice(1),
+      ["نادي الأهلي، الملعب 2"],
     );
     assert.equal(venueCardMeta(2, "المنامة", "ar"), "ملعبان · المنامة");
     assert.equal(

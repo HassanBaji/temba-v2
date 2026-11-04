@@ -6,7 +6,7 @@ import {
   type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
-import { groupJoiningFooter } from "@repo/domain/group-settings";
+import { groupJoiningToggleHelp } from "@repo/domain/group-settings";
 import type { Sport } from "@repo/domain/sport";
 import { Pressable, View } from "react-native";
 
@@ -137,6 +137,9 @@ export function GroupCreateView(props: GroupCreateViewProps) {
               onSelect={props.onSportChange}
               disabled={props.pending}
             />
+            <Text size="eyebrow" tone="muted">
+              {screen.sportHelp}
+            </Text>
           </FormBlock>
         ) : null}
 
@@ -158,9 +161,7 @@ export function GroupCreateView(props: GroupCreateViewProps) {
           <FormBlock label={joining.label}>
             <ToggleCard
               title={joining.toggle}
-              help={joining.toggleHelp}
-              footer={groupJoiningFooter({
-                visibility: props.type,
+              help={groupJoiningToggleHelp({
                 requiresApproval: props.requiresApproval,
                 locale,
               })}

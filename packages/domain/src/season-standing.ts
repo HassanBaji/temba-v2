@@ -41,6 +41,17 @@ export function standingDiffUnit(
   return sport === "football" ? "games" : "sets";
 }
 
+/**
+ * Whether the Standing draws a D column. Football has draws; a padel Match
+ * cannot end level, so its column stays hidden unless a row carries one.
+ */
+export function standingShowsDraws(
+  sport: string | null | undefined,
+  rows: readonly { draws: number }[],
+) {
+  return sport === "football" || rows.some((row) => row.draws > 0);
+}
+
 export const STANDING_FORM_LIMIT = 5;
 
 export type SeasonStandingRecord = {
@@ -285,7 +296,24 @@ export function unrankedNote(
   return m.fewerThan(minRankedGames);
 }
 
-/** The footer under the table, by sport. */
+/**
+ * The key under the table: what each column letter means and what a result
+ * is worth, `"P played, W won, D drawn, L lost. A win is 3 points, a draw 1."`
+ * The draw parts drop out with the D column.
+ */
+export function standingLegend(showDraws: boolean, locale: Locale) {
+  const m = messagesFor(locale).group;
+  const legend = m.standing.legend;
+  const columns = showDraws
+    ? [legend.played, legend.won, legend.drawn, legend.lost]
+    : [legend.played, legend.won, legend.lost];
+  const points = showDraws
+    ? legend.pointsWithDraw(SEASON_POINTS.win, SEASON_POINTS.draw)
+    : legend.points(SEASON_POINTS.win);
+  return `${columns.join(m.metaSeparator)}. ${points}`;
+}
+
+/** The footer under the legend, by sport. */
 export function standingRulesLine(
   diffUnit: StandingDiffUnit,
   locale: Locale,
@@ -293,7 +321,7 @@ export function standingRulesLine(
 ) {
   const m = messagesFor(locale).group.standing;
   const difference = diffUnit === "sets" ? m.setDifference : m.scoreDifference;
-  return `${m.rulesLine(SEASON_POINTS.win, SEASON_POINTS.draw, SEASON_POINTS.loss, difference)} ${rankedAfterLine(minRankedGames, locale)}`;
+  return `${m.rulesLine(difference)} ${rankedAfterLine(minRankedGames, locale)}`;
 }
 
 function rankedAfterLine(minRankedGames: number, locale: Locale) {

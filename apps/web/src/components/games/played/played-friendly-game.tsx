@@ -7,6 +7,7 @@ import type {
   FriendlyGameDetailsMatch,
 } from "@repo/domain/friendly-game-details";
 import { friendlyGameCanKickPlayer } from "@repo/domain/friendly-game-players";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import {
   padelViewerSide,
@@ -93,7 +94,7 @@ export function PlayedFriendlyGame({
   const menu =
     showAdd || organizerActions.length > 0 ? (
       <GameActionsSheet
-        title={game.name ?? m.webGame.fallbackTitle}
+        title={gameDisplayName(game, locale)}
         description={model.dateLine}
         triggerClassName={ACTION_MENU_INK_BOXED_TRIGGER}
         groups={[

@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import type { FootballPosition, FootballRole } from "./football-lineup";
 import { friendlyGameCanMintInvite } from "./friendly-game-cta";
+import { gameDisplayName, type GameDisplayNameInput } from "./game-custom-name";
 import { gameJoinToast } from "./game-copy";
 import type { InviteHostLabel } from "./invite-outcome-copy";
 
@@ -59,6 +60,7 @@ export type InviteInboxSources<Side extends InviteSide = InviteSide> = {
   team: (InviteRowBase & { displayName: string })[];
   game: (InviteRowBase & {
     gameName: string;
+    game: GameDisplayNameInput;
     needsSeatPick: boolean;
     registrationStatus: string;
     sides: Side[];
@@ -142,7 +144,7 @@ export function mergeInviteInbox<Side extends InviteSide = InviteSide>(
       inboxItem<Side>(
         "game",
         row,
-        row.gameName,
+        gameDisplayName(row.game, locale),
         locale,
         row.needsSeatPick
           ? {
@@ -270,6 +272,7 @@ export type GameInviteFootball = {
 export type GameInviteLinkReady = {
   gameId: string;
   gameName: string | null;
+  game: GameDisplayNameInput;
   registrationStatus: string;
   needsSeatPick: boolean;
   partnerRequiredJoin: boolean;

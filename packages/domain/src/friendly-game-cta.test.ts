@@ -63,7 +63,7 @@ describe("friendlyGameCtaFamily", () => {
       friendlyGameCtaFamily(
         cta({ phase: "upcoming", isSeated: true, vacantSeatCount: 1 }),
       ),
-      { kind: "upcoming", vacantSeatCount: 1, showInvite: false },
+      { kind: "upcoming", vacantSeatCount: 1, showInvite: false, live: false },
     );
     assert.deepEqual(
       friendlyGameCtaFamily(
@@ -74,16 +74,16 @@ describe("friendlyGameCtaFamily", () => {
           canMintInvite: true,
         }),
       ),
-      { kind: "upcoming", vacantSeatCount: 0, showInvite: true },
+      { kind: "upcoming", vacantSeatCount: 0, showInvite: true, live: false },
     );
   });
 
-  it("collapses ongoing into the same Upcoming bar as upcoming", () => {
+  it("keeps ongoing on the Upcoming bar, marked live", () => {
     assert.deepEqual(
       friendlyGameCtaFamily(
         cta({ phase: "ongoing", isSeated: true, vacantSeatCount: 2 }),
       ),
-      { kind: "upcoming", vacantSeatCount: 2, showInvite: false },
+      { kind: "upcoming", vacantSeatCount: 2, showInvite: false, live: true },
     );
   });
 
@@ -175,20 +175,30 @@ describe("friendlyGameCtaFamily", () => {
 
 describe("friendlyGameVacantSeatLine", () => {
   it("is null when the court is full", () => {
-    assert.equal(friendlyGameVacantSeatLine(0, "en"), null);
+    assert.equal(friendlyGameVacantSeatLine(0, false, "en"), null);
   });
 
   it("singularizes exactly one spot", () => {
-    assert.equal(friendlyGameVacantSeatLine(1, "en"), "One spot left to fill");
+    assert.equal(
+      friendlyGameVacantSeatLine(1, false, "en"),
+      "One spot left to fill",
+    );
   });
 
   it("pluralizes more than one spot", () => {
-    assert.equal(friendlyGameVacantSeatLine(3, "en"), "3 spots left to fill");
+    assert.equal(
+      friendlyGameVacantSeatLine(3, false, "en"),
+      "3 spots left to fill",
+    );
   });
 
   it("uses the Arabic plural categories", () => {
-    assert.equal(friendlyGameVacantSeatLine(2, "ar"), "بقي مكانان لشغلهما");
-    assert.equal(friendlyGameVacantSeatLine(3, "ar"), "بقيت 3 أماكن لشغلها");
+    assert.equal(friendlyGameVacantSeatLine(2, false, "ar"), "ينقص لاعبان");
+    assert.equal(friendlyGameVacantSeatLine(3, false, "ar"), "ينقص 3 لاعبين");
+    assert.equal(
+      friendlyGameVacantSeatLine(11, true, "ar"),
+      "بدأت المباراة وينقص 11 لاعبًا",
+    );
   });
 });
 

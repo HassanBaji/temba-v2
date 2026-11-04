@@ -35,7 +35,7 @@ describe("groupRowView", () => {
   it("reads the row in Arabic", () => {
     const row = groupRowView(fixtures.mine[0]!, ORIGIN, "ar");
     expect(row.meta).toBe("14 عضوًا، ترتيبك 3");
-    expect(row.accessibilityLabel).toContain("اللعبة القادمة");
+    expect(row.accessibilityLabel).toContain("المباراة القادمة");
   });
 });
 

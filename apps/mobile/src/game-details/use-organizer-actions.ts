@@ -173,7 +173,7 @@ export function useOrganizerActions({
     { enabled: plan != null && section === "court" },
   );
 
-  const title = gameTitle(game?.name ?? null, locale);
+  const title = game ? gameTitle(game, locale) : copy.fallbackTitle;
   const firstMatchId = game?.matches[0]?.id;
 
   function askKick(request: GameKickRequest) {

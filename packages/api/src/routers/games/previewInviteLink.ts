@@ -116,6 +116,13 @@ export async function previewInviteLink(
     status: "ready" as const,
     gameId: gameRow.id,
     gameName: previewed.name,
+    game: {
+      name: gameRow.name,
+      hasCustomName: gameRow.hasCustomName,
+      format: gameRow.format,
+      windowStart: gameRow.windowStart,
+      windowEnd: gameRow.windowEnd,
+    },
     format: gameRow.format,
     registrationStatus: await getRegistrationStatus(
       database,

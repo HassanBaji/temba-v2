@@ -180,7 +180,7 @@ describe("score", () => {
 
 describe("Arabic copy", () => {
   it("reads keeper seats, bibs and the result line in Arabic", () => {
-    expect(keeperSeatsLine(2, "ar")).toBe("مقعدا الحارسين محجوزان");
+    expect(keeperSeatsLine(2, "ar")).toBe("مكانا الحارسين محجوزان");
     expect(footballBibName("navy", 1, "ar")).toBe("أزرق داكن");
     expect(footballTeamsMethodLabel("level", "ar")).toBe("متوازنة حسب المستوى");
     expect(

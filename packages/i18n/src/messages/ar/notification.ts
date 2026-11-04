@@ -69,11 +69,11 @@ export const notification = {
       plain("ربطنا "),
       strong(
         plural("ar", gameCount, {
-          one: "لعبة واحدة",
-          two: "لعبتين",
-          few: "{n} ألعاب",
-          many: "{n} لعبة",
-          other: "{n} لعبة",
+          one: "مباراة واحدة",
+          two: "مباراتين",
+          few: "{n} مباريات",
+          many: "{n} مباراة",
+          other: "{n} مباراة",
         }),
       ),
       plain(" لُعبت برقمك"),

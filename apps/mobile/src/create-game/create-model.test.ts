@@ -186,7 +186,7 @@ describe("advance", () => {
   it("reads Arabic", () => {
     expect(advance(initialCreateState(NOW, "ar"), context)).toEqual({
       moved: false,
-      errors: { type: "اختر نوع اللعبة" },
+      errors: { type: "اختر نوع المباراة" },
     });
   });
 });

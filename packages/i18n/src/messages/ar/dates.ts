@@ -38,9 +38,13 @@ export const dates = {
     inMinutes: (minutes: number) => `بعد ${minutes} د`,
     inHoursMinutes: (hours: number, minutes: number) =>
       `بعد ${hours} س ${minutes} د`,
-    startingNow: "تبدأ الآن",
+    startsIn: (countdown: string) => `تبدأ ${countdown}`,
+    liveNow: "جارية الآن",
+    endedEnterScore: "انتهت، أدخل النتيجة",
     until: (clock: string) => `حتى ${clock}`,
-    meridiemUntil: (meridiem: string, clock: string) =>
-      `${meridiem} حتى ${clock}`,
+    meridiemUntil: (
+      meridiem: string,
+      end: { clock: string; meridiem: string },
+    ) => `${meridiem} حتى ${end.clock} ${end.meridiem}`.trimEnd(),
   },
 } satisfies typeof source;

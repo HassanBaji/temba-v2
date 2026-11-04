@@ -39,11 +39,11 @@ export const mobileCommunity = {
     sentence: (place: string) => `${place}.`,
     seatsOpen: (n: number) =>
       plural("ar", n, {
-        one: "مقعد واحد متاح.",
-        two: "مقعدان متاحان.",
-        few: "{n} مقاعد متاحة.",
-        many: "{n} مقعدًا متاحًا.",
-        other: "{n} مقعد متاح.",
+        one: "مكان واحد شاغر.",
+        two: "مكانان شاغران.",
+        few: "{n} أماكن شاغرة.",
+        many: "{n} مكانًا شاغرًا.",
+        other: "{n} مكان شاغر.",
       }),
   },
   inviteSheet: {

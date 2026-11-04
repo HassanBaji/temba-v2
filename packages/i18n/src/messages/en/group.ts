@@ -25,7 +25,7 @@ export const group = {
       `Public ${sport} Groups show up here. Start one and players can find it.`,
   },
   home: {
-    seasonSince: (month: string) => `season since ${month}`,
+    since: (month: string) => `since ${month}`,
     backToCommunity: "Back to Community",
     backToGroups: "Back to Groups",
     openSeats: "Open seats",
@@ -210,6 +210,7 @@ export const group = {
       nameLabel: "Group name",
       namePlaceholder: "e.g. Tuesday Padel Crew",
       sportLabel: "Sport",
+      sportHelp: "The sport can't change after the first Game.",
       visibilityLabel: "Visibility",
       footnote: "You can change all of this later.",
     },
@@ -317,6 +318,7 @@ export const group = {
     pickDaysMessage: "Pick a start and an end day.",
     allTime: "All-time",
     suggestedName: (n: number) => `Season ${n}`,
+    upcomingName: (name: string) => `${name} (upcoming)`,
     summaryDays: (n: number) =>
       plural("en", n, { one: "1 day.", other: "{n} days." }),
     startsDayAfter: (previous: string) =>
@@ -353,8 +355,18 @@ export const group = {
     fewerThan: (n: number) => `Fewer than ${n} games`,
     setDifference: "set difference",
     scoreDifference: "score difference",
-    rulesLine: (win: number, draw: number, loss: number, difference: string) =>
-      `Win ${win}, draw ${draw}, loss ${loss}, to every player on the team. Only games with a confirmed final score count. Ties: wins, then head-to-head, then ${difference}, then fewer games played.`,
+    rulesLine: (difference: string) =>
+      `Every player on the team gets the points. Only games with a confirmed final score count. Ties: wins, then head-to-head, then ${difference}, then fewer games played.`,
+    legend: {
+      played: "P played",
+      won: "W won",
+      drawn: "D drawn",
+      lost: "L lost",
+      points: (win: number) =>
+        `A win is ${plural("en", win, { one: "1 point", other: "{n} points" })}.`,
+      pointsWithDraw: (win: number, draw: number) =>
+        `A win is ${plural("en", win, { one: "1 point", other: "{n} points" })}, a draw ${draw}.`,
+    },
     oneGameRanks: "One game ranks you.",
     playGamesToRank: (n: number) => `Play ${n} games to be ranked.`,
   },
@@ -377,12 +389,9 @@ export const group = {
     },
     joining: {
       label: "Joining",
-      toggle: "Require approval",
-      toggleHelp: "Anyone who finds the Group joins instantly.",
-      openFooter: "Anyone can find the Group and joins instantly.",
-      approvalFooter:
-        "Anyone can find the Group. Everyone who joins waits for your approval.",
-      privateFooter: "Only people you invite can join.",
+      toggle: "Review join requests",
+      toggleHelpOff: "Anyone who finds the Group joins right away.",
+      toggleHelpOn: "You approve each request before they join.",
       requestsWaiting: (n: number) =>
         plural("en", n, {
           one: "1 request waiting on Group home.",
@@ -394,6 +403,7 @@ export const group = {
       invite: "Invite players",
       copyLink: "Copy Group link",
       leave: "Leave Group",
+      leaveOwnerHint: "Transfer ownership first.",
     },
     role: {
       owner: "You own this Group",
@@ -427,7 +437,8 @@ export const group = {
       transferTitle: "Transfer ownership",
       transferHint: "Hand the Group to another member.",
       deleteTitle: "Delete Group",
-      deleteHint: "Removes the Group. Games stay in each player's history.",
+      deleteHint:
+        "Removes the standing for everyone and cancels upcoming Games. Played Games stay in each player's history.",
       save: "Save changes",
       discard: "Discard",
       nothingChanged: "Nothing changed yet.",
@@ -465,7 +476,10 @@ export const group = {
     action: "Add player",
     notOnTembaYet: "Not on Temba yet",
     nameLabel: "Their name",
-    description: "Add someone by phone. They don't need Temba to play.",
+    description:
+      "Add a player by phone number. They don't need the app to play.",
+    menuHint: "By phone number, no app needed",
+    addToGame: "Add to game",
     notSure: {
       name: "Not sure",
       detail: (level: string) => `Starts at ${level}.`,
@@ -476,7 +490,13 @@ export const group = {
       player: { name: "Player", detail: "outfield" },
       keeper: { name: "Keeper", detail: "in goal" },
     },
-    noPreference: "No preference",
+    roles: { outfield: "Outfield", keeper: "Goalkeeper" },
+    positions: {
+      any: "Any",
+      def: "Defender",
+      mid: "Midfielder",
+      fwd: "Forward",
+    },
     sideWith: (name: string) => `With ${name}`,
     sideOpen: "Open",
     preview: {

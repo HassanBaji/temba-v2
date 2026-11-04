@@ -7,6 +7,7 @@ import {
 import { groupHasGames, groupStandingState } from "@repo/domain/group-join";
 import {
   formatSeasonRange,
+  seasonDisplayName,
   seasonGamesCountedLine,
   seasonLensChips,
   seasonLockedLine,
@@ -18,10 +19,13 @@ import {
 } from "@repo/domain/group-season";
 import {
   standingDiffUnit,
+  standingLegend,
   standingRecordLabel,
   standingRulesLine,
+  standingShowsDraws,
   unrankedNote,
 } from "@repo/domain/season-standing";
+import { isRtl } from "@repo/i18n/locale";
 import { useRouter, type Href } from "expo-router";
 import { Lock, Plus, UserPlus } from "lucide-react-native";
 import { useState } from "react";
@@ -106,10 +110,12 @@ function HatchedCell({ width, size = 12 }: { width: number; size?: number }) {
 function StandingRow({
   row,
   notPlayedYet,
+  showDraws,
   onOpen,
 }: {
   row: StandingRowView;
   notPlayedYet: boolean;
+  showDraws: boolean;
   onOpen?: (userId: string) => void;
 }) {
   const m = useMessages();
@@ -170,7 +176,7 @@ function StandingRow({
         <>
           <HatchedCell width={COUNT_WIDTH} />
           <HatchedCell width={COUNT_WIDTH} />
-          <HatchedCell width={COUNT_WIDTH} />
+          {showDraws ? <HatchedCell width={COUNT_WIDTH} /> : null}
           <HatchedCell width={COUNT_WIDTH} />
           <HatchedCell width={POINTS_WIDTH} />
         </>
@@ -182,7 +188,7 @@ function StandingRow({
         >
           {count(row.played)}
           {count(row.wins)}
-          {count(row.draws)}
+          {showDraws ? count(row.draws) : null}
           {count(row.losses)}
           <Text
             size="lead"
@@ -217,11 +223,15 @@ function StandingRow({
 function StandingTable({
   rows,
   notPlayedYet,
+  showDraws,
+  legend,
   footer,
   onOpenMember,
 }: {
   rows: StandingRowView[];
   notPlayedYet: boolean;
+  showDraws: boolean;
+  legend: string;
   footer: string;
   onOpenMember?: (userId: string) => void;
 }) {
@@ -248,7 +258,9 @@ function StandingTable({
         <HeaderCell label={columns.player} align="left" />
         <HeaderCell label={columns.played} width={COUNT_WIDTH} />
         <HeaderCell label={columns.wins} width={COUNT_WIDTH} />
-        <HeaderCell label={columns.draws} width={COUNT_WIDTH} />
+        {showDraws ? (
+          <HeaderCell label={columns.draws} width={COUNT_WIDTH} />
+        ) : null}
         <HeaderCell label={columns.losses} width={COUNT_WIDTH} />
         <HeaderCell
           label={columns.points}
@@ -263,6 +275,7 @@ function StandingTable({
           <StandingRow
             row={row}
             notPlayedYet={notPlayedYet}
+            showDraws={showDraws}
             onOpen={onOpenMember}
           />
         </View>
@@ -291,11 +304,17 @@ function StandingTable({
       {unranked.map((row) => (
         <View key={row.key}>
           <Hairline />
-          <StandingRow row={row} notPlayedYet={false} onOpen={onOpenMember} />
+          <StandingRow
+            row={row}
+            notPlayedYet={false}
+            showDraws={showDraws}
+            onOpen={onOpenMember}
+          />
         </View>
       ))}
       <Hairline />
-      <View style={{ padding: spacing.surface }}>
+      <View style={{ padding: spacing.surface, gap: 6 }}>
+        <Text size="meta">{legend}</Text>
         <Text size="meta" tone="muted">
           {footer}
         </Text>
@@ -394,6 +413,8 @@ function SeasonHeader({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const name = seasonDisplayName(season.name, locale);
+  const uppercase = !isRtl(locale);
   if (season.status === "upcoming") {
     return (
       <Surface tone="ink" radius="card">
@@ -405,8 +426,13 @@ function SeasonHeader({
             gap: 12,
           }}
         >
-          <Text size="display" width="expanded" weight="bold" uppercase>
-            {season.name}
+          <Text
+            size="display"
+            width="expanded"
+            weight="bold"
+            uppercase={uppercase}
+          >
+            {name}
           </Text>
           <Text size="meta" tone="muted">
             {formatSeasonRange(season, locale)}
@@ -428,8 +454,13 @@ function SeasonHeader({
             gap: 12,
           }}
         >
-          <Text size="display" width="expanded" weight="bold" uppercase>
-            {season.name}
+          <Text
+            size="display"
+            width="expanded"
+            weight="bold"
+            uppercase={uppercase}
+          >
+            {name}
           </Text>
           <Text size="meta" tone="muted">
             {formatSeasonRange(season, locale)}
@@ -475,8 +506,13 @@ function SeasonHeader({
           gap: 12,
         }}
       >
-        <Text size="display" width="expanded" weight="bold" uppercase>
-          {season.name}
+        <Text
+          size="display"
+          width="expanded"
+          weight="bold"
+          uppercase={uppercase}
+        >
+          {name}
         </Text>
         <Text size="meta" tone="muted">
           {formatSeasonRange(season, locale)}
@@ -523,10 +559,12 @@ function SeasonHeader({
 function LensChips({
   seasons,
   lensId,
+  now,
   onPick,
 }: {
   seasons: Season[];
   lensId: string | null;
+  now: Date;
   onPick: (seasonId: string | null) => void;
 }) {
   const locale = useLocale();
@@ -542,7 +580,7 @@ function LensChips({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 4 }}
       >
-        {seasonLensChips(seasons, locale).map((chip) => {
+        {seasonLensChips(seasons, now, locale).map((chip) => {
           const selected = chip.seasonId === lensId;
           return (
             <Pressable
@@ -853,6 +891,7 @@ export function StandingTab({
     : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
   const footer = standingRulesLine(standingDiffUnit(data.sport), locale);
+  const showDraws = standingShowsDraws(data.sport, rows);
 
   const state = groupStandingState({
     isMember,
@@ -916,6 +955,8 @@ export function StandingTab({
       <StandingTable
         rows={rows}
         notPlayedYet={counted === 0}
+        showDraws={showDraws}
+        legend={standingLegend(showDraws, locale)}
         footer={footer}
         onOpenMember={onOpenMember}
       />
@@ -928,7 +969,12 @@ export function StandingTab({
         <SeasonHeader season={season} gamesCounted={counted} now={now} />
       ) : null}
       {seasons.length > 0 ? (
-        <LensChips seasons={seasons} lensId={lensId} onPick={setLensId} />
+        <LensChips
+          seasons={seasons}
+          lensId={lensId}
+          now={now}
+          onPick={setLensId}
+        />
       ) : null}
       {season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />

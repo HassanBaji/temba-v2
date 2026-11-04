@@ -26,9 +26,8 @@ export function ProfileFormCard({ form }: { form: RecentFormView }) {
             <FormSlot key={`empty-${index}`} variant="not-played" compact />
           ) : (
             <FormSlot
-              key={`${bar.label}-${index}`}
+              key={`${bar.outcome}-${index}`}
               variant={bar.outcome}
-              label={bar.label}
               compact
             />
           ),

@@ -144,7 +144,7 @@ describe("gameInviteSubtitle", () => {
         new Date(),
         "ar",
       ),
-    ).toBe("Karbabad Courts. 3 مقاعد متاحة.");
+    ).toBe("Karbabad Courts. 3 أماكن شاغرة.");
   });
 
   it("drops what is unknown", () => {

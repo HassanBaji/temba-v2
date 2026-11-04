@@ -44,7 +44,7 @@ describe("groupHomeSportLabel", () => {
 });
 
 describe("groupHomeMetaLine", () => {
-  it("joins Sport, members, and the season month when every part is present", () => {
+  it("joins Sport, members, and the month the Group started when every part is present", () => {
     assert.equal(
       groupHomeMetaLine({
         sport: "padel",
@@ -52,7 +52,7 @@ describe("groupHomeMetaLine", () => {
         createdAt: new Date("2024-01-15T12:00:00Z"),
         locale: "en",
       }),
-      "Padel, 14 members, season since Jan",
+      "Padel, 14 members, since Jan",
     );
   });
 
@@ -64,7 +64,7 @@ describe("groupHomeMetaLine", () => {
         createdAt: new Date("2024-01-15T12:00:00Z"),
         locale: "en",
       }),
-      "14 members, season since Jan",
+      "14 members, since Jan",
     );
   });
 
@@ -76,11 +76,11 @@ describe("groupHomeMetaLine", () => {
         createdAt: new Date("2024-09-15T12:00:00Z"),
         locale: "en",
       }),
-      "Football, season since Sep",
+      "Football, since Sep",
     );
   });
 
-  it("pluralises a single member and drops the season with no createdAt", () => {
+  it("pluralises a single member and drops the month with no createdAt", () => {
     assert.equal(
       groupHomeMetaLine({
         sport: "padel",
@@ -113,6 +113,18 @@ describe("groupHomeMetaLine", () => {
         locale: "ar",
       }),
       "بادل، عضو واحد",
+    );
+  });
+
+  it("names the month the Group started, not a Season, in Arabic", () => {
+    assert.equal(
+      groupHomeMetaLine({
+        sport: "padel",
+        memberCount: 5,
+        createdAt: new Date("2026-09-15T12:00:00Z"),
+        locale: "ar",
+      }),
+      "بادل، 5 أعضاء، منذ سبتمبر",
     );
   });
 });

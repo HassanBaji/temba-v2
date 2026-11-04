@@ -57,6 +57,27 @@ describe("homeStandingRowView", () => {
     );
   });
 
+  it("shows a dash instead of a rank before any counted Match", () => {
+    const row = {
+      groupId: "g1",
+      groupName: "G",
+      sport: "padel",
+      position: null,
+      memberCount: 8,
+    };
+    assert.deepEqual(
+      [
+        homeStandingRowView(row, "en").rank,
+        homeStandingRowView(row, "en").ofCount,
+      ],
+      ["—", "No counted games yet"],
+    );
+    assert.equal(
+      homeStandingRowView(row, "ar").ofCount,
+      "لا مباريات محتسبة بعد",
+    );
+  });
+
   it("reads the rank line in Arabic", () => {
     const view = homeStandingRowView(
       {

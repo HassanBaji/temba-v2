@@ -80,6 +80,17 @@ export function callingCountryByIso(iso: string): CallingCountry | undefined {
   return CALLING_COUNTRIES.find((country) => country.iso === iso);
 }
 
+/**
+ * "3XXX XXXX": the shape of a national number, keeping only its leading
+ * digit. A full sample reads like a filled value and may be a real number.
+ */
+export function phoneShapePlaceholder(iso: string): string | undefined {
+  const sample = callingCountryByIso(iso)?.placeholder;
+  return sample
+    ? sample.charAt(0) + sample.slice(1).replace(/\d/g, "X")
+    : undefined;
+}
+
 const COUNTRY_NAME_KEYS = {
   BH: "bh",
   KW: "kw",

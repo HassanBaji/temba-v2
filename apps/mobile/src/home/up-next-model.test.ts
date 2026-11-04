@@ -16,6 +16,7 @@ function game(overrides: Partial<UpNextGame> = {}): UpNextGame {
   return {
     id: "game-1",
     name: "Tuesday Night Padel",
+    hasCustomName: true,
     format: "friendly_game",
     registrationMode: "individual",
     sport: "padel",
@@ -104,6 +105,7 @@ describe("upNextWeekLabel", () => {
     const later = game({ id: "later", startTime: new Date("2026-11-09") });
     const items = upNextItems([game(), later], [booking()]);
     assert.equal(upNextWeekLabel(items, NOW, "en"), "2 this week");
+    assert.equal(upNextWeekLabel(items, NOW, "ar"), "مباراتان هذا الأسبوع");
     assert.equal(upNextWeekLabel([], NOW, "en"), "Nothing this week");
   });
 });
@@ -138,11 +140,22 @@ describe("upNextRowView", () => {
     });
   });
 
-  it("counts a football roster instead of drawing seats", () => {
+  it("leads with the Venue when the name is only the window label", () => {
+    const [item] = upNextItems(
+      [game({ name: "Thu 8:00 PM - 9:30 PM", hasCustomName: false })],
+      [],
+    );
+    const row = upNextRowView(item!, NOW, "en");
+    assert.equal(row.title, "Seef Padel Club");
+    assert.equal(row.detail, "Court 2");
+  });
+
+  it("counts a football roster's open spots instead of drawing seats", () => {
     const [item] = upNextItems(
       [
         game({
           name: "First football",
+          hasCustomName: false,
           sport: "football",
           registrationMode: "roster",
           courtName: null,
@@ -154,8 +167,13 @@ describe("upNextRowView", () => {
       [],
     );
     const row = upNextRowView(item!, NOW, "en");
-    assert.equal(row.detail, "Seef Padel Club, 7-a-side");
-    assert.deepEqual(row.trailing, { kind: "text", label: "11 of 14" });
+    assert.equal(row.title, "Seef Padel Club");
+    assert.equal(row.detail, "Football, 7-a-side");
+    assert.deepEqual(row.trailing, { kind: "text", label: "3 spots open" });
+    assert.deepEqual(upNextRowView(item!, NOW, "ar").trailing, {
+      kind: "text",
+      label: "3 أماكن شاغرة",
+    });
   });
 
   it("shows a Booking by its Venue, Court, length and payment", () => {

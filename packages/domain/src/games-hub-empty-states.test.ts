@@ -28,7 +28,7 @@ describe("gamesHubEmptyLine", () => {
 
   it("names the filtered sport in Arabic", () => {
     expect(gamesHubEmptyLine("football", "ar")).toBe(
-      "تظهر هنا ألعاب كرة القدم التي تنشئها أو تنضم إليها.",
+      "تظهر هنا مباريات كرة القدم التي تنشئها أو تنضم إليها.",
     );
   });
 });

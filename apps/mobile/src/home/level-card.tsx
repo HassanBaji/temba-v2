@@ -1,7 +1,6 @@
-import { radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
 import { type Sport } from "@repo/domain/sport";
-import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -12,12 +11,6 @@ import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
 import { noLevelCopy, type HomeLevel } from "./home-model";
-
-const CHANGE_ICONS = {
-  up: ArrowUpRight,
-  down: ArrowDownRight,
-  none: ArrowRight,
-} as const;
 
 const SWATCH = 12;
 const NO_LEVEL_TILE = 74;
@@ -57,7 +50,7 @@ function NoLevel({ sport }: { sport: Sport }) {
   const m = useMessages();
   const locale = useLocale();
   return (
-    <Card title={m.common.level} meta={m.common[sport]} monoMeta>
+    <Card title={m.home.level.heading[sport]}>
       <View
         style={{
           flexDirection: "row",
@@ -88,10 +81,9 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
   const locale = useLocale();
   const palette = useTonePalette();
   const view = homeLevelView(input, locale);
-  const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
 
   return (
-    <Card title={m.common.level} meta={m.common[sport]} monoMeta>
+    <Card title={m.home.level.heading[sport]}>
       <View
         style={{
           flexDirection: "row",
@@ -120,10 +112,10 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
               {view.level}
             </Text>
             <Text size="meta" tone="muted">
-              {m.common.level}
+              {m.home.level.numberLabel}
             </Text>
           </View>
-          {view.change && ChangeIcon ? (
+          {view.change ? (
             <View
               accessible
               accessibilityLabel={m.mobileHome.level.changeSpoken(
@@ -131,11 +123,10 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
                 view.change.amount,
                 view.change.windowLabel,
               )}
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}
             >
-              <ChangeIcon size={sizes.iconAction} color={palette.foreground} />
               <Text size="h2" width="expanded" weight="bold">
-                {view.change.amount}
+                {view.change.signedAmount}
               </Text>
               <Text size="meta" tone="muted" numberOfLines={1}>
                 {view.change.windowLabel}

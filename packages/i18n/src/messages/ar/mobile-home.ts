@@ -17,15 +17,15 @@ export const mobileHome = {
     stepOf: (step: number, total: number) => `الخطوة ${step} من ${total}`,
   },
   welcome: {
-    headline: "ابحث عن لعبة، املأ الملعب، واحتفظ بالنتيجة.",
-    body: "ألعاب بادل وكرة قدم مفتوحة قربك، ومجموعاتك المعتادة، ومستوى يتبع نتائجك.",
+    headline: "ابحث عن مباراة، أكمِل العدد، وسجّل النتيجة.",
+    body: "مباريات بادل وكرة قدم مفتوحة بالقرب منك، مع مجموعاتك المعتادة، ومستوى يتطوّر مع كل نتيجة.",
     tonightLabel: "الليلة، كرباباد 9:00 م",
     oneOpen: "1 شاغر",
-    continueWithPhone: "المتابعة بالهاتف",
+    continueWithPhone: "المتابعة برقم الجوال",
   },
   oauth: {
     or: "أو",
-    continueWithGoogle: "المتابعة عبر Google",
+    continueWithGoogle: "المتابعة باستخدام Google",
   },
   terms: {
     title: "الشروط والأحكام",
@@ -36,8 +36,9 @@ export const mobileHome = {
       "هذه الشروط متاحة بالإنجليزية فقط، والنص الإنجليزي هو المعتمد.",
   },
   termsMicrocopy: {
-    before: (age: number) => `بمتابعتك تؤكد أن عمرك ${age} أو أكثر وتوافق على `,
-    termsLink: "الشروط",
+    before: (age: number) =>
+      `بالمتابعة، فإنك تؤكد أن عمرك ${age} عامًا فأكثر، وتوافق على `,
+    termsLink: "الشروط والأحكام",
     after: " وسياسة الخصوصية.",
   },
   fields: {
@@ -136,7 +137,7 @@ export const mobileHome = {
     sports: {
       title: "ماذا تلعب؟",
       description:
-        "اختر واحدة أو كلتيهما. لكل رياضة مستواها الخاص وقائمة ألعابها الخاصة.",
+        "اختر واحدة أو كلتيهما. لكل رياضة مستواها الخاص وقائمة مبارياتها الخاصة.",
       note: "تبقى المجموعات والحجوزات منفصلة لكل رياضة.",
     },
     padel: {
@@ -149,10 +150,10 @@ export const mobileHome = {
     football: {
       title: "كيف تصطف؟",
       description:
-        "يستخدم المنظّمون هذا لموازنة الفرق. يمكنك تغييره في كل لعبة.",
+        "يستخدم المنظّمون هذا لموازنة الفرق. يمكنك تغييره في كل مباراة.",
       usuallyJoinAs: "تنضم عادةً بصفة",
       roleLabel: "دور كرة القدم",
-      keeperSeats: "مقاعد الحارس محدودة باثنين في كل لعبة، واحد لكل جانب.",
+      keeperSeats: "أماكن الحارس محدودة باثنين في كل مباراة، واحد لكل جانب.",
       preferredPosition: "المركز المفضّل",
       positionLabel: "مركز كرة القدم المفضّل",
       yourLevel: "مستواك",
@@ -170,20 +171,21 @@ export const mobileHome = {
       }),
   },
   upNext: {
-    title: "التالي",
+    title: "مبارياتك القادمة",
     nothingThisWeek: "لا شيء هذا الأسبوع",
-    thisWeek: (n: number) => `${n} هذا الأسبوع`,
+    thisWeek: (n: number) =>
+      plural("ar", n, {
+        one: "مباراة واحدة هذا الأسبوع",
+        two: "مباراتان هذا الأسبوع",
+        few: "{n} مباريات هذا الأسبوع",
+        many: "{n} مباراة هذا الأسبوع",
+        other: "{n} مباراة هذا الأسبوع",
+      }),
     kind: {
       booking: "حجز",
       tournament: "بطولة",
-      game: "لعبة",
     },
     withEmphasis: (emphasis: string) => `، ${emphasis}`,
-    minutes: (n: number) => `${n} د`,
-    rosterCount: (registered: number, allowed: number) =>
-      `${registered} من ${allowed}`,
-    rosterSpoken: (registered: number, allowed: number) =>
-      `${registered} من ${allowed} لاعبًا`,
     bookingDetail: (court: string, minutes: number) => `${court}، ${minutes} د`,
     bookingHeroSpoken: (
       day: string,
@@ -197,7 +199,7 @@ export const mobileHome = {
       `التالي، ${title}، ${day} ${time}، ${place}`,
     invite: "دعوة",
     details: "التفاصيل",
-    allBookingsAndGames: "كل الحجوزات والألعاب",
+    allBookingsAndGames: "كل الحجوزات والمباريات",
     book: {
       padel: "احجز بادل",
       football: "احجز كرة قدم",
@@ -206,8 +208,8 @@ export const mobileHome = {
     free: "فارغ",
     weekOpen: "أسبوعك\nمفتوح.",
     emptyBody:
-      "احجز ملعبًا، أو انضم إلى لعبة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
-    findAGame: "ابحث عن لعبة",
+      "احجز ملعبًا، أو انضم إلى مباراة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
+    findAGame: "ابحث عن مباراة",
   },
   venues: {
     none: "لا أندية بعد",
@@ -221,7 +223,7 @@ export const mobileHome = {
       }),
   },
   standing: {
-    title: "الترتيب",
+    title: "ترتيبك",
     groupCount: (n: number) =>
       plural("ar", n, {
         one: "مجموعة واحدة",
@@ -235,29 +237,32 @@ export const mobileHome = {
   },
   level: {
     noLevel: {
-      padel: "العب لعبة بادل مصنّفة ويظهر مستواك في البادل.",
-      football: "العب لعبة كرة قدم مصنّفة ويظهر مستواك في كرة القدم.",
+      padel: "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
+      football: "العب مباراة كرة قدم مصنّفة ويظهر مستواك في كرة القدم.",
     },
-    bandSpoken: (band: string) => `فئة المستوى ${band}`,
+    bandSpoken: (band: string) => `الفئة ${band}`,
     bandLevelSpoken: (band: string, level: string) =>
-      `فئة المستوى ${band}، المستوى ${level}`,
+      `الفئة ${band}، التقييم ${level}`,
     changeSpoken: (spoken: string, amount: string, window: string) =>
       `${spoken} ${amount}، ${window}`,
-    movement: {
-      up: "ارتفع منذ آخر مباراة",
-      down: "انخفض منذ آخر مباراة",
-      held: "ثابت منذ آخر مباراة",
-    },
   },
   recentForm: {
     title: "الأداء الأخير",
     lastTen: "آخر 10 مباريات",
-    recordSpoken: (record: string) => `السجل ${record}`,
-    played: "لُعبت",
+    played: "مباريات",
+    won: "فوز",
     lost: "خسارة",
   },
   allTime: {
-    matches: "مباراة",
+    matches: (n: number) =>
+      plural("ar", n, {
+        zero: "مباراة",
+        one: "مباراة",
+        two: "مباراتان",
+        few: "مباريات",
+        many: "مباراة",
+        other: "مباراة",
+      }),
     matchesSpoken: (n: number) =>
       plural("ar", n, {
         zero: "لا مباريات",
@@ -281,14 +286,14 @@ export const mobileHome = {
   },
   settings: {
     preferredPosition: "الجهة المفضّلة",
-    preferredPositionHint: "جهتك الافتراضية عند اختيار مقعد في لعبة",
+    preferredPositionHint: "جهتك الافتراضية عند اختيار مكانك في مباراة",
     rowSpoken: (title: string, subtitle: string) => `${title}. ${subtitle}`,
     rowSpokenCount: (title: string, count: number, subtitle: string) =>
       `${title}، ${count}. ${subtitle}`,
     completeProfileHint: "الصورة والبريد الإلكتروني والرياضات والمستوى",
     myBookings: "حجوزاتي",
     myBookingsHint: "حجوزات الملاعب القادمة والسابقة",
-    invitesHint: "دعوات مباشرة موجّهة إليك",
+    invitesHint: "دعوات المباريات والمجموعات الموجّهة إليك",
     termsHint: "ما توافق عليه باستخدام Temba",
   },
   checklist: {
@@ -316,9 +321,9 @@ export const mobileHome = {
       `الملف الشخصي / الرياضات ${step} من ${total}`,
     skip: "تخطٍّ",
     completeProfile: "إكمال الملف الشخصي",
-    laterShowGames: "لاحقًا، أرني الألعاب",
+    laterShowGames: "لاحقًا، أرني المباريات",
     youAreInBody:
-      "حسابك يعمل كما هو. الملف الأكمل يمنحك ألعابًا مطابقة لمستواك، وتصنيفًا، وإيصالات بالبريد الإلكتروني.",
+      "حسابك يعمل كما هو. الملف الأكمل يمنحك مبارياتٍ مطابقة لمستواك، وتصنيفًا، وإيصالات بالبريد الإلكتروني.",
     countDone: (count: string) => `${count} مكتملة`,
     doneAtSignUp: "أُنجز عند إنشاء الحساب",
     heading: "المهام",
@@ -357,7 +362,7 @@ export const mobileHome = {
     meta: "الملف الشخصي / الصورة",
     title: "أضف صورة",
     description:
-      "صورة واضحة للوجه تساعد المنظّمين على التعرّف عليك في الملعب. تُعرض لأعضاء المجموعة ولمن في ألعابك.",
+      "صورة واضحة للوجه تساعد المنظّمين على التعرّف عليك في الملعب. تُعرض لأعضاء المجموعة ولمن في مبارياتك.",
     save: "حفظ الصورة",
     newPhotoSpoken: "صورة ملفك الشخصي الجديدة",
     noPhotoSpoken: "لا صورة بعد",

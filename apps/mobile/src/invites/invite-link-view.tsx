@@ -4,6 +4,7 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
 import {
   gameInviteLinkStage,
   gameInviteSeatCopy,
@@ -189,7 +190,7 @@ function GameReady({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = game.gameName ?? m.invite.kind.game;
+  const name = gameDisplayName(game.game, locale);
   const rangeLabel = formatLevelRangeLabel(
     game.levelMinTenths,
     game.levelMaxTenths,

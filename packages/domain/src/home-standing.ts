@@ -7,7 +7,8 @@ export type HomeStandingRow = {
   groupId: string;
   groupName: string | null;
   sport: string | null;
-  position: number;
+  /** Null until the User has a counted Match in the Season. */
+  position: number | null;
   memberCount: number;
 };
 
@@ -28,7 +29,8 @@ export function homeStandingRowView(
     groupId: row.groupId,
     groupName: row.groupName ?? m.groupFallback,
     sportLabel: sportLabel(row.sport, locale),
-    rank: `#${row.position}`,
-    ofCount: m.ofCount(row.memberCount),
+    rank: row.position == null ? m.unranked : `#${row.position}`,
+    ofCount:
+      row.position == null ? m.noCountedGames : m.ofCount(row.memberCount),
   };
 }

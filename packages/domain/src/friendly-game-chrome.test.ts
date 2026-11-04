@@ -44,7 +44,7 @@ describe("friendlyGameHomeTitle", () => {
   });
 
   it("writes the fallbacks in Arabic", () => {
-    assert.equal(friendlyGameHomeTitle(null, null, "ar"), "لعبة حرة");
+    assert.equal(friendlyGameHomeTitle(null, null, "ar"), "مباراة حرة");
     assert.equal(friendlyGameHomeTitle("group-1", null, "ar"), "مجموعة");
     assert.equal(friendlyGameOccupancyLabel(2, 4, "ar"), "2 من 4 لاعبين");
   });

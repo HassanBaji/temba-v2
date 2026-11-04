@@ -3,7 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { shortPlayerName } from "./player-name";
 import type { Sport } from "./sport";
-import { winRatePercent } from "./win-rate";
+import { WIN_RATE_MIN_MATCHES, shownWinRatePercent } from "./win-rate";
 
 export type ProfileAllTimeInput = {
   /** Padel unless asked, so callers that predate football keep their view. */
@@ -22,8 +22,11 @@ export type ProfileAllTimeInput = {
 
 export type ProfileAllTimeView = {
   matchesPlayed: number;
+  /** "2 won, 5 lost": labelled, so it reads the same way in Arabic. */
   record: string;
+  /** Null until WIN_RATE_MIN_MATCHES, when `winRateNote` explains why. */
   winRatePercent: number | null;
+  winRateNote: string | null;
   sinceLabel: string | null;
   sets: string;
   /** The sport's own tally row: Sets for padel, Goals for football. */
@@ -69,14 +72,19 @@ export function profileAllTimeView(
   const football = input.sport === "football";
   const sets =
     input.matchesPlayed > 0
-      ? `${input.setsWon}–${input.setsLost}`
+      ? m.record(input.setsWon, input.setsLost)
       : EMPTY_VALUE;
+  const winRate = shownWinRatePercent(input.matchesWon, input.matchesPlayed);
   const goals =
     input.matchesPlayed > 0 ? String(input.goalsScored ?? 0) : EMPTY_VALUE;
   return {
     matchesPlayed: input.matchesPlayed,
-    record: `${input.matchesWon}–${input.matchesLost}`,
-    winRatePercent: winRatePercent(input.matchesWon, input.matchesPlayed),
+    record: m.record(input.matchesWon, input.matchesLost),
+    winRatePercent: winRate,
+    winRateNote:
+      winRate == null
+        ? messagesFor(locale).home.recentForm.winRateAfter(WIN_RATE_MIN_MATCHES)
+        : null,
     sinceLabel: year == null ? null : m.since(year),
     sets,
     tally: football

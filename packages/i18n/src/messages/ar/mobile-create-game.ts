@@ -2,23 +2,30 @@ import { plural } from "../../plural";
 import type { mobileCreateGame as source } from "../en/mobile-create-game";
 
 export const mobileCreateGame = {
-  entryTitle: "لعبة\nجديدة",
-  groupRefused: "لا يمكنك إنشاء لعبة في تلك المجموعة.",
+  entryTitle: "مباراة\nجديدة",
+  groupRefused: "لا يمكنك إنشاء مباراة في تلك المجموعة.",
   listSeparator: "، ",
   timeRange: (start: string, end: string) => `من ${start} إلى ${end}`,
   toast: {
-    gameCreated: "أُنشئت اللعبة",
+    gameCreated: "أُنشئت المباراة",
     tournamentCreated: "أُنشئت البطولة",
   },
   validation: {
-    pickGameType: "اختر نوع اللعبة",
+    pickGameType: "اختر نوع المباراة",
   },
   header: {
-    whatTitle: "ما الذي\nتُعدّه؟",
-    whatSubtitle: "كلاهما يبدأ بنادٍ ووقت. بقية النموذج تتبع اختيارك.",
+    whatTitle: "ماذا\nتنظّم؟",
+    whatSubtitle: "نبدأ بالملعب والوقت، ثم نكمل حسب اختيارك.",
     tournamentTitle: "بطولة\nودية",
-    teamRange: (min: number, max: number) => `من ${min} إلى ${max} فريقًا`,
-    gameTitle: "لعبة\nودية",
+    teamRange: (min: number, max: number) =>
+      plural("ar", max, {
+        one: `من ${min} إلى فريق واحد`,
+        two: `من ${min} إلى فريقين`,
+        few: `من ${min} إلى {n} فرق`,
+        many: `من ${min} إلى {n} فريقًا`,
+        other: `من ${min} إلى {n} فريق`,
+      }),
+    gameTitle: "مباراة\nودية",
     startWithGroup: "ابدأ بالمجموعة. قواعد النادي تعتمد عليها.",
     linkedVenue: "النادي المرتبط",
     venueCount: (n: number) =>
@@ -44,10 +51,10 @@ export const mobileCreateGame = {
   footer: {
     stepOf: (step: number, total: number) => `الخطوة ${step} من ${total}`,
     creating: "جارٍ الإنشاء…",
-    createGame: "أنشئ اللعبة",
+    createGame: "إنشاء المباراة",
   },
   type: {
-    title: "نوع اللعبة",
+    title: "نوع المباراة",
     cardA11y: (title: string, description: string, rating: string) =>
       `${title}، ${description}، ${rating}`,
   },
@@ -63,7 +70,7 @@ export const mobileCreateGame = {
     loadFailedTitle: "تعذّر تحميل المجموعات",
     noneTitle: "لا توجد مجموعة للإنشاء فيها",
     noneBody:
-      "يمكنك إنشاء لعبة في مجموعة تنظّمها. أنشئ مجموعة أو انضم إلى واحدة أولًا.",
+      "يمكنك إنشاء مباراة في مجموعة تنظّمها. أنشئ مجموعة أو انضم إلى واحدة أولًا.",
   },
   searchSheet: {
     allVenues: "كل الأندية",
@@ -106,16 +113,16 @@ export const mobileCreateGame = {
   },
   teams: {
     title: "الفرق",
-    note: "أزواج، مقعدان لكل فريق",
+    note: "أزواج، مكانان لكل فريق",
     unit: "فريق",
     fewer: "فرق أقل",
     more: "فرق أكثر",
   },
   day: {
     sheetTitle: "اختر يومًا",
-    title: "اليوم",
-    laterDate: "تاريخ لاحق",
-    laterDateA11y: (label: string) => `تاريخ لاحق، ${label}`,
+    title: "التاريخ",
+    laterDate: "تاريخ آخر",
+    laterDateA11y: (label: string) => `تاريخ آخر، ${label}`,
     cellA11y: (weekday: string, day: string) => `${weekday}، ${day}`,
     previousMonth: "الشهر السابق",
     nextMonth: "الشهر التالي",
@@ -132,15 +139,15 @@ export const mobileCreateGame = {
   },
   when: {
     startTime: "وقت البداية",
-    startNote: "بخطوات من 30 دقيقة",
     moreStartTimes: "مزيد من أوقات البداية",
     duration: "المدة",
     set: "تحديد",
+    otherDuration: "مدة أخرى",
+    endsAt: (clock: string) => `ينتهي ${clock}`,
     setFinishTime: "حدّد وقت النهاية",
     finishTime: "وقت النهاية",
     finish: "النهاية",
-    helper:
-      "اليوم ووقت البداية ووقت النهاية مطلوبة. اختر اليوم أو يومًا لاحقًا. الأوقات بفواصل 30 دقيقة؛ لليوم تُعرض الأوقات القادمة فقط.",
+    helper: "لليوم الحالي، تظهر الأوقات القادمة فقط.",
     groups: "المجموعات",
     fewerGroups: "مجموعات أقل",
     moreGroups: "مجموعات أكثر",
@@ -150,7 +157,7 @@ export const mobileCreateGame = {
     roundUnit: (n: number) =>
       plural("ar", n, {
         one: "جولة",
-        two: "جولات",
+        two: "جولتان",
         few: "جولات",
         many: "جولة",
         other: "جولة",
@@ -198,14 +205,15 @@ export const mobileCreateGame = {
   price: {
     title: "السعر للاعب",
     inputLabel: "السعر للاعب بالدينار البحريني",
-    freeNote: "الصفر يعني مجانًا. Temba لا يحصّل أي مدفوعات.",
+    freeNote:
+      "اتركه فارغًا إن لم يُحدَّد بعد. الدفع بينكم مباشرة، وTemba لا يحصّل أي مبالغ.",
     teamFreeNote: (teamPrice: string) =>
-      `${teamPrice}. الصفر يعني مجانًا. Temba لا يحصّل أي مدفوعات.`,
+      `${teamPrice}. الدفع بينكم مباشرة، وTemba لا يحصّل أي مبالغ.`,
   },
   name: {
     title: "الاسم",
-    gameLabel: "اسم اللعبة",
-    hint: "يظهر على اللعبة وفي أعلى رسالة الدعوة.",
+    gameLabel: "اسم المباراة",
+    hint: "يظهر على المباراة وفي رسالة الدعوة.",
     tournamentLabel: "اسم البطولة",
   },
   football: {
@@ -213,11 +221,11 @@ export const mobileCreateGame = {
     aSideUnit: "لكل فريق",
     smallerSide: "فريق أصغر",
     largerSide: "فريق أكبر",
-    playersAllowed: "اللاعبون المسموح بهم",
+    playersAllowed: "الحد الأقصى للاعبين",
     playersUnit: "لاعب",
     fewerPlayers: "لاعبون أقل",
     morePlayers: "لاعبون أكثر",
-    playersNote: "فريقان كاملان على الأقل. من يزيد عن ذلك يكون بديلًا.",
+    playersNote: "الحد الأدنى فريقان كاملان، ومن يسجّل بعدهما يكون احتياطًا.",
   },
   review: {
     rowA11y: (label: string, value: string) => `${label}: ${value}`,
@@ -227,7 +235,7 @@ export const mobileCreateGame = {
     venue: "النادي",
     time: "الوقت",
     size: "الحجم",
-    seats: "المقاعد",
+    seats: "الأماكن",
     rating: "التصنيف",
     courts: "الملاعب",
     gameLength: "مدة المباراة",
@@ -237,12 +245,13 @@ export const mobileCreateGame = {
     venueAndCourt: (venue: string, court: string) => `${venue}، ${court}`,
   },
   bookingGame: {
-    title: "لعبة جديدة",
+    title: "مباراة جديدة",
     subtitle: "المكان والوقت من الحجز. الباقي وحده لك تحدده.",
     dayAndClock: (day: string, clock: string) => `${day} ${clock}`,
     loadFailedTitle: "تعذّر تحميل الحجز",
-    unavailableTitle: "لا يمكن إنشاء لعبة جديدة لهذا الحجز",
-    unavailableBody: "تحتاج اللعبة إلى حجز مؤكد وقادم تملكه وليس له لعبة بعد.",
+    unavailableTitle: "لا يمكن إنشاء مباراة جديدة لهذا الحجز",
+    unavailableBody:
+      "تحتاج المباراة إلى حجز مؤكد وقادم تملكه وليس له مباراة بعد.",
     backToBooking: "العودة إلى الحجز",
     pitchCost: "تكلفة الملعب",
     courtCost: "تكلفة الملعب",

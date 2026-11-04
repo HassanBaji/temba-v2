@@ -9,6 +9,7 @@ import {
   gameCardSubtitle,
   type CardSeatPosition,
 } from "@repo/domain/game-card";
+import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { spotsOpenLabel } from "@repo/domain/game-occupancy";
@@ -63,12 +64,17 @@ export function GameCard({
   const messages = useMessages();
   const m = messages.mobileTournament.card;
   const { primaryAction, rosterSides } = plan;
-  const title = game.venue?.name ?? game.name ?? m.untitledGame;
+  const customName = gameCustomName(game);
+  const title = game.venue?.name ?? customName ?? m.untitledGame;
   const subtitle = gameCardSubtitle(
-    game.venue?.name,
-    game.venue?.city ?? game.venue?.name,
-    game.venue?.name ? game.name : null,
-    game.courtName,
+    {
+      venueName: game.venue?.name,
+      location: game.venue?.city ?? game.venue?.name,
+      customName: game.venue?.name ? customName : null,
+      courtName: game.courtName,
+      windowEnd: game.windowEnd,
+    },
+    locale,
   );
   const roundLabel = poolRoundLabel(game.roundNumber, game.roundCount, locale);
   const formatMeta = roundLabel ?? gameFormatLabel(game.format, locale);
@@ -123,7 +129,7 @@ export function GameCard({
         <CardFooter>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="meta" numberOfLines={1}>
-              {formatMeta}
+              {game.groupName ? messages.game.played.group : formatMeta}
             </Text>
             {game.groupName ? (
               <Text size="eyebrow" tone="muted" numberOfLines={1}>

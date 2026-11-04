@@ -215,7 +215,7 @@ describe("Arabic copy", () => {
       ["السعر", "المدة"],
     );
     assert.equal(model.hero.figures[1]?.value, "90 د");
-    assert.equal(footballGameCta(game(), "ar")?.title, "انضم إلى هذه اللعبة");
+    assert.equal(footballGameCta(game(), "ar")?.title, "انضم إلى هذه المباراة");
     assert.equal(
       footballGameCta(game({ canRegister: false, canWaitlist: true }), "ar")
         ?.actionLabel,

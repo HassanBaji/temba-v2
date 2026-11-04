@@ -47,6 +47,12 @@ describe("courtSeatSubline", () => {
     assert.equal(courtSeatSubline("left", null, "en"), "Left");
     assert.match(courtSeatSubline("right", "B", "en"), /^Right · /);
   });
+
+  it("puts the side first in Arabic, with the band isolated and no middle dot", () => {
+    const subline = courtSeatSubline("left", "C", "ar");
+    assert.match(subline, /^يسار، \u2068.+\u2069$/u);
+    assert.doesNotMatch(subline, /·/);
+  });
 });
 
 describe("courtSeatRow", () => {
@@ -84,7 +90,7 @@ describe("courtFigures", () => {
       [
         ["0/4", "Players", false],
         ["90m", "Duration", false],
-        ["—", "Price not set", true],
+        ["Not set", "Price", true],
       ],
     );
   });
@@ -99,6 +105,18 @@ describe("courtFigures", () => {
     })[2];
     assert.equal(price?.value, "Free");
     assert.equal(price?.label, "Per player");
+  });
+
+  it("puts the unset price in the value and Price in the label in Arabic", () => {
+    const price = courtFigures({
+      seatedCount: 1,
+      seatCount: 4,
+      durationInMinutes: 90,
+      pricePerPlayerFils: null,
+      locale: "ar",
+    })[2];
+    assert.equal(price?.value, "غير محدد");
+    assert.equal(price?.label, "السعر");
   });
 });
 

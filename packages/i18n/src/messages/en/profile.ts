@@ -50,6 +50,11 @@ export const profile = {
     scored: (goals: string) => `scored ${goals}`,
   },
   level: {
+    movement: {
+      up: "Up after the last match",
+      down: "Down after the last match",
+      held: "Held after the last match",
+    },
     footballStartingCaption: "Starting Level. Football games don’t move it yet",
     confirmProgress: (count: number, total: number) =>
       plural("en", total, {
@@ -137,6 +142,7 @@ export const profile = {
     sets: "Sets",
     mostPlayedTeammate: "Most played teammate",
     mostPlayedPartner: "Most played partner",
+    record: (won: number, lost: number) => `${won} won, ${lost} lost`,
   },
   checklist: {
     tasks: {

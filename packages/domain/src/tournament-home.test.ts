@@ -961,7 +961,7 @@ describe("Arabic copy", () => {
         organizerName: "Jonas B",
         locale: "ar",
       }),
-      "تبقّت 5 مقاعد. يُجري Jonas قرعة المجموعات عندما تمتلئ الفرق، وهي عشوائية.",
+      "تبقّت 5 أماكن. يُجري Jonas قرعة المجموعات عندما تمتلئ الفرق، وهي عشوائية.",
     );
     assert.equal(tournamentEyebrow(3, "ar"), "بطولة ودية، 3 جولات");
     assert.equal(tournamentCollapsedTeamsLabel(6, "ar"), "6 فرق مكتملة أخرى");

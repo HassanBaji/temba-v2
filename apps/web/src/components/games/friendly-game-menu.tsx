@@ -28,6 +28,7 @@ import type {
 import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
 import {
   closeRegistrationAction,
+  closeRegistrationConsequence,
   leaveWaitlistAction,
   reopenRegistrationAction,
 } from "@repo/domain/game-copy";
@@ -82,6 +83,7 @@ export function FriendlyGameMenu({
     tools.push({
       key: "close_registration",
       label: closeRegistrationAction(locale),
+      hint: closeRegistrationConsequence(locale),
       icon: LockIcon,
       disabled: closePending,
       onSelect: onCloseRegistration,
@@ -100,6 +102,7 @@ export function FriendlyGameMenu({
     tools.push({
       key: "add_player",
       label: m.group.addPlayer.action,
+      hint: m.group.addPlayer.menuHint,
       icon: UserPlusIcon,
       onSelect: onAddPlayer,
     });

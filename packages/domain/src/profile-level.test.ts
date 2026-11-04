@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
@@ -82,6 +83,7 @@ describe("profileLevelView", () => {
     assert.equal(view.fillPercent, 16.4);
     assert.equal(view.caption, "16% of the way to C+");
     assert.equal(view.movement, "up");
+    assert.equal(view.movementLabel, "Up after the last match");
     assert.equal(view.atTopBand, false);
   });
 
@@ -138,10 +140,18 @@ describe("profileLevelView", () => {
   });
 
   it("reads the captions in Arabic", () => {
-    assert.equal(profileLevelView(base, "ar").caption, "16% من الطريق إلى C+");
+    assert.equal(
+      profileLevelView(base, "ar").caption,
+      `16% نحو ${isolate("C+")}`,
+    );
     assert.equal(
       confirmationProgressCaption(3, 2, "ar"),
-      "3 من نحو 5 ألعاب مصنّفة للتأكيد",
+      "3 من 5 مباريات مصنّفة لتأكيد مستواك",
+    );
+    assert.equal(
+      profileLevelView({ ...base, history: ["3.5", "3.1"] }, "ar")
+        .movementLabel,
+      "تراجع بعد آخر مباراة",
     );
   });
 

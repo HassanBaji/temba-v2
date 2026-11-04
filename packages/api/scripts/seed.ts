@@ -1070,7 +1070,7 @@ async function friendly(
 ) {
   const created = await createGame(db, {
     createdBy: u[args.organizerKey]!.id,
-    name: args.name,
+    customName: args.name,
     groupId: args.groupId,
     isPublic: false,
     format: "friendly_game",
@@ -1445,7 +1445,7 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
   // --- Football Game: a roster, no seats ---
   const pitchGame = await createGame(db, {
     createdBy: u.tom!.id,
-    name: "Sunday five-a-side",
+    customName: "Sunday five-a-side",
     groupId: g.fiveASide.id,
     isPublic: false,
     format: "friendly_game",
@@ -1734,7 +1734,7 @@ async function seedFootball(u: Users, v: Venues) {
   }) => {
     const created = await createGame(db, {
       createdBy: u.me!.id,
-      name: args.name,
+      customName: args.name,
       groupId: group.id,
       isPublic: false,
       format: "friendly_game",

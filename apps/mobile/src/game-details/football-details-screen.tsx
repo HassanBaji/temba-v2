@@ -260,7 +260,7 @@ export function FootballGameDetails({
 
   function askLeave() {
     setConfirm({
-      title: copy.confirm.leaveTitle(gameTitle(game.name, locale)),
+      title: copy.confirm.leaveTitle(gameTitle(game, locale)),
       description: leaveGameConsequence(locale),
       confirmLabel: leaveGameAction(locale),
       onConfirm: () => leave.mutate({ gameId }),
@@ -308,7 +308,7 @@ export function FootballGameDetails({
 
   function askCancel() {
     setConfirm({
-      title: copy.confirm.cancelTitle(gameTitle(game.name, locale)),
+      title: copy.confirm.cancelTitle(gameTitle(game, locale)),
       description: cancelGameConsequence(model.rosterRows.length, locale),
       confirmLabel: model.organizer?.cancelLabel ?? cancelGameAction(locale),
       onConfirm: () => cancel.mutate({ gameId }),
@@ -538,7 +538,7 @@ export function FootballGameDetails({
         {
           key: "add_player",
           label: m.group.addPlayer.action,
-          hint: m.group.addPlayer.description,
+          hint: m.group.addPlayer.menuHint,
           onPress: () => setAddPlayerOpen(true),
         },
       ]
@@ -746,7 +746,7 @@ export function FootballGameDetails({
         <>
           <PlayedMenuSheet
             visible={playedMenuOpen}
-            title={gameTitle(game.name, locale)}
+            title={gameTitle(game, locale)}
             items={playedMenuItems}
             onClose={() => setPlayedMenuOpen(false)}
           />

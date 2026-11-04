@@ -72,6 +72,8 @@ export type ProfileLevelView = {
   level: string;
   provisional: boolean;
   movement: LastMatchMovement | null;
+  /** "Down after the last match", null without a previous point. */
+  movementLabel: string | null;
   atTopBand: boolean;
   fillPercent: number;
   caption: string;
@@ -88,6 +90,7 @@ export function profileLevelView(
       level: input.level,
       provisional: true,
       movement: null,
+      movementLabel: null,
       atTopBand: false,
       fillPercent: 0,
       caption: m.footballStartingCaption,
@@ -107,11 +110,14 @@ export function profileLevelView(
       ? m.topBand
       : m.progressTo(Math.round(fillPercent), displayNext);
 
+  const movement = lastMatchMovement(input.history);
+
   return {
     displayBand: displayLabelFromStoredBand(input.band),
     level: input.level,
     provisional: input.provisional,
-    movement: lastMatchMovement(input.history),
+    movement,
+    movementLabel: movement ? m.movement[movement] : null,
     atTopBand: !input.provisional && displayNext == null,
     fillPercent,
     caption: input.provisional

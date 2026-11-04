@@ -3,8 +3,8 @@ import type { webTournament as source } from "../en/web-tournament";
 
 export const webTournament = {
   vs: "ضد",
-  backToGame: "العودة إلى اللعبة",
-  gameActions: "إجراءات اللعبة",
+  backToGame: "العودة إلى المباراة",
+  gameActions: "إجراءات المباراة",
   kickName: (name: string) => `أخرِج ${name}`,
   kickFromWaitlist: (name: string) => `أخرِج ${name} من قائمة الانتظار`,
   draw: {
@@ -25,7 +25,7 @@ export const webTournament = {
   },
   home: {
     needCompleteTeam:
-      "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه اللعبة.",
+      "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه المباراة.",
     teamLabel: "الفريق",
     selectTeam: "اختر فريقًا",
     teamOption: (name: string, members: string) => `${name} (${members})`,
@@ -38,7 +38,7 @@ export const webTournament = {
     lost: "خ",
   },
   card: {
-    untitledGame: "لعبة بلا اسم",
+    untitledGame: "مباراة بلا اسم",
     levelMeta: (label: string) => `المستوى ${label}`,
   },
   bibs: {
@@ -55,7 +55,15 @@ export const webTournament = {
     youPlayed: "لعبت",
     countOfSeats: (taken: number, seats: number) => `${taken} من ${seats}`,
     in: "مشاركون",
-    inWithOpen: (open: number) => `مشاركون، ${open} شاغر`,
+    inWithOpen: (open: number) =>
+      plural("ar", open, {
+        zero: "مشاركون، لا أماكن شاغرة",
+        one: "مشاركون، مكان واحد شاغر",
+        two: "مشاركون، مكانان شاغران",
+        few: "مشاركون، {n} أماكن شاغرة",
+        many: "مشاركون، {n} مكانًا شاغرًا",
+        other: "مشاركون، {n} مكان شاغر",
+      }),
     teamsNotSet: "الفرق غير جاهزة",
     youPlayIn: (team: string) => `تلعب في ${team}`,
     asCode: (code: string) => `كـ${code}`,
@@ -64,7 +72,13 @@ export const webTournament = {
     scoreIn: "النتيجة مسجّلة",
     scoreMissing: "النتيجة ناقصة",
     startCaptainsPick: (sideSize: number) =>
-      `${sideSize} أساسيون، القادة يختارون`,
+      plural("ar", sideSize, {
+        one: "أساسي واحد، القادة يختارون",
+        two: "أساسيان، القادة يختارون",
+        few: "{n} أساسيين، القادة يختارون",
+        many: "{n} أساسيًا، القادة يختارون",
+        other: "{n} أساسي، القادة يختارون",
+      }),
     captainsPickStarters: "القادة يختارون الأساسيين",
     each: "للاعب",
   },
@@ -82,7 +96,7 @@ export const webTournament = {
     playersIn: "اللاعبون المشاركون",
     ofSeats: (seats: number) => `من ${seats}`,
     teamsByOrganizer: "الفرق من المنظّم",
-    cancelledHeading: "أُلغيت هذه اللعبة",
+    cancelledHeading: "أُلغيت هذه المباراة",
     softArchivedHeading: "مجتمع مجموعة هذا النادي مؤرشف مؤقتًا",
     softArchivedBody: "يبقى التسجيل وقائمة الانتظار والدعوات مغلقة.",
     lineupLoadFailed: "تعذّر تحميل التشكيلة.",
@@ -103,7 +117,7 @@ export const webTournament = {
     choiceLabel: (title: string, note: string) => `${title}، ${note}`,
     preferredPosition: "المركز المفضّل",
     preferenceNotPromise: "تفضيل، لا وعد",
-    yourSeat: "مقعدك",
+    yourSeat: "مكانك",
   },
   footballTeams: {
     method: {
@@ -118,7 +132,7 @@ export const webTournament = {
     readyToPublish: (note: string) => `${note} جاهز للنشر.`,
     moveToOtherTeam: (name: string) => `انقل ${name} إلى الفريق الآخر`,
     noSubsNote:
-      "لا يُحدَّد البدلاء هنا. كل قائد يختار الأساسيين قبل البداية ويدير التبديلات في الملعب.",
+      "لا يُحدَّد الاحتياط هنا. كل قائد يختار الأساسيين قبل البداية ويدير التبديلات في الملعب.",
     putIn: (name: string, team: string) => `ضع ${name} في ${team}`,
     notPlaced: "غير موزّعين",
     leftCount: (n: number) =>
@@ -136,7 +150,13 @@ export const webTournament = {
     fixedBody: "المنظّم وحده يشكّل الفرق، وحتى تسجيل النتيجة فقط.",
     perTeam: (teamSize: number) => `${teamSize} لكل فريق`,
     perTeamStart: (teamSize: number, sideSize: number) =>
-      `${teamSize} لكل فريق، ${sideSize} أساسيون`,
+      plural("ar", sideSize, {
+        one: `${teamSize} لكل فريق، أساسي واحد`,
+        two: `${teamSize} لكل فريق، أساسيان`,
+        few: `${teamSize} لكل فريق، {n} أساسيين`,
+        many: `${teamSize} لكل فريق، {n} أساسيًا`,
+        other: `${teamSize} لكل فريق، {n} أساسي`,
+      }),
     levelHint: "استخدم السهم في الصف لنقل ذلك اللاعب إلى الفريق الآخر.",
     manualHint: "اختر لونًا لوضع لاعب؛ الصفوف الموزّعة تأخذ لون فريقها.",
     shuffle: "خلط",
@@ -163,7 +183,7 @@ export const webTournament = {
   },
   footballPool: {
     openTile: "شاغر",
-    openSeat: "مقعد شاغر",
+    openSeat: "مكان شاغر",
     keepers: "الحراس",
   },
   footballScore: {
@@ -173,7 +193,7 @@ export const webTournament = {
     editScore: "تعديل النتيجة",
     enterScore: "إدخال النتيجة",
     scorers: "المسجّلون",
-    emptyNote: "يُدخلها أحد الفريقين بعد اللعبة، ويؤكّدها الفريق الآخر.",
+    emptyNote: "يُدخلها أحد الفريقين بعد المباراة، ويؤكّدها الفريق الآخر.",
     goalsOutput: (team: string) => `أهداف ${team}`,
     oneGoalFewer: (team: string) => `هدف أقل لـ${team}`,
     oneGoalMore: (team: string) => `هدف أكثر لـ${team}`,
@@ -181,7 +201,7 @@ export const webTournament = {
       `أضف هدفًا لـ${name}، ${team}، ${goals} حتى الآن`,
     takeGoalAway: (name: string) => `احذف هدفًا من ${name}`,
     savedToast: "حُفظت النتيجة",
-    loadFailed: "تعذّر تحميل اللعبة",
+    loadFailed: "تعذّر تحميل المباراة",
     closedTitle: "النتيجة مغلقة",
     closedBody:
       "تُفتح النتيجة عند البداية للاعبي الفريقين والمنظّم، حتى يؤكّدها الفريقان.",

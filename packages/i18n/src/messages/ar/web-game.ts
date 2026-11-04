@@ -3,12 +3,12 @@ import type { webGame as source } from "../en/web-game";
 
 export const webGame = {
   addPlayer: {
-    playsAs: "يلعب كـ",
+    playsAs: "الدور",
     preferredPosition: "المركز المفضّل",
     side: "الجهة",
     position: "الموضع",
     adding: "جارٍ الإضافة…",
-    phone: "الهاتف",
+    phone: "رقم الهاتف",
     lookingUp: "جارٍ البحث…",
     startingLevel: "المستوى الابتدائي",
   },
@@ -16,11 +16,11 @@ export const webGame = {
     timeUnset: "الوقت غير محدد",
     youAnd: (name: string) => `أنت و${name}`,
   },
-  fallbackTitle: "لعبة",
+  fallbackTitle: "مباراة",
   directions: "الاتجاهات",
   directionsTo: (venue: string) => `الاتجاهات إلى ${venue}`,
   overflow: {
-    gameActions: "إجراءات اللعبة",
+    gameActions: "إجراءات المباراة",
   },
   joinSheet: {
     seatName: (side: string, position: string) => `${side} ${position}`,
@@ -30,9 +30,9 @@ export const webGame = {
     teams: "الفرق",
     allTeams: "كل الفرق",
     joinSeatButton: (side: string, position: string) =>
-      `انضم إلى ${side}، المقعد ${position}`,
+      `انضم إلى ${side}، المكان ${position}`,
     registeredToast: "تم التسجيل",
-    seatJoinFailed: "تعذّر أخذ هذا المقعد. حاول مجددًا.",
+    seatJoinFailed: "تعذّر أخذ هذا المكان. حاول مجددًا.",
   },
   partnerPicker: {
     playedWithBefore: "لعبت معهم من قبل",
@@ -43,12 +43,12 @@ export const webGame = {
   },
   partnerReview: {
     stepTwoOfTwo: "الخطوة 2 من 2",
-    seatSides: "جهات المقاعد",
+    seatSides: "جهات الأماكن",
   },
   registering: "جارٍ التسجيل…",
   seatBlocks: {
     actionsFor: (name: string) => `إجراءات لـ ${name}`,
-    open: "مفتوح",
+    open: "شاغر",
     vacant: "شاغر",
   },
   booked: "محجوز",
@@ -57,10 +57,10 @@ export const webGame = {
     time: "الوقت",
     levelRange: "نطاق المستوى",
   },
-  loadingGame: "جارٍ تحميل اللعبة",
+  loadingGame: "جارٍ تحميل المباراة",
   header: {
     onGroup: "في مجموعة",
-    pickupGame: "لعبة مفتوحة",
+    pickupGame: "مباراة مفتوحة",
     public: "عامة",
   },
   levelRange: {
@@ -116,20 +116,20 @@ export const webGame = {
     waitlistEmpty: "قائمة الانتظار فارغة",
     waitlistEntry: (place: number, name: string) => `${place}. ${name}`,
     joinTheWaitlist: "انضم إلى قائمة الانتظار",
-    gameFullPromote: "اللعبة ممتلئة. تنتقل إلى أول موضع يصبح شاغرًا.",
+    gameFullPromote: "المباراة ممتلئة. تنتقل إلى أول موضع يصبح شاغرًا.",
     pickCompleteTeam: "اختر فريقًا مكتملًا",
     registerATeam: "سجّل فريقًا",
     needCompleteTeam:
-      "تحتاج إلى فريق مكتمل يُسمح لكلا الشريكين فيه باللعب في هذه اللعبة.",
+      "تحتاج إلى فريق مكتمل يُسمح لكلا الشريكين فيه باللعب في هذه المباراة.",
     team: "الفريق",
     selectATeam: "اختر فريقًا",
     teamOption: (name: string, members: string) => `${name} (${members})`,
-    noVacantSidePickSeat: "لا توجد جهة شاغرة بالكامل؛ اختر مقعدًا",
+    noVacantSidePickSeat: "لا توجد جهة شاغرة بالكامل؛ اختر مكانًا",
     pickVacantSideAndPosition: "اختر جهة شاغرة وموضعك",
     joinWaitlistWithPartner: "انضم إلى قائمة الانتظار مع شريك",
     registerWithPartner: "سجّل مع شريك",
     waitlistWithPartnerCopy:
-      "اللعبة ممتلئة. تنضمان معًا إلى قائمة الانتظار وينتقل كلٌّ منكما على حدة.",
+      "المباراة ممتلئة. تنضمان معًا إلى قائمة الانتظار وينتقل كلٌّ منكما على حدة.",
     noVacantSideCopy:
       "لا توجد جهة شاغرة بالكامل. اختر موضعًا شاغرًا بدلًا من ذلك.",
     takeVacantSideCopy:
@@ -169,9 +169,9 @@ export const webGame = {
       "اليوم ووقت البدء مطلوبان. اختر اليوم أو يومًا لاحقًا. الأوقات بفواصل 30 دقيقة، ولليوم تظهر الأوقات القادمة فقط.",
   },
   hubEmpty: {
-    nextGame: "اللعبة التالية",
+    nextGame: "المباراة التالية",
     notScheduled: "غير مجدولة",
-    createGame: "أنشئ لعبة",
+    createGame: "أنشئ مباراة",
     findAGroup: "ابحث عن مجموعة",
     recentForm: "الأداء الأخير",
     noResultsYet: "لا نتائج بعد",
@@ -235,11 +235,11 @@ export const webGame = {
     leads: (team: string) => `${team} متقدّم`,
     noResultYet: "لا نتيجة بعد",
     noMatchResults: "لا نتائج مباريات",
-    americanoNoMatches: "ألعاب الأمريكانو لا تتضمن مباريات.",
+    americanoNoMatches: "بطولات الأمريكانو لا تتضمن مباريات.",
     noSetsYet: "لا أشواط بعد.",
     teams: "الفرق",
     scoreSets: "سجّل نتائج الأشواط",
-    slotGames: (slot: string) => `ألعاب ${slot}`,
+    slotGames: (slot: string) => `مباريات ${slot}`,
     scoringOpens: "يبدأ إدخال النتيجة عند اكتمال الفريقين.",
     court: "الملعب",
     noCourt: "بلا ملعب",
@@ -256,7 +256,7 @@ export const webGame = {
   },
   summary: {
     joinPosition: (position: string) => `انضم (${position})`,
-    untitledGame: "لعبة بلا اسم",
+    untitledGame: "مباراة بلا اسم",
     linkLabel: (title: string, day: string, time: string, meridiem: string) =>
       `${title}، ${day} ${time} ${meridiem}`,
     occupancyPlayers: (occupancy: string) => `${occupancy} لاعب`,

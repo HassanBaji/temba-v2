@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { gameDisplayName } from "./game-custom-name";
 import { unratedLabel } from "./game-rating-impact";
 import { formatRelativeDay } from "./format-game-start";
 import { shortPlayerName } from "./player-name";
@@ -15,6 +16,10 @@ export type HistoryMember = {
 
 export type HistoryRowInput = {
   name: string | null;
+  hasCustomName: boolean;
+  format: string;
+  windowStart: Date | string | null;
+  windowEnd: Date | string | null;
   sport: string | null;
   groupName: string | null;
   venue: { name: string };
@@ -94,7 +99,7 @@ function historyDay(row: HistoryRowInput, locale: Locale) {
 
 function historyPlace(row: HistoryRowInput, locale: Locale) {
   const venueName = row.venue.name.trim();
-  const gameName = row.name?.trim();
+  const gameName = row.name?.trim() ? gameDisplayName(row, locale) : null;
   return gameName && gameName !== venueName
     ? messagesFor(locale).game.history.place(venueName, gameName)
     : venueName;

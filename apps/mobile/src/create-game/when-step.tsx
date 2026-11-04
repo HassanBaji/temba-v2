@@ -71,7 +71,7 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
         error={dayError}
         onSelect={(day) => dispatch({ kind: "setDay", day, now })}
       />
-      <StepSection title={copy.startTime} note={copy.startNote}>
+      <StepSection title={copy.startTime}>
         <ChipGrid
           label={copy.startTime}
           columns={TIME_COLUMNS}
@@ -122,7 +122,7 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
       title={copy.duration}
       note={
         draft.finishTime
-          ? formatTimeSlotLabel(draft.finishTime, locale)
+          ? copy.endsAt(formatTimeSlotLabel(draft.finishTime, locale))
           : undefined
       }
     >
@@ -136,7 +136,7 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
           dispatch({ kind: "setDuration", minutes });
         }}
         escape={{
-          label: copy.set,
+          label: copy.otherDuration,
           selected: showCustom,
           accessibilityLabel: copy.setFinishTime,
           onPress: () => setCustomOpen(true),

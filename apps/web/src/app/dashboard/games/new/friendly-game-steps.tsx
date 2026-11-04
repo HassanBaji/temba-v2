@@ -323,11 +323,7 @@ export function FriendlyGameSteps({
           />
 
           <section className="flex flex-col gap-3">
-            <SectionHeading
-              id="game-window-start-label"
-              title={c.startTime}
-              meta={c.halfHourSteps}
-            />
+            <SectionHeading id="game-window-start-label" title={c.startTime} />
             <div id="game-window-start" tabIndex={-1} className="outline-none">
               <div className="grid grid-cols-4 gap-1.5">
                 <RovingRadioGroup
@@ -377,7 +373,9 @@ export function FriendlyGameSteps({
               id="game-window-finish-label"
               title={c.duration}
               meta={
-                finishTime ? formatTimeSlotLabel(finishTime, locale) : undefined
+                finishTime
+                  ? c.endsAt(formatTimeSlotLabel(finishTime, locale))
+                  : undefined
               }
             />
             <RovingRadioGroup
@@ -510,6 +508,7 @@ export function FriendlyGameSteps({
                 <StepperField
                   id="game-side-size-stepper"
                   label={c.sideSize}
+                  labelClassName="sr-only"
                   value={sideSize}
                   unit={c.aSide}
                   min={SMALLEST_SIDE_SIZE}

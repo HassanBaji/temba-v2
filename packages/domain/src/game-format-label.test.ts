@@ -13,7 +13,7 @@ describe("gameFormatLabel", () => {
   });
 
   it("labels the formats in Arabic", () => {
-    expect(gameFormatLabel("friendly_game", "ar")).toBe("لعبة ودية");
+    expect(gameFormatLabel("friendly_game", "ar")).toBe("مباراة ودية");
     expect(gameFormatLabel("americano", "ar")).toBe("أمريكانو");
   });
 });

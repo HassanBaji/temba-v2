@@ -136,6 +136,9 @@ export async function loadFootballProfile(
     goals: goals.get(match.matchId) ?? 0,
     game: {
       name: match.game.name,
+      hasCustomName: match.game.hasCustomName,
+      windowStart: match.game.windowStart,
+      windowEnd: match.game.windowEnd,
       groupName: match.game.groupName,
       venueName: match.venue.name,
     },

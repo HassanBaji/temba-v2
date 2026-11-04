@@ -5,6 +5,7 @@ import type {
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import {
   closeRegistrationAction,
+  closeRegistrationConsequence,
   completeMatchAction,
   completeMatchConsequence,
   reopenRegistrationAction,
@@ -71,6 +72,10 @@ export function gameMenuItems({
         plan.registration === "close"
           ? closeRegistrationAction(locale)
           : reopenRegistrationAction(locale),
+      hint:
+        plan.registration === "close"
+          ? closeRegistrationConsequence(locale)
+          : undefined,
       icon: plan.registration === "close" ? Lock : LockOpen,
       disabled: handlers.registrationPending,
       onPress: handlers.onToggleRegistration,
@@ -79,7 +84,7 @@ export function gameMenuItems({
       items.push({
         key: "add_player",
         label: messages.group.addPlayer.action,
-        hint: messages.group.addPlayer.description,
+        hint: messages.group.addPlayer.menuHint,
         icon: UserPlus,
         onPress: handlers.onAddPlayer,
       });

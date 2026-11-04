@@ -23,6 +23,7 @@ export type PhoneFieldProps = {
   onNationalChange: (value: string) => void;
   error?: string;
   disabled?: boolean;
+  placeholder?: string;
 };
 
 export function PhoneField({
@@ -33,6 +34,7 @@ export function PhoneField({
   onNationalChange,
   error,
   disabled = false,
+  placeholder,
 }: PhoneFieldProps) {
   const m = useMessages();
   const locale = useLocale();
@@ -48,7 +50,7 @@ export function PhoneField({
         textContentType="telephoneNumber"
         autoComplete="tel"
         editable={!disabled}
-        placeholder={country?.placeholder}
+        placeholder={placeholder ?? country?.placeholder}
         value={formatNationalNumber(countryIso, national)}
         onChangeText={onNationalChange}
         leading={

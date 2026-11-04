@@ -4,6 +4,7 @@ import {
   type AddPlayerLevel,
 } from "@repo/domain/add-player-by-phone";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
+import { phoneShapePlaceholder } from "@repo/domain/phone-number";
 import { View } from "react-native";
 
 import { RowChoices } from "../auth/onboarding-choices";
@@ -79,6 +80,7 @@ export function AddPlayerIdentityFields({
           label={m.mobileGameDetails.addPlayer.phone}
           countryIso={countryIso}
           national={national}
+          placeholder={phoneShapePlaceholder(countryIso)}
           onCountryIsoChange={onCountryIsoChange}
           onNationalChange={onNationalChange}
           error={complete ? previewError : undefined}

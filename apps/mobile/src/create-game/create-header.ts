@@ -35,7 +35,12 @@ export type StepHeaderText = {
   title: readonly string[];
   hero?: KickoffHero;
   subtitle: string | null;
-  context: { icon?: HeaderContextIcon; parts: readonly string[] } | null;
+  context: {
+    icon?: HeaderContextIcon;
+    parts: readonly string[];
+    /** One part per line instead of a single separated row. */
+    stacked?: boolean;
+  } | null;
 };
 
 function titleLines(title: string): string[] {
@@ -182,16 +187,20 @@ export function friendlyGameTimeHeader(input: {
     input.finishTime,
     locale,
   );
-  const parts = [
-    input.day ? formatDayLabel(input.day, locale) : null,
+  const m = messagesFor(locale).mobileCreateGame;
+  const place = presentParts([
     input.venueName ?? input.groupName,
     input.courtName,
-  ].filter((part): part is string => Boolean(part));
+  ]).join(m.listSeparator);
+  const parts = presentParts([
+    input.day ? formatDayLabel(input.day, locale) : null,
+    place || null,
+  ]);
   return {
-    title: hero ? [] : [messagesFor(locale).mobileCreateGame.header.pickTime],
+    title: hero ? [] : [m.header.pickTime],
     ...(hero ? { hero } : {}),
     subtitle: null,
-    context: parts.length > 0 ? { parts } : null,
+    context: parts.length > 0 ? { parts, stacked: true } : null,
   };
 }
 

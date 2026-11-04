@@ -47,6 +47,6 @@ describe("football sizes", () => {
   });
 
   it("labels the size in Arabic", () => {
-    expect(sideSizeLabel(5, "ar")).toBe("5 لكل فريق");
+    expect(sideSizeLabel(5, "ar")).toBe("5 ضد 5");
   });
 });

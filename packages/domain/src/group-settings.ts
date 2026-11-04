@@ -36,27 +36,21 @@ export function groupVisibilityCopy(context: "loose" | "club", locale: Locale) {
   } as const;
 }
 
-export function groupJoiningToggleHelp(
-  pendingRequestCount: number,
-  locale: Locale,
-) {
-  const m = messagesFor(locale).group.settings.joining;
-  if (pendingRequestCount <= 0) {
-    return m.toggleHelp;
-  }
-  return m.requestsWaiting(pendingRequestCount);
-}
-
-export function groupJoiningFooter(input: {
-  visibility: GroupVisibility;
+/**
+ * The line under "Review join requests": what the switch does in its current
+ * state, or the requests already waiting when there are some.
+ */
+export function groupJoiningToggleHelp(input: {
   requiresApproval: boolean;
+  pendingRequestCount?: number;
   locale: Locale;
 }) {
   const m = messagesFor(input.locale).group.settings.joining;
-  if (input.visibility === "private") {
-    return m.privateFooter;
+  const pending = input.pendingRequestCount ?? 0;
+  if (pending > 0) {
+    return m.requestsWaiting(pending);
   }
-  return input.requiresApproval ? m.approvalFooter : m.openFooter;
+  return input.requiresApproval ? m.toggleHelpOn : m.toggleHelpOff;
 }
 
 export type GroupMenuItem = "edit" | "invite" | "copy_link" | "leave";
@@ -102,6 +96,21 @@ export function groupMenuRoleLine(input: {
     return m.organizer;
   }
   return input.isMember ? m.member : null;
+}
+
+/**
+ * Why Leave is disabled in the More menu, or `null` when it is not: the
+ * owner of a Loose Group hands it on first. A Club Group's creator may leave;
+ * its Community's Owner and Admin still run it.
+ */
+export function groupLeaveBlockedHint(input: {
+  isOwner: boolean;
+  isLoose: boolean;
+  locale: Locale;
+}) {
+  return input.isOwner && input.isLoose
+    ? messagesFor(input.locale).group.settings.menu.leaveOwnerHint
+    : null;
 }
 
 /** The owner cannot leave; the Group would have nobody to run it. */

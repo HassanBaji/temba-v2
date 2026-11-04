@@ -53,7 +53,7 @@ describe("homeNoGamesCopy", () => {
   });
 
   it("reads in Arabic", () => {
-    assert.equal(homeNoGamesCopy(null, "ar"), "تصفّح الألعاب المتاحة.");
+    assert.equal(homeNoGamesCopy(null, "ar"), "تصفّح المباريات المتاحة.");
     assert.equal(
       homeNoGamesCreateAction({ createGroupCount: 0, locale: "ar" }).label,
       "إنشاء مجموعة",

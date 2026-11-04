@@ -56,6 +56,7 @@ export type HubListDb = DbClient;
 export const hubListColumns = {
   id: true,
   name: true,
+  hasCustomName: true,
   isPublic: true,
   rated: true,
   groupId: true,
@@ -186,6 +187,7 @@ export const hubListWith = {
 export type HubQueryRow = {
   id: string;
   name: string | null;
+  hasCustomName: boolean;
   isPublic: boolean;
   rated: boolean;
   groupId: string | null;
@@ -658,6 +660,7 @@ export function toHubListRow(
   return {
     id: row.id,
     name: row.name,
+    hasCustomName: row.hasCustomName,
     format: row.format,
     registrationMode: row.registrationMode,
     sport: row.sport,

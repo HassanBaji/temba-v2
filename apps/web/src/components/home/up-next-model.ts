@@ -4,11 +4,14 @@ import {
   formatWeekday,
 } from "@repo/domain/format-game-start";
 import { gameCardRosterOccupancy } from "@repo/domain/game-card";
-import { sideSizeLabel } from "@repo/domain/game-shape";
 import {
   homeComingUpRows,
   homeComingUpSeatBars,
 } from "@repo/domain/home-coming-up";
+import {
+  homeGameRowLines,
+  homeOpenSpotsLabel,
+} from "@repo/domain/home-game-lines";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
@@ -138,24 +141,13 @@ export function startsInLabel(
   return minutes === 0 ? m.inHours(hours) : m.inHoursMinutes(hours, minutes);
 }
 
-export function minutesBetween(startsAt: Date, endsAt: Date): number {
-  return Math.round((endsAt.getTime() - startsAt.getTime()) / MS_PER_MINUTE);
-}
-
-function gamePlace(game: UpNextGame, locale: Locale): string | null {
-  const side = game.football?.sideSize
-    ? sideSizeLabel(game.football.sideSize, locale)
-    : null;
-  return [game.venue?.name, game.courtName ?? side].filter(Boolean).join(", ");
-}
-
 export function upNextRowView(
   item: UpNextItem,
   now: Date,
   locale: Locale,
 ): UpNextRowView {
-  const m = messagesFor(locale).webAuth.home;
   const { game } = item;
+  const join = messagesFor(locale).home.comingUp.parts;
   const shared = {
     key: item.key,
     day: upNextDayLabel(item.startsAt, now, locale),
@@ -170,9 +162,11 @@ export function upNextRowView(
       title: row.title,
       detail: row.opponentLine,
       trailing: row.roundTag ? { kind: "tag", label: row.roundTag } : null,
-      spoken: [row.title, shared.day, shared.time, row.opponentLine]
-        .filter(Boolean)
-        .join(", "),
+      spoken: join(
+        [row.title, shared.day, shared.time, row.opponentLine].filter(
+          (part): part is string => Boolean(part),
+        ),
+      ),
     };
   }
   if (row?.kind === "tournament") {
@@ -183,17 +177,21 @@ export function upNextRowView(
       trailing: row.actionLabel
         ? { kind: "tag", label: row.actionLabel }
         : null,
-      spoken: [row.title, shared.day, shared.time, row.teamsLine]
-        .filter(Boolean)
-        .join(", "),
+      spoken: join(
+        [row.title, shared.day, shared.time, row.teamsLine].filter(
+          (part): part is string => Boolean(part),
+        ),
+      ),
     };
   }
 
-  const place = gamePlace(game, locale);
-  const title = game.name ?? game.groupName ?? game.venue?.name ?? m.kind.game;
-  const detail = place && place !== title ? place : null;
+  const { title, detail } = homeGameRowLines(game, locale);
   const roster = gameCardRosterOccupancy(game)
-    ? m.rosterOf(game.registeredUserCount, game.playersAllowed ?? 0)
+    ? homeOpenSpotsLabel(
+        game.registeredUserCount,
+        game.playersAllowed ?? 0,
+        locale,
+      )
     : null;
   const seats = row?.kind === "game" ? homeComingUpSeatBars(row, locale) : null;
   const trailing: UpNextTrailing | null = roster
@@ -201,17 +199,17 @@ export function upNextRowView(
     : seats && seats.bars.length > 0
       ? { kind: "bars", bars: seats.bars }
       : null;
-  const occupancy = roster
-    ? m.rosterPlayers(game.registeredUserCount, game.playersAllowed ?? 0)
-    : (seats?.spokenLabel ?? null);
+  const occupancy = roster ?? seats?.spokenLabel ?? null;
 
   return {
     ...shared,
     title,
     detail,
     trailing,
-    spoken: [title, shared.day, shared.time, detail, occupancy]
-      .filter(Boolean)
-      .join(", "),
+    spoken: join(
+      [title, shared.day, shared.time, detail, occupancy].filter(
+        (part): part is string => Boolean(part),
+      ),
+    ),
   };
 }

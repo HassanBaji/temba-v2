@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatWinRate, winRatePercent } from "./win-rate";
+import {
+  formatWinRate,
+  shownWinRatePercent,
+  WIN_RATE_MIN_MATCHES,
+  winRatePercent,
+} from "./win-rate";
 
 describe("winRatePercent", () => {
   it("counts a draw as played and not won", () => {
@@ -14,6 +19,19 @@ describe("winRatePercent", () => {
 
   it("is null when nothing was played", () => {
     expect(winRatePercent(0, 0)).toBeNull();
+  });
+});
+
+describe("shownWinRatePercent", () => {
+  it("hides the rate below the minimum Matches", () => {
+    expect(WIN_RATE_MIN_MATCHES).toBe(5);
+    expect(shownWinRatePercent(0, 2)).toBeNull();
+    expect(shownWinRatePercent(4, 4)).toBeNull();
+  });
+
+  it("shows the rate from the minimum Matches", () => {
+    expect(shownWinRatePercent(2, 5)).toBe(40);
+    expect(shownWinRatePercent(0, 6)).toBe(0);
   });
 });
 

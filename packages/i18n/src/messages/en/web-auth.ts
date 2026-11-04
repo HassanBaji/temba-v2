@@ -9,6 +9,10 @@ export const webAuth = {
     tagline:
       "Open padel and football games near you, your regular Groups, and a Level that follows your results.",
     sportsLabel: "Sports",
+    sportChips: {
+      padel: "Padel",
+      football: "Football",
+    },
     continueWithPhone: "Continue with phone",
   },
   termsNote: {
@@ -223,6 +227,7 @@ export const webAuth = {
     nothingThisWeek: "Nothing this week",
     thisWeekCount: (n: number) => `${n} this week`,
     onNow: "on now",
+    withEmphasis: (emphasis: string) => `, ${emphasis}`,
     inMinutes: (minutes: number) => `in ${minutes} min`,
     inHours: (hours: number) => `in ${hours} h`,
     inHoursMinutes: (hours: number, minutes: number) =>
@@ -361,7 +366,8 @@ export const webAuth = {
       saveLevel: "Save Level",
     },
     allTime: {
-      matches: "matches",
+      matches: (n: number) =>
+        plural("en", n, { one: "match", other: "matches" }),
       percentWon: (percent: number) => `${percent}% won`,
       longestStreak: "Longest streak",
       failed: "All time could not be loaded",
@@ -373,7 +379,6 @@ export const webAuth = {
     level: {
       bandLevelSpoken: (band: string, level: string) =>
         `${band}, Level ${level}`,
-      lastMatch: "last match",
       failed: "Level could not be loaded",
     },
   },

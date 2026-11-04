@@ -11,6 +11,8 @@ import {
   addPlayerCompletePhone,
   addPlayerFootballInput,
   addPlayerFootballLevelChoices,
+  addPlayerFootballPositionChoices,
+  addPlayerFootballRoleChoices,
   addPlayerLevelChoices,
   addPlayerPlacement,
   addPlayerPreviewLine,
@@ -78,7 +80,7 @@ describe("addPlayerPreviewLine", () => {
         { kind: "unclaimed", name: "Ali", alreadyOnGame: true },
         "ar",
       ),
-      "Ali موجود في هذه اللعبة بالفعل",
+      "Ali موجود في هذه المباراة بالفعل",
     );
   });
 });
@@ -273,6 +275,27 @@ describe("addPlayerPlacement", () => {
         registrationMode: "team_only",
       }),
       null,
+    );
+  });
+});
+
+describe("football role and position choices", () => {
+  it("names the role and the positions as people", () => {
+    assert.deepEqual(
+      addPlayerFootballRoleChoices("en").map((choice) => choice.name),
+      ["Outfield", "Goalkeeper"],
+    );
+    assert.deepEqual(
+      addPlayerFootballPositionChoices("en").map((choice) => choice.name),
+      ["Any", "Defender", "Midfielder", "Forward"],
+    );
+    assert.deepEqual(
+      addPlayerFootballRoleChoices("ar").map((choice) => choice.name),
+      ["لاعب ميدان", "حارس مرمى"],
+    );
+    assert.deepEqual(
+      addPlayerFootballPositionChoices("ar").map((choice) => choice.name),
+      ["أي مركز", "مدافع", "وسط", "مهاجم"],
     );
   });
 });

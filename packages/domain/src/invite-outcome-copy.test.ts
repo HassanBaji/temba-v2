@@ -41,7 +41,7 @@ describe("inviteOutcomeCopy", () => {
   it("reads in Arabic", () => {
     expect(inviteOutcomeCopy("unavailable", "Game", "ar")).toEqual({
       title: "لا يقبل لاعبين جددًا",
-      description: "هذه اللعبة لا تقبل لاعبين جددًا حاليًا.",
+      description: "هذه المباراة لا تقبل لاعبين جددًا حاليًا.",
     });
   });
 });

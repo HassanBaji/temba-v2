@@ -27,7 +27,12 @@ export type FriendlyGameCtaFamily =
   | { kind: "join_waitlist" }
   | { kind: "waitlisted"; place: number }
   | { kind: "join" }
-  | { kind: "upcoming"; vacantSeatCount: number; showInvite: boolean }
+  | {
+      kind: "upcoming";
+      vacantSeatCount: number;
+      showInvite: boolean;
+      live: boolean;
+    }
   | { kind: "needs_score" }
   | { kind: "final"; newLevelBand: LevelBand; newLevel: number }
   | { kind: "none" };
@@ -110,6 +115,7 @@ export function friendlyGameCtaFamily(
         kind: "upcoming",
         vacantSeatCount: game.vacantSeatCount,
         showInvite: game.canMintInvite,
+        live: game.phase === "ongoing",
       };
     }
     return { kind: "none" };
@@ -152,12 +158,16 @@ export function friendlyGameWaitlistOrdinal(place: number) {
  */
 export function friendlyGameVacantSeatLine(
   vacantSeatCount: number,
+  live: boolean,
   locale: Locale,
 ): string | null {
   if (vacantSeatCount <= 0) {
     return null;
   }
-  return messagesFor(locale).game.cta.vacantSeatLine(vacantSeatCount);
+  const m = messagesFor(locale).game.cta;
+  return live
+    ? m.vacantSeatLineLive(vacantSeatCount)
+    : m.vacantSeatLine(vacantSeatCount);
 }
 
 /**

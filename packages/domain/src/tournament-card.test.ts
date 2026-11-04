@@ -1006,7 +1006,7 @@ describe("Arabic copy", () => {
   it("reads the teams line, the action and the Round label in Arabic", () => {
     assert.equal(
       tournamentTeamsLine(game({ registeredTeamCount: 9 }), "ar"),
-      "9 من 12 فرق مشاركة",
+      "9 من 12 فريقًا مشاركًا",
     );
     assert.equal(tournamentCardActionLabel("join", "ar"), "انضم إلى البطولة");
     assert.equal(

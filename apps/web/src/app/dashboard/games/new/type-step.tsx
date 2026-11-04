@@ -2,7 +2,7 @@ import { Shuffle, Trophy } from "lucide-react";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { SelectCard, SelectCardNote } from "~/components/ui/select-card";
+import { SelectCard } from "~/components/ui/select-card";
 import {
   createGameTypeCards,
   type CreateGameTypeId,
@@ -26,6 +26,9 @@ export function TypeStep({
   const locale = useLocale();
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-muted-foreground text-meta">
+        {m.createGame.typeCards.countsNote}
+      </p>
       <RovingRadioGroup
         id="game-type"
         aria-label={m.webDashboard.createGame.gameType}
@@ -49,9 +52,7 @@ export function TypeStep({
               onClick={() => {
                 onSelect(card.id);
               }}
-            >
-              <SelectCardNote>{card.rating}</SelectCardNote>
-            </SelectCard>
+            />
           );
         })}
       </RovingRadioGroup>

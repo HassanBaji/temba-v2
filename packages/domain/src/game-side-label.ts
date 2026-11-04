@@ -1,8 +1,6 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-const SIDE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
 export function formatGameSideLabel(
   format: string,
   sideIndex: number,
@@ -10,7 +8,7 @@ export function formatGameSideLabel(
 ) {
   const m = messagesFor(locale).createGame.side;
   if (format === "friendly_game" || format === "friendly_tournament") {
-    const letter = SIDE_LETTERS[sideIndex - 1];
+    const letter = m.letter(sideIndex);
     return m.team(letter ?? String(sideIndex));
   }
   return m.team(String(sideIndex));
@@ -23,7 +21,7 @@ export function formatMatchSlotLabel(
 ) {
   const m = messagesFor(locale).createGame.side;
   if (format === "friendly_game") {
-    return m.team(slot === 1 ? "A" : "B");
+    return m.team(m.letter(slot) ?? String(slot));
   }
   return m.team(String(slot));
 }

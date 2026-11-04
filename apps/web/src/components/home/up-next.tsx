@@ -18,6 +18,11 @@ import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
 import {
+  homeGameKind,
+  homeHeroTitle,
+  homeHeroUntil,
+} from "@repo/domain/home-game-lines";
+import {
   homeNextGameActions,
   homeNextGameStatus,
 } from "@repo/domain/home-next-game";
@@ -30,7 +35,6 @@ import { cn } from "~/lib/utils";
 
 import { createHref, gameHref } from "./home-model";
 import {
-  minutesBetween,
   startsInLabel,
   upNextHeroDay,
   upNextRowView,
@@ -54,13 +58,14 @@ export function UpNextHeading({ label }: { label: string }) {
 }
 
 function Chip({ sport, kind }: { sport: Sport; kind: string }) {
+  const m = useMessages();
   const locale = useLocale();
   return (
     <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] pe-2 ps-1.5 font-mono uppercase">
       <SportGlyph sport={sport} className="text-paper size-[13px]" />
       <span>
         {sportLabel(sport, locale)}
-        <span className="text-dim">{` / ${kind}`}</span>
+        <span className="text-dim">{m.webAuth.home.withEmphasis(kind)}</span>
       </span>
     </span>
   );
@@ -106,11 +111,12 @@ function HeroFrame({
   href: string;
   sport: Sport;
   kind: string;
-  when: { day: string; emphasis: string | null };
+  when: { day: string | null; emphasis: string | null };
   spoken: string;
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
     <Surface as="article" tone="ink" radius="surface" className="p-[18px]">
       <Link
@@ -123,7 +129,11 @@ function HeroFrame({
           <p className="text-meta text-dim min-w-0 truncate">
             {when.day}
             {when.emphasis ? (
-              <span className="text-paper">{`, ${when.emphasis}`}</span>
+              <span className="text-paper">
+                {when.day
+                  ? m.webAuth.home.withEmphasis(when.emphasis)
+                  : when.emphasis}
+              </span>
             ) : null}
           </p>
         </div>
@@ -143,7 +153,6 @@ function Kickoff({
   startsAt: Date;
   endsAt: Date | null;
 }) {
-  const m = useMessages();
   const locale = useLocale();
   const kickoff = formatHomeKickoff(startsAt, locale);
   return (
@@ -160,9 +169,7 @@ function Kickoff({
       </p>
       {endsAt ? (
         <p className="text-meta text-dim">
-          {m.webAuth.home.toTime(formatGameClock(endsAt, locale))}
-          <span className="text-dimrule">{" / "}</span>
-          {m.dates.minutes(minutesBetween(startsAt, endsAt))}
+          {homeHeroUntil(startsAt, endsAt, locale)}
         </p>
       ) : null}
     </div>
@@ -250,27 +257,30 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
     hasOpenSeat: seats.some((seat) => !seat.filled),
     locale,
   });
-  const status =
-    game.phase === "upcoming"
+  const live =
+    game.phase === "ongoing" ||
+    (game.phase === "upcoming" &&
+      startsAt.getTime() <= now.getTime() &&
+      (endsAt == null || endsAt.getTime() > now.getTime()));
+  const status = live
+    ? m.home.nextGame.playingNow
+    : game.phase === "upcoming"
       ? (startsInLabel(startsAt, endsAt ?? startsAt, now, locale) ??
         homeNextGameStatus(game.phase, startsAt, now, locale))
       : homeNextGameStatus(game.phase, startsAt, now, locale);
-  const title =
-    game.name ?? game.groupName ?? game.venue?.name ?? m.webAuth.home.kind.game;
-  const place = [game.venue?.name, game.courtName].filter(Boolean).join(", ");
-  const venueLine = [
-    game.venue?.name === title ? null : game.venue?.name,
-    game.courtName,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const title = homeHeroTitle(game, locale);
+  const place = m.home.comingUp.parts(
+    [game.venue?.name, game.courtName].filter((part): part is string =>
+      Boolean(part),
+    ),
+  );
 
   return (
     <HeroFrame
       href={href}
       sport={sport}
-      kind={m.webAuth.home.kind.game}
-      when={{ day, emphasis: status }}
+      kind={homeGameKind(game.format, locale)}
+      when={{ day: live ? null : day, emphasis: status }}
       spoken={m.webAuth.home.nextUpSpokenAt(
         title,
         day,
@@ -299,7 +309,7 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
       }
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Headline title={title} detail={venueLine || null} icon={MapPin} />
+      <Headline title={title} detail={place || null} icon={MapPin} />
       {game.rated ? null : (
         <p className="text-meta font-semibold">{unratedLabel(locale)}</p>
       )}

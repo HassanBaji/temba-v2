@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth } from "./format-game-start";
+import { gameDisplayName } from "./game-custom-name";
 import {
   KEEPER_CODE,
   footballPositionChoices,
@@ -49,7 +50,14 @@ export type FootballMatchInput = {
   /** The owner's side first. */
   score: { us: number; them: number } | null;
   goals: number;
-  game: { name: string | null; groupName: string | null; venueName: string };
+  game: {
+    name: string | null;
+    hasCustomName: boolean;
+    windowStart: Date | string | null;
+    windowEnd: Date | string | null;
+    groupName: string | null;
+    venueName: string;
+  };
   canOpenGame: boolean;
 };
 
@@ -143,7 +151,9 @@ export function footballMatchRowView(
   const m = messagesFor(locale).profile;
   const title =
     nonBlank(match.game.groupName) ??
-    nonBlank(match.game.name) ??
+    (nonBlank(match.game.name)
+      ? gameDisplayName({ ...match.game, format: "friendly_game" }, locale)
+      : null) ??
     m.matches.friendlyGame;
   const score = match.score ? `${match.score.us}–${match.score.them}` : null;
   const goals = match.goals > 0 ? m.football.goalsScored(match.goals) : null;

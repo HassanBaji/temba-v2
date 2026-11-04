@@ -94,6 +94,19 @@ describe("friendlyGameHeroModel", () => {
     });
   });
 
+  it("reads the status pill by the clock in Arabic", () => {
+    const ongoing = hero("ongoing", "ar");
+    assert.equal(
+      ongoing?.kind === "scheduled" ? ongoing.statusLabel : null,
+      "جارية الآن",
+    );
+    const needsScore = hero("needsScore", "ar");
+    assert.equal(
+      needsScore?.kind === "scheduled" ? needsScore.statusLabel : null,
+      "انتهت، أدخل النتيجة",
+    );
+  });
+
   it("labels the final hero in Arabic", () => {
     const model = hero("final", "ar");
     assert.equal(model?.kind, "final");

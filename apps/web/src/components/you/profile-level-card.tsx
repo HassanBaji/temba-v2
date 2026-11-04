@@ -9,7 +9,7 @@ import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { profileLevelView } from "@repo/domain/profile-level";
-import { DEFAULT_SPORT, sportLabel, type Sport } from "@repo/domain/sport";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 export function ProfileLevelCard({
@@ -54,9 +54,7 @@ export function ProfileLevelCard({
 
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile" meta={sportLabel(sport, locale)}>
-        {m.common.level}
-      </SurfaceLabel>
+      <SurfaceLabel inset="profile">{m.home.level.heading[sport]}</SurfaceLabel>
       <div className="px-5 pb-5">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -73,13 +71,10 @@ export function ProfileLevelCard({
               )}
             </span>
           </div>
-          {view.movement ? (
-            <div className="text-end">
-              <p className="font-expanded text-[20px]">{view.movement}</p>
-              <p className="text-eyebrow text-muted-foreground">
-                {m.webAuth.you.level.lastMatch}
-              </p>
-            </div>
+          {view.movementLabel ? (
+            <p className="text-eyebrow text-muted-foreground text-end">
+              {view.movementLabel}
+            </p>
           ) : null}
         </div>
         {view.atTopBand ? (

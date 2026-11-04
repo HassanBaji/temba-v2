@@ -491,12 +491,12 @@ describe("partner suggestion copy", () => {
   it("writes the suggestion copy in Arabic", () => {
     assert.equal(
       partnerSuggestionMetaLine({ ...row, levelBand: null }, "ar"),
-      "يلعب يسارًا. لعبتان معًا",
+      "يلعب يسارًا. مباراتان معًا",
     );
-    assert.equal(partnerSeatsChip(1, "ar"), "مقعد واحد مفتوح");
+    assert.equal(partnerSeatsChip(1, "ar"), "مكان واحد شاغر");
     assert.equal(
       partnerReviewGameLine({ locale: "ar" }),
-      "مقعدان، واحد لكل منكما.",
+      "مكانان، واحد لكل منكما.",
     );
   });
 });

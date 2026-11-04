@@ -21,6 +21,7 @@ export function GroupMenuSheet({
   name,
   roleLine,
   items,
+  leaveBlockedHint,
   copyPending,
   onPick,
   onClose,
@@ -29,6 +30,7 @@ export function GroupMenuSheet({
   name: string;
   roleLine: string | null;
   items: GroupMenuItem[];
+  leaveBlockedHint: string | null;
   copyPending: boolean;
   onPick: (item: GroupMenuItem) => void;
   onClose: () => void;
@@ -65,8 +67,10 @@ export function GroupMenuSheet({
             <SheetMenuRow
               key="leave"
               label={groupMenuLabel("leave", locale)}
+              hint={leaveBlockedHint}
               icon={LogOut}
               tone="danger"
+              disabled={leaveBlockedHint != null}
               onPress={() => onPick("leave")}
             />,
           ]}

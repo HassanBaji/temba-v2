@@ -7,8 +7,7 @@ export const onboarding = {
       meta: "المستوى من D إلى A، الجهة",
     },
     football: {
-      description:
-        "خمسة أو سبعة لكل فريق. تجمّع أولًا، وتُحدد الفرق قبل البداية.",
+      description: "5 ضد 5 أو 7 ضد 7. تجمّع أولًا، وتُحدد الفرق قبل البداية.",
       meta: "المستوى، الدور، المركز",
     },
   },
@@ -32,7 +31,7 @@ export const onboarding = {
     },
     expert: {
       name: "خبير",
-      detail: "في قمة الساحة المحلية، يقرأ اللعبة بخطوة مسبقة.",
+      detail: "في قمة الساحة المحلية، يقرأ المباراة بخطوة مسبقة.",
     },
     pro: {
       name: "محترف",
@@ -59,7 +58,7 @@ export const onboarding = {
     pickAtLeastOne: "اختر واحدة على الأقل",
     continueWithBoth: "تابع بكلتيهما",
     continueWith: (sport: string) => `تابع مع ${sport}`,
-    findSportGames: (sport: string) => `ابحث عن ألعاب ${sport}`,
-    findGames: "ابحث عن ألعاب",
+    findSportGames: (sport: string) => `ابحث عن مباريات ${sport}`,
+    findGames: "ابحث عن مباريات",
   },
 } satisfies typeof source;

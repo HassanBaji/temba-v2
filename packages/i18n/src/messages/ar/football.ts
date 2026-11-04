@@ -5,7 +5,7 @@ export const football = {
   status: {
     cancelled: "أُلغيت",
     played: "لُعبت",
-    playedScoreMissing: "لُعبت، النتيجة ناقصة",
+    playedScoreMissing: "انتهت، أدخل النتيجة",
     teamsSet: "الفرق جاهزة",
     teamsSetOn: (weekday: string) => `الفرق جاهزة، ${weekday}`,
     upcoming: "قادمة",
@@ -17,10 +17,18 @@ export const football = {
       mid: "وسط",
       fwd: "مهاجم",
     },
-    keeperSeatsTaken: "مقعدا الحارسين محجوزان",
+    keeperSeatsTaken: "مكانا الحارسين محجوزان",
     keeperSeatsOpen: (left: number, total: number) =>
-      `${left} من ${total} مقاعد الحراس شاغرة`,
-    keepersIn: (n: number) => `${n} حراس مشاركون`,
+      `أماكن الحراس الشاغرة: ${left} من ${total}`,
+    keepersIn: (n: number) =>
+      plural("ar", n, {
+        zero: "لا حراس مشاركون",
+        one: "حارس واحد مشارك",
+        two: "حارسان مشاركان",
+        few: "{n} حراس مشاركون",
+        many: "{n} حارسًا مشاركًا",
+        other: "{n} حارس مشارك",
+      }),
     oneKeeperOneMoreNeeded: "حارس واحد، مطلوب حارس آخر",
     noKeeperYet: "لا حارس بعد",
     positionCountsLine: (def: number, mid: number, fwd: number, gk: number) =>
@@ -46,7 +54,13 @@ export const football = {
     stillToPlace: (n: number) => `${n} لم يُوزَّعوا بعد.`,
     bothTeamsNeedPlayers: "كلا الفريقين يحتاج إلى لاعبين.",
     sideHasExtra: (team: string, extra: number) =>
-      `لدى ${team} ${extra} لاعبين زيادة. انقل واحدًا إلى الجهة الأخرى قبل النشر.`,
+      plural("ar", extra, {
+        one: `لدى ${team} لاعب واحد زيادة. انقل واحدًا إلى الجهة الأخرى قبل النشر.`,
+        two: `لدى ${team} لاعبان زيادة. انقل واحدًا إلى الجهة الأخرى قبل النشر.`,
+        few: `لدى ${team} {n} لاعبين زيادة. انقل واحدًا إلى الجهة الأخرى قبل النشر.`,
+        many: `لدى ${team} {n} لاعبًا زيادة. انقل واحدًا إلى الجهة الأخرى قبل النشر.`,
+        other: `لدى ${team} {n} لاعب زيادة. انقل واحدًا إلى الجهة الأخرى قبل النشر.`,
+      }),
     draw: "تعادل.",
     winBy: (team: string, margin: number) => `${team} يفوز بفارق ${margin}.`,
     scorersExceed: (team: string, score: number) =>
@@ -54,19 +68,25 @@ export const football = {
   },
   board: {
     outfieldLine: (inCount: number, seats: number) =>
-      `${inCount} من ${seats} مشاركون`,
+      plural("ar", seats, {
+        one: `${inCount} من لاعب واحد`,
+        two: `${inCount} من لاعبَين`,
+        few: `${inCount} من {n} لاعبين`,
+        many: `${inCount} من {n} لاعبًا`,
+        other: `${inCount} من {n} لاعب`,
+      }),
     keeperNoteClaimed: (perGame: number, name: string) =>
-      `حارس واحد لكل فريق، أي ${perGame} لكل لعبة. ${name} أخذ الأول.`,
+      `حارس واحد لكل فريق، أي ${perGame} لكل مباراة. ${name} أخذ الأول.`,
     keeperNoteUnclaimed: (perGame: number) =>
-      `حارس واحد لكل فريق، أي ${perGame} لكل لعبة. لم يأخذ أحد مقعدًا بعد.`,
+      `حارس واحد لكل فريق، أي ${perGame} لكل مباراة. لم يأخذ أحد مكانًا بعد.`,
     keeperSeatsBothTaken: "كلاهما محجوز",
     keeperSeatsLeft: (n: number) =>
       plural("ar", n, {
-        one: "تبقّى مقعد واحد",
-        two: "تبقّى مقعدان",
-        few: "تبقّت {n} مقاعد",
-        many: "تبقّى {n} مقعدًا",
-        other: "تبقّى {n} مقعد",
+        one: "تبقّى مكان واحد",
+        two: "تبقّى مكانان",
+        few: "تبقّت {n} أماكن",
+        many: "تبقّى {n} مكانًا",
+        other: "تبقّى {n} مكان",
       }),
     seatKeeper: "حارس",
     seatPlayerPrefers: (code: string) => `لاعب، يفضّل ${code}`,
@@ -75,12 +95,12 @@ export const football = {
     joinWithPrice: (lead: string, price: string) => `${lead}، ${price}`,
     seatsOpen: (n: number) =>
       plural("ar", n, {
-        zero: "لا مقاعد شاغرة",
-        one: "مقعد واحد شاغر",
-        two: "مقعدان شاغران",
-        few: "{n} مقاعد شاغرة",
-        many: "{n} مقعدًا شاغرًا",
-        other: "{n} مقعد شاغر",
+        zero: "لا أماكن شاغرة",
+        one: "مكان واحد شاغر",
+        two: "مكانان شاغران",
+        few: "{n} أماكن شاغرة",
+        many: "{n} مكانًا شاغرًا",
+        other: "{n} مكان شاغر",
       }),
     everyonePlaced: (
       team1: string,
@@ -108,7 +128,7 @@ export const football = {
       score2: number,
       team2: string,
     ) =>
-      `سُمّي ${named1} من ${score1} أهداف ${team1} و${named2} من ${score2} أهداف ${team2}.`,
+      `سُمّي ${named1} من أهداف ${team1} الـ${score1} و${named2} من أهداف ${team2} الـ${score2}.`,
     bothSidesConfirmed: "أكّد الفريقان.",
     confirmedByOrganizer: "أكّده المنظّم.",
     waitingOrganizerFor: (team: string) => `تأكيد المنظّم عن ${team}`,
@@ -126,11 +146,11 @@ export const football = {
     durationLabel: "المدة",
     minutesShort: (n: number) => `${n} د`,
     waitlistedTitle: "أنت في قائمة الانتظار",
-    registeredTitle: "أنت مشارك",
-    joinTitle: "انضم إلى هذه اللعبة",
-    fullTitle: "هذه اللعبة مكتملة",
+    registeredTitle: "أنت في التشكيلة",
+    joinTitle: "انضم إلى هذه المباراة",
+    fullTitle: "هذه المباراة مكتملة",
     joinWaitlistAction: "انضم إلى قائمة الانتظار",
-    fallbackTitle: "لعبة",
+    fallbackTitle: "مباراة",
   },
   hub: {
     sections: {
@@ -138,9 +158,28 @@ export const football = {
         title: "بحاجة إلى تأكيدك",
         meta: "النتيجة مُدخلة أو ناقصة",
       },
-      open: { title: "مقاعد شاغرة", meta: "الفرق غير جاهزة" },
+      open: { title: "أماكن شاغرة", meta: "الفرق غير جاهزة" },
       teams: { title: "الفرق جاهزة", meta: "اطّلع على فريقك" },
       full: { title: "مكتملة", meta: "قائمة الانتظار مفتوحة" },
+    },
+    card: {
+      waitingForPlayers: "بانتظار اللاعبين",
+      playersOf: (taken: number, seats: number) =>
+        plural("ar", seats, {
+          one: `${taken} من لاعب واحد`,
+          two: `${taken} من لاعبَين`,
+          few: `${taken} من {n} لاعبين`,
+          many: `${taken} من {n} لاعبًا`,
+          other: `${taken} من {n} لاعب`,
+        }),
+      openSpots: (n: number) =>
+        plural("ar", n, {
+          one: "، مكان واحد شاغر",
+          two: "، مكانان شاغران",
+          few: "، {n} أماكن شاغرة",
+          many: "، {n} مكانًا شاغرًا",
+          other: "، {n} مكان شاغر",
+        }),
     },
   },
   selfPlacement: {
@@ -150,7 +189,7 @@ export const football = {
     },
     casual: {
       label: "هاوٍ",
-      description: "ألعاب عفوية، تحافظ على مركزك. 1–2× في الأسبوع.",
+      description: "مباريات عفوية، تحافظ على مركزك. 1–2× في الأسبوع.",
     },
     competitive: {
       label: "تنافسي",
@@ -159,9 +198,15 @@ export const football = {
     pro: {
       label: "محترف",
       description:
-        "خلفية نادٍ أو أكاديمية، تتحكم في اللعبة. عدة مرات في الأسبوع.",
+        "خلفية نادٍ أو أكاديمية، تتحكم في المباراة. عدة مرات في الأسبوع.",
     },
   },
   sizeLine: (sideSize: string, players: number) =>
-    `${sideSize} · ${players} لاعبًا`,
+    `${sideSize}، حتى ${plural("ar", players, {
+      one: "لاعب واحد",
+      two: "لاعبَين",
+      few: "{n} لاعبين",
+      many: "{n} لاعبًا",
+      other: "{n} لاعب",
+    })}`,
 } satisfies typeof source;

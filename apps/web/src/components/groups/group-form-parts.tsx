@@ -343,12 +343,11 @@ export function VisibilityCards({
   );
 }
 
-/** The Joining card: a labelled switch with the policy stated under it. */
+/** The Joining card: a labelled switch with what it does in its current state. */
 export function ToggleCard({
   id,
   title,
   help,
-  footer,
   checked,
   onCheckedChange,
   disabled = false,
@@ -356,7 +355,6 @@ export function ToggleCard({
   id: string;
   title: string;
   help: string;
-  footer: string;
   checked: boolean;
   onCheckedChange: (next: boolean) => void;
   disabled?: boolean;
@@ -378,9 +376,6 @@ export function ToggleCard({
           disabled={disabled}
         />
       </div>
-      <p className="border-rule bg-wash text-eyebrow text-muted-foreground border-t px-[18px] py-3">
-        {footer}
-      </p>
     </div>
   );
 }

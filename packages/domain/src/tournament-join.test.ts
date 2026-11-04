@@ -526,7 +526,7 @@ describe("Arabic copy", () => {
         firstRoundDay: "الخميس 25 سبتمبر",
         locale: "ar",
       }),
-      "Bromma Winter Friendly، 3 جولات من الخميس 25 سبتمبر. مثل الانضمام إلى لعبة، لكنك تختار من تلعب معه.",
+      "Bromma Winter Friendly، 3 جولات من الخميس 25 سبتمبر. مثل الانضمام إلى مباراة، لكنك تختار من تلعب معه.",
     );
     assert.equal(
       tournamentJoinSeatExplanation({
@@ -540,7 +540,7 @@ describe("Arabic copy", () => {
     );
     assert.equal(
       tournamentJoinTakeSeatLabel("right", "ar"),
-      "خذ المقعد الأيمن",
+      "خذ المكان الأيمن",
     );
   });
 });

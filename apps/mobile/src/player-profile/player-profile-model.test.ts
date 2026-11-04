@@ -182,7 +182,14 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "draw",
       score: { us: 2, them: 2 },
       goals: 0,
-      game: { name: "Thursday 5s", groupName: null, venueName: "Riffa Pitch" },
+      game: {
+        name: "Thursday 5s",
+        hasCustomName: true,
+        windowStart: null,
+        windowEnd: null,
+        groupName: null,
+        venueName: "Riffa Pitch",
+      },
       canOpenGame: false,
     },
     {
@@ -194,6 +201,9 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       goals: 3,
       game: {
         name: "Thursday 5s",
+        hasCustomName: true,
+        windowStart: null,
+        windowEnd: null,
         groupName: "Riffa Ballers",
         venueName: "Riffa Pitch",
       },

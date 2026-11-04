@@ -118,7 +118,7 @@ describe("ratingImpactView", () => {
     assert.equal(view.directionText, "ارتفع المستوى بمقدار 0.2");
     assert.equal(
       view.sentence,
-      "ما زلت C. نحو لعبتين مصنّفتين أخريين ويتأكد مستواك.",
+      "ما زلت C. نحو مباراتين مصنّفتين أخريين ويتأكد مستواك.",
     );
   });
 

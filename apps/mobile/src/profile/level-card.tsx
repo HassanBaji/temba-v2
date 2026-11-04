@@ -19,7 +19,7 @@ export function ProfileLevelCard({ input }: { input: ProfileLevelInput }) {
   const view = profileLevelView(input, locale);
 
   return (
-    <Card title={m.common.level} meta={m.common.padel}>
+    <Card title={m.home.level.heading.padel}>
       <View
         style={{
           flexDirection: "row",
@@ -51,12 +51,12 @@ export function ProfileLevelCard({ input }: { input: ProfileLevelInput }) {
               {view.level}
             </Text>
             <Text size="meta" tone="muted">
-              {m.common.level}
+              {m.home.level.numberLabel}
             </Text>
           </View>
-          {view.movement ? (
+          {view.movementLabel ? (
             <Text size="meta" tone="muted">
-              {m.mobileHome.level.movement[view.movement]}
+              {view.movementLabel}
             </Text>
           ) : null}
         </View>

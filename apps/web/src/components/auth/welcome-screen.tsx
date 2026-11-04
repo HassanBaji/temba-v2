@@ -7,16 +7,15 @@ import { AuthScreen } from "~/components/auth/auth-screen";
 import { AuthTermsNote } from "~/components/auth/auth-terms-note";
 import { OauthButtons } from "~/components/auth/oauth-buttons";
 import { LanguageToggle } from "~/components/common/language-toggle";
-import { useLocale, useMessages } from "~/components/locale-provider";
+import { useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Button } from "~/components/ui/button";
 import { TembaWordmark } from "~/components/ui/temba-wordmark";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
-import { SPORTS, sportLabel } from "@repo/domain/sport";
+import { SPORTS } from "@repo/domain/sport";
 
 export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
   const m = useMessages();
-  const locale = useLocale();
   const phoneHref = authCrossLinkUrl("/login", redirectUrl);
 
   return (
@@ -45,7 +44,7 @@ export function WelcomeScreen({ redirectUrl }: { redirectUrl: string | null }) {
             className="border-dimrule bg-raised text-meta flex h-9 items-center gap-2 rounded-md border px-3.5 font-medium"
           >
             <SportGlyph sport={sport} className="size-4" />
-            {sportLabel(sport, locale)}
+            {m.webAuth.welcome.sportChips[sport]}
           </li>
         ))}
       </ul>

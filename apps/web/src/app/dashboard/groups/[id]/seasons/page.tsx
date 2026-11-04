@@ -28,6 +28,7 @@ import {
   formatSeasonRange,
   seasonClosedToast,
   seasonCloseEndsLine,
+  seasonDisplayName,
   seasonStatusLabel,
   type GroupSeasonStatus,
 } from "@repo/domain/group-season";
@@ -101,7 +102,7 @@ function SeasonRow({ season }: { season: Season }) {
     <li className="border-rule flex items-center gap-3 border-t px-[18px] py-3.5 first:border-t-0">
       <span className="min-w-0 flex-1">
         <span className="text-body block truncate font-semibold">
-          {season.name}
+          {seasonDisplayName(season.name, locale)}
         </span>
         <span className="text-meta text-muted-foreground block tabular-nums">
           {formatSeasonRange(season, locale)}

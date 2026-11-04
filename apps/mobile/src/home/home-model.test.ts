@@ -20,6 +20,7 @@ describe("levelFromApi", () => {
       progressPercent: null,
       nextBand: null,
       history: [],
+      historyMatchCount: 0,
       ratedMatchCount: 0,
     } as ApiRating;
     assert.deepEqual(levelFromApi(data), { kind: "none" });
@@ -39,12 +40,14 @@ describe("levelFromApi", () => {
       },
       progressPercent: 1,
       history: ["3.2", "2.8"],
+      historyMatchCount: 1,
     } as unknown as ApiRating;
     const level = levelFromApi(data);
     assert.equal(level.kind, "rated");
     if (level.kind !== "rated") return;
     assert.equal(level.input.level, "2.8");
     assert.equal(level.input.progressPercent, 1);
+    assert.equal(level.input.historyMatchCount, 1);
   });
 });
 
@@ -95,7 +98,7 @@ describe("per-sport sections", () => {
   it("reads its labels from the Arabic catalog", () => {
     assert.equal(
       noLevelCopy("padel", "ar"),
-      "العب لعبة بادل مصنّفة ويظهر مستواك في البادل.",
+      "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
     );
     assert.equal(standingCountLabel(2, "ar"), "مجموعتان");
     assert.equal(venueCountLabel(3, "ar"), "3 أندية قريبة");

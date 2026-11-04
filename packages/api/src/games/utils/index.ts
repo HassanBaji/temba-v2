@@ -84,6 +84,8 @@ export type HubListFootball = HubGameFootball;
 export type HubListRow = {
   id: string;
   name: string | null;
+  /** False when `name` is the window label the Game was created with. */
+  hasCustomName?: boolean;
   format: GameFormatEnum | string;
   registrationMode: GameRegistrationModeEnum | string;
   sport: GameSportEnum | string | null;

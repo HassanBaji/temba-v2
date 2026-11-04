@@ -72,7 +72,7 @@ describe("levelRangeRequestCard", () => {
     assert.equal(card?.title, "طلب اللعب");
     assert.equal(
       card?.copy,
-      "هذه اللعبة مخصصة لمن هم في المستوى C/B-. مستواك C-.",
+      "هذه المباراة مخصصة لمن هم في المستوى C/B-. مستواك C-.",
     );
   });
 

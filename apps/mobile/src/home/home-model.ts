@@ -54,6 +54,7 @@ export function levelFromApi(data: ApiRating): HomeLevel {
       provisional: data.rating.provisional,
       ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
       history: data.history,
+      historyMatchCount: data.historyMatchCount,
       progressPercent: data.progressPercent,
     },
   };

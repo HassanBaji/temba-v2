@@ -1,6 +1,7 @@
 import {
   communities,
   CommunityRoleEnum,
+  groupMembers,
   groups,
   teams,
   user,
@@ -148,6 +149,31 @@ describe("loadHome pendingInviteCount", () => {
 
       const result = await loadHome(db, { userId: viewer.id });
       expect(result.pendingInviteCount).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("loadHome standing", () => {
+  it("has no position for a member without a counted Match", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "home-standing-new@example.com");
+      const [group] = await db
+        .insert(groups)
+        .values({ name: "Fresh Group", createdBy: viewer.id })
+        .returning({ id: groups.id });
+      if (!group) {
+        throw new Error("Failed to insert group");
+      }
+      await db
+        .insert(groupMembers)
+        .values({ groupId: group.id, userId: viewer.id });
+
+      const result = await loadHome(db, { userId: viewer.id });
+      expect(result.standing).toHaveLength(1);
+      expect(result.standing[0]?.position).toBeNull();
     } finally {
       await close();
     }

@@ -50,16 +50,11 @@ function matchesQuery(name: string, query: string) {
 function footballLabel(pick: GroupMemberFootballPick, locale: Locale): string {
   const m = messagesFor(locale).group.addPlayer;
   if (pick.role === "keeper") {
-    return m.footballRole.keeper.name;
+    return m.roles.keeper;
   }
-  if (pick.position === "none") {
-    return m.noPreference;
-  }
-  return (
-    footballPositionChoices(locale).find(
-      (choice) => choice.value === pick.position,
-    )?.label ?? m.noPreference
-  );
+  return pick.position === "none"
+    ? m.positions.any
+    : m.positions[pick.position];
 }
 
 /**

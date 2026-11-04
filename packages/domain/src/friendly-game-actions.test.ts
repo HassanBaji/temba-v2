@@ -75,8 +75,8 @@ describe("friendlyGameFooterActions", () => {
       phase: "ongoing",
       locale: "ar",
     });
-    assert.equal(actions[0]?.label, "تعديل اللعبة");
-    assert.equal(actions[1]?.consequence, "يزيلها من تقويم 3 لاعبين.");
+    assert.equal(actions[0]?.label, "تعديل المباراة");
+    assert.equal(actions[1]?.consequence, "تُحذف من تقويم كل المسجّلين (3).");
   });
 
   it("locks Report a wrong score when it is not eligible", () => {
@@ -104,6 +104,7 @@ describe("friendlyGameCtaCopy", () => {
           kind: "upcoming",
           vacantSeatCount: 1,
           showInvite: false,
+          live: false,
         },
         "en",
       ),
@@ -146,5 +147,27 @@ describe("friendlyGameCtaCopy", () => {
     const copy = friendlyGameCtaCopy({ kind: "waitlisted", place: 3 }, "ar");
     assert.equal(copy?.title, "أنت في المرتبة 3 في قائمة الانتظار");
     assert.equal(copy?.actionLabel, "مغادرة قائمة الانتظار");
+  });
+
+  it("says the Game has started when spots are still open", () => {
+    const upcoming = {
+      kind: "upcoming",
+      vacantSeatCount: 3,
+      showInvite: false,
+    };
+    const before = friendlyGameCtaCopy(
+      { ...upcoming, live: false } as const,
+      "ar",
+    );
+    assert.equal(before?.title, "أنت في التشكيلة");
+    assert.equal(before?.subline, "ينقص 3 لاعبين");
+    assert.equal(
+      friendlyGameCtaCopy({ ...upcoming, live: true } as const, "ar")?.subline,
+      "بدأت المباراة وينقص 3 لاعبين",
+    );
+    assert.equal(
+      friendlyGameCtaCopy({ ...upcoming, live: true } as const, "en")?.subline,
+      "Started with 3 spots open",
+    );
   });
 });

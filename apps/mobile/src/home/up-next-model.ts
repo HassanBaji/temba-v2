@@ -4,11 +4,14 @@ import {
   formatWeekday,
 } from "@repo/domain/format-game-start";
 import { gameCardRosterOccupancy } from "@repo/domain/game-card";
-import { sideSizeLabel } from "@repo/domain/game-shape";
 import {
   homeComingUpRows,
   homeComingUpSeatBars,
 } from "@repo/domain/home-coming-up";
+import {
+  homeGameRowLines,
+  homeOpenSpotsLabel,
+} from "@repo/domain/home-game-lines";
 import { productDaysBetween } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
@@ -123,23 +126,11 @@ export function upNextDayLabel(
   return formatDayMonth(startsAt, locale);
 }
 
-function gamePlace(game: UpNextGame, locale: Locale): string | null {
-  const side = game.football?.sideSize
-    ? sideSizeLabel(game.football.sideSize, locale)
-    : null;
-  return messagesFor(locale).mobileHome.join.parts(
-    [game.venue?.name, game.courtName ?? side].filter((part): part is string =>
-      Boolean(part),
-    ),
-  );
-}
-
 function gameRow(
   item: Extract<UpNextItem, { kind: "game" }>,
   shared: Pick<UpNextRowView, "key" | "day" | "time" | "sport">,
   locale: Locale,
 ): UpNextRowView {
-  const m = messagesFor(locale).mobileHome;
   const { game } = item;
   const [row] = homeComingUpRows([game], locale);
 
@@ -170,14 +161,11 @@ function gameRow(
     };
   }
 
-  const place = gamePlace(game, locale);
-  const title =
-    game.name ?? game.groupName ?? game.venue?.name ?? m.upNext.kind.game;
-  const detail = place && place !== title ? place : null;
+  const { title, detail } = homeGameRowLines(game, locale);
   const allowed = gameCardRosterOccupancy(game) ? game.playersAllowed : null;
   const roster =
     allowed != null
-      ? m.upNext.rosterCount(game.registeredUserCount, allowed)
+      ? homeOpenSpotsLabel(game.registeredUserCount, allowed, locale)
       : null;
   const seats = row?.kind === "game" ? homeComingUpSeatBars(row, locale) : null;
   const trailing: UpNextTrailing | null = roster
@@ -185,10 +173,7 @@ function gameRow(
     : seats && seats.bars.length > 0
       ? { kind: "bars", bars: seats.bars }
       : null;
-  const occupancy =
-    allowed != null
-      ? m.upNext.rosterSpoken(game.registeredUserCount, allowed)
-      : (seats?.spokenLabel ?? null);
+  const occupancy = roster ?? seats?.spokenLabel ?? null;
 
   return {
     ...shared,

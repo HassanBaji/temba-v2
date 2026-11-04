@@ -141,11 +141,6 @@ function heroModel(
   const over =
     input.windowEnd != null && input.windowEnd.getTime() < now.getTime();
   const kickoff = start ? formatHomeKickoff(start, locale) : null;
-  const live =
-    start != null &&
-    start.getTime() <= now.getTime() &&
-    !over &&
-    !input.cancelledAt;
   return {
     tone: heroTone(input, now),
     dateLabel: start ? formatAbsoluteDay(start, locale) : null,
@@ -154,12 +149,7 @@ function heroModel(
       : over
         ? m.status.played
         : start
-          ? formatHeroCountdown(
-              live ? "ongoing" : "upcoming",
-              start,
-              now,
-              locale,
-            )
+          ? formatHeroCountdown(start, input.windowEnd, now, locale)
           : null,
     kickoffTime: kickoff?.time ?? null,
     trailer: start

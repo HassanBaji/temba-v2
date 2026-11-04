@@ -10,6 +10,7 @@ import {
   formatNationalNumber,
   nationalDigits,
   parseE164,
+  phoneShapePlaceholder,
 } from "./phone-number";
 
 const SAMPLES: Record<
@@ -162,6 +163,14 @@ describe("parseE164", () => {
   it("rejects malformed E.164", () => {
     assert.equal(parseE164("97336124408"), null);
     assert.equal(parseE164("+9733612"), null);
+  });
+});
+
+describe("phoneShapePlaceholder", () => {
+  it("keeps the leading digit and masks the rest", () => {
+    assert.equal(phoneShapePlaceholder("BH"), "3XXX XXXX");
+    assert.equal(phoneShapePlaceholder("SA"), "5X XXX XXXX");
+    assert.equal(phoneShapePlaceholder("ZZ"), undefined);
   });
 });
 
