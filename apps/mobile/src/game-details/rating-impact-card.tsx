@@ -79,9 +79,16 @@ export function UnratedCard() {
   const locale = useLocale();
   return (
     <Card title={unratedLabel(locale)}>
-      <Text size="meta" tone="muted">
-        {unratedGameLine(locale)}
-      </Text>
+      <View
+        style={{
+          paddingHorizontal: spacing.surface,
+          paddingBottom: spacing.surface,
+        }}
+      >
+        <Text size="meta" tone="muted">
+          {unratedGameLine(locale)}
+        </Text>
+      </View>
     </Card>
   );
 }
