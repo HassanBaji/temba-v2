@@ -809,7 +809,7 @@ export default function GameHomePage({
           [firstMatch?.courtName, data.venue.city]
             .filter(Boolean)
             .join(" · ") || null,
-        directionsUrl: friendlyGameVenueDirectionsUrl(data.venue),
+        directionsUrl: friendlyGameVenueDirectionsUrl(data.venue, locale),
       }
     : null;
   const heroFigures = courtFigures({

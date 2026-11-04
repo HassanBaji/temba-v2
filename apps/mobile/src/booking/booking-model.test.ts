@@ -305,18 +305,24 @@ describe("directionsUrl", () => {
   };
 
   it("routes to the pin in Apple Maps on iOS and Google Maps elsewhere", () => {
-    expect(directionsUrl(venue, "ios")).toBe(
+    expect(directionsUrl(venue, "ios", "en")).toBe(
       "https://maps.apple.com/?daddr=26.21%2C50.58",
     );
-    expect(directionsUrl(venue, "android")).toBe(
+    expect(directionsUrl(venue, "android", "en")).toBe(
       "https://www.google.com/maps/dir/?api=1&destination=26.21%2C50.58",
     );
   });
 
   it("searches the name and city when the Venue has no pin", () => {
     expect(
-      directionsUrl({ ...venue, latitude: null, longitude: null }, "ios"),
+      directionsUrl({ ...venue, latitude: null, longitude: null }, "ios", "en"),
     ).toBe("https://maps.apple.com/?daddr=Padel%20Central%2C%20Manama");
+  });
+
+  it("opens Google Maps in Arabic for an Arabic reader", () => {
+    expect(directionsUrl(venue, "android", "ar")).toBe(
+      "https://www.google.com/maps/dir/?api=1&destination=26.21%2C50.58&hl=ar",
+    );
   });
 });
 

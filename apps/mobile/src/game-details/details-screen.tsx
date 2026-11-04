@@ -740,7 +740,11 @@ export function GameDetailsScreen({
     onDirections: venue
       ? () =>
           void Linking.openURL(
-            directionsUrl({ ...venue, city: venue.city ?? "" }, Platform.OS),
+            directionsUrl(
+              { ...venue, city: venue.city ?? "" },
+              Platform.OS,
+              locale,
+            ),
           )
       : null,
   };

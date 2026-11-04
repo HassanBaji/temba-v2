@@ -102,17 +102,17 @@ describe("friendlyGameOccupancyLabel", () => {
 describe("friendlyGameDirectionsUrl", () => {
   it("builds the maps query URL when both coordinates parse to a number", () => {
     assert.equal(
-      friendlyGameDirectionsUrl("26.228509", "50.58605"),
+      friendlyGameDirectionsUrl("26.228509", "50.58605", "en"),
       "https://www.google.com/maps/search/?api=1&query=26.228509,50.58605",
     );
   });
 
   it("is omitted when either coordinate is missing or not a number", () => {
-    assert.equal(friendlyGameDirectionsUrl(null, "50.58605"), null);
-    assert.equal(friendlyGameDirectionsUrl("26.228509", null), null);
-    assert.equal(friendlyGameDirectionsUrl(undefined, undefined), null);
-    assert.equal(friendlyGameDirectionsUrl("", "50.58605"), null);
-    assert.equal(friendlyGameDirectionsUrl("26.228509", "east"), null);
+    assert.equal(friendlyGameDirectionsUrl(null, "50.58605", "en"), null);
+    assert.equal(friendlyGameDirectionsUrl("26.228509", null, "en"), null);
+    assert.equal(friendlyGameDirectionsUrl(undefined, undefined, "en"), null);
+    assert.equal(friendlyGameDirectionsUrl("", "50.58605", "en"), null);
+    assert.equal(friendlyGameDirectionsUrl("26.228509", "east", "en"), null);
   });
 });
 
@@ -141,25 +141,46 @@ describe("friendlyGameDateDurationLine", () => {
 describe("friendlyGameVenueDirectionsUrl", () => {
   it("uses the pin when the Venue has one", () => {
     assert.equal(
-      friendlyGameVenueDirectionsUrl({
-        name: "Bay Padel",
-        city: "Porto",
-        latitude: "26.228509",
-        longitude: "50.58605",
-      }),
+      friendlyGameVenueDirectionsUrl(
+        {
+          name: "Bay Padel",
+          city: "Porto",
+          latitude: "26.228509",
+          longitude: "50.58605",
+        },
+        "en",
+      ),
       "https://www.google.com/maps/search/?api=1&query=26.228509,50.58605",
     );
   });
 
   it("searches the name and city without a pin", () => {
     assert.equal(
-      friendlyGameVenueDirectionsUrl({
-        name: "Bay Padel",
-        city: "Porto",
-        latitude: null,
-        longitude: null,
-      }),
+      friendlyGameVenueDirectionsUrl(
+        {
+          name: "Bay Padel",
+          city: "Porto",
+          latitude: null,
+          longitude: null,
+        },
+        "en",
+      ),
       "https://www.google.com/maps/search/?api=1&query=Bay%20Padel%2C%20Porto",
     );
+  });
+
+  it("opens Google Maps in Arabic for an Arabic reader", () => {
+    const url = new URL(
+      friendlyGameVenueDirectionsUrl(
+        {
+          name: "Bay Padel",
+          city: "Porto",
+          latitude: "26.228509",
+          longitude: "50.58605",
+        },
+        "ar",
+      ),
+    );
+    assert.equal(url.searchParams.get("hl"), "ar");
   });
 });
