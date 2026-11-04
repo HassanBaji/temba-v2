@@ -165,8 +165,7 @@ export const mobileGroup = {
         many: "{n} مباراة",
         other: "{n} مباراة",
       }),
-    joined: (joined: number, allowed: number) =>
-      `انضم ${joined} من ${allowed}`,
+    joined: (joined: number, allowed: number) => `انضم ${joined} من ${allowed}`,
     joinedOpen: (joined: number) => `انضم ${joined}`,
     sideSpoken: (name: string, score: string) => `${name} ${score}`,
     card: (parts: string[]) => parts.join(". "),

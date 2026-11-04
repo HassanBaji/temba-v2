@@ -121,9 +121,7 @@ export const mobileGroup = {
     versus: (first: string, second: string) => `${first} vs ${second}`,
     pair: (first: string, second: string) => `${first} & ${second}`,
     record: (wins: number, draws: number | null, losses: number) =>
-      draws == null
-        ? `W${wins} L${losses}`
-        : `W${wins} D${draws} L${losses}`,
+      draws == null ? `W${wins} L${losses}` : `W${wins} D${draws} L${losses}`,
     recordSpoken: (wins: number, draws: number | null, losses: number) =>
       draws == null
         ? `${wins} won, ${losses} lost`
