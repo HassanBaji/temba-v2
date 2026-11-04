@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { ACTION_MENU_PAPER_BOXED_TRIGGER } from "~/components/common/action-menu";
-import { FooterAction } from "~/components/games/friendly-game-actions-footer";
+import { FooterAction } from "~/components/games/footer-action";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
