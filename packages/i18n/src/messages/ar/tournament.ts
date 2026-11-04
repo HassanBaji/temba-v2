@@ -451,7 +451,8 @@ export const tournament = {
     samePosition: "سيلعب المستخدمان في الجهة نفسها",
     openPositionSr: "جهة شاغرة",
     teamEyebrow: (index: string) => `الفريق ${index}`,
-    occupantSubline: (seat: string, level: string) => `${seat}، ${level}`,
+    occupantSubline: (seat: string, level: string) =>
+      `${seat}، ${isolate(level)}`,
     leftOpen: "اليسار شاغر",
     rightOpen: "اليمين شاغر",
     openLeft: "اليسار شاغر",

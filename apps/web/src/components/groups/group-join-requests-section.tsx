@@ -79,6 +79,7 @@ function LevelChip({ level }: { level: JoinRequest["level"] }) {
   }
   return (
     <span
+      dir="ltr"
       className={cn(
         "border-ink rounded-xs text-eyebrow shrink-0 border px-1 font-mono",
         view.kind === "provisional" && "hatch",

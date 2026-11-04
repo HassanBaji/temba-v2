@@ -179,7 +179,7 @@ export function SetLevelFields({
           className="font-expanded flex items-baseline gap-3"
           aria-live="polite"
         >
-          <span className="text-[60px] leading-[0.94]">
+          <span dir="ltr" className="text-[60px] leading-[0.94]">
             {readout.displayBand}
           </span>
           <span className="text-[28px]">{readout.levelLabel}</span>

@@ -259,7 +259,9 @@ function ManualRow({
           <p className="font-mono text-[11px] opacity-70">{code}</p>
         ) : null}
       </div>
-      <span className="font-expanded">{levelLabel(player.levelBand)}</span>
+      <span dir="ltr" className="font-expanded">
+        {levelLabel(player.levelBand)}
+      </span>
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}

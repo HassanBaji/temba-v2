@@ -17,9 +17,13 @@ export function SettingsFooter({
   const m = useMessages();
   const [signingOut, setSigningOut] = React.useState(false);
   const identity =
-    phoneNumber != null && phoneNumber !== ""
-      ? `${displayName} · ${phoneNumber}`
-      : displayName;
+    phoneNumber != null && phoneNumber !== "" ? (
+      <>
+        {displayName} · <bdi dir="ltr">{phoneNumber}</bdi>
+      </>
+    ) : (
+      displayName
+    );
 
   async function signOut() {
     if (signingOut) {

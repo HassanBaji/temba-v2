@@ -60,6 +60,7 @@ export function ProfileLevelCard({
           <div>
             <p
               aria-hidden="true"
+              dir="ltr"
               className="font-expanded text-[60px] leading-[0.94]"
             >
               {view.displayBand}

@@ -72,6 +72,7 @@ export function LevelChoiceGrid({
             role="radio"
             aria-checked={selected}
             variant={selected ? "default" : "outline"}
+            dir={option.value === UNKNOWN_LEVEL_CHOICE ? undefined : "ltr"}
             className={cn(
               "min-h-11",
               option.value === UNKNOWN_LEVEL_CHOICE && "col-span-3",

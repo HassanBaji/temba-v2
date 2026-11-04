@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { webTournament as source } from "../en/web-tournament";
 
@@ -177,7 +178,8 @@ export const webTournament = {
   footballPlayer: {
     prefers: (label: string) => `يفضّل ${label}`,
     noPositionYet: "لا مركز بعد",
-    subtitle: (role: string, level: string) => `${role}، المستوى ${level}`,
+    subtitle: (role: string, level: string) =>
+      `${role}، المستوى ${isolate(level)}`,
     viewProfile: "عرض الملف الشخصي",
     renameLabel: (name: string) => `تعديل الاسم: ${name}`,
   },

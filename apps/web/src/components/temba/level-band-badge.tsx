@@ -23,6 +23,7 @@ export function LevelBandBadge({ band }: { band: LevelBand }) {
   return (
     <Badge
       variant="outline"
+      dir="ltr"
       aria-label={m.webUi.levelBand(label)}
       className={cn(BAND_GROUP_STYLES[group])}
     >

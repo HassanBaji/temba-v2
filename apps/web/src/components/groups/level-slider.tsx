@@ -32,7 +32,7 @@ export function LevelSlider({
           className="bg-ink text-paper text-meta absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 font-semibold rtl:translate-x-1/2"
           style={{ insetInlineStart: insetAt(tenths) }}
         >
-          {levelSliderLabel(tenths)}
+          <bdi dir="ltr">{levelSliderLabel(tenths)}</bdi>
         </span>
       </div>
       <div className="relative">

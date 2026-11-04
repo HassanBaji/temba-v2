@@ -55,7 +55,7 @@ export function BibRow({
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
       ) : null}
-      <span className="font-expanded text-meta">
+      <span dir="ltr" className="font-expanded text-meta">
         {levelLabel(player.levelBand)}
       </span>
     </>

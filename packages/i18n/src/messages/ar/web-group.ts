@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { webGroup as source } from "../en/web-group";
 
@@ -143,7 +144,7 @@ export const webGroup = {
     afterFirstResultTitle: "يظهر الترتيب بعد أول نتيجة",
   },
   setLevel: {
-    now: (level: string) => `الآن ${level}`,
+    now: (level: string) => `الآن ${isolate(level)}`,
     ratedMatches: (n: number) =>
       plural("ar", n, {
         zero: "لا مباريات مصنّفة",
@@ -154,12 +155,14 @@ export const webGroup = {
         other: "{n} مباراة مصنّفة",
       }),
     latestSet: "آخر تحديد للمستوى: ",
-    was: (level: string) => `كان ${level}`,
+    was: (level: string) => `كان ${isolate(level)}`,
     noLevelYet: "لا مستوى بعد",
     newLevel: "المستوى الجديد",
-    toNext: (distance: string, band: string) => `${distance} حتى ${band}`,
+    toNext: (distance: string, band: string) =>
+      `${distance} حتى ${isolate(band)}`,
     topOfScale: "أعلى المقياس",
-    throughRung: (percent: number, band: string) => `${percent}% من ${band}`,
+    throughRung: (percent: number, band: string) =>
+      `${percent}% من ${isolate(band)}`,
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
     reset: "إعادة ضبط",
@@ -168,6 +171,6 @@ export const webGroup = {
       "المستوى الذي تحدده يُعدّ مؤكدًا. تواصل المباريات المصنّفة تحريكه من هنا.",
     provisionalNote: (name: string) =>
       `لن يبقى ${name} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
-    setTo: (level: string) => `تحديد إلى ${level}`,
+    setTo: (level: string) => `تحديد إلى ${isolate(level)}`,
   },
 } satisfies typeof source;

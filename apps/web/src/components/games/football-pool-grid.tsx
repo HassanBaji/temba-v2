@@ -77,7 +77,7 @@ function PlayerTile({
       </span>
       <span className="flex items-baseline justify-between gap-1">
         <span className="truncate text-[12px]">{name}</span>
-        <span className="font-expanded text-meta">
+        <span dir="ltr" className="font-expanded text-meta">
           {levelLabel(player.levelBand)}
         </span>
       </span>

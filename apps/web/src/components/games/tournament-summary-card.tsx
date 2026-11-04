@@ -212,7 +212,9 @@ function TeamPairs({
         <PlaceholderPair key={index} />
       ))}
       {remaining > 0 ? (
-        <span className="text-muted-foreground text-meta">+{remaining}</span>
+        <span className="text-muted-foreground text-meta">
+          <bdi dir="ltr">+{remaining}</bdi>
+        </span>
       ) : null}
     </div>
   );

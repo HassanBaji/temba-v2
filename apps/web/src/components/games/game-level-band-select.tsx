@@ -55,7 +55,7 @@ export function GameLevelBandSelect({
         <SelectItem value={LEVEL_BAND_SELECT_NONE}>{m.common.none}</SelectItem>
         {ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => (
           <SelectItem key={band} value={band}>
-            {band}
+            <bdi dir="ltr">{band}</bdi>
           </SelectItem>
         ))}
       </SelectContent>

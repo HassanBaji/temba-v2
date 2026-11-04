@@ -245,7 +245,8 @@ export const game = {
     cancelledNote: "أُلغيت هذه المباراة. يبقى الجالسون مدرجين.",
     leftSeat: "المكان الأيسر",
     rightSeat: "المكان الأيمن",
-    seatWithLevel: (seat: string, band: string) => `${seat} — المستوى ${band}`,
+    seatWithLevel: (seat: string, band: string) =>
+      `${seat} — المستوى ${isolate(band)}`,
     openLeftSeat: "مكان أيسر شاغر",
     openRightSeat: "مكان أيمن شاغر",
     inviteToLeftSeat: (side: string) => `دعوة إلى ${side}، يسار`,

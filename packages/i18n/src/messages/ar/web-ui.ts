@@ -1,4 +1,5 @@
 import type { webUi as source } from "../en/web-ui";
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 
 export const webUi = {
@@ -155,7 +156,7 @@ export const webUi = {
     story: "قصة",
     sticker: "ملصق",
     shareImage: "مشاركة الصورة",
-    storyFormat: "1080 × 1920 · قصة",
+    storyFormat: `${isolate("1080 × 1920")} · قصة`,
     stickerFormat: "PNG شفافة · ملصق",
     shareSticker: "مشاركة الملصق",
     savePng: "حفظ PNG",

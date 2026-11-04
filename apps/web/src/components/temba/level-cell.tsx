@@ -48,6 +48,7 @@ export function LevelCell({
       >
         <span
           aria-hidden="true"
+          dir="ltr"
           className={cn(
             "flex h-5 items-center justify-center rounded-[4px]",
             hatchText ? "text-meta px-1.5 font-semibold" : "w-11",
@@ -70,7 +71,7 @@ export function LevelCell({
       data-slot="level-cell"
       className={cn("font-expanded text-lead block text-end", className)}
     >
-      {text}
+      <bdi dir="ltr">{text}</bdi>
     </span>
   );
 }

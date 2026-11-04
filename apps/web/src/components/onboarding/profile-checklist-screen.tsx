@@ -41,7 +41,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function DoneRow({ label, value }: { label: string; value: string }) {
+function DoneRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <li className="flex min-h-[52px] items-center gap-3.5 px-4 py-3">
       <TaskMarker done />
@@ -223,10 +223,14 @@ function Checklist({
   const m = useMessages();
   const locale = useLocale();
   const copy = m.webAuth.onboarding.checklist;
-  const doneAtSignUp = [
-    name ? { label: copy.nameLabel, value: name } : null,
-    phone ? { label: copy.mobileNumberLabel, value: phone } : null,
-  ].filter((row): row is { label: string; value: string } => row !== null);
+  const doneAtSignUp = (
+    [
+      name ? { label: copy.nameLabel, value: name } : null,
+      phone
+        ? { label: copy.mobileNumberLabel, value: <bdi dir="ltr">{phone}</bdi> }
+        : null,
+    ] satisfies ({ label: string; value: React.ReactNode } | null)[]
+  ).filter((row) => row !== null);
 
   return (
     <AuthScreen

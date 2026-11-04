@@ -57,7 +57,7 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
       <div className="flex items-stretch gap-4 px-[22px] pb-[22px]">
         <p className="font-expanded text-[88px] leading-none">
           <span className="sr-only">{`${m.webAuth.home.levelBandSpoken} `}</span>
-          {view.displayBand}
+          <span dir="ltr">{view.displayBand}</span>
         </p>
         <div className="bg-rule w-px self-stretch" />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
