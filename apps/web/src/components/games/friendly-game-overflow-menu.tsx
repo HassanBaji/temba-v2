@@ -1,12 +1,18 @@
 "use client";
 
-import { Fragment, type RefObject } from "react";
+import {
+  LockIcon,
+  LockOpenIcon,
+  LogOutIcon,
+  Share2Icon,
+  UserRoundPlusIcon,
+} from "lucide-react";
+import type { RefObject } from "react";
 
 import {
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
-} from "~/components/common/action-menu";
+  GameActionsSheet,
+  type GameActionsSheetRow,
+} from "~/components/games/game-actions-sheet";
 import {
   CLOSE_REGISTRATION_ACTION,
   REOPEN_REGISTRATION_ACTION,
@@ -23,6 +29,8 @@ import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
  */
 export function FriendlyGameOverflowMenu({
   items,
+  title,
+  description,
   triggerRef,
   triggerClassName,
   closePending,
@@ -34,6 +42,8 @@ export function FriendlyGameOverflowMenu({
   onLeaveWaitlist,
 }: {
   items: FriendlyGameOverflowItem[];
+  title: string;
+  description?: string | null;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   triggerClassName?: string;
   closePending: boolean;
@@ -44,53 +54,59 @@ export function FriendlyGameOverflowMenu({
   onShare: () => void;
   onLeaveWaitlist: () => void;
 }) {
-  if (items.length === 0) {
-    return null;
-  }
+  const rowFor = (item: FriendlyGameOverflowItem): GameActionsSheetRow => {
+    switch (item) {
+      case "close_registration":
+        return {
+          key: item,
+          label: CLOSE_REGISTRATION_ACTION,
+          icon: LockIcon,
+          disabled: closePending,
+          onSelect: onCloseRegistration,
+        };
+      case "reopen_registration":
+        return {
+          key: item,
+          label: REOPEN_REGISTRATION_ACTION,
+          icon: LockOpenIcon,
+          disabled: reopenPending,
+          onSelect: onReopenRegistration,
+        };
+      case "invite":
+        return {
+          key: item,
+          label: "Invite",
+          icon: UserRoundPlusIcon,
+          onSelect: onInvite,
+        };
+      case "share":
+        return {
+          key: item,
+          label: "Share",
+          icon: Share2Icon,
+          onSelect: onShare,
+        };
+      case "leave_waitlist":
+        return {
+          key: item,
+          label: "Leave waitlist",
+          icon: LogOutIcon,
+          tone: "danger",
+          onSelect: onLeaveWaitlist,
+        };
+    }
+  };
 
   return (
-    <ActionMenu
+    <GameActionsSheet
+      title={title}
+      description={description}
       triggerRef={triggerRef}
       triggerClassName={triggerClassName}
-      label="Game actions"
-    >
-      {items.map((item, index) => {
-        const previous = items[index - 1];
-        const showSeparator = item === "leave_waitlist" && previous != null;
-
-        return (
-          <Fragment key={item}>
-            {showSeparator ? <ActionMenuSeparator /> : null}
-            {item === "close_registration" ? (
-              <ActionMenuItem
-                disabled={closePending}
-                onSelect={onCloseRegistration}
-              >
-                {CLOSE_REGISTRATION_ACTION}
-              </ActionMenuItem>
-            ) : null}
-            {item === "reopen_registration" ? (
-              <ActionMenuItem
-                disabled={reopenPending}
-                onSelect={onReopenRegistration}
-              >
-                {REOPEN_REGISTRATION_ACTION}
-              </ActionMenuItem>
-            ) : null}
-            {item === "invite" ? (
-              <ActionMenuItem onSelect={onInvite}>Invite</ActionMenuItem>
-            ) : null}
-            {item === "share" ? (
-              <ActionMenuItem onSelect={onShare}>Share</ActionMenuItem>
-            ) : null}
-            {item === "leave_waitlist" ? (
-              <ActionMenuItem variant="destructive" onSelect={onLeaveWaitlist}>
-                Leave waitlist
-              </ActionMenuItem>
-            ) : null}
-          </Fragment>
-        );
-      })}
-    </ActionMenu>
+      groups={[
+        items.filter((item) => item !== "leave_waitlist").map(rowFor),
+        items.filter((item) => item === "leave_waitlist").map(rowFor),
+      ]}
+    />
   );
 }

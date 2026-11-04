@@ -1,6 +1,14 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import {
+  Ban,
+  LockIcon,
+  LockOpenIcon,
+  LogOutIcon,
+  PencilIcon,
+  UserPlusIcon,
+  UserRoundPlusIcon,
+} from "lucide-react";
 import { notFound, usePathname, useRouter } from "next/navigation";
 import { use } from "react";
 import * as React from "react";
@@ -9,9 +17,6 @@ import { toast } from "sonner";
 import {
   ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_PAPER_BOXED_TRIGGER,
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
@@ -20,6 +25,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FriendlyGameActionsFooter } from "~/components/games/friendly-game-actions-footer";
 import { FootballGameDetails } from "~/components/games/football-game-details";
+import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
@@ -744,6 +750,7 @@ export default function GameHomePage({
     usesFriendlyChrome && overflowItems.length > 0 ? (
       <FriendlyGameOverflowMenu
         items={overflowItems}
+        title={gameName}
         triggerClassName={
           tone === "ink"
             ? ACTION_MENU_INK_BOXED_TRIGGER
@@ -755,61 +762,89 @@ export default function GameHomePage({
   const organizerMenu = usesFriendlyChrome ? null : showMenu ||
     primaryLeave ||
     primaryLeaveWaitlist ? (
-    <ActionMenu label="Game actions">
-      {showMenu ? (
-        <>
-          <ActionMenuItem onSelect={() => setEditOpen(true)}>
-            {EDIT_GAME_ACTION}
-          </ActionMenuItem>
-          {data.registrationClosedAt ? (
-            <ActionMenuItem
-              disabled={data.joinFrozen || reopenRegistration.isPending}
-              onSelect={() => reopenRegistration.mutate({ gameId: id })}
-            >
-              {REOPEN_REGISTRATION_ACTION}
-            </ActionMenuItem>
-          ) : (
-            <ActionMenuItem
-              disabled={closeRegistration.isPending}
-              onSelect={() => closeRegistration.mutate({ gameId: id })}
-            >
-              {CLOSE_REGISTRATION_ACTION}
-            </ActionMenuItem>
-          )}
-          {canManageGameInvites ? (
-            <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-              Invite
-            </ActionMenuItem>
-          ) : null}
-          {openAddPlayer ? (
-            <ActionMenuItem onSelect={openAddPlayer}>
-              {ADD_PLAYER_ACTION}
-            </ActionMenuItem>
-          ) : null}
-        </>
-      ) : null}
-      {primaryLeave ? (
-        <ActionMenuItem onSelect={() => setLeaveGameOpen(true)}>
-          {LEAVE_GAME_ACTION}
-        </ActionMenuItem>
-      ) : null}
-      {primaryLeaveWaitlist ? (
-        <ActionMenuItem onSelect={() => setLeaveWaitlistOpen(true)}>
-          {LEAVE_WAITLIST_ACTION}
-        </ActionMenuItem>
-      ) : null}
-      {showMenu ? (
-        <>
-          <ActionMenuSeparator />
-          <ActionMenuItem
-            variant="destructive"
-            onSelect={() => setCancelGameOpen(true)}
-          >
-            {CANCEL_GAME_ACTION}
-          </ActionMenuItem>
-        </>
-      ) : null}
-    </ActionMenu>
+    <GameActionsSheet
+      title={gameName}
+      groups={[
+        [
+          ...(showMenu
+            ? [
+                {
+                  key: "edit",
+                  label: EDIT_GAME_ACTION,
+                  icon: PencilIcon,
+                  onSelect: () => setEditOpen(true),
+                },
+                data.registrationClosedAt
+                  ? {
+                      key: "reopen_registration",
+                      label: REOPEN_REGISTRATION_ACTION,
+                      icon: LockOpenIcon,
+                      disabled: data.joinFrozen || reopenRegistration.isPending,
+                      onSelect: () => reopenRegistration.mutate({ gameId: id }),
+                    }
+                  : {
+                      key: "close_registration",
+                      label: CLOSE_REGISTRATION_ACTION,
+                      icon: LockIcon,
+                      disabled: closeRegistration.isPending,
+                      onSelect: () => closeRegistration.mutate({ gameId: id }),
+                    },
+                ...(canManageGameInvites
+                  ? [
+                      {
+                        key: "invite",
+                        label: "Invite",
+                        icon: UserRoundPlusIcon,
+                        onSelect: () => setInvitesOpen(true),
+                      },
+                    ]
+                  : []),
+                ...(openAddPlayer
+                  ? [
+                      {
+                        key: "add_player",
+                        label: ADD_PLAYER_ACTION,
+                        icon: UserPlusIcon,
+                        onSelect: openAddPlayer,
+                      },
+                    ]
+                  : []),
+              ]
+            : []),
+          ...(primaryLeave
+            ? [
+                {
+                  key: "leave",
+                  label: LEAVE_GAME_ACTION,
+                  icon: LogOutIcon,
+                  onSelect: () => setLeaveGameOpen(true),
+                },
+              ]
+            : []),
+          ...(primaryLeaveWaitlist
+            ? [
+                {
+                  key: "leave_waitlist",
+                  label: LEAVE_WAITLIST_ACTION,
+                  icon: LogOutIcon,
+                  onSelect: () => setLeaveWaitlistOpen(true),
+                },
+              ]
+            : []),
+        ],
+        showMenu
+          ? [
+              {
+                key: "cancel",
+                label: CANCEL_GAME_ACTION,
+                icon: Ban,
+                tone: "danger" as const,
+                onSelect: () => setCancelGameOpen(true),
+              },
+            ]
+          : [],
+      ]}
+    />
   ) : null;
 
   function openJoinPicker(seat?: FriendlyGameJoinSeat) {
