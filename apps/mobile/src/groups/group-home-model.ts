@@ -5,9 +5,7 @@ import type {
   GroupStandingRowData,
 } from "@repo/domain/group-data";
 import {
-  filterGroupMembersByName,
   groupHomeMetaLine,
-  groupHomeShowsMemberSearch,
   groupPlayedMarkVariant,
   groupPlayedOpponentLine,
   groupPlayedScoreLine,
@@ -28,8 +26,11 @@ import {
   type GroupJoinDoor,
 } from "@repo/domain/group-join";
 import {
+  groupMemberSortCaption,
+  groupMembersLens,
   groupMemberTableCaption,
-  sortGroupMembers,
+  type GroupMemberSort,
+  type GroupMembersLensInput,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
@@ -273,11 +274,12 @@ export function memberRowView(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
+  sort: GroupMemberSort = "level",
 ): MemberRowView {
   const m = messagesFor(locale);
   const name = entry.name ?? m.mobileGroup.unnamedMember;
   const caption = [
-    groupMemberTableCaption(entry, locale),
+    groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
@@ -310,6 +312,17 @@ export function memberRowView(
   };
 }
 
+/** The sort and filter a viewer picked; `null` means the default. */
+export type MemberLens = Omit<GroupMembersLensInput, "query" | "locale">;
+
+const LEVEL_ORDER: MemberLens = {
+  sort: "level",
+  filter: "all",
+  showLevel: true,
+  canManage: false,
+  now: new Date(0),
+};
+
 export function memberList(
   leaderboard: readonly GroupLeaderboardEntryData[],
   query: string,
@@ -318,22 +331,28 @@ export function memberList(
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
+  lens: MemberLens = LEVEL_ORDER,
 ) {
-  const members = sortGroupMembers(leaderboard).map((entry) =>
-    memberRowView(
-      entry,
-      apiOrigin,
-      locale,
-      canSetLevel,
-      canRemovePlayers,
-      canAppointOrganizers,
-    ),
+  const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
+  const view = groupMembersLens(
+    leaderboard.map((entry) => ({ ...entry, name: entry.name ?? unnamed })),
+    { ...lens, query, locale },
   );
-  const showSearch = groupHomeShowsMemberSearch(members.length);
   return {
-    showSearch,
-    rows: showSearch ? filterGroupMembersByName(members, query) : members,
-    isEmpty: members.length === 0,
+    ...view,
+    showSearch: view.showControls,
+    isEmpty: leaderboard.length === 0,
+    rows: view.rows.map((entry) =>
+      memberRowView(
+        entry,
+        apiOrigin,
+        locale,
+        canSetLevel,
+        canRemovePlayers,
+        canAppointOrganizers,
+        view.sort,
+      ),
+    ),
   };
 }
 

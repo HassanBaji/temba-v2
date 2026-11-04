@@ -288,8 +288,45 @@ export const group = {
     organizer: "Organizer",
     lastPlayed: (day: string) => `Last ${day}`,
     joined: (day: string) => `Joined ${day}`,
+    organizerLastPlayed: (day: string) => `Organizer, last ${day}`,
+    organizerJoined: (day: string) => `Organizer, joined ${day}`,
+    noGamesJoined: (day: string) => `No games yet, joined ${day}`,
+    organizerNoGamesJoined: (day: string) =>
+      `Organizer, no games yet, joined ${day}`,
     legend: "Hatched Levels are still Provisional.",
-    noMatch: "Nobody matches.",
+    lens: {
+      sort: {
+        title: "Sort members",
+        chip: (label: string) => `Sort members, ${label}`,
+        footnote:
+          "Your sort and filter stay set for this Group until you change them.",
+        options: {
+          recent: {
+            label: "Recently played",
+            hint: "Last game in this Group first",
+          },
+          joined: { label: "Recently joined", hint: "Newest members first" },
+          name: { label: "Name", hint: "A to Z" },
+          level: { label: "Level", hint: "Highest first, no Level last" },
+        },
+      },
+      filters: {
+        label: "Filter members",
+        all: "All",
+        organizers: "Organizers",
+        active: "Active",
+        inactive: "Inactive",
+        noGames: "No games",
+        notOnTemba: "Not on Temba",
+      },
+      filterSpoken: (label: string, count: string) => `${label}, ${count}`,
+      countOf: (shown: number, total: number) => `${shown} of ${total}`,
+      noMatchQuery: (query: string) => `Nobody matches “${query}”.`,
+      noMatchQueryIn: (query: string, filter: string) =>
+        `Nobody matches “${query}” in ${filter}.`,
+      noneIn: (filter: string) => `No members in ${filter}.`,
+      showAll: "Show all members",
+    },
     pendingInvitesTitle: (n: number) =>
       plural("en", n, {
         one: "1 invite pending",
