@@ -81,5 +81,6 @@ export const common = {
   pageNotFound: "الصفحة غير موجودة",
   goHome: "الانتقال إلى الرئيسية",
   restartToApplyLayout: "أعد تشغيل Temba لتطبيق اتجاه الواجهة الجديد.",
+  listSeparator: "، ",
   count: (n: number) => String(n),
 } satisfies typeof source;

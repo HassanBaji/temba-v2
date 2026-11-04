@@ -83,5 +83,6 @@ export const common = {
   pageNotFound: "Page not found",
   goHome: "Go to Home",
   restartToApplyLayout: "Restart Temba to apply the new layout direction.",
+  listSeparator: ", ",
   count: (n: number) => String(n),
 };
