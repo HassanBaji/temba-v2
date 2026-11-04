@@ -660,6 +660,7 @@ export function GameDetailsScreen({
             gameId={gameId}
             placement="side"
             sides={details.sides}
+            groupName={details.groupName}
             onAdded={refresh}
           />
         ) : null}
@@ -830,6 +831,7 @@ export function GameDetailsScreen({
             placement="seat"
             sides={details.sides}
             initialSeat={addSeat}
+            groupName={details.groupName}
             onAdded={refresh}
           />
         </>
