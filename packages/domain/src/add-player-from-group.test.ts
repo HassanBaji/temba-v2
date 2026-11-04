@@ -43,8 +43,8 @@ describe("groupMemberRows", () => {
     assert.deepEqual(
       rows.map((row) => [row.userId, row.meta, row.status]),
       [
-        ["ma", "Keeper · Level C", null],
-        ["ha", "Midfield", null],
+        ["ma", "Goalkeeper · Level C", null],
+        ["ha", "Midfielder", null],
         ["yk", "Forward", "In game"],
       ],
     );
@@ -70,7 +70,7 @@ describe("groupMemberRows", () => {
     assert.equal(byId.get("ma")?.meta, "Level C");
     assert.equal(byId.get("ma")?.selected, true);
     assert.equal(byId.get("ha")?.blocked, true);
-    assert.equal(byId.get("ha")?.meta, "Midfield · no spots left");
+    assert.equal(byId.get("ha")?.meta, "Midfielder · no spots left");
     assert.equal(byId.get("yk")?.blocked, false);
   });
 
