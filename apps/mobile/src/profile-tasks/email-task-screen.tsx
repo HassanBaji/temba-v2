@@ -198,6 +198,7 @@ export function EmailTaskScreen() {
       <TextField
         label={m.mobileHome.fields.email}
         keyboardType="email-address"
+        ltr
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="email"

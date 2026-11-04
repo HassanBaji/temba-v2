@@ -47,6 +47,7 @@ export function PhoneField({
         label={label}
         error={error}
         keyboardType="phone-pad"
+        ltr="row"
         textContentType="telephoneNumber"
         autoComplete="tel"
         editable={!disabled}
@@ -74,7 +75,7 @@ export function PhoneField({
             }}
           >
             <Text>{countryFlagEmoji(countryIso)}</Text>
-            <Text>+{country?.callingCode}</Text>
+            <Text ltr>+{country?.callingCode}</Text>
           </Pressable>
         }
       />
@@ -106,7 +107,9 @@ export function PhoneField({
             >
               {callingCountryName(item.iso, locale)}
             </Text>
-            <Text tone="muted">+{item.callingCode}</Text>
+            <Text tone="muted" ltr>
+              +{item.callingCode}
+            </Text>
           </Pressable>
         ))}
       </Sheet>

@@ -100,7 +100,7 @@ export function MemberSheet({
                 >
                   <NotOnTembaMark />
                   {member.phoneMasked ? (
-                    <Text size="meta" tone="muted">
+                    <Text size="meta" tone="muted" ltr>
                       {member.phoneMasked}
                     </Text>
                   ) : null}

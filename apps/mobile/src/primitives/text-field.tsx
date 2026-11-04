@@ -8,9 +8,11 @@ import {
 import { forwardRef } from "react";
 import { TextInput, View, type TextInputProps } from "react-native";
 
+import { isLayoutRtl } from "../i18n/rtl";
 import { fontFamilyFor, type TextWidth } from "./font-family";
 import { hairline } from "./hairline-width";
 import { Text } from "./text";
+import { inputDirectionStyle } from "./text-direction";
 
 const FIELD_HEIGHT = 48;
 const MULTILINE_MIN_HEIGHT = 96;
@@ -31,11 +33,26 @@ export type TextFieldProps = Omit<TextInputProps, "style"> & {
   mono?: boolean;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
+  /**
+   * The value reads LTR as a unit (phone, email, code, password, URL).
+   * `"row"` also lays `leading` and `trailing` out LTR around it, for a
+   * prefix that belongs to the value, such as a calling code.
+   */
+  ltr?: boolean | "row";
 };
 
 export const TextField = forwardRef<TextInput, TextFieldProps>(
   function TextField(
-    { label, error, mono = false, leading, trailing, editable, ...props },
+    {
+      label,
+      error,
+      mono = false,
+      leading,
+      trailing,
+      ltr = false,
+      editable,
+      ...props
+    },
     ref,
   ) {
     const invalid = Boolean(error);
@@ -48,7 +65,13 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             {label}
           </Text>
         ) : null}
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            direction: ltr === "row" ? "ltr" : undefined,
+          }}
+        >
           {leading}
           <TextInput
             ref={ref}
@@ -78,6 +101,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
                 mono,
               }),
               fontSize: typeScale.lead.size,
+              ...inputDirectionStyle(isLayoutRtl(), Boolean(ltr)),
             }}
           />
           {trailing}

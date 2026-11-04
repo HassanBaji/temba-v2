@@ -132,7 +132,7 @@ function SetLevelForm({
           )}
           style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
         >
-          <Text size="hero" width="expanded" weight="bold">
+          <Text size="hero" width="expanded" weight="bold" ltr>
             {readout.displayBand}
           </Text>
           <Text size="h1" width="expanded" weight="bold">

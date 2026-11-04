@@ -104,7 +104,7 @@ function PlayerTile({
           <Text size="eyebrow" numberOfLines={1} style={{ flexShrink: 1 }}>
             {name}
           </Text>
-          <Text size="meta" width="expanded" weight="bold">
+          <Text size="meta" width="expanded" weight="bold" ltr>
             {levelLabel(player.levelBand)}
           </Text>
         </View>

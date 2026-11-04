@@ -327,7 +327,7 @@ function ManualRow({
           </Text>
         ) : null}
       </View>
-      <Text weight="bold" width="expanded" style={{ color: on }}>
+      <Text weight="bold" width="expanded" ltr style={{ color: on }}>
         {levelLabel(player.levelBand)}
       </Text>
       <SwatchButton

@@ -39,7 +39,7 @@ export function LevelCell({
       >
         <Hatch />
         {hatchText ? (
-          <Text size="meta" weight="semibold">
+          <Text size="meta" weight="semibold" ltr>
             {hatchText}
           </Text>
         ) : null}
@@ -50,6 +50,7 @@ export function LevelCell({
     <Text
       width="expanded"
       weight="bold"
+      ltr
       style={{
         minWidth: level ? LEVEL_CELL_WIDTH : CELL_WIDTH,
         textAlign: "right",

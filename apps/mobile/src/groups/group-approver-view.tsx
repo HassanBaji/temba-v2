@@ -101,7 +101,7 @@ function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
       {view.kind === "provisional" ? (
         <Hatch bordered={false} radius={radii.slot - 1} />
       ) : null}
-      <Text size="eyebrow" mono>
+      <Text size="eyebrow" mono ltr>
         {view.label}
       </Text>
     </View>

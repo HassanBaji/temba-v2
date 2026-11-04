@@ -72,7 +72,13 @@ export function BibRow({
           {code}
         </Text>
       ) : null}
-      <Text size="meta" width="expanded" weight="bold" style={{ color: on }}>
+      <Text
+        size="meta"
+        width="expanded"
+        weight="bold"
+        ltr
+        style={{ color: on }}
+      >
         {levelLabel(player.levelBand)}
       </Text>
       {trailing}

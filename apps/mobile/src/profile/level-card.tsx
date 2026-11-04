@@ -33,6 +33,7 @@ export function ProfileLevelCard({ input }: { input: ProfileLevelInput }) {
           size="levelBand"
           width="expanded"
           weight="bold"
+          ltr
           accessibilityLabel={m.mobileHome.level.bandLevelSpoken(
             view.displayBand,
             view.level,

@@ -71,7 +71,7 @@ export function PlayerLevelCard({
         ) : null}
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}>
-        <Text size="hero" width="expanded" weight="bold">
+        <Text size="hero" width="expanded" weight="bold" ltr>
           {view.displayBand}
         </Text>
         <Text size="h2" width="expanded" weight="bold">

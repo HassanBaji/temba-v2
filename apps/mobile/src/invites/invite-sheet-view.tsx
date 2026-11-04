@@ -224,7 +224,7 @@ function PlayerRow({
           {view.name}
         </Text>
         {view.meta ? (
-          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+          <Text size="eyebrow" tone="muted" numberOfLines={1} ltr>
             {view.meta}
           </Text>
         ) : null}
@@ -385,7 +385,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
       >
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           {link.currentUrl ? (
-            <Text mono selectable numberOfLines={1}>
+            <Text mono selectable numberOfLines={1} ltr>
               {link.currentUrl}
             </Text>
           ) : null}
