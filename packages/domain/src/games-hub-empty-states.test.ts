@@ -18,11 +18,17 @@ describe("gamesHubEmptySeats", () => {
 
 describe("gamesHubEmptyLine", () => {
   it("names the filtered sport", () => {
-    expect(gamesHubEmptyLine("all")).toBe(
+    expect(gamesHubEmptyLine("all", "en")).toBe(
       "Games you create or join show up here.",
     );
-    expect(gamesHubEmptyLine("football")).toBe(
+    expect(gamesHubEmptyLine("football", "en")).toBe(
       "Football Games you create or join show up here.",
+    );
+  });
+
+  it("names the filtered sport in Arabic", () => {
+    expect(gamesHubEmptyLine("football", "ar")).toBe(
+      "تظهر هنا ألعاب كرة القدم التي تنشئها أو تنضم إليها.",
     );
   });
 });

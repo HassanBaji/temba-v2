@@ -8,6 +8,7 @@ import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import { View } from "react-native";
 
 import { UnratedCard } from "../game-details/rating-impact-card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
@@ -42,8 +43,10 @@ export function TournamentContent({
   handlers: TournamentHandlers;
   organizer?: TournamentOrganizerHandlers;
 }) {
-  const view = tournamentHomeView(game);
-  const matches = scorableMatches(game);
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.content;
+  const view = tournamentHomeView(game, locale);
+  const matches = scorableMatches(game, locale);
   const organizerView = organizer ? tournamentOrganizerView(game, view) : null;
 
   return (
@@ -51,17 +54,17 @@ export function TournamentContent({
       {game.cancelledAt ? (
         <Surface accessibilityRole="alert">
           <Text size="title" weight="semibold">
-            This Game is cancelled
+            {m.gameCancelled}
           </Text>
         </Surface>
       ) : null}
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold" accessibilityRole="header">
-            This Club Group&apos;s Community is Soft-archived
+            {m.softArchivedTitle}
           </Text>
           <Text size="meta" tone="muted">
-            Registration, the waitlist, and invites stay closed.
+            {m.softArchivedLine}
           </Text>
         </Surface>
       ) : null}
@@ -69,7 +72,7 @@ export function TournamentContent({
       {view.drawn ? (
         <StandingsView
           game={game}
-          standings={tournamentStandingsView(game)}
+          standings={tournamentStandingsView(game, locale)}
           onCancelMatch={
             organizerView?.active ? organizer?.onCancelMatch : undefined
           }

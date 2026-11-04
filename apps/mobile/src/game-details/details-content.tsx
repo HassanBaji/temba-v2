@@ -4,8 +4,6 @@ import {
 } from "@repo/domain/friendly-game-details";
 import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
 import {
-  COURT_ADD_PLAYER_HINT,
-  COURT_JOIN_SUBLINE,
   courtPositionLabel,
   courtSpotsLabel,
   scoreLeadLine,
@@ -26,8 +24,11 @@ import {
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
 import type { PlayedRow } from "@repo/domain/played-game";
+import type { Locale } from "@repo/i18n/locale";
+import type { Messages } from "@repo/i18n/messages";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { BookedCard } from "./booked-card";
@@ -68,6 +69,8 @@ export type DetailsOrganizer = {
 function openSeatActionFor(
   game: FriendlyGameDetails,
   handlers: DetailsHandlers,
+  messages: Messages,
+  locale: Locale,
 ) {
   const action = friendlyGameVacantSeatAction({
     cancelled: game.cancelledAt != null,
@@ -80,14 +83,18 @@ function openSeatActionFor(
     sideIndex: number,
     position: "left" | "right",
   ): OpenSeatAction | null => {
-    const sideLabel = formatGameSideLabel("friendly_game", sideIndex);
-    const positionLabel = courtPositionLabel(position);
+    const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
+    const positionLabel = courtPositionLabel(position, locale);
     const seat = { sideIndex, position };
     if (action === "move" || action === "join") {
       return {
         accessibilityLabel:
-          friendlyGameVacantSeatLabel(action, sideLabel, positionLabel) ??
-          positionLabel,
+          friendlyGameVacantSeatLabel(
+            action,
+            sideLabel,
+            positionLabel,
+            locale,
+          ) ?? positionLabel,
         onPress: () =>
           action === "move"
             ? handlers.onMove(sideIndex, position)
@@ -97,7 +104,10 @@ function openSeatActionFor(
     const addPlayerAt = handlers.onAddPlayerAt;
     return addPlayerAt
       ? {
-          accessibilityLabel: `Add a player to ${sideLabel} ${positionLabel}`,
+          accessibilityLabel: messages.mobileGameDetails.lineup.addPlayerTo(
+            sideLabel,
+            positionLabel,
+          ),
           onPress: () => addPlayerAt(seat),
         }
       : null;
@@ -113,8 +123,10 @@ export function GameDetailsContent({
   handlers: DetailsHandlers;
   organizer?: DetailsOrganizer | null;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const plan = friendlyGameDetailsPlan(game);
-  const levelCard = levelRangeRequestCard(game);
+  const levelCard = levelRangeRequestCard(game, locale);
   const { phase } = game;
   const { firstMatch } = plan;
   const live = phase && phase !== "cancelled" ? phase : null;
@@ -127,7 +139,7 @@ export function GameDetailsContent({
       {game.cancelledAt ? (
         <Surface accessibilityRole="alert">
           <Text size="title" weight="semibold">
-            This Game is cancelled
+            {m.mobileGameDetails.cancelledTitle}
           </Text>
         </Surface>
       ) : null}
@@ -136,10 +148,10 @@ export function GameDetailsContent({
       {game.joinFrozen && !game.cancelledAt ? (
         <Surface style={{ gap: 4 }}>
           <Text size="lead" weight="semibold" accessibilityRole="header">
-            This Club Group&apos;s Community is Soft-archived
+            {m.mobileGameDetails.frozen.title}
           </Text>
           <Text size="meta" tone="muted">
-            Registration, the waitlist, and invites stay closed.
+            {m.mobileGameDetails.frozen.description}
           </Text>
         </Surface>
       ) : null}
@@ -154,9 +166,9 @@ export function GameDetailsContent({
         sides={game.sides}
         viewerUserId={game.viewerUserId}
         vacantSeatCount={vacantSeatCount}
-        hint={addsPlayers ? COURT_ADD_PLAYER_HINT : null}
+        hint={addsPlayers ? m.game.court.addPlayerHint : null}
         busy={handlers.movePending}
-        openSeatAction={openSeatActionFor(game, handlers)}
+        openSeatAction={openSeatActionFor(game, handlers, m, locale)}
         onInvite={canInvite ? handlers.onInvite : undefined}
         onPressPlayer={handlers.onPressPlayer}
       />
@@ -186,9 +198,13 @@ export function GameDetailsContent({
   );
 }
 
-export function gameHeroModel(game: FriendlyGameDetails, now: Date) {
+export function gameHeroModel(
+  game: FriendlyGameDetails,
+  now: Date,
+  locale: Locale,
+) {
   const input = friendlyGameHeroInput(game);
-  return input ? friendlyGameHeroModel(input, now) : null;
+  return input ? friendlyGameHeroModel(input, now, locale) : null;
 }
 
 export function GameDetailsBar({
@@ -200,30 +216,39 @@ export function GameDetailsBar({
   handlers: BottomBarHandlers;
   inset?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const plan = friendlyGameDetailsPlan(game);
   return (
     <BottomBar
       family={plan.ctaFamily}
-      lines={bottomBarLines(game)}
+      lines={bottomBarLines(game, m, locale)}
       handlers={handlers}
       inset={inset}
     />
   );
 }
 
-function bottomBarLines(game: FriendlyGameDetails): BottomBarLines | null {
+function bottomBarLines(
+  game: FriendlyGameDetails,
+  messages: Messages,
+  locale: Locale,
+): BottomBarLines | null {
   const plan = friendlyGameDetailsPlan(game);
   const family = plan.ctaFamily;
   if (family.kind === "join") {
     return {
-      title: courtSpotsLabel(vacantJoinSeats(game.sides).length),
-      subline: COURT_JOIN_SUBLINE,
+      title: courtSpotsLabel(vacantJoinSeats(game.sides).length, locale),
+      subline: messages.game.court.joinSubline,
     };
   }
   if (family.kind === "needs_score" && plan.firstMatch) {
-    const lead = scoreLeadLine(plan.firstMatch, plan.viewerGameTeamId);
+    const lead = scoreLeadLine(plan.firstMatch, plan.viewerGameTeamId, locale);
     return lead
-      ? { title: lead, subline: friendlyGameCtaCopy(family)?.subline ?? null }
+      ? {
+          title: lead,
+          subline: friendlyGameCtaCopy(family, locale)?.subline ?? null,
+        }
       : null;
   }
   return null;

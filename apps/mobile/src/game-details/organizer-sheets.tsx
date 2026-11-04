@@ -3,6 +3,7 @@ import { ScrollView, View } from "react-native";
 
 import { ChipGrid, FieldError } from "../create-game/chips";
 import type { Slot } from "../home/home-model";
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
@@ -45,8 +46,10 @@ function CourtForm({
   onChoose: (courtId: string | null) => void;
   onBack: () => void;
 }) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.organizer;
   if (courts.status === "loading") {
-    return <Text tone="muted">Loading Courts…</Text>;
+    return <Text tone="muted">{copy.loadingCourts}</Text>;
   }
   if (courts.status === "error") {
     return <FieldError message={courts.message} />;
@@ -55,12 +58,12 @@ function CourtForm({
     <>
       <ScrollView style={{ maxHeight: SCROLL_MAX_HEIGHT }}>
         <ChipGrid
-          label="Court"
+          label={copy.court}
           chips={[
-            { value: NO_COURT, label: "No Court", disabled: pending },
+            { value: NO_COURT, label: copy.noCourt, disabled: pending },
             ...courts.value.map((court) => ({
               value: court.id,
-              label: `${court.venueName}: ${court.name}`,
+              label: copy.courtChip(court.venueName, court.name),
               disabled: pending,
             })),
           ]}
@@ -70,7 +73,7 @@ function CourtForm({
       </ScrollView>
       <FieldError message={error ?? undefined} />
       <View style={{ flexDirection: "row" }}>
-        <Button label="Done" variant="outline" onPress={onBack} />
+        <Button label={m.common.done} variant="outline" onPress={onBack} />
       </View>
     </>
   );
@@ -78,6 +81,7 @@ function CourtForm({
 
 export function OrganizerSheets(props: OrganizerSheetsProps) {
   const { section, onSection } = props;
+  const m = useMessages();
   const close = () => onSection(null);
 
   return (
@@ -89,7 +93,11 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
         sections={props.editSections}
         context={props.editContext}
       />
-      <Sheet visible={section === "court"} onClose={close} title="Court">
+      <Sheet
+        visible={section === "court"}
+        onClose={close}
+        title={m.mobileGameDetails.organizer.court}
+      >
         {section === "court" ? (
           <CourtForm
             courtId={props.courtId}

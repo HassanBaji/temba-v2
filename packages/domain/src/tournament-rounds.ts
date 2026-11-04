@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatAbsoluteDay } from "./format-game-start";
 import { productDayKey } from "./product-timezone";
 import {
@@ -212,11 +215,15 @@ function oneDayRoundStarts(
 export function poolRoundLabel(
   roundNumber: number | null | undefined,
   roundCount: number | null | undefined,
+  locale: Locale,
 ) {
   if (roundNumber == null || roundCount == null) {
     return null;
   }
-  return `R${roundNumber} of ${roundCount}`;
+  return messagesFor(locale).tournament.rounds.poolRoundLabel(
+    roundNumber,
+    roundCount,
+  );
 }
 
 export type RoundsPlayedMatch = {
@@ -232,6 +239,7 @@ export type RoundsPlayedPoolTables = {
 export function roundsPlayedLabel(
   poolTables: RoundsPlayedPoolTables | null | undefined,
   roundCount: number | null | undefined,
+  locale: Locale,
 ): string | null {
   if (poolTables == null || roundCount == null || roundCount < 1) {
     return null;
@@ -256,7 +264,7 @@ export function roundsPlayedLabel(
     }
   }
 
-  return `Round ${played} of ${roundCount} played`;
+  return messagesFor(locale).tournament.rounds.roundsPlayed(played, roundCount);
 }
 
 function isSettledRoundMatch(match: RoundsPlayedMatch) {
@@ -293,6 +301,7 @@ export function tournamentRoundSummary(args: {
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
   matchMinutes: number | null;
+  locale: Locale;
 }): TournamentRoundSummary | null {
   if (args.roundCount == null) {
     return null;
@@ -308,12 +317,13 @@ function roundDateLines(args: {
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
   matchMinutes: number | null;
+  locale: Locale;
 }): string[] {
   if (!args.windowStart) {
     return [];
   }
   if (!args.windowEnd) {
-    return [formatAbsoluteDay(asDate(args.windowStart))];
+    return [formatAbsoluteDay(asDate(args.windowStart), args.locale)];
   }
   const schedule = tournamentRoundSchedule({
     windowStart: args.windowStart,
@@ -324,6 +334,9 @@ function roundDateLines(args: {
   const first = schedule[0]?.start ?? asDate(args.windowStart);
   const last = schedule[schedule.length - 1]?.start ?? first;
   return productDayKey(last) === productDayKey(first)
-    ? [formatAbsoluteDay(first)]
-    : [formatAbsoluteDay(first), formatAbsoluteDay(last)];
+    ? [formatAbsoluteDay(first, args.locale)]
+    : [
+        formatAbsoluteDay(first, args.locale),
+        formatAbsoluteDay(last, args.locale),
+      ];
 }

@@ -1,15 +1,26 @@
+import { messagesFor } from "@repo/i18n/messages";
 import { describe, expect, it } from "vitest";
 
 import { stackMissingRoot, tabBarHidden, visibleTabs } from "./tab-list";
 
 describe("visibleTabs", () => {
   it("shows Home, Games, Book, Groups and Profile, without Communities", () => {
-    expect(visibleTabs().map((tab) => tab.title)).toEqual([
+    expect(visibleTabs(messagesFor("en")).map((tab) => tab.title)).toEqual([
       "Home",
       "Games",
       "Book",
       "Groups",
       "Profile",
+    ]);
+  });
+
+  it("reads the titles from the Arabic catalog", () => {
+    expect(visibleTabs(messagesFor("ar")).map((tab) => tab.title)).toEqual([
+      "الرئيسية",
+      "الألعاب",
+      "حجز",
+      "المجموعات",
+      "الملف الشخصي",
     ]);
   });
 });

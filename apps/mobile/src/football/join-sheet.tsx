@@ -1,6 +1,6 @@
 import { radii, spacing } from "@repo/design-tokens";
 import {
-  FOOTBALL_POSITION_CHOICES,
+  footballPositionChoices,
   keeperSeatsLeft,
   keeperSeatsLine,
   positionCountsLine,
@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -42,13 +43,14 @@ function Choice({
   locked?: boolean;
   onPress: () => void;
 }) {
+  const m = useMessages().mobileTournament.join;
   const tone = selected ? "ink" : "paper";
   const palette = tonePalette(tone);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole="radio"
-        accessibilityLabel={`${title}, ${note}`}
+        accessibilityLabel={m.choiceSr(title, note)}
         accessibilityState={{ checked: selected, disabled: locked }}
         disabled={locked}
         onPress={onPress}
@@ -118,6 +120,9 @@ export type FootballJoinSheetProps = {
  * choice after joining.
  */
 export function FootballJoinSheet(props: FootballJoinSheetProps) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.join;
   const others = props.players.filter((player) => !player.isViewer);
   const alreadyKeeper = props.mode === "edit" && props.viewer.role === "keeper";
   const keeperLocked =
@@ -139,15 +144,15 @@ export function FootballJoinSheet(props: FootballJoinSheetProps) {
   const chosenRole = keeperLocked ? "outfield" : role;
   const action =
     props.mode === "join"
-      ? joinActionLabel(chosenRole, position, props.price)
-      : "Save";
+      ? joinActionLabel(chosenRole, position, props.price, locale)
+      : messages.common.save;
 
   return (
     <Sheet
       visible={props.visible}
       onClose={props.onClose}
       tall
-      title={props.mode === "join" ? "Join this game" : "How you play"}
+      title={props.mode === "join" ? m.joinThisGame : m.howYouPlay}
       subtitle={props.subtitle}
       footer={
         <View style={{ gap: 8 }}>
@@ -166,41 +171,41 @@ export function FootballJoinSheet(props: FootballJoinSheetProps) {
       }
     >
       <View style={{ gap: 10 }}>
-        <Label left="Join as" right={keeperSeatsLine(keepersIn(others))} />
+        <Label
+          left={m.joinAs}
+          right={keeperSeatsLine(keepersIn(others), locale)}
+        />
         <View
           accessibilityRole="radiogroup"
           style={{ flexDirection: "row", gap: 8 }}
         >
           <Choice
-            title="Player"
-            note="outfield"
+            title={m.player}
+            note={m.outfield}
             selected={chosenRole === "outfield"}
             onPress={() => setRole("outfield")}
           />
           <Choice
-            title="Keeper"
-            note={keeperSub(others)}
+            title={m.keeper}
+            note={keeperSub(others, locale)}
             selected={chosenRole === "keeper"}
             locked={keeperLocked}
             onPress={() => setRole("keeper")}
           />
         </View>
         <Text size="meta" tone="muted">
-          {keeperNote(others)}
+          {keeperNote(others, locale)}
         </Text>
       </View>
 
       {chosenRole === "outfield" ? (
         <View style={{ gap: 10 }}>
-          <Label
-            left="Preferred position"
-            right="a preference, not a promise"
-          />
+          <Label left={m.preferredPosition} right={m.preferenceNotPromise} />
           <View
             accessibilityRole="radiogroup"
             style={{ flexDirection: "row", gap: 8 }}
           >
-            {FOOTBALL_POSITION_CHOICES.map((choice) => (
+            {footballPositionChoices(locale).map((choice) => (
               <Choice
                 key={choice.value}
                 title={choice.code}
@@ -211,7 +216,7 @@ export function FootballJoinSheet(props: FootballJoinSheetProps) {
             ))}
           </View>
           <Text size="meta" tone="muted">
-            {positionCountsLine(others)}
+            {positionCountsLine(others, locale)}
           </Text>
         </View>
       ) : null}
@@ -219,11 +224,14 @@ export function FootballJoinSheet(props: FootballJoinSheetProps) {
       <View style={{ paddingTop: spacing.compact / 2 }}>
         <InfoRows
           rows={[
-            { label: "Your seat", value: seatSummary(chosenRole, position) },
+            {
+              label: m.yourSeat,
+              value: seatSummary(chosenRole, position, locale),
+            },
             ...(props.price
-              ? [{ label: "Pitch cost", value: props.price }]
+              ? [{ label: m.pitchCost, value: props.price }]
               : []),
-            { label: "Teams", value: props.teamsLine },
+            { label: messages.common.teams, value: props.teamsLine },
           ]}
         />
       </View>

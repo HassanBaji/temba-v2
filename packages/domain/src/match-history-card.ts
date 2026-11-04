@@ -1,4 +1,7 @@
-import { UNRATED_LABEL } from "./game-rating-impact";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+import { unratedLabel } from "./game-rating-impact";
 import { formatRelativeDay } from "./format-game-start";
 import { shortPlayerName } from "./player-name";
 import { sportLabel } from "./sport";
@@ -72,48 +75,62 @@ export function viewerFirst<T extends { isViewer: boolean }>(members: T[]) {
   return [members[index]!, ...members.filter((_, at) => at !== index)];
 }
 
-export function historyTeamLabel(members: HistoryMember[]) {
+export function historyTeamLabel(members: HistoryMember[], locale: Locale) {
+  const messages = messagesFor(locale);
   const names = members.map((member) =>
-    member.isViewer ? "You" : shortPlayerName(member.name),
+    member.isViewer ? messages.common.you : shortPlayerName(member.name),
   );
   if (names.length === 0) {
-    return "Open seats";
+    return messages.game.history.openSeats;
   }
-  const named = names.slice(0, 2).join(", ");
+  const named = names.slice(0, 2).join(messages.game.history.nameSeparator);
   const rest = names.length - 2;
-  return rest > 0 ? `${named} +${rest}` : named;
+  return rest > 0 ? messages.game.history.namesMore(named, rest) : named;
 }
 
-function historyDay(row: HistoryRowInput) {
-  return formatRelativeDay(row.displayTime, { sameDayLabel: "Today" });
+function historyDay(row: HistoryRowInput, locale: Locale) {
+  return formatRelativeDay(row.displayTime, locale, { sameDayLabel: "Today" });
 }
 
-function historyPlace(row: HistoryRowInput) {
+function historyPlace(row: HistoryRowInput, locale: Locale) {
   const venueName = row.venue.name.trim();
   const gameName = row.name?.trim();
   return gameName && gameName !== venueName
-    ? `${venueName} · ${gameName}`
+    ? messagesFor(locale).game.history.place(venueName, gameName)
     : venueName;
 }
 
-function unratedSuffix(row: HistoryRowInput, line: string) {
-  return row.rated ? line : `${line} · ${UNRATED_LABEL}`;
+function unratedSuffix(row: HistoryRowInput, line: string, locale: Locale) {
+  return row.rated
+    ? line
+    : messagesFor(locale).game.history.withUnrated(line, unratedLabel(locale));
 }
 
-export function historyMeta(row: HistoryRowInput) {
-  return unratedSuffix(row, `${historyDay(row)}, ${historyPlace(row)}`);
+export function historyMeta(row: HistoryRowInput, locale: Locale) {
+  return unratedSuffix(
+    row,
+    messagesFor(locale).game.history.meta(
+      historyDay(row, locale),
+      historyPlace(row, locale),
+    ),
+    locale,
+  );
 }
 
 /** One set reads as its own score, as football's single set of goals does; more read as the set tally. */
-export function historyScoreLine(sets: { us: number; them: number }[]) {
+export function historyScoreLine(
+  sets: { us: number; them: number }[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.history;
   if (sets.length === 0) {
-    return "No score yet";
+    return m.noScore;
   }
   if (sets.length === 1) {
     return `${sets[0]!.us}–${sets[0]!.them}`;
   }
   const tally = setTally(sets);
-  return `${tally.won}–${tally.lost} in sets`;
+  return m.setsTally(tally.won, tally.lost);
 }
 
 export type HistoryTeamRow = {
@@ -146,7 +163,9 @@ export type MatchHistoryCardModel = {
 
 export function matchHistoryCardModel(
   row: HistoryRowInput,
+  locale: Locale,
 ): MatchHistoryCardModel {
+  const m = messagesFor(locale).game.history;
   const sets = viewerSets(row);
   const scored = sets.length > 0;
   const won = row.outcome === "won";
@@ -160,8 +179,8 @@ export function matchHistoryCardModel(
   const mine: HistoryTeamRow = {
     side: "mine",
     avatars: myMembers.slice(0, HISTORY_AVATAR_LIMIT),
-    label: historyTeamLabel(myMembers),
-    note: won ? "Your team, won" : "Your team",
+    label: historyTeamLabel(myMembers, locale),
+    note: won ? m.yourTeamWon : m.yourTeam,
     lost,
     scores: scored
       ? sets.map((set) => ({ games: set.us, lostSet: set.us < set.them }))
@@ -170,8 +189,8 @@ export function matchHistoryCardModel(
   const theirs: HistoryTeamRow = {
     side: "theirs",
     avatars: opponents.slice(0, HISTORY_AVATAR_LIMIT),
-    label: historyTeamLabel(opponents),
-    note: won ? "Lost" : lost ? "Won" : "Drew",
+    label: historyTeamLabel(opponents, locale),
+    note: won ? m.lost : lost ? m.won : m.drew,
     lost: won,
     scores: scored
       ? sets.map((set) => ({ games: set.them, lostSet: set.them < set.us }))
@@ -181,12 +200,12 @@ export function matchHistoryCardModel(
   return {
     outcome: row.outcome,
     scored,
-    scoreLine: historyScoreLine(sets),
-    day: historyDay(row),
-    sport: sportLabel(row.sport),
+    scoreLine: historyScoreLine(sets, locale),
+    day: historyDay(row, locale),
+    sport: sportLabel(row.sport, locale),
     groupName: row.groupName?.trim() ? row.groupName.trim() : undefined,
-    place: unratedSuffix(row, historyPlace(row)),
-    meta: historyMeta(row),
+    place: unratedSuffix(row, historyPlace(row, locale), locale),
+    meta: historyMeta(row, locale),
     unrated: !row.rated,
     teams: [mine, theirs],
   };

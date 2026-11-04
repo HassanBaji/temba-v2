@@ -39,7 +39,9 @@ import { sendLookupInvite } from "#src/routers/games/sendLookupInvite";
 import { mintLink } from "#src/invites/doors";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
+import { messagesFor } from "@repo/i18n/messages";
+
+const LEVEL_RANGE_OUTSIDE_MESSAGE = messagesFor("en").level.rangeOutside;
 
 async function insertUser(
   database: TestDatabase,
@@ -193,7 +195,11 @@ describe("Friendly tournament seats at 12 Game teams", () => {
         userId: player.id,
       });
       const field = tournamentFieldSummary(joiner.sides);
-      const countLine = tournamentTeamsCountLine(field.full, field.halfOpen);
+      const countLine = tournamentTeamsCountLine(
+        field.full,
+        field.halfOpen,
+        "en",
+      );
       const statusLine = tournamentStatusLine({
         seated: false,
         seatsLeft:
@@ -201,6 +207,7 @@ describe("Friendly tournament seats at 12 Game teams", () => {
           field.seatsTaken,
         teamCount: joiner.teamsAllowed ?? joiner.sides.length,
         organizerName: null,
+        locale: "en",
       });
 
       expect(joiner.registeredTeamCount).toBe(0);
@@ -715,7 +722,7 @@ describe("Complete Teams tournament field", () => {
         gameId: created.id,
         userId: owner.id,
       });
-      const rows = tournamentTeamRows(detail.sides, owner.id);
+      const rows = tournamentTeamRows(detail.sides, owner.id, "en");
 
       expect(detail.registrationMode).toBe("team_only");
       expect(detail.allowSoloRegister).toBe(true);

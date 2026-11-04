@@ -1,12 +1,16 @@
-export const GAME_FORMAT_LABELS = {
-  friendly_game: "Friendly game",
-  americano: "Americano",
-  friendly_tournament: "Friendly tournament",
-} as const;
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
-export function gameFormatLabel(format: string): string {
-  if (format in GAME_FORMAT_LABELS) {
-    return GAME_FORMAT_LABELS[format as keyof typeof GAME_FORMAT_LABELS];
+export function gameFormatLabel(format: string, locale: Locale): string {
+  const m = messagesFor(locale).createGame.format;
+  switch (format) {
+    case "friendly_game":
+      return m.friendlyGame;
+    case "americano":
+      return m.americano;
+    case "friendly_tournament":
+      return m.friendlyTournament;
+    default:
+      return format.replaceAll("_", " ");
   }
-  return format.replaceAll("_", " ");
 }

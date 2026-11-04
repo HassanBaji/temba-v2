@@ -1,19 +1,13 @@
+import type { Locale } from "@repo/i18n/locale";
+
 import {
   DEFAULT_SPORT,
   SPORTS,
   SPORT_GLYPHS,
-  SPORT_LABELS,
+  sportLabel,
   type Sport,
   type SportGlyph,
 } from "./sport";
-
-export const COMMUNITY_SPORTS_TITLE = "Sports";
-export const COMMUNITY_SPORTS_DESCRIPTION =
-  "Club Groups and Teams in this Community can use these sports.";
-export const COMMUNITY_SPORT_ADDED_TOAST = "Sport added";
-export const COMMUNITY_SPORT_REMOVED_TOAST = "Sport removed";
-export const COMMUNITY_CREATE_SPORTS_LABEL = "Sports";
-export const COMMUNITY_CREATE_SPORTS_HELP = "Pick at least one.";
 
 export type CommunitySportRow = {
   sport: Sport;
@@ -21,17 +15,26 @@ export type CommunitySportRow = {
   glyph: SportGlyph;
 };
 
-function sportRow(sport: Sport): CommunitySportRow {
-  return { sport, label: SPORT_LABELS[sport], glyph: SPORT_GLYPHS[sport] };
+function sportRow(sport: Sport, locale: Locale): CommunitySportRow {
+  return {
+    sport,
+    label: sportLabel(sport, locale) ?? sport,
+    glyph: SPORT_GLYPHS[sport],
+  };
 }
 
 export function communitySportsView(
   offered: readonly string[],
   canManage: boolean,
+  locale: Locale,
 ) {
-  const rows = SPORTS.filter((sport) => offered.includes(sport)).map(sportRow);
+  const rows = SPORTS.filter((sport) => offered.includes(sport)).map((sport) =>
+    sportRow(sport, locale),
+  );
   const addable = canManage
-    ? SPORTS.filter((sport) => !offered.includes(sport)).map(sportRow)
+    ? SPORTS.filter((sport) => !offered.includes(sport)).map((sport) =>
+        sportRow(sport, locale),
+      )
     : [];
   return { rows, addable, canRemove: canManage };
 }

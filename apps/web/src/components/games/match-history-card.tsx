@@ -9,7 +9,8 @@ import {
   PENDING_SET_COLUMNS,
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
-import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { resultMarkLabel } from "@repo/domain/result-mark";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -18,19 +19,19 @@ type MatchHistoryRow = RouterOutputs["games"]["listMyMatchHistory"][number];
 const CARD_INSET = "px-4";
 
 const AVATAR_TILE =
-  "-ml-2 size-[30px] shrink-0 rounded-full border-2 border-paper first:ml-0";
+  "-ms-2 size-[30px] shrink-0 rounded-full border-2 border-paper first:ms-0";
 
 function AvatarStack({ team }: { team: HistoryTeamRow }) {
   if (team.avatars.length === 0) {
     return (
-      <span aria-hidden="true" className="flex shrink-0 pl-2">
+      <span aria-hidden="true" className="flex shrink-0 ps-2">
         <span className={cn("hatch", AVATAR_TILE)} />
       </span>
     );
   }
 
   return (
-    <span className="flex shrink-0 pl-2">
+    <span className="flex shrink-0 ps-2">
       {team.avatars.map((member) => (
         <UserAvatar
           key={member.id}
@@ -65,7 +66,7 @@ function TeamScores({ team }: { team: HistoryTeamRow }) {
         <span
           key={index}
           className={cn(
-            "font-expanded min-w-[22px] text-right tabular-nums leading-none",
+            "font-expanded min-w-[22px] text-end tabular-nums leading-none",
             sets ? "text-title" : "text-h2",
             score.lostSet ? "text-muted-foreground" : null,
           )}
@@ -103,16 +104,22 @@ function TeamRow({ team }: { team: HistoryTeamRow }) {
 }
 
 export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
-  const model = matchHistoryCardModel(row);
+  const locale = useLocale();
+  const m = useMessages();
+  const model = matchHistoryCardModel(row, locale);
   const won = model.outcome === "won";
-  const outcomeLabel = RESULT_MARK_LABEL[model.outcome];
+  const outcomeLabel = resultMarkLabel(model.outcome, locale);
 
   return (
     <li data-slot="match-history-card">
       <SummaryCardShell
         emphasis={won}
         href={`/dashboard/games/${row.id}`}
-        linkLabel={`${outcomeLabel}, ${model.scoreLine}, ${model.meta}`}
+        linkLabel={m.webGame.history.linkLabel(
+          outcomeLabel,
+          model.scoreLine,
+          model.meta,
+        )}
       >
         <div className="pointer-events-none relative z-10 flex min-w-0 flex-col">
           <div
@@ -142,7 +149,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
             </span>
             <span
               className={cn(
-                "text-eyebrow ml-auto whitespace-nowrap",
+                "text-eyebrow ms-auto whitespace-nowrap",
                 won ? "text-dim" : "text-muted-foreground",
               )}
             >
@@ -163,7 +170,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
                 </span>
               ) : null}
               {model.groupName ? (
-                <span className="text-muted-foreground ml-auto min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.06em]">
+                <span className="text-muted-foreground ms-auto min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.06em]">
                   {model.groupName}
                 </span>
               ) : null}

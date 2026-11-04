@@ -9,10 +9,8 @@ import { TournamentYourRounds } from "~/components/games/tournament-your-rounds"
 import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
-  POOLS_SEGMENT_LABEL,
-  STANDINGS_HEADING,
-  TOURNAMENT_ENDS_COPY,
   defaultStandingsPoolIndex,
   otherPoolsPlayedSummary,
   roundResultsHeading,
@@ -22,7 +20,6 @@ import {
   poolRoundGroups,
   type MatchTrailing,
 } from "@repo/domain/tournament-details";
-import { TOURNAMENT_FINISHED_COPY } from "@repo/domain/tournament-pool-table";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
@@ -42,6 +39,7 @@ function PoolRoundResults({
   otherPools: ReturnType<typeof otherPoolsPlayedSummary>;
   onSelectPool: (poolIndex: number) => void;
 }) {
+  const locale = useLocale();
   const groups = poolRoundGroups(matches);
   if (groups.length === 0 && !otherPools) {
     return null;
@@ -54,7 +52,7 @@ function PoolRoundResults({
         return (
           <section key={roundNumber}>
             <h2 className="font-expanded text-title pb-2.5 tracking-[-0.03em]">
-              {roundResultsHeading(roundNumber)}
+              {roundResultsHeading(roundNumber, locale)}
             </h2>
             <div className={CARD}>
               <ul>
@@ -73,9 +71,10 @@ function PoolRoundResults({
                       trailing={matchTrailing({
                         cancelled: match.cancelled,
                         scoreLabel: match.scoreLabel,
+                        locale,
                       })}
                     />
-                    <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">
+                    <span className="text-muted-foreground min-w-0 flex-1 truncate text-end">
                       {match.slot2Name}
                     </span>
                   </li>
@@ -130,7 +129,7 @@ function OtherPoolsRow({
     <button
       type="button"
       className={cn(
-        "text-muted-foreground focus-visible:ring-ring/50 text-body flex min-h-11 w-full items-center gap-3 px-5 py-4 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
+        "text-muted-foreground focus-visible:ring-ring/50 text-body flex min-h-11 w-full items-center gap-3 px-5 py-4 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
         className,
       )}
       onClick={() => {
@@ -139,7 +138,10 @@ function OtherPoolsRow({
     >
       <span className="min-w-0 flex-1 truncate">{summary.namesLine}</span>
       <span className="text-meta">{summary.playedLabel}</span>
-      <ChevronRight aria-hidden="true" className="size-[18px] shrink-0" />
+      <ChevronRight
+        aria-hidden="true"
+        className="size-[18px] shrink-0 rtl:-scale-x-100"
+      />
     </button>
   );
 }
@@ -149,8 +151,8 @@ export function TournamentStandingsHeader({
   roundsPlayed,
   finished,
   backHref,
-  heading = STANDINGS_HEADING,
-  lead = TOURNAMENT_ENDS_COPY,
+  heading,
+  lead,
   championLine = null,
 }: {
   name: string;
@@ -161,6 +163,7 @@ export function TournamentStandingsHeader({
   lead?: string;
   championLine?: string | null;
 }) {
+  const m = useMessages();
   return (
     <header className={cn("border-rule border-b py-[22px]", pageBleed)}>
       <div className="flex items-center justify-between">
@@ -172,15 +175,15 @@ export function TournamentStandingsHeader({
         )}
       </div>
       <PageTitle variant="hero" className="mt-6">
-        {heading}
+        {heading ?? m.tournament.home.standingsHeading}
       </PageTitle>
       <p className="text-body mt-2">{name}</p>
       <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
-        {lead}
+        {lead ?? m.tournament.home.endsCopy}
       </p>
       {finished ? (
         <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
-          {TOURNAMENT_FINISHED_COPY}
+          {m.tournament.poolTable.finished}
         </p>
       ) : null}
       {championLine ? (
@@ -197,6 +200,8 @@ export function TournamentStandingsSection({
   poolTables: PoolTables;
   gameTeams?: ComponentProps<typeof PoolRecordTable>["gameTeams"];
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const defaultPool = defaultStandingsPoolIndex(
     poolTables.viewerPoolIndex,
     poolTables.pools,
@@ -213,7 +218,7 @@ export function TournamentStandingsSection({
       (pool) => pool.poolIndex === poolTables.viewerPoolIndex,
     )?.viewerRounds ?? [];
   const otherPools = selectedPool
-    ? otherPoolsPlayedSummary(selectedPool.poolIndex, poolTables.pools)
+    ? otherPoolsPlayedSummary(selectedPool.poolIndex, poolTables.pools, locale)
     : null;
 
   if (!selectedPool) {
@@ -231,7 +236,10 @@ export function TournamentStandingsSection({
       className="gap-0"
     >
       {poolTables.pools.length > 0 ? (
-        <TabsList variant="segmented" aria-label={POOLS_SEGMENT_LABEL}>
+        <TabsList
+          variant="segmented"
+          aria-label={m.tournament.home.poolsSegment}
+        >
           {poolTables.pools.map((pool) => (
             <TabsTrigger key={pool.poolIndex} value={String(pool.poolIndex)}>
               {pool.label}

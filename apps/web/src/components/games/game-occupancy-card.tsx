@@ -9,6 +9,7 @@ import {
   seatsLeftLabel,
   type GameOccupancyTone,
 } from "@repo/domain/game-occupancy";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 const BAR_TONE: Record<GameOccupancyTone, string> = {
@@ -21,17 +22,6 @@ const LABEL_TONE: Record<Exclude<GameOccupancyTone, "open">, string> = {
   filling: "text-warning font-semibold",
   full: "text-success font-semibold",
 };
-
-function waitlistLabel(count: number) {
-  return count === 1 ? "1 on waitlist" : `${count} on waitlist`;
-}
-
-function remainingLabel(unit: "player" | "team", remaining: number) {
-  if (unit === "player") {
-    return seatsLeftLabel(remaining);
-  }
-  return remaining === 1 ? "1 Team to go" : `${remaining} Teams to go`;
-}
 
 export function GameOccupancyCard({
   unit,
@@ -46,7 +36,16 @@ export function GameOccupancyCard({
   waitlistCount: number;
   people: AvatarStackPerson[];
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const occupancy = gameOccupancy(registeredCount, allowed);
+
+  function remainingLabel(remaining: number) {
+    if (unit === "player") {
+      return seatsLeftLabel(remaining, locale);
+    }
+    return m.webGame.occupancy.teamsToGo(remaining);
+  }
 
   if (!occupancy) {
     return null;
@@ -60,7 +59,7 @@ export function GameOccupancyCard({
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-            {unit === "player" ? "Players" : "Teams"}
+            {unit === "player" ? m.common.players : m.webGame.occupancy.teams}
           </p>
           <p className="text-h2 font-bold tabular-nums">
             {registeredCount}
@@ -87,18 +86,18 @@ export function GameOccupancyCard({
 
       <p className="text-meta">
         {occupancy.tone === "open" ? (
-          <HatchFlag>{remainingLabel(unit, occupancy.seatsLeft)}</HatchFlag>
+          <HatchFlag>{remainingLabel(occupancy.seatsLeft)}</HatchFlag>
         ) : (
           <span className={LABEL_TONE[occupancy.tone]}>
             {occupancy.tone === "full"
-              ? "Full"
-              : remainingLabel(unit, occupancy.seatsLeft)}
+              ? m.game.occupancy.full
+              : remainingLabel(occupancy.seatsLeft)}
           </span>
         )}
         {waitlistCount > 0 ? (
           <span className="text-muted-foreground">
             {" · "}
-            {waitlistLabel(waitlistCount)}
+            {m.webGame.occupancy.onWaitlist(waitlistCount)}
           </span>
         ) : null}
       </p>

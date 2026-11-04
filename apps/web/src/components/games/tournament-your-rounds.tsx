@@ -2,18 +2,15 @@
 
 import { ListRow, RowList } from "~/components/common/row-list";
 import { ResultMark } from "~/components/temba/result-mark";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { resultMarkVariant } from "@repo/domain/result-mark";
 import {
   matchTrailing,
   viewerRoundSubtitle,
 } from "@repo/domain/tournament-details";
-import {
-  NOT_DRAWN_TRAILER,
-  YOUR_ROUNDS_PREDRAW_CAPTION,
-} from "@repo/domain/tournament-home";
-import { YOUR_ROUNDS_HEADING } from "@repo/domain/tournament-pool-table";
 import type { TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
+import type { Locale } from "@repo/i18n/locale";
 
 export type TournamentYourRoundsResult = {
   matchId: string;
@@ -37,6 +34,8 @@ export function TournamentYourRounds(
         rounds: readonly TournamentYourRoundsResult[];
       },
 ) {
+  const m = useMessages();
+  const locale = useLocale();
   if (props.rounds.length === 0) {
     return null;
   }
@@ -45,16 +44,16 @@ export function TournamentYourRounds(
     <section>
       <div className="flex items-baseline gap-2.5 pb-2.5">
         <h2 className="font-expanded text-title tracking-[-0.03em]">
-          {YOUR_ROUNDS_HEADING}
+          {m.tournament.poolTable.yourRounds}
         </h2>
         {props.mode === "schedule" ? (
           <p className="text-muted-foreground text-meta">
-            {YOUR_ROUNDS_PREDRAW_CAPTION}
+            {m.tournament.home.yourRoundsPredrawCaption}
           </p>
         ) : null}
       </div>
       <RowList
-        aria-label={YOUR_ROUNDS_HEADING}
+        aria-label={m.tournament.poolTable.yourRounds}
         className="border-rule divide-rule rounded-card"
       >
         {props.mode === "schedule"
@@ -67,14 +66,14 @@ export function TournamentYourRounds(
                     aria-hidden="true"
                     className="text-eyebrow text-muted-foreground inline-block w-[22px] tabular-nums"
                   >
-                    {`R${round.roundNumber}`}
+                    {m.tournament.card.roundShort(round.roundNumber)}
                   </span>
                 }
-                title={formatGameStart(round.start)}
+                title={formatGameStart(round.start, locale)}
                 subtitle={props.venueName ?? undefined}
                 trailing={
                   <span className="text-muted-foreground text-meta">
-                    {NOT_DRAWN_TRAILER}
+                    {m.tournament.home.notDrawn}
                   </span>
                 }
               />
@@ -93,8 +92,9 @@ export function TournamentYourRounds(
                 subtitle={viewerRoundSubtitle(
                   round.roundNumber,
                   round.startTime,
+                  locale,
                 )}
-                trailing={roundTrailing(round)}
+                trailing={roundTrailing(round, locale)}
               />
             ))}
       </RowList>
@@ -102,11 +102,12 @@ export function TournamentYourRounds(
   );
 }
 
-function roundTrailing(round: TournamentYourRoundsResult) {
+function roundTrailing(round: TournamentYourRoundsResult, locale: Locale) {
   const trailing = matchTrailing({
     cancelled: round.cancelled,
     scoreLabel: round.scoreLabel,
     viewerOutcome: round.viewerOutcome,
+    locale,
   });
   if (trailing.kind === "not_played") {
     return (

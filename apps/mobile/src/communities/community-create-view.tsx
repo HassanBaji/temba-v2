@@ -1,17 +1,10 @@
 import { spacing } from "@repo/design-tokens";
-import {
-  COMMUNITY_CREATE_COPY,
-  COMMUNITY_TYPE_LABELS,
-  communityTypeHelp,
-} from "@repo/domain/community";
+import { communityTypeHelp } from "@repo/domain/community";
 import type { CommunityVisibility } from "@repo/domain/community-chrome";
-import {
-  COMMUNITY_CREATE_SPORTS_HELP,
-  COMMUNITY_CREATE_SPORTS_LABEL,
-} from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceRow } from "../lib/choice-row";
 import { SportToggleRow } from "../lib/sport-toggle-row";
 import { Button } from "../primitives/button";
@@ -34,22 +27,23 @@ export type CommunityCreateViewProps = {
   onCancel: () => void;
 };
 
-const CHOICES = [
-  { value: "public" as const, label: COMMUNITY_TYPE_LABELS.public },
-  { value: "private" as const, label: COMMUNITY_TYPE_LABELS.private },
-];
-
 export function CommunityCreateView(props: CommunityCreateViewProps) {
+  const m = useMessages();
+  const locale = useLocale();
+  const choices = [
+    { value: "public" as const, label: m.community.type.public },
+    { value: "private" as const, label: m.community.type.private },
+  ];
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
         <ScreenHeader
           nav="close"
           fallback={COMMUNITIES_PATH}
-          title={COMMUNITY_CREATE_COPY.title}
+          title={m.community.create.title}
         />
         <Text size="meta" tone="muted">
-          {COMMUNITY_CREATE_COPY.description}
+          {m.community.create.description}
         </Text>
       </View>
       {props.formError ? (
@@ -58,7 +52,7 @@ export function CommunityCreateView(props: CommunityCreateViewProps) {
         </Text>
       ) : null}
       <TextField
-        label="Name"
+        label={m.mobileCommunity.create.nameLabel}
         value={props.name}
         onChangeText={props.onNameChange}
         error={props.nameError ?? undefined}
@@ -67,38 +61,38 @@ export function CommunityCreateView(props: CommunityCreateViewProps) {
         returnKeyType="done"
       />
       <View style={{ gap: 6 }}>
-        <Text weight="medium">Type</Text>
+        <Text weight="medium">{m.mobileCommunity.create.typeLabel}</Text>
         <ChoiceRow
-          label="Type"
-          choices={CHOICES}
+          label={m.mobileCommunity.create.typeLabel}
+          choices={choices}
           value={props.type}
           onSelect={props.onTypeChange}
           disabled={props.pending}
         />
         <Text size="meta" tone="muted">
-          {communityTypeHelp(props.type)}
+          {communityTypeHelp(props.type, locale)}
         </Text>
       </View>
       <View style={{ gap: 6 }}>
-        <Text weight="medium">{COMMUNITY_CREATE_SPORTS_LABEL}</Text>
+        <Text weight="medium">{m.community.sports.createLabel}</Text>
         <SportToggleRow
           value={props.sports}
           onToggle={props.onToggleSport}
           disabled={props.pending}
         />
         <Text size="meta" tone="muted">
-          {COMMUNITY_CREATE_SPORTS_HELP}
+          {m.community.sports.createHelp}
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
-          label={COMMUNITY_CREATE_COPY.submit}
+          label={m.community.create.submit}
           pending={props.pending}
           disabled={props.sports.length === 0}
           onPress={props.onSubmit}
         />
         <Button
-          label="Cancel"
+          label={m.common.cancel}
           variant="outline"
           disabled={props.pending}
           onPress={props.onCancel}

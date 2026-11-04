@@ -41,13 +41,20 @@ describe("edit screen chrome", () => {
   });
 
   it("states the Group in the subtitle", () => {
-    expect(groupEditSubtitle(fixtures.administration.creator)).toMatch(
+    expect(groupEditSubtitle(fixtures.administration.creator, "en")).toMatch(
       /^Bromma Tuesday, Padel, \d+ members$/,
     );
   });
 
   it("states under Save whether anything changed", () => {
-    expect(groupEditSaveFooter(false)).toBe("Nothing changed yet.");
-    expect(groupEditSaveFooter(true)).toBe("Unsaved changes.");
+    expect(groupEditSaveFooter(false, "en")).toBe("Nothing changed yet.");
+    expect(groupEditSaveFooter(true, "en")).toBe("Unsaved changes.");
+  });
+
+  it("reads the chrome in Arabic", () => {
+    expect(groupEditSubtitle(fixtures.administration.creator, "ar")).toMatch(
+      /^Bromma Tuesday، بادل، \d+ أعضاء$/,
+    );
+    expect(groupEditSaveFooter(true, "ar")).toBe("تغييرات غير محفوظة.");
   });
 });

@@ -7,21 +7,24 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 
 export function OperatorGate({
   children,
-  title = "Venues",
+  title,
 }: {
   children: ReactNode;
   title?: string;
 }) {
   const { isLoaded, user } = useUser();
+  const m = useMessages();
+  const shellTitle = title ?? m.webUi.nav.venues;
 
   if (!isLoaded) {
     return (
-      <DashboardShell title={title}>
+      <DashboardShell title={shellTitle}>
         <Skeleton className="h-20 w-full" />
       </DashboardShell>
     );
@@ -29,14 +32,14 @@ export function OperatorGate({
 
   if (user?.publicMetadata.operator !== true) {
     return (
-      <DashboardShell title={title}>
+      <DashboardShell title={shellTitle}>
         <EmptyState
           icon={Lock}
-          title="Operator access only"
-          description="Venue and Court curation is handled by Temba staff."
+          title={m.webUi.operatorGate.title}
+          description={m.webUi.operatorGate.description}
           action={
             <Button asChild>
-              <Link href="/dashboard">Back to Home</Link>
+              <Link href="/dashboard">{m.webUi.operatorGate.backHome}</Link>
             </Button>
           }
         />

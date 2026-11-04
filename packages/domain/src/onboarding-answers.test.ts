@@ -5,6 +5,8 @@ import {
   initialOnboardingAnswers,
   onboardingSubmission,
   onboardingSummary,
+  padelLevelChoices,
+  padelNotSureLabel,
   type OnboardingAnswers,
 } from "./onboarding-answers";
 
@@ -59,22 +61,34 @@ describe("onboardingSubmission", () => {
 
 describe("onboardingSummary", () => {
   it("reads each sport the way organizers will see it", () => {
-    expect(onboardingSummary(answers)).toEqual([
+    expect(onboardingSummary(answers, "en")).toEqual([
       { sport: "Padel", line: "C+, left side" },
       { sport: "Football", line: "Midfield, competitive" },
     ]);
     expect(
-      onboardingSummary({
-        ...answers,
-        padelLevel: "D+",
-        padelSide: "either",
-        footballRole: "keeper",
-        footballPlacement: "pro",
-      }),
+      onboardingSummary(
+        {
+          ...answers,
+          padelLevel: "D+",
+          padelSide: "either",
+          footballRole: "keeper",
+          footballPlacement: "pro",
+        },
+        "en",
+      ),
     ).toEqual([
       { sport: "Padel", line: "D+, either side" },
       { sport: "Football", line: "Keeper, pro" },
     ]);
+  });
+
+  it("reads the summary in Arabic", () => {
+    expect(onboardingSummary(answers, "ar")[0]).toEqual({
+      sport: "بادل",
+      line: "C+، الجهة اليسرى",
+    });
+    expect(padelLevelChoices("ar")[0]?.name).toBe("جديد في البادل");
+    expect(padelNotSureLabel("ar")).toContain("D+");
   });
 });
 

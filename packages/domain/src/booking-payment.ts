@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const PAYMENT_HOLD_MINUTES = 10;
 
 export type PaymentStatus =
@@ -31,17 +34,20 @@ export function isOnlinePaymentMethod(
   ).includes(method);
 }
 
-const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  pending: "Pending",
-  paid: "Paid",
-  failed: "Failed",
-  refunded: "Refunded",
-  partially_refunded: "Partially refunded",
-  waived: "Waived",
-};
+const PAYMENT_STATUS_KEYS = {
+  pending: "pending",
+  paid: "paid",
+  failed: "failed",
+  refunded: "refunded",
+  partially_refunded: "partiallyRefunded",
+  waived: "waived",
+} as const satisfies Record<PaymentStatus, string>;
 
-export function paymentStatusLabel(status: PaymentStatus): string {
-  return PAYMENT_STATUS_LABELS[status];
+export function paymentStatusLabel(
+  status: PaymentStatus,
+  locale: Locale,
+): string {
+  return messagesFor(locale).booking.paymentStatus[PAYMENT_STATUS_KEYS[status]];
 }
 
 export function paymentHoldExpiresAt(now: Date): Date {

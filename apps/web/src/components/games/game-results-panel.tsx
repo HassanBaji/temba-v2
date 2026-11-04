@@ -5,6 +5,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "~/components/common/empty-state";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   formatMatchSlotLabel,
   gameTeamDisplayName,
@@ -32,11 +33,9 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { formatGameClock } from "@repo/domain/format-game-start";
-import {
-  CANCEL_GAME_ACTION,
-  CANCEL_MATCH_ACTION,
-  setLabel,
-} from "@repo/domain/game-copy";
+import { setLabel } from "@repo/domain/game-copy";
+import type { Locale } from "@repo/i18n/locale";
+import type { Messages } from "@repo/i18n/messages";
 import { cn } from "~/lib/utils";
 
 export type GameResultsMatch = {
@@ -93,10 +92,10 @@ function scoreTone(decided: boolean, won: boolean) {
   return won ? "text-success" : "text-muted-foreground";
 }
 
-function matchMetaLabel(match: GameResultsMatch) {
+function matchMetaLabel(match: GameResultsMatch, m: Messages) {
   const parts: string[] = [];
   if (match.durationInMinutes != null) {
-    parts.push(`${match.durationInMinutes} min`);
+    parts.push(m.dates.minutes(match.durationInMinutes));
   }
   if (match.courtName) {
     parts.push(match.courtName);
@@ -104,33 +103,49 @@ function matchMetaLabel(match: GameResultsMatch) {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-function matchWindowLabel(match: GameResultsMatch) {
+function matchWindowLabel(
+  match: GameResultsMatch,
+  m: Messages,
+  locale: Locale,
+) {
   if (match.startTime && match.endTime) {
-    return `${formatGameClock(match.startTime)} – ${formatGameClock(match.endTime)}`;
+    return m.webGame.results.clockRange(
+      formatGameClock(match.startTime, locale),
+      formatGameClock(match.endTime, locale),
+    );
   }
   if (match.startTime) {
-    return formatGameClock(match.startTime);
+    return formatGameClock(match.startTime, locale);
   }
-  return "Match";
+  return m.webGame.results.match;
 }
 
-function outcomeLabel(format: string, match: GameResultsMatch) {
-  const slot1 = formatMatchSlotLabel(format, 1);
-  const slot2 = formatMatchSlotLabel(format, 2);
+function outcomeLabel(
+  format: string,
+  match: GameResultsMatch,
+  m: Messages,
+  locale: Locale,
+) {
+  const slot1 = formatMatchSlotLabel(format, 1, locale);
+  const slot2 = formatMatchSlotLabel(format, 2, locale);
   const completed = match.status === "completed";
   if (match.outcome.result === "draw") {
-    return "Match draw";
+    return m.game.results.matchDraw;
   }
   if (match.outcome.result === "slot1") {
-    return completed ? `${slot1} won` : `${slot1} leads`;
+    return completed
+      ? m.game.results.teamWon(slot1)
+      : m.webGame.results.leads(slot1);
   }
   if (match.outcome.result === "slot2") {
-    return completed ? `${slot2} won` : `${slot2} leads`;
+    return completed
+      ? m.game.results.teamWon(slot2)
+      : m.webGame.results.leads(slot2);
   }
   if (completed) {
-    return "Match completed";
+    return m.game.results.matchCompleted;
   }
-  return "No result yet";
+  return m.webGame.results.noResultYet;
 }
 
 export function GameResultsPanel({
@@ -177,6 +192,8 @@ export function GameResultsPanel({
   }) => void;
   onCancelMatch: (matchId: string) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [setScores, setSetScores] = React.useState<
     Record<string, { slot1: string; slot2: string }>
   >({});
@@ -198,14 +215,16 @@ export function GameResultsPanel({
     return (
       <EmptyState
         icon={Trophy}
-        title="No Match results"
-        description="Americano Games do not have Matches."
+        title={m.webGame.results.noMatchResults}
+        description={m.webGame.results.americanoNoMatches}
       />
     );
   }
 
   if (matches.length === 0) {
-    return <EmptyState icon={Trophy} title="No Match results" />;
+    return (
+      <EmptyState icon={Trophy} title={m.webGame.results.noMatchResults} />
+    );
   }
 
   const canEditMatch =
@@ -216,19 +235,21 @@ export function GameResultsPanel({
   return (
     <div className="space-y-6">
       {matches.map((match) => {
-        const slot1Label = formatMatchSlotLabel(format, 1);
-        const slot2Label = formatMatchSlotLabel(format, 2);
+        const slot1Label = formatMatchSlotLabel(format, 1, locale);
+        const slot2Label = formatMatchSlotLabel(format, 2, locale);
         const slot1Names = matchSlotOccupantLabel(
           gameTeams,
           match.slot1GameTeamId,
+          locale,
         );
         const slot2Names = matchSlotOccupantLabel(
           gameTeams,
           match.slot2GameTeamId,
+          locale,
         );
         const matchCancelled = match.status === "cancelled";
         const matchCompleted = match.status === "completed";
-        const matchMeta = matchMetaLabel(match);
+        const matchMeta = matchMetaLabel(match, m);
         const slot1Won = match.outcome.result === "slot1";
         const slot2Won = match.outcome.result === "slot2";
         const scored = match.outcome.result !== "none";
@@ -239,7 +260,7 @@ export function GameResultsPanel({
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="space-y-1">
                 <p className="text-title font-medium">
-                  {matchWindowLabel(match)}
+                  {matchWindowLabel(match, m, locale)}
                 </p>
                 {matchMeta ? (
                   <p className="text-meta text-muted-foreground">{matchMeta}</p>
@@ -263,21 +284,23 @@ export function GameResultsPanel({
                 </p>
               ) : null}
               <p className="text-body text-muted-foreground">
-                {outcomeLabel(format, match)}
+                {outcomeLabel(format, match, m, locale)}
               </p>
             </div>
 
             {match.sets.length === 0 ? (
-              <p className="text-muted-foreground text-body">No Sets yet.</p>
+              <p className="text-muted-foreground text-body">
+                {m.webGame.results.noSetsYet}
+              </p>
             ) : (
               <div className="border-border overflow-hidden rounded-lg border">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>Teams</TableHead>
+                      <TableHead>{m.webGame.results.teams}</TableHead>
                       {match.sets.map((set, index) => (
                         <TableHead key={set.id} className="text-center">
-                          {setLabel(index)}
+                          {setLabel(index, locale)}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -293,7 +316,9 @@ export function GameResultsPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{slot1Label}</p>
                           {matchCompleted && slot1Won ? (
-                            <ResultTag variant="won">Won</ResultTag>
+                            <ResultTag variant="won">
+                              {m.game.resultMark.won}
+                            </ResultTag>
                           ) : null}
                         </div>
                         {slot1Names ? (
@@ -321,7 +346,9 @@ export function GameResultsPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{slot2Label}</p>
                           {matchCompleted && slot2Won ? (
-                            <ResultTag variant="won">Won</ResultTag>
+                            <ResultTag variant="won">
+                              {m.game.resultMark.won}
+                            </ResultTag>
                           ) : null}
                         </div>
                         {slot2Names ? (
@@ -346,7 +373,9 @@ export function GameResultsPanel({
 
             {match.canScoreSets ? (
               <div className="space-y-3">
-                <p className="text-title font-medium">Score sets</p>
+                <p className="text-title font-medium">
+                  {m.webGame.results.scoreSets}
+                </p>
                 <ul className="space-y-3">
                   {match.sets.map((set, index) => {
                     const scores = setScores[set.id] ?? {
@@ -359,11 +388,11 @@ export function GameResultsPanel({
                         className="flex flex-wrap items-end gap-2"
                       >
                         <p className="text-muted-foreground text-meta w-12">
-                          {setLabel(index)}
+                          {setLabel(index, locale)}
                         </p>
                         <Field>
                           <FieldLabel htmlFor={`set-${set.id}-slot1`}>
-                            {slot1Label} games
+                            {m.webGame.results.slotGames(slot1Label)}
                           </FieldLabel>
                           <Input
                             type="number"
@@ -387,7 +416,7 @@ export function GameResultsPanel({
                         </span>
                         <Field>
                           <FieldLabel htmlFor={`set-${set.id}-slot2`}>
-                            {slot2Label} games
+                            {m.webGame.results.slotGames(slot2Label)}
                           </FieldLabel>
                           <Input
                             type="number"
@@ -413,7 +442,7 @@ export function GameResultsPanel({
                               scores.slot1.trim().length === 0 ||
                               scores.slot2.trim().length === 0
                             ) {
-                              toast.error("Enter games won for both teams");
+                              toast.error(m.game.score.incompleteMessage);
                               return;
                             }
                             onScoreSet({
@@ -425,7 +454,7 @@ export function GameResultsPanel({
                           }}
                           disabled={scorePending}
                         >
-                          Save
+                          {m.common.save}
                         </Button>
                       </li>
                     );
@@ -437,7 +466,7 @@ export function GameResultsPanel({
             {(!match.bothSidesComplete || !match.bothSlotsFilled) &&
             match.status !== "completed" ? (
               <p className="text-muted-foreground text-body">
-                Scoring opens once both teams are full.
+                {m.webGame.results.scoringOpens}
               </p>
             ) : null}
 
@@ -447,7 +476,7 @@ export function GameResultsPanel({
                 onClick={() => onComplete(match.id)}
                 disabled={completePending}
               >
-                Complete Match
+                {m.game.action.completeMatch}
               </Button>
             ) : null}
 
@@ -455,7 +484,7 @@ export function GameResultsPanel({
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor={`match-${match.id}-court`}>
-                    Court
+                    {m.webGame.results.court}
                   </FieldLabel>
                   <Select
                     value={match.courtId ?? "none"}
@@ -477,13 +506,18 @@ export function GameResultsPanel({
                     }}
                   >
                     <SelectTrigger id={`match-${match.id}-court`}>
-                      <SelectValue placeholder="Court" />
+                      <SelectValue placeholder={m.webGame.results.court} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No Court</SelectItem>
+                      <SelectItem value="none">
+                        {m.webGame.results.noCourt}
+                      </SelectItem>
                       {courts.map((court) => (
                         <SelectItem key={court.id} value={court.id}>
-                          {court.venueName}: {court.name}
+                          {m.webGame.results.courtOption(
+                            court.venueName,
+                            court.name,
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -514,11 +548,11 @@ export function GameResultsPanel({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">
-                            {slot1Label} empty
+                            {m.webGame.results.slotEmpty(slot1Label)}
                           </SelectItem>
                           {gameTeams.map((side) => (
                             <SelectItem key={side.id} value={side.id}>
-                              {gameTeamDisplayName(side)}
+                              {gameTeamDisplayName(side, locale)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -547,11 +581,11 @@ export function GameResultsPanel({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">
-                            {slot2Label} empty
+                            {m.webGame.results.slotEmpty(slot2Label)}
                           </SelectItem>
                           {gameTeams.map((side) => (
                             <SelectItem key={side.id} value={side.id}>
-                              {gameTeamDisplayName(side)}
+                              {gameTeamDisplayName(side, locale)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -569,8 +603,8 @@ export function GameResultsPanel({
                 disabled={cancelPending}
               >
                 {format === "friendly_game"
-                  ? CANCEL_GAME_ACTION
-                  : CANCEL_MATCH_ACTION}
+                  ? m.game.action.cancelGame
+                  : m.game.action.cancelMatch}
               </Button>
             ) : null}
           </Card>

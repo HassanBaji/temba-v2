@@ -4,6 +4,8 @@ import { ChevronLeft, X } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { backTarget } from "./back-target";
 import { hairline } from "./hairline-width";
 import { useSurfaceTone } from "./surface-context";
@@ -89,6 +91,10 @@ export function ScreenHeader({
   );
 }
 
+function BackChevron(props: { size: number; color: ColorValue }) {
+  return <ChevronLeft {...props} style={mirrorInRtl} />;
+}
+
 /** Leaves the screen the way its back button would. */
 export function useLeaveScreen(fallback: Href) {
   const router = useRouter();
@@ -111,13 +117,14 @@ function NavButton({
   fallback: Href;
   onNav?: () => void;
 }) {
+  const m = useMessages();
   const leave = useLeaveScreen(fallback);
 
   return (
     <HeaderIconButton
       framed
-      icon={nav === "back" ? ChevronLeft : X}
-      accessibilityLabel={nav === "back" ? "Back" : "Close"}
+      icon={nav === "back" ? BackChevron : X}
+      accessibilityLabel={nav === "back" ? m.common.back : m.common.close}
       onPress={onNav ?? leave}
     />
   );

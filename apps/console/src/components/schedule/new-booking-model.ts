@@ -3,6 +3,7 @@ import {
   type PricingRuleInput,
 } from "@repo/domain/booking-price";
 import { parseOptionalPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 import { dayStart, weekdayOf, type GridWindow } from "./booking-model";
 
@@ -134,7 +135,10 @@ export function draftToInput(
 
   let priceFils: number | undefined;
   if (draft.priceInput !== null) {
-    const parsed = parseOptionalPricePerPlayerFils(draft.priceInput);
+    const parsed = parseOptionalPricePerPlayerFils(
+      draft.priceInput,
+      CONSOLE_LOCALE,
+    );
     if (!parsed.ok || parsed.fils === null) {
       return { ok: false, message: "Enter the price in BD, like 18.000" };
     }

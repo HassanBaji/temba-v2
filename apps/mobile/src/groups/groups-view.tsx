@@ -13,6 +13,7 @@ import { Plus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceRow } from "../lib/choice-row";
 import { SportGlyph } from "../lib/sport-glyph";
 import { Avatar } from "../primitives/avatar";
@@ -54,9 +55,10 @@ function TabButtons({
   tab,
   onTabChange,
 }: Pick<GroupsViewProps, "tab" | "onTabChange">) {
+  const m = useMessages();
   const tabs = [
-    { key: "mine", label: "Mine" },
-    { key: "public", label: "Public" },
+    { key: "mine", label: m.mobileGroup.list.tabs.mine },
+    { key: "public", label: m.mobileGroup.list.tabs.public },
   ] as const;
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
@@ -83,6 +85,7 @@ function Failure({
   message: string;
   onRetry: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface accessibilityRole="alert" style={{ gap: 8 }}>
       <Text size="lead" weight="semibold">
@@ -92,15 +95,16 @@ function Failure({
         {message}
       </Text>
       <View style={{ flexDirection: "row", marginTop: 4 }}>
-        <Button label="Try again" variant="outline" onPress={onRetry} />
+        <Button label={m.common.tryAgain} variant="outline" onPress={onRetry} />
       </View>
     </Surface>
   );
 }
 
 function ListSkeleton() {
+  const m = useMessages();
   return (
-    <View style={{ gap: 12 }} accessibilityLabel="Loading Groups">
+    <View style={{ gap: 12 }} accessibilityLabel={m.mobileGroup.list.loading}>
       {[0, 1, 2].map((key) => (
         <Skeleton key={key} height={76} radius={16} />
       ))}
@@ -115,6 +119,7 @@ function MyGroupRow({
   row: ReturnType<typeof groupRowView>;
   onOpen: (groupId: string) => void;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
@@ -147,7 +152,7 @@ function MyGroupRow({
               {row.nextGameWeekday}
             </Text>
             <Text size="eyebrow" tone="muted" mono uppercase>
-              Next Game
+              {m.mobileGroup.list.nextGame}
             </Text>
           </View>
         ) : (
@@ -170,7 +175,7 @@ function MyGroupRow({
             ))}
           </View>
           <Text size="eyebrow" tone="muted" mono uppercase>
-            your form here
+            {m.mobileGroup.list.yourFormHere}
           </Text>
         </View>
       ) : null}
@@ -254,13 +259,15 @@ function PublicGroupRow({
 
 function MineList(props: GroupsViewProps) {
   const { mine } = props;
+  const locale = useLocale();
+  const m = useMessages();
   if (mine.status === "loading") {
     return <ListSkeleton />;
   }
   if (mine.status === "error") {
     return (
       <Failure
-        title="Groups could not be loaded"
+        title={m.mobileGroup.loadFailed.groups}
         message={mine.message}
         onRetry={props.onRetry}
       />
@@ -280,7 +287,7 @@ function MineList(props: GroupsViewProps) {
         <View key={group.id}>
           {index > 0 ? <Hairline /> : null}
           <MyGroupRow
-            row={groupRowView(group, props.apiOrigin)}
+            row={groupRowView(group, props.apiOrigin, locale)}
             onOpen={props.onOpen}
           />
         </View>
@@ -292,12 +299,14 @@ function MineList(props: GroupsViewProps) {
 function SportFilter(
   props: Pick<GroupsViewProps, "sportFilter" | "onSportFilterChange">,
 ) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <ChoiceRow
-      label="Filter by sport"
+      label={m.mobileGroup.list.filterBySport}
       choices={PUBLIC_GROUP_SPORT_FILTERS.map((filter) => ({
         value: filter,
-        label: publicGroupSportFilterLabel(filter),
+        label: publicGroupSportFilterLabel(filter, locale),
       }))}
       value={props.sportFilter}
       onSelect={props.onSportFilterChange}
@@ -308,13 +317,15 @@ function SportFilter(
 
 function PublicList(props: GroupsViewProps) {
   const { publicGroups } = props;
+  const locale = useLocale();
+  const m = useMessages();
   if (publicGroups.status === "loading") {
     return <ListSkeleton />;
   }
   if (publicGroups.status === "error") {
     return (
       <Failure
-        title="Public Groups could not be loaded"
+        title={m.mobileGroup.loadFailed.publicGroups}
         message={publicGroups.message}
         onRetry={props.onRetry}
       />
@@ -338,6 +349,7 @@ function PublicList(props: GroupsViewProps) {
               group,
               props.pendingGroupId,
               props.apiOrigin,
+              locale,
             )}
             pending={props.pendingGroupId === group.id}
             onOpen={props.onOpen}
@@ -350,14 +362,15 @@ function PublicList(props: GroupsViewProps) {
 }
 
 export function GroupsView(props: GroupsViewProps) {
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
       <ScreenHeader
-        title="Groups"
+        title={m.common.groups}
         actions={
           <HeaderIconButton
             icon={Plus}
-            accessibilityLabel="Create Group"
+            accessibilityLabel={m.group.create.loose.submit}
             onPress={props.onCreate}
           />
         }

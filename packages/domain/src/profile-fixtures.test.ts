@@ -16,12 +16,15 @@ describe("createProfileFixtures", () => {
 
   it("puts the top band on a rung with no next Level band", () => {
     assert.ok(topBand.level);
-    assert.equal(profileLevelView(topBand.level).atTopBand, true);
+    assert.equal(profileLevelView(topBand.level, "en").atTopBand, true);
   });
 
   it("gives a new player no Level, no form and no win rate", () => {
     assert.equal(newPlayer.level, null);
     assert.equal(newPlayer.recentForm.length, 0);
-    assert.equal(profileAllTimeView(newPlayer.allTime).winRatePercent, null);
+    assert.equal(
+      profileAllTimeView(newPlayer.allTime, "en").winRatePercent,
+      null,
+    );
   });
 });

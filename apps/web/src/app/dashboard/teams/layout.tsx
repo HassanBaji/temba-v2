@@ -1,8 +1,11 @@
 import { type Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Teams",
-};
+import { getRequestMessages } from "~/lib/request-locale";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.common.teams };
+}
 
 export default function TeamsLayout({
   children,

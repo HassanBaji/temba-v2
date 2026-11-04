@@ -11,6 +11,7 @@ import {
   productDaysBetween,
   zonedDateTimeToInstant,
 } from "@repo/domain/product-timezone";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 const MS_PER_MINUTE = 60_000;
 
@@ -131,9 +132,9 @@ export function whenLabel(startsAt: Date, now: Date): string {
         : days === -1
           ? "Yesterday"
           : Math.abs(days) < 7
-            ? formatWeekday(startsAt, "short")
-            : formatDayMonth(startsAt, { weekday: "short" });
-  return `${day} ${formatGameClock(startsAt)}`;
+            ? formatWeekday(startsAt, "short", CONSOLE_LOCALE)
+            : formatDayMonth(startsAt, CONSOLE_LOCALE, { weekday: "short" });
+  return `${day} ${formatGameClock(startsAt, CONSOLE_LOCALE)}`;
 }
 
 export function durationLabel(startsAt: Date, endsAt: Date): string {
@@ -145,10 +146,10 @@ export function durationLabel(startsAt: Date, endsAt: Date): string {
 
 /** "7:00 to 8:30 PM", repeating the meridiem only when it changes. */
 export function timeRangeLabel(startsAt: Date, endsAt: Date): string {
-  const start = formatGameClock(startsAt);
-  const end = formatGameClock(endsAt);
+  const start = formatGameClock(startsAt, CONSOLE_LOCALE);
+  const end = formatGameClock(endsAt, CONSOLE_LOCALE);
   const sameMeridiem = start.split(" ").at(-1) === end.split(" ").at(-1);
-  return `${sameMeridiem ? formatGameClockWithoutMeridiem(startsAt) : start} to ${end}`;
+  return `${sameMeridiem ? formatGameClockWithoutMeridiem(startsAt, CONSOLE_LOCALE) : start} to ${end}`;
 }
 
 /** "Court 2, Thu 15 Oct 7:00 to 8:30 PM". */
@@ -157,7 +158,7 @@ export function bookingTitle(booking: {
   startsAt: Date;
   endsAt: Date;
 }): string {
-  return `${booking.court.name}, ${formatDayMonth(booking.startsAt, { weekday: "short" })} ${timeRangeLabel(booking.startsAt, booking.endsAt)}`;
+  return `${booking.court.name}, ${formatDayMonth(booking.startsAt, CONSOLE_LOCALE, { weekday: "short" })} ${timeRangeLabel(booking.startsAt, booking.endsAt)}`;
 }
 
 export function sourceLabel(source: "app" | "venue"): string {

@@ -13,10 +13,11 @@ import {
   type GameRow,
 } from "#src/games/access";
 import {
-  LEVEL_RANGE_INVERTED_MESSAGE,
+  levelRangeInvertedMessage,
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
+import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -88,12 +89,12 @@ export const updateLevelRange = protectedProcedure
         ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: LEVEL_RANGE_INVERTED_MESSAGE,
+            message: levelRangeInvertedMessage(DEFAULT_LOCALE),
             path: ["levelMinTenths"],
           });
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: LEVEL_RANGE_INVERTED_MESSAGE,
+            message: levelRangeInvertedMessage(DEFAULT_LOCALE),
             path: ["levelMaxTenths"],
           });
         }

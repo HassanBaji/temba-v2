@@ -9,6 +9,7 @@ import {
   minutesFromDayStart,
 } from "~/components/schedule/booking-model";
 import { draftStartsAt } from "~/components/schedule/new-booking-model";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 export type EditableBooking = {
   courtId: string;
@@ -104,7 +105,10 @@ export function editToInput(
       input.priceFils = booking.priceFils;
     }
   } else if (draft.priceInput !== null) {
-    const parsed = parseOptionalPricePerPlayerFils(draft.priceInput);
+    const parsed = parseOptionalPricePerPlayerFils(
+      draft.priceInput,
+      CONSOLE_LOCALE,
+    );
     if (!parsed.ok || parsed.fils === null) {
       return { ok: false, message: "Enter the price in BD, like 18.000" };
     }

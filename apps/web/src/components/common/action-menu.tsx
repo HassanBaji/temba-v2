@@ -3,6 +3,7 @@
 import { MoreVertical } from "lucide-react";
 import * as React from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ export const ACTION_MENU_PAPER_BOXED_TRIGGER =
 
 export function ActionMenu({
   children,
-  label = "More actions",
+  label,
   triggerRef,
   triggerClassName,
 }: {
@@ -33,6 +34,7 @@ export function ActionMenu({
   /** Trigger overrides, e.g. paper ink and a raised hover on an ink surface. */
   triggerClassName?: string;
 }) {
+  const m = useMessages();
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -40,7 +42,7 @@ export function ActionMenu({
           ref={triggerRef}
           type="button"
           variant="ghost"
-          aria-label={label}
+          aria-label={label ?? m.webUi.moreActions}
           className={cn("size-11 min-h-11 min-w-11 p-0", triggerClassName)}
         >
           <MoreVertical aria-hidden="true" className="size-5" strokeWidth={2} />

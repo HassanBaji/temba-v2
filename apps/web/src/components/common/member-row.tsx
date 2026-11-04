@@ -58,7 +58,7 @@ export function MemberRow({
           {navigates ? (
             <ChevronRight
               aria-hidden="true"
-              className="text-muted-foreground size-[18px] shrink-0 sm:hidden"
+              className="text-muted-foreground size-[18px] shrink-0 sm:hidden rtl:-scale-x-100"
             />
           ) : null}
         </div>
@@ -67,7 +67,7 @@ export function MemberRow({
 
   if (onSelect) {
     return (
-      <ListRow {...rowProps} asChild className="text-left">
+      <ListRow {...rowProps} asChild className="text-start">
         <button type="button" onClick={onSelect} />
       </ListRow>
     );

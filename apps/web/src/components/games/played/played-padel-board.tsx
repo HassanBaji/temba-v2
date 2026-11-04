@@ -1,14 +1,23 @@
-import type { PlayedPadelBoardRow } from "@repo/domain/played-game";
+import {
+  playedWordLabel,
+  type PlayedPadelBoardRow,
+} from "@repo/domain/played-game";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 function PairRow({ row }: { row: PlayedPadelBoardRow }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const word = playedWordLabel(row.word, locale);
   return (
     <div
       className="flex items-center justify-between gap-4"
-      aria-label={`${row.line}, ${row.word}. Sets ${row.sets
-        .map((set) => set.value)
-        .join(", ")}`}
+      aria-label={m.webGame.played.pairRowLabel(
+        row.line,
+        word,
+        row.sets.map((set) => set.value).join(m.tournament.listSeparator),
+      )}
     >
       <div className="min-w-0 flex-1">
         <p
@@ -19,7 +28,7 @@ function PairRow({ row }: { row: PlayedPadelBoardRow }) {
         >
           {row.line}
         </p>
-        <p className="text-dim text-meta">{row.word}</p>
+        <p className="text-dim text-meta">{word}</p>
       </div>
       <div className="flex gap-3.5">
         {row.sets.map((set) => (

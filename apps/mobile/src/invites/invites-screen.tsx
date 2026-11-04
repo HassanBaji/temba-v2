@@ -12,15 +12,11 @@ import { useCallback, useState } from "react";
 import { ConfirmSheet } from "../game-details/confirm-sheet";
 import { useGroupLinkRequest } from "../groups/use-group-link-request";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import {
-  PASTE_LINK_EMPTY_MESSAGE,
-  PASTE_LINK_INVALID_MESSAGE,
-  inviteLandingPath,
-  inviteLinkHref,
-} from "./invites-model";
+import { inviteLandingPath, inviteLinkHref } from "./invites-model";
 import { InvitesView } from "./invites-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -28,6 +24,8 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 export function InvitesScreen() {
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const [refreshing, setRefreshing] = useState(false);
   const [linkText, setLinkText] = useState("");
@@ -83,7 +81,7 @@ export function InvitesScreen() {
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.show(lookupInviteAcceptToast("community"));
+      toast.show(lookupInviteAcceptToast("community", locale));
       await Promise.all([
         utils.communities.pendingLookupInvites.invalidate(),
         utils.communities.mine.invalidate(),
@@ -94,7 +92,7 @@ export function InvitesScreen() {
   });
   const acceptGroup = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.show(lookupInviteAcceptToast("group"));
+      toast.show(lookupInviteAcceptToast("group", locale));
       await Promise.all([
         utils.groups.pendingLookupInvites.invalidate(),
         utils.groups.mine.invalidate(),
@@ -106,7 +104,7 @@ export function InvitesScreen() {
   });
   const acceptTeam = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async (result) => {
-      toast.show(lookupInviteAcceptToast("team"));
+      toast.show(lookupInviteAcceptToast("team", locale));
       await Promise.all([
         utils.teams.pendingInvites.invalidate(),
         utils.teams.mine.invalidate(),
@@ -117,7 +115,7 @@ export function InvitesScreen() {
   });
   const acceptGame = api.games.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.show(lookupInviteAcceptToast("game", result));
+      toast.show(lookupInviteAcceptToast("game", locale, result));
       await Promise.all([
         utils.games.pendingLookupInvites.invalidate(),
         utils.games.byId.invalidate({ id: result.gameId }),
@@ -174,17 +172,20 @@ export function InvitesScreen() {
       ? { status: "loading" }
       : {
           status: "ready",
-          value: mergeInviteInbox({
-            community: community.data,
-            group: group.data,
-            team: team.data,
-            game: game.data,
-          }),
+          value: mergeInviteInbox(
+            {
+              community: community.data,
+              group: group.data,
+              team: team.data,
+              game: game.data,
+            },
+            locale,
+          ),
         };
 
   async function pasteLink() {
     const text = (await Clipboard.getStringAsync()).trim();
-    setLinkError(text ? null : PASTE_LINK_EMPTY_MESSAGE);
+    setLinkError(text ? null : m.mobileCommunity.invites.pasteEmpty);
     if (text) {
       setLinkText(text);
     }
@@ -193,7 +194,7 @@ export function InvitesScreen() {
   function openLink() {
     const link = parseInviteLink(linkText);
     if (!link) {
-      setLinkError(PASTE_LINK_INVALID_MESSAGE);
+      setLinkError(m.mobileCommunity.invites.pasteInvalid);
       return;
     }
     setLinkError(null);

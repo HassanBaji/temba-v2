@@ -2,6 +2,7 @@ import { radii, sizes } from "@repo/design-tokens";
 import { Fragment, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { ChoiceCard } from "../primitives/choice-card";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -119,10 +120,11 @@ function ResultList({
 }
 
 function CancelAction({ onPress }: { onPress: () => void }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Cancel"
+      accessibilityLabel={m.common.cancel}
       onPress={onPress}
       style={{
         minWidth: sizes.touchTarget,
@@ -131,7 +133,7 @@ function CancelAction({ onPress }: { onPress: () => void }) {
         justifyContent: "center",
       }}
     >
-      <Text weight="medium">Cancel</Text>
+      <Text weight="medium">{m.common.cancel}</Text>
     </Pressable>
   );
 }

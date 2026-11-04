@@ -8,6 +8,8 @@ import {
   zonedDateTimeToInstant,
   zonedParts,
 } from "@repo/domain/product-timezone";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_DAY = 24 * 60;
@@ -30,12 +32,20 @@ export type StripDay = {
 };
 
 /** The days a Customer may book, today first. */
-export function dayStrip(now: Date, horizonDays: number): StripDay[] {
+export function dayStrip(
+  now: Date,
+  horizonDays: number,
+  locale: Locale,
+): StripDay[] {
+  const m = messagesFor(locale);
   return Array.from({ length: Math.max(horizonDays, 0) }, (_, offset) => {
     const midnight = addProductDays(now, offset);
     return {
       key: productDayKey(midnight),
-      weekday: offset === 0 ? "Today" : formatWeekday(midnight, "short"),
+      weekday:
+        offset === 0
+          ? m.common.today
+          : formatWeekday(midnight, "short", locale),
       dayOfMonth: zonedParts(midnight).day,
     };
   });
@@ -65,8 +75,9 @@ export type StartTime = {
 
 export type StartTimeGroup = { label: string; times: StartTime[] };
 
-function meridiem(startsAt: Date) {
-  return zonedParts(startsAt).hour < 12 ? "AM" : "PM";
+function meridiem(startsAt: Date, locale: Locale) {
+  const m = messagesFor(locale).mobileBooking.timeGroup;
+  return zonedParts(startsAt).hour < 12 ? m.am : m.pm;
 }
 
 function takesLength(
@@ -90,6 +101,7 @@ export function startTimeGroups(args: {
   minLeadMinutes: number;
   courts: readonly AvailabilityCourt[];
   now: Date;
+  locale: Locale;
 }): StartTimeGroup[] {
   const midnight = midnightOf(args.dayKey);
   const earliest = args.now.getTime() + args.minLeadMinutes * MS_PER_MINUTE;
@@ -123,10 +135,12 @@ export function startTimeGroups(args: {
     const startsAt = new Date(at);
     const afterMidnight =
       at >= midnight.getTime() + MINUTES_PER_DAY * MS_PER_MINUTE;
-    const label = afterMidnight ? "After midnight" : meridiem(startsAt);
+    const label = afterMidnight
+      ? messagesFor(args.locale).mobileBooking.timeGroup.afterMidnight
+      : meridiem(startsAt, args.locale);
     const time = {
       startsAt,
-      label: formatGameClockWithoutMeridiem(startsAt),
+      label: formatGameClockWithoutMeridiem(startsAt, args.locale),
       freeCourts: freeByStart.get(at) ?? 0,
     };
     const last = groups.at(-1);

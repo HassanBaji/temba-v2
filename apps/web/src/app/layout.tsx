@@ -1,16 +1,20 @@
 import "~/styles/globals.css";
 
+import { arSA } from "@clerk/localizations";
 import { ClerkProvider } from "@clerk/nextjs";
 import { type Appearance } from "@clerk/ui";
 import { shadcn } from "@clerk/ui/themes";
 import { type Metadata } from "next";
 
+import { LocaleProvider } from "~/components/locale-provider";
 import { NavigationTrail } from "~/components/navigation-trail";
 import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
+import { getRequestLocale } from "~/lib/request-locale";
 import { TRPCReactProvider } from "~/trpc/react";
+import { localeDirection } from "@repo/i18n/locale";
 
-import { display, mono, sans } from "./fonts";
+import { arabic, display, mono, sans } from "./fonts";
 
 export const metadata: Metadata = {
   title: {
@@ -44,13 +48,16 @@ const clerkAppearance = {
   },
 } satisfies Appearance;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getRequestLocale();
+
   return (
     <html
-      lang="en"
-      className={`${sans.variable} ${mono.variable} ${display.variable}`}
+      lang={locale}
+      dir={localeDirection(locale)}
+      className={`${sans.variable} ${mono.variable} ${display.variable} ${arabic.variable}`}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
@@ -63,15 +70,18 @@ export default function RootLayout({
         >
           <ClerkProvider
             appearance={clerkAppearance}
+            localization={locale === "ar" ? arSA : undefined}
             signInUrl="/login"
             signUpUrl="/signup"
             signInFallbackRedirectUrl="/dashboard"
             signUpFallbackRedirectUrl="/dashboard"
           >
-            <TRPCReactProvider>
-              {children}
-              <Toaster />
-            </TRPCReactProvider>
+            <LocaleProvider locale={locale}>
+              <TRPCReactProvider>
+                {children}
+                <Toaster />
+              </TRPCReactProvider>
+            </LocaleProvider>
           </ClerkProvider>
         </ThemeProvider>
       </body>

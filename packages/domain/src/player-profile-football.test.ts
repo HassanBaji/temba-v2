@@ -31,20 +31,23 @@ function match(
 
 describe("footballLevelCardView", () => {
   it("reads No Level yet without a football Rating", () => {
-    expect(footballLevelCardView(null)).toEqual({
+    expect(footballLevelCardView(null, "en")).toEqual({
       kind: "none",
       label: "No Level yet",
     });
   });
 
   it("shows the starting Level, hatched, while football Games are Unrated", () => {
-    const view = footballLevelCardView({
-      levelBand: "C1",
-      levelValue: 3.6,
-      provisional: true,
-      ratedMatchCount: 0,
-      ratedMatchesRemaining: 5,
-    });
+    const view = footballLevelCardView(
+      {
+        levelBand: "C1",
+        levelValue: 3.6,
+        provisional: true,
+        ratedMatchCount: 0,
+        ratedMatchesRemaining: 5,
+      },
+      "en",
+    );
     expect(view).toMatchObject({
       kind: "rated",
       displayBand: "C+",
@@ -56,38 +59,47 @@ describe("footballLevelCardView", () => {
   });
 
   it("reads like the padel Level card once a football Match rates", () => {
-    const view = footballLevelCardView({
-      levelBand: "C1",
-      levelValue: 3.6,
-      provisional: true,
-      ratedMatchCount: 2,
-      ratedMatchesRemaining: 3,
-    });
+    const view = footballLevelCardView(
+      {
+        levelBand: "C1",
+        levelValue: 3.6,
+        provisional: true,
+        ratedMatchCount: 2,
+        ratedMatchesRemaining: 3,
+      },
+      "en",
+    );
     expect(view.kind === "rated" && view.lines).not.toContain("Starting Level");
   });
 });
 
 describe("footballRoleView", () => {
   it("names a keeper GK", () => {
-    expect(footballRoleView({ role: "keeper", position: "fwd" })).toEqual({
-      label: "Keeper",
-      code: "GK",
-    });
+    expect(footballRoleView({ role: "keeper", position: "fwd" }, "en")).toEqual(
+      {
+        label: "Keeper",
+        code: "GK",
+      },
+    );
   });
 
   it("names an outfield player's preferred position", () => {
-    expect(footballRoleView({ role: "outfield", position: "mid" })).toEqual({
+    expect(
+      footballRoleView({ role: "outfield", position: "mid" }, "en"),
+    ).toEqual({
       label: "Midfield",
       code: "MID",
     });
-    expect(footballRoleView({ role: "outfield", position: null })).toEqual({
+    expect(
+      footballRoleView({ role: "outfield", position: null }, "en"),
+    ).toEqual({
       label: "Outfield",
       code: null,
     });
   });
 
   it("reads No preference set without a role", () => {
-    expect(footballRoleView({ role: null, position: null })).toEqual({
+    expect(footballRoleView({ role: null, position: null }, "en")).toEqual({
       label: "No preference set",
       code: null,
     });
@@ -97,8 +109,10 @@ describe("footballRoleView", () => {
 describe("footballOverallView", () => {
   it("shows Matches, Won, Win rate and Goals", () => {
     expect(
-      footballOverallView({ played: 4, won: 1, lost: 1, drawn: 2, goals: 7 })
-        .tiles,
+      footballOverallView(
+        { played: 4, won: 1, lost: 1, drawn: 2, goals: 7 },
+        "en",
+      ).tiles,
     ).toEqual([
       { label: "Matches", value: "4" },
       { label: "Won", value: "1" },
@@ -110,7 +124,7 @@ describe("footballOverallView", () => {
 
 describe("footballMatchRowView", () => {
   it("leads with the Group, then the day and Venue, the owner's score first", () => {
-    expect(footballMatchRowView(match())).toMatchObject({
+    expect(footballMatchRowView(match(), "en")).toMatchObject({
       title: "Riffa Ballers",
       meta: "Sat 24 Oct, Riffa Pitch",
       score: "5–3",
@@ -129,6 +143,7 @@ describe("footballMatchRowView", () => {
             venueName: "Riffa Pitch",
           },
         }),
+        "en",
       ).title,
     ).toBe("Thursday 5s");
     expect(
@@ -136,19 +151,23 @@ describe("footballMatchRowView", () => {
         match({
           game: { name: null, groupName: null, venueName: "Riffa Pitch" },
         }),
+        "en",
       ).title,
     ).toBe("Friendly game");
   });
 
   it("leaves goals out when the owner scored none", () => {
-    expect(footballMatchRowView(match({ goals: 0 })).goals).toBeNull();
-    expect(footballMatchRowView(match({ goals: 1 })).goals).toBe("1 goal");
+    expect(footballMatchRowView(match({ goals: 0 }), "en").goals).toBeNull();
+    expect(footballMatchRowView(match({ goals: 1 }), "en").goals).toBe(
+      "1 goal",
+    );
   });
 
   it("reads the result, day, Game, Venue and goals aloud", () => {
     expect(
       footballMatchRowView(
         match({ outcome: "draw", score: { us: 2, them: 2 } }),
+        "en",
       ).accessibilityLabel,
     ).toBe(
       "Drew 2–2, Saturday 24 October, Riffa Ballers, Riffa Pitch, scored 2 goals",
@@ -156,13 +175,40 @@ describe("footballMatchRowView", () => {
   });
 });
 
+describe("football profile in Arabic", () => {
+  it("reads the role, the tiles and the row", () => {
+    expect(footballRoleView({ role: "keeper", position: null }, "ar")).toEqual({
+      label: "حارس",
+      code: "GK",
+    });
+    expect(footballMatchRowView(match({ goals: 2 }), "ar").goals).toBe("هدفان");
+    expect(
+      footballLevelCardView(
+        {
+          levelBand: "C1",
+          levelValue: 3.6,
+          provisional: true,
+          ratedMatchCount: 0,
+          ratedMatchesRemaining: 5,
+        },
+        "ar",
+      ),
+    ).toMatchObject({
+      lines: ["المستوى الابتدائي", "ألعاب كرة القدم لا تحرّكه بعد"],
+    });
+  });
+});
+
 describe("footballLastTenSummary", () => {
   it("counts draws and offers no See all", () => {
-    const summary = footballLastTenSummary([
-      match({ outcome: "won" }),
-      match({ outcome: "draw" }),
-      match({ outcome: "lost" }),
-    ]);
+    const summary = footballLastTenSummary(
+      [
+        match({ outcome: "won" }),
+        match({ outcome: "draw" }),
+        match({ outcome: "lost" }),
+      ],
+      "en",
+    );
     expect(summary.record).toBe("1 won, 1 lost, 1 drawn");
     expect(summary.marks.slice(0, 4)).toEqual([
       "won",

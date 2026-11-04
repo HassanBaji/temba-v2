@@ -1,9 +1,14 @@
 import { bibColors, colors, radii } from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
-import type { PlayedColumn, PlayedRow } from "@repo/domain/played-game";
+import {
+  playedWordLabel,
+  type PlayedColumn,
+  type PlayedRow,
+} from "@repo/domain/played-game";
 import { Pressable, View } from "react-native";
 
 import { BibChip } from "../football/bib-picker";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
@@ -58,15 +63,16 @@ function PlayerRow({
   fill: Fill;
   onPress?: () => void;
 }) {
+  const m = useMessages();
   const { background, foreground, border, borderWidth } = rowColors(row, fill);
-  const label = [
-    row.isYou ? `${row.fullName} (You)` : row.fullName,
-    row.meta,
-    `Level ${row.level}`,
-    row.trailing,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const label = m.profile.matches.spokenParts(
+    [
+      row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
+      row.meta,
+      m.mobilePlayer.played.levelLine(row.level),
+      row.trailing,
+    ].filter((part): part is string => Boolean(part)),
+  );
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
@@ -158,13 +164,19 @@ function Column({
   column: PlayedColumn;
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const fill: Fill = column.bib ?? column.fill;
+  const word = playedWordLabel(column.word, locale);
   return (
     <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
       <View
         accessible
         accessibilityRole="header"
-        accessibilityLabel={`${column.title}, ${column.word}`}
+        accessibilityLabel={m.mobilePlayer.played.columnSpoken(
+          column.title,
+          word,
+        )}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -192,7 +204,7 @@ function Column({
             <ResultMark variant="won" size={14} decorative />
           ) : null}
           <Text size="eyebrow" tone="muted">
-            {column.word}
+            {word}
           </Text>
         </View>
       </View>
@@ -218,6 +230,7 @@ export function PlayedColumns({
   unplaced?: PlayedRow[];
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const m = useMessages();
   return (
     <View style={{ gap: 16 }}>
       <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
@@ -227,7 +240,7 @@ export function PlayedColumns({
       {unplaced.length > 0 ? (
         <View style={{ gap: 6 }}>
           <Text size="eyebrow" tone="muted" accessibilityRole="header">
-            Not on a team
+            {m.mobilePlayer.played.notOnATeam}
           </Text>
           {unplaced.map((row) => (
             <PlayerRow

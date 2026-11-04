@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { ChipGrid, FieldError, StepperRow } from "./chips";
@@ -32,10 +33,11 @@ export function WhereStep({
 }: StepProps & WhereData & { initialVenueSheetQuery?: string }) {
   const { draft } = state;
   const tournament = state.type === "friendly_tournament";
-  const face = courtFace(state.sport);
-  const courtNoun = face === "pitch" ? "pitch" : "Court";
-  const courtTitle = face === "pitch" ? "Pitch" : "Court";
-  const courtPlural = face === "pitch" ? "pitches" : "Courts";
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame;
+  const pitch = courtFace(state.sport) === "pitch";
+  const courtTitle = pitch ? copy.court.pitchTitle : copy.court.courtTitle;
   const [courtsExpanded, setCourtsExpanded] = useState(false);
   const pickerData = picker?.status === "ready" ? picker.value : null;
   const venues = pickerData?.venues ?? [];
@@ -85,19 +87,19 @@ export function WhereStep({
 
       {tournament ? (
         <StepSection
-          title="Courts in use"
-          note="Sets the schedule"
+          title={copy.court.inUse}
+          note={copy.court.setsSchedule}
           locked={!selectedVenue}
         >
           {!selectedVenue ? (
             <CourtPlaceholders columns={TOURNAMENT_COURT_COLUMNS} />
           ) : courts.length === 0 ? (
             <Text size="meta" tone="muted">
-              This Venue has no Courts.
+              {copy.court.venueHasNoCourts}
             </Text>
           ) : (
             <ChipGrid
-              label="Courts in use"
+              label={copy.court.inUse}
               multiple
               columns={TOURNAMENT_COURT_COLUMNS}
               chips={visibleCourts.map((court) => ({
@@ -109,8 +111,8 @@ export function WhereStep({
               escape={
                 moreCourts
                   ? {
-                      label: "More",
-                      accessibilityLabel: `All ${courts.length} Courts`,
+                      label: m.common.more,
+                      accessibilityLabel: copy.court.allCourts(courts.length),
                       onPress: () => setCourtsExpanded(true),
                     }
                   : undefined
@@ -120,12 +122,18 @@ export function WhereStep({
           <FieldError message={errors.courtIds} />
         </StepSection>
       ) : (
-        <StepSection title={courtTitle} note="Optional" locked={!selectedVenue}>
+        <StepSection
+          title={courtTitle}
+          note={m.common.optional}
+          locked={!selectedVenue}
+        >
           {!selectedVenue ? (
             <CourtPlaceholders columns={COURT_COLUMNS} />
           ) : courts.length === 0 ? (
             <Text size="meta" tone="muted">
-              This Venue has no {courtPlural}.
+              {pitch
+                ? copy.court.venueHasNoPitches
+                : copy.court.venueHasNoCourts}
             </Text>
           ) : (
             <>
@@ -135,8 +143,10 @@ export function WhereStep({
                 chips={[
                   {
                     value: "none",
-                    label: "None",
-                    accessibilityLabel: `No ${courtNoun}`,
+                    label: m.common.none,
+                    accessibilityLabel: pitch
+                      ? copy.court.noPitch
+                      : copy.court.noCourt,
                   },
                   ...visibleCourts.map((court) => ({
                     value: court.id,
@@ -148,15 +158,19 @@ export function WhereStep({
                 escape={
                   moreCourts
                     ? {
-                        label: "More",
-                        accessibilityLabel: `All ${courts.length} ${courtPlural}`,
+                        label: m.common.more,
+                        accessibilityLabel: pitch
+                          ? copy.court.allPitches(courts.length)
+                          : copy.court.allCourts(courts.length),
                         onPress: () => setCourtsExpanded(true),
                       }
                     : undefined
                 }
               />
               <Text size="meta" tone="muted">
-                Leave on None to settle the {courtNoun} at the Venue.
+                {pitch
+                  ? copy.court.settlePitchAtVenue
+                  : copy.court.settleCourtAtVenue}
               </Text>
             </>
           )}
@@ -165,21 +179,21 @@ export function WhereStep({
       )}
 
       {tournament ? (
-        <StepSection title="Game teams" note="Pairs, two seats each">
+        <StepSection title={copy.teams.title} note={copy.teams.note}>
           <StepperRow
-            label="Game teams"
+            label={copy.teams.title}
             value={draft.teamCount}
-            unit="Game teams"
+            unit={copy.teams.unit}
             min={TOURNAMENT_TEAM_MIN}
             max={TOURNAMENT_TEAM_MAX}
             step={TOURNAMENT_TEAM_STEP}
             onChange={(teamCount) =>
               dispatch({ kind: "setTeamCount", teamCount })
             }
-            decreaseLabel="Fewer Game teams"
-            increaseLabel="More Game teams"
+            decreaseLabel={copy.teams.fewer}
+            increaseLabel={copy.teams.more}
           />
-          <HelperNote>{playersInPairsLine(draft.teamCount)}</HelperNote>
+          <HelperNote>{playersInPairsLine(draft.teamCount, locale)}</HelperNote>
           <FieldError message={errors.teamCount} />
         </StepSection>
       ) : null}

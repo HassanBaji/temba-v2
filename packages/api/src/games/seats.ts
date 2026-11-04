@@ -9,10 +9,9 @@ import {
   matches,
 } from "@repo/db";
 
-import {
-  ROSTER_GAME_NO_SEATS_MESSAGE,
-  isRosterRegistrationGame,
-} from "@repo/domain/game-shape";
+import { isRosterRegistrationGame } from "@repo/domain/game-shape";
+import { type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
 import {
@@ -74,11 +73,11 @@ export function isIndividualSeatGame(game: GameRow) {
   );
 }
 
-export function assertGameHasSeats(game: GameRow) {
+export function assertGameHasSeats(game: GameRow, locale: Locale) {
   if (isRosterRegistrationGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ROSTER_GAME_NO_SEATS_MESSAGE,
+      message: messagesFor(locale).createGame.rosterNoSeats,
     });
   }
 }

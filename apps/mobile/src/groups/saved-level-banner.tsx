@@ -3,6 +3,7 @@ import { X } from "lucide-react-native";
 import { useEffect } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { savedLevelText, type SavedLevel } from "./set-level-model";
@@ -14,7 +15,9 @@ export function SavedLevelBanner({
   saved: SavedLevel;
   onDismiss: () => void;
 }) {
-  const text = savedLevelText(saved);
+  const locale = useLocale();
+  const m = useMessages();
+  const text = savedLevelText(saved, locale);
   const spoken = [text.headline, text.reason].filter(Boolean).join(" ");
 
   useEffect(() => {
@@ -34,7 +37,7 @@ export function SavedLevelBanner({
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Dismiss"
+        accessibilityLabel={m.mobileGroup.setLevel.dismiss}
         hitSlop={sizes.touchTarget / 4}
         onPress={onDismiss}
         style={{

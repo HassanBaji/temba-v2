@@ -1,4 +1,6 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -21,7 +23,6 @@ import {
 import type { SeatPosition } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
-import { LEVEL_RANGE_OUTSIDE_MESSAGE } from "@repo/domain/level-range";
 import {
   isPartnerRequiredGame,
   PARTNER_REQUIRED_REFUSAL_MESSAGE,
@@ -36,8 +37,10 @@ export async function registerSeat(
     userId: string;
     sideIndex?: number;
     position?: SeatPosition;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   assertPoolDrawNotPosted(game);
   const now = new Date();
@@ -49,7 +52,7 @@ export async function registerSeat(
     });
   }
 
-  assertGameHasSeats(game);
+  assertGameHasSeats(game, locale);
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -108,7 +111,7 @@ export async function registerSeat(
     if (!(await userAllowedByLevelRange(database, game, args.userId))) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+        message: messagesFor(locale).level.rangeOutside,
       });
     }
     await enqueueWaitlistUser(database, game.id, args.userId);
@@ -136,6 +139,7 @@ export async function registerSeat(
         },
         now,
       }),
+      locale,
     );
   });
   return { ok: true as const, waitlisted: false as const };
@@ -156,5 +160,6 @@ export const registerSeatProcedure = protectedProcedure
       userId: appUser.id,
       sideIndex: input.sideIndex,
       position: input.position,
+      locale: ctx.locale,
     });
   });

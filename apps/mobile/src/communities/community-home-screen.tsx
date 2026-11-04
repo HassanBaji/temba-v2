@@ -1,17 +1,4 @@
 import {
-  COMMUNITY_ARCHIVED_TOAST,
-  COMMUNITY_ERROR_TITLE,
-  COMMUNITY_JOIN_REQUESTED_TOAST,
-  COMMUNITY_LEFT_TOAST,
-  COMMUNITY_LOOKUP_NOTE,
-  COMMUNITY_NOT_FOUND_COPY,
-  COMMUNITY_REQUEST_APPROVED_TOAST,
-  COMMUNITY_REQUEST_REJECTED_TOAST,
-  COMMUNITY_TEAM_LINKED_TOAST,
-  COMMUNITY_TEAM_LINK_REJECTED_TOAST,
-  COMMUNITY_UNARCHIVED_TOAST,
-  COMMUNITY_VENUE_LINK_REQUESTED_TOAST,
-  COMMUNITY_VENUE_UNLINKED_TOAST,
   communityArchiveConfirm,
   communityHomeActions,
   communityLeaveConfirm,
@@ -28,10 +15,6 @@ import {
   type CommunityRoleChange,
   type CommunityRoleValue,
 } from "@repo/domain/community-role-change";
-import {
-  COMMUNITY_SPORT_ADDED_TOAST,
-  COMMUNITY_SPORT_REMOVED_TOAST,
-} from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useRouter } from "expo-router";
@@ -40,6 +23,7 @@ import { useCallback, useState } from "react";
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { Notice } from "../groups/notice";
 import { groupPath } from "../groups/groups-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { slotOf } from "../lib/slot-of";
@@ -57,6 +41,8 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   const router = useRouter();
   const toast = useToast();
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const [tab, setTab] = useState<CommunityHomeTab>("groups");
   const [refreshing, setRefreshing] = useState(false);
@@ -116,7 +102,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   const requestJoin = api.communities.requestJoin.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_JOIN_REQUESTED_TOAST);
+      toast.show(m.community.toast.joinRequested);
       await utils.communities.byId.invalidate({ id: communityId });
     },
     onError: (error) => toast.show(error.message),
@@ -124,7 +110,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   const approveJoin = api.communities.approveJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_REQUEST_APPROVED_TOAST);
+      toast.show(m.community.toast.requestApproved);
       await Promise.all([
         utils.communities.listJoinRequests.invalidate({ communityId }),
         utils.communities.listMembers.invalidate({ communityId }),
@@ -135,7 +121,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const rejectJoin = api.communities.rejectJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_REQUEST_REJECTED_TOAST);
+      toast.show(m.community.toast.requestRejected);
       await Promise.all([
         utils.communities.listJoinRequests.invalidate({ communityId }),
         utils.communities.byId.invalidate({ id: communityId }),
@@ -145,7 +131,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const approveTeam = api.communities.approveTeamLink.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_TEAM_LINKED_TOAST);
+      toast.show(m.community.toast.teamLinked);
       await Promise.all([
         utils.communities.listTeamLinkRequests.invalidate({ communityId }),
         utils.teams.mine.invalidate(),
@@ -156,7 +142,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const rejectTeam = api.communities.rejectTeamLink.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_TEAM_LINK_REJECTED_TOAST);
+      toast.show(m.community.toast.teamLinkRejected);
       await utils.communities.listTeamLinkRequests.invalidate({ communityId });
     },
     onError: (error) => toast.show(error.message),
@@ -164,7 +150,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   const requestVenueLink = api.communities.requestVenueLink.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_VENUE_LINK_REQUESTED_TOAST);
+      toast.show(m.community.toast.venueLinkRequested);
       await utils.communities.byId.invalidate({ id: communityId });
       setVenueOpen(false);
     },
@@ -172,7 +158,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const unlinkVenue = api.communities.unlinkVenue.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_VENUE_UNLINKED_TOAST);
+      toast.show(m.community.toast.venueUnlinked);
       await refreshHome();
     },
     onError: failed,
@@ -181,7 +167,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   const leave = api.communities.leave.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_LEFT_TOAST);
+      toast.show(m.community.toast.left);
       await Promise.all([
         refreshHome(),
         utils.groups.mine.invalidate(),
@@ -193,7 +179,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const softArchive = api.communities.softArchive.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_ARCHIVED_TOAST);
+      toast.show(m.community.toast.archived);
       await Promise.all([
         refreshHome(),
         utils.games.listPublicPickup.invalidate(),
@@ -205,7 +191,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const unarchive = api.communities.unarchive.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_UNARCHIVED_TOAST);
+      toast.show(m.community.toast.unarchived);
       await Promise.all([
         refreshHome(),
         utils.games.listPublicPickup.invalidate(),
@@ -217,7 +203,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   const addSport = api.communities.addSport.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_SPORT_ADDED_TOAST);
+      toast.show(m.community.sports.addedToast);
       await refreshHome();
     },
     onError: (error) => toast.show(error.message),
@@ -225,7 +211,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
   });
   const removeSport = api.communities.removeSport.useMutation({
     onSuccess: async () => {
-      toast.show(COMMUNITY_SPORT_REMOVED_TOAST);
+      toast.show(m.community.sports.removedToast);
       await refreshHome();
     },
     onError: (error) => toast.show(error.message),
@@ -234,7 +220,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
 
   const setMemberRole = api.communities.setMemberRole.useMutation({
     onSuccess: async (result) => {
-      toast.show(communityRoleUpdatedToast(result.role));
+      toast.show(communityRoleUpdatedToast(result.role, locale));
       await Promise.all([
         utils.communities.listMembers.invalidate({ communityId }),
         refreshHome(),
@@ -258,7 +244,10 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
     if (action === "apply") {
       apply();
     } else if (action === "confirm") {
-      setConfirm({ ...roleChangeConfirmCopy(change), onConfirm: apply });
+      setConfirm({
+        ...roleChangeConfirmCopy(change, locale),
+        onConfirm: apply,
+      });
     }
   }
 
@@ -282,7 +271,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
     return (
       <Screen>
         {header}
-        <Notice {...COMMUNITY_NOT_FOUND_COPY} />
+        <Notice {...m.community.notFound} />
       </Screen>
     );
   }
@@ -293,7 +282,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
         {header}
         <Notice
           alert
-          title={COMMUNITY_ERROR_TITLE}
+          title={m.community.communityErrorTitle}
           description={community.error.message}
           onRetry={() => void community.refetch()}
         />
@@ -348,14 +337,14 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
         onLeave={() => {
           setActionError(null);
           setConfirm({
-            ...communityLeaveConfirm(data.name),
+            ...communityLeaveConfirm(data.name, locale),
             onConfirm: () => leave.mutate({ communityId }),
           });
         }}
         onArchive={() => {
           setActionError(null);
           setConfirm({
-            ...communityArchiveConfirm(data.name),
+            ...communityArchiveConfirm(data.name, locale),
             onConfirm: () => softArchive.mutate({ communityId }),
           });
         }}
@@ -365,7 +354,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
         onUnlinkVenue={() => {
           setActionError(null);
           setConfirm({
-            ...communityUnlinkVenueConfirm(data.venue?.name ?? null),
+            ...communityUnlinkVenueConfirm(data.venue?.name ?? null, locale),
             onConfirm: () => unlinkVenue.mutate({ communityId }),
           });
         }}
@@ -375,7 +364,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
           onQueryChange: setMemberQuery,
           rolePending: setMemberRole.isPending,
           onRoleChange: changeRole,
-          leaveNotices: communityLeaveNotices(data),
+          leaveNotices: communityLeaveNotices(data, locale),
           onRetry: () => void members.refetch(),
         }}
         requests={{
@@ -437,7 +426,7 @@ export function CommunityHomeScreen({ communityId }: { communityId: string }) {
           door={{
             kind: "community",
             communityId,
-            note: COMMUNITY_LOOKUP_NOTE,
+            note: m.community.lookupNote,
             canLookup: data.canManageLookupInvites,
             canLink: data.canManageInviteLinks,
           }}

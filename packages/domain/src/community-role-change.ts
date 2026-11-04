@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const COMMUNITY_ROLES = ["owner", "admin", "member"] as const;
 
 export type CommunityRoleValue = (typeof COMMUNITY_ROLES)[number];
@@ -20,25 +23,22 @@ export function roleChangeNeedsConfirmation(change: CommunityRoleChange) {
   return change.to === "owner" || change.isSelf;
 }
 
-const ROLE_NAMES: Record<CommunityRoleValue, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  member: "Member",
-};
-
-export function roleChangeConfirmCopy(change: CommunityRoleChange) {
-  const to = ROLE_NAMES[change.to];
+export function roleChangeConfirmCopy(
+  change: CommunityRoleChange,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).community;
+  const to = m.role[change.to];
   if (change.isSelf) {
     return {
-      title: `Change your role to ${to}?`,
-      description:
-        "You will no longer be able to change Community roles. Only another Owner can make you an Owner again.",
-      confirmLabel: `Become ${to}`,
+      title: m.roleChange.selfTitle(to),
+      description: m.roleChange.selfDescription,
+      confirmLabel: m.roleChange.becomeRole(to),
     };
   }
   return {
-    title: `Make ${change.name} an Owner?`,
-    description: "Owners can change every member's role, including yours.",
-    confirmLabel: "Make Owner",
+    title: m.roleChange.makeOwnerTitle(change.name),
+    description: m.roleChange.makeOwnerDescription,
+    confirmLabel: m.roleChange.makeOwnerLabel,
   };
 }

@@ -1,4 +1,7 @@
+"use client";
+
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import {
   recentFormRecord,
@@ -6,19 +9,21 @@ import {
 } from "@repo/domain/home-recent-form";
 
 export function RecentFormCard({ form }: { form: RecentFormView }) {
+  const m = useMessages();
+  const copy = m.webAuth.home.recentForm;
   const record = recentFormRecord(form);
   const figures = [
-    { key: "played", label: "Played", value: form.playedCount },
-    { key: "won", label: "Won", value: form.wins },
-    { key: "lost", label: "Lost", value: form.losses },
+    { key: "played", label: copy.played, value: form.playedCount },
+    { key: "won", label: copy.won, value: form.wins },
+    { key: "lost", label: copy.lost, value: form.losses },
   ];
 
   return (
     <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <SurfaceLabel meta="Last 10 matches">Recent form</SurfaceLabel>
+      <SurfaceLabel meta={copy.lastTen}>{copy.title}</SurfaceLabel>
       <div className="flex items-center justify-between gap-4 px-[22px] pb-[18px]">
         <p className="font-expanded text-[52px] tabular-nums leading-none">
-          <span className="sr-only">Record </span>
+          <span className="sr-only">{`${copy.record} `}</span>
           {record}
         </p>
         <div className="flex max-w-[150px] flex-wrap justify-end gap-[5px]">

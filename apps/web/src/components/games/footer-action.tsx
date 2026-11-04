@@ -25,7 +25,7 @@ export function FooterAction({
       disabled={disabled || pending}
       aria-disabled={inert ? true : undefined}
       className={cn(
-        "focus-visible:ring-ring/50 w-full px-[22px] py-4 text-left outline-none",
+        "focus-visible:ring-ring/50 w-full px-[22px] py-4 text-start outline-none",
         "focus-visible:ring-[3px]",
         inert
           ? "cursor-not-allowed opacity-50"

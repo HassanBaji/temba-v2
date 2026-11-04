@@ -5,6 +5,7 @@ import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
@@ -42,6 +43,8 @@ function slotOf<T, U>(
 }
 
 export function HomeScreen() {
+  const m = useMessages();
+  const locale = useLocale();
   const { user } = useUser();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -88,15 +91,19 @@ export function HomeScreen() {
   };
 
   const model: HomeModel = {
-    name: user?.fullName ?? user?.firstName ?? user?.username ?? "You",
+    name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
     imageUri: user?.imageUrl ?? null,
     pendingInviteCount: home.data?.pendingInviteCount ?? 0,
-    checklist: homeChecklist(checklistFrom(user, onboarding.data), skipped),
+    checklist: homeChecklist(
+      checklistFrom(user, onboarding.data, locale),
+      skipped,
+    ),
     upNext: slotOf(upNextSource, (data) =>
       upNextItems(data.games, data.bookings),
     ),
     noGamesAction: homeNoGamesCreateAction({
       createGroupCount: createGroups.data?.length,
+      locale,
     }),
     venueCounts: {
       padel: padelVenues.data?.length ?? null,
@@ -104,7 +111,7 @@ export function HomeScreen() {
     },
     sport,
     level: slotOf(rating, levelFromApi),
-    recentForm: slotOf(history, recentFormFromHistory),
+    recentForm: slotOf(history, (rows) => recentFormFromHistory(rows, locale)),
     standing: slotOf(home, (data) => standingInSport(data.standing, sport)),
   };
 

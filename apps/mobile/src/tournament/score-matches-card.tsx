@@ -1,5 +1,5 @@
 import { spacing } from "@repo/design-tokens";
-import { COMPLETE_MATCH_ACTION, setLabel } from "@repo/domain/game-copy";
+import { completeMatchAction, setLabel } from "@repo/domain/game-copy";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -10,15 +10,12 @@ import {
   type ScoreDrafts,
 } from "../game-details/details-model";
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
-import {
-  SCORE_SECTION_NOTE,
-  SCORE_SECTION_TITLE,
-  type ScorableMatch,
-} from "./tournament-model";
+import { type ScorableMatch } from "./tournament-model";
 
 const BOX_WIDTH = 64;
 
@@ -41,6 +38,8 @@ function MatchScore({
   match: ScorableMatch;
   handlers: ScoreHandlers;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.score;
   const [drafts, setDrafts] = useState<ScoreDrafts>(() =>
     draftsFromSets(match.sets),
   );
@@ -71,7 +70,7 @@ function MatchScore({
         </Text>
       </View>
       {match.sets.map((set, index) => {
-        const name = setLabel(index);
+        const name = setLabel(index, locale);
         const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
         return (
           <View
@@ -83,7 +82,7 @@ function MatchScore({
             </Text>
             <View style={{ width: BOX_WIDTH }}>
               <TextField
-                accessibilityLabel={`${match.slot1Label}, ${name}`}
+                accessibilityLabel={m.box(match.slot1Label, name)}
                 keyboardType="number-pad"
                 maxLength={2}
                 value={draft.slot1}
@@ -96,7 +95,7 @@ function MatchScore({
             </View>
             <View style={{ width: BOX_WIDTH }}>
               <TextField
-                accessibilityLabel={`${match.slot2Label}, ${name}`}
+                accessibilityLabel={m.box(match.slot2Label, name)}
                 keyboardType="number-pad"
                 maxLength={2}
                 value={draft.slot2}
@@ -117,7 +116,7 @@ function MatchScore({
       ) : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Button
-          label="Add a Set"
+          label={m.addASet}
           variant="outline"
           size="sm"
           pending={handlers.addSetPending}
@@ -127,14 +126,14 @@ function MatchScore({
         {match.sets.length > 0 ? (
           <>
             <Button
-              label="Save score"
+              label={m.saveScore}
               size="sm"
               pending={handlers.scorePending}
               disabled={busy}
               onPress={() => handlers.onSave(match.id, payloads())}
             />
             <Button
-              label={COMPLETE_MATCH_ACTION}
+              label={completeMatchAction(locale)}
               size="sm"
               variant="outline"
               pending={handlers.completePending}
@@ -155,17 +154,18 @@ export function ScoreMatchesCard({
   matches: readonly ScorableMatch[];
   handlers: ScoreHandlers;
 }) {
+  const m = useMessages().mobileTournament.score;
   if (matches.length === 0) {
     return null;
   }
   return (
-    <Card title={SCORE_SECTION_TITLE}>
+    <Card title={m.sectionTitle}>
       <Text
         size="meta"
         tone="muted"
         style={{ paddingHorizontal: spacing.surface, paddingBottom: 4 }}
       >
-        {SCORE_SECTION_NOTE}
+        {m.sectionNote}
       </Text>
       {matches.map((match) => (
         <View key={match.id}>

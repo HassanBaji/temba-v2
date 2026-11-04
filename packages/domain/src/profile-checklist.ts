@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 /**
  * The Profile checklist: what a User can still add after sign-up. Phone and
  * name are done at sign-up (the name row only appears for an account that
@@ -39,29 +42,31 @@ const SIGN_UP_STEPS = 2;
 
 export function profileChecklist(
   input: ProfileChecklistInput,
+  locale: Locale,
 ): ProfileChecklist {
+  const m = messagesFor(locale).profile.checklist.tasks;
   const optional: ProfileTask[] = [
     {
       id: "photo",
-      title: "Add a profile photo",
-      description: "So organizers can spot you at the court.",
-      time: "1 min",
+      title: m.photo.title,
+      description: m.photo.description,
+      time: m.photo.time,
       done: input.hasPhoto,
       required: false,
     },
     {
       id: "email",
-      title: "Add and verify your email",
-      description: "Receipts, and a way back in if you change number.",
-      time: "1 min",
+      title: m.email.title,
+      description: m.email.description,
+      time: m.email.time,
       done: input.hasVerifiedEmail,
       required: false,
     },
     {
       id: "sports",
-      title: "Pick your sports and level",
-      description: "Unlocks matched games and a rating.",
-      time: "2 min",
+      title: m.sports.title,
+      description: m.sports.description,
+      time: m.sports.time,
       done: input.sportsDone,
       required: false,
     },
@@ -71,9 +76,9 @@ export function profileChecklist(
     : [
         {
           id: "name",
-          title: "Add your name",
-          description: "Shown to organizers and the people you play with.",
-          time: "30 sec",
+          title: m.name.title,
+          description: m.name.description,
+          time: m.name.time,
           done: false,
           required: true,
         },
@@ -89,38 +94,39 @@ export function profileChecklist(
 
 export function checklistCountLabel(
   list: Pick<ProfileChecklist, "done" | "total">,
+  locale: Locale,
 ) {
-  return `${list.done} OF ${list.total}`;
+  return messagesFor(locale).profile.checklist.countOf(list.done, list.total);
 }
 
 /** The checklist screen's sub-heading, by how much is left. */
-export function checklistBlurb(list: ProfileChecklist): string {
+export function checklistBlurb(list: ProfileChecklist, locale: Locale): string {
+  const m = messagesFor(locale).profile.checklist;
   const left = list.open.length;
   if (left === 0) {
-    return "All done. Organizers see a full profile and your games are matched to your level.";
+    return m.allDone;
   }
   if (left === list.tasks.length) {
-    return `${left === 3 ? "Three" : String(left)} short tasks, any order. Each one unlocks something.`;
+    return m.shortTasks(left);
   }
-  return `${left === 1 ? "1 task left." : `${left} tasks left.`} Any order, each one saves on its own.`;
+  return m.tasksLeft(left);
 }
 
-export function checklistCta(list: ProfileChecklist): string {
-  return list.complete ? "Find games" : "Continue to games";
+export function checklistCta(list: ProfileChecklist, locale: Locale): string {
+  const m = messagesFor(locale).profile.checklist;
+  return list.complete ? m.findGames : m.continueToGames;
 }
 
 /** The Home card shows at most this many rows; the rest fold into "N more tasks". */
 export const HOME_CHECKLIST_ROWS = 3;
 
-export function homeChecklistRows(list: ProfileChecklist) {
+export function homeChecklistRows(list: ProfileChecklist, locale: Locale) {
+  const m = messagesFor(locale).profile.checklist;
   const shown = list.open.slice(0, HOME_CHECKLIST_ROWS);
   const extra = list.open.length - shown.length;
   return {
     shown,
-    more:
-      extra > 0
-        ? `${extra} more ${extra === 1 ? "task" : "tasks"}`
-        : "All tasks",
+    more: extra > 0 ? m.moreTasks(extra) : m.allTasks,
   };
 }
 
@@ -132,6 +138,10 @@ export function homeChecklistAfterSkip(list: ProfileChecklist) {
   return list.open.filter((task) => task.required);
 }
 
-export function youAreInTitle(firstName: string | null): string {
-  return firstName ? `You're in, ${firstName}.` : "You're in.";
+export function youAreInTitle(
+  firstName: string | null,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).profile.checklist;
+  return firstName ? m.youAreIn(firstName) : m.youAreInPlain;
 }

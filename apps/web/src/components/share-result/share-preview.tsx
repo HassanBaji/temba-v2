@@ -3,6 +3,7 @@
 import { stickerPlacement } from "@repo/domain/result-share-frame";
 import { Image as ImageIcon, type LucideIcon } from "lucide-react";
 
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /** The card's width in the fitted preview: the whole page stays above the fold. */
@@ -40,6 +41,7 @@ export function PhotoFrame({
   photoUrl: string | null;
   children: React.ReactNode;
 }) {
+  const m = useMessages().webUi.shareResult;
   return (
     <div className="bg-raised relative flex aspect-[9/16] w-full items-center justify-center">
       {photoUrl ? (
@@ -52,7 +54,7 @@ export function PhotoFrame({
       ) : (
         <div className="text-dim flex flex-col items-center gap-2">
           <ImageIcon className="size-7" aria-hidden="true" />
-          <span className="text-eyebrow">Your photo</span>
+          <span className="text-eyebrow">{m.yourPhoto}</span>
         </div>
       )}
       <div

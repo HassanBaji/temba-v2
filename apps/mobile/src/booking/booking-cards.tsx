@@ -2,6 +2,8 @@ import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { useRouter } from "expo-router";
 import {
   Check,
@@ -14,7 +16,7 @@ import {
 import { Linking, Platform, Pressable, Share, View } from "react-native";
 
 import { gamePath } from "../games/games-model";
-
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -58,11 +60,13 @@ export function NextBooking({
   onPress: () => void;
 }) {
   const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
   const minutes = minutesBetween(item.startsAt, item.endsAt);
-  const kickoff = formatHomeKickoff(item.startsAt);
-  const startsIn = startsInLabel(item.startsAt, item.endsAt, now);
-  const price = priceParts(formatBookingPriceFils(item.priceFils));
-  const badge = rowBadge(item, now);
+  const kickoff = formatHomeKickoff(item.startsAt, locale);
+  const startsIn = startsInLabel(item.startsAt, item.endsAt, now, locale);
+  const price = priceParts(formatBookingPriceFils(item.priceFils, locale));
+  const badge = rowBadge(item, now, locale);
   const paid = item.status === "confirmed" && item.paymentStatus === "paid";
   const action = nextBookingAction(item);
 
@@ -70,7 +74,13 @@ export function NextBooking({
     <Surface tone="ink" padded={false} style={{ padding: spacing.compact }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Next booking, ${relativeDay(item.startsAt, now)} ${formatGameClock(item.startsAt)}, ${item.court.name}, ${item.venue.name}, ${badge}`}
+        accessibilityLabel={m.mobileBooking.cards.nextBookingLabel(
+          relativeDay(item.startsAt, now, locale),
+          formatGameClock(item.startsAt, locale),
+          item.court.name,
+          item.venue.name,
+          badge,
+        )}
         onPress={onPress}
         style={({ pressed }) => ({ gap: 14, opacity: pressed ? 0.9 : 1 })}
       >
@@ -88,7 +98,7 @@ export function NextBooking({
             numberOfLines={1}
             style={{ flexShrink: 1 }}
           >
-            {relativeDay(item.startsAt, now)}
+            {relativeDay(item.startsAt, now, locale)}
             {startsIn ? (
               <>
                 {", "}
@@ -143,11 +153,11 @@ export function NextBooking({
             ) : null}
           </View>
           <Text size="meta" tone="muted">
-            {untilLabel(item.endsAt)}
+            {untilLabel(item.endsAt, locale)}
             <Text size="meta" style={{ color: colors.dimrule }}>
               {" / "}
             </Text>
-            {`${minutes} min`}
+            {m.dates.minutes(minutes)}
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -169,7 +179,7 @@ export function NextBooking({
         }}
       >
         <CardAction
-          label={`Directions to ${item.venue.name}`}
+          label={m.mobileBooking.cards.directionsTo(item.venue.name)}
           icon={Navigation}
           iconOnly
           onPress={() =>
@@ -177,17 +187,17 @@ export function NextBooking({
           }
         />
         <CardAction
-          label="Invite"
+          label={m.mobileBooking.cards.invite}
           icon={UserPlus}
           onPress={() =>
-            void Share.share({ message: bookingShareMessage(item) })
+            void Share.share({ message: bookingShareMessage(item, locale) })
           }
         />
         {action ? (
           <View style={{ flex: 1 }}>
             <CardAction
               primary
-              {...nextActionButton(action)}
+              {...nextActionButton(action, locale)}
               onPress={() => {
                 if (action === "finish_payment") {
                   router.push(`${bookingPath(item.id)}/payment`);
@@ -205,17 +215,21 @@ export function NextBooking({
   );
 }
 
-export function nextActionButton(action: NextBookingAction): {
+export function nextActionButton(
+  action: NextBookingAction,
+  locale: Locale,
+): {
   label: string;
   icon?: LucideIcon;
 } {
+  const m = messagesFor(locale).mobileBooking;
   switch (action) {
     case "finish_payment":
-      return { label: "Finish payment" };
+      return { label: m.finishPayment };
     case "open_game":
-      return { label: "Open game", icon: Users };
+      return { label: m.openGame, icon: Users };
     case "make_game":
-      return { label: "Make it a game", icon: Users };
+      return { label: m.cards.makeItAGame, icon: Users };
   }
 }
 
@@ -279,14 +293,22 @@ export function BookingRowCard({
   now: Date;
   onPress: () => void;
 }) {
-  const block = dayBlock(item.startsAt);
-  const badge = rowBadge(item, now);
+  const m = useMessages();
+  const locale = useLocale();
+  const block = dayBlock(item.startsAt, locale);
+  const badge = rowBadge(item, now, locale);
   const muted = item.status === "cancelled" || item.status === "no_show";
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${block.weekday} ${block.day}, ${rowTitle(item)}, ${rowDetail(item)}, ${badge}`}
+      accessibilityLabel={m.mobileBooking.cards.rowLabel(
+        block.weekday,
+        block.day,
+        rowTitle(item, locale),
+        rowDetail(item, locale),
+        badge,
+      )}
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
@@ -314,10 +336,10 @@ export function BookingRowCard({
             numberOfLines={1}
             tone={muted ? "muted" : "default"}
           >
-            {rowTitle(item)}
+            {rowTitle(item, locale)}
           </Text>
           <Text size="meta" tone="muted" numberOfLines={1}>
-            {rowDetail(item)}
+            {rowDetail(item, locale)}
           </Text>
         </View>
         <View

@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { SportSegments } from "~/components/temba/sport-segments";
 import { ProfileAllTime } from "~/components/you/profile-all-time-card";
 import { ProfileForm } from "~/components/you/profile-form-card";
@@ -15,10 +16,11 @@ import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 export default function YouPage() {
   const { isLoaded, user } = useUser();
+  const m = useMessages();
   const invites = usePendingInviteCount();
   const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
   const displayName =
-    user?.fullName ?? user?.firstName ?? user?.username ?? "You";
+    user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you;
 
   return (
     <DashboardShell width="content" hidePageHeader hideMobileTopBar>
@@ -33,7 +35,10 @@ export default function YouPage() {
           canEditPhoto={user != null}
           ready={isLoaded}
         />
-        <section aria-label="Your sport" className="space-y-[26px]">
+        <section
+          aria-label={m.webDashboard.home.yourSport}
+          className="space-y-[26px]"
+        >
           <SportSegments value={sport} onSelect={setSport} />
           <ProfileLevel sport={sport} />
           <ProfileForm sport={sport} />

@@ -6,6 +6,7 @@ import {
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
@@ -21,10 +22,11 @@ function StatCell({
   label: string;
   first: boolean;
 }) {
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={`${value} ${label}`}
+      accessibilityLabel={m.mobileGroup.standing.statLabel(value, label)}
       style={{
         flex: 1,
         paddingHorizontal: 14,
@@ -64,6 +66,7 @@ export function DeleteGroupSheet({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   const [typed, setTyped] = useState("");
   useEffect(() => {
     if (visible) {
@@ -75,8 +78,9 @@ export function DeleteGroupSheet({
     gameCount,
     memberCount,
     seasonCount,
+    locale,
   });
-  const matches = groupDeleteNameMatches(name, typed);
+  const matches = groupDeleteNameMatches(name, typed, locale);
 
   return (
     <Sheet

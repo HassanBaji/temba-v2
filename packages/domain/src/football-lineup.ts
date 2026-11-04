@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import {
   displayLabelFromStoredBand,
   LEVEL_BANDS,
@@ -12,15 +15,24 @@ export const FOOTBALL_POSITIONS = ["def", "mid", "fwd"] as const;
 
 export type FootballPosition = (typeof FOOTBALL_POSITIONS)[number];
 
-export const FOOTBALL_POSITION_CHOICES: {
+const FOOTBALL_POSITION_CODES: Record<FootballPosition, string> = {
+  def: "DEF",
+  mid: "MID",
+  fwd: "FWD",
+};
+
+export function footballPositionChoices(locale: Locale): {
   value: FootballPosition;
   code: string;
   label: string;
-}[] = [
-  { value: "def", code: "DEF", label: "Defender" },
-  { value: "mid", code: "MID", label: "Midfield" },
-  { value: "fwd", code: "FWD", label: "Forward" },
-];
+}[] {
+  const m = messagesFor(locale).football.lineup.positions;
+  return FOOTBALL_POSITIONS.map((value) => ({
+    value,
+    code: FOOTBALL_POSITION_CODES[value],
+    label: m[value],
+  }));
+}
 
 export const DEFAULT_FOOTBALL_POSITION: FootballPosition = "mid";
 
@@ -40,10 +52,7 @@ export function isFootballPosition(value: unknown): value is FootballPosition {
 }
 
 export function footballPositionCode(position: FootballPosition) {
-  return (
-    FOOTBALL_POSITION_CHOICES.find((choice) => choice.value === position)
-      ?.code ?? position.toUpperCase()
-  );
+  return FOOTBALL_POSITION_CODES[position] ?? position.toUpperCase();
 }
 
 /** The short tag a roster row carries: GK for a keeper, else the position. */
@@ -61,18 +70,20 @@ export function keeperSeatsLeft(keepersIn: number) {
   return Math.max(0, KEEPERS_PER_GAME - keepersIn);
 }
 
-export function keeperSeatsLine(keepersIn: number) {
+export function keeperSeatsLine(keepersIn: number, locale: Locale) {
+  const m = messagesFor(locale).football.lineup;
   const left = keeperSeatsLeft(keepersIn);
   return left === 0
-    ? "both keeper seats taken"
-    : `${left} of ${KEEPERS_PER_GAME} keeper seats open`;
+    ? m.keeperSeatsTaken
+    : m.keeperSeatsOpen(left, KEEPERS_PER_GAME);
 }
 
-export function keepersInLine(keepersIn: number) {
+export function keepersInLine(keepersIn: number, locale: Locale) {
+  const m = messagesFor(locale).football.lineup;
   if (keepersIn >= KEEPERS_PER_GAME) {
-    return `${keepersIn} keepers in`;
+    return m.keepersIn(keepersIn);
   }
-  return keepersIn === 1 ? "1 keeper, one more needed" : "no keeper yet";
+  return keepersIn === 1 ? m.oneKeeperOneMoreNeeded : m.noKeeperYet;
 }
 
 export function positionCountsLine(
@@ -80,13 +91,19 @@ export function positionCountsLine(
     role: FootballRole | null;
     position: FootballPosition | null;
   }[],
+  locale: Locale,
 ) {
   const count = (position: FootballPosition) =>
     players.filter(
       (player) => player.role !== "keeper" && player.position === position,
     ).length;
   const keepers = players.filter((player) => player.role === "keeper").length;
-  return `In so far: ${count("def")} DEF, ${count("mid")} MID, ${count("fwd")} FWD, ${keepers} GK.`;
+  return messagesFor(locale).football.lineup.positionCountsLine(
+    count("def"),
+    count("mid"),
+    count("fwd"),
+    keepers,
+  );
 }
 
 export const FOOTBALL_BIBS = [
@@ -118,20 +135,6 @@ export const MORE_FOOTBALL_BIBS: readonly FootballBib[] = FOOTBALL_BIBS.filter(
   (bib) => !PRIMARY_FOOTBALL_BIBS.includes(bib),
 );
 
-const FOOTBALL_BIB_NAMES: Record<FootballBib, string> = {
-  black: "Black",
-  white: "White",
-  red: "Red",
-  navy: "Dark blue",
-  sky: "Light blue",
-  green: "Green",
-  yellow: "Yellow",
-  orange: "Orange",
-  purple: "Purple",
-  pink: "Pink",
-  grey: "Grey",
-};
-
 export const DEFAULT_FOOTBALL_BIBS: { slot1: FootballBib; slot2: FootballBib } =
   { slot1: "black", slot2: "white" };
 
@@ -139,11 +142,16 @@ export function isFootballBib(value: unknown): value is FootballBib {
   return (FOOTBALL_BIBS as readonly unknown[]).includes(value);
 }
 
-export function footballBibName(bib: FootballBib | null, sideIndex: 1 | 2) {
+export function footballBibName(
+  bib: FootballBib | null,
+  sideIndex: 1 | 2,
+  locale: Locale,
+) {
+  const names = messagesFor(locale).football.lineup.bibs;
   if (bib) {
-    return FOOTBALL_BIB_NAMES[bib];
+    return names[bib];
   }
-  return FOOTBALL_BIB_NAMES[sideIndex === 1 ? "black" : "white"];
+  return names[sideIndex === 1 ? "black" : "white"];
 }
 
 /**
@@ -171,8 +179,12 @@ export const FOOTBALL_TEAMS_METHODS = ["level", "manual"] as const;
 
 export type FootballTeamsMethod = (typeof FOOTBALL_TEAMS_METHODS)[number];
 
-export function footballTeamsMethodLabel(method: FootballTeamsMethod | null) {
-  return method === "manual" ? "Set by organizer" : "Balanced by level";
+export function footballTeamsMethodLabel(
+  method: FootballTeamsMethod | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.lineup.teamsMethod;
+  return method === "manual" ? m.manual : m.level;
 }
 
 /** A Level band as a number for balancing; no Level sits mid-ladder. */
@@ -241,21 +253,23 @@ export type FootballSidesDraft = {
 export function footballSidesProblem(
   draft: FootballSidesDraft,
   names: { slot1: string; slot2: string },
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).football.lineup;
   if (draft.slot1.length + draft.slot2.length + draft.unplaced === 0) {
-    return "Nobody is in yet.";
+    return m.nobodyInYet;
   }
   if (draft.unplaced > 0) {
-    return `${draft.unplaced} still to place.`;
+    return m.stillToPlace(draft.unplaced);
   }
   if (draft.slot1.length === 0 || draft.slot2.length === 0) {
-    return "Both teams need players.";
+    return m.bothTeamsNeedPlayers;
   }
   const extra = Math.abs(draft.slot1.length - draft.slot2.length);
   if (extra > 1) {
     const bigger =
       draft.slot1.length > draft.slot2.length ? names.slot1 : names.slot2;
-    return `${bigger} has ${extra} extra. Move one across before publishing.`;
+    return m.sideHasExtra(bigger, extra);
   }
   return null;
 }
@@ -273,12 +287,14 @@ export function stepFootballGoals(current: number, delta: -1 | 1) {
 export function footballResultLine(
   score: { slot1: number; slot2: number },
   names: { slot1: string; slot2: string },
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).football.lineup;
   if (score.slot1 === score.slot2) {
-    return "Draw.";
+    return m.draw;
   }
   const winner = score.slot1 > score.slot2 ? names.slot1 : names.slot2;
-  return `${winner} win by ${Math.abs(score.slot1 - score.slot2)}.`;
+  return m.winBy(winner, Math.abs(score.slot1 - score.slot2));
 }
 
 /**
@@ -289,12 +305,14 @@ export function footballScorersProblem(
   score: { slot1: number; slot2: number },
   named: { slot1: number; slot2: number },
   names: { slot1: string; slot2: string },
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).football.lineup;
   if (named.slot1 > score.slot1) {
-    return `${names.slot1} scorers add up to more than ${score.slot1}.`;
+    return m.scorersExceed(names.slot1, score.slot1);
   }
   if (named.slot2 > score.slot2) {
-    return `${names.slot2} scorers add up to more than ${score.slot2}.`;
+    return m.scorersExceed(names.slot2, score.slot2);
   }
   return null;
 }

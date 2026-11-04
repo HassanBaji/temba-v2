@@ -7,15 +7,12 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { UNRATED_LABEL } from "@repo/domain/game-rating-impact";
+import { unratedLabel } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
-  NO_TEAMS_YET_COPY,
   showsTournamentOpenFlag,
-  TOURNAMENT_CARD_BAND_LABEL,
-  TOURNAMENT_MATCH_CARD_BAND_LABEL,
   tournamentCardAction,
   tournamentCardActionLabel,
   tournamentCardBandMeta,
@@ -38,6 +35,7 @@ import {
 } from "@repo/domain/tournament-card";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -93,6 +91,8 @@ function TeamPairs({
   teamsAllowed: number | null;
   registrationOpen: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const { shown, remaining, placeholders } = tournamentCardPairs(teams, {
     teamsAllowed,
     registrationOpen,
@@ -100,7 +100,7 @@ function TeamPairs({
   if (shown.length === 0 && placeholders === 0) {
     return (
       <Text size="meta" tone="muted">
-        {NO_TEAMS_YET_COPY}
+        {m.tournament.card.noTeamsYet}
       </Text>
     );
   }
@@ -118,7 +118,7 @@ function TeamPairs({
           key={team.gameTeamId}
           left={team.left}
           right={team.right}
-          label={tournamentTeamPairLabel(team)}
+          label={tournamentTeamPairLabel(team, locale)}
         />
       ))}
       {Array.from({ length: placeholders }, (_, index) => (
@@ -126,7 +126,7 @@ function TeamPairs({
           key={`open-${index}`}
           left={null}
           right={null}
-          label="Open team"
+          label={m.mobileTournament.card.openTeam}
         />
       ))}
       {remaining > 0 ? (
@@ -149,42 +149,53 @@ export function TournamentCard({
   actions: GameCardActions;
   onPickSeat: (game: HubGameRow) => void;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.card;
   const tournament = game.tournament;
   const teams = tournament?.teams ?? [];
-  const title = game.name ?? game.venue?.name ?? "Untitled Game";
-  const dateLine = tournamentCardDateLine(game.windowStart, game.windowEnd);
+  const title = game.name ?? game.venue?.name ?? m.untitledGame;
+  const dateLine = tournamentCardDateLine(
+    game.windowStart,
+    game.windowEnd,
+    locale,
+  );
   const levelLabel = formatLevelRangeLabel(
     game.levelMinTenths,
     game.levelMaxTenths,
+    locale,
   );
-  const subLine = [game.venue?.name, levelLabel ? `level ${levelLabel}` : null]
+  const subLine = [
+    game.venue?.name,
+    levelLabel ? m.levelSubline(levelLabel) : null,
+  ]
     .filter(Boolean)
     .join(", ");
   const cancelled = game.registrationStatus === "cancelled";
   const action = tournamentCardAction(game);
   const interactive = action === "join" || action === "join_waitlist";
-  const knockoutLine = tournamentCardKnockoutLine(game);
+  const knockoutLine = tournamentCardKnockoutLine(game, locale);
   const openFlag = showsTournamentOpenFlag(game);
-  const amount = formatPricePerPlayerFils(game.pricePerPlayerFils);
+  const amount = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
+  const bandLabel = messages.tournament.card.bandLabel;
 
   return (
     <CardShell
-      label={[title, TOURNAMENT_CARD_BAND_LABEL, dateLine]
-        .filter(Boolean)
-        .join(", ")}
+      label={[title, bandLabel, dateLine].filter(Boolean).join(", ")}
       onPress={() => actions.onOpen(game.id)}
       footer={
         <CardFooter>
           <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 6 }}>
             {amount ? (
               <Text size="lead" weight="bold" numberOfLines={1}>
-                {amount}
-                {amount === "Free" ? "" : " per player"}
+                {amount === messages.createGame.price.free
+                  ? amount
+                  : m.perPlayer(amount)}
               </Text>
             ) : null}
           </View>
           <Button
-            label={tournamentCardActionLabel(action)}
+            label={tournamentCardActionLabel(action, locale)}
             size="sm"
             variant={
               interactive || action === "invite_partner" ? "default" : "outline"
@@ -204,8 +215,8 @@ export function TournamentCard({
       }
     >
       <CardBand
-        label={TOURNAMENT_CARD_BAND_LABEL}
-        meta={tournamentCardBandMeta(tournament?.roundCount, game)}
+        label={bandLabel}
+        meta={tournamentCardBandMeta(tournament?.roundCount, locale, game)}
       />
       <View
         style={{
@@ -221,23 +232,24 @@ export function TournamentCard({
           style={{ flexShrink: 1 }}
         >
           {game.windowStart
-            ? `Starts ${formatGameCardDay(game.windowStart)}`
+            ? m.starts(formatGameCardDay(game.windowStart, locale))
             : ""}
         </Text>
         <View style={{ flexDirection: "row", columnGap: 12 }}>
           {game.rated ? null : (
             <Text size="meta" weight="semibold">
-              {UNRATED_LABEL}
+              {unratedLabel(locale)}
             </Text>
           )}
           {cancelled ? (
             <Text size="meta" weight="semibold">
-              Cancelled
+              {m.cancelled}
             </Text>
           ) : openFlag ? (
             <Text size="meta" weight="semibold">
               {tournamentOpenFlagLabel(
                 tournamentOpenTeamCount(game.teamsAllowed, teams),
+                locale,
               )}
             </Text>
           ) : null}
@@ -261,7 +273,7 @@ export function TournamentCard({
       </View>
       <Hairline />
       <Text size="meta" tone="muted">
-        {tournamentTeamsLine(game)}
+        {tournamentTeamsLine(game, locale)}
       </Text>
       <TeamPairs
         teams={teams}
@@ -279,7 +291,8 @@ function MatchupColumn({
   side: HubGameRow["sides"][number] | null;
   isViewerSide: boolean;
 }) {
-  const name = tournamentMatchupName(side);
+  const locale = useLocale();
+  const name = tournamentMatchupName(side, locale);
   return (
     <View
       style={{
@@ -311,12 +324,13 @@ function MatchupColumn({
 }
 
 function Matchup({ sides }: { sides: HubGameRow["sides"] }) {
+  const m = useMessages().mobileTournament.card;
   const { viewer, opponent } = tournamentMatchup(sides);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <MatchupColumn side={viewer} isViewerSide={viewer != null} />
       <Text size="eyebrow" tone="muted" accessibilityElementsHidden>
-        vs
+        {m.vs}
       </Text>
       <MatchupColumn side={opponent} isViewerSide={false} />
     </View>
@@ -331,22 +345,30 @@ export function TournamentMatchCard({
   actions: GameCardActions;
 }) {
   const now = useNow();
-  const kickoff = formatHomeKickoff(game.startTime);
-  const day = formatRelativeDay(game.startTime, { sameDayLabel: "Tonight" });
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.card;
+  const kickoff = formatHomeKickoff(game.startTime, locale);
+  const day = formatRelativeDay(game.startTime, locale, {
+    sameDayLabel: "Tonight",
+  });
   const status = tournamentMatchStatus(
     undefined,
-    formatHomeCountdown(game.startTime, now),
+    formatHomeCountdown(game.startTime, now, locale),
+    locale,
   );
-  const title = game.name ?? game.venue?.name ?? "Untitled Game";
+  const title = game.name ?? game.venue?.name ?? m.untitledGame;
   const roundLine = tournamentMatchRoundLine(
     game.roundNumber,
     game.poolMatch,
+    locale,
     game.knockoutMatch,
   );
   const venueLine = tournamentMatchVenueLine(game.venue?.name, game.courtName);
-  const standingLine = tournamentMatchStandingLine(game.poolMatch);
+  const standingLine = tournamentMatchStandingLine(game.poolMatch, locale);
   const lastResultLine = tournamentMatchLastResultLine(
     game.poolMatch?.lastResult,
+    locale,
   );
 
   return (
@@ -361,7 +383,7 @@ export function TournamentMatchCard({
             {lastResultLine}
           </Text>
           <Button
-            label={tournamentMatchActionLabel("view")}
+            label={tournamentMatchActionLabel("view", locale)}
             size="sm"
             variant="outline"
             onPress={() => actions.onOpen(game.id)}
@@ -370,8 +392,8 @@ export function TournamentMatchCard({
       }
     >
       <CardBand
-        label={TOURNAMENT_MATCH_CARD_BAND_LABEL}
-        meta={tournamentMatchRoundLabel(game)}
+        label={messages.tournament.card.matchBandLabel}
+        meta={tournamentMatchRoundLabel(game, locale)}
       />
       <View
         style={{
@@ -393,7 +415,7 @@ export function TournamentMatchCard({
         <View style={{ flexDirection: "row", columnGap: 12 }}>
           {game.rated ? null : (
             <Text size="meta" weight="semibold">
-              {UNRATED_LABEL}
+              {unratedLabel(locale)}
             </Text>
           )}
           {status ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "~/lib/utils";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { formatGameClock } from "@repo/domain/format-game-start";
 
 import {
@@ -12,7 +13,7 @@ import {
 import { holderName, type VenueBooking } from "./booking-types";
 
 export function bookingTimeLabel(booking: VenueBooking) {
-  return `${formatGameClock(booking.startsAt)} to ${formatGameClock(booking.endsAt)}`;
+  return `${formatGameClock(booking.startsAt, CONSOLE_LOCALE)} to ${formatGameClock(booking.endsAt, CONSOLE_LOCALE)}`;
 }
 
 const TONE_CLASS: Record<BlockTone, { block: string; detail: string }> = {
@@ -45,7 +46,7 @@ export function BookingBlock({
   const tone = TONE_CLASS[blockTone(booking, now)];
   const detail =
     layout === "week"
-      ? `${formatGameClock(booking.startsAt)}, ${durationMinutes(booking)} min`
+      ? `${formatGameClock(booking.startsAt, CONSOLE_LOCALE)}, ${durationMinutes(booking)} min`
       : blockDetailLine(booking);
 
   return (

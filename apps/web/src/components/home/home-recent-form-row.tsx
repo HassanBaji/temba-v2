@@ -1,18 +1,21 @@
 "use client";
 
+import type { Messages } from "@repo/i18n/messages";
 import { type RecentFormBar } from "@repo/domain/home-recent-form";
+import { useMessages } from "~/components/locale-provider";
 
-function slotLabel(bar: RecentFormBar): string {
+function slotLabel(bar: RecentFormBar, m: Messages): string {
+  const labels = m.webAuth.home.recentForm.slot;
   if (bar.kind === "empty") {
-    return "Not played";
+    return labels.notPlayed;
   }
   if (bar.outcome === "won") {
-    return "Won";
+    return labels.won;
   }
   if (bar.outcome === "lost") {
-    return "Lost";
+    return labels.lost;
   }
-  return "Drawn";
+  return labels.drawn;
 }
 
 export function FormSlot({
@@ -22,6 +25,7 @@ export function FormSlot({
   bar: RecentFormBar;
   size?: "default" | "compact";
 }) {
+  const m = useMessages();
   const compact = size === "compact";
 
   if (bar.kind === "empty") {
@@ -41,7 +45,7 @@ export function FormSlot({
               : "hatch rounded-xs absolute inset-0"
           }
         />
-        <span className="sr-only">{slotLabel(bar)}</span>
+        <span className="sr-only">{slotLabel(bar, m)}</span>
       </div>
     );
   }
@@ -55,7 +59,7 @@ export function FormSlot({
             : "bg-ink text-paper rounded-xs text-meta flex h-[38px] min-w-0 flex-1 items-center justify-center font-semibold"
         }
       >
-        <span className="sr-only">{slotLabel(bar)}</span>
+        <span className="sr-only">{slotLabel(bar, m)}</span>
         <span aria-hidden="true">{bar.label}</span>
       </div>
     );
@@ -78,7 +82,7 @@ export function FormSlot({
           }}
         />
       ) : null}
-      <span className="sr-only">{slotLabel(bar)}</span>
+      <span className="sr-only">{slotLabel(bar, m)}</span>
       <span aria-hidden="true" className="relative">
         {bar.label}
       </span>
@@ -93,8 +97,13 @@ export function FormSlot({
  * slots are 38px and always inline in a row, never standalone).
  */
 export function WinLossMark({ outcome }: { outcome: "won" | "lost" | "draw" }) {
+  const m = useMessages();
   const label =
-    outcome === "won" ? "Win" : outcome === "lost" ? "Loss" : "Draw";
+    outcome === "won"
+      ? m.common.win
+      : outcome === "lost"
+        ? m.common.loss
+        : m.common.draw;
   const glyph = outcome === "won" ? "W" : outcome === "lost" ? "L" : "D";
 
   if (outcome === "won") {

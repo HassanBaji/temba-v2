@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatMatchSlotLabel } from "./game-side-label";
 
 export type FriendlyScorePhase =
@@ -26,7 +29,9 @@ export type SetBoxState =
   | "solid"
   | "outline";
 
-export const SCORE_INCOMPLETE_MESSAGE = "Enter games won for both teams";
+export function scoreIncompleteMessage(locale: Locale) {
+  return messagesFor(locale).game.score.incompleteMessage;
+}
 
 export function scorePhaseFlags(phase: FriendlyScorePhase) {
   return {
@@ -55,8 +60,9 @@ export function scoreNameByUserId(sides: readonly FriendlyScoreSide[]) {
   return map;
 }
 
-export function scoreTeamNamesLabel(side: FriendlyScoreSide) {
-  return `${side.left?.name ?? "Open"} & ${side.right?.name ?? "Open"}`;
+export function scoreTeamNamesLabel(side: FriendlyScoreSide, locale: Locale) {
+  const m = messagesFor(locale).game.score;
+  return m.pairNames(side.left?.name ?? m.open, side.right?.name ?? m.open);
 }
 
 /**
@@ -94,15 +100,17 @@ export function scoreSetBoxAccessibleLabel(
   state: SetBoxState,
   label: string,
   value: number | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.score;
   if (state === "solid") {
-    return `${label}: ${value} games, won this Set`;
+    return m.wonSet(label, value ?? 0);
   }
   if (state === "outline") {
-    return `${label}: ${value} games, lost this Set`;
+    return m.lostSet(label, value ?? 0);
   }
   if (state === "readonly") {
-    return `${label}: ${value ?? "not entered yet"}`;
+    return value == null ? m.notEntered(label) : m.entered(label, value);
   }
   return label;
 }
@@ -110,20 +118,22 @@ export function scoreSetBoxAccessibleLabel(
 export function scoreFooterNote(
   phase: FriendlyScorePhase,
   confirmedAtLabel: string | null,
+  locale: Locale,
   confirmedByOrganizer = false,
 ) {
+  const m = messagesFor(locale).game.score;
   if (phase === "final" && confirmedByOrganizer) {
-    return "Confirmed by the Organizer. Nothing else needed.";
+    return m.confirmedByOrganizer;
   }
   if (phase === "final") {
     return confirmedAtLabel
-      ? `Confirmed by all four players on ${confirmedAtLabel}. Nothing else needed.`
-      : "Confirmed by all four players. Nothing else needed.";
+      ? m.confirmedByAllOn(confirmedAtLabel)
+      : m.confirmedByAll;
   }
   if (phase === "needs_results") {
-    return "No score yet. Anyone who played can add it. The other three confirm before it counts towards your level.";
+    return m.noScoreYet;
   }
-  return "Scoring opens when the court is full. Fill the last spot and you'll be able to enter a result after the game.";
+  return m.scoringOpens;
 }
 
 export type ScoreOrganizerSide = { slot: 1 | 2; confirmed: boolean };
@@ -139,14 +149,19 @@ export function scoreConfirmationRows(
   confirmation: ScoreConfirmation,
   viewerUserId: string,
   names: ReadonlyMap<string, string>,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.score;
   const confirmed = new Set(confirmation.confirmedUserIds);
-  return confirmation.requiredUserIds.map((userId) => ({
-    userId,
-    label: `${names.get(userId) ?? "Player"}${userId === viewerUserId ? " (You)" : ""}`,
-    confirmed: confirmed.has(userId),
-    status: confirmed.has(userId) ? "Confirmed" : "Waiting",
-  }));
+  return confirmation.requiredUserIds.map((userId) => {
+    const name = names.get(userId) ?? m.player;
+    return {
+      userId,
+      label: userId === viewerUserId ? m.youSuffix(name) : name,
+      confirmed: confirmed.has(userId),
+      status: confirmed.has(userId) ? m.confirmed : m.waiting,
+    };
+  });
 }
 
 export function scoreShowsConfirmations(input: {
@@ -177,12 +192,16 @@ export function scoreCanConfirm(input: {
 }
 
 /** A side with no account holder waits on an Organizer's confirmation. */
-export function scoreOrganizerWaitingLines(confirmation: ScoreConfirmation) {
+export function scoreOrganizerWaitingLines(
+  confirmation: ScoreConfirmation,
+  locale: Locale,
+) {
   return (confirmation.organizerSides ?? [])
     .filter((side) => !side.confirmed)
-    .map(
-      (side) =>
-        `Waiting for the Organizer to confirm for ${formatMatchSlotLabel("friendly_game", side.slot)}.`,
+    .map((side) =>
+      messagesFor(locale).game.score.organizerWaiting(
+        formatMatchSlotLabel("friendly_game", side.slot, locale),
+      ),
     );
 }
 
@@ -201,5 +220,6 @@ export function scoreOrganizerCanConfirm(input: {
   );
 }
 
-export const ORGANIZER_CONFIRM_NOTE =
-  "As the Organizer, your confirmation makes the score final.";
+export function organizerConfirmNote(locale: Locale) {
+  return messagesFor(locale).game.score.organizerConfirmNote;
+}

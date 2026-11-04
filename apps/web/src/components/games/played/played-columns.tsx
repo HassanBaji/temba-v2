@@ -1,10 +1,15 @@
 "use client";
 
 import type { FootballBib } from "@repo/domain/football-lineup";
-import type { PlayedColumn, PlayedRow } from "@repo/domain/played-game";
+import {
+  playedWordLabel,
+  type PlayedColumn,
+  type PlayedRow,
+} from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { BibChip, bibStyle } from "~/components/games/football-bibs";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import { cn } from "~/lib/utils";
 
@@ -35,15 +40,16 @@ function PlayerRow({
   fill: Fill;
   onPress?: (row: PlayedRow) => void;
 }) {
+  const m = useMessages();
   const look = rowLook(row, fill);
   const label = [
-    row.isYou ? `${row.fullName} (You)` : row.fullName,
+    row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
     row.meta,
-    `Level ${row.level}`,
+    m.level.prose(row.level),
     row.trailing,
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(m.tournament.listSeparator);
   const body = (
     <>
       <UserAvatar name={row.fullName} image={row.image} size="sm" />
@@ -73,7 +79,7 @@ function PlayerRow({
     </>
   );
   const className = cn(
-    "flex h-12 w-full min-w-0 items-center gap-2 rounded-[10px] border px-2 text-left",
+    "flex h-12 w-full min-w-0 items-center gap-2 rounded-[10px] border px-2 text-start",
     look.className,
   );
   return onPress ? (
@@ -118,6 +124,7 @@ function Column({
   column: PlayedColumn;
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const locale = useLocale();
   const fill: Fill = column.bib ?? column.fill;
   return (
     <div className="min-w-0 flex-1 space-y-1.5">
@@ -130,7 +137,7 @@ function Column({
           {column.won ? (
             <ResultMark variant="won" decorative className="size-3.5" />
           ) : null}
-          {column.word}
+          {playedWordLabel(column.word, locale)}
         </span>
       </div>
       {column.players.map((row) => (
@@ -155,15 +162,18 @@ export function PlayedColumns({
   unplaced?: PlayedRow[];
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const m = useMessages();
   return (
-    <section aria-label="Line-up" className="space-y-4">
+    <section aria-label={m.webGame.lineup.title} className="space-y-4">
       <div className="flex items-start gap-2.5">
         <Column column={columns[0]} onPressPlayer={onPressPlayer} />
         <Column column={columns[1]} onPressPlayer={onPressPlayer} />
       </div>
       {unplaced.length > 0 ? (
         <div className="space-y-1.5">
-          <h3 className="text-muted-foreground text-eyebrow">Not on a team</h3>
+          <h3 className="text-muted-foreground text-eyebrow">
+            {m.webGame.played.notOnATeam}
+          </h3>
           {unplaced.map((row) => (
             <PlayerRow
               key={row.userId}

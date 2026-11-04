@@ -4,19 +4,17 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
-import {
-  COMMUNITY_CREATE_CLUB_GROUP_LABEL,
-  COMMUNITY_NO_GROUPS_EMPTY,
-  COMMUNITY_START_CLUB_GROUP_COPY,
-  communityClubGroupRow,
-} from "@repo/domain/community";
+import { communityClubGroupRow } from "@repo/domain/community";
 import { type RouterOutputs } from "~/trpc/react";
 
 type ClubGroup = RouterOutputs["communities"]["byId"]["groups"][number];
 
 function ClubGroupRow({ group }: { group: ClubGroup }) {
-  const row = communityClubGroupRow(group);
+  const m = useMessages();
+  const locale = useLocale();
+  const row = communityClubGroupRow(group, locale);
   return (
     <li>
       <Link
@@ -32,7 +30,7 @@ function ClubGroupRow({ group }: { group: ClubGroup }) {
         </div>
         {row.joined ? (
           <span className="text-eyebrow text-muted-foreground shrink-0">
-            Joined
+            {m.community.joined}
           </span>
         ) : null}
       </Link>
@@ -41,20 +39,21 @@ function ClubGroupRow({ group }: { group: ClubGroup }) {
 }
 
 function StartAClubGroupCard({ onCreate }: { onCreate: () => void }) {
+  const m = useMessages();
   return (
     <section className="border-rule rounded-[14px] border p-5">
       <h2 className="text-body font-semibold">
-        {COMMUNITY_START_CLUB_GROUP_COPY.title}
+        {m.community.startClubGroup.title}
       </h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        {COMMUNITY_START_CLUB_GROUP_COPY.description}
+        {m.community.startClubGroup.description}
       </p>
       <Button
         type="button"
         className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
         onClick={onCreate}
       >
-        {COMMUNITY_CREATE_CLUB_GROUP_LABEL}
+        {m.community.action.createClubGroup}
       </Button>
     </section>
   );
@@ -71,12 +70,13 @@ export function CommunityGroupsTab({
   canCreateClubGroup: boolean;
   onCreate: () => void;
 }) {
+  const m = useMessages();
   return (
     <div className="flex flex-col gap-[26px]">
       {venue}
 
       {groups.length === 0 ? (
-        <EmptyState icon={Users} {...COMMUNITY_NO_GROUPS_EMPTY} />
+        <EmptyState icon={Users} {...m.community.noGroupsEmpty} />
       ) : (
         <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
           {groups.map((group) => (

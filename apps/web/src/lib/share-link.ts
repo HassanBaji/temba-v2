@@ -1,5 +1,8 @@
 import { toast } from "sonner";
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export type ShareLinkOutcome =
   | "shared"
   | "copied"
@@ -123,11 +126,14 @@ export async function shareOrCopyLink(
   return copied ? "copied" : "unavailable";
 }
 
-export const COPY_LINK_FAILED_MESSAGE = "Couldn't copy the link";
+export function copyLinkFailedMessage(locale: Locale): string {
+  return messagesFor(locale).webUi.shareLink.copyFailed;
+}
 
 export async function shareLinkWithFeedback(
   data: LinkShare | Promise<LinkShare | null>,
   copiedMessage: string,
+  locale: Locale,
 ) {
   try {
     const outcome = await shareOrCopyLink(data);
@@ -135,6 +141,6 @@ export async function shareLinkWithFeedback(
       toast.success(copiedMessage);
     }
   } catch {
-    toast.error(COPY_LINK_FAILED_MESSAGE);
+    toast.error(copyLinkFailedMessage(locale));
   }
 }

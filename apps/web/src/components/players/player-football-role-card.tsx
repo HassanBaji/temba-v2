@@ -1,11 +1,17 @@
+"use client";
+
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import type { FootballRoleView } from "@repo/domain/player-profile-football";
 
 export function PlayerFootballRoleCard({ view }: { view: FootballRoleView }) {
+  const m = useMessages();
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile">Preferred position</SurfaceLabel>
+      <SurfaceLabel inset="profile">
+        {m.webUi.player.preferredRole}
+      </SurfaceLabel>
       <div className="flex items-center gap-[18px] px-5 pb-5">
         <span
           aria-hidden="true"

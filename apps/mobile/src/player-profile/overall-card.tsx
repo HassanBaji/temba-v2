@@ -6,16 +6,21 @@ import type {
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
 function Tile({ tile }: { tile: PlayerOverallTile }) {
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={`${tile.label} ${tile.value}`}
+      accessibilityLabel={m.mobilePlayer.profile.tileSpoken(
+        tile.label,
+        tile.value,
+      )}
       style={{ flex: 1, padding: spacing.surface, gap: 4 }}
     >
       <Text size="meta" tone="muted">

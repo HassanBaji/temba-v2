@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 /** The pinned column under a Profile task: one primary, then the way out. */
@@ -14,6 +17,7 @@ export function NotNowLink({
   href: string;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   return (
     <Button
       asChild
@@ -21,7 +25,7 @@ export function NotNowLink({
       className="text-muted-foreground min-h-11 underline"
       disabled={disabled}
     >
-      <Link href={href}>Not now</Link>
+      <Link href={href}>{m.webAuth.onboarding.notNow}</Link>
     </Button>
   );
 }

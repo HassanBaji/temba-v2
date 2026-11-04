@@ -19,6 +19,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
@@ -60,25 +61,9 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
-  CANCEL_GAME_ACTION,
-  CANCEL_MATCH_ACTION,
-  CANNOT_BE_UNDONE_COPY,
-  CLOSE_REGISTRATION_ACTION,
-  COMPLETE_MATCH_ACTION,
-  COMPLETE_MATCH_CONSEQUENCE,
-  EDIT_GAME_ACTION,
-  GAME_TOAST,
-  KICK_ACTION,
-  LEAVE_GAME_ACTION,
-  LEAVE_WAITLIST_ACTION,
-  LEAVE_WAITLIST_CONSEQUENCE,
-  MARK_AS_NOT_PLAYED_ACTION,
-  MARK_AS_NOT_PLAYED_CONSEQUENCE,
-  REOPEN_REGISTRATION_ACTION,
-  REPORT_WRONG_SCORE_ACTION,
-  REPORT_WRONG_SCORE_CONSEQUENCE,
   cancelGameConsequence,
   gameJoinToast,
+  gameToast,
   teamRegisterToast,
   kickedToast,
 } from "@repo/domain/game-copy";
@@ -101,8 +86,6 @@ import {
   friendlyGameFooterActions,
 } from "@repo/domain/friendly-game-actions";
 import {
-  COURT_ADD_PLAYER_HINT,
-  COURT_JOIN_SUBLINE,
   courtFigures,
   courtPositionLabel,
   courtSpotsLabel,
@@ -117,7 +100,6 @@ import { friendlyGameVenueDirectionsUrl } from "@repo/domain/friendly-game-chrom
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import type { PlayedRow } from "@repo/domain/played-game";
 import {
-  ADD_PLAYER_ACTION,
   addPlayerPlacement,
   organizerCanAddPlayer,
 } from "@repo/domain/add-player-by-phone";
@@ -183,6 +165,10 @@ export default function GameHomePage({
   const intent = gameHomeIntentFromQuery(
     Array.isArray(query.intent) ? query.intent[0] : query.intent,
   );
+  const m = useMessages();
+  const locale = useLocale();
+  const g = m.webDashboard.game;
+  const toastCopy = gameToast(locale);
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/games/${id}`;
   const utils = api.useUtils();
@@ -251,7 +237,7 @@ export default function GameHomePage({
 
   const registerSeat = api.games.registerSeat.useMutation({
     onSuccess: async (result) => {
-      toast.success(gameJoinToast(result.waitlisted));
+      toast.success(gameJoinToast(result.waitlisted, locale));
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -265,7 +251,7 @@ export default function GameHomePage({
 
   const moveSeat = api.games.moveSeat.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.seatChanged);
+      toast.success(toastCopy.seatChanged);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -277,7 +263,7 @@ export default function GameHomePage({
 
   const registerWithPartner = api.games.registerWithPartner.useMutation({
     onSuccess: async (result) => {
-      toast.success(gameJoinToast(result.waitlisted));
+      toast.success(gameJoinToast(result.waitlisted, locale));
       setPartnerQuery("");
       setSelectedPartner([]);
       setPartnerSide("");
@@ -294,7 +280,7 @@ export default function GameHomePage({
 
   const registerTeam = api.games.registerTeam.useMutation({
     onSuccess: async (result) => {
-      toast.success(teamRegisterToast(result.waitlisted));
+      toast.success(teamRegisterToast(result.waitlisted, locale));
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -306,7 +292,7 @@ export default function GameHomePage({
 
   const mergeHalfTeams = api.games.mergeHalfTeams.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.halfTeamsMerged);
+      toast.success(toastCopy.halfTeamsMerged);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -323,7 +309,7 @@ export default function GameHomePage({
   const drawPools = api.games.drawPools.useMutation({
     onSuccess: async () => {
       toast.success(
-        knockoutOnlyDraw() ? GAME_TOAST.knockoutDrawn : GAME_TOAST.poolsDrawn,
+        knockoutOnlyDraw() ? toastCopy.knockoutDrawn : toastCopy.poolsDrawn,
       );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
@@ -338,8 +324,8 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(
         knockoutOnlyDraw()
-          ? GAME_TOAST.knockoutDrawPosted
-          : GAME_TOAST.poolDrawPosted,
+          ? toastCopy.knockoutDrawPosted
+          : toastCopy.poolDrawPosted,
       );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
@@ -354,8 +340,8 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(
         knockoutOnlyDraw()
-          ? GAME_TOAST.knockoutDrawUndone
-          : GAME_TOAST.poolDrawUndone,
+          ? toastCopy.knockoutDrawUndone
+          : toastCopy.poolDrawUndone,
       );
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
@@ -368,7 +354,7 @@ export default function GameHomePage({
 
   const leaveGame = api.games.leave.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.left);
+      toast.success(toastCopy.left);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -380,7 +366,7 @@ export default function GameHomePage({
 
   const leaveWaitlist = api.games.leaveWaitlist.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.leftWaitlist);
+      toast.success(toastCopy.leftWaitlist);
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -409,7 +395,7 @@ export default function GameHomePage({
 
   const closeRegistration = api.games.closeRegistration.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.registrationClosed);
+      toast.success(toastCopy.registrationClosed);
       await refreshGame();
     },
     onError: (error) => {
@@ -419,7 +405,7 @@ export default function GameHomePage({
 
   const reopenRegistration = api.games.reopenRegistration.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.registrationReopened);
+      toast.success(toastCopy.registrationReopened);
       await refreshGame();
     },
     onError: (error) => {
@@ -429,7 +415,7 @@ export default function GameHomePage({
 
   const cancelGame = api.games.cancel.useMutation({
     onSuccess: async () => {
-      toast.success(GAME_TOAST.gameCancelled);
+      toast.success(toastCopy.gameCancelled);
       await refreshGame();
     },
     onError: (error) => {
@@ -441,8 +427,8 @@ export default function GameHomePage({
     onSuccess: async (result) => {
       toast.success(
         result.cancelledGame
-          ? GAME_TOAST.gameCancelled
-          : GAME_TOAST.matchCancelled,
+          ? toastCopy.gameCancelled
+          : toastCopy.matchCancelled,
       );
       await refreshGame();
     },
@@ -453,7 +439,7 @@ export default function GameHomePage({
 
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: async () => {
-      toast.success("Match updated");
+      toast.success(g.toast.matchUpdated);
       await refreshGame();
     },
     onError: (error) => {
@@ -463,7 +449,7 @@ export default function GameHomePage({
 
   const scoreSet = api.games.scoreSet.useMutation({
     onSuccess: async () => {
-      toast.success("Set saved");
+      toast.success(g.toast.setSaved);
       await refreshGame();
     },
     onError: (error) => {
@@ -473,7 +459,7 @@ export default function GameHomePage({
 
   const completeMatch = api.games.completeMatch.useMutation({
     onSuccess: async () => {
-      toast.success("Match completed");
+      toast.success(g.toast.matchCompleted);
       await refreshGame();
       await utils.ratings.me.invalidate();
     },
@@ -484,7 +470,7 @@ export default function GameHomePage({
 
   const confirmMatchResult = api.games.confirmMatchResult.useMutation({
     onSuccess: async () => {
-      toast.success("Result confirmed");
+      toast.success(g.toast.resultConfirmed);
       await refreshGame();
       await utils.ratings.me.invalidate();
     },
@@ -495,7 +481,7 @@ export default function GameHomePage({
 
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: async () => {
-      toast.success("Score reopened");
+      toast.success(g.toast.scoreReopened);
       await refreshGame();
       await utils.ratings.me.invalidate();
     },
@@ -513,12 +499,13 @@ export default function GameHomePage({
       roster: row
         ? {
             customName: gameCustomName(row),
-            venueName: row.venue?.name ?? "Venue",
+            venueName: row.venue?.name ?? m.webDashboard.venue.title,
             courtName: row.matches[0]?.courtName ?? null,
             windowStart: row.windowStart,
             windowEnd: row.windowEnd,
             sides: row.sides,
             shortUrl: url,
+            locale,
           }
         : null,
     });
@@ -540,7 +527,7 @@ export default function GameHomePage({
         text: inviteShareText(result.shortUrl ?? result.inviteUrl),
       }))
       .catch(() => null);
-    void shareLinkWithFeedback(text, "Invite link copied");
+    void shareLinkWithFeedback(text, g.toast.inviteLinkCopied, locale);
   }
 
   const data = game.data;
@@ -666,7 +653,7 @@ export default function GameHomePage({
   if (game.isLoading) {
     return (
       <DashboardShell
-        title="Game"
+        title={g.title}
         hidePageHeader
         hideMobileTopBar
         isSubPage
@@ -679,9 +666,9 @@ export default function GameHomePage({
 
   if (game.error) {
     return (
-      <DashboardShell title="Game">
+      <DashboardShell title={g.title}>
         <ErrorState
-          title="Game could not be loaded"
+          title={g.errorTitle}
           message={game.error.message}
           onRetry={() => {
             void game.refetch();
@@ -693,9 +680,9 @@ export default function GameHomePage({
 
   if (!data) {
     return (
-      <DashboardShell title="Game">
+      <DashboardShell title={g.title}>
         <ErrorState
-          title="Game could not be loaded"
+          title={g.errorTitle}
           onRetry={() => {
             void game.refetch();
           }}
@@ -715,10 +702,10 @@ export default function GameHomePage({
     );
   }
 
-  const gameName = data.name ?? "Game";
+  const gameName = data.name ?? g.title;
   const shellTitle = usesFriendlyChrome
-    ? friendlyGameHomeTitle(data.groupId, data.groupName)
-    : "Game";
+    ? friendlyGameHomeTitle(data.groupId, data.groupName, locale)
+    : g.title;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const roundsPlan = tournamentRoundsPlan(data, edit.draft.roundCount);
   const showMenu = isOrganizerActive;
@@ -748,7 +735,7 @@ export default function GameHomePage({
             disabled={registerSeat.isPending}
             onClick={() => openJoinPicker()}
           >
-            Join
+            {m.game.cta.join}
           </Button>
         ) : null}
         {headerJoinWaitlist ? (
@@ -758,7 +745,7 @@ export default function GameHomePage({
             disabled={registerSeat.isPending}
             onClick={() => registerSeat.mutate({ gameId: id })}
           >
-            Join waitlist
+            {m.game.cta.joinWaitlist}
           </Button>
         ) : null}
       </>
@@ -772,6 +759,7 @@ export default function GameHomePage({
           canLeaveGame,
           canReportWrongScore: data.canReportWrongScore,
           playerCount: occupiedFriendlyPositions(data.sides),
+          locale,
         })
       : [];
   const footerHandlers = {
@@ -804,7 +792,7 @@ export default function GameHomePage({
         <Button
           type="button"
           size="icon"
-          aria-label="Share Game"
+          aria-label={g.shareGame}
           className="bg-raised text-paper hover:bg-raised/80 rounded-md"
           onClick={shareInviteLink}
         >
@@ -829,6 +817,7 @@ export default function GameHomePage({
     seatCount: data.sides.length * 2,
     durationInMinutes: firstMatch?.durationInMinutes ?? null,
     pricePerPlayerFils: data.pricePerPlayerFils,
+    locale,
   });
   const vacantAction = friendlyGameVacantSeatAction({
     cancelled: data.cancelledAt != null,
@@ -842,13 +831,17 @@ export default function GameHomePage({
     sideIndex: number,
     position: "left" | "right",
   ): OpenSeatAction | null => {
-    const sideLabel = formatGameSideLabel("friendly_game", sideIndex);
-    const positionLabel = courtPositionLabel(position);
+    const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
+    const positionLabel = courtPositionLabel(position, locale);
     if (vacantAction === "move" || vacantAction === "join") {
       return {
         label:
-          friendlyGameVacantSeatLabel(vacantAction, sideLabel, positionLabel) ??
-          positionLabel,
+          friendlyGameVacantSeatLabel(
+            vacantAction,
+            sideLabel,
+            positionLabel,
+            locale,
+          ) ?? positionLabel,
         onClick: () =>
           vacantAction === "move"
             ? moveSeat.mutate({ gameId: id, sideIndex, position })
@@ -857,7 +850,7 @@ export default function GameHomePage({
     }
     return canAddAtSeat
       ? {
-          label: `Add a player to ${sideLabel} ${positionLabel}`,
+          label: g.addPlayerTo(sideLabel, positionLabel),
           onClick: () => {
             setAddSeat({ sideIndex, position });
             setAddPlayerOpen(true);
@@ -867,18 +860,18 @@ export default function GameHomePage({
   };
   const leadLine =
     ctaFamily.kind === "needs_score" && firstMatch
-      ? scoreLeadLine(firstMatch, plan.viewerGameTeamId)
+      ? scoreLeadLine(firstMatch, plan.viewerGameTeamId, locale)
       : null;
   const ctaLines =
     ctaFamily.kind === "join"
       ? {
-          title: courtSpotsLabel(vacantSeatCount),
-          subline: COURT_JOIN_SUBLINE,
+          title: courtSpotsLabel(vacantSeatCount, locale),
+          subline: m.game.court.joinSubline,
         }
       : leadLine
         ? {
             title: leadLine,
-            subline: friendlyGameCtaCopy(ctaFamily)?.subline ?? null,
+            subline: friendlyGameCtaCopy(ctaFamily, locale)?.subline ?? null,
           }
         : null;
   const organizerMenu = usesFriendlyChrome ? null : showMenu ||
@@ -886,27 +879,28 @@ export default function GameHomePage({
     primaryLeaveWaitlist ? (
     <GameActionsSheet
       title={gameName}
+      label={g.actionsLabel}
       groups={[
         [
           ...(showMenu
             ? [
                 {
                   key: "edit",
-                  label: EDIT_GAME_ACTION,
+                  label: m.game.action.editGame,
                   icon: PencilIcon,
                   onSelect: () => setEditOpen(true),
                 },
                 data.registrationClosedAt
                   ? {
                       key: "reopen_registration",
-                      label: REOPEN_REGISTRATION_ACTION,
+                      label: m.game.action.reopenRegistration,
                       icon: LockOpenIcon,
                       disabled: data.joinFrozen || reopenRegistration.isPending,
                       onSelect: () => reopenRegistration.mutate({ gameId: id }),
                     }
                   : {
                       key: "close_registration",
-                      label: CLOSE_REGISTRATION_ACTION,
+                      label: m.game.action.closeRegistration,
                       icon: LockIcon,
                       disabled: closeRegistration.isPending,
                       onSelect: () => closeRegistration.mutate({ gameId: id }),
@@ -915,7 +909,7 @@ export default function GameHomePage({
                   ? [
                       {
                         key: "invite",
-                        label: "Invite",
+                        label: g.invite,
                         icon: UserRoundPlusIcon,
                         onSelect: () => setInvitesOpen(true),
                       },
@@ -925,7 +919,7 @@ export default function GameHomePage({
                   ? [
                       {
                         key: "add_player",
-                        label: ADD_PLAYER_ACTION,
+                        label: m.group.addPlayer.action,
                         icon: UserPlusIcon,
                         onSelect: openAddPlayer,
                       },
@@ -937,7 +931,7 @@ export default function GameHomePage({
             ? [
                 {
                   key: "leave",
-                  label: LEAVE_GAME_ACTION,
+                  label: m.game.action.leaveGame,
                   icon: LogOutIcon,
                   onSelect: () => setLeaveGameOpen(true),
                 },
@@ -947,7 +941,7 @@ export default function GameHomePage({
             ? [
                 {
                   key: "leave_waitlist",
-                  label: LEAVE_WAITLIST_ACTION,
+                  label: m.game.action.leaveWaitlist,
                   icon: LogOutIcon,
                   onSelect: () => setLeaveWaitlistOpen(true),
                 },
@@ -958,7 +952,7 @@ export default function GameHomePage({
           ? [
               {
                 key: "cancel",
-                label: CANCEL_GAME_ACTION,
+                label: m.game.action.cancelGame,
                 icon: Ban,
                 tone: "danger" as const,
                 onSelect: () => setCancelGameOpen(true),
@@ -978,14 +972,18 @@ export default function GameHomePage({
     if (!data) {
       return;
     }
-    setKickConfirm(gameKickTarget(data, request));
+    setKickConfirm(gameKickTarget(data, request, locale));
   }
 
   const kickConfirmCopy = kickConfirm
-    ? gameKickConfirmCopy(kickConfirm, {
-        partnerRequired: isPartnerRequiredGame(data),
-        drawPosted: Boolean(data.drawPostedAt),
-      })
+    ? gameKickConfirmCopy(
+        kickConfirm,
+        {
+          partnerRequired: isPartnerRequiredGame(data),
+          drawPosted: Boolean(data.drawPostedAt),
+        },
+        locale,
+      )
     : null;
 
   return (
@@ -1019,7 +1017,7 @@ export default function GameHomePage({
                 strokeWidth={2}
               />
               <p className="text-title font-semibold tracking-[-0.01em]">
-                This Game is cancelled
+                {g.cancelledHeading}
               </p>
             </div>
           </section>
@@ -1030,9 +1028,9 @@ export default function GameHomePage({
             {data.joinFrozen && !data.cancelledAt ? (
               <SoftArchiveBanner
                 headingLevel={2}
-                heading="This Club Group's Community is Soft-archived"
+                heading={g.softArchived.heading}
               >
-                Registration, the waitlist, and invites stay closed.
+                {g.softArchived.body}
               </SoftArchiveBanner>
             ) : null}
             {data.rated ? null : <GameUnratedBlock />}
@@ -1106,7 +1104,7 @@ export default function GameHomePage({
           </>
         ) : usesFriendlyChrome ? (
           <>
-            <h1 className="sr-only">Friendly Game</h1>
+            <h1 className="sr-only">{g.friendlyGameHeading}</h1>
             {heroInput && !playedMatch ? (
               <FriendlyGameDetailsHero
                 input={heroInput}
@@ -1158,7 +1156,8 @@ export default function GameHomePage({
                           text: window.location.href,
                           url: window.location.href,
                         },
-                        "Link copied",
+                        g.toast.linkCopied,
+                        locale,
                       );
                     }
                   : undefined
@@ -1168,11 +1167,8 @@ export default function GameHomePage({
         ) : null}
 
         {data.joinFrozen && !data.cancelledAt && !usesDrawnTournamentChrome ? (
-          <SoftArchiveBanner
-            headingLevel={2}
-            heading="This Club Group's Community is Soft-archived"
-          >
-            Registration, the waitlist, and invites stay closed.
+          <SoftArchiveBanner headingLevel={2} heading={g.softArchived.heading}>
+            {g.softArchived.body}
           </SoftArchiveBanner>
         ) : null}
 
@@ -1204,7 +1200,7 @@ export default function GameHomePage({
               vacantSeatCount={vacantSeatCount}
               hint={
                 canAddAtSeat && vacantSeatCount > 0
-                  ? COURT_ADD_PLAYER_HINT
+                  ? m.game.court.addPlayerHint
                   : null
               }
               busy={moveSeat.isPending}
@@ -1261,9 +1257,9 @@ export default function GameHomePage({
               variant="segmented"
               className="sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
             >
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="players">Players</TabsTrigger>
-              <TabsTrigger value="results">Results</TabsTrigger>
+              <TabsTrigger value="overview">{g.tabs.overview}</TabsTrigger>
+              <TabsTrigger value="players">{g.tabs.players}</TabsTrigger>
+              <TabsTrigger value="results">{g.tabs.results}</TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
               <div className="space-y-6">
@@ -1488,12 +1484,15 @@ export default function GameHomePage({
             gameId: id,
             canLookup: canSendGameLookup,
             canLink: true,
-            subtitle: gameInviteSubtitle({
-              windowStart: data.windowStart,
-              courtName: data.matches[0]?.courtName ?? null,
-              venueName: data.venue?.name ?? null,
-              sides: data.sides,
-            }),
+            subtitle: gameInviteSubtitle(
+              {
+                windowStart: data.windowStart,
+                courtName: data.matches[0]?.courtName ?? null,
+                venueName: data.venue?.name ?? null,
+                sides: data.sides,
+              },
+              locale,
+            ),
             shareMessage: inviteShareText,
           }}
           open={invitesOpen}
@@ -1504,13 +1503,16 @@ export default function GameHomePage({
       <ConfirmDialog
         open={cancelGameOpen}
         onOpenChange={setCancelGameOpen}
-        title={`Cancel ${gameName}?`}
+        title={g.cancelTitle(gameName)}
         description={
           usesFriendlyChrome
-            ? cancelGameConsequence(occupiedFriendlyPositions(data.sides))
-            : CANNOT_BE_UNDONE_COPY
+            ? cancelGameConsequence(
+                occupiedFriendlyPositions(data.sides),
+                locale,
+              )
+            : m.game.consequence.cannotBeUndone
         }
-        confirmLabel={CANCEL_GAME_ACTION}
+        confirmLabel={m.game.action.cancelGame}
         pending={cancelGame.isPending}
         onConfirm={async () => {
           await cancelGame.mutateAsync({ gameId: id });
@@ -1520,9 +1522,9 @@ export default function GameHomePage({
       <ConfirmDialog
         open={markAsNotPlayedOpen}
         onOpenChange={setMarkAsNotPlayedOpen}
-        title="Mark as not played?"
-        description={MARK_AS_NOT_PLAYED_CONSEQUENCE}
-        confirmLabel={MARK_AS_NOT_PLAYED_ACTION}
+        title={g.markAsNotPlayedTitle}
+        description={m.game.consequence.markAsNotPlayed}
+        confirmLabel={m.game.action.markAsNotPlayed}
         pending={cancelMatch.isPending}
         onConfirm={async () => {
           if (!firstMatch) {
@@ -1535,9 +1537,9 @@ export default function GameHomePage({
       <ConfirmDialog
         open={reportWrongScoreOpen}
         onOpenChange={setReportWrongScoreOpen}
-        title="Report a wrong score?"
-        description={REPORT_WRONG_SCORE_CONSEQUENCE}
-        confirmLabel={REPORT_WRONG_SCORE_ACTION}
+        title={g.reportWrongScoreTitle}
+        description={m.game.consequence.reportWrongScore}
+        confirmLabel={m.game.action.reportWrongScore}
         pending={reportWrongScore.isPending}
         onConfirm={async () => {
           if (!firstMatch) {
@@ -1553,12 +1555,13 @@ export default function GameHomePage({
       <ConfirmDialog
         open={leaveGameOpen}
         onOpenChange={setLeaveGameOpen}
-        title={`Leave ${gameName}?`}
+        title={g.leaveTitle(gameName)}
         description={tournamentLeaveOrKickConfirmCopy({
           partnerRequired: isPartnerRequiredGame(data),
           drawPosted: Boolean(data.drawPostedAt),
+          locale,
         })}
-        confirmLabel={LEAVE_GAME_ACTION}
+        confirmLabel={m.game.action.leaveGame}
         pending={leaveGame.isPending}
         onConfirm={async () => {
           await leaveGame.mutateAsync({ gameId: id });
@@ -1572,9 +1575,9 @@ export default function GameHomePage({
             setKickConfirm(null);
           }
         }}
-        title={kickConfirmCopy?.title ?? "Kick player?"}
+        title={kickConfirmCopy?.title ?? g.kickPlayerTitle}
         description={kickConfirmCopy?.description}
-        confirmLabel={KICK_ACTION}
+        confirmLabel={m.game.action.kick}
         pending={kick.isPending}
         onConfirm={async () => {
           if (!kickConfirm) {
@@ -1585,7 +1588,7 @@ export default function GameHomePage({
               ? { gameId: id, userId: kickConfirm.userId }
               : { gameId: id, waitlistId: kickConfirm.waitlistId },
           );
-          toast.success(kickedToast(kickConfirm.name));
+          toast.success(kickedToast(kickConfirm.name, locale));
         }}
       />
 
@@ -1596,9 +1599,9 @@ export default function GameHomePage({
             setCompleteMatchId(null);
           }
         }}
-        title="Complete Match and update ratings?"
-        description={COMPLETE_MATCH_CONSEQUENCE}
-        confirmLabel={COMPLETE_MATCH_ACTION}
+        title={g.completeMatchTitle}
+        description={m.game.consequence.completeMatch}
+        confirmLabel={m.game.action.completeMatch}
         variant="default"
         pending={completeMatch.isPending}
         onConfirm={async () => {
@@ -1615,9 +1618,9 @@ export default function GameHomePage({
       <ConfirmDialog
         open={leaveWaitlistOpen}
         onOpenChange={setLeaveWaitlistOpen}
-        title={`${LEAVE_WAITLIST_ACTION}?`}
-        description={LEAVE_WAITLIST_CONSEQUENCE}
-        confirmLabel={LEAVE_WAITLIST_ACTION}
+        title={g.leaveWaitlistTitle}
+        description={m.game.consequence.leaveWaitlist}
+        confirmLabel={m.game.action.leaveWaitlist}
         pending={leaveWaitlist.isPending}
         onConfirm={async () => {
           await leaveWaitlist.mutateAsync({ gameId: id });
@@ -1633,14 +1636,14 @@ export default function GameHomePage({
         }}
         title={
           data.format === "friendly_game"
-            ? `Cancel ${gameName}?`
-            : `${CANCEL_MATCH_ACTION}?`
+            ? g.cancelTitle(gameName)
+            : g.cancelMatchTitle
         }
-        description={CANNOT_BE_UNDONE_COPY}
+        description={m.game.consequence.cannotBeUndone}
         confirmLabel={
           data.format === "friendly_game"
-            ? CANCEL_GAME_ACTION
-            : CANCEL_MATCH_ACTION
+            ? m.game.action.cancelGame
+            : m.game.action.cancelMatch
         }
         pending={cancelMatch.isPending}
         onConfirm={async () => {

@@ -1,9 +1,5 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import {
-  MY_GROUPS_EMPTY_COPY,
-  MY_GROUPS_EMPTY_TITLE,
-  MY_GROUPS_PLACEHOLDER_TITLE,
-  PUBLIC_GROUPS_EMPTY_TITLE,
   PUBLIC_GROUPS_PREVIEW_MONOGRAMS,
   publicGroupsEmptyLine,
 } from "@repo/domain/groups-list-empty-states";
@@ -11,6 +7,7 @@ import type { PublicGroupSportFilter } from "@repo/domain/sport";
 import { Users } from "lucide-react-native";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { NotSetCell } from "../lib/not-set-cell";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -51,6 +48,7 @@ export function MyGroupsEmpty({
   onCreate: () => void;
   onBrowsePublic: () => void;
 }) {
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
       <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -62,27 +60,34 @@ export function MyGroupsEmpty({
           >
             <HatchedMonogram />
             <Text tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-              {MY_GROUPS_PLACEHOLDER_TITLE}
+              {m.group.list.placeholderTitle}
             </Text>
             <View style={{ width: NEXT_GAME_WIDTH, height: sizes.touchTarget }}>
               <Hatch />
             </View>
           </View>
           <EmptyHeading
-            title={MY_GROUPS_EMPTY_TITLE}
-            line={MY_GROUPS_EMPTY_COPY}
+            title={m.group.list.mineEmptyTitle}
+            line={m.group.list.mineEmptyCopy}
           />
         </View>
         <Hairline />
         <View style={{ flexDirection: "row" }}>
-          <NotSetCell label="Standing" divided={false} />
-          <NotSetCell label="Next Game" divided />
+          <NotSetCell
+            label={m.mobileGroup.list.empty.standing}
+            divided={false}
+          />
+          <NotSetCell label={m.mobileGroup.list.nextGame} divided />
         </View>
       </Surface>
       <View style={{ gap: 8 }}>
-        <Button label="Create Group" size="lg" onPress={onCreate} />
         <Button
-          label="Browse public Groups"
+          label={m.group.create.loose.submit}
+          size="lg"
+          onPress={onCreate}
+        />
+        <Button
+          label={m.mobileGroup.list.empty.browsePublic}
           size="lg"
           variant="outline"
           icon={<Users size={sizes.iconAction} color={colors.ink} />}
@@ -101,6 +106,8 @@ export function PublicGroupsEmpty({
   sportFilter: PublicGroupSportFilter;
   onCreate: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
       <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -109,10 +116,10 @@ export function PublicGroupsEmpty({
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
             <Text size="meta" tone="muted">
-              Public Groups
+              {m.mobileGroup.list.empty.publicGroups}
             </Text>
             <Text size="meta" tone="muted">
-              None open
+              {m.mobileGroup.list.empty.noneOpen}
             </Text>
           </View>
           <View
@@ -128,12 +135,16 @@ export function PublicGroupsEmpty({
             )}
           </View>
           <EmptyHeading
-            title={PUBLIC_GROUPS_EMPTY_TITLE}
-            line={publicGroupsEmptyLine(sportFilter)}
+            title={m.group.list.publicEmptyTitle}
+            line={publicGroupsEmptyLine(sportFilter, locale)}
           />
         </View>
       </Surface>
-      <Button label="Create Group" size="lg" onPress={onCreate} />
+      <Button
+        label={m.group.create.loose.submit}
+        size="lg"
+        onPress={onCreate}
+      />
     </View>
   );
 }

@@ -1,6 +1,9 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
+
 import {
   DEFAULT_FOOTBALL_POSITION,
-  FOOTBALL_POSITION_CHOICES,
+  footballPositionChoices,
   isFootballPosition,
   isFootballRole,
   type FootballPosition,
@@ -19,6 +22,7 @@ import {
 } from "./level-bands";
 import { pickedSportList, type PickedSports } from "./onboarding-flow";
 import {
+  PREFERRED_POSITIONS,
   isPreferredPosition,
   preferredPositionProfileLine,
   type PreferredPosition,
@@ -56,85 +60,84 @@ export type OnboardingSeed = {
   preferredFootballPosition: string | null;
 };
 
-export const SPORT_CHOICES: {
+export function sportChoices(locale: Locale): {
   value: Sport;
   title: string;
   description: string;
   meta: string;
-}[] = [
-  {
-    value: "padel",
-    title: "Padel",
-    description:
-      "Doubles, 90 minute slots. A letter Level that follows your results.",
-    meta: "Level D to A, side",
-  },
-  {
-    value: "football",
-    title: "Football",
-    description: "Five or seven a side. Pool first, teams set before kick-off.",
-    meta: "Level, role, position",
-  },
-];
+}[] {
+  const m = messagesFor(locale);
+  return [
+    {
+      value: "padel",
+      title: m.common.padel,
+      description: m.onboarding.sport.padel.description,
+      meta: m.onboarding.sport.padel.meta,
+    },
+    {
+      value: "football",
+      title: m.common.football,
+      description: m.onboarding.sport.football.description,
+      meta: m.onboarding.sport.football.meta,
+    },
+  ];
+}
 
-export const PADEL_LEVEL_CHOICES: {
+const PADEL_LEVEL_KEYS = [
+  ["D", "newToPadel"],
+  ["D+", "beginner"],
+  ["C-", "improver"],
+  ["C+", "intermediate"],
+  ["B-", "advanced"],
+  ["B+", "expert"],
+  ["A", "pro"],
+] as const satisfies readonly (readonly [
+  AssignableDisplayLevelBand,
+  keyof Messages["onboarding"]["padelLevel"],
+])[];
+
+export function padelLevelChoices(locale: Locale): {
   value: AssignableDisplayLevelBand;
   name: string;
   detail: string;
-}[] = [
-  {
-    value: "D",
-    name: "New to padel",
-    detail: "Learning the walls and the rules.",
-  },
-  { value: "D+", name: "Beginner", detail: "Lobs and volleys with intent." },
-  {
-    value: "C-",
-    name: "Improver",
-    detail: "Overheads and volleys are reliable, errors still creep in.",
-  },
-  {
-    value: "C+",
-    name: "Intermediate",
-    detail:
-      "Plays tournaments, picks the right shot, rarely gives points away.",
-  },
-  {
-    value: "B-",
-    name: "Advanced",
-    detail: "Wins tournaments, finishes points at the net.",
-  },
-  {
-    value: "B+",
-    name: "Expert",
-    detail: "Top of the local scene, reads the game a step ahead.",
-  },
-  {
-    value: "A",
-    name: "Pro",
-    detail: "Competes on the national or international circuit.",
-  },
-];
+}[] {
+  const m = messagesFor(locale).onboarding.padelLevel;
+  return PADEL_LEVEL_KEYS.map(([value, key]) => ({
+    value,
+    name: m[key].name,
+    detail: m[key].detail,
+  }));
+}
 
-export const PADEL_SIDE_CHOICES: {
+export function padelSideChoices(locale: Locale): {
   value: PreferredPosition;
   name: string;
   detail: string;
-}[] = [
-  { value: "left", name: "Left", detail: "backhand side" },
-  { value: "right", name: "Right", detail: "forehand side" },
-  { value: "either", name: "Either", detail: "wherever open" },
-];
+}[] {
+  const m = messagesFor(locale);
+  return PREFERRED_POSITIONS.map((value) => ({
+    value,
+    name: m.profile.preferredPosition[value],
+    detail: m.onboarding.padelSide[value],
+  }));
+}
 
-export const FOOTBALL_ROLE_CHOICES: { value: FootballRole; name: string }[] = [
-  { value: "outfield", name: "Player" },
-  { value: "keeper", name: "Keeper" },
-];
+export function footballRoleChoices(
+  locale: Locale,
+): { value: FootballRole; name: string }[] {
+  const m = messagesFor(locale).onboarding.footballRole;
+  return [
+    { value: "outfield", name: m.outfield },
+    { value: "keeper", name: m.keeper },
+  ];
+}
 
 /** A player who is not sure starts one rung up from the bottom, not at the classic default. */
 export const PADEL_NOT_SURE_LEVEL: PadelLevelChoice = "D+";
 
-export const PADEL_NOT_SURE_LABEL = `Not sure, start at ${PADEL_NOT_SURE_LEVEL} and leave side open`;
+export function padelNotSureLabel(locale: Locale) {
+  return messagesFor(locale).onboarding.padelNotSure(PADEL_NOT_SURE_LEVEL);
+}
 
 export function initialOnboardingAnswers(
   seed: OnboardingSeed,
@@ -182,31 +185,39 @@ export function onboardingSubmission(
   return submission;
 }
 
-function footballPositionLabel(position: FootballPosition) {
+function footballPositionLabel(position: FootballPosition, locale: Locale) {
   return (
-    FOOTBALL_POSITION_CHOICES.find((choice) => choice.value === position)
+    footballPositionChoices(locale).find((choice) => choice.value === position)
       ?.label ?? position
   );
 }
 
 /** One line per picked sport for the "You're set" card. */
-export function onboardingSummary(answers: OnboardingAnswers) {
+export function onboardingSummary(answers: OnboardingAnswers, locale: Locale) {
+  const m = messagesFor(locale);
   const lines: { sport: string; line: string }[] = [];
   if (answers.picked.padel) {
-    const level = answers.padelLevel || "Level already set";
+    const level = answers.padelLevel || m.onboarding.summary.levelAlreadySet;
     const side =
-      preferredPositionProfileLine(answers.padelSide) ?? "Either side";
-    lines.push({ sport: "Padel", line: `${level}, ${side.toLowerCase()}` });
+      preferredPositionProfileLine(answers.padelSide, locale) ??
+      m.profile.preferredPosition.line.either;
+    lines.push({
+      sport: m.common.padel,
+      line: m.onboarding.summary.padelLine(level, side),
+    });
   }
   if (answers.picked.football) {
     const slot =
       answers.footballRole === "keeper"
-        ? "Keeper"
-        : footballPositionLabel(answers.footballPosition);
-    const placement = footballSelfPlacementLabel(answers.footballPlacement);
+        ? m.onboarding.footballRole.keeper
+        : footballPositionLabel(answers.footballPosition, locale);
+    const placement = footballSelfPlacementLabel(
+      answers.footballPlacement,
+      locale,
+    );
     lines.push({
-      sport: "Football",
-      line: `${slot}, ${placement.toLowerCase()}`,
+      sport: m.common.football,
+      line: m.onboarding.summary.footballLine(slot, placement),
     });
   }
   return lines;

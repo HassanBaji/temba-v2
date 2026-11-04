@@ -5,6 +5,7 @@ import type {
   PlayedScorer,
 } from "@repo/domain/played-game";
 
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /** A bib square as it reads on ink: a black bib gets a dim edge. */
@@ -34,7 +35,7 @@ function SideName({
     <div
       className={cn(
         "flex min-w-0 flex-1 flex-col gap-1",
-        right ? "items-end text-right" : "items-start",
+        right ? "items-end text-end" : "items-start",
       )}
     >
       <span
@@ -63,7 +64,7 @@ function ScorerList({
     <ul
       className={cn(
         "flex min-w-0 flex-1 flex-col gap-1.5",
-        right ? "items-end text-right" : "items-start",
+        right ? "items-end text-end" : "items-start",
       )}
     >
       {scorers.map((scorer) => (
@@ -98,6 +99,7 @@ export function PlayedFootballBoard({
   hasWinner: boolean;
   scorers: { a: PlayedScorer[]; b: PlayedScorer[] } | null;
 }) {
+  const m = useMessages();
   const [a, b] = sides;
   const ink = (side: PlayedFootballSide) =>
     side.won || !hasWinner ? "text-paper" : "text-muted-foreground";
@@ -105,7 +107,12 @@ export function PlayedFootballBoard({
     <div className="space-y-4">
       <div
         className="flex items-center gap-3"
-        aria-label={`${a.name} ${a.score}, ${b.name} ${b.score}`}
+        aria-label={m.webGame.played.scoreLabel(
+          a.name,
+          a.score,
+          b.name,
+          b.score,
+        )}
       >
         <SideName side={a} align="left" />
         <div className="font-expanded flex items-baseline gap-2.5 text-[60px] tabular-nums leading-[0.94]">

@@ -1,0 +1,233 @@
+import { plural } from "../../plural";
+
+export const mobileCreateGame = {
+  entryTitle: "New\nGame",
+  groupRefused: "You cannot create a Game in that Group.",
+  listSeparator: ", ",
+  timeRange: (start: string, end: string) => `${start} to ${end}`,
+  toast: {
+    gameCreated: "Game created",
+    tournamentCreated: "Tournament created",
+  },
+  validation: {
+    pickGameType: "Pick a Game type",
+  },
+  header: {
+    whatTitle: "What are you\nsetting up?",
+    whatSubtitle:
+      "Both start with a Venue and a time. The rest of the form follows your pick.",
+    tournamentTitle: "Friendly\ntournament",
+    teamRange: (min: number, max: number) => `${min} to ${max} Game teams`,
+    gameTitle: "Friendly\ngame",
+    startWithGroup: "Start with the Group. Venue rules depend on it.",
+    linkedVenue: "Linked Venue",
+    venueCount: (n: number) =>
+      plural("en", n, { one: "1 Venue", other: "{n} Venues" }),
+    pickTime: "Pick a time",
+    toTime: (clock: string) => `to ${clock}`,
+    gameTeamsUnit: "Game teams",
+    matchCount: (n: number) =>
+      plural("en", n, { one: "1 Match", other: "{n} Matches" }),
+  },
+  footer: {
+    stepOf: (step: number, total: number) => `Step ${step} of ${total}`,
+    creating: "Creating…",
+    createGame: "Create Game",
+  },
+  type: {
+    title: "Game type",
+    cardA11y: (title: string, description: string, rating: string) =>
+      `${title}, ${description}, ${rating}`,
+  },
+  group: {
+    title: "Group",
+    untitled: "Untitled Group",
+    none: "No group",
+    change: "Change",
+    changeA11y: "Change Group",
+    allCount: (n: number) =>
+      plural("en", n, { one: "All 1 group", other: "All {n} groups" }),
+    namePlaceholder: "Group name",
+    noMatch: (query: string) => `No Groups match “${query}”.`,
+    loadFailedTitle: "Groups could not be loaded",
+    noneTitle: "No Group to create in",
+    noneBody:
+      "You can create a Game in a Group you organize. Create or join a Group first.",
+  },
+  searchSheet: {
+    allVenues: "ALL VENUES",
+    allGroups: "ALL GROUPS",
+    resultCount: (n: number) =>
+      plural("en", n, { one: "1 RESULT", other: "{n} RESULTS" }),
+  },
+  venue: {
+    title: "Venue",
+    noneYet: "No Venues are available yet.",
+    noneLive: "No live Venues. Create is not available.",
+    lockedNote: "Pick a Group first. Venue rules depend on the Group.",
+    loading: "Loading Venues",
+    linkedA11y: (name: string, meta: string) => `${name}, ${meta}`,
+    searchAll: "Search all Venues",
+    find: "Find a Venue",
+    searchPlaceholder: "Venue name or area",
+    noMatch: (query: string) => `No Venues match “${query}”.`,
+  },
+  court: {
+    courtTitle: "Court",
+    pitchTitle: "Pitch",
+    inUse: "Courts in use",
+    setsSchedule: "Sets the schedule",
+    venueHasNoCourts: "This Venue has no Courts.",
+    venueHasNoPitches: "This Venue has no pitches.",
+    allCourts: (n: number) =>
+      plural("en", n, { one: "All 1 Court", other: "All {n} Courts" }),
+    allPitches: (n: number) =>
+      plural("en", n, { one: "All 1 pitch", other: "All {n} pitches" }),
+    noCourt: "No Court",
+    noPitch: "No pitch",
+    settleCourtAtVenue: "Leave on None to settle the Court at the Venue.",
+    settlePitchAtVenue: "Leave on None to settle the pitch at the Venue.",
+  },
+  teams: {
+    title: "Game teams",
+    note: "Pairs, two seats each",
+    unit: "Game teams",
+    fewer: "Fewer Game teams",
+    more: "More Game teams",
+  },
+  day: {
+    sheetTitle: "Pick a day",
+    title: "Day",
+    laterDate: "Later date",
+    laterDateA11y: (label: string) => `Later date, ${label}`,
+    cellA11y: (weekday: string, day: string) => `${weekday}, ${day}`,
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
+    monthYear: (month: string, year: number) => `${month} ${year}`,
+    weekdayInitials: {
+      sun: "S",
+      mon: "M",
+      tue: "T",
+      wed: "W",
+      thu: "T",
+      fri: "F",
+      sat: "S",
+    },
+  },
+  when: {
+    startTime: "Start time",
+    startNote: "30 minute steps",
+    moreStartTimes: "More start times",
+    duration: "Duration",
+    set: "Set",
+    setFinishTime: "Set a finish time",
+    finishTime: "Finish time",
+    finish: "Finish",
+    helper:
+      "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed.",
+    groups: "Groups",
+    fewerGroups: "Fewer groups",
+    moreGroups: "More groups",
+    intoKnockout: "Into knockout",
+    fewerIntoKnockout: "Fewer teams into the knockout",
+    moreIntoKnockout: "More teams into the knockout",
+    roundUnit: (n: number) =>
+      plural("en", n, { one: "Round", other: "Rounds" }),
+    fewerRounds: "Fewer Rounds",
+    moreRounds: "More Rounds",
+    roundsHelper: (perTeam: string, meets: string) => `${perTeam}. ${meets}.`,
+    gameLength: "Game length",
+    setCustomLength: "Set a custom Game length",
+    customMinutes: "Custom minutes",
+    customMinutesHint: "10 to 120 minutes, in steps of 5.",
+  },
+  schedule: {
+    pickCourts: "Pick Courts in use to see the schedule.",
+    title: (matches: string, start: string, finish: string) =>
+      `${matches}, ${start} to ${finish}`,
+    detail: (matches: string, courts: string, minutes: number, slots: number) =>
+      plural("en", slots, {
+        one: `${matches}. ${courts}, ${minutes} minutes a Match, 1 slot back to back.`,
+        other: `${matches}. ${courts}, ${minutes} minutes a Match, {n} slots back to back.`,
+      }),
+  },
+  levelRange: {
+    title: "Level range",
+    any: "Any",
+    minimum: "Minimum",
+    maximum: "Maximum",
+    minimumLevel: "Minimum Level",
+    maximumLevel: "Maximum Level",
+    minimumLevelBand: (band: string) => `Minimum Level ${band}`,
+    maximumLevelBand: (band: string) => `Maximum Level ${band}`,
+    summaryA11y: (minimum: string, maximum: string) =>
+      `Minimum ${minimum}, Maximum ${maximum}`,
+    openToAnyone: "Open to anyone",
+    helper: "Users without a Level must request to play when a range is set.",
+  },
+  whoCanEnter: {
+    title: "Who can enter",
+    anyone: "Anyone",
+    setRange: "Set a Level range",
+  },
+  price: {
+    title: "Price per player",
+    inputLabel: "Price per player in BD",
+    freeNote: "Zero means free. Temba does not collect payment.",
+    teamFreeNote: (teamPrice: string) =>
+      `${teamPrice}. Zero means free. Temba does not collect payment.`,
+  },
+  name: {
+    title: "Name",
+    gameLabel: "Game name",
+    hint: "Shown on the Game and at the top of the invite message.",
+    tournamentLabel: "Tournament name",
+  },
+  football: {
+    sideSize: "Side size",
+    aSideUnit: "a side",
+    smallerSide: "Smaller side",
+    largerSide: "Larger side",
+    playersAllowed: "Players allowed",
+    playersUnit: "players",
+    fewerPlayers: "Fewer players",
+    morePlayers: "More players",
+    playersNote: "At least two full sides. Anyone past that is a substitute.",
+  },
+  review: {
+    rowA11y: (label: string, value: string) => `${label}: ${value}`,
+    name: "Name",
+    group: "Group",
+    sport: "Sport",
+    venue: "Venue",
+    time: "Time",
+    size: "Size",
+    seats: "Seats",
+    rating: "Rating",
+    courts: "Courts",
+    gameLength: "Game length",
+    whoCanJoin: "Who can join",
+    groupMembersAndInvited: "Group members and people you invite",
+    invitedOnly: "People you invite",
+    venueAndCourt: (venue: string, court: string) => `${venue}, ${court}`,
+  },
+  bookingGame: {
+    title: "New game",
+    subtitle:
+      "Where and when come from the booking. Only the rest is yours to set.",
+    dayAndClock: (day: string, clock: string) => `${day} ${clock}`,
+    loadFailedTitle: "Booking could not be loaded",
+    unavailableTitle: "This booking can't have a new game",
+    unavailableBody:
+      "A game needs a confirmed, upcoming booking that you hold and that has no game yet.",
+    backToBooking: "Back to booking",
+    pitchCost: "Pitch cost",
+    courtCost: "Court cost",
+    coverIt: "I cover it",
+    splitEach: (amount: string) => `Split, ${amount} each`,
+    priceNotePlayer:
+      "Shown to players as the price per player. Temba does not collect it.",
+    priceNoteSeat:
+      "Shown to players as the price per seat. Temba does not collect it.",
+  },
+};

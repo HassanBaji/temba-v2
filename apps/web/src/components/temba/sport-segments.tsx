@@ -1,8 +1,9 @@
 "use client";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
-import { SPORT_LABELS, SPORTS, type Sport } from "@repo/domain/sport";
+import { sportLabel, SPORTS, type Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 
 export function SportSegments({
@@ -12,9 +13,11 @@ export function SportSegments({
   value: Sport;
   onSelect: (sport: Sport) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <RovingRadioGroup
-      aria-label="Sport"
+      aria-label={m.webUi.sport}
       className="border-rule divide-rule flex divide-x overflow-hidden rounded-lg border"
     >
       {SPORTS.map((sport) => {
@@ -34,7 +37,7 @@ export function SportSegments({
             )}
           >
             <SportGlyph sport={sport} className="size-[18px]" />
-            {SPORT_LABELS[sport]}
+            {sportLabel(sport, locale)}
           </button>
         );
       })}

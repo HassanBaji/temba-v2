@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
-  ONE_DAY_OVERRUN_MESSAGE,
   balancedPoolSizes,
   courtCountValue,
   defaultPoolCount,
@@ -17,9 +18,9 @@ import {
   resolvePlannedRoundCount,
   resolveRoundCount,
   reviewRoundsValue,
+  roundMeetsCopy,
   roundCountLabel,
   roundCountRange,
-  ROUND_MEETS_COPY,
   sizeFriendlyTournament,
   suggestedRoundCount,
   suggestedRoundsResetLabel,
@@ -224,7 +225,7 @@ describe("oneDayFit", () => {
       start.getTime() + 6 * 45 * 60 * 1000,
     );
     assert.equal(
-      ONE_DAY_OVERRUN_MESSAGE,
+      messagesFor("en").tournament.sizing.oneDayOverrun,
       "This runs past your finish time. Add a Court, cut Rounds, or take fewer Game teams.",
     );
   });
@@ -267,8 +268,8 @@ describe("formatPoolSizeLine", () => {
     if (!result.ok) {
       return;
     }
-    assert.equal(formatPoolSizeLine(result.sizing), "3 groups of 4");
-    assert.match(formatPoolSizeLine(result.sizing), /groups/u);
+    assert.equal(formatPoolSizeLine(result.sizing, "en"), "3 groups of 4");
+    assert.match(formatPoolSizeLine(result.sizing, "en"), /groups/u);
   });
 
   it("names a single group", () => {
@@ -277,7 +278,7 @@ describe("formatPoolSizeLine", () => {
     if (!result.ok) {
       return;
     }
-    assert.equal(formatPoolSizeLine(result.sizing), "1 group of 12");
+    assert.equal(formatPoolSizeLine(result.sizing, "en"), "1 group of 12");
   });
 
   it("names uneven groups", () => {
@@ -287,11 +288,11 @@ describe("formatPoolSizeLine", () => {
       return;
     }
     assert.equal(
-      formatPoolSizeLine(result.sizing),
+      formatPoolSizeLine(result.sizing, "en"),
       "1 group of 4, 2 groups of 3",
     );
     assert.equal(result.sizing.uneven, true);
-    assert.match(formatPoolSizeLine(result.sizing), /groups?/u);
+    assert.match(formatPoolSizeLine(result.sizing, "en"), /groups?/u);
   });
 });
 
@@ -303,7 +304,7 @@ describe("formatMatchesPerTeam", () => {
       return;
     }
     assert.equal(
-      formatMatchesPerTeam(result.sizing),
+      formatMatchesPerTeam(result.sizing, "en"),
       "Each Game team plays 3 Matches",
     );
   });
@@ -315,24 +316,24 @@ describe("formatMatchesPerTeam", () => {
       return;
     }
     assert.equal(
-      formatMatchesPerTeam(result.sizing),
+      formatMatchesPerTeam(result.sizing, "en"),
       "Game teams in a larger group play 3 Matches; Game teams in a smaller group play 2 Matches",
     );
-    assert.match(formatMatchesPerTeam(result.sizing), /group/u);
+    assert.match(formatMatchesPerTeam(result.sizing, "en"), /group/u);
   });
 });
 
 describe("create-screen copy", () => {
   it("names players in pairs and Courts without a knockout clause", () => {
     assert.equal(
-      playersInPairsLine(12),
+      playersInPairsLine(12, "en"),
       "24 players in pairs. Two seats per team.",
     );
-    assert.equal(courtCountValue(0), "None");
-    assert.equal(courtCountValue(1), "1 Court");
-    assert.equal(courtCountValue(2), "2 Courts");
+    assert.equal(courtCountValue(0, "en"), "None");
+    assert.equal(courtCountValue(1, "en"), "1 Court");
+    assert.equal(courtCountValue(2, "en"), "2 Courts");
     assert.equal(
-      lastMatchFinishCopy("7:45 PM"),
+      lastMatchFinishCopy("7:45 PM", "en"),
       "The last Match would finish at 7:45 PM.",
     );
   });
@@ -466,31 +467,62 @@ describe("validateRoundCount", () => {
 
 describe("Rounds copy", () => {
   it("names Rounds, the suggestion and the meets states", () => {
-    assert.equal(roundCountLabel(1), "1 Round");
-    assert.equal(roundCountLabel(5), "5 Rounds");
-    assert.equal(reviewRoundsValue(3, 3), "3 Rounds · suggested");
-    assert.equal(reviewRoundsValue(5, 3), "5 Rounds");
-    assert.equal(suggestedRoundsResetLabel(3), "Use suggested (3)");
-    assert.deepEqual(ROUND_MEETS_COPY, {
-      once: "Everyone meets once",
-      partial: "Not everyone meets",
-      twice: "Everyone meets twice",
-      somePartialSecond: "Some meet twice",
-    });
+    assert.equal(roundCountLabel(1, "en"), "1 Round");
+    assert.equal(roundCountLabel(5, "en"), "5 Rounds");
+    assert.equal(reviewRoundsValue(3, 3, "en"), "3 Rounds · suggested");
+    assert.equal(reviewRoundsValue(5, 3, "en"), "5 Rounds");
+    assert.equal(suggestedRoundsResetLabel(3, "en"), "Use suggested (3)");
+    assert.equal(roundMeetsCopy("once", "en"), "Everyone meets once");
+    assert.equal(roundMeetsCopy("partial", "en"), "Not everyone meets");
+    assert.equal(roundMeetsCopy("twice", "en"), "Everyone meets twice");
+    assert.equal(roundMeetsCopy("somePartialSecond", "en"), "Some meet twice");
   });
 
   it("shows one Matches per Game team count or a range", () => {
     assert.equal(
-      formatRoundMatchesPerTeam({ matchesPerTeamMin: 1, matchesPerTeamMax: 1 }),
+      formatRoundMatchesPerTeam(
+        { matchesPerTeamMin: 1, matchesPerTeamMax: 1 },
+        "en",
+      ),
       "Each Game team plays 1 Match",
     );
     assert.equal(
-      formatRoundMatchesPerTeam({ matchesPerTeamMin: 3, matchesPerTeamMax: 3 }),
+      formatRoundMatchesPerTeam(
+        { matchesPerTeamMin: 3, matchesPerTeamMax: 3 },
+        "en",
+      ),
       "Each Game team plays 3 Matches",
     );
     assert.equal(
-      formatRoundMatchesPerTeam({ matchesPerTeamMin: 2, matchesPerTeamMax: 3 }),
+      formatRoundMatchesPerTeam(
+        { matchesPerTeamMin: 2, matchesPerTeamMax: 3 },
+        "en",
+      ),
       "Each Game team plays 2 to 3 Matches",
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the group sizes, the Court count and the Round labels in Arabic", () => {
+    const result = sizeFriendlyTournament(10, 3);
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(
+      formatPoolSizeLine(result.sizing, "ar"),
+      "مجموعة واحدة من 4، مجموعتان من 3",
+    );
+    assert.equal(courtCountValue(2, "ar"), "ملعبان");
+    assert.equal(roundCountLabel(1, "ar"), "جولة واحدة");
+    assert.equal(reviewRoundsValue(3, 3, "ar"), "3 جولات · مقترح");
+    assert.equal(
+      formatRoundMatchesPerTeam(
+        { matchesPerTeamMin: 3, matchesPerTeamMax: 3 },
+        "ar",
+      ),
+      "يلعب كل فريق 3 مباريات",
     );
   });
 });

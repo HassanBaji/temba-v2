@@ -16,6 +16,7 @@ import type { ComponentType } from "react";
 import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { FieldIcon } from "./field-icon";
@@ -53,7 +54,8 @@ const ROUTES: Record<TabSlot, string> = {
 export function AppTabs() {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const tabs = visibleTabs();
+  const m = useMessages();
+  const tabs = visibleTabs(m);
   const shown = new Set(tabs.map((tab) => tab.slot));
 
   return (

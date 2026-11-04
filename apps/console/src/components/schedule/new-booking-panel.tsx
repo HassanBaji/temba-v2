@@ -12,6 +12,7 @@ import { mutationErrorMessage } from "~/components/courts/mutation-error";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { managerDurationOptions } from "@repo/domain/booking-slots";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import {
@@ -88,7 +89,7 @@ export function NewBookingPanel({
   const typed =
     draft.priceInput === null
       ? null
-      : parseOptionalPricePerPlayerFils(draft.priceInput);
+      : parseOptionalPricePerPlayerFils(draft.priceInput, CONSOLE_LOCALE);
   const shownFils =
     typed?.ok && typed.fils !== null ? typed.fils : typed ? null : quote;
 
@@ -222,7 +223,7 @@ export function NewBookingPanel({
                 onClick={() => update({ priceInput: null })}
                 className="text-muted-foreground hover:text-ink self-start text-xs underline-offset-2 hover:underline"
               >
-                Use the rate, {formatBookingPriceFils(quote)}
+                Use the rate, {formatBookingPriceFils(quote, CONSOLE_LOCALE)}
               </button>
             ) : null}
           </Group>
@@ -275,13 +276,15 @@ export function NewBookingPanel({
         <div className="border-rule mt-auto flex flex-col gap-2.5 border-t px-[22px] py-[18px]">
           <div className="flex items-baseline justify-between gap-3 text-[13px]">
             <span className="text-muted-foreground">
-              {formatDayMonth(dayStart(draft.day), { weekday: "short" })},{" "}
-              {draft.durationMinutes} min
+              {formatDayMonth(dayStart(draft.day), CONSOLE_LOCALE, {
+                weekday: "short",
+              })}
+              , {draft.durationMinutes} min
             </span>
             <span className="font-semibold tabular-nums">
               {shownFils === null
                 ? "No price"
-                : formatBookingPriceFils(shownFils)}
+                : formatBookingPriceFils(shownFils, CONSOLE_LOCALE)}
             </span>
           </div>
           {problem ? (

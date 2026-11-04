@@ -42,6 +42,18 @@ _Avoid_: calling Root “the app” or putting App scripts there
 A stub path in the Web App that redirects to login.
 _Avoid_: Public (EWA Connect’s second App), public app, public package, Community Public (that is a product type)
 
+**i18n Package**:
+The Package named `@repo/i18n`. It owns the Locale type, the English and Arabic Message catalogs and the `plural` helper. It imports nothing from the Workspace; `@repo/domain` and every App import it.
+_Avoid_: translations package, locales folder, copy package
+
+**Locale**:
+One of the two languages the product is written in, `en` or `ar`. A value passed to domain copy functions and read from a provider in the Apps, never ambient state. Arabic is written right-to-left and keeps Latin digits.
+_Avoid_: language code (when you mean the type), region, culture
+
+**Message catalog**:
+The typed object of every user-facing string in one Locale, read by property access (`messagesFor(locale).game.joinAction`, `useMessages().common.save`). One file per owning feature or App slice; the Arabic file mirrors the English one key for key.
+_Avoid_: translation file, dictionary, resource bundle, i18n keys (there are no string keys)
+
 ### Product
 
 **Community**:
@@ -362,7 +374,7 @@ A Game format whose Game teams are drawn at random and whose Matches are generat
 _Avoid_: Americano, Friendly game, league
 
 **Tournament shape**:
-Which stages a Friendly tournament plays: Groups only, Knockout only, or Groups then knockout. Chosen at create; Groups only by default. Not a Game format — the format stays Friendly tournament (ADR-0020). Shown to users as *Format*.
+Which stages a Friendly tournament plays: Groups only, Knockout only, or Groups then knockout. Chosen at create; Groups only by default. Not a Game format — the format stays Friendly tournament (ADR-0020). Shown to users as _Format_.
 _Avoid_: Game format, mode, type, tournament format
 
 **Knockout**:
@@ -378,7 +390,7 @@ One level of the Knockout, named by the Game teams left in it: Round of 32, Roun
 _Avoid_: stage, phase, level
 
 **Qualifiers per Pool**:
-How many Game teams go from each Pool into the Knockout on a Groups then knockout tournament, taken from the top of each Pool table. Shown to users as *Through from each group*.
+How many Game teams go from each Pool into the Knockout on a Groups then knockout tournament, taken from the top of each Pool table. Shown to users as _Through from each group_.
 _Avoid_: seeds, advancers, cut
 
 **Knockout draw**:
@@ -410,7 +422,7 @@ A Game team on a Friendly tournament with one Position taken and the other vacan
 _Avoid_: incomplete Team, solo, single, orphan seat
 
 **Pool**:
-One subset of a Friendly tournament's Game teams that plays a round robin against itself — one Pass by default, cut short or played twice by the organizer's Round count. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as *group*.
+One subset of a Friendly tournament's Game teams that plays a round robin against itself — one Pass by default, cut short or played twice by the organizer's Round count. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as _group_.
 _Avoid_: Group, group stage group, division, section, bracket
 
 **Pass**:

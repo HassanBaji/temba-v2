@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
@@ -173,8 +174,9 @@ function individualFriendlyGamePhase(args: {
 
 export async function gameById(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
 
   if (!(await canViewGame(database, game, args.userId))) {
@@ -830,6 +832,7 @@ export async function gameById(
       format: game.format,
       poolCount: game.poolCount,
       viewerUserId: args.userId,
+      locale,
       gameTeams: teamRows.map((row) => ({
         id: row.id,
         name: row.name,
@@ -862,6 +865,7 @@ export async function gameById(
     }),
     knockout: postedKnockoutRounds({
       viewerUserId: args.userId,
+      locale,
       gameTeams: teamRows.map((row) => ({
         id: row.id,
         name: row.name,
@@ -904,5 +908,9 @@ export const byId = protectedProcedure
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return gameById(ctx.db, { gameId: input.id, userId: appUser.id });
+    return gameById(ctx.db, {
+      gameId: input.id,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

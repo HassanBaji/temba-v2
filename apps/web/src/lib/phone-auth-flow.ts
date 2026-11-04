@@ -5,6 +5,9 @@
  * password (ADR-0051). Clerk does the work; these helpers keep the step logic
  * pure.
  */
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export type PhoneAuthStep =
   | "phone"
   | "password"
@@ -75,12 +78,22 @@ export function signUpStepProgress(
   return undefined;
 }
 
-export const PHONE_AUTH_TITLES: Record<PhoneAuthStep, string> = {
-  phone: "What's your number?",
-  password: "Enter your password",
-  code: "Enter the code",
-  name: "What should we call you?",
-  "new-password": "Pick a password",
-  "reset-code": "Enter the code",
-  "reset-password": "Pick a new password",
-};
+export function phoneAuthTitle(step: PhoneAuthStep, locale: Locale): string {
+  const m = messagesFor(locale).webUi.phoneAuth;
+  switch (step) {
+    case "phone":
+      return m.phone;
+    case "password":
+      return m.password;
+    case "code":
+      return m.code;
+    case "name":
+      return m.name;
+    case "new-password":
+      return m.newPassword;
+    case "reset-code":
+      return m.resetCode;
+    case "reset-password":
+      return m.resetPassword;
+  }
+}

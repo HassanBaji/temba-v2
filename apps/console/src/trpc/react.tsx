@@ -9,6 +9,7 @@ import { useRef, useState } from "react";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { createQueryClient } from "./query-client";
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
@@ -59,6 +60,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           headers: async () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
+            headers.set("accept-language", CONSOLE_LOCALE);
             const token = await getTokenRef.current();
             if (token) headers.set("authorization", `Bearer ${token}`);
             return headers;

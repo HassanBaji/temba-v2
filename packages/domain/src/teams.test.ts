@@ -26,19 +26,23 @@ describe("teamNameInput", () => {
 
 describe("teamRowMeta", () => {
   it("names the Community of a Club Team", () => {
-    expect(teamRowMeta({ name: "Södermalm Padel" })).toBe(
+    expect(teamRowMeta({ name: "Södermalm Padel" }, "en")).toBe(
       "Club Team · Södermalm Padel",
     );
   });
 
   it("says a loose Team is not linked", () => {
-    expect(teamRowMeta(null)).toBe("Not linked to a Community");
+    expect(teamRowMeta(null, "en")).toBe("Not linked to a Community");
+  });
+
+  it("reads in Arabic", () => {
+    expect(teamRowMeta(null, "ar")).toBe("غير مرتبط بمجتمع");
   });
 });
 
 describe("teamListRowView", () => {
   it("marks an incomplete Team with an open seat", () => {
-    const row = teamListRowView(fixtures.list.mixed[1]!);
+    const row = teamListRowView(fixtures.list.mixed[1]!, "en");
     expect(row.openSeats).toBe(1);
     expect(row.incompleteLabel).toBe("Incomplete");
     expect(row.accessibilityLabel).toBe(
@@ -47,7 +51,7 @@ describe("teamListRowView", () => {
   });
 
   it("has no open seat on a full Team", () => {
-    const row = teamListRowView(fixtures.list.mixed[0]!);
+    const row = teamListRowView(fixtures.list.mixed[0]!, "en");
     expect(row.openSeats).toBe(0);
     expect(row.incompleteLabel).toBeNull();
     expect(row.people).toHaveLength(2);
@@ -56,28 +60,28 @@ describe("teamListRowView", () => {
 
 describe("teamHomeView", () => {
   it("shows the record and a dash for no games", () => {
-    expect(teamHomeView(fixtures.home.complete).stats).toEqual([
+    expect(teamHomeView(fixtures.home.complete, "en").stats).toEqual([
       { label: "Games played", value: "0" },
       { label: "Wins", value: "0" },
       { label: "Losses", value: "0" },
       { label: "Win rate", value: "—" },
     ]);
-    expect(teamHomeView(fixtures.home.record).stats[3]).toEqual({
+    expect(teamHomeView(fixtures.home.record, "en").stats[3]).toEqual({
       label: "Win rate",
       value: "67%",
     });
   });
 
   it("badges sport, link state and incompleteness", () => {
-    expect(teamHomeView(fixtures.home.complete).badges).toEqual([
+    expect(teamHomeView(fixtures.home.complete, "en").badges).toEqual([
       "Padel",
       "Not linked to a Community",
     ]);
-    expect(teamHomeView(fixtures.home.linked).badges).toEqual([
+    expect(teamHomeView(fixtures.home.linked, "en").badges).toEqual([
       "Padel",
       "Club Team",
     ]);
-    expect(teamHomeView(fixtures.home.incomplete).badges).toEqual([
+    expect(teamHomeView(fixtures.home.incomplete, "en").badges).toEqual([
       "Padel",
       "Not linked to a Community",
       "Incomplete",
@@ -85,30 +89,35 @@ describe("teamHomeView", () => {
   });
 
   it("offers the invite to the creator and a waiting note to others", () => {
-    const creator = teamHomeView(fixtures.home.incomplete);
+    const creator = teamHomeView(fixtures.home.incomplete, "en");
     expect(creator.primaryInvite).toBe(true);
     expect(creator.waitingNote).toBe(false);
     expect(creator.openSeats).toBe(1);
-    const other = teamHomeView(fixtures.home.waiting);
+    const other = teamHomeView(fixtures.home.waiting, "en");
     expect(other.primaryInvite).toBe(false);
     expect(other.waitingNote).toBe(true);
   });
 
   it("describes a pending link request", () => {
-    expect(teamHomeView(fixtures.home.pendingLink).pendingLinkNote).toBe(
+    expect(teamHomeView(fixtures.home.pendingLink, "en").pendingLinkNote).toBe(
       "Pending request to Södermalm Padel.",
     );
-    expect(teamHomeView(fixtures.home.complete).pendingLinkNote).toBeNull();
+    expect(
+      teamHomeView(fixtures.home.complete, "en").pendingLinkNote,
+    ).toBeNull();
   });
 
   it("falls back for a missing name and marks the creator", () => {
-    const view = teamHomeView({
-      ...fixtures.home.complete,
-      displayName: null,
-      members: [
-        { id: "m", name: null, image: null, isCreator: true, isViewer: true },
-      ],
-    });
+    const view = teamHomeView(
+      {
+        ...fixtures.home.complete,
+        displayName: null,
+        members: [
+          { id: "m", name: null, image: null, isCreator: true, isViewer: true },
+        ],
+      },
+      "en",
+    );
     expect(view.title).toBe("Team");
     expect(view.members[0]).toMatchObject({
       name: "Member",
@@ -138,56 +147,62 @@ describe("teamHomeView roster", () => {
       fixtures.home.incomplete,
       fixtures.home.waiting,
     ]) {
-      const view = teamHomeView(home);
+      const view = teamHomeView(home, "en");
       expect(view.roster).toEqual({ label: null, status: null });
       expect(view.canLeave).toBe(false);
       expect(view.squad).toBe(false);
       expect(view.requestLinkHint).toBeNull();
       expect(view.inviteLabel).toBe("Invite your partner");
     }
-    expect(teamHomeView(fixtures.home.incomplete).waitingCopy).toBe(
+    expect(teamHomeView(fixtures.home.incomplete, "en").waitingCopy).toBe(
       "Waiting for a partner. This Team is incomplete until a second member joins.",
     );
   });
 
   it("counts a football squad and marks complete and full", () => {
-    expect(teamHomeView(fixtures.home.footballCreatorBuilding).roster).toEqual({
+    expect(
+      teamHomeView(fixtures.home.footballCreatorBuilding, "en").roster,
+    ).toEqual({
       label: "2 of 25",
       status: null,
     });
-    expect(teamHomeView(fixtures.home.footballCreatorComplete).roster).toEqual({
+    expect(
+      teamHomeView(fixtures.home.footballCreatorComplete, "en").roster,
+    ).toEqual({
       label: "7 of 25",
       status: "Complete",
     });
-    expect(teamHomeView(fixtures.home.footballCreatorFull).roster).toEqual({
+    expect(
+      teamHomeView(fixtures.home.footballCreatorFull, "en").roster,
+    ).toEqual({
       label: "25 of 25",
       status: "Full",
     });
   });
 
   it("says how many members a football Team still needs", () => {
-    const building = teamHomeView(fixtures.home.footballCreatorBuilding);
+    const building = teamHomeView(fixtures.home.footballCreatorBuilding, "en");
     expect(building.openSeats).toBe(3);
     expect(building.requestLinkHint).toBe(
       "A Team needs 5 members to request a Community link. 3 more members to go.",
     );
-    expect(teamHomeView(fixtures.home.footballMember).waitingCopy).toBe(
+    expect(teamHomeView(fixtures.home.footballMember, "en").waitingCopy).toBe(
       "Needs 2 more members to be complete.",
     );
     expect(
-      teamHomeView(fixtures.home.footballCreatorComplete).requestLinkHint,
+      teamHomeView(fixtures.home.footballCreatorComplete, "en").requestLinkHint,
     ).toBeNull();
   });
 
   it("gives the creator invites and dissolve, and a member leave", () => {
-    const creator = teamHomeView(fixtures.home.footballCreatorComplete);
+    const creator = teamHomeView(fixtures.home.footballCreatorComplete, "en");
     expect(creator).toMatchObject({
       canInvite: true,
       canDissolve: true,
       canLeave: false,
       inviteLabel: "Invite players",
     });
-    const member = teamHomeView(fixtures.home.footballMember);
+    const member = teamHomeView(fixtures.home.footballMember, "en");
     expect(member).toMatchObject({
       canInvite: false,
       canDissolve: false,
@@ -197,7 +212,7 @@ describe("teamHomeView roster", () => {
 
   it("keeps the counters at zero", () => {
     expect(
-      teamHomeView(fixtures.home.footballCreatorComplete).stats.map(
+      teamHomeView(fixtures.home.footballCreatorComplete, "en").stats.map(
         (stat) => stat.value,
       ),
     ).toEqual(["0", "0", "0", "—"]);
@@ -221,7 +236,7 @@ describe("teamInviteSeatsLeft", () => {
 
 describe("confirm copy", () => {
   it("names the Team on leave", () => {
-    expect(teamLeaveConfirm("Sunday Five")).toEqual({
+    expect(teamLeaveConfirm("Sunday Five", "en")).toEqual({
       title: "Leave Sunday Five?",
       description: "You can only rejoin if you are invited again.",
       confirmLabel: "Leave Team",
@@ -229,12 +244,12 @@ describe("confirm copy", () => {
   });
 
   it("names the Team", () => {
-    expect(teamDissolveConfirm("Smashers")).toEqual({
+    expect(teamDissolveConfirm("Smashers", "en")).toEqual({
       title: "Dissolve Smashers?",
       description: "This cannot be undone.",
       confirmLabel: "Dissolve Team",
     });
-    expect(teamUnlinkConfirm("Smashers").title).toBe("Unlink Smashers?");
+    expect(teamUnlinkConfirm("Smashers", "en").title).toBe("Unlink Smashers?");
   });
 });
 

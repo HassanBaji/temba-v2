@@ -1,14 +1,17 @@
+"use client";
+
+import { useMessages } from "~/components/locale-provider";
 import { Badge, type BadgeVariant } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 
-export const GAME_STATUS_LABELS = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  completed: "Completed",
-  cancelled: "Cancelled",
-} as const;
+const GAME_STATUSES = [
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+] as const;
 
-export type GameStatusValue = keyof typeof GAME_STATUS_LABELS;
+export type GameStatusValue = (typeof GAME_STATUSES)[number];
 
 const DOT_CLASS: Record<GameStatusValue, string> = {
   pending: "rounded-full border-2 border-current bg-transparent",
@@ -34,9 +37,10 @@ const DOT_TONE: Record<GameStatusValue, string> = {
 };
 
 export function GameStatusBadge({ status }: { status: string }) {
-  const known = status in GAME_STATUS_LABELS;
+  const m = useMessages();
+  const known = (GAME_STATUSES as readonly string[]).includes(status);
   const value = known ? (status as GameStatusValue) : null;
-  const label = value ? GAME_STATUS_LABELS[value] : status;
+  const label = value ? m.webUi.gameStatus[value] : status;
 
   return (
     <Badge variant={value ? VARIANT[value] : "outline"}>

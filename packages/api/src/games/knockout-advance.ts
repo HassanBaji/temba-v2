@@ -11,7 +11,8 @@ import {
 } from "@repo/db";
 
 import { knockoutFeeds } from "@repo/domain/tournament-knockout";
-import { KNOCKOUT_DECIDING_SET_COPY } from "@repo/domain/tournament-knockout-view";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 import { type GameRow } from "#src/games/access";
 import { computePoolTables } from "@repo/domain/pool-table";
@@ -21,7 +22,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 type MatchResult = "slot1" | "slot2" | "draw" | "none";
 
-export const KNOCKOUT_LEVEL_MESSAGE = KNOCKOUT_DECIDING_SET_COPY;
+export function knockoutLevelMessage(locale: Locale) {
+  return messagesFor(locale).tournament.knockoutView.decidingSet;
+}
 export const KNOCKOUT_EMPTY_SIDE_MESSAGE =
   "This Knockout Match has an empty side. Sets open once both teams are in.";
 export const KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE =
@@ -285,10 +288,13 @@ export async function placeKnockoutQualifiers(
     where: eq(gameTeams.gameId, game.id),
     with: { players: { columns: { id: true } } },
   });
+  // Only the standings order is read here, never the team names, so the
+  // tables need no request locale.
   const tables = computePoolTables({
     format: game.format,
     poolCount: game.poolCount,
     viewerUserId: "",
+    locale: DEFAULT_LOCALE,
     gameTeams: teamRows.map((team) => ({
       id: team.id,
       name: team.name,

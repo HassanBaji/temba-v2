@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { gameCardRosterOccupancy } from "./game-card";
 import {
   isTournamentMatchRow,
@@ -74,25 +77,31 @@ export type HomeComingUpRow =
   | HomeComingUpTournamentMatchRow
   | HomeComingUpTournamentRow;
 
-function tournamentTitle(game: HomeComingUpSource) {
-  return game.name ?? game.venue?.name ?? "Tournament";
+function tournamentTitle(game: HomeComingUpSource, locale: Locale) {
+  return (
+    game.name ??
+    game.venue?.name ??
+    messagesFor(locale).home.comingUp.tournamentFallback
+  );
 }
 
-function toRow(game: HomeComingUpSource): HomeComingUpRow {
+function toRow(game: HomeComingUpSource, locale: Locale): HomeComingUpRow {
+  const m = messagesFor(locale).home.comingUp;
   const startsAt = new Date(game.startTime);
   if (game.matchId != null && isTournamentMatchRow(game)) {
     const opponent = tournamentMatchupName(
       tournamentMatchup(game.sides).opponent,
+      locale,
     );
     return {
       kind: "tournament_match",
       id: game.id,
       rated: game.rated,
       rowKey: game.matchId,
-      title: tournamentTitle(game),
+      title: tournamentTitle(game, locale),
       startsAt,
-      roundTag: tournamentMatchRoundLabel(game),
-      opponentLine: opponent ? `vs ${opponent}` : null,
+      roundTag: tournamentMatchRoundLabel(game, locale),
+      opponentLine: opponent ? m.versus(opponent) : null,
     };
   }
   if (isDrawnTournamentSummaryRow(game)) {
@@ -102,10 +111,11 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
       id: game.id,
       rated: game.rated,
       rowKey: game.id,
-      title: tournamentTitle(game),
+      title: tournamentTitle(game, locale),
       startsAt,
-      teamsLine: tournamentTeamsLine(game),
-      actionLabel: action === "view" ? null : tournamentCardActionLabel(action),
+      teamsLine: tournamentTeamsLine(game, locale),
+      actionLabel:
+        action === "view" ? null : tournamentCardActionLabel(action, locale),
     };
   }
   return {
@@ -113,7 +123,7 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
     id: game.id,
     rated: game.rated,
     rowKey: game.matchId ?? game.id,
-    venueName: game.venue?.name ?? "Game",
+    venueName: game.venue?.name ?? m.gameFallback,
     startsAt,
     seatsTaken: game.registeredUserCount,
     seatsTotal: game.playersAllowed ?? game.sides.length * 2,
@@ -123,24 +133,24 @@ function toRow(game: HomeComingUpSource): HomeComingUpRow {
 }
 
 /** Drawn tournaments behind the hero keep their tournament identity in Coming up. */
-export function homeComingUpRows(games: readonly HomeComingUpSource[]) {
-  return games.map(toRow);
+export function homeComingUpRows(
+  games: readonly HomeComingUpSource[],
+  locale: Locale,
+) {
+  return games.map((game) => toRow(game, locale));
 }
 
 export function homeComingUpSeatBars(
   game: Pick<HomeComingUpGameRow, "seatsTaken" | "seatsTotal">,
+  locale: Locale,
 ): { bars: ("taken" | "open")[]; spokenLabel: string } {
+  const m = messagesFor(locale).home.comingUp;
   const open = Math.max(0, game.seatsTotal - game.seatsTaken);
   return {
     bars: [
       ...Array.from({ length: game.seatsTaken }, () => "taken" as const),
       ...Array.from({ length: open }, () => "open" as const),
     ],
-    spokenLabel:
-      open === 0
-        ? "All seats filled"
-        : open === 1
-          ? "Open seat"
-          : `${open} open seats`,
+    spokenLabel: open === 0 ? m.allSeatsFilled : m.openSeats(open),
   };
 }

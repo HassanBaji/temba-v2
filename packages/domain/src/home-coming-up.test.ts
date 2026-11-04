@@ -84,7 +84,7 @@ function poolMatch(
 
 describe("homeComingUpRows", () => {
   it("keeps a Friendly game as a seat row", () => {
-    const [row] = homeComingUpRows([friendly()]);
+    const [row] = homeComingUpRows([friendly()], "en");
     assert.deepEqual(row, {
       kind: "game",
       id: "friendly-1",
@@ -100,13 +100,16 @@ describe("homeComingUpRows", () => {
   });
 
   it("shows a football Game as a count with its sport, not seat bars", () => {
-    const [row] = homeComingUpRows([
-      friendly({
-        sport: "football",
-        registeredUserCount: 7,
-        playersAllowed: 10,
-      }),
-    ]);
+    const [row] = homeComingUpRows(
+      [
+        friendly({
+          sport: "football",
+          registeredUserCount: 7,
+          playersAllowed: 10,
+        }),
+      ],
+      "en",
+    );
     assert.equal(row?.kind, "game");
     if (row?.kind === "game") {
       assert.equal(row.sport, "football");
@@ -116,11 +119,14 @@ describe("homeComingUpRows", () => {
   });
 
   it("carries the rated flag onto every row kind", () => {
-    const rows = homeComingUpRows([
-      friendly({ rated: false }),
-      poolMatch({ rated: false }),
-      tournament({ rated: false }),
-    ]);
+    const rows = homeComingUpRows(
+      [
+        friendly({ rated: false }),
+        poolMatch({ rated: false }),
+        tournament({ rated: false }),
+      ],
+      "en",
+    );
     assert.deepEqual(
       rows.map((row) => row.rated),
       [false, false, false],
@@ -128,7 +134,7 @@ describe("homeComingUpRows", () => {
   });
 
   it("shows a Pool Match behind the hero as a tournament Match row", () => {
-    const rows = homeComingUpRows([friendly(), poolMatch()]);
+    const rows = homeComingUpRows([friendly(), poolMatch()], "en");
     assert.deepEqual(rows[1], {
       kind: "tournament_match",
       id: "cup-1",
@@ -142,16 +148,19 @@ describe("homeComingUpRows", () => {
   });
 
   it("tags a Knockout Match with its Knockout round, not a Round count", () => {
-    const [row] = homeComingUpRows([
-      poolMatch({
-        matchId: "match-sf",
-        poolCount: null,
-        tournamentShape: "knockout_only",
-        roundNumber: null,
-        roundCount: null,
-        knockoutMatch: { round: 2, roundCount: 3 },
-      }),
-    ]);
+    const [row] = homeComingUpRows(
+      [
+        poolMatch({
+          matchId: "match-sf",
+          poolCount: null,
+          tournamentShape: "knockout_only",
+          roundNumber: null,
+          roundCount: null,
+          knockoutMatch: { round: 2, roundCount: 3 },
+        }),
+      ],
+      "en",
+    );
     assert.deepEqual(row, {
       kind: "tournament_match",
       id: "cup-1",
@@ -165,10 +174,10 @@ describe("homeComingUpRows", () => {
   });
 
   it("keeps each Round of the same tournament as its own row", () => {
-    const rows = homeComingUpRows([
-      poolMatch(),
-      poolMatch({ matchId: "match-3", roundNumber: 3 }),
-    ]);
+    const rows = homeComingUpRows(
+      [poolMatch(), poolMatch({ matchId: "match-3", roundNumber: 3 })],
+      "en",
+    );
     assert.deepEqual(
       rows.map((row) => row.rowKey),
       ["match-2", "match-3"],
@@ -180,7 +189,7 @@ describe("homeComingUpRows", () => {
   });
 
   it("shows a tournament before the draw with its teams and no action once the viewer is in", () => {
-    const [row] = homeComingUpRows([tournament()]);
+    const [row] = homeComingUpRows([tournament()], "en");
     assert.deepEqual(row, {
       kind: "tournament",
       id: "cup-1",
@@ -194,14 +203,17 @@ describe("homeComingUpRows", () => {
   });
 
   it("keeps the join action for an organizer who is not in yet", () => {
-    const [row] = homeComingUpRows([
-      tournament({
-        isRegistered: false,
-        isSeated: false,
-        canRegister: true,
-        tournament: { drawPosted: false, teams: [] },
-      }),
-    ]);
+    const [row] = homeComingUpRows(
+      [
+        tournament({
+          isRegistered: false,
+          isSeated: false,
+          canRegister: true,
+          tournament: { drawPosted: false, teams: [] },
+        }),
+      ],
+      "en",
+    );
     assert.equal(row?.kind, "tournament");
     assert.equal(
       row?.kind === "tournament" ? row.actionLabel : null,
@@ -210,16 +222,19 @@ describe("homeComingUpRows", () => {
   });
 
   it("asks a Half team to invite a partner", () => {
-    const [row] = homeComingUpRows([
-      tournament({
-        tournament: {
-          drawPosted: false,
-          teams: [
-            { isViewerTeam: true, poolIndex: null, left: YOU, right: null },
-          ],
-        },
-      }),
-    ]);
+    const [row] = homeComingUpRows(
+      [
+        tournament({
+          tournament: {
+            drawPosted: false,
+            teams: [
+              { isViewerTeam: true, poolIndex: null, left: YOU, right: null },
+            ],
+          },
+        }),
+      ],
+      "en",
+    );
     assert.equal(
       row?.kind === "tournament" ? row.actionLabel : null,
       "Invite a partner",
@@ -229,17 +244,29 @@ describe("homeComingUpRows", () => {
 
 describe("homeComingUpSeatBars", () => {
   it("lists taken seats then open seats and says how many are open", () => {
-    assert.deepEqual(homeComingUpSeatBars({ seatsTaken: 3, seatsTotal: 4 }), {
-      bars: ["taken", "taken", "taken", "open"],
-      spokenLabel: "Open seat",
-    });
+    assert.deepEqual(
+      homeComingUpSeatBars({ seatsTaken: 3, seatsTotal: 4 }, "en"),
+      {
+        bars: ["taken", "taken", "taken", "open"],
+        spokenLabel: "Open seat",
+      },
+    );
     assert.equal(
-      homeComingUpSeatBars({ seatsTaken: 1, seatsTotal: 4 }).spokenLabel,
+      homeComingUpSeatBars({ seatsTaken: 1, seatsTotal: 4 }, "en").spokenLabel,
       "3 open seats",
     );
     assert.equal(
-      homeComingUpSeatBars({ seatsTaken: 4, seatsTotal: 4 }).spokenLabel,
+      homeComingUpSeatBars({ seatsTaken: 4, seatsTotal: 4 }, "en").spokenLabel,
       "All seats filled",
     );
+  });
+
+  it("speaks the open seats in Arabic", () => {
+    assert.equal(
+      homeComingUpSeatBars({ seatsTaken: 1, seatsTotal: 4 }, "ar").spokenLabel,
+      "3 مقاعد شاغرة",
+    );
+    const [row] = homeComingUpRows([friendly({ venue: null })], "ar");
+    assert.equal(row?.kind === "game" ? row.venueName : null, "لعبة");
   });
 });

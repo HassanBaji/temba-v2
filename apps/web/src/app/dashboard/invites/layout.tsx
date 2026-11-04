@@ -1,8 +1,11 @@
 import { type Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Invites",
-};
+import { getRequestMessages } from "~/lib/request-locale";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.common.invites };
+}
 
 export default function InvitesLayout({
   children,

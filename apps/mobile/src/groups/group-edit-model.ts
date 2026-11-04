@@ -1,10 +1,11 @@
 import type { GroupHomeData } from "@repo/domain/group-data";
 import {
-  GROUP_EDIT_COPY,
   groupEditMetaLine,
   type GroupEditFields,
 } from "@repo/domain/group-settings";
 import { isSport, sportLabel } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export function groupEditPath(groupId: string) {
   return { pathname: "/groups/edit", params: { groupId } } as const;
@@ -19,26 +20,16 @@ export function groupEditInitialFields(data: GroupHomeData): GroupEditFields {
   };
 }
 
-export function groupEditSubtitle(data: GroupHomeData) {
+export function groupEditSubtitle(data: GroupHomeData, locale: Locale) {
   return groupEditMetaLine({
     name: data.name,
-    sportLabel: sportLabel(data.sport),
+    sportLabel: sportLabel(data.sport, locale),
     memberCount: data.standing.memberCount,
+    locale,
   });
 }
 
-export function groupEditSaveFooter(dirty: boolean) {
-  return dirty
-    ? GROUP_EDIT_COPY.unsavedChanges
-    : GROUP_EDIT_COPY.nothingChanged;
+export function groupEditSaveFooter(dirty: boolean, locale: Locale) {
+  const m = messagesFor(locale).group.settings.edit;
+  return dirty ? m.unsavedChanges : m.nothingChanged;
 }
-
-export const GROUP_EDIT_NOT_FOUND_COPY = {
-  title: "Group not found",
-  description: "It may have been deleted, or you may not be able to edit it.",
-};
-
-export const GROUP_EDIT_FORBIDDEN_COPY = {
-  title: "Only the owner can edit this Group",
-  description: "Ask the Group owner to change its settings.",
-};

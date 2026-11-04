@@ -5,6 +5,7 @@ import { Image as ImageIcon } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, StyleSheet, View, type ColorValue } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Text } from "../primitives/text";
 
 /** The card's width in the fitted preview: the whole screen stays above the fold. */
@@ -53,6 +54,7 @@ export function PhotoFrame({
   photoUri: string | null;
   children: React.ReactNode;
 }) {
+  const m = useMessages().mobilePlayer.share;
   return (
     <View
       style={{
@@ -74,7 +76,7 @@ export function PhotoFrame({
         <View style={{ alignItems: "center", gap: 8 }}>
           <ImageIcon size={28} color={colors.dim} />
           <Text size="eyebrow" style={{ color: colors.dim }}>
-            Your photo
+            {m.yourPhoto}
           </Text>
         </View>
       )}

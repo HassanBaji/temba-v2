@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
-  CLERK_AUTH_ERROR_COPY,
-  GENERIC_CLERK_AUTH_ERROR,
+  clerkAuthErrorCopy,
   clerkFieldErrorMessage,
   clerkGlobalErrorMessage,
   splitClerkAuthError,
 } from "./clerk-auth-error";
+
+const COPY = messagesFor("en").auth.clerkError;
 
 function clerkError(
   errors: Array<{
@@ -36,42 +39,39 @@ describe("splitClerkAuthError", () => {
         meta: { paramName: "identifier" },
       },
     ]);
-    assert.deepEqual(splitClerkAuthError(err), {
+    assert.deepEqual(splitClerkAuthError(err, "en"), {
       fieldErrors: {
-        identifier: CLERK_AUTH_ERROR_COPY.form_identifier_not_found,
+        identifier: COPY.identifierNotFound,
       },
       globalMessage: null,
     });
     assert.equal(
-      clerkFieldErrorMessage(err, "identifier"),
-      CLERK_AUTH_ERROR_COPY.form_identifier_not_found,
+      clerkFieldErrorMessage(err, "identifier", "en"),
+      COPY.identifierNotFound,
     );
-    assert.equal(clerkGlobalErrorMessage(err), null);
+    assert.equal(clerkGlobalErrorMessage(err, "en"), null);
   });
 
   it("splits a Clerk error without paramName onto a global message", () => {
     const err = clerkError([{ code: "too_many_requests" }]);
-    assert.deepEqual(splitClerkAuthError(err), {
+    assert.deepEqual(splitClerkAuthError(err, "en"), {
       fieldErrors: {},
-      globalMessage: CLERK_AUTH_ERROR_COPY.too_many_requests,
+      globalMessage: COPY.tooManyRequests,
     });
-    assert.equal(clerkFieldErrorMessage(err, "identifier"), undefined);
-    assert.equal(
-      clerkGlobalErrorMessage(err),
-      CLERK_AUTH_ERROR_COPY.too_many_requests,
-    );
+    assert.equal(clerkFieldErrorMessage(err, "identifier", "en"), undefined);
+    assert.equal(clerkGlobalErrorMessage(err, "en"), COPY.tooManyRequests);
   });
 
   it("yields the generic message for a non-Clerk error", () => {
-    assert.deepEqual(splitClerkAuthError(new Error("boom")), {
+    assert.deepEqual(splitClerkAuthError(new Error("boom"), "en"), {
       fieldErrors: {},
-      globalMessage: GENERIC_CLERK_AUTH_ERROR,
+      globalMessage: COPY.generic,
     });
-    assert.deepEqual(splitClerkAuthError("string"), {
+    assert.deepEqual(splitClerkAuthError("string", "en"), {
       fieldErrors: {},
-      globalMessage: GENERIC_CLERK_AUTH_ERROR,
+      globalMessage: COPY.generic,
     });
-    assert.equal(clerkGlobalErrorMessage(null), GENERIC_CLERK_AUTH_ERROR);
+    assert.equal(clerkGlobalErrorMessage(null, "en"), COPY.generic);
   });
 
   it("uses Clerk longMessage when the code is not mapped", () => {
@@ -81,27 +81,24 @@ describe("splitClerkAuthError", () => {
         longMessage: "Clerk said this specifically.",
       },
     ]);
-    assert.equal(clerkGlobalErrorMessage(err), "Clerk said this specifically.");
+    assert.equal(
+      clerkGlobalErrorMessage(err, "en"),
+      "Clerk said this specifically.",
+    );
   });
 });
 
-describe("CLERK_AUTH_ERROR_COPY", () => {
+describe("clerkAuthErrorCopy", () => {
   const cases: Array<[string, string]> = [
-    [
-      "form_identifier_not_found",
-      CLERK_AUTH_ERROR_COPY.form_identifier_not_found,
-    ],
-    ["form_identifier_exists", CLERK_AUTH_ERROR_COPY.form_identifier_exists],
-    ["form_code_incorrect", CLERK_AUTH_ERROR_COPY.form_code_incorrect],
-    ["verification_expired", CLERK_AUTH_ERROR_COPY.verification_expired],
-    ["verification_failed", CLERK_AUTH_ERROR_COPY.verification_failed],
-    ["too_many_requests", CLERK_AUTH_ERROR_COPY.too_many_requests],
-    [
-      "form_param_format_invalid",
-      CLERK_AUTH_ERROR_COPY.form_param_format_invalid,
-    ],
-    ["form_password_incorrect", CLERK_AUTH_ERROR_COPY.form_password_incorrect],
-    ["form_password_pwned", CLERK_AUTH_ERROR_COPY.form_password_pwned],
+    ["form_identifier_not_found", COPY.identifierNotFound],
+    ["form_identifier_exists", COPY.identifierExists],
+    ["form_code_incorrect", COPY.codeIncorrect],
+    ["verification_expired", COPY.verificationExpired],
+    ["verification_failed", COPY.verificationFailed],
+    ["too_many_requests", COPY.tooManyRequests],
+    ["form_param_format_invalid", COPY.paramFormatInvalid],
+    ["form_password_incorrect", COPY.passwordIncorrect],
+    ["form_password_pwned", COPY.passwordPwned],
   ];
 
   for (const [code, copy] of cases) {
@@ -114,7 +111,22 @@ describe("CLERK_AUTH_ERROR_COPY", () => {
       ]);
       assert.ok(copy.length > 0);
       assert.notEqual(copy, "Clerk raw long message that must not surface");
-      assert.equal(clerkGlobalErrorMessage(err), copy);
+      assert.equal(clerkGlobalErrorMessage(err, "en"), copy);
+      assert.equal(clerkAuthErrorCopy(code, "en"), copy);
     });
   }
+
+  it("reads Arabic copy for a mapped code and the generic fallback", () => {
+    assert.equal(
+      clerkGlobalErrorMessage(
+        clerkError([{ code: "form_code_incorrect" }]),
+        "ar",
+      ),
+      "هذا الرمز غير صحيح. حاول مرة أخرى.",
+    );
+    assert.equal(
+      clerkGlobalErrorMessage(null, "ar"),
+      "حدث خطأ ما. حاول مرة أخرى.",
+    );
+  });
 });

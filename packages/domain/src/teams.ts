@@ -1,64 +1,10 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { groupHomeSportLabel } from "./group-home-chrome";
 import type { Sport } from "./sport";
 import { teamAvatarPeople } from "./team-avatar-people";
 import { formatWinRate } from "./win-rate";
-
-export const TEAMS_TITLE = "Teams";
-export const TEAMS_DESCRIPTION = "Partnerships you play as";
-export const TEAMS_ERROR_TITLE = "Teams could not be loaded";
-export const TEAMS_EMPTY_COPY = {
-  title: "No Teams yet",
-  description: "A Team is a lasting partnership with one other player.",
-};
-export const TEAM_CREATE_LABEL = "Create Team";
-export const TEAM_CREATE_DESCRIPTION =
-  "Start an unattached Team. You become the first member and can invite others later.";
-export const TEAM_SPORT_LABEL = "Sport";
-export const TEAM_NAME_LABEL = "Name (optional)";
-export const TEAM_NAME_HINT =
-  "If you leave this blank, the Team home uses member names.";
-export const TEAM_CREATED_TOAST = "Team created";
-export const TEAM_JOINED_TOAST = "Joined Team";
-export const TEAM_LEFT_TOAST = "You left the Team";
-export const TEAM_DISSOLVED_TOAST = "Team dissolved";
-export const TEAM_UNLINKED_TOAST = "Team unlinked";
-export const TEAM_LINK_REQUESTED_TOAST = "Link request sent";
-export const TEAM_ERROR_TITLE = "Team could not be loaded";
-export const TEAM_NOT_FOUND_COPY = {
-  title: "Team not found",
-  description: "It may have been dissolved, or you may not have access.",
-};
-export const TEAM_FORBIDDEN_COPY = {
-  title: "You cannot open this Team",
-  description:
-    "Only Team members, members of a linked Community, or a pending invitee can open a Team home.",
-};
-export const TEAM_LOOKUP_NOTE = "Pick one person. Invites don't expire.";
-export const TEAM_SQUAD_LOOKUP_NOTE =
-  "Pick the people to invite. Invites don't expire.";
-export const TEAM_SQUAD_INVITE_DESCRIPTION =
-  "Invite players to join the squad, or copy a link to share.";
-export const TEAM_SQUAD_INVITE_LABEL = "Invite players";
-export const TEAM_INVITE_DESCRIPTION =
-  "Invite a partner for the open seat, or copy a link to share.";
-export const TEAM_INVITE_PARTNER_LABEL = "Invite your partner";
-export const TEAM_REQUEST_LINK_LABEL = "Request Community link";
-export const TEAM_REQUEST_LINK_SUBMIT_LABEL = "Request link";
-export const TEAM_REQUEST_LINK_DESCRIPTION =
-  "Complete Teams can request a link to a Community. Owner or Admin approve; missing members are auto-admitted.";
-export const TEAM_LEAVE_LABEL = "Leave Team";
-export const TEAM_UNLINK_LABEL = "Unlink from Community";
-export const TEAM_DISSOLVE_LABEL = "Dissolve Team";
-export const TEAM_WAITING_COPY =
-  "Waiting for a partner. This Team is incomplete until a second member joins.";
-export const TEAM_NO_MEMBERS_COPY = {
-  title: "No members",
-  description: "People on this Team will show up here.",
-};
-export const TEAM_LOOSE_LABEL = "Not linked to a Community";
-export const TEAM_CLUB_LABEL = "Club Team";
-export const TEAM_INCOMPLETE_LABEL = "Incomplete";
-export const TEAM_MEMBER_FALLBACK_NAME = "Member";
 
 export function teamCreateInput(form: { name: string; sport: Sport }) {
   return { name: teamNameInput(form.name), sport: form.sport };
@@ -69,10 +15,12 @@ export function teamNameInput(name: string) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function teamRowMeta(community: { name: string } | null) {
-  return community
-    ? `${TEAM_CLUB_LABEL} · ${community.name}`
-    : TEAM_LOOSE_LABEL;
+export function teamRowMeta(
+  community: { name: string } | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).team;
+  return community ? m.rowMeta(community.name) : m.looseLabel;
 }
 
 export type TeamListRowInput = {
@@ -83,50 +31,54 @@ export type TeamListRowInput = {
   members: { name: string; image?: string | null }[];
 };
 
-export function teamListRowView(team: TeamListRowInput) {
-  const meta = teamRowMeta(team.community);
+export function teamListRowView(team: TeamListRowInput, locale: Locale) {
+  const m = messagesFor(locale);
+  const meta = teamRowMeta(team.community, locale);
   return {
     id: team.id,
     title: team.displayName,
     meta,
-    people: teamAvatarPeople(team.members),
+    people: teamAvatarPeople(team.members, locale),
     openSeats: team.incomplete ? 1 : 0,
-    incompleteLabel: team.incomplete ? TEAM_INCOMPLETE_LABEL : null,
+    incompleteLabel: team.incomplete ? m.team.incompleteLabel : null,
     accessibilityLabel: [
       team.displayName,
       meta,
-      team.incomplete ? TEAM_INCOMPLETE_LABEL : null,
+      team.incomplete ? m.team.incompleteLabel : null,
     ]
       .filter(Boolean)
-      .join(", "),
+      .join(m.group.metaSeparator),
   };
 }
 
-export function teamPendingLinkCopy(communityName: string) {
-  return `Pending request to ${communityName}.`;
+export function teamPendingLinkCopy(communityName: string, locale: Locale) {
+  return messagesFor(locale).team.pendingLink(communityName);
 }
 
-export function teamDissolveConfirm(displayName: string) {
+export function teamDissolveConfirm(displayName: string, locale: Locale) {
+  const m = messagesFor(locale).team;
   return {
-    title: `Dissolve ${displayName}?`,
-    description: "This cannot be undone.",
-    confirmLabel: TEAM_DISSOLVE_LABEL,
+    title: m.dissolveConfirm.title(displayName),
+    description: m.dissolveConfirm.description,
+    confirmLabel: m.dissolveLabel,
   };
 }
 
-export function teamLeaveConfirm(displayName: string) {
+export function teamLeaveConfirm(displayName: string, locale: Locale) {
+  const m = messagesFor(locale).team;
   return {
-    title: `Leave ${displayName}?`,
-    description: "You can only rejoin if you are invited again.",
-    confirmLabel: TEAM_LEAVE_LABEL,
+    title: m.leaveConfirm.title(displayName),
+    description: m.leaveConfirm.description,
+    confirmLabel: m.leaveLabel,
   };
 }
 
-export function teamUnlinkConfirm(displayName: string) {
+export function teamUnlinkConfirm(displayName: string, locale: Locale) {
+  const m = messagesFor(locale).team;
   return {
-    title: `Unlink ${displayName}?`,
-    description: "This Team will no longer be linked to its Community.",
-    confirmLabel: TEAM_UNLINK_LABEL,
+    title: m.unlinkConfirm.title(displayName),
+    description: m.unlinkConfirm.description,
+    confirmLabel: m.unlinkLabel,
   };
 }
 
@@ -143,22 +95,15 @@ function isSquadRoster(roster: TeamRosterInput) {
   return roster.max > roster.min;
 }
 
-function plural(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
-}
-
 /** Only a Team that can grow past its completion size shows a count. */
-export function teamRosterView(roster: TeamRosterInput) {
+export function teamRosterView(roster: TeamRosterInput, locale: Locale) {
   if (!isSquadRoster(roster)) {
     return { label: null, status: null };
   }
+  const m = messagesFor(locale).team.roster;
   return {
-    label: `${roster.count} of ${roster.max}`,
-    status: roster.full
-      ? ("Full" as const)
-      : roster.complete
-        ? ("Complete" as const)
-        : null,
+    label: m.count(roster.count, roster.max),
+    status: roster.full ? m.full : roster.complete ? m.complete : null,
   };
 }
 
@@ -170,23 +115,27 @@ export function teamInviteSeatsLeft(
   return Math.max(0, roster.max - roster.count - pendingInvites);
 }
 
-export function teamInviteLabel(squad: boolean) {
-  return squad ? TEAM_SQUAD_INVITE_LABEL : TEAM_INVITE_PARTNER_LABEL;
+export function teamInviteLabel(squad: boolean, locale: Locale) {
+  const m = messagesFor(locale).team;
+  return squad ? m.squadInviteLabel : m.invitePartnerLabel;
 }
 
-export function teamLookupNote(squad: boolean) {
-  return squad ? TEAM_SQUAD_LOOKUP_NOTE : TEAM_LOOKUP_NOTE;
+export function teamLookupNote(squad: boolean, locale: Locale) {
+  const m = messagesFor(locale).team;
+  return squad ? m.squadLookupNote : m.lookupNote;
 }
 
-export function teamInviteDescription(squad: boolean) {
-  return squad ? TEAM_SQUAD_INVITE_DESCRIPTION : TEAM_INVITE_DESCRIPTION;
+export function teamInviteDescription(squad: boolean, locale: Locale) {
+  const m = messagesFor(locale).team;
+  return squad ? m.squadInviteDescription : m.inviteDescription;
 }
 
-export function teamRequestLinkHint(roster: TeamRosterInput) {
+export function teamRequestLinkHint(roster: TeamRosterInput, locale: Locale) {
   if (roster.complete || !isSquadRoster(roster)) {
     return null;
   }
-  return `A Team needs ${plural(roster.completeAt, "member")} to request a Community link. ${plural(roster.completeAt - roster.count, "more member")} to go.`;
+  const m = messagesFor(locale).team.roster;
+  return `${m.needsForLink(roster.completeAt)} ${m.moreToGo(roster.completeAt - roster.count)}`;
 }
 
 export type TeamHomeInput = {
@@ -214,52 +163,56 @@ export type TeamHomeInput = {
   viewerCanLeave: boolean;
 };
 
-export function teamHomeView(data: TeamHomeInput) {
-  const title = data.displayName ?? "Team";
+export function teamHomeView(data: TeamHomeInput, locale: Locale) {
+  const m = messagesFor(locale);
+  const title = data.displayName ?? m.team.fallbackName;
   const squad = isSquadRoster(data.roster);
   const seatsToComplete = Math.max(
     0,
     data.roster.completeAt - data.roster.count,
   );
   const badges = [
-    groupHomeSportLabel(data.sport),
-    data.isLoose ? TEAM_LOOSE_LABEL : TEAM_CLUB_LABEL,
-    data.waitingForPartner ? TEAM_INCOMPLETE_LABEL : null,
+    groupHomeSportLabel(data.sport, locale),
+    data.isLoose ? m.team.looseLabel : m.team.clubLabel,
+    data.waitingForPartner ? m.team.incompleteLabel : null,
   ].filter((badge): badge is string => badge != null);
 
   return {
     title,
     badges,
     people: data.members.map((member) => ({
-      name: member.name ?? TEAM_MEMBER_FALLBACK_NAME,
+      name: member.name ?? m.team.memberFallback,
       image: member.image,
     })),
     openSeats: seatsToComplete,
     squad,
-    roster: teamRosterView(data.roster),
-    inviteLabel: teamInviteLabel(squad),
-    requestLinkHint: teamRequestLinkHint(data.roster),
+    roster: teamRosterView(data.roster, locale),
+    inviteLabel: teamInviteLabel(squad, locale),
+    requestLinkHint: teamRequestLinkHint(data.roster, locale),
     linkedCommunity: data.community,
     primaryInvite: data.waitingForPartner && data.canInvite,
     waitingNote: data.waitingForPartner && !data.canInvite,
     waitingCopy: squad
-      ? `Needs ${plural(seatsToComplete, "more member")} to be complete.`
-      : TEAM_WAITING_COPY,
+      ? m.team.roster.waitingSquad(seatsToComplete)
+      : m.team.waitingCopy,
     pendingLinkNote: data.pendingLinkRequest
-      ? teamPendingLinkCopy(data.pendingLinkRequest.community.name)
+      ? teamPendingLinkCopy(data.pendingLinkRequest.community.name, locale)
       : null,
     stats: [
-      { label: "Games played", value: String(data.gamesPlayed) },
-      { label: "Wins", value: String(data.wins) },
-      { label: "Losses", value: String(data.losses) },
-      { label: "Win rate", value: formatWinRate(data.wins, data.gamesPlayed) },
+      { label: m.team.stats.gamesPlayed, value: String(data.gamesPlayed) },
+      { label: m.common.wins, value: String(data.wins) },
+      { label: m.common.losses, value: String(data.losses) },
+      {
+        label: m.team.stats.winRate,
+        value: formatWinRate(data.wins, data.gamesPlayed),
+      },
     ],
     members: data.members.map((member) => ({
       id: member.id,
-      name: member.name ?? TEAM_MEMBER_FALLBACK_NAME,
+      name: member.name ?? m.team.memberFallback,
       image: member.image,
       isViewer: member.isViewer,
-      creatorLabel: member.isCreator ? "Creator" : null,
+      creatorLabel: member.isCreator ? m.team.creatorLabel : null,
     })),
     canInvite: data.canInvite,
     canRequestLink: data.canRequestLink,

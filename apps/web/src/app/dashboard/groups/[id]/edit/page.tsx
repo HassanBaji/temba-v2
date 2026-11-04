@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ErrorState } from "~/components/common/error-state";
 import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
 import {
   FormBlock,
@@ -35,15 +36,6 @@ import {
   entityImageUploadInput,
 } from "@repo/domain/entity-image-file";
 import {
-  GROUP_DELETED_TOAST,
-  GROUP_IMAGE_REMOVED_TOAST,
-  GROUP_IMAGE_SAVED_TOAST,
-} from "@repo/domain/group-admin";
-import {
-  GROUP_EDIT_COPY,
-  GROUP_JOINING_COPY,
-  GROUP_LINK_COPIED_TOAST,
-  GROUP_LINK_RESET_TOAST,
   groupEditCanSave,
   groupEditChanges,
   groupEditMetaLine,
@@ -94,9 +86,10 @@ function EditGroupFrame({
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
     <DashboardShell
-      title={GROUP_EDIT_COPY.title}
+      title={m.group.settings.edit.title}
       hidePageHeader
       hideMobileTopBar
     >
@@ -106,13 +99,13 @@ function EditGroupFrame({
             <BackButton
               variant="boxed"
               href={groupHref(groupId)}
-              label="Back to the Group"
+              label={m.webDashboard.backToGroup}
             />
             {action}
           </div>
           <div className="flex flex-col gap-1.5">
             <PageTitle variant="hero" className="text-ink text-[30px]">
-              {GROUP_EDIT_COPY.title}
+              {m.group.settings.edit.title}
             </PageTitle>
             {subtitle ? (
               <p className="text-body text-muted-foreground">{subtitle}</p>
@@ -132,6 +125,7 @@ function InviteLinkCard({
   groupId: string;
   enabled: boolean;
 }) {
+  const m = useMessages();
   const utils = api.useUtils();
   const link = api.groups.getInviteLink.useQuery({ groupId }, { enabled });
   const create = api.groups.createInviteLink.useMutation({
@@ -141,7 +135,7 @@ function InviteLinkCard({
   const reset = api.groups.resetInviteLink.useMutation({
     onSuccess: async () => {
       await utils.groups.getInviteLink.invalidate({ groupId });
-      toast.success(GROUP_LINK_RESET_TOAST);
+      toast.success(m.group.settings.linkResetToast);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -153,15 +147,15 @@ function InviteLinkCard({
     }
     try {
       await navigator.clipboard.writeText(url);
-      toast.success(GROUP_LINK_COPIED_TOAST);
+      toast.success(m.group.settings.linkCopiedToast);
     } catch {
-      toast.error("Could not copy");
+      toast.error(m.invite.inbox.linkCopyFailedToast);
     }
   }
 
   return (
     <div className="border-rule flex flex-col overflow-hidden rounded-[12px] border">
-      <div className="flex min-h-[56px] items-center gap-3 py-2.5 pl-[18px] pr-2.5">
+      <div className="flex min-h-[56px] items-center gap-3 py-2.5 pe-2.5 ps-[18px]">
         <span
           className={
             url
@@ -171,7 +165,7 @@ function InviteLinkCard({
         >
           {link.isPending && enabled
             ? "…"
-            : (url ?? GROUP_EDIT_COPY.inviteLinkNone)}
+            : (url ?? m.group.settings.edit.inviteLinkNone)}
         </span>
         {url ? (
           <Button
@@ -181,7 +175,7 @@ function InviteLinkCard({
             onClick={() => void copy()}
           >
             <CopyIcon aria-hidden="true" />
-            {GROUP_EDIT_COPY.inviteLinkCopy}
+            {m.common.copy}
           </Button>
         ) : (
           <Button
@@ -192,7 +186,7 @@ function InviteLinkCard({
             disabled={link.isPending}
             onClick={() => create.mutate({ groupId })}
           >
-            {GROUP_EDIT_COPY.inviteLinkCreate}
+            {m.group.settings.edit.inviteLinkCreate}
           </Button>
         )}
       </div>
@@ -202,10 +196,10 @@ function InviteLinkCard({
           disabled={reset.isPending}
           aria-busy={reset.isPending || undefined}
           onClick={() => reset.mutate({ groupId })}
-          className="border-rule hover:bg-wash focus-visible:ring-ring/50 flex min-h-12 items-center gap-3 border-t px-[18px] text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:opacity-50"
+          className="border-rule hover:bg-wash focus-visible:ring-ring/50 flex min-h-12 items-center gap-3 border-t px-[18px] text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:opacity-50"
         >
           <span className="text-meta text-muted-foreground flex-1">
-            {GROUP_EDIT_COPY.inviteLinkReset}
+            {m.group.settings.edit.inviteLinkReset}
           </span>
           <RefreshCwIcon aria-hidden="true" className="size-4 shrink-0" />
         </button>
@@ -222,6 +216,8 @@ function EditGroupForm({
   groupId: string;
   data: GroupData;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const utils = api.useUtils();
   const initial = initialFields(data);
@@ -252,7 +248,7 @@ function EditGroupForm({
 
   const save = api.groups.edit.useMutation({
     onSuccess: async () => {
-      toast.success(GROUP_EDIT_COPY.savedToast);
+      toast.success(m.group.settings.edit.savedToast);
       await refreshGroup();
       router.push(groupHref(groupId));
     },
@@ -264,7 +260,7 @@ function EditGroupForm({
   const remove = api.groups.delete.useMutation({
     onSuccess: async (result) => {
       setDeleteOpen(false);
-      toast.success(GROUP_DELETED_TOAST);
+      toast.success(m.group.admin.deletedToast);
       await Promise.all([refreshGroup(), utils.communities.mine.invalidate()]);
       router.push(
         result.communityId
@@ -281,7 +277,7 @@ function EditGroupForm({
 
   const uploadImage = api.groups.uploadImage.useMutation({
     onSuccess: async () => {
-      toast.success(GROUP_IMAGE_SAVED_TOAST);
+      toast.success(m.group.admin.imageSavedToast);
       await refreshGroup();
     },
     onError: (error) => {
@@ -291,7 +287,7 @@ function EditGroupForm({
 
   const clearImage = api.groups.clearImage.useMutation({
     onSuccess: async () => {
-      toast.success(GROUP_IMAGE_REMOVED_TOAST);
+      toast.success(m.group.admin.imageRemovedToast);
       await refreshGroup();
     },
     onError: (error) => toast.error(error.message),
@@ -303,12 +299,12 @@ function EditGroupForm({
     if (!file || uploadImage.isPending) {
       return;
     }
-    const pickedError = entityImageFileError(file);
+    const pickedError = entityImageFileError(file, locale);
     if (pickedError) {
       toast.error(pickedError);
       return;
     }
-    void entityImageUploadInput(file)
+    void entityImageUploadInput(file, locale)
       .then((input) =>
         uploadImage.mutateAsync({
           groupId,
@@ -333,8 +329,9 @@ function EditGroupForm({
       groupId={groupId}
       subtitle={groupEditMetaLine({
         name: data.name,
-        sportLabel: sportLabel(data.sport),
+        sportLabel: sportLabel(data.sport, locale),
         memberCount: data.standing.memberCount,
+        locale,
       })}
       action={
         dirty ? (
@@ -347,7 +344,7 @@ function EditGroupForm({
             }}
             className="text-body text-muted-foreground hover:text-ink inline-flex min-h-11 items-center px-1.5"
           >
-            {GROUP_EDIT_COPY.discard}
+            {m.group.settings.edit.discard}
           </button>
         ) : null
       }
@@ -367,8 +364,8 @@ function EditGroupForm({
           <div className="flex flex-col items-center gap-1.5">
             <GroupPhotoTile
               imageUrl={data.imageUrl}
-              name={draft.name || "Group"}
-              label={GROUP_EDIT_COPY.photoChange}
+              name={draft.name || m.invite.kind.group}
+              label={m.group.settings.edit.photoChange}
               empty="initials"
               pending={imagePending}
               disabled={disabled || !data.canManageImage}
@@ -381,7 +378,7 @@ function EditGroupForm({
                 onClick={() => clearImage.mutate({ groupId })}
                 className="text-eyebrow text-muted-foreground hover:text-ink min-h-6"
               >
-                Remove
+                {m.common.remove}
               </button>
             ) : null}
             <input
@@ -396,17 +393,17 @@ function EditGroupForm({
           </div>
           <GroupNameField
             id={IDS.name}
-            label={GROUP_EDIT_COPY.nameLabel}
+            label={m.group.settings.edit.nameLabel}
             value={draft.name}
             onChange={(name) => set({ name })}
-            help={GROUP_EDIT_COPY.nameHelp}
+            help={m.group.settings.edit.nameHelp}
             error={nameError}
             disabled={disabled}
           />
         </div>
 
         <FormBlock
-          label={GROUP_EDIT_COPY.sportLabel}
+          label={m.group.settings.edit.sportLabel}
           labelId={`${IDS.sport}-label`}
         >
           {data.canChangeSport && draft.sport ? (
@@ -419,19 +416,19 @@ function EditGroupForm({
                 disabled={disabled}
               />
               <p className="text-eyebrow text-muted-foreground">
-                {GROUP_EDIT_COPY.sportOpen}
+                {m.group.settings.edit.sportOpen}
               </p>
             </div>
           ) : (
             <LockedSportCard
               sport={draft.sport}
-              help={GROUP_EDIT_COPY.sportLocked}
+              help={m.group.settings.edit.sportLocked}
             />
           )}
         </FormBlock>
 
         <FormBlock
-          label={GROUP_EDIT_COPY.visibilityLabel}
+          label={m.group.settings.edit.visibilityLabel}
           labelId={`${IDS.visibility}-label`}
         >
           <VisibilityCards
@@ -444,14 +441,18 @@ function EditGroupForm({
         </FormBlock>
 
         {draft.visibility === "public" ? (
-          <FormBlock label={GROUP_JOINING_COPY.label}>
+          <FormBlock label={m.group.settings.joining.label}>
             <ToggleCard
               id={IDS.approval}
-              title={GROUP_JOINING_COPY.toggle}
-              help={groupJoiningToggleHelp(data.pendingJoinRequestCount)}
+              title={m.group.settings.joining.toggle}
+              help={groupJoiningToggleHelp(
+                data.pendingJoinRequestCount,
+                locale,
+              )}
               footer={groupJoiningFooter({
                 visibility: draft.visibility,
                 requiresApproval: draft.requiresApproval,
+                locale,
               })}
               checked={draft.requiresApproval}
               onCheckedChange={(requiresApproval) => set({ requiresApproval })}
@@ -461,18 +462,18 @@ function EditGroupForm({
         ) : null}
 
         {data.canManageInviteLinks ? (
-          <FormBlock label={GROUP_EDIT_COPY.inviteLinkLabel}>
+          <FormBlock label={m.group.settings.edit.inviteLinkLabel}>
             <InviteLinkCard groupId={groupId} enabled />
           </FormBlock>
         ) : null}
 
         {showOwnership ? (
-          <FormBlock label={GROUP_EDIT_COPY.ownershipLabel}>
+          <FormBlock label={m.group.settings.edit.ownershipLabel}>
             <SheetMenu>
               {data.canTransferOwnership ? (
                 <SheetMenuRow
-                  label={GROUP_EDIT_COPY.transferTitle}
-                  hint={GROUP_EDIT_COPY.transferHint}
+                  label={m.group.settings.edit.transferTitle}
+                  hint={m.group.settings.edit.transferHint}
                   icon={ArrowRightLeftIcon}
                   trailing="chevron"
                   disabled={disabled}
@@ -481,8 +482,8 @@ function EditGroupForm({
               ) : null}
               {data.canDelete ? (
                 <SheetMenuRow
-                  label={GROUP_EDIT_COPY.deleteTitle}
-                  hint={GROUP_EDIT_COPY.deleteHint}
+                  label={m.group.settings.edit.deleteTitle}
+                  hint={m.group.settings.edit.deleteHint}
                   trailing={Trash2Icon}
                   tone="danger"
                   disabled={disabled}
@@ -498,16 +499,16 @@ function EditGroupForm({
             type="submit"
             size="lg"
             pending={save.isPending}
-            pendingLabel="Saving…"
+            pendingLabel={m.common.saving}
             disabled={!canSave}
             className="w-full font-semibold"
           >
-            {GROUP_EDIT_COPY.save}
+            {m.group.settings.edit.save}
           </Button>
           <p className="text-eyebrow text-muted-foreground" aria-live="polite">
             {dirty
-              ? GROUP_EDIT_COPY.unsavedChanges
-              : GROUP_EDIT_COPY.nothingChanged}
+              ? m.group.settings.edit.unsavedChanges
+              : m.group.settings.edit.nothingChanged}
           </p>
         </div>
       </form>
@@ -534,7 +535,11 @@ function EditGroupForm({
               onSuccess: () => {
                 setTransferOpen(false);
                 toast.success(
-                  groupOwnershipTransferredToast(member.name, data.name),
+                  groupOwnershipTransferredToast(
+                    member.name,
+                    data.name,
+                    locale,
+                  ),
                 );
                 void refreshGroup().then(() => router.push(groupHref(groupId)));
               },
@@ -553,6 +558,7 @@ export default function EditGroupPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const m = useMessages();
   const group = api.groups.byId.useQuery({ id });
 
   if (isNotFoundError(group.error)) {
@@ -575,7 +581,7 @@ export default function EditGroupPage({
     return (
       <EditGroupFrame groupId={id} subtitle={null}>
         <ErrorState
-          title="Group could not be loaded"
+          title={m.webDashboard.group.errorTitle}
           message={group.error?.message}
           onRetry={() => {
             void group.refetch();
@@ -589,8 +595,8 @@ export default function EditGroupPage({
     return (
       <EditGroupFrame groupId={id} subtitle={group.data.name}>
         <ErrorState
-          title="Only the owner can edit this Group"
-          message="Ask the Group owner to change its settings."
+          title={m.webDashboard.group.edit.ownerOnly.title}
+          message={m.webDashboard.group.edit.ownerOnly.message}
           onRetry={() => {
             void group.refetch();
           }}

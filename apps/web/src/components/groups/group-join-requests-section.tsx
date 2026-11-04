@@ -14,6 +14,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { SelectCard } from "~/components/ui/select-card";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -21,10 +22,6 @@ import { Surface } from "~/components/ui/surface";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import {
-  GROUP_JOIN_POLICY_CHANGE_LABEL,
-  GROUP_JOIN_REQUESTS_REVIEW_LABEL,
-  GROUP_REQUESTS_ERROR_TITLE,
-  GROUP_WHO_CAN_JOIN,
   groupJoinPolicyLine,
   groupJoinRequestMeta,
   groupJoinRequestsBannerText,
@@ -45,6 +42,8 @@ export function JoinRequestsBanner({
   count: number;
   onReview: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   if (count === 0) {
     return null;
   }
@@ -52,20 +51,20 @@ export function JoinRequestsBanner({
     <Surface
       tone="ink"
       radius="card"
-      className="flex items-center gap-2.5 py-2 pl-4 pr-2"
+      className="flex items-center gap-2.5 py-2 pe-2 ps-4"
     >
       <span aria-hidden="true" className="bg-paper size-1.5 rounded-full" />
       <span className="text-meta flex-1 font-semibold">
-        {groupJoinRequestsBannerText(count)}
+        {groupJoinRequestsBannerText(count, locale)}
       </span>
       <Button
         type="button"
         variant="outline-inverse"
         size="sm"
         onClick={onReview}
-        aria-label="Review join requests"
+        aria-label={m.webGroup.requests.reviewAria}
       >
-        {GROUP_JOIN_REQUESTS_REVIEW_LABEL}
+        {m.group.admin.reviewLabel}
         <ArrowDown aria-hidden="true" />
       </Button>
     </Surface>
@@ -73,6 +72,7 @@ export function JoinRequestsBanner({
 }
 
 function LevelChip({ level }: { level: JoinRequest["level"] }) {
+  const m = useMessages();
   const view = levelCellView(level?.levelBand, level?.provisional ?? true);
   if (!view.label) {
     return null;
@@ -85,8 +85,8 @@ function LevelChip({ level }: { level: JoinRequest["level"] }) {
       )}
       aria-label={
         view.kind === "provisional"
-          ? `Level ${view.label}, still Provisional`
-          : `Level ${view.label}`
+          ? m.webGroup.requests.levelProvisional(view.label)
+          : m.webGroup.requests.level(view.label)
       }
     >
       {view.label}
@@ -95,16 +95,17 @@ function LevelChip({ level }: { level: JoinRequest["level"] }) {
 }
 
 function ChangePolicyButton({ onClick }: { onClick: () => void }) {
+  const m = useMessages();
   return (
     <Button
       type="button"
       variant="link"
       size="sm"
       onClick={onClick}
-      aria-label="Change who can join"
+      aria-label={m.webGroup.requests.changePolicyAria}
       className="text-eyebrow text-ink shrink-0 px-1.5"
     >
-      {GROUP_JOIN_POLICY_CHANGE_LABEL}
+      {m.group.admin.changeLabel}
     </Button>
   );
 }
@@ -128,8 +129,10 @@ function RequestItem({
   onApprove: () => void;
   onReject: () => void;
 }) {
-  const name = request.user.name ?? "User";
-  const meta = groupJoinRequestMeta(request, communityName);
+  const m = useMessages();
+  const locale = useLocale();
+  const name = request.user.name ?? m.community.userFallback;
+  const meta = groupJoinRequestMeta(request, communityName, locale);
   const identity = (
     <>
       <UserAvatar name={name} image={request.user.image} />
@@ -154,7 +157,7 @@ function RequestItem({
           {identity}
           <ChevronRight
             aria-hidden="true"
-            className="text-muted-foreground size-[18px] shrink-0"
+            className="text-muted-foreground size-[18px] shrink-0 rtl:-scale-x-100"
           />
         </Link>
       ) : (
@@ -171,11 +174,11 @@ function RequestItem({
           onClick={onApprove}
           pending={approving}
           disabled={rejecting}
-          aria-label={`Approve ${name}`}
+          aria-label={m.webGroup.requests.approveName(name)}
           className="flex-1 font-semibold"
         >
           <Check aria-hidden="true" />
-          Approve
+          {m.webGroup.requests.approve}
         </Button>
         <Button
           type="button"
@@ -183,9 +186,9 @@ function RequestItem({
           onClick={onReject}
           pending={rejecting}
           disabled={approving}
-          aria-label={`Reject ${name}`}
+          aria-label={m.webGroup.requests.rejectName(name)}
         >
-          Reject
+          {m.webGroup.requests.reject}
         </Button>
       </div>
     </li>
@@ -212,6 +215,8 @@ export const JoinRequestsCard = forwardRef<
     onChangePolicy: () => void;
   }
 >(function JoinRequestsCard(props, ref) {
+  const m = useMessages();
+  const locale = useLocale();
   if (props.loading) {
     return <Skeleton className="rounded-card h-16 w-full" />;
   }
@@ -219,7 +224,7 @@ export const JoinRequestsCard = forwardRef<
     return (
       <ErrorState
         headingLevel={3}
-        title={GROUP_REQUESTS_ERROR_TITLE}
+        title={m.group.admin.requestsErrorTitle}
         message={props.error}
         onRetry={props.onRetry}
       />
@@ -231,12 +236,13 @@ export const JoinRequestsCard = forwardRef<
     const summary = groupJoinRequestsSummary({
       requiresApproval: props.requiresApproval,
       approvedToday: props.approvedToday,
+      locale,
     });
     return (
       <section
         ref={ref}
-        aria-label="Join requests"
-        className="border-rule rounded-card hatch flex items-center gap-3 border py-3 pl-[18px] pr-2.5"
+        aria-label={m.community.joinRequestsTitle}
+        className="border-rule rounded-card hatch flex items-center gap-3 border py-3 pe-2.5 ps-[18px]"
       >
         <Inbox
           aria-hidden="true"
@@ -253,7 +259,7 @@ export const JoinRequestsCard = forwardRef<
     );
   }
 
-  const heading = groupJoinRequestsHeading(requests.length);
+  const heading = groupJoinRequestsHeading(requests.length, locale);
   return (
     <section
       ref={ref}
@@ -280,9 +286,9 @@ export const JoinRequestsCard = forwardRef<
           />
         ))}
       </ul>
-      <div className="border-rule bg-wash flex items-center justify-between gap-3 border-t py-1.5 pl-4 pr-2.5">
+      <div className="border-rule bg-wash flex items-center justify-between gap-3 border-t py-1.5 pe-2.5 ps-4">
         <span className="text-eyebrow text-muted-foreground">
-          {groupJoinPolicyLine(props.requiresApproval)}
+          {groupJoinPolicyLine(props.requiresApproval, locale)}
         </span>
         <ChangePolicyButton onClick={props.onChangePolicy} />
       </div>
@@ -303,13 +309,15 @@ export function RejectRequestDialog({
   onReject: (block: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }) {
-  const name = request?.user.name ?? "User";
-  const copy = groupRejectRequestCopy(name);
+  const m = useMessages();
+  const locale = useLocale();
+  const name = request?.user.name ?? m.community.userFallback;
+  const copy = groupRejectRequestCopy(name, locale);
   return (
     <ResponsiveDialog open={request != null} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <div className="flex items-center gap-3 text-left">
+          <div className="flex items-center gap-3 text-start">
             <UserAvatar
               name={name}
               image={request?.user.image ?? null}
@@ -319,12 +327,12 @@ export function RejectRequestDialog({
               <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
               {request ? (
                 <p className="text-meta text-muted-foreground">
-                  {groupJoinRequestMeta(request, communityName)}
+                  {groupJoinRequestMeta(request, communityName, locale)}
                 </p>
               ) : null}
             </div>
           </div>
-          <ResponsiveDialogDescription className="text-left">
+          <ResponsiveDialogDescription className="text-start">
             {copy.description}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
@@ -379,6 +387,9 @@ export function WhoCanJoinDialog({
   pending: boolean;
   onSave: (requiresApproval: boolean) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const whoCanJoin = m.group.admin.whoCanJoin;
   const [choice, setChoice] = useState(requiresApproval);
 
   useEffect(() => {
@@ -391,24 +402,22 @@ export function WhoCanJoinDialog({
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>
-            {GROUP_WHO_CAN_JOIN.title}
-          </ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>{whoCanJoin.title}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {groupWhoCanJoinDescription(communityName)}
+            {groupWhoCanJoinDescription(communityName, locale)}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div
           role="radiogroup"
-          aria-label={GROUP_WHO_CAN_JOIN.title}
+          aria-label={whoCanJoin.title}
           className="mx-4 flex flex-col gap-2 md:mx-0"
         >
           <SelectCard
             role="radio"
             selected={choice}
             trailing="check"
-            title={GROUP_WHO_CAN_JOIN.approve.title}
-            description={GROUP_WHO_CAN_JOIN.approve.description}
+            title={whoCanJoin.approve.title}
+            description={whoCanJoin.approve.description}
             disabled={pending}
             onClick={() => setChoice(true)}
           />
@@ -416,8 +425,8 @@ export function WhoCanJoinDialog({
             role="radio"
             selected={!choice}
             trailing="check"
-            title={GROUP_WHO_CAN_JOIN.open.title}
-            description={GROUP_WHO_CAN_JOIN.open.description}
+            title={whoCanJoin.open.title}
+            description={whoCanJoin.open.description}
             disabled={pending}
             onClick={() => setChoice(false)}
           />
@@ -432,7 +441,7 @@ export function WhoCanJoinDialog({
             }
             className="w-full font-semibold"
           >
-            {GROUP_WHO_CAN_JOIN.doneLabel}
+            {m.common.done}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

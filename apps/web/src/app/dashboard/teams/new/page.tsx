@@ -6,6 +6,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
@@ -25,21 +26,14 @@ import {
   globalFormErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import {
-  TEAM_CREATED_TOAST,
-  TEAM_CREATE_DESCRIPTION,
-  TEAM_CREATE_LABEL,
-  TEAM_NAME_HINT,
-  TEAM_NAME_LABEL,
-  TEAM_SPORT_LABEL,
-  teamCreateInput,
-} from "@repo/domain/teams";
+import { teamCreateInput } from "@repo/domain/teams";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 const FIELD_IDS = { name: "team-name", sport: "team-sport" };
 
 export default function NewTeamPage() {
+  const m = useMessages();
   const router = useRouter();
   const utils = api.useUtils();
   const summaryRef = React.useRef<HTMLDivElement>(null);
@@ -48,7 +42,7 @@ export default function NewTeamPage() {
 
   const createTeam = api.teams.create.useMutation({
     onSuccess: async (team) => {
-      toast.success(TEAM_CREATED_TOAST);
+      toast.success(m.team.toast.created);
       await utils.teams.mine.invalidate();
       router.push(`/dashboard/teams/${team.id}`);
     },
@@ -70,8 +64,8 @@ export default function NewTeamPage() {
 
   return (
     <DashboardShell
-      title={TEAM_CREATE_LABEL}
-      description={TEAM_CREATE_DESCRIPTION}
+      title={m.team.createLabel}
+      description={m.team.createDescription}
     >
       <Card variant="outlined" className="w-full">
         <form onSubmit={onSubmit} className="space-y-6">
@@ -81,7 +75,7 @@ export default function NewTeamPage() {
           />
           <FieldGroup>
             <Field>
-              <FieldTitle id="team-sport-label">{TEAM_SPORT_LABEL}</FieldTitle>
+              <FieldTitle id="team-sport-label">{m.team.sportLabel}</FieldTitle>
               <SportPicker
                 id={FIELD_IDS.sport}
                 labelledBy="team-sport-label"
@@ -91,7 +85,7 @@ export default function NewTeamPage() {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="team-name">{TEAM_NAME_LABEL}</FieldLabel>
+              <FieldLabel htmlFor="team-name">{m.team.nameLabel}</FieldLabel>
               <Input
                 id="team-name"
                 value={name}
@@ -100,17 +94,19 @@ export default function NewTeamPage() {
                 aria-invalid={nameError ? true : undefined}
                 aria-describedby={nameError ? "team-name-error" : undefined}
               />
-              <FieldDescription>{TEAM_NAME_HINT}</FieldDescription>
+              <FieldDescription>{m.team.nameHint}</FieldDescription>
               <FieldError id="team-name-error">{nameError}</FieldError>
             </Field>
           </FieldGroup>
 
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={createTeam.isPending}>
-              {createTeam.isPending ? "Creating…" : TEAM_CREATE_LABEL}
+              {createTeam.isPending
+                ? m.webDashboard.creating
+                : m.team.createLabel}
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/dashboard/teams">Cancel</Link>
+              <Link href="/dashboard/teams">{m.common.cancel}</Link>
             </Button>
           </div>
         </form>

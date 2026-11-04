@@ -1,10 +1,11 @@
 import { spacing } from "@repo/design-tokens";
-import { KICK_ACTION } from "@repo/domain/game-copy";
+import { kickAction } from "@repo/domain/game-copy";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import { Fragment } from "react";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -77,17 +78,20 @@ export function OrganizerCard({
   plan: FriendlyGameOrganizerPlan;
   handlers: OrganizerHandlers;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGameDetails.organizer;
   const blocks: React.ReactNode[] = [];
 
   if (plan.showLevelRequests) {
     blocks.push(
       <Block key="requests">
         <Text weight="medium" accessibilityRole="header">
-          Level range requests
+          {copy.levelRequests}
         </Text>
         {plan.levelRequests.length === 0 ? (
           <Text size="meta" tone="muted">
-            No pending Level range requests.
+            {copy.noLevelRequests}
           </Text>
         ) : (
           plan.levelRequests.map((request) => {
@@ -100,15 +104,15 @@ export function OrganizerCard({
                 meta={request.meta}
               >
                 <Button
-                  label="Approve"
-                  accessibilityLabel={`Approve ${request.name}`}
+                  label={copy.approve}
+                  accessibilityLabel={copy.approveName(request.name)}
                   size="sm"
                   disabled={deciding}
                   onPress={() => handlers.onApprove(request.id)}
                 />
                 <Button
-                  label="Reject"
-                  accessibilityLabel={`Reject ${request.name}`}
+                  label={copy.reject}
+                  accessibilityLabel={copy.rejectName(request.name)}
                   size="sm"
                   variant="outline"
                   disabled={deciding}
@@ -126,13 +130,13 @@ export function OrganizerCard({
     blocks.push(
       <Block key="waitlist">
         <Text weight="medium" accessibilityRole="header">
-          Waitlist
+          {copy.waitlist}
         </Text>
         {plan.waitlist.map((entry) => (
           <PersonRow key={entry.id} name={entry.name} image={entry.image}>
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${entry.name} from the waitlist`}
+              label={kickAction(locale)}
+              accessibilityLabel={copy.kickFromWaitlist(entry.name)}
               size="sm"
               variant="outline"
               onPress={() => handlers.onKickWaitlist(entry.id)}
@@ -147,13 +151,15 @@ export function OrganizerCard({
     blocks.push(
       <Block key="unseated">
         <Text weight="medium" accessibilityRole="header">
-          Not seated yet
+          {copy.notSeated}
         </Text>
         {plan.unseated.map((player) => (
           <PersonRow key={player.id} name={player.name} image={player.image}>
             <Button
-              label={KICK_ACTION}
-              accessibilityLabel={`${KICK_ACTION} ${player.name}`}
+              label={kickAction(locale)}
+              accessibilityLabel={m.mobileGameDetails.lineup.kickName(
+                player.name,
+              )}
               size="sm"
               variant="outline"
               onPress={() => handlers.onKickPlayer(player.id)}
@@ -169,7 +175,7 @@ export function OrganizerCard({
   }
 
   return (
-    <Card title="Organizer" flush>
+    <Card title={copy.title} flush>
       {blocks.map((block, index) => (
         <Fragment key={index}>
           {index > 0 ? <Hairline /> : null}

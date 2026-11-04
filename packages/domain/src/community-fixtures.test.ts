@@ -42,30 +42,41 @@ describe("createCommunityFixtures", () => {
     const archived = fixtures.home.archivedOwner;
     expect(archived.canSoftArchive).toBe(false);
     expect(archived.canUnarchive).toBe(true);
-    expect(communityArchiveBanner(archived)?.heading).toBe("Soft-archived");
-    expect(communityArchiveBanner(fixtures.home.archivedVisitor)?.heading).toBe(
-      "This Community is Soft-archived",
+    expect(communityArchiveBanner(archived, "en")?.heading).toBe(
+      "Soft-archived",
     );
-    expect(communityArchiveBanner(fixtures.home.owner)).toBeNull();
+    expect(
+      communityArchiveBanner(fixtures.home.archivedVisitor, "en")?.heading,
+    ).toBe("This Community is Soft-archived");
+    expect(communityArchiveBanner(fixtures.home.owner, "en")).toBeNull();
+    expect(
+      communityArchiveBanner(fixtures.home.archivedVisitor, "ar")?.heading,
+    ).toBe("هذا المجتمع مؤرشف");
   });
 
   it("explains why leaving is refused", () => {
-    expect(communityLeaveNotices(fixtures.home.lastOwner)).toHaveLength(1);
-    expect(communityLeaveNotices(fixtures.home.linkedTeam)).toHaveLength(1);
-    expect(communityLeaveNotices(fixtures.home.owner)).toEqual([]);
+    expect(communityLeaveNotices(fixtures.home.lastOwner, "en")).toHaveLength(
+      1,
+    );
+    expect(communityLeaveNotices(fixtures.home.linkedTeam, "en")).toHaveLength(
+      1,
+    );
+    expect(communityLeaveNotices(fixtures.home.owner, "en")).toEqual([]);
   });
 
   it("shows the pending and rejected Venue link request notes", () => {
-    expect(communityVenueView(fixtures.home.venueRequestPending).notes[0]).toBe(
-      "Venue link request pending for Solna Padel Hall (Solna, Sweden).",
-    );
     expect(
-      communityVenueView(fixtures.home.venueRequestPending).canRequestLink,
+      communityVenueView(fixtures.home.venueRequestPending, "en").notes[0],
+    ).toBe("Venue link request pending for Solna Padel Hall (Solna, Sweden).");
+    expect(
+      communityVenueView(fixtures.home.venueRequestPending, "en")
+        .canRequestLink,
     ).toBe(false);
     expect(
-      communityVenueView(fixtures.home.venueRequestRejected).canRequestLink,
+      communityVenueView(fixtures.home.venueRequestRejected, "en")
+        .canRequestLink,
     ).toBe(true);
-    expect(communityVenueView(fixtures.home.member).notes).toEqual([]);
+    expect(communityVenueView(fixtures.home.member, "en").notes).toEqual([]);
   });
 
   it("lists the viewer first among members", () => {

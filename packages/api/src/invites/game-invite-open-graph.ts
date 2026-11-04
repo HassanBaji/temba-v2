@@ -4,9 +4,10 @@ import { venues } from "@repo/db";
 
 import {
   gameInviteOpenGraphMetadata,
-  GENERIC_TEMBA_OPEN_GRAPH,
+  genericTembaOpenGraph,
   occupiedFriendlyPositions,
 } from "@repo/domain/game-invite-open-graph";
+import { type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import { isIndividualSeatGame, listGameSides } from "#src/games/seats";
@@ -23,18 +24,19 @@ function writeDb(database: InviteDb): typeof db {
 export async function loadGameInviteOpenGraph(
   database: InviteDb,
   rawCode: string,
+  locale: Locale,
 ) {
   const link = await findGameInviteLinkByShortCode(database, rawCode);
   if (!link) {
-    return GENERIC_TEMBA_OPEN_GRAPH;
+    return genericTembaOpenGraph(locale);
   }
   const previewed = await previewLink(database, "game", link.token);
   if (previewed.status !== "ready") {
-    return GENERIC_TEMBA_OPEN_GRAPH;
+    return genericTembaOpenGraph(locale);
   }
   const game = await requireGame(writeDb(database), link.gameId);
   if (game.cancelledAt) {
-    return GENERIC_TEMBA_OPEN_GRAPH;
+    return genericTembaOpenGraph(locale);
   }
   const venue = game.venueId
     ? await database.query.venues.findFirst({
@@ -43,7 +45,7 @@ export async function loadGameInviteOpenGraph(
       })
     : null;
   if (!venue) {
-    return GENERIC_TEMBA_OPEN_GRAPH;
+    return genericTembaOpenGraph(locale);
   }
   const sides = isIndividualSeatGame(game)
     ? await listGameSides(writeDb(database), game)
@@ -57,5 +59,6 @@ export async function loadGameInviteOpenGraph(
     occupiedCount: occupiedFriendlyPositions(sides),
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
+    locale,
   });
 }

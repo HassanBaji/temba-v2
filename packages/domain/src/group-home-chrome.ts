@@ -1,14 +1,23 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { formatDayMonth, formatMonth } from "./format-game-start";
 import { memberCountLabel } from "./member-count-label";
 import { shortPlayerName } from "./player-name";
 import { sportLabel } from "./sport";
 
-export function groupHomeSportLabel(sport: string | null | undefined) {
-  return sportLabel(sport);
+export function groupHomeSportLabel(
+  sport: string | null | undefined,
+  locale: Locale,
+) {
+  return sportLabel(sport, locale);
 }
 
-function seasonSinceMonth(createdAt: Date | string | null | undefined) {
+function seasonSinceMonth(
+  createdAt: Date | string | null | undefined,
+  locale: Locale,
+) {
   if (createdAt == null) {
     return null;
   }
@@ -16,7 +25,7 @@ function seasonSinceMonth(createdAt: Date | string | null | undefined) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return formatMonth(date, "short");
+  return formatMonth(date, "short", locale);
 }
 
 /**
@@ -30,25 +39,27 @@ export function groupHomeMetaLine(input: {
   sport: string | null | undefined;
   memberCount: number | null | undefined;
   createdAt: Date | string | null | undefined;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).group;
   const parts: string[] = [];
 
-  const sport = groupHomeSportLabel(input.sport);
+  const sport = groupHomeSportLabel(input.sport, input.locale);
   if (sport) {
     parts.push(sport);
   }
 
   const memberCount = input.memberCount;
   if (memberCount != null && Number.isFinite(memberCount)) {
-    parts.push(memberCountLabel(memberCount));
+    parts.push(memberCountLabel(memberCount, input.locale));
   }
 
-  const since = seasonSinceMonth(input.createdAt);
+  const since = seasonSinceMonth(input.createdAt, input.locale);
   if (since) {
-    parts.push(`season since ${since}`);
+    parts.push(m.home.seasonSince(since));
   }
 
-  return parts.join(", ");
+  return parts.join(m.metaSeparator);
 }
 
 export type GroupHomeBackTarget =
@@ -58,11 +69,13 @@ export type GroupHomeBackTarget =
 /** A Club Group home returns to its Community; a Loose Group to Groups. */
 export function groupHomeBackTarget(
   communityId: string | null | undefined,
+  locale: Locale,
 ): GroupHomeBackTarget {
+  const m = messagesFor(locale).group.home;
   if (communityId) {
-    return { kind: "community", communityId, label: "Back to Community" };
+    return { kind: "community", communityId, label: m.backToCommunity };
   }
-  return { kind: "groups", label: "Back to Groups" };
+  return { kind: "groups", label: m.backToGroups };
 }
 
 export function groupHomeHasStandingResults(
@@ -127,25 +140,25 @@ export function groupMemberOrganizerAction(member: {
 
 export function groupMemberOrganizerActionLabel(
   action: GroupMemberOrganizerAction,
+  locale: Locale,
 ) {
-  return action === "appoint" ? "Make Organizer" : "Remove as Organizer";
+  return messagesFor(locale).group.home.organizerAction[action];
 }
 
 export function groupMemberOrganizerActionHint(
   action: GroupMemberOrganizerAction,
+  locale: Locale,
 ) {
-  return action === "appoint"
-    ? "Can create Games, set teams and add players"
-    : "Loses the right to create Games, set teams and add players";
+  return messagesFor(locale).group.home.organizerHint[action];
 }
 
 export function groupMemberOrganizerToast(
   action: GroupMemberOrganizerAction,
   name: string,
+  locale: Locale,
 ) {
-  return action === "appoint"
-    ? `${name} is now an Organizer.`
-    : `${name} is no longer an Organizer.`;
+  const m = messagesFor(locale).group.home.organizerToast;
+  return action === "appoint" ? m.appointed(name) : m.dismissed(name);
 }
 
 /** The Standing W-L column: `{wins}-{losses}`, drawn even at `0-0`. */
@@ -161,7 +174,9 @@ export function groupStandingRecordLabel(wins: number, losses: number) {
  */
 export function groupPlayedTeamLabel(
   members: readonly { name: string; isViewer: boolean }[],
+  locale: Locale,
 ) {
+  const m = messagesFor(locale);
   const ordered = [...members].sort((left, right) => {
     if (left.isViewer === right.isViewer) {
       return 0;
@@ -169,28 +184,33 @@ export function groupPlayedTeamLabel(
     return left.isViewer ? -1 : 1;
   });
   const names = ordered.map((member) =>
-    member.isViewer ? "You" : shortPlayerName(member.name),
+    member.isViewer ? m.common.you : shortPlayerName(member.name),
   );
-  return names.length > 0 ? names.join(", ") : "Open seats";
+  return names.length > 0
+    ? names.join(m.group.metaSeparator)
+    : m.group.home.openSeats;
 }
 
 /** `"6 Sep"` — the Played row's date, day before month as the design draws it. */
-export function groupPlayedDayLabel(playedAt: Date | string) {
+export function groupPlayedDayLabel(playedAt: Date | string, locale: Locale) {
   const date = playedAt instanceof Date ? playedAt : new Date(playedAt);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return formatDayMonth(date);
+  return formatDayMonth(date, locale);
 }
 
 /** The Played row's second line: the other team, then the date. */
 export function groupPlayedOpponentLine(
   members: readonly { name: string; isViewer: boolean }[],
   playedAt: Date | string,
+  locale: Locale,
 ) {
-  const day = groupPlayedDayLabel(playedAt);
-  const label = groupPlayedTeamLabel(members);
-  return day ? `${label}, ${day}` : label;
+  const day = groupPlayedDayLabel(playedAt, locale);
+  const label = groupPlayedTeamLabel(members, locale);
+  return day
+    ? messagesFor(locale).group.home.playedOpponentLine(label, day)
+    : label;
 }
 
 /**

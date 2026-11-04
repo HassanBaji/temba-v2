@@ -17,6 +17,8 @@ import {
 import { sportLabel } from "@repo/domain/sport";
 import { memberCountLabel } from "@repo/domain/member-count-label";
 import type { FormMark } from "@repo/domain/member-form-marks";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { mediaUrl } from "../lib/media-url";
 
@@ -39,14 +41,17 @@ export type GroupRowView = {
 export function groupRowView(
   row: GroupMineRowData,
   apiOrigin: string,
+  locale: Locale,
 ): GroupRowView {
-  const name = groupDisplayName(row.name);
+  const m = messagesFor(locale).mobileGroup.list;
+  const name = groupDisplayName(row.name, locale);
   const meta = groupRowMetaLine({
     memberCount: row.memberCount,
     standingPosition: row.standingPosition,
+    locale,
   });
   const nextGameWeekday = row.nextGameStartTime
-    ? groupNextGameWeekday(row.nextGameStartTime)
+    ? groupNextGameWeekday(row.nextGameStartTime, locale)
     : null;
   return {
     id: row.id,
@@ -55,9 +60,9 @@ export function groupRowView(
     meta,
     nextGameWeekday,
     formMarks: row.formMarks,
-    accessibilityLabel: `${name}, ${meta}, ${
-      nextGameWeekday ? `next Game ${nextGameWeekday}` : "no Game scheduled"
-    }`,
+    accessibilityLabel: nextGameWeekday
+      ? m.rowNextGame(name, meta, nextGameWeekday)
+      : m.rowNoGame(name, meta),
   };
 }
 
@@ -79,22 +84,24 @@ export function publicGroupRowView(
   row: GroupPublicRowData,
   pendingGroupId: string | null,
   apiOrigin: string,
+  locale: Locale,
 ): PublicGroupRowView {
   const pending = pendingGroupId === row.id;
   return {
     id: row.id,
-    name: groupDisplayName(row.name),
+    name: groupDisplayName(row.name, locale),
     imageUri: mediaUrl(row.imageUrl, apiOrigin),
     subtitle: row.communityName,
     meta: publicGroupMetaLine({
-      memberCountLabel: memberCountLabel(row.memberCount),
+      memberCountLabel: memberCountLabel(row.memberCount, locale),
       requiresApproval: row.requiresApproval,
+      locale,
     }),
-    joinLabel: groupJoinLabel(row.joinMode, pending, "row"),
+    joinLabel: groupJoinLabel(row.joinMode, pending, "row", locale),
     joinDisabled: groupJoinDisabled(row.joinMode, pending),
     joinOutlined: row.joinMode !== "join",
     door: publicGroupJoinDoor(row),
     sport: row.sport,
-    sportLabel: sportLabel(row.sport),
+    sportLabel: sportLabel(row.sport, locale),
   };
 }

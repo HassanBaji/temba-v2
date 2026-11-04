@@ -5,6 +5,7 @@ import { LayoutGrid } from "lucide-react";
 import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { cn } from "~/lib/utils";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 
 import { BookingBlock } from "./booking-block";
@@ -64,11 +65,15 @@ export function WeekCalendar({
               key={entry}
               type="button"
               onClick={() => onOpenDay(entry)}
-              aria-label={`Open ${formatDayMonth(date, { weekday: "long" })}`}
+              aria-label={`Open ${formatDayMonth(date, CONSOLE_LOCALE, { weekday: "long" })}`}
               className="hover:bg-wash flex min-w-0 items-center gap-1.5 px-2.5 text-left text-[13px] transition-colors"
             >
               <span className="text-muted-foreground">
-                {formatDayMonth(date, { weekday: "short" }).split(" ")[0]}
+                {
+                  formatDayMonth(date, CONSOLE_LOCALE, {
+                    weekday: "short",
+                  }).split(" ")[0]
+                }
               </span>
               <span
                 className={cn(
@@ -76,7 +81,7 @@ export function WeekCalendar({
                   isToday && "bg-ink text-paper rounded-[4px] px-1.5",
                 )}
               >
-                {formatDayMonth(date)}
+                {formatDayMonth(date, CONSOLE_LOCALE)}
               </span>
             </button>
           );

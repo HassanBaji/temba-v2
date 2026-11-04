@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
@@ -61,8 +62,10 @@ export function GroupHomeChrome({
   overflow?: ReactNode;
   imagePending?: boolean;
 }) {
-  const meta = groupHomeMetaLine({ sport, memberCount, createdAt });
-  const back = groupHomeBackTarget(communityId);
+  const m = useMessages();
+  const locale = useLocale();
+  const meta = groupHomeMetaLine({ sport, memberCount, createdAt, locale });
+  const back = groupHomeBackTarget(communityId, locale);
   const backHref =
     back.kind === "community"
       ? `/dashboard/communities/${back.communityId}`
@@ -80,7 +83,7 @@ export function GroupHomeChrome({
             <button
               type="button"
               onClick={onInvite}
-              aria-label="Invite members"
+              aria-label={m.webGroup.home.inviteMembers}
               className={ACTION_BOX}
             >
               <UserPlusIcon aria-hidden="true" className="size-[18px]" />
@@ -90,7 +93,7 @@ export function GroupHomeChrome({
           {showCreateBox ? (
             <Link
               href={`/dashboard/games/new?groupId=${groupId}`}
-              aria-label="Create Game"
+              aria-label={m.webGroup.createGame}
               className={ACTION_BOX}
             >
               <PlusIcon aria-hidden="true" className="size-5" />
@@ -115,7 +118,7 @@ export function GroupHomeChrome({
               </span>
             ) : null}
             <span role="status" className="sr-only">
-              {imagePending ? "Uploading image…" : ""}
+              {imagePending ? m.webGroup.home.uploadingImage : ""}
             </span>
           </div>
         }
@@ -124,9 +127,11 @@ export function GroupHomeChrome({
       />
 
       <TabsList variant="segmented" className="mt-5">
-        <TabsTrigger value="standing">Standing</TabsTrigger>
-        <TabsTrigger value="games">Games</TabsTrigger>
-        <TabsTrigger value="members">Members</TabsTrigger>
+        <TabsTrigger value="standing">
+          {m.webGroup.home.tab.standing}
+        </TabsTrigger>
+        <TabsTrigger value="games">{m.webGroup.home.tab.games}</TabsTrigger>
+        <TabsTrigger value="members">{m.webGroup.home.tab.members}</TabsTrigger>
       </TabsList>
     </div>
   );

@@ -2,14 +2,12 @@ import { spacing } from "@repo/design-tokens";
 import {
   CREATE_FLOW_DURATIONS,
   CREATE_FLOW_MATCH_MINUTE_CHIPS,
-  FRIENDLY_TOURNAMENT_UNEVEN_GROUPS,
-  TOURNAMENT_FORMAT_LABEL,
-  TOURNAMENT_SHAPE_OPTIONS,
   finishSlotForDuration,
   friendlyTournamentGroupsLine,
   matchingDurationPreset,
   parseCreateMatchMinutes,
   previewStartSlots,
+  tournamentShapeOptions,
 } from "@repo/domain/create-game-flow";
 import {
   friendlyTournamentPlan,
@@ -26,15 +24,14 @@ import {
 import {
   formatRoundMatchesPerTeam,
   maxPoolCount,
-  ROUND_MEETS_COPY,
   roundCountRange,
-  ROUNDS_LABEL,
-  SUGGESTED_ROUNDS_TAG,
+  roundMeetsCopy,
   suggestedRoundsResetLabel,
 } from "@repo/domain/tournament-sizing";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceCard } from "../primitives/choice-card";
 import { Hairline } from "../primitives/hairline";
 import { TextField } from "../primitives/text-field";
@@ -49,6 +46,10 @@ const TIME_COLUMNS = 3;
 
 function DayAndStart({ state, now, errors, dispatch }: StepProps) {
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.when;
+  const pickDay = m.createGame.validation.pickDay;
   const [startExpanded, setStartExpanded] = useState(false);
   const slots = upcomingGameWindowTimeSlots(draft.day, now);
   const visibleStarts = previewStartSlots(
@@ -57,11 +58,10 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
     startExpanded,
   );
   const startError =
-    errors.windowStart && errors.windowStart !== "Pick a day"
+    errors.windowStart && errors.windowStart !== pickDay
       ? errors.windowStart
       : undefined;
-  const dayError =
-    errors.windowStart === "Pick a day" ? "Pick a day" : undefined;
+  const dayError = errors.windowStart === pickDay ? pickDay : undefined;
 
   return (
     <>
@@ -71,21 +71,21 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
         error={dayError}
         onSelect={(day) => dispatch({ kind: "setDay", day, now })}
       />
-      <StepSection title="Start time" note="30 minute steps">
+      <StepSection title={copy.startTime} note={copy.startNote}>
         <ChipGrid
-          label="Start time"
+          label={copy.startTime}
           columns={TIME_COLUMNS}
           chips={visibleStarts.map((slot) => ({
             value: slot,
-            label: formatTimeSlotLabel(slot),
+            label: formatTimeSlotLabel(slot, locale),
           }))}
           isSelected={(slot) => slot === draft.startTime}
           onSelect={(slot) => dispatch({ kind: "setStart", slot })}
           escape={
             slots.length > visibleStarts.length
               ? {
-                  label: "More",
-                  accessibilityLabel: "More start times",
+                  label: m.common.more,
+                  accessibilityLabel: copy.moreStartTimes,
                   onPress: () => setStartExpanded(true),
                 }
               : undefined
@@ -99,6 +99,9 @@ function DayAndStart({ state, now, errors, dispatch }: StepProps) {
 
 function Duration({ state, now, errors, dispatch }: StepProps) {
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.when;
   const [customOpen, setCustomOpen] = useState(false);
   const preset = matchingDurationPreset(draft.startTime, draft.finishTime);
   const showCustom =
@@ -108,7 +111,7 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
   );
   const durations = CREATE_FLOW_DURATIONS.map((minutes) => ({
     value: minutes,
-    label: `${minutes} min`,
+    label: m.dates.minutes(minutes),
     disabled:
       !draft.startTime ||
       finishSlotForDuration(draft.startTime, minutes) == null,
@@ -116,13 +119,15 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
 
   return (
     <StepSection
-      title="Duration"
+      title={copy.duration}
       note={
-        draft.finishTime ? formatTimeSlotLabel(draft.finishTime) : undefined
+        draft.finishTime
+          ? formatTimeSlotLabel(draft.finishTime, locale)
+          : undefined
       }
     >
       <ChipGrid
-        label="Duration"
+        label={copy.duration}
         columns={CREATE_FLOW_DURATIONS.length + 1}
         chips={durations}
         isSelected={(minutes) => !showCustom && minutes === preset}
@@ -131,19 +136,19 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
           dispatch({ kind: "setDuration", minutes });
         }}
         escape={{
-          label: "Set",
+          label: copy.set,
           selected: showCustom,
-          accessibilityLabel: "Set a finish time",
+          accessibilityLabel: copy.setFinishTime,
           onPress: () => setCustomOpen(true),
         }}
       />
       {showCustom ? (
         <ChipGrid
-          label="Finish time"
+          label={copy.finishTime}
           columns={TIME_COLUMNS}
           chips={slots.map((slot) => ({
             value: slot,
-            label: formatTimeSlotLabel(slot),
+            label: formatTimeSlotLabel(slot, locale),
           }))}
           isSelected={(slot) => slot === draft.finishTime}
           onSelect={(slot) => dispatch({ kind: "setFinish", slot })}
@@ -155,17 +160,14 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
 }
 
 export function GameWhenStep(props: StepProps) {
+  const copy = useMessages().mobileCreateGame.when;
   return (
     <View style={{ gap: spacing.section }}>
       <DayAndStart {...props} />
       <Duration {...props} />
       <View style={{ gap: 14 }}>
         <Hairline />
-        <HelperNote>
-          Day, start time, and finish time are required. Pick today or a later
-          day. Times are in 30-minute intervals; for today, only upcoming times
-          are listed.
-        </HelperNote>
+        <HelperNote>{copy.helper}</HelperNote>
       </View>
     </View>
   );
@@ -174,6 +176,8 @@ export function GameWhenStep(props: StepProps) {
 export function TournamentWhenStep(props: StepProps) {
   const { state, now, dispatch } = props;
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
   const plan = friendlyTournamentPlan(draft);
   const summary = tournamentScheduleSummary({
     plan,
@@ -183,13 +187,17 @@ export function TournamentWhenStep(props: StepProps) {
     matchMinutes: draft.matchMinutes,
     courtCount: draft.courtIds.length,
     now,
+    locale,
   });
 
   return (
     <View style={{ gap: spacing.section }}>
-      <StepSection title={TOURNAMENT_FORMAT_LABEL} note="Required">
+      <StepSection
+        title={m.createGame.tournamentFormat}
+        note={m.common.required}
+      >
         <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
-          {TOURNAMENT_SHAPE_OPTIONS.map((option) => (
+          {tournamentShapeOptions(locale).map((option) => (
             <ChoiceCard
               key={option.id}
               role="radio"
@@ -220,29 +228,32 @@ type PlanProps = StepProps & { plan: FriendlyTournamentPlan };
 function ShapeSteppers({ state, errors, dispatch, plan }: PlanProps) {
   const { draft } = state;
   const { sizing, knockoutTree, qualifiersRange, poolKnockoutTree } = plan;
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.when;
 
   if (plan.knockoutOnly) {
     return knockoutTree ? (
-      <HelperNote>{knockoutOnlyReviewValue(knockoutTree)}</HelperNote>
+      <HelperNote>{knockoutOnlyReviewValue(knockoutTree, locale)}</HelperNote>
     ) : null;
   }
 
   return (
     <View style={{ flexDirection: "row", gap: 10 }}>
       <StepperCard
-        label="Groups"
+        label={copy.groups}
         value={draft.poolCount}
         min={1}
         max={maxPoolCount(draft.teamCount)}
         step={1}
         onChange={(poolCount) => dispatch({ kind: "setPoolCount", poolCount })}
-        decreaseLabel="Fewer groups"
-        increaseLabel="More groups"
+        decreaseLabel={copy.fewerGroups}
+        increaseLabel={copy.moreGroups}
         notes={
           sizing
             ? [
-                friendlyTournamentGroupsLine(sizing),
-                ...(sizing.uneven ? [FRIENDLY_TOURNAMENT_UNEVEN_GROUPS] : []),
+                friendlyTournamentGroupsLine(sizing, locale),
+                ...(sizing.uneven ? [m.createGame.unevenGroups] : []),
               ]
             : []
         }
@@ -250,7 +261,7 @@ function ShapeSteppers({ state, errors, dispatch, plan }: PlanProps) {
       />
       {plan.groupsThenKnockout && qualifiersRange ? (
         <StepperCard
-          label="Into knockout"
+          label={copy.intoKnockout}
           value={draft.qualifiersPerPool}
           min={qualifiersRange.min}
           max={qualifiersRange.max}
@@ -258,11 +269,11 @@ function ShapeSteppers({ state, errors, dispatch, plan }: PlanProps) {
           onChange={(qualifiersPerPool) =>
             dispatch({ kind: "setQualifiers", qualifiersPerPool })
           }
-          decreaseLabel="Fewer teams into the knockout"
-          increaseLabel="More teams into the knockout"
+          decreaseLabel={copy.fewerIntoKnockout}
+          increaseLabel={copy.moreIntoKnockout}
           notes={
             poolKnockoutTree
-              ? [qualifiersConsequenceLine(poolKnockoutTree)]
+              ? [qualifiersConsequenceLine(poolKnockoutTree, locale)]
               : []
           }
           error={errors.qualifiersPerPool}
@@ -273,31 +284,35 @@ function ShapeSteppers({ state, errors, dispatch, plan }: PlanProps) {
 }
 
 function Rounds({ errors, dispatch, plan }: PlanProps) {
+  const locale = useLocale();
+  const m = useMessages();
   const { sizing, rounds } = plan;
   if (!sizing || !rounds) {
     return null;
   }
   const range = roundCountRange(sizing.poolSizes);
   const suggested = rounds.roundCount === range.suggested;
+  const sizingCopy = m.tournament.sizing;
+  const copy = m.mobileCreateGame.when;
 
   return (
     <StepSection
-      title={ROUNDS_LABEL}
-      note={suggested ? SUGGESTED_ROUNDS_TAG : undefined}
+      title={sizingCopy.roundsLabel}
+      note={suggested ? sizingCopy.suggestedTag : undefined}
       link={
         suggested
           ? undefined
           : {
-              label: suggestedRoundsResetLabel(range.suggested),
+              label: suggestedRoundsResetLabel(range.suggested, locale),
               onPress: () =>
                 dispatch({ kind: "setRoundCount", roundCount: null }),
             }
       }
     >
       <StepperRow
-        label={ROUNDS_LABEL}
+        label={sizingCopy.roundsLabel}
         value={rounds.roundCount}
-        unit={rounds.roundCount === 1 ? "Round" : "Rounds"}
+        unit={copy.roundUnit(rounds.roundCount)}
         min={range.min}
         max={range.max}
         step={1}
@@ -307,11 +322,14 @@ function Rounds({ errors, dispatch, plan }: PlanProps) {
             roundCount: next === range.suggested ? null : next,
           })
         }
-        decreaseLabel="Fewer Rounds"
-        increaseLabel="More Rounds"
+        decreaseLabel={copy.fewerRounds}
+        increaseLabel={copy.moreRounds}
       />
       <HelperNote>
-        {`${formatRoundMatchesPerTeam(rounds)}. ${ROUND_MEETS_COPY[rounds.meets]}.`}
+        {copy.roundsHelper(
+          formatRoundMatchesPerTeam(rounds, locale),
+          roundMeetsCopy(rounds.meets, locale),
+        )}
       </HelperNote>
       <FieldError message={errors.roundCount} />
     </StepSection>
@@ -323,15 +341,17 @@ function Finish({ state, now, errors, dispatch }: StepProps) {
   const slots = upcomingGameWindowTimeSlots(draft.day, now).filter(
     (slot) => slot > draft.startTime,
   );
+  const locale = useLocale();
+  const copy = useMessages().mobileCreateGame.when;
 
   return (
-    <StepSection title="Finish">
+    <StepSection title={copy.finish}>
       <ChipGrid
-        label="Finish time"
+        label={copy.finishTime}
         columns={TIME_COLUMNS}
         chips={slots.map((slot) => ({
           value: slot,
-          label: formatTimeSlotLabel(slot),
+          label: formatTimeSlotLabel(slot, locale),
         }))}
         isSelected={(slot) => slot === draft.finishTime}
         onSelect={(slot) => dispatch({ kind: "setFinish", slot })}
@@ -348,8 +368,11 @@ function GameLength({
   lastFinish,
 }: StepProps & { lastFinish: string | null }) {
   const { draft } = state;
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.when;
   const [customOpen, setCustomOpen] = useState(false);
-  const minutes = parseCreateMatchMinutes(draft.matchMinutes);
+  const minutes = parseCreateMatchMinutes(draft.matchMinutes, locale);
   const chipValue = CREATE_FLOW_MATCH_MINUTE_CHIPS.find(
     (value) => minutes.ok && minutes.minutes === value,
   );
@@ -357,13 +380,13 @@ function GameLength({
     customOpen || chipValue === undefined || Boolean(errors.matchMinutes);
 
   return (
-    <StepSection title="Game length" note={lastFinish ?? undefined}>
+    <StepSection title={copy.gameLength} note={lastFinish ?? undefined}>
       <ChipGrid
-        label="Game length"
+        label={copy.gameLength}
         columns={CREATE_FLOW_MATCH_MINUTE_CHIPS.length + 1}
         chips={CREATE_FLOW_MATCH_MINUTE_CHIPS.map((value) => ({
           value,
-          label: `${value} min`,
+          label: m.dates.minutes(value),
         }))}
         isSelected={(value) => !showCustom && value === chipValue}
         onSelect={(value) => {
@@ -371,16 +394,16 @@ function GameLength({
           dispatch({ kind: "setMatchMinutes", minutes: String(value) });
         }}
         escape={{
-          label: "Set",
+          label: copy.set,
           selected: showCustom,
-          accessibilityLabel: "Set a custom Game length",
+          accessibilityLabel: copy.setCustomLength,
           onPress: () => setCustomOpen(true),
         }}
       />
       {showCustom ? (
         <>
           <TextField
-            label="Custom minutes"
+            label={copy.customMinutes}
             value={draft.matchMinutes}
             keyboardType="number-pad"
             onChangeText={(next) =>
@@ -388,7 +411,7 @@ function GameLength({
             }
             error={errors.matchMinutes}
           />
-          <HelperNote>10 to 120 minutes, in steps of 5.</HelperNote>
+          <HelperNote>{copy.customMinutesHint}</HelperNote>
         </>
       ) : null}
     </StepSection>

@@ -28,7 +28,7 @@ const seasons = [s2, s3, s4];
 
 describe("gameSeasonChoices", () => {
   it("leads with No season, then the fitting Season, then the rest newest first", () => {
-    const choices = gameSeasonChoices(seasons, "2026-11-02", NOW);
+    const choices = gameSeasonChoices(seasons, "2026-11-02", NOW, "en");
     expect(choices.map((choice) => choice.id)).toEqual([
       null,
       "s3",
@@ -79,28 +79,28 @@ describe("gameSeasonChoices", () => {
 
 describe("copy", () => {
   it("counts the open Seasons in the row note", () => {
-    expect(seasonLinkRowNote("Gooz of Arad", 1, "2026-11-02")).toBe(
+    expect(seasonLinkRowNote("Gooz of Arad", 1, "2026-11-02", "en")).toBe(
       "Gooz of Arad has 1 season open for Mon 2 Nov.",
     );
-    expect(seasonLinkRowNote("Gooz of Arad", 0, "2026-11-02")).toBe(
+    expect(seasonLinkRowNote("Gooz of Arad", 0, "2026-11-02", "en")).toBe(
       "Gooz of Arad has no season open for Mon 2 Nov.",
     );
   });
 
   it("names the day in the picker subtitle", () => {
-    expect(seasonPickerSubtitle("Gooz of Arad", "2026-11-02")).toBe(
+    expect(seasonPickerSubtitle("Gooz of Arad", "2026-11-02", "en")).toBe(
       "Gooz of Arad. The game day, Mon 2 Nov, decides which seasons fit.",
     );
   });
 
   it("labels the picker action by the choice", () => {
-    expect(seasonLinkActionLabel({ id: null, name: "No season" })).toBe(
+    expect(seasonLinkActionLabel({ id: null, name: "No season" }, "en")).toBe(
       "Keep as a friendly",
     );
-    expect(seasonLinkActionLabel({ id: "s3", name: "Season 3" })).toBe(
+    expect(seasonLinkActionLabel({ id: "s3", name: "Season 3" }, "en")).toBe(
       "Link Season 3",
     );
-    expect(seasonOutsideDayMessage(s3, "2027-02-01")).toBe(
+    expect(seasonOutsideDayMessage(s3, "2027-02-01", "en")).toBe(
       "Mon 1 Feb is outside Season 3",
     );
   });
@@ -108,12 +108,12 @@ describe("copy", () => {
 
 describe("gameSeasonFix", () => {
   it("is quiet while the day stays inside the linked Season", () => {
-    expect(gameSeasonFix(s3, seasons, "2026-12-15", NOW)).toBeNull();
-    expect(gameSeasonFix(null, seasons, "2027-06-01", NOW)).toBeNull();
+    expect(gameSeasonFix(s3, seasons, "2026-12-15", NOW, "en")).toBeNull();
+    expect(gameSeasonFix(null, seasons, "2027-06-01", NOW, "en")).toBeNull();
   });
 
   it("offers the Season that covers the new day", () => {
-    const fix = gameSeasonFix(s3, seasons, "2027-02-01", NOW);
+    const fix = gameSeasonFix(s3, seasons, "2027-02-01", NOW, "en");
     expect(fix).toMatchObject({
       replacement: s4,
       endsLine: "ends 31 Jan",
@@ -124,7 +124,7 @@ describe("gameSeasonFix", () => {
   });
 
   it("offers only an unlink when no Season covers the day", () => {
-    const fix = gameSeasonFix(s3, seasons, "2027-06-01", NOW);
+    const fix = gameSeasonFix(s3, seasons, "2027-06-01", NOW, "en");
     expect(fix).toMatchObject({
       replacement: null,
       line: "Tue 1 Jun is outside Season 3. No season covers that day.",
@@ -133,11 +133,26 @@ describe("gameSeasonFix", () => {
   });
 
   it("asks for the day to move forward when it fell before the start", () => {
-    const fix = gameSeasonFix(s4, seasons, "2026-12-15", NOW);
+    const fix = gameSeasonFix(s4, seasons, "2026-12-15", NOW, "en");
     expect(fix).toMatchObject({
       replacement: s3,
       endsLine: "starts 1 Feb",
       keepLine: "Or move the day forward to 1 Feb or later to keep Season 4.",
     });
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the row note and the fix in Arabic", () => {
+    expect(seasonLinkRowNote("Gooz of Arad", 2, "2026-11-02", "ar")).toBe(
+      "لدى Gooz of Arad موسمان مفتوحان في الاثنين 2 نوفمبر.",
+    );
+    expect(gameSeasonFix(s3, seasons, "2027-02-01", NOW, "ar")).toMatchObject({
+      moveLabel: "الانتقال إلى Season 4",
+      endsLine: "ينتهي 31 يناير",
+    });
+    expect(
+      gameSeasonChoices(seasons, "2026-11-02", NOW, "ar")[0],
+    ).toMatchObject({ name: "بلا موسم", dates: "ودية" });
   });
 });

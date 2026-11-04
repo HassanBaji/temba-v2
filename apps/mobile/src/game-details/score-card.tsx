@@ -12,7 +12,7 @@ import type {
   FriendlyGameDetailsSide,
 } from "@repo/domain/friendly-game-details";
 import {
-  ORGANIZER_CONFIRM_NOTE,
+  organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
   scoreConfirmationRows,
@@ -35,6 +35,7 @@ import { Lock } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -73,6 +74,7 @@ function SetBox({
   onChangeText: (text: string) => void;
 }) {
   const palette = useTonePalette();
+  const locale = useLocale();
   const frame = { width: BOX_WIDTH, height: BOX_HEIGHT, borderRadius: 5 };
 
   if (state === "locked" || state === "unplayed") {
@@ -104,7 +106,12 @@ function SetBox({
   return (
     <View
       accessible
-      accessibilityLabel={scoreSetBoxAccessibleLabel(state, label, value)}
+      accessibilityLabel={scoreSetBoxAccessibleLabel(
+        state,
+        label,
+        value,
+        locale,
+      )}
       style={[
         frame,
         {
@@ -145,6 +152,7 @@ function FooterNote({
   confirmedByOrganizer: boolean;
 }) {
   const palette = useTonePalette();
+  const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
   return (
     <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
@@ -160,7 +168,7 @@ function FooterNote({
         {isFinal ? null : <Hatch radius={2} />}
       </View>
       <Text size="meta" tone="muted" style={{ flex: 1 }}>
-        {scoreFooterNote(phase, confirmedAtLabel, confirmedByOrganizer)}
+        {scoreFooterNote(phase, confirmedAtLabel, locale, confirmedByOrganizer)}
       </Text>
     </View>
   );
@@ -183,13 +191,15 @@ function Confirmations({
   confirmPending: boolean;
   onConfirm: () => void;
 }) {
-  const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
-  const waitingLines = scoreOrganizerWaitingLines(confirmation);
+  const m = useMessages();
+  const locale = useLocale();
+  const rows = scoreConfirmationRows(confirmation, viewerUserId, names, locale);
+  const waitingLines = scoreOrganizerWaitingLines(confirmation, locale);
   return (
     <View style={{ gap: 10 }}>
       <Hairline />
       <Text size="meta" weight="medium">
-        Confirmations
+        {m.mobileGameDetails.score.confirmations}
       </Text>
       {rows.map((row) => (
         <View
@@ -220,7 +230,11 @@ function Confirmations({
       {organizerCanConfirm || canConfirm ? (
         <View style={{ flexDirection: "row" }}>
           <Button
-            label={organizerCanConfirm ? "Confirm score" : "Confirm result"}
+            label={
+              organizerCanConfirm
+                ? m.mobileGameDetails.score.confirmScore
+                : m.mobileGameDetails.score.confirmResult
+            }
             variant="outline"
             size="sm"
             pending={confirmPending}
@@ -230,7 +244,7 @@ function Confirmations({
       ) : null}
       {organizerCanConfirm ? (
         <Text size="meta" tone="muted">
-          {ORGANIZER_CONFIRM_NOTE}
+          {organizerConfirmNote(locale)}
         </Text>
       ) : null}
     </View>
@@ -239,11 +253,14 @@ function Confirmations({
 
 /** Before the Game: one row that says when the score opens. */
 function LockedScore({ courtFull }: { courtFull: boolean }) {
+  const m = useMessages();
+  const locale = useLocale();
   const palette = useTonePalette();
+  const lockedLine = scoreLockedLine(courtFull, locale);
   return (
     <Surface
       accessible
-      accessibilityLabel={`Score. ${scoreLockedLine(courtFull)}`}
+      accessibilityLabel={m.mobileGameDetails.score.lockedLabel(lockedLine)}
       style={{ flexDirection: "row", alignItems: "center", gap: 14 }}
     >
       <View
@@ -259,9 +276,9 @@ function LockedScore({ courtFull }: { courtFull: boolean }) {
         <Lock size={17} color={palette.muted} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text weight="semibold">Score</Text>
+        <Text weight="semibold">{m.mobileGameDetails.score.title}</Text>
         <Text size="meta" tone="muted">
-          {scoreLockedLine(courtFull)}
+          {lockedLine}
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: 4 }}>
@@ -302,6 +319,8 @@ export function ScoreCard({
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [drafts, setDrafts] = useState<ScoreDrafts>(() =>
     draftsFromSets(match.sets),
   );
@@ -328,7 +347,9 @@ export function ScoreCard({
     phase,
     isOrganizer,
   });
-  const deciderNote = canEnter ? scoreDeciderNote(match.sets.length) : null;
+  const deciderNote = canEnter
+    ? scoreDeciderNote(match.sets.length, locale)
+    : null;
 
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -344,10 +365,10 @@ export function ScoreCard({
         }}
       >
         <Text size="lead" weight="semibold" accessibilityRole="header">
-          Score
+          {m.mobileGameDetails.score.title}
         </Text>
         <Text size="meta" tone="muted">
-          {scoreSetsMeta(match.sets.length)}
+          {scoreSetsMeta(match.sets.length, locale)}
         </Text>
       </View>
       <View
@@ -371,7 +392,7 @@ export function ScoreCard({
               uppercase
               style={{ width: BOX_WIDTH, textAlign: "center" }}
             >
-              {setLabel(index)}
+              {setLabel(index, locale)}
             </Text>
           ))}
         </View>
@@ -380,6 +401,7 @@ export function ScoreCard({
           const sideLabel = formatGameSideLabel(
             "friendly_game",
             side.sideIndex,
+            locale,
           );
           return (
             <View
@@ -395,11 +417,11 @@ export function ScoreCard({
                   {sideLabel}
                 </Text>
                 <Text weight="medium" numberOfLines={1}>
-                  {scoreTeamFirstNames(side)}
+                  {scoreTeamFirstNames(side, locale)}
                 </Text>
               </View>
               {match.sets.map((set, index) => {
-                const setName = setLabel(index);
+                const setName = setLabel(index, locale);
                 const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
                 const state = scoreSetBoxState({
                   phase,
@@ -414,7 +436,7 @@ export function ScoreCard({
                     key={set.id}
                     state={state}
                     value={scoreGamesWonForSide(set, side.sideIndex)}
-                    label={`${sideLabel}, ${setName}`}
+                    label={m.mobileGameDetails.score.setBox(sideLabel, setName)}
                     draft={side.sideIndex === 1 ? draft.slot1 : draft.slot2}
                     saving={scorePending}
                     onChangeText={(text) =>
@@ -443,7 +465,7 @@ export function ScoreCard({
               {deciderNote ?? ""}
             </Text>
             <Button
-              label="Save score"
+              label={m.mobileGameDetails.score.save}
               size="sm"
               pending={scorePending}
               onPress={() => onSaveSets(setsToSave(match.sets, drafts))}
@@ -469,7 +491,7 @@ export function ScoreCard({
             phase={phase}
             confirmedAtLabel={
               confirmation?.confirmedAt
-                ? formatAbsoluteDay(confirmation.confirmedAt)
+                ? formatAbsoluteDay(confirmation.confirmedAt, locale)
                 : null
             }
             confirmedByOrganizer={confirmation?.confirmedByOrganizer ?? false}

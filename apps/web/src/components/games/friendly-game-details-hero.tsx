@@ -14,6 +14,7 @@ import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { DividedFigurePair } from "~/components/home/home-all-time";
 import { WinLossMark } from "~/components/home/home-recent-form-row";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
@@ -45,6 +46,7 @@ function StatusPill({ label, solid }: { label: string; solid: boolean }) {
 }
 
 function PlaceRow({ place }: { place: FriendlyGameHeroPlace }) {
+  const m = useMessages();
   return (
     <div className="mt-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
@@ -67,11 +69,13 @@ function PlaceRow({ place }: { place: FriendlyGameHeroPlace }) {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={
-              place.name ? `Directions to ${place.name}` : "Directions"
+              place.name
+                ? m.webGame.directionsTo(place.name)
+                : m.webGame.directions
             }
           >
             <Navigation aria-hidden="true" className="size-3.5" />
-            Directions
+            {m.webGame.directions}
           </a>
         </Button>
       ) : null}
@@ -85,7 +89,7 @@ function Figures({ figures }: { figures: CourtFigure[] }) {
       {figures.map((figure) => (
         <div
           key={figure.key}
-          className="flex min-w-0 flex-col gap-0.5 pl-4 first:pl-0"
+          className="flex min-w-0 flex-col gap-0.5 ps-4 first:ps-0"
         >
           <p
             className={cn(
@@ -170,6 +174,8 @@ export function FriendlyGameDetailsHero({
   /** Share and the Game's menu, top right across from back. */
   actions?: React.ReactNode;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -179,7 +185,7 @@ export function FriendlyGameDetailsHero({
     return () => window.clearInterval(timer);
   }, []);
 
-  const model = friendlyGameHeroModel(input, now);
+  const model = friendlyGameHeroModel(input, now, locale);
 
   if (!model) {
     return <HeroNavRow tone="paper" actions={actions} />;
@@ -193,7 +199,7 @@ export function FriendlyGameDetailsHero({
     <Surface as="article" tone="ink" className={HERO_BLEED}>
       <HeroNavRow tone="ink" actions={actions} />
       {model.kind === "time_unset" ? (
-        <p className="text-dim text-meta mt-4">Time unset</p>
+        <p className="text-dim text-meta mt-4">{m.webGame.hero.timeUnset}</p>
       ) : (
         <>
           <div className="mt-4 flex min-w-0 items-center gap-2.5">
@@ -211,7 +217,7 @@ export function FriendlyGameDetailsHero({
           {model.partnerName ? (
             <>
               <p className="font-expanded text-display mt-3 leading-none tracking-[-0.03em]">
-                You and {model.partnerName}
+                {m.webGame.hero.youAnd(model.partnerName)}
               </p>
               <p className="text-lead mt-3">{model.dateLine}</p>
             </>

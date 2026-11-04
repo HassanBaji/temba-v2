@@ -35,10 +35,8 @@ import {
   type SeatPosition,
   vacantPositionsFromSides,
 } from "#src/games/seats";
-import {
-  LEVEL_RANGE_OUTSIDE_MESSAGE,
-  LEVEL_RANGE_TEAM_MESSAGE,
-} from "@repo/domain/level-range";
+import { type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -142,19 +140,21 @@ async function userAlreadyOnGame(
 
 function throwIfInviteAdmitRefused(
   result: AdmitResult,
+  locale: Locale,
   alreadyOnGameMessage = "You are already registered on this Game",
 ) {
   if (result.ok || result.reason === "full") {
     return;
   }
   if (result.reason === "level_range") {
+    const level = messagesFor(locale).level;
     throw new TRPCError({
       code: "FORBIDDEN",
       message:
         alreadyOnGameMessage ===
         "A Team partner is already registered on this Game"
-          ? LEVEL_RANGE_TEAM_MESSAGE
-          : LEVEL_RANGE_OUTSIDE_MESSAGE,
+          ? level.rangeTeam
+          : level.rangeOutside,
     });
   }
   if (
@@ -206,11 +206,12 @@ export async function admitIndividualUser(
   database: Tx,
   game: GameRow,
   userId: string,
+  locale: Locale,
   now = new Date(),
   seat?: { sideIndex: number; position: SeatPosition },
 ): Promise<{ waitlisted: boolean }> {
   if (seat) {
-    assertGameHasSeats(game);
+    assertGameHasSeats(game, locale);
   }
   if (await userAlreadyOnGame(database, game.id, userId)) {
     throw new TRPCError({
@@ -235,7 +236,7 @@ export async function admitIndividualUser(
   if (!(await userAllowedByLevelRange(database, game, userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+      message: messagesFor(locale).level.rangeOutside,
     });
   }
 
@@ -265,7 +266,7 @@ export async function admitIndividualUser(
         await enqueueWaitlistUser(database, game.id, userId);
         return { waitlisted: true };
       }
-      throwIfInviteAdmitRefused(admitted);
+      throwIfInviteAdmitRefused(admitted, locale);
     }
     return { waitlisted: false };
   }
@@ -281,7 +282,7 @@ export async function admitIndividualUser(
       await enqueueWaitlistUser(database, game.id, userId);
       return { waitlisted: true };
     }
-    throwIfInviteAdmitRefused(admitted);
+    throwIfInviteAdmitRefused(admitted, locale);
   }
   return { waitlisted: false };
 }
@@ -290,6 +291,7 @@ export async function admitCompleteTeam(
   database: Tx,
   game: GameRow,
   teamId: string,
+  locale: Locale,
   now = new Date(),
 ): Promise<{ waitlisted: boolean }> {
   const admitted = await admit(database, {
@@ -307,6 +309,7 @@ export async function admitCompleteTeam(
   }
   throwIfInviteAdmitRefused(
     admitted,
+    locale,
     "A Team partner is already registered on this Game",
   );
   return { waitlisted: false };
@@ -367,6 +370,7 @@ export async function recordTeamInviteLinkConsent(
     game: GameRow;
     linkId: string;
     userId: string;
+    locale: Locale;
   },
 ): Promise<
   | { outcome: "waiting_for_partner" }
@@ -375,7 +379,7 @@ export async function recordTeamInviteLinkConsent(
   if (!(await userAllowedByLevelRange(database, args.game, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: LEVEL_RANGE_OUTSIDE_MESSAGE,
+      message: messagesFor(args.locale).level.rangeOutside,
     });
   }
 
@@ -449,6 +453,11 @@ export async function recordTeamInviteLinkConsent(
     return { outcome: "waiting_for_partner" };
   }
 
-  const result = await admitCompleteTeam(database, args.game, team.id);
+  const result = await admitCompleteTeam(
+    database,
+    args.game,
+    team.id,
+    args.locale,
+  );
   return { outcome: "registered", waitlisted: result.waitlisted };
 }

@@ -6,6 +6,7 @@ import {
 } from "@repo/domain/verification-code";
 import * as React from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function OtpInput({
@@ -14,7 +15,7 @@ export function OtpInput({
   onChange,
   disabled,
   autoFocus,
-  "aria-label": ariaLabel = "Verification code",
+  "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
   className,
@@ -29,6 +30,7 @@ export function OtpInput({
   "aria-invalid"?: boolean;
   className?: string;
 }) {
+  const m = useMessages();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [focused, setFocused] = React.useState(false);
   const [caret, setCaret] = React.useState(0);
@@ -103,7 +105,7 @@ export function OtpInput({
         pattern="[0-9]*"
         autoFocus={autoFocus}
         disabled={disabled}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? m.webUi.otpLabel}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid}
         className="absolute inset-0 cursor-text opacity-0 disabled:cursor-not-allowed"

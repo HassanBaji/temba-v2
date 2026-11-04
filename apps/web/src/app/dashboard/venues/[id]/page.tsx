@@ -13,6 +13,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { VenueManagersSection } from "~/components/venues/venue-managers-section";
@@ -43,8 +44,7 @@ import {
 } from "~/lib/form-mutation-error";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
-import { COURT_SPORT_LABELS } from "@repo/domain/court-sport-copy";
-import { SPORTS, type Sport } from "@repo/domain/sport";
+import { SPORTS, sportLabel, type Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   coordToInput,
@@ -58,6 +58,9 @@ export default function VenueHomePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const m = useMessages();
+  const locale = useLocale();
+  const v = m.webDashboard.venue;
   const utils = api.useUtils();
   const venue = api.venues.byId.useQuery({ id });
 
@@ -106,7 +109,7 @@ export default function VenueHomePage({
 
   const updateVenue = api.venues.update.useMutation({
     onSuccess: async () => {
-      toast.success("Venue updated");
+      toast.success(v.toast.updated);
       await utils.venues.byId.invalidate({ id });
       await utils.venues.list.invalidate();
     },
@@ -128,7 +131,7 @@ export default function VenueHomePage({
 
   const addCourt = api.venues.addCourt.useMutation({
     onSuccess: async () => {
-      toast.success("Court added");
+      toast.success(v.toast.courtAdded);
       setNewCourtName("");
       setNewCourtSport("padel");
       await utils.venues.byId.invalidate({ id });
@@ -145,7 +148,7 @@ export default function VenueHomePage({
 
   const renameCourt = api.venues.renameCourt.useMutation({
     onSuccess: async () => {
-      toast.success("Court renamed");
+      toast.success(v.toast.courtRenamed);
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -155,7 +158,7 @@ export default function VenueHomePage({
 
   const setCourtSport = api.venues.setCourtSport.useMutation({
     onSuccess: async () => {
-      toast.success("Court sport updated");
+      toast.success(v.toast.courtSportUpdated);
       await utils.venues.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -165,14 +168,14 @@ export default function VenueHomePage({
 
   const deleteCourt = api.venues.deleteCourt.useMutation({
     onSuccess: async () => {
-      toast.success("Court deleted");
+      toast.success(v.toast.courtDeleted);
       await utils.venues.byId.invalidate({ id });
     },
   });
 
   const uploadLogo = api.venues.uploadLogo.useMutation({
     onSuccess: async () => {
-      toast.success("Logo saved");
+      toast.success(v.toast.logoSaved);
       setLogoError(null);
       await utils.venues.byId.invalidate({ id });
     },
@@ -184,14 +187,14 @@ export default function VenueHomePage({
 
   const clearLogo = api.venues.clearLogo.useMutation({
     onSuccess: async () => {
-      toast.success("Logo cleared");
+      toast.success(v.toast.logoCleared);
       await utils.venues.byId.invalidate({ id });
     },
   });
 
   const softArchive = api.venues.softArchive.useMutation({
     onSuccess: async () => {
-      toast.success("Venue Soft-archived");
+      toast.success(v.toast.archived);
       await utils.venues.byId.invalidate({ id });
       await utils.venues.list.invalidate();
     },
@@ -199,7 +202,7 @@ export default function VenueHomePage({
 
   const unarchive = api.venues.unarchive.useMutation({
     onSuccess: async () => {
-      toast.success("Venue unarchived");
+      toast.success(v.toast.unarchived);
       await utils.venues.byId.invalidate({ id });
       await utils.venues.list.invalidate();
     },
@@ -235,12 +238,10 @@ export default function VenueHomePage({
     if (!file) {
       return;
     }
-    void entityImageUploadInput(file, "Logo")
+    void entityImageUploadInput(file, locale, "Logo")
       .then((input) => uploadLogo.mutate({ venueId: id, ...input }))
       .catch((error: unknown) => {
-        setLogoError(
-          error instanceof Error ? error.message : "Logo could not be read",
-        );
+        setLogoError(error instanceof Error ? error.message : v.logoReadError);
       });
   }
 
@@ -250,7 +251,7 @@ export default function VenueHomePage({
 
   if (venue.isLoading) {
     return (
-      <DashboardShell title="Venue" isSubPage>
+      <DashboardShell title={v.title} isSubPage>
         <DetailPageSkeleton />
       </DashboardShell>
     );
@@ -258,9 +259,9 @@ export default function VenueHomePage({
 
   if (venue.error) {
     return (
-      <DashboardShell title="Venue" isSubPage>
+      <DashboardShell title={v.title} isSubPage>
         <ErrorState
-          title="Venue could not be loaded"
+          title={v.errorTitle}
           message={venue.error.message}
           onRetry={() => {
             void venue.refetch();
@@ -272,9 +273,9 @@ export default function VenueHomePage({
 
   if (!venue.data) {
     return (
-      <DashboardShell title="Venue" isSubPage>
+      <DashboardShell title={v.title} isSubPage>
         <ErrorState
-          title="Venue could not be loaded"
+          title={v.errorTitle}
           onRetry={() => {
             void venue.refetch();
           }}
@@ -286,10 +287,11 @@ export default function VenueHomePage({
   const data = venue.data;
   const venueName = data.name;
   const deleteCourtName =
-    data.courts.find((court) => court.id === deleteCourtId)?.name ?? "Court";
+    data.courts.find((court) => court.id === deleteCourtId)?.name ??
+    v.courtFallback;
 
   return (
-    <DashboardShell title="Venue" hidePageHeader isSubPage>
+    <DashboardShell title={v.title} hidePageHeader isSubPage>
       <div className="space-y-6">
         <EntityHomeHeader
           leading={
@@ -300,16 +302,16 @@ export default function VenueHomePage({
             />
           }
           title={venueName}
-          meta={`${data.city}, ${data.country}`}
+          meta={m.community.venue.location(data.city, data.country)}
           primaryAction={
             data.archivedAt ? (
               <Button
                 type="button"
                 onClick={() => unarchive.mutate({ id })}
                 pending={unarchive.isPending}
-                pendingLabel="Unarchiving…"
+                pendingLabel={v.unarchiving}
               >
-                Unarchive
+                {m.community.action.unarchive}
               </Button>
             ) : (
               <Button
@@ -317,7 +319,7 @@ export default function VenueHomePage({
                 variant="outline"
                 onClick={() => setArchiveOpen(true)}
               >
-                Soft-archive
+                {m.community.action.softArchive}
               </Button>
             )
           }
@@ -326,21 +328,19 @@ export default function VenueHomePage({
         {data.archivedAt ? (
           <SoftArchiveBanner
             headingLevel={2}
-            heading="This Venue is Soft-archived"
+            heading={v.archivedBanner.heading}
           >
-            It is hidden from the Community request catalog. You can still edit
-            fields, Courts, and logo. Unarchive to restore it to the live
-            catalog. Live Community links stay.
+            {v.archivedBanner.body}
           </SoftArchiveBanner>
         ) : null}
 
         <Section
-          title="Linked Communities"
-          description="Communities that currently have a live Venue link. Sharing a Venue does not change membership."
+          title={v.linkedCommunities.title}
+          description={v.linkedCommunities.description}
         >
           {data.linkedCommunities.length === 0 ? (
             <p className="text-body text-muted-foreground">
-              No Communities are live-linked to this Venue.
+              {v.linkedCommunities.empty}
             </p>
           ) : (
             <RowList>
@@ -351,7 +351,9 @@ export default function VenueHomePage({
                   title={community.name}
                   trailing={
                     community.archivedAt ? (
-                      <Badge variant="outline">Soft-archived</Badge>
+                      <Badge variant="outline">
+                        {m.community.badge.softArchived}
+                      </Badge>
                     ) : undefined
                   }
                 >
@@ -362,10 +364,7 @@ export default function VenueHomePage({
           )}
         </Section>
 
-        <Section
-          title="Details"
-          description="Edit name, city, country, and optional coordinates. Courts are named playing surfaces on this Venue."
-        >
+        <Section title={v.details.title} description={v.details.description}>
           <form onSubmit={onSubmit} className="space-y-6">
             <FormErrorSummary
               ref={detailsSummaryRef}
@@ -373,7 +372,9 @@ export default function VenueHomePage({
             />
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="venue-name">Name</FieldLabel>
+                <FieldLabel htmlFor="venue-name">
+                  {m.webDashboard.venues.new.name}
+                </FieldLabel>
                 <Input
                   id="venue-name"
                   value={name}
@@ -396,7 +397,9 @@ export default function VenueHomePage({
                 </FieldError>
               </Field>
               <Field>
-                <FieldLabel htmlFor="venue-city">City</FieldLabel>
+                <FieldLabel htmlFor="venue-city">
+                  {m.webDashboard.venues.new.city}
+                </FieldLabel>
                 <Input
                   id="venue-city"
                   value={city}
@@ -419,7 +422,9 @@ export default function VenueHomePage({
                 </FieldError>
               </Field>
               <Field>
-                <FieldLabel htmlFor="venue-country">Country</FieldLabel>
+                <FieldLabel htmlFor="venue-country">
+                  {m.webDashboard.venues.new.country}
+                </FieldLabel>
                 <Input
                   id="venue-country"
                   value={country}
@@ -442,7 +447,9 @@ export default function VenueHomePage({
                 </FieldError>
               </Field>
               <Field>
-                <FieldLabel htmlFor="venue-latitude">Latitude</FieldLabel>
+                <FieldLabel htmlFor="venue-latitude">
+                  {m.webDashboard.venues.new.latitude}
+                </FieldLabel>
                 <Input
                   id="venue-latitude"
                   type="number"
@@ -463,14 +470,16 @@ export default function VenueHomePage({
                   }
                 />
                 <FieldDescription id="venue-latitude-help">
-                  Optional. Between −90 and 90.
+                  {m.webDashboard.venues.new.latitudeHelp}
                 </FieldDescription>
                 <FieldError id="venue-latitude-error">
                   {fieldErrorMessage(updateVenue.error, "latitude")}
                 </FieldError>
               </Field>
               <Field>
-                <FieldLabel htmlFor="venue-longitude">Longitude</FieldLabel>
+                <FieldLabel htmlFor="venue-longitude">
+                  {m.webDashboard.venues.new.longitude}
+                </FieldLabel>
                 <Input
                   id="venue-longitude"
                   type="number"
@@ -491,7 +500,7 @@ export default function VenueHomePage({
                   }
                 />
                 <FieldDescription id="venue-longitude-help">
-                  Optional. Between −180 and 180.
+                  {m.webDashboard.venues.new.longitudeHelp}
                 </FieldDescription>
                 <FieldError id="venue-longitude-error">
                   {fieldErrorMessage(updateVenue.error, "longitude")}
@@ -504,19 +513,19 @@ export default function VenueHomePage({
                 className="min-h-11"
                 disabled={updateVenue.isPending}
               >
-                {updateVenue.isPending ? "Saving…" : "Save"}
+                {updateVenue.isPending ? m.common.saving : m.common.save}
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/dashboard/venues">Cancel</Link>
+                <Link href="/dashboard/venues">{m.common.cancel}</Link>
               </Button>
             </div>
           </form>
         </Section>
 
-        <Section title="Logo">
+        <Section title={v.logo.title}>
           <EntityImageField
             id="venue-logo"
-            label="Upload logo"
+            label={v.logo.upload}
             noun="Logo"
             currentImageUrl={data.logoImageUrl}
             error={logoError}
@@ -532,24 +541,23 @@ export default function VenueHomePage({
               disabled={clearLogo.isPending || uploadLogo.isPending}
               onClick={() => setClearLogoOpen(true)}
             >
-              Clear logo
+              {v.logo.clear}
             </Button>
           ) : null}
         </Section>
 
         <VenueManagersSection venueId={id} />
 
-        <Section
-          title="Courts"
-          description="Each Court on this Venue needs its own name."
-        >
+        <Section title={v.courts.title} description={v.courts.description}>
           <form onSubmit={onAddCourt} className="space-y-3">
             <FormErrorSummary
               ref={courtSummaryRef}
               message={globalFormErrorMessage(addCourt.error)}
             />
             <Field>
-              <FieldLabel htmlFor="new-court-name">Court name</FieldLabel>
+              <FieldLabel htmlFor="new-court-name">
+                {v.courts.nameLabel}
+              </FieldLabel>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <Input
                   id="new-court-name"
@@ -573,7 +581,7 @@ export default function VenueHomePage({
                 >
                   <SelectTrigger
                     id="new-court-sport"
-                    aria-label="Sport"
+                    aria-label={m.team.sportLabel}
                     className="w-full sm:w-40"
                   >
                     <SelectValue />
@@ -581,13 +589,13 @@ export default function VenueHomePage({
                   <SelectContent>
                     {SPORTS.map((value) => (
                       <SelectItem key={value} value={value}>
-                        {COURT_SPORT_LABELS[value]}
+                        {sportLabel(value, locale) ?? value}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Button type="submit" disabled={addCourt.isPending}>
-                  {addCourt.isPending ? "Adding…" : "Add Court"}
+                  {addCourt.isPending ? v.courts.adding : v.courts.add}
                 </Button>
               </div>
               <FieldError id="new-court-name-error">
@@ -597,9 +605,7 @@ export default function VenueHomePage({
           </form>
 
           {data.courts.length === 0 ? (
-            <p className="text-body text-muted-foreground">
-              No Courts yet. This Venue can stay empty.
-            </p>
+            <p className="text-body text-muted-foreground">{v.courts.empty}</p>
           ) : (
             <RowList>
               {data.courts.map((court) => {
@@ -618,7 +624,7 @@ export default function VenueHomePage({
                   >
                     <Field className="min-w-0 flex-1">
                       <FieldLabel htmlFor={`court-name-${court.id}`}>
-                        Court name
+                        {v.courts.nameLabel}
                       </FieldLabel>
                       <Input
                         id={`court-name-${court.id}`}
@@ -644,7 +650,7 @@ export default function VenueHomePage({
                     </Field>
                     <Field className="sm:w-40">
                       <FieldLabel htmlFor={`court-sport-${court.id}`}>
-                        Sport
+                        {m.team.sportLabel}
                       </FieldLabel>
                       <Select
                         value={court.sport}
@@ -658,7 +664,7 @@ export default function VenueHomePage({
                       >
                         <SelectTrigger
                           id={`court-sport-${court.id}`}
-                          aria-label={`${court.name} sport`}
+                          aria-label={v.courts.courtSport(court.name)}
                           className="w-full"
                         >
                           <SelectValue />
@@ -666,7 +672,7 @@ export default function VenueHomePage({
                         <SelectContent>
                           {SPORTS.map((value) => (
                             <SelectItem key={value} value={value}>
-                              {COURT_SPORT_LABELS[value]}
+                              {sportLabel(value, locale) ?? value}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -676,27 +682,27 @@ export default function VenueHomePage({
                       <Button
                         type="button"
                         variant="outline"
-                        aria-label={`Rename ${court.name}`}
+                        aria-label={v.courts.renameCourt(court.name)}
                         disabled={
                           !courtRenameIsDirty(draft, court.name) ||
                           renameCourt.isPending
                         }
                         pending={renaming}
-                        pendingLabel="Renaming…"
+                        pendingLabel={v.courts.renaming}
                         onClick={() =>
                           renameCourt.mutate({ id: court.id, name: draft })
                         }
                       >
-                        Rename
+                        {v.courts.rename}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        aria-label={`Delete ${court.name}`}
+                        aria-label={v.courts.deleteCourt(court.name)}
                         disabled={deleteCourt.isPending}
                         onClick={() => setDeleteCourtId(court.id)}
                       >
-                        Delete
+                        {m.common.delete}
                       </Button>
                     </div>
                   </li>
@@ -714,9 +720,9 @@ export default function VenueHomePage({
             setDeleteCourtId(null);
           }
         }}
-        title={`Delete ${deleteCourtName}?`}
-        description="This cannot be undone."
-        confirmLabel="Delete Court"
+        title={v.deleteCourtConfirm.title(deleteCourtName)}
+        description={m.game.consequence.cannotBeUndone}
+        confirmLabel={v.deleteCourtConfirm.confirmLabel}
         pending={deleteCourt.isPending}
         onConfirm={async () => {
           if (!deleteCourtId) {
@@ -729,9 +735,9 @@ export default function VenueHomePage({
       <ConfirmDialog
         open={clearLogoOpen}
         onOpenChange={setClearLogoOpen}
-        title={`Clear logo for ${venueName}?`}
-        description="The current logo will be removed."
-        confirmLabel="Clear logo"
+        title={v.clearLogoConfirm.title(venueName)}
+        description={v.clearLogoConfirm.description}
+        confirmLabel={v.logo.clear}
         pending={clearLogo.isPending}
         onConfirm={async () => {
           await clearLogo.mutateAsync({ venueId: id });
@@ -741,9 +747,9 @@ export default function VenueHomePage({
       <ConfirmDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
-        title={`Soft-archive ${venueName}?`}
-        description="It is hidden from the Community request catalog. Live Community links stay."
-        confirmLabel="Soft-archive Venue"
+        title={v.archiveConfirm.title(venueName)}
+        description={v.archiveConfirm.description}
+        confirmLabel={v.archiveConfirm.confirmLabel}
         pending={softArchive.isPending}
         onConfirm={async () => {
           await softArchive.mutateAsync({ id });

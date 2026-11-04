@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatGameCardDay } from "./format-game-start";
 import { showsFriendlyRoster } from "./game-summary-cta";
 import type { LevelBand } from "./level-bands";
@@ -19,47 +22,6 @@ import {
 import { type TournamentSizing } from "./tournament-sizing";
 
 export type GameDetailsChrome = "friendly_game" | "drawn_tournament" | "tabs";
-
-export const TOURNAMENT_EYEBROW_PREFIX = "Friendly tournament";
-export const YOUR_TEAM_LABEL = "Your team";
-export const LEFT_SEAT_LABEL = "Left seat";
-export const RIGHT_SEAT_LABEL = "Right seat";
-export const OPEN_POSITION_SR_LABEL = "Open Position";
-export const TOURNAMENT_YOU_ARE_IN_COPY = "You are in.";
-export const TOURNAMENT_DRAW_RANDOM_CLAUSE = "and it is random.";
-export const TOURNAMENT_DRAW_WHEN_FULL_COPY =
-  "The draw happens once they are full";
-export const TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY =
-  "draws the groups once they are full";
-export const TOURNAMENT_DRAWS_KNOCKOUT_WHEN_FULL_COPY =
-  "draws the knockout once they are full";
-export const TOURNAMENT_CLOSING_LINE =
-  "Every Round is an ordinary Match. Scores are entered the usual way and the other team confirms.";
-export const ORGANIZER_ROW_LABEL = "Organizer";
-export const GROUP_ROW_LABEL = "Group";
-export const PRICE_ROW_LABEL = "Price";
-export const COUNTS_FOR_RATING_LABEL = "Counts for rating";
-export const COUNTS_FOR_RATING_YES = "Yes";
-export const COUNTS_FOR_RATING_NO = "No";
-export const YOU_OWE_ROW_LABEL = "You owe";
-export const YOU_OWE_AFTER_EACH_MATCH = "after each Match";
-export const INVITE_ACTION_LABEL = "Invite";
-export const INVITE_FROM_A_GROUP_LABEL = "Invite from a group";
-export const PRICE_PER_MATCH_SUFFIX = "per Match";
-export const TEAMS_HEADING = "Teams";
-export const TAKE_SEAT_LABEL = "Take seat";
-export const YOUR_TEAM_TAG = "your team";
-export const SEATS_HEADING = "Seats";
-export const LEAVE_THE_SEAT_LABEL = "Leave the seat";
-export const YOUR_ROUNDS_PREDRAW_CAPTION = "Opponents after the draw";
-export const NOT_DRAWN_TRAILER = "Not drawn";
-export const STANDINGS_HEADING = "Standings";
-export const TOURNAMENT_ENDS_COPY =
-  "Each group has a winner. There is no overall champion.";
-export const KNOCKOUT_ONLY_LEAD = "Lose once and you are done for the day.";
-export const GROUPS_THEN_KNOCKOUT_LEAD =
-  "The best in each group carry on to the knockout.";
-export const POOLS_SEGMENT_LABEL = "groups";
 
 const TEAM_LIST_LEADING_FULL = 4;
 const TEAM_LIST_MIN_COLLAPSE = 3;
@@ -106,6 +68,7 @@ export type TournamentStatusLineInput = {
   seatsLeft: number;
   teamCount: number;
   organizerName: string | null;
+  locale: Locale;
   knockoutOnly?: boolean;
   /** Groups then knockout: the line says the groups lead to a knockout. */
   thenKnockout?: boolean;
@@ -186,6 +149,7 @@ export function tournamentFieldSummary(
 export function tournamentTeamRows(
   sides: readonly TournamentHomeSide[],
   viewerUserId: string,
+  locale: Locale,
 ): TournamentTeamRowsView {
   const rows: TournamentTeamRow[] = sides.map((side, index) => {
     const isViewer =
@@ -195,7 +159,7 @@ export function tournamentTeamRows(
     return {
       sideIndex: side.sideIndex,
       indexLabel: String(index + 1).padStart(2, "0"),
-      name: teamRowName(side.left, side.right),
+      name: teamRowName(side.left, side.right, locale),
       isViewer,
       hasOpenPosition: openPosition != null,
       openPosition,
@@ -246,96 +210,112 @@ export function tournamentTeamRows(
   };
 }
 
-export function tournamentTeamsCountLine(full: number, open: number): string {
+export function tournamentTeamsCountLine(
+  full: number,
+  open: number,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).tournament.home;
   if (full <= 0 && open <= 0) {
     return "";
   }
   if (full <= 0) {
-    return open === 1
-      ? "1 with a Position open"
-      : `${open} with a Position open`;
+    return m.withPositionOpen(open);
   }
-  const fullPart = `${full} full`;
   if (open <= 0) {
-    return fullPart;
+    return m.fullCount(full);
   }
-  const openPart =
-    open === 1 ? "1 with a Position open" : `${open} with a Position open`;
-  return `${fullPart}, ${openPart}`;
+  return m.fullAndOpen(full, open);
 }
 
-export function tournamentCollapsedTeamsLabel(count: number): string {
-  const amount = collapseCountWord(count);
-  const teamWord = count === 1 ? "full team" : "full teams";
-  return `${amount} more ${teamWord}`;
+export function tournamentCollapsedTeamsLabel(
+  count: number,
+  locale: Locale,
+): string {
+  return messagesFor(locale).tournament.home.moreFullTeams(count);
 }
 
 export function tournamentSeatsTakenLine(
   seatsTaken: number,
   seatTotal: number,
+  locale: Locale,
 ): string {
-  return `${seatsTaken} of ${seatTotal}`;
+  return messagesFor(locale).tournament.home.seatsTaken(seatsTaken, seatTotal);
 }
 
 export function tournamentSeatsTakenSrLabel(
   seatsTaken: number,
   seatTotal: number,
+  locale: Locale,
 ): string {
-  return `${seatsTaken} of ${seatTotal} seats taken`;
+  return messagesFor(locale).tournament.home.seatsTakenSr(
+    seatsTaken,
+    seatTotal,
+  );
 }
 
 export function tournamentOpenPositionSubline(
   position: "left" | "right",
+  locale: Locale,
 ): string {
-  return `${positionSeatLabel(position)} open`;
+  const m = messagesFor(locale).tournament.home;
+  return position === "left" ? m.leftSeatOpen : m.rightSeatOpen;
 }
 
 /** `12 Game teams, 3 groups of 4`, then `, then quarters` with a Knockout. */
 export function tournamentSizeLine(
   sizing: TournamentSizing,
+  locale: Locale,
   knockoutRoundCount?: number | null,
 ): string {
-  const teamWord = sizing.teamCount === 1 ? "Game team" : "Game teams";
-  const line = `${sizing.teamCount} ${teamWord}, ${poolSizeClause(sizing)}`;
+  const m = messagesFor(locale).tournament.home;
+  const clause = poolSizeClause(sizing, locale);
   return knockoutRoundCount != null
-    ? `${line}, then ${knockoutStartWord(knockoutRoundCount)}`
-    : line;
+    ? m.sizeLineThen(
+        sizing.teamCount,
+        clause,
+        knockoutStartWord(knockoutRoundCount, locale),
+      )
+    : m.sizeLine(sizing.teamCount, clause);
 }
 
 /** `12 Game teams, knockout from the Round of 16` */
-export function knockoutSizeLine(teamCount: number): string | null {
+export function knockoutSizeLine(
+  teamCount: number,
+  locale: Locale,
+): string | null {
   const tree = buildKnockoutTree({ entrantCount: teamCount });
   if (!tree) {
     return null;
   }
-  const teamWord = teamCount === 1 ? "Game team" : "Game teams";
-  return `${teamCount} ${teamWord}, knockout from the ${knockoutRoundName(1, tree.roundCount)}`;
+  return messagesFor(locale).tournament.home.knockoutSizeLine(
+    teamCount,
+    knockoutRoundName(1, tree.roundCount, locale),
+  );
 }
 
 export function tournamentStatusLine(input: TournamentStatusLineInput): string {
   const line = drawStatusLine(input);
   return input.thenKnockout && !input.knockoutOnly
-    ? `${line} ${GROUPS_THEN_KNOCKOUT_LEAD}`
+    ? `${line} ${messagesFor(input.locale).tournament.home.groupsThenKnockoutLead}`
     : line;
 }
 
 function drawStatusLine(input: TournamentStatusLineInput): string {
+  const m = messagesFor(input.locale).tournament.home;
   if (input.seated) {
     if (input.seatsLeft === 0) {
       return input.knockoutOnly
-        ? `${TOURNAMENT_YOU_ARE_IN_COPY} The draw is random.`
-        : `${TOURNAMENT_YOU_ARE_IN_COPY} The group draw is random.`;
+        ? m.youAreInDrawRandom
+        : m.youAreInGroupDrawRandom;
     }
-    const teamWord = input.teamCount === 1 ? "Game team" : "Game teams";
-    return `${TOURNAMENT_YOU_ARE_IN_COPY} The draw happens once ${input.teamCount} ${teamWord} are full, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`;
+    return m.youAreInDrawWhenFull(input.teamCount);
   }
-
-  const seats = seatsLeftSentence(input.seatsLeft);
-  const drawer = drawWhenFullClause(
-    input.organizerName,
+  return m.unseatedStatus(
+    input.seatsLeft,
+    firstName(input.organizerName),
     input.knockoutOnly === true,
   );
-  return `${seats} ${drawer}, ${TOURNAMENT_DRAW_RANDOM_CLAUSE}`;
 }
 
 export function tournamentRoundCount(game: {
@@ -358,13 +338,14 @@ export function tournamentRoundCount(game: {
 
 export function tournamentEyebrow(
   roundCount: number,
+  locale: Locale,
   knockoutOnly = false,
 ): string {
+  const m = messagesFor(locale).tournament.home;
   if (knockoutOnly) {
-    return `${TOURNAMENT_EYEBROW_PREFIX}, knockout`;
+    return m.eyebrowKnockout;
   }
-  const rounds = roundCount === 1 ? "1 Round" : `${roundCount} Rounds`;
-  return `${TOURNAMENT_EYEBROW_PREFIX}, ${rounds}`;
+  return m.eyebrowRounds(roundCount);
 }
 
 /**
@@ -374,24 +355,29 @@ export function tournamentEyebrow(
 export function drawnTournamentProgressLine(args: {
   roundsPlayed: string | null;
   knockout: readonly KnockoutViewRound[] | null;
+  locale: Locale;
 }): string | null {
   const current = knockoutCurrentRound(args.knockout);
-  return current ? knockoutNowLine(current.name) : args.roundsPlayed;
+  return current
+    ? knockoutNowLine(current.name, args.locale)
+    : args.roundsPlayed;
 }
 
 export function tournamentStartLine(
   windowStart: Date | string | null | undefined,
   venueName: string | null | undefined,
+  locale: Locale,
 ): string | null {
   if (!windowStart) {
     return null;
   }
-  const day = formatGameCardDay(windowStart);
+  const m = messagesFor(locale).tournament.home;
+  const day = formatGameCardDay(windowStart, locale);
   const venue = venueName?.trim();
   if (venue) {
-    return `Starts ${day}, ${venue}`;
+    return m.startsAt(day, venue);
   }
-  return `Starts ${day}`;
+  return m.starts(day);
 }
 
 export function tournamentOrganizerName(args: {
@@ -454,6 +440,7 @@ export type OtherPoolsPlayedSummary = {
 export function otherPoolsPlayedSummary(
   selectedPoolIndex: number,
   pools: readonly OtherPoolsPlayedPool[],
+  locale: Locale,
 ): OtherPoolsPlayedSummary | null {
   const others = pools.filter((pool) => pool.poolIndex !== selectedPoolIndex);
   if (others.length === 0) {
@@ -476,90 +463,73 @@ export function otherPoolsPlayedSummary(
   }
 
   return {
-    namesLine: joinPoolLabels(others.map((pool) => pool.label)),
-    playedLabel: otherPoolsPlayedLabel(played),
+    namesLine: joinPoolLabels(
+      others.map((pool) => pool.label),
+      locale,
+    ),
+    playedLabel: otherPoolsPlayedLabel(played, locale),
     nextPoolIndex: next.poolIndex,
   };
 }
 
-export function otherPoolsPlayedLabel(count: number): string {
-  return count === 1 ? "1 Match played" : `${count} Matches played`;
+export function otherPoolsPlayedLabel(count: number, locale: Locale): string {
+  return messagesFor(locale).tournament.home.matchesPlayed(count);
 }
 
-export function roundResultsHeading(roundNumber: number): string {
+export function roundResultsHeading(
+  roundNumber: number,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).tournament.home;
   if (roundNumber <= 0) {
-    return "Round results";
+    return m.roundResults;
   }
-  return `Round ${roundNumber} results`;
+  return m.roundNResults(roundNumber);
 }
 
-function joinPoolLabels(labels: readonly string[]): string {
+function joinPoolLabels(labels: readonly string[], locale: Locale): string {
+  const m = messagesFor(locale).tournament;
   if (labels.length === 0) {
     return "";
   }
   if (labels.length === 1) {
     return labels[0] ?? "";
   }
-  if (labels.length === 2) {
-    return `${labels[0]} and ${labels[1]}`;
-  }
-  const leading = labels.slice(0, -1).join(", ");
-  return `${leading} and ${labels[labels.length - 1]}`;
+  const leading = labels.slice(0, -1).join(m.listSeparator);
+  return m.listAnd(leading, labels[labels.length - 1] ?? "");
 }
 
-export function positionSeatLabel(position: "left" | "right"): string {
-  return position === "left" ? LEFT_SEAT_LABEL : RIGHT_SEAT_LABEL;
+export function positionSeatLabel(
+  position: "left" | "right",
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).tournament.home;
+  return position === "left" ? m.leftSeat : m.rightSeat;
 }
 
 function teamRowName(
   left: TournamentHomeOccupant | null,
   right: TournamentHomeOccupant | null,
+  locale: Locale,
 ): string {
   const names = [left?.name, right?.name].filter((name): name is string =>
     Boolean(name?.trim()),
   );
   if (names.length === 0) {
-    return "Open";
+    return messagesFor(locale).tournament.home.openTeamRow;
   }
   return names.join(" & ");
 }
 
-function poolSizeClause(sizing: TournamentSizing): string {
+function poolSizeClause(sizing: TournamentSizing, locale: Locale): string {
+  const m = messagesFor(locale).tournament;
   const counts = new Map<number, number>();
   for (const size of sizing.poolSizes) {
     counts.set(size, (counts.get(size) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(([size, count]) => {
-      const poolWord = count === 1 ? "group" : "groups";
-      return `${count} ${poolWord} of ${size}`;
-    })
-    .join(", ");
-}
-
-function seatsLeftSentence(seatsLeft: number): string {
-  if (seatsLeft <= 0) {
-    return "No seats left.";
-  }
-  if (seatsLeft === 1) {
-    return "1 seat left.";
-  }
-  return `${seatsLeft} seats left.`;
-}
-
-function drawWhenFullClause(
-  organizerName: string | null,
-  knockoutOnly: boolean,
-): string {
-  const first = firstName(organizerName);
-  if (first) {
-    return `${first} ${
-      knockoutOnly
-        ? TOURNAMENT_DRAWS_KNOCKOUT_WHEN_FULL_COPY
-        : TOURNAMENT_DRAWS_POOLS_WHEN_FULL_COPY
-    }`;
-  }
-  return TOURNAMENT_DRAW_WHEN_FULL_COPY;
+    .map(([size, count]) => m.sizing.poolSizeClause(count, size))
+    .join(m.listSeparator);
 }
 
 function firstName(name: string | null): string | null {
@@ -575,24 +545,4 @@ function firstOpenPosition(side: TournamentHomeSide): "left" | "right" | null {
     return "right";
   }
   return null;
-}
-
-const COLLAPSE_COUNT_WORDS = [
-  "Zero",
-  "One",
-  "Two",
-  "Three",
-  "Four",
-  "Five",
-  "Six",
-  "Seven",
-  "Eight",
-  "Nine",
-  "Ten",
-  "Eleven",
-  "Twelve",
-] as const;
-
-function collapseCountWord(count: number): string {
-  return COLLAPSE_COUNT_WORDS[count] ?? String(count);
 }

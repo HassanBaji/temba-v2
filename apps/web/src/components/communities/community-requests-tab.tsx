@@ -7,13 +7,9 @@ import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { RequestRow } from "~/components/invites/request-row";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
-  COMMUNITY_JOIN_REQUESTS_ERROR_TITLE,
-  COMMUNITY_JOIN_REQUESTS_TITLE,
-  COMMUNITY_REQUESTS_EMPTY,
-  COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE,
-  COMMUNITY_TEAM_LINK_REQUESTS_TITLE,
   communityJoinRequestRow,
   communityRequestsAreEmpty,
   communityTeamLinkRequestRow,
@@ -84,6 +80,8 @@ export function CommunityRequestsTab({
   onApproveTeam: (requestId: string) => void;
   onRejectTeam: (requestId: string) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const hasJoin = canManageJoinRequests;
   const hasTeam = canManageTeamLinks;
   if (
@@ -96,13 +94,13 @@ export function CommunityRequestsTab({
       failed: Boolean(joinError ?? teamError),
     })
   ) {
-    return <EmptyState icon={Inbox} {...COMMUNITY_REQUESTS_EMPTY} />;
+    return <EmptyState icon={Inbox} {...m.community.requestsEmpty} />;
   }
 
   return (
     <div className="flex flex-col gap-[26px]">
       {hasJoin ? (
-        <RequestsCard title={COMMUNITY_JOIN_REQUESTS_TITLE}>
+        <RequestsCard title={m.community.joinRequestsTitle}>
           {joinLoading ? (
             <div className="px-5 py-4">
               <Skeleton className="h-16 w-full" />
@@ -112,7 +110,7 @@ export function CommunityRequestsTab({
             <ErrorState
               headingLevel={3}
               className="px-5"
-              title={COMMUNITY_JOIN_REQUESTS_ERROR_TITLE}
+              title={m.community.joinRequestsErrorTitle}
               message={joinError}
               onRetry={onRetryJoin}
             />
@@ -120,7 +118,7 @@ export function CommunityRequestsTab({
           {joinRequests && joinRequests.length > 0 ? (
             <RequestRows>
               {joinRequests.map((request) => {
-                const row = communityJoinRequestRow(request);
+                const row = communityJoinRequestRow(request, locale);
                 return (
                   <RequestRow
                     key={request.id}
@@ -146,7 +144,7 @@ export function CommunityRequestsTab({
       ) : null}
 
       {hasTeam ? (
-        <RequestsCard title={COMMUNITY_TEAM_LINK_REQUESTS_TITLE}>
+        <RequestsCard title={m.community.teamLinkRequestsTitle}>
           {teamLoading ? (
             <div className="px-5 py-4">
               <Skeleton className="h-16 w-full" />
@@ -156,7 +154,7 @@ export function CommunityRequestsTab({
             <ErrorState
               headingLevel={3}
               className="px-5"
-              title={COMMUNITY_TEAM_LINK_REQUESTS_ERROR_TITLE}
+              title={m.community.teamLinkRequestsErrorTitle}
               message={teamError}
               onRetry={onRetryTeam}
             />
@@ -164,7 +162,7 @@ export function CommunityRequestsTab({
           {teamLinkRequests && teamLinkRequests.length > 0 ? (
             <RequestRows>
               {teamLinkRequests.map((request) => {
-                const row = communityTeamLinkRequestRow(request);
+                const row = communityTeamLinkRequestRow(request, locale);
                 return (
                   <RequestRow
                     key={request.id}

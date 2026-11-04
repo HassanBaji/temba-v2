@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { user } from "@repo/db";
-import { SLOT_REFUSAL_MESSAGES } from "@repo/domain/booking-copy";
+import { slotRefusalMessage } from "@repo/domain/booking-copy";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { evaluateSlot } from "@repo/domain/booking-slots";
 import { type db } from "#src/db";
 
@@ -49,6 +50,7 @@ export async function createBookingForVenue(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const now = args.now ?? new Date();
@@ -100,7 +102,7 @@ export async function createBookingForVenue(
         message:
           check.reason === "no_price"
             ? "No Pricing rule covers that time. Type a price"
-            : SLOT_REFUSAL_MESSAGES[check.reason],
+            : slotRefusalMessage(check.reason, args.locale ?? DEFAULT_LOCALE),
       });
     }
     const priceFils = args.priceFils ?? (check.ok ? check.priceFils : 0);
@@ -187,5 +189,6 @@ export const createForVenueProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

@@ -1,3 +1,5 @@
+import type { Messages } from "@repo/i18n/messages";
+
 export type TabSlot =
   | "home"
   | "games"
@@ -8,16 +10,15 @@ export type TabSlot =
 
 export type TabEntry = { slot: TabSlot; title: string };
 
-const TABS: TabEntry[] = [
-  { slot: "home", title: "Home" },
-  { slot: "games", title: "Games" },
-  { slot: "book", title: "Book" },
-  { slot: "groups", title: "Groups" },
-  { slot: "profile", title: "Profile" },
-];
-
-export function visibleTabs(): TabEntry[] {
-  return TABS;
+export function visibleTabs(messages: Messages): TabEntry[] {
+  const m = messages.common;
+  return [
+    { slot: "home", title: m.home },
+    { slot: "games", title: m.games },
+    { slot: "book", title: m.book },
+    { slot: "groups", title: m.groups },
+    { slot: "profile", title: m.profile },
+  ];
 }
 
 export function tabBarHidden(segments: readonly string[]): boolean {

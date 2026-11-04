@@ -11,6 +11,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { CardChoice } from "~/components/onboarding/onboarding-choices";
 import {
   LevelChoiceGrid,
@@ -25,7 +26,7 @@ import {
   globalFormErrorMessage,
 } from "~/lib/form-mutation-error";
 import {
-  FOOTBALL_SELF_PLACEMENT_CHOICES,
+  footballSelfPlacementChoices,
   FOOTBALL_SELF_PLACEMENTS,
   selfDeclareChoiceFromFootballPlacement,
   type FootballSelfPlacement,
@@ -79,6 +80,9 @@ export function DeclareLevelDialog({
   onDeclare: (choice: SelfDeclareChoice) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.you.declareDialog;
   const summaryRef = React.useRef<HTMLDivElement>(null);
   const [choice, setChoice] = React.useState<Choice>("");
   const choiceError = fieldErrorMessage(error, "choice");
@@ -118,11 +122,11 @@ export function DeclareLevelDialog({
       <ResponsiveDialogContent restoreFocusRef={restoreFocusRef}>
         <form onSubmit={onSubmit} className="contents">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Declare your Level</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>
+              {m.webAuth.home.declare.title}
+            </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {sport === "football"
-                ? "Place yourself on the football ladder once. Pick how you play; it balances teams until football results are rated."
-                : "Place yourself on the padel ladder once. Pick a Level band, or I don’t know if you are unsure."}
+              {copy.description[sport]}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
@@ -133,7 +137,7 @@ export function DeclareLevelDialog({
             />
             <Field>
               <FieldLabel id="declare-level-choice-label">
-                {sport === "football" ? "How you play" : "Level band"}
+                {sport === "football" ? copy.howYouPlay : copy.levelBand}
               </FieldLabel>
               {sport === "football" ? (
                 <div
@@ -146,7 +150,7 @@ export function DeclareLevelDialog({
                   }
                   className="flex flex-col gap-2"
                 >
-                  {FOOTBALL_SELF_PLACEMENT_CHOICES.map((entry) => (
+                  {footballSelfPlacementChoices(locale).map((entry) => (
                     <CardChoice
                       key={entry.value}
                       role="radio"
@@ -188,7 +192,7 @@ export function DeclareLevelDialog({
                 className="min-h-11"
                 disabled={pending}
               >
-                Cancel
+                {m.common.cancel}
               </Button>
             </ResponsiveDialogClose>
             <Button
@@ -197,7 +201,7 @@ export function DeclareLevelDialog({
               disabled={pending || declared == null}
               aria-busy={pending}
             >
-              {pending ? "Saving…" : "Save Level"}
+              {pending ? m.common.saving : copy.saveLevel}
             </Button>
           </ResponsiveDialogFooter>
         </form>

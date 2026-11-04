@@ -40,13 +40,14 @@ describe("draftKnockoutFirstRound", () => {
     const round = draftKnockoutFirstRound({
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     assert.equal(round?.name, "Quarter-finals");
     assert.deepEqual(
       round?.places.map((place) =>
         place.kind === "bye"
-          ? `${place.code} ${knockoutSideLabel(place.side)} bye`
-          : `${place.code} ${knockoutSideLabel(place.slot1)} v ${knockoutSideLabel(place.slot2)}`,
+          ? `${place.code} ${knockoutSideLabel(place.side, "en")} bye`
+          : `${place.code} ${knockoutSideLabel(place.slot1, "en")} v ${knockoutSideLabel(place.slot2, "en")}`,
       ),
       [
         "Q1 a L / a R bye",
@@ -68,7 +69,11 @@ describe("draftKnockoutFirstRound", () => {
     const gameTeams = [team("a", null), team("b", null)];
     assert.equal(hasDraftKnockoutDraw(gameTeams), false);
     assert.equal(
-      draftKnockoutFirstRound({ gameTeams, viewerUserId: "viewer" }),
+      draftKnockoutFirstRound({
+        gameTeams,
+        viewerUserId: "viewer",
+        locale: "en",
+      }),
       null,
     );
   });
@@ -93,6 +98,7 @@ describe("postedKnockoutRounds", () => {
         ],
         gameTeams: [team("a", null), team("b", null)],
         viewerUserId: "viewer",
+        locale: "en",
       }),
       null,
     );
@@ -137,6 +143,7 @@ describe("postedKnockoutRounds", () => {
       ],
       gameTeams: [team("a", 1), team("b", 2), team("c", 3), team("d", 4)],
       viewerUserId: "viewer",
+      locale: "en",
     });
     const final = rounds?.[1]?.places[0];
     assert.equal(rounds?.[1]?.name, "Final");
@@ -145,8 +152,8 @@ describe("postedKnockoutRounds", () => {
       return;
     }
     assert.equal(final.code, "Final");
-    assert.equal(knockoutSideLabel(final.slot1), "Winner of S1");
-    assert.equal(knockoutSideLabel(final.slot2), "Winner of S2");
+    assert.equal(knockoutSideLabel(final.slot1, "en"), "Winner of S1");
+    assert.equal(knockoutSideLabel(final.slot2, "en"), "Winner of S2");
   });
 });
 
@@ -211,6 +218,7 @@ describe("knockout results in the posted tree", () => {
       ],
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     const places = rounds?.[0]?.places ?? [];
     const first = places[0];
@@ -227,6 +235,7 @@ describe("knockout results in the posted tree", () => {
       }),
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     const [s1, s2] = rounds?.[0]?.places ?? [];
     const final = rounds?.[1]?.places[0];
@@ -242,6 +251,7 @@ describe("knockout results in the posted tree", () => {
       ),
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     })?.[1]?.places[0];
     assert.equal(emptyFinal && canCancelKnockoutPlace(emptyFinal), false);
   });
@@ -254,6 +264,7 @@ describe("knockout results in the posted tree", () => {
       }),
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     const semi = rounds?.[0]?.places[0];
     assert.equal(semi?.kind === "match" && semi.needsDecidingSet, true);
@@ -271,11 +282,12 @@ describe("knockout results in the posted tree", () => {
       }),
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     const champion = knockoutChampion(rounds);
     assert.equal(champion?.gameTeamId, "d");
     assert.equal(
-      champion ? knockoutChampionLine(champion) : null,
+      champion ? knockoutChampionLine(champion, "en") : null,
       "Champion: d L / d R",
     );
   });
@@ -336,6 +348,7 @@ describe("Walkovers in the posted tree", () => {
       ],
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     const semi = rounds?.[0]?.places[0];
     assert.equal(semi?.kind, "match");
@@ -361,6 +374,7 @@ describe("Walkovers in the posted tree", () => {
       ],
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     assert.equal(knockoutChampion(rounds)?.gameTeamId, "c");
   });
@@ -378,6 +392,7 @@ describe("Walkovers in the posted tree", () => {
       ],
       gameTeams,
       viewerUserId: "viewer",
+      locale: "en",
     });
     assert.equal(knockoutChampion(rounds), null);
   });
@@ -403,7 +418,7 @@ describe("knockoutCancelPrompt", () => {
       ["a", "b"],
     );
     assert.equal(
-      knockoutCancelDescription(prompt),
+      knockoutCancelDescription(prompt, "en"),
       "Choose which team goes through. The Match is shown as a Walkover and no Rating changes.",
     );
   });
@@ -415,7 +430,7 @@ describe("knockoutCancelPrompt", () => {
     });
     assert.equal(prompt.kind, "through");
     assert.equal(
-      knockoutCancelDescription(prompt),
+      knockoutCancelDescription(prompt, "en"),
       "b L / b R goes through. The Match is shown as a Walkover and no Rating changes.",
     );
   });
@@ -427,7 +442,7 @@ describe("knockoutCancelPrompt", () => {
     });
     assert.equal(prompt.kind, "nobody");
     assert.equal(
-      knockoutCancelDescription(prompt),
+      knockoutCancelDescription(prompt, "en"),
       "Nobody goes through. This cannot be undone.",
     );
   });
@@ -435,7 +450,62 @@ describe("knockoutCancelPrompt", () => {
 
 describe("knockoutPlaceMetaLine", () => {
   it("joins the time and the Court", () => {
-    assert.equal(knockoutPlaceMetaLine(null, "Court 1"), "Court 1");
-    assert.equal(knockoutPlaceMetaLine(null, null), null);
+    assert.equal(knockoutPlaceMetaLine(null, "Court 1", "en"), "Court 1");
+    assert.equal(knockoutPlaceMetaLine(null, null, "en"), null);
+  });
+});
+
+describe("Arabic copy", () => {
+  it("reads the round name, the placeholders and the Champion line in Arabic", () => {
+    const rounds = postedKnockoutRounds({
+      matches: [
+        {
+          id: "s1",
+          knockoutRound: 1,
+          knockoutPosition: 1,
+          startTime: null,
+          courtName: null,
+          slot1GameTeamId: "a",
+          slot2GameTeamId: "b",
+          status: "completed",
+          result: "slot1",
+        },
+        {
+          id: "f",
+          knockoutRound: 2,
+          knockoutPosition: 1,
+          startTime: null,
+          courtName: null,
+          slot1GameTeamId: null,
+          slot2GameTeamId: null,
+          status: "pending",
+          result: "none",
+        },
+      ],
+      gameTeams: [team("a", 1), team("b", 2)],
+      viewerUserId: "viewer",
+      locale: "ar",
+    });
+    assert.equal(rounds?.[1]?.name, "النهائي");
+    const final = rounds?.[1]?.places[0];
+    assert.equal(
+      final?.kind === "match" ? knockoutSideLabel(final.slot1, "ar") : null,
+      "الفائز في S1",
+    );
+    assert.equal(
+      final?.kind === "match" ? knockoutSideLabel(final.slot2, "ar") : null,
+      "لم يُحدَّد بعد",
+    );
+    assert.equal(
+      knockoutChampionLine(
+        { gameTeamId: "a", name: "Ana / Bea", isViewer: false },
+        "ar",
+      ),
+      "البطل: Ana / Bea",
+    );
+    assert.equal(
+      knockoutCancelDescription({ kind: "nobody" }, "ar"),
+      "لا يتأهل أحد. لا يمكن التراجع عن هذا.",
+    );
   });
 });

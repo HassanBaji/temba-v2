@@ -1,4 +1,7 @@
+"use client";
+
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import type {
   CourtSideFill,
@@ -30,9 +33,12 @@ function Court({ court }: { court: PlayedSideView["court"] }) {
 }
 
 export function PlayerPositionCard({ view }: { view: PlayedSideView }) {
+  const m = useMessages();
   return (
     <section className="border-rule bg-paper rounded-card overflow-hidden border">
-      <SurfaceLabel inset="profile">Preferred position</SurfaceLabel>
+      <SurfaceLabel inset="profile">
+        {m.webUi.player.preferredPosition}
+      </SurfaceLabel>
       <div className="flex items-center gap-[18px] px-5 pb-5">
         <Court court={view.court} />
         <div>

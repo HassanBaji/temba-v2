@@ -23,6 +23,7 @@ import { useMemo, useRef, useState } from "react";
 import { Share, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
 import {
@@ -36,7 +37,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { ActionTile, ActionTileRow } from "./share-actions";
-import { SHARE_MODE_COPY, type ShareMode } from "./share-model";
+import { shareModeCopy, type ShareMode } from "./share-model";
 import { ShareModeSegments } from "./share-mode-segments";
 import { PhotoFrame, PreviewMeta, PreviewWell } from "./share-preview";
 import { Sticker } from "./stickers";
@@ -50,8 +51,6 @@ import { StoryCard } from "./story-cards";
 
 type ShareAction = "save" | "share_image" | "copy_link" | "share_message";
 
-const PERMISSION_REFUSED = "Allow Temba to add to your photos in Settings.";
-const SHARING_UNAVAILABLE = "Sharing is not available on this device.";
 const SHARE_ICON = 17;
 
 function Notice({
@@ -74,6 +73,9 @@ function Notice({
 }
 
 export function ShareResultScreen({ gameId }: { gameId: string }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const share = m.mobilePlayer.share;
   const toast = useToast();
   const [mode, setMode] = useState<ShareMode>("story");
   const [full, setFull] = useState(false);
@@ -94,9 +96,13 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
   const card = useMemo(
     () =>
       game.data
-        ? resultShareCard(game.data, football ? (board.data ?? null) : null)
+        ? resultShareCard(
+            game.data,
+            football ? (board.data ?? null) : null,
+            locale,
+          )
         : null,
-    [game.data, board.data, football],
+    [game.data, board.data, football, locale],
   );
   const url = link.data?.url ?? null;
   const fallback = `/games/${gameId}` as Href;
@@ -105,8 +111,8 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     <ScreenHeader
       nav="back"
       fallback={fallback}
-      title="Share result"
-      actions={<HeaderTextButton label="Done" onPress={leave} />}
+      title={m.game.cta.shareResult}
+      actions={<HeaderTextButton label={m.common.done} onPress={leave} />}
     />
   );
 
@@ -115,8 +121,8 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
       <Screen>
         {header}
         <Notice
-          title="Game not found"
-          description="It may have been removed, or you may not have access."
+          title={share.gameNotFound}
+          description={share.gameNotFoundDescription}
         />
       </Screen>
     );
@@ -126,7 +132,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
       <Screen>
         {header}
         <Notice
-          title="Result could not be loaded"
+          title={share.loadError}
           description={game.error?.message ?? board.error?.message ?? ""}
         />
       </Screen>
@@ -136,7 +142,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     return (
       <Screen>
         {header}
-        <View style={{ gap: 16 }} accessibilityLabel="Loading result">
+        <View style={{ gap: 16 }} accessibilityLabel={share.loading}>
           <Skeleton height={46} radius={radii.lg} />
           <Skeleton height={464} radius={radii.surface} />
           <Skeleton height={52} radius={radii.lg} />
@@ -149,14 +155,14 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
       <Screen>
         {header}
         <Notice
-          title="No result to share yet"
-          description="Once the score is confirmed, the result card is ready here."
+          title={share.noResultYet}
+          description={share.noResultYetDescription}
         />
       </Screen>
     );
   }
 
-  const copy = SHARE_MODE_COPY[mode];
+  const copy = shareModeCopy(mode, locale);
 
   async function capture() {
     if (mode === "story") {
@@ -184,7 +190,9 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     setPending(action);
     void task()
       .catch((error: unknown) => {
-        toast.show(error instanceof Error ? error.message : "Could not share");
+        toast.show(
+          error instanceof Error ? error.message : share.couldNotShare,
+        );
       })
       .finally(() => setPending(null));
   }
@@ -193,40 +201,40 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     run("save", async () => {
       const permission = await MediaLibrary.requestPermissionsAsync(true);
       if (!permission.granted) {
-        toast.show(PERMISSION_REFUSED);
+        toast.show(share.permissionRefused);
         return;
       }
       await MediaLibrary.Asset.create(await capture());
-      toast.show("Saved to Photos");
+      toast.show(share.savedToPhotos);
     });
 
   const shareImage = () =>
     run("share_image", async () => {
       if (!(await Sharing.isAvailableAsync())) {
-        toast.show(SHARING_UNAVAILABLE);
+        toast.show(share.sharingUnavailable);
         return;
       }
       await Sharing.shareAsync(await capture(), {
         mimeType: "image/png",
         UTI: "public.png",
-        dialogTitle: "Share result",
+        dialogTitle: m.game.cta.shareResult,
       });
     });
 
   const copyLink = () =>
     run("copy_link", async () => {
       if (!url) {
-        toast.show("The link is still loading");
+        toast.show(share.linkStillLoading);
         return;
       }
       await Clipboard.setStringAsync(url);
-      toast.show("Link copied");
+      toast.show(share.linkCopied);
     });
 
   const shareMessage = () =>
     run("share_message", async () => {
       await Share.share({
-        message: formatResultShareMessage(card, url ?? ""),
+        message: formatResultShareMessage(card, url ?? "", locale),
       });
     });
 
@@ -274,12 +282,12 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
           action={
             mode === "story"
               ? {
-                  label: full ? "Fit to screen" : "Full size",
+                  label: full ? share.fitToScreen : share.fullSize,
                   icon: full ? Minimize2 : Maximize2,
                   onPress: () => setFull((current) => !current),
                 }
               : {
-                  label: photoUri ? "Change photo" : "Try on a photo",
+                  label: photoUri ? share.changePhoto : share.tryOnPhoto,
                   icon: ImageIcon,
                   onPress: () => void pickPhoto(),
                 }
@@ -309,14 +317,14 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
             onPress={saveImage}
           />
           <ActionTile
-            label="Copy link"
+            label={share.copyLink}
             icon={Link}
             pending={pending === "copy_link"}
             disabled={pending != null || !url}
             onPress={copyLink}
           />
           <ActionTile
-            label="Message"
+            label={share.message}
             icon={MessageCircle}
             pending={pending === "share_message"}
             disabled={pending != null}

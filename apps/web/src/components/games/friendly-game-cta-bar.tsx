@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameCtaFamily } from "@repo/domain/friendly-game-cta";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 /**
@@ -40,7 +41,8 @@ export function FriendlyGameCtaBar({
   /** Replaces the family's own title and subline. */
   lines?: { title: string; subline: string | null } | null;
 }) {
-  const familyCopy = friendlyGameCtaCopy(family);
+  const locale = useLocale();
+  const familyCopy = friendlyGameCtaCopy(family, locale);
   if (!familyCopy) {
     return null;
   }

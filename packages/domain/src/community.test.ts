@@ -8,6 +8,7 @@ import {
   communityMemberList,
   communityRequestsAreEmpty,
   communityRoleChangeAction,
+  communityRoleUpdatedToast,
   communityTabLabel,
   communityTeamLinkRequestRow,
   communityTeamRow,
@@ -19,18 +20,24 @@ const fixtures = createCommunityFixtures(now);
 
 describe("communityHomeHeader", () => {
   it("joins visibility, sport, members and role", () => {
-    expect(communityHomeHeader(fixtures.home.owner).meta).toBe(
+    expect(communityHomeHeader(fixtures.home.owner, "en").meta).toBe(
       "Public, Padel, 38 members, Owner",
     );
   });
 
   it("badges a pending join request only for a non-member", () => {
-    expect(communityHomeHeader(fixtures.home.requestPending).badges).toEqual([
-      "Join request pending",
-    ]);
-    expect(communityHomeHeader(fixtures.home.archivedMember).badges).toEqual([
-      "Soft-archived",
-    ]);
+    expect(
+      communityHomeHeader(fixtures.home.requestPending, "en").badges,
+    ).toEqual(["Join request pending"]);
+    expect(
+      communityHomeHeader(fixtures.home.archivedMember, "en").badges,
+    ).toEqual(["Soft-archived"]);
+  });
+
+  it("reads in Arabic", () => {
+    const header = communityHomeHeader(fixtures.home.requestPending, "ar");
+    expect(header.meta).toBe("عام، بادل، 38 عضوًا");
+    expect(header.badges).toEqual(["طلب الانضمام معلّق"]);
   });
 });
 
@@ -57,7 +64,9 @@ describe("communityHomeActions", () => {
 
 describe("communityClubGroupRow", () => {
   it("names an unnamed Group and marks a joined one", () => {
-    const rows = fixtures.home.owner.groups.map(communityClubGroupRow);
+    const rows = fixtures.home.owner.groups.map((group) =>
+      communityClubGroupRow(group, "en"),
+    );
     expect(rows[0]?.accessibilityLabel).toBe(
       "Bromma Padel Club, Public, 14 members, Joined",
     );
@@ -68,14 +77,18 @@ describe("communityClubGroupRow", () => {
 
 describe("communityTeamRow", () => {
   it("shows an open seat for a one-person Team", () => {
-    expect(communityTeamRow(fixtures.home.owner.teams[0]!).openSeats).toBe(0);
-    expect(communityTeamRow(fixtures.home.owner.teams[1]!).openSeats).toBe(1);
+    expect(
+      communityTeamRow(fixtures.home.owner.teams[0]!, "en").openSeats,
+    ).toBe(0);
+    expect(
+      communityTeamRow(fixtures.home.owner.teams[1]!, "en").openSeats,
+    ).toBe(1);
   });
 });
 
 describe("communityMemberList", () => {
   it("shows the viewer as You and falls back for a missing name", () => {
-    const list = communityMemberList(fixtures.members, "viewer", "");
+    const list = communityMemberList(fixtures.members, "viewer", "", "en");
     expect(list.rows[0]?.displayName).toBe("You");
     expect(list.rows[3]?.name).toBe("Member");
     expect(list.showSearch).toBe(false);
@@ -91,7 +104,7 @@ describe("communityMemberList", () => {
         name: `P${index}`,
       },
     }));
-    const list = communityMemberList(many, "viewer", "p3");
+    const list = communityMemberList(many, "viewer", "p3", "en");
     expect(list.showSearch).toBe(true);
     expect(list.rows.map((row) => row.name)).toEqual(["P3"]);
   });
@@ -122,18 +135,24 @@ describe("communityRoleChangeAction", () => {
       communityRoleChangeAction({ ...base, from: "member", to: "admin" }),
     ).toBe("apply");
   });
+  it("names the new role in the toast", () => {
+    expect(communityRoleUpdatedToast("admin", "en")).toBe(
+      "Role updated to Admin",
+    );
+  });
 });
 
 describe("request rows", () => {
   it("reads the requester and age", () => {
-    expect(communityJoinRequestRow(fixtures.joinRequests[0]!, now).meta).toBe(
-      "Requested 3 days ago",
-    );
-    expect(communityJoinRequestRow(fixtures.joinRequests[1]!).title).toBe(
+    expect(
+      communityJoinRequestRow(fixtures.joinRequests[0]!, "en", now).meta,
+    ).toBe("Requested 3 days ago");
+    expect(communityJoinRequestRow(fixtures.joinRequests[1]!, "en").title).toBe(
       "User",
     );
     expect(
-      communityTeamLinkRequestRow(fixtures.teamLinkRequests[0]!, now).meta,
+      communityTeamLinkRequestRow(fixtures.teamLinkRequests[0]!, "en", now)
+        .meta,
     ).toContain("From Ada Lindqvist");
   });
 });
@@ -171,8 +190,8 @@ describe("communityRequestsAreEmpty", () => {
 
 describe("communityTabLabel", () => {
   it("counts only the Requests tab", () => {
-    expect(communityTabLabel("requests", 3)).toBe("Requests (3)");
-    expect(communityTabLabel("requests", 0)).toBe("Requests");
-    expect(communityTabLabel("members", 3)).toBe("Members");
+    expect(communityTabLabel("requests", 3, "en")).toBe("Requests (3)");
+    expect(communityTabLabel("requests", 0, "en")).toBe("Requests");
+    expect(communityTabLabel("members", 3, "en")).toBe("Members");
   });
 });

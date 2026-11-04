@@ -55,7 +55,7 @@ describe("share messages", () => {
 
   it("points a Group share at the web origin short link", () => {
     expect(
-      groupShareMessage({ name: "Bromma Tuesday", sport: "padel", link }),
+      groupShareMessage({ name: "Bromma Tuesday", sport: "padel", link }, "en"),
     ).toBe(
       'You are invited to join "Bromma Tuesday" for "Padel"\nJoin: https://temba.example/gr/AbCd1234',
     );
@@ -63,12 +63,23 @@ describe("share messages", () => {
 
   it("falls back to the long link when there is no short code", () => {
     expect(
-      groupShareMessage({
-        name: null,
-        sport: null,
-        link: { shortUrl: null, inviteUrl: link.inviteUrl },
-      }),
+      groupShareMessage(
+        {
+          name: null,
+          sport: null,
+          link: { shortUrl: null, inviteUrl: link.inviteUrl },
+        },
+        "en",
+      ),
     ).toContain(link.inviteUrl);
+  });
+
+  it("writes the Group share in Arabic", () => {
+    expect(
+      groupShareMessage({ name: "Bromma Tuesday", sport: "padel", link }, "ar"),
+    ).toBe(
+      "أنت مدعو للانضمام إلى «Bromma Tuesday» للعب «بادل»\nانضم: https://temba.example/gr/AbCd1234",
+    );
   });
 
   it("shares only the link for a tournament and the roster for a Friendly game", () => {
@@ -88,11 +99,16 @@ describe("share messages", () => {
       inviteUrl: "x",
     };
     expect(
-      gameShareMessage({ ...base, format: "friendly_tournament" }, shortLink),
+      gameShareMessage(
+        { ...base, format: "friendly_tournament" },
+        shortLink,
+        "en",
+      ),
     ).toBe("https://temba.example/g/AbCd1234");
     const roster = gameShareMessage(
       { ...base, format: "friendly_game" },
       shortLink,
+      "en",
     );
     expect(roster).toContain("Padel Hub");
     expect(roster).toContain("- Left: Ada");
@@ -116,9 +132,19 @@ describe("gameInviteSubtitle", () => {
   };
 
   it("reads like the artboard", () => {
-    expect(gameInviteSubtitle(game, new Date("2026-10-21T09:00:00.000Z"))).toBe(
-      "Tonight 8:30 PM, Court 2. 3 seats open.",
-    );
+    expect(
+      gameInviteSubtitle(game, new Date("2026-10-21T09:00:00.000Z"), "en"),
+    ).toBe("Tonight 8:30 PM, Court 2. 3 seats open.");
+  });
+
+  it("counts the open seats in Arabic", () => {
+    expect(
+      gameInviteSubtitle(
+        { ...game, windowStart: null, courtName: null },
+        new Date(),
+        "ar",
+      ),
+    ).toBe("Karbabad Courts. 3 مقاعد متاحة.");
   });
 
   it("drops what is unknown", () => {
@@ -131,6 +157,7 @@ describe("gameInviteSubtitle", () => {
           sides: [{ sideIndex: 0, left: { name: "A" }, right: { name: "B" } }],
         },
         new Date(),
+        "en",
       ),
     ).toBe("Karbabad Courts.");
   });

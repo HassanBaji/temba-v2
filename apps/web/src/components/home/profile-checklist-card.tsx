@@ -5,6 +5,7 @@ import Link from "next/link";
 import * as React from "react";
 
 import { SurfaceLabel } from "~/components/common/surface-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { TaskMarker } from "~/components/onboarding/task-marker";
 import { touchHitArea } from "~/components/ui/button";
 import { profileChecklistHref, profileTaskHref } from "~/lib/onboarding-step";
@@ -19,7 +20,6 @@ import {
   homeChecklistRows,
   type ProfileChecklist,
   type ProfileTask,
-  type ProfileTaskId,
 } from "@repo/domain/profile-checklist";
 
 /** The redirect every task on the Home card carries. */
@@ -27,14 +27,6 @@ const HOME_PATH = "/dashboard";
 
 const FOCUS_RING =
   "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] focus-visible:ring-inset";
-
-/** The open tasks' short names the collapsed chip lists. */
-const TASK_SHORT_NAMES: Record<ProfileTaskId, string> = {
-  name: "Name",
-  photo: "Photo",
-  email: "Email",
-  sports: "Sports",
-};
 
 function TaskRow({ task }: { task: ProfileTask }) {
   return (
@@ -57,7 +49,7 @@ function TaskRow({ task }: { task: ProfileTask }) {
         </span>
         <ChevronRight
           aria-hidden="true"
-          className="text-muted-foreground size-4 shrink-0"
+          className="text-muted-foreground size-4 shrink-0 rtl:-scale-x-100"
         />
       </Link>
     </li>
@@ -81,9 +73,10 @@ function Segments({ list }: { list: ProfileChecklist }) {
 }
 
 function Count({ list }: { list: ProfileChecklist }) {
+  const locale = useLocale();
   return (
     <span className="text-eyebrow font-mono uppercase">
-      {checklistCountLabel(list)}
+      {checklistCountLabel(list, locale)}
     </span>
   );
 }
@@ -95,6 +88,9 @@ function Count({ list }: { list: ProfileChecklist }) {
  * card is gone once every task is done.
  */
 export function ProfileChecklistCard({ list }: { list: ProfileChecklist }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.home.checklist;
   const [skipped, setSkipped] = React.useState(false);
 
   React.useEffect(() => {
@@ -114,16 +110,16 @@ export function ProfileChecklistCard({ list }: { list: ProfileChecklist }) {
     const required = homeChecklistAfterSkip(list);
     const names = list.open
       .filter((task) => !task.required)
-      .map((task) => TASK_SHORT_NAMES[task.id])
+      .map((task) => copy.shortName[task.id])
       .join(", ");
     return (
       <section
-        aria-label="Profile checklist"
+        aria-label={copy.label}
         className="border-rule bg-paper overflow-hidden rounded-xl border"
       >
         <div className="flex min-h-11 items-center justify-between gap-3 px-[18px] py-2">
           <p className="text-meta min-w-0 truncate">
-            Profile <Count list={list} />
+            {copy.profile} <Count list={list} />
             {names ? (
               <span className="text-muted-foreground">{` · ${names}`}</span>
             ) : null}
@@ -136,7 +132,7 @@ export function ProfileChecklistCard({ list }: { list: ProfileChecklist }) {
             )}
             onClick={() => setSkip(false)}
           >
-            Show
+            {copy.show}
           </button>
         </div>
         {required.length > 0 ? (
@@ -150,16 +146,14 @@ export function ProfileChecklistCard({ list }: { list: ProfileChecklist }) {
     );
   }
 
-  const rows = homeChecklistRows(list);
+  const rows = homeChecklistRows(list, locale);
 
   return (
     <section
-      aria-label="Profile checklist"
+      aria-label={copy.label}
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
-      <SurfaceLabel meta={<Count list={list} />}>
-        Complete your profile
-      </SurfaceLabel>
+      <SurfaceLabel meta={<Count list={list} />}>{copy.title}</SurfaceLabel>
       <Segments list={list} />
       <ul className="border-rule divide-rule divide-y border-t">
         {rows.shown.map((task) => (
@@ -175,7 +169,10 @@ export function ProfileChecklistCard({ list }: { list: ProfileChecklist }) {
           )}
         >
           {rows.more}
-          <ArrowRight aria-hidden="true" className="size-3.5" />
+          <ArrowRight
+            aria-hidden="true"
+            className="size-3.5 rtl:-scale-x-100"
+          />
         </Link>
         <button
           type="button"
@@ -185,7 +182,7 @@ export function ProfileChecklistCard({ list }: { list: ProfileChecklist }) {
           )}
           onClick={() => setSkip(true)}
         >
-          Skip for now
+          {copy.skipForNow}
         </button>
       </div>
     </section>

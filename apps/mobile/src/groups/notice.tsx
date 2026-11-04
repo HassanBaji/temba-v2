@@ -1,5 +1,6 @@
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -15,6 +16,7 @@ export function Notice({
   alert?: boolean;
   onRetry?: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface accessibilityRole={alert ? "alert" : undefined} style={{ gap: 4 }}>
       {title ? (
@@ -29,7 +31,11 @@ export function Notice({
       ) : null}
       {onRetry ? (
         <View style={{ flexDirection: "row", marginTop: 8 }}>
-          <Button label="Try again" variant="outline" onPress={onRetry} />
+          <Button
+            label={m.common.tryAgain}
+            variant="outline"
+            onPress={onRetry}
+          />
         </View>
       ) : null}
     </Surface>

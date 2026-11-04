@@ -1,6 +1,7 @@
 import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { SportSegments } from "../lib/sport-segments";
 import { HomeHeader } from "./home-header";
 import type { HomeModel } from "./home-model";
@@ -33,6 +34,8 @@ export function HomeView({
   onSkipChecklist: () => void;
   onShowChecklist: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const now = useNow();
   const { upNext } = model;
 
@@ -56,12 +59,14 @@ export function HomeView({
       <View style={{ gap: HEADING_GAP }}>
         <UpNextHeading
           label={
-            upNext.status === "ready" ? upNextWeekLabel(upNext.value, now) : ""
+            upNext.status === "ready"
+              ? upNextWeekLabel(upNext.value, now, locale)
+              : ""
           }
         />
         <Block
           slot={upNext}
-          title="Up next"
+          title={m.mobileHome.upNext.title}
           skeletonHeight={224}
           onRetry={onRetry}
         >
@@ -85,7 +90,7 @@ export function HomeView({
         <SportSegments value={model.sport} onSelect={onSport} />
         <Block
           slot={model.level}
-          title="Level"
+          title={m.common.level}
           skeletonHeight={200}
           onRetry={onRetry}
         >
@@ -93,7 +98,7 @@ export function HomeView({
         </Block>
         <Block
           slot={model.recentForm}
-          title="Recent form"
+          title={m.mobileHome.recentForm.title}
           skeletonHeight={160}
           onRetry={onRetry}
         >

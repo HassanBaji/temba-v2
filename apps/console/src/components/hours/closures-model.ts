@@ -4,6 +4,7 @@ import {
   formatWeekday,
 } from "@repo/domain/format-game-start";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 export type ClosureStatus = "active" | "scheduled";
 
@@ -30,8 +31,8 @@ function relativeDay(date: Date, now: Date, style: "full" | "dayOnly") {
     return "Tomorrow";
   }
   return style === "full"
-    ? formatDayMonth(date, { weekday: "short" })
-    : `${formatWeekday(date, "short")} ${zonedParts(date).day}`;
+    ? formatDayMonth(date, CONSOLE_LOCALE, { weekday: "short" })
+    : `${formatWeekday(date, "short", CONSOLE_LOCALE)} ${zonedParts(date).day}`;
 }
 
 /**
@@ -44,7 +45,7 @@ export function describeClosureWindow(startsAt: Date, endsAt: Date, now: Date) {
   const lastDay = allDay ? new Date(endsAt.getTime() - 60_000) : endsAt;
   const times = allDay
     ? "all day"
-    : `${formatGameClock(startsAt)} to ${formatGameClock(endsAt)}`;
+    : `${formatGameClock(startsAt, CONSOLE_LOCALE)} to ${formatGameClock(endsAt, CONSOLE_LOCALE)}`;
   if (productDaysBetween(startsAt, lastDay) <= 0) {
     return `${relativeDay(startsAt, now, "full")}, ${times}`;
   }

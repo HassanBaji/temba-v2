@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 export function SettingsFooter({
@@ -13,6 +14,7 @@ export function SettingsFooter({
   phoneNumber?: string | null;
   onSignOut: () => Promise<void>;
 }) {
+  const m = useMessages();
   const [signingOut, setSigningOut] = React.useState(false);
   const identity =
     phoneNumber != null && phoneNumber !== ""
@@ -39,13 +41,13 @@ export function SettingsFooter({
         variant="outline"
         size="lg"
         pending={signingOut}
-        pendingLabel="Signing out…"
+        pendingLabel={m.webAuth.settings.signingOut}
         className="w-full"
         onClick={() => {
           void signOut();
         }}
       >
-        Sign out
+        {m.common.signOut}
       </Button>
       <p className="text-muted-foreground text-center font-mono text-[11px] uppercase">
         {identity}

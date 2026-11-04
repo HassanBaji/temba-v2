@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   displayLabelFromStoredBand,
   isAssignableDisplayLevelBand,
@@ -44,11 +47,9 @@ export const LEVEL_BAND_MAX_TENTHS: Record<LevelBand, number> = {
   A: 70,
 };
 
-export const LEVEL_RANGE_FIELD_DESCRIPTION =
-  "Optional. Inclusive Level bands. None means no bound. Both None means no Level range. Users without a Level must request to play when a range is set.";
-
-export const LEVEL_RANGE_INVERTED_MESSAGE =
-  "Minimum Level cannot be greater than Maximum Level";
+export function levelRangeInvertedMessage(locale: Locale) {
+  return messagesFor(locale).level.rangeInverted;
+}
 
 export type ParseLevelTenthsResult =
   | { ok: true; tenths: number | null }
@@ -59,21 +60,23 @@ const TOO_MANY_FRACTION_DIGITS = /^\d+\.\d{2,}$/;
 
 export function parseOptionalLevelTenths(
   value: string,
+  locale: Locale,
 ): ParseLevelTenthsResult {
+  const m = messagesFor(locale).level;
   const trimmed = value.trim();
   if (trimmed === "") {
     return { ok: true, tenths: null };
   }
 
   if (trimmed.startsWith("-")) {
-    return { ok: false, message: "Level cannot be negative" };
+    return { ok: false, message: m.negative };
   }
 
   if (!MAJOR_UNIT_PATTERN.test(trimmed)) {
     if (TOO_MANY_FRACTION_DIGITS.test(trimmed)) {
-      return { ok: false, message: "Use one decimal place" };
+      return { ok: false, message: m.oneDecimal };
     }
-    return { ok: false, message: "Enter a valid Level" };
+    return { ok: false, message: m.invalid };
   }
 
   const dot = trimmed.indexOf(".");
@@ -88,7 +91,7 @@ export function parseOptionalLevelTenths(
     tenths < LEVEL_TENTHS_MIN ||
     tenths > LEVEL_TENTHS_MAX
   ) {
-    return { ok: false, message: "Level must be between 0.0 and 7.0" };
+    return { ok: false, message: m.between };
   }
 
   return { ok: true, tenths };
@@ -194,22 +197,12 @@ export function parseLevelBandSelectTenths(
   return null;
 }
 
-export const LEVEL_RANGE_OUTSIDE_MESSAGE =
-  "Your Level is outside this Game's range";
-
-export const LEVEL_RANGE_OUTSIDE_PARTY_MESSAGE =
-  "A User's Level is outside this Game's range";
-
-export const LEVEL_RANGE_PARTNER_MESSAGE =
-  "That User's Level is outside this Game's range";
-
-export const LEVEL_RANGE_TEAM_MESSAGE =
-  "A Team partner's Level is outside this Game's range";
-
 export function formatLevelRangeLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).level;
   const minLabel =
     levelMinTenths == null
       ? null
@@ -225,10 +218,10 @@ export function formatLevelRangeLabel(
     return `${minLabel}/${maxLabel}`;
   }
   if (minLabel) {
-    return `${minLabel} and up`;
+    return m.andUp(minLabel);
   }
   if (maxLabel) {
-    return `${maxLabel} and under`;
+    return m.andUnder(maxLabel);
   }
   return null;
 }
@@ -236,21 +229,30 @@ export function formatLevelRangeLabel(
 export function formatLevelRangeProseLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,
+  locale: Locale,
 ): string | null {
-  const label = formatLevelRangeLabel(levelMinTenths, levelMaxTenths);
-  return label ? `Level ${label}` : null;
+  const label = formatLevelRangeLabel(levelMinTenths, levelMaxTenths, locale);
+  return label ? messagesFor(locale).level.prose(label) : null;
 }
 
 export function formatLevelRangeGateCopy(args: {
   levelMinTenths: number | null | undefined;
   levelMaxTenths: number | null | undefined;
   viewerLevelTenths: number | null | undefined;
+  locale: Locale;
 }): string {
+  const m = messagesFor(args.locale).level;
   if (args.viewerLevelTenths == null) {
-    return "You don't have a Level yet. Declare one on You, or request to play.";
+    return m.gateNoLevel;
   }
   const range =
-    formatLevelRangeProseLabel(args.levelMinTenths, args.levelMaxTenths) ??
-    "this Game's range";
-  return `This Game is for ${range}. Your Level is ${displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths))}.`;
+    formatLevelRangeProseLabel(
+      args.levelMinTenths,
+      args.levelMaxTenths,
+      args.locale,
+    ) ?? m.gateRangeFallback;
+  return m.gate(
+    range,
+    displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths)),
+  );
 }

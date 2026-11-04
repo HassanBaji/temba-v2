@@ -1,18 +1,16 @@
-import {
-  ADD_PLAYER_ACTION,
-  ADD_PLAYER_DESCRIPTION,
-} from "@repo/domain/add-player-by-phone";
 import type {
   FriendlyGameFooterAction,
   FriendlyGameFooterActionKind,
 } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import {
-  CLOSE_REGISTRATION_ACTION,
-  COMPLETE_MATCH_ACTION,
-  COMPLETE_MATCH_CONSEQUENCE,
-  REOPEN_REGISTRATION_ACTION,
+  closeRegistrationAction,
+  completeMatchAction,
+  completeMatchConsequence,
+  reopenRegistrationAction,
 } from "@repo/domain/game-copy";
+import type { Locale } from "@repo/i18n/locale";
+import type { Messages } from "@repo/i18n/messages";
 import {
   CalendarX,
   CircleCheck,
@@ -52,13 +50,18 @@ export function gameMenuItems({
   handlers,
   footerActions,
   onFooterAction,
+  messages,
+  locale,
 }: {
   plan: FriendlyGameOrganizerPlan | null;
   handlers: OrganizerHandlers | null;
   footerActions: FriendlyGameFooterAction[];
   onFooterAction: (kind: FriendlyGameFooterActionKind) => void;
+  messages: Messages;
+  locale: Locale;
 }): PlayedMenuItem[] {
   const items: PlayedMenuItem[] = [];
+  const organizer = messages.mobileGameDetails.organizer;
 
   if (plan && handlers) {
     const completeMatchId = plan.completeMatchId;
@@ -66,8 +69,8 @@ export function gameMenuItems({
       key: "registration",
       label:
         plan.registration === "close"
-          ? CLOSE_REGISTRATION_ACTION
-          : REOPEN_REGISTRATION_ACTION,
+          ? closeRegistrationAction(locale)
+          : reopenRegistrationAction(locale),
       icon: plan.registration === "close" ? Lock : LockOpen,
       disabled: handlers.registrationPending,
       onPress: handlers.onToggleRegistration,
@@ -75,8 +78,8 @@ export function gameMenuItems({
     if (plan.canAddPlayer) {
       items.push({
         key: "add_player",
-        label: ADD_PLAYER_ACTION,
-        hint: ADD_PLAYER_DESCRIPTION,
+        label: messages.group.addPlayer.action,
+        hint: messages.group.addPlayer.description,
         icon: UserPlus,
         onPress: handlers.onAddPlayer,
       });
@@ -84,8 +87,8 @@ export function gameMenuItems({
     if (plan.court) {
       items.push({
         key: "court",
-        label: "Change Court",
-        hint: plan.court.courtName ?? "No Court",
+        label: organizer.changeCourt,
+        hint: plan.court.courtName ?? organizer.noCourt,
         icon: MapPin,
         onPress: handlers.onChooseCourt,
       });
@@ -93,8 +96,8 @@ export function gameMenuItems({
     if (completeMatchId) {
       items.push({
         key: "complete",
-        label: COMPLETE_MATCH_ACTION,
-        hint: COMPLETE_MATCH_CONSEQUENCE,
+        label: completeMatchAction(locale),
+        hint: completeMatchConsequence(locale),
         icon: CircleCheck,
         disabled: handlers.completePending,
         onPress: () => handlers.onComplete(completeMatchId),

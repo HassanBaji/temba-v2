@@ -1,6 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { PLAYER_PROFILE_REFUSED } from "@repo/domain/player-profile";
+import { playerProfileRefused } from "@repo/domain/player-profile";
 import type { LastTenFilter } from "@repo/domain/player-profile-matches";
 import {
   useLocalSearchParams,
@@ -15,6 +15,7 @@ import { ChipGrid } from "../create-game/chips";
 import { gamePath } from "../games/games-model";
 import { Card } from "../home/card";
 import { Notice } from "../groups/notice";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
 import { Hairline } from "../primitives/hairline";
 import { Screen } from "../primitives/screen";
@@ -39,6 +40,8 @@ export function PlayerMatchesScreen({
 }) {
   const router = useRouter();
   const segments = useSegments();
+  const locale = useLocale();
+  const m = useMessages();
   const [filter, setFilter] = useState<LastTenFilter>("all");
   const [openMatchId, setOpenMatchId] = useState(initialMatchId);
   const [selectedMatchId, setSelectedMatchId] = useState(initialMatchId);
@@ -58,14 +61,18 @@ export function PlayerMatchesScreen({
   }, [query]);
 
   const header = (
-    <ScreenHeader nav="back" fallback={FALLBACK} title="Last 10 games" />
+    <ScreenHeader
+      nav="back"
+      fallback={FALLBACK}
+      title={m.mobilePlayer.profile.lastTenTitle}
+    />
   );
 
   if (isNotFoundError(query.error)) {
     return (
       <Screen>
         {header}
-        <Notice {...PLAYER_PROFILE_REFUSED} />
+        <Notice {...playerProfileRefused(locale)} />
       </Screen>
     );
   }
@@ -84,7 +91,7 @@ export function PlayerMatchesScreen({
         {header}
         <Notice
           alert
-          title="Games could not be loaded"
+          title={m.mobilePlayer.profile.gamesLoadError}
           description={query.error.message}
           onRetry={() => void query.refetch()}
         />
@@ -96,6 +103,7 @@ export function PlayerMatchesScreen({
     query.data,
     { filter, matchId: openMatchId },
     apiOrigin,
+    locale,
   );
   const closeSheet = () => setOpenMatchId(null);
 
@@ -106,7 +114,7 @@ export function PlayerMatchesScreen({
         {model.subtitle}
       </Text>
       <ChipGrid
-        label="Filter games"
+        label={m.mobilePlayer.profile.filterGames}
         chips={model.chips.map((chip) => ({
           value: chip.filter,
           label: chip.label,

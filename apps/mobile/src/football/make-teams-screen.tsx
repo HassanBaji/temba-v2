@@ -10,6 +10,8 @@ import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
@@ -38,10 +40,6 @@ import {
 } from "@repo/domain/football-board";
 import { BibRow } from "./team-columns";
 
-const METHOD_LABELS: Record<FootballTeamsMethod, string> = {
-  level: "By level",
-  manual: "Manual",
-};
 const BAR_HEIGHT = 6;
 const SWATCH_BUTTON = 34;
 
@@ -52,6 +50,11 @@ function MethodToggle({
   method: FootballTeamsMethod;
   onChange: (method: FootballTeamsMethod) => void;
 }) {
+  const m = useMessages().mobileTournament.makeTeams;
+  const methodLabels: Record<FootballTeamsMethod, string> = {
+    level: m.methodByLevel,
+    manual: m.methodManual,
+  };
   return (
     <View
       accessibilityRole="radiogroup"
@@ -84,7 +87,7 @@ function MethodToggle({
               weight={selected ? "semibold" : "regular"}
               style={{ color: selected ? colors.paper : colors.muted }}
             >
-              {METHOD_LABELS[value]}
+              {methodLabels[value]}
             </Text>
           </Pressable>
         );
@@ -123,6 +126,8 @@ function BalanceCard({
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.makeTeams;
   const row = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -133,11 +138,11 @@ function BalanceCard({
           <BibChip bib={bib} size={16} />
           <Text weight="semibold">{name}</Text>
           <Text size="meta" tone="muted" style={{ flex: 1 }}>
-            avg {sideAverage(members)}, {keeperWord(members)}
+            {m.avgAndKeepers(sideAverage(members), keeperWord(members, locale))}
           </Text>
           <Text weight="bold" width="expanded">
             {draft.method === "manual"
-              ? `${members.length} of ${summary.teamSize}`
+              ? m.ofTeamSize(members.length, summary.teamSize)
               : String(members.length)}
           </Text>
         </View>
@@ -150,7 +155,7 @@ function BalanceCard({
       {row(1)}
       {row(2)}
       <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
-        {summary.problem ?? `${summary.note} Ready to publish.`}
+        {summary.problem ?? m.readyToPublish(summary.note)}
       </Text>
     </Surface>
   );
@@ -167,12 +172,13 @@ function ArrowButton({
   name: string;
   onPress: () => void;
 }) {
+  const m = useMessages().mobileTournament.makeTeams;
   const { fill, on } = bibColors[bib];
   const Icon = side === 1 ? ArrowRight : ArrowLeft;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Move ${name} to the other team`}
+      accessibilityLabel={m.moveToOtherTeam(name)}
       hitSlop={6}
       onPress={onPress}
       style={{
@@ -184,7 +190,7 @@ function ArrowButton({
         backgroundColor: on,
       }}
     >
-      <Icon size={14} color={fill} />
+      <Icon size={14} color={fill} style={mirrorInRtl} />
     </Pressable>
   );
 }
@@ -198,6 +204,7 @@ function LevelColumns({
   summary: ReturnType<typeof draftSummary>;
   onMove: (userId: string) => void;
 }) {
+  const m = useMessages().mobileTournament.makeTeams;
   const column = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -228,8 +235,7 @@ function LevelColumns({
         {column(2)}
       </View>
       <Text size="meta" tone="muted">
-        No subs are set here. Each captain picks starters before kick-off and
-        runs the swaps on the pitch.
+        {m.noSubs}
       </Text>
     </View>
   );
@@ -287,6 +293,8 @@ function ManualRow({
   names: { slot1: string; slot2: string };
   onPlace: (side: Side) => void;
 }) {
+  const messages = useMessages();
+  const m = messages.mobileTournament.makeTeams;
   const side = draft.sides[player.userId];
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
@@ -311,7 +319,7 @@ function ManualRow({
       <Avatar name={player.name} uri={player.image} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text numberOfLines={1} style={{ color: on }}>
-          {player.isViewer ? "You" : player.name}
+          {player.isViewer ? messages.common.you : player.name}
         </Text>
         {code ? (
           <Text size="eyebrow" mono style={{ color: on, opacity: 0.7 }}>
@@ -325,13 +333,13 @@ function ManualRow({
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
-        label={`Put ${player.name} in ${names.slot1}`}
+        label={m.putIn(player.name, names.slot1)}
         onPress={() => onPlace(1)}
       />
       <SwatchButton
         bib={draft.bibs.slot2}
         selected={side === 2}
-        label={`Put ${player.name} in ${names.slot2}`}
+        label={m.putIn(player.name, names.slot2)}
         onPress={() => onPlace(2)}
       />
     </View>
@@ -347,6 +355,7 @@ function ManualLists({
   summary: ReturnType<typeof draftSummary>;
   onPlace: (userId: string, side: Side) => void;
 }) {
+  const m = useMessages().mobileTournament.makeTeams;
   const group = (
     title: React.ReactNode,
     meta: string,
@@ -386,18 +395,18 @@ function ManualLists({
   return (
     <View style={{ gap: 20 }}>
       {group(
-        <Text weight="semibold">Not placed</Text>,
-        `${summary.unplaced.length} left`,
+        <Text weight="semibold">{m.notPlaced}</Text>,
+        m.left(summary.unplaced.length),
         summary.unplaced,
       )}
       {group(
         sideTitle(draft.bibs.slot1, summary.names.slot1),
-        `${summary.slot1.length} of ${summary.teamSize}`,
+        m.ofTeamSize(summary.slot1.length, summary.teamSize),
         summary.slot1,
       )}
       {group(
         sideTitle(draft.bibs.slot2, summary.names.slot2),
-        `${summary.slot2.length} of ${summary.teamSize}`,
+        m.ofTeamSize(summary.slot2.length, summary.teamSize),
         summary.slot2,
       )}
     </View>
@@ -409,6 +418,9 @@ function ManualLists({
  * each team's bib colour and publishes.
  */
 export function MakeTeamsScreen({ gameId }: { gameId: string }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.makeTeams;
   const router = useRouter();
   const toast = useToast();
   const utils = api.useUtils();
@@ -424,7 +436,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
 
   const publish = api.games.publishFootballTeams.useMutation({
     onSuccess: async () => {
-      toast.show("Teams published");
+      toast.show(m.published);
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
@@ -437,19 +449,18 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const fallback = `/games/${gameId}` as Href;
   const players = board.data?.players ?? [];
   const sideSize = game.data?.sideSize ?? null;
-  const summary = draft ? draftSummary(draft, players) : null;
+  const summary = draft ? draftSummary(draft, players, locale) : null;
 
   if (board.error || (board.data && !board.data.viewer.canMakeTeams)) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback={fallback} title="Make teams" />
+        <ScreenHeader nav="back" fallback={fallback} title={m.title} />
         <Surface style={{ gap: 4 }}>
           <Text weight="semibold">
-            {board.error ? "The pool could not be loaded" : "Teams are fixed"}
+            {board.error ? m.poolLoadFailed : m.teamsFixed}
           </Text>
           <Text size="meta" tone="muted">
-            {board.error?.message ??
-              "Only an organizer makes the teams, and only until the score is in."}
+            {board.error?.message ?? m.organizerOnly}
           </Text>
         </Surface>
       </Screen>
@@ -459,7 +470,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   if (!draft || !summary) {
     return (
       <Screen>
-        <ScreenHeader nav="back" fallback={fallback} title="Make teams" />
+        <ScreenHeader nav="back" fallback={fallback} title={m.title} />
         <Skeleton height={320} radius={16} />
       </Screen>
     );
@@ -467,15 +478,14 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
 
   const start = game.data?.windowStart ?? null;
   const intro = [
-    start ? formatGameStart(start) : null,
-    `${summary.teamSize} per team${sideSize ? `, ${sideSize} start` : ""}`,
+    start ? formatGameStart(start, locale) : null,
+    sideSize
+      ? m.perTeamStart(summary.teamSize, sideSize)
+      : m.perTeam(summary.teamSize),
   ]
     .filter(Boolean)
     .join(". ");
-  const how =
-    draft.method === "level"
-      ? "Tap the arrow on a row to move that player to the other team."
-      : "Tap a swatch to place a player; placed rows take their team colour.";
+  const how = draft.method === "level" ? m.howLevel : m.howManual;
 
   return (
     <Screen
@@ -483,7 +493,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
         <>
           {draft.method === "level" ? (
             <Button
-              label="Shuffle"
+              label={m.shuffle}
               variant="outline"
               size="lg"
               icon={<Shuffle size={16} color={colors.ink} />}
@@ -496,7 +506,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
             />
           ) : (
             <Button
-              label="Clear"
+              label={messages.common.clear}
               variant="outline"
               size="lg"
               onPress={() => setDraft({ ...draft, sides: {} })}
@@ -504,7 +514,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
           )}
           <View style={{ flex: 1 }}>
             <Button
-              label="Publish teams"
+              label={m.publish}
               size="lg"
               disabled={summary.problem != null}
               pending={publish.isPending}
@@ -525,10 +535,10 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
       <ScreenHeader
         nav="back"
         fallback={fallback}
-        title={draft.method === "level" ? "Make teams" : "Manual teams"}
+        title={draft.method === "level" ? m.title : m.manualTitle}
         actions={
           <Text size="meta" tone="muted">
-            {players.length} in the pool
+            {m.inThePool(players.length)}
           </Text>
         }
       >

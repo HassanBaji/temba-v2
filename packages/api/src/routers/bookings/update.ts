@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookingPayments, bookings, games } from "@repo/db";
-import { SLOT_REFUSAL_MESSAGES } from "@repo/domain/booking-copy";
+import { slotRefusalMessage } from "@repo/domain/booking-copy";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { managerBookingActions } from "@repo/domain/booking-manager-actions";
 import { evaluateSlot } from "@repo/domain/booking-slots";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -44,6 +45,7 @@ export async function updateBookingForVenue(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const now = args.now ?? new Date();
@@ -111,7 +113,7 @@ export async function updateBookingForVenue(
           message:
             check.reason === "no_price"
               ? "No Pricing rule covers that time. Type a price"
-              : SLOT_REFUSAL_MESSAGES[check.reason],
+              : slotRefusalMessage(check.reason, args.locale ?? DEFAULT_LOCALE),
         });
       }
       await requireFreeCourt(tx, {
@@ -129,7 +131,8 @@ export async function updateBookingForVenue(
           code: "BAD_REQUEST",
           message:
             args.priceFils === undefined
-              ? `The payment is settled, so the price stays ${formatBookingPriceFils(booking.priceFils)}. Type it as the price to move this Booking`
+              ? // The Venue console is English-only, so the price matches the sentence.
+                `The payment is settled, so the price stays ${formatBookingPriceFils(booking.priceFils, "en")}. Type it as the price to move this Booking`
               : "The payment is settled, so the price cannot change",
         });
       }
@@ -179,5 +182,6 @@ export const updateProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

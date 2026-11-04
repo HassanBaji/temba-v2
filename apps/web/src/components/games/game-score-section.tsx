@@ -5,6 +5,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { formatAbsoluteDay } from "@repo/domain/format-game-start";
@@ -22,13 +23,13 @@ import {
 } from "@repo/domain/friendly-game-court";
 import { setLabel } from "@repo/domain/game-copy";
 import {
-  ORGANIZER_CONFIRM_NOTE,
-  SCORE_INCOMPLETE_MESSAGE,
+  organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
+  scoreIncompleteMessage,
   scoreNameByUserId,
   scoreOrganizerCanConfirm,
   scoreOrganizerWaitingLines,
@@ -78,6 +79,7 @@ function SetBox({
   saving?: boolean;
   onChange?: (value: number | null) => void;
 }) {
+  const locale = useLocale();
   if (state === "locked" || state === "unplayed") {
     return (
       <span
@@ -91,7 +93,7 @@ function SetBox({
     return (
       <div className="bg-ink text-paper flex h-12 w-14 shrink-0 items-center justify-center rounded-lg text-xl font-bold tabular-nums">
         <span className="sr-only">
-          {scoreSetBoxAccessibleLabel(state, label, value)}
+          {scoreSetBoxAccessibleLabel(state, label, value, locale)}
         </span>
         <span aria-hidden="true">{value}</span>
       </div>
@@ -102,7 +104,7 @@ function SetBox({
     return (
       <div className="border-ink bg-paper text-ink flex h-12 w-14 shrink-0 items-center justify-center rounded-lg border-[1.5px] text-base font-semibold tabular-nums">
         <span className="sr-only">
-          {scoreSetBoxAccessibleLabel(state, label, value)}
+          {scoreSetBoxAccessibleLabel(state, label, value, locale)}
         </span>
         <span aria-hidden="true">{value}</span>
       </div>
@@ -113,7 +115,7 @@ function SetBox({
     return (
       <div
         className="hatch text-ink flex h-12 w-14 shrink-0 items-center justify-center rounded-lg text-xl font-bold tabular-nums"
-        aria-label={scoreSetBoxAccessibleLabel(state, label, value)}
+        aria-label={scoreSetBoxAccessibleLabel(state, label, value, locale)}
       >
         <span aria-hidden="true">{value ?? ""}</span>
       </div>
@@ -158,8 +160,14 @@ function ScoreFooterNote({
   confirmedAtLabel: string | null;
   confirmedByOrganizer: boolean;
 }) {
+  const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
-  const copy = scoreFooterNote(phase, confirmedAtLabel, confirmedByOrganizer);
+  const copy = scoreFooterNote(
+    phase,
+    confirmedAtLabel,
+    locale,
+    confirmedByOrganizer,
+  );
 
   return (
     <div className="flex items-start gap-2.5">
@@ -192,12 +200,14 @@ function MatchResultConfirmations({
   confirmPending: boolean;
   onConfirm: () => void;
 }) {
-  const rows = scoreConfirmationRows(confirmation, viewerUserId, names);
-  const waitingLines = scoreOrganizerWaitingLines(confirmation);
+  const locale = useLocale();
+  const m = useMessages();
+  const rows = scoreConfirmationRows(confirmation, viewerUserId, names, locale);
+  const waitingLines = scoreOrganizerWaitingLines(confirmation, locale);
 
   return (
     <div className="border-rule space-y-2.5 border-t pt-4">
-      <p className="text-meta font-medium">Confirmations</p>
+      <p className="text-meta font-medium">{m.webGame.score.confirmations}</p>
       <ul className="space-y-1.5">
         {rows.map((row) => (
           <li
@@ -232,10 +242,10 @@ function MatchResultConfirmations({
             onClick={onConfirm}
             disabled={confirmPending}
           >
-            Confirm score
+            {m.webGame.score.confirmScore}
           </Button>
           <p className="text-muted-foreground text-meta">
-            {ORGANIZER_CONFIRM_NOTE}
+            {organizerConfirmNote(locale)}
           </p>
         </div>
       ) : canConfirm ? (
@@ -246,7 +256,7 @@ function MatchResultConfirmations({
           onClick={onConfirm}
           disabled={confirmPending}
         >
-          Confirm result
+          {m.webGame.score.confirmResult}
         </Button>
       ) : null}
     </div>
@@ -255,6 +265,8 @@ function MatchResultConfirmations({
 
 /** Before the Game: one row that says when the score opens. */
 function LockedScore({ courtFull }: { courtFull: boolean }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <section
       data-slot="game-score-section"
@@ -267,9 +279,9 @@ function LockedScore({ courtFull }: { courtFull: boolean }) {
         />
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className="text-body font-semibold">Score</h2>
+        <h2 className="text-body font-semibold">{m.webGame.score.title}</h2>
         <p className="text-muted-foreground text-meta">
-          {scoreLockedLine(courtFull)}
+          {scoreLockedLine(courtFull, locale)}
         </p>
       </div>
       <div aria-hidden="true" className="flex shrink-0 gap-1">
@@ -320,6 +332,8 @@ export function GameScoreSection({
   }) => void | Promise<unknown>;
   onConfirm: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
 
   React.useEffect(() => {
@@ -347,7 +361,7 @@ export function GameScoreSection({
       })),
     );
     if (payloads.length === 0) {
-      toast.error(SCORE_INCOMPLETE_MESSAGE);
+      toast.error(scoreIncompleteMessage(locale));
       return;
     }
     try {
@@ -372,7 +386,9 @@ export function GameScoreSection({
     isOrganizer,
   });
 
-  const deciderNote = canEnter ? scoreDeciderNote(match.sets.length) : null;
+  const deciderNote = canEnter
+    ? scoreDeciderNote(match.sets.length, locale)
+    : null;
 
   function box(
     set: GameScoreSectionMatch["sets"][number],
@@ -383,8 +399,11 @@ export function GameScoreSection({
       slot1: set.slot1GamesWon,
       slot2: set.slot2GamesWon,
     };
-    const setName = setLabel(index);
-    const boxLabel = `${formatGameSideLabel("friendly_game", side.sideIndex)}, ${setName}`;
+    const setName = setLabel(index, locale);
+    const boxLabel = m.webGame.score.boxLabel(
+      formatGameSideLabel("friendly_game", side.sideIndex, locale),
+      setName,
+    );
     const state = scoreSetBoxState({
       phase,
       neverPlayed: scoreSetNeverPlayed(set),
@@ -439,9 +458,9 @@ export function GameScoreSection({
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <div className="flex items-baseline justify-between gap-3 px-[18px] py-3.5">
-        <h2 className="text-base font-semibold">Score</h2>
+        <h2 className="text-base font-semibold">{m.webGame.score.title}</h2>
         <p className="text-muted-foreground text-meta">
-          {scoreSetsMeta(match.sets.length)}
+          {scoreSetsMeta(match.sets.length, locale)}
         </p>
       </div>
       <div className="space-y-2.5 px-[18px] pb-[18px]">
@@ -452,7 +471,7 @@ export function GameScoreSection({
               key={set.id}
               className="text-muted-foreground w-14 text-center text-[11px] uppercase tracking-[0.06em]"
             >
-              {setLabel(index)}
+              {setLabel(index, locale)}
             </span>
           ))}
         </div>
@@ -461,10 +480,10 @@ export function GameScoreSection({
           <div key={side.sideIndex} className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
-                {formatGameSideLabel("friendly_game", side.sideIndex)}
+                {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
               </p>
               <p className="truncate text-sm font-medium">
-                {scoreTeamFirstNames(side)}
+                {scoreTeamFirstNames(side, locale)}
               </p>
             </div>
             {match.sets.map((set, index) => box(set, index, side))}
@@ -482,9 +501,9 @@ export function GameScoreSection({
                 void saveSets();
               }}
               pending={scorePending}
-              pendingLabel="Saving…"
+              pendingLabel={m.common.saving}
             >
-              Save score
+              {m.webGame.score.saveScore}
             </Button>
           </div>
         ) : null}
@@ -511,7 +530,7 @@ export function GameScoreSection({
             phase={phase}
             confirmedAtLabel={
               matchResultConfirmation?.confirmedAt
-                ? formatAbsoluteDay(matchResultConfirmation.confirmedAt)
+                ? formatAbsoluteDay(matchResultConfirmation.confirmedAt, locale)
                 : null
             }
             confirmedByOrganizer={

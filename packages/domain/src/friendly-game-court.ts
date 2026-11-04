@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { levelLabel, shortName } from "./football-board";
 import type { FriendlyGameDetailsSeat } from "./friendly-game-details";
 import {
@@ -12,28 +15,25 @@ import { formatPricePerPlayerFils } from "./price-per-player";
 
 type Position = "left" | "right";
 
-export const COURT_JOIN_SUBLINE = "Pick your side next";
-export const COURT_ADD_PLAYER_HINT = "Tap an open spot to add a player there.";
-export const COURT_OPEN_LABEL = "Open";
-
-export function courtSpotsLabel(vacantSeatCount: number) {
+export function courtSpotsLabel(vacantSeatCount: number, locale: Locale) {
+  const m = messagesFor(locale).game.court;
   if (vacantSeatCount <= 0) {
-    return "Court full";
+    return m.full;
   }
-  return vacantSeatCount === 1
-    ? "1 spot open"
-    : `${vacantSeatCount} spots open`;
+  return m.spotsOpen(vacantSeatCount);
 }
 
-export function courtPositionLabel(position: Position) {
-  return position === "left" ? "Left" : "Right";
+export function courtPositionLabel(position: Position, locale: Locale) {
+  const m = messagesFor(locale).game.court;
+  return position === "left" ? m.left : m.right;
 }
 
 export function courtSeatSubline(
   position: Position,
   levelBand: LevelBand | null,
+  locale: Locale,
 ) {
-  const label = courtPositionLabel(position);
+  const label = courtPositionLabel(position, locale);
   return levelBand
     ? `${label} · ${displayLabelFromStoredBand(levelBand)}`
     : label;
@@ -44,11 +44,12 @@ export function courtSeatRow(
   seat: FriendlyGameDetailsSeat,
   position: Position,
   viewerUserId: string,
+  locale: Locale,
 ): PlayedRow {
   const isYou = seat.userId === viewerUserId;
   return {
     userId: seat.userId,
-    name: isYou ? "You" : shortName(seat.name),
+    name: isYou ? messagesFor(locale).common.you : shortName(seat.name),
     fullName: seat.name,
     image: seat.image,
     isYou,
@@ -61,8 +62,10 @@ export function courtSeatRow(
 }
 
 /** "Hassan B (You)" on the court, where every seat is a short name. */
-export function courtSeatName(row: PlayedRow) {
-  return row.isYou ? `${shortName(row.fullName)} (You)` : row.name;
+export function courtSeatName(row: PlayedRow, locale: Locale) {
+  return row.isYou
+    ? messagesFor(locale).game.court.seatNameYou(shortName(row.fullName))
+    : row.name;
 }
 
 export type CourtFigure = {
@@ -78,60 +81,68 @@ export function courtFigures(input: {
   seatCount: number;
   durationInMinutes: number | null;
   pricePerPlayerFils: number | null;
+  locale: Locale;
 }): CourtFigure[] {
-  const price = formatPricePerPlayerFils(input.pricePerPlayerFils);
+  const m = messagesFor(input.locale).game.court;
+  const price = formatPricePerPlayerFils(
+    input.pricePerPlayerFils,
+    input.locale,
+  );
   return [
     {
       key: "players",
       value: `${input.seatedCount}/${input.seatCount}`,
-      label: "Players",
+      label: m.figurePlayers,
       unset: false,
     },
     {
       key: "duration",
-      value: heroDurationFigure(input.durationInMinutes),
-      label: "Duration",
+      value: heroDurationFigure(input.durationInMinutes, input.locale),
+      label: m.figureDuration,
       unset: input.durationInMinutes == null,
     },
     {
       key: "price",
       value: price ?? "—",
-      label: price ? "Per player" : "Price not set",
+      label: price ? m.figurePerPlayer : m.figurePriceNotSet,
       unset: price == null,
     },
   ];
 }
 
-export function scoreLockedLine(courtFull: boolean) {
-  return courtFull
-    ? "Enter the result after the game."
-    : "Opens when the court is full. Enter the result after the game.";
+export function scoreLockedLine(courtFull: boolean, locale: Locale) {
+  const m = messagesFor(locale).game.court;
+  return courtFull ? m.scoreLockedFull : m.scoreLockedOpen;
 }
 
 /** "Hassan & Ali": first names, so a pair fits beside the Set boxes. */
-export function scoreTeamFirstNames(side: {
-  left: { name: string } | null;
-  right: { name: string } | null;
-}) {
+export function scoreTeamFirstNames(
+  side: {
+    left: { name: string } | null;
+    right: { name: string } | null;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.court;
   const first = (seat: { name: string } | null) =>
-    seat ? (seat.name.trim().split(/\s+/)[0] ?? seat.name) : COURT_OPEN_LABEL;
-  return `${first(side.left)} & ${first(side.right)}`;
+    seat ? (seat.name.trim().split(/\s+/)[0] ?? seat.name) : m.open;
+  return m.pair(first(side.left), first(side.right));
 }
 
-export function scoreSetsMeta(setCount: number) {
-  if (setCount === 1) {
-    return "1 set";
-  }
-  return setCount % 2 === 1 ? `Best of ${setCount} sets` : `${setCount} sets`;
+export function scoreSetsMeta(setCount: number, locale: Locale) {
+  const m = messagesFor(locale).game.court;
+  return setCount > 1 && setCount % 2 === 1
+    ? m.bestOfSets(setCount)
+    : m.sets(setCount);
 }
 
 /** "Set 3 only if it's 1–1." for a best of three; nothing otherwise. */
-export function scoreDeciderNote(setCount: number) {
+export function scoreDeciderNote(setCount: number, locale: Locale) {
   if (setCount < 3 || setCount % 2 === 0) {
     return null;
   }
   const half = (setCount - 1) / 2;
-  return `Set ${setCount} only if it's ${half}–${half}.`;
+  return messagesFor(locale).game.court.decider(setCount, `${half}–${half}`);
 }
 
 /**
@@ -141,7 +152,9 @@ export function scoreDeciderNote(setCount: number) {
 export function scoreLeadLine(
   match: FriendlyGameHeroMatch,
   viewerGameTeamId: string | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.court;
   const played =
     viewerGameTeamId != null &&
     (match.slot1GameTeamId === viewerGameTeamId ||
@@ -153,10 +166,12 @@ export function scoreLeadLine(
   }
   const tally = `${viewerSetWins}–${opponentSetWins}`;
   if (viewerSetWins === opponentSetWins) {
-    return `Level at ${tally}`;
+    return m.levelAt(tally);
   }
-  const team = played ? "Your team" : formatMatchSlotLabel("friendly_game", 1);
+  const team = played
+    ? m.yourTeam
+    : formatMatchSlotLabel("friendly_game", 1, locale);
   return viewerSetWins > opponentSetWins
-    ? `${team} leads ${tally}`
-    : `${team} trails ${tally}`;
+    ? m.leads(team, tally)
+    : m.trails(team, tally);
 }

@@ -1,6 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { priceChipIsSelected } from "@repo/domain/create-game-flow";
 import type { Sport } from "@repo/domain/sport";
+import type { Locale } from "@repo/i18n/locale";
 import { useRouter } from "expo-router";
 import { useCallback, useReducer, useState } from "react";
 import { View } from "react-native";
@@ -8,6 +9,7 @@ import { View } from "react-native";
 import { bookingPath } from "../booking/booking-model";
 import { gamePath } from "../games/games-model";
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { FormErrorSummary } from "../auth/form-error-summary";
 import { Button } from "../primitives/button";
@@ -25,7 +27,7 @@ import {
   type BookingGameSource,
 } from "./booking-game-model";
 import { ChipGrid } from "./chips";
-import { CREATE_ENTRY_HEADER } from "./create-header";
+import { createEntryHeader } from "./create-header";
 import {
   createReducer,
   initialCreateState,
@@ -45,9 +47,10 @@ const COST_COLUMNS = 2;
 function initialBookingGameState(init: {
   now: Date;
   sport: Sport;
+  locale: Locale;
 }): CreateState {
   return {
-    ...initialCreateState(init.now, undefined, "friendly_game"),
+    ...initialCreateState(init.now, init.locale, undefined, "friendly_game"),
     sport: init.sport,
     step: 4,
   };
@@ -55,22 +58,28 @@ function initialBookingGameState(init: {
 
 export function BookingGameScreen({ bookingId }: { bookingId: string }) {
   const router = useRouter();
+  const locale = useLocale();
+  const m = useMessages();
   const booking = api.bookings.byId.useQuery({ bookingId });
   const fallback = bookingPath(bookingId);
 
   if (!booking.data) {
     return (
-      <StepShell step={null} header={CREATE_ENTRY_HEADER} fallback={fallback}>
+      <StepShell
+        step={null}
+        header={createEntryHeader(locale)}
+        fallback={fallback}
+      >
         {booking.error ? (
           <Surface accessibilityRole="alert" style={{ gap: 8 }}>
             <Text size="lead" weight="semibold">
-              Booking could not be loaded
+              {m.mobileCreateGame.bookingGame.loadFailedTitle}
             </Text>
             <Text size="meta" tone="muted">
               {booking.error.message}
             </Text>
             <Button
-              label="Try again"
+              label={m.common.tryAgain}
               variant="outline"
               onPress={() => void booking.refetch()}
             />
@@ -87,17 +96,20 @@ export function BookingGameScreen({ bookingId }: { bookingId: string }) {
 
   if (!booking.data.canCreateGame) {
     return (
-      <StepShell step={null} header={CREATE_ENTRY_HEADER} fallback={fallback}>
+      <StepShell
+        step={null}
+        header={createEntryHeader(locale)}
+        fallback={fallback}
+      >
         <Surface style={{ gap: 8 }}>
           <Text size="lead" weight="semibold">
-            This booking can&apos;t have a new game
+            {m.mobileCreateGame.bookingGame.unavailableTitle}
           </Text>
           <Text size="meta" tone="muted">
-            A game needs a confirmed, upcoming booking that you hold and that
-            has no game yet.
+            {m.mobileCreateGame.bookingGame.unavailableBody}
           </Text>
           <Button
-            label="Back to booking"
+            label={m.mobileCreateGame.bookingGame.backToBooking}
             variant="outline"
             onPress={() => router.back()}
           />
@@ -114,11 +126,14 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
   const toast = useToast();
   const utils = api.useUtils();
   const now = useNow();
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.bookingGame;
   const sport = bookingGameSport(booking);
   const football = sport === "football";
   const [state, dispatch] = useReducer(
     createReducer,
-    { now, sport },
+    { now, sport, locale },
     initialBookingGameState,
   );
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -133,7 +148,7 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
 
   const createGame = api.bookings.createGame.useMutation({
     onSuccess: async ({ gameId }) => {
-      toast.show("Game created");
+      toast.show(m.mobileCreateGame.toast.gameCreated);
       await Promise.all([
         utils.bookings.byId.invalidate({ bookingId: booking.id }),
         utils.bookings.listMine.invalidate(),
@@ -163,24 +178,25 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
     if (createGame.isPending) {
       return;
     }
-    const request = bookingGameRequest(booking.id, state.draft, sport);
+    const request = bookingGameRequest(booking.id, state.draft, locale, sport);
     if (!request.ok) {
       setErrors(request.errors);
       return;
     }
     createGame.mutate(request.input);
-  }, [booking.id, createGame, sport, state.draft]);
+  }, [booking.id, createGame, locale, sport, state.draft]);
 
   const perSeat = splitCourtCost(
     booking.priceFils,
     football ? state.draft.playersAllowed : undefined,
   );
   const step = { state, now, errors, dispatch: onDispatch };
+  const costTitle = football ? copy.pitchCost : copy.courtCost;
 
   return (
     <StepShell
       step={null}
-      header={bookingGameHeader(booking, now)}
+      header={bookingGameHeader(booking, now, locale)}
       fallback={bookingPath(booking.id)}
       footer={
         <StepFooter
@@ -198,23 +214,20 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
             groups={sportGroups}
             groupId={state.draft.groupId}
             error={errors.groupId}
-            noneLabel="No group"
+            noneLabel={m.mobileCreateGame.group.none}
             onSelect={(groupId) =>
               onDispatch({ kind: "setGroup", groupId, sport })
             }
           />
         ) : null}
         {football ? <FootballSizeFields {...step} /> : null}
-        <StepSection
-          title={football ? "Pitch cost" : "Court cost"}
-          note="Optional"
-        >
+        <StepSection title={costTitle} note={m.common.optional}>
           <ChipGrid
-            label={football ? "Pitch cost" : "Court cost"}
+            label={costTitle}
             columns={COST_COLUMNS}
             chips={[
-              { value: "0", label: "I cover it" },
-              { value: perSeat, label: `Split, ${perSeat} each` },
+              { value: "0", label: copy.coverIt },
+              { value: perSeat, label: copy.splitEach(perSeat) },
             ]}
             isSelected={(value) =>
               priceChipIsSelected(value, state.draft.pricePerPlayer)
@@ -224,26 +237,25 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
           <MoneyField
             value={state.draft.pricePerPlayer}
             onChangeText={(price) => onDispatch({ kind: "setPrice", price })}
-            accessibilityLabel="Price per player in BD"
+            accessibilityLabel={m.mobileCreateGame.price.inputLabel}
             error={errors.pricePerPlayerFils}
           />
           <HelperNote>
-            {football
-              ? "Shown to players as the price per player. Temba does not collect it."
-              : "Shown to players as the price per seat. Temba does not collect it."}
+            {football ? copy.priceNotePlayer : copy.priceNoteSeat}
           </HelperNote>
         </StepSection>
         {football ? null : <LevelRangeField {...step} />}
         <ReviewCard
           rows={bookingGameReviewRows(
             booking,
+            locale,
             {
               sideSize: state.draft.sideSize,
               playersAllowed: state.draft.playersAllowed,
             },
             selectedGroup
               ? {
-                  name: groupLabel(selectedGroup),
+                  name: groupLabel(selectedGroup, locale),
                   rated: !football && selectedGroup.verified,
                 }
               : null,

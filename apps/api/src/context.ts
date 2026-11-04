@@ -1,5 +1,9 @@
 import { createClerkClient, type ClerkClient } from "@clerk/backend";
-import { createTRPCContext, type TRPCContextHost } from "@repo/api/trpc";
+import {
+  createTRPCContext,
+  requestLocale,
+  type TRPCContextHost,
+} from "@repo/api/trpc";
 
 type Db = TRPCContextHost["db"];
 
@@ -74,6 +78,7 @@ export function contextFor(options: {
       db: options.db,
       headers: request.headers,
       webOrigin: options.webOrigin,
+      locale: requestLocale(request.headers),
     });
   };
 }

@@ -1,6 +1,6 @@
 import { sizes } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
-import { REGISTER_TEAM_ACTION } from "@repo/domain/game-copy";
+import { registerTeamAction } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
@@ -11,15 +11,6 @@ import {
   type TournamentHomeView,
 } from "@repo/domain/tournament-details";
 import {
-  LEAVE_THE_SEAT_LABEL,
-  NOT_DRAWN_TRAILER,
-  OPEN_POSITION_SR_LABEL,
-  SEATS_HEADING,
-  TEAMS_HEADING,
-  TOURNAMENT_CLOSING_LINE,
-  YOUR_ROUNDS_PREDRAW_CAPTION,
-  YOUR_TEAM_LABEL,
-  YOUR_TEAM_TAG,
   tournamentCollapsedTeamsLabel,
   tournamentSeatsTakenLine,
   tournamentSeatsTakenSrLabel,
@@ -27,12 +18,12 @@ import {
   tournamentTeamsCountLine,
   type TournamentTeamRow,
 } from "@repo/domain/tournament-home";
-import { YOUR_ROUNDS_HEADING } from "@repo/domain/tournament-pool-table";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
 import { LevelRequestCard } from "../game-details/level-request-card";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -68,11 +59,13 @@ function HeroSeat({
   position: Position;
   isViewer: boolean;
 }) {
+  const messages = useMessages();
+  const home = messages.tournament.home;
   if (!occupant) {
     return (
       <View
         accessible
-        accessibilityLabel={OPEN_POSITION_SR_LABEL}
+        accessibilityLabel={home.openPositionSr}
         style={{ flex: 1, height: 64, borderRadius: 8 }}
       >
         <Hatch radius={8} />
@@ -93,10 +86,10 @@ function HeroSeat({
       <Avatar name={occupant.name} uri={occupant.image} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="body" numberOfLines={1}>
-          {isViewer ? "You" : occupant.name}
+          {isViewer ? messages.common.you : occupant.name}
         </Text>
         <Text size="eyebrow" tone="muted">
-          {position === "left" ? "Left seat" : "Right seat"}
+          {position === "left" ? home.leftSeat : home.rightSeat}
         </Text>
       </View>
     </View>
@@ -110,6 +103,7 @@ function Hero({
   view: TournamentHomeView;
   viewerUserId: string;
 }) {
+  const messages = useMessages();
   const { hero, viewerSide } = view;
   return (
     <Surface tone="ink" style={{ gap: 12 }}>
@@ -136,7 +130,7 @@ function Hero({
       {view.seated ? (
         <View style={{ gap: 8 }}>
           <Text size="meta" tone="muted">
-            {YOUR_TEAM_LABEL}
+            {messages.tournament.home.yourTeam}
           </Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <HeroSeat
@@ -176,11 +170,20 @@ function SeatTile({
   onJoin: () => void;
   onOpen?: (userId: string) => void;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.mobileTournament.predraw;
+  const home = messages.tournament.home;
   const palette = useTonePalette();
-  const positionName = position === "left" ? "Left" : "Right";
+  const positionName = messages.tournament.position[position];
 
   if (!occupant) {
-    const label = tournamentSeatLabel({ position, teamLabel, joinable });
+    const label = tournamentSeatLabel({
+      position,
+      teamLabel,
+      joinable,
+      locale,
+    });
     return (
       <Pressable
         accessibilityRole={joinable ? "button" : undefined}
@@ -203,7 +206,11 @@ function SeatTile({
           accessibilityElementsHidden
           importantForAccessibility="no"
         >
-          {joinable ? `Take ${positionName.toLowerCase()}` : positionName}
+          {joinable
+            ? position === "left"
+              ? m.takeLeft
+              : m.takeRight
+            : positionName}
         </Text>
       </Pressable>
     );
@@ -213,12 +220,12 @@ function SeatTile({
     ? displayLabelFromStoredBand(occupant.levelBand)
     : null;
   const label = [
-    occupant.userId === viewerUserId ? "You" : occupant.name,
-    `${positionName} seat`,
+    occupant.userId === viewerUserId ? messages.common.you : occupant.name,
+    position === "left" ? home.leftSeat : home.rightSeat,
     level,
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(messages.tournament.listSeparator);
   const tile = (
     <View
       accessible={!onOpen}
@@ -239,7 +246,9 @@ function SeatTile({
       <Avatar name={occupant.name} uri={occupant.image} size="sm" />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="meta" weight="medium" numberOfLines={1}>
-          {occupant.userId === viewerUserId ? "You" : occupant.name}
+          {occupant.userId === viewerUserId
+            ? messages.common.you
+            : occupant.name}
         </Text>
         <Text size="eyebrow" tone="muted" numberOfLines={1}>
           {[positionName, level].filter(Boolean).join(" · ")}
@@ -255,7 +264,7 @@ function SeatTile({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="Opens their Player profile"
+      accessibilityHint={m.opensProfileHint}
       onPress={() => onOpen(occupant.userId)}
       style={({ pressed }) => ({
         flex: 1,
@@ -283,7 +292,13 @@ function TeamRow({
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
 }) {
-  const teamLabel = formatGameSideLabel("friendly_tournament", row.sideIndex);
+  const locale = useLocale();
+  const messages = useMessages();
+  const teamLabel = formatGameSideLabel(
+    "friendly_tournament",
+    row.sideIndex,
+    locale,
+  );
   const joinable = canTakeSeat && !row.isViewer;
   return (
     <View style={{ padding: 16, gap: 12 }}>
@@ -302,7 +317,7 @@ function TeamRow({
         </Text>
         {row.isViewer ? (
           <Text size="eyebrow" tone="muted">
-            {YOUR_TEAM_TAG}
+            {messages.tournament.home.yourTeamTag}
           </Text>
         ) : null}
       </View>
@@ -335,11 +350,14 @@ function TeamsCard({
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
   const [expanded, setExpanded] = useState(false);
-  const rows = tournamentTeamRows(game.sides, game.viewerUserId);
+  const rows = tournamentTeamRows(game.sides, game.viewerUserId, locale);
   const countLine = tournamentTeamsCountLine(
     view.field.full,
     view.field.halfOpen,
+    locale,
   );
   const sideOf = (sideIndex: number) =>
     game.sides.find((side) => side.sideIndex === sideIndex) ?? null;
@@ -358,7 +376,11 @@ function TeamsCard({
   );
 
   return (
-    <Card title={TEAMS_HEADING} meta={countLine || undefined} flush>
+    <Card
+      title={messages.tournament.home.teamsHeading}
+      meta={countLine || undefined}
+      flush
+    >
       {rows.head.map(renderRow)}
       {rows.collapsedCount > 0 ? (
         <View>
@@ -375,8 +397,8 @@ function TeamsCard({
           >
             <Text size="meta" tone="muted">
               {expanded
-                ? "Show fewer Game teams"
-                : tournamentCollapsedTeamsLabel(rows.collapsedCount)}
+                ? messages.mobileTournament.predraw.showFewerTeams
+                : tournamentCollapsedTeamsLabel(rows.collapsedCount, locale)}
             </Text>
           </Pressable>
         </View>
@@ -388,6 +410,8 @@ function TeamsCard({
 }
 
 function SeatsCard({ view }: { view: TournamentHomeView }) {
+  const locale = useLocale();
+  const messages = useMessages();
   const palette = useTonePalette();
   const { field } = view;
   if (field.seatTotal < 1) {
@@ -403,7 +427,7 @@ function SeatsCard({ view }: { view: TournamentHomeView }) {
         }}
       >
         <Text size="body" weight="semibold" accessibilityRole="header">
-          {SEATS_HEADING}
+          {messages.tournament.home.seatsHeading}
         </Text>
         <Text
           size="meta"
@@ -411,7 +435,7 @@ function SeatsCard({ view }: { view: TournamentHomeView }) {
           accessibilityElementsHidden
           importantForAccessibility="no"
         >
-          {tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal)}
+          {tournamentSeatsTakenLine(field.seatsTaken, field.seatTotal, locale)}
         </Text>
       </View>
       <View
@@ -419,6 +443,7 @@ function SeatsCard({ view }: { view: TournamentHomeView }) {
         accessibilityLabel={tournamentSeatsTakenSrLabel(
           field.seatsTaken,
           field.seatTotal,
+          locale,
         )}
         style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}
       >
@@ -450,11 +475,17 @@ function ScheduleCard({
   view: TournamentHomeView;
   venueName: string | null;
 }) {
+  const locale = useLocale();
+  const messages = useMessages();
   if (view.schedule.length === 0) {
     return null;
   }
   return (
-    <Card title={YOUR_ROUNDS_HEADING} meta={YOUR_ROUNDS_PREDRAW_CAPTION} flush>
+    <Card
+      title={messages.tournament.poolTable.yourRounds}
+      meta={messages.tournament.home.yourRoundsPredrawCaption}
+      flush
+    >
       {view.schedule.map((round) => (
         <View key={round.roundNumber}>
           <Hairline />
@@ -469,11 +500,11 @@ function ScheduleCard({
             }}
           >
             <Text size="eyebrow" tone="muted" style={{ width: 28 }}>
-              {`R${round.roundNumber}`}
+              {messages.tournament.card.roundShort(round.roundNumber)}
             </Text>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text size="body" numberOfLines={1}>
-                {formatGameStart(round.start)}
+                {formatGameStart(round.start, locale)}
               </Text>
               {venueName ? (
                 <Text size="meta" tone="muted" numberOfLines={1}>
@@ -481,7 +512,7 @@ function ScheduleCard({
                 </Text>
               ) : null}
             </View>
-            <OpenSlot label={NOT_DRAWN_TRAILER} />
+            <OpenSlot label={messages.tournament.home.notDrawn} />
           </View>
         </View>
       ))}
@@ -530,10 +561,12 @@ function RegisterTeam({
   game: TournamentDetails;
   handlers: PreDrawHandlers;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.predraw;
   if (game.eligibleTeams.length === 0) {
     return (
       <Text size="meta" tone="muted">
-        You need a complete Team whose both partners are allowed on this Game.
+        {m.needCompleteTeam}
       </Text>
     );
   }
@@ -542,13 +575,13 @@ function RegisterTeam({
       {game.eligibleTeams.length > 1 ? (
         <View
           accessibilityRole="radiogroup"
-          accessibilityLabel="Team"
+          accessibilityLabel={m.teamGroup}
           style={{ gap: 8 }}
         >
           {game.eligibleTeams.map((team) => (
             <Button
               key={team.id}
-              label={`${team.name} (${team.memberNames.join(" / ")})`}
+              label={m.teamWithMembers(team.name, team.memberNames.join(" / "))}
               variant={handlers.teamId === team.id ? "default" : "outline"}
               selected={handlers.teamId === team.id}
               onPress={() => handlers.onTeamIdChange(team.id)}
@@ -557,7 +590,7 @@ function RegisterTeam({
         </View>
       ) : null}
       <Button
-        label={REGISTER_TEAM_ACTION}
+        label={registerTeamAction(locale)}
         size="lg"
         pending={handlers.registerTeamPending}
         disabled={handlers.teamId.length === 0}
@@ -576,7 +609,8 @@ export function PreDrawView({
   view: TournamentHomeView;
   handlers: PreDrawHandlers;
 }) {
-  const levelCard = levelRangeRequestCard(game);
+  const locale = useLocale();
+  const levelCard = levelRangeRequestCard(game, locale);
   return (
     <View style={{ gap: 16 }}>
       <Hero view={view} viewerUserId={game.viewerUserId} />
@@ -611,12 +645,13 @@ export function TournamentTail({
   leavePending: boolean;
   onLeave: () => void;
 }) {
+  const home = useMessages().tournament.home;
   return (
     <View style={{ gap: 16 }}>
       <DetailRows rows={view.detailRows} />
       {view.canLeaveGame ? (
         <Button
-          label={LEAVE_THE_SEAT_LABEL}
+          label={home.leaveTheSeat}
           variant="outline"
           size="lg"
           pending={leavePending}
@@ -624,7 +659,7 @@ export function TournamentTail({
         />
       ) : null}
       <Text size="meta" tone="muted">
-        {TOURNAMENT_CLOSING_LINE}
+        {home.closingLine}
       </Text>
     </View>
   );

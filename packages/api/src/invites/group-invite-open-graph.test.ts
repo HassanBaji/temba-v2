@@ -2,7 +2,7 @@ import { groupInviteLinks, groups, user } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
+import { genericTembaOpenGraph } from "@repo/domain/game-invite-open-graph";
 import { mintLink } from "#src/invites/doors";
 import { loadGroupInviteOpenGraph } from "#src/invites/group-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -43,17 +43,17 @@ describe("loadGroupInviteOpenGraph", () => {
         return;
       }
       expect(
-        await loadGroupInviteOpenGraph(db, minted.link.shortCode!),
+        await loadGroupInviteOpenGraph(db, minted.link.shortCode!, "en"),
       ).toEqual({
         title: "Friday Night",
         description: 'You are invited to join "Friday Night" for "Padel"',
       });
 
-      expect(await loadGroupInviteOpenGraph(db, "0O1ILUAB")).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
+      expect(await loadGroupInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual(
+        genericTembaOpenGraph("en"),
       );
-      expect(await loadGroupInviteOpenGraph(db, "ZZZZZZZZ")).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
+      expect(await loadGroupInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual(
+        genericTembaOpenGraph("en"),
       );
 
       await db
@@ -61,8 +61,8 @@ describe("loadGroupInviteOpenGraph", () => {
         .set({ expiresAt: new Date(Date.now() - 1000) })
         .where(eq(groupInviteLinks.id, minted.link.id));
       expect(
-        await loadGroupInviteOpenGraph(db, minted.link.shortCode!),
-      ).toEqual(GENERIC_TEMBA_OPEN_GRAPH);
+        await loadGroupInviteOpenGraph(db, minted.link.shortCode!, "en"),
+      ).toEqual(genericTembaOpenGraph("en"));
     } finally {
       await close();
     }

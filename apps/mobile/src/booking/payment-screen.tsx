@@ -6,6 +6,8 @@ import {
 } from "@repo/domain/booking-payment";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -30,6 +32,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ConfirmSheet } from "../game-details/confirm-sheet";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { ChoiceCard } from "../primitives/choice-card";
 import { hairline } from "../primitives/hairline-width";
@@ -40,7 +43,6 @@ import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
-import { courtNounTitle } from "./book-sport";
 import { BookingHero, Notice, PAYMENT_METHOD_ICONS } from "./booking-parts";
 import {
   bookingPath,
@@ -94,6 +96,8 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
   const toast = useToast();
   const utils = api.useUtils();
   const now = useSecondClock();
+  const m = useMessages();
+  const locale = useLocale();
   const opened = useRef<string | null>(null);
   const finished = useRef(false);
   const [browserOpen, setBrowserOpen] = useState(false);
@@ -138,7 +142,9 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
       setReleasing(false);
       finished.current = true;
       toast.show(
-        `${booking.data ? courtNounTitle(booking.data.court.sport) : "Court"} released`,
+        m.mobileBooking.paymentScreen.released[
+          booking.data ? courtFace(booking.data.court.sport) : "court"
+        ],
       );
       await Promise.all([
         utils.bookings.listMine.invalidate(),
@@ -204,9 +210,9 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
         <ScreenHeader nav="close" fallback="/book" />
         {booking.error ? (
           <Notice
-            title="Payment could not be loaded"
+            title={m.mobileBooking.paymentScreen.loadError}
             description={booking.error.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => void booking.refetch()}
           />
         ) : (
@@ -220,20 +226,20 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
   }
 
   const data = booking.data;
-  const price = formatBookingPriceFils(data.priceFils);
-  const name = methodName(method);
+  const price = formatBookingPriceFils(data.priceFils, locale);
+  const name = methodName(method, locale);
   const countdown = holdCountdown(state.data?.holdExpiresAt ?? null, now);
   const slow = isWaiting(view) && isSlowWait(waitingSince, now);
   const shown = view ?? { kind: "preparing" as const };
   const status = shown.kind === "done" ? null : shown;
-  const copy = status ? paymentCopy(status, { method, slow }) : null;
+  const copy = status ? paymentCopy(status, { method, slow, locale }) : null;
   const alternatives = venue.data
     ? retryMethods(checkoutMethods(venue.data.payment, Platform.OS))
     : [];
   const canSwitch = alternatives.some((entry) => entry !== method);
   const release = (
     <LinkButton
-      label="Cancel and release the slot"
+      label={m.mobileBooking.paymentScreen.releaseSlot}
       onPress={() => setReleasing(true)}
     />
   );
@@ -251,13 +257,14 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
             ) : null
           }
           eyebrow={`${data.venue.name} / ${bookingRef(data.id)}`}
-          time={formatGameClock(data.startsAt)}
-          until={untilLabel(data.endsAt)}
+          time={formatGameClock(data.startsAt, locale)}
+          until={untilLabel(data.endsAt, locale)}
           subtitle={[
             whenLine(
               data.startsAt,
               minutesBetween(data.startsAt, data.endsAt),
               now,
+              locale,
             ),
             data.court.name,
           ].join(" / ")}
@@ -268,7 +275,11 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
           {view?.kind === "open" ? (
             <>
               <Button
-                label={name ? `Open ${name} again` : "Open payment page again"}
+                label={
+                  name
+                    ? m.mobileBooking.paymentScreen.openAgain(name)
+                    : m.mobileBooking.paymentScreen.openPageAgain
+                }
                 size="lg"
                 disabled={browserOpen}
                 icon={
@@ -277,7 +288,11 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
                 onPress={() => void openPage(view.redirectUrl)}
               />
               <Button
-                label={slow ? "Check status now" : "I have paid, check status"}
+                label={
+                  slow
+                    ? m.mobileBooking.paymentScreen.checkStatusNow
+                    : m.mobileBooking.paymentScreen.paidCheckStatus
+                }
                 size="lg"
                 variant="outline"
                 pending={confirm.isPending}
@@ -288,7 +303,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
           ) : view?.kind === "checking" ? (
             <>
               <Button
-                label="Check status now"
+                label={m.mobileBooking.paymentScreen.checkStatusNow}
                 size="lg"
                 variant="outline"
                 pending={confirm.isPending}
@@ -299,7 +314,11 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
           ) : view?.kind === "failed" ? (
             <>
               <Button
-                label={name ? `Try ${name} again` : "Try again"}
+                label={
+                  name
+                    ? m.mobileBooking.paymentScreen.tryNameAgain(name)
+                    : m.common.tryAgain
+                }
                 size="lg"
                 pending={retry.isPending && !choosing}
                 icon={<RotateCw size={sizes.iconRow} color={colors.paper} />}
@@ -307,7 +326,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
               />
               {canSwitch ? (
                 <Button
-                  label="Pay another way"
+                  label={m.mobileBooking.paymentScreen.payAnotherWay}
                   size="lg"
                   variant="outline"
                   onPress={() => setChoosing(true)}
@@ -316,7 +335,11 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
               {release}
             </>
           ) : view?.kind === "expired" ? (
-            <Button label="Pick a time" size="lg" onPress={leaveForVenue} />
+            <Button
+              label={m.mobileBooking.paymentScreen.pickATime}
+              size="lg"
+              onPress={leaveForVenue}
+            />
           ) : (
             release
           )}
@@ -325,9 +348,9 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
     >
       {state.error ? (
         <Notice
-          title="Payment could not be checked"
+          title={m.mobileBooking.paymentScreen.checkError}
           description={state.error.message}
-          actionLabel="Try again"
+          actionLabel={m.common.tryAgain}
           onAction={() => void state.refetch()}
         />
       ) : status && copy ? (
@@ -353,7 +376,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
       <ConfirmSheet
         request={
           releasing
-            ? releaseRequest(data, () => cancel.mutate({ bookingId }))
+            ? releaseRequest(data, locale, () => cancel.mutate({ bookingId }))
             : null
         }
         pending={cancel.isPending}
@@ -363,27 +386,33 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
   );
 }
 
-function releaseRequest(booking: Booking, onConfirm: () => void) {
+function releaseRequest(
+  booking: Booking,
+  locale: Locale,
+  onConfirm: () => void,
+) {
+  const m = messagesFor(locale).mobileBooking.paymentScreen.release;
   const face = courtFace(booking.court.sport);
   return {
-    title: `Release this ${face}?`,
-    description: `Your booking is cancelled and the ${face} goes back on sale for others.`,
-    confirmLabel: `Release ${face}`,
-    cancelLabel: "Keep paying",
+    title: m.title[face],
+    description: m.description[face],
+    confirmLabel: m.confirm[face],
+    cancelLabel: m.keepPaying,
     onConfirm,
   };
 }
 
 function HoldLine({ countdown }: { countdown: string }) {
+  const m = useMessages();
   return (
     <View
       accessible
-      accessibilityLabel={`Slot held for ${countdown}`}
+      accessibilityLabel={m.mobileBooking.paymentScreen.slotHeldFor(countdown)}
       style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
     >
       <Lock size={12} color={colors.dim} />
       <Text size="eyebrow" mono uppercase tone="muted">
-        {`Slot held ${countdown}`}
+        {m.mobileBooking.paymentScreen.slotHeld(countdown)}
       </Text>
     </View>
   );
@@ -402,6 +431,7 @@ function StatusBody({
   methodLabel: string | null;
   price: string;
 }) {
+  const m = useMessages();
   const MethodIcon = methodIcon(method);
   const waiting = view.kind !== "failed" && view.kind !== "expired";
 
@@ -449,15 +479,29 @@ function StatusBody({
               gap: 10,
             }}
           >
-            <CardRow label={waiting ? "Paying with" : "Tried"}>
+            <CardRow
+              label={
+                waiting
+                  ? m.mobileBooking.paymentScreen.payingWith
+                  : m.mobileBooking.paymentScreen.tried
+              }
+            >
               <MethodIcon size={14} color={colors.ink} />
-              <Text size="meta">{methodLabel ?? "Payment page"}</Text>
+              <Text size="meta">
+                {methodLabel ?? m.mobileBooking.paymentScreen.paymentPage}
+              </Text>
             </CardRow>
-            <CardRow label={waiting ? "Amount" : "Still to pay"}>
+            <CardRow
+              label={
+                waiting
+                  ? m.mobileBooking.paymentScreen.amount
+                  : m.mobileBooking.paymentScreen.stillToPay
+              }
+            >
               <Text weight="semibold">{price}</Text>
             </CardRow>
             {copy.status ? (
-              <CardRow label="Status" ruled>
+              <CardRow label={m.mobileBooking.status} ruled>
                 <View
                   style={{
                     width: STATUS_DOT,
@@ -637,6 +681,9 @@ function AnotherWaySheet({
   onClose: () => void;
   onPay: (method: OnlinePaymentMethod) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileBooking.paymentScreen.anotherWay;
   const [picked, setPicked] = useState<OnlinePaymentMethod | null>(null);
   const choice =
     (picked !== failed ? picked : null) ??
@@ -647,10 +694,8 @@ function AnotherWaySheet({
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Pay another way"
-      subtitle={
-        countdown ? `${price}. Your slot stays held for ${countdown}.` : price
-      }
+      title={m.mobileBooking.paymentScreen.payAnotherWay}
+      subtitle={countdown ? copy.subtitle(price, countdown) : price}
       closeButton
     >
       <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
@@ -663,9 +708,11 @@ function AnotherWaySheet({
               variant="card"
               selected={entry === choice}
               disabled={justFailed}
-              title={methodName(entry) ?? entry}
+              title={methodName(entry, locale) ?? entry}
               description={
-                justFailed ? "Just failed" : paymentMethod(entry).detail
+                justFailed
+                  ? copy.justFailed
+                  : paymentMethod(entry, locale).detail
               }
               leading={PAYMENT_METHOD_ICONS[entry]}
               onPress={() => setPicked(entry)}
@@ -674,10 +721,14 @@ function AnotherWaySheet({
         })}
       </View>
       <Text size="eyebrow" tone="muted">
-        Each way to pay opens its own secure payment page.
+        {copy.securePages}
       </Text>
       <Button
-        label={choice ? `Pay ${price} with ${methodName(choice)}` : "Pay"}
+        label={
+          choice
+            ? copy.payWith(price, methodName(choice, locale) ?? choice)
+            : copy.pay
+        }
         size="lg"
         disabled={choice === null}
         pending={pending}

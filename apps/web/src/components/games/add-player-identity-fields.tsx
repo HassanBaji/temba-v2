@@ -10,12 +10,12 @@ import { NotOnTembaTag } from "~/components/temba/seat";
 import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import {
-  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
-  ADD_PLAYER_LEVEL_CHOICES,
-  ADD_PLAYER_NAME_LABEL,
+  addPlayerFootballLevelChoices,
+  addPlayerLevelChoices,
   type AddPlayerLevel,
 } from "@repo/domain/add-player-by-phone";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 const PHONE_ID = "add-player-phone";
 const NAME_ID = "add-player-name";
@@ -60,10 +60,12 @@ export function AddPlayerIdentityFields({
   onFootballLevelChange: (level: FootballSelfPlacement) => void;
   disabled: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <>
       <Field>
-        <FieldLabel htmlFor={PHONE_ID}>Phone</FieldLabel>
+        <FieldLabel htmlFor={PHONE_ID}>{m.webGame.addPlayer.phone}</FieldLabel>
         <PhoneField
           id={PHONE_ID}
           countryIso={countryIso}
@@ -88,7 +90,9 @@ export function AddPlayerIdentityFields({
               ) : null}
             </div>
           ) : complete && previewFetching ? (
-            <p className="text-muted-foreground text-meta">Looking up…</p>
+            <p className="text-muted-foreground text-meta">
+              {m.webGame.addPlayer.lookingUp}
+            </p>
           ) : null}
         </div>
       </Field>
@@ -96,7 +100,9 @@ export function AddPlayerIdentityFields({
       {preview?.kind === "new" ? (
         <>
           <Field>
-            <FieldLabel htmlFor={NAME_ID}>{ADD_PLAYER_NAME_LABEL}</FieldLabel>
+            <FieldLabel htmlFor={NAME_ID}>
+              {m.group.addPlayer.nameLabel}
+            </FieldLabel>
             <Input
               id={NAME_ID}
               value={name}
@@ -107,18 +113,18 @@ export function AddPlayerIdentityFields({
             />
           </Field>
           <Group>
-            <SectionLabel label="Starting Level" />
+            <SectionLabel label={m.webGame.addPlayer.startingLevel} />
             {isFootball ? (
               <RowChoices
-                label="Starting Level"
-                choices={ADD_PLAYER_FOOTBALL_LEVEL_CHOICES}
+                label={m.webGame.addPlayer.startingLevel}
+                choices={addPlayerFootballLevelChoices(locale)}
                 value={footballLevel}
                 onSelect={onFootballLevelChange}
               />
             ) : (
               <RowChoices
-                label="Starting Level"
-                choices={ADD_PLAYER_LEVEL_CHOICES}
+                label={m.webGame.addPlayer.startingLevel}
+                choices={addPlayerLevelChoices(locale)}
                 value={level}
                 onSelect={onLevelChange}
               />

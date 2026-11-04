@@ -4,6 +4,7 @@ import { Loader2Icon } from "lucide-react";
 import * as React from "react";
 
 import { EntityMonogram } from "~/components/common/entity-monogram";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -14,7 +15,6 @@ import {
 import { Input } from "~/components/ui/input";
 import {
   ENTITY_IMAGE_ACCEPT,
-  ENTITY_IMAGE_HELP,
   entityImageFileError,
   type EntityImageNoun,
 } from "@repo/domain/entity-image-file";
@@ -26,7 +26,7 @@ import {
  */
 export function EntityImageField({
   id,
-  label = "Add image",
+  label,
   noun = "Image",
   file = null,
   currentImageUrl,
@@ -47,6 +47,9 @@ export function EntityImageField({
   onFileChange: (file: File | null) => void;
   onError: (error: string | null) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const fieldLabel = label ?? m.webUi.entityImage.addImage;
   const previewUrl = React.useMemo(
     () => (file ? URL.createObjectURL(file) : null),
     [file],
@@ -64,16 +67,20 @@ export function EntityImageField({
 
   return (
     <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel htmlFor={id}>{fieldLabel}</FieldLabel>
       {shownImage ? (
         <div className="flex min-w-0 items-center gap-3">
           <EntityMonogram
-            name={file?.name ?? label}
+            name={file?.name ?? fieldLabel}
             image={shownImage}
             size="lg"
           />
           <p className="text-meta min-w-0 flex-1 truncate">
-            {file ? file.name : `Current ${noun.toLowerCase()}`}
+            {file
+              ? file.name
+              : noun === "Logo"
+                ? m.webUi.entityImage.currentLogo
+                : m.webUi.entityImage.currentImage}
           </p>
           {file ? (
             <Button
@@ -85,7 +92,7 @@ export function EntityImageField({
                 onFileChange(null);
               }}
             >
-              Clear
+              {m.common.clear}
             </Button>
           ) : null}
         </div>
@@ -103,7 +110,7 @@ export function EntityImageField({
           if (!next) {
             return;
           }
-          const message = entityImageFileError(next, noun);
+          const message = entityImageFileError(next, locale, noun);
           if (message) {
             onError(message);
             return;
@@ -112,7 +119,9 @@ export function EntityImageField({
           onFileChange(next);
         }}
       />
-      <FieldDescription id={`${id}-help`}>{ENTITY_IMAGE_HELP}</FieldDescription>
+      <FieldDescription id={`${id}-help`}>
+        {m.createGame.image.help}
+      </FieldDescription>
       <p
         role="status"
         className="text-meta text-muted-foreground flex items-center gap-2 empty:hidden"
@@ -120,7 +129,9 @@ export function EntityImageField({
         {pending ? (
           <>
             <Loader2Icon aria-hidden="true" className="size-4 animate-spin" />
-            Uploading {noun.toLowerCase()}…
+            {noun === "Logo"
+              ? m.webUi.entityImage.uploadingLogo
+              : m.webUi.entityImage.uploadingImage}
           </>
         ) : null}
       </p>

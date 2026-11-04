@@ -1,8 +1,11 @@
 import { type Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Create account",
-};
+import { getRequestMessages } from "~/lib/request-locale";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.webAuth.phoneAuth.createAccount };
+}
 
 export default function SignupLayout({
   children,

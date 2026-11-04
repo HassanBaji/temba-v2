@@ -3,6 +3,7 @@
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
 import { AuthLoading } from "~/components/auth/auth-loading";
+import { useMessages } from "~/components/locale-provider";
 import {
   authCompleteUrl,
   authCrossLinkUrl,
@@ -17,12 +18,13 @@ function signupContinueUrl(redirectUrl: string | null): string {
 }
 
 export function SsoCallback({ redirectUrl }: { redirectUrl: string | null }) {
+  const m = useMessages();
   const complete = authCompleteUrl(redirectUrl);
   const signUpComplete = signUpCompleteUrl(redirectUrl);
 
   return (
     <>
-      <AuthLoading label="Finishing sign in…" />
+      <AuthLoading label={m.webAuth.sso.finishingSignIn} />
       {/* A new Google user arriving from /login is transferred to sign-up here, which runs bot protection. */}
       <div id="clerk-captcha" />
       <AuthenticateWithRedirectCallback

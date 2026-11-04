@@ -11,6 +11,8 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import {
   communities,
   communityMembers,
@@ -257,6 +259,7 @@ export async function groupById(
     now?: Date;
     gameHistory?: GroupGameHistoryPage;
     getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>;
+    locale?: Locale;
   },
 ) {
   const group = await requireGroup(database, args.groupId);
@@ -624,7 +627,11 @@ export async function groupById(
   // reads are built by the hub's own `toHubListRow` — one shape, not two
   // (spec §4.1). The viewer's Level range gates `canRegister` here exactly as
   // it does on the hub.
-  const viewer = await viewerHubContext(database, args.userId);
+  const viewer = await viewerHubContext(
+    database,
+    args.userId,
+    args.locale ?? DEFAULT_LOCALE,
+  );
   const upcomingRows = filterAndSortHomeUpcomingGames(
     groupGameRows,
     new Set([group.id]),
@@ -848,5 +855,6 @@ export const byId = protectedProcedure
       userId: appUser.id,
       gameHistory: input.gameHistory,
       getPublicMetadata: ctx.getPublicMetadata,
+      locale: ctx.locale,
     });
   });

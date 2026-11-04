@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Surface } from "~/components/ui/surface";
 import type { ReactNode } from "react";
 
+import { LanguageToggle } from "~/components/common/language-toggle";
+import { useMessages } from "~/components/locale-provider";
 import { touchHitArea } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { TembaWordmark } from "~/components/ui/temba-wordmark";
@@ -13,7 +17,7 @@ export function AuthScreen({
   brand = false,
   backHref,
   onBack,
-  backLabel = "Back",
+  backLabel,
   crossLink,
   progress,
   eyebrow,
@@ -39,13 +43,15 @@ export function AuthScreen({
   children: ReactNode;
   padContent?: boolean;
 }) {
+  const m = useMessages();
   const welcome = variant === "welcome";
   const surface = welcome ? "ink" : "paper";
   const showHeader =
     Boolean(backHref ?? onBack ?? crossLink ?? progress) || brand;
   const progressLabel = progress
-    ? (progress.label ?? `Step ${progress.step} of ${progress.total}`)
+    ? (progress.label ?? m.webAuth.screen.stepOf(progress.step, progress.total))
     : "";
+  const resolvedBackLabel = backLabel ?? m.common.back;
   // The frame stays wide on desktop; forms read in a phone-width column.
   const column = welcome
     ? undefined
@@ -71,12 +77,16 @@ export function AuthScreen({
           >
             {onBack ? (
               <BackButton
-                label={backLabel}
+                label={resolvedBackLabel}
                 surface={surface}
                 onClick={onBack}
               />
             ) : backHref ? (
-              <BackButton label={backLabel} surface={surface} href={backHref} />
+              <BackButton
+                label={resolvedBackLabel}
+                surface={surface}
+                href={backHref}
+              />
             ) : brand ? (
               <Link
                 href="/"
@@ -94,7 +104,7 @@ export function AuthScreen({
               >
                 {crossLink.label}
               </Link>
-            ) : progress ? (
+            ) : progress?.label ? (
               <span
                 aria-hidden="true"
                 className="text-eyebrow text-muted-foreground font-mono uppercase"
@@ -102,7 +112,17 @@ export function AuthScreen({
                 {progressLabel}
               </span>
             ) : (
-              <span className="size-11 shrink-0" aria-hidden="true" />
+              <div className="flex items-center gap-3">
+                {progress ? (
+                  <span
+                    aria-hidden="true"
+                    className="text-eyebrow text-muted-foreground font-mono uppercase"
+                  >
+                    {progressLabel}
+                  </span>
+                ) : null}
+                <LanguageToggle />
+              </div>
             )}
           </header>
         ) : null}

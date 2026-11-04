@@ -1,11 +1,9 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const ENTITY_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
 export const ENTITY_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
-
-export const ENTITY_IMAGE_HELP = "Optional. JPEG, PNG, or WebP, at most 2 MB.";
-
-export const GROUP_CREATED_WITHOUT_IMAGE_TOAST =
-  "Group created without an image";
 
 export type EntityImageContentType = "image/jpeg" | "image/png" | "image/webp";
 
@@ -30,33 +28,45 @@ export function asEntityImageContentType(
 
 export type PickedImage = { type: string; size: number };
 
+function typeError(noun: EntityImageNoun, locale: Locale) {
+  const m = messagesFor(locale).createGame.image;
+  return noun === "Logo" ? m.logoType : m.imageType;
+}
+
+function sizeError(noun: EntityImageNoun, locale: Locale) {
+  const m = messagesFor(locale).createGame.image;
+  return noun === "Logo" ? m.logoTooLarge : m.imageTooLarge;
+}
+
 export function entityImageFileError(
   file: PickedImage,
+  locale: Locale,
   noun: EntityImageNoun = "Image",
 ): string | null {
   if (!asEntityImageContentType(file.type)) {
-    return `${noun} must be a JPEG, PNG, or WebP image`;
+    return typeError(noun, locale);
   }
   if (file.size > ENTITY_IMAGE_MAX_BYTES) {
-    return `${noun} must be at most 2 MB`;
+    return sizeError(noun, locale);
   }
   return null;
 }
 
 export async function entityImageUploadInput(
   file: File,
+  locale: Locale,
   noun: EntityImageNoun = "Image",
 ): Promise<{
   contentType: EntityImageContentType;
   dataBase64: string;
 }> {
-  const error = entityImageFileError(file, noun);
+  const error = entityImageFileError(file, locale, noun);
   if (error) {
     throw new Error(error);
   }
   const contentType = asEntityImageContentType(file.type);
   if (!contentType) {
-    throw new Error(`${noun} must be a JPEG, PNG, or WebP image`);
+    throw new Error(typeError(noun, locale));
   }
   return { contentType, dataBase64: await fileToBase64(file) };
 }

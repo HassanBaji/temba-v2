@@ -1,3 +1,6 @@
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatDayMonth, formatWeekday } from "./format-game-start";
 import { addProductDays } from "./product-timezone";
 import {
@@ -48,64 +51,49 @@ export type CreateFlowStep = 1 | 2 | 3 | 4;
 
 export type CreateGameTypeId = "friendly_game" | "friendly_tournament";
 
-export const CREATE_GAME_TYPE_CARDS: readonly {
+export function createGameTypeCards(locale: Locale): readonly {
   id: CreateGameTypeId;
   title: string;
   description: string;
   rating: string;
-}[] = [
-  {
-    id: "friendly_game",
-    title: "Friendly game",
-    description: "One Match. Temba fills the open seats.",
-    rating: "Counts for your rating",
-  },
-  {
-    id: "friendly_tournament",
-    title: "Friendly tournament",
-    description: "Several Game teams over one day.",
-    rating: "Counts for your rating",
-  },
-];
+}[] {
+  const m = messagesFor(locale).createGame.typeCards;
+  return [
+    { id: "friendly_game", ...m.friendlyGame },
+    { id: "friendly_tournament", ...m.friendlyTournament },
+  ];
+}
 
-export const FRIENDLY_GAME_LATER_STEPS: readonly {
+type CreateFlowLaterStep = {
   step: Exclude<CreateFlowStep, 1>;
   title: string;
-}[] = [
-  { step: 2, title: "Where" },
-  { step: 3, title: "When" },
-  { step: 4, title: "Level and price" },
-];
-
-export const FRIENDLY_TOURNAMENT_LATER_STEPS: readonly {
-  step: Exclude<CreateFlowStep, 1>;
-  title: string;
-}[] = [
-  { step: 2, title: "Where and size" },
-  { step: 3, title: "Format and day" },
-  { step: 4, title: "Entry and review" },
-];
-
-export const FOOTBALL_GAME_LATER_STEPS: readonly {
-  step: Exclude<CreateFlowStep, 1>;
-  title: string;
-}[] = [
-  { step: 2, title: "Where" },
-  { step: 3, title: "When" },
-  { step: 4, title: "Size and price" },
-];
+};
 
 export function createFlowLaterSteps(
   type: CreateGameTypeId | null,
+  locale: Locale,
   sport: Sport = DEFAULT_SPORT,
-) {
+): readonly CreateFlowLaterStep[] {
+  const m = messagesFor(locale).createGame.steps;
   if (sport === "football") {
-    return FOOTBALL_GAME_LATER_STEPS;
+    return [
+      { step: 2, title: m.where },
+      { step: 3, title: m.when },
+      { step: 4, title: m.sizeAndPrice },
+    ];
   }
   if (type === "friendly_tournament") {
-    return FRIENDLY_TOURNAMENT_LATER_STEPS;
+    return [
+      { step: 2, title: m.whereAndSize },
+      { step: 3, title: m.formatAndDay },
+      { step: 4, title: m.entryAndReview },
+    ];
   }
-  return FRIENDLY_GAME_LATER_STEPS;
+  return [
+    { step: 2, title: m.where },
+    { step: 3, title: m.when },
+    { step: 4, title: m.levelAndPrice },
+  ];
 }
 
 /** A football Group only offers a Friendly game, so the Type step is skipped. */
@@ -113,15 +101,14 @@ export function createFlowFirstStep(sport: Sport): CreateFlowStep {
   return sport === "football" ? 2 : 1;
 }
 
-export const CREATE_FLOW_OPEN_SEATS_LABEL = "4 open seats";
-
 export function createFlowSeatsLabel(
   sport: Sport,
   size: { sideSize: number; playersAllowed: number },
+  locale: Locale,
 ) {
   return sport === "football"
-    ? footballSizeLabel(size.sideSize, size.playersAllowed)
-    : CREATE_FLOW_OPEN_SEATS_LABEL;
+    ? footballSizeLabel(size.sideSize, size.playersAllowed, locale)
+    : messagesFor(locale).createGame.openSeats;
 }
 
 export const FOOTBALL_SIDE_SIZE_PRESETS = [5, 7, 11] as const;
@@ -174,35 +161,18 @@ export type CreateTournamentShape =
 
 export const DEFAULT_TOURNAMENT_SHAPE: CreateTournamentShape = "groups_only";
 
-export const TOURNAMENT_FORMAT_LABEL = "Format";
-
-export const KNOCKOUT_REVIEW_LABEL = "Knockout";
-
-export const KNOCKOUT_ONLY_FORMAT_LABEL = "Knockout only";
-
-export const GROUPS_THEN_KNOCKOUT_FORMAT_LABEL = "Groups, then knockout";
-
-export const TOURNAMENT_SHAPE_OPTIONS: readonly {
+export function tournamentShapeOptions(locale: Locale): readonly {
   id: CreateTournamentShape;
   title: string;
   description: string;
-}[] = [
-  {
-    id: "groups_only",
-    title: "Groups only",
-    description: "Everyone plays the same number of games",
-  },
-  {
-    id: "knockout_only",
-    title: KNOCKOUT_ONLY_FORMAT_LABEL,
-    description: "Lose once and you are done for the day",
-  },
-  {
-    id: "groups_then_knockout",
-    title: GROUPS_THEN_KNOCKOUT_FORMAT_LABEL,
-    description: "The best in each group carry on",
-  },
-];
+}[] {
+  const m = messagesFor(locale).createGame.shapes;
+  return [
+    { id: "groups_only", ...m.groupsOnly },
+    { id: "knockout_only", ...m.knockoutOnly },
+    { id: "groups_then_knockout", ...m.groupsThenKnockout },
+  ];
+}
 
 export function parseCreateTournamentShape(
   value: unknown,
@@ -217,12 +187,6 @@ export function parseCreateTournamentShape(
 export function createShapeHasPools(shape: CreateTournamentShape) {
   return shape !== "knockout_only";
 }
-
-export const FRIENDLY_TOURNAMENT_UNEVEN_GROUPS =
-  "Groups are uneven. Some Game teams play one more Match than others.";
-
-const MATCH_MINUTES_MESSAGE =
-  "Match length must be from 10 to 120 minutes, in steps of 5";
 
 export type CreateFlowDuration = (typeof CREATE_FLOW_DURATIONS)[number];
 
@@ -300,12 +264,14 @@ export type CreateFlowFieldIssue = {
 export function validateFriendlyGameWhere(
   groupId: string,
   venueId: string,
+  locale: Locale,
 ): { ok: true } | CreateFlowFieldIssue {
+  const m = messagesFor(locale).createGame.validation;
   if (!groupId) {
     return {
       ok: false,
       field: "groupId",
-      message: "Pick a Group",
+      message: m.pickGroup,
       elementId: CREATE_FLOW_FIELD_IDS.groupId ?? "game-group",
     };
   }
@@ -313,7 +279,7 @@ export function validateFriendlyGameWhere(
     return {
       ok: false,
       field: "venueId",
-      message: "Pick a Venue",
+      message: m.pickVenue,
       elementId: CREATE_FLOW_FIELD_IDS.venueId ?? "game-venue",
     };
   }
@@ -324,13 +290,15 @@ export function validateFriendlyGameWhen(
   day: string,
   startTime: string,
   finishTime: string,
+  locale: Locale,
   now: Date = new Date(),
 ): { ok: true; windowStart: Date; windowEnd: Date } | CreateFlowFieldIssue {
+  const m = messagesFor(locale).createGame.validation;
   if (!parseDateInputValue(day)) {
     return {
       ok: false,
       field: "windowStart",
-      message: "Pick a day",
+      message: m.pickDay,
       elementId: "game-window-day",
     };
   }
@@ -339,7 +307,7 @@ export function validateFriendlyGameWhen(
     return {
       ok: false,
       field: "windowStart",
-      message: "Pick a start time",
+      message: m.pickStartTime,
       elementId: CREATE_FLOW_FIELD_IDS.windowStart ?? "game-window-start",
     };
   }
@@ -347,7 +315,7 @@ export function validateFriendlyGameWhen(
     return {
       ok: false,
       field: "windowEnd",
-      message: "Pick a finish time",
+      message: m.pickFinishTime,
       elementId: CREATE_FLOW_FIELD_IDS.windowEnd ?? "game-window-finish",
     };
   }
@@ -355,7 +323,7 @@ export function validateFriendlyGameWhen(
     return {
       ok: false,
       field: "windowEnd",
-      message: "Finish time must be at or after start time",
+      message: m.finishAfterStart,
       elementId: CREATE_FLOW_FIELD_IDS.windowEnd ?? "game-window-finish",
     };
   }
@@ -364,7 +332,7 @@ export function validateFriendlyGameWhen(
     return {
       ok: false,
       field: "windowEnd",
-      message: "Pick a finish time",
+      message: m.pickFinishTime,
       elementId: CREATE_FLOW_FIELD_IDS.windowEnd ?? "game-window-finish",
     };
   }
@@ -373,33 +341,37 @@ export function validateFriendlyGameWhen(
 
 export function parseCreateMatchMinutes(
   value: string,
+  locale: Locale,
 ): { ok: true; minutes: number } | { ok: false; message: string } {
+  const message = messagesFor(locale).createGame.matchMinutes;
   const trimmed = value.trim();
   if (!/^\d+$/.test(trimmed)) {
-    return { ok: false, message: MATCH_MINUTES_MESSAGE };
+    return { ok: false, message };
   }
   const minutes = Number(trimmed);
   if (minutes < 10 || minutes > 120 || minutes % 5 !== 0) {
-    return { ok: false, message: MATCH_MINUTES_MESSAGE };
+    return { ok: false, message };
   }
   return { ok: true, minutes };
 }
 
 export function validateTournamentName(
   name: string,
+  locale: Locale,
 ): { ok: true; name: string } | CreateFlowFieldIssue {
   const trimmed = name.trim();
   if (!trimmed) {
     return {
       ok: false,
       field: "name",
-      message: "Name the tournament",
+      message: messagesFor(locale).createGame.validation.nameTournament,
       elementId: "tournament-name",
     };
   }
   return { ok: true, name: trimmed };
 }
 
+// The step helpers below read only `.ok`, so the message's language is moot.
 export function firstIncompleteFriendlyTournamentStep(
   draft: FriendlyGameDraft & { matchMinutes: string },
   now: Date = new Date(),
@@ -408,12 +380,17 @@ export function firstIncompleteFriendlyTournamentStep(
     return 2;
   }
   if (
-    !validateFriendlyGameWhen(draft.day, draft.startTime, draft.finishTime, now)
-      .ok
+    !validateFriendlyGameWhen(
+      draft.day,
+      draft.startTime,
+      draft.finishTime,
+      DEFAULT_LOCALE,
+      now,
+    ).ok
   ) {
     return 3;
   }
-  if (!parseCreateMatchMinutes(draft.matchMinutes).ok) {
+  if (!parseCreateMatchMinutes(draft.matchMinutes, DEFAULT_LOCALE).ok) {
     return 3;
   }
   return 4;
@@ -427,8 +404,13 @@ export function firstIncompleteFriendlyGameStep(
     return 2;
   }
   if (
-    !validateFriendlyGameWhen(draft.day, draft.startTime, draft.finishTime, now)
-      .ok
+    !validateFriendlyGameWhen(
+      draft.day,
+      draft.startTime,
+      draft.finishTime,
+      DEFAULT_LOCALE,
+      now,
+    ).ok
   ) {
     return 3;
   }
@@ -510,43 +492,45 @@ export function createVenueCopy(
     groupKind: "club" | "loose" | "none";
     venues: { archivedAt: Date | string | null }[];
   },
+  locale: Locale,
   options?: { manyCourts?: boolean; sport?: Sport },
 ) {
+  const m = messagesFor(locale).createGame.venue;
   const football = options?.sport === "football";
   const optional = options?.manyCourts
-    ? "Courts are optional."
+    ? m.courtsOptional
     : football
-      ? "Pitch is optional."
-      : "Court is optional.";
+      ? m.pitchOptional
+      : m.courtOptional;
   const skip = options?.manyCourts
-    ? "Skip Courts."
+    ? m.skipCourts
     : football
-      ? "Skip pitch."
-      : "Skip Court.";
+      ? m.skipPitch
+      : m.skipCourt;
   if (picker.locked) {
     if (picker.venues[0]?.archivedAt) {
-      return `This Community’s linked Venue is Soft-archived. You can still create this Game here. ${skip}`;
+      return m.lockedArchived(skip);
     }
-    return `Venue is this Community’s linked Venue and cannot be changed. ${optional}`;
+    return m.lockedLinked(optional);
   }
   if (picker.groupKind === "club") {
-    return `This Community has no Venue link. Pick a Venue. ${optional}`;
+    return m.noLink(optional);
   }
-  return `Pick a Venue. ${optional}`;
+  return m.pick(optional);
 }
 
 export function venueCardMeta(
   courtCount: number,
   city: string,
+  locale: Locale,
   sport: Sport = DEFAULT_SPORT,
 ) {
+  const m = messagesFor(locale).createGame;
   const courts =
     sport === "football"
-      ? courtCountLabel(courtCount, sport)
-      : courtCount === 1
-        ? "1 Court"
-        : `${courtCount} Courts`;
-  return `${courts} · ${city}`;
+      ? courtCountLabel(courtCount, sport, locale)
+      : m.court.venueCount(courtCount);
+  return m.venue.cardMeta(courts, city);
 }
 
 export function venueMatchesQuery(
@@ -666,15 +650,20 @@ export function friendlyGameKickoff(
   day: string,
   startTime: string,
   finishTime: string,
+  locale: Locale,
 ): { time: string; trailer: string } | null {
   const parsed = parseRequiredGameWindow(day, startTime, finishTime);
   if (!parsed || parsed.windowEnd.getTime() < parsed.windowStart.getTime()) {
     return null;
   }
-  const kickoff = formatHomeKickoff(parsed.windowStart);
+  const kickoff = formatHomeKickoff(parsed.windowStart, locale);
   return {
     time: kickoff.time,
-    trailer: formatHeroKickoffTrailer(parsed.windowStart, parsed.windowEnd),
+    trailer: formatHeroKickoffTrailer(
+      parsed.windowStart,
+      parsed.windowEnd,
+      locale,
+    ),
   };
 }
 
@@ -683,8 +672,9 @@ export function friendlyGamePreviewLine(input: {
   groupName: string | null;
   venueName: string | null;
   courtName: string | null;
+  locale: Locale;
 }) {
-  const dayLabel = input.day ? formatDayLabel(input.day) : null;
+  const dayLabel = input.day ? formatDayLabel(input.day, input.locale) : null;
   const place = input.venueName ?? input.groupName;
   return [dayLabel, place, input.courtName]
     .filter((part): part is string => Boolean(part))
@@ -726,24 +716,27 @@ export function isLevelBoundDisabled(
   return bound === "min" ? bandIndex > otherIndex : bandIndex < otherIndex;
 }
 
-export const CREATE_FLOW_PRICE_CHIPS: readonly {
+export function createFlowPriceChips(locale: Locale): readonly {
   label: string;
   value: string;
-}[] = [
-  { label: "Free", value: "0" },
-  { label: "3.500", value: "3.50" },
-  { label: "4.250", value: "4.25" },
-  { label: "4.500", value: "4.50" },
-  { label: "5.250", value: "5.25" },
-  { label: "6.000", value: "6.00" },
-  { label: "6.500", value: "6.50" },
-  { label: "7.000", value: "7.00" },
-  { label: "7.500", value: "7.50" },
-];
+}[] {
+  return [
+    { label: messagesFor(locale).createGame.price.free, value: "0" },
+    { label: "3.500", value: "3.50" },
+    { label: "4.250", value: "4.25" },
+    { label: "4.500", value: "4.50" },
+    { label: "5.250", value: "5.25" },
+    { label: "6.000", value: "6.00" },
+    { label: "6.500", value: "6.50" },
+    { label: "7.000", value: "7.00" },
+    { label: "7.500", value: "7.50" },
+  ];
+}
 
 export function priceChipIsSelected(chipValue: string, input: string) {
-  const chip = parseOptionalPricePerPlayerFils(chipValue);
-  const current = parseOptionalPricePerPlayerFils(input);
+  // Only `.ok` and the fils are read here, so the message's language is moot.
+  const chip = parseOptionalPricePerPlayerFils(chipValue, DEFAULT_LOCALE);
+  const current = parseOptionalPricePerPlayerFils(input, DEFAULT_LOCALE);
   if (!chip.ok || !current.ok || chip.fils == null || current.fils == null) {
     return false;
   }
@@ -765,52 +758,70 @@ export function openLevelRange(): {
   return { min: LEVEL_BAND_SELECT_NONE, max: LEVEL_BAND_SELECT_NONE };
 }
 
-export function friendlyTournamentDayLabel(day: string) {
+export function friendlyTournamentDayLabel(day: string, locale: Locale) {
   const date = parseDateInputValue(day);
   if (!date) {
     return null;
   }
-  return formatDayMonth(date, { weekday: "short" });
+  return formatDayMonth(date, locale, { weekday: "short" });
 }
 
-export function friendlyTournamentDefaultName(day: string) {
-  const label = friendlyTournamentDayLabel(day);
-  return label ? `Friendly tournament · ${label}` : "Friendly tournament";
+export function friendlyTournamentDefaultName(day: string, locale: Locale) {
+  const m = messagesFor(locale).createGame.tournament;
+  const label = friendlyTournamentDayLabel(day, locale);
+  return label ? m.defaultName(label) : m.defaultNameNoDay;
 }
 
-export function friendlyTournamentGroupsLine(sizing: TournamentSizing) {
-  return formatPoolSizeLine(sizing);
+export function friendlyTournamentGroupsLine(
+  sizing: TournamentSizing,
+  locale: Locale,
+) {
+  return formatPoolSizeLine(sizing, locale);
 }
 
 export function friendlyTournamentFormatLabel(
   poolCount: number,
+  locale: Locale,
   thenKnockout = false,
 ) {
-  const groups = poolCount === 1 ? "1 group" : `${poolCount} groups`;
-  return thenKnockout ? `${groups}, then knockout` : groups;
+  const m = messagesFor(locale).createGame.tournament;
+  const groups = m.groups(poolCount);
+  return thenKnockout ? m.groupsThenKnockout(groups) : groups;
 }
 
-export function knockoutMatchCountLabel(matches: number) {
-  return matches === 1 ? "1 knockout Match" : `${matches} knockout Matches`;
+export function knockoutMatchCountLabel(matches: number, locale: Locale) {
+  return messagesFor(locale).createGame.tournament.knockoutMatches(matches);
 }
 
-export function friendlyTournamentMatchCountLabel(poolMatches: number) {
-  return poolMatches === 1 ? "1 group Match" : `${poolMatches} group Matches`;
+export function friendlyTournamentMatchCountLabel(
+  poolMatches: number,
+  locale: Locale,
+) {
+  return messagesFor(locale).createGame.tournament.groupMatches(poolMatches);
 }
 
 export function friendlyTournamentScheduleLine(
   poolMatches: number,
   clock: string,
+  locale: Locale,
 ) {
-  return `${friendlyTournamentMatchCountLabel(poolMatches)}, last Match finishes at ${clock}`;
+  return messagesFor(locale).createGame.tournament.scheduleLine(
+    friendlyTournamentMatchCountLabel(poolMatches, locale),
+    clock,
+  );
 }
 
 export function groupsThenKnockoutScheduleLine(
   poolMatches: number,
   knockoutMatches: number,
   clock: string,
+  locale: Locale,
 ) {
-  return `${friendlyTournamentMatchCountLabel(poolMatches)} and ${knockoutMatchCountLabel(knockoutMatches)}, last Match finishes at ${clock}`;
+  return messagesFor(locale).createGame.tournament.scheduleLineBoth(
+    friendlyTournamentMatchCountLabel(poolMatches, locale),
+    knockoutMatchCountLabel(knockoutMatches, locale),
+    clock,
+  );
 }
 
 export function friendlyTournamentSchedule(input: {
@@ -820,6 +831,7 @@ export function friendlyTournamentSchedule(input: {
   courtCount: number;
   matchMinutes: number;
   clock: (date: Date) => string;
+  locale: Locale;
   knockoutOnly?: boolean;
   /** Groups then knockout: the Knockout rounds after the Pool Rounds. */
   knockoutRoundMatches?: readonly number[];
@@ -839,15 +851,19 @@ export function friendlyTournamentSchedule(input: {
   let line: string | null = null;
   if (clock != null) {
     if (input.knockoutOnly) {
-      line = `${knockoutMatchCountLabel(matchCount)}, last Match finishes at ${clock}`;
+      line = messagesFor(input.locale).createGame.tournament.scheduleLine(
+        knockoutMatchCountLabel(matchCount, input.locale),
+        clock,
+      );
     } else if (knockoutRoundMatches.length > 0) {
       line = groupsThenKnockoutScheduleLine(
         matchCount,
         sum(knockoutRoundMatches),
         clock,
+        input.locale,
       );
     } else {
-      line = friendlyTournamentScheduleLine(matchCount, clock);
+      line = friendlyTournamentScheduleLine(matchCount, clock, input.locale);
     }
   }
   return { line, overruns: fit.overruns };
@@ -857,8 +873,11 @@ export function friendlyTournamentPreviewDetail(input: {
   day: string;
   venueName: string | null;
   courtNames: readonly string[];
+  locale: Locale;
 }) {
-  const dayLabel = input.day ? friendlyTournamentDayLabel(input.day) : null;
+  const dayLabel = input.day
+    ? friendlyTournamentDayLabel(input.day, input.locale)
+    : null;
   const courts =
     input.courtNames.length > 0 ? input.courtNames.join(", ") : null;
   return [dayLabel, input.venueName, courts]
@@ -866,27 +885,31 @@ export function friendlyTournamentPreviewDetail(input: {
     .join(" · ");
 }
 
-export function friendlyTournamentCourtsLabel(names: readonly string[]) {
+export function friendlyTournamentCourtsLabel(
+  names: readonly string[],
+  locale: Locale,
+) {
   if (names.length === 0) {
-    return "None";
+    return messagesFor(locale).common.none;
   }
   return names.join(", ");
 }
 
-export function gameTeamOfTwoCopy(price: string) {
-  const parsed = parseOptionalPricePerPlayerFils(price);
+export function gameTeamOfTwoCopy(price: string, locale: Locale) {
+  const m = messagesFor(locale).createGame.price;
+  const parsed = parseOptionalPricePerPlayerFils(price, locale);
   if (!parsed.ok || parsed.fils == null) {
     return null;
   }
   const doubled = parsed.fils * 2;
   if (doubled === 0) {
-    return "0.000 BD a Game team of two";
+    return m.teamOfTwo(m.amount("0.000"));
   }
-  const formatted = formatPricePerPlayerFils(doubled);
+  const formatted = formatPricePerPlayerFils(doubled, locale);
   if (!formatted) {
     return null;
   }
-  return `${formatted} a Game team of two`;
+  return m.teamOfTwo(formatted);
 }
 
 export type CreateWindowTimes = { startTime: string; finishTime: string };
@@ -948,6 +971,7 @@ export function selectDurationFinish(
 export function resetCreateBranch(
   draft: CreateGameDraft,
   type: CreateGameTypeId,
+  locale: Locale,
 ): CreateGameDraft {
   if (type === "friendly_game") {
     return {
@@ -960,7 +984,7 @@ export function resetCreateBranch(
       qualifiersPerPool: DEFAULT_QUALIFIERS_PER_POOL,
       matchMinutes: String(DEFAULT_MATCH_MINUTES),
       nameTouched: false,
-      name: friendlyTournamentDefaultName(draft.day),
+      name: friendlyTournamentDefaultName(draft.day, locale),
       isPublic: false,
       allowSoloRegister: true,
     };
@@ -970,11 +994,13 @@ export function resetCreateBranch(
 
 export function changeCreateDay<
   T extends { day: string; name: string; nameTouched: boolean },
->(draft: T, day: string): T {
+>(draft: T, day: string, locale: Locale): T {
   return {
     ...draft,
     day,
-    name: draft.nameTouched ? draft.name : friendlyTournamentDefaultName(day),
+    name: draft.nameTouched
+      ? draft.name
+      : friendlyTournamentDefaultName(day, locale),
   };
 }
 
@@ -1011,10 +1037,14 @@ export function toggleCreateCourt(
     : [...courtIds, courtId];
 }
 
-export function createDayChipLabel(option: Date, now: Date): string {
+export function createDayChipLabel(
+  option: Date,
+  now: Date,
+  locale: Locale,
+): string {
   return dayChipValue(option) === formatDateInputValue(now)
-    ? "Today"
-    : formatWeekday(option, "short");
+    ? messagesFor(locale).common.today
+    : formatWeekday(option, "short", locale);
 }
 
 export type CreateGroupOption = {

@@ -2,6 +2,7 @@ import { radii, spacing } from "@repo/design-tokens";
 import type { PlayerLevelCardView } from "@repo/domain/player-profile-level";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hatch } from "../primitives/hatch";
 import { MountFill } from "../primitives/mount-fill";
 import { useTonePalette } from "../primitives/surface-context";
@@ -14,6 +15,7 @@ export function PlayerLevelCard({
   view: PlayerLevelCardView;
   trend: string | null;
 }) {
+  const m = useMessages();
   const palette = useTonePalette();
   const tile = {
     borderRadius: radii.md,
@@ -25,12 +27,12 @@ export function PlayerLevelCard({
     return (
       <View
         accessible
-        accessibilityLabel={`Level. ${view.label}`}
+        accessibilityLabel={m.mobilePlayer.profile.levelSpoken(view.label)}
         style={[tile, { backgroundColor: undefined, gap: 4 }]}
       >
         <Hatch radius={radii.md} />
         <Text size="meta" tone="muted">
-          Level
+          {m.common.level}
         </Text>
         <Text size="lead" weight="semibold">
           {view.label}
@@ -42,9 +44,14 @@ export function PlayerLevelCard({
   return (
     <View
       accessible
-      accessibilityLabel={[view.accessibilityLabel, trend]
-        .filter(Boolean)
-        .join(". ")}
+      accessibilityLabel={
+        trend
+          ? m.mobilePlayer.profile.levelWithTrendSpoken(
+              view.accessibilityLabel,
+              trend,
+            )
+          : view.accessibilityLabel
+      }
       style={[tile, { gap: 12 }]}
     >
       <View
@@ -55,11 +62,11 @@ export function PlayerLevelCard({
         }}
       >
         <Text size="meta" tone="muted">
-          Level
+          {m.common.level}
         </Text>
         {view.provisional ? (
           <Text size="meta" tone="muted">
-            Provisional
+            {m.mobilePlayer.profile.provisional}
           </Text>
         ) : null}
       </View>

@@ -43,15 +43,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { detailBackHref } from "~/lib/dashboard-paths";
-import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
-import {
-  CANCEL_GAME_ACTION,
-  CLOSE_REGISTRATION_ACTION,
-  EDIT_GAME_ACTION,
-  REGISTER_TEAM_ACTION,
-  REOPEN_REGISTRATION_ACTION,
-} from "@repo/domain/game-copy";
 import {
   tournamentHomeView,
   tournamentStandingsView,
@@ -62,14 +55,8 @@ import {
   kickableTournamentOccupants,
   tournamentOrganizerView,
 } from "@repo/domain/tournament-organizer";
+import { type TournamentHomeJoinKind } from "@repo/domain/tournament-home";
 import {
-  INVITE_ACTION_LABEL,
-  LEAVE_THE_SEAT_LABEL,
-  TOURNAMENT_CLOSING_LINE,
-  type TournamentHomeJoinKind,
-} from "@repo/domain/tournament-home";
-import {
-  KNOCKOUT_NOT_THROUGH_COPY,
   hasDraftKnockoutDraw,
   type KnockoutMatchPlace,
 } from "@repo/domain/tournament-knockout-view";
@@ -163,10 +150,12 @@ export function TournamentHome({
   onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
   linkToPlayers?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
-  const view = tournamentHomeView(data);
+  const view = tournamentHomeView(data, locale);
   const { partnerRequired, joinKind, drawn, schedule } = view;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const organizer = tournamentOrganizerView(data, {
@@ -193,7 +182,7 @@ export function TournamentHome({
     >
       {drawn ? (
         <TournamentStandingsTree
-          standings={tournamentStandingsView(data)}
+          standings={tournamentStandingsView(data, locale)}
           poolTables={data.poolTables}
           knockout={data.knockout}
           gameTeams={linkToPlayers ? data.gameTeams : undefined}
@@ -277,11 +266,11 @@ export function TournamentHome({
           disabled={leavePending}
           onClick={onLeaveGame}
         >
-          {LEAVE_THE_SEAT_LABEL}
+          {m.tournament.home.leaveTheSeat}
         </Button>
       ) : null}
       <p className="text-muted-foreground text-meta leading-relaxed">
-        {TOURNAMENT_CLOSING_LINE}
+        {m.tournament.home.closingLine}
       </p>
 
       <TournamentHomeActions
@@ -512,6 +501,7 @@ function TournamentStandingsTree({
   onUndo: () => void | Promise<void>;
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
 }) {
+  const m = useMessages();
   return (
     <div className="space-y-6">
       <div>
@@ -552,7 +542,7 @@ function TournamentStandingsTree({
           </h2>
           {standings.notThrough ? (
             <p className="text-muted-foreground text-meta mt-1 leading-relaxed">
-              {KNOCKOUT_NOT_THROUGH_COPY}
+              {m.tournament.knockoutView.notThrough}
             </p>
           ) : null}
           <div className="pt-[18px]">
@@ -586,6 +576,7 @@ function TournamentJoinBar({
   onJoin?: () => void;
   onJoinWaitlist?: () => void;
 }) {
+  const m = useMessages();
   return (
     <div
       data-slot="tournament-join-bar"
@@ -605,7 +596,7 @@ function TournamentJoinBar({
           disabled={pending}
           onClick={onJoin}
         >
-          Join
+          {m.game.cta.join}
         </Button>
       ) : null}
       {onJoinWaitlist ? (
@@ -615,7 +606,7 @@ function TournamentJoinBar({
           disabled={pending}
           onClick={onJoinWaitlist}
         >
-          Join waitlist
+          {m.game.cta.joinWaitlist}
         </Button>
       ) : null}
     </div>
@@ -683,6 +674,7 @@ function TournamentHomeActions({
   onInvite?: () => void;
   onShare?: () => void;
 }) {
+  const m = useMessages();
   const showKick =
     isOrganizerActive && (kickable.length > 0 || waitlist.length > 0) && onKick;
 
@@ -691,8 +683,7 @@ function TournamentHomeActions({
       {joinKind === "register_team" ? (
         eligibleTeams.length === 0 ? (
           <p className="text-muted-foreground text-meta leading-relaxed">
-            You need a complete Team whose both partners are allowed on this
-            Game.
+            {m.webTournament.home.needCompleteTeam}
           </p>
         ) : (
           <form
@@ -707,15 +698,22 @@ function TournamentHomeActions({
           >
             {eligibleTeams.length > 1 ? (
               <Field>
-                <FieldLabel htmlFor="tournament-team-id">Team</FieldLabel>
+                <FieldLabel htmlFor="tournament-team-id">
+                  {m.webTournament.home.teamLabel}
+                </FieldLabel>
                 <Select value={teamId} onValueChange={onTeamIdChange}>
                   <SelectTrigger id="tournament-team-id">
-                    <SelectValue placeholder="Select a Team" />
+                    <SelectValue
+                      placeholder={m.webTournament.home.selectTeam}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {eligibleTeams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
-                        {team.name} ({team.memberNames.join(" / ")})
+                        {m.webTournament.home.teamOption(
+                          team.name,
+                          team.memberNames.join(" / "),
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -727,7 +725,9 @@ function TournamentHomeActions({
               className="min-h-11 w-full"
               disabled={registerTeamPending || teamId.length === 0}
             >
-              {registerTeamPending ? "Registering…" : REGISTER_TEAM_ACTION}
+              {registerTeamPending
+                ? m.webTournament.home.registering
+                : m.game.action.registerTeam}
             </Button>
           </form>
         )
@@ -740,7 +740,7 @@ function TournamentHomeActions({
           disabled={leavePending}
           onClick={onLeaveWaitlist}
         >
-          Leave waitlist
+          {m.game.action.leaveWaitlist}
         </Button>
       ) : null}
       {isOrganizerActive ? (
@@ -753,10 +753,10 @@ function TournamentHomeActions({
                 className="min-h-11 flex-1"
                 onClick={onInvite}
               >
-                {INVITE_ACTION_LABEL}
+                {m.tournament.home.inviteAction}
               </Button>
             ) : null}
-            <div className="ml-auto">
+            <div className="ms-auto">
               <GameActionsSheet
                 title={title}
                 description={description}
@@ -767,7 +767,7 @@ function TournamentHomeActions({
                       ? [
                           {
                             key: "add_player",
-                            label: ADD_PLAYER_ACTION,
+                            label: m.group.addPlayer.action,
                             icon: UserPlusIcon,
                             onSelect: onAddPlayer,
                           },
@@ -777,7 +777,7 @@ function TournamentHomeActions({
                       ? [
                           {
                             key: "share",
-                            label: "Share",
+                            label: m.common.share,
                             icon: Share2Icon,
                             disabled: sharePending,
                             onSelect: onShare,
@@ -787,14 +787,14 @@ function TournamentHomeActions({
                     registrationClosed
                       ? {
                           key: "reopen_registration",
-                          label: REOPEN_REGISTRATION_ACTION,
+                          label: m.game.action.reopenRegistration,
                           icon: LockOpenIcon,
                           disabled: joinFrozen || reopenPending,
                           onSelect: onReopenRegistration,
                         }
                       : {
                           key: "close_registration",
-                          label: CLOSE_REGISTRATION_ACTION,
+                          label: m.game.action.closeRegistration,
                           icon: LockIcon,
                           disabled: closePending,
                           onSelect: onCloseRegistration,
@@ -804,7 +804,7 @@ function TournamentHomeActions({
                     ? [
                         ...kickable.map((occupant) => ({
                           key: `kick-${occupant.userId}`,
-                          label: `Kick ${occupant.name}`,
+                          label: m.webTournament.kickName(occupant.name),
                           icon: UserMinusIcon,
                           tone: "danger" as const,
                           disabled: kickPending,
@@ -812,7 +812,7 @@ function TournamentHomeActions({
                         })),
                         ...waitlist.map((entry) => ({
                           key: `kick-waitlist-${entry.id}`,
-                          label: `Kick ${entry.name} from the waitlist`,
+                          label: m.webTournament.kickFromWaitlist(entry.name),
                           icon: UserMinusIcon,
                           tone: "danger" as const,
                           disabled: kickPending,
@@ -830,11 +830,11 @@ function TournamentHomeActions({
               className="border-rule divide-rule divide-y border-t"
             >
               {onEdit ? (
-                <FooterAction label={EDIT_GAME_ACTION} onClick={onEdit} />
+                <FooterAction label={m.game.action.editGame} onClick={onEdit} />
               ) : null}
               {onCancelGame ? (
                 <FooterAction
-                  label={CANCEL_GAME_ACTION}
+                  label={m.game.action.cancelGame}
                   onClick={onCancelGame}
                 />
               ) : null}

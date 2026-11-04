@@ -6,6 +6,7 @@ import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { ScrollView, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
@@ -27,13 +28,15 @@ export function SeatPickerSheet({
     position: CardSeatPosition,
   ) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.card;
   const sides =
     game?.tournament?.joinSides.filter(
       (side) => side.left == null || side.right == null,
     ) ?? [];
 
   return (
-    <Sheet visible={game != null} onClose={onClose} title="Pick a seat">
+    <Sheet visible={game != null} onClose={onClose} title={m.pickASeat}>
       <ScrollView style={{ maxHeight: LIST_MAX_HEIGHT }}>
         <View style={{ gap: 12 }}>
           {sides.map((side) => {
@@ -43,7 +46,11 @@ export function SeatPickerSheet({
             return (
               <View key={side.sideIndex} style={{ gap: 6 }}>
                 <Text size="meta" tone="muted">
-                  {formatGameSideLabel("friendly_tournament", side.sideIndex)}
+                  {formatGameSideLabel(
+                    "friendly_tournament",
+                    side.sideIndex,
+                    locale,
+                  )}
                 </Text>
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   {seats.map((position) => (
@@ -54,6 +61,7 @@ export function SeatPickerSheet({
                         position,
                         (position === "left" ? side.right : side.left)?.name ??
                           null,
+                        locale,
                       )}
                       variant="outline"
                       disabled={pending}

@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ADD_PLAYER_ACTION,
-  organizerCanAddPlayer,
-} from "@repo/domain/add-player-by-phone";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import type {
   FriendlyGameDetails,
@@ -21,6 +18,7 @@ import * as React from "react";
 
 import { ACTION_MENU_INK_BOXED_TRIGGER } from "~/components/common/action-menu";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -46,23 +44,28 @@ export function PlayedFriendlyGame({
   onAddPlayer?: () => void;
   onReportWrongScore: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const [selected, setSelected] = React.useState<PlayedRow | null>(null);
   const model = React.useMemo(
     () =>
-      playedPadelModel({
-        sides: game.sides,
-        viewerUserId: game.viewerUserId,
-        match,
-        windowStart: game.windowStart,
-        windowEnd: game.windowEnd,
-        venue: game.venue,
-        courtName: match.courtName,
-        groupName: game.groupName,
-        rated: game.rated,
-        ratingImpact: game.ratingImpact,
-        confirmation: game.matchResultConfirmation,
-      }),
-    [game, match],
+      playedPadelModel(
+        {
+          sides: game.sides,
+          viewerUserId: game.viewerUserId,
+          match,
+          windowStart: game.windowStart,
+          windowEnd: game.windowEnd,
+          venue: game.venue,
+          courtName: match.courtName,
+          groupName: game.groupName,
+          rated: game.rated,
+          ratingImpact: game.ratingImpact,
+          confirmation: game.matchResultConfirmation,
+        },
+        locale,
+      ),
+    [game, match, locale],
   );
   const viewerSide = padelViewerSide(game.sides, game.viewerUserId);
   const viewerSeat =
@@ -82,6 +85,7 @@ export function PlayedFriendlyGame({
         canLeaveGame: false,
         canReportWrongScore: game.canReportWrongScore,
         playerCount: occupiedFriendlyPositions(game.sides),
+        locale,
       })
     : [];
   const showAdd =
@@ -89,7 +93,7 @@ export function PlayedFriendlyGame({
   const menu =
     showAdd || organizerActions.length > 0 ? (
       <GameActionsSheet
-        title={game.name ?? "Game"}
+        title={game.name ?? m.webGame.fallbackTitle}
         description={model.dateLine}
         triggerClassName={ACTION_MENU_INK_BOXED_TRIGGER}
         groups={[
@@ -98,7 +102,7 @@ export function PlayedFriendlyGame({
               ? [
                   {
                     key: "add_player",
-                    label: ADD_PLAYER_ACTION,
+                    label: m.group.addPlayer.action,
                     icon: UserPlusIcon,
                     onSelect: onAddPlayer,
                   },

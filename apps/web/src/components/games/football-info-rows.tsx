@@ -14,7 +14,7 @@ export function FootballInfoRows({
           className="text-body flex justify-between gap-4 px-5 py-3.5"
         >
           <dt className="text-muted-foreground">{row.label}</dt>
-          <dd className="text-right">{row.value}</dd>
+          <dd className="text-end">{row.value}</dd>
         </div>
       ))}
     </dl>

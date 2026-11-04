@@ -24,7 +24,7 @@ export function RowList({
 }
 
 const actionRow = "flex items-center";
-const actionSlot = "shrink-0 pr-4";
+const actionSlot = "shrink-0 pe-4";
 
 export function ListRow({
   leading,
@@ -104,7 +104,7 @@ export function ListRow({
       {navigates ? (
         <ChevronRight
           aria-hidden="true"
-          className="text-muted-foreground hidden size-[18px] shrink-0 sm:block"
+          className="text-muted-foreground hidden size-[18px] shrink-0 sm:block rtl:-scale-x-100"
         />
       ) : null}
       {footer != null ? (

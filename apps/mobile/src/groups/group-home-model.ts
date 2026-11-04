@@ -36,10 +36,11 @@ import {
   levelOverrideReasonLabel,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
-import { NOT_ON_TEMBA_YET_LABEL } from "@repo/domain/add-player-by-phone";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
-import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { resultMarkLabel } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { mediaUrl } from "../lib/media-url";
 
@@ -52,14 +53,16 @@ export type GroupHomeHeader = {
 export function groupHomeHeader(
   data: GroupHomeData,
   apiOrigin: string,
+  locale: Locale,
 ): GroupHomeHeader {
   return {
-    name: groupDisplayName(data.name),
+    name: groupDisplayName(data.name, locale),
     imageUri: mediaUrl(data.imageUrl, apiOrigin),
     meta: groupHomeMetaLine({
       sport: data.sport,
       memberCount: data.standing.memberCount,
       createdAt: data.createdAt,
+      locale,
     }),
   };
 }
@@ -73,24 +76,29 @@ export type GroupJoinCta = {
 export function groupJoinCta(
   data: GroupHomeData,
   pending: boolean,
+  locale: Locale,
 ): GroupJoinCta | null {
   if (!groupHomeCanJoin(data.joinMode)) {
     return null;
   }
   return {
-    label: groupJoinLabel(data.joinMode, pending, "home"),
+    label: groupJoinLabel(data.joinMode, pending, "home", locale),
     disabled: groupJoinDisabled(data.joinMode, pending),
     door: groupHomeJoinDoor(data),
   };
 }
 
-export function groupBanner(data: GroupHomeData): GroupHomeBanner | null {
+export function groupBanner(
+  data: GroupHomeData,
+  locale: Locale,
+): GroupHomeBanner | null {
   return groupHomeBanner({
     isCommunityArchived: data.isCommunityArchived,
     hasCommunityMembership: data.communityMembership != null,
     communityId: data.communityId,
     communityName: data.community?.name ?? null,
     joinMode: data.joinMode,
+    locale,
   });
 }
 
@@ -110,8 +118,18 @@ export type StandingRowView = {
   accessibilityLabel: string;
 };
 
-export function standingRowView(entry: GroupStandingRowData): StandingRowView {
-  const name = entry.isViewer ? "You" : (entry.name ?? "Member");
+export function standingRowView(
+  entry: GroupStandingRowData,
+  locale: Locale,
+): StandingRowView {
+  const m = messagesFor(locale);
+  const name = entry.isViewer
+    ? m.common.you
+    : (entry.name ?? m.mobileGroup.unnamedMember);
+  const spokenName = entry.unclaimed
+    ? m.mobileGroup.standing.nameNotOnTemba(name)
+    : name;
+  const record = standingRecordLabel(entry);
   return {
     key: entry.userId,
     position: entry.position,
@@ -125,31 +143,30 @@ export function standingRowView(entry: GroupStandingRowData): StandingRowView {
     form: paddedForm(entry.form),
     isViewer: entry.isViewer,
     unclaimed: entry.unclaimed,
-    accessibilityLabel: `${entry.ranked ? `${entry.position}. ` : "Unranked. "}${name}${
-      entry.unclaimed ? `, ${NOT_ON_TEMBA_YET_LABEL}` : ""
-    }. ${entry.played} played, ${standingRecordLabel(entry)} won drawn lost, ${entry.points} points.`,
+    accessibilityLabel: entry.ranked
+      ? m.mobileGroup.standing.rankedRow(
+          entry.position ?? 0,
+          spokenName,
+          entry.played,
+          record,
+          entry.points,
+        )
+      : m.mobileGroup.standing.unrankedRow(
+          spokenName,
+          entry.played,
+          record,
+          entry.points,
+        ),
   };
 }
 
-export const LEVEL_PROVISIONAL_NOTE =
-  "Hatched level means the Rating is still Provisional";
-
-export function standingStats(data: GroupHomeData) {
+export function standingStats(data: GroupHomeData, locale: Locale) {
+  const m = messagesFor(locale).mobileGroup.standing.stats;
   return [
-    { value: data.totalGamesPlayed, label: "games played" },
-    { value: data.standing.awaitingScoreCount, label: "awaiting score" },
+    { value: data.totalGamesPlayed, label: m.gamesPlayed },
+    { value: data.standing.awaitingScoreCount, label: m.awaitingScore },
   ];
 }
-
-export const STANDING_NOT_MEMBER_COPY = {
-  title: "Join to see your Standing",
-  description: "Join this Group to get a Standing among its members.",
-};
-
-export const STANDING_NO_RESULTS_COPY = {
-  title: "Standings appear after the first result",
-  description: null,
-};
 
 export type PlayedTrailing =
   | { kind: "cancelled" }
@@ -165,14 +182,22 @@ export type PlayedRowView = {
   accessibilityLabel: string;
 };
 
-export function playedRowView(game: GroupPlayedGameData): PlayedRowView {
+export function playedRowView(
+  game: GroupPlayedGameData,
+  locale: Locale,
+): PlayedRowView {
+  const m = messagesFor(locale).mobileGroup.games;
   const viewerMembers =
     game.viewerSlot === 2 ? game.slot2Members : game.slot1Members;
   const otherMembers =
     game.viewerSlot === 2 ? game.slot1Members : game.slot2Members;
   const mark = groupPlayedMarkVariant(game.outcome);
-  const title = groupPlayedTeamLabel(viewerMembers);
-  const subtitle = groupPlayedOpponentLine(otherMembers, game.displayTime);
+  const title = groupPlayedTeamLabel(viewerMembers, locale);
+  const subtitle = groupPlayedOpponentLine(
+    otherMembers,
+    game.displayTime,
+    locale,
+  );
   const scoreLine = groupPlayedScoreLine(game.scoredSets, game.viewerSlot);
   const trailing: PlayedTrailing = game.cancelled
     ? { kind: "cancelled" }
@@ -181,28 +206,25 @@ export function playedRowView(game: GroupPlayedGameData): PlayedRowView {
       : { kind: "enter" };
   const trailingLabel =
     trailing.kind === "cancelled"
-      ? "Cancelled"
+      ? m.cancelled
       : trailing.kind === "score"
         ? trailing.text
-        : "No score yet, enter it";
+        : m.noScoreYet;
   return {
     id: game.id,
     mark,
     title,
     subtitle,
     trailing,
-    accessibilityLabel: `${RESULT_MARK_LABEL[mark]}. ${title}. ${subtitle}. ${trailingLabel}`,
+    accessibilityLabel: m.row(
+      resultMarkLabel(mark, locale),
+      title,
+      subtitle,
+      trailingLabel,
+    ),
   };
 }
 
-export const PLAYED_EMPTY_COPY = "No Game history yet.";
-export const SCHEDULED_EMPTY_COPY =
-  "No upcoming Games scheduled for this Group.";
-export const GAMES_EMPTY_TITLE = "No Games yet";
-export const MEMBERS_EMPTY_COPY = {
-  title: "No members yet",
-  description: "People who join this Group will show up here.",
-};
 export type MemberRowView = {
   key: string;
   name: string;
@@ -216,13 +238,18 @@ export type MemberRowView = {
   accessibilityLabel: string;
 };
 
-function levelSpokenLabel(view: LevelCellView, levelText: string | null) {
+function levelSpokenLabel(
+  view: LevelCellView,
+  levelText: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileGroup.members;
   if (view.kind === "label") {
-    return `Level ${levelText ? `${view.label} ${levelText}` : view.label}`;
+    return m.levelSpoken(levelText ? `${view.label} ${levelText}` : view.label);
   }
   return view.label && levelText
-    ? `Level ${view.label} ${levelText}, still Provisional`
-    : "Level still Provisional";
+    ? m.levelSpokenProvisional(`${view.label} ${levelText}`)
+    : m.levelStillProvisional;
 }
 
 export function memberIsRemovable(
@@ -242,16 +269,18 @@ export function memberOrganizerAction(
 export function memberRowView(
   entry: GroupLeaderboardEntryData,
   apiOrigin: string,
+  locale: Locale,
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
 ): MemberRowView {
-  const name = entry.name ?? "Member";
+  const m = messagesFor(locale);
+  const name = entry.name ?? m.mobileGroup.unnamedMember;
   const caption = [
-    groupMemberTableCaption(entry),
+    groupMemberTableCaption(entry, locale),
     entry.phoneMasked,
     canSetLevel && entry.levelOverride
-      ? levelOverrideCaption(entry.levelOverride)
+      ? levelOverrideCaption({ ...entry.levelOverride, locale })
       : null,
   ]
     .filter(Boolean)
@@ -271,10 +300,10 @@ export function memberRowView(
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null,
     accessibilityLabel: [
-      entry.isViewer ? `${name}, you` : name,
-      entry.unclaimed ? NOT_ON_TEMBA_YET_LABEL : null,
+      entry.isViewer ? m.mobileGroup.members.rowYou(name) : name,
+      entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
       caption || null,
-      levelSpokenLabel(level, entry.level),
+      levelSpokenLabel(level, entry.level, locale),
     ]
       .filter(Boolean)
       .join(". "),
@@ -285,6 +314,7 @@ export function memberList(
   leaderboard: readonly GroupLeaderboardEntryData[],
   query: string,
   apiOrigin: string,
+  locale: Locale,
   canSetLevel = false,
   canRemovePlayers = false,
   canAppointOrganizers = false,
@@ -293,6 +323,7 @@ export function memberList(
     memberRowView(
       entry,
       apiOrigin,
+      locale,
       canSetLevel,
       canRemovePlayers,
       canAppointOrganizers,
@@ -323,29 +354,24 @@ export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-function matchCountLabel(count: number) {
-  return `${count} Rated ${count === 1 ? "Match" : "Matches"}`;
-}
-
 export function memberSheetView(
   entry: GroupLeaderboardEntryData,
+  locale: Locale,
   apiOrigin = "",
 ): MemberSheetView {
-  const name = entry.name ?? "Member";
+  const m = messagesFor(locale).mobileGroup;
+  const name = entry.name ?? m.unnamedMember;
   const override = entry.levelOverride;
-  const reason = override?.reason
-    ? `. ${levelOverrideReasonLabel(override.reason)}`
-    : "";
+  const caption = override
+    ? levelOverrideCaption({ ...override, locale })
+    : null;
   return {
     name,
     imageUri: mediaUrl(entry.image, apiOrigin),
-    caption: groupMemberTableCaption(entry),
+    caption: groupMemberTableCaption(entry, locale),
     unclaimed: entry.unclaimed,
     phoneMasked: entry.phoneMasked,
-    summary: [
-      override ? levelOverrideCaption(override) : null,
-      matchCountLabel(entry.ratedMatchCount),
-    ]
+    summary: [caption, m.members.ratedMatches(entry.ratedMatchCount)]
       .filter(Boolean)
       .join(" · "),
     letter: entry.levelBand
@@ -353,8 +379,15 @@ export function memberSheetView(
       : null,
     level: entry.level,
     provisionalNote: entry.levelProvisional
-      ? `This Level is still Provisional. Set it by hand if you know ${firstName(name)} plays at a different Level.`
+      ? m.members.provisionalNote(firstName(name))
       : null,
-    latestSet: override ? `${levelOverrideCaption(override)}${reason}` : null,
+    latestSet: caption
+      ? override?.reason
+        ? m.members.latestSetWithReason(
+            caption,
+            levelOverrideReasonLabel(override.reason, locale),
+          )
+        : caption
+      : null,
   };
 }

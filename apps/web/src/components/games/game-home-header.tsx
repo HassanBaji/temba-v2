@@ -3,6 +3,7 @@ import { Globe } from "lucide-react";
 import Link from "next/link";
 
 import { PageTitle } from "~/components/layout/page-title";
+import { useMessages } from "~/components/locale-provider";
 import { GameViewerStatusBadge } from "~/components/temba/game-viewer-status-badge";
 import { SportBadge } from "~/components/temba/sport-badge";
 import {
@@ -38,22 +39,25 @@ export function GameHomeHeader({
   primaryAction?: ReactNode;
   actions?: ReactNode;
 }) {
+  const m = useMessages();
   return (
     <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
       <div className="col-start-1 row-start-1 min-w-0 space-y-2">
         <PageTitle>{name}</PageTitle>
         {groupId ? (
           <p className="text-meta text-muted-foreground">
-            On Group{" "}
+            {m.webGame.header.onGroup}{" "}
             <Link
               href={`/dashboard/groups/${groupId}`}
               className="text-foreground underline underline-offset-2"
             >
-              {groupName ?? "Group"}
+              {groupName ?? m.game.chrome.group}
             </Link>
           </p>
         ) : (
-          <p className="text-meta text-muted-foreground">Pickup Game</p>
+          <p className="text-meta text-muted-foreground">
+            {m.webGame.header.pickupGame}
+          </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <GameRegistrationStatusBadge status={registrationStatus} />
@@ -70,7 +74,7 @@ export function GameHomeHeader({
           {isPublic ? (
             <Badge variant="outline">
               <Globe aria-hidden="true" strokeWidth={2} />
-              Public
+              {m.webGame.header.public}
             </Badge>
           ) : null}
         </div>

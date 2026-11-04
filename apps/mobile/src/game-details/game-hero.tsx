@@ -5,6 +5,7 @@ import { MoreVertical, Navigation, Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
@@ -56,6 +57,7 @@ function StatusPill({ label, solid }: { label: string; solid: boolean }) {
 }
 
 function PlaceRow({ place }: { place: GameHeroPlace }) {
+  const m = useMessages();
   const palette = useTonePalette();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -73,9 +75,11 @@ function PlaceRow({ place }: { place: GameHeroPlace }) {
       </View>
       {place.onDirections ? (
         <Button
-          label="Directions"
+          label={m.mobileGameDetails.hero.directions}
           accessibilityLabel={
-            place.name ? `Directions to ${place.name}` : "Directions"
+            place.name
+              ? m.mobileGameDetails.hero.directionsTo(place.name)
+              : m.mobileGameDetails.hero.directions
           }
           variant="outline-inverse"
           size="sm"
@@ -119,6 +123,7 @@ export function GameHero({
   onShare?: () => void;
   onMore?: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface
       tone={model.tone}
@@ -142,7 +147,7 @@ export function GameHero({
                   <HeaderIconButton
                     framed
                     icon={Share}
-                    accessibilityLabel="Share Game"
+                    accessibilityLabel={m.mobileGameDetails.hero.shareGame}
                     onPress={onShare}
                   />
                 ) : null}
@@ -150,7 +155,7 @@ export function GameHero({
                   <HeaderIconButton
                     framed
                     icon={MoreVertical}
-                    accessibilityLabel="Game actions"
+                    accessibilityLabel={m.mobileGameDetails.hero.gameActions}
                     onPress={onMore}
                   />
                 ) : null}
@@ -169,10 +174,11 @@ export function GameHero({
 }
 
 function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
+  const m = useMessages();
   if (model.kind === "time_unset") {
     return (
       <Text size="meta" tone="muted">
-        Time unset
+        {m.mobileGameDetails.hero.timeUnset}
       </Text>
     );
   }
@@ -242,14 +248,17 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
       {model.partnerName ? (
         <View style={{ gap: 8 }}>
           <Text size="display" width="expanded" weight="bold">
-            You and {model.partnerName}
+            {m.mobileGameDetails.hero.youAnd(model.partnerName)}
           </Text>
           <Text size="lead">{model.dateLine}</Text>
         </View>
       ) : (
         <View
           accessible
-          accessibilityLabel={`${model.kickoffTime} ${model.trailer}`}
+          accessibilityLabel={m.mobileGameDetails.hero.kickoff(
+            model.kickoffTime,
+            model.trailer,
+          )}
           style={{
             flexDirection: "row",
             flexWrap: "wrap",

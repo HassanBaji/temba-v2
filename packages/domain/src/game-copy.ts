@@ -4,82 +4,121 @@
  * writes them. Consequence lines are full sentences and end with a period.
  */
 
-export const JOIN_GAME_ACTION = "Join Game";
-export const EDIT_GAME_ACTION = "Edit Game";
-export const CANCEL_GAME_ACTION = "Cancel Game";
-export const LEAVE_GAME_ACTION = "Leave Game";
-export const LEAVE_WAITLIST_ACTION = "Leave waitlist";
-export const REGISTER_TEAM_ACTION = "Register Team";
-export const CANCEL_MATCH_ACTION = "Cancel Match";
-export const COMPLETE_MATCH_ACTION = "Complete Match";
-export const MARK_AS_NOT_PLAYED_ACTION = "Mark as not played";
-export const REPORT_WRONG_SCORE_ACTION = "Report a wrong score";
-export const KICK_ACTION = "Kick";
-export const CLOSE_REGISTRATION_ACTION = "Close registration";
-export const REOPEN_REGISTRATION_ACTION = "Reopen registration";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
-export const CANNOT_BE_UNDONE_COPY = "This cannot be undone.";
-export const LEAVE_GAME_CONSEQUENCE = "Your spot can open for someone else.";
-export const LEAVE_WAITLIST_CONSEQUENCE =
-  "You'll lose your place on the Waitlist.";
-export const MARK_AS_NOT_PLAYED_CONSEQUENCE =
-  "No result is recorded and nobody's Level changes.";
-export const REPORT_WRONG_SCORE_CONSEQUENCE =
-  "The players are asked to check the score again.";
-export const REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE =
-  "A later rated Game means this can't be corrected here. Contact support to fix it.";
-export const COMPLETE_MATCH_CONSEQUENCE =
-  "The score becomes final and each player's rating updates from it.";
-
-/** Who loses the Game from their calendar, counted from the seats taken. */
-export function cancelGameConsequence(playerCount: number) {
-  if (playerCount <= 0) {
-    return "Nobody has joined yet.";
-  }
-  if (playerCount === 1) {
-    return "Removes it from the calendar for 1 player.";
-  }
-  return `Removes it from the calendar for all ${playerCount} players.`;
+export function joinGameAction(locale: Locale) {
+  return messagesFor(locale).game.action.joinGame;
 }
 
-export function setLabel(setIndex: number) {
-  return `Set ${setIndex + 1}`;
+export function editGameAction(locale: Locale) {
+  return messagesFor(locale).game.action.editGame;
+}
+
+export function cancelGameAction(locale: Locale) {
+  return messagesFor(locale).game.action.cancelGame;
+}
+
+export function leaveGameAction(locale: Locale) {
+  return messagesFor(locale).game.action.leaveGame;
+}
+
+export function leaveWaitlistAction(locale: Locale) {
+  return messagesFor(locale).game.action.leaveWaitlist;
+}
+
+export function registerTeamAction(locale: Locale) {
+  return messagesFor(locale).game.action.registerTeam;
+}
+
+export function cancelMatchAction(locale: Locale) {
+  return messagesFor(locale).game.action.cancelMatch;
+}
+
+export function completeMatchAction(locale: Locale) {
+  return messagesFor(locale).game.action.completeMatch;
+}
+
+export function markAsNotPlayedAction(locale: Locale) {
+  return messagesFor(locale).game.action.markAsNotPlayed;
+}
+
+export function reportWrongScoreAction(locale: Locale) {
+  return messagesFor(locale).game.action.reportWrongScore;
+}
+
+export function kickAction(locale: Locale) {
+  return messagesFor(locale).game.action.kick;
+}
+
+export function closeRegistrationAction(locale: Locale) {
+  return messagesFor(locale).game.action.closeRegistration;
+}
+
+export function reopenRegistrationAction(locale: Locale) {
+  return messagesFor(locale).game.action.reopenRegistration;
+}
+
+export function cannotBeUndoneCopy(locale: Locale) {
+  return messagesFor(locale).game.consequence.cannotBeUndone;
+}
+
+export function leaveGameConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.leaveGame;
+}
+
+export function leaveWaitlistConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.leaveWaitlist;
+}
+
+export function markAsNotPlayedConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.markAsNotPlayed;
+}
+
+export function reportWrongScoreConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.reportWrongScore;
+}
+
+export function reportWrongScoreLockedConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.reportWrongScoreLocked;
+}
+
+export function completeMatchConsequence(locale: Locale) {
+  return messagesFor(locale).game.consequence.completeMatch;
+}
+
+/** Who loses the Game from their calendar, counted from the seats taken. */
+export function cancelGameConsequence(playerCount: number, locale: Locale) {
+  const m = messagesFor(locale).game.consequence;
+  if (playerCount <= 0) {
+    return m.cancelNobodyJoined;
+  }
+  return m.cancelRemovesFromCalendar(playerCount);
+}
+
+export function setLabel(setIndex: number, locale: Locale) {
+  return messagesFor(locale).game.setLabel(setIndex + 1);
 }
 
 /** Column heads too narrow for `Set 1`; pair with `setLabel` for the full name. */
-export function setShortLabel(setIndex: number) {
-  return `S${setIndex + 1}`;
+export function setShortLabel(setIndex: number, locale: Locale) {
+  return messagesFor(locale).game.setShortLabel(setIndex + 1);
 }
 
-export const GAME_TOAST = {
-  joined: "Joined Game",
-  joinedWaitlist: "Joined waitlist",
-  teamRegistered: "Team registered",
-  teamJoinedWaitlist: "Team joined waitlist",
-  seatChanged: "Seat changed",
-  halfTeamsMerged: "Half teams merged",
-  poolsDrawn: "Groups drawn",
-  poolDrawPosted: "Group draw posted",
-  poolDrawUndone: "Group draw undone",
-  knockoutDrawn: "Knockout drawn",
-  knockoutDrawPosted: "Draw posted",
-  knockoutDrawUndone: "Draw undone",
-  left: "You left the Game",
-  leftWaitlist: "You left the waitlist",
-  registrationClosed: "Registration closed",
-  registrationReopened: "Registration reopened",
-  gameCancelled: "Game cancelled",
-  matchCancelled: "Match cancelled",
-} as const;
-
-export function gameJoinToast(waitlisted: boolean) {
-  return waitlisted ? GAME_TOAST.joinedWaitlist : GAME_TOAST.joined;
+export function gameToast(locale: Locale) {
+  return messagesFor(locale).game.toast;
 }
 
-export function teamRegisterToast(waitlisted: boolean) {
-  return waitlisted ? GAME_TOAST.teamJoinedWaitlist : GAME_TOAST.teamRegistered;
+export function gameJoinToast(waitlisted: boolean, locale: Locale) {
+  const toast = gameToast(locale);
+  return waitlisted ? toast.joinedWaitlist : toast.joined;
 }
 
-export function kickedToast(name: string) {
-  return `Kicked ${name}`;
+export function teamRegisterToast(waitlisted: boolean, locale: Locale) {
+  const toast = gameToast(locale);
+  return waitlisted ? toast.teamJoinedWaitlist : toast.teamRegistered;
+}
+
+export function kickedToast(name: string, locale: Locale) {
+  return messagesFor(locale).game.kickedToast(name);
 }

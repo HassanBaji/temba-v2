@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 
@@ -30,6 +31,7 @@ export function CreateAccessGate({
   backLabel: string;
 }) {
   const { isLoaded, hasCreateAccess } = useCreateAccess();
+  const m = useMessages();
 
   if (!isLoaded) {
     return (
@@ -44,8 +46,8 @@ export function CreateAccessGate({
       <DashboardShell title={title}>
         <EmptyState
           icon={Lock}
-          title="Creating is limited"
-          description="New Communities are set up by Temba staff."
+          title={m.community.create.notAvailable.title}
+          description={m.community.create.notAvailable.description}
           action={
             <Button asChild>
               <Link href={backHref}>{backLabel}</Link>

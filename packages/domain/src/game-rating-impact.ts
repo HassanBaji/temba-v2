@@ -1,9 +1,19 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
-export const UNRATED_LABEL = "Unrated";
-export const UNRATED_GAME_LINE = "This Game doesn't change anyone's Level.";
-export const UNRATED_GROUP_LINE =
-  "Games in this Group are Unrated. They don't change anyone's Level.";
+export function unratedLabel(locale: Locale) {
+  return messagesFor(locale).common.unrated;
+}
+
+export function unratedGameLine(locale: Locale) {
+  return messagesFor(locale).game.rating.unratedGameLine;
+}
+
+export function unratedGroupLine(locale: Locale) {
+  return messagesFor(locale).game.rating.unratedGroupLine;
+}
 
 export type RatingImpactChangeDirection = "up" | "down" | "flat";
 
@@ -44,37 +54,42 @@ export function ratingImpactStandingSentence(args: {
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
+  locale: Locale;
 }): string {
+  const m = messagesFor(args.locale).game.rating;
   const bandLabel = displayLabelFromStoredBand(args.newLevelBand);
 
   if (args.isProvisional) {
     const remaining = Math.max(1, args.ratedMatchesRemainingToConfirm ?? 1);
-    const noun = remaining === 1 ? "game" : "games";
-    return `Still ${bandLabel}. About ${remaining} more rated ${noun} and your level confirms.`;
+    return m.stillProvisional(bandLabel, remaining);
   }
 
-  return `Still ${bandLabel}. Your level is confirmed — it moves with every rated game you play.`;
+  return m.stillConfirmed(bandLabel);
 }
 
-export function ratingImpactView(ratingImpact: {
-  levelChange: number;
-  newLevel: number;
-  newLevelBand: LevelBand;
-  isProvisional: boolean;
-  ratedMatchesRemainingToConfirm: number | null;
-}) {
+export function ratingImpactView(
+  ratingImpact: {
+    levelChange: number;
+    newLevel: number;
+    newLevelBand: LevelBand;
+    isProvisional: boolean;
+    ratedMatchesRemainingToConfirm: number | null;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.rating;
   const direction = ratingImpactChangeDirection(ratingImpact.levelChange);
   const magnitude = ratingImpactChangeMagnitude(ratingImpact.levelChange);
   return {
     direction,
     magnitude,
     newLevelLabel: ratingImpact.newLevel.toFixed(1),
-    sentence: ratingImpactStandingSentence(ratingImpact),
+    sentence: ratingImpactStandingSentence({ ...ratingImpact, locale }),
     directionText:
       direction === "up"
-        ? `Level increased by ${magnitude}`
+        ? m.increasedBy(magnitude)
         : direction === "down"
-          ? `Level decreased by ${magnitude}`
-          : "Level unchanged",
+          ? m.decreasedBy(magnitude)
+          : m.unchanged,
   };
 }

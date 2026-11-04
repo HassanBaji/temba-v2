@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 /** Seats left at or below this count reads as urgent on a Game card. */
 const FILLING_SEATS_LEFT = 2;
 
@@ -33,16 +36,14 @@ export function gameOccupancy(
   };
 }
 
-export function seatsLeftLabel(seatsLeft: number) {
-  return seatsLeft === 1 ? "1 spot left" : `${seatsLeft} spots left`;
+export function seatsLeftLabel(seatsLeft: number, locale: Locale) {
+  return messagesFor(locale).game.occupancy.spotsLeft(seatsLeft);
 }
 
-export function spotsOpenLabel(openSpots: number) {
+export function spotsOpenLabel(openSpots: number, locale: Locale) {
+  const m = messagesFor(locale).game.occupancy;
   if (openSpots <= 0) {
-    return "Full";
+    return m.full;
   }
-  if (openSpots === 1) {
-    return "One spot open";
-  }
-  return `${openSpots} spots open`;
+  return m.spotsOpen(openSpots);
 }

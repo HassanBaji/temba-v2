@@ -1,13 +1,13 @@
 import { zonedParts } from "@repo/domain/product-timezone";
 import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import assert from "node:assert/strict";
+import { messagesFor } from "@repo/i18n/messages";
 import { describe, it } from "vitest";
 
 import { sizeFriendlyTournament } from "@repo/domain/tournament-sizing";
 import {
-  CREATE_FLOW_PRICE_CHIPS,
-  CREATE_GAME_TYPE_CARDS,
-  FRIENDLY_TOURNAMENT_UNEVEN_GROUPS,
+  createFlowPriceChips,
+  createGameTypeCards,
   applyLevelBoundChange,
   createFlowFirstStep,
   createFlowLaterSteps,
@@ -45,7 +45,7 @@ import {
   visibleCreateCourts,
   visibleCreateGroups,
   DEFAULT_TOURNAMENT_SHAPE,
-  TOURNAMENT_SHAPE_OPTIONS,
+  tournamentShapeOptions,
   friendlyTournamentFormatLabel,
   changeCreateDay,
   changeCreateGroup,
@@ -261,11 +261,11 @@ describe("create flow query", () => {
 describe("create game type cards", () => {
   it("offers Friendly game and Friendly tournament, both rated", () => {
     assert.deepEqual(
-      CREATE_GAME_TYPE_CARDS.map((card) => card.title),
+      createGameTypeCards("en").map((card) => card.title),
       ["Friendly game", "Friendly tournament"],
     );
     assert.deepEqual(
-      CREATE_GAME_TYPE_CARDS.map((card) => card.rating),
+      createGameTypeCards("en").map((card) => card.rating),
       ["Counts for your rating", "Counts for your rating"],
     );
   });
@@ -274,42 +274,54 @@ describe("create game type cards", () => {
 describe("where helpers", () => {
   it("keeps the venue copy for lock, catalog, and Soft-archive", () => {
     assert.equal(
-      createVenueCopy({
-        locked: true,
-        groupKind: "club",
-        venues: [{ archivedAt: null }],
-      }),
+      createVenueCopy(
+        {
+          locked: true,
+          groupKind: "club",
+          venues: [{ archivedAt: null }],
+        },
+        "en",
+      ),
       "Venue is this Community’s linked Venue and cannot be changed. Court is optional.",
     );
     assert.equal(
-      createVenueCopy({
-        locked: true,
-        groupKind: "club",
-        venues: [{ archivedAt: "2026-01-01" }],
-      }),
+      createVenueCopy(
+        {
+          locked: true,
+          groupKind: "club",
+          venues: [{ archivedAt: "2026-01-01" }],
+        },
+        "en",
+      ),
       "This Community’s linked Venue is Soft-archived. You can still create this Game here. Skip Court.",
     );
     assert.equal(
-      createVenueCopy({
-        locked: false,
-        groupKind: "club",
-        venues: [],
-      }),
+      createVenueCopy(
+        {
+          locked: false,
+          groupKind: "club",
+          venues: [],
+        },
+        "en",
+      ),
       "This Community has no Venue link. Pick a Venue. Court is optional.",
     );
     assert.equal(
-      createVenueCopy({
-        locked: false,
-        groupKind: "loose",
-        venues: [],
-      }),
+      createVenueCopy(
+        {
+          locked: false,
+          groupKind: "loose",
+          venues: [],
+        },
+        "en",
+      ),
       "Pick a Venue. Court is optional.",
     );
   });
 
   it("formats the venue card line from court count and city", () => {
-    assert.equal(venueCardMeta(4, "Manama"), "4 Courts · Manama");
-    assert.equal(venueCardMeta(1, "Riffa"), "1 Court · Riffa");
+    assert.equal(venueCardMeta(4, "Manama", "en"), "4 Courts · Manama");
+    assert.equal(venueCardMeta(1, "Riffa", "en"), "1 Court · Riffa");
   });
 
   it("matches a venue search against name and city", () => {
@@ -357,19 +369,19 @@ describe("where helpers", () => {
   });
 
   it("requires Group and Venue", () => {
-    assert.deepEqual(validateFriendlyGameWhere("", "venue-1"), {
+    assert.deepEqual(validateFriendlyGameWhere("", "venue-1", "en"), {
       ok: false,
       field: "groupId",
       message: "Pick a Group",
       elementId: "game-group",
     });
-    assert.deepEqual(validateFriendlyGameWhere("group-1", ""), {
+    assert.deepEqual(validateFriendlyGameWhere("group-1", "", "en"), {
       ok: false,
       field: "venueId",
       message: "Pick a Venue",
       elementId: "game-venue",
     });
-    assert.deepEqual(validateFriendlyGameWhere("group-1", "venue-1"), {
+    assert.deepEqual(validateFriendlyGameWhere("group-1", "venue-1", "en"), {
       ok: true,
     });
   });
@@ -377,11 +389,15 @@ describe("where helpers", () => {
 
 describe("when helpers", () => {
   it("validates only the window fields", () => {
-    assert.equal(validateFriendlyGameWhen("", "20:00", "21:30", NOW).ok, false);
+    assert.equal(
+      validateFriendlyGameWhen("", "20:00", "21:30", "en", NOW).ok,
+      false,
+    );
     const missingStart = validateFriendlyGameWhen(
       "2026-09-23",
       "",
       "21:30",
+      "en",
       NOW,
     );
     assert.equal(missingStart.ok, false);
@@ -392,6 +408,7 @@ describe("when helpers", () => {
       "2026-09-23",
       "20:00",
       "",
+      "en",
       NOW,
     );
     assert.equal(missingFinish.ok, false);
@@ -402,6 +419,7 @@ describe("when helpers", () => {
       "2026-09-23",
       "21:00",
       "20:00",
+      "en",
       NOW,
     );
     assert.equal(inverted.ok, false);
@@ -412,7 +430,7 @@ describe("when helpers", () => {
       );
     }
     assert.equal(
-      validateFriendlyGameWhen("2026-09-23", "20:00", "21:30", NOW).ok,
+      validateFriendlyGameWhen("2026-09-23", "20:00", "21:30", "en", NOW).ok,
       true,
     );
   });
@@ -427,7 +445,7 @@ describe("when helpers", () => {
   });
 
   it("builds the header preview from the game-home kickoff", () => {
-    const kickoff = friendlyGameKickoff("2026-09-23", "20:00", "21:30");
+    const kickoff = friendlyGameKickoff("2026-09-23", "20:00", "21:30", "en");
     assert.equal(kickoff?.time, "8:00");
     assert.equal(kickoff?.trailer, "PM until 9:30");
     assert.match(
@@ -436,6 +454,7 @@ describe("when helpers", () => {
         groupName: "Tuesday Crew",
         venueName: "Karbabad Courts",
         courtName: "Court 2",
+        locale: "en",
       }),
       /Karbabad Courts · Court 2/,
     );
@@ -499,26 +518,26 @@ describe("friendly tournament branch", () => {
   });
 
   it("accepts game length chips and custom steps of 5", () => {
-    assert.equal(parseCreateMatchMinutes("20").ok, true);
-    assert.equal(parseCreateMatchMinutes("30").ok, true);
-    assert.equal(parseCreateMatchMinutes("45").ok, true);
-    assert.equal(parseCreateMatchMinutes("10").ok, true);
-    assert.equal(parseCreateMatchMinutes("120").ok, true);
-    assert.equal(parseCreateMatchMinutes("15").ok, true);
-    assert.equal(parseCreateMatchMinutes("9").ok, false);
-    assert.equal(parseCreateMatchMinutes("125").ok, false);
-    assert.equal(parseCreateMatchMinutes("47").ok, false);
-    assert.equal(parseCreateMatchMinutes("").ok, false);
+    assert.equal(parseCreateMatchMinutes("20", "en").ok, true);
+    assert.equal(parseCreateMatchMinutes("30", "en").ok, true);
+    assert.equal(parseCreateMatchMinutes("45", "en").ok, true);
+    assert.equal(parseCreateMatchMinutes("10", "en").ok, true);
+    assert.equal(parseCreateMatchMinutes("120", "en").ok, true);
+    assert.equal(parseCreateMatchMinutes("15", "en").ok, true);
+    assert.equal(parseCreateMatchMinutes("9", "en").ok, false);
+    assert.equal(parseCreateMatchMinutes("125", "en").ok, false);
+    assert.equal(parseCreateMatchMinutes("47", "en").ok, false);
+    assert.equal(parseCreateMatchMinutes("", "en").ok, false);
   });
 
   it("blocks an empty tournament name", () => {
-    const empty = validateTournamentName("   ");
+    const empty = validateTournamentName("   ", "en");
     assert.equal(empty.ok, false);
     if (!empty.ok) {
       assert.equal(empty.field, "name");
       assert.equal(empty.elementId, "tournament-name");
     }
-    const named = validateTournamentName("  Friendly tournament · Fri  ");
+    const named = validateTournamentName("  Friendly tournament · Fri  ", "en");
     assert.equal(named.ok, true);
     if (named.ok) {
       assert.equal(named.name, "Friendly tournament · Fri");
@@ -526,7 +545,7 @@ describe("friendly tournament branch", () => {
   });
 
   it("prefills the name from the day without a year", () => {
-    const name = friendlyTournamentDefaultName("2026-09-25");
+    const name = friendlyTournamentDefaultName("2026-09-25", "en");
     assert.match(name, /^Friendly tournament · /);
     assert.equal(name.includes("2026"), false);
     assert.match(name, /25/);
@@ -538,14 +557,17 @@ describe("friendly tournament branch", () => {
     if (!even.ok) {
       return;
     }
-    assert.equal(friendlyTournamentGroupsLine(even.sizing), "3 groups of 4");
+    assert.equal(
+      friendlyTournamentGroupsLine(even.sizing, "en"),
+      "3 groups of 4",
+    );
     const uneven = sizeFriendlyTournament(10, 3);
     assert.equal(uneven.ok, true);
     if (!uneven.ok) {
       return;
     }
     assert.equal(
-      friendlyTournamentGroupsLine(uneven.sizing),
+      friendlyTournamentGroupsLine(uneven.sizing, "en"),
       "1 group of 4, 2 groups of 3",
     );
     const single = sizeFriendlyTournament(4, 1);
@@ -553,28 +575,37 @@ describe("friendly tournament branch", () => {
     if (!single.ok) {
       return;
     }
-    assert.equal(friendlyTournamentGroupsLine(single.sizing), "1 group of 4");
-    assert.match(FRIENDLY_TOURNAMENT_UNEVEN_GROUPS, /Groups are uneven/);
     assert.equal(
-      createFlowLaterSteps("friendly_tournament")[0]?.title,
+      friendlyTournamentGroupsLine(single.sizing, "en"),
+      "1 group of 4",
+    );
+    assert.match(
+      messagesFor("en").createGame.unevenGroups,
+      /Groups are uneven/,
+    );
+    assert.equal(
+      createFlowLaterSteps("friendly_tournament", "en")[0]?.title,
       "Where and size",
     );
   });
 
   it("offers Groups only first, then Knockout only and Groups then knockout", () => {
     assert.deepEqual(
-      TOURNAMENT_SHAPE_OPTIONS.map((option) => option.id),
+      tournamentShapeOptions("en").map((option) => option.id),
       ["groups_only", "knockout_only", "groups_then_knockout"],
     );
-    assert.equal(TOURNAMENT_SHAPE_OPTIONS[2]?.title, "Groups, then knockout");
     assert.equal(
-      TOURNAMENT_SHAPE_OPTIONS[2]?.description,
+      tournamentShapeOptions("en")[2]?.title,
+      "Groups, then knockout",
+    );
+    assert.equal(
+      tournamentShapeOptions("en")[2]?.description,
       "The best in each group carry on",
     );
     assert.equal(createFlowStepForField("qualifiersPerPool"), 3);
     assert.equal(DEFAULT_TOURNAMENT_SHAPE, "groups_only");
     assert.equal(
-      TOURNAMENT_SHAPE_OPTIONS[1]?.description,
+      tournamentShapeOptions("en")[1]?.description,
       "Lose once and you are done for the day",
     );
     assert.equal(createFlowStepForField("tournamentShape"), 3);
@@ -592,6 +623,7 @@ describe("friendly tournament branch", () => {
       courtCount: 1,
       matchMinutes: 20,
       clock,
+      locale: "en",
     });
     assert.equal(
       shortGame.line,
@@ -605,6 +637,7 @@ describe("friendly tournament branch", () => {
       courtCount: 1,
       matchMinutes: 120,
       clock,
+      locale: "en",
     });
     assert.equal(longGame.overruns, true);
     const knockout = friendlyTournamentSchedule({
@@ -614,6 +647,7 @@ describe("friendly tournament branch", () => {
       courtCount: 2,
       matchMinutes: 45,
       clock,
+      locale: "en",
       knockoutOnly: true,
     });
     assert.equal(
@@ -629,6 +663,7 @@ describe("friendly tournament branch", () => {
         courtCount: 1,
         matchMinutes: 45,
         clock,
+        locale: "en",
         knockoutOnly: true,
       }).overruns,
       true,
@@ -640,6 +675,7 @@ describe("friendly tournament branch", () => {
       courtCount: 2,
       matchMinutes: 45,
       clock,
+      locale: "en",
       knockoutRoundMatches: [1, 1],
     });
     assert.equal(
@@ -655,12 +691,13 @@ describe("friendly tournament branch", () => {
         courtCount: 2,
         matchMinutes: 45,
         clock,
+        locale: "en",
         knockoutRoundMatches: [1, 1, 1],
       }).overruns,
       true,
     );
     assert.equal(
-      friendlyTournamentScheduleLine(18, "3:00 PM"),
+      friendlyTournamentScheduleLine(18, "3:00 PM", "en"),
       "18 group Matches, last Match finishes at 3:00 PM",
     );
     const noCourts = friendlyTournamentSchedule({
@@ -670,24 +707,27 @@ describe("friendly tournament branch", () => {
       courtCount: 0,
       matchMinutes: 45,
       clock,
+      locale: "en",
     });
     assert.equal(noCourts.line, null);
     assert.equal(noCourts.overruns, true);
   });
 
   it("prices a Game team of two at twice the player price", () => {
-    assert.equal(gameTeamOfTwoCopy("6.50"), "13.000 BD a Game team of two");
-    assert.equal(gameTeamOfTwoCopy("0"), "0.000 BD a Game team of two");
-    assert.equal(gameTeamOfTwoCopy(""), null);
-    assert.equal(gameTeamOfTwoCopy("nope"), null);
+    assert.equal(
+      gameTeamOfTwoCopy("6.50", "en"),
+      "13.000 BD a Game team of two",
+    );
+    assert.equal(gameTeamOfTwoCopy("0", "en"), "0.000 BD a Game team of two");
+    assert.equal(gameTeamOfTwoCopy("", "en"), null);
+    assert.equal(gameTeamOfTwoCopy("nope", "en"), null);
   });
 
   it("uses the plural court copy for tournaments", () => {
     assert.equal(
-      createVenueCopy(
-        { locked: false, groupKind: "loose", venues: [] },
-        { manyCourts: true },
-      ),
+      createVenueCopy({ locked: false, groupKind: "loose", venues: [] }, "en", {
+        manyCourts: true,
+      }),
       "Pick a Venue. Courts are optional.",
     );
   });
@@ -710,7 +750,7 @@ describe("level and price", () => {
 
   it("fills price chips with amounts the price parser accepts", () => {
     assert.deepEqual(
-      CREATE_FLOW_PRICE_CHIPS.map((chip) => chip.label),
+      createFlowPriceChips("en").map((chip) => chip.label),
       [
         "Free",
         "3.500",
@@ -723,7 +763,7 @@ describe("level and price", () => {
         "7.500",
       ],
     );
-    for (const chip of CREATE_FLOW_PRICE_CHIPS) {
+    for (const chip of createFlowPriceChips("en")) {
       assert.equal(priceChipIsSelected(chip.value, chip.value), true);
     }
     assert.equal(priceChipIsSelected("3.50", "3.5"), true);
@@ -733,14 +773,14 @@ describe("level and price", () => {
 
 describe("friendlyTournamentFormatLabel", () => {
   it("names the groups, and the knockout after them when the shape has one", () => {
-    assert.equal(friendlyTournamentFormatLabel(1), "1 group");
-    assert.equal(friendlyTournamentFormatLabel(3), "3 groups");
+    assert.equal(friendlyTournamentFormatLabel(1, "en"), "1 group");
+    assert.equal(friendlyTournamentFormatLabel(3, "en"), "3 groups");
     assert.equal(
-      friendlyTournamentFormatLabel(3, true),
+      friendlyTournamentFormatLabel(3, "en", true),
       "3 groups, then knockout",
     );
     assert.equal(
-      friendlyTournamentFormatLabel(1, true),
+      friendlyTournamentFormatLabel(1, "en", true),
       "1 group, then knockout",
     );
   });
@@ -796,7 +836,7 @@ describe("window reconciliation", () => {
 describe("draft helpers", () => {
   it("resets the tournament fields when switching to a Friendly game", () => {
     const draft = {
-      ...initialCreateGameDraft(NOW),
+      ...initialCreateGameDraft(NOW, "en"),
       courtIds: ["court-1"],
       teamCount: 8,
       isPublic: true,
@@ -804,32 +844,33 @@ describe("draft helpers", () => {
       nameTouched: true,
       name: "Mine",
     };
-    const reset = resetCreateBranch(draft, "friendly_game");
+    const reset = resetCreateBranch(draft, "friendly_game", "en");
     assert.deepEqual(reset.courtIds, []);
     assert.equal(reset.isPublic, false);
     assert.equal(reset.allowSoloRegister, true);
     assert.equal(reset.nameTouched, false);
-    assert.equal(reset.name, friendlyTournamentDefaultName(draft.day));
+    assert.equal(reset.name, friendlyTournamentDefaultName(draft.day, "en"));
   });
 
   it("clears the Court when switching to a tournament", () => {
-    const draft = { ...initialCreateGameDraft(NOW), courtId: "court-1" };
+    const draft = { ...initialCreateGameDraft(NOW, "en"), courtId: "court-1" };
     assert.equal(
-      resetCreateBranch(draft, "friendly_tournament").courtId,
+      resetCreateBranch(draft, "friendly_tournament", "en").courtId,
       "none",
     );
   });
 
   it("renames to the day only until the name is touched", () => {
-    const base = initialCreateGameDraft(NOW);
+    const base = initialCreateGameDraft(NOW, "en");
     assert.equal(
-      changeCreateDay(base, "2026-09-24").name,
-      friendlyTournamentDefaultName("2026-09-24"),
+      changeCreateDay(base, "2026-09-24", "en").name,
+      friendlyTournamentDefaultName("2026-09-24", "en"),
     );
     assert.equal(
       changeCreateDay(
         { ...base, nameTouched: true, name: "Mine" },
         "2026-09-24",
+        "en",
       ).name,
       "Mine",
     );
@@ -838,7 +879,7 @@ describe("draft helpers", () => {
 
 describe("where helpers", () => {
   const picked = {
-    ...initialCreateGameDraft(NOW),
+    ...initialCreateGameDraft(NOW, "en"),
     groupId: "g1",
     venueId: "v1",
     courtId: "c1",
@@ -876,24 +917,28 @@ describe("football create flow", () => {
     assert.equal(createFlowFirstStep("football"), 2);
     assert.equal(createFlowFirstStep("padel"), 1);
     assert.deepEqual(
-      createFlowLaterSteps("friendly_tournament", "football").map(
+      createFlowLaterSteps("friendly_tournament", "en", "football").map(
         (item) => item.title,
       ),
       ["Where", "When", "Size and price"],
     );
     assert.equal(
-      createFlowLaterSteps(null, "padel")[2]?.title,
+      createFlowLaterSteps(null, "en", "padel")[2]?.title,
       "Level and price",
     );
   });
 
   it("says the size instead of four open seats", () => {
     assert.equal(
-      createFlowSeatsLabel("football", { sideSize: 5, playersAllowed: 12 }),
+      createFlowSeatsLabel(
+        "football",
+        { sideSize: 5, playersAllowed: 12 },
+        "en",
+      ),
       "5-a-side · 12 players",
     );
     assert.equal(
-      createFlowSeatsLabel("padel", { sideSize: 5, playersAllowed: 10 }),
+      createFlowSeatsLabel("padel", { sideSize: 5, playersAllowed: 10 }, "en"),
       "4 open seats",
     );
   });
@@ -943,11 +988,18 @@ describe("football create flow", () => {
   });
 
   it("says pitch for a football Venue", () => {
-    assert.equal(venueCardMeta(2, "Manama", "football"), "2 pitches · Manama");
-    assert.equal(venueCardMeta(1, "Manama", "football"), "1 pitch · Manama");
+    assert.equal(
+      venueCardMeta(2, "Manama", "en", "football"),
+      "2 pitches · Manama",
+    );
+    assert.equal(
+      venueCardMeta(1, "Manama", "en", "football"),
+      "1 pitch · Manama",
+    );
     assert.match(
       createVenueCopy(
         { locked: true, groupKind: "club", venues: [{ archivedAt: null }] },
+        "en",
         { sport: "football" },
       ),
       /Pitch is optional/,
@@ -959,9 +1011,39 @@ describe("football create flow", () => {
           groupKind: "club",
           venues: [{ archivedAt: new Date() }],
         },
+        "en",
         { sport: "football" },
       ),
       /Skip pitch\./,
+    );
+  });
+});
+
+describe("Arabic copy", () => {
+  it("writes the create flow copy in Arabic", () => {
+    assert.equal(
+      createVenueCopy({ locked: false, groupKind: "loose", venues: [] }, "ar", {
+        sport: "football",
+      }),
+      "اختر ناديًا. الملعب اختياري.",
+    );
+    assert.equal(
+      friendlyTournamentFormatLabel(3, "ar", true),
+      "3 مجموعات، ثم خروج المغلوب",
+    );
+    assert.equal(createGameTypeCards("ar")[0]?.title, "لعبة ودية");
+    assert.equal(
+      createFlowSeatsLabel("padel", { sideSize: 5, playersAllowed: 10 }, "ar"),
+      "4 مقاعد شاغرة",
+    );
+    assert.equal(venueCardMeta(2, "المنامة", "ar"), "ملعبان · المنامة");
+    assert.equal(
+      friendlyTournamentScheduleLine(2, "3:00 م", "ar"),
+      "مباراتا مجموعات، تنتهي آخر مباراة في 3:00 م",
+    );
+    assert.equal(
+      gameTeamOfTwoCopy("6.50", "ar"),
+      "13.000 د.ب لفريق من لاعبَين",
     );
   });
 });

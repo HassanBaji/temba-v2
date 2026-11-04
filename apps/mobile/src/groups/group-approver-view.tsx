@@ -1,9 +1,6 @@
 import { colors, radii, sizes } from "@repo/design-tokens";
 import type { GroupJoinRequestData } from "@repo/domain/group-data";
 import {
-  GROUP_JOIN_POLICY_CHANGE_LABEL,
-  GROUP_JOIN_REQUESTS_REVIEW_LABEL,
-  GROUP_REQUESTS_ERROR_TITLE,
   groupJoinPolicyLine,
   groupJoinRequestMeta,
   groupJoinRequestsBannerText,
@@ -15,7 +12,9 @@ import { ArrowDown, Check, ChevronRight, Inbox } from "lucide-react-native";
 import { forwardRef } from "react";
 import { Pressable, View } from "react-native";
 
+import { mirrorInRtl } from "../i18n/rtl";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -35,6 +34,8 @@ export function JoinRequestsBanner({
   count: number;
   onReview: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   if (count === 0) {
     return null;
   }
@@ -61,11 +62,11 @@ export function JoinRequestsBanner({
         }}
       />
       <Text size="meta" weight="semibold" style={{ flex: 1 }}>
-        {groupJoinRequestsBannerText(count)}
+        {groupJoinRequestsBannerText(count, locale)}
       </Text>
       <Button
-        label={GROUP_JOIN_REQUESTS_REVIEW_LABEL}
-        accessibilityLabel="Review join requests"
+        label={m.group.admin.reviewLabel}
+        accessibilityLabel={m.mobileGroup.requests.review}
         size="sm"
         variant="outline-inverse"
         icon={<ArrowDown size={sizes.iconRow - 2} color={colors.paper} />}
@@ -77,6 +78,7 @@ export function JoinRequestsBanner({
 }
 
 function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
+  const m = useMessages();
   const view = levelCellView(level?.levelBand, level?.provisional ?? true);
   if (!view.label) {
     return null;
@@ -85,8 +87,8 @@ function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
     <View
       accessibilityLabel={
         view.kind === "provisional"
-          ? `Level ${view.label}, still Provisional`
-          : `Level ${view.label}`
+          ? m.mobileGroup.members.levelSpokenProvisional(view.label)
+          : m.mobileGroup.members.levelSpoken(view.label)
       }
       style={{
         borderWidth: hairline,
@@ -107,10 +109,11 @@ function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
 }
 
 function ChangePolicyLink({ onPress }: { onPress: () => void }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Change who can join"
+      accessibilityLabel={m.mobileGroup.requests.changeWhoCanJoin}
       hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -121,7 +124,7 @@ function ChangePolicyLink({ onPress }: { onPress: () => void }) {
       })}
     >
       <Text size="eyebrow" style={{ textDecorationLine: "underline" }}>
-        {GROUP_JOIN_POLICY_CHANGE_LABEL}
+        {m.group.admin.changeLabel}
       </Text>
     </Pressable>
   );
@@ -148,8 +151,10 @@ function RequestRow({
   onReject: () => void;
   onOpenProfile?: () => void;
 }) {
-  const name = request.user.name ?? "User";
-  const meta = groupJoinRequestMeta(request, communityName);
+  const locale = useLocale();
+  const m = useMessages();
+  const name = request.user.name ?? m.mobileGroup.unnamedUser;
+  const meta = groupJoinRequestMeta(request, communityName, locale);
   const identity = (
     <>
       <Avatar name={name} uri={mediaUrl(request.user.image, apiOrigin)} />
@@ -171,8 +176,8 @@ function RequestRow({
       {onOpenProfile ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${name}. ${meta}`}
-          accessibilityHint="Opens their Player profile"
+          accessibilityLabel={m.mobileGroup.requests.row(name, meta)}
+          accessibilityHint={m.mobileGroup.opensPlayerProfile}
           onPress={onOpenProfile}
           style={({ pressed }) => ({
             flexDirection: "row",
@@ -182,12 +187,16 @@ function RequestRow({
           })}
         >
           {identity}
-          <ChevronRight size={sizes.iconRow + 2} color={colors.dim} />
+          <ChevronRight
+            size={sizes.iconRow + 2}
+            color={colors.dim}
+            style={mirrorInRtl}
+          />
         </Pressable>
       ) : (
         <View
           accessible
-          accessibilityLabel={`${name}. ${meta}`}
+          accessibilityLabel={m.mobileGroup.requests.row(name, meta)}
           style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
         >
           {identity}
@@ -202,14 +211,16 @@ function RequestRow({
             paddingVertical: 10,
           }}
         >
-          <Text size="meta">{`“${request.note}”`}</Text>
+          <Text size="meta">
+            {m.mobileGroup.requests.quotedNote(request.note)}
+          </Text>
         </View>
       ) : null}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Button
-            label="Approve"
-            accessibilityLabel={`Approve ${name}`}
+            label={m.mobileGroup.requests.approve}
+            accessibilityLabel={m.mobileGroup.requests.approveName(name)}
             icon={<Check size={sizes.iconRow} color={colors.paper} />}
             pending={approving}
             disabled={rejecting}
@@ -217,8 +228,8 @@ function RequestRow({
           />
         </View>
         <Button
-          label="Reject"
-          accessibilityLabel={`Reject ${name}`}
+          label={m.mobileGroup.requests.reject}
+          accessibilityLabel={m.mobileGroup.requests.rejectName(name)}
           variant="outline"
           pending={rejecting}
           disabled={approving}
@@ -249,6 +260,8 @@ export type JoinRequestsCardProps = {
 export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
   function JoinRequestsCard(props, ref) {
     const { requests } = props;
+    const locale = useLocale();
+    const m = useMessages();
     if (requests.status === "loading") {
       return <Skeleton height={72} radius={radii.card} />;
     }
@@ -256,7 +269,7 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
       return (
         <Notice
           alert
-          title={GROUP_REQUESTS_ERROR_TITLE}
+          title={m.group.admin.requestsErrorTitle}
           description={requests.message}
           onRetry={props.onRetry}
         />
@@ -267,6 +280,7 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
       const summary = groupJoinRequestsSummary({
         requiresApproval: props.requiresApproval,
         approvedToday: props.approvedToday,
+        locale,
       });
       return (
         <View
@@ -323,7 +337,7 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
           >
             <Inbox size={sizes.iconRow - 1} color={colors.paper} />
             <Text size="meta" weight="semibold">
-              {groupJoinRequestsHeading(requests.value.length)}
+              {groupJoinRequestsHeading(requests.value.length, locale)}
             </Text>
           </View>
         </SurfaceToneContext.Provider>
@@ -361,7 +375,7 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
           }}
         >
           <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
-            {groupJoinPolicyLine(props.requiresApproval)}
+            {groupJoinPolicyLine(props.requiresApproval, locale)}
           </Text>
           <ChangePolicyLink onPress={props.onChangePolicy} />
         </View>

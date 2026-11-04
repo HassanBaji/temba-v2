@@ -56,13 +56,16 @@ const place = {
 };
 
 describe("padelResultCard", () => {
-  const card = padelResultCard({
-    ...place,
-    sides,
-    viewerUserId: VIEWER,
-    match,
-    rated: true,
-  });
+  const card = padelResultCard(
+    {
+      ...place,
+      sides,
+      viewerUserId: VIEWER,
+      match,
+      rated: true,
+    },
+    "en",
+  );
 
   it("puts the winners first with the sets read from their side", () => {
     assert.equal(card.typeLine, "FRIENDLY · PADEL");
@@ -99,11 +102,12 @@ describe("padelResultCard", () => {
   });
 
   it("writes the sticker line and the message", () => {
-    assert.equal(padelStickerLine(card), "YOU & MARYAM WIN 2–1");
+    assert.equal(padelStickerLine(card, "en"), "YOU & MARYAM WIN 2–1");
     assert.equal(
       formatPadelResultShareMessage(
         card,
         "https://temba.app/dashboard/games/g1",
+        "en",
       ),
       [
         "🎾 Padel result",
@@ -117,16 +121,37 @@ describe("padelResultCard", () => {
   });
 
   it("names both pairs in full for a viewer who did not play", () => {
-    const watcher = padelResultCard({
-      ...place,
-      sides,
-      viewerUserId: "user-organizer",
-      match,
-      rated: false,
-    });
+    const watcher = padelResultCard(
+      {
+        ...place,
+        sides,
+        viewerUserId: "user-organizer",
+        match,
+        rated: false,
+      },
+      "en",
+    );
     assert.equal(watcher.winnerLine, "Elin & Maryam");
     assert.equal(watcher.typeNote, "FRIENDLY MATCH");
     assert.equal(watcher.winners[0]?.isYou, false);
+  });
+
+  it("writes the card and the message in Arabic", () => {
+    const arabic = padelResultCard(
+      { ...place, sides, viewerUserId: VIEWER, match, rated: true },
+      "ar",
+    );
+    assert.equal(arabic.typeLine, "ودية · بادل");
+    assert.equal(arabic.typeNote, "مباراة مصنّفة");
+    assert.equal(arabic.winnerLine, "أنت وMaryam");
+    assert.equal(arabic.setRows[0]?.label, "الشوط 1");
+    assert.equal(padelStickerLine(arabic, "ar"), "أنت وMARYAM يفوزون 2–1");
+    assert.equal(
+      formatPadelResultShareMessage(arabic, "https://temba.app/g", "ar").split(
+        "\n",
+      )[1],
+      "🏆 أنت وMaryam تغلّبوا على Hassan وKhalid 2–1",
+    );
   });
 });
 
@@ -151,24 +176,27 @@ function player(
 }
 
 describe("footballResultCard", () => {
-  const card = footballResultCard({
-    windowStart: new Date("2026-10-18T17:00:00.000Z"),
-    windowEnd: new Date("2026-10-18T18:30:00.000Z"),
-    venue: { name: "Karbabad Turf", city: null },
-    courtName: "Pitch 2",
-    players: [
-      player("u1", "Hassan Ali", 1, { goals: 2, isViewer: true }),
-      player("u2", "Omar Mahmood", 1, { goals: 1 }),
-      player("u3", "Yousif Salman", 1, { role: "keeper", position: null }),
-      player("u4", "Maryam Khalaf", 2),
-      player("u5", "Tariq Nasser", 2, { goals: 1 }),
-      player("u6", "Jaber Ahmed", 2, { goals: 1, position: "fwd" }),
-    ],
-    bibs: { slot1: "orange", slot2: "white" },
-    score: { slot1: 4, slot2: 2 },
-    sideSize: 6,
-    rated: false,
-  });
+  const card = footballResultCard(
+    {
+      windowStart: new Date("2026-10-18T17:00:00.000Z"),
+      windowEnd: new Date("2026-10-18T18:30:00.000Z"),
+      venue: { name: "Karbabad Turf", city: null },
+      courtName: "Pitch 2",
+      players: [
+        player("u1", "Hassan Ali", 1, { goals: 2, isViewer: true }),
+        player("u2", "Omar Mahmood", 1, { goals: 1 }),
+        player("u3", "Yousif Salman", 1, { role: "keeper", position: null }),
+        player("u4", "Maryam Khalaf", 2),
+        player("u5", "Tariq Nasser", 2, { goals: 1 }),
+        player("u6", "Jaber Ahmed", 2, { goals: 1, position: "fwd" }),
+      ],
+      bibs: { slot1: "orange", slot2: "white" },
+      score: { slot1: 4, slot2: 2 },
+      sideSize: 6,
+      rated: false,
+    },
+    "en",
+  );
 
   it("puts the winning bib first and lists scorers winners first", () => {
     assert.equal(card.typeLine, "FRIENDLY · FOOTBALL · 6-A-SIDE");
@@ -200,7 +228,7 @@ describe("footballResultCard", () => {
 
   it("writes the message", () => {
     assert.equal(
-      formatFootballResultShareMessage(card, "https://temba.app/g"),
+      formatFootballResultShareMessage(card, "https://temba.app/g", "en"),
       [
         "⚽ Football result",
         "🏆 Orange 4–2 White",
@@ -213,17 +241,20 @@ describe("footballResultCard", () => {
   });
 
   it("keeps slot order on a draw", () => {
-    const draw = footballResultCard({
-      windowStart: null,
-      windowEnd: null,
-      venue: null,
-      courtName: null,
-      players: [],
-      bibs: { slot1: "black", slot2: "white" },
-      score: { slot1: 1, slot2: 1 },
-      sideSize: null,
-      rated: true,
-    });
+    const draw = footballResultCard(
+      {
+        windowStart: null,
+        windowEnd: null,
+        venue: null,
+        courtName: null,
+        players: [],
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 1, slot2: 1 },
+        sideSize: null,
+        rated: true,
+      },
+      "en",
+    );
     assert.equal(draw.draw, true);
     assert.equal(draw.win.name, "Black");
     assert.equal(draw.typeLine, "FRIENDLY · FOOTBALL");
@@ -294,14 +325,14 @@ const padel: ResultShareGame = {
 
 describe("resultShareCard", () => {
   it("builds the padel card from a final Match", () => {
-    const card = resultShareCard(padel, null);
+    const card = resultShareCard(padel, null, "en");
     assert.equal(card?.kind, "padel");
     assert.equal(card?.venue, "Padel Hub, Court 3");
   });
 
   it("has nothing to share before the result is final", () => {
     assert.equal(
-      resultShareCard({ ...padel, phase: "needs_results" }, null),
+      resultShareCard({ ...padel, phase: "needs_results" }, null, "en"),
       null,
     );
   });
@@ -316,20 +347,28 @@ describe("resultShareCard", () => {
       sides: [],
       matches: [],
     };
-    assert.equal(resultShareCard(football, null), null);
-    const card = resultShareCard(football, {
-      players: [],
-      teams: { bibs: { slot1: "black", slot2: "white" } },
-      match: { status: "completed", score: { slot1: 2, slot2: 1 } },
-    });
+    assert.equal(resultShareCard(football, null, "en"), null);
+    const card = resultShareCard(
+      football,
+      {
+        players: [],
+        teams: { bibs: { slot1: "black", slot2: "white" } },
+        match: { status: "completed", score: { slot1: 2, slot2: 1 } },
+      },
+      "en",
+    );
     assert.equal(card?.kind, "football");
     assert.equal(card?.venue, "Padel Hub, Pitch 2");
     assert.equal(
-      resultShareCard(football, {
-        players: [],
-        teams: { bibs: { slot1: "black", slot2: "white" } },
-        match: { status: "scheduled", score: { slot1: 2, slot2: 1 } },
-      }),
+      resultShareCard(
+        football,
+        {
+          players: [],
+          teams: { bibs: { slot1: "black", slot2: "white" } },
+          match: { status: "scheduled", score: { slot1: 2, slot2: 1 } },
+        },
+        "en",
+      ),
       null,
     );
   });

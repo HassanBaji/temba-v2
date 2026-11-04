@@ -5,9 +5,10 @@ import {
   PENDING_SET_COLUMNS,
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
-import { RESULT_MARK_LABEL } from "@repo/domain/result-mark";
+import { resultMarkLabel } from "@repo/domain/result-mark";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -136,6 +137,7 @@ function ResultStrip({
   scoreLine: string;
   day: string;
 }) {
+  const locale = useLocale();
   const palette = useTonePalette();
 
   return (
@@ -150,7 +152,7 @@ function ResultStrip({
       }}
     >
       <ResultMark variant={outcome} size={16} decorative />
-      <Text weight="semibold">{RESULT_MARK_LABEL[outcome]}</Text>
+      <Text weight="semibold">{resultMarkLabel(outcome, locale)}</Text>
       <Text size="meta" tone="muted">
         {scoreLine}
       </Text>
@@ -173,8 +175,10 @@ export function HistoryCard({
   row: HubHistoryRow;
   onOpen: (gameId: string) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.history;
   const palette = useTonePalette();
-  const model = matchHistoryCardModel(row);
+  const model = matchHistoryCardModel(row, locale);
   const won = model.outcome === "won";
 
   return (
@@ -189,7 +193,11 @@ export function HistoryCard({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${RESULT_MARK_LABEL[model.outcome]}, ${model.scoreLine}, ${model.meta}`}
+        accessibilityLabel={m.accessibleName(
+          resultMarkLabel(model.outcome, locale),
+          model.scoreLine,
+          model.meta,
+        )}
         onPress={() => onOpen(row.id)}
         style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >

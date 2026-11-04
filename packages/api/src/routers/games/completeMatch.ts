@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -12,7 +13,7 @@ import { bothSlotsFilled } from "#src/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
 import {
   advanceKnockoutWinner,
-  KNOCKOUT_LEVEL_MESSAGE,
+  knockoutLevelMessage,
   knockoutMatchIsLevel,
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
@@ -26,7 +27,7 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function completeMatch(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string },
+  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);
@@ -117,7 +118,7 @@ export async function completeMatch(
     if (knockoutMatchIsLevel(locked, outcome.result)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: KNOCKOUT_LEVEL_MESSAGE,
+        message: knockoutLevelMessage(args.locale ?? DEFAULT_LOCALE),
       });
     }
 
@@ -147,5 +148,6 @@ export const completeMatchProcedure = protectedProcedure
       gameId: input.gameId,
       matchId: input.matchId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

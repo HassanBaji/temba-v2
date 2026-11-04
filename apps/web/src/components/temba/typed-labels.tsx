@@ -1,23 +1,20 @@
-import { GAME_FORMAT_LABELS } from "@repo/domain/game-format-label";
+"use client";
+
+import { gameFormatLabel } from "@repo/domain/game-format-label";
+import type { Messages } from "@repo/i18n/messages";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
 import { cn } from "~/lib/utils";
 
-export { GAME_FORMAT_LABELS };
+const GAME_REGISTRATION_STATUSES = [
+  "open",
+  "full",
+  "closed",
+  "frozen",
+  "cancelled",
+] as const;
 
-export const GAME_REGISTRATION_MODE_LABELS = {
-  individual: "Individual",
-  team_only: "Team only",
-} as const;
-
-export const GAME_REGISTRATION_STATUS_LABELS = {
-  open: "Open",
-  full: "Full",
-  closed: "Closed",
-  frozen: "Frozen",
-  cancelled: "Cancelled",
-} as const;
-
-type GameRegistrationStatusValue = keyof typeof GAME_REGISTRATION_STATUS_LABELS;
+type GameRegistrationStatusValue = (typeof GAME_REGISTRATION_STATUSES)[number];
 
 /** Registration state is the page's headline fact, so it carries the colour. */
 const GAME_REGISTRATION_STATUS_CLASSES: Record<
@@ -31,44 +28,71 @@ const GAME_REGISTRATION_STATUS_CLASSES: Record<
   cancelled: { text: "text-destructive", dot: "bg-destructive" },
 };
 
+function isGameRegistrationStatus(
+  status: string,
+): status is GameRegistrationStatusValue {
+  return (GAME_REGISTRATION_STATUSES as readonly string[]).includes(status);
+}
+
 export function gameRegistrationStatusClasses(status: string) {
-  return Object.hasOwn(GAME_REGISTRATION_STATUS_CLASSES, status)
-    ? GAME_REGISTRATION_STATUS_CLASSES[status as GameRegistrationStatusValue]
+  return isGameRegistrationStatus(status)
+    ? GAME_REGISTRATION_STATUS_CLASSES[status]
     : { text: "text-muted-foreground", dot: "bg-current" };
 }
 
-export const INVITE_KIND_LABELS = {
-  community: "Community",
-  group: "Group",
-  team: "Team",
-  game: "Game",
-} as const;
+function fallbackLabel(value: string): string {
+  return value.replaceAll("_", " ");
+}
 
-function labelFromMap(value: string, map: Record<string, string>): string {
-  return map[value] ?? value.replaceAll("_", " ");
+export function inviteKindLabel(kind: string, m: Messages): string {
+  switch (kind) {
+    case "community":
+    case "group":
+    case "team":
+    case "game":
+      return m.webUi.inviteKind[kind];
+    default:
+      return fallbackLabel(kind);
+  }
+}
+
+export function gameRegistrationModeLabel(mode: string, m: Messages): string {
+  switch (mode) {
+    case "individual":
+      return m.webUi.registrationMode.individual;
+    case "team_only":
+      return m.webUi.registrationMode.teamOnly;
+    default:
+      return fallbackLabel(mode);
+  }
+}
+
+export function gameRegistrationStatusLabel(
+  status: string,
+  m: Messages,
+): string {
+  return isGameRegistrationStatus(status)
+    ? m.webUi.registrationStatus[status]
+    : fallbackLabel(status);
 }
 
 export function GameFormatBadge({ format }: { format: string }) {
-  return (
-    <Badge variant="outline">{labelFromMap(format, GAME_FORMAT_LABELS)}</Badge>
-  );
+  const locale = useLocale();
+  return <Badge variant="outline">{gameFormatLabel(format, locale)}</Badge>;
 }
 
 export function InviteKindBadge({ kind }: { kind: string }) {
-  return (
-    <Badge variant="outline">{labelFromMap(kind, INVITE_KIND_LABELS)}</Badge>
-  );
+  const m = useMessages();
+  return <Badge variant="outline">{inviteKindLabel(kind, m)}</Badge>;
 }
 
 export function GameRegistrationModeBadge({ mode }: { mode: string }) {
-  return (
-    <Badge variant="outline">
-      {labelFromMap(mode, GAME_REGISTRATION_MODE_LABELS)}
-    </Badge>
-  );
+  const m = useMessages();
+  return <Badge variant="outline">{gameRegistrationModeLabel(mode, m)}</Badge>;
 }
 
 export function GameRegistrationStatusBadge({ status }: { status: string }) {
+  const m = useMessages();
   const classes = gameRegistrationStatusClasses(status);
 
   return (
@@ -77,7 +101,7 @@ export function GameRegistrationStatusBadge({ status }: { status: string }) {
         aria-hidden="true"
         className={cn("size-1.5 shrink-0 rounded-full", classes.dot)}
       />
-      {labelFromMap(status, GAME_REGISTRATION_STATUS_LABELS)}
+      {gameRegistrationStatusLabel(status, m)}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import {
   filsToMajorInput,
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 export type PricingRuleDraft = {
   key: string;
@@ -106,7 +107,7 @@ export function nextRuleDraft(
 export function parseHourlyRate(
   value: string,
 ): { ok: true; fils: number } | { ok: false; message: string } {
-  const parsed = parseOptionalPricePerPlayerFils(value);
+  const parsed = parseOptionalPricePerPlayerFils(value, CONSOLE_LOCALE);
   if (!parsed.ok || parsed.fils === null) {
     return {
       ok: false,

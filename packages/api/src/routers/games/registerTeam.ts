@@ -1,4 +1,6 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -20,14 +22,14 @@ import { throwIfAdmitRefused } from "#src/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { enqueueWaitlistTeam } from "#src/games/enqueue-waitlist-team";
-import { LEVEL_RANGE_TEAM_MESSAGE } from "@repo/domain/level-range";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function registerTeam(
   database: DbClient,
-  args: { gameId: string; userId: string; teamId: string },
+  args: { gameId: string; userId: string; teamId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   assertPoolDrawNotPosted(game);
   const now = new Date();
@@ -120,7 +122,7 @@ export async function registerTeam(
     if (!(await userAllowedByLevelRange(database, game, member.userId))) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: LEVEL_RANGE_TEAM_MESSAGE,
+        message: messagesFor(locale).level.rangeTeam,
       });
     }
   }
@@ -139,6 +141,7 @@ export async function registerTeam(
         party: { kind: "team", teamId: team.id },
         now,
       }),
+      locale,
       "team",
     );
   });
@@ -159,5 +162,6 @@ export const registerTeamProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       teamId: input.teamId,
+      locale: ctx.locale,
     });
   });

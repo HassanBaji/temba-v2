@@ -1,13 +1,14 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { teamInviteLabel } from "./teams";
 
 export type InviteDoorKind = "game" | "group" | "community" | "team";
 export type InviteMode = "players" | "phone" | "link";
 
-export const INVITE_MODE_LABELS: Record<InviteMode, string> = {
-  players: "Players",
-  phone: "Phone",
-  link: "Link",
-};
+export function inviteModeLabel(mode: InviteMode, locale: Locale) {
+  return messagesFor(locale).invite.door.mode[mode];
+}
 
 /** A text carries the invite link, so the Phone way in needs link rights. */
 export function inviteModes(door: {
@@ -24,8 +25,14 @@ export function inviteModes(door: {
   return modes;
 }
 
-export function inviteSheetTitle(kind: InviteDoorKind, teamSquad = false) {
-  return kind === "team" ? teamInviteLabel(teamSquad) : "Invite players";
+export function inviteSheetTitle(
+  kind: InviteDoorKind,
+  locale: Locale,
+  teamSquad = false,
+) {
+  return kind === "team"
+    ? teamInviteLabel(teamSquad, locale)
+    : messagesFor(locale).invite.door.invitePlayers;
 }
 
 export type LookupResultRow = {
@@ -48,21 +55,27 @@ export type LookupResultView = {
 export function lookupResultView(
   row: LookupResultRow,
   invited: boolean,
+  locale: Locale,
 ): LookupResultView {
+  const m = messagesFor(locale);
   const meta =
     [
       row.username ? `@${row.username}` : null,
       row.cue ?? row.email ?? row.phoneNumber ?? null,
     ]
       .filter(Boolean)
-      .join(", ") || null;
+      .join(m.group.metaSeparator) || null;
   return {
     id: row.id,
     name: row.name,
     meta,
-    accessibilityLabel: [row.name, meta, invited ? "invited" : null]
+    accessibilityLabel: [
+      row.name,
+      meta,
+      invited ? m.invite.door.invitedA11y : null,
+    ]
       .filter(Boolean)
-      .join(", "),
+      .join(m.group.metaSeparator),
   };
 }
 
@@ -78,32 +91,42 @@ export function openSeatCount(
   );
 }
 
-export function playersHeading(query: string) {
-  return query.trim() ? "Results" : "Suggested";
+export function playersHeading(query: string, locale: Locale) {
+  const m = messagesFor(locale).invite.door;
+  return query.trim() ? m.resultsHeading : m.suggestedHeading;
 }
 
-export function noPlayersMatchCopy(query: string, canLink: boolean) {
-  const lead = `No one on Temba matches "${query.trim()}".`;
+export function noPlayersMatchCopy(
+  query: string,
+  canLink: boolean,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).invite.door;
   return canLink
-    ? `${lead}\nTry their phone number or send them the link.`
-    : lead;
+    ? m.noMatchTryOtherWays(query.trim())
+    : m.noMatch(query.trim());
 }
 
-export function inviteButtonLabel(invited: boolean) {
-  return invited ? "Invited" : "Invite";
+export function inviteButtonLabel(invited: boolean, locale: Locale) {
+  const m = messagesFor(locale).invite.door;
+  return invited ? m.invitedButton : m.inviteButton;
 }
 
-export function phoneInviteLabel(ready: boolean, sending: boolean) {
+export function phoneInviteLabel(
+  ready: boolean,
+  sending: boolean,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).invite.door.phone;
   if (sending) {
-    return "Sending…";
+    return m.sending;
   }
-  return ready ? "Send invite by text" : "Enter a number";
+  return ready ? m.send : m.enterNumber;
 }
 
-export function phoneInviteNote(canLookup: boolean) {
-  return canLookup
-    ? "They get a text with your invite. If they are already on Temba it lands in their app too."
-    : "They get a text with your invite.";
+export function phoneInviteNote(canLookup: boolean, locale: Locale) {
+  const m = messagesFor(locale).invite.door.phone;
+  return canLookup ? m.noteWithLookup : m.note;
 }
 
 /** The Temba User whose number is exactly this one, not just containing it. */
@@ -118,29 +141,22 @@ export function rowWithPhone(
 }
 
 /** A Game link has no clock of its own; the other doors' links last 6 hours. */
-export function inviteLinkLifetimeNote(kind: InviteDoorKind) {
-  return kind === "game"
-    ? "Works until the Game ends or registration closes."
-    : "Each link works for 6 hours.";
+export function inviteLinkLifetimeNote(kind: InviteDoorKind, locale: Locale) {
+  const m = messagesFor(locale).invite.door.linkLifetime;
+  return kind === "game" ? m.game : m.other;
 }
 
-export const INVITE_LINK_EMPTY_NOTE = "A new link is made when you share it.";
-
-export function inviteLinkNote(kind: InviteDoorKind) {
-  switch (kind) {
-    case "game":
-      return "Anyone with the link can take a seat. Good for WhatsApp groups.";
-    case "group":
-      return "Anyone with the link can join the Group. Good for WhatsApp groups.";
-    case "community":
-      return "Anyone with the link can join the Community. Good for WhatsApp groups.";
-    case "team":
-      return "Send it to the partner you want on your Team.";
-  }
+export function inviteLinkEmptyNote(locale: Locale) {
+  return messagesFor(locale).invite.door.linkEmptyNote;
 }
 
-export function copyLinkLabel(copied: boolean) {
-  return copied ? "Copied" : "Copy";
+export function inviteLinkNote(kind: InviteDoorKind, locale: Locale) {
+  return messagesFor(locale).invite.door.linkNote[kind];
+}
+
+export function copyLinkLabel(copied: boolean, locale: Locale) {
+  const m = messagesFor(locale).common;
+  return copied ? m.copied : m.copy;
 }
 
 /** iOS reads the body after `&`, Android after `?`. */
@@ -153,9 +169,14 @@ export function textMessageUrl(
   return `sms:${to ?? ""}${separator}body=${encodeURIComponent(body)}`;
 }
 
-export function pendingHeading(count: number) {
-  return `Pending, ${count}`;
+export function pendingHeading(count: number, locale: Locale) {
+  return messagesFor(locale).invite.door.pendingHeading(count);
 }
 
-export const PENDING_NOTE = "Waiting for an answer";
-export const NO_PENDING_COPY = "No invites sent yet.";
+export function pendingNote(locale: Locale) {
+  return messagesFor(locale).invite.door.pendingNote;
+}
+
+export function noPendingCopy(locale: Locale) {
+  return messagesFor(locale).invite.door.noPending;
+}

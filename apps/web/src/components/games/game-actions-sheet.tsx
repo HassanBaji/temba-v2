@@ -11,6 +11,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export type GameActionsSheetRow = {
@@ -33,7 +34,7 @@ export function GameActionsSheet({
   title,
   description,
   groups,
-  label = "Game actions",
+  label,
   triggerRef,
   triggerClassName,
 }: {
@@ -44,6 +45,8 @@ export function GameActionsSheet({
   triggerRef?: RefObject<HTMLButtonElement | null>;
   triggerClassName?: string;
 }) {
+  const m = useMessages();
+  const triggerLabel = label ?? m.webGame.overflow.gameActions;
   const [open, setOpen] = useState(false);
   const blocks = groups.filter((rows) => rows.length > 0);
 
@@ -56,7 +59,7 @@ export function GameActionsSheet({
       <button
         ref={triggerRef}
         type="button"
-        aria-label={label}
+        aria-label={triggerLabel}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
@@ -68,7 +71,7 @@ export function GameActionsSheet({
         <MoreVerticalIcon aria-hidden="true" className="size-5" />
       </button>
       <ResponsiveDialogContent showCloseButton restoreFocusRef={triggerRef}>
-        <ResponsiveDialogHeader className="pr-14">
+        <ResponsiveDialogHeader className="pe-14">
           <ResponsiveDialogTitle className="text-lead font-semibold tracking-normal [font-variation-settings:normal]">
             {title}
           </ResponsiveDialogTitle>
@@ -78,7 +81,7 @@ export function GameActionsSheet({
             </ResponsiveDialogDescription>
           ) : (
             <ResponsiveDialogDescription className="sr-only">
-              {label}
+              {triggerLabel}
             </ResponsiveDialogDescription>
           )}
         </ResponsiveDialogHeader>

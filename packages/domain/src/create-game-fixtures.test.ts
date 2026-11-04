@@ -8,7 +8,7 @@ import {
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
 } from "./create-game-submit";
-import { LEVEL_RANGE_INVERTED_MESSAGE } from "./level-range";
+import { levelRangeInvertedMessage } from "./level-range";
 
 const NOW = bahrainDate(2026, 9, 4, 12, 0, 0);
 const fixtures = createCreateGameFixtures(NOW);
@@ -20,7 +20,9 @@ const withDay = (draft: (typeof drafts)["emptyGame"]) => ({
 
 describe("create game fixtures", () => {
   it("submits the complete game and tournament drafts", () => {
-    assert.ok(validateFriendlyGameSubmit(withDay(drafts.gameReview), NOW).ok);
+    assert.ok(
+      validateFriendlyGameSubmit(withDay(drafts.gameReview), NOW, "en").ok,
+    );
     for (const key of [
       "tournamentGroupsOnly",
       "tournamentKnockoutOnly",
@@ -28,7 +30,8 @@ describe("create game fixtures", () => {
       "tournamentReview",
     ] as const) {
       assert.ok(
-        validateFriendlyTournamentSubmit(withDay(drafts[key]), NOW, true).ok,
+        validateFriendlyTournamentSubmit(withDay(drafts[key]), NOW, true, "en")
+          .ok,
         key,
       );
     }
@@ -38,16 +41,24 @@ describe("create game fixtures", () => {
     const level = validateFriendlyGameSubmit(
       withDay(drafts.invertedLevelRange),
       NOW,
+      "en",
     );
     assert.ok(!level.ok);
     if (!level.ok) {
-      assert.equal(level.message, LEVEL_RANGE_INVERTED_MESSAGE);
+      assert.equal(level.message, levelRangeInvertedMessage("en"));
     }
-    const price = validateFriendlyGameSubmit(withDay(drafts.badPrice), NOW);
+    const price = validateFriendlyGameSubmit(
+      withDay(drafts.badPrice),
+      NOW,
+      "en",
+    );
     assert.ok(!price.ok);
     assert.equal(
-      validateTournamentStepThree(withDay(drafts.teamCountDoesNotFit), NOW)
-        ?.message,
+      validateTournamentStepThree(
+        withDay(drafts.teamCountDoesNotFit),
+        NOW,
+        "en",
+      )?.message,
       "Pick a groups count",
     );
   });

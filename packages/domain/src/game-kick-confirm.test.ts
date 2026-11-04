@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
-  KICK_AFTER_DRAW_CONFIRM_COPY,
-  KICK_FALLBACK_NAME,
-  KICK_SPOT_CONFIRM_COPY,
-  KICK_WAITLIST_CONFIRM_COPY,
   gameKickConfirmCopy,
   gameKickTarget,
   type GameKickRoster,
 } from "./game-kick-confirm";
-import { PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY } from "./tournament-join";
+import { partnerRequiredUnseatPartnerConfirmCopy } from "./tournament-join";
+
+const kick = messagesFor("en").game.kick;
 
 const roster: GameKickRoster = {
   registeredPlayers: [
@@ -29,7 +29,7 @@ const roster: GameKickRoster = {
 
 describe("gameKickTarget", () => {
   it("names a registered player", () => {
-    assert.deepEqual(gameKickTarget(roster, { userId: "user-ben" }), {
+    assert.deepEqual(gameKickTarget(roster, { userId: "user-ben" }, "en"), {
       kind: "player",
       userId: "user-ben",
       name: "Ben",
@@ -37,7 +37,7 @@ describe("gameKickTarget", () => {
   });
 
   it("falls back to the seat occupant's name", () => {
-    assert.deepEqual(gameKickTarget(roster, { userId: "user-cara" }), {
+    assert.deepEqual(gameKickTarget(roster, { userId: "user-cara" }, "en"), {
       kind: "player",
       userId: "user-cara",
       name: "Cara",
@@ -45,7 +45,7 @@ describe("gameKickTarget", () => {
   });
 
   it("names a waitlist entry", () => {
-    assert.deepEqual(gameKickTarget(roster, { waitlistId: "wait-1" }), {
+    assert.deepEqual(gameKickTarget(roster, { waitlistId: "wait-1" }, "en"), {
       kind: "waitlist",
       waitlistId: "wait-1",
       name: "Dev",
@@ -54,36 +54,45 @@ describe("gameKickTarget", () => {
 
   it("uses a generic name when the person is not on the roster", () => {
     assert.equal(
-      gameKickTarget(roster, { userId: "user-gone" }).name,
-      KICK_FALLBACK_NAME,
+      gameKickTarget(roster, { userId: "user-gone" }, "en").name,
+      "this player",
     );
     assert.equal(
-      gameKickTarget(roster, { waitlistId: "wait-gone" }).name,
-      KICK_FALLBACK_NAME,
+      gameKickTarget(roster, { waitlistId: "wait-gone" }, "en").name,
+      "this player",
+    );
+    assert.equal(
+      gameKickTarget(roster, { userId: "user-gone" }, "ar").name,
+      "هذا اللاعب",
     );
   });
 });
 
 describe("gameKickConfirmCopy", () => {
-  const player = gameKickTarget(roster, { userId: "user-ana" });
-  const waitlisted = gameKickTarget(roster, { waitlistId: "wait-1" });
+  const player = gameKickTarget(roster, { userId: "user-ana" }, "en");
+  const waitlisted = gameKickTarget(roster, { waitlistId: "wait-1" }, "en");
 
   it("names the player and says their spot opens", () => {
     assert.deepEqual(
-      gameKickConfirmCopy(player, {
-        partnerRequired: false,
-        drawPosted: false,
-      }),
-      { title: "Kick Ana?", description: KICK_SPOT_CONFIRM_COPY },
+      gameKickConfirmCopy(
+        player,
+        { partnerRequired: false, drawPosted: false },
+        "en",
+      ),
+      { title: "Kick Ana?", description: kick.spotConfirm },
     );
   });
 
   it("keeps the partner-required copy before the draw", () => {
     assert.deepEqual(
-      gameKickConfirmCopy(player, { partnerRequired: true, drawPosted: false }),
+      gameKickConfirmCopy(
+        player,
+        { partnerRequired: true, drawPosted: false },
+        "en",
+      ),
       {
         title: "Kick Ana?",
-        description: PARTNER_REQUIRED_UNSEAT_PARTNER_CONFIRM_COPY,
+        description: partnerRequiredUnseatPartnerConfirmCopy("en"),
       },
     );
   });
@@ -91,22 +100,37 @@ describe("gameKickConfirmCopy", () => {
   it("says unplayed Matches are cancelled after the draw", () => {
     for (const partnerRequired of [true, false]) {
       assert.equal(
-        gameKickConfirmCopy(player, { partnerRequired, drawPosted: true })
+        gameKickConfirmCopy(player, { partnerRequired, drawPosted: true }, "en")
           .description,
-        KICK_AFTER_DRAW_CONFIRM_COPY,
+        kick.afterDrawConfirm,
       );
     }
   });
 
   it("names the waitlist entry", () => {
     assert.deepEqual(
-      gameKickConfirmCopy(waitlisted, {
-        partnerRequired: true,
-        drawPosted: false,
-      }),
+      gameKickConfirmCopy(
+        waitlisted,
+        { partnerRequired: true, drawPosted: false },
+        "en",
+      ),
       {
         title: "Kick Dev from the waitlist?",
-        description: KICK_WAITLIST_CONFIRM_COPY,
+        description: kick.waitlistConfirm,
+      },
+    );
+  });
+
+  it("asks in Arabic", () => {
+    assert.deepEqual(
+      gameKickConfirmCopy(
+        waitlisted,
+        { partnerRequired: false, drawPosted: false },
+        "ar",
+      ),
+      {
+        title: "إخراج Dev من قائمة الانتظار؟",
+        description: "يفقد مكانه في قائمة الانتظار.",
       },
     );
   });

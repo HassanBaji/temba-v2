@@ -14,7 +14,7 @@ const fixtures = createPlayerProfileFixtures();
 
 describe("playerProfileModel", () => {
   it("builds the header, Level card and Overall from one payload", () => {
-    const model = playerProfileModel(fixtures.confirmed, ORIGIN);
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
     expect(model.name).toBe("Elin Nilsson");
     expect(model.imageUri).toBeNull();
     expect(model.subtitle).toBe("Padel, plays at Padelhuset Bromma");
@@ -28,7 +28,7 @@ describe("playerProfileModel", () => {
   });
 
   it("builds the Streaks and Preferred Position cards", () => {
-    const model = playerProfileModel(fixtures.confirmed, ORIGIN);
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
     expect(model.streaks).toEqual({
       current: { headline: "4 wins in a row", wonMarks: 4 },
       best: { headline: "7 wins", reachedIn: "March 2026" },
@@ -41,7 +41,9 @@ describe("playerProfileModel", () => {
   });
 
   it("hides the played side below five recorded Matches", () => {
-    expect(playerProfileModel(fixtures.provisional, ORIGIN).position).toEqual({
+    expect(
+      playerProfileModel(fixtures.provisional, ORIGIN, "en").position,
+    ).toEqual({
       label: "Either side",
       subtitle: null,
       court: { left: "ink", right: "ink" },
@@ -49,7 +51,7 @@ describe("playerProfileModel", () => {
   });
 
   it("builds the Last 10 strip, the three recent rows and the trend", () => {
-    const model = playerProfileModel(fixtures.confirmed, ORIGIN);
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
     expect(model.trend).toBe("Last 10: +0.3");
     expect(model.lastTen.record).toBe("7 won, 3 lost");
     expect(model.lastTen.marks).toHaveLength(10);
@@ -68,7 +70,7 @@ describe("playerProfileModel", () => {
   });
 
   it("shows No games yet with no See all and no trend for a new player", () => {
-    const model = playerProfileModel(fixtures.newPlayer, ORIGIN);
+    const model = playerProfileModel(fixtures.newPlayer, ORIGIN, "en");
     expect(model.trend).toBeNull();
     expect(model.lastTen).toMatchObject({
       record: "No games yet.",
@@ -88,12 +90,13 @@ describe("playerProfileModel", () => {
         player: { ...fixtures.confirmed.player, image: "/media/u.png" },
       },
       ORIGIN,
+      "en",
     );
     expect(model.imageUri).toBe(`${ORIGIN}/media/u.png`);
   });
 
   it("renders a new player with no Level and empty Overall", () => {
-    const model = playerProfileModel(fixtures.newPlayer, ORIGIN);
+    const model = playerProfileModel(fixtures.newPlayer, ORIGIN, "en");
     expect(model.subtitle).toBe("Padel");
     expect(model.level).toEqual({ kind: "none", label: "No Level yet" });
     expect(model.streaks.best.headline).toBe("—");
@@ -108,21 +111,33 @@ describe("playerProfileModel", () => {
   });
 
   it("shows a viewer's own profile with their name, not You", () => {
-    expect(playerProfileModel(fixtures.self, ORIGIN).name).toBe("Elin Nilsson");
+    expect(playerProfileModel(fixtures.self, ORIGIN, "en").name).toBe(
+      "Elin Nilsson",
+    );
+  });
+
+  it("reads the header and Last 10 copy in Arabic", () => {
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "ar");
+    expect(model.subtitle).toBe("بادل، يلعب في Padelhuset Bromma");
+    expect(model.lastTen.record).toBe("7 فوز، 3 خسارة");
   });
 });
 
 describe("playerProfileState", () => {
   it("reads NOT_FOUND as the refused state", () => {
     const error = { message: "Player not found", data: { code: "NOT_FOUND" } };
-    expect(playerProfileState({ data: undefined, error }, ORIGIN)).toEqual({
+    expect(
+      playerProfileState({ data: undefined, error }, ORIGIN, "en"),
+    ).toEqual({
       status: "refused",
     });
   });
 
   it("keeps other failures as errors", () => {
     const error = { message: "Network down", data: { code: "INTERNAL" } };
-    expect(playerProfileState({ data: undefined, error }, ORIGIN)).toEqual({
+    expect(
+      playerProfileState({ data: undefined, error }, ORIGIN, "en"),
+    ).toEqual({
       status: "error",
       message: "Network down",
     });
@@ -130,7 +145,7 @@ describe("playerProfileState", () => {
 
   it("is loading before data arrives", () => {
     expect(
-      playerProfileState({ data: undefined, error: null }, ORIGIN),
+      playerProfileState({ data: undefined, error: null }, ORIGIN, "en"),
     ).toEqual({ status: "loading" });
   });
 });
@@ -189,7 +204,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
 
 describe("footballProfileModel", () => {
   it("builds the football header, Level, position and Overall", () => {
-    const model = footballProfileModel(FOOTBALL, ORIGIN);
+    const model = footballProfileModel(FOOTBALL, ORIGIN, "en");
     expect(model.subtitle).toBe("Football, plays at Riffa Pitch");
     expect(model.imageUri).toBe(`${ORIGIN}/media/users/ali.jpg`);
     expect(model.level).toMatchObject({
@@ -208,7 +223,7 @@ describe("footballProfileModel", () => {
   });
 
   it("lists every football Match in the Last 10, with no See all", () => {
-    const model = footballProfileModel(FOOTBALL, ORIGIN);
+    const model = footballProfileModel(FOOTBALL, ORIGIN, "en");
     expect(model.lastTen.record).toBe("1 won, 0 lost, 1 drawn");
     expect(model.lastTen.seeAll).toBeNull();
     expect(
@@ -218,19 +233,28 @@ describe("footballProfileModel", () => {
       ["Riffa Ballers", "5\u20133", "3 goals"],
     ]);
   });
+
+  it("reads the football header in Arabic", () => {
+    const model = footballProfileModel(FOOTBALL, ORIGIN, "ar");
+    expect(model.subtitle).toBe("كرة القدم، يلعب في Riffa Pitch");
+    expect(model.role.label).toBe("مهاجم");
+  });
 });
 
 describe("footballProfileState", () => {
   it("reads NOT_FOUND as the refused state", () => {
     const error = { message: "Player not found", data: { code: "NOT_FOUND" } };
-    expect(footballProfileState({ data: undefined, error }, ORIGIN)).toEqual({
+    expect(
+      footballProfileState({ data: undefined, error }, ORIGIN, "en"),
+    ).toEqual({
       status: "refused",
     });
   });
 
   it("is ready once data arrives", () => {
     expect(
-      footballProfileState({ data: FOOTBALL, error: null }, ORIGIN).status,
+      footballProfileState({ data: FOOTBALL, error: null }, ORIGIN, "en")
+        .status,
     ).toBe("ready");
   });
 });

@@ -40,13 +40,13 @@ function row(overrides: Partial<HistoryRowInput> = {}): HistoryRowInput {
 
 describe("matchHistoryCardModel unrated mark", () => {
   it("leaves a rated Match unmarked", () => {
-    const model = matchHistoryCardModel(row());
+    const model = matchHistoryCardModel(row(), "en");
     assert.equal(model.unrated, false);
     assert.ok(!model.meta.includes("Unrated"));
   });
 
   it("marks an unrated Match in the meta line", () => {
-    const model = matchHistoryCardModel(row({ rated: false }));
+    const model = matchHistoryCardModel(row({ rated: false }), "en");
     assert.equal(model.unrated, true);
     assert.ok(model.meta.endsWith(" · Unrated"));
   });
@@ -106,7 +106,7 @@ describe("nextHistoryCursor", () => {
 
 describe("matchHistoryCardModel", () => {
   it("leads with the viewer's team on a win and mutes the losers", () => {
-    const model = matchHistoryCardModel(row());
+    const model = matchHistoryCardModel(row(), "en");
     assert.deepEqual(
       model.teams.map((team) => [team.side, team.lost, team.note]),
       [
@@ -121,7 +121,7 @@ describe("matchHistoryCardModel", () => {
   });
 
   it("keeps the viewer's team first on a loss", () => {
-    const model = matchHistoryCardModel(row({ outcome: "lost" }));
+    const model = matchHistoryCardModel(row({ outcome: "lost" }), "en");
     assert.deepEqual(
       model.teams.map((team) => [team.side, team.lost, team.note]),
       [
@@ -132,7 +132,7 @@ describe("matchHistoryCardModel", () => {
   });
 
   it("mutes neither side on a draw", () => {
-    const model = matchHistoryCardModel(row({ outcome: "draw" }));
+    const model = matchHistoryCardModel(row({ outcome: "draw" }), "en");
     assert.deepEqual(
       model.teams.map((team) => team.lost),
       [false, false],
@@ -141,7 +141,7 @@ describe("matchHistoryCardModel", () => {
   });
 
   it("mutes each lost set on its own side", () => {
-    const model = matchHistoryCardModel(row());
+    const model = matchHistoryCardModel(row(), "en");
     assert.deepEqual(model.teams[0]!.scores, [
       { games: 6, lostSet: false },
       { games: 4, lostSet: true },
@@ -154,6 +154,7 @@ describe("matchHistoryCardModel", () => {
         sport: "football",
         scoredSets: [{ slot1GamesWon: 12, slot2GamesWon: 9 }],
       }),
+      "en",
     );
     assert.equal(model.scoreLine, "12–9");
     assert.equal(model.sport, "Football");
@@ -170,6 +171,7 @@ describe("matchHistoryCardModel", () => {
           member("d", "Di Eve"),
         ],
       }),
+      "en",
     );
     assert.deepEqual(
       model.teams[0]!.avatars.map((entry) => entry.id),
@@ -179,7 +181,7 @@ describe("matchHistoryCardModel", () => {
   });
 
   it("has no scores until a set is scored", () => {
-    const model = matchHistoryCardModel(row({ scoredSets: [] }));
+    const model = matchHistoryCardModel(row({ scoredSets: [] }), "en");
     assert.equal(model.scored, false);
     assert.equal(model.scoreLine, "No score yet");
     assert.equal(model.teams[0]!.scores, null);
@@ -187,19 +189,26 @@ describe("matchHistoryCardModel", () => {
 
   it("names the venue only when the Game name matches it", () => {
     assert.ok(
-      matchHistoryCardModel(row({ name: "Padelhuset" })).meta.endsWith(
+      matchHistoryCardModel(row({ name: "Padelhuset" }), "en").meta.endsWith(
         ", Padelhuset",
       ),
     );
-    const named = matchHistoryCardModel(row({ name: "Cup" }));
+    const named = matchHistoryCardModel(row({ name: "Cup" }), "en");
     assert.ok(named.meta.endsWith(", Padelhuset · Cup"));
     assert.equal(named.place, "Padelhuset · Cup");
   });
 
   it("marks an unrated Match on the place line", () => {
     assert.equal(
-      matchHistoryCardModel(row({ rated: false })).place,
+      matchHistoryCardModel(row({ rated: false }), "en").place,
       "Padelhuset · Unrated",
     );
+  });
+
+  it("reads in Arabic", () => {
+    const model = matchHistoryCardModel(row({ rated: false }), "ar");
+    assert.ok(model.place.endsWith(" · غير مصنّفة"));
+    assert.equal(model.teams[0]!.note, "فريقك، فاز");
+    assert.equal(model.teams[1]!.note, "خسر");
   });
 });

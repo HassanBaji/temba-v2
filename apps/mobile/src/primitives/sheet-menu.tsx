@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
 
+import { mirrorInRtl } from "../i18n/rtl";
 import { Hairline } from "./hairline";
 import { Surface } from "./surface";
 import { Text } from "./text";
@@ -23,6 +24,10 @@ export type SheetMenuRowProps = {
   onPress: () => void;
 };
 
+function MenuChevron(props: { size: number; color: ColorValue }) {
+  return <ChevronRight {...props} style={mirrorInRtl} />;
+}
+
 /** One action in a sheet menu list: a tappable row with an optional hint. */
 export function SheetMenuRow({
   label,
@@ -35,7 +40,7 @@ export function SheetMenuRow({
   accessibilityLabel,
   onPress,
 }: SheetMenuRowProps) {
-  const Trailing = trailing === "chevron" ? ChevronRight : trailing;
+  const Trailing = trailing === "chevron" ? MenuChevron : trailing;
   const inactive = disabled || pending;
   const ink = tone === "danger" ? colors.danger : colors.ink;
   return (

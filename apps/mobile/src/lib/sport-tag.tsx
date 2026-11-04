@@ -1,13 +1,15 @@
 import { gameCardSportTag } from "@repo/domain/game-card";
 import { View } from "react-native";
 
+import { useLocale } from "../i18n/locale-provider";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { SportGlyph } from "./sport-glyph";
 
 export function SportTag({ sport }: { sport: string | null | undefined }) {
+  const locale = useLocale();
   const palette = useTonePalette();
-  const tag = gameCardSportTag(sport);
+  const tag = gameCardSportTag(sport, locale);
   if (!tag) {
     return null;
   }

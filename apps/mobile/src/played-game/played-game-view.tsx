@@ -8,6 +8,7 @@ import { Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { InfoRows } from "../football/info-rows";
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
 import { PlayedColumns } from "./played-columns";
@@ -41,6 +42,7 @@ export function PlayedGameView({
   onMore,
   onPressPlayer,
 }: PlayedGameViewProps) {
+  const m = useMessages();
   return (
     <Screen
       refreshing={refreshing}
@@ -60,7 +62,7 @@ export function PlayedGameView({
       <InfoRows rows={facts} />
       <View>
         <Button
-          label="Share result"
+          label={m.game.cta.shareResult}
           size="lg"
           icon={<Share size={SHARE_ICON} color={colors.paper} />}
           onPress={onShare}

@@ -14,6 +14,7 @@ describe("homeNextGameActions", () => {
         gameId: "g1",
         phase: "needs_results",
         hasOpenSeat: false,
+        locale: "en",
       }),
       {
         primary: {
@@ -31,6 +32,7 @@ describe("homeNextGameActions", () => {
         gameId: "g1",
         phase: "upcoming",
         hasOpenSeat: true,
+        locale: "en",
       }),
       {
         primary: {
@@ -47,14 +49,29 @@ describe("homeNextGameActions", () => {
       { phase: "upcoming", hasOpenSeat: false },
       { phase: "ongoing", hasOpenSeat: true },
     ] as const) {
-      assert.deepEqual(homeNextGameActions({ gameId: "g1", ...args }), {
-        primary: {
-          target: { kind: "game", gameId: "g1" },
-          label: "View game",
+      assert.deepEqual(
+        homeNextGameActions({ gameId: "g1", ...args, locale: "en" }),
+        {
+          primary: {
+            target: { kind: "game", gameId: "g1" },
+            label: "View game",
+          },
+          details: null,
         },
-        details: null,
-      });
+      );
     }
+  });
+
+  it("labels the primary action in Arabic", () => {
+    assert.equal(
+      homeNextGameActions({
+        gameId: "g1",
+        phase: "needs_results",
+        hasOpenSeat: false,
+        locale: "ar",
+      }).primary.label,
+      "أضف النتائج",
+    );
   });
 });
 
@@ -63,16 +80,19 @@ describe("homeNextGameStatus", () => {
   const later = new Date("2026-09-07T17:42:00.000Z");
 
   it("names the phase when the Game is under way or needs results", () => {
-    assert.equal(homeNextGameStatus("ongoing", later, now), "Playing now");
     assert.equal(
-      homeNextGameStatus("needs_results", later, now),
+      homeNextGameStatus("ongoing", later, now, "en"),
+      "Playing now",
+    );
+    assert.equal(
+      homeNextGameStatus("needs_results", later, now, "en"),
       "Add results",
     );
   });
 
   it("counts down to an upcoming Game and drops the countdown once it starts", () => {
-    assert.equal(homeNextGameStatus("upcoming", later, now), "in 5h 42m");
-    assert.equal(homeNextGameStatus("upcoming", now, later), null);
+    assert.equal(homeNextGameStatus("upcoming", later, now, "en"), "in 5h 42m");
+    assert.equal(homeNextGameStatus("upcoming", now, later, "en"), null);
   });
 });
 

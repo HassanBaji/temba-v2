@@ -56,10 +56,17 @@ describe("onboardingProgress", () => {
 
 describe("labels", () => {
   it("names what the next step covers", () => {
-    expect(sportsContinueLabel(none)).toBe("Pick at least one");
-    expect(sportsContinueLabel(both)).toBe("Continue with both");
-    expect(sportsContinueLabel(footballOnly)).toBe("Continue with football");
-    expect(findGamesLabel(padelOnly)).toBe("Find padel games");
-    expect(findGamesLabel(both)).toBe("Find games");
+    expect(sportsContinueLabel(none, "en")).toBe("Pick at least one");
+    expect(sportsContinueLabel(both, "en")).toBe("Continue with both");
+    expect(sportsContinueLabel(footballOnly, "en")).toBe(
+      "Continue with football",
+    );
+    expect(findGamesLabel(padelOnly, "en")).toBe("Find padel games");
+    expect(findGamesLabel(both, "en")).toBe("Find games");
+  });
+
+  it("names the step in Arabic", () => {
+    expect(sportsContinueLabel(footballOnly, "ar")).toBe("تابع مع كرة القدم");
+    expect(findGamesLabel(padelOnly, "ar")).toBe("ابحث عن ألعاب بادل");
   });
 });

@@ -1,14 +1,17 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
-  CANCEL_GAME_ACTION,
-  EDIT_GAME_ACTION,
-  LEAVE_GAME_ACTION,
-  LEAVE_GAME_CONSEQUENCE,
-  MARK_AS_NOT_PLAYED_ACTION,
-  MARK_AS_NOT_PLAYED_CONSEQUENCE,
-  REPORT_WRONG_SCORE_ACTION,
-  REPORT_WRONG_SCORE_CONSEQUENCE,
-  REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
+  cancelGameAction,
   cancelGameConsequence,
+  editGameAction,
+  leaveGameAction,
+  leaveGameConsequence,
+  markAsNotPlayedAction,
+  markAsNotPlayedConsequence,
+  reportWrongScoreAction,
+  reportWrongScoreConsequence,
+  reportWrongScoreLockedConsequence,
 } from "./game-copy";
 import {
   friendlyGameLevelUpdatedLine,
@@ -38,7 +41,9 @@ export function friendlyGameFooterActions(input: {
   canLeaveGame: boolean;
   canReportWrongScore: { eligible: boolean } | null;
   playerCount: number;
+  locale: Locale;
 }): FriendlyGameFooterAction[] {
+  const { locale } = input;
   const actions: FriendlyGameFooterAction[] = [];
   const isUpcoming = input.phase === "upcoming" || input.phase === "ongoing";
 
@@ -46,14 +51,14 @@ export function friendlyGameFooterActions(input: {
     actions.push(
       {
         kind: "edit",
-        label: EDIT_GAME_ACTION,
+        label: editGameAction(locale),
         consequence: null,
         enabled: true,
       },
       {
         kind: "cancel_game",
-        label: CANCEL_GAME_ACTION,
-        consequence: cancelGameConsequence(input.playerCount),
+        label: cancelGameAction(locale),
+        consequence: cancelGameConsequence(input.playerCount, locale),
         enabled: true,
       },
     );
@@ -61,8 +66,8 @@ export function friendlyGameFooterActions(input: {
   if (input.isOrganizer && input.phase === "needs_results") {
     actions.push({
       kind: "mark_as_not_played",
-      label: MARK_AS_NOT_PLAYED_ACTION,
-      consequence: MARK_AS_NOT_PLAYED_CONSEQUENCE,
+      label: markAsNotPlayedAction(locale),
+      consequence: markAsNotPlayedConsequence(locale),
       enabled: true,
     });
   }
@@ -71,14 +76,14 @@ export function friendlyGameFooterActions(input: {
       input.canReportWrongScore?.eligible
         ? {
             kind: "report_wrong_score",
-            label: REPORT_WRONG_SCORE_ACTION,
-            consequence: REPORT_WRONG_SCORE_CONSEQUENCE,
+            label: reportWrongScoreAction(locale),
+            consequence: reportWrongScoreConsequence(locale),
             enabled: true,
           }
         : {
             kind: "report_wrong_score_locked",
-            label: REPORT_WRONG_SCORE_ACTION,
-            consequence: REPORT_WRONG_SCORE_LOCKED_CONSEQUENCE,
+            label: reportWrongScoreAction(locale),
+            consequence: reportWrongScoreLockedConsequence(locale),
             enabled: false,
           },
     );
@@ -86,8 +91,8 @@ export function friendlyGameFooterActions(input: {
   if (input.canLeaveGame && isUpcoming) {
     actions.push({
       kind: "leave_game",
-      label: LEAVE_GAME_ACTION,
-      consequence: LEAVE_GAME_CONSEQUENCE,
+      label: leaveGameAction(locale),
+      consequence: leaveGameConsequence(locale),
       enabled: true,
     });
   }
@@ -101,11 +106,11 @@ export type FriendlyGameCtaCopy = {
   pendingLabel: string | null;
 };
 
-export const CTA_JOIN_PENDING_LABEL = "Joining…";
-
 export function friendlyGameCtaCopy(
   family: FriendlyGameCtaFamily,
+  locale: Locale,
 ): FriendlyGameCtaCopy | null {
+  const m = messagesFor(locale).game;
   switch (family.kind) {
     case "none":
       return null;
@@ -113,52 +118,53 @@ export function friendlyGameCtaCopy(
       return {
         title: null,
         subline: null,
-        actionLabel: "Browse open games",
+        actionLabel: m.cta.browseOpenGames,
         pendingLabel: null,
       };
     case "join_waitlist":
       return {
         title: null,
         subline: null,
-        actionLabel: "Join waitlist",
-        pendingLabel: CTA_JOIN_PENDING_LABEL,
+        actionLabel: m.cta.joinWaitlist,
+        pendingLabel: m.cta.joining,
       };
     case "waitlisted":
       return {
-        title: friendlyGameWaitlistLine(family.place),
+        title: friendlyGameWaitlistLine(family.place, locale),
         subline: null,
-        actionLabel: "Leave waitlist",
+        actionLabel: m.action.leaveWaitlist,
         pendingLabel: null,
       };
     case "join":
       return {
         title: null,
         subline: null,
-        actionLabel: "Join",
-        pendingLabel: CTA_JOIN_PENDING_LABEL,
+        actionLabel: m.cta.join,
+        pendingLabel: m.cta.joining,
       };
     case "upcoming":
       return {
-        title: "You're in",
-        subline: friendlyGameVacantSeatLine(family.vacantSeatCount),
-        actionLabel: family.showInvite ? "Invite a player" : null,
+        title: m.cta.youreIn,
+        subline: friendlyGameVacantSeatLine(family.vacantSeatCount, locale),
+        actionLabel: family.showInvite ? m.cta.inviteAPlayer : null,
         pendingLabel: null,
       };
     case "needs_score":
       return {
-        title: "Add the score",
-        subline: "Counts once the others confirm",
-        actionLabel: "Add result",
+        title: m.cta.addTheScore,
+        subline: m.cta.countsOnceOthersConfirm,
+        actionLabel: m.cta.addResult,
         pendingLabel: null,
       };
     case "final":
       return {
-        title: "Level updated",
+        title: m.cta.levelUpdated,
         subline: friendlyGameLevelUpdatedLine(
           family.newLevelBand,
           family.newLevel,
+          locale,
         ),
-        actionLabel: "Share result",
+        actionLabel: m.cta.shareResult,
         pendingLabel: null,
       };
   }

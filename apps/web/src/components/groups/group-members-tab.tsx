@@ -20,6 +20,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { LevelCell } from "~/components/temba/level-cell";
 import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
@@ -40,7 +41,6 @@ import {
   groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
 import {
-  GROUP_MEMBERS_NO_MATCH_COPY,
   groupMemberTableCaption,
   groupMembersLegend,
   groupPendingInviteCaption,
@@ -49,11 +49,7 @@ import {
 } from "@repo/domain/group-members-table";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
-import {
-  ADD_PLAYER_ACTION,
-  REMOVE_PLAYER_ACTION,
-  RENAME_UNCLAIMED_PLAYER_ACTION,
-} from "@repo/domain/add-player-by-phone";
+import type { Locale } from "@repo/i18n/locale";
 import {
   levelOverrideCaption,
   levelOverrideReasonLabel,
@@ -102,12 +98,16 @@ export type GroupPendingInvite = {
   invitedAt: Date | string;
 };
 
-function memberCaption(member: GroupMember, canSetLevel: boolean) {
+function memberCaption(
+  member: GroupMember,
+  canSetLevel: boolean,
+  locale: Locale,
+) {
   const parts = [
-    groupMemberTableCaption(member),
+    groupMemberTableCaption(member, locale),
     member.phoneMasked,
     canSetLevel && member.levelOverride
-      ? levelOverrideCaption(member.levelOverride)
+      ? levelOverrideCaption({ ...member.levelOverride, locale })
       : null,
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : undefined;
@@ -120,7 +120,11 @@ function SavedBanner({
   saved: SavedLevel;
   onDismiss: () => void;
 }) {
-  const reason = saved.reason ? levelOverrideReasonLabel(saved.reason) : null;
+  const m = useMessages();
+  const locale = useLocale();
+  const reason = saved.reason
+    ? levelOverrideReasonLabel(saved.reason, locale)
+    : null;
   return (
     <Surface
       tone="ink"
@@ -130,15 +134,13 @@ function SavedBanner({
     >
       <p className="text-body">
         <span className="font-semibold">
-          {saved.name} set to {saved.levelLabel}.
+          {m.webGroup.members.savedLevel(saved.name, saved.levelLabel)}
         </span>
-        {reason
-          ? ` Reason: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`
-          : null}
+        {reason ? ` ${m.webGroup.members.savedReason(reason)}` : null}
       </p>
       <button
         type="button"
-        aria-label="Dismiss"
+        aria-label={m.webGroup.dismiss}
         onClick={onDismiss}
         className="-m-2 flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-current"
       >
@@ -165,26 +167,28 @@ function MemberActionsMenu({
   onRename?: () => void;
   onRemove?: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
-    <ActionMenu label={`Manage ${name}`}>
+    <ActionMenu label={m.webGroup.members.manageName(name)}>
       {setLevelHref ? (
         <ActionMenuItem asChild>
-          <Link href={setLevelHref}>Set Level</Link>
+          <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
         </ActionMenuItem>
       ) : null}
       {profileHref ? (
         <ActionMenuItem asChild>
-          <Link href={profileHref}>View profile</Link>
+          <Link href={profileHref}>{m.webGroup.viewProfile}</Link>
         </ActionMenuItem>
       ) : null}
       {organizerAction && onOrganizerAction ? (
         <ActionMenuItem onSelect={onOrganizerAction}>
-          {groupMemberOrganizerActionLabel(organizerAction)}
+          {groupMemberOrganizerActionLabel(organizerAction, locale)}
         </ActionMenuItem>
       ) : null}
       {onRename ? (
         <ActionMenuItem onSelect={onRename}>
-          {RENAME_UNCLAIMED_PLAYER_ACTION}
+          {m.group.addPlayer.renameAction}
         </ActionMenuItem>
       ) : null}
       {onRemove ? (
@@ -193,7 +197,7 @@ function MemberActionsMenu({
             <ActionMenuSeparator />
           ) : null}
           <ActionMenuItem variant="destructive" onSelect={onRemove}>
-            {REMOVE_PLAYER_ACTION}
+            {m.group.addPlayer.removeAction}
           </ActionMenuItem>
         </>
       ) : null}
@@ -219,11 +223,12 @@ function GroupMemberRow({
   profileHref?: string;
   actions?: ReactNode;
 }) {
-  const caption = memberCaption(member, canSetLevel);
+  const locale = useLocale();
+  const caption = memberCaption(member, canSetLevel, locale);
   const linkHref = managing ? undefined : profileHref;
   const cells = (
     <>
-      <td className="py-3 pl-4 pr-2">
+      <td className="py-3 pe-2 ps-4">
         <span className="flex min-w-0 items-center gap-2.5">
           <UserAvatar
             name={member.name}
@@ -265,7 +270,7 @@ function GroupMemberRow({
         </td>
       ) : null}
       {managing ? (
-        <td className={cn(COL_ACTION, "pr-1.5")}>{actions}</td>
+        <td className={cn(COL_ACTION, "pe-1.5")}>{actions}</td>
       ) : null}
     </>
   );
@@ -288,23 +293,25 @@ function PendingInvitesCard({
   invites: GroupPendingInvite[];
   onOpen: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="border-rule rounded-card hover:border-ink hatch flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-current"
+      className="border-rule rounded-card hover:border-ink hatch flex w-full items-center justify-between gap-3 border px-[18px] py-3.5 text-start outline-none focus-visible:ring-2 focus-visible:ring-current"
     >
       <span className="min-w-0">
         <span className="text-body block font-semibold">
-          {groupPendingInvitesTitle(invites.length)}
+          {groupPendingInvitesTitle(invites.length, locale)}
         </span>
         <span className="text-eyebrow text-muted-foreground block truncate">
-          {invites.map((invite) => invite.name).join(", ")}
+          {invites.map((invite) => invite.name).join(m.group.metaSeparator)}
         </span>
       </span>
       <ChevronRight
         aria-hidden="true"
-        className="text-muted-foreground size-[18px] shrink-0"
+        className="text-muted-foreground size-[18px] shrink-0 rtl:-scale-x-100"
       />
     </button>
   );
@@ -325,33 +332,37 @@ function PendingInvitesDialog({
   onRevoke: (inviteId: string) => void;
   onInviteMore?: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent>
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Pending invites</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            {m.webGroup.members.pendingInvites}
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             {invites.length === 0
-              ? "Everyone you invited has joined or been cancelled."
-              : "Cancelling an invite revokes it."}
+              ? m.webGroup.members.pendingInvitesAllJoined
+              : m.webGroup.members.pendingInvitesCancelNote}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         {invites.length > 0 ? (
           <ul
             className={cn(cardFrame, "mx-4 mb-4 md:mx-0 md:mb-0")}
-            aria-label="Pending invites"
+            aria-label={m.webGroup.members.pendingInvites}
           >
             {invites.map((invite) => (
               <li
                 key={invite.id}
-                className="border-rule flex items-center gap-3 border-t py-3 pl-4 pr-3 first:border-t-0"
+                className="border-rule flex items-center gap-3 border-t py-3 pe-3 ps-4 first:border-t-0"
               >
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-body truncate font-semibold">
                     {invite.name}
                   </span>
                   <span className="text-eyebrow text-muted-foreground truncate">
-                    {groupPendingInviteCaption(invite.invitedAt)}
+                    {groupPendingInviteCaption(invite.invitedAt, locale)}
                   </span>
                 </span>
                 <Button
@@ -361,7 +372,7 @@ function PendingInvitesDialog({
                   pending={revokePendingId === invite.id}
                   disabled={revokePendingId != null}
                   onClick={() => onRevoke(invite.id)}
-                  aria-label={`Cancel the invite to ${invite.name}`}
+                  aria-label={m.webGroup.members.cancelInviteTo(invite.name)}
                 >
                   <X aria-hidden="true" />
                 </Button>
@@ -381,7 +392,7 @@ function PendingInvitesDialog({
               className="w-full font-semibold"
             >
               <UserPlus aria-hidden="true" />
-              Invite someone else
+              {m.webGroup.members.inviteSomeoneElse}
             </Button>
           </ResponsiveDialogFooter>
         ) : null}
@@ -391,18 +402,19 @@ function PendingInvitesDialog({
 }
 
 function InviteBlock({ onInvite }: { onInvite: () => void }) {
+  const m = useMessages();
   return (
     <section className="border-rule rounded-card border p-5">
-      <h2 className="text-body font-semibold">Invite players</h2>
+      <h2 className="text-body font-semibold">{m.invite.door.invitePlayers}</h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        Invite players and the standing fills in as their matches are rated.
+        {m.webGroup.members.inviteBlockDescription}
       </p>
       <Button
         type="button"
         onClick={onInvite}
         className="mt-4 w-full font-semibold"
       >
-        Share invite link
+        {m.community.inviteBlock.action}
       </Button>
     </section>
   );
@@ -460,6 +472,8 @@ export function GroupMembersTab({
   /** Between the table and the pending invites card. */
   afterTable?: ReactNode;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [query, setQuery] = useState("");
   const [managing, setManaging] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
@@ -474,7 +488,7 @@ export function GroupMembersTab({
     showSearch ? filterGroupMembersByName(members, query) : members,
   );
   const columnCount = 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
-  const legend = groupMembersLegend({ showLevel });
+  const legend = groupMembersLegend({ showLevel, locale });
   const addPlayerButton =
     canAddPlayers && onAddPlayer ? (
       <Button
@@ -484,7 +498,7 @@ export function GroupMembersTab({
         className="w-full font-semibold"
       >
         <UserPlus aria-hidden="true" />
-        {ADD_PLAYER_ACTION}
+        {m.group.addPlayer.action}
       </Button>
     ) : null;
   const manageButton = canManage ? (
@@ -495,7 +509,7 @@ export function GroupMembersTab({
       onClick={() => setManaging((current) => !current)}
       className={cn("shrink-0 px-4", isManaging && "font-semibold")}
     >
-      {isManaging ? "Done" : "Manage"}
+      {isManaging ? m.common.done : m.webGroup.members.manage}
     </Button>
   ) : null;
 
@@ -505,8 +519,8 @@ export function GroupMembersTab({
         {top}
         <EmptyState
           icon={Users}
-          title="No members yet"
-          description="People who join this Group will show up here."
+          title={m.webGroup.members.emptyTitle}
+          description={m.webGroup.members.emptyDescription}
         />
         {addPlayerButton}
         {afterTable}
@@ -574,8 +588,8 @@ export function GroupMembersTab({
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search members"
-                aria-label="Search members"
+                placeholder={m.webGroup.searchMembers}
+                aria-label={m.webGroup.searchMembers}
                 className="min-w-0 flex-1"
               />
             ) : (
@@ -588,30 +602,34 @@ export function GroupMembersTab({
 
         <div className={cardFrame}>
           <table className="w-full table-fixed border-collapse">
-            <caption className="sr-only">Group members</caption>
+            <caption className="sr-only">
+              {m.webGroup.members.tableCaption}
+            </caption>
             <thead className="bg-wash">
               <tr>
                 <th
                   scope="col"
-                  className="text-eyebrow text-muted-foreground py-0 pl-4 text-left font-normal"
+                  className="text-eyebrow text-muted-foreground py-0 ps-4 text-start font-normal"
                 >
-                  Member
+                  {m.webGroup.members.memberColumn}
                 </th>
                 {showLevel ? (
                   <th
                     scope="col"
-                    title="Level"
+                    title={m.common.level}
                     className={cn(
                       COL_LEVEL,
                       "text-eyebrow text-muted-foreground h-10 text-center font-normal",
                     )}
                   >
-                    LVL
+                    {m.webGroup.members.levelAbbrev}
                   </th>
                 ) : null}
                 {isManaging ? (
                   <th scope="col" className={COL_ACTION}>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">
+                      {m.webGroup.members.actions}
+                    </span>
                   </th>
                 ) : null}
               </tr>
@@ -623,7 +641,7 @@ export function GroupMembersTab({
                     colSpan={columnCount}
                     className="text-meta text-muted-foreground px-[18px] py-5"
                   >
-                    {GROUP_MEMBERS_NO_MATCH_COPY}
+                    {m.group.members.noMatch}
                   </td>
                 </tr>
               ) : (

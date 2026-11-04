@@ -8,13 +8,13 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import {
-  PARTNER_REVIEW_COPY,
   partnerPlayerMeta,
   partnerReviewDetails,
   partnerReviewGameLine,
   seedPartnerCallerPosition,
 } from "@repo/domain/friendly-game-partner";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 type SeatPosition = "left" | "right";
@@ -36,7 +36,7 @@ function DetailRow({
       )}
     >
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-ink text-right">{value}</span>
+      <span className="text-ink text-end">{value}</span>
     </div>
   );
 }
@@ -54,6 +54,7 @@ function PlayerCard({
   position: SeatPosition;
   emphasized: boolean;
 }) {
+  const locale = useLocale();
   return (
     <div
       className={cn(
@@ -64,7 +65,7 @@ function PlayerCard({
       <UserAvatar name={name} image={image} size="sm" className="shrink-0" />
       <p className="text-body truncate font-semibold">{name}</p>
       <p className="text-muted-foreground text-eyebrow">
-        {partnerPlayerMeta({ levelBand, position })}
+        {partnerPlayerMeta({ levelBand, position, locale })}
       </p>
     </div>
   );
@@ -99,6 +100,9 @@ export function FriendlyGamePartnerReview({
   onBack: () => void;
   onRegister: (position: SeatPosition) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.game.joinSheet.partnerReview;
   const [touched, setTouched] = useState(false);
   const [callerPosition, setCallerPosition] = useState<SeatPosition>(() =>
     seedPartnerCallerPosition({
@@ -126,6 +130,7 @@ export function FriendlyGamePartnerReview({
     pricePerPlayerFils,
     levelMinTenths,
     levelMaxTenths,
+    locale,
   });
 
   return (
@@ -133,14 +138,16 @@ export function FriendlyGamePartnerReview({
       <div className="border-rule shrink-0 border-b px-[22px] pb-0 pt-[22px]">
         <div className="flex items-center justify-between">
           <BackButton variant="boxed" onClick={onBack} />
-          <p className="text-muted-foreground text-meta">Step 2 of 2</p>
+          <p className="text-muted-foreground text-meta">
+            {m.webGame.partnerReview.stepTwoOfTwo}
+          </p>
           <span className="size-11" aria-hidden="true" />
         </div>
         <h2 className="font-expanded text-h1-lg mt-6 leading-none tracking-[-0.03em]">
-          {PARTNER_REVIEW_COPY.title}
+          {copy.title}
         </h2>
         <p className="text-meta mt-2.5 leading-relaxed">
-          {partnerReviewGameLine({ windowStart, venueName })}
+          {partnerReviewGameLine({ windowStart, venueName, locale })}
         </p>
       </div>
 
@@ -149,11 +156,11 @@ export function FriendlyGamePartnerReview({
 
         <section>
           <h3 className="font-expanded text-title pb-2.5 leading-tight">
-            {PARTNER_REVIEW_COPY.yourTeam}
+            {copy.yourTeam}
           </h3>
           <div className="flex gap-2">
             <PlayerCard
-              name="You"
+              name={m.common.you}
               image={null}
               levelBand={viewerLevelBand}
               position={callerPosition}
@@ -170,7 +177,7 @@ export function FriendlyGamePartnerReview({
           <div
             className="border-rule mt-2.5 flex overflow-hidden rounded-xl border"
             role="group"
-            aria-label="Seat sides"
+            aria-label={m.webGame.partnerReview.seatSides}
           >
             <button
               type="button"
@@ -187,7 +194,7 @@ export function FriendlyGamePartnerReview({
                   : "text-muted-foreground",
               )}
             >
-              {PARTNER_REVIEW_COPY.keepSides}
+              {copy.keepSides}
             </button>
             <button
               type="button"
@@ -197,14 +204,14 @@ export function FriendlyGamePartnerReview({
                 setCallerPosition("right");
               }}
               className={cn(
-                "border-rule text-body flex-1 border-l py-[15px] font-semibold outline-none",
+                "border-rule text-body flex-1 border-s py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "right"
                   ? "bg-ink text-paper"
                   : "text-muted-foreground",
               )}
             >
-              {PARTNER_REVIEW_COPY.swapSides}
+              {copy.swapSides}
             </button>
           </div>
         </section>
@@ -231,10 +238,10 @@ export function FriendlyGamePartnerReview({
           disabled={pending}
           onClick={() => onRegister(callerPosition)}
         >
-          {pending ? "Registering…" : PARTNER_REVIEW_COPY.register}
+          {pending ? m.webGame.registering : copy.register}
         </Button>
         <p className="text-muted-foreground text-eyebrow text-center leading-relaxed">
-          {PARTNER_REVIEW_COPY.footnote}
+          {copy.footnote}
         </p>
       </div>
     </div>

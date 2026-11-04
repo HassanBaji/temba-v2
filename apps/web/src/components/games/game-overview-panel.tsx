@@ -2,6 +2,7 @@ import { GameDetailTiles } from "~/components/games/game-detail-tiles";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { GameOccupancyCard } from "~/components/games/game-occupancy-card";
 import { GameVenueCard } from "~/components/games/game-venue-card";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Card } from "~/components/ui/card";
 import { tournamentRoundCount } from "@repo/domain/tournament-home";
 import { tournamentRoundSummary } from "@repo/domain/tournament-rounds";
@@ -10,6 +11,8 @@ import { type RouterOutputs } from "~/trpc/react";
 type GameDetail = RouterOutputs["games"]["byId"];
 
 export function GameOverviewPanel({ game }: { game: GameDetail }) {
+  const locale = useLocale();
+  const m = useMessages();
   const firstMatch = game.matches[0];
   const courtNames = [
     ...new Set([
@@ -32,6 +35,7 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     matchMinutes: game.matchMinutes,
+    locale,
   });
 
   return (
@@ -56,12 +60,13 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
       {rounds ? (
         <Card variant="raised" className="gap-2">
           <p className="text-eyebrow text-muted-foreground font-medium uppercase tracking-[0.06em]">
-            Rounds
+            {m.webGame.overview.rounds}
           </p>
           <p className="text-h2 font-bold tabular-nums">
             {rounds.roundCount}
             <span className="text-muted-foreground text-lead font-semibold">
-              {rounds.roundCount === 1 ? " Round" : " Rounds"}
+              {" "}
+              {m.webGame.overview.roundUnit(rounds.roundCount)}
             </span>
           </p>
           {rounds.dateLines.length > 0 ? (

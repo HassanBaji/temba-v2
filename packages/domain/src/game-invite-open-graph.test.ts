@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { formatAbsoluteDay, formatGameTimeWindow } from "./format-game-start";
 import {
   gameInviteOpenGraphMetadata,
-  GENERIC_TEMBA_OPEN_GRAPH,
+  genericTembaOpenGraph,
   occupiedFriendlyPositions,
 } from "./game-invite-open-graph";
 
@@ -31,10 +31,11 @@ describe("gameInviteOpenGraphMetadata", () => {
       format: "friendly_game",
       registrationMode: "individual",
       occupiedCount: 2,
+      locale: "en",
     });
     expect(metadata.title).toBe("Padel Club");
     expect(metadata.description).toBe(
-      `${formatAbsoluteDay(today)}, ${formatGameTimeWindow(today, end, today)}, 2/4 sitting`,
+      `${formatAbsoluteDay(today, "en")}, ${formatGameTimeWindow(today, end, today, "en")}, 2/4 sitting`,
     );
     expect(metadata.description).not.toMatch(/Tonight|Tomorrow/);
     expect(metadata.description).not.toMatch(/Ada|Lin|Sam/);
@@ -53,6 +54,7 @@ describe("gameInviteOpenGraphMetadata", () => {
       occupiedCount: 2,
       levelMinTenths: 30,
       levelMaxTenths: 45,
+      locale: "en",
     });
     expect(metadata.description).toContain("Level C/B");
     expect(metadata.description).toContain("2/4 sitting");
@@ -69,22 +71,45 @@ describe("gameInviteOpenGraphMetadata", () => {
       format: "americano",
       registrationMode: "individual",
       occupiedCount: 2,
+      locale: "en",
     });
     expect(metadata.title).toBe("Padel Club");
     expect(metadata.description).toBe(
-      `${formatAbsoluteDay(start)}, ${formatGameTimeWindow(start, end, start)}`,
+      `${formatAbsoluteDay(start, "en")}, ${formatGameTimeWindow(start, end, start, "en")}`,
     );
     expect(metadata.description).not.toContain("sitting");
   });
 
   it("keeps generic Temba metadata for dead Invite cards", () => {
-    expect(GENERIC_TEMBA_OPEN_GRAPH.title).toBe(
+    expect(genericTembaOpenGraph("en").title).toBe(
       "Temba - the future of competitive sports",
     );
-    expect(GENERIC_TEMBA_OPEN_GRAPH.description).toBe(
+    expect(genericTembaOpenGraph("en").description).toBe(
       "Temba - the future of competitive sport",
     );
-    expect(GENERIC_TEMBA_OPEN_GRAPH.title).not.toContain("Padel");
-    expect(GENERIC_TEMBA_OPEN_GRAPH.description).not.toContain("sitting");
+    expect(genericTembaOpenGraph("en").title).not.toContain("Padel");
+    expect(genericTembaOpenGraph("en").description).not.toContain("sitting");
+  });
+});
+
+describe("Arabic metadata", () => {
+  it("describes the Game in Arabic", () => {
+    const start = bahrainDate(2026, 8, 15, 19, 0, 0);
+    const end = bahrainDate(2026, 8, 15, 20, 0, 0);
+    const metadata = gameInviteOpenGraphMetadata({
+      venueName: "Padel Club",
+      windowStart: start,
+      windowEnd: end,
+      format: "friendly_game",
+      registrationMode: "individual",
+      occupiedCount: 2,
+      levelMinTenths: 30,
+      levelMaxTenths: 45,
+      locale: "ar",
+    });
+    expect(metadata.description).toBe(
+      `${formatAbsoluteDay(start, "ar")}، ${formatGameTimeWindow(start, end, start, "ar")}، 2/4 جالسون، المستوى C/B-`,
+    );
+    expect(genericTembaOpenGraph("ar").title).toContain("Temba");
   });
 });

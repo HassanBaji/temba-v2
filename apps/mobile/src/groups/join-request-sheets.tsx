@@ -1,7 +1,6 @@
 import { colors } from "@repo/design-tokens";
 import type { GroupJoinRequestData } from "@repo/domain/group-data";
 import {
-  GROUP_WHO_CAN_JOIN,
   groupJoinRequestMeta,
   groupRejectRequestCopy,
   groupWhoCanJoinDescription,
@@ -9,6 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -29,6 +29,7 @@ function SheetAction({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
@@ -43,7 +44,9 @@ function SheetAction({
         opacity: disabled && !pending ? 0.5 : 1,
       })}
     >
-      <Text weight="semibold">{pending ? `${label}…` : label}</Text>
+      <Text weight="semibold">
+        {pending ? m.mobileGroup.requests.pending(label) : label}
+      </Text>
     </Pressable>
   );
 }
@@ -63,8 +66,10 @@ export function RejectRequestSheet({
   onReject: (block: boolean) => void;
   onClose: () => void;
 }) {
-  const name = request?.user.name ?? "User";
-  const copy = groupRejectRequestCopy(name);
+  const locale = useLocale();
+  const m = useMessages();
+  const name = request?.user.name ?? m.mobileGroup.unnamedUser;
+  const copy = groupRejectRequestCopy(name, locale);
   return (
     <Sheet visible={request != null} onClose={onClose}>
       {request ? (
@@ -80,7 +85,7 @@ export function RejectRequestSheet({
                 {copy.title}
               </Text>
               <Text size="meta" tone="muted" numberOfLines={2}>
-                {groupJoinRequestMeta(request, communityName)}
+                {groupJoinRequestMeta(request, communityName, locale)}
               </Text>
             </View>
           </View>
@@ -130,6 +135,9 @@ export function WhoCanJoinSheet({
   onSave: (requiresApproval: boolean) => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.group.admin.whoCanJoin;
   const [choice, setChoice] = useState(requiresApproval);
 
   useEffect(() => {
@@ -139,31 +147,31 @@ export function WhoCanJoinSheet({
   }, [visible, requiresApproval]);
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={GROUP_WHO_CAN_JOIN.title}>
+    <Sheet visible={visible} onClose={onClose} title={copy.title}>
       <View style={{ gap: 16 }}>
         <Text size="meta" tone="muted">
-          {groupWhoCanJoinDescription(communityName)}
+          {groupWhoCanJoinDescription(communityName, locale)}
         </Text>
         <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
           <ChoiceCard
             role="radio"
             selected={choice}
-            title={GROUP_WHO_CAN_JOIN.approve.title}
-            description={GROUP_WHO_CAN_JOIN.approve.description}
+            title={copy.approve.title}
+            description={copy.approve.description}
             disabled={pending}
             onPress={() => setChoice(true)}
           />
           <ChoiceCard
             role="radio"
             selected={!choice}
-            title={GROUP_WHO_CAN_JOIN.open.title}
-            description={GROUP_WHO_CAN_JOIN.open.description}
+            title={copy.open.title}
+            description={copy.open.description}
             disabled={pending}
             onPress={() => setChoice(false)}
           />
         </View>
         <Button
-          label={GROUP_WHO_CAN_JOIN.doneLabel}
+          label={m.common.done}
           size="lg"
           pending={pending}
           onPress={() =>

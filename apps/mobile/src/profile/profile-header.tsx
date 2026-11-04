@@ -6,6 +6,7 @@ import {
 import { View } from "react-native";
 
 import { Avatar } from "../primitives/avatar";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 
@@ -24,9 +25,11 @@ export function ProfileHeader({
   changingPhoto: boolean;
   onChangePhoto: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const lines = [
-    preferredPositionProfileLine(position),
-    playingSinceLine(firstMatchAt),
+    preferredPositionProfileLine(position, locale),
+    playingSinceLine(firstMatchAt, locale),
   ].filter((line): line is string => line != null);
 
   return (
@@ -51,7 +54,11 @@ export function ProfileHeader({
       </View>
       <View style={{ flexDirection: "row" }}>
         <Button
-          label={imageUri ? "Edit profile photo" : "Add profile photo"}
+          label={
+            imageUri
+              ? m.mobileHome.profileHeader.editPhoto
+              : m.mobileHome.profileHeader.addPhoto
+          }
           variant="outline"
           pending={changingPhoto}
           onPress={onChangePhoto}

@@ -1,8 +1,10 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
-import { OPEN_GAME_ACTION } from "@repo/domain/player-profile-matches";
+import { openGameAction } from "@repo/domain/player-profile-matches";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -67,11 +69,12 @@ function SheetPlayerRow({
   player: PlayerMatchSheetPlayerModel;
   onOpen: (userId: string) => void;
 }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={player.accessibilityLabel}
-      accessibilityHint="Opens their Player profile"
+      accessibilityHint={m.mobilePlayer.profile.opensPlayerProfile}
       onPress={() => onOpen(player.userId)}
       style={({ pressed }) => ({
         minHeight: sizes.touchTarget,
@@ -109,6 +112,8 @@ export function PlayerMatchSheet({
   onOpenPlayer: (userId: string) => void;
   onOpenGame: (gameId: string) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <Sheet
       visible={sheet != null}
@@ -152,7 +157,9 @@ export function PlayerMatchSheet({
                   </View>
                   <View
                     accessible
-                    accessibilityLabel={`Sets: ${team.sets.map((set) => set.games).join(", ")}`}
+                    accessibilityLabel={m.mobilePlayer.profile.setsSpoken(
+                      team.sets.map((set) => String(set.games)),
+                    )}
                     style={{ flexDirection: "row", gap: 6 }}
                   >
                     {team.sets.map((set, setIndex) => (
@@ -183,7 +190,10 @@ export function PlayerMatchSheet({
                   {sheet.rating.label}
                 </Text>
                 <Text weight="semibold">
-                  {`${sheet.rating.before} → ${sheet.rating.after}`}
+                  {m.mobilePlayer.profile.ratingChange(
+                    sheet.rating.before,
+                    sheet.rating.after,
+                  )}
                 </Text>
               </View>
               <Text weight="semibold">{sheet.rating.delta}</Text>
@@ -191,9 +201,15 @@ export function PlayerMatchSheet({
           ) : null}
           {sheet.canOpenGame ? (
             <Button
-              label={OPEN_GAME_ACTION}
+              label={openGameAction(locale)}
               variant="outline"
-              icon={<ChevronRight size={sizes.iconAction} color={colors.ink} />}
+              icon={
+                <ChevronRight
+                  size={sizes.iconAction}
+                  color={colors.ink}
+                  style={mirrorInRtl}
+                />
+              }
               iconPlacement="trailing"
               onPress={() => onOpenGame(sheet.gameId)}
             />

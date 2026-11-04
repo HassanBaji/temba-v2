@@ -3,6 +3,7 @@
 import { use } from "react";
 
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import { PlayerProfile } from "~/components/players/player-profile";
 
 export default function PlayerProfilePage({
@@ -14,10 +15,11 @@ export default function PlayerProfilePage({
 }) {
   const { userId } = use(params);
   const { sport } = use(searchParams);
+  const m = useMessages();
 
   return (
     <DashboardShell
-      title="Player"
+      title={m.webDashboard.meta.player}
       width="content"
       hidePageHeader
       hideMobileTopBar

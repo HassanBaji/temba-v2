@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { touchHitArea } from "~/components/ui/button";
 import {
   formatCountdown,
@@ -20,6 +21,8 @@ export function ResendCountdown({
   onResend: () => void;
   disabled?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [now, setNow] = useState(() => Date.now());
   const [resendFrom, setResendFrom] = useState<number | null>(null);
   const remaining = remainingSeconds(startedAt, now);
@@ -44,7 +47,7 @@ export function ResendCountdown({
       <div className="flex items-center justify-between">
         <button
           type="button"
-          aria-label={resendAccessibleName(remaining)}
+          aria-label={resendAccessibleName(remaining, locale)}
           disabled={disabled === true || !available}
           onClick={() => {
             setResendFrom(startedAt);
@@ -55,7 +58,7 @@ export function ResendCountdown({
             "text-meta text-foreground focus-visible:ring-ring/50 disabled:text-muted-foreground rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-[3px] disabled:no-underline",
           )}
         >
-          Resend code
+          {m.auth.resendCode}
         </button>
         <span
           aria-hidden="true"
@@ -65,7 +68,7 @@ export function ResendCountdown({
         </span>
       </div>
       <p role="status" className="text-meta text-muted-foreground">
-        {codeResent ? "New code sent" : null}
+        {codeResent ? m.webAuth.resend.newCodeSent : null}
       </p>
     </div>
   );

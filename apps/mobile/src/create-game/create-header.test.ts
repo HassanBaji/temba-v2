@@ -22,7 +22,7 @@ describe("stepHeader", () => {
       "friendly_game",
       "friendly_tournament",
     ] as const) {
-      expect(stepHeader({ type, step: 1 }, NO_GROUP)).toEqual({
+      expect(stepHeader({ type, step: 1 }, NO_GROUP, "en")).toEqual({
         title: ["What are you", "setting up?"],
         subtitle:
           "Both start with a Venue and a time. The rest of the form follows your pick.",
@@ -32,7 +32,9 @@ describe("stepHeader", () => {
   });
 
   it("starts a Friendly game with the Group before one is picked", () => {
-    expect(stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP)).toEqual({
+    expect(
+      stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "en"),
+    ).toEqual({
       title: ["Friendly", "game"],
       subtitle: "Start with the Group. Venue rules depend on it.",
       context: null,
@@ -40,7 +42,9 @@ describe("stepHeader", () => {
   });
 
   it("names the Group and its Venue count once a Group is picked", () => {
-    expect(stepHeader({ type: "friendly_game", step: 2 }, WITH_GROUP)).toEqual({
+    expect(
+      stepHeader({ type: "friendly_game", step: 2 }, WITH_GROUP, "en"),
+    ).toEqual({
       title: ["Friendly", "game"],
       subtitle: null,
       context: { icon: "users", parts: ["Tuesday Crew", "3 Venues"] },
@@ -52,6 +56,7 @@ describe("stepHeader", () => {
       stepHeader(
         { type: "friendly_game", step: 2, sport: "football" },
         WITH_GROUP,
+        "en",
       )?.context?.parts,
     ).toEqual(["Tuesday Crew", "Football", "3 Venues"]);
   });
@@ -61,6 +66,7 @@ describe("stepHeader", () => {
       stepHeader(
         { type: "friendly_game", step: 2 },
         { groupName: "Tuesday Crew", venues: { locked: false, count: 1 } },
+        "en",
       )?.context?.parts,
     ).toEqual(["Tuesday Crew", "1 Venue"]);
   });
@@ -70,6 +76,7 @@ describe("stepHeader", () => {
       stepHeader(
         { type: "friendly_game", step: 2 },
         { groupName: "Karbabad Club", venues: { locked: true, count: 1 } },
+        "en",
       )?.context?.parts,
     ).toEqual(["Karbabad Club", "Linked Venue"]);
   });
@@ -79,6 +86,7 @@ describe("stepHeader", () => {
       stepHeader(
         { type: "friendly_game", step: 2 },
         { groupName: "Tuesday Crew", venues: null },
+        "en",
       )?.context?.parts,
     ).toEqual(["Tuesday Crew"]);
   });
@@ -93,56 +101,69 @@ describe("stepHeader", () => {
       },
     };
     expect(
-      stepHeader({ type: "friendly_tournament", step: 2 }, NO_GROUP),
+      stepHeader({ type: "friendly_tournament", step: 2 }, NO_GROUP, "en"),
     ).toEqual(expected);
     expect(
-      stepHeader({ type: "friendly_tournament", step: 2 }, WITH_GROUP),
+      stepHeader({ type: "friendly_tournament", step: 2 }, WITH_GROUP, "en"),
     ).toEqual(expected);
   });
 
   it("leaves steps 3 and 4 to the step summary", () => {
-    expect(stepHeader({ type: "friendly_game", step: 3 }, WITH_GROUP)).toBe(
-      null,
-    );
     expect(
-      stepHeader({ type: "friendly_tournament", step: 4 }, WITH_GROUP),
+      stepHeader({ type: "friendly_game", step: 3 }, WITH_GROUP, "en"),
+    ).toBe(null);
+    expect(
+      stepHeader({ type: "friendly_tournament", step: 4 }, WITH_GROUP, "en"),
     ).toBe(null);
   });
 });
 
 describe("nextStepTitle", () => {
   it("ends a football Game on Size and price", () => {
-    expect(nextStepTitle("friendly_game", 3, "football")).toBe(
+    expect(nextStepTitle("friendly_game", 3, "en", "football")).toBe(
       "Size and price",
     );
-    expect(nextStepTitle("friendly_game", 3)).toBe("Level and price");
-    expect(nextStepTitle("friendly_game", 4, "football")).toBeNull();
+    expect(nextStepTitle("friendly_game", 3, "en")).toBe("Level and price");
+    expect(nextStepTitle("friendly_game", 4, "en", "football")).toBeNull();
   });
 
   it("follows the Friendly game steps", () => {
-    expect(nextStepTitle("friendly_game", 1)).toBe("Where");
-    expect(nextStepTitle("friendly_game", 2)).toBe("When");
-    expect(nextStepTitle("friendly_game", 3)).toBe("Level and price");
+    expect(nextStepTitle("friendly_game", 1, "en")).toBe("Where");
+    expect(nextStepTitle("friendly_game", 2, "en")).toBe("When");
+    expect(nextStepTitle("friendly_game", 3, "en")).toBe("Level and price");
   });
 
   it("follows the Friendly tournament steps", () => {
-    expect(nextStepTitle("friendly_tournament", 1)).toBe("Where and size");
-    expect(nextStepTitle("friendly_tournament", 2)).toBe("Format and day");
-    expect(nextStepTitle("friendly_tournament", 3)).toBe("Entry and review");
+    expect(nextStepTitle("friendly_tournament", 1, "en")).toBe(
+      "Where and size",
+    );
+    expect(nextStepTitle("friendly_tournament", 2, "en")).toBe(
+      "Format and day",
+    );
+    expect(nextStepTitle("friendly_tournament", 3, "en")).toBe(
+      "Entry and review",
+    );
   });
 
   it("previews the Friendly game steps before a type is picked", () => {
-    expect(nextStepTitle(null, 1)).toBe("Where");
+    expect(nextStepTitle(null, 1, "en")).toBe("Where");
   });
 
   it("has nothing after the last step", () => {
-    expect(nextStepTitle("friendly_game", 4)).toBe(null);
+    expect(nextStepTitle("friendly_game", 4, "en")).toBe(null);
+  });
+
+  it("reads Arabic", () => {
+    expect(nextStepTitle("friendly_game", 1, "ar")).toBe("المكان");
+    expect(
+      stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "ar")?.title,
+    ).toEqual(["لعبة", "ودية"]);
   });
 });
 
 describe("kickoffHero", () => {
   it("splits an evening start into value and meridiem", () => {
-    expect(kickoffHero("2026-10-06", "20:00", "21:30")).toEqual({
+    expect(kickoffHero("2026-10-06", "20:00", "21:30", "en")).toEqual({
       value: "8:00",
       unit: "PM",
       trailing: "to 9:30 PM",
@@ -150,7 +171,7 @@ describe("kickoffHero", () => {
   });
 
   it("reads a morning start", () => {
-    expect(kickoffHero("2026-10-06", "09:30", "11:00")).toEqual({
+    expect(kickoffHero("2026-10-06", "09:30", "11:00", "en")).toEqual({
       value: "9:30",
       unit: "AM",
       trailing: "to 11:00 AM",
@@ -158,7 +179,7 @@ describe("kickoffHero", () => {
   });
 
   it("crosses noon", () => {
-    expect(kickoffHero("2026-10-06", "11:00", "12:30")).toEqual({
+    expect(kickoffHero("2026-10-06", "11:00", "12:30", "en")).toEqual({
       value: "11:00",
       unit: "AM",
       trailing: "to 12:30 PM",
@@ -166,7 +187,7 @@ describe("kickoffHero", () => {
   });
 
   it("has no trailing part without a finish", () => {
-    expect(kickoffHero("2026-10-06", "20:00", "")).toEqual({
+    expect(kickoffHero("2026-10-06", "20:00", "", "en")).toEqual({
       value: "8:00",
       unit: "PM",
       trailing: null,
@@ -174,14 +195,16 @@ describe("kickoffHero", () => {
   });
 
   it("drops a finish that is not after the start", () => {
-    expect(kickoffHero("2026-10-06", "20:00", "19:00")?.trailing).toBe(null);
+    expect(kickoffHero("2026-10-06", "20:00", "19:00", "en")?.trailing).toBe(
+      null,
+    );
   });
 
   it("is a placeholder before a start time or for invalid input", () => {
-    expect(kickoffHero("2026-10-06", "", "21:30")).toBe(null);
-    expect(kickoffHero("", "20:00", "21:30")).toBe(null);
-    expect(kickoffHero("2026-02-30", "20:00", "21:30")).toBe(null);
-    expect(kickoffHero("2026-10-06", "soon", "21:30")).toBe(null);
+    expect(kickoffHero("2026-10-06", "", "21:30", "en")).toBe(null);
+    expect(kickoffHero("", "20:00", "21:30", "en")).toBe(null);
+    expect(kickoffHero("2026-02-30", "20:00", "21:30", "en")).toBe(null);
+    expect(kickoffHero("2026-10-06", "soon", "21:30", "en")).toBe(null);
   });
 });
 
@@ -193,6 +216,7 @@ describe("friendlyGameTimeHeader", () => {
     groupName: "Friday Padel",
     venueName: "Seef Padel Club",
     courtName: "Court 1",
+    locale: "en" as const,
   };
 
   it("shows the kickoff hero with day, Venue and Court", () => {
@@ -229,6 +253,7 @@ describe("tournamentFormatHeader", () => {
     day: "2026-10-06",
     venueName: "Seef Padel Club",
     courtCount: 3,
+    locale: "en" as const,
   };
 
   it("shows Game teams and Matches with day, Venue and Courts", () => {
@@ -262,6 +287,7 @@ describe("tournamentEntryHeader", () => {
     startTime: "09:00",
     finishTime: "15:00",
     courtCount: 3,
+    locale: "en" as const,
   };
 
   it("shows Game teams and Matches with day, window and Courts", () => {

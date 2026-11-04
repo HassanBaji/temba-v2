@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
@@ -39,11 +40,6 @@ import { api } from "~/trpc/react";
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
 import { BibRow } from "./football-team-columns";
 
-const METHOD_LABELS: Record<FootballTeamsMethod, string> = {
-  level: "By level",
-  manual: "Manual",
-};
-
 function MethodToggle({
   method,
   onChange,
@@ -51,10 +47,11 @@ function MethodToggle({
   method: FootballTeamsMethod;
   onChange: (method: FootballTeamsMethod) => void;
 }) {
+  const m = useMessages();
   return (
     <div
       role="radiogroup"
-      aria-label="How to make teams"
+      aria-label={m.webTournament.footballTeams.howToMakeTeams}
       className="border-rule flex overflow-hidden rounded-lg border"
     >
       {FOOTBALL_TEAMS_METHODS.map((value) => {
@@ -73,7 +70,7 @@ function MethodToggle({
                 : "bg-paper text-muted-foreground hover:bg-wash",
             )}
           >
-            {METHOD_LABELS[value]}
+            {m.webTournament.footballTeams.method[value]}
           </button>
         );
       })}
@@ -93,6 +90,9 @@ function BalanceCard({
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const t = m.webTournament.footballTeams;
   const row = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -104,11 +104,11 @@ function BalanceCard({
           <BibChip bib={bib} className="size-4" />
           <span className="font-semibold">{name}</span>
           <span className="text-muted-foreground text-meta flex-1">
-            avg {sideAverage(members)}, {keeperWord(members)}
+            {t.avgAndKeepers(sideAverage(members), keeperWord(members, locale))}
           </span>
           <span className="font-expanded tabular-nums">
             {draft.method === "manual"
-              ? `${members.length} of ${summary.teamSize}`
+              ? t.countOfTeamSize(members.length, summary.teamSize)
               : members.length}
           </span>
         </div>
@@ -129,7 +129,7 @@ function BalanceCard({
       {row(1)}
       {row(2)}
       <p aria-live="polite" className="text-muted-foreground text-meta">
-        {summary.problem ?? `${summary.note} Ready to publish.`}
+        {summary.problem ?? t.readyToPublish(summary.note)}
       </p>
     </section>
   );
@@ -144,6 +144,7 @@ function LevelColumns({
   summary: ReturnType<typeof draftSummary>;
   onMove: (userId: string) => void;
 }) {
+  const m = useMessages();
   const column = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -159,12 +160,17 @@ function LevelColumns({
               trailing={
                 <button
                   type="button"
-                  aria-label={`Move ${player.name} to the other team`}
+                  aria-label={m.webTournament.footballTeams.moveToOtherTeam(
+                    player.name,
+                  )}
                   onClick={() => onMove(player.userId)}
                   className="focus-visible:ring-ring/50 flex size-[26px] shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
                   style={{ backgroundColor: on, color: fill }}
                 >
-                  <Icon aria-hidden="true" className="size-3.5" />
+                  <Icon
+                    aria-hidden="true"
+                    className="size-3.5 rtl:-scale-x-100"
+                  />
                 </button>
               }
             />
@@ -180,8 +186,7 @@ function LevelColumns({
         {column(2)}
       </div>
       <p className="text-muted-foreground text-meta">
-        No subs are set here. Each captain picks starters before kick-off and
-        runs the swaps on the pitch.
+        {m.webTournament.footballTeams.noSubsNote}
       </p>
     </div>
   );
@@ -231,6 +236,7 @@ function ManualRow({
   names: { slot1: string; slot2: string };
   onPlace: (side: Side) => void;
 }) {
+  const m = useMessages();
   const side = draft.sides[player.userId];
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
@@ -245,7 +251,9 @@ function ManualRow({
     >
       <UserAvatar name={player.name} image={player.image} />
       <div className="min-w-0 flex-1">
-        <p className="truncate">{player.isViewer ? "You" : player.name}</p>
+        <p className="truncate">
+          {player.isViewer ? m.common.you : player.name}
+        </p>
         {code ? (
           <p className="font-mono text-[11px] opacity-70">{code}</p>
         ) : null}
@@ -254,13 +262,13 @@ function ManualRow({
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
-        label={`Put ${player.name} in ${names.slot1}`}
+        label={m.webTournament.footballTeams.putIn(player.name, names.slot1)}
         onClick={() => onPlace(1)}
       />
       <SwatchButton
         bib={draft.bibs.slot2}
         selected={side === 2}
-        label={`Put ${player.name} in ${names.slot2}`}
+        label={m.webTournament.footballTeams.putIn(player.name, names.slot2)}
         onClick={() => onPlace(2)}
       />
     </li>
@@ -276,6 +284,8 @@ function ManualLists({
   summary: ReturnType<typeof draftSummary>;
   onPlace: (userId: string, side: Side) => void;
 }) {
+  const m = useMessages();
+  const t = m.webTournament.footballTeams;
   const group = (
     key: string,
     title: React.ReactNode,
@@ -305,8 +315,8 @@ function ManualLists({
     <div className="space-y-5">
       {group(
         "unplaced",
-        "Not placed",
-        `${summary.unplaced.length} left`,
+        t.notPlaced,
+        t.leftCount(summary.unplaced.length),
         summary.unplaced,
       )}
       {group(
@@ -315,7 +325,7 @@ function ManualLists({
           <BibChip bib={draft.bibs.slot1} className="size-3.5" />
           {summary.names.slot1}
         </>,
-        `${summary.slot1.length} of ${summary.teamSize}`,
+        t.countOfTeamSize(summary.slot1.length, summary.teamSize),
         summary.slot1,
       )}
       {group(
@@ -324,7 +334,7 @@ function ManualLists({
           <BibChip bib={draft.bibs.slot2} className="size-3.5" />
           {summary.names.slot2}
         </>,
-        `${summary.slot2.length} of ${summary.teamSize}`,
+        t.countOfTeamSize(summary.slot2.length, summary.teamSize),
         summary.slot2,
       )}
     </div>
@@ -336,6 +346,9 @@ function ManualLists({
  * each team's bib colour and publishes.
  */
 export function FootballMakeTeams({ gameId }: { gameId: string }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const t = m.webTournament.footballTeams;
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
@@ -351,7 +364,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
 
   const publish = api.games.publishFootballTeams.useMutation({
     onSuccess: async () => {
-      toast.success("Teams published");
+      toast.success(t.publishedToast);
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
@@ -362,10 +375,10 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   });
 
   const players = board.data?.players ?? [];
-  const summary = draft ? draftSummary(draft, players) : null;
+  const summary = draft ? draftSummary(draft, players, locale) : null;
   const back = (
     <Button variant="outline" asChild>
-      <Link href={gameHref}>Back to the game</Link>
+      <Link href={gameHref}>{m.webTournament.backToGame}</Link>
     </Button>
   );
 
@@ -373,7 +386,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   if (board.error) {
     body = (
       <ErrorState
-        title="The pool could not be loaded"
+        title={t.poolLoadFailed}
         message={board.error.message}
         onRetry={() => void board.refetch()}
       />
@@ -381,10 +394,8 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   } else if (board.data && !board.data.viewer.canMakeTeams) {
     body = (
       <section className="border-rule bg-paper space-y-1 rounded-xl border p-5">
-        <h2 className="font-semibold">Teams are fixed</h2>
-        <p className="text-muted-foreground text-meta">
-          Only an organizer makes the teams, and only until the score is in.
-        </p>
+        <h2 className="font-semibold">{t.fixedTitle}</h2>
+        <p className="text-muted-foreground text-meta">{t.fixedBody}</p>
       </section>
     );
   } else if (!draft || !summary) {
@@ -393,18 +404,17 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     const start = game.data?.windowStart ?? null;
     const sideSize = game.data?.sideSize ?? null;
     const intro = [
-      start ? formatGameStart(start) : null,
-      `${summary.teamSize} per team${sideSize ? `, ${sideSize} start` : ""}`,
+      start ? formatGameStart(start, locale) : null,
+      sideSize
+        ? t.perTeamStart(summary.teamSize, sideSize)
+        : t.perTeam(summary.teamSize),
     ]
       .filter(Boolean)
       .join(". ");
     body = (
       <div className="space-y-5">
         <p className="text-muted-foreground text-meta">
-          {intro}.{" "}
-          {draft.method === "level"
-            ? "Use the arrow on a row to move that player to the other team."
-            : "Pick a swatch to place a player; placed rows take their team colour."}
+          {intro}. {draft.method === "level" ? t.levelHint : t.manualHint}
         </p>
         <MethodToggle
           method={draft.method}
@@ -447,7 +457,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               }
             >
               <Shuffle aria-hidden="true" />
-              Shuffle
+              {t.shuffle}
             </Button>
           ) : (
             <Button
@@ -456,7 +466,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               size="lg"
               onClick={() => setDraft({ ...draft, sides: {} })}
             >
-              Clear
+              {m.common.clear}
             </Button>
           )}
           <Button
@@ -475,7 +485,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               })
             }
           >
-            Publish teams
+            {t.publish}
           </Button>
         </div>
       </div>
@@ -484,8 +494,8 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
 
   return (
     <DashboardShell
-      title={draft?.method === "manual" ? "Manual teams" : "Make teams"}
-      description={`${players.length} in the pool`}
+      title={draft?.method === "manual" ? t.manualTitle : t.makeTeams}
+      description={t.inThePool(players.length)}
       action={back}
       isSubPage
       hideNav

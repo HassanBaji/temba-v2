@@ -70,13 +70,24 @@ describe("isResendAvailable", () => {
 describe("resendAccessibleName", () => {
   it("names the wait while counting down", () => {
     assert.equal(
-      resendAccessibleName(24),
+      resendAccessibleName(24, "en"),
       "Resend code, available in 24 seconds",
     );
-    assert.equal(resendAccessibleName(1), "Resend code, available in 1 second");
+    assert.equal(
+      resendAccessibleName(1, "en"),
+      "Resend code, available in 1 second",
+    );
   });
 
   it("drops the wait once available", () => {
-    assert.equal(resendAccessibleName(0), "Resend code");
+    assert.equal(resendAccessibleName(0, "en"), "Resend code");
+  });
+
+  it("names the wait in Arabic", () => {
+    assert.equal(
+      resendAccessibleName(24, "ar"),
+      "إعادة إرسال الرمز، متاحة بعد 24 ثانية",
+    );
+    assert.equal(resendAccessibleName(0, "ar"), "إعادة إرسال الرمز");
   });
 });

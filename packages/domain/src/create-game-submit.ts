@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import {
   CREATE_FLOW_FIELD_IDS,
   createShapeHasPools,
@@ -14,7 +17,7 @@ import { normalizeGameCustomName } from "./game-custom-name";
 import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
-  LEVEL_RANGE_INVERTED_MESSAGE,
+  levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
   type LevelBandSelectValue,
 } from "./level-range";
@@ -81,8 +84,9 @@ function validateWhereAndWhen(
     "groupId" | "venueId" | "day" | "startTime" | "finishTime"
   >,
   now: Date,
+  locale: Locale,
 ) {
-  const where = validateFriendlyGameWhere(draft.groupId, draft.venueId);
+  const where = validateFriendlyGameWhere(draft.groupId, draft.venueId, locale);
   if (!where.ok) {
     return { failed: true as const, issue: issueAtStep(where, 2) };
   }
@@ -90,6 +94,7 @@ function validateWhereAndWhen(
     draft.day,
     draft.startTime,
     draft.finishTime,
+    locale,
     now,
   );
   if (!when.ok) {
@@ -98,8 +103,11 @@ function validateWhereAndWhen(
   return { failed: false as const, when };
 }
 
-function validatePrice(draft: Pick<GameFields, "pricePerPlayer">) {
-  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer);
+function validatePrice(
+  draft: Pick<GameFields, "pricePerPlayer">,
+  locale: Locale,
+) {
+  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer, locale);
   if (!price.ok) {
     return {
       failed: true as const,
@@ -115,8 +123,11 @@ function validatePrice(draft: Pick<GameFields, "pricePerPlayer">) {
   return { failed: false as const, fils: price.fils };
 }
 
-function validatePriceAndLevel(draft: Omit<GameFields, "courtId">) {
-  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer);
+function validatePriceAndLevel(
+  draft: Omit<GameFields, "courtId">,
+  locale: Locale,
+) {
+  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer, locale);
   if (!price.ok) {
     return {
       failed: true as const,
@@ -141,7 +152,7 @@ function validatePriceAndLevel(draft: Omit<GameFields, "courtId">) {
       issue: {
         ok: false as const,
         field: "levelMinTenths",
-        message: LEVEL_RANGE_INVERTED_MESSAGE,
+        message: levelRangeInvertedMessage(locale),
         elementId: CREATE_FLOW_FIELD_IDS.levelMinTenths ?? "",
         step: 4 as const,
       },
@@ -155,19 +166,28 @@ function validatePriceAndLevel(draft: Omit<GameFields, "courtId">) {
   };
 }
 
-export function validateFriendlyGameSubmit(draft: GameFields, now: Date) {
-  const placed = validateWhereAndWhen(draft, now);
+export function validateFriendlyGameSubmit(
+  draft: GameFields,
+  now: Date,
+  locale: Locale,
+) {
+  const placed = validateWhereAndWhen(draft, now, locale);
   if (placed.failed) {
     return placed.issue;
   }
-  const priced = validatePriceAndLevel(draft);
+  const priced = validatePriceAndLevel(draft, locale);
   if (priced.failed) {
     return priced.issue;
   }
   return {
     ok: true as const,
     input: {
-      name: formatGameWindowName(draft.day, draft.startTime, draft.finishTime),
+      name: formatGameWindowName(
+        draft.day,
+        draft.startTime,
+        draft.finishTime,
+        locale,
+      ),
       groupId: draft.groupId,
       isPublic: false,
       format: "friendly_game" as const,
@@ -196,8 +216,10 @@ export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
 export function validateFootballGameSubmit(
   draft: FootballGameFields,
   now: Date,
+  locale: Locale,
 ) {
-  const placed = validateWhereAndWhen(draft, now);
+  const m = messagesFor(locale).createGame.validation;
+  const placed = validateWhereAndWhen(draft, now, locale);
   if (placed.failed) {
     return placed.issue;
   }
@@ -205,7 +227,7 @@ export function validateFootballGameSubmit(
     return {
       ok: false as const,
       field: "sideSize",
-      message: "Pick a side size",
+      message: m.pickSideSize,
       elementId: CREATE_FLOW_FIELD_IDS.sideSize ?? "",
       step: 4 as const,
     };
@@ -219,19 +241,24 @@ export function validateFootballGameSubmit(
     return {
       ok: false as const,
       field: "playersAllowed",
-      message: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+      message: m.playersAllowedBetween(bounds.min, bounds.max),
       elementId: CREATE_FLOW_FIELD_IDS.playersAllowed ?? "",
       step: 4 as const,
     };
   }
-  const priced = validatePrice(draft);
+  const priced = validatePrice(draft, locale);
   if (priced.failed) {
     return priced.issue;
   }
   return {
     ok: true as const,
     input: {
-      name: formatGameWindowName(draft.day, draft.startTime, draft.finishTime),
+      name: formatGameWindowName(
+        draft.day,
+        draft.startTime,
+        draft.finishTime,
+        locale,
+      ),
       groupId: draft.groupId,
       isPublic: false,
       format: "friendly_game" as const,
@@ -260,17 +287,19 @@ export function validateTournamentStepThree(
     | "poolCount"
   >,
   now: Date,
+  locale: Locale,
 ): CreateSubmitIssue | null {
   const when = validateFriendlyGameWhen(
     draft.day,
     draft.startTime,
     draft.finishTime,
+    locale,
     now,
   );
   if (!when.ok) {
     return issueAtStep(when, 3);
   }
-  const minutes = parseCreateMatchMinutes(draft.matchMinutes);
+  const minutes = parseCreateMatchMinutes(draft.matchMinutes, locale);
   if (!minutes.ok) {
     return {
       ok: false as const,
@@ -287,7 +316,7 @@ export function validateTournamentStepThree(
     return {
       ok: false as const,
       field: "poolCount",
-      message: "Pick a groups count",
+      message: messagesFor(locale).createGame.validation.pickGroupsCount,
       elementId: "tournament-pool-count",
       step: 3 as const,
     };
@@ -299,12 +328,13 @@ export function validateFriendlyTournamentSubmit(
   draft: TournamentFields,
   now: Date,
   groupVerified: boolean,
+  locale: Locale,
 ) {
-  const placed = validateWhereAndWhen(draft, now);
+  const placed = validateWhereAndWhen(draft, now, locale);
   if (placed.failed) {
     return placed.issue;
   }
-  const minutes = parseCreateMatchMinutes(draft.matchMinutes);
+  const minutes = parseCreateMatchMinutes(draft.matchMinutes, locale);
   if (!minutes.ok) {
     return {
       ok: false as const,
@@ -314,11 +344,11 @@ export function validateFriendlyTournamentSubmit(
       step: 3 as const,
     };
   }
-  const named = validateTournamentName(draft.name);
+  const named = validateTournamentName(draft.name, locale);
   if (!named.ok) {
     return issueAtStep(named, 4);
   }
-  const priced = validatePriceAndLevel(draft);
+  const priced = validatePriceAndLevel(draft, locale);
   if (priced.failed) {
     return priced.issue;
   }
@@ -443,9 +473,10 @@ export function friendlyTournamentScheduleFor(input: {
   courtCount: number;
   now: Date;
   clock: (date: Date) => string;
+  locale: Locale;
 }) {
   const { plan } = input;
-  const minutes = parseCreateMatchMinutes(input.matchMinutes);
+  const minutes = parseCreateMatchMinutes(input.matchMinutes, input.locale);
   const window = parseRequiredGameWindow(
     input.day,
     input.startTime,
@@ -455,6 +486,7 @@ export function friendlyTournamentScheduleFor(input: {
     input.day,
     input.startTime,
     input.finishTime,
+    input.locale,
     input.now,
   ).ok;
   const roundMatches = plan.knockoutTree
@@ -470,6 +502,7 @@ export function friendlyTournamentScheduleFor(input: {
     courtCount: input.courtCount,
     matchMinutes: minutes.minutes,
     clock: input.clock,
+    locale: input.locale,
     knockoutOnly: plan.knockoutOnly,
     knockoutRoundMatches: plan.poolKnockoutTree?.matchesPerRound,
   });

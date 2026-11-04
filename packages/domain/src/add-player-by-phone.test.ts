@@ -3,8 +3,6 @@ import { describe, it } from "vitest";
 
 import {
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
-  ADD_PLAYER_FOOTBALL_LEVEL_CHOICES,
-  ADD_PLAYER_LEVEL_CHOICES,
   addGroupPlayerCanSubmit,
   addGroupPlayerDoneToast,
   addGroupPlayerIsFootball,
@@ -12,6 +10,8 @@ import {
   addPlayerCanSubmit,
   addPlayerCompletePhone,
   addPlayerFootballInput,
+  addPlayerFootballLevelChoices,
+  addPlayerLevelChoices,
   addPlayerPlacement,
   addPlayerPreviewLine,
   addPlayerSeatChoices,
@@ -35,36 +35,50 @@ describe("addPlayerCompletePhone", () => {
 describe("addPlayerPreviewLine", () => {
   it("names an account holder, an Unclaimed player and a new number", () => {
     assert.equal(
-      addPlayerPreviewLine({
-        kind: "account",
-        name: "Ahmed Ali",
-        alreadyOnGame: false,
-      }),
+      addPlayerPreviewLine(
+        { kind: "account", name: "Ahmed Ali", alreadyOnGame: false },
+        "en",
+      ),
       "This is Ahmed Ali (has an account)",
     );
     assert.equal(
-      addPlayerPreviewLine({
-        kind: "unclaimed",
-        name: "Ali",
-        alreadyOnGame: false,
-        phoneMasked: "+973 •••• 4408",
-      }),
+      addPlayerPreviewLine(
+        {
+          kind: "unclaimed",
+          name: "Ali",
+          alreadyOnGame: false,
+          phoneMasked: "+973 •••• 4408",
+        },
+        "en",
+      ),
       "Already on Temba as Ali (no account yet)",
     );
     assert.equal(
-      addPlayerPreviewLine({ kind: "new", name: null, alreadyOnGame: false }),
+      addPlayerPreviewLine(
+        { kind: "new", name: null, alreadyOnGame: false },
+        "en",
+      ),
       "Not on Temba yet. Add their name and starting Level.",
     );
   });
 
   it("says when the person is already on the Game", () => {
     assert.equal(
-      addPlayerPreviewLine({
-        kind: "unclaimed",
-        name: "Ali",
-        alreadyOnGame: true,
-      }),
+      addPlayerPreviewLine(
+        { kind: "unclaimed", name: "Ali", alreadyOnGame: true },
+        "en",
+      ),
       "Ali is already on this Game",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    assert.equal(
+      addPlayerPreviewLine(
+        { kind: "unclaimed", name: "Ali", alreadyOnGame: true },
+        "ar",
+      ),
+      "Ali موجود في هذه اللعبة بالفعل",
     );
   });
 });
@@ -72,36 +86,36 @@ describe("addPlayerPreviewLine", () => {
 describe("addGroupPlayerPreviewLine", () => {
   it("tells an approver an account holder gets an invite, and who is already in", () => {
     assert.equal(
-      addGroupPlayerPreviewLine({
-        kind: "account",
-        name: "Ahmed Ali",
-        alreadyInGroup: false,
-      }),
+      addGroupPlayerPreviewLine(
+        { kind: "account", name: "Ahmed Ali", alreadyInGroup: false },
+        "en",
+      ),
       "This is Ahmed Ali (has an account). They get an invite to accept.",
     );
     assert.equal(
-      addGroupPlayerPreviewLine({
-        kind: "unclaimed",
-        name: "Ali",
-        alreadyInGroup: false,
-        phoneMasked: "+973 •••• 4408",
-      }),
+      addGroupPlayerPreviewLine(
+        {
+          kind: "unclaimed",
+          name: "Ali",
+          alreadyInGroup: false,
+          phoneMasked: "+973 •••• 4408",
+        },
+        "en",
+      ),
       "Already on Temba as Ali (no account yet)",
     );
     assert.equal(
-      addGroupPlayerPreviewLine({
-        kind: "new",
-        name: null,
-        alreadyInGroup: false,
-      }),
+      addGroupPlayerPreviewLine(
+        { kind: "new", name: null, alreadyInGroup: false },
+        "en",
+      ),
       "Not on Temba yet. Add their name and starting Level.",
     );
     assert.equal(
-      addGroupPlayerPreviewLine({
-        kind: "unclaimed",
-        name: "Ali",
-        alreadyInGroup: true,
-      }),
+      addGroupPlayerPreviewLine(
+        { kind: "unclaimed", name: "Ali", alreadyInGroup: true },
+        "en",
+      ),
       "Ali is already in this Group",
     );
   });
@@ -147,11 +161,11 @@ describe("addGroupPlayerIsFootball", () => {
 describe("addGroupPlayerDoneToast", () => {
   it("says added or invited", () => {
     assert.equal(
-      addGroupPlayerDoneToast({ outcome: "added", name: "Ali" }),
+      addGroupPlayerDoneToast({ outcome: "added", name: "Ali" }, "en"),
       "Ali added",
     );
     assert.equal(
-      addGroupPlayerDoneToast({ outcome: "invited", name: "Ahmed" }),
+      addGroupPlayerDoneToast({ outcome: "invited", name: "Ahmed" }, "en"),
       "Invite sent to Ahmed",
     );
   });
@@ -198,10 +212,13 @@ describe("addPlayerCanSubmit", () => {
 describe("addPlayerSeatChoices", () => {
   it("lists each vacant Position with its Team and side", () => {
     assert.deepEqual(
-      addPlayerSeatChoices([
-        { sideIndex: 1, left: { name: "Sara" }, right: null },
-        { sideIndex: 2, left: null, right: null },
-      ]).map((choice) => choice.label),
+      addPlayerSeatChoices(
+        [
+          { sideIndex: 1, left: { name: "Sara" }, right: null },
+          { sideIndex: 2, left: null, right: null },
+        ],
+        "en",
+      ).map((choice) => choice.label),
       ["Team A · Right", "Team B · Left", "Team B · Right"],
     );
   });
@@ -210,11 +227,14 @@ describe("addPlayerSeatChoices", () => {
 describe("addPlayerSideChoices", () => {
   it("lists fully vacant sides and Half teams, never a full side", () => {
     assert.deepEqual(
-      addPlayerSideChoices([
-        { sideIndex: 1, left: { name: "Sara" }, right: { name: "Ali" } },
-        { sideIndex: 2, left: null, right: { name: "Noor" } },
-        { sideIndex: 3, left: null, right: null },
-      ]),
+      addPlayerSideChoices(
+        [
+          { sideIndex: 1, left: { name: "Sara" }, right: { name: "Ali" } },
+          { sideIndex: 2, left: null, right: { name: "Noor" } },
+          { sideIndex: 3, left: null, right: null },
+        ],
+        "en",
+      ),
       [
         { sideIndex: 2, team: "Team B", detail: "With Noor" },
         { sideIndex: 3, team: "Team C", detail: "Open" },
@@ -274,10 +294,10 @@ describe("addPlayerFootballInput", () => {
   });
 });
 
-describe("ADD_PLAYER_FOOTBALL_LEVEL_CHOICES", () => {
+describe("addPlayerFootballLevelChoices", () => {
   it("offers the football self-placement and starts at Beginner", () => {
     assert.deepEqual(
-      ADD_PLAYER_FOOTBALL_LEVEL_CHOICES.map((choice) => choice.value),
+      addPlayerFootballLevelChoices("en").map((choice) => choice.value),
       ["beginner", "casual", "competitive", "pro"],
     );
     assert.equal(ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL, "beginner");
@@ -295,12 +315,14 @@ describe("sameJoinSeat", () => {
   });
 });
 
-describe("ADD_PLAYER_LEVEL_CHOICES", () => {
+describe("addPlayerLevelChoices", () => {
   it("starts with Not sure, then the Onboarding Level bands", () => {
     assert.deepEqual(
-      ADD_PLAYER_LEVEL_CHOICES.map((choice) => choice.value),
+      addPlayerLevelChoices("en").map((choice) => choice.value),
       ["not_sure", "D", "D+", "C-", "C+", "B-", "B+", "A"],
     );
+    assert.equal(addPlayerLevelChoices("en")[0]?.name, "Not sure");
+    assert.equal(addPlayerLevelChoices("ar")[0]?.name, "غير متأكد");
   });
 });
 

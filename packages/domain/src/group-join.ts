@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { groupHomeHasStandingResults } from "./group-home-chrome";
 
 export type GroupJoinMode = "join" | "request" | "requested";
@@ -9,13 +12,16 @@ export type GroupJoinDoor =
 
 export const GROUP_HISTORY_PAGE_SIZE = 20;
 
-export const GROUP_ARCHIVE_GAMES_COPY =
-  "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived.";
+export function groupArchiveGamesCopy(locale: Locale) {
+  return messagesFor(locale).group.join.archiveGamesCopy;
+}
 
-export function groupGamesEmptyDescription(isCommunityArchived: boolean) {
-  return isCommunityArchived
-    ? GROUP_ARCHIVE_GAMES_COPY
-    : "When a Game is set with a live window or Match, it will show up here.";
+export function groupGamesEmptyDescription(
+  isCommunityArchived: boolean,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.join;
+  return isCommunityArchived ? m.archiveGamesCopy : m.gamesEmptyDescription;
 }
 
 export function groupHomeCanJoin(joinMode: string): joinMode is GroupJoinMode {
@@ -24,16 +30,22 @@ export function groupHomeCanJoin(joinMode: string): joinMode is GroupJoinMode {
   );
 }
 
-export function groupDisplayName(name: string | null | undefined) {
-  return name ?? "Untitled Group";
+export function groupDisplayName(
+  name: string | null | undefined,
+  locale: Locale,
+) {
+  return name ?? messagesFor(locale).group.untitled;
 }
 
 export function publicGroupMetaLine(input: {
   memberCountLabel: string;
   requiresApproval: boolean;
+  locale: Locale;
 }) {
   return input.requiresApproval
-    ? `${input.memberCountLabel} · Requires approval`
+    ? messagesFor(input.locale).group.join.requiresApprovalMeta(
+        input.memberCountLabel,
+      )
     : input.memberCountLabel;
 }
 
@@ -41,17 +53,19 @@ export function groupJoinLabel(
   joinMode: GroupJoinMode,
   pending: boolean,
   style: "row" | "home",
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).group.join.label;
   if (joinMode === "requested") {
-    return "Requested";
+    return m.requested;
   }
   if (joinMode === "request") {
-    return pending ? "Requesting…" : "Request to join";
+    return pending ? m.requesting : m.requestToJoin;
   }
   if (pending) {
-    return "Joining…";
+    return m.joining;
   }
-  return style === "home" ? "Join Group" : "Join";
+  return style === "home" ? m.joinGroup : m.join;
 }
 
 export function groupJoinDisabled(joinMode: GroupJoinMode, pending: boolean) {
@@ -88,21 +102,25 @@ export function groupHomeJoinDoor(input: {
   return null;
 }
 
-export function groupJoinToast(door: GroupJoinDoor) {
-  return door === "requestJoin" ? "Requested to join" : "Joined Group";
+export function groupJoinToast(door: GroupJoinDoor, locale: Locale) {
+  const m = messagesFor(locale).group.join.toast;
+  return door === "requestJoin" ? m.requested : m.joined;
 }
 
-export function groupLeaveToast(communityId: string | null | undefined) {
-  return communityId
-    ? "Left Group — you remain in the Community"
-    : "Left Group";
+export function groupLeaveToast(
+  communityId: string | null | undefined,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.join.toast;
+  return communityId ? m.leftClub : m.left;
 }
 
-export function groupLeaveConfirm(groupName: string) {
+export function groupLeaveConfirm(groupName: string, locale: Locale) {
+  const m = messagesFor(locale).group.join.leaveConfirm;
   return {
-    title: `Leave ${groupName}?`,
-    description: "You will leave this Group.",
-    confirmLabel: "Leave Group",
+    title: m.title(groupName),
+    description: m.description,
+    confirmLabel: m.confirmLabel,
   };
 }
 
@@ -114,17 +132,19 @@ export function groupHomeBanner(input: {
   communityId: string | null;
   communityName: string | null;
   joinMode: string;
+  locale: Locale;
 }): GroupHomeBanner | null {
+  const m = messagesFor(input.locale).group.join.banner;
   if (input.isCommunityArchived && !input.hasCommunityMembership) {
     return {
-      heading: "This Club Group's Community is Soft-archived",
-      body: "It is not open for join. Members of the Community can still open history and Games. This is not a missing page.",
+      heading: m.archivedVisitor.heading,
+      body: m.archivedVisitor.body,
     };
   }
   if (input.isCommunityArchived) {
     return {
-      heading: "Community Soft-archived",
-      body: "This Club Group stays attached to its Community. You can still open it and see history and Games while the Community is archived.",
+      heading: m.archivedMember.heading,
+      body: m.archivedMember.body,
     };
   }
   if (
@@ -134,7 +154,7 @@ export function groupHomeBanner(input: {
   ) {
     return {
       heading: null,
-      body: `If approved, you also become a Member of ${input.communityName ?? "this Community"}.`,
+      body: m.approvalJoinsCommunity(input.communityName ?? m.thisCommunity),
     };
   }
   return null;

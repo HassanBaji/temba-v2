@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -24,6 +25,7 @@ export async function updateGameSeason(
     userId: string;
     seasonId: string | null;
     now?: Date;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
@@ -42,6 +44,7 @@ export async function updateGameSeason(
   }
   const season = await resolveGameSeasonLink(database, {
     game,
+    locale: args.locale ?? DEFAULT_LOCALE,
     seasonId: args.seasonId,
     windowStart: game.windowStart,
     now: args.now ?? new Date(),
@@ -66,5 +69,6 @@ export const updateSeason = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       seasonId: input.seasonId,
+      locale: ctx.locale,
     });
   });

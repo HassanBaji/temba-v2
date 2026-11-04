@@ -2,7 +2,7 @@ import { games, GameFormatEnum, matches, user, venues } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { GENERIC_TEMBA_OPEN_GRAPH } from "@repo/domain/game-invite-open-graph";
+import { genericTembaOpenGraph } from "@repo/domain/game-invite-open-graph";
 import { mintLink } from "#src/invites/doors";
 import { loadGameInviteOpenGraph } from "#src/invites/game-invite-open-graph";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -69,25 +69,29 @@ describe("loadGameInviteOpenGraph", () => {
       if (!minted.ok) {
         return;
       }
-      const live = await loadGameInviteOpenGraph(db, minted.link.shortCode!);
+      const live = await loadGameInviteOpenGraph(
+        db,
+        minted.link.shortCode!,
+        "en",
+      );
       expect(live.title).toBe("Ocean Padel");
       expect(live.description).toContain("0/4 sitting");
       expect(live.description).not.toMatch(/Test User|og-owner/);
 
-      expect(await loadGameInviteOpenGraph(db, "0O1ILUAB")).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
+      expect(await loadGameInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual(
+        genericTembaOpenGraph("en"),
       );
-      expect(await loadGameInviteOpenGraph(db, "ZZZZZZZZ")).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
+      expect(await loadGameInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual(
+        genericTembaOpenGraph("en"),
       );
 
       await db
         .update(games)
         .set({ cancelledAt: new Date() })
         .where(eq(games.id, game.id));
-      expect(await loadGameInviteOpenGraph(db, minted.link.shortCode!)).toEqual(
-        GENERIC_TEMBA_OPEN_GRAPH,
-      );
+      expect(
+        await loadGameInviteOpenGraph(db, minted.link.shortCode!, "en"),
+      ).toEqual(genericTembaOpenGraph("en"));
     } finally {
       await close();
     }

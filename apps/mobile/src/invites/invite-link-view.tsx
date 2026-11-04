@@ -5,7 +5,6 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import {
-  INVITE_JOIN_WAITLIST_LABEL,
   gameInviteLinkStage,
   gameInviteSeatCopy,
   gameInviteSeatState,
@@ -26,16 +25,13 @@ import {
   formatLevelRangeLabel,
 } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
-import {
-  PARTNER_REQUIRED_INVITE_LANDING_COPY,
-  PARTNER_REQUIRED_INVITE_LANDING_CTA,
-} from "@repo/domain/tournament-join";
 import { useState } from "react";
 import { View } from "react-native";
 
 import { FootballJoinSheet } from "../football/join-sheet";
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Skeleton } from "../primitives/skeleton";
@@ -67,8 +63,9 @@ function Outcome({
   kind: InviteKind;
   onGoHome: () => void;
 }) {
-  const copy = inviteOutcomeCopy(outcome, inviteKindLabel(kind));
-  const action = inviteOutcomeAction(true);
+  const locale = useLocale();
+  const copy = inviteOutcomeCopy(outcome, inviteKindLabel(kind), locale);
+  const action = inviteOutcomeAction(true, locale);
   return (
     <Surface style={{ gap: 8 }}>
       <Text size="h2" weight="bold" accessibilityRole="header">
@@ -91,16 +88,17 @@ function Hero({
   name: string;
   note?: string | null;
 }) {
+  const m = useMessages();
   return (
     <Surface tone="ink" style={{ gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={name} size="lg" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text size="h2" weight="bold" accessibilityRole="header">
-            Join {name}
+            {m.invite.link.joinLabel(name)}
           </Text>
           <Text size="eyebrow" tone="muted" mono uppercase>
-            {inviteKindLabel(kind)}
+            {m.invite.kind[kind]}
           </Text>
         </View>
       </View>
@@ -122,12 +120,13 @@ function SimpleReady({
   pending: boolean;
   onAccept: InviteLinkViewProps["onAccept"];
 }) {
+  const locale = useLocale();
   return (
     <View style={{ gap: spacing.compact }}>
       <Hero kind={kind} name={name} />
       <View style={{ flexDirection: "row" }}>
         <Button
-          label={inviteLinkJoinLabel(name, requiresApproval)}
+          label={inviteLinkJoinLabel(name, locale, requiresApproval)}
           size="lg"
           pending={pending}
           onPress={() => onAccept()}
@@ -147,13 +146,15 @@ function FootballReady({
   props: InviteLinkViewProps;
 }) {
   const [open, setOpen] = useState(true);
-  const subtitle = footballInviteJoinSubtitle(football);
+  const m = useMessages();
+  const locale = useLocale();
+  const subtitle = footballInviteJoinSubtitle(football, locale);
   return (
     <View style={{ gap: spacing.compact }}>
       <Hero kind="game" name={name} note={subtitle} />
       <View style={{ flexDirection: "row" }}>
         <Button
-          label="Choose how you play"
+          label={m.mobileCommunity.inviteLink.chooseHowYouPlay}
           size="lg"
           onPress={() => setOpen(true)}
         />
@@ -164,8 +165,12 @@ function FootballReady({
         subtitle={subtitle}
         players={football.players}
         viewer={football.preferred}
-        price={formatPricePerPlayerFils(football.pricePerPlayerFils)}
-        teamsLine={football.teamsSet ? "Set" : "Made by the organizer"}
+        price={formatPricePerPlayerFils(football.pricePerPlayerFils, locale)}
+        teamsLine={
+          football.teamsSet
+            ? m.mobileCommunity.inviteLink.teamsSet
+            : m.mobileCommunity.inviteLink.teamsByOrganizer
+        }
         pending={props.acceptPending}
         error={props.acceptError}
         onClose={() => setOpen(false)}
@@ -182,10 +187,13 @@ function GameReady({
   game: GameInviteLinkReady;
   props: InviteLinkViewProps;
 }) {
-  const name = game.gameName ?? "Game";
+  const m = useMessages();
+  const locale = useLocale();
+  const name = game.gameName ?? m.invite.kind.game;
   const rangeLabel = formatLevelRangeLabel(
     game.levelMinTenths,
     game.levelMaxTenths,
+    locale,
   );
   const stage = gameInviteLinkStage(game, true);
   const seatState = gameInviteSeatState({
@@ -198,13 +206,22 @@ function GameReady({
       requestStatus: game.levelRangeRequest?.status ?? null,
       canRequest: game.canRequestLevelRange,
       requesting: props.requestPending,
+      locale,
     });
     return (
       <View style={{ gap: spacing.compact }}>
         <Hero
           kind="game"
           name={name}
-          note={[rangeLabel, formatLevelRangeGateCopy(game)]
+          note={[
+            rangeLabel,
+            formatLevelRangeGateCopy({
+              levelMinTenths: game.levelMinTenths,
+              levelMaxTenths: game.levelMaxTenths,
+              viewerLevelTenths: game.viewerLevelTenths,
+              locale,
+            }),
+          ]
             .filter(Boolean)
             .join(". ")}
         />
@@ -230,11 +247,11 @@ function GameReady({
         <Hero
           kind="game"
           name={name}
-          note={PARTNER_REQUIRED_INVITE_LANDING_COPY}
+          note={m.tournament.join.partnerInviteLanding}
         />
         <View style={{ flexDirection: "row" }}>
           <Button
-            label={PARTNER_REQUIRED_INVITE_LANDING_CTA}
+            label={m.tournament.join.pickAPartner}
             size="lg"
             onPress={() => props.onPickPartner(game.gameId)}
           />
@@ -249,7 +266,7 @@ function GameReady({
         <Hero
           kind="game"
           name={name}
-          note={gameInviteSeatCopy(seatState, "link")}
+          note={gameInviteSeatCopy(seatState, "link", locale)}
         />
         <Surface padded={false} style={{ paddingHorizontal: spacing.surface }}>
           <SeatChoice
@@ -264,7 +281,7 @@ function GameReady({
         {seatState.waitlistOnly ? (
           <View style={{ flexDirection: "row" }}>
             <Button
-              label={INVITE_JOIN_WAITLIST_LABEL}
+              label={m.invite.inbox.joinWaitlistLabel}
               size="lg"
               pending={props.acceptPending}
               onPress={() => props.onAccept()}
@@ -284,7 +301,7 @@ function GameReady({
       <Hero kind="game" name={name} note={rangeLabel} />
       <View style={{ flexDirection: "row" }}>
         <Button
-          label={`Join ${name}`}
+          label={m.invite.link.joinLabel(name)}
           size="lg"
           pending={props.acceptPending}
           onPress={() => props.onAccept()}
@@ -296,10 +313,14 @@ function GameReady({
 
 export function InviteLinkView(props: InviteLinkViewProps) {
   const { preview, kind } = props;
+  const m = useMessages();
 
   if (preview.status === "loading") {
     return (
-      <View style={{ gap: 12 }} accessibilityLabel="Loading invite">
+      <View
+        style={{ gap: 12 }}
+        accessibilityLabel={m.mobileCommunity.inviteLink.loadingA11y}
+      >
         <Skeleton height={120} radius={16} />
         <Skeleton height={52} radius={12} />
       </View>
@@ -309,8 +330,8 @@ export function InviteLinkView(props: InviteLinkViewProps) {
     return (
       <Notice
         alert
-        title="Couldn't load this invite"
-        description="Check your connection and try again."
+        title={m.mobileCommunity.inviteLink.loadErrorTitle}
+        description={m.mobileCommunity.inviteLink.loadErrorDescription}
         onRetry={props.onRetry}
       />
     );

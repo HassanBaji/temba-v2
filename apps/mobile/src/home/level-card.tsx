@@ -1,9 +1,10 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import { SPORT_LABELS, type Sport } from "@repo/domain/sport";
+import { type Sport } from "@repo/domain/sport";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react-native";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { MountFill } from "../primitives/mount-fill";
@@ -53,8 +54,10 @@ export function LevelCard({
 }
 
 function NoLevel({ sport }: { sport: Sport }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
-    <Card title="Level" meta={SPORT_LABELS[sport]} monoMeta>
+    <Card title={m.common.level} meta={m.common[sport]} monoMeta>
       <View
         style={{
           flexDirection: "row",
@@ -69,10 +72,10 @@ function NoLevel({ sport }: { sport: Sport }) {
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
           <Text size="lead" weight="semibold">
-            No Level yet
+            {m.profile.levelCard.noLevelYet}
           </Text>
           <Text size="meta" tone="muted">
-            {noLevelCopy(sport)}
+            {noLevelCopy(sport, locale)}
           </Text>
         </View>
       </View>
@@ -81,12 +84,14 @@ function NoLevel({ sport }: { sport: Sport }) {
 }
 
 function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
+  const m = useMessages();
+  const locale = useLocale();
   const palette = useTonePalette();
-  const view = homeLevelView(input);
+  const view = homeLevelView(input, locale);
   const ChangeIcon = view.change ? CHANGE_ICONS[view.change.direction] : null;
 
   return (
-    <Card title="Level" meta={SPORT_LABELS[sport]} monoMeta>
+    <Card title={m.common.level} meta={m.common[sport]} monoMeta>
       <View
         style={{
           flexDirection: "row",
@@ -100,7 +105,7 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
           size="levelBand"
           width="expanded"
           weight="bold"
-          accessibilityLabel={`Level band ${view.displayBand}`}
+          accessibilityLabel={m.mobileHome.level.bandSpoken(view.displayBand)}
         >
           {view.displayBand}
         </Text>
@@ -115,13 +120,17 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
               {view.level}
             </Text>
             <Text size="meta" tone="muted">
-              Level
+              {m.common.level}
             </Text>
           </View>
           {view.change && ChangeIcon ? (
             <View
               accessible
-              accessibilityLabel={`${view.change.spoken} ${view.change.amount}, ${view.change.windowLabel}`}
+              accessibilityLabel={m.mobileHome.level.changeSpoken(
+                view.change.spoken,
+                view.change.amount,
+                view.change.windowLabel,
+              )}
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
               <ChangeIcon size={sizes.iconAction} color={palette.foreground} />
@@ -157,7 +166,7 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
         <View
           style={{ paddingHorizontal: spacing.surface, paddingVertical: 12 }}
         >
-          <Text size="meta">Top Level band</Text>
+          <Text size="meta">{m.profile.level.topBand}</Text>
         </View>
       )}
       <Hairline />

@@ -7,6 +7,7 @@ import { AuthLoading } from "../auth/auth-loading";
 import { AuthScreen } from "../auth/auth-screen";
 import { fieldError } from "../auth/clerk-forms";
 import { FormErrorSummary } from "../auth/form-error-summary";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError, type SplitFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { TextField } from "../primitives/text-field";
@@ -14,6 +15,8 @@ import { api } from "../trpc/react";
 import { backToChecklist } from "./task-navigation";
 
 export function NameTaskScreen() {
+  const m = useMessages();
+  const locale = useLocale();
   const { user, isLoaded } = useUser();
   const utils = api.useUtils();
   const setName = api.users.setName.useMutation();
@@ -26,7 +29,7 @@ export function NameTaskScreen() {
     if (pending || !user) {
       return;
     }
-    const names = validateUserNames({ firstName, lastName });
+    const names = validateUserNames({ firstName, lastName }, locale);
     if (!names.ok) {
       setSplit({ fieldErrors: names.fieldErrors, globalMessage: null });
       return;
@@ -39,7 +42,7 @@ export function NameTaskScreen() {
         lastName: names.lastName,
       });
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
       setPending(false);
       return;
     }
@@ -53,7 +56,7 @@ export function NameTaskScreen() {
     } catch (err) {
       setSplit(
         splitTrpcFormError(
-          err instanceof Error ? err : new Error("Something went wrong."),
+          err instanceof Error ? err : new Error(m.common.somethingWentWrong),
         ),
       );
       setPending(false);
@@ -67,12 +70,12 @@ export function NameTaskScreen() {
   return (
     <AuthScreen
       onBack={backToChecklist}
-      meta="Profile / Name"
-      title="What should we call you?"
-      description="Shown to organizers and the people you play with."
+      meta={m.mobileHome.nameTask.meta}
+      title={m.mobileHome.nameForm.title}
+      description={m.profile.checklist.tasks.name.description}
       action={
         <Button
-          label="Save name"
+          label={m.mobileHome.nameTask.save}
           size="lg"
           pending={pending}
           onPress={() => void onSave()}
@@ -81,7 +84,7 @@ export function NameTaskScreen() {
     >
       <FormErrorSummary message={split?.globalMessage} />
       <TextField
-        label="First name"
+        label={m.mobileHome.fields.firstName}
         autoComplete="given-name"
         textContentType="givenName"
         autoFocus
@@ -91,7 +94,7 @@ export function NameTaskScreen() {
         error={fieldError(split, "firstName", "first_name")}
       />
       <TextField
-        label="Last name"
+        label={m.mobileHome.fields.lastName}
         autoComplete="family-name"
         textContentType="familyName"
         value={lastName}

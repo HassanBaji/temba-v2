@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -20,6 +21,7 @@ export async function updateGameName(
     gameId: string;
     userId: string;
     customName: string | null;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
@@ -41,7 +43,13 @@ export async function updateGameName(
   await database
     .update(games)
     .set({
-      name: customName ?? gameWindowLabel(game.windowStart, game.windowEnd),
+      name:
+        customName ??
+        gameWindowLabel(
+          game.windowStart,
+          game.windowEnd,
+          args.locale ?? DEFAULT_LOCALE,
+        ),
       hasCustomName: customName != null,
       updatedAt: new Date(),
     })
@@ -62,5 +70,6 @@ export const updateName = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       customName: input.customName,
+      locale: ctx.locale,
     });
   });

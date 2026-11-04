@@ -1,9 +1,10 @@
 import { Shuffle, Trophy } from "lucide-react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { SelectCard, SelectCardNote } from "~/components/ui/select-card";
 import {
-  CREATE_GAME_TYPE_CARDS,
+  createGameTypeCards,
   type CreateGameTypeId,
 } from "@repo/domain/create-game-flow";
 
@@ -21,17 +22,19 @@ export function TypeStep({
   error?: string;
   onSelect: (type: CreateGameTypeId) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="flex flex-col gap-3">
       <RovingRadioGroup
         id="game-type"
-        aria-label="Game type"
+        aria-label={m.webDashboard.createGame.gameType}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? "game-type-error" : undefined}
         tabIndex={-1}
         className="flex flex-col gap-3 outline-none"
       >
-        {CREATE_GAME_TYPE_CARDS.map((card) => {
+        {createGameTypeCards(locale).map((card) => {
           const selected = selectedType === card.id;
           const Icon = ICONS[card.id];
           return (

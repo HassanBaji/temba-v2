@@ -51,21 +51,48 @@ describe("groupMenuItems", () => {
 describe("groupMenuRoleLine", () => {
   it("names the viewer's standing in the Group", () => {
     expect(
-      groupMenuRoleLine({ isOwner: true, isOrganizer: true, isMember: true }),
+      groupMenuRoleLine({
+        isOwner: true,
+        isOrganizer: true,
+        isMember: true,
+        locale: "en",
+      }),
     ).toBe("You own this Group");
     expect(
-      groupMenuRoleLine({ isOwner: false, isOrganizer: true, isMember: true }),
+      groupMenuRoleLine({
+        isOwner: false,
+        isOrganizer: true,
+        isMember: true,
+        locale: "en",
+      }),
     ).toBe("You organize this Group");
     expect(
-      groupMenuRoleLine({ isOwner: false, isOrganizer: false, isMember: true }),
+      groupMenuRoleLine({
+        isOwner: false,
+        isOrganizer: false,
+        isMember: true,
+        locale: "en",
+      }),
     ).toBe("You are a member");
     expect(
       groupMenuRoleLine({
         isOwner: false,
         isOrganizer: false,
         isMember: false,
+        locale: "en",
       }),
     ).toBeNull();
+  });
+
+  it("reads in Arabic", () => {
+    expect(
+      groupMenuRoleLine({
+        isOwner: true,
+        isOrganizer: true,
+        isMember: true,
+        locale: "ar",
+      }),
+    ).toBe("أنت مالك هذه المجموعة");
   });
 });
 
@@ -111,22 +138,38 @@ describe("groupEditChanges", () => {
 
 describe("joining copy", () => {
   it("counts the requests waiting", () => {
-    expect(groupJoiningToggleHelp(0)).toBe(
+    expect(groupJoiningToggleHelp(0, "en")).toBe(
       "Anyone who finds the Group joins instantly.",
     );
-    expect(groupJoiningToggleHelp(1)).toBe("1 request waiting on Group home.");
-    expect(groupJoiningToggleHelp(2)).toBe("2 requests waiting on Group home.");
+    expect(groupJoiningToggleHelp(1, "en")).toBe(
+      "1 request waiting on Group home.",
+    );
+    expect(groupJoiningToggleHelp(2, "en")).toBe(
+      "2 requests waiting on Group home.",
+    );
   });
 
   it("states the policy in the footer", () => {
     expect(
-      groupJoiningFooter({ visibility: "public", requiresApproval: false }),
+      groupJoiningFooter({
+        visibility: "public",
+        requiresApproval: false,
+        locale: "en",
+      }),
     ).toBe("Anyone can find the Group and joins instantly.");
     expect(
-      groupJoiningFooter({ visibility: "public", requiresApproval: true }),
+      groupJoiningFooter({
+        visibility: "public",
+        requiresApproval: true,
+        locale: "en",
+      }),
     ).toContain("waits for your approval");
     expect(
-      groupJoiningFooter({ visibility: "private", requiresApproval: true }),
+      groupJoiningFooter({
+        visibility: "private",
+        requiresApproval: true,
+        locale: "en",
+      }),
     ).toBe("Only people you invite can join.");
   });
 });
@@ -145,6 +188,7 @@ describe("delete sheet", () => {
       gameCount: 12,
       memberCount: 8,
       seasonCount: 1,
+      locale: "en",
     });
     expect(copy.title).toBe("Delete Gooz of Arad?");
     expect(copy.stats).toEqual([
@@ -156,9 +200,11 @@ describe("delete sheet", () => {
   });
 
   it("matches the typed name ignoring case and whitespace", () => {
-    expect(groupDeleteNameMatches("Gooz of Arad", " gooz OF arad ")).toBe(true);
-    expect(groupDeleteNameMatches("Gooz of Arad", "Gooz")).toBe(false);
-    expect(groupDeleteNameMatches(null, "Untitled Group")).toBe(true);
+    expect(groupDeleteNameMatches("Gooz of Arad", " gooz OF arad ", "en")).toBe(
+      true,
+    );
+    expect(groupDeleteNameMatches("Gooz of Arad", "Gooz", "en")).toBe(false);
+    expect(groupDeleteNameMatches(null, "Untitled Group", "en")).toBe(true);
   });
 });
 
@@ -174,10 +220,12 @@ describe("transfer ownership", () => {
   });
 
   it("names the pick on the confirm button", () => {
-    expect(groupTransferConfirmLabel(null)).toBe("Transfer ownership");
-    expect(groupTransferConfirmLabel("Ali Haji")).toBe("Transfer to Ali H");
-    expect(groupOwnershipTransferredToast("Ali Haji", "Gooz of Arad")).toBe(
-      "Ali Haji now owns Gooz of Arad",
+    expect(groupTransferConfirmLabel(null, "en")).toBe("Transfer ownership");
+    expect(groupTransferConfirmLabel("Ali Haji", "en")).toBe(
+      "Transfer to Ali H",
     );
+    expect(
+      groupOwnershipTransferredToast("Ali Haji", "Gooz of Arad", "en"),
+    ).toBe("Ali Haji now owns Gooz of Arad");
   });
 });

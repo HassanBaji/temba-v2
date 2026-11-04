@@ -4,10 +4,10 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button, type ButtonVariant } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
-import { SOMETHING_WENT_WRONG } from "./clerk-forms";
 import { FormErrorSummary } from "./form-error-summary";
 
 type OAuthOutcome = {
@@ -26,6 +26,8 @@ export function OauthButtons({
   variant?: ButtonVariant;
   divider?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const { startSSOFlow } = useSSO();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,10 +49,10 @@ export function OauthButtons({
         return;
       }
       if (!outcome.cancelled) {
-        setError(SOMETHING_WENT_WRONG.globalMessage);
+        setError(m.auth.clerkError.generic);
       }
     } catch (err) {
-      setError(clerkGlobalErrorMessage(err));
+      setError(clerkGlobalErrorMessage(err, locale));
     } finally {
       setPending(false);
     }
@@ -64,7 +66,7 @@ export function OauthButtons({
             <Hairline />
           </View>
           <Text size="eyebrow" tone="muted" mono>
-            OR
+            {m.mobileHome.oauth.or}
           </Text>
           <View style={{ flex: 1 }}>
             <Hairline />
@@ -73,7 +75,7 @@ export function OauthButtons({
       ) : null}
       <FormErrorSummary message={error} />
       <Button
-        label="Continue with Google"
+        label={m.mobileHome.oauth.continueWithGoogle}
         size="lg"
         variant={variant}
         pending={pending}

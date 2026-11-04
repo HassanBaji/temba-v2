@@ -6,6 +6,7 @@ import {
 } from "@repo/domain/game-result-share";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import type { Messages } from "@repo/i18n/messages";
 import { toPng } from "html-to-image";
 import {
   Image as ImageIcon,
@@ -22,12 +23,13 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
-  COPY_LINK_FAILED_MESSAGE,
+  copyLinkFailedMessage,
   copyTextWhenReady,
   shareOrCopyLink,
 } from "~/lib/share-link";
@@ -56,20 +58,20 @@ type ShareModeCopy = {
   note: string | null;
 };
 
-const SHARE_MODE_COPY: Record<ShareMode, ShareModeCopy> = {
-  story: {
-    format: "1080 × 1920 · STORY",
-    share: "Share image",
-    save: "Save",
-    note: null,
-  },
-  sticker: {
-    format: "TRANSPARENT PNG · STICKER",
-    share: "Share sticker",
-    save: "Save PNG",
-    note: "Only the black card is saved. Drop it on your own photo in the story editor.",
-  },
-};
+function shareModeCopy(
+  mode: ShareMode,
+  m: Messages["webUi"]["shareResult"],
+  save: string,
+): ShareModeCopy {
+  return mode === "story"
+    ? { format: m.storyFormat, share: m.shareImage, save, note: null }
+    : {
+        format: m.stickerFormat,
+        share: m.shareSticker,
+        save: m.savePng,
+        note: m.stickerNote,
+      };
+}
 
 function downloadDataUrl(dataUrl: string, name: string) {
   const anchor = document.createElement("a");
@@ -118,6 +120,9 @@ function usePickedPhoto() {
 }
 
 export function ShareResultPage({ gameId }: { gameId: string }) {
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.webUi.shareResult;
   const [mode, setMode] = React.useState<ShareMode>("story");
   const [full, setFull] = React.useState(false);
   const [pending, setPending] = React.useState<ShareAction | null>(null);
@@ -136,15 +141,19 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   const card = React.useMemo(
     () =>
       game.data
-        ? resultShareCard(game.data, football ? (board.data ?? null) : null)
+        ? resultShareCard(
+            game.data,
+            football ? (board.data ?? null) : null,
+            locale,
+          )
         : null,
-    [game.data, board.data, football],
+    [game.data, board.data, football, locale],
   );
   const url = link.data?.url ?? null;
   const gameHref = `/dashboard/games/${gameId}`;
   const doneAction = (
     <Button variant="ghost" className="font-semibold" asChild>
-      <Link href={gameHref}>Done</Link>
+      <Link href={gameHref}>{messages.common.done}</Link>
     </Button>
   );
 
@@ -153,9 +162,9 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
   if (game.error || (football && board.error)) {
     return (
-      <DashboardShell title="Share result" action={doneAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <ErrorState
-          title="Result could not be loaded"
+          title={m.loadError}
           message={game.error?.message ?? board.error?.message}
           onRetry={() => {
             void game.refetch();
@@ -167,18 +176,18 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
   if (!game.data || (football && !board.data)) {
     return (
-      <DashboardShell title="Share result" action={doneAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <GameDetailsSkeleton />
       </DashboardShell>
     );
   }
   if (!card) {
     return (
-      <DashboardShell title="Share result" action={doneAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <ErrorState
-          title="No result to share yet"
-          message="Once the score is confirmed, the result card is ready here."
-          retryLabel="Check again"
+          title={m.noResultTitle}
+          message={m.noResultMessage}
+          retryLabel={m.checkAgain}
           onRetry={() => {
             void game.refetch();
             void board.refetch();
@@ -188,13 +197,13 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     );
   }
 
-  const copy = SHARE_MODE_COPY[mode];
+  const copy = shareModeCopy(mode, m, messages.common.save);
   const fileName = `temba-result-${mode}.png`;
 
   async function capture() {
     const node = mode === "story" ? storyRef.current : stickerRef.current;
     if (!node) {
-      throw new Error("The card is not ready yet");
+      throw new Error(m.notReady);
     }
     return toPng(node, {
       pixelRatio: 1,
@@ -212,9 +221,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     setPending(action);
     void task()
       .catch((error: unknown) => {
-        toast.error(
-          error instanceof Error ? error.message : "Could not share the result",
-        );
+        toast.error(error instanceof Error ? error.message : m.shareFailed);
       })
       .finally(() => setPending(null));
   }
@@ -246,24 +253,24 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   const copyLink = () =>
     run("copy_link", async () => {
       if (!url) {
-        toast.error("The link is still loading");
+        toast.error(m.linkLoading);
         return;
       }
       try {
         await copyTextWhenReady(Promise.resolve(url));
-        toast.success("Link copied");
+        toast.success(m.linkCopied);
       } catch {
-        toast.error(COPY_LINK_FAILED_MESSAGE);
+        toast.error(copyLinkFailedMessage(locale));
       }
     });
 
   const shareMessage = () =>
     run("share_message", async () => {
       const outcome = await shareOrCopyLink({
-        text: formatResultShareMessage(card, url ?? ""),
+        text: formatResultShareMessage(card, url ?? "", locale),
       });
       if (outcome === "copied") {
-        toast.success("Message copied");
+        toast.success(m.messageCopied);
       }
     });
 
@@ -274,15 +281,15 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   );
 
   return (
-    <DashboardShell title="Share result" action={doneAction} isSubPage>
+    <DashboardShell title={m.title} action={doneAction} isSubPage>
       <div className="mx-auto max-w-[520px] space-y-5">
         <Tabs
           value={mode}
           onValueChange={(value) => setMode(value as ShareMode)}
         >
-          <TabsList variant="soft" aria-label="What to share">
-            <TabsTrigger value="story">Story</TabsTrigger>
-            <TabsTrigger value="sticker">Sticker</TabsTrigger>
+          <TabsList variant="soft" aria-label={m.whatToShare}>
+            <TabsTrigger value="story">{m.story}</TabsTrigger>
+            <TabsTrigger value="sticker">{m.sticker}</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="space-y-2.5">
@@ -304,12 +311,12 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
             action={
               mode === "story"
                 ? {
-                    label: full ? "Fit to screen" : "Full size",
+                    label: full ? m.fitToScreen : m.fullSize,
                     icon: full ? Minimize2 : Maximize2,
                     onClick: () => setFull((current) => !current),
                   }
                 : {
-                    label: photo.url ? "Change photo" : "Try on a photo",
+                    label: photo.url ? m.changePhoto : m.tryOnPhoto,
                     icon: ImageIcon,
                     onClick: photo.pick,
                   }
@@ -340,14 +347,14 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
               onClick={saveImage}
             />
             <ActionTile
-              label="Copy link"
+              label={m.copyLink}
               icon={LinkIcon}
               pending={pending === "copy_link"}
               disabled={pending != null || !url}
               onClick={copyLink}
             />
             <ActionTile
-              label="Message"
+              label={m.message}
               icon={MessageCircle}
               pending={pending === "share_message"}
               disabled={pending != null}

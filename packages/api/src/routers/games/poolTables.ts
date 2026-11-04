@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -21,7 +22,7 @@ export const poolTablesInputSchema = z.object({
 
 export async function listPoolTables(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string; locale?: Locale },
 ): Promise<ComputedPoolTables | null> {
   const game = await requireGame(database, args.gameId);
   if (!(await canViewGame(database, game, args.userId))) {
@@ -60,6 +61,7 @@ export async function listPoolTables(
     format: game.format,
     poolCount: game.poolCount,
     viewerUserId: args.userId,
+    locale: args.locale ?? DEFAULT_LOCALE,
     gameTeams: teamRows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -94,5 +96,6 @@ export const poolTablesProcedure = protectedProcedure
     return listPoolTables(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

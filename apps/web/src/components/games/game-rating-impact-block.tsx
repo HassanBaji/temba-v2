@@ -2,11 +2,8 @@
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
-import {
-  ratingImpactView,
-  UNRATED_GAME_LINE,
-  UNRATED_LABEL,
-} from "@repo/domain/game-rating-impact";
+import { ratingImpactView } from "@repo/domain/game-rating-impact";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { type RouterOutputs } from "~/trpc/react";
 
 export type GameRatingImpactBlockValue = NonNullable<
@@ -42,8 +39,10 @@ export function GameRatingImpactBlock({
 }: {
   ratingImpact: GameRatingImpactBlockValue;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const { direction, magnitude, newLevelLabel, sentence, directionText } =
-    ratingImpactView(ratingImpact);
+    ratingImpactView(ratingImpact, locale);
   const DirectionIcon = DIRECTION_ICON[direction];
 
   return (
@@ -52,26 +51,33 @@ export function GameRatingImpactBlock({
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <h2 className="text-muted-foreground px-[22px] pb-3 pt-[22px] text-sm">
-        Rating impact
+        {m.webGame.ratingImpact.title}
       </h2>
       <div className="divide-rule border-rule flex divide-x border-t px-[22px] pb-[22px]">
-        <div className="mt-4 flex min-w-0 flex-col items-center gap-1 px-3 first:pl-0">
+        <div className="mt-4 flex min-w-0 flex-col items-center gap-1 px-3 first:ps-0">
           <div className="flex items-center gap-1">
-            <DirectionIcon aria-hidden="true" className="size-5 shrink-0" />
+            <DirectionIcon
+              aria-hidden="true"
+              className="size-5 shrink-0 rtl:-scale-x-100"
+            />
             <p className="font-expanded text-2xl tabular-nums leading-none">
               {magnitude}
             </p>
           </div>
           <span className="sr-only">{directionText}</span>
-          <p className="text-muted-foreground text-meta">Change</p>
+          <p className="text-muted-foreground text-meta">
+            {m.webGame.ratingImpact.change}
+          </p>
         </div>
         <div className="mt-4 flex min-w-0 flex-col items-center gap-1 px-3">
           <p className="font-expanded text-2xl tabular-nums leading-none">
             {newLevelLabel}
           </p>
-          <p className="text-muted-foreground text-meta">New level</p>
+          <p className="text-muted-foreground text-meta">
+            {m.webGame.ratingImpact.newLevel}
+          </p>
         </div>
-        <div className="mt-4 flex min-w-0 flex-1 items-center px-3 last:pr-0">
+        <div className="mt-4 flex min-w-0 flex-1 items-center px-3 last:pe-0">
           <p className="text-meta">{sentence}</p>
         </div>
       </div>
@@ -80,14 +86,17 @@ export function GameRatingImpactBlock({
 }
 
 export function GameUnratedBlock() {
+  const m = useMessages();
   return (
     <section
       data-slot="game-unrated-block"
       className="border-rule bg-paper overflow-hidden rounded-xl border"
     >
       <div className="flex flex-col gap-1 px-[22px] py-[18px]">
-        <h2 className="text-sm font-semibold">{UNRATED_LABEL}</h2>
-        <p className="text-muted-foreground text-meta">{UNRATED_GAME_LINE}</p>
+        <h2 className="text-sm font-semibold">{m.common.unrated}</h2>
+        <p className="text-muted-foreground text-meta">
+          {m.game.rating.unratedGameLine}
+        </p>
       </div>
     </section>
   );

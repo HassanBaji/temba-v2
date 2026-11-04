@@ -17,14 +17,14 @@ function clerkError(code: string, message: string, paramName?: string) {
 
 describe("resolvePhone", () => {
   it("assembles a phone number to E.164", () => {
-    expect(resolvePhone("BH", "3612 4408", "identifier")).toEqual({
+    expect(resolvePhone("BH", "3612 4408", "identifier", "en")).toEqual({
       ok: true,
       e164: "+97336124408",
     });
   });
 
   it("uses the web format message for a short number", () => {
-    expect(resolvePhone("BH", "361", "identifier")).toEqual({
+    expect(resolvePhone("BH", "361", "identifier", "en")).toEqual({
       ok: false,
       split: {
         fieldErrors: {
@@ -34,6 +34,15 @@ describe("resolvePhone", () => {
         globalMessage: null,
       },
     });
+  });
+
+  it("reads the format message from the Arabic catalog", () => {
+    const result = resolvePhone("BH", "361", "identifier", "ar");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.split.fieldErrors.identifier).toBe(
+      "يبدو أن هناك خطأ. تحقق من الصيغة وحاول مرة أخرى.",
+    );
   });
 });
 
@@ -97,7 +106,7 @@ describe("buildContinuePayload", () => {
 
   it("sends only the missing fields", () => {
     expect(
-      buildContinuePayload(["first_name", "phone_number"], values),
+      buildContinuePayload(["first_name", "phone_number"], values, "en"),
     ).toEqual({
       ok: true,
       payload: { firstName: "Sam", phoneNumber: "+97336124408" },
@@ -105,10 +114,11 @@ describe("buildContinuePayload", () => {
   });
 
   it("rejects a malformed phone number before calling Clerk", () => {
-    const result = buildContinuePayload(["phone_number"], {
-      ...values,
-      national: "12",
-    });
+    const result = buildContinuePayload(
+      ["phone_number"],
+      { ...values, national: "12" },
+      "en",
+    );
     expect(result.ok).toBe(false);
   });
 });

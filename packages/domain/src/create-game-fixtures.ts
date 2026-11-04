@@ -57,7 +57,7 @@ export function createCreateGameFixtures(
   const riffa = venue("venue-riffa", "Riffa Padel", "Riffa", 2);
   const budaiya = venue("venue-budaiya", "Budaiya Courts", "Budaiya", 1);
 
-  const base = initialCreateGameDraft(now);
+  const base = initialCreateGameDraft(now, "en");
   const where = {
     ...base,
     groupId: "group-friends",

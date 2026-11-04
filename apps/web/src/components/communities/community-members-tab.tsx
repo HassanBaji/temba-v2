@@ -7,6 +7,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -18,11 +19,6 @@ import {
 } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
-  COMMUNITY_INVITE_BLOCK_COPY,
-  COMMUNITY_MEMBERS_ERROR_TITLE,
-  COMMUNITY_MEMBERS_NO_MATCH_COPY,
-  COMMUNITY_NO_MEMBERS_EMPTY,
-  COMMUNITY_ROLE_LABELS,
   communityMemberList,
   communityRoleChangeAction,
 } from "@repo/domain/community";
@@ -55,20 +51,21 @@ const OTHER_TILE =
   "border-rule border [&_[data-slot=avatar-fallback]]:bg-paper [&_[data-slot=avatar-fallback]]:text-ink";
 
 function InviteBlock({ onInvite }: { onInvite: () => void }) {
+  const m = useMessages();
   return (
     <section className="border-rule rounded-[14px] border p-5">
       <h2 className="text-body font-semibold">
-        {COMMUNITY_INVITE_BLOCK_COPY.title}
+        {m.community.inviteBlock.title}
       </h2>
       <p className="text-meta text-muted-foreground mt-1.5">
-        {COMMUNITY_INVITE_BLOCK_COPY.description}
+        {m.community.inviteBlock.description}
       </p>
       <Button
         type="button"
         onClick={onInvite}
         className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
       >
-        {COMMUNITY_INVITE_BLOCK_COPY.action}
+        {m.community.inviteBlock.action}
       </Button>
     </section>
   );
@@ -118,6 +115,8 @@ export function CommunityMembersTab({
   canInvite: boolean;
   onInvite: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingChange, setPendingChange] = useState<
     (CommunityRoleChange & { userId: string }) | null
@@ -149,7 +148,7 @@ export function CommunityMembersTab({
   if (errorMessage) {
     return (
       <ErrorState
-        title={COMMUNITY_MEMBERS_ERROR_TITLE}
+        title={m.community.membersErrorTitle}
         message={errorMessage}
         onRetry={onRetry}
       />
@@ -157,13 +156,14 @@ export function CommunityMembersTab({
   }
 
   if (!members || members.length === 0) {
-    return <EmptyState icon={Users} {...COMMUNITY_NO_MEMBERS_EMPTY} />;
+    return <EmptyState icon={Users} {...m.community.noMembersEmpty} />;
   }
 
   const { showSearch, rows } = communityMemberList(
     members,
     viewerUserId,
     query,
+    locale,
   );
   const memberById = new Map(members.map((member) => [member.id, member]));
 
@@ -179,13 +179,13 @@ export function CommunityMembersTab({
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search members"
-          aria-label="Search members"
+          placeholder={m.webGroup.searchMembers}
+          aria-label={m.webGroup.searchMembers}
         />
       ) : null}
       {rows.length === 0 ? (
         <p className="text-body text-muted-foreground py-6 text-center">
-          {COMMUNITY_MEMBERS_NO_MATCH_COPY}
+          {m.community.membersNoMatch}
         </p>
       ) : (
         <ul className="divide-rule border-rule divide-y overflow-hidden rounded-[14px] border">
@@ -241,7 +241,7 @@ export function CommunityMembersTab({
                   >
                     <SelectTrigger
                       id={selectId}
-                      aria-label={`Role for ${name}`}
+                      aria-label={m.webGroup.members.roleFor(name)}
                       className="border-rule bg-paper dark:bg-paper w-28 shrink-0 rounded-[10px] px-3 text-sm data-[size=default]:h-10 data-[size=default]:min-h-10"
                       onKeyDown={blockClosedTypeahead}
                     >
@@ -250,7 +250,7 @@ export function CommunityMembersTab({
                     <SelectContent>
                       {COMMUNITY_ROLES.map((role) => (
                         <SelectItem key={role} value={role}>
-                          {COMMUNITY_ROLE_LABELS[role]}
+                          {m.community.role[role]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -270,7 +270,7 @@ export function CommunityMembersTab({
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          {...roleChangeConfirmCopy(pendingChange)}
+          {...roleChangeConfirmCopy(pendingChange, locale)}
           variant={pendingChange.isSelf ? "destructive" : "default"}
           pending={rolePending}
           restoreFocusRef={roleTriggerRef}

@@ -10,6 +10,7 @@ import {
   venueOptionLabel,
   type VenueSelectOption,
 } from "@repo/domain/game-venue-select";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function GameVenueSelect({
@@ -21,7 +22,7 @@ export function GameVenueSelect({
   pending = false,
   error = false,
   describedBy,
-  placeholder = "Select a Venue",
+  placeholder,
 }: {
   id: string;
   venues: VenueSelectOption[];
@@ -33,6 +34,7 @@ export function GameVenueSelect({
   describedBy?: string;
   placeholder?: string;
 }) {
+  const m = useMessages();
   const listId = `${id}-list`;
   const rootRef = React.useRef<HTMLDivElement>(null);
   const [open, setOpen] = React.useState(false);
@@ -98,7 +100,7 @@ export function GameVenueSelect({
         aria-describedby={describedBy}
         autoComplete="off"
         disabled={disabled}
-        placeholder={placeholder}
+        placeholder={placeholder ?? m.webGame.venueSelect.placeholder}
         value={query}
         onChange={(event) => {
           const nextQuery = event.target.value;
@@ -139,11 +141,11 @@ export function GameVenueSelect({
             }
           }
         }}
-        className="pr-10"
+        className="pe-10"
       />
       <ChevronDown
         aria-hidden="true"
-        className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2"
+        className="text-muted-foreground pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2"
       />
 
       {open && !disabled ? (
@@ -154,12 +156,14 @@ export function GameVenueSelect({
         >
           {pending && venues.length === 0 ? (
             <p className="text-muted-foreground text-body px-3 py-3">
-              Loading…
+              {m.common.loading}
             </p>
           ) : null}
           {!pending && filtered.length === 0 ? (
             <p className="text-muted-foreground text-body px-3 py-3">
-              {venues.length === 0 ? "No live Venues." : "No Venues match."}
+              {venues.length === 0
+                ? m.webGame.venueSelect.noLiveVenues
+                : m.webGame.venueSelect.noMatch}
             </p>
           ) : null}
           {filtered.map((venue) => {
@@ -171,7 +175,7 @@ export function GameVenueSelect({
                 role="option"
                 aria-selected={isSelected}
                 className={cn(
-                  "hover:bg-accent hover:text-accent-foreground text-body flex w-full px-3 py-2 text-left outline-none",
+                  "hover:bg-accent hover:text-accent-foreground text-body flex w-full px-3 py-2 text-start outline-none",
                   "focus-visible:bg-accent focus-visible:text-accent-foreground",
                   isSelected && "bg-accent text-accent-foreground",
                 )}

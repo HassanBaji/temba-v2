@@ -36,16 +36,16 @@ function match(
 
 describe("courtSpotsLabel", () => {
   it("counts open spots and says when the court is full", () => {
-    assert.equal(courtSpotsLabel(4), "4 spots open");
-    assert.equal(courtSpotsLabel(1), "1 spot open");
-    assert.equal(courtSpotsLabel(0), "Court full");
+    assert.equal(courtSpotsLabel(4, "en"), "4 spots open");
+    assert.equal(courtSpotsLabel(1, "en"), "1 spot open");
+    assert.equal(courtSpotsLabel(0, "en"), "Court full");
   });
 });
 
 describe("courtSeatSubline", () => {
   it("names the side of the court, then the level when there is one", () => {
-    assert.equal(courtSeatSubline("left", null), "Left");
-    assert.match(courtSeatSubline("right", "B"), /^Right · /);
+    assert.equal(courtSeatSubline("left", null, "en"), "Left");
+    assert.match(courtSeatSubline("right", "B", "en"), /^Right · /);
   });
 });
 
@@ -60,12 +60,13 @@ describe("courtSeatRow", () => {
       },
       "left",
       "u1",
+      "en",
     );
     assert.equal(row.name, "You");
     assert.equal(row.fullName, "Hassan Baji");
     assert.equal(row.meta, "LEFT");
     assert.equal(row.unclaimed, false);
-    assert.equal(courtSeatName(row), "Hassan B (You)");
+    assert.equal(courtSeatName(row, "en"), "Hassan B (You)");
   });
 });
 
@@ -76,6 +77,7 @@ describe("courtFigures", () => {
       seatCount: 4,
       durationInMinutes: 90,
       pricePerPlayerFils: null,
+      locale: "en",
     });
     assert.deepEqual(
       figures.map((figure) => [figure.value, figure.label, figure.unset]),
@@ -93,6 +95,7 @@ describe("courtFigures", () => {
       seatCount: 4,
       durationInMinutes: null,
       pricePerPlayerFils: 0,
+      locale: "en",
     })[2];
     assert.equal(price?.value, "Free");
     assert.equal(price?.label, "Per player");
@@ -101,30 +104,33 @@ describe("courtFigures", () => {
 
 describe("score copy", () => {
   it("says why the score is locked", () => {
-    assert.match(scoreLockedLine(false), /court is full/);
-    assert.doesNotMatch(scoreLockedLine(true), /court is full/);
+    assert.match(scoreLockedLine(false, "en"), /court is full/);
+    assert.doesNotMatch(scoreLockedLine(true, "en"), /court is full/);
   });
 
   it("describes the Set count and the decider", () => {
-    assert.equal(scoreSetsMeta(3), "Best of 3 sets");
-    assert.equal(scoreSetsMeta(1), "1 set");
-    assert.equal(scoreSetsMeta(2), "2 sets");
-    assert.equal(scoreDeciderNote(3), "Set 3 only if it's 1–1.");
-    assert.equal(scoreDeciderNote(1), null);
+    assert.equal(scoreSetsMeta(3, "en"), "Best of 3 sets");
+    assert.equal(scoreSetsMeta(1, "en"), "1 set");
+    assert.equal(scoreSetsMeta(2, "en"), "2 sets");
+    assert.equal(scoreDeciderNote(3, "en"), "Set 3 only if it's 1–1.");
+    assert.equal(scoreDeciderNote(1, "en"), null);
   });
 });
 
 describe("scoreTeamFirstNames", () => {
   it("pairs first names and marks an open spot", () => {
     assert.equal(
-      scoreTeamFirstNames({
-        left: { name: "Hassan Baji" },
-        right: { name: "Ali Mahmood" },
-      }),
+      scoreTeamFirstNames(
+        {
+          left: { name: "Hassan Baji" },
+          right: { name: "Ali Mahmood" },
+        },
+        "en",
+      ),
       "Hassan & Ali",
     );
     assert.equal(
-      scoreTeamFirstNames({ left: { name: "Maya" }, right: null }),
+      scoreTeamFirstNames({ left: { name: "Maya" }, right: null }, "en"),
       "Maya & Open",
     );
   });
@@ -139,6 +145,7 @@ describe("scoreLeadLine", () => {
           [null, null],
         ]),
         "team-a",
+        "en",
       ),
       null,
     );
@@ -149,13 +156,13 @@ describe("scoreLeadLine", () => {
       [6, 4],
       [null, null],
     ]);
-    assert.equal(scoreLeadLine(oneNil, "team-a"), "Your team leads 1–0");
-    assert.equal(scoreLeadLine(oneNil, "team-b"), "Your team trails 0–1");
+    assert.equal(scoreLeadLine(oneNil, "team-a", "en"), "Your team leads 1–0");
+    assert.equal(scoreLeadLine(oneNil, "team-b", "en"), "Your team trails 0–1");
   });
 
   it("reads from Team A for someone who did not play", () => {
     const nilOne = match(0, 1, [[3, 6]]);
-    assert.equal(scoreLeadLine(nilOne, null), "Team A trails 0–1");
+    assert.equal(scoreLeadLine(nilOne, null, "en"), "Team A trails 0–1");
     assert.equal(
       scoreLeadLine(
         match(1, 1, [
@@ -163,8 +170,20 @@ describe("scoreLeadLine", () => {
           [4, 6],
         ]),
         "x",
+        "en",
       ),
       "Level at 1–1",
+    );
+  });
+});
+
+describe("court copy in Arabic", () => {
+  it("counts spots and reads the lead in Arabic", () => {
+    assert.equal(courtSpotsLabel(2, "ar"), "مكانان شاغران");
+    assert.equal(courtSpotsLabel(0, "ar"), "الملعب ممتلئ");
+    assert.equal(
+      scoreLeadLine(match(1, 0, [[6, 4]]), "team-a", "ar"),
+      "فريقك متقدم 1–0",
     );
   });
 });

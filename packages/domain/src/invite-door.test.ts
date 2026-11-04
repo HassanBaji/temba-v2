@@ -27,6 +27,7 @@ describe("lookupResultView", () => {
           email: "a@x.io",
         },
         true,
+        "en",
       ),
     ).toEqual({
       id: "u",
@@ -34,7 +35,9 @@ describe("lookupResultView", () => {
       meta: "@ada, Group member",
       accessibilityLabel: "Ada, @ada, Group member, invited",
     });
-    expect(lookupResultView({ id: "u", name: "Kim" }, false)).toMatchObject({
+    expect(
+      lookupResultView({ id: "u", name: "Kim" }, false, "en"),
+    ).toMatchObject({
       meta: null,
       accessibilityLabel: "Kim",
     });
@@ -60,44 +63,53 @@ describe("inviteModes", () => {
 
 describe("invite sheet copy", () => {
   it("names the sheet for its door", () => {
-    expect(inviteSheetTitle("game")).toBe("Invite players");
-    expect(inviteSheetTitle("team")).toBe("Invite your partner");
+    expect(inviteSheetTitle("game", "en")).toBe("Invite players");
+    expect(inviteSheetTitle("team", "en")).toBe("Invite your partner");
   });
 
   it("switches the list heading when searching", () => {
-    expect(playersHeading("  ")).toBe("Suggested");
-    expect(playersHeading("nor")).toBe("Results");
+    expect(playersHeading("  ", "en")).toBe("Suggested");
+    expect(playersHeading("nor", "en")).toBe("Results");
   });
 
   it("points to the other ways in only when they exist", () => {
-    expect(noPlayersMatchCopy(" zed ", true)).toBe(
+    expect(noPlayersMatchCopy(" zed ", true, "en")).toBe(
       'No one on Temba matches "zed".\nTry their phone number or send them the link.',
     );
-    expect(noPlayersMatchCopy("zed", false)).toBe(
+    expect(noPlayersMatchCopy("zed", false, "en")).toBe(
       'No one on Temba matches "zed".',
     );
   });
 
   it("labels the text invite by readiness", () => {
-    expect(phoneInviteLabel(false, false)).toBe("Enter a number");
-    expect(phoneInviteLabel(true, false)).toBe("Send invite by text");
-    expect(phoneInviteLabel(true, true)).toBe("Sending…");
-    expect(phoneInviteNote(false)).toBe("They get a text with your invite.");
+    expect(phoneInviteLabel(false, false, "en")).toBe("Enter a number");
+    expect(phoneInviteLabel(true, false, "en")).toBe("Send invite by text");
+    expect(phoneInviteLabel(true, true, "en")).toBe("Sending…");
+    expect(phoneInviteNote(false, "en")).toBe(
+      "They get a text with your invite.",
+    );
   });
 
   it("describes the link for each door", () => {
-    expect(inviteLinkNote("game")).toContain("take a seat");
-    expect(inviteLinkNote("community")).toContain("join the Community");
+    expect(inviteLinkNote("game", "en")).toContain("take a seat");
+    expect(inviteLinkNote("community", "en")).toContain("join the Community");
   });
 
   it("gives a Game link no clock and the other doors 6 hours", () => {
-    expect(inviteLinkLifetimeNote("game")).toBe(
+    expect(inviteLinkLifetimeNote("game", "en")).toBe(
       "Works until the Game ends or registration closes.",
     );
-    expect(inviteLinkLifetimeNote("group")).toBe(
+    expect(inviteLinkLifetimeNote("group", "en")).toBe(
       "Each link works for 6 hours.",
     );
-    expect(inviteLinkLifetimeNote("team")).toBe("Each link works for 6 hours.");
+    expect(inviteLinkLifetimeNote("team", "en")).toBe(
+      "Each link works for 6 hours.",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    expect(inviteSheetTitle("game", "ar")).toBe("دعوة لاعبين");
+    expect(phoneInviteLabel(true, true, "ar")).toBe("جارٍ الإرسال…");
   });
 });
 

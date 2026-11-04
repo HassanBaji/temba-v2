@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatGameCardDay } from "./format-game-start";
 import { formatHomeKickoff } from "./home-countdown";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -18,12 +21,14 @@ export function friendlyGameHomeHref(gameId: string) {
 }
 
 /** Deep link when the Game no longer offers partner join. */
-export const PARTNER_JOIN_UNAVAILABLE_TOAST =
-  "This Game is no longer open to join with a partner";
+export function partnerJoinUnavailableToast(locale: Locale) {
+  return messagesFor(locale).game.partner.joinUnavailableToast;
+}
 
 /** In-screen copy when the vacant side fills during Partner registration. */
-export const PARTNER_VACANT_SIDE_RACE_MESSAGE =
-  "That side was taken while you were registering. Join alone, or pick another partner if a side is still fully open.";
+export function partnerVacantSideRaceMessage(locale: Locale) {
+  return messagesFor(locale).game.partner.vacantSideRaceMessage;
+}
 
 export type FriendlyGamePartnerSides = readonly {
   sideIndex?: number;
@@ -170,64 +175,70 @@ export type PartnerSuggestion = PartnerSuggestionRow & {
 
 export function partnerIneligibleReason(
   ineligible: PartnerSuggestionIneligible | null,
+  locale: Locale,
 ) {
+  const m = messagesFor(locale).game.partner;
   if (ineligible === "already_on_game") {
-    return "Already in this game";
+    return m.alreadyInGame;
   }
   if (ineligible === "waitlisted") {
-    return "On the waitlist";
+    return m.onTheWaitlist;
   }
   if (ineligible === "level_range") {
-    return "Outside this game's level range";
+    return m.outsideLevelRange;
   }
   return null;
 }
 
-export function partnerSuggestionMetaLine(row: PartnerSuggestionRow) {
-  const ineligible = partnerIneligibleReason(row.ineligible);
+export function partnerSuggestionMetaLine(
+  row: PartnerSuggestionRow,
+  locale: Locale,
+) {
+  const ineligible = partnerIneligibleReason(row.ineligible, locale);
   if (ineligible) {
     return ineligible;
   }
 
+  const m = messagesFor(locale).game.partner;
   const bits: string[] = [];
   if (row.levelBand) {
     bits.push(displayLabelFromStoredBand(row.levelBand));
   }
   if (row.preferredPosition === "left") {
-    bits.push("plays left");
+    bits.push(m.playsLeft);
   } else if (row.preferredPosition === "right") {
-    bits.push("plays right");
+    bits.push(m.playsRight);
   } else {
-    bits.push("plays either side");
+    bits.push(m.playsEitherSide);
   }
   const head = bits.join(", ");
   if (row.gamesTogether > 0) {
-    const together =
-      row.gamesTogether === 1
-        ? "1 game together"
-        : `${row.gamesTogether} games together`;
-    return `${head}. ${together}`;
+    return m.metaWithHistory(head, m.gamesTogether(row.gamesTogether));
   }
   return head;
 }
 
-export function partnerSuggestionButtonLabel(row: PartnerSuggestionRow) {
+export function partnerSuggestionButtonLabel(
+  row: PartnerSuggestionRow,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.partner;
   if (row.ineligible) {
-    return `${row.name}. ${partnerSuggestionMetaLine(row)}`;
+    return m.ineligibleButton(row.name, partnerSuggestionMetaLine(row, locale));
   }
-  return `Select ${row.name}`;
+  return m.select(row.name);
 }
 
-export function partnerSeatsChip(vacantSeatCount: number) {
-  return vacantSeatCount === 1
-    ? "1 seat open"
-    : `${vacantSeatCount} seats open`;
+export function partnerSeatsChip(vacantSeatCount: number, locale: Locale) {
+  return messagesFor(locale).game.partner.seatsOpen(vacantSeatCount);
 }
 
 export function partnerReviewGameLine(args: {
   windowStart?: Date | string | null;
   venueName?: string | null;
+  locale: Locale;
 }) {
+  const m = messagesFor(args.locale).game.partner;
   const start =
     args.windowStart == null
       ? null
@@ -235,32 +246,36 @@ export function partnerReviewGameLine(args: {
         ? args.windowStart
         : new Date(args.windowStart);
   const venue = args.venueName?.trim();
-  const kickoff = start ? formatHomeKickoff(start) : null;
+  const kickoff = start ? formatHomeKickoff(start, args.locale) : null;
   const when =
     start && kickoff
-      ? `${formatGameCardDay(start)}, ${kickoff.time}${
-          kickoff.meridiem ? ` ${kickoff.meridiem}` : ""
-        }`
+      ? m.whenLine(
+          formatGameCardDay(start, args.locale),
+          kickoff.time,
+          kickoff.meridiem || null,
+        )
       : null;
   if (when && venue) {
-    return `${when} at ${venue}. Two seats, one for each of you.`;
+    return m.reviewLineWhenVenue(when, venue);
   }
   if (when) {
-    return `${when}. Two seats, one for each of you.`;
+    return m.reviewLineWhen(when);
   }
   if (venue) {
-    return `Two seats at ${venue}, one for each of you.`;
+    return m.reviewLineVenue(venue);
   }
-  return "Two seats, one for each of you.";
+  return m.reviewLine;
 }
 
 export function partnerPlayerMeta(args: {
   levelBand: LevelBand | null | undefined;
   position: "left" | "right";
+  locale: Locale;
 }) {
-  const seat = args.position === "left" ? "left seat" : "right seat";
+  const m = messagesFor(args.locale).game.partner;
+  const seat = args.position === "left" ? m.leftSeat : m.rightSeat;
   if (args.levelBand) {
-    return `${displayLabelFromStoredBand(args.levelBand)}, ${seat}`;
+    return m.levelAndSeat(displayLabelFromStoredBand(args.levelBand), seat);
   }
   return seat;
 }
@@ -270,22 +285,32 @@ export function partnerReviewDetails(args: {
   pricePerPlayerFils?: number | null;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  locale: Locale;
 }) {
-  const priceLabel = formatPricePerPlayerFils(args.pricePerPlayerFils);
+  const messages = messagesFor(args.locale);
+  const m = messages.game.partner;
+  const priceLabel = formatPricePerPlayerFils(
+    args.pricePerPlayerFils,
+    args.locale,
+  );
   const levelLabel = formatLevelRangeLabel(
     args.levelMinTenths,
     args.levelMaxTenths,
+    args.locale,
   );
   const details: { label: string; value: string }[] = [];
   if (args.isOrganizer) {
-    details.push({ label: "Organizer", value: "You" });
+    details.push({ label: m.organizer, value: messages.common.you });
   }
   if (priceLabel) {
-    details.push({ label: "Price per player", value: `${priceLabel} each` });
+    details.push({ label: m.pricePerPlayer, value: m.priceEach(priceLabel) });
   }
-  details.push({ label: "Counts for rating", value: "Yes, as a pair" });
+  details.push({ label: m.countsForRating, value: m.yesAsAPair });
   if (levelLabel) {
-    details.push({ label: "Level", value: `${levelLabel}, you both fit` });
+    details.push({
+      label: messages.common.level,
+      value: m.levelFit(levelLabel),
+    });
   }
   return details;
 }
@@ -303,50 +328,43 @@ export function friendlyGameJoinSheetHeader(input: {
   step: "chooser" | "seat";
   isFull: boolean;
   title: string;
+  locale: Locale;
 }) {
+  const m = messagesFor(input.locale).game.joinSheet;
   if (input.step === "chooser") {
     return {
-      title: "How do you want to join?",
-      description:
-        "Two seats on the same side are open, so you can take one on your own or bring someone and register as a team.",
+      title: m.howToJoin,
+      description: m.howToJoinDescription,
     };
   }
   return {
-    title: input.isFull ? "Game is full" : "Pick your spot",
+    title: input.isFull ? m.gameIsFull : m.pickYourSpot,
     description: input.title,
   };
 }
 
-export const JOIN_ALONE_COPY = {
-  title: "Join alone",
-  description: "One seat. Someone else takes the other.",
-  note: "You are in straight away",
-  accessibleName: "Join alone. One seat. Someone else takes the other.",
-} as const;
+export function joinAloneCopy(locale: Locale) {
+  return messagesFor(locale).game.joinSheet.joinAlone;
+}
 
-export const JOIN_WITH_PARTNER_COPY = {
-  title: "Join with a partner",
-  description: "Both seats. You play as a team.",
-  note: "Both seats booked now",
-  accessibleName:
-    "Join with a partner. Both seats. You play as a team. Both seats are booked now; your partner is in straight away.",
-} as const;
+export function joinWithPartnerCopy(locale: Locale) {
+  return messagesFor(locale).game.joinSheet.joinWithPartner;
+}
 
-export const PARTNER_PICKER_COPY = {
-  title: "Pick a partner",
-  description: "You register both seats. Your partner is in straight away.",
-  footnote: "No seat is taken until you register the team.",
-} as const;
+export function partnerPickerCopy(locale: Locale) {
+  return messagesFor(locale).game.joinSheet.partnerPicker;
+}
 
-export const PARTNER_REVIEW_COPY = {
-  title: "Register the team",
-  yourTeam: "Your team",
-  keepSides: "Keep sides",
-  swapSides: "Swap sides",
-  register: "Register us as a team",
-  footnote: "Both seats are booked straight away. Your partner is in now.",
-} as const;
+export function partnerReviewCopy(locale: Locale) {
+  return messagesFor(locale).game.joinSheet.partnerReview;
+}
 
-export function partnerContinueLabel(partnerName: string | null) {
-  return partnerName ? `Continue with ${partnerName}` : "Continue";
+export function partnerContinueLabel(
+  partnerName: string | null,
+  locale: Locale,
+) {
+  const messages = messagesFor(locale);
+  return partnerName
+    ? messages.game.joinSheet.continueWith(partnerName)
+    : messages.common.continue;
 }

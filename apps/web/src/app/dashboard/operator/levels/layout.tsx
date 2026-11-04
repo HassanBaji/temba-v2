@@ -2,15 +2,22 @@ import { type Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { OperatorGate } from "~/components/operator-gate";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export const metadata: Metadata = {
-  title: "Player Levels",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return { title: m.webDashboard.operator.levels.title };
+}
 
-export default function OperatorLevelsLayout({
+export default async function OperatorLevelsLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  return <OperatorGate title="Player Levels">{children}</OperatorGate>;
+  const m = await getRequestMessages();
+  return (
+    <OperatorGate title={m.webDashboard.operator.levels.title}>
+      {children}
+    </OperatorGate>
+  );
 }

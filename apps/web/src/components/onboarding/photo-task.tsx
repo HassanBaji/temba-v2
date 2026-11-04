@@ -6,6 +6,8 @@ import * as React from "react";
 
 import { AuthLoading } from "~/components/auth/auth-loading";
 import { AuthScreen } from "~/components/auth/auth-screen";
+import { SlotText } from "~/components/auth/auth-terms-note";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotNowLink, TaskActions } from "~/components/onboarding/task-actions";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
@@ -31,6 +33,9 @@ function Picker({
   };
   backHref: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.onboarding.photo;
   const router = useRouter();
   const [file, setFile] = React.useState<File | null>(null);
   const [preview, setPreview] = React.useState<string | null>(null);
@@ -62,7 +67,7 @@ function Picker({
       await user.reload();
       router.replace(backHref);
     } catch (err) {
-      setError(splitClerkAuthError(err).globalMessage);
+      setError(splitClerkAuthError(err, locale).globalMessage);
       setPending(false);
     }
   }
@@ -70,10 +75,10 @@ function Picker({
   return (
     <AuthScreen
       backHref={backHref}
-      backLabel="Back"
-      eyebrow="Profile / Photo"
-      title="Add a photo"
-      description="A clear face shot helps organizers spot you at the court. Shown to Group members and people in your Games."
+      backLabel={m.common.back}
+      eyebrow={m.webAuth.onboarding.eyebrow.photo}
+      title={copy.title}
+      description={copy.description}
     >
       <form className="flex flex-col gap-5" onSubmit={onSave} noValidate>
         <FormErrorSummary message={error} />
@@ -82,21 +87,29 @@ function Picker({
             // eslint-disable-next-line @next/next/no-img-element -- blob: previews and Clerk image URLs are not static assets
             <img
               src={shown}
-              alt={preview ? "Your chosen photo" : "Your current profile photo"}
+              alt={preview ? copy.chosenAlt : copy.currentAlt}
               className="border-rule size-40 rounded-full border object-cover"
             />
           ) : (
             <span className="relative flex size-40 items-center justify-center">
               <Hatch className="border-rule absolute inset-0 rounded-full border" />
               <span className="text-eyebrow text-muted-foreground relative font-mono uppercase">
-                Profile photo
+                {copy.placeholder}
               </span>
             </span>
           )}
           {!shown && name ? (
             <p className="text-meta text-muted-foreground">
-              Until then you show as{" "}
-              <span className="text-ink font-semibold">{initials(name)}</span>.
+              <SlotText
+                text={copy.untilThenShownAs}
+                slots={{
+                  initials: (
+                    <span className="text-ink font-semibold">
+                      {initials(name)}
+                    </span>
+                  ),
+                }}
+              />
             </p>
           ) : null}
           <input
@@ -118,7 +131,7 @@ function Picker({
               pending && "pointer-events-none opacity-50",
             )}
           >
-            {file ? "Choose a different photo" : "Choose a photo"}
+            {file ? copy.chooseDifferent : copy.choose}
           </label>
           {file ? (
             <p
@@ -134,11 +147,11 @@ function Picker({
             type="submit"
             size="lg"
             pending={pending}
-            pendingLabel="Saving photo…"
+            pendingLabel={copy.saving}
             disabled={!file}
             className="w-full font-semibold"
           >
-            Save photo
+            {copy.save}
           </Button>
           <NotNowLink href={backHref} disabled={pending} />
         </TaskActions>

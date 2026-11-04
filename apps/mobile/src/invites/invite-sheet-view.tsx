@@ -12,15 +12,15 @@ import {
 import { Pressable, View } from "react-native";
 import {
   copyLinkLabel,
-  INVITE_LINK_EMPTY_NOTE,
+  inviteLinkEmptyNote,
   inviteLinkLifetimeNote,
-  INVITE_MODE_LABELS,
+  inviteModeLabel,
   inviteButtonLabel,
   inviteLinkNote,
   lookupResultView,
-  NO_PENDING_COPY,
+  noPendingCopy,
   noPlayersMatchCopy,
-  PENDING_NOTE,
+  pendingNote,
   pendingHeading,
   phoneInviteLabel,
   phoneInviteNote,
@@ -32,6 +32,7 @@ import {
 
 import { PhoneField } from "../auth/phone-field";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
@@ -113,10 +114,11 @@ export type InviteSheetViewProps = {
 };
 
 function CloseAction({ onPress }: { onPress: () => void }) {
+  const m = useMessages();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Close"
+      accessibilityLabel={m.common.close}
       onPress={onPress}
       style={{
         width: sizes.touchTarget,
@@ -141,6 +143,7 @@ function ModeSwitch({
   mode: InviteMode;
   onChange: (mode: InviteMode) => void;
 }) {
+  const locale = useLocale();
   return (
     <View
       accessibilityRole="tablist"
@@ -176,7 +179,7 @@ function ModeSwitch({
           >
             <Icon size={14} color={foreground} />
             <Text size="meta" weight="semibold" style={{ color: foreground }}>
-              {INVITE_MODE_LABELS[entry]}
+              {inviteModeLabel(entry, locale)}
             </Text>
           </Pressable>
         );
@@ -200,7 +203,9 @@ function PlayerRow({
   onInvite: () => void;
   onUninvite: () => void;
 }) {
-  const view = lookupResultView(row, invited);
+  const m = useMessages();
+  const locale = useLocale();
+  const view = lookupResultView(row, invited, locale);
   return (
     <View
       style={{
@@ -225,9 +230,11 @@ function PlayerRow({
         ) : null}
       </View>
       <Button
-        label={inviteButtonLabel(invited)}
+        label={inviteButtonLabel(invited, locale)}
         accessibilityLabel={
-          invited ? `Cancel invite for ${view.name}` : `Invite ${view.name}`
+          invited
+            ? m.mobileCommunity.inviteSheet.cancelInviteA11y(view.name)
+            : m.mobileCommunity.inviteSheet.inviteA11y(view.name)
         }
         size="sm"
         variant={invited ? "outline" : "default"}
@@ -242,14 +249,16 @@ function PlayerRow({
 
 function PlayersMode({ players }: { players: PlayersModeProps }) {
   const { results } = players;
+  const m = useMessages();
+  const locale = useLocale();
   const hasPick = players.singlePick && players.invitedUserIds.size > 0;
   return (
     <View style={{ gap: MODE_GAP }}>
       <SearchField
         value={players.query}
         onChangeText={players.onQueryChange}
-        placeholder="Name or phone number"
-        accessibilityLabel="Search players"
+        placeholder={m.mobileCommunity.inviteSheet.searchPlaceholder}
+        accessibilityLabel={m.mobileCommunity.inviteSheet.searchA11y}
       />
       {players.refused && players.refused.length > 0 ? (
         <View style={{ gap: 4 }} accessibilityRole="alert">
@@ -259,13 +268,16 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
               size="meta"
               weight="medium"
             >
-              {item.name}: {item.message}
+              {m.mobileCommunity.inviteSheet.refusedLine(
+                item.name,
+                item.message,
+              )}
             </Text>
           ))}
         </View>
       ) : null}
       <Text size="eyebrow" tone="muted">
-        {playersHeading(players.query)}
+        {playersHeading(players.query, locale)}
       </Text>
       {results.status === "loading" ? (
         <View style={{ gap: 8 }}>
@@ -282,7 +294,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
           tone="muted"
           style={{ textAlign: "center", paddingVertical: 22 }}
         >
-          {noPlayersMatchCopy(players.query, players.canLink)}
+          {noPlayersMatchCopy(players.query, players.canLink, locale)}
         </Text>
       ) : (
         <View style={{ marginTop: -10 }}>
@@ -304,10 +316,12 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
 }
 
 function PhoneMode({ phone }: { phone: PhoneModeProps }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View style={{ gap: MODE_GAP }}>
       <PhoneField
-        label="Phone number"
+        label={m.mobileCommunity.inviteSheet.phoneLabel}
         countryIso={phone.countryIso}
         national={phone.national}
         onCountryIsoChange={phone.onCountryIsoChange}
@@ -315,10 +329,10 @@ function PhoneMode({ phone }: { phone: PhoneModeProps }) {
         disabled={phone.sending}
       />
       <Text size="meta" tone="muted">
-        {phoneInviteNote(phone.canLookup)}
+        {phoneInviteNote(phone.canLookup, locale)}
       </Text>
       <Button
-        label={phoneInviteLabel(phone.ready, phone.sending)}
+        label={phoneInviteLabel(phone.ready, phone.sending, locale)}
         size="lg"
         pending={phone.sending}
         disabled={!phone.ready}
@@ -353,6 +367,8 @@ function ChannelButton({
 }
 
 function LinkMode({ link }: { link: LinkModeProps }) {
+  const m = useMessages();
+  const locale = useLocale();
   return (
     <View style={{ gap: MODE_GAP }}>
       <View
@@ -375,13 +391,13 @@ function LinkMode({ link }: { link: LinkModeProps }) {
           ) : null}
           <Text size="eyebrow" tone="muted">
             {link.currentUrl
-              ? inviteLinkLifetimeNote(link.kind)
-              : INVITE_LINK_EMPTY_NOTE}
+              ? inviteLinkLifetimeNote(link.kind, locale)
+              : inviteLinkEmptyNote(locale)}
           </Text>
         </View>
         <Button
-          label={copyLinkLabel(link.copied)}
-          accessibilityLabel="Copy link"
+          label={copyLinkLabel(link.copied, locale)}
+          accessibilityLabel={m.mobileCommunity.inviteSheet.copyLinkA11y}
           size="sm"
           variant={link.copied ? "outline" : "default"}
           disabled={link.pending}
@@ -389,10 +405,10 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         />
       </View>
       <Text size="meta" tone="muted">
-        {inviteLinkNote(link.kind)}
+        {inviteLinkNote(link.kind, locale)}
       </Text>
       <Button
-        label="Share link"
+        label={m.mobileCommunity.inviteSheet.shareLink}
         size="lg"
         pending={link.pending}
         icon={<ShareIcon size={sizes.iconRow} color={colors.paper} />}
@@ -400,13 +416,13 @@ function LinkMode({ link }: { link: LinkModeProps }) {
       />
       <View style={{ flexDirection: "row", gap: 8 }}>
         <ChannelButton
-          label="WhatsApp"
+          label={m.mobileCommunity.inviteSheet.whatsApp}
           Icon={MessageCircle}
           disabled={link.pending}
           onPress={link.onWhatsApp}
         />
         <ChannelButton
-          label="Messages"
+          label={m.mobileCommunity.inviteSheet.messages}
           Icon={MessageSquare}
           disabled={link.pending}
           onPress={link.onMessages}
@@ -425,6 +441,7 @@ function PendingChip({
   revoking: boolean;
   onRevoke: () => void;
 }) {
+  const m = useMessages();
   return (
     <View
       style={{
@@ -445,7 +462,9 @@ function PendingChip({
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Cancel invite for ${row.user.name}`}
+        accessibilityLabel={m.mobileCommunity.inviteSheet.cancelInviteA11y(
+          row.user.name,
+        )}
         disabled={revoking}
         onPress={onRevoke}
         hitSlop={(sizes.touchTarget - CHIP_CLEAR) / 2}
@@ -465,6 +484,7 @@ function PendingChip({
 }
 
 function PendingFooter({ pending }: { pending: PendingProps }) {
+  const locale = useLocale();
   const rows = pending.rows.status === "ready" ? pending.rows.value : [];
   return (
     <View style={{ gap: 10 }}>
@@ -477,11 +497,11 @@ function PendingFooter({ pending }: { pending: PendingProps }) {
         }}
       >
         <Text size="meta" weight="semibold" accessibilityRole="header">
-          {pendingHeading(rows.length)}
+          {pendingHeading(rows.length, locale)}
         </Text>
         {rows.length > 0 ? (
           <Text size="eyebrow" tone="muted">
-            {PENDING_NOTE}
+            {pendingNote(locale)}
           </Text>
         ) : null}
       </View>
@@ -493,7 +513,7 @@ function PendingFooter({ pending }: { pending: PendingProps }) {
         </Text>
       ) : rows.length === 0 ? (
         <Text size="meta" tone="muted">
-          {NO_PENDING_COPY}
+          {noPendingCopy(locale)}
         </Text>
       ) : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>

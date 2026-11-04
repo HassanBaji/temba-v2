@@ -1,12 +1,15 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatAbsoluteDay } from "./format-game-start";
 import { friendlyGameWaitlistLine } from "./friendly-game-cta";
 import {
-  CANCEL_GAME_ACTION,
-  JOIN_GAME_ACTION,
-  LEAVE_GAME_ACTION,
-  LEAVE_WAITLIST_ACTION,
+  cancelGameAction,
+  joinGameAction,
+  leaveGameAction,
+  leaveWaitlistAction,
 } from "./game-copy";
-import { UNRATED_LABEL } from "./game-rating-impact";
+import { unratedLabel } from "./game-rating-impact";
 import {
   FOOTBALL_PLAYERS_ALLOWED_MAX,
   footballPlayersAllowedBounds,
@@ -96,11 +99,12 @@ export function footballOccupancyLine(
   sideSize: number | null,
   count: number,
   cap: number | null,
+  locale: Locale,
 ) {
   const occupancy = cap == null ? String(count) : `${count}/${cap}`;
   return sideSize == null
     ? occupancy
-    : `${sideSizeLabel(sideSize)} · ${occupancy}`;
+    : `${sideSizeLabel(sideSize, locale)} · ${occupancy}`;
 }
 
 function placeLine(input: FootballGameDetailsInput) {
@@ -112,11 +116,13 @@ function placeLine(input: FootballGameDetailsInput) {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-function durationFigure(start: Date | null, end: Date | null) {
+function durationFigure(start: Date | null, end: Date | null, locale: Locale) {
   if (!start || !end || end.getTime() <= start.getTime()) {
     return "—";
   }
-  return `${Math.round((end.getTime() - start.getTime()) / 60_000)}m`;
+  return messagesFor(locale).football.details.minutesShort(
+    Math.round((end.getTime() - start.getTime()) / 60_000),
+  );
 }
 
 function heroTone(input: FootballGameDetailsInput, now: Date): SurfaceTone {
@@ -128,11 +134,13 @@ function heroTone(input: FootballGameDetailsInput, now: Date): SurfaceTone {
 function heroModel(
   input: FootballGameDetailsInput,
   now: Date,
+  locale: Locale,
 ): FootballGameHero {
+  const m = messagesFor(locale).football;
   const start = input.windowStart;
   const over =
     input.windowEnd != null && input.windowEnd.getTime() < now.getTime();
-  const kickoff = start ? formatHomeKickoff(start) : null;
+  const kickoff = start ? formatHomeKickoff(start, locale) : null;
   const live =
     start != null &&
     start.getTime() <= now.getTime() &&
@@ -140,32 +148,41 @@ function heroModel(
     !input.cancelledAt;
   return {
     tone: heroTone(input, now),
-    dateLabel: start ? formatAbsoluteDay(start) : null,
+    dateLabel: start ? formatAbsoluteDay(start, locale) : null,
     statusLabel: input.cancelledAt
-      ? "Cancelled"
+      ? m.status.cancelled
       : over
-        ? "Played"
+        ? m.status.played
         : start
-          ? formatHeroCountdown(live ? "ongoing" : "upcoming", start, now)
+          ? formatHeroCountdown(
+              live ? "ongoing" : "upcoming",
+              start,
+              now,
+              locale,
+            )
           : null,
     kickoffTime: kickoff?.time ?? null,
-    trailer: start ? formatHeroKickoffTrailer(start, input.windowEnd) : null,
+    trailer: start
+      ? formatHeroKickoffTrailer(start, input.windowEnd, locale)
+      : null,
     sizeLine: footballOccupancyLine(
       input.sideSize,
       input.roster.count,
       input.roster.cap ?? input.playersAllowed,
+      locale,
     ),
     placeLine: placeLine(input),
     figures: [
       {
         key: "price",
-        value: formatPricePerPlayerFils(input.pricePerPlayerFils) ?? "—",
-        label: "Price",
+        value:
+          formatPricePerPlayerFils(input.pricePerPlayerFils, locale) ?? "—",
+        label: m.details.priceLabel,
       },
       {
         key: "duration",
-        value: durationFigure(start, input.windowEnd),
-        label: "Duration",
+        value: durationFigure(start, input.windowEnd, locale),
+        label: m.details.durationLabel,
       },
     ],
   };
@@ -173,7 +190,9 @@ function heroModel(
 
 export function footballGameCta(
   input: FootballGameDetailsInput,
+  locale: Locale,
 ): FootballGameCta | null {
+  const m = messagesFor(locale).football.details;
   if (input.cancelledAt || input.joinFrozen) {
     return null;
   }
@@ -182,30 +201,30 @@ export function footballGameCta(
       kind: "waitlisted",
       title:
         input.waitlistPlace != null
-          ? friendlyGameWaitlistLine(input.waitlistPlace)
-          : "You're on the Waitlist",
-      actionLabel: LEAVE_WAITLIST_ACTION,
+          ? friendlyGameWaitlistLine(input.waitlistPlace, locale)
+          : m.waitlistedTitle,
+      actionLabel: leaveWaitlistAction(locale),
     };
   }
   if (input.isRegistered) {
     return {
       kind: "registered",
-      title: "You're in",
-      actionLabel: LEAVE_GAME_ACTION,
+      title: m.registeredTitle,
+      actionLabel: leaveGameAction(locale),
     };
   }
   if (input.canRegister) {
     return {
       kind: "join",
-      title: "Join this Game",
-      actionLabel: JOIN_GAME_ACTION,
+      title: m.joinTitle,
+      actionLabel: joinGameAction(locale),
     };
   }
   if (input.canWaitlist) {
     return {
       kind: "join_waitlist",
-      title: "This Game is full",
-      actionLabel: "Join waitlist",
+      title: m.fullTitle,
+      actionLabel: m.joinWaitlistAction,
     };
   }
   return null;
@@ -214,13 +233,17 @@ export function footballGameCta(
 export function footballGameDetailsModel(
   input: FootballGameDetailsInput,
   now: Date,
+  locale: Locale,
 ): FootballGameDetailsModel {
   const organizerActive = input.isOrganizer && !input.cancelledAt;
   const cap = input.roster.cap ?? input.playersAllowed;
   const bounds = footballPlayersAllowedBounds(input.sideSize ?? 5);
   return {
-    title: input.name ?? input.venue?.name ?? "Game",
-    hero: heroModel(input, now),
+    title:
+      input.name ??
+      input.venue?.name ??
+      messagesFor(locale).football.details.fallbackTitle,
+    hero: heroModel(input, now, locale),
     rosterRows: input.roster.users.map((user, index) => ({
       ...user,
       place: index + 1,
@@ -229,13 +252,13 @@ export function footballGameDetailsModel(
     })),
     openSpots: cap == null ? 0 : Math.max(0, cap - input.roster.count),
     waitlistRows: [...input.waitlist],
-    unratedLine: UNRATED_LABEL,
-    cta: footballGameCta(input),
+    unratedLine: unratedLabel(locale),
+    cta: footballGameCta(input, locale),
     organizer: organizerActive
       ? {
           registration: input.registrationClosedAt ? "reopen" : "close",
           capBounds: { min: bounds.min, max: FOOTBALL_PLAYERS_ALLOWED_MAX },
-          cancelLabel: CANCEL_GAME_ACTION,
+          cancelLabel: cancelGameAction(locale),
         }
       : null,
   };

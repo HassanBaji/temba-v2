@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { GoogleIcon } from "~/components/ui/icons/google";
@@ -23,7 +24,6 @@ import { cn } from "~/lib/utils";
 const ENABLED_OAUTH_PROVIDERS = [
   {
     strategy: "oauth_google" as const,
-    label: "Continue with Google",
     Icon: GoogleIcon,
   },
 ] as const;
@@ -39,6 +39,8 @@ export function OauthButtons({
   disabled?: boolean;
   surface?: SurfaceTone;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
   const [pending, setPending] = useState(false);
@@ -84,7 +86,7 @@ export function OauthButtons({
       });
     } catch (err) {
       setPending(false);
-      setError(clerkGlobalErrorMessage(err));
+      setError(clerkGlobalErrorMessage(err, locale));
     }
   }
 
@@ -100,12 +102,12 @@ export function OauthButtons({
             onInk ? "text-dim" : "text-muted-foreground",
           )}
         >
-          OR
+          {m.webAuth.oauth.or}
         </span>
         <div className={cn("h-px flex-1", onInk ? "bg-dimrule" : "bg-rule")} />
       </div>
       {error ? <FormErrorSummary message={error} /> : null}
-      {ENABLED_OAUTH_PROVIDERS.map(({ strategy, label, Icon }) => (
+      {ENABLED_OAUTH_PROVIDERS.map(({ strategy, Icon }) => (
         <Button
           key={strategy}
           type="button"
@@ -122,7 +124,7 @@ export function OauthButtons({
           }}
         >
           <Icon />
-          {label}
+          {m.webAuth.oauth.continueWithGoogle}
         </Button>
       ))}
     </div>

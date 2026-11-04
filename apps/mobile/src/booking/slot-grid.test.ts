@@ -48,7 +48,7 @@ const COURTS: AvailabilityCourt[] = [
 
 describe("dayStrip", () => {
   it("starts with today and covers the horizon", () => {
-    const days = dayStrip(NOW, 3);
+    const days = dayStrip(NOW, 3, "en");
     expect(days).toEqual([
       { key: "2026-10-15", weekday: "Today", dayOfMonth: 15 },
       { key: "2026-10-16", weekday: "Fri", dayOfMonth: 16 },
@@ -58,7 +58,7 @@ describe("dayStrip", () => {
 
   it("reads the product day, not the device day", () => {
     const lateNight = new Date("2026-10-15T22:30:00Z");
-    expect(dayStrip(lateNight, 1)[0]?.key).toBe("2026-10-16");
+    expect(dayStrip(lateNight, 1, "en")[0]?.key).toBe("2026-10-16");
   });
 });
 
@@ -76,6 +76,7 @@ describe("startTimeGroups", () => {
     minLeadMinutes: 60,
     courts: COURTS,
     now: NOW,
+    locale: "en" as const,
   };
 
   it("drops starts that are too soon and counts free Courts per start", () => {
@@ -140,6 +141,30 @@ describe("startTimeGroups", () => {
       ["AM", ["9:00", "10:00"]],
       ["PM", ["11:00"]],
       ["After midnight", ["12:00", "1:00"]],
+    ]);
+  });
+});
+
+describe("Arabic copy", () => {
+  it("labels the strip and the groups in Arabic", () => {
+    expect(dayStrip(NOW, 2, "ar").map((day) => day.weekday)).toEqual([
+      "اليوم",
+      "الجمعة",
+    ]);
+    const groups = startTimeGroups({
+      dayKey: "2026-10-16",
+      slotMinutes: 60,
+      minutes: 60,
+      minLeadMinutes: 60,
+      courts: [],
+      now: NOW,
+      locale: "ar",
+      windows: [{ opensAtMinutes: 9 * 60, closesAtMinutes: 11 * 60 }],
+    });
+    expect(groups[0]?.label).toBe("صباحًا");
+    expect(groups[0]?.times.map((time) => time.label)).toEqual([
+      "9:00",
+      "10:00",
     ]);
   });
 });

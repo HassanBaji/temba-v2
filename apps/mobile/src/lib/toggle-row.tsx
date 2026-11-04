@@ -1,5 +1,6 @@
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 
@@ -10,6 +11,7 @@ export function ToggleRow(props: {
   onChange: (next: boolean) => void;
   disabled?: boolean;
 }) {
+  const m = useMessages();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -19,8 +21,12 @@ export function ToggleRow(props: {
         </Text>
       </View>
       <Button
-        label={props.value ? "On" : "Off"}
-        accessibilityLabel={`${props.label}, ${props.value ? "on" : "off"}`}
+        label={props.value ? m.common.on : m.common.off}
+        accessibilityLabel={
+          props.value
+            ? m.mobilePlayer.lib.toggleOn(props.label)
+            : m.mobilePlayer.lib.toggleOff(props.label)
+        }
         variant={props.value ? "default" : "outline"}
         selected={props.value}
         disabled={props.disabled}

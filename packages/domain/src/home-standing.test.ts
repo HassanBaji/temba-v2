@@ -6,13 +6,16 @@ import { homeStandingRowView } from "./home-standing";
 describe("homeStandingRowView", () => {
   it("reads rank and field size from the Standing row", () => {
     assert.deepEqual(
-      homeStandingRowView({
-        groupId: "g1",
-        groupName: "Weekday ladder",
-        sport: "padel",
-        position: 4,
-        memberCount: 13,
-      }),
+      homeStandingRowView(
+        {
+          groupId: "g1",
+          groupName: "Weekday ladder",
+          sport: "padel",
+          position: 4,
+          memberCount: 13,
+        },
+        "en",
+      ),
       {
         groupId: "g1",
         groupName: "Weekday ladder",
@@ -24,27 +27,48 @@ describe("homeStandingRowView", () => {
   });
 
   it("falls back for a missing name and hides a blank sport", () => {
-    const view = homeStandingRowView({
-      groupId: "g1",
-      groupName: null,
-      sport: " ",
-      position: 1,
-      memberCount: 2,
-    });
+    const view = homeStandingRowView(
+      {
+        groupId: "g1",
+        groupName: null,
+        sport: " ",
+        position: 1,
+        memberCount: 2,
+      },
+      "en",
+    );
     assert.equal(view.groupName, "Group");
     assert.equal(view.sportLabel, null);
   });
 
   it("passes through a sport it has no label for", () => {
     assert.equal(
-      homeStandingRowView({
-        groupId: "g1",
-        groupName: "G",
-        sport: "squash",
-        position: 1,
-        memberCount: 2,
-      }).sportLabel,
+      homeStandingRowView(
+        {
+          groupId: "g1",
+          groupName: "G",
+          sport: "squash",
+          position: 1,
+          memberCount: 2,
+        },
+        "en",
+      ).sportLabel,
       "squash",
     );
+  });
+
+  it("reads the rank line in Arabic", () => {
+    const view = homeStandingRowView(
+      {
+        groupId: "g1",
+        groupName: null,
+        sport: null,
+        position: 4,
+        memberCount: 13,
+      },
+      "ar",
+    );
+    assert.equal(view.groupName, "مجموعة");
+    assert.equal(view.ofCount, "من 13");
   });
 });

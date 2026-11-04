@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -138,8 +139,10 @@ export async function addPlayerByPhone(
     seat?: { sideIndex: number; position: SeatPosition };
     side?: { sideIndex: number };
     football?: FootballPlacement;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.organizerUserId);
   assertOrganizerAddFormat(game);
@@ -205,7 +208,7 @@ export async function addPlayerByPhone(
         message: "This Game is full",
       });
     }
-    throwIfAdmitRefused(admitted);
+    throwIfAdmitRefused(admitted, locale);
 
     if (football) {
       await tx
@@ -279,5 +282,6 @@ export const addPlayerByPhoneProcedure = protectedProcedure
     return addPlayerByPhone(ctx.db, {
       ...input,
       organizerUserId: appUser.id,
+      locale: ctx.locale,
     });
   });

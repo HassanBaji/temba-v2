@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   InputGroup,
   InputGroupAddon,
@@ -15,6 +16,7 @@ import {
   CALLING_COUNTRIES,
   DEFAULT_CALLING_COUNTRY_ISO,
   callingCountryByIso,
+  callingCountryName,
   countryFlagEmoji,
   formatNationalNumber,
   nationalDigits,
@@ -44,6 +46,8 @@ export function PhoneField({
   placeholder?: string;
   describedBy?: string;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const country =
     callingCountryByIso(countryIso) ??
     callingCountryByIso(DEFAULT_CALLING_COUNTRY_ISO);
@@ -52,7 +56,10 @@ export function PhoneField({
   }
 
   const digits = nationalDigits(national);
-  const accessibleName = `Country calling code, currently ${country.name} +${country.callingCode}`;
+  const accessibleName = m.webAuth.phoneField.countryCode(
+    callingCountryName(country.iso, locale),
+    country.callingCode,
+  );
 
   return (
     <InputGroup
@@ -65,7 +72,7 @@ export function PhoneField({
     >
       <InputGroupAddon
         align="inline-start"
-        className="border-rule h-full cursor-default border-r py-0 pl-0 pr-0"
+        className="border-rule h-full cursor-default border-e py-0 pe-0 ps-0"
       >
         <Select
           value={country.iso}
@@ -97,7 +104,7 @@ export function PhoneField({
                   <span aria-hidden="true" className="leading-none">
                     {countryFlagEmoji(item.iso)}
                   </span>
-                  {item.name} +{item.callingCode}
+                  {callingCountryName(item.iso, locale)} +{item.callingCode}
                 </span>
               </SelectItem>
             ))}

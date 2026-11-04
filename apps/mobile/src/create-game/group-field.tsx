@@ -7,16 +7,28 @@ import { Search } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+import { useLocale, useMessages } from "../i18n/locale-provider";
+
 import { ChipGrid, ChoiceChip, FieldError } from "./chips";
 import { SearchSheet } from "./search-sheet";
 import { StepSection } from "./step-section";
 import { groupSheetLabel, labelMatchesQuery } from "./venue-sheet";
 
-export function groupLabel(group: {
-  name: string | null;
-  communityName: string | null;
-}) {
-  return group.name ?? group.communityName ?? "Untitled Group";
+export function groupLabel(
+  group: {
+    name: string | null;
+    communityName: string | null;
+  },
+  locale: Locale,
+) {
+  return (
+    group.name ??
+    group.communityName ??
+    messagesFor(locale).mobileCreateGame.group.untitled
+  );
 }
 
 export function GroupField({
@@ -32,6 +44,9 @@ export function GroupField({
   noneLabel?: string;
   onSelect: (groupId: string) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.mobileCreateGame.group;
   const [changing, setChanging] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const selected = groups.find((group) => group.id === groupId);
@@ -45,13 +60,19 @@ export function GroupField({
 
   return (
     <StepSection
-      title="Group"
-      note={collapsed ? undefined : noneLabel ? "Optional" : "Required"}
+      title={copy.title}
+      note={
+        collapsed
+          ? undefined
+          : noneLabel
+            ? m.common.optional
+            : m.common.required
+      }
       link={
         collapsed
           ? {
-              label: "Change",
-              accessibilityLabel: "Change Group",
+              label: copy.change,
+              accessibilityLabel: copy.changeA11y,
               onPress: () => setChanging(true),
             }
           : undefined
@@ -60,26 +81,26 @@ export function GroupField({
       {collapsed ? (
         <View
           accessibilityRole="radiogroup"
-          accessibilityLabel="Group"
+          accessibilityLabel={copy.title}
           style={{ flexDirection: "row" }}
         >
           <ChoiceChip
             role="radio"
             selected
             check
-            label={groupLabel(selected)}
+            label={groupLabel(selected, locale)}
             onPress={() => setChanging(true)}
           />
         </View>
       ) : (
         <ChipGrid
-          label="Group"
+          label={copy.title}
           check
           chips={[
             ...(noneLabel ? [{ value: "", label: noneLabel }] : []),
             ...visibleCreateGroups(groups, groupId).map((group) => ({
               value: group.id,
-              label: groupLabel(group),
+              label: groupLabel(group, locale),
             })),
           ]}
           isSelected={(id) => id === groupId}
@@ -87,7 +108,7 @@ export function GroupField({
           escape={
             groups.length > VISIBLE_GROUP_CHIP_COUNT
               ? {
-                  label: `All ${groups.length} groups`,
+                  label: copy.allCount(groups.length),
                   icon: Search,
                   onPress: () => setSheetOpen(true),
                 }
@@ -97,17 +118,20 @@ export function GroupField({
       )}
       <SearchSheet
         visible={sheetOpen}
-        title={`All ${groups.length} groups`}
-        placeholder="Group name"
-        listLabel="Group"
+        title={copy.allCount(groups.length)}
+        placeholder={copy.namePlaceholder}
+        listLabel={copy.title}
         selectedId={groupId}
         filter={(query) =>
           groups
-            .map((group) => ({ id: group.id, title: groupLabel(group) }))
+            .map((group) => ({
+              id: group.id,
+              title: groupLabel(group, locale),
+            }))
             .filter((row) => labelMatchesQuery(row.title, query))
         }
-        resultLabel={groupSheetLabel}
-        emptyMessage={(query) => `No Groups match “${query}”.`}
+        resultLabel={(query, count) => groupSheetLabel(query, count, locale)}
+        emptyMessage={copy.noMatch}
         onPick={pick}
         onClose={() => setSheetOpen(false)}
       />

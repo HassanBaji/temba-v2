@@ -1,18 +1,18 @@
 "use client";
 
 import {
-  FOOTBALL_POSITION_CHOICES,
+  footballPositionChoices,
   KEEPER_CODE,
   type FootballPosition,
 } from "@repo/domain/football-lineup";
-import { FOOTBALL_SELF_PLACEMENT_CHOICES } from "@repo/domain/football-self-placement";
+import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
 import {
-  FOOTBALL_ROLE_CHOICES,
-  PADEL_LEVEL_CHOICES,
-  PADEL_NOT_SURE_LABEL,
+  footballRoleChoices,
+  padelLevelChoices,
+  padelNotSureLabel,
   PADEL_NOT_SURE_LEVEL,
-  PADEL_SIDE_CHOICES,
-  SPORT_CHOICES,
+  padelSideChoices,
+  sportChoices,
   initialOnboardingAnswers,
   onboardingSubmission,
   type OnboardingAnswers,
@@ -24,6 +24,7 @@ import {
   type OnboardingQuestion,
 } from "@repo/domain/onboarding-flow";
 import { type Sport } from "@repo/domain/sport";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import * as React from "react";
 
 import { AuthScreen } from "~/components/auth/auth-screen";
@@ -67,10 +68,11 @@ function Actions(props: { children: React.ReactNode }) {
   );
 }
 
-function LevelAlreadySet(props: { sport: string }) {
+function LevelAlreadySet(props: { sport: Sport }) {
+  const m = useMessages();
   return (
     <p className="text-meta text-muted-foreground">
-      Your {props.sport} Level is already set, so this step only saves the rest.
+      {m.webAuth.onboarding.levelAlreadySet[props.sport]}
     </p>
   );
 }
@@ -94,6 +96,9 @@ export function OnboardingQuestionnaire({
   backHref: string;
   onDone: () => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webAuth.onboarding;
   const utils = api.useUtils();
   const [question, setQuestion] = React.useState<OnboardingQuestion>("sports");
   const [answers, setAnswers] = React.useState(() =>
@@ -116,7 +121,7 @@ export function OnboardingQuestionnaire({
   }, [question]);
 
   const progress = sportsProgress(answers.picked, question);
-  const eyebrow = `Profile / Sports ${progress.step} of ${progress.total}`;
+  const eyebrow = copy.eyebrow.sports(progress.step, progress.total);
   const saving = complete.isPending || complete.isSuccess;
   const finishError = globalFormErrorMessage(complete.error);
   const update = (patch: Partial<OnboardingAnswers>) =>
@@ -142,7 +147,7 @@ export function OnboardingQuestionnaire({
   };
   const back = () => go("back");
   const nextLabel = (label: string) =>
-    isLastQuestion(answers.picked, question) ? "Save sports" : label;
+    isLastQuestion(answers.picked, question) ? copy.saveSports : label;
   const togglePicked = (sport: Sport) =>
     update({ picked: { ...answers.picked, [sport]: !answers.picked[sport] } });
 
@@ -151,14 +156,14 @@ export function OnboardingQuestionnaire({
     return (
       <AuthScreen
         backHref={backHref}
-        backLabel="Back"
+        backLabel={m.common.back}
         progress={{ ...progress, label: eyebrow }}
-        title="What do you play?"
-        description="Pick one or both. Each sport keeps its own Level and its own Games list."
+        title={copy.sports.title}
+        description={copy.sports.description}
       >
         <div className="flex flex-col gap-3">
           <FormErrorSummary message={finishError} />
-          {SPORT_CHOICES.map((choice) => (
+          {sportChoices(locale).map((choice) => (
             <CardChoice
               key={choice.value}
               role="checkbox"
@@ -171,7 +176,7 @@ export function OnboardingQuestionnaire({
           ))}
         </div>
         <p className="text-eyebrow text-muted-foreground mt-4">
-          Groups and bookings stay separate per sport.
+          {copy.sports.separateNote}
         </p>
         <Actions>
           <Button
@@ -181,7 +186,7 @@ export function OnboardingQuestionnaire({
             disabled={nonePicked}
             onClick={() => go("next")}
           >
-            {sportsContinueLabel(answers.picked)}
+            {sportsContinueLabel(answers.picked, locale)}
           </Button>
         </Actions>
       </AuthScreen>
@@ -194,9 +199,9 @@ export function OnboardingQuestionnaire({
       <AuthScreen
         onBack={saving ? undefined : back}
         progress={{ ...progress, label: eyebrow }}
-        eyebrow="Padel"
-        title="Where would you place yourself?"
-        description="A starting point only. Rated matches confirm it."
+        eyebrow={m.common.padel}
+        title={copy.padel.title}
+        description={copy.padel.description}
       >
         <div className="flex flex-col gap-5">
           <FormErrorSummary message={finishError} />
@@ -204,8 +209,8 @@ export function OnboardingQuestionnaire({
             <LevelAlreadySet sport="padel" />
           ) : (
             <RowChoices
-              label="Padel Level"
-              choices={PADEL_LEVEL_CHOICES.map((choice) => ({
+              label={copy.padel.levelLabel}
+              choices={padelLevelChoices(locale).map((choice) => ({
                 ...choice,
                 mark: choice.value,
               }))}
@@ -215,12 +220,12 @@ export function OnboardingQuestionnaire({
           )}
           <Group>
             <SectionLabel
-              label="Preferred side"
-              hint="a preference, not a promise"
+              label={copy.padel.preferredSide}
+              hint={copy.padel.preferenceHint}
             />
             <TileChoices
-              label="Preferred side"
-              choices={PADEL_SIDE_CHOICES}
+              label={copy.padel.preferredSide}
+              choices={padelSideChoices(locale)}
               value={answers.padelSide}
               onSelect={(padelSide) => update({ padelSide })}
             />
@@ -233,12 +238,12 @@ export function OnboardingQuestionnaire({
             className="w-full font-semibold"
             disabled={!levelSet && answers.padelLevel === ""}
             pending={saving}
-            pendingLabel="Saving…"
+            pendingLabel={m.common.saving}
             onClick={() => go("next")}
           >
             {levelSet || answers.padelLevel
-              ? nextLabel("Continue")
-              : "Pick a Level"}
+              ? nextLabel(m.common.continue)
+              : copy.padel.pickALevel}
           </Button>
           {levelSet ? null : (
             <Button
@@ -253,7 +258,7 @@ export function OnboardingQuestionnaire({
                 })
               }
             >
-              {PADEL_NOT_SURE_LABEL}
+              {padelNotSureLabel(locale)}
             </Button>
           )}
         </Actions>
@@ -267,17 +272,17 @@ export function OnboardingQuestionnaire({
       <AuthScreen
         onBack={saving ? undefined : back}
         progress={{ ...progress, label: eyebrow }}
-        eyebrow="Football"
-        title="How do you line up?"
-        description="Organizers use this to balance teams. You can change it per Game."
+        eyebrow={m.common.football}
+        title={copy.football.title}
+        description={copy.football.description}
       >
         <div className="flex flex-col gap-5">
           <FormErrorSummary message={finishError} />
           <Group>
-            <SectionLabel label="Usually join as" />
+            <SectionLabel label={copy.football.usuallyJoinAs} />
             <TileChoices
-              label="Football role"
-              choices={FOOTBALL_ROLE_CHOICES}
+              label={copy.football.roleLabel}
+              choices={footballRoleChoices(locale)}
               value={answers.footballRole}
               onSelect={(footballRole) => update({ footballRole })}
             />
@@ -288,18 +293,18 @@ export function OnboardingQuestionnaire({
                 {KEEPER_CODE}
               </span>
               <p className="text-meta text-muted-foreground">
-                Keeper seats are limited to two a Game, one for each side.
+                {copy.football.keeperSeatsNote}
               </p>
             </div>
           ) : (
             <Group>
               <SectionLabel
-                label="Preferred position"
-                hint="a preference, not a promise"
+                label={copy.football.preferredPosition}
+                hint={copy.padel.preferenceHint}
               />
               <TileChoices<FootballPosition>
-                label="Preferred football position"
-                choices={FOOTBALL_POSITION_CHOICES.map((choice) => ({
+                label={copy.football.positionLabel}
+                choices={footballPositionChoices(locale).map((choice) => ({
                   value: choice.value,
                   name: choice.code,
                   detail: choice.label.toLowerCase(),
@@ -311,17 +316,17 @@ export function OnboardingQuestionnaire({
             </Group>
           )}
           <Group>
-            <SectionLabel label="Your level" />
+            <SectionLabel label={copy.football.yourLevel} />
             {state.hasFootballRating ? (
               <LevelAlreadySet sport="football" />
             ) : (
               <>
                 <div
                   role="radiogroup"
-                  aria-label="Football level"
+                  aria-label={copy.football.levelLabel}
                   className="flex flex-col gap-2"
                 >
-                  {FOOTBALL_SELF_PLACEMENT_CHOICES.map((choice) => (
+                  {footballSelfPlacementChoices(locale).map((choice) => (
                     <CardChoice
                       key={choice.value}
                       role="radio"
@@ -335,8 +340,7 @@ export function OnboardingQuestionnaire({
                   ))}
                 </div>
                 <p className="text-eyebrow text-muted-foreground">
-                  Self-placed for now. It balances teams until football results
-                  are rated.
+                  {copy.football.selfPlacedNote}
                 </p>
               </>
             )}
@@ -348,10 +352,10 @@ export function OnboardingQuestionnaire({
             size="lg"
             className="w-full font-semibold"
             pending={saving}
-            pendingLabel="Saving…"
+            pendingLabel={m.common.saving}
             onClick={() => go("next")}
           >
-            {nextLabel("Continue")}
+            {nextLabel(m.common.continue)}
           </Button>
         </Actions>
       </AuthScreen>

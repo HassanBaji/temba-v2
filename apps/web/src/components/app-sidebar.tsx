@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 
 import { useCreateAccess } from "~/components/create-access-gate";
+import { useMessages } from "~/components/locale-provider";
+import type { Messages } from "@repo/i18n/messages";
 import { api } from "~/trpc/react";
 import { NavMain } from "~/components/nav-main";
 import {
@@ -29,83 +31,97 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
 
-const navMain = [
-  {
-    title: "Home",
-    url: "/dashboard",
-    icon: House,
-  },
-  {
-    title: "Games",
-    url: "/dashboard/games",
-    icon: CalendarDays,
-  },
-  {
-    title: "Groups",
-    url: "/dashboard/groups",
-    icon: Users,
-  },
-  {
-    title: "Teams",
-    url: "/dashboard/teams",
-    icon: UserRound,
-  },
-  {
-    title: "Communities",
-    url: "/dashboard/communities",
-    icon: Building2,
-  },
-  {
-    title: "Invites",
-    url: "/dashboard/invites",
-    icon: Mail,
-  },
-];
+function navMain(m: Messages) {
+  return [
+    {
+      title: m.common.home,
+      url: "/dashboard",
+      icon: House,
+    },
+    {
+      title: m.common.games,
+      url: "/dashboard/games",
+      icon: CalendarDays,
+    },
+    {
+      title: m.common.groups,
+      url: "/dashboard/groups",
+      icon: Users,
+    },
+    {
+      title: m.common.teams,
+      url: "/dashboard/teams",
+      icon: UserRound,
+    },
+    {
+      title: m.common.communities,
+      url: "/dashboard/communities",
+      icon: Building2,
+    },
+    {
+      title: m.common.invites,
+      url: "/dashboard/invites",
+      icon: Mail,
+    },
+  ];
+}
 
-const venuesNav = {
-  title: "Venues",
-  url: "/dashboard/venues",
-  icon: MapPin,
-};
+function venuesNav(m: Messages) {
+  return {
+    title: m.webUi.nav.venues,
+    url: "/dashboard/venues",
+    icon: MapPin,
+  };
+}
 
-const operatorGroupsNav = {
-  title: "Verify Groups",
-  url: "/dashboard/operator/groups",
-  icon: ShieldCheck,
-};
+function operatorGroupsNav(m: Messages) {
+  return {
+    title: m.webUi.nav.verifyGroups,
+    url: "/dashboard/operator/groups",
+    icon: ShieldCheck,
+  };
+}
 
-const operatorLevelsNav = {
-  title: "Player Levels",
-  url: "/dashboard/operator/levels",
-  icon: Gauge,
-};
+function operatorLevelsNav(m: Messages) {
+  return {
+    title: m.webUi.nav.playerLevels,
+    url: "/dashboard/operator/levels",
+    icon: Gauge,
+  };
+}
 
 const consoleOrigin = process.env.NEXT_PUBLIC_CONSOLE_ORIGIN;
 
 /** The Venue console is its own App (ADR-0031); the entry is an external link. */
-const consoleNav = consoleOrigin
-  ? {
-      title: "Venue console",
-      url: consoleOrigin,
-      icon: ClipboardList,
-      external: true,
-    }
-  : undefined;
+function consoleNav(m: Messages) {
+  return consoleOrigin
+    ? {
+        title: m.webUi.nav.venueConsole,
+        url: consoleOrigin,
+        icon: ClipboardList,
+        external: true,
+      }
+    : undefined;
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
+  const m = useMessages();
   const { isLoaded, hasCreateAccess } = useCreateAccess();
   const isOperator = user?.publicMetadata.operator === true;
-  const items = navMain.filter(
+  const items = navMain(m).filter(
     (item) =>
       item.url !== "/dashboard/communities" || (isLoaded && hasCreateAccess),
   );
   const managed = api.venues.listManaged.useQuery();
   const managesVenue = (managed.data?.length ?? 0) > 0;
+  const console = consoleNav(m);
   const navItems = [
     ...items,
-    ...(managesVenue && consoleNav ? [consoleNav] : []),
-    ...(isOperator ? [venuesNav, operatorGroupsNav, operatorLevelsNav] : []),
+    ...(managesVenue && console ? [console] : []),
+    ...(isOperator
+      ? [venuesNav(m), operatorGroupsNav(m), operatorLevelsNav(m)]
+      : []),
   ];
 
   return (

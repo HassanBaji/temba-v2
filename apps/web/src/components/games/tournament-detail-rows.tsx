@@ -21,7 +21,7 @@ export function TournamentDetailRows({
           }
         >
           <span className="text-muted-foreground">{row.label}</span>
-          <span className="text-right">{row.value}</span>
+          <span className="text-end">{row.value}</span>
         </div>
       ))}
     </div>

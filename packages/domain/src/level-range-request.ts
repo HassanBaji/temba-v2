@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { formatLevelRangeGateCopy, formatLevelTenths } from "./level-range";
 import { requestRowMeta } from "./request-meta";
 
@@ -17,12 +20,11 @@ export type LevelRangeRequestCard = {
   actionEnabled: boolean;
 };
 
-export const LEVEL_RANGE_REQUEST_TITLE = "Request to play";
-export const LEVEL_RANGE_REQUEST_SENT_TOAST = "Request sent";
-
 export function levelRangeRequestCard(
   game: LevelRangeRequestInput,
+  locale: Locale,
 ): LevelRangeRequestCard | null {
+  const m = messagesFor(locale).level.request;
   const request = game.levelRangeRequest;
   const visible =
     game.canRequestLevelRange ||
@@ -33,18 +35,15 @@ export function levelRangeRequestCard(
   const pending = request?.status === "pending";
   const rejected = request?.status === "rejected";
   return {
-    title: LEVEL_RANGE_REQUEST_TITLE,
+    title: m.title,
     copy: formatLevelRangeGateCopy({
       levelMinTenths: game.levelMinTenths,
       levelMaxTenths: game.levelMaxTenths,
       viewerLevelTenths: game.viewerLevelTenths,
+      locale,
     }),
     badge: pending ? "Pending" : rejected ? "Rejected" : null,
-    actionLabel: pending
-      ? null
-      : rejected
-        ? "Request again"
-        : LEVEL_RANGE_REQUEST_TITLE,
+    actionLabel: pending ? null : rejected ? m.again : m.title,
     actionEnabled: game.canRequestLevelRange,
   };
 }
@@ -66,13 +65,16 @@ export function levelRangeRequestRowMeta(
     provisional: boolean;
     createdAt: Date | string;
   },
+  locale: Locale,
   now?: Date,
 ) {
+  const m = messagesFor(locale).level.request;
   return requestRowMeta(
     request.createdAt,
+    locale,
     [
-      formatLevelTenths(request.levelTenths) ?? "No Level",
-      request.provisional ? "Provisional" : null,
+      formatLevelTenths(request.levelTenths) ?? m.noLevel,
+      request.provisional ? m.provisional : null,
     ],
     now,
   );

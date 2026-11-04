@@ -7,13 +7,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
-import {
-  INVITE_ACTION_LABEL,
-  LEFT_SEAT_LABEL,
-  OPEN_POSITION_SR_LABEL,
-  RIGHT_SEAT_LABEL,
-  YOUR_TEAM_LABEL,
-} from "@repo/domain/tournament-home";
+import { useMessages } from "~/components/locale-provider";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
@@ -35,8 +29,11 @@ function TournamentHeroSeatBlock({
   position: "left" | "right";
   isViewer: boolean;
 }) {
+  const m = useMessages();
   const positionLabel =
-    position === "left" ? LEFT_SEAT_LABEL : RIGHT_SEAT_LABEL;
+    position === "left"
+      ? m.tournament.home.leftSeat
+      : m.tournament.home.rightSeat;
 
   if (!occupant) {
     return (
@@ -45,12 +42,12 @@ function TournamentHeroSeatBlock({
           aria-hidden="true"
           className="hatch hatch-on-ink absolute inset-0 rounded-md"
         />
-        <span className="sr-only">{OPEN_POSITION_SR_LABEL}</span>
+        <span className="sr-only">{m.tournament.home.openPositionSr}</span>
       </div>
     );
   }
 
-  const displayName = isViewer ? "You" : occupant.name;
+  const displayName = isViewer ? m.common.you : occupant.name;
 
   return (
     <div className="bg-raised flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
@@ -98,6 +95,7 @@ export function TournamentHero({
   sharePending?: boolean;
   onInvite?: () => void;
 }) {
+  const m = useMessages();
   return (
     <Surface
       as="article"
@@ -109,7 +107,7 @@ export function TournamentHero({
         {onShare ? (
           <button
             type="button"
-            aria-label="Share"
+            aria-label={m.common.share}
             disabled={sharePending}
             onClick={onShare}
             className={cn(ACTION_BOX_DARK, "disabled:opacity-50")}
@@ -132,7 +130,7 @@ export function TournamentHero({
 
       {showYourTeam ? (
         <>
-          <p className="text-dim text-meta">{YOUR_TEAM_LABEL}</p>
+          <p className="text-dim text-meta">{m.tournament.home.yourTeam}</p>
           <div className="mt-3 flex gap-2">
             <TournamentHeroSeatBlock
               occupant={left}
@@ -165,7 +163,7 @@ export function TournamentHero({
           onClick={onInvite}
           className="mt-[18px] w-full"
         >
-          {INVITE_ACTION_LABEL}
+          {m.tournament.home.inviteAction}
         </Button>
       ) : null}
     </Surface>

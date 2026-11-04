@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { initials } from "./initials";
 
 export type HomeSeatView = {
@@ -60,17 +63,19 @@ export function homeNextGameSeats(
   }));
 }
 
-export function homeSpotsOpenLabel(open: number, total: number): string | null {
+export function homeSpotsOpenLabel(
+  open: number,
+  total: number,
+  locale: Locale,
+): string | null {
   if (total < 1) {
     return null;
   }
+  const m = messagesFor(locale).home.seats;
   if (open === 0) {
-    return "Full";
+    return m.full;
   }
-  if (open === 1) {
-    return "One spot open";
-  }
-  return `${open} spots open`;
+  return m.spotsOpen(open);
 }
 
 function occupantToSeat(
@@ -122,7 +127,10 @@ export function homeSeatsBySide(seats: HomeSeatView[]): HomeSeatView[][] {
   return groups;
 }
 
-export function homeSeatRowSummary(seats: HomeSeatView[]): {
+export function homeSeatRowSummary(
+  seats: HomeSeatView[],
+  locale: Locale,
+): {
   filled: number;
   total: number;
   useInitials: boolean;
@@ -133,6 +141,6 @@ export function homeSeatRowSummary(seats: HomeSeatView[]): {
     filled,
     total: seats.length,
     useInitials: seats.length > 6,
-    spotsLabel: homeSpotsOpenLabel(seats.length - filled, seats.length),
+    spotsLabel: homeSpotsOpenLabel(seats.length - filled, seats.length, locale),
   };
 }

@@ -1,9 +1,11 @@
+import { useMessages } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
 
 export function GameDetailsSkeleton() {
+  const m = useMessages();
   return (
     <div aria-busy="true" className="space-y-6">
-      <span className="sr-only">Loading Game</span>
+      <span className="sr-only">{m.webGame.loadingGame}</span>
       <div aria-hidden="true" className="space-y-6">
         <Skeleton className="h-[248px] w-full rounded-xl" />
         <div className="space-y-3">

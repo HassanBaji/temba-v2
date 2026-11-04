@@ -5,6 +5,7 @@ import {
 } from "@repo/domain/home-standing";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 import { Card } from "./card";
@@ -18,56 +19,66 @@ export function StandingCard({
   rows: readonly HomeStandingRow[];
   onNavigate: (target: HomeNavTarget) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   if (rows.length === 0) {
     return null;
   }
 
   return (
     <Card
-      title="Standing"
-      meta={standingCountLabel(rows.length)}
+      title={m.mobileHome.standing.title}
+      meta={standingCountLabel(rows.length, locale)}
       monoMeta
       flush
     >
-      {rows.map(homeStandingRowView).map((row) => (
-        <View key={row.groupId}>
-          <Hairline />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${row.groupName}, ${row.rank} ${row.ofCount}`}
-            onPress={() => onNavigate({ kind: "group", groupId: row.groupId })}
-            style={({ pressed }) => ({
-              minHeight: sizes.touchTarget + 8,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              paddingHorizontal: spacing.surface,
-              paddingVertical: 12,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Text
-              weight="semibold"
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
+      {rows
+        .map((row) => homeStandingRowView(row, locale))
+        .map((row) => (
+          <View key={row.groupId}>
+            <Hairline />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={m.mobileHome.standing.rowSpoken(
+                row.groupName,
+                row.rank,
+                row.ofCount,
+              )}
+              onPress={() =>
+                onNavigate({ kind: "group", groupId: row.groupId })
+              }
+              style={({ pressed }) => ({
+                minHeight: sizes.touchTarget + 8,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                paddingHorizontal: spacing.surface,
+                paddingVertical: 12,
+                opacity: pressed ? 0.7 : 1,
+              })}
             >
-              {row.groupName}
-            </Text>
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}
-            >
-              <Text size="title" width="expanded" weight="bold">
-                {row.rank}
+              <Text
+                weight="semibold"
+                numberOfLines={1}
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                {row.groupName}
               </Text>
-              <Text size="meta" tone="muted">
-                {row.ofCount}
-              </Text>
-            </View>
-          </Pressable>
-        </View>
-      ))}
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}
+              >
+                <Text size="title" width="expanded" weight="bold">
+                  {row.rank}
+                </Text>
+                <Text size="meta" tone="muted">
+                  {row.ofCount}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        ))}
     </Card>
   );
 }

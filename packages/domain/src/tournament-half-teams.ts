@@ -1,3 +1,6 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import type { LevelBand } from "./level-bands";
 
 export type SeatPosition = "left" | "right";
@@ -21,38 +24,6 @@ export type MergePositionAssignment = {
   firstPosition: SeatPosition;
   secondPosition: SeatPosition;
 };
-
-export const ORGANIZER_EYEBROW = "ORGANIZER";
-
-export const MERGE_COMPLETES_FIELD_COPY = "Merging them completes the field.";
-
-export const MERGE_TAKES_EFFECT_COPY =
-  "Takes effect immediately. Either of them can leave until the group draw.";
-export const MERGE_TAKES_EFFECT_KNOCKOUT_COPY =
-  "Takes effect immediately. Either of them can leave until the draw.";
-
-export const MERGE_BANNER_TITLE = "Two Game teams have one Position each";
-
-export const MERGE_BANNER_ACTION_LABEL = "Fix the seats";
-
-export const MERGE_DRAWER_TITLE = "Two Half teams";
-
-export const MERGE_PREVIEW_LABEL = "One Game team instead of two";
-
-export const MERGE_PRIMARY_ACTION_LABEL = "Put them in one Game team";
-
-export const MERGE_DISMISS_ACTION_LABEL = "Leave both Positions open";
-
-export const MERGE_SWAP_LABEL = "Swap";
-
-export const MERGE_SEATS_ACTION_LABEL = "Merge seats";
-
-export const MERGE_MANY_TITLE = "Game teams have one Position each";
-
-export const MERGE_SAME_POSITION_COPY =
-  "Both Users would play the same Position";
-
-export const MERGE_OPEN_POSITION_SR = "Open Position";
 
 function otherPosition(position: SeatPosition): SeatPosition {
   return position === "left" ? "right" : "left";
@@ -96,8 +67,10 @@ export function mergeCompletesTheField(halfTeams: readonly HalfTeam[]) {
   return halfTeams.length === 2;
 }
 
-export function halfTeamMergeHint(halfTeamCount: number) {
-  return halfTeamCount === 2 ? MERGE_COMPLETES_FIELD_COPY : null;
+export function halfTeamMergeHint(halfTeamCount: number, locale: Locale) {
+  return halfTeamCount === 2
+    ? messagesFor(locale).tournament.halfTeams.mergeCompletesField
+    : null;
 }
 
 export function showOrganizerMergeBanner(args: {
@@ -132,20 +105,26 @@ export function canOpenOrganizerMergeDrawer(args: {
   );
 }
 
-export function mergeTeamEyebrow(sideIndex: number) {
-  return `TEAM ${String(sideIndex).padStart(2, "0")}`;
+export function mergeTeamEyebrow(sideIndex: number, locale: Locale) {
+  return messagesFor(locale).tournament.halfTeams.teamEyebrow(
+    String(sideIndex).padStart(2, "0"),
+  );
 }
 
 export function mergeOccupantSubline(
   position: SeatPosition,
   levelLabel: string | null,
+  locale: Locale,
 ) {
-  const seat = seatedPositionLabel(position);
-  return levelLabel ? `${seat}, ${levelLabel}` : seat;
+  const seat = seatedPositionLabel(position, locale);
+  return levelLabel
+    ? messagesFor(locale).tournament.halfTeams.occupantSubline(seat, levelLabel)
+    : seat;
 }
 
-export function mergeOpenPositionLabel(position: SeatPosition) {
-  return position === "left" ? "Left open" : "Right open";
+export function mergeOpenPositionLabel(position: SeatPosition, locale: Locale) {
+  const m = messagesFor(locale).tournament.halfTeams;
+  return position === "left" ? m.leftOpen : m.rightOpen;
 }
 
 export function mergePairCopy(args: {
@@ -153,17 +132,18 @@ export function mergePairCopy(args: {
   secondName: string;
   completesField: boolean;
   teamCount: number | null;
+  locale: Locale;
 }) {
+  const m = messagesFor(args.locale).tournament.halfTeams;
   const first = firstName(args.firstName) ?? args.firstName;
   const second = firstName(args.secondName) ?? args.secondName;
-  const pair = `Put ${first} and ${second} together`;
   if (!args.completesField) {
-    return `${pair}.`;
+    return m.putTogether(first, second);
   }
   if (args.teamCount != null && args.teamCount > 0) {
-    return `${pair} and the ${args.teamCount} Game teams are full.`;
+    return m.putTogetherFull(first, second, args.teamCount);
   }
-  return `${pair}. ${MERGE_COMPLETES_FIELD_COPY}`;
+  return m.putTogetherCompletes(first, second);
 }
 
 export function mergeDrawerLead(args: {
@@ -171,27 +151,32 @@ export function mergeDrawerLead(args: {
   secondName: string;
   completesField: boolean;
   teamCount: number | null;
+  locale: Locale;
 }) {
+  const m = messagesFor(args.locale).tournament.halfTeams;
   const first = firstName(args.firstName) ?? args.firstName;
   const second = firstName(args.secondName) ?? args.secondName;
-  const start = `${first} and ${second} each took a seat on their own.`;
   if (args.completesField) {
     if (args.teamCount != null && args.teamCount > 0) {
-      return `${start} Put them together and the ${args.teamCount} Game teams are full.`;
+      return m.drawerLeadFull(first, second, args.teamCount);
     }
-    return `${start} ${MERGE_COMPLETES_FIELD_COPY}`;
+    return m.drawerLeadCompletes(first, second);
   }
-  return `${start} Put them together into one Game team.`;
+  return m.drawerLead(first, second);
 }
 
-export function mergeSwapHint(name: string, position: SeatPosition) {
+export function mergeSwapHint(
+  name: string,
+  position: SeatPosition,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournament;
   const first = firstName(name) ?? name;
-  const seat = position === "left" ? "left" : "right";
-  return `${first} keeps the ${seat} seat instead`;
+  return m.halfTeams.swapHint(first, m.position[`${position}Lower`]);
 }
 
-export function mergeManyHalfTeamsCopy(halfTeamCount: number) {
-  return `${halfTeamCount} Game teams have one Position each.`;
+export function mergeManyHalfTeamsCopy(halfTeamCount: number, locale: Locale) {
+  return messagesFor(locale).tournament.halfTeams.manyHalfTeams(halfTeamCount);
 }
 
 export function defaultMergePositions(
@@ -216,12 +201,14 @@ export function samePositionMerge(assignment: MergePositionAssignment) {
   return assignment.firstPosition === assignment.secondPosition;
 }
 
-export function openPositionLabel(position: SeatPosition) {
-  return position === "left" ? "Open left" : "Open right";
+export function openPositionLabel(position: SeatPosition, locale: Locale) {
+  const m = messagesFor(locale).tournament.halfTeams;
+  return position === "left" ? m.openLeft : m.openRight;
 }
 
-export function seatedPositionLabel(position: SeatPosition) {
-  return position === "left" ? "Left" : "Right";
+export function seatedPositionLabel(position: SeatPosition, locale: Locale) {
+  const m = messagesFor(locale).tournament.position;
+  return position === "left" ? m.left : m.right;
 }
 
 function firstName(name: string | null | undefined) {

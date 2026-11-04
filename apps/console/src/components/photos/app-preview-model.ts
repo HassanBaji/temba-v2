@@ -2,6 +2,7 @@ import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { zonedParts } from "@repo/domain/product-timezone";
 
 import type { HoursWindow } from "~/components/hours/opening-hours-model";
+import { CONSOLE_LOCALE } from "~/lib/locale";
 
 /**
  * The labels the mobile App's Venue card and Venue screen show
@@ -52,5 +53,6 @@ export function fromPriceLabel(
   }
   return formatBookingPriceFils(
     Math.min(...pricingRules.map((rule) => rule.hourlyRateFils)),
+    CONSOLE_LOCALE,
   );
 }

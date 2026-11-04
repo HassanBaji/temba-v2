@@ -1,5 +1,6 @@
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
@@ -22,6 +23,7 @@ export function ConfirmSheet({
   pending: boolean;
   onClose: () => void;
 }) {
+  const m = useMessages();
   return (
     <Sheet visible={request != null} onClose={onClose} title={request?.title}>
       <Text size="meta" tone="muted">
@@ -34,7 +36,7 @@ export function ConfirmSheet({
       ))}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
-          label={request?.cancelLabel ?? "Keep"}
+          label={request?.cancelLabel ?? m.mobileGameDetails.confirm.keep}
           variant="outline"
           onPress={onClose}
         />

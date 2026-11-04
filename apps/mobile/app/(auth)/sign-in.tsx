@@ -14,10 +14,10 @@ import { Pressable, View } from "react-native";
 
 import { AuthScreen, goBackOrWelcome } from "../../src/auth/auth-screen";
 import {
-  SOMETHING_WENT_WRONG,
   fieldError,
   hasClerkErrorCode,
   resolvePhone,
+  somethingWentWrong,
 } from "../../src/auth/clerk-forms";
 import { CodeForm } from "../../src/auth/code-form";
 import { FormErrorSummary } from "../../src/auth/form-error-summary";
@@ -30,6 +30,7 @@ import {
   setPostAuthTarget,
 } from "../../src/auth/post-auth-target";
 import { TermsMicrocopy } from "../../src/auth/terms-microcopy";
+import { useLocale, useMessages } from "../../src/i18n/locale-provider";
 import { type SplitFormError } from "../../src/lib/form-error";
 import { Button } from "../../src/primitives/button";
 import { InitialsTile } from "../../src/primitives/initials-tile";
@@ -60,6 +61,8 @@ type SessionOutcome = {
 };
 
 export default function SignIn() {
+  const m = useMessages();
+  const locale = useLocale();
   const signInApi = useSignIn();
   const signUpApi = useSignUp();
   const { signIn, setActive } = signInApi;
@@ -109,7 +112,7 @@ export default function SignIn() {
 
   async function startSignUp(e164: string) {
     if (!signUp) {
-      setSplit(SOMETHING_WENT_WRONG);
+      setSplit(somethingWentWrong(locale));
       return;
     }
     await signUp.create({ phoneNumber: e164, legalAccepted: true });
@@ -123,7 +126,7 @@ export default function SignIn() {
     if (pending || !signIn) {
       return;
     }
-    const phone = resolvePhone(countryIso, national, "identifier");
+    const phone = resolvePhone(countryIso, national, "identifier", locale);
     if (!phone.ok) {
       setSplit(phone.split);
       return;
@@ -138,8 +141,7 @@ export default function SignIn() {
       if (!hasPassword) {
         setSplit({
           fieldErrors: {},
-          globalMessage:
-            "This account has no password. Sign in with Google instead.",
+          globalMessage: m.mobileHome.signIn.noPassword,
         });
         return;
       }
@@ -150,11 +152,11 @@ export default function SignIn() {
         try {
           await startSignUp(phone.e164);
         } catch (signUpErr) {
-          setSplit(splitClerkAuthError(signUpErr));
+          setSplit(splitClerkAuthError(signUpErr, locale));
         }
         return;
       }
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -169,7 +171,7 @@ export default function SignIn() {
       await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
       setStartedAt(Date.now());
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -188,7 +190,7 @@ export default function SignIn() {
       }
       setStep("name");
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -212,9 +214,9 @@ export default function SignIn() {
         router.push("/factor-two");
         return;
       }
-      setSplit(SOMETHING_WENT_WRONG);
+      setSplit(somethingWentWrong(locale));
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -228,7 +230,7 @@ export default function SignIn() {
       (item) => item.strategy === "reset_password_phone_code",
     )?.phoneNumberId;
     if (!phoneNumberId) {
-      setSplit(SOMETHING_WENT_WRONG);
+      setSplit(somethingWentWrong(locale));
       return false;
     }
     await signIn.prepareFirstFactor({
@@ -251,7 +253,7 @@ export default function SignIn() {
         setStep("reset-code");
       }
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -265,7 +267,7 @@ export default function SignIn() {
     try {
       await sendResetCode();
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -290,9 +292,9 @@ export default function SignIn() {
       if (await activate(result)) {
         return;
       }
-      setSplit(SOMETHING_WENT_WRONG);
+      setSplit(somethingWentWrong(locale));
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -316,9 +318,9 @@ export default function SignIn() {
         router.push("/factor-two");
         return;
       }
-      setSplit(SOMETHING_WENT_WRONG);
+      setSplit(somethingWentWrong(locale));
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -328,7 +330,7 @@ export default function SignIn() {
     if (pending || !signUp) {
       return;
     }
-    const names = validateUserNames({ firstName, lastName });
+    const names = validateUserNames({ firstName, lastName }, locale);
     if (!names.ok) {
       setSplit({ fieldErrors: names.fieldErrors, globalMessage: null });
       return;
@@ -345,7 +347,7 @@ export default function SignIn() {
       }
       setStep("new-password");
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -360,10 +362,10 @@ export default function SignIn() {
     try {
       const result = await signUp.update({ password });
       if (!(await activate(result))) {
-        setSplit(SOMETHING_WENT_WRONG);
+        setSplit(somethingWentWrong(locale));
       }
     } catch (err) {
-      setSplit(splitClerkAuthError(err));
+      setSplit(splitClerkAuthError(err, locale));
     } finally {
       setPending(false);
     }
@@ -373,11 +375,11 @@ export default function SignIn() {
     return (
       <AuthScreen
         onBack={backToPhone}
-        title="Enter your password"
-        description={`For ${formattedPhone}.`}
+        title={m.mobileHome.signIn.enterYourPassword}
+        description={m.mobileHome.signIn.forPhone(formattedPhone)}
         action={
           <Button
-            label="Sign in"
+            label={m.common.signIn}
             size="lg"
             pending={pending}
             disabled={password.length === 0}
@@ -387,11 +389,11 @@ export default function SignIn() {
       >
         <FormErrorSummary message={split?.globalMessage} />
         <PasswordField
-          label="Password"
+          label={m.mobileHome.fields.password}
           autoFocus
           autoComplete="current-password"
           textContentType="password"
-          placeholder="Enter your password"
+          placeholder={m.mobileHome.fields.enterYourPassword}
           value={password}
           onChangeText={setPassword}
           onSubmitEditing={() => void onSignInWithPassword()}
@@ -416,7 +418,7 @@ export default function SignIn() {
               tone="muted"
               style={{ textAlign: "center", textDecorationLine: "underline" }}
             >
-              Forgot password?
+              {m.mobileHome.signIn.forgotPassword}
             </Text>
           </Pressable>
           <Pressable
@@ -430,7 +432,7 @@ export default function SignIn() {
               tone="muted"
               style={{ textAlign: "center", textDecorationLine: "underline" }}
             >
-              Change number
+              {m.mobileHome.code.changeNumber}
             </Text>
           </Pressable>
         </View>
@@ -442,18 +444,17 @@ export default function SignIn() {
     return (
       <AuthScreen
         onBack={backToPassword}
-        title="Enter the code"
-        description="To reset your password."
+        title={m.mobileHome.code.enterTheCode}
+        description={m.mobileHome.signIn.toResetPassword}
         footer={
           <Text size="eyebrow" tone="muted">
-            Codes expire after a short time. Too many wrong tries will lock this
-            number.
+            {m.mobileHome.code.expiryNumber}
           </Text>
         }
       >
         <CodeForm
           destination={formattedPhone}
-          changeLabel="Change number"
+          changeLabel={m.mobileHome.code.changeNumber}
           onChangeIdentifier={backToPhone}
           code={code}
           onCodeChange={setCode}
@@ -472,11 +473,11 @@ export default function SignIn() {
     return (
       <AuthScreen
         onBack={backToPhone}
-        title="Pick a new password"
-        description={`For ${formattedPhone}. Other devices will be signed out.`}
+        title={m.mobileHome.signIn.pickNewPassword}
+        description={m.mobileHome.signIn.forPhoneOtherDevices(formattedPhone)}
         action={
           <Button
-            label="Save and sign in"
+            label={m.mobileHome.signIn.saveAndSignIn}
             size="lg"
             pending={pending}
             disabled={!passwordMeetsMinimum(password)}
@@ -486,12 +487,12 @@ export default function SignIn() {
       >
         <FormErrorSummary message={split?.globalMessage} />
         <PasswordField
-          label="New password"
+          label={m.mobileHome.fields.newPassword}
           strength
           autoFocus
           autoComplete="password-new"
           textContentType="newPassword"
-          placeholder="At least 8 characters"
+          placeholder={m.mobileHome.fields.atLeastEightCharacters}
           value={password}
           onChangeText={setPassword}
           onSubmitEditing={() => void onSaveNewPassword()}
@@ -506,17 +507,16 @@ export default function SignIn() {
     return (
       <AuthScreen
         onBack={backToPhone}
-        title="Enter the code"
+        title={m.mobileHome.code.enterTheCode}
         footer={
           <Text size="eyebrow" tone="muted">
-            Codes expire after a short time. Too many wrong tries will lock this
-            number.
+            {m.mobileHome.code.expiryNumber}
           </Text>
         }
       >
         <CodeForm
           destination={formattedPhone}
-          changeLabel="Change number"
+          changeLabel={m.mobileHome.code.changeNumber}
           onChangeIdentifier={backToPhone}
           code={code}
           onCodeChange={setCode}
@@ -532,16 +532,17 @@ export default function SignIn() {
   }
 
   if (step === "name") {
-    const preview = userDisplayName({ firstName, lastName }) ?? "Your name";
+    const preview =
+      userDisplayName({ firstName, lastName }) ?? m.mobileHome.signIn.yourName;
     return (
       <AuthScreen
         onBack={backToPhone}
         progress={{ step: 1, total: 2 }}
-        title="What should we call you?"
-        description="Shown to organizers and the people you play with."
+        title={m.mobileHome.nameForm.title}
+        description={m.profile.checklist.tasks.name.description}
         action={
           <Button
-            label="Continue"
+            label={m.common.continue}
             size="lg"
             pending={pending}
             onPress={() => void onSaveName()}
@@ -549,13 +550,13 @@ export default function SignIn() {
         }
         footer={
           <Text size="eyebrow" tone="muted">
-            Photo, email, sports and level can be added later from Profile.
+            {m.mobileHome.signIn.nameFooter}
           </Text>
         }
       >
         <FormErrorSummary message={split?.globalMessage} />
         <TextField
-          label="First name"
+          label={m.mobileHome.fields.firstName}
           autoComplete="given-name"
           textContentType="givenName"
           autoFocus
@@ -565,7 +566,7 @@ export default function SignIn() {
           error={fieldError(split, "firstName", "first_name")}
         />
         <TextField
-          label="Last name"
+          label={m.mobileHome.fields.lastName}
           autoComplete="family-name"
           textContentType="familyName"
           value={lastName}
@@ -595,7 +596,7 @@ export default function SignIn() {
             </Text>
           </View>
           <Text size="eyebrow" tone="muted" mono uppercase>
-            Preview
+            {m.mobileHome.signIn.preview}
           </Text>
         </Surface>
       </AuthScreen>
@@ -610,11 +611,11 @@ export default function SignIn() {
           setSplit(null);
         }}
         progress={{ step: 2, total: 2 }}
-        title="Pick a password"
-        description="For signing in on a new phone."
+        title={m.mobileHome.signIn.pickPassword}
+        description={m.mobileHome.signIn.pickPasswordDescription}
         action={
           <Button
-            label="Create account"
+            label={m.mobileHome.signIn.createAccount}
             size="lg"
             pending={pending}
             disabled={!passwordMeetsMinimum(password)}
@@ -623,18 +624,18 @@ export default function SignIn() {
         }
         footer={
           <Text size="eyebrow" tone="muted">
-            You can change it later from Settings.
+            {m.mobileHome.signIn.changeLaterFromSettings}
           </Text>
         }
       >
         <FormErrorSummary message={split?.globalMessage} />
         <PasswordField
-          label="Password"
+          label={m.mobileHome.fields.password}
           strength
           autoFocus
           autoComplete="password-new"
           textContentType="newPassword"
-          placeholder="At least 8 characters"
+          placeholder={m.mobileHome.fields.atLeastEightCharacters}
           value={password}
           onChangeText={setPassword}
           onSubmitEditing={() => void onCreateAccount()}
@@ -648,17 +649,17 @@ export default function SignIn() {
   return (
     <AuthScreen
       onBack={goBackOrWelcome}
-      title="What's your number?"
-      description="Known numbers sign in with a password. If the number is new to us, we text a six digit code and create your account."
+      title={m.mobileHome.signIn.whatsYourNumber}
+      description={m.mobileHome.signIn.numberDescription}
       footer={
         <Text size="meta" tone="muted">
-          Invited to a Group? Open your invite link.
+          {m.mobileHome.signIn.invitedToGroup}
         </Text>
       }
     >
       <FormErrorSummary message={split?.globalMessage} />
       <PhoneField
-        label="Mobile number"
+        label={m.mobileHome.fields.mobileNumber}
         countryIso={countryIso}
         national={national}
         onCountryIsoChange={setCountryIso}
@@ -667,13 +668,13 @@ export default function SignIn() {
         disabled={pending}
       />
       <Button
-        label="Continue"
+        label={m.common.continue}
         size="lg"
         pending={pending}
         disabled={!isLoaded}
         onPress={() => void onContinue()}
       />
-      <TermsMicrocopy lead="Standard SMS rates may apply." />
+      <TermsMicrocopy lead={m.mobileHome.signIn.smsRates} />
       <OauthButtons disabled={pending} />
     </AuthScreen>
   );

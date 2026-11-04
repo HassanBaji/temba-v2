@@ -5,6 +5,7 @@ import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { recentFormFromHistory } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
@@ -25,6 +26,8 @@ import { useProfilePhoto } from "./use-profile-photo";
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function ProfileScreen() {
+  const m = useMessages();
+  const locale = useLocale();
   const { user } = useUser();
   const { signOut } = useAuth();
   const router = useRouter();
@@ -84,7 +87,7 @@ export function ProfileScreen() {
     (position.status === "ready" ? position.value.position : null);
 
   const model: ProfileModel = {
-    name: user?.fullName ?? user?.firstName ?? user?.username ?? "You",
+    name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
     imageUri: user?.hasImage ? user.imageUrl : null,
     position,
     level: slotOf({
@@ -93,7 +96,9 @@ export function ProfileScreen() {
       isLoading: rating.isLoading,
     }),
     recentForm: slotOf({
-      data: history.data ? recentFormFromHistory(history.data) : undefined,
+      data: history.data
+        ? recentFormFromHistory(history.data, locale)
+        : undefined,
       error: history.error,
       isLoading: history.isLoading,
     }),
@@ -108,7 +113,7 @@ export function ProfileScreen() {
       (teamInvites.data?.length ?? 0),
     teamCount: teams.data?.length ?? 0,
     checklistIncomplete:
-      checklistFrom(user, onboarding.data)?.complete === false,
+      checklistFrom(user, onboarding.data, locale)?.complete === false,
   };
 
   const refetchAll = useCallback(

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
@@ -9,18 +10,14 @@ import {
   entityImageFileError,
 } from "@repo/domain/entity-image-file";
 import {
-  GROUP_CREATE_COPY,
-  GROUP_CREATE_SCREEN,
   groupCreateCanSubmit,
+  groupCreateCopy,
   groupCreateRequiresApproval,
   groupCreateSubmitLabel,
   type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
-import {
-  GROUP_JOINING_COPY,
-  groupJoiningFooter,
-} from "@repo/domain/group-settings";
+import { groupJoiningFooter } from "@repo/domain/group-settings";
 import { DEFAULT_SPORT, SPORTS, type Sport } from "@repo/domain/sport";
 import {
   fieldErrorMessage,
@@ -62,7 +59,11 @@ export function GroupCreateForm({
   error?: { message: string; data?: { zodError?: unknown } | null } | null;
   onSubmit: (values: GroupCreateValues) => void;
 }) {
-  const copy = GROUP_CREATE_COPY[context];
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = groupCreateCopy(context, locale);
+  const screen = m.group.create.screen;
+  const joining = m.group.settings.joining;
   const ids = {
     name: `${idPrefix}-name`,
     sport: `${idPrefix}-sport`,
@@ -110,7 +111,7 @@ export function GroupCreateForm({
       return;
     }
     if (image) {
-      const pickedError = entityImageFileError(image);
+      const pickedError = entityImageFileError(image, locale);
       if (pickedError) {
         setImageError(pickedError);
         return;
@@ -131,7 +132,7 @@ export function GroupCreateForm({
     if (!next) {
       return;
     }
-    const message = entityImageFileError(next);
+    const message = entityImageFileError(next, locale);
     if (message) {
       setImageError(message);
       return;
@@ -151,8 +152,10 @@ export function GroupCreateForm({
         <div className="flex flex-col items-center gap-1.5">
           <GroupPhotoTile
             imageUrl={previewUrl}
-            name={name || "Group"}
-            label={previewUrl ? "Change" : GROUP_CREATE_SCREEN.photo}
+            name={name || m.webGroup.groupFallback}
+            label={
+              previewUrl ? m.group.settings.edit.photoChange : screen.photo
+            }
             disabled={pending}
             onPick={() => imageInputRef.current?.click()}
           />
@@ -166,7 +169,7 @@ export function GroupCreateForm({
               }}
               className="text-eyebrow text-muted-foreground hover:text-ink min-h-6"
             >
-              Remove
+              {m.common.remove}
             </button>
           ) : null}
           <input
@@ -182,21 +185,18 @@ export function GroupCreateForm({
         </div>
         <GroupNameField
           id={ids.name}
-          label={GROUP_CREATE_SCREEN.nameLabel}
+          label={screen.nameLabel}
           value={name}
           onChange={setName}
-          placeholder={GROUP_CREATE_SCREEN.namePlaceholder}
-          help={imageError ?? GROUP_CREATE_SCREEN.photoHelp}
+          placeholder={screen.namePlaceholder}
+          help={imageError ?? screen.photoHelp}
           error={nameError}
           disabled={pending}
         />
       </div>
 
       {showSportPicker ? (
-        <FormBlock
-          label={GROUP_CREATE_SCREEN.sportLabel}
-          labelId={`${ids.sport}-label`}
-        >
+        <FormBlock label={screen.sportLabel} labelId={`${ids.sport}-label`}>
           <SportSegment
             labelledBy={`${ids.sport}-label`}
             sports={sports}
@@ -208,7 +208,7 @@ export function GroupCreateForm({
       ) : null}
 
       <FormBlock
-        label={GROUP_CREATE_SCREEN.visibilityLabel}
+        label={screen.visibilityLabel}
         labelId={`${ids.visibility}-label`}
       >
         <VisibilityCards
@@ -231,14 +231,15 @@ export function GroupCreateForm({
       </FormBlock>
 
       {type === "public" ? (
-        <FormBlock label={GROUP_JOINING_COPY.label}>
+        <FormBlock label={joining.label}>
           <ToggleCard
             id={ids.approval}
-            title={GROUP_JOINING_COPY.toggle}
-            help={GROUP_JOINING_COPY.toggleHelp}
+            title={joining.toggle}
+            help={joining.toggleHelp}
             footer={groupJoiningFooter({
               visibility: type,
               requiresApproval,
+              locale,
             })}
             checked={requiresApproval}
             onCheckedChange={setRequiresApproval}
@@ -252,15 +253,13 @@ export function GroupCreateForm({
           type="submit"
           size="lg"
           pending={pending}
-          pendingLabel="Creating…"
+          pendingLabel={m.webGroup.creating}
           disabled={!groupCreateCanSubmit(name)}
           className="w-full font-semibold"
         >
-          {groupCreateSubmitLabel(context, name)}
+          {groupCreateSubmitLabel(context, name, locale)}
         </Button>
-        <p className="text-eyebrow text-muted-foreground">
-          {GROUP_CREATE_SCREEN.footnote}
-        </p>
+        <p className="text-eyebrow text-muted-foreground">{screen.footnote}</p>
       </div>
     </form>
   );

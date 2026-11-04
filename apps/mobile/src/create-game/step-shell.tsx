@@ -9,6 +9,8 @@ import { ArrowRight, Lock, Trophy, Users } from "lucide-react-native";
 import { Fragment, useCallback } from "react";
 import { View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { MountFill } from "../primitives/mount-fill";
 import { Screen } from "../primitives/screen";
@@ -90,11 +92,12 @@ function StepHeader({
   fallback: Href;
 }) {
   useLightStatusBar();
+  const m = useMessages();
   const back = step !== null && step > 1 && onBack;
   const stepLabel =
     step === null ? null : (
       <Text size="eyebrow" mono uppercase tone="muted">
-        {`Step ${step} of ${CREATE_FLOW_STEP_COUNT}`}
+        {m.mobileCreateGame.footer.stepOf(step, CREATE_FLOW_STEP_COUNT)}
       </Text>
     );
 
@@ -246,22 +249,24 @@ export function StepFooter({
   onContinue: () => void;
   onCancel: () => void;
 }) {
-  const next = nextStepTitle(state.type, state.step, state.sport);
+  const locale = useLocale();
+  const m = useMessages();
+  const next = nextStepTitle(state.type, state.step, locale, state.sport);
 
   if (next === null || continueBlocked(state)) {
     const label =
       next !== null
-        ? "Continue"
+        ? m.common.continue
         : pending
-          ? "Creating…"
+          ? m.mobileCreateGame.footer.creating
           : state.type === "friendly_tournament"
-            ? "Create tournament"
-            : "Create Game";
+            ? m.tournament.sizing.createPrimaryAction
+            : m.mobileCreateGame.footer.createGame;
     return (
       <>
         <View style={{ width: CANCEL_WIDTH }}>
           <Button
-            label="Cancel"
+            label={m.common.cancel}
             variant="outline"
             size="lg"
             disabled={pending}
@@ -285,16 +290,22 @@ export function StepFooter({
     <>
       <View style={{ flex: 1, gap: 2 }}>
         <Text size="eyebrow" tone="muted">
-          Next
+          {m.common.next}
         </Text>
         <Text size="meta" weight="semibold" numberOfLines={1}>
           {next}
         </Text>
       </View>
       <Button
-        label="Continue"
+        label={m.common.continue}
         size="lg"
-        icon={<ArrowRight size={sizes.iconAction} color={colors.paper} />}
+        icon={
+          <ArrowRight
+            size={sizes.iconAction}
+            color={colors.paper}
+            style={mirrorInRtl}
+          />
+        }
         iconPlacement="trailing"
         onPress={onContinue}
       />

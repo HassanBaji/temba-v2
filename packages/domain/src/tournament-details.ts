@@ -1,21 +1,11 @@
+import { messagesFor } from "@repo/i18n/messages";
+import type { Locale } from "@repo/i18n/locale";
+
 import { formatGameCardDay } from "./format-game-start";
 import type { LevelBand } from "./level-bands";
 import type { ComputedPoolTables } from "./pool-table";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import {
-  COUNTS_FOR_RATING_LABEL,
-  COUNTS_FOR_RATING_YES,
-  GROUP_ROW_LABEL,
-  GROUPS_THEN_KNOCKOUT_LEAD,
-  KNOCKOUT_ONLY_LEAD,
-  ORGANIZER_ROW_LABEL,
-  PRICE_PER_MATCH_SUFFIX,
-  PRICE_ROW_LABEL,
-  STANDINGS_HEADING,
-  TOURNAMENT_ENDS_COPY,
-  TOURNAMENT_EYEBROW_PREFIX,
-  YOU_OWE_AFTER_EACH_MATCH,
-  YOU_OWE_ROW_LABEL,
   drawnTournamentProgressLine,
   gameDetailsChrome,
   isTournamentStandingsView,
@@ -32,9 +22,6 @@ import {
 } from "./tournament-home";
 import { tournamentShowsTakeSeat } from "./tournament-join";
 import {
-  KNOCKOUT_CHAMPION_TAG,
-  KNOCKOUT_HEADING,
-  KNOCKOUT_WON_TAG,
   knockoutChampion,
   knockoutChampionLine,
   viewerMissedKnockout,
@@ -51,7 +38,6 @@ import {
   type TournamentRoundScheduleEntry,
 } from "./tournament-rounds";
 import {
-  EACH_MATCH_ROW_LABEL,
   sizeFriendlyTournament,
   tournamentMatchMinutes,
 } from "./tournament-sizing";
@@ -267,38 +253,42 @@ export function tournamentDetailRows(args: {
   pricePerPlayerFils: number | null;
   seated: boolean;
   totalFils: number | null;
+  locale: Locale;
 }): TournamentDetailRow[] {
+  const m = messagesFor(args.locale);
   const rows: TournamentDetailRow[] = [
     {
-      label: ORGANIZER_ROW_LABEL,
-      value: args.organizerName ?? "Organizer",
+      label: m.tournament.home.organizerRow,
+      value: args.organizerName ?? m.tournament.home.organizerRow,
     },
     {
-      label: GROUP_ROW_LABEL,
+      label: m.tournament.home.groupRow,
       value: args.groupName?.trim() ? args.groupName : "—",
     },
     {
-      label: EACH_MATCH_ROW_LABEL,
-      value: `${tournamentMatchMinutes(args.matchMinutes)} min`,
+      label: m.tournament.sizing.eachMatchRow,
+      value: m.tournament.details.minutes(
+        tournamentMatchMinutes(args.matchMinutes),
+      ),
     },
   ];
-  const price = formatPricePerPlayerFils(args.pricePerPlayerFils);
+  const price = formatPricePerPlayerFils(args.pricePerPlayerFils, args.locale);
   if (price) {
     rows.push({
-      label: PRICE_ROW_LABEL,
-      value: `${price} ${PRICE_PER_MATCH_SUFFIX}`,
+      label: m.tournament.home.priceRow,
+      value: m.tournament.details.pricePerMatchValue(price),
     });
   }
   rows.push({
-    label: COUNTS_FOR_RATING_LABEL,
-    value: COUNTS_FOR_RATING_YES,
+    label: m.tournament.home.countsForRating,
+    value: m.common.yes,
   });
   if (args.seated && args.totalFils != null) {
-    const amount = formatPricePerPlayerFils(args.totalFils);
+    const amount = formatPricePerPlayerFils(args.totalFils, args.locale);
     if (amount) {
       rows.push({
-        label: YOU_OWE_ROW_LABEL,
-        value: `${amount}, ${YOU_OWE_AFTER_EACH_MATCH}`,
+        label: m.tournament.home.youOweRow,
+        value: m.tournament.details.youOweValue(amount),
       });
     }
   }
@@ -330,10 +320,13 @@ export type TournamentHomeView = {
   schedule: TournamentRoundScheduleEntry[];
 };
 
-export const TOURNAMENT_FALLBACK_NAME = "Tournament";
+export function tournamentFallbackName(locale: Locale) {
+  return messagesFor(locale).tournament.details.fallbackName;
+}
 
 export function tournamentHomeView(
   game: TournamentDetails,
+  locale: Locale,
 ): TournamentHomeView {
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
   const thenKnockout =
@@ -361,6 +354,7 @@ export function tournamentHomeView(
       Math.max(field.seatTotal, game.playersAllowed ?? 0) - field.seatsTaken,
     teamCount: game.teamsAllowed ?? game.sides.length,
     organizerName,
+    locale,
     knockoutOnly,
     thenKnockout,
   });
@@ -396,19 +390,24 @@ export function tournamentHomeView(
       partnerRequired,
     }),
     hero: {
-      name: game.name ?? TOURNAMENT_FALLBACK_NAME,
+      name: game.name ?? tournamentFallbackName(locale),
       eyebrow:
         roundCount != null
-          ? tournamentEyebrow(roundCount, knockoutOnly)
-          : TOURNAMENT_EYEBROW_PREFIX,
+          ? tournamentEyebrow(roundCount, locale, knockoutOnly)
+          : messagesFor(locale).tournament.home.eyebrowPrefix,
       startLine: tournamentStartLine(
         game.windowStart,
         game.venue?.name ?? null,
+        locale,
       ),
       sizeLine: knockoutOnly
-        ? knockoutSizeLine(game.teamsAllowed ?? game.sides.length)
+        ? knockoutSizeLine(game.teamsAllowed ?? game.sides.length, locale)
         : sizing?.ok
-          ? tournamentSizeLine(sizing.sizing, plannedKnockoutRoundCount(game))
+          ? tournamentSizeLine(
+              sizing.sizing,
+              locale,
+              plannedKnockoutRoundCount(game),
+            )
           : null,
       statusLine,
     },
@@ -419,6 +418,7 @@ export function tournamentHomeView(
       pricePerPlayerFils: game.pricePerPlayerFils,
       seated,
       totalFils,
+      locale,
     }),
     canLeaveGame:
       (game.isSeated || game.isRegistered) &&
@@ -459,7 +459,9 @@ export function tournamentStandingsView(
     | "poolTables"
     | "knockout"
   >,
+  locale: Locale,
 ): TournamentStandingsView {
+  const m = messagesFor(locale).tournament;
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
   const groupsThenKnockout =
     !knockoutOnly && hasKnockout(game.format, game.tournamentShape);
@@ -473,25 +475,26 @@ export function tournamentStandingsView(
       viewerHasTeam: game.poolTables?.viewerPoolIndex != null,
     });
   return {
-    name: game.name ?? TOURNAMENT_FALLBACK_NAME,
+    name: game.name ?? tournamentFallbackName(locale),
     roundsPlayed: drawnTournamentProgressLine({
-      roundsPlayed: roundsPlayedLabel(game.poolTables, roundCount),
+      roundsPlayed: roundsPlayedLabel(game.poolTables, roundCount, locale),
       knockout: game.knockout,
+      locale,
     }),
-    heading: knockoutOnly ? KNOCKOUT_HEADING : STANDINGS_HEADING,
+    heading: knockoutOnly ? m.knockoutView.heading : m.home.standingsHeading,
     lead: knockoutOnly
-      ? KNOCKOUT_ONLY_LEAD
+      ? m.home.knockoutOnlyLead
       : groupsThenKnockout
-        ? GROUPS_THEN_KNOCKOUT_LEAD
-        : TOURNAMENT_ENDS_COPY,
+        ? m.home.groupsThenKnockoutLead
+        : m.home.endsCopy,
     finished: !groupsThenKnockout && Boolean(game.poolTables?.finished),
-    championLine: champion ? knockoutChampionLine(champion) : null,
+    championLine: champion ? knockoutChampionLine(champion, locale) : null,
     knockoutOnly,
     groupsThenKnockout,
     showPoolTables: !knockoutOnly && game.poolTables != null,
     showKnockoutTree: knockoutOnly && game.knockout != null,
     knockoutSectionTitle:
-      groupsThenKnockout && game.knockout ? KNOCKOUT_HEADING : null,
+      groupsThenKnockout && game.knockout ? m.knockoutView.heading : null,
     notThrough,
   };
 }
@@ -515,10 +518,6 @@ export function poolRoundGroups<T extends RoundResultMatch>(
     .map(([roundNumber, list]) => ({ roundNumber, matches: list }));
 }
 
-export const MATCH_NOT_PLAYED_LABEL = "Not played";
-export const MATCH_OPEN_LABEL = "Open";
-export const MATCH_DRAW_LABEL = "Draw";
-
 export type MatchTrailing =
   | { kind: "not_played"; label: string }
   | { kind: "score"; label: string }
@@ -529,28 +528,32 @@ export function matchTrailing(args: {
   cancelled: boolean;
   scoreLabel: string | null;
   viewerOutcome?: "won" | "lost" | "draw" | null;
+  locale: Locale;
 }): MatchTrailing {
+  const m = messagesFor(args.locale);
   if (args.cancelled) {
-    return { kind: "not_played", label: MATCH_NOT_PLAYED_LABEL };
+    return { kind: "not_played", label: m.tournament.details.notPlayed };
   }
   if (args.scoreLabel) {
     return { kind: "score", label: args.scoreLabel };
   }
   if (args.viewerOutcome === "draw") {
-    return { kind: "draw", label: MATCH_DRAW_LABEL };
+    return { kind: "draw", label: m.common.draw };
   }
-  return { kind: "open", label: MATCH_OPEN_LABEL };
+  return { kind: "open", label: m.tournament.details.open };
 }
 
 export function viewerRoundSubtitle(
   roundNumber: number | null,
   startTime: Date | string | null,
+  locale: Locale,
 ) {
-  const round = roundNumber != null ? `Round ${roundNumber}` : "Round";
+  const m = messagesFor(locale).tournament.details;
+  const round = roundNumber != null ? m.roundN(roundNumber) : m.round;
   if (!startTime) {
     return round;
   }
-  return `${round}, ${formatGameCardDay(startTime)}`;
+  return m.roundDay(round, formatGameCardDay(startTime, locale));
 }
 
 export type KnockoutSideTags = {
@@ -562,8 +565,10 @@ export function knockoutPlaceSideTags(
   place: Extract<KnockoutViewPlace, { kind: "match" }>,
   slot: 1 | 2,
   isFinal: boolean,
+  locale: Locale,
 ): KnockoutSideTags {
-  const winnerTag = isFinal ? KNOCKOUT_CHAMPION_TAG : KNOCKOUT_WON_TAG;
+  const m = messagesFor(locale).tournament.knockoutView;
+  const winnerTag = isFinal ? m.champion : m.wonTag;
   return {
     walkover: place.walkover === slot,
     resultTag:
@@ -577,9 +582,11 @@ export function tournamentSeatLabel(args: {
   position: "left" | "right";
   teamLabel: string;
   joinable: boolean;
+  locale: Locale;
 }) {
-  const position = args.position === "left" ? "left" : "right";
+  const m = messagesFor(args.locale).tournament;
+  const position = m.position[`${args.position}Lower`];
   return args.joinable
-    ? `Take the ${position} seat on ${args.teamLabel}`
-    : `Open ${position} seat on ${args.teamLabel}`;
+    ? m.details.takeSeatOn(position, args.teamLabel)
+    : m.details.openSeatOn(position, args.teamLabel);
 }

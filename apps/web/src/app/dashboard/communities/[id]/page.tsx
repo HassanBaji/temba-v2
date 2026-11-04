@@ -25,23 +25,12 @@ import { CommunityTeamsTab } from "~/components/communities/community-teams-tab"
 import { CommunityVenueBlock } from "~/components/communities/community-venue-block";
 import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import {
-  COMMUNITY_ARCHIVED_TOAST,
-  COMMUNITY_CLUB_GROUP_CREATED_TOAST,
-  COMMUNITY_JOIN_REQUESTED_TOAST,
-  COMMUNITY_LEFT_TOAST,
-  COMMUNITY_LOOKUP_NOTE,
-  COMMUNITY_REQUEST_APPROVED_TOAST,
-  COMMUNITY_REQUEST_REJECTED_TOAST,
-  COMMUNITY_TEAM_LINKED_TOAST,
-  COMMUNITY_TEAM_LINK_REJECTED_TOAST,
-  COMMUNITY_UNARCHIVED_TOAST,
-  COMMUNITY_VENUE_LINK_REQUESTED_TOAST,
-  COMMUNITY_VENUE_UNLINKED_TOAST,
   communityArchiveBanner,
   communityArchiveConfirm,
   communityAvailableTabs,
@@ -58,17 +47,10 @@ import {
   communityHomeTabFromQuery,
   communityHomeTabQuery,
 } from "@repo/domain/community-home-tab";
-import {
-  COMMUNITY_SPORT_ADDED_TOAST,
-  COMMUNITY_SPORT_REMOVED_TOAST,
-} from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import {
-  GROUP_CREATED_WITHOUT_IMAGE_TOAST,
-  entityImageUploadInput,
-} from "@repo/domain/entity-image-file";
+import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 import { api } from "~/trpc/react";
 
 export default function CommunityHomePage({
@@ -81,6 +63,8 @@ export default function CommunityHomePage({
   const { id } = use(params);
   const query = use(searchParams);
   const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname() ?? `/dashboard/communities/${id}`;
   const { hasCreateAccess } = useCreateAccess();
@@ -103,7 +87,7 @@ export default function CommunityHomePage({
 
   const requestJoin = api.communities.requestJoin.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_JOIN_REQUESTED_TOAST);
+      toast.success(m.community.toast.joinRequested);
       await utils.communities.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -113,7 +97,7 @@ export default function CommunityHomePage({
 
   const approveJoinRequest = api.communities.approveJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_REQUEST_APPROVED_TOAST);
+      toast.success(m.community.toast.requestApproved);
       await utils.communities.listJoinRequests.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
@@ -125,7 +109,7 @@ export default function CommunityHomePage({
 
   const rejectJoinRequest = api.communities.rejectJoinRequest.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_REQUEST_REJECTED_TOAST);
+      toast.success(m.community.toast.requestRejected);
       await utils.communities.listJoinRequests.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
     },
@@ -141,7 +125,7 @@ export default function CommunityHomePage({
 
   const approveTeamLink = api.communities.approveTeamLink.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_TEAM_LINKED_TOAST);
+      toast.success(m.community.toast.teamLinked);
       await utils.communities.listTeamLinkRequests.invalidate({
         communityId: id,
       });
@@ -155,7 +139,7 @@ export default function CommunityHomePage({
 
   const rejectTeamLink = api.communities.rejectTeamLink.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_TEAM_LINK_REJECTED_TOAST);
+      toast.success(m.community.toast.teamLinkRejected);
       await utils.communities.listTeamLinkRequests.invalidate({
         communityId: id,
       });
@@ -172,7 +156,7 @@ export default function CommunityHomePage({
 
   const requestVenueLink = api.communities.requestVenueLink.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_VENUE_LINK_REQUESTED_TOAST);
+      toast.success(m.community.toast.venueLinkRequested);
       await utils.communities.byId.invalidate({ id });
       setLinkVenueOpen(false);
     },
@@ -183,7 +167,7 @@ export default function CommunityHomePage({
 
   const unlinkVenue = api.communities.unlinkVenue.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_VENUE_UNLINKED_TOAST);
+      toast.success(m.community.toast.venueUnlinked);
       await utils.communities.byId.invalidate({ id });
     },
   });
@@ -192,7 +176,7 @@ export default function CommunityHomePage({
 
   const addSport = api.communities.addSport.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_SPORT_ADDED_TOAST);
+      toast.success(m.community.sports.addedToast);
       await utils.communities.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -203,7 +187,7 @@ export default function CommunityHomePage({
 
   const removeSport = api.communities.removeSport.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_SPORT_REMOVED_TOAST);
+      toast.success(m.community.sports.removedToast);
       await utils.communities.byId.invalidate({ id });
     },
     onError: (error) => {
@@ -228,7 +212,7 @@ export default function CommunityHomePage({
 
   const leaveCommunity = api.communities.leave.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_LEFT_TOAST);
+      toast.success(m.community.toast.left);
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.groups.mine.invalidate();
@@ -237,7 +221,7 @@ export default function CommunityHomePage({
 
   const softArchive = api.communities.softArchive.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_ARCHIVED_TOAST);
+      toast.success(m.community.toast.archived);
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
@@ -247,7 +231,7 @@ export default function CommunityHomePage({
 
   const unarchive = api.communities.unarchive.useMutation({
     onSuccess: async () => {
-      toast.success(COMMUNITY_UNARCHIVED_TOAST);
+      toast.success(m.community.toast.unarchived);
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
       await utils.games.listPublicPickup.invalidate();
@@ -265,7 +249,7 @@ export default function CommunityHomePage({
 
   const setMemberRole = api.communities.setMemberRole.useMutation({
     onSuccess: async (result) => {
-      toast.success(communityRoleUpdatedToast(result.role));
+      toast.success(communityRoleUpdatedToast(result.role, locale));
       await utils.communities.listMembers.invalidate({ communityId: id });
       await utils.communities.byId.invalidate({ id });
       await utils.communities.mine.invalidate();
@@ -291,14 +275,14 @@ export default function CommunityHomePage({
   ) {
     if (image) {
       try {
-        const input = await entityImageUploadInput(image);
+        const input = await entityImageUploadInput(image, locale);
         await uploadGroupImage.mutateAsync({
           groupId: group.id,
           contentType: input.contentType,
           dataBase64: input.dataBase64,
         });
       } catch {
-        toast.success(GROUP_CREATED_WITHOUT_IMAGE_TOAST);
+        toast.success(m.createGame.image.groupCreatedWithoutImage);
         await utils.communities.byId.invalidate({ id });
         await utils.communities.mine.invalidate();
         await utils.groups.mine.invalidate();
@@ -319,7 +303,11 @@ export default function CommunityHomePage({
 
   if (community.isLoading) {
     return (
-      <DashboardShell title="Community" hidePageHeader hideMobileTopBar>
+      <DashboardShell
+        title={m.community.fallbackName}
+        hidePageHeader
+        hideMobileTopBar
+      >
         <CommunityHomeSkeleton />
       </DashboardShell>
     );
@@ -327,9 +315,9 @@ export default function CommunityHomePage({
 
   if (community.error) {
     return (
-      <DashboardShell title="Community" isSubPage>
+      <DashboardShell title={m.community.fallbackName} isSubPage>
         <ErrorState
-          title="Community could not be loaded"
+          title={m.community.communityErrorTitle}
           message={community.error.message}
           onRetry={() => {
             void community.refetch();
@@ -341,9 +329,9 @@ export default function CommunityHomePage({
 
   if (!community.data) {
     return (
-      <DashboardShell title="Community" isSubPage>
+      <DashboardShell title={m.community.fallbackName} isSubPage>
         <ErrorState
-          title="Community could not be loaded"
+          title={m.community.communityErrorTitle}
           onRetry={() => {
             void community.refetch();
           }}
@@ -353,12 +341,12 @@ export default function CommunityHomePage({
   }
 
   const data = community.data;
-  const communityName = data.name ?? "Community";
+  const communityName = data.name ?? m.community.fallbackName;
   const actions = communityHomeActions(data);
   const canShowCreateClubGroup = actions.canCreateClubGroup;
   const canManageInvites = actions.canInvite;
   const canRequestJoin = communityCanRequestJoin(data);
-  const archiveBanner = communityArchiveBanner(data);
+  const archiveBanner = communityArchiveBanner(data, locale);
   const showRequestsTab = communityShowsRequestsTab(data);
   const availableTabs = communityAvailableTabs(data);
   const tab = communityHomeTabFromQuery(tabParam, availableTabs);
@@ -387,20 +375,25 @@ export default function CommunityHomePage({
     showAllCommunities || canManageInvites || actions.canUnarchive;
 
   const headerMenu = showCommunityOverflow ? (
-    <ActionMenu triggerRef={menuTriggerRef} label="Community actions">
+    <ActionMenu
+      triggerRef={menuTriggerRef}
+      label={m.webDashboard.community.actionsLabel}
+    >
       {showAllCommunities ? (
         <ActionMenuItem asChild>
-          <Link href="/dashboard/communities">All Communities</Link>
+          <Link href="/dashboard/communities">
+            {m.webDashboard.community.allCommunities}
+          </Link>
         </ActionMenuItem>
       ) : null}
       {canManageInvites ? (
         <ActionMenuItem onSelect={() => setInvitesOpen(true)}>
-          Manage invites
+          {m.community.action.manageInvites}
         </ActionMenuItem>
       ) : null}
       {actions.canUnarchive ? (
         <ActionMenuItem onSelect={() => unarchive.mutate({ communityId: id })}>
-          Unarchive
+          {m.community.action.unarchive}
         </ActionMenuItem>
       ) : null}
       {showOverflowAboveDestructive &&
@@ -412,7 +405,7 @@ export default function CommunityHomePage({
           variant="destructive"
           onSelect={() => setLeaveOpen(true)}
         >
-          Leave Community
+          {m.community.action.leave}
         </ActionMenuItem>
       ) : null}
       {actions.canSoftArchive ? (
@@ -420,7 +413,7 @@ export default function CommunityHomePage({
           variant="destructive"
           onSelect={() => setArchiveOpen(true)}
         >
-          Soft-archive
+          {m.community.action.softArchive}
         </ActionMenuItem>
       ) : null}
     </ActionMenu>
@@ -491,9 +484,9 @@ export default function CommunityHomePage({
               className="min-h-11 w-full"
               onClick={() => requestJoin.mutate({ communityId: id })}
               pending={requestJoin.isPending}
-              pendingLabel="Requesting…"
+              pendingLabel={m.group.join.label.requesting}
             >
-              Request to join
+              {m.community.action.requestJoin}
             </Button>
           ) : null}
 
@@ -534,7 +527,7 @@ export default function CommunityHomePage({
                     role,
                   })
                 }
-                leaveNotices={communityLeaveNotices(data)}
+                leaveNotices={communityLeaveNotices(data, locale)}
                 canInvite={canManageInvites}
                 onInvite={() => setInvitesOpen(true)}
               />
@@ -598,7 +591,7 @@ export default function CommunityHomePage({
       <ConfirmDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
-        {...communityLeaveConfirm(communityName)}
+        {...communityLeaveConfirm(communityName, locale)}
         pending={leaveCommunity.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
@@ -609,7 +602,7 @@ export default function CommunityHomePage({
       <ConfirmDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
-        {...communityArchiveConfirm(communityName)}
+        {...communityArchiveConfirm(communityName, locale)}
         pending={softArchive.isPending}
         restoreFocusRef={menuTriggerRef}
         onConfirm={async () => {
@@ -620,7 +613,7 @@ export default function CommunityHomePage({
       <ConfirmDialog
         open={unlinkOpen}
         onOpenChange={setUnlinkOpen}
-        {...communityUnlinkVenueConfirm(data.venue?.name ?? null)}
+        {...communityUnlinkVenueConfirm(data.venue?.name ?? null, locale)}
         pending={unlinkVenue.isPending}
         onConfirm={async () => {
           await unlinkVenue.mutateAsync({ communityId: id });
@@ -633,7 +626,7 @@ export default function CommunityHomePage({
           communityId: id,
           canLookup: data.canManageLookupInvites,
           canLink: data.canManageInviteLinks,
-          subtitle: COMMUNITY_LOOKUP_NOTE,
+          subtitle: m.community.lookupNote,
         }}
         open={invitesOpen}
         onOpenChange={setInvitesOpen}
@@ -660,7 +653,7 @@ export default function CommunityHomePage({
                 await finishClubGroupCreate(
                   group,
                   image,
-                  COMMUNITY_CLUB_GROUP_CREATED_TOAST,
+                  m.community.toast.clubGroupCreated,
                 );
               } catch {
                 return;
@@ -679,7 +672,7 @@ export default function CommunityHomePage({
                 await finishClubGroupCreate(
                   group,
                   image,
-                  COMMUNITY_CLUB_GROUP_CREATED_TOAST,
+                  m.community.toast.clubGroupCreated,
                 );
               } catch {
                 return;

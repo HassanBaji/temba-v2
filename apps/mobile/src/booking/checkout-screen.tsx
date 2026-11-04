@@ -11,6 +11,8 @@ import { Platform, View } from "react-native";
 
 import { FormErrorSummary } from "../auth/form-error-summary";
 import { useNow } from "../games/use-now";
+import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -50,6 +52,8 @@ export function CheckoutScreen({
   const toast = useToast();
   const utils = api.useUtils();
   const now = useNow();
+  const m = useMessages();
+  const locale = useLocale();
   const startsAt = new Date(startsAtIso);
   const validStart =
     !Number.isNaN(startsAt.getTime()) &&
@@ -96,15 +100,12 @@ export function CheckoutScreen({
       <Screen>
         <ScreenHeader nav="back" fallback={venuePath(venueId, sport)} />
         {!validStart ? (
-          <Notice
-            title="That time is not valid"
-            description="Pick a time again."
-          />
+          <Notice {...m.mobileBooking.checkout.invalidTime} />
         ) : error ? (
           <Notice
-            title="Checkout could not be loaded"
+            title={m.mobileBooking.checkout.loadError}
             description={error.message}
-            actionLabel="Try again"
+            actionLabel={m.common.tryAgain}
             onAction={() => {
               void venue.refetch();
               void availability.refetch();
@@ -139,9 +140,10 @@ export function CheckoutScreen({
     data.cancellationPolicyLines,
     startsAt,
     now,
+    locale,
   );
   const ready = court !== null;
-  const note = [terms, "Split with players after you book."]
+  const note = [terms, m.mobileBooking.checkout.splitNote]
     .filter(Boolean)
     .join(" ");
 
@@ -151,9 +153,9 @@ export function CheckoutScreen({
       header={
         <BookingHero
           eyebrow={data.name}
-          time={courtName ?? courtNounTitle(sport)}
+          time={courtName ?? courtNounTitle(sport, locale)}
           titleSize="h1Lg"
-          subtitle={slotLine(startsAt, minutes, now)}
+          subtitle={slotLine(startsAt, minutes, now, locale)}
           fallback={venuePath(venueId, sport)}
         />
       }
@@ -162,12 +164,12 @@ export function CheckoutScreen({
           {ready ? (
             <View style={{ gap: 10, paddingTop: 12 }}>
               <SummaryRow
-                label={`${court.name}, ${minutes} min`}
-                value={formatBookingPriceFils(court.priceFils ?? 0)}
+                label={m.mobileBooking.courtMinutes(court.name, minutes)}
+                value={formatBookingPriceFils(court.priceFils ?? 0, locale)}
               />
               <SummaryRow
-                label="Booking fee"
-                value={formatBookingPriceFils(0)}
+                label={m.mobileBooking.checkout.bookingFee}
+                value={formatBookingPriceFils(0, locale)}
               />
               <View
                 style={{
@@ -180,9 +182,9 @@ export function CheckoutScreen({
                   borderTopColor: colors.rule,
                 }}
               >
-                <Text weight="semibold">Total</Text>
+                <Text weight="semibold">{m.mobileBooking.checkout.total}</Text>
                 <Text size="figure" weight="semibold">
-                  {formatBookingPriceFils(court.priceFils ?? 0)}
+                  {formatBookingPriceFils(court.priceFils ?? 0, locale)}
                 </Text>
               </View>
               <Text size="eyebrow" tone="muted">
@@ -193,12 +195,16 @@ export function CheckoutScreen({
           <Button
             label={
               ready
-                ? payButtonLabel(chosenMethod, court.priceFils ?? 0)
-                : `${courtNounTitle(sport)} not free at this time`
+                ? payButtonLabel(chosenMethod, court.priceFils ?? 0, locale)
+                : m.mobileBooking.checkout.notFree[courtFace(sport)]
             }
             icon={
               ready ? (
-                <ArrowRight size={sizes.iconRow} color={colors.paper} />
+                <ArrowRight
+                  size={sizes.iconRow}
+                  color={colors.paper}
+                  style={mirrorInRtl}
+                />
               ) : undefined
             }
             iconPlacement="trailing"
@@ -227,24 +233,26 @@ export function CheckoutScreen({
         <Notice
           title={
             courtName
-              ? `${courtName} was just taken`
-              : `This ${courtFace(sport)} was not found`
+              ? m.mobileBooking.checkout.justTaken(courtName)
+              : m.mobileBooking.checkout.notFound[courtFace(sport)]
           }
-          description={`It is not free for ${minutes} min at this time any more. Pick another ${courtFace(sport)} or time.`}
-          actionLabel="Pick again"
+          description={m.mobileBooking.checkout.notFreeAnyMore[
+            courtFace(sport)
+          ](minutes)}
+          actionLabel={m.mobileBooking.checkout.pickAgain}
           onAction={() => router.back()}
         />
       )}
 
       <View style={{ gap: 12 }}>
         <SectionHeading
-          title="Pay with"
-          meta="Secure checkout"
+          title={m.mobileBooking.checkout.payWith}
+          meta={m.mobileBooking.checkout.secureCheckout}
           metaIcon={Lock}
         />
         <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
           {methods.map((method) => {
-            const copy = paymentMethod(method);
+            const copy = paymentMethod(method, locale);
             return (
               <PaymentMethodCard
                 key={method}

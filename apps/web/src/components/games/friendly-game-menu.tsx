@@ -20,15 +20,16 @@ import {
   GameActionsSheet,
   type GameActionsSheetRow,
 } from "~/components/games/game-actions-sheet";
-import { ADD_PLAYER_ACTION } from "@repo/domain/add-player-by-phone";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import type {
   FriendlyGameFooterAction,
   FriendlyGameFooterActionKind,
 } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameOverflowItem } from "@repo/domain/friendly-game-cta";
 import {
-  CLOSE_REGISTRATION_ACTION,
-  REOPEN_REGISTRATION_ACTION,
+  closeRegistrationAction,
+  leaveWaitlistAction,
+  reopenRegistrationAction,
 } from "@repo/domain/game-copy";
 
 const DESTRUCTIVE: readonly FriendlyGameFooterActionKind[] = [
@@ -74,11 +75,13 @@ export function FriendlyGameMenu({
   onFooterAction: (kind: FriendlyGameFooterActionKind) => void;
   onLeaveWaitlist: () => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const tools: GameActionsSheetRow[] = [];
   if (overflowItems.includes("close_registration")) {
     tools.push({
       key: "close_registration",
-      label: CLOSE_REGISTRATION_ACTION,
+      label: closeRegistrationAction(locale),
       icon: LockIcon,
       disabled: closePending,
       onSelect: onCloseRegistration,
@@ -87,7 +90,7 @@ export function FriendlyGameMenu({
   if (overflowItems.includes("reopen_registration")) {
     tools.push({
       key: "reopen_registration",
-      label: REOPEN_REGISTRATION_ACTION,
+      label: reopenRegistrationAction(locale),
       icon: LockOpenIcon,
       disabled: reopenPending,
       onSelect: onReopenRegistration,
@@ -96,7 +99,7 @@ export function FriendlyGameMenu({
   if (onAddPlayer) {
     tools.push({
       key: "add_player",
-      label: ADD_PLAYER_ACTION,
+      label: m.group.addPlayer.action,
       icon: UserPlusIcon,
       onSelect: onAddPlayer,
     });
@@ -120,7 +123,7 @@ export function FriendlyGameMenu({
     ? [
         {
           key: "leave_waitlist",
-          label: "Leave waitlist",
+          label: leaveWaitlistAction(locale),
           icon: LogOutIcon,
           tone: "danger",
           onSelect: onLeaveWaitlist,

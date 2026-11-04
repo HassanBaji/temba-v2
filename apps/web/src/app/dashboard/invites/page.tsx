@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  GROUP_LINK_REQUEST_ROW_META,
-  VENUE_REQUESTS_TITLE,
-  groupLinkRequestRowTitle,
-} from "@repo/domain/group-link-request";
+import { groupLinkRequestRowTitle } from "@repo/domain/group-link-request";
 import { Inbox } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +11,7 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import { InviteKindBadge } from "~/components/temba/typed-labels";
@@ -23,13 +20,13 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import {
   gameInviteSeatCopy,
   lookupInviteAcceptToast,
-  INVITE_JOIN_WAITLIST_LABEL,
-  INVITE_SIT_HERE_LABEL,
   mergeInviteInbox,
 } from "@repo/domain/invites";
 import { api } from "~/trpc/react";
 
 export default function InvitesPage() {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const communityInvites = api.communities.pendingLookupInvites.useQuery();
   const groupInvites = api.groups.pendingLookupInvites.useQuery();
@@ -39,7 +36,7 @@ export default function InvitesPage() {
 
   const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success(lookupInviteAcceptToast("community"));
+      toast.success(lookupInviteAcceptToast("community", locale));
       await utils.communities.pendingLookupInvites.invalidate();
       await utils.communities.mine.invalidate();
     },
@@ -50,7 +47,7 @@ export default function InvitesPage() {
 
   const acceptGroup = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async () => {
-      toast.success(lookupInviteAcceptToast("group"));
+      toast.success(lookupInviteAcceptToast("group", locale));
       await utils.groups.pendingLookupInvites.invalidate();
       await utils.groups.mine.invalidate();
       await utils.communities.mine.invalidate();
@@ -62,7 +59,7 @@ export default function InvitesPage() {
 
   const acceptTeam = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async () => {
-      toast.success(lookupInviteAcceptToast("team"));
+      toast.success(lookupInviteAcceptToast("team", locale));
       await utils.teams.pendingInvites.invalidate();
       await utils.teams.mine.invalidate();
     },
@@ -73,7 +70,7 @@ export default function InvitesPage() {
 
   const acceptGame = api.games.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
-      toast.success(lookupInviteAcceptToast("game", result));
+      toast.success(lookupInviteAcceptToast("game", locale, result));
       await utils.games.pendingLookupInvites.invalidate();
       await utils.games.byId.invalidate({ id: result.gameId });
       await utils.users.home.invalidate();
@@ -97,12 +94,15 @@ export default function InvitesPage() {
     gameInvites.error ??
     venueRequests.error;
   const venueRequestRows = venueRequests.data ?? [];
-  const items = mergeInviteInbox({
-    community: communityInvites.data,
-    group: groupInvites.data,
-    team: teamInvites.data,
-    game: gameInvites.data,
-  });
+  const items = mergeInviteInbox(
+    {
+      community: communityInvites.data,
+      group: groupInvites.data,
+      team: teamInvites.data,
+      game: gameInvites.data,
+    },
+    locale,
+  );
 
   function isRowPending(kind: string, id: string) {
     if (kind === "community") {
@@ -137,14 +137,14 @@ export default function InvitesPage() {
 
   return (
     <DashboardShell
-      title="Invites"
-      description="Invites sent to you. Accept one to join."
+      title={m.common.invites}
+      description={m.webDashboard.invites.description}
     >
       {isLoading && items.length === 0 ? <ListPageSkeleton rows={4} /> : null}
 
       {error ? (
         <ErrorState
-          title="Invites could not be loaded"
+          title={m.invite.inbox.errorTitle}
           message={error.message}
           onRetry={() => {
             void communityInvites.refetch();
@@ -162,8 +162,8 @@ export default function InvitesPage() {
       venueRequestRows.length === 0 ? (
         <EmptyState
           icon={Inbox}
-          title="Nothing waiting"
-          description="Invites to Games, Groups, Teams and Communities show up here."
+          title={m.invite.inbox.empty.title}
+          description={m.invite.inbox.empty.description}
         />
       ) : null}
 
@@ -193,12 +193,12 @@ export default function InvitesPage() {
                     <InviteKindBadge kind={invite.kind} />
                   </div>
                   <p className="text-body text-muted-foreground">
-                    {gameInviteSeatCopy(seatPick, "inbox")}
+                    {gameInviteSeatCopy(seatPick, "inbox", locale)}
                   </p>
                   <GameSeatGrid
                     sides={seatPick.sides}
                     canJoinVacant={!joinFrozen && !waitlistOnly}
-                    joinLabel={INVITE_SIT_HERE_LABEL}
+                    joinLabel={m.invite.inbox.sitHereLabel}
                     joining={pending}
                     canMove={false}
                     moving={false}
@@ -222,7 +222,9 @@ export default function InvitesPage() {
                       disabled={pending}
                       onClick={() => onAccept("game", invite.id)}
                     >
-                      {pending ? "Joining…" : INVITE_JOIN_WAITLIST_LABEL}
+                      {pending
+                        ? m.game.cta.joining
+                        : m.invite.inbox.joinWaitlistLabel}
                     </Button>
                   ) : null}
                 </li>
@@ -245,12 +247,14 @@ export default function InvitesPage() {
                   <div className="flex items-center gap-2">
                     <InviteKindBadge kind={invite.kind} />
                     <Button
-                      aria-label={`Accept the invite to ${invite.title}`}
+                      aria-label={m.webDashboard.invites.acceptInviteTo(
+                        invite.title,
+                      )}
                       pending={pending}
-                      pendingLabel="Accepting…"
+                      pendingLabel={m.webDashboard.invites.accepting}
                       onClick={() => onAccept(invite.kind, invite.id)}
                     >
-                      Accept
+                      {m.invite.inbox.acceptLabel}
                     </Button>
                   </div>
                 }
@@ -266,7 +270,7 @@ export default function InvitesPage() {
             id="venue-requests-heading"
             className="text-title font-semibold tracking-[-0.01em]"
           >
-            {VENUE_REQUESTS_TITLE}
+            {m.group.linkRequest.venueRequestsTitle}
           </h2>
           <RowList>
             {venueRequestRows.map((request) => (
@@ -276,8 +280,9 @@ export default function InvitesPage() {
                 title={groupLinkRequestRowTitle(
                   request.venueName,
                   request.groupName,
+                  locale,
                 )}
-                meta={GROUP_LINK_REQUEST_ROW_META}
+                meta={m.group.linkRequest.rowMeta}
                 stackTrailing
                 trailing={<VenueLinkRequestActions request={request} />}
               />

@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -24,6 +25,7 @@ export async function acceptLookupInvite(
     userId: string;
     sideIndex?: number;
     position?: "left" | "right";
+    locale?: Locale;
   },
 ) {
   const invite = await database.query.gameMemberInvites.findFirst({
@@ -52,6 +54,7 @@ export async function acceptLookupInvite(
     {
       inviteId: invite.id,
       userId: args.userId,
+      locale: args.locale ?? DEFAULT_LOCALE,
       seat:
         args.sideIndex != null && args.position
           ? { sideIndex: args.sideIndex, position: args.position }
@@ -96,5 +99,6 @@ export const acceptLookupInviteProcedure = protectedProcedure
       userId: appUser.id,
       sideIndex: input.sideIndex,
       position: input.position,
+      locale: ctx.locale,
     });
   });

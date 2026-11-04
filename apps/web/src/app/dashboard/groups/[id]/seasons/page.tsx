@@ -15,20 +15,20 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
   SEASON_POINTS,
-  SEASON_SETTINGS_INTRO,
-  SEASON_STATUS_LABEL,
   closeSeasonActionLabel,
   closeSeasonBody,
   closeSeasonTitle,
   formatSeasonRange,
   seasonClosedToast,
   seasonCloseEndsLine,
+  seasonStatusLabel,
   type GroupSeasonStatus,
 } from "@repo/domain/group-season";
 import { groupNewSeasonHref } from "~/lib/dashboard-paths";
@@ -47,16 +47,23 @@ function SeasonsFrame({
   groupName: string | null;
   children: React.ReactNode;
 }) {
+  const m = useMessages();
   return (
-    <DashboardShell title="Seasons" hidePageHeader hideMobileTopBar>
+    <DashboardShell
+      title={m.webDashboard.seasons.title}
+      hidePageHeader
+      hideMobileTopBar
+    >
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-6 pb-6">
         <header className="mt-6 flex items-center gap-3 lg:mt-2">
           <BackButton
             href={`/dashboard/groups/${groupId}`}
-            label="Back to Group"
+            label={m.webDashboard.backToGroup}
           />
           <div className="min-w-0">
-            <PageTitle className="text-ink">Seasons</PageTitle>
+            <PageTitle className="text-ink">
+              {m.webDashboard.seasons.title}
+            </PageTitle>
             {groupName ? (
               <p className="text-meta text-muted-foreground truncate">
                 {groupName}
@@ -71,6 +78,7 @@ function SeasonsFrame({
 }
 
 function StatusTag({ status }: { status: GroupSeasonStatus }) {
+  const locale = useLocale();
   return (
     <span
       className={cn(
@@ -82,12 +90,13 @@ function StatusTag({ status }: { status: GroupSeasonStatus }) {
             : "border-rule text-muted-foreground border",
       )}
     >
-      {SEASON_STATUS_LABEL[status]}
+      {seasonStatusLabel(status, locale)}
     </span>
   );
 }
 
 function SeasonRow({ season }: { season: Season }) {
+  const locale = useLocale();
   return (
     <li className="border-rule flex items-center gap-3 border-t px-[18px] py-3.5 first:border-t-0">
       <span className="min-w-0 flex-1">
@@ -95,13 +104,13 @@ function SeasonRow({ season }: { season: Season }) {
           {season.name}
         </span>
         <span className="text-meta text-muted-foreground block tabular-nums">
-          {formatSeasonRange(season)}
+          {formatSeasonRange(season, locale)}
         </span>
       </span>
       <StatusTag status={season.status} />
       <ChevronRight
         aria-hidden="true"
-        className="text-muted-foreground size-[18px] shrink-0"
+        className="text-muted-foreground size-[18px] shrink-0 rtl:-scale-x-100"
       />
     </li>
   );
@@ -118,6 +127,8 @@ function CloseSeasonDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const standing = api.groups.seasonStanding.useQuery(
     { groupId, seasonId: season.id },
@@ -126,7 +137,7 @@ function CloseSeasonDialog({
   const group = api.groups.byId.useQuery({ id: groupId }, { enabled: open });
   const closeSeason = api.groups.closeSeason.useMutation({
     onSuccess: async (closed) => {
-      toast.success(seasonClosedToast(closed));
+      toast.success(seasonClosedToast(closed, locale));
       onOpenChange(false);
       await Promise.all([
         utils.groups.listSeasons.invalidate({ groupId }),
@@ -148,32 +159,42 @@ function CloseSeasonDialog({
       <ResponsiveDialogContent showCloseButton={false}>
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>
-            {closeSeasonTitle(season)}
+            {closeSeasonTitle(season, locale)}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             {closeSeasonBody({
               gamesCounted: standing.data?.gamesCounted ?? 0,
               awaitingScoreCount: group.data?.standing.awaitingScoreCount ?? 0,
+              locale,
             })}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <dl className={cn(cardFrame, "mx-4 mb-4 md:mx-0 md:mb-0")}>
           {[
-            ["Ends", seasonCloseEndsLine(season, now)],
             [
-              "Leader",
-              leader
-                ? `${leader.name ?? "Member"}, ${leader.points} pts`
-                : "Nobody ranked yet",
+              m.webDashboard.seasons.close.ends,
+              seasonCloseEndsLine(season, now, locale),
             ],
-            ["Levels", "Unchanged"],
+            [
+              m.webDashboard.seasons.close.leader,
+              leader
+                ? m.webDashboard.seasons.close.leaderValue(
+                    leader.name ?? m.community.memberFallback,
+                    leader.points,
+                  )
+                : m.webDashboard.seasons.close.nobodyRanked,
+            ],
+            [
+              m.webDashboard.seasons.close.levels,
+              m.webDashboard.seasons.close.unchanged,
+            ],
           ].map(([label, value]) => (
             <div
               key={label}
               className="border-rule flex items-center justify-between gap-3 border-t px-4 py-2.5 first:border-t-0"
             >
               <dt className="text-meta text-muted-foreground">{label}</dt>
-              <dd className="text-meta text-right">{value}</dd>
+              <dd className="text-meta text-end">{value}</dd>
             </div>
           ))}
         </dl>
@@ -186,7 +207,7 @@ function CloseSeasonDialog({
             onClick={() => closeSeason.mutate({ seasonId: season.id })}
           >
             <Lock aria-hidden="true" />
-            Close season and lock standing
+            {m.webDashboard.seasons.close.confirm}
           </Button>
           <Button
             type="button"
@@ -196,7 +217,7 @@ function CloseSeasonDialog({
             disabled={closeSeason.isPending}
             onClick={() => onOpenChange(false)}
           >
-            Keep it open
+            {m.webDashboard.seasons.close.keepOpen}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
@@ -210,6 +231,8 @@ export default function GroupSeasonsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const m = useMessages();
+  const locale = useLocale();
   const seasons = api.groups.listSeasons.useQuery({ groupId: id });
   const [closing, setClosing] = useState(false);
 
@@ -229,7 +252,7 @@ export default function GroupSeasonsPage({
     return (
       <SeasonsFrame groupId={id} groupName={null}>
         <ErrorState
-          title="Seasons could not be loaded"
+          title={m.webDashboard.seasons.errorTitle}
           message={seasons.error?.message}
           onRetry={() => {
             void seasons.refetch();
@@ -246,9 +269,11 @@ export default function GroupSeasonsPage({
 
   return (
     <SeasonsFrame groupId={id} groupName={groupName}>
-      <p className="text-body text-muted-foreground">{SEASON_SETTINGS_INTRO}</p>
+      <p className="text-body text-muted-foreground">
+        {m.group.season.settingsIntro}
+      </p>
 
-      <section className={cardFrame} aria-label="Seasons">
+      <section className={cardFrame} aria-label={m.webDashboard.seasons.title}>
         {seasons.data.seasons.length > 0 ? (
           <ul>
             {seasons.data.seasons.map((season) => (
@@ -257,7 +282,7 @@ export default function GroupSeasonsPage({
           </ul>
         ) : (
           <p className="text-meta text-muted-foreground px-[18px] py-4">
-            No seasons yet. The standing counts every game ever played.
+            {m.webDashboard.seasons.empty}
           </p>
         )}
         {canManage ? (
@@ -266,19 +291,22 @@ export default function GroupSeasonsPage({
             className="border-rule text-body hover:bg-wash flex min-h-12 items-center justify-center gap-1.5 border-t font-semibold outline-none focus-visible:underline"
           >
             <Plus aria-hidden="true" className="size-4" />
-            New season
+            {m.webDashboard.seasons.newSeason}
           </Link>
         ) : null}
       </section>
 
-      <section className={cardFrame} aria-label="Scoring">
+      <section
+        className={cardFrame}
+        aria-label={m.webDashboard.seasons.scoring}
+      >
         <div className="flex items-center justify-between gap-3 px-[18px] py-3.5">
           <span className="min-w-0">
             <span className="text-body block font-semibold">
-              Points per game
+              {m.webDashboard.seasons.pointsPerGame}
             </span>
             <span className="text-meta text-muted-foreground block">
-              Win, draw, loss
+              {m.webDashboard.seasons.winDrawLoss}
             </span>
           </span>
           <span className="text-meta shrink-0 font-mono tabular-nums">
@@ -297,7 +325,7 @@ export default function GroupSeasonsPage({
             onClick={() => setClosing(true)}
           >
             <Lock aria-hidden="true" />
-            {closeSeasonActionLabel(active)}
+            {closeSeasonActionLabel(active, locale)}
           </Button>
           <CloseSeasonDialog
             season={active}

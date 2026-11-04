@@ -8,8 +8,9 @@ import {
   type PendingLookupRow,
   type Slot,
 } from "~/components/invites/invite-dialog-view";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { COPY_LINK_FAILED_MESSAGE, copyTextWhenReady } from "~/lib/share-link";
+import { copyLinkFailedMessage, copyTextWhenReady } from "~/lib/share-link";
 import { api } from "~/trpc/react";
 import {
   formatGameClock,
@@ -24,16 +25,14 @@ import {
   type InviteMode,
   type LookupResultRow,
 } from "@repo/domain/invite-door";
-import {
-  INVITE_LINK_COPIED_TOAST,
-  LOOKUP_INVITE_REVOKED_TOAST,
-  lookupInviteSentToast,
-} from "@repo/domain/invites";
+import { lookupInviteSentToast } from "@repo/domain/invites";
 import {
   assembleE164,
   DEFAULT_CALLING_COUNTRY_ISO,
 } from "@repo/domain/phone-number";
 import { teamInviteSeatsLeft, type TeamRosterInput } from "@repo/domain/teams";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 type DoorRights = {
   canLookup: boolean;
@@ -69,21 +68,24 @@ function slotOf<T>(query: {
 }
 
 /** "Today 8:30 PM, Court 2. 2 seats open." */
-export function gameInviteSubtitle(game: {
-  windowStart: Date | string | null;
-  courtName: string | null;
-  venueName: string | null;
-  sides: Parameters<typeof openSeatCount>[0];
-}) {
+export function gameInviteSubtitle(
+  game: {
+    windowStart: Date | string | null;
+    courtName: string | null;
+    venueName: string | null;
+    sides: Parameters<typeof openSeatCount>[0];
+  },
+  locale: Locale,
+) {
   const when = game.windowStart
-    ? `${formatRelativeDay(game.windowStart, { sameDayLabel: "Today" })} ${formatGameClock(game.windowStart)}`
+    ? `${formatRelativeDay(game.windowStart, locale, { sameDayLabel: "Today" })} ${formatGameClock(game.windowStart, locale)}`
     : null;
   const place = [when, game.courtName ?? game.venueName]
     .filter(Boolean)
     .join(", ");
   const open = openSeatCount(game.sides);
   const seats =
-    open === 0 ? null : open === 1 ? "1 seat open." : `${open} seats open.`;
+    open === 0 ? null : messagesFor(locale).webAuth.invites.seatsOpen(open);
   return [place ? `${place}.` : null, seats].filter(Boolean).join(" ") || null;
 }
 
@@ -108,6 +110,8 @@ export function InviteDoorDialog({
   onOpenChange: (open: boolean) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const utils = api.useUtils();
   const isGroup = door.kind === "group";
   const isTeam = door.kind === "team";
@@ -236,7 +240,7 @@ export function InviteDoorDialog({
   function afterSend(result: { sent: unknown[]; refused: Refused }) {
     setRefused(result.refused.length > 0 ? result.refused : null);
     if (result.sent.length > 0) {
-      toast.success(lookupInviteSentToast(result.sent.length));
+      toast.success(lookupInviteSentToast(result.sent.length, locale));
     }
     // Search results are left cached on purpose: the row stays put and
     // flips to Invited once the pending list refetches.
@@ -262,7 +266,7 @@ export function InviteDoorDialog({
 
   const afterRevoke = {
     onSuccess: () => {
-      toast.success(LOOKUP_INVITE_REVOKED_TOAST);
+      toast.success(m.invite.inbox.lookupRevokedToast);
       void refreshPending();
     },
     onError: (error: { message: string }) => {
@@ -316,10 +320,10 @@ export function InviteDoorDialog({
   async function copyMessage(message: string) {
     try {
       await navigator.clipboard.writeText(message);
-      toast.success(INVITE_LINK_COPIED_TOAST);
+      toast.success(m.invite.inbox.linkCopiedToast);
       return true;
     } catch {
-      toast.error(COPY_LINK_FAILED_MESSAGE);
+      toast.error(copyLinkFailedMessage(locale));
       return false;
     }
   }
@@ -349,11 +353,11 @@ export function InviteDoorDialog({
     try {
       wrote = await copyTextWhenReady(mintMessage());
     } catch {
-      toast.error(COPY_LINK_FAILED_MESSAGE);
+      toast.error(copyLinkFailedMessage(locale));
       return;
     }
     if (wrote) {
-      toast.success(INVITE_LINK_COPIED_TOAST);
+      toast.success(m.invite.inbox.linkCopiedToast);
       setCopied(true);
       if (copiedTimer.current) {
         clearTimeout(copiedTimer.current);
@@ -514,7 +518,11 @@ export function InviteDoorDialog({
       open={open}
       onOpenChange={handleOpenChange}
       restoreFocusRef={restoreFocusRef}
-      title={inviteSheetTitle(door.kind, door.kind === "team" && door.squad)}
+      title={inviteSheetTitle(
+        door.kind,
+        locale,
+        door.kind === "team" && door.squad,
+      )}
       subtitle={door.subtitle}
       modes={modes}
       mode={mode}

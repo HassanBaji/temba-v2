@@ -1,17 +1,12 @@
 import { sizes, spacing } from "@repo/design-tokens";
-import {
-  COMMUNITIES_ERROR_TITLE,
-  COMMUNITIES_TITLE,
-  COMMUNITY_NO_GROUPS_COPY,
-  COMMUNITY_START_COPY,
-  communityClubGroupRow,
-} from "@repo/domain/community";
+import { communityClubGroupRow } from "@repo/domain/community";
 import { communityListMetaLine } from "@repo/domain/community-chrome";
 import type { CommunityMineRowData } from "@repo/domain/community-data";
 import { Pressable, View } from "react-native";
 
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -41,7 +36,14 @@ function CommunityCard({
   onOpen: (communityId: string) => void;
   onOpenGroup: (groupId: string) => void;
 }) {
-  const meta = communityListMetaLine(community);
+  const m = useMessages();
+  const locale = useLocale();
+  const meta = communityListMetaLine({
+    type: community.type,
+    memberCount: community.memberCount,
+    role: community.role,
+    locale,
+  });
   const archived = community.archivedAt != null;
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -50,10 +52,10 @@ function CommunityCard({
         accessibilityLabel={[
           community.name,
           meta,
-          archived ? "Soft-archived" : null,
+          archived ? m.community.badge.softArchived : null,
         ]
           .filter(Boolean)
-          .join(", ")}
+          .join(m.group.metaSeparator)}
         onPress={() => onOpen(community.id)}
         style={({ pressed }) => ({
           minHeight: sizes.touchTarget + 20,
@@ -79,7 +81,7 @@ function CommunityCard({
         </View>
         {archived ? (
           <Text size="eyebrow" tone="muted" mono uppercase>
-            Soft-archived
+            {m.community.badge.softArchived}
           </Text>
         ) : null}
       </Pressable>
@@ -88,13 +90,13 @@ function CommunityCard({
           <Hairline />
           <View style={{ padding: spacing.surface }}>
             <Text size="meta" tone="muted">
-              {COMMUNITY_NO_GROUPS_COPY}
+              {m.community.noGroups}
             </Text>
           </View>
         </>
       ) : (
         community.groups.map((group) => {
-          const row = communityClubGroupRow(group);
+          const row = communityClubGroupRow(group, locale);
           return (
             <View key={row.id}>
               <Hairline />
@@ -126,7 +128,7 @@ function CommunityCard({
                 </View>
                 {row.joined ? (
                   <Text size="eyebrow" tone="muted" mono uppercase>
-                    Joined
+                    {m.community.joined}
                   </Text>
                 ) : null}
               </Pressable>
@@ -139,16 +141,17 @@ function CommunityCard({
 }
 
 function StartCard({ onCreate }: { onCreate: () => void }) {
+  const m = useMessages();
   return (
     <Surface style={{ gap: 8 }}>
       <Text size="lead" weight="semibold">
-        {COMMUNITY_START_COPY.title}
+        {m.community.start.title}
       </Text>
       <Text size="meta" tone="muted">
-        {COMMUNITY_START_COPY.description}
+        {m.community.start.description}
       </Text>
       <View style={{ flexDirection: "row", marginTop: 4 }}>
-        <Button label={COMMUNITY_START_COPY.action} onPress={onCreate} />
+        <Button label={m.community.start.action} onPress={onCreate} />
       </View>
     </Surface>
   );
@@ -156,11 +159,15 @@ function StartCard({ onCreate }: { onCreate: () => void }) {
 
 export function CommunitiesView(props: CommunitiesViewProps) {
   const { communities } = props;
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
-      <ScreenHeader title={COMMUNITIES_TITLE} />
+      <ScreenHeader title={m.community.title} />
       {communities.status === "loading" ? (
-        <View style={{ gap: 12 }} accessibilityLabel="Loading Communities">
+        <View
+          style={{ gap: 12 }}
+          accessibilityLabel={m.mobileCommunity.list.loadingA11y}
+        >
           {[0, 1].map((key) => (
             <Skeleton key={key} height={140} radius={16} />
           ))}
@@ -169,7 +176,7 @@ export function CommunitiesView(props: CommunitiesViewProps) {
       {communities.status === "error" ? (
         <Notice
           alert
-          title={COMMUNITIES_ERROR_TITLE}
+          title={m.community.errorTitle}
           description={communities.message}
           onRetry={props.onRetry}
         />

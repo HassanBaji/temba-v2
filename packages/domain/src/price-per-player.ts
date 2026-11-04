@@ -1,9 +1,7 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const PRICE_PER_PLAYER_MAX_FILS = 1_000_000_000;
-
-/** Display currency for price per player until a stored currency exists. */
-export const PRICE_PER_PLAYER_CURRENCY = "BD";
-
-export const PRICE_PER_PLAYER_FIELD_DESCRIPTION = `Optional. Amounts are in ${PRICE_PER_PLAYER_CURRENCY}. Up to three decimal places. Leave blank if unset. Zero means free. Temba does not collect payment.`;
 
 export type ParsePricePerPlayerResult =
   | { ok: true; fils: number | null }
@@ -14,21 +12,23 @@ const TOO_MANY_FRACTION_DIGITS = /^\d+\.\d{4,}$/;
 
 export function parseOptionalPricePerPlayerFils(
   value: string,
+  locale: Locale,
 ): ParsePricePerPlayerResult {
+  const m = messagesFor(locale).createGame.price;
   const trimmed = value.trim();
   if (trimmed === "") {
     return { ok: true, fils: null };
   }
 
   if (trimmed.startsWith("-")) {
-    return { ok: false, message: "Price per player cannot be negative" };
+    return { ok: false, message: m.negative };
   }
 
   if (!MAJOR_UNIT_PATTERN.test(trimmed)) {
     if (TOO_MANY_FRACTION_DIGITS.test(trimmed)) {
-      return { ok: false, message: "Use up to three decimal places" };
+      return { ok: false, message: m.tooManyDecimals };
     }
-    return { ok: false, message: "Enter a valid amount" };
+    return { ok: false, message: m.invalid };
   }
 
   const dot = trimmed.indexOf(".");
@@ -39,7 +39,7 @@ export function parseOptionalPricePerPlayerFils(
   const fils = whole * 1000 + fraction;
 
   if (!Number.isSafeInteger(fils) || fils > PRICE_PER_PLAYER_MAX_FILS) {
-    return { ok: false, message: "Price per player is too large" };
+    return { ok: false, message: m.tooLarge };
   }
 
   return { ok: true, fils };
@@ -47,26 +47,29 @@ export function parseOptionalPricePerPlayerFils(
 
 export function formatPricePerPlayerFils(
   fils: number | null | undefined,
+  locale: Locale,
 ): string | null {
   if (fils == null) {
     return null;
   }
   if (fils === 0) {
-    return "Free";
+    return messagesFor(locale).createGame.price.free;
   }
-  return formatMajorUnitsWithCurrency(fils);
+  return formatMajorUnitsWithCurrency(fils, locale);
 }
 
 export function formatPricePerPlayerCardMeta(
   fils: number | null | undefined,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).createGame.price;
   if (fils == null) {
     return null;
   }
   if (fils === 0) {
-    return "Free";
+    return m.free;
   }
-  return `${formatMajorUnitsWithCurrency(fils)} / player`;
+  return m.perPlayer(formatMajorUnitsWithCurrency(fils, locale));
 }
 
 export function filsToMajorInput(fils: number | null | undefined): string {
@@ -84,11 +87,13 @@ function formatMajorUnitsFromFils(fils: number): string {
   return fils < 0 ? `-${body}` : body;
 }
 
-function formatMajorUnitsWithCurrency(fils: number): string {
-  return `${formatMajorUnitsFromFils(fils)} ${PRICE_PER_PLAYER_CURRENCY}`;
+function formatMajorUnitsWithCurrency(fils: number, locale: Locale): string {
+  return messagesFor(locale).createGame.price.amount(
+    formatMajorUnitsFromFils(fils),
+  );
 }
 
 /** A Booking price always shows its amount, so zero reads "0.000 BD". */
-export function formatBookingPriceFils(fils: number): string {
-  return formatMajorUnitsWithCurrency(fils);
+export function formatBookingPriceFils(fils: number, locale: Locale): string {
+  return formatMajorUnitsWithCurrency(fils, locale);
 }

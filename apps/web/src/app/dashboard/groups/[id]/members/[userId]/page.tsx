@@ -8,6 +8,7 @@ import { use, type ReactNode } from "react";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { useMessages } from "~/components/locale-provider";
 import {
   SetLevelForm,
   SetLevelMemberSummary,
@@ -27,15 +28,22 @@ function SetLevelPageFrame({
   groupId: string;
   children: ReactNode;
 }) {
+  const m = useMessages();
   return (
-    <DashboardShell title="Set Level" hidePageHeader hideMobileTopBar>
+    <DashboardShell
+      title={m.webDashboard.setLevel.title}
+      hidePageHeader
+      hideMobileTopBar
+    >
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-6 pb-6">
         <header className="mt-6 flex items-center gap-1.5 lg:mt-2">
           <BackButton
             href={groupMembersTabHref(groupId)}
-            label="Back to Members"
+            label={m.webDashboard.setLevel.backToMembers}
           />
-          <PageTitle className="text-ink">Set Level</PageTitle>
+          <PageTitle className="text-ink">
+            {m.webDashboard.setLevel.title}
+          </PageTitle>
         </header>
         {children}
       </div>
@@ -49,6 +57,7 @@ export default function SetLevelPage({
   params: Promise<{ id: string; userId: string }>;
 }) {
   const { id, userId } = use(params);
+  const m = useMessages();
   const router = useRouter();
   const group = api.groups.byId.useQuery({ id });
 
@@ -68,7 +77,7 @@ export default function SetLevelPage({
     return (
       <SetLevelPageFrame groupId={id}>
         <ErrorState
-          title="Group could not be loaded"
+          title={m.webDashboard.group.errorTitle}
           message={group.error?.message}
           onRetry={() => {
             void group.refetch();
@@ -89,11 +98,13 @@ export default function SetLevelPage({
       <SetLevelPageFrame groupId={id}>
         <EmptyState
           icon={UserX}
-          title="Level can't be set"
-          description="This person isn't a member whose Level you can set in this Group."
+          title={m.webDashboard.setLevel.cannotSet.title}
+          description={m.webDashboard.setLevel.cannotSet.description}
           action={
             <Button asChild>
-              <Link href={groupMembersTabHref(id)}>Back to Members</Link>
+              <Link href={groupMembersTabHref(id)}>
+                {m.webDashboard.setLevel.backToMembers}
+              </Link>
             </Button>
           }
         />
@@ -103,7 +114,7 @@ export default function SetLevelPage({
 
   const member = {
     userId: entry.userId,
-    name: entry.name ?? "Member",
+    name: entry.name ?? m.community.memberFallback,
     levelBand: entry.levelBand,
     levelProvisional: entry.levelProvisional,
     level: entry.level,

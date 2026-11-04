@@ -1,6 +1,5 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
 import {
-  COURT_OPEN_LABEL,
   courtPositionLabel,
   courtSeatName,
   courtSeatRow,
@@ -18,6 +17,7 @@ import { Plus, UserPlus } from "lucide-react-native";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
@@ -79,6 +79,8 @@ function OpenSeat({
   action: OpenSeatAction | null;
   busy: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const palette = useTonePalette();
   const body = (
     <>
@@ -94,8 +96,8 @@ function OpenSeat({
         {action ? <Plus size={18} color={palette.muted} /> : null}
       </View>
       <SeatLabels
-        title={COURT_OPEN_LABEL}
-        subline={courtPositionLabel(position)}
+        title={m.game.court.open}
+        subline={courtPositionLabel(position, locale)}
         strong={false}
       />
     </>
@@ -113,7 +115,7 @@ function OpenSeat({
     return (
       <View
         accessible
-        accessibilityLabel={friendlyGameOpenSeatLabel(position)}
+        accessibilityLabel={friendlyGameOpenSeatLabel(position, locale)}
         style={cell}
       >
         {body}
@@ -148,9 +150,11 @@ function TakenSeat({
   viewerUserId: string;
   onPress: ((row: PlayedRow) => void) | undefined;
 }) {
-  const row = courtSeatRow(seat, position, viewerUserId);
-  const name = courtSeatName(row);
-  const subline = courtSeatSubline(position, seat.levelBand);
+  const m = useMessages();
+  const locale = useLocale();
+  const row = courtSeatRow(seat, position, viewerUserId, locale);
+  const name = courtSeatName(row, locale);
+  const subline = courtSeatSubline(position, seat.levelBand, locale);
   const avatar = <Avatar name={seat.name} uri={seat.image} size="court" />;
   const body = (
     <>
@@ -184,7 +188,7 @@ function TakenSeat({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${name}, ${subline}`}
+      accessibilityLabel={m.mobileGameDetails.join.nameWithMeta(name, subline)}
       onPress={() => onPress(row)}
       style={({ pressed }) => [cell, { opacity: pressed ? 0.6 : 1 }]}
     >
@@ -211,10 +215,11 @@ function SideHalf({
   ) => OpenSeatAction | null;
   onPressPlayer: ((row: PlayedRow) => void) | undefined;
 }) {
+  const locale = useLocale();
   const palette = useTonePalette();
   const label = (
     <Text size="eyebrow" weight="semibold" tone="muted" uppercase>
-      {formatGameSideLabel("friendly_game", side.sideIndex)}
+      {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
     </Text>
   );
   return (
@@ -261,6 +266,7 @@ function SideHalf({
 }
 
 function Net() {
+  const m = useMessages();
   const palette = useTonePalette();
   return (
     <View
@@ -289,7 +295,7 @@ function Net() {
             paddingHorizontal: 8,
           }}
         >
-          vs
+          {m.mobileGameDetails.lineup.vs}
         </Text>
       </View>
     </View>
@@ -322,6 +328,8 @@ export function LineupCard({
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const palette = useTonePalette();
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -345,15 +353,15 @@ export function LineupCard({
           }}
         >
           <Text size="lead" weight="semibold" accessibilityRole="header">
-            Line-up
+            {m.mobileGameDetails.lineup.title}
           </Text>
           <Text size="meta" tone="muted" numberOfLines={1}>
-            {courtSpotsLabel(vacantSeatCount)}
+            {courtSpotsLabel(vacantSeatCount, locale)}
           </Text>
         </View>
         {onInvite ? (
           <Button
-            label="Invite"
+            label={m.mobileGameDetails.lineup.invite}
             variant="outline"
             size="sm"
             icon={<UserPlus size={15} color={palette.foreground} />}

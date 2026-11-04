@@ -4,7 +4,6 @@ import { Plus, UserPlus } from "lucide-react";
 import { Fragment } from "react";
 
 import {
-  COURT_OPEN_LABEL,
   courtPositionLabel,
   courtSeatName,
   courtSeatRow,
@@ -15,6 +14,7 @@ import { friendlyGameOpenSeatLabel } from "@repo/domain/friendly-game-players";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -67,6 +67,8 @@ function OpenSeat({
   action: OpenSeatAction | null;
   busy: boolean;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   const body = (
     <>
       <span
@@ -76,8 +78,8 @@ function OpenSeat({
         {action ? <Plus className="text-muted-foreground size-[18px]" /> : null}
       </span>
       <SeatLabels
-        title={COURT_OPEN_LABEL}
-        subline={courtPositionLabel(position)}
+        title={m.game.court.open}
+        subline={courtPositionLabel(position, locale)}
         strong={false}
       />
     </>
@@ -87,7 +89,7 @@ function OpenSeat({
     return (
       <div
         className={SEAT_CELL}
-        aria-label={friendlyGameOpenSeatLabel(position)}
+        aria-label={friendlyGameOpenSeatLabel(position, locale)}
       >
         {body}
       </div>
@@ -120,9 +122,11 @@ function TakenSeat({
   viewerUserId: string;
   onPress?: (row: PlayedRow) => void;
 }) {
-  const row = courtSeatRow(seat, position, viewerUserId);
-  const name = courtSeatName(row);
-  const subline = courtSeatSubline(position, seat.levelBand);
+  const locale = useLocale();
+  const m = useMessages();
+  const row = courtSeatRow(seat, position, viewerUserId, locale);
+  const name = courtSeatName(row, locale);
+  const subline = courtSeatSubline(position, seat.levelBand, locale);
   const body = (
     <>
       <UserAvatar
@@ -150,7 +154,7 @@ function TakenSeat({
   return (
     <button
       type="button"
-      aria-label={`${name}, ${subline}`}
+      aria-label={m.webGame.lineup.seatLabel(name, subline)}
       onClick={() => onPress(row)}
       className={cn(
         SEAT_CELL,
@@ -180,9 +184,10 @@ function SideHalf({
   ) => OpenSeatAction | null;
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const locale = useLocale();
   const label = (
     <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
-      {formatGameSideLabel("friendly_game", side.sideIndex)}
+      {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
     </p>
   );
   return (
@@ -228,10 +233,11 @@ function SideHalf({
 }
 
 function Net() {
+  const m = useMessages();
   return (
     <div aria-hidden="true" className="border-ink relative border-t-[1.5px]">
       <span className="bg-paper absolute left-1/2 top-[-10px] -translate-x-1/2 px-2 text-[11px] font-bold uppercase tracking-[0.08em]">
-        vs
+        {m.webGame.joinSheet.versus}
       </span>
     </div>
   );
@@ -263,6 +269,8 @@ export function GameLineupSection({
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
 }) {
+  const locale = useLocale();
+  const m = useMessages();
   return (
     <section
       data-slot="game-lineup-section"
@@ -270,9 +278,9 @@ export function GameLineupSection({
     >
       <div className="flex min-h-[68px] items-center justify-between gap-3 px-[18px] py-3.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="text-base font-semibold">Line-up</h2>
+          <h2 className="text-base font-semibold">{m.webGame.lineup.title}</h2>
           <p className="text-muted-foreground text-meta truncate">
-            {courtSpotsLabel(vacantSeatCount)}
+            {courtSpotsLabel(vacantSeatCount, locale)}
           </p>
         </div>
         {onInvite ? (
@@ -284,7 +292,7 @@ export function GameLineupSection({
             onClick={onInvite}
           >
             <UserPlus aria-hidden="true" className="size-[15px]" />
-            Invite
+            {m.invite.door.inviteButton}
           </Button>
         ) : null}
       </div>

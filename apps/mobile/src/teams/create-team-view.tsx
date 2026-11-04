@@ -1,13 +1,8 @@
 import { spacing } from "@repo/design-tokens";
 import { SPORTS, type Sport } from "@repo/domain/sport";
-import {
-  TEAM_CREATE_DESCRIPTION,
-  TEAM_CREATE_LABEL,
-  TEAM_NAME_HINT,
-  TEAM_NAME_LABEL,
-} from "@repo/domain/teams";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { SportChoiceRow } from "../lib/sport-choice-row";
 import { Button } from "../primitives/button";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -27,16 +22,17 @@ export type CreateTeamViewProps = {
 };
 
 export function CreateTeamView(props: CreateTeamViewProps) {
+  const m = useMessages();
   return (
     <View style={{ gap: spacing.compact }}>
       <View style={{ gap: 4 }}>
         <ScreenHeader
           nav="close"
           fallback="/profile"
-          title={TEAM_CREATE_LABEL}
+          title={m.team.createLabel}
         />
         <Text size="meta" tone="muted">
-          {TEAM_CREATE_DESCRIPTION}
+          {m.team.createDescription}
         </Text>
       </View>
       {props.formError ? (
@@ -52,7 +48,7 @@ export function CreateTeamView(props: CreateTeamViewProps) {
       />
       <View style={{ gap: 6 }}>
         <TextField
-          label={TEAM_NAME_LABEL}
+          label={m.team.nameLabel}
           value={props.name}
           onChangeText={props.onNameChange}
           error={props.nameError ?? undefined}
@@ -62,17 +58,17 @@ export function CreateTeamView(props: CreateTeamViewProps) {
           onSubmitEditing={props.onSubmit}
         />
         <Text size="meta" tone="muted">
-          {TEAM_NAME_HINT}
+          {m.team.nameHint}
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
-          label={TEAM_CREATE_LABEL}
+          label={m.team.createLabel}
           pending={props.pending}
           onPress={props.onSubmit}
         />
         <Button
-          label="Cancel"
+          label={m.common.cancel}
           variant="outline"
           disabled={props.pending}
           onPress={props.onCancel}
