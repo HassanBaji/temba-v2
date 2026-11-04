@@ -1,6 +1,8 @@
 import { useState, type RefObject } from "react";
 import { View } from "react-native";
 
+import { isLayoutRtl } from "../i18n/rtl";
+
 export {
   STICKER_WIDTH,
   STORY_HEIGHT,
@@ -34,7 +36,9 @@ export function ScaledCanvas({
   return (
     <View
       onLayout={({ nativeEvent }) => setFrameWidth(nativeEvent.layout.width)}
-      style={{ width: "100%", height: height * scale }}
+      // Physical on purpose: in RTL `left: 0` would become `right: 0` and the
+      // card, scaled from its top-left corner, would land off-screen.
+      style={{ width: "100%", height: height * scale, direction: "ltr" }}
     >
       {scale > 0 ? (
         <View
@@ -56,6 +60,7 @@ export function ScaledCanvas({
             height: canvasHeight,
             transform: [{ scale }],
             transformOrigin: "top left",
+            direction: isLayoutRtl() ? "rtl" : "ltr",
           }}
         >
           {children}
