@@ -4,10 +4,10 @@ import { useClerk, useUser } from "@clerk/nextjs";
 import { Building2, FileText, Mail, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { LanguageToggle } from "~/components/common/language-toggle";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
+import { LanguageControl } from "~/components/settings/language-control";
 import { PreferredPositionControl } from "~/components/settings/preferred-position-control";
 import { SettingsFooter } from "~/components/settings/settings-footer";
 import { SettingsLinkRow } from "~/components/settings/settings-link-row";
@@ -136,7 +136,7 @@ export default function SettingsPage() {
           </SettingsSection>
 
           <SettingsSection eyebrow={m.common.language}>
-            <LanguageToggle />
+            <LanguageControl />
           </SettingsSection>
 
           <SettingsSection eyebrow={m.webDashboard.settings.about}>

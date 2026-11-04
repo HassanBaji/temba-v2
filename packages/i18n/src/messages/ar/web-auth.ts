@@ -392,6 +392,10 @@ export const webAuth = {
       title: "الجهة المفضّلة",
       description: "جهتك الافتراضية عند اختيار مقعد في لعبة",
     },
+    language: {
+      title: "لغة التطبيق",
+      description: "تظهر القوائم والرسائل والتواريخ بهذه اللغة",
+    },
     signingOut: "جارٍ تسجيل الخروج…",
   },
   legal: {
