@@ -18,8 +18,6 @@ export const webYou = {
       plural("en", n, { one: "1 goal", other: "{n} goals" }),
     sameAsYours: "Same as yours",
     same: "Same",
-    roleReadOnly:
-      "How you join and your position were set when you signed up. They can't be changed here yet.",
   },
   settings: {
     changePassword: "Change your password",

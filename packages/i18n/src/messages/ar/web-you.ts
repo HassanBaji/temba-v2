@@ -25,8 +25,6 @@ export const webYou = {
       }),
     sameAsYours: "مثل مستواك",
     same: "مثله",
-    roleReadOnly:
-      "طريقة انضمامك ومركزك حُدّدا عند التسجيل. لا يمكن تغييرهما من هنا بعد.",
   },
   settings: {
     changePassword: "تغيير كلمة المرور",
@@ -41,4 +39,3 @@ export const webYou = {
     levelPlaced: "تم حفظ المستوى",
   },
 } satisfies typeof source;
-
