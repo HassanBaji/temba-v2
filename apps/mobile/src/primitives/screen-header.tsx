@@ -14,7 +14,7 @@ import { Text } from "./text";
 const NAV_BUTTON = 40;
 const NAV_HIT_SLOP = (sizes.touchTarget - NAV_BUTTON) / 2;
 const TITLE_GAP = 20;
-const ACTION_GAP = 4;
+const ACTION_GAP = 8;
 
 type HeaderNav =
   | { nav?: undefined; fallback?: undefined; onNav?: undefined }
@@ -95,6 +95,19 @@ function BackChevron(props: { size: number; color: ColorValue }) {
   return <ChevronLeft {...props} style={mirrorInRtl} />;
 }
 
+/** Leaves the screen the way its back button would. */
+export function useLeaveScreen(fallback: Href) {
+  const router = useRouter();
+  return () => {
+    const target = backTarget(router.canGoBack(), fallback);
+    if (target.kind === "back") {
+      router.back();
+    } else {
+      router.replace(target.href);
+    }
+  };
+}
+
 function NavButton({
   nav,
   fallback,
@@ -104,27 +117,49 @@ function NavButton({
   fallback: Href;
   onNav?: () => void;
 }) {
-  const router = useRouter();
   const m = useMessages();
+  const leave = useLeaveScreen(fallback);
 
   return (
     <HeaderIconButton
       framed
       icon={nav === "back" ? BackChevron : X}
       accessibilityLabel={nav === "back" ? m.common.back : m.common.close}
-      onPress={() => {
-        if (onNav) {
-          onNav();
-          return;
-        }
-        const target = backTarget(router.canGoBack(), fallback);
-        if (target.kind === "back") {
-          router.back();
-        } else {
-          router.replace(target.href);
-        }
-      }}
+      onPress={onNav ?? leave}
     />
+  );
+}
+
+/** A plain word in the header's action row, like "Done". */
+export function HeaderTextButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  const onInk = useSurfaceTone() === "ink";
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: sizes.touchTarget,
+        minWidth: NAV_BUTTON,
+        paddingHorizontal: 4,
+        alignItems: "flex-end",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text
+        weight="semibold"
+        style={{ color: onInk ? colors.paper : colors.ink }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -155,8 +190,8 @@ export function HeaderIconButton({
           justifyContent: "center",
           borderRadius: radii.md,
           borderWidth: hairline,
-          borderColor: onInk ? colors.dimrule : colors.rule,
-          backgroundColor: onInk ? colors.ink : colors.paper,
+          borderColor: onInk ? colors.raised : colors.rule,
+          backgroundColor: onInk ? colors.raised : colors.paper,
           opacity: pressed ? 0.6 : 1,
         })}
       >

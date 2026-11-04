@@ -154,9 +154,8 @@ export const webGame = {
     noResultsYet: "No results yet",
   },
   history: {
-    linkLabel: (outcome: string, meta: string) => `${outcome}, ${meta}`,
-    inSets: (won: number, lost: number) => `${won}–${lost} in sets`,
-    noScoreYet: "No score yet",
+    linkLabel: (outcome: string, score: string, meta: string) =>
+      `${outcome}, ${score}, ${meta}`,
   },
   played: {
     notOnATeam: "Not on a team",

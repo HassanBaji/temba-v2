@@ -4,6 +4,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import { unratedLabel } from "./game-rating-impact";
 import { formatRelativeDay } from "./format-game-start";
 import { shortPlayerName } from "./player-name";
+import { sportLabel } from "./sport";
 
 export type HistoryMember = {
   id: string;
@@ -14,6 +15,7 @@ export type HistoryMember = {
 
 export type HistoryRowInput = {
   name: string | null;
+  sport: string | null;
   groupName: string | null;
   venue: { name: string };
   displayTime: Date;
@@ -28,6 +30,9 @@ export type HistoryRowInput = {
 export const HISTORY_PAGE_SIZE = 20;
 
 export const PENDING_SET_COLUMNS = 3;
+
+/** Seats drawn as stacked avatars on a team row; the label names the rest. */
+export const HISTORY_AVATAR_LIMIT = 3;
 
 export function nextHistoryCursor(
   lastPage: readonly { displayTime: Date; matchId: string }[],
@@ -78,52 +83,84 @@ export function historyTeamLabel(members: HistoryMember[], locale: Locale) {
   if (names.length === 0) {
     return messages.game.history.openSeats;
   }
-  if (names.length === 1) {
-    return names[0]!;
-  }
-  return messages.game.history.namesList(
-    names.slice(0, -1).join(", "),
-    names[names.length - 1]!,
-  );
+  const named = names.slice(0, 2).join(messages.game.history.nameSeparator);
+  const rest = names.length - 2;
+  return rest > 0 ? messages.game.history.namesMore(named, rest) : named;
+}
+
+function historyDay(row: HistoryRowInput, locale: Locale) {
+  return formatRelativeDay(row.displayTime, locale, { sameDayLabel: "Today" });
+}
+
+function historyPlace(row: HistoryRowInput, locale: Locale) {
+  const venueName = row.venue.name.trim();
+  const gameName = row.name?.trim();
+  return gameName && gameName !== venueName
+    ? messagesFor(locale).game.history.place(venueName, gameName)
+    : venueName;
+}
+
+function unratedSuffix(row: HistoryRowInput, line: string, locale: Locale) {
+  return row.rated
+    ? line
+    : messagesFor(locale).game.history.withUnrated(line, unratedLabel(locale));
 }
 
 export function historyMeta(row: HistoryRowInput, locale: Locale) {
+  return unratedSuffix(
+    row,
+    messagesFor(locale).game.history.meta(
+      historyDay(row, locale),
+      historyPlace(row, locale),
+    ),
+    locale,
+  );
+}
+
+/** One set reads as its own score, as football's single set of goals does; more read as the set tally. */
+export function historyScoreLine(
+  sets: { us: number; them: number }[],
+  locale: Locale,
+) {
   const m = messagesFor(locale).game.history;
-  const dayLabel = formatRelativeDay(row.displayTime, locale, {
-    sameDayLabel: "Today",
-  });
-  const venueName = row.venue.name.trim();
-  const gameName = row.name?.trim();
-  const base =
-    gameName && gameName !== venueName
-      ? m.metaWithName(dayLabel, venueName, gameName)
-      : m.meta(dayLabel, venueName);
-  return row.rated ? base : m.withUnrated(base, unratedLabel(locale));
+  if (sets.length === 0) {
+    return m.noScore;
+  }
+  if (sets.length === 1) {
+    return `${sets[0]!.us}–${sets[0]!.them}`;
+  }
+  const tally = setTally(sets);
+  return m.setsTally(tally.won, tally.lost);
 }
 
 export type HistoryTeamRow = {
   side: "mine" | "theirs";
-  members: HistoryMember[];
-  seats: number;
+  /** The first seats, viewer first, drawn as stacked avatars. */
+  avatars: HistoryMember[];
   label: string;
   note: string;
-  scores: { games: number; wonSet: boolean }[] | null;
-  filled: boolean;
-  outlined: boolean;
+  /** A team that lost reads muted; on a draw neither side does. */
+  lost: boolean;
+  /** One entry per scored set, or `null` while the Match has no score. */
+  scores: { games: number; lostSet: boolean }[] | null;
 };
 
 export type MatchHistoryCardModel = {
   outcome: "won" | "lost" | "draw";
   scored: boolean;
-  setColumns: number;
-  tally: { won: number; lost: number };
+  /** `12–9`, `2–1 in sets`, or `No score yet`. */
+  scoreLine: string;
+  day: string;
+  sport: string | null;
+  groupName: string | undefined;
+  /** Venue, then the Game name when it differs, then the unrated mark. */
+  place: string;
   meta: string;
   unrated: boolean;
-  groupName: string | undefined;
-  teams: HistoryTeamRow[];
+  /** The viewer's team first, whatever the result. */
+  teams: [HistoryTeamRow, HistoryTeamRow];
 };
 
-/** Winners carry the ink fill; the viewer's losing side carries the outline; the loser reads first. */
 export function matchHistoryCardModel(
   row: HistoryRowInput,
   locale: Locale,
@@ -138,41 +175,38 @@ export function matchHistoryCardModel(
     row.viewerSlot === 1 ? row.slot1Members : row.slot2Members,
   );
   const opponents = row.viewerSlot === 1 ? row.slot2Members : row.slot1Members;
-  const seats = Math.max(myMembers.length, opponents.length, 1);
 
   const mine: HistoryTeamRow = {
     side: "mine",
-    members: myMembers,
-    seats,
+    avatars: myMembers.slice(0, HISTORY_AVATAR_LIMIT),
     label: historyTeamLabel(myMembers, locale),
-    note: won ? m.yourTeamWinners : lost ? m.yourTeamLost : m.yourTeam,
+    note: won ? m.yourTeamWon : m.yourTeam,
+    lost,
     scores: scored
-      ? sets.map((set) => ({ games: set.us, wonSet: set.us > set.them }))
+      ? sets.map((set) => ({ games: set.us, lostSet: set.us < set.them }))
       : null,
-    filled: won,
-    outlined: !won,
   };
   const theirs: HistoryTeamRow = {
     side: "theirs",
-    members: opponents,
-    seats,
+    avatars: opponents.slice(0, HISTORY_AVATAR_LIMIT),
     label: historyTeamLabel(opponents, locale),
-    note: won ? m.lost : lost ? m.winners : m.otherTeam,
+    note: won ? m.lost : lost ? m.won : m.drew,
+    lost: won,
     scores: scored
-      ? sets.map((set) => ({ games: set.them, wonSet: set.them > set.us }))
+      ? sets.map((set) => ({ games: set.them, lostSet: set.them < set.us }))
       : null,
-    filled: lost,
-    outlined: false,
   };
 
   return {
     outcome: row.outcome,
     scored,
-    setColumns: sets.length,
-    tally: setTally(sets),
+    scoreLine: historyScoreLine(sets, locale),
+    day: historyDay(row, locale),
+    sport: sportLabel(row.sport, locale),
+    groupName: row.groupName?.trim() ? row.groupName.trim() : undefined,
+    place: unratedSuffix(row, historyPlace(row, locale), locale),
     meta: historyMeta(row, locale),
     unrated: !row.rated,
-    groupName: row.groupName?.trim() ? row.groupName.trim() : undefined,
-    teams: lost ? [theirs, mine] : [mine, theirs],
+    teams: [mine, theirs],
   };
 }

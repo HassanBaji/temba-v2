@@ -4,11 +4,11 @@ import {
   type PlayedResultLine,
   type PlayedYouLine,
 } from "@repo/domain/played-game";
-import type { Href } from "expo-router";
 import { MoreVertical, Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { HeroTopLine } from "../game-details/hero-top-line";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
@@ -19,6 +19,8 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 
 const HERO_PADDING_BOTTOM = 22;
+const NAV_TO_DATE_GAP = 24;
+const GAMES_FALLBACK = "/games";
 
 function LightStatusBar() {
   useLightStatusBar();
@@ -52,7 +54,6 @@ function Pill({ label, solid = false }: { label: string; solid?: boolean }) {
 export type PlayedHeroProps = {
   dateLine: string;
   tag: string | null;
-  fallback: Href;
   result: PlayedResultLine;
   venueLine: string | null;
   whenLine: string | null;
@@ -71,7 +72,6 @@ export type PlayedHeroProps = {
 export function PlayedHero({
   dateLine,
   tag,
-  fallback,
   result,
   venueLine,
   whenLine,
@@ -94,114 +94,103 @@ export function PlayedHero({
       }}
     >
       <LightStatusBar />
-      <ScreenHeader
-        nav="back"
-        fallback={fallback}
-        actions={
-          <>
-            <HeaderIconButton
-              framed
-              icon={Share}
-              accessibilityLabel={m.game.cta.shareResult}
-              onPress={onShare}
-            />
-            {onMore ? (
-              <HeaderIconButton
-                framed
-                icon={MoreVertical}
-                accessibilityLabel={m.common.more}
-                onPress={onMore}
-              />
-            ) : null}
-          </>
-        }
-      >
-        <View style={{ gap: 16 }}>
+      <View style={{ gap: 16 }}>
+        <View style={{ gap: NAV_TO_DATE_GAP }}>
+          <ScreenHeader
+            nav="back"
+            fallback={GAMES_FALLBACK}
+            actions={
+              <>
+                <HeaderIconButton
+                  framed
+                  icon={Share}
+                  accessibilityLabel={m.game.cta.shareResult}
+                  onPress={onShare}
+                />
+                {onMore ? (
+                  <HeaderIconButton
+                    framed
+                    icon={MoreVertical}
+                    accessibilityLabel={m.common.more}
+                    onPress={onMore}
+                  />
+                ) : null}
+              </>
+            }
+          />
+          <HeroTopLine
+            left={dateLine}
+            right={
+              tag ? (
+                <Text size="eyebrow" tone="muted" mono>
+                  {tag}
+                </Text>
+              ) : null
+            }
+          />
+        </View>
+
+        {children}
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          {result.hasWinner ? (
+            <ResultMark variant="won" size={16} decorative />
+          ) : null}
+          <Text
+            weight="semibold"
+            numberOfLines={2}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {result.line}
+          </Text>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
+              borderRadius: radii.slot + 1,
+              paddingVertical: 4,
+              paddingHorizontal: 7,
+              borderWidth: hairline,
+              borderColor: colors.dimrule,
             }}
           >
-            <Text
-              size="meta"
-              tone="muted"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
-            >
-              {dateLine}
+            <Text size="eyebrow" tone="muted" mono>
+              {m.mobilePlayer.played.confirmed}
             </Text>
-            {tag ? (
-              <Text size="eyebrow" tone="muted" mono>
-                {tag}
-              </Text>
-            ) : null}
           </View>
-
-          {children}
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {result.hasWinner ? (
-              <ResultMark variant="won" size={16} decorative />
-            ) : null}
-            <Text
-              weight="semibold"
-              numberOfLines={2}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {result.line}
-            </Text>
-            <View
-              style={{
-                borderRadius: radii.slot + 1,
-                paddingVertical: 4,
-                paddingHorizontal: 7,
-                borderWidth: hairline,
-                borderColor: colors.dimrule,
-              }}
-            >
-              <Text size="eyebrow" tone="muted" mono>
-                {m.mobilePlayer.played.confirmed}
-              </Text>
-            </View>
-          </View>
-
-          {venueLine || whenLine ? (
-            <View style={{ marginTop: 6 }}>
-              {venueLine ? <Text size="lead">{venueLine}</Text> : null}
-              {whenLine ? (
-                <Text size="meta" tone="muted">
-                  {whenLine}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          {you ? (
-            <View style={{ gap: 16, marginTop: 6 }}>
-              <Hairline />
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-              >
-                {avatar ? (
-                  <Avatar name={avatar.name} uri={avatar.image} size="lg" />
-                ) : null}
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text weight="semibold" numberOfLines={1}>
-                    {you.line}
-                  </Text>
-                  <Text size="meta" tone="muted" numberOfLines={2}>
-                    {you.ratingLine}
-                  </Text>
-                </View>
-                <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
-              </View>
-            </View>
-          ) : null}
         </View>
-      </ScreenHeader>
+
+        {venueLine || whenLine ? (
+          <View style={{ marginTop: 6 }}>
+            {venueLine ? <Text size="lead">{venueLine}</Text> : null}
+            {whenLine ? (
+              <Text size="meta" tone="muted">
+                {whenLine}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {you ? (
+          <View style={{ gap: 16, marginTop: 6 }}>
+            <Hairline />
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+            >
+              {avatar ? (
+                <Avatar name={avatar.name} uri={avatar.image} size="lg" />
+              ) : null}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text weight="semibold" numberOfLines={1}>
+                  {you.line}
+                </Text>
+                <Text size="meta" tone="muted" numberOfLines={2}>
+                  {you.ratingLine}
+                </Text>
+              </View>
+              <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
+            </View>
+          </View>
+        ) : null}
+      </View>
     </Surface>
   );
 }

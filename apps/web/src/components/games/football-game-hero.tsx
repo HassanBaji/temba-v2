@@ -3,6 +3,8 @@
 import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
+import { HeroNavRow } from "~/components/games/hero-nav-row";
+import { HeroTopLine } from "~/components/games/hero-top-line";
 import { Surface } from "~/components/ui/surface";
 import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
@@ -12,16 +14,19 @@ const HERO_BLEED =
   "-mx-4 px-4 py-[22px] min-[430px]:-mx-5 min-[430px]:px-5 md:mx-0 md:rounded-xl md:p-[22px]";
 
 /**
- * The head of a football Game: status, kick-off time, the day and pitch,
- * then whatever the Game shows next (the pool or the two teams).
+ * The head of a football Game: back and the actions, status, kick-off time,
+ * the day and pitch, then whatever the Game shows next (the pool or the two
+ * teams).
  */
 export function FootballGameHeroCard({
   tone,
   lines,
+  actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const m = useMessages();
@@ -35,13 +40,17 @@ export function FootballGameHeroCard({
         tone === "paper" && "border-rule border-y md:border",
       )}
     >
-      <div
-        className={`${muted} text-meta flex items-start justify-between gap-3`}
-      >
-        <p className="min-w-0 truncate">{lines.status}</p>
-        {lines.sizeTag ? (
-          <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
-        ) : null}
+      <HeroNavRow tone={tone} actions={actions} />
+      <div className="mt-6">
+        <HeroTopLine
+          tone={tone}
+          left={lines.status}
+          right={
+            lines.sizeTag ? (
+              <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
+            ) : null
+          }
+        />
       </div>
       {lines.time ? (
         <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2">

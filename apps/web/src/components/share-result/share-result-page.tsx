@@ -6,11 +6,15 @@ import {
 } from "@repo/domain/game-result-share";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import type { Messages } from "@repo/i18n/messages";
 import { toPng } from "html-to-image";
 import {
+  Image as ImageIcon,
   ImageDown,
   Link as LinkIcon,
-  MessageSquare,
+  Maximize2,
+  MessageCircle,
+  Minimize2,
   Share,
 } from "lucide-react";
 import Link from "next/link";
@@ -20,13 +24,15 @@ import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { shareLinkWithFeedback, shareOrCopyLink } from "~/lib/share-link";
-import { cn } from "~/lib/utils";
+import {
+  copyLinkFailedMessage,
+  copyTextWhenReady,
+  shareOrCopyLink,
+} from "~/lib/share-link";
 import { api } from "~/trpc/react";
 
 import {
@@ -35,11 +41,37 @@ import {
   STORY_HEIGHT,
   STORY_WIDTH,
 } from "./scaled-canvas";
+import { ActionTile, ActionTileRow } from "./share-actions";
+import { PhotoFrame, PreviewMeta, PreviewWell } from "./share-preview";
 import { Sticker } from "./stickers";
 import { StoryCard } from "./story-cards";
 
 type ShareMode = "story" | "sticker";
-type ShareAction = "save" | "share_image" | "share_link" | "share_message";
+type ShareAction = "save" | "share_image" | "copy_link" | "share_message";
+
+type ShareModeCopy = {
+  /** The mono line under the preview: what the file is. */
+  format: string;
+  share: string;
+  save: string;
+  /** Shown under the preview when the saved file differs from what is on screen. */
+  note: string | null;
+};
+
+function shareModeCopy(
+  mode: ShareMode,
+  m: Messages["webUi"]["shareResult"],
+  save: string,
+): ShareModeCopy {
+  return mode === "story"
+    ? { format: m.storyFormat, share: m.shareImage, save, note: null }
+    : {
+        format: m.stickerFormat,
+        share: m.shareSticker,
+        save: m.savePng,
+        note: m.stickerNote,
+      };
+}
 
 function downloadDataUrl(dataUrl: string, name: string) {
   const anchor = document.createElement("a");
@@ -53,13 +85,50 @@ async function fileFromDataUrl(dataUrl: string, name: string) {
   return new File([blob], name, { type: "image/png" });
 }
 
+/** A photo the viewer picked, held as an object URL for as long as it shows. */
+function usePickedPhoto() {
+  const [url, setUrl] = React.useState<string | null>(null);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [url]);
+
+  const input = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="image/*"
+      className="sr-only"
+      tabIndex={-1}
+      aria-hidden="true"
+      onChange={(event) => {
+        const file = event.target.files?.[0];
+        if (file) {
+          setUrl(URL.createObjectURL(file));
+        }
+        event.target.value = "";
+      }}
+    />
+  );
+
+  return { url, input, pick: () => inputRef.current?.click() };
+}
+
 export function ShareResultPage({ gameId }: { gameId: string }) {
   const locale = useLocale();
-  const m = useMessages().webUi.shareResult;
+  const messages = useMessages();
+  const m = messages.webUi.shareResult;
   const [mode, setMode] = React.useState<ShareMode>("story");
+  const [full, setFull] = React.useState(false);
   const [pending, setPending] = React.useState<ShareAction | null>(null);
   const storyRef = React.useRef<HTMLDivElement | null>(null);
   const stickerRef = React.useRef<HTMLDivElement | null>(null);
+  const photo = usePickedPhoto();
 
   const game = api.games.byId.useQuery({ id: gameId });
   const football = game.data != null && isFootballRosterGame(game.data);
@@ -82,9 +151,9 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   );
   const url = link.data?.url ?? null;
   const gameHref = `/dashboard/games/${gameId}`;
-  const backAction = (
-    <Button variant="outline" asChild>
-      <Link href={gameHref}>{m.backToGame}</Link>
+  const doneAction = (
+    <Button variant="ghost" className="font-semibold" asChild>
+      <Link href={gameHref}>{messages.common.done}</Link>
     </Button>
   );
 
@@ -93,7 +162,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
   if (game.error || (football && board.error)) {
     return (
-      <DashboardShell title={m.title} action={backAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <ErrorState
           title={m.loadError}
           message={game.error?.message ?? board.error?.message}
@@ -107,14 +176,14 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
   if (!game.data || (football && !board.data)) {
     return (
-      <DashboardShell title={m.title} action={backAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <GameDetailsSkeleton />
       </DashboardShell>
     );
   }
   if (!card) {
     return (
-      <DashboardShell title={m.title} action={backAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <ErrorState
           title={m.noResultTitle}
           message={m.noResultMessage}
@@ -128,6 +197,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     );
   }
 
+  const copy = shareModeCopy(mode, m, messages.common.save);
   const fileName = `temba-result-${mode}.png`;
 
   async function capture() {
@@ -180,13 +250,18 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
       downloadDataUrl(URL.createObjectURL(file), fileName);
     });
 
-  const shareLink = () =>
-    run("share_link", async () => {
+  const copyLink = () =>
+    run("copy_link", async () => {
       if (!url) {
         toast.error(m.linkLoading);
         return;
       }
-      await shareLinkWithFeedback({ text: url, url }, m.linkCopied, locale);
+      try {
+        await copyTextWhenReady(Promise.resolve(url));
+        toast.success(m.linkCopied);
+      } catch {
+        toast.error(copyLinkFailedMessage(locale));
+      }
     });
 
   const shareMessage = () =>
@@ -199,25 +274,26 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
       }
     });
 
+  const sticker = (
+    <ScaledCanvas canvasRef={stickerRef} canvasWidth={STICKER_WIDTH}>
+      <Sticker card={card} />
+    </ScaledCanvas>
+  );
+
   return (
-    <DashboardShell title={m.title} action={backAction} isSubPage>
-      <div className="mx-auto max-w-[520px] space-y-6">
+    <DashboardShell title={m.title} action={doneAction} isSubPage>
+      <div className="mx-auto max-w-[520px] space-y-5">
         <Tabs
           value={mode}
           onValueChange={(value) => setMode(value as ShareMode)}
         >
-          <TabsList variant="segmented" aria-label={m.whatToShare}>
+          <TabsList variant="soft" aria-label={m.whatToShare}>
             <TabsTrigger value="story">{m.story}</TabsTrigger>
             <TabsTrigger value="sticker">{m.sticker}</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="space-y-2.5">
-          <div
-            className={cn(
-              "overflow-hidden rounded-xl",
-              mode === "sticker" ? "bg-wash p-4" : "bg-ink",
-            )}
-          >
+          <PreviewWell full={full}>
             {mode === "story" ? (
               <ScaledCanvas
                 canvasRef={storyRef}
@@ -227,49 +303,65 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
                 <StoryCard card={card} />
               </ScaledCanvas>
             ) : (
-              <ScaledCanvas canvasRef={stickerRef} canvasWidth={STICKER_WIDTH}>
-                <Sticker card={card} />
-              </ScaledCanvas>
+              <PhotoFrame photoUrl={photo.url}>{sticker}</PhotoFrame>
             )}
-          </div>
-          <p className="text-muted-foreground text-meta">
-            {mode === "story" ? m.storyHint : m.stickerHint}
-          </p>
-        </div>
-        <SheetMenu>
-          <SheetMenuRow
-            label={mode === "story" ? m.saveImage : m.saveSticker}
-            hint={m.saveHint}
-            icon={ImageDown}
-            pending={pending === "save"}
-            disabled={pending != null}
-            onSelect={saveImage}
+          </PreviewWell>
+          <PreviewMeta
+            format={copy.format}
+            action={
+              mode === "story"
+                ? {
+                    label: full ? m.fitToScreen : m.fullSize,
+                    icon: full ? Minimize2 : Maximize2,
+                    onClick: () => setFull((current) => !current),
+                  }
+                : {
+                    label: photo.url ? m.changePhoto : m.tryOnPhoto,
+                    icon: ImageIcon,
+                    onClick: photo.pick,
+                  }
+            }
           />
-          <SheetMenuRow
-            label={m.shareImage}
-            hint={m.shareImageHint}
-            icon={Share}
+          {photo.input}
+          {copy.note ? (
+            <p className="text-muted-foreground text-meta">{copy.note}</p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          <Button
+            size="lg"
+            className="w-full"
             pending={pending === "share_image"}
             disabled={pending != null}
-            onSelect={shareImage}
-          />
-          <SheetMenuRow
-            label={m.shareLink}
-            hint={m.shareLinkHint}
-            icon={LinkIcon}
-            pending={pending === "share_link"}
-            disabled={pending != null || !url}
-            onSelect={shareLink}
-          />
-          <SheetMenuRow
-            label={m.shareMessage}
-            hint={m.shareMessageHint}
-            icon={MessageSquare}
-            pending={pending === "share_message"}
-            disabled={pending != null}
-            onSelect={shareMessage}
-          />
-        </SheetMenu>
+            onClick={shareImage}
+          >
+            <Share aria-hidden="true" />
+            {copy.share}
+          </Button>
+          <ActionTileRow>
+            <ActionTile
+              label={copy.save}
+              icon={ImageDown}
+              pending={pending === "save"}
+              disabled={pending != null}
+              onClick={saveImage}
+            />
+            <ActionTile
+              label={m.copyLink}
+              icon={LinkIcon}
+              pending={pending === "copy_link"}
+              disabled={pending != null || !url}
+              onClick={copyLink}
+            />
+            <ActionTile
+              label={m.message}
+              icon={MessageCircle}
+              pending={pending === "share_message"}
+              disabled={pending != null}
+              onClick={shareMessage}
+            />
+          </ActionTileRow>
+        </div>
       </div>
     </DashboardShell>
   );

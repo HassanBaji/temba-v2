@@ -55,7 +55,7 @@ import { TeamColumns } from "../football/team-columns";
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
-import { InviteEntry } from "../invites/invite-entry";
+import { InviteIconEntry } from "../invites/invite-entry";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
 import { PlayedGameView } from "../played-game/played-game-view";
@@ -570,7 +570,6 @@ export function FootballGameDetails({
       hero={{
         dateLine: playedModel.dateLine,
         tag: playedModel.tag,
-        fallback: "/games",
         result: playedModel.result,
         venueLine: playedModel.venueLine,
         whenLine: playedModel.whenLine,
@@ -606,10 +605,9 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
-          fallback="/games"
           actions={
             inviteAccess.canManage ? (
-              <InviteEntry onPress={() => setInviteOpen(true)} />
+              <InviteIconEntry onPress={() => setInviteOpen(true)} />
             ) : null
           }
         >

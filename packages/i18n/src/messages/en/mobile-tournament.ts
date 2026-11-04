@@ -36,9 +36,8 @@ export const mobileTournament = {
     starts: (day: string) => `Starts ${day}`,
   },
   history: {
-    accessibleName: (outcome: string, meta: string) => `${outcome}, ${meta}`,
-    inSets: (won: number, lost: number) => `${won}–${lost} in sets`,
-    noScoreYet: "No score yet",
+    accessibleName: (outcome: string, scoreLine: string, meta: string) =>
+      `${outcome}, ${scoreLine}, ${meta}`,
   },
   footballCard: {
     youPlayed: "You played",

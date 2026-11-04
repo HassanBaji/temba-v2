@@ -1,6 +1,5 @@
 import { spacing } from "@repo/design-tokens";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
-import type { Href } from "expo-router";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
@@ -12,9 +11,12 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { HeroTopLine } from "./hero-top-line";
 
 const HERO_PADDING_BOTTOM = 22;
 const SEAT_HEIGHT = 24;
+const NAV_TO_STATUS_GAP = 24;
+const GAMES_FALLBACK = "/games";
 
 function LightStatusBar() {
   useLightStatusBar();
@@ -60,13 +62,11 @@ export function SeatBar({ seats, filled }: { seats: number; filled: number }) {
 export function FootballHero({
   tone,
   lines,
-  fallback,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
-  fallback: Href;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -83,30 +83,24 @@ export function FootballHero({
       }}
     >
       {tone === "ink" ? <LightStatusBar /> : null}
-      <ScreenHeader nav="back" fallback={fallback} actions={actions}>
-        <View style={{ gap: spacing.compact }}>
+      <View style={{ gap: spacing.compact }}>
+        <View style={{ gap: NAV_TO_STATUS_GAP }}>
+          <ScreenHeader
+            nav="back"
+            fallback={GAMES_FALLBACK}
+            actions={actions}
+          />
           <View style={{ gap: 6 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <Text
-                size="meta"
-                tone="muted"
-                numberOfLines={1}
-                style={{ flexShrink: 1 }}
-              >
-                {lines.status}
-              </Text>
-              {lines.sizeTag ? (
-                <Text size="eyebrow" tone="muted" mono>
-                  {lines.sizeTag}
-                </Text>
-              ) : null}
-            </View>
+            <HeroTopLine
+              left={lines.status}
+              right={
+                lines.sizeTag ? (
+                  <Text size="eyebrow" tone="muted" mono>
+                    {lines.sizeTag}
+                  </Text>
+                ) : null
+              }
+            />
             {lines.time ? (
               <View
                 accessible
@@ -144,9 +138,9 @@ export function FootballHero({
               ) : null}
             </View>
           </View>
-          {children}
         </View>
-      </ScreenHeader>
+        {children}
+      </View>
     </Surface>
   );
 }

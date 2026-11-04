@@ -15,7 +15,11 @@ import {
 } from "@repo/domain/played-game";
 import * as React from "react";
 
-import { ActionMenu, ActionMenuItem } from "~/components/common/action-menu";
+import {
+  ACTION_MENU_INK_BOXED_TRIGGER,
+  ActionMenu,
+  ActionMenuItem,
+} from "~/components/common/action-menu";
 import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { PlayedGameView } from "./played-game-view";
@@ -92,7 +96,7 @@ export function PlayedFriendlyGame({
     showAdd || organizerActions.length > 0 ? (
       <ActionMenu
         label={m.webGame.overflow.gameActions}
-        triggerClassName="text-paper hover:bg-raised hover:text-paper"
+        triggerClassName={ACTION_MENU_INK_BOXED_TRIGGER}
       >
         {showAdd ? (
           <ActionMenuItem onSelect={onAddPlayer}>

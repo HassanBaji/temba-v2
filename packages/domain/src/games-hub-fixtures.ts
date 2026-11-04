@@ -111,6 +111,7 @@ function historyRow(args: {
     id: `game-${args.matchId}`,
     name: null,
     format: "friendly_game",
+    sport: "padel",
     venue: { name: "Padelhuset Bromma" },
     displayTime: new Date(args.now.getTime() - args.daysAgo * 24 * HOUR_MS),
     matchId: args.matchId,

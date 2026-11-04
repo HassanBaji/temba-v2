@@ -21,6 +21,7 @@ const member = (id: string, name: string, isViewer = false) => ({
 function row(overrides: Partial<HistoryRowInput> = {}): HistoryRowInput {
   return {
     name: null,
+    sport: "padel",
     groupName: " Tuesday ",
     venue: { name: "Padelhuset" },
     displayTime: new Date("2020-01-01T10:00:00Z"),
@@ -48,13 +49,6 @@ describe("matchHistoryCardModel unrated mark", () => {
     const model = matchHistoryCardModel(row({ rated: false }), "en");
     assert.equal(model.unrated, true);
     assert.ok(model.meta.endsWith(" · Unrated"));
-  });
-
-  it("marks an unrated Match in Arabic", () => {
-    const model = matchHistoryCardModel(row({ rated: false }), "ar");
-    assert.ok(model.meta.endsWith(" · غير مصنّفة"));
-    assert.equal(model.teams[0]!.label, "أنت وAda L");
-    assert.equal(model.teams[0]!.note, "فريقك، الفائزون");
   });
 });
 
@@ -111,35 +105,85 @@ describe("nextHistoryCursor", () => {
 });
 
 describe("matchHistoryCardModel", () => {
-  it("fills the winners and leads with the viewer's team on a win", () => {
+  it("leads with the viewer's team on a win and mutes the losers", () => {
     const model = matchHistoryCardModel(row(), "en");
     assert.deepEqual(
-      model.teams.map((team) => [team.side, team.filled, team.outlined]),
+      model.teams.map((team) => [team.side, team.lost, team.note]),
       [
-        ["mine", true, false],
-        ["theirs", false, false],
+        ["mine", false, "Your team, won"],
+        ["theirs", true, "Lost"],
       ],
     );
-    assert.equal(model.teams[0]!.label, "You and Ada L");
+    assert.equal(model.teams[0]!.label, "You, Ada L");
     assert.equal(model.groupName, "Tuesday");
-    assert.deepEqual(model.tally, { won: 1, lost: 1 });
+    assert.equal(model.sport, "Padel");
+    assert.equal(model.scoreLine, "1–1 in sets");
   });
 
-  it("puts the winning opponents first on a loss", () => {
+  it("keeps the viewer's team first on a loss", () => {
     const model = matchHistoryCardModel(row({ outcome: "lost" }), "en");
     assert.deepEqual(
-      model.teams.map((team) => [team.side, team.filled, team.outlined]),
+      model.teams.map((team) => [team.side, team.lost, team.note]),
       [
-        ["theirs", true, false],
-        ["mine", false, true],
+        ["mine", true, "Your team"],
+        ["theirs", false, "Won"],
       ],
     );
-    assert.equal(model.teams[0]!.note, "Winners");
+  });
+
+  it("mutes neither side on a draw", () => {
+    const model = matchHistoryCardModel(row({ outcome: "draw" }), "en");
+    assert.deepEqual(
+      model.teams.map((team) => team.lost),
+      [false, false],
+    );
+    assert.equal(model.teams[1]!.note, "Drew");
+  });
+
+  it("mutes each lost set on its own side", () => {
+    const model = matchHistoryCardModel(row(), "en");
+    assert.deepEqual(model.teams[0]!.scores, [
+      { games: 6, lostSet: false },
+      { games: 4, lostSet: true },
+    ]);
+  });
+
+  it("reads one set as its own score", () => {
+    const model = matchHistoryCardModel(
+      row({
+        sport: "football",
+        scoredSets: [{ slot1GamesWon: 12, slot2GamesWon: 9 }],
+      }),
+      "en",
+    );
+    assert.equal(model.scoreLine, "12–9");
+    assert.equal(model.sport, "Football");
+  });
+
+  it("stacks three avatars and counts the rest in the label", () => {
+    const model = matchHistoryCardModel(
+      row({
+        slot1Members: [
+          member("a", "Ada Lovelace"),
+          member("v", "Vi Viewer", true),
+          member("b", "Bo Fareed"),
+          member("c", "Cy Dee"),
+          member("d", "Di Eve"),
+        ],
+      }),
+      "en",
+    );
+    assert.deepEqual(
+      model.teams[0]!.avatars.map((entry) => entry.id),
+      ["v", "a", "b"],
+    );
+    assert.equal(model.teams[0]!.label, "You, Ada L +3");
   });
 
   it("has no scores until a set is scored", () => {
     const model = matchHistoryCardModel(row({ scoredSets: [] }), "en");
     assert.equal(model.scored, false);
+    assert.equal(model.scoreLine, "No score yet");
     assert.equal(model.teams[0]!.scores, null);
   });
 
@@ -149,10 +193,22 @@ describe("matchHistoryCardModel", () => {
         ", Padelhuset",
       ),
     );
-    assert.ok(
-      matchHistoryCardModel(row({ name: "Cup" }), "en").meta.endsWith(
-        ", Padelhuset · Cup",
-      ),
+    const named = matchHistoryCardModel(row({ name: "Cup" }), "en");
+    assert.ok(named.meta.endsWith(", Padelhuset · Cup"));
+    assert.equal(named.place, "Padelhuset · Cup");
+  });
+
+  it("marks an unrated Match on the place line", () => {
+    assert.equal(
+      matchHistoryCardModel(row({ rated: false }), "en").place,
+      "Padelhuset · Unrated",
     );
+  });
+
+  it("reads in Arabic", () => {
+    const model = matchHistoryCardModel(row({ rated: false }), "ar");
+    assert.ok(model.place.endsWith(" · غير مصنّفة"));
+    assert.equal(model.teams[0]!.note, "فريقك، فاز");
+    assert.equal(model.teams[1]!.note, "خسر");
   });
 });

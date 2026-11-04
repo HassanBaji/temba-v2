@@ -1,5 +1,8 @@
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
+import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
+import { courtFigures } from "@repo/domain/friendly-game-court";
+import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
@@ -29,23 +32,27 @@ import {
   tournamentLeaveOrKickConfirmCopy,
   tournamentPartnerVacantSideRaceMessage,
 } from "@repo/domain/tournament-join";
+import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteAccess } from "@repo/domain/invites";
+import type { PlayedRow } from "@repo/domain/played-game";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
-import { View } from "react-native";
+import { Linking, Platform, View } from "react-native";
 
+import { directionsUrl } from "../booking/booking-model";
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
+import { PlayedMenuSheet } from "../played-game/played-menu-sheet";
+import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -66,8 +73,10 @@ import {
 } from "./details-content";
 import { FootballGameDetails } from "./football-details-screen";
 import { GameHero } from "./game-hero";
+import { gameMenuItems } from "./game-menu";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
+import { useShareGame } from "./use-share-game";
 import {
   gameTitle,
   isFriendlyGameDetails,
@@ -154,6 +163,10 @@ export function GameDetailsScreen({
     name: string;
   } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayedRow | null>(null);
+  const [addSeat, setAddSeat] = useState<FriendlyGameJoinSeat | null>(null);
+  const shareGame = useShareGame(gameId);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
@@ -445,8 +458,6 @@ export function GameDetailsScreen({
     });
   }
 
-  const header = <ScreenHeader nav="back" fallback="/games" />;
-
   const inviteAccess = data
     ? gameInviteAccess({
         friendlyChrome: friendly,
@@ -458,94 +469,97 @@ export function GameDetailsScreen({
         partnerRequired: isPartnerRequiredGame(data),
       })
     : null;
+  const shareContext = data
+    ? {
+        customName: gameCustomName(data),
+        format: data.format,
+        registrationMode: data.registrationMode,
+        venueName: data.venue?.name ?? null,
+        courtName: data.matches[0]?.courtName ?? null,
+        windowStart: data.windowStart,
+        windowEnd: data.windowEnd,
+        sides: data.sides,
+      }
+    : null;
   const inviteEntry = inviteAccess?.canManage ? (
     <InviteEntry onPress={() => setInviteOpen(true)} />
   ) : null;
 
-  const sheets = data ? (
-    <>
-      {inviteAccess?.canManage ? (
-        <InviteDoorSheet
-          visible={inviteOpen}
-          onClose={() => setInviteOpen(false)}
-          door={{
-            kind: "game",
-            gameId,
-            canLookup: inviteAccess.canSendLookup,
-            canLink: true,
-            share: {
-              customName: gameCustomName(data),
-              format: data.format,
-              registrationMode: data.registrationMode,
-              venueName: data.venue?.name ?? null,
-              courtName: data.matches[0]?.courtName ?? null,
-              windowStart: data.windowStart,
-              windowEnd: data.windowEnd,
-              sides: data.sides,
-            },
+  const sheets =
+    data && shareContext ? (
+      <>
+        {inviteAccess?.canManage ? (
+          <InviteDoorSheet
+            visible={inviteOpen}
+            onClose={() => setInviteOpen(false)}
+            door={{
+              kind: "game",
+              gameId,
+              canLookup: inviteAccess.canSendLookup,
+              canLink: true,
+              share: shareContext,
+            }}
+          />
+        ) : null}
+        <JoinSheet
+          visible={joinOpen}
+          initialSeat={initialSeat}
+          onClose={() => setJoinOpen(false)}
+          game={{
+            title: gameTitle(data.name, locale),
+            sides: data.sides,
+            pricePerPlayerFils: data.pricePerPlayerFils,
+            windowStart: data.windowStart,
+            venueName: data.venue?.name ?? null,
+            isOrganizer: data.isOrganizer,
+            levelMinTenths: data.levelMinTenths,
+            levelMaxTenths: data.levelMaxTenths,
+            offersPartner,
+            partnerRequired: isPartnerRequiredGame(data),
+          }}
+          preferredPosition={onboarding.data?.preferredPosition ?? null}
+          seatPending={registerSeat.isPending}
+          partnerPending={registerWithPartner.isPending}
+          error={joinError}
+          suggestions={slotOf(suggestions)}
+          searchResults={slotOf(search)}
+          query={partnerQuery}
+          onQueryChange={setPartnerQuery}
+          onJoinSeat={(seat) => {
+            setJoinError(null);
+            registerSeat.mutate({
+              gameId,
+              sideIndex: seat.sideIndex,
+              position: seat.position,
+            });
+          }}
+          onRegisterWithPartner={({ partner, sideIndex, position }) => {
+            setJoinError(null);
+            registerWithPartner.mutate({
+              gameId,
+              partnerUserId: partner.id,
+              sideIndex,
+              position,
+            });
           }}
         />
-      ) : null}
-      <JoinSheet
-        visible={joinOpen}
-        initialSeat={initialSeat}
-        onClose={() => setJoinOpen(false)}
-        game={{
-          title: gameTitle(data.name, locale),
-          sides: data.sides,
-          pricePerPlayerFils: data.pricePerPlayerFils,
-          windowStart: data.windowStart,
-          venueName: data.venue?.name ?? null,
-          isOrganizer: data.isOrganizer,
-          levelMinTenths: data.levelMinTenths,
-          levelMaxTenths: data.levelMaxTenths,
-          offersPartner,
-          partnerRequired: isPartnerRequiredGame(data),
-        }}
-        preferredPosition={onboarding.data?.preferredPosition ?? null}
-        seatPending={registerSeat.isPending}
-        partnerPending={registerWithPartner.isPending}
-        error={joinError}
-        suggestions={slotOf(suggestions)}
-        searchResults={slotOf(search)}
-        query={partnerQuery}
-        onQueryChange={setPartnerQuery}
-        onJoinSeat={(seat) => {
-          setJoinError(null);
-          registerSeat.mutate({
-            gameId,
-            sideIndex: seat.sideIndex,
-            position: seat.position,
-          });
-        }}
-        onRegisterWithPartner={({ partner, sideIndex, position }) => {
-          setJoinError(null);
-          registerWithPartner.mutate({
-            gameId,
-            partnerUserId: partner.id,
-            sideIndex,
-            position,
-          });
-        }}
-      />
-      <ConfirmSheet
-        request={confirm}
-        pending={
-          leaveGame.isPending ||
-          leaveWaitlist.isPending ||
-          completeMatch.isPending ||
-          organizer.confirmPending ||
-          tournamentOrganizer.confirmPending
-        }
-        onClose={() => setConfirm(null)}
-      />
-    </>
-  ) : null;
+        <ConfirmSheet
+          request={confirm}
+          pending={
+            leaveGame.isPending ||
+            leaveWaitlist.isPending ||
+            completeMatch.isPending ||
+            organizer.confirmPending ||
+            tournamentOrganizer.confirmPending
+          }
+          onClose={() => setConfirm(null)}
+        />
+      </>
+    ) : null;
 
   if (isNotFoundError(game.error)) {
     return (
       <Screen>
-        {header}
         <Notice
           title={copy.notFound.title}
           description={copy.notFound.description}
@@ -557,7 +571,6 @@ export function GameDetailsScreen({
   if (game.error && !data) {
     return (
       <Screen>
-        {header}
         <Notice
           title={copy.loadFailed}
           description={game.error.message}
@@ -570,7 +583,6 @@ export function GameDetailsScreen({
   if (!data) {
     return (
       <Screen>
-        {header}
         <LoadingSkeleton />
       </Screen>
     );
@@ -598,7 +610,6 @@ export function GameDetailsScreen({
     return (
       <View style={{ flex: 1 }}>
         <Screen refreshing={refreshing} onRefresh={onRefresh}>
-          {header}
           {inviteEntry}
           <TournamentContent
             game={details}
@@ -659,7 +670,6 @@ export function GameDetailsScreen({
   if (!friendly) {
     return (
       <Screen refreshing={refreshing} onRefresh={onRefresh}>
-        {header}
         <Notice
           title={unsupportedFormatCopy(locale).title}
           description={unsupportedFormatCopy(locale).description}
@@ -669,20 +679,47 @@ export function GameDetailsScreen({
   }
 
   const details: FriendlyGameDetails = data;
+  const canAddAtSeat = organizer.plan?.canAddPlayer ?? false;
+  const canTapPlayers = Boolean(onOpenPlayer) || organizer.plan != null;
   const handlers: DetailsHandlers = {
     movePending: moveSeat.isPending,
     scorePending: scoreSet.isPending,
     confirmPending: confirmResult.isPending,
     levelRequestPending: requestLevel.isPending,
-    footerPendingKind: leaveGame.isPending
-      ? "leave_game"
-      : organizer.footerPendingKind,
     onMove: (sideIndex, position) =>
       moveSeat.mutate({ gameId, sideIndex, position }),
+    onJoinSeat: (seat) => openJoin(seat),
+    onAddPlayerAt: canAddAtSeat
+      ? (seat) => {
+          setAddSeat(seat);
+          organizer.handlers.onAddPlayer();
+        }
+      : undefined,
+    onInvite: inviteAccess?.canManage ? () => setInviteOpen(true) : undefined,
+    onPressPlayer: canTapPlayers ? setSelectedPlayer : undefined,
     onSaveSets: (payloads) => void saveSets(payloads),
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
+  };
+
+  const hero = gameHeroModel(details, now, locale);
+  const plan = friendlyGameDetailsPlan(details);
+  const playedMatch = details.phase === "final" ? plan.firstMatch : undefined;
+  const menuItems = gameMenuItems({
+    plan: organizer.plan,
+    handlers: organizer.plan ? organizer.handlers : null,
+    footerActions:
+      details.phase && details.phase !== "cancelled"
+        ? friendlyGameFooterActions({
+            phase: details.phase,
+            isOrganizer: details.isOrganizer,
+            canLeaveGame: plan.canLeaveGame,
+            canReportWrongScore: details.canReportWrongScore,
+            playerCount: occupiedFriendlyPositions(details.sides),
+            locale,
+          })
+        : [],
     onFooterAction: (kind) => {
       if (kind === "leave_game") {
         askLeaveGame();
@@ -690,15 +727,30 @@ export function GameDetailsScreen({
       }
       organizer.onFooterAction(kind);
     },
-    onOpenPlayer,
-    onRenameUnclaimed: details.isOrganizer ? setRenaming : undefined,
+    messages: m,
+    locale,
+  });
+  const venue = data.venue;
+  const placeLine = [plan.firstMatch?.courtName, venue?.city]
+    .filter(Boolean)
+    .join(" · ");
+  const heroPlace = {
+    name: venue?.name ?? null,
+    line: placeLine || null,
+    onDirections: venue
+      ? () =>
+          void Linking.openURL(
+            directionsUrl({ ...venue, city: venue.city ?? "" }, Platform.OS),
+          )
+      : null,
   };
-
-  const hero = gameHeroModel(details, now, locale);
-  const playedMatch =
-    details.phase === "final"
-      ? friendlyGameDetailsPlan(details).firstMatch
-      : undefined;
+  const heroFigures = courtFigures({
+    seatedCount: occupiedFriendlyPositions(details.sides),
+    seatCount: details.sides.length * 2,
+    durationInMinutes: plan.firstMatch?.durationInMinutes ?? null,
+    pricePerPlayerFils: details.pricePerPlayerFils,
+    locale,
+  });
 
   return (
     <View style={{ flex: 1 }}>
@@ -723,18 +775,20 @@ export function GameDetailsScreen({
               hero ? (
                 <GameHero
                   model={hero}
-                  fallback="/games"
-                  actions={inviteEntry}
+                  place={heroPlace}
+                  figures={heroFigures}
+                  onShare={
+                    inviteAccess?.canManage && shareContext
+                      ? () => void shareGame(shareContext)
+                      : undefined
+                  }
+                  onMore={
+                    menuItems.length > 0 ? () => setMenuOpen(true) : undefined
+                  }
                 />
               ) : undefined
             }
           >
-            {hero ? null : (
-              <>
-                {header}
-                {inviteEntry}
-              </>
-            )}
             <GameDetailsContent
               game={details}
               handlers={handlers}
@@ -764,14 +818,54 @@ export function GameDetailsScreen({
           <OrganizerSheets {...organizer.sheets} />
           <AddPlayerSheet
             visible={organizer.addPlayer.open}
-            onClose={organizer.addPlayer.onClose}
+            onClose={() => {
+              setAddSeat(null);
+              organizer.addPlayer.onClose();
+            }}
             gameId={gameId}
             placement="seat"
             sides={details.sides}
+            initialSeat={addSeat}
             onAdded={refresh}
           />
         </>
       ) : null}
+      {playedMatch ? null : (
+        <>
+          <PlayedMenuSheet
+            visible={menuOpen}
+            title={gameTitle(details.name, locale)}
+            items={menuItems}
+            onClose={() => setMenuOpen(false)}
+          />
+          <PlayedPlayerSheet
+            player={selectedPlayer}
+            canOpenProfile={Boolean(onOpenPlayer)}
+            canKick={
+              selectedPlayer != null &&
+              (organizer.plan?.kickableUserIds ?? []).includes(
+                selectedPlayer.userId,
+              )
+            }
+            canRename={
+              details.isOrganizer && Boolean(selectedPlayer?.unclaimed)
+            }
+            onClose={() => setSelectedPlayer(null)}
+            onOpenProfile={(userId) => {
+              setSelectedPlayer(null);
+              onOpenPlayer?.(userId);
+            }}
+            onKick={(userId) => {
+              setSelectedPlayer(null);
+              organizer.handlers.onKickPlayer(userId);
+            }}
+            onRename={(player) => {
+              setSelectedPlayer(null);
+              setRenaming(player);
+            }}
+          />
+        </>
+      )}
       {details.isOrganizer ? (
         <RenamePlayerSheet
           player={renaming}

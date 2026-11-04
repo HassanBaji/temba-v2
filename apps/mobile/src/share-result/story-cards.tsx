@@ -19,10 +19,11 @@ import {
 import { STORY_HEIGHT, STORY_WIDTH } from "./story-canvas";
 
 const PAD_X = 72;
-const PAD_Y = 80;
+const PAD_TOP = 180;
+const PAD_BOTTOM = 160;
 const RULE = 1;
-const MAX_SCORERS = 6;
-const MAX_LINEUP = 8;
+const MAX_SCORERS = 5;
+const MAX_LINEUP = 6;
 
 function StoryFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -32,7 +33,8 @@ function StoryFrame({ children }: { children: React.ReactNode }) {
         height: STORY_HEIGHT,
         backgroundColor: colors.ink,
         paddingHorizontal: PAD_X,
-        paddingVertical: PAD_Y,
+        paddingTop: PAD_TOP,
+        paddingBottom: PAD_BOTTOM,
         gap: 64,
       }}
     >

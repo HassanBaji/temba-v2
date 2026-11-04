@@ -174,9 +174,8 @@ export const webGame = {
     noResultsYet: "لا نتائج بعد",
   },
   history: {
-    linkLabel: (outcome: string, meta: string) => `${outcome}، ${meta}`,
-    inSets: (won: number, lost: number) => `${won}–${lost} في الأشواط`,
-    noScoreYet: "لا نتيجة بعد",
+    linkLabel: (outcome: string, score: string, meta: string) =>
+      `${outcome}، ${score}، ${meta}`,
   },
   played: {
     notOnATeam: "خارج الفرق",

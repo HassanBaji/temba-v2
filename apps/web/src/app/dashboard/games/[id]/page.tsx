@@ -7,6 +7,8 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
+  ACTION_MENU_INK_BOXED_TRIGGER,
+  ACTION_MENU_PAPER_BOXED_TRIGGER,
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
@@ -24,6 +26,7 @@ import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameOverflowMenu } from "~/components/games/friendly-game-overflow-menu";
+import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
@@ -97,10 +100,12 @@ import {
   isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
+import type { SurfaceTone } from "@repo/domain/surface-tone";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
+import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 const EMPTY_EDIT_SOURCE = {
@@ -617,7 +622,13 @@ export default function GameHomePage({
 
   if (game.isLoading) {
     return (
-      <DashboardShell title={g.title} hidePageHeader isSubPage hideNav>
+      <DashboardShell
+        title={g.title}
+        hidePageHeader
+        hideMobileTopBar
+        isSubPage
+        hideNav
+      >
         <GameDetailsSkeleton />
       </DashboardShell>
     );
@@ -718,13 +729,17 @@ export default function GameHomePage({
     onShare: shareInviteLink,
     onLeaveWaitlist: () => setLeaveWaitlistOpen(true),
   };
-  const mobileOverflow =
+  const overflow = (tone: SurfaceTone) =>
     usesFriendlyChrome && overflowItems.length > 0 ? (
-      <FriendlyGameOverflowMenu items={overflowItems} {...overflowHandlers} />
-    ) : null;
-  const desktopOverflow =
-    usesFriendlyChrome && overflowItems.length > 0 ? (
-      <FriendlyGameOverflowMenu items={overflowItems} {...overflowHandlers} />
+      <FriendlyGameOverflowMenu
+        items={overflowItems}
+        triggerClassName={
+          tone === "ink"
+            ? ACTION_MENU_INK_BOXED_TRIGGER
+            : ACTION_MENU_PAPER_BOXED_TRIGGER
+        }
+        {...overflowHandlers}
+      />
     ) : null;
   const organizerMenu = usesFriendlyChrome ? null : showMenu ||
     primaryLeave ||
@@ -813,17 +828,16 @@ export default function GameHomePage({
     <DashboardShell
       title={shellTitle}
       hidePageHeader
-      hideMobileTopBar={usesDrawnTournamentChrome}
-      action={mobileOverflow}
+      hideMobileTopBar={usesDrawnTournamentChrome || usesFriendlyChrome}
       isSubPage={true}
       hideNav={true}
     >
       <div
-        className={
-          ctaFamily.kind !== "none" && !playedMatch
-            ? "mt-6 space-y-6 max-lg:pb-20"
-            : "space-y-6"
-        }
+        className={cn(
+          "space-y-6",
+          ctaFamily.kind !== "none" && !playedMatch && "mt-6 max-lg:pb-20",
+          usesFriendlyChrome && !playedMatch && "max-md:pt-4",
+        )}
       >
         {(usesFriendlyChrome || usesDrawnTournamentChrome) &&
         data.cancelledAt ? (
@@ -926,14 +940,11 @@ export default function GameHomePage({
         ) : usesFriendlyChrome ? (
           <>
             <h1 className="sr-only">{g.friendlyGameHeading}</h1>
-            {desktopOverflow ? (
-              <div className="hidden justify-end lg:flex">
-                {desktopOverflow}
-              </div>
-            ) : null}
             {heroInput && !playedMatch ? (
-              <FriendlyGameDetailsHero {...heroInput} />
-            ) : null}
+              <FriendlyGameDetailsHero {...heroInput} actions={overflow} />
+            ) : playedMatch ? null : (
+              <HeroNavRow tone="paper" actions={overflow("paper")} />
+            )}
           </>
         ) : (
           <GameHomeHeader

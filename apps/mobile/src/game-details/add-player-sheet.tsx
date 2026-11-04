@@ -21,7 +21,7 @@ import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { TileChoices } from "../auth/onboarding-choices";
@@ -49,6 +49,7 @@ export function AddPlayerSheet({
   gameId,
   placement,
   sides,
+  initialSeat = null,
   onAdded,
 }: {
   visible: boolean;
@@ -56,6 +57,8 @@ export function AddPlayerSheet({
   gameId: string;
   placement: AddPlayerPlacement;
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
+  /** The open spot the Organizer tapped on the court. */
+  initialSeat?: FriendlyGameJoinSeat | null;
   onAdded: () => Promise<unknown>;
 }) {
   const m = useMessages();
@@ -76,6 +79,12 @@ export function AddPlayerSheet({
     useState<AddPlayerFootballPosition>(ADD_PLAYER_DEFAULT_FOOTBALL_POSITION);
   const [picked, setPicked] = useState<FriendlyGameJoinSeat | null>(null);
   const [pickedSide, setPickedSide] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setPicked(initialSeat);
+    }
+  }, [visible, initialSeat]);
 
   const isFootball = placement === "football";
   const seatChoices =

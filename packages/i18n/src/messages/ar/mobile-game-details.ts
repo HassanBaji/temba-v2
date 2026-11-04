@@ -51,6 +51,10 @@ export const mobileGameDetails = {
     timeUnset: "الوقت غير محدد",
     youAnd: (name: string) => `أنت و${name}`,
     kickoff: (time: string, trailer: string) => `${time} ${trailer}`,
+    directions: "الاتجاهات",
+    directionsTo: (venue: string) => `الاتجاهات إلى ${venue}`,
+    shareGame: "مشاركة اللعبة",
+    gameActions: "إجراءات اللعبة",
   },
   levelRequest: {
     requesting: "جارٍ الإرسال…",
@@ -63,6 +67,9 @@ export const mobileGameDetails = {
     opensProfileHint: "يفتح الملف الشخصي للاعب",
     renameFor: (name: string) => `تعديل الاسم: ${name}`,
     kickName: (name: string) => `إخراج ${name}`,
+    addPlayerTo: (side: string, position: string) =>
+      `إضافة لاعب إلى ${side} ${position}`,
+    invite: "دعوة",
   },
   addPlayer: {
     phone: "الهاتف",
@@ -112,6 +119,7 @@ export const mobileGameDetails = {
     save: "حفظ النتيجة",
     sideNames: (side: string, names: string) => `${side}: ${names}`,
     setBox: (side: string, set: string) => `${side}، ${set}`,
+    lockedLabel: (line: string) => `النتيجة. ${line}`,
   },
   join: {
     positionWord: { left: "يسار", right: "يمين" },

@@ -1,11 +1,5 @@
 import { spacing } from "@repo/design-tokens";
-import {
-  closeRegistrationAction,
-  completeMatchAction,
-  completeMatchConsequence,
-  kickAction,
-  reopenRegistrationAction,
-} from "@repo/domain/game-copy";
+import { kickAction } from "@repo/domain/game-copy";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import { Fragment } from "react";
 import { View } from "react-native";
@@ -76,6 +70,7 @@ export function PersonRow({
   );
 }
 
+/** The Organizer's queues: Level range requests, the waitlist, anyone not seated. */
 export function OrganizerCard({
   plan,
   handlers,
@@ -86,82 +81,7 @@ export function OrganizerCard({
   const m = useMessages();
   const locale = useLocale();
   const copy = m.mobileGameDetails.organizer;
-  const blocks: React.ReactNode[] = [
-    <Block key="registration">
-      <Text weight="medium">{copy.registration}</Text>
-      <View style={{ flexDirection: "row" }}>
-        <Button
-          label={
-            plan.registration === "close"
-              ? closeRegistrationAction(locale)
-              : reopenRegistrationAction(locale)
-          }
-          variant="outline"
-          pending={handlers.registrationPending}
-          onPress={handlers.onToggleRegistration}
-        />
-      </View>
-    </Block>,
-  ];
-
-  if (plan.canAddPlayer) {
-    blocks.push(
-      <Block key="add-player">
-        <View>
-          <Text weight="medium">{copy.players}</Text>
-          <Text size="meta" tone="muted">
-            {m.group.addPlayer.description}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label={m.group.addPlayer.action}
-            variant="outline"
-            onPress={handlers.onAddPlayer}
-          />
-        </View>
-      </Block>,
-    );
-  }
-
-  if (plan.court) {
-    blocks.push(
-      <Block key="court">
-        <View>
-          <Text weight="medium">{copy.court}</Text>
-          <Text size="meta" tone="muted">
-            {plan.court.courtName ?? copy.noCourt}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label={copy.changeCourt}
-            variant="outline"
-            onPress={handlers.onChooseCourt}
-          />
-        </View>
-      </Block>,
-    );
-  }
-
-  if (plan.completeMatchId) {
-    const matchId = plan.completeMatchId;
-    blocks.push(
-      <Block key="complete">
-        <Text size="meta" tone="muted">
-          {completeMatchConsequence(locale)}
-        </Text>
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            label={completeMatchAction(locale)}
-            variant="outline"
-            pending={handlers.completePending}
-            onPress={() => handlers.onComplete(matchId)}
-          />
-        </View>
-      </Block>,
-    );
-  }
+  const blocks: React.ReactNode[] = [];
 
   if (plan.showLevelRequests) {
     blocks.push(
@@ -248,6 +168,10 @@ export function OrganizerCard({
         ))}
       </Block>,
     );
+  }
+
+  if (blocks.length === 0) {
+    return null;
   }
 
   return (

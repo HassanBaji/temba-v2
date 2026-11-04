@@ -18,22 +18,28 @@ export type BottomBarHandlers = {
   onBrowse: () => void;
 };
 
+export type BottomBarLines = { title: string; subline: string | null };
+
 export function BottomBar({
   family,
   handlers,
+  lines = null,
   inset = true,
 }: {
   family: FriendlyGameCtaFamily;
   handlers: BottomBarHandlers;
+  /** Replaces the family's own title and subline. */
+  lines?: BottomBarLines | null;
   inset?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const locale = useLocale();
-  const copy = friendlyGameCtaCopy(family, locale);
+  const familyCopy = friendlyGameCtaCopy(family, locale);
 
-  if (!copy) {
+  if (!familyCopy) {
     return null;
   }
+  const copy = lines ? { ...familyCopy, ...lines } : familyCopy;
 
   const action = (() => {
     switch (family.kind) {

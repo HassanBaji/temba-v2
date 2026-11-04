@@ -2,29 +2,44 @@ import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
 } from "@repo/domain/friendly-game-details";
+import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
 import {
-  friendlyGameFooterActions,
-  type FriendlyGameFooterAction,
-} from "@repo/domain/friendly-game-actions";
+  courtPositionLabel,
+  courtSpotsLabel,
+  scoreLeadLine,
+} from "@repo/domain/friendly-game-court";
+import {
+  vacantJoinSeats,
+  type FriendlyGameJoinSeat,
+} from "@repo/domain/friendly-game-cta";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
+import {
+  friendlyGameVacantSeatAction,
+  friendlyGameVacantSeatLabel,
+} from "@repo/domain/friendly-game-players";
 import {
   friendlyGameHeroInput,
   friendlyGameHeroModel,
 } from "@repo/domain/friendly-game-hero";
-import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
+import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
+import type { PlayedRow } from "@repo/domain/played-game";
 import type { Locale } from "@repo/i18n/locale";
+import type { Messages } from "@repo/i18n/messages";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { ActionsFooter } from "./actions-footer";
 import { BookedCard } from "./booked-card";
-import { BottomBar, type BottomBarHandlers } from "./bottom-bar";
+import {
+  BottomBar,
+  type BottomBarHandlers,
+  type BottomBarLines,
+} from "./bottom-bar";
 import type { setsToSave } from "./details-model";
 import { LevelRequestCard } from "./level-request-card";
-import { LineupCard } from "./lineup-card";
+import { LineupCard, type OpenSeatAction } from "./lineup-card";
 import { OrganizerCard, type OrganizerHandlers } from "./organizer-card";
 import { RatingImpactCard, UnratedCard } from "./rating-impact-card";
 import { ScoreCard } from "./score-card";
@@ -36,20 +51,68 @@ export type DetailsHandlers = {
   scorePending: boolean;
   confirmPending: boolean;
   levelRequestPending: boolean;
-  footerPendingKind: FriendlyGameFooterAction["kind"] | null;
   onMove: (sideIndex: number, position: "left" | "right") => void;
+  onJoinSeat: (seat: FriendlyGameJoinSeat) => void;
+  onAddPlayerAt?: (seat: FriendlyGameJoinSeat) => void;
+  onInvite?: () => void;
+  onPressPlayer?: (row: PlayedRow) => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
   onRequestLevel: () => void;
-  onFooterAction: (kind: FriendlyGameFooterAction["kind"]) => void;
-  onOpenPlayer?: (userId: string) => void;
-  onRenameUnclaimed?: (player: { userId: string; name: string }) => void;
 };
 
 export type DetailsOrganizer = {
   plan: FriendlyGameOrganizerPlan;
   handlers: OrganizerHandlers;
 };
+
+function openSeatActionFor(
+  game: FriendlyGameDetails,
+  handlers: DetailsHandlers,
+  messages: Messages,
+  locale: Locale,
+) {
+  const action = friendlyGameVacantSeatAction({
+    cancelled: game.cancelledAt != null,
+    canMove: game.canMove,
+    canRegister: game.canRegister,
+    canPickSeat: false,
+    canWaitlist: false,
+  });
+  return (
+    sideIndex: number,
+    position: "left" | "right",
+  ): OpenSeatAction | null => {
+    const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
+    const positionLabel = courtPositionLabel(position, locale);
+    const seat = { sideIndex, position };
+    if (action === "move" || action === "join") {
+      return {
+        accessibilityLabel:
+          friendlyGameVacantSeatLabel(
+            action,
+            sideLabel,
+            positionLabel,
+            locale,
+          ) ?? positionLabel,
+        onPress: () =>
+          action === "move"
+            ? handlers.onMove(sideIndex, position)
+            : handlers.onJoinSeat(seat),
+      };
+    }
+    const addPlayerAt = handlers.onAddPlayerAt;
+    return addPlayerAt
+      ? {
+          accessibilityLabel: messages.mobileGameDetails.lineup.addPlayerTo(
+            sideLabel,
+            positionLabel,
+          ),
+          onPress: () => addPlayerAt(seat),
+        }
+      : null;
+  };
+}
 
 export function GameDetailsContent({
   game,
@@ -67,6 +130,9 @@ export function GameDetailsContent({
   const { phase } = game;
   const { firstMatch } = plan;
   const live = phase && phase !== "cancelled" ? phase : null;
+  const vacantSeatCount = vacantJoinSeats(game.sides).length;
+  const canInvite = handlers.onInvite != null && vacantSeatCount > 0;
+  const addsPlayers = handlers.onAddPlayerAt != null && vacantSeatCount > 0;
 
   return (
     <View style={{ gap: SECTION_GAP }}>
@@ -99,15 +165,12 @@ export function GameDetailsContent({
       <LineupCard
         sides={game.sides}
         viewerUserId={game.viewerUserId}
-        isFinal={phase === "final"}
-        winningGameTeamId={plan.winningGameTeamId}
-        canMove={game.canMove}
-        moving={handlers.movePending}
-        onMove={handlers.onMove}
-        kickableUserIds={organizer?.plan.kickableUserIds}
-        onKick={organizer?.handlers.onKickPlayer}
-        onRenameUnclaimed={handlers.onRenameUnclaimed}
-        onOpenPlayer={handlers.onOpenPlayer}
+        vacantSeatCount={vacantSeatCount}
+        hint={addsPlayers ? m.game.court.addPlayerHint : null}
+        busy={handlers.movePending}
+        openSeatAction={openSeatActionFor(game, handlers, m, locale)}
+        onInvite={canInvite ? handlers.onInvite : undefined}
+        onPressPlayer={handlers.onPressPlayer}
       />
       {live && firstMatch ? (
         <ScoreCard
@@ -118,6 +181,7 @@ export function GameDetailsContent({
           winningGameTeamId={plan.winningGameTeamId}
           confirmation={game.matchResultConfirmation}
           isOrganizer={game.isOrganizer}
+          courtFull={vacantSeatCount === 0}
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}
           onSaveSets={handlers.onSaveSets}
@@ -129,20 +193,6 @@ export function GameDetailsContent({
       ) : null}
       {organizer ? (
         <OrganizerCard plan={organizer.plan} handlers={organizer.handlers} />
-      ) : null}
-      {live && firstMatch ? (
-        <ActionsFooter
-          actions={friendlyGameFooterActions({
-            phase: live,
-            isOrganizer: game.isOrganizer,
-            canLeaveGame: plan.canLeaveGame,
-            canReportWrongScore: game.canReportWrongScore,
-            playerCount: occupiedFriendlyPositions(game.sides),
-            locale,
-          })}
-          pendingKind={handlers.footerPendingKind}
-          onAction={handlers.onFooterAction}
-        />
       ) : null}
     </View>
   );
@@ -166,8 +216,40 @@ export function GameDetailsBar({
   handlers: BottomBarHandlers;
   inset?: boolean;
 }) {
+  const m = useMessages();
+  const locale = useLocale();
   const plan = friendlyGameDetailsPlan(game);
   return (
-    <BottomBar family={plan.ctaFamily} handlers={handlers} inset={inset} />
+    <BottomBar
+      family={plan.ctaFamily}
+      lines={bottomBarLines(game, m, locale)}
+      handlers={handlers}
+      inset={inset}
+    />
   );
+}
+
+function bottomBarLines(
+  game: FriendlyGameDetails,
+  messages: Messages,
+  locale: Locale,
+): BottomBarLines | null {
+  const plan = friendlyGameDetailsPlan(game);
+  const family = plan.ctaFamily;
+  if (family.kind === "join") {
+    return {
+      title: courtSpotsLabel(vacantJoinSeats(game.sides).length, locale),
+      subline: messages.game.court.joinSubline,
+    };
+  }
+  if (family.kind === "needs_score" && plan.firstMatch) {
+    const lead = scoreLeadLine(plan.firstMatch, plan.viewerGameTeamId, locale);
+    return lead
+      ? {
+          title: lead,
+          subline: friendlyGameCtaCopy(family, locale)?.subline ?? null,
+        }
+      : null;
+  }
+  return null;
 }

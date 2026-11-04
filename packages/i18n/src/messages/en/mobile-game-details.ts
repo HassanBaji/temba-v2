@@ -50,6 +50,10 @@ export const mobileGameDetails = {
     timeUnset: "Time unset",
     youAnd: (name: string) => `You and ${name}`,
     kickoff: (time: string, trailer: string) => `${time} ${trailer}`,
+    directions: "Directions",
+    directionsTo: (venue: string) => `Directions to ${venue}`,
+    shareGame: "Share Game",
+    gameActions: "Game actions",
   },
   levelRequest: {
     requesting: "Requesting…",
@@ -62,6 +66,9 @@ export const mobileGameDetails = {
     opensProfileHint: "Opens their Player profile",
     renameFor: (name: string) => `Edit name: ${name}`,
     kickName: (name: string) => `Kick ${name}`,
+    addPlayerTo: (side: string, position: string) =>
+      `Add a player to ${side} ${position}`,
+    invite: "Invite",
   },
   addPlayer: {
     phone: "Phone",
@@ -111,6 +118,7 @@ export const mobileGameDetails = {
     save: "Save score",
     sideNames: (side: string, names: string) => `${side}: ${names}`,
     setBox: (side: string, set: string) => `${side}, ${set}`,
+    lockedLabel: (line: string) => `Score. ${line}`,
   },
   join: {
     positionWord: { left: "left", right: "right" },
