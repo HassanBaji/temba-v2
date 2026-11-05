@@ -205,7 +205,10 @@ export function SeatTile({
         {name ?? occupant.name}
       </span>
       {level ? (
-        <span className="text-muted-foreground max-w-full truncate text-[10px] leading-tight">
+        <span
+          dir="ltr"
+          className="text-muted-foreground max-w-full truncate text-[10px] leading-tight"
+        >
           {level}
         </span>
       ) : null}

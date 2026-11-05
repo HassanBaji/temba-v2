@@ -157,6 +157,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
     image: "/media/users/ali.jpg",
     isViewer: false,
   },
+  historyHidden: false,
   sports: ["football"],
   venue: { name: "Riffa Pitch" },
   rating: {

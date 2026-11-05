@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import { bahrainDate } from "./bahrain-date.test-support";
@@ -9,10 +10,11 @@ import {
   LEVEL_OVERRIDE_REASONS,
   levelSliderLabel,
   levelSliderReadout,
+  levelSliderStartTenths,
 } from "./level-slider";
 
 const readout = (tenths: number, currentTenths = 24) =>
-  levelSliderReadout({ tenths, currentTenths });
+  levelSliderReadout({ tenths, currentTenths, locale: "en" });
 
 describe("LEVEL_SLIDER_TICKS", () => {
   it("has the display-letter edges in tenths", () => {
@@ -44,6 +46,14 @@ describe("clampLevelTenths", () => {
     expect(clampLevelTenths(71)).toBe(70);
     expect(clampLevelTenths(36.4)).toBe(36);
     expect(clampLevelTenths(36.6)).toBe(37);
+  });
+});
+
+describe("levelSliderStartTenths", () => {
+  it("starts from the member's Level, or 3.0 without one", () => {
+    expect(levelSliderStartTenths("3.2")).toBe(32);
+    expect(levelSliderStartTenths("9.9")).toBe(70);
+    expect(levelSliderStartTenths(null)).toBe(30);
   });
 });
 
@@ -84,6 +94,13 @@ describe("levelSliderReadout", () => {
   it("signs the delta", () => {
     expect(readout(18).deltaLabel).toBe("−0.6");
     expect(readout(24).deltaLabel).toBe("0.0");
+  });
+
+  it("isolates the signed delta in Arabic", () => {
+    expect(
+      levelSliderReadout({ tenths: 36, currentTenths: 24, locale: "ar" })
+        .deltaLabel,
+    ).toBe(isolate("+1.2"));
   });
 
   it("measures D+ against the 14 to 21 span", () => {

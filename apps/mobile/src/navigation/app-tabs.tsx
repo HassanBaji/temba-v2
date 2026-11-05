@@ -114,6 +114,9 @@ export function AppTabs() {
                   size="eyebrow"
                   weight={focused ? "semibold" : "medium"}
                   tone={focused ? "default" : "muted"}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
                 >
                   {entry?.title}
                 </Text>

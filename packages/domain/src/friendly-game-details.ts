@@ -9,6 +9,7 @@ import {
   type FriendlyGameOverflowItem,
 } from "./friendly-game-cta";
 import { viewerSidePartnerName } from "./friendly-game-partner";
+import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
 
 export type FriendlyGameDetailsSeat = {
@@ -121,6 +122,7 @@ export type FriendlyGameDetails = {
   phase: FriendlyGameCtaPhase | null;
   matchResultConfirmation: FriendlyGameDetailsConfirmation | null;
   rated: boolean;
+  ratingScope?: GameRatingScope;
   booking?: FriendlyGameDetailsBooking | null;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;

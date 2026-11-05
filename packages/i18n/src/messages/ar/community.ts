@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { community as source } from "../en/community";
 
@@ -166,7 +167,8 @@ export const community = {
   from: (name: string) => `من ${name}`,
   meta: {
     youAreRole: (role: string) => `أنت ${role}`,
-    twoSports: (first: string, second: string) => `${first} و${second}`,
+    twoSports: (first: string, second: string) =>
+      `${isolate(first)} و${isolate(second)}`,
   },
   roleChange: {
     selfTitle: (role: string) => `تغيير دورك إلى ${role}؟`,

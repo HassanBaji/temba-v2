@@ -61,6 +61,7 @@ export function PlayedFriendlyGame({
           courtName: match.courtName,
           groupName: game.groupName,
           rated: game.rated,
+          ratingScope: game.ratingScope,
           ratingImpact: game.ratingImpact,
           confirmation: game.matchResultConfirmation,
         },

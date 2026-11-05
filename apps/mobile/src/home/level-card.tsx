@@ -97,6 +97,7 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
           size="levelBand"
           width="expanded"
           weight="bold"
+          ltr
           accessibilityLabel={m.mobileHome.level.bandSpoken(view.displayBand)}
         >
           {view.displayBand}

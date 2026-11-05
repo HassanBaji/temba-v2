@@ -33,6 +33,7 @@ export function SheetMenuRow({
   label,
   hint,
   icon: Icon,
+  iconClassName,
   trailing,
   tone = "default",
   pending = false,
@@ -42,6 +43,7 @@ export function SheetMenuRow({
   label: string;
   hint?: string | null;
   icon?: LucideIcon;
+  iconClassName?: string;
   trailing?: LucideIcon | "chevron";
   tone?: "default" | "danger";
   pending?: boolean;
@@ -57,7 +59,12 @@ export function SheetMenuRow({
   );
   const body = (
     <>
-      {Icon ? <Icon aria-hidden="true" className="size-5 shrink-0" /> : null}
+      {Icon ? (
+        <Icon
+          aria-hidden="true"
+          className={cn("size-5 shrink-0", iconClassName)}
+        />
+      ) : null}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className={cn("text-body", hint && "font-medium")}>
           {pending ? `${label}…` : label}
@@ -71,7 +78,7 @@ export function SheetMenuRow({
           aria-hidden="true"
           className={cn(
             "size-4 shrink-0",
-            trailing === "chevron" && "text-dim",
+            trailing === "chevron" && "text-dim rtl:-scale-x-100",
           )}
         />
       ) : null}

@@ -34,6 +34,7 @@ import {
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
+import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -212,12 +213,13 @@ export function memberRowView(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   sort: GroupMemberSort = "level",
+  canSetGroupLevel = false,
 ): MemberRowView {
   const m = messagesFor(locale);
   const name = entry.name ?? m.mobileGroup.unnamedMember;
   const caption = [
     groupMemberSortCaption(entry, sort, locale),
-    entry.phoneMasked,
+    entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
       : null,
@@ -235,7 +237,7 @@ export function memberRowView(
     level,
     levelText: entry.level,
     selectable:
-      (canSetLevel && !entry.isViewer) ||
+      ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null,
     accessibilityLabel: [
@@ -269,6 +271,7 @@ export function memberList(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   lens: MemberLens = LEVEL_ORDER,
+  canSetGroupLevel = false,
 ) {
   const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
   const view = groupMembersLens(
@@ -288,6 +291,7 @@ export function memberList(
         canRemovePlayers,
         canAppointOrganizers,
         view.sort,
+        canSetGroupLevel,
       ),
     ),
   };

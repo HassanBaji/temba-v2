@@ -365,7 +365,7 @@ function DrawSheet({
           </Text>
           {firstRound ? <KnockoutTree rounds={[firstRound]} /> : null}
           {pools.map((pool) => {
-            const meta = draftPoolMetaLine(pool);
+            const meta = draftPoolMetaLine(pool, locale);
             return (
               <View key={pool.poolIndex} style={{ gap: 6 }}>
                 <Text weight="semibold" accessibilityRole="header">
@@ -616,7 +616,7 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
         onClose={onClose}
         title={
           place
-            ? messages.mobileTournament.organizer.cancelCodeTitle(place.code)
+            ? messages.mobileTournament.organizer.cancelCodeTitle(place.label)
             : undefined
         }
       >

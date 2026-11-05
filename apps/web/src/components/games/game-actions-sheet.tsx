@@ -19,6 +19,7 @@ export type GameActionsSheetRow = {
   label: string;
   hint?: string | null;
   icon: LucideIcon;
+  iconClassName?: string;
   href?: string;
   onSelect?: () => void;
   disabled?: boolean;
@@ -97,6 +98,7 @@ export function GameActionsSheet({
                     label={row.label}
                     hint={row.hint}
                     icon={row.icon}
+                    iconClassName={row.iconClassName}
                     trailing="chevron"
                     disabled={row.disabled}
                     href={row.href}
@@ -108,6 +110,7 @@ export function GameActionsSheet({
                     label={row.label}
                     hint={row.hint}
                     icon={row.icon}
+                    iconClassName={row.iconClassName}
                     trailing={danger ? undefined : "chevron"}
                     tone={danger ? "danger" : "default"}
                     disabled={row.disabled}

@@ -210,7 +210,7 @@ describe("football profile in Arabic", () => {
   it("reads the role, the tiles and the row", () => {
     expect(footballRoleView({ role: "keeper", position: null }, "ar")).toEqual({
       label: "حارس",
-      code: "GK",
+      code: "حارس",
     });
     expect(footballMatchRowView(match({ goals: 2 }), "ar").goals).toBe("هدفان");
     expect(

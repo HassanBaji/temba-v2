@@ -1,3 +1,7 @@
+import type { Locale } from "@repo/i18n/locale";
+
+import { formatDayMonth } from "./format-game-start";
+
 export type TermsClause = {
   label?: string;
   text: string;
@@ -10,7 +14,15 @@ export type TermsSection = {
   clauses: TermsClause[];
 };
 
-export const TERMS_UPDATED = "27 October 2026";
+export const TERMS_UPDATED = "2026-10-27";
+
+/** `27 October 2026`, in the reader's language. */
+export function termsUpdatedLabel(locale: Locale) {
+  return formatDayMonth(`${TERMS_UPDATED}T12:00:00Z`, locale, {
+    month: "long",
+    year: true,
+  });
+}
 
 export const TERMS_MINIMUM_AGE = 16;
 

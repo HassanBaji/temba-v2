@@ -60,8 +60,10 @@ export function lookupResultView(
   const m = messagesFor(locale);
   const meta =
     [
-      row.username ? `@${row.username}` : null,
-      row.cue ?? row.email ?? row.phoneNumber ?? null,
+      row.username ? m.common.isolate(`@${row.username}`) : null,
+      row.cue ??
+        row.email ??
+        (row.phoneNumber ? m.common.isolate(row.phoneNumber) : null),
     ]
       .filter(Boolean)
       .join(m.group.metaSeparator) || null;

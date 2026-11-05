@@ -18,6 +18,8 @@ export function MemberSheet({
   member,
   onClose,
   onSetLevel,
+  onSetGroupLevel,
+  groupLevelHint,
   onViewProfile,
   organizerLabel,
   organizerHint,
@@ -28,6 +30,9 @@ export function MemberSheet({
   member: MemberSheetView | null;
   onClose: () => void;
   onSetLevel?: () => void;
+  onSetGroupLevel?: () => void;
+  /** The member's Group Level, shown to an Organizer on that row. */
+  groupLevelHint?: string;
   onViewProfile?: () => void;
   organizerLabel?: string;
   organizerHint?: string;
@@ -57,6 +62,15 @@ export function MemberSheet({
             }
             trailing="chevron"
             onPress={onSetLevel}
+          />
+        ) : null,
+        onSetGroupLevel ? (
+          <SheetMenuRow
+            key="group-level"
+            label={m.you.setGroupLevel.title}
+            hint={groupLevelHint}
+            trailing="chevron"
+            onPress={onSetGroupLevel}
           />
         ) : null,
         organizerLabel && onOrganizerAction ? (
@@ -100,7 +114,7 @@ export function MemberSheet({
                 >
                   <NotOnTembaMark />
                   {member.phoneMasked ? (
-                    <Text size="meta" tone="muted">
+                    <Text size="meta" tone="muted" ltr>
                       {member.phoneMasked}
                     </Text>
                   ) : null}

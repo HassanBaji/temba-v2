@@ -9,6 +9,12 @@ describe("shortPlayerName", () => {
     assert.equal(shortPlayerName("Ana Maria Santos"), "Ana S");
   });
 
+  it("initials an Arabic surname past the article", () => {
+    assert.equal(shortPlayerName("أحمد الخليفة"), "أحمد خ");
+    assert.equal(shortPlayerName("فاطمة المنصوري"), "فاطمة م");
+    assert.equal(shortPlayerName("سارة ال"), "سارة ا");
+  });
+
   it("returns a single name unchanged", () => {
     assert.equal(shortPlayerName("Sofia"), "Sofia");
   });

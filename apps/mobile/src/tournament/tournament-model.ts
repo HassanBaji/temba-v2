@@ -4,7 +4,7 @@ import type {
   TournamentDetailsMatch,
 } from "@repo/domain/tournament-details";
 import {
-  knockoutMatchCode,
+  knockoutMatchLabel,
   knockoutRoundName,
 } from "@repo/domain/tournament-knockout";
 import { knockoutHeading } from "@repo/domain/tournament-knockout-view";
@@ -51,19 +51,21 @@ export function matchHeading(
   if (match.knockoutRound != null) {
     const roundCount = knockoutRoundCount(game);
     if (match.knockoutPosition != null && roundCount > 0) {
-      const code = knockoutMatchCode(
+      const label = knockoutMatchLabel(
         match.knockoutRound,
         match.knockoutPosition,
         roundCount,
+        locale,
+        "short",
       );
       const roundName = knockoutRoundName(
         match.knockoutRound,
         roundCount,
         locale,
       );
-      return code === roundName
+      return label === roundName
         ? roundName
-        : m.mobileTournament.model.knockoutHeading(roundName, code);
+        : m.mobileTournament.model.knockoutHeading(roundName, label);
     }
     return knockoutHeading(locale);
   }

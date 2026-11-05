@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { webGame as source } from "../en/web-game";
 
@@ -14,7 +15,7 @@ export const webGame = {
   },
   hero: {
     timeUnset: "الوقت غير محدد",
-    youAnd: (name: string) => `أنت و${name}`,
+    youAnd: (name: string) => `أنت و${isolate(name)}`,
   },
   fallbackTitle: "مباراة",
   directions: "الاتجاهات",

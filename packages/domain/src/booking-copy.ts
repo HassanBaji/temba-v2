@@ -1,3 +1,4 @@
+import { latinDigits } from "@repo/i18n/digits";
 import { intlLocale, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -68,6 +69,7 @@ function stepFormatter(locale: Locale) {
       hour: "2-digit",
       minute: "2-digit",
       hourCycle: "h23",
+      numberingSystem: "latn",
     });
     stepFormatters.set(locale, formatter);
   }
@@ -93,7 +95,9 @@ export function describeNextRefundStep(
   if (!step) {
     return null;
   }
-  const when = stepFormatter(locale).format(step.deadline).replace(",", "");
+  const when = latinDigits(
+    stepFormatter(locale).format(step.deadline).replace(",", ""),
+  );
   return messagesFor(locale).booking.nextRefundStep(
     refundWords(step.currentPercent, locale),
     when,

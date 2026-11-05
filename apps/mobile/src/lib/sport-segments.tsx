@@ -44,8 +44,8 @@ export function SportSegments({
               justifyContent: "center",
               gap: 8,
               backgroundColor: selected ? colors.ink : colors.paper,
-              borderLeftWidth: index === 0 ? 0 : hairline,
-              borderLeftColor: colors.rule,
+              borderStartWidth: index === 0 ? 0 : hairline,
+              borderStartColor: colors.rule,
               opacity: pressed ? 0.85 : 1,
             })}
           >

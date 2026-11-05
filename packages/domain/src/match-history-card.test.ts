@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import {
   HISTORY_PAGE_SIZE,
+  historyTeamLabel,
   matchHistoryCardModel,
   nextHistoryCursor,
   setTally,
@@ -53,6 +55,25 @@ describe("matchHistoryCardModel unrated mark", () => {
     const model = matchHistoryCardModel(row({ rated: false }), "en");
     assert.equal(model.unrated, true);
     assert.ok(model.meta.endsWith(" · Unrated"));
+  });
+
+  it("marks a group rated Match with its Rating scope, not Unrated", () => {
+    const model = matchHistoryCardModel(
+      row({ rated: false, ratingScope: "group" }),
+      "en",
+    );
+    assert.equal(model.unrated, false);
+    assert.ok(model.meta.endsWith(" · Counts for group rating"));
+    assert.ok(model.place.endsWith(" · Counts for group rating"));
+  });
+
+  it("leaves a Temba rated Match unmarked", () => {
+    const model = matchHistoryCardModel(
+      row({ rated: true, ratingScope: "temba" }),
+      "en",
+    );
+    assert.ok(!model.meta.includes("Counts for"));
+    assert.ok(!model.meta.includes("Unrated"));
   });
 });
 
@@ -226,5 +247,19 @@ describe("matchHistoryCardModel", () => {
     assert.ok(model.place.endsWith(" · غير مصنّفة"));
     assert.equal(model.teams[0]!.note, "فريقك، فاز");
     assert.equal(model.teams[1]!.note, "خسر");
+  });
+});
+
+describe("historyTeamLabel in Arabic", () => {
+  it("keeps the +N overflow whole", () => {
+    const label = historyTeamLabel(
+      [
+        member("a", "Sofia Lindqvist"),
+        member("b", "Jonas Berg"),
+        member("c", "Omar Aziz"),
+      ],
+      "ar",
+    );
+    assert.ok(label.endsWith(` ${isolate("+1")}`), label);
   });
 });

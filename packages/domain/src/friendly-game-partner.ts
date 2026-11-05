@@ -199,10 +199,13 @@ export function partnerSuggestionMetaLine(
     return ineligible;
   }
 
-  const m = messagesFor(locale).game.partner;
+  const messages = messagesFor(locale);
+  const m = messages.game.partner;
   const bits: string[] = [];
   if (row.levelBand) {
-    bits.push(displayLabelFromStoredBand(row.levelBand));
+    bits.push(
+      messages.common.isolate(displayLabelFromStoredBand(row.levelBand)),
+    );
   }
   if (row.preferredPosition === "left") {
     bits.push(m.playsLeft);
@@ -211,7 +214,7 @@ export function partnerSuggestionMetaLine(
   } else {
     bits.push(m.playsEitherSide);
   }
-  const head = bits.join(", ");
+  const head = bits.join(messages.common.listSeparator);
   if (row.gamesTogether > 0) {
     return m.metaWithHistory(head, m.gamesTogether(row.gamesTogether));
   }
@@ -222,11 +225,13 @@ export function partnerSuggestionButtonLabel(
   row: PartnerSuggestionRow,
   locale: Locale,
 ) {
-  const m = messagesFor(locale).game.partner;
+  const messages = messagesFor(locale);
+  const m = messages.game.partner;
+  const name = messages.common.isolate(row.name);
   if (row.ineligible) {
-    return m.ineligibleButton(row.name, partnerSuggestionMetaLine(row, locale));
+    return m.ineligibleButton(name, partnerSuggestionMetaLine(row, locale));
   }
-  return m.select(row.name);
+  return m.select(name);
 }
 
 export function partnerSeatsChip(vacantSeatCount: number, locale: Locale) {
@@ -238,14 +243,16 @@ export function partnerReviewGameLine(args: {
   venueName?: string | null;
   locale: Locale;
 }) {
-  const m = messagesFor(args.locale).game.partner;
+  const messages = messagesFor(args.locale);
+  const m = messages.game.partner;
   const start =
     args.windowStart == null
       ? null
       : args.windowStart instanceof Date
         ? args.windowStart
         : new Date(args.windowStart);
-  const venue = args.venueName?.trim();
+  const venueName = args.venueName?.trim();
+  const venue = venueName ? messages.common.isolate(venueName) : null;
   const kickoff = start ? formatHomeKickoff(start, args.locale) : null;
   const when =
     start && kickoff
@@ -272,10 +279,14 @@ export function partnerPlayerMeta(args: {
   position: "left" | "right";
   locale: Locale;
 }) {
-  const m = messagesFor(args.locale).game.partner;
+  const messages = messagesFor(args.locale);
+  const m = messages.game.partner;
   const seat = args.position === "left" ? m.leftSeat : m.rightSeat;
   if (args.levelBand) {
-    return m.levelAndSeat(displayLabelFromStoredBand(args.levelBand), seat);
+    return m.levelAndSeat(
+      messages.common.isolate(displayLabelFromStoredBand(args.levelBand)),
+      seat,
+    );
   }
   return seat;
 }
@@ -365,6 +376,6 @@ export function partnerContinueLabel(
 ) {
   const messages = messagesFor(locale);
   return partnerName
-    ? messages.game.joinSheet.continueWith(partnerName)
+    ? messages.game.joinSheet.continueWith(messages.common.isolate(partnerName))
     : messages.common.continue;
 }

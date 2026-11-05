@@ -42,7 +42,7 @@ import { GameOverviewPanel } from "~/components/games/game-overview-panel";
 import { GamePlayersPanel } from "~/components/games/game-players-panel";
 import {
   GameRatingImpactBlock,
-  GameUnratedBlock,
+  GameRatingScopeBlock,
 } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
@@ -934,6 +934,7 @@ export default function GameHomePage({
                   key: "leave",
                   label: m.game.action.leaveGame,
                   icon: LogOutIcon,
+                  iconClassName: "rtl:-scale-x-100",
                   onSelect: () => setLeaveGameOpen(true),
                 },
               ]
@@ -944,6 +945,7 @@ export default function GameHomePage({
                   key: "leave_waitlist",
                   label: m.game.action.leaveWaitlist,
                   icon: LogOutIcon,
+                  iconClassName: "rtl:-scale-x-100",
                   onSelect: () => setLeaveWaitlistOpen(true),
                 },
               ]
@@ -1034,7 +1036,7 @@ export default function GameHomePage({
                 {g.softArchived.body}
               </SoftArchiveBanner>
             ) : null}
-            {data.rated ? null : <GameUnratedBlock />}
+            <GameRatingScopeBlock scope={data.ratingScope} />
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}
@@ -1193,8 +1195,14 @@ export default function GameHomePage({
           // explains why the viewer's Home level card changed. Editing and
           // destructive actions live only in the hero's ⋮ menu.
           <div className="space-y-6">
-            {data.booking ? <GameBookedBlock booking={data.booking} /> : null}
-            {!data.rated && !data.booking ? <GameUnratedBlock /> : null}
+            {data.booking ? (
+              <GameBookedBlock
+                booking={data.booking}
+                ratingScope={data.ratingScope}
+              />
+            ) : (
+              <GameRatingScopeBlock scope={data.ratingScope} />
+            )}
             <GameLineupSection
               sides={data.sides}
               viewerUserId={data.viewerUserId}

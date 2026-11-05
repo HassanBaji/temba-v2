@@ -47,7 +47,7 @@ export function HomeHeader({
         style={({ pressed }) => ({
           width: sizes.touchTarget,
           height: sizes.touchTarget,
-          marginRight: -10,
+          marginEnd: -10,
           alignItems: "center",
           justifyContent: "center",
           opacity: pressed ? 0.7 : 1,
@@ -59,7 +59,7 @@ export function HomeHeader({
             style={{
               position: "absolute",
               top: 11,
-              right: 11,
+              end: 11,
               width: BADGE,
               height: BADGE,
               borderRadius: BADGE / 2,

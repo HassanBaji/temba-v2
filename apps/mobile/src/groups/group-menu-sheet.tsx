@@ -5,6 +5,7 @@ import {
 import { Link, LogOut, Pencil, UserRoundPlus } from "lucide-react-native";
 
 import { useLocale } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Sheet } from "../primitives/sheet";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 
@@ -69,6 +70,7 @@ export function GroupMenuSheet({
               label={groupMenuLabel("leave", locale)}
               hint={leaveBlockedHint}
               icon={LogOut}
+              iconStyle={mirrorInRtl}
               tone="danger"
               disabled={leaveBlockedHint != null}
               onPress={() => onPick("leave")}

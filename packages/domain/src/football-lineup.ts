@@ -15,12 +15,6 @@ export const FOOTBALL_POSITIONS = ["def", "mid", "fwd"] as const;
 
 export type FootballPosition = (typeof FOOTBALL_POSITIONS)[number];
 
-const FOOTBALL_POSITION_CODES: Record<FootballPosition, string> = {
-  def: "DEF",
-  mid: "MID",
-  fwd: "FWD",
-};
-
 export function footballPositionChoices(locale: Locale): {
   value: FootballPosition;
   code: string;
@@ -29,7 +23,7 @@ export function footballPositionChoices(locale: Locale): {
   const m = messagesFor(locale).football.lineup.positions;
   return FOOTBALL_POSITIONS.map((value) => ({
     value,
-    code: FOOTBALL_POSITION_CODES[value],
+    code: footballPositionCode(value, locale),
     label: m[value],
   }));
 }
@@ -41,8 +35,6 @@ export const KEEPERS_PER_GAME = 2;
 
 export const KEEPER_SEATS_TAKEN_MESSAGE = "Both keeper seats are taken";
 
-export const KEEPER_CODE = "GK";
-
 export function isFootballRole(value: unknown): value is FootballRole {
   return (FOOTBALL_ROLES as readonly unknown[]).includes(value);
 }
@@ -51,19 +43,27 @@ export function isFootballPosition(value: unknown): value is FootballPosition {
   return (FOOTBALL_POSITIONS as readonly unknown[]).includes(value);
 }
 
-export function footballPositionCode(position: FootballPosition) {
-  return FOOTBALL_POSITION_CODES[position] ?? position.toUpperCase();
+export function footballPositionCode(
+  position: FootballPosition,
+  locale: Locale,
+) {
+  return messagesFor(locale).football.positionCode[position];
+}
+
+export function footballKeeperCode(locale: Locale) {
+  return messagesFor(locale).football.positionCode.gk;
 }
 
 /** The short tag a roster row carries: GK for a keeper, else the position. */
 export function footballSlotCode(
   role: FootballRole | null,
   position: FootballPosition | null,
+  locale: Locale,
 ) {
   if (role === "keeper") {
-    return KEEPER_CODE;
+    return footballKeeperCode(locale);
   }
-  return position ? footballPositionCode(position) : null;
+  return position ? footballPositionCode(position, locale) : null;
 }
 
 export function keeperSeatsLeft(keepersIn: number) {

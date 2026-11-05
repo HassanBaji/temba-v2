@@ -162,7 +162,7 @@ function SideRow({
             flexDirection: "row",
             flexWrap: "wrap",
             gap: 2,
-            paddingLeft: 64,
+            paddingStart: 64,
           }}
         >
           {MORE_FOOTBALL_BIBS.map(swatch)}

@@ -57,7 +57,12 @@ function TournamentHeroSeatBlock({
         className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-body truncate">{displayName}</span>
+        <span
+          dir="auto"
+          className="text-body truncate [text-align:match-parent]"
+        >
+          {displayName}
+        </span>
         <span className="text-dim text-[11px] leading-none">
           {positionLabel}
         </span>
@@ -131,7 +136,8 @@ export function TournamentHero({
       {showYourTeam ? (
         <>
           <p className="text-dim text-meta">{m.tournament.home.yourTeam}</p>
-          <div className="mt-3 flex gap-2">
+          {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+          <div className="mt-3 flex gap-2 rtl:flex-row-reverse">
             <TournamentHeroSeatBlock
               occupant={left}
               position="left"

@@ -81,7 +81,7 @@ export function TournamentKnockoutCancelDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>
             {place
-              ? m.webTournament.knockoutCancel.title(place.code)
+              ? m.webTournament.knockoutCancel.title(place.label)
               : m.webTournament.knockoutCancel.titleFallback}
           </ResponsiveDialogTitle>
           {prompt ? (

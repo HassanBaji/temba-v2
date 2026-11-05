@@ -2,7 +2,8 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth } from "./format-game-start";
-import { unratedLabel } from "./game-rating-impact";
+import { ratingScopeOf, ratingScopeTag } from "./game-rating-impact";
+import type { GameRatingScope } from "./game-rating-scope";
 import { formatLevel } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { shortPlayerName } from "./player-name";
@@ -47,6 +48,7 @@ export type PlayerMatchInput = {
   outcome: MatchOutcome;
   game: PlayerMatchGame;
   rated: boolean;
+  ratingScope?: GameRatingScope;
   ownerSlot: 1 | 2;
   slot1: PlayerMatchPlayer[];
   slot2: PlayerMatchPlayer[];
@@ -64,6 +66,8 @@ export type PlayerMatchRowView = {
   sets: string[];
   delta: string | null;
   unrated: boolean;
+  /** The Rating scope for a Match that did not move the Temba Level. */
+  ratingTag: string | null;
   accessibilityLabel: string;
 };
 
@@ -123,6 +127,11 @@ export function levelChangeLabel(levelChange: number) {
   return tenths > 0 ? `+${magnitude}` : `−${magnitude}`;
 }
 
+/** The signed change as shown, kept whole when it sits in Arabic text. */
+function signedLevelChange(levelChange: number, locale: Locale) {
+  return messagesFor(locale).common.isolate(levelChangeLabel(levelChange));
+}
+
 /** "Last 10: +0.2" on the Level card, absent when no Match was rated. */
 export function levelTrendLabel(
   trend: { levelChange: number } | null,
@@ -130,7 +139,7 @@ export function levelTrendLabel(
 ) {
   return trend
     ? messagesFor(locale).profile.matches.lastTenTrend(
-        levelChangeLabel(trend.levelChange),
+        signedLevelChange(trend.levelChange, locale),
       )
     : null;
 }
@@ -192,6 +201,7 @@ export function playerMatchRowView(
   const kind = playerMatchKindLabel(match.game, locale);
   const sets = ownerSets(match).map((set) => `${set.us}–${set.them}`);
   const outcome = m.outcome[match.outcome];
+  const ratingTag = ratingScopeTag(match, locale);
   const spoken = [
     names.length > 0
       ? m.outcomeAgainst(outcome, m.namesWithAnd(names))
@@ -200,7 +210,7 @@ export function playerMatchRowView(
     kind,
     sets.join(" "),
     match.rating ? deltaWords(match.rating.levelChange, locale) : null,
-    match.rated ? null : unratedLabel(locale),
+    ratingTag,
   ];
 
   return {
@@ -213,8 +223,11 @@ export function playerMatchRowView(
       kind,
     ),
     sets,
-    delta: match.rating ? levelChangeLabel(match.rating.levelChange) : null,
-    unrated: !match.rated,
+    delta: match.rating
+      ? signedLevelChange(match.rating.levelChange, locale)
+      : null,
+    unrated: ratingScopeOf(match) === "unrated",
+    ratingTag,
     accessibilityLabel: m.spokenParts(
       spoken.filter((part): part is string => !!part),
     ),
@@ -368,7 +381,7 @@ function sheetRating(
     label,
     before,
     after,
-    delta: levelChangeLabel(rating.levelChange),
+    delta: signedLevelChange(rating.levelChange, locale),
     accessibilityLabel: m.ratingSpoken(
       label,
       before,

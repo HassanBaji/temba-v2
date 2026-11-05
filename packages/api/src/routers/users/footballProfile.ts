@@ -14,6 +14,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import {
   loadCountedMatches,
+  matchHistoryHidden,
   mayViewPlayer,
   openableGameIds,
   sportRating,
@@ -100,6 +101,7 @@ export async function loadFootballProfile(
       sports: true,
       preferredFootballRole: true,
       preferredFootballPosition: true,
+      matchHistoryVisibility: true,
     },
   });
   if (!player) {
@@ -107,13 +109,20 @@ export async function loadFootballProfile(
   }
 
   const now = args.now ?? new Date();
+  const historyHidden = await matchHistoryHidden(database, {
+    viewerId: args.viewerId,
+    playerId: player.id,
+    visibility: player.matchHistoryVisibility,
+  });
   const [rating, counted] = await Promise.all([
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.FOOTBALL,
       now,
     }),
-    loadCountedMatches(database, player.id, GameSportEnum.Football),
+    historyHidden
+      ? Promise.resolve([])
+      : loadCountedMatches(database, player.id, GameSportEnum.Football),
   ]);
   const shown = counted.slice(0, LAST_TEN_SIZE);
   const [goals, openable] = await Promise.all([
@@ -152,6 +161,7 @@ export async function loadFootballProfile(
       image: player.image,
       isViewer: player.id === args.viewerId,
     },
+    historyHidden,
     sports: sportsPlayed(player.sports),
     venue: usualVenue(counted),
     rating,

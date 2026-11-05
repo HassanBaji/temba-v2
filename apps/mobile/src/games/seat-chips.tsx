@@ -200,7 +200,14 @@ export function FriendlyRoster({
               </Text>
             ) : null}
             <View
-              style={{ flex: 1, flexDirection: "row", gap: 4, minWidth: 0 }}
+              // Physical on purpose: Left and Right are court sides, not reading order.
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                direction: "ltr",
+                gap: 4,
+                minWidth: 0,
+              }}
             >
               <SideSeat
                 side={side}

@@ -188,4 +188,10 @@ export const mobileGroup = {
     savedReason: (reason: string) => `Reason: ${reason}.`,
     dismiss: "Dismiss",
   },
+  setGroupLevel: {
+    groupLevel: (label: string) => `Group level ${label}`,
+    tembaLevel: (label: string) => `Temba level ${label}`,
+    noTembaLevel: "no Temba level yet",
+    tembaMarker: (label: string) => `Temba ${label}`,
+  },
 };

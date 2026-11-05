@@ -50,14 +50,26 @@ function strong(text: string): NotificationTitlePart {
   return { text, strong: true };
 }
 
+function userName(name: string, locale: Locale) {
+  return messagesFor(locale).common.isolate(name);
+}
+
 function actorName(actor: NotificationCopyInput["actor"], locale: Locale) {
-  return actor?.name ?? messagesFor(locale).common.someone;
+  return actor
+    ? userName(actor.name, locale)
+    : messagesFor(locale).common.someone;
+}
+
+function groupName(group: { name: string | null } | null, locale: Locale) {
+  return group?.name != null
+    ? userName(group.name, locale)
+    : groupDisplayName(null, locale);
 }
 
 /** A nameless Game reads as its format and day, `Friendly game · Thu 9 Oct`. */
 function notificationGameName(game: NotificationGame, locale: Locale) {
   if (game.name?.trim()) {
-    return game.name;
+    return userName(game.name, locale);
   }
   const format = gameFormatLabel(game.format, locale);
   return game.windowStart
@@ -74,12 +86,12 @@ function joinSubject(
   locale: Locale,
 ): NotificationTitlePart[] {
   if (item.team?.name) {
-    return [strong(item.team.name)];
+    return [strong(userName(item.team.name, locale))];
   }
   if (item.partner) {
     return messagesFor(locale).notification.title.pair(
       actorName(item.actor, locale),
-      item.partner.name,
+      userName(item.partner.name, locale),
     );
   }
   return [strong(actorName(item.actor, locale))];
@@ -106,7 +118,7 @@ export function notificationCopy(
     return {
       title: m.groupMemberJoined(
         actorName(item.actor, locale),
-        groupDisplayName(item.group?.name, locale),
+        groupName(item.group, locale),
       ),
       subline: null,
     };
@@ -134,7 +146,11 @@ export function notificationCopy(
     const game = notificationGameName(item.game, locale);
     return {
       title: item.partner
-        ? m.gamePlayerLeftWithPartner(actor, game, item.partner.name)
+        ? m.gamePlayerLeftWithPartner(
+            actor,
+            game,
+            userName(item.partner.name, locale),
+          )
         : m.gamePlayerLeft(actor, game),
       subline: null,
     };
@@ -202,7 +218,7 @@ export function notificationMeta(
   return item.game && item.group
     ? messagesFor(locale).notification.metaWithGroup(
         time,
-        groupDisplayName(item.group.name, locale),
+        groupName(item.group, locale),
       )
     : time;
 }

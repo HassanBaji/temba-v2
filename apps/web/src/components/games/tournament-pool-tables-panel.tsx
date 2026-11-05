@@ -6,6 +6,7 @@ import {
   GameTeamPlayersSheet,
   type GameTeamPlayersSheetTeam,
 } from "~/components/games/game-team-players-sheet";
+import { PairLabel } from "~/components/temba/pair-label";
 import { ResultTag } from "~/components/temba/result-mark";
 import { useMessages } from "~/components/locale-provider";
 import { poolRecordDisplay } from "@repo/domain/tournament-pool-table";
@@ -151,14 +152,10 @@ function PoolTeamName({
   const m = useMessages();
   const content = (
     <>
-      <span
-        className={cn(
-          "text-body block max-w-full truncate",
-          row.isViewer && "font-semibold",
-        )}
-      >
-        {row.name}
-      </span>
+      <PairLabel
+        label={row.name}
+        className={cn("text-body max-w-full", row.isViewer && "font-semibold")}
+      />
       {winner ? (
         <ResultTag variant="won" className="text-eyebrow mt-1">
           {m.tournament.poolTable.winner}

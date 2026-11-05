@@ -22,6 +22,7 @@ import {
 } from "#src/games/create-friendly";
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -38,6 +39,8 @@ export const createBookingGameInputSchema = z
   .object({
     bookingId: z.string().uuid(),
     groupId: z.string().uuid().nullable().optional(),
+    /** False makes a Group Game Unrated (ADR-0053). */
+    rated: z.boolean().optional(),
     name: z.string().trim().max(255).optional(),
     pricePerPlayerFils: z
       .number()
@@ -70,7 +73,7 @@ type CreateBookingGameInput = z.infer<typeof createBookingGameInputSchema>;
 /**
  * A Booking Game (ADR-0029): private, on the Booking's Venue, Court and
  * interval. Without a Group it is unrated; on a Group it rates as `games.create`
- * would. A Booking whose Game was cancelled may get a new one, since cancelling
+ * would, including the holder's choice to make it Unrated. A Booking whose Game was cancelled may get a new one, since cancelling
  * the Game keeps the Court reserved for the holder.
  */
 export async function createBookingGame(
@@ -112,7 +115,7 @@ export async function createBookingGame(
     });
     const football = court?.sport === "football";
     const groupId = args.groupId ?? null;
-    let rated = false;
+    let groupVerified = false;
     if (groupId) {
       const group = await requireGroup(tx, groupId);
       await assertMayCreateGameOnGroup(tx, group, args.userId);
@@ -124,7 +127,7 @@ export async function createBookingGame(
             : "Pick a padel Group for this Court",
         });
       }
-      rated = !football && (await groupIsVerified(tx, group));
+      groupVerified = await groupIsVerified(tx, group);
     }
     if (
       football &&
@@ -173,7 +176,12 @@ export async function createBookingGame(
       createdBy: args.userId,
       name: args.name,
       groupId,
-      rated,
+      ...ratingFlagsAtCreate({
+        hasGroup: groupId !== null,
+        groupVerified,
+        sport: "padel",
+        rated: args.rated ?? true,
+      }),
       venueId: booking.venueId,
       courtId: booking.courtId,
       windowStart: booking.startsAt,

@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { webTournament as source } from "../en/web-tournament";
 
@@ -66,7 +67,7 @@ export const webTournament = {
       }),
     teamsNotSet: "الفرق غير جاهزة",
     youPlayIn: (team: string) => `تلعب في ${team}`,
-    asCode: (code: string) => `كـ${code}`,
+    asCode: (code: string) => `بمركز ${code}`,
     linkLabel: (place: string, day: string, time: string, meridiem: string) =>
       `${place}، ${day} ${time} ${meridiem}`,
     scoreIn: "النتيجة مسجّلة",
@@ -89,7 +90,7 @@ export const webTournament = {
     seasonRow: "الموسم",
     pitchCost: "تكلفة الملعب",
     organizerMakesTeams: "المنظّم يشكّلها",
-    youreInAs: (code: string) => `أنت مشارك كـ${code}`,
+    youreInAs: (code: string) => `أنت مشارك بمركز ${code}`,
     change: "تغيير",
     invitePlayers: "دعوة لاعبين",
     captainsPickBeforeKickoff: "القادة يختارون الأساسيين قبل البداية.",
@@ -177,7 +178,8 @@ export const webTournament = {
   footballPlayer: {
     prefers: (label: string) => `يفضّل ${label}`,
     noPositionYet: "لا مركز بعد",
-    subtitle: (role: string, level: string) => `${role}، المستوى ${level}`,
+    subtitle: (role: string, level: string) =>
+      `${role}، المستوى ${isolate(level)}`,
     viewProfile: "عرض الملف الشخصي",
     renameLabel: (name: string) => `تعديل الاسم: ${name}`,
   },

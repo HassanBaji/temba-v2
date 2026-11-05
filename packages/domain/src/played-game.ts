@@ -20,6 +20,11 @@ import { formatDayMonth, formatGameClock } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
+import { ratingScopeOf } from "./game-rating-impact";
+import {
+  gameRatingScopeLabel,
+  type GameRatingScope,
+} from "./game-rating-scope";
 import { setShortLabel } from "./game-copy";
 import { formatGameSideLabel } from "./game-side-label";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -102,20 +107,25 @@ export function playedDurationLabel(
 }
 
 /** "Padel Hub, Court 3" */
-export function playedVenueLine(place: PlayedPlace) {
-  const line = [place.venue?.name, place.courtName].filter(Boolean).join(", ");
+export function playedVenueLine(place: PlayedPlace, locale: Locale) {
+  const { common } = messagesFor(locale);
+  const line = [place.venue?.name, place.courtName]
+    .filter((part): part is string => Boolean(part))
+    .map(common.isolate)
+    .join(common.listSeparator);
   return line || null;
 }
 
 /** "8:00 PM, 90 min, Janabiyah" */
 export function playedWhenLine(place: PlayedPlace, locale: Locale) {
+  const { common } = messagesFor(locale);
   const line = [
     place.windowStart ? formatGameClock(place.windowStart, locale) : null,
     playedDurationLabel(place.windowStart, place.windowEnd, locale),
-    place.venue?.city,
+    place.venue?.city ? common.isolate(place.venue.city) : null,
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(common.listSeparator);
   return line || null;
 }
 
@@ -268,6 +278,7 @@ export type PlayedPadelInput = PlayedPlace & {
   match: FriendlyGameHeroMatch;
   groupName: string | null;
   rated: boolean;
+  ratingScope?: GameRatingScope;
   ratingImpact: PlayedRatingImpact | null;
   confirmation: { confirmedByOrganizer?: boolean } | null;
 };
@@ -323,6 +334,7 @@ export function playedPadelModel(
 ): PlayedPadelModel {
   const messages = messagesFor(locale);
   const m = messages.game.played;
+  const scope = ratingScopeOf(input);
   const { a, b } = padelSidesInOrder(input.sides, input.viewerUserId);
   const viewerPlayed = padelViewerSide(input.sides, input.viewerUserId) != null;
   const slotA = a ? padelSlotOfSide(a, input.match) : 1;
@@ -375,7 +387,10 @@ export function playedPadelModel(
   const you: PlayedYouLine | null = viewerSide
     ? {
         line: partner ? m.playedWith(shortName(partner.name)) : m.playedAlone,
-        ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
+        ratingLine:
+          scope === "group"
+            ? gameRatingScopeLabel(scope, locale)
+            : playedRatingLine(input.rated, input.ratingImpact, locale),
         tag: youTag(youWord),
         won: aWon,
       }
@@ -414,8 +429,8 @@ export function playedPadelModel(
       value: m.sets(pairs.length),
     },
     {
-      label: m.countsForRatingLabel,
-      value: input.rated ? messages.common.yes : messages.common.no,
+      label: messages.you.ratingScope.title,
+      value: gameRatingScopeLabel(scope, locale),
     },
   ];
 
@@ -425,7 +440,7 @@ export function playedPadelModel(
     setLabels: pairs.map((_, index) => setShortLabel(index, locale)),
     board: [row(a, slotA, aWon), row(b, slotB, bWon)],
     result: { line: resultLine, hasWinner },
-    venueLine: playedVenueLine(input),
+    venueLine: playedVenueLine(input, locale),
     whenLine: playedWhenLine(input, locale),
     you,
     columns: [column("a", a, aWon), column("b", b, bWon)],
@@ -489,7 +504,7 @@ function footballRow(player: BoardPlayer, locale: Locale): PlayedRow {
     fullName: player.name,
     image: player.image,
     isYou: player.isViewer,
-    meta: slotCode(player),
+    meta: slotCode(player, locale),
     level: levelLabel(player.levelBand),
     trailing: player.goals > 0 ? goalsLabel(player.goals, locale) : null,
     unclaimed: Boolean(player.unclaimed),
@@ -560,7 +575,7 @@ export function playedFootballModel(
       ? {
           line: (() => {
             const team = viewerSide === 1 ? names.slot1 : names.slot2;
-            const code = slotCode(viewer);
+            const code = slotCode(viewer, locale);
             return code ? m.playedCodeFor(code, team) : m.playedFor(team);
           })(),
           ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
@@ -624,7 +639,7 @@ export function playedFootballModel(
       line: footballResultLine(input.score, names, locale),
       hasWinner,
     },
-    venueLine: playedVenueLine(input),
+    venueLine: playedVenueLine(input, locale),
     whenLine: playedWhenLine(input, locale),
     you,
     columns: [column("a", 1, slot1, slot1Won), column("b", 2, slot2, slot2Won)],

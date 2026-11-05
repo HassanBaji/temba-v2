@@ -388,7 +388,7 @@ describe("listPoolTables", () => {
       const viewerRound = poolOne?.viewerRounds.find(
         (round) => round.matchId === match.id,
       );
-      expect(viewerRound?.scoreLabel).toBe(slot1Won ? "6-3" : "3-6");
+      expect(viewerRound?.scoreLabel).toBe(slot1Won ? "6–3" : "3–6");
       expect(viewerRound?.viewerOutcome).toBe(slot1Won ? "won" : "lost");
       expect(
         poolOne?.matches.some(
@@ -439,8 +439,8 @@ describe("listPoolTables", () => {
       expect(viewerRound?.viewerOutcome).toBe("draw");
       expect(viewerRound?.scoreLabel).toBe(
         match.slot1GameTeamId === (await teamIdForSide(db, seeded.gameId, 1))
-          ? "6-4 4-6"
-          : "4-6 6-4",
+          ? "6–4 4–6"
+          : "4–6 6–4",
       );
     } finally {
       await close();

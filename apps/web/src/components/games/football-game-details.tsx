@@ -343,7 +343,7 @@ export function FootballGameDetails({
   const teamsHref = `/dashboard/games/${gameId}/teams`;
   const scoreHref = `/dashboard/games/${gameId}/score`;
   const canMakeTeams = board.data?.viewer.canMakeTeams ?? false;
-  const viewerCode = viewer ? slotCode(viewer) : null;
+  const viewerCode = viewer ? slotCode(viewer, locale) : null;
   const heroMuted =
     model.hero.tone === "ink" ? "text-dim" : "text-muted-foreground";
   const joinSubtitle = [

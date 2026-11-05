@@ -11,6 +11,12 @@ export const football = {
     upcoming: "قادمة",
     upcomingOn: (weekday: string) => `قادمة، ${weekday}`,
   },
+  positionCode: {
+    gk: "حارس",
+    def: "دفاع",
+    mid: "وسط",
+    fwd: "هجوم",
+  },
   lineup: {
     positions: {
       def: "مدافع",
@@ -32,7 +38,7 @@ export const football = {
     oneKeeperOneMoreNeeded: "حارس واحد، مطلوب حارس آخر",
     noKeeperYet: "لا حارس بعد",
     positionCountsLine: (def: number, mid: number, fwd: number, gk: number) =>
-      `المشاركون حتى الآن: ${def} DEF، ${mid} MID، ${fwd} FWD، ${gk} GK.`,
+      `المشاركون حتى الآن: ${def} دفاع، ${mid} وسط، ${fwd} هجوم، ${gk} حارس.`,
     bibs: {
       black: "أسود",
       white: "أبيض",
@@ -91,7 +97,7 @@ export const football = {
     seatKeeper: "حارس",
     seatPlayerPrefers: (code: string) => `لاعب، يفضّل ${code}`,
     joinAsKeeper: "انضم كحارس",
-    joinAsPosition: (code: string) => `انضم كـ${code}`,
+    joinAsPosition: (code: string) => `انضم بمركز ${code}`,
     joinWithPrice: (lead: string, price: string) => `${lead}، ${price}`,
     seatsOpen: (n: number) =>
       plural("ar", n, {
@@ -138,7 +144,8 @@ export const football = {
       `بانتظار ${first} و${second}.`,
     waitingOrganizerBoth: "بانتظار تأكيد المنظّم عن الفريقين.",
     waitingEachSide: "بانتظار تأكيد لاعب واحد من كل فريق.",
-    youPlayInAs: (team: string, code: string) => `تلعب في ${team} كـ${code}.`,
+    youPlayInAs: (team: string, code: string) =>
+      `تلعب في ${team} بمركز ${code}.`,
     youPlayIn: (team: string) => `تلعب في ${team}.`,
   },
   details: {

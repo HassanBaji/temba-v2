@@ -4,7 +4,7 @@ import { AuthScreen } from "~/components/auth/auth-screen";
 import { getRequestLocale, getRequestMessages } from "~/lib/request-locale";
 import {
   TERMS_SECTIONS,
-  TERMS_UPDATED,
+  termsUpdatedLabel,
   type TermsClause,
 } from "@repo/domain/terms";
 
@@ -41,7 +41,7 @@ export default async function TermsPage() {
       wide
       backHref="/"
       backLabel={m.common.back}
-      eyebrow={m.webAuth.legal.lastUpdated(TERMS_UPDATED)}
+      eyebrow={m.webAuth.legal.lastUpdated(termsUpdatedLabel(locale))}
       title={m.webAuth.legal.termsTitle}
       description={m.webAuth.legal.termsDescription}
     >

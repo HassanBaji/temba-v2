@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
+
+import { messagesFor } from "@repo/i18n/messages";
 
 import type { BoardPlayer } from "./football-board";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
@@ -127,8 +130,30 @@ describe("playedPadelModel", () => {
     assert.deepEqual(model.facts, [
       { label: "Confirmed", value: "By both pairs" },
       { label: "Format", value: "3 sets" },
-      { label: "Counts for rating", value: "Yes" },
+      { label: "Rating", value: "Counts for Temba rating" },
     ]);
+  });
+
+  it("names a group rated Match by its Rating scope", () => {
+    const group = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match,
+        groupName: "Tuesday padel",
+        rated: false,
+        ratingScope: "group",
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(group.you?.ratingLine, "Counts for group rating");
+    assert.deepEqual(group.facts.at(-1), {
+      label: "Rating",
+      value: "Counts for group rating",
+    });
   });
 
   it("falls back to team labels for a viewer who did not play", () => {
@@ -162,8 +187,8 @@ describe("playedPadelModel", () => {
       value: "By the organizer",
     });
     assert.deepEqual(watcher.facts[3], {
-      label: "Counts for rating",
-      value: "No",
+      label: "Rating",
+      value: "Unrated",
     });
   });
 
@@ -184,17 +209,31 @@ describe("playedPadelModel", () => {
     assert.equal(arabic.dateLine.startsWith("لُعبت، "), true);
     assert.equal(arabic.tag, "بادل");
     assert.deepEqual(arabic.setLabels, ["ش1", "ش2", "ش3"]);
-    assert.equal(arabic.board[0].line, "أنت وMaryam K");
+    assert.equal(
+      arabic.board[0].line,
+      `${isolate("أنت")} و${isolate("Maryam K")}`,
+    );
     assert.equal(arabic.board[0].word, "Won");
     assert.equal(playedWordLabel(arabic.board[0].word, "ar"), "فوز");
-    assert.equal(arabic.result.line, "أنت وMaryam يفوزون 2–1 في الأشواط");
-    assert.equal(arabic.you?.ratingLine, "تُحتسب في التصنيف، C+ يرتفع");
+    assert.equal(
+      arabic.result.line,
+      `${isolate("أنت")} و${isolate("Maryam")} يفوزون 2–1 في الأشواط`,
+    );
+    assert.equal(
+      arabic.you?.ratingLine,
+      `تُحتسب في التصنيف، ${isolate("C+")} يرتفع`,
+    );
+    assert.equal(
+      arabic.venueLine,
+      `${isolate("Padel Hub")}، ${isolate("Court 3")}`,
+    );
+    assert.equal(arabic.whenLine?.endsWith(`، ${isolate("Janabiyah")}`), true);
     assert.equal(arabic.you?.tag, "WON");
     assert.equal(playedTagLabel("WON", "ar"), "فوز");
     assert.equal(arabic.columns[0].players[0]?.meta, "يسار");
     assert.deepEqual(arabic.facts[2], {
-      label: "يُحتسب في التصنيف",
-      value: "نعم",
+      label: messagesFor("ar").you.ratingScope.title,
+      value: messagesFor("ar").you.ratingScope.temba,
     });
   });
 });

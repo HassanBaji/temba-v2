@@ -160,6 +160,20 @@ describe("bookings.createGame", () => {
       await expect(
         requireGame(asDb(db), onVerified.gameId),
       ).resolves.toMatchObject({ groupId: verified!.id, rated: true });
+
+      const holder = { userId: f.customer, publicMetadata: undefined };
+      const looseView = await bookingById(asDb(db), {
+        bookingId: first.id,
+        actor: holder,
+        now: NOW,
+      });
+      const verifiedView = await bookingById(asDb(db), {
+        bookingId: second.id,
+        actor: holder,
+        now: NOW,
+      });
+      expect(looseView.game?.ratingScope).toBe("group");
+      expect(verifiedView.game?.ratingScope).toBe("temba");
     });
   });
 

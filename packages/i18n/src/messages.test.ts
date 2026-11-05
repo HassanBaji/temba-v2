@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { isolate } from "./bidi";
 import { ar } from "./messages/ar/index";
 import { en } from "./messages/en/index";
 
@@ -60,5 +61,14 @@ describe("message catalogs", () => {
         expect(arabic.test(leaf), `ar.${path} reads "${leaf}"`).toBe(true);
       }
     }
+  });
+
+  it("keeps a Latin name apart from the record that follows it", () => {
+    expect(ar.webUi.player.matchesSubtitle("Omar Aziz", "3 فوز، 2 خسارة")).toBe(
+      `${isolate("Omar Aziz")}، 3 فوز، 2 خسارة`,
+    );
+    expect(en.webUi.player.matchesSubtitle("Omar Aziz", "3 won, 2 lost")).toBe(
+      "Omar Aziz, 3 won, 2 lost",
+    );
   });
 });

@@ -237,6 +237,10 @@ describe("merge screen copy", () => {
     assert.equal(mergeTeamEyebrow(12, "en"), "TEAM 12");
     assert.equal(mergeOccupantSubline("left", "C+", "en"), "Left, C+");
     assert.equal(mergeOccupantSubline("right", null, "en"), "Right");
+    assert.match(
+      mergeOccupantSubline("left", "C+", "ar"),
+      /، \u2068C\+\u2069$/u,
+    );
     assert.equal(mergeOpenPositionLabel("right", "en"), "Right open");
     assert.equal(
       mergeManyHalfTeamsCopy(3, "en"),

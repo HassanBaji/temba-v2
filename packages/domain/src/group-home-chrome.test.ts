@@ -13,6 +13,7 @@ import {
   groupShowsLevel,
   groupStandingRecordLabel,
   levelCellView,
+  viewerMaySetGroupLevel,
 } from "./group-home-chrome";
 
 describe("groupHomeBackTarget", () => {
@@ -159,8 +160,8 @@ describe("groupHomeShowsMemberSearch", () => {
 
 describe("groupStandingRecordLabel", () => {
   it("draws the W-L pair, zero included", () => {
-    assert.equal(groupStandingRecordLabel(18, 6), "18-6");
-    assert.equal(groupStandingRecordLabel(0, 0), "0-0");
+    assert.equal(groupStandingRecordLabel(18, 6), "18–6");
+    assert.equal(groupStandingRecordLabel(0, 0), "0–0");
   });
 });
 
@@ -235,6 +236,49 @@ describe("groupMemberOrganizerAction", () => {
     assert.equal(
       groupMemberOrganizerAction({ ...player, unclaimed: true }),
       null,
+    );
+  });
+});
+
+describe("viewerMaySetGroupLevel", () => {
+  const viewer = { isViewer: true, isOrganizer: false };
+  const organizer = { isViewer: true, isOrganizer: true };
+
+  it("lets an Organizer of a padel Group set Group Levels", () => {
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "padel",
+        canCreateGame: true,
+        leaderboard: [viewer],
+      }),
+      true,
+    );
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "padel",
+        canCreateGame: false,
+        leaderboard: [organizer],
+      }),
+      true,
+    );
+  });
+
+  it("refuses a member who does not organize, and a football Group", () => {
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "padel",
+        canCreateGame: false,
+        leaderboard: [viewer],
+      }),
+      false,
+    );
+    assert.equal(
+      viewerMaySetGroupLevel({
+        sport: "football",
+        canCreateGame: true,
+        leaderboard: [organizer],
+      }),
+      false,
     );
   });
 });

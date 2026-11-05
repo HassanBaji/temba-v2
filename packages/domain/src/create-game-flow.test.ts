@@ -1,13 +1,18 @@
 import { zonedParts } from "@repo/domain/product-timezone";
 import { bahrainDate } from "@repo/domain/bahrain-date.test-support";
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { messagesFor } from "@repo/i18n/messages";
 import { describe, it } from "vitest";
 
 import { sizeFriendlyTournament } from "@repo/domain/tournament-sizing";
 import {
+  friendlyTournamentCourtsLabel,
+  friendlyTournamentPreviewDetail,
   createFlowPriceChips,
   createGameTypeCards,
+  createRatingChoice,
+  createRatingChoiceShown,
   applyLevelBoundChange,
   createFlowFirstStep,
   createFlowLaterSteps,
@@ -457,6 +462,28 @@ describe("when helpers", () => {
     });
     assert.equal(lines.length, 2);
     assert.equal(lines[1], "Karbabad Courts, Court 2");
+  });
+});
+
+describe("friendly tournament Courts", () => {
+  it("joins Court names with the list separator", () => {
+    assert.equal(
+      friendlyTournamentCourtsLabel(["Court 1", "Court 2"], "en"),
+      "Court 1, Court 2",
+    );
+    assert.equal(
+      friendlyTournamentCourtsLabel(["Court 1", "Court 2"], "ar"),
+      `${isolate("Court 1")}، ${isolate("Court 2")}`,
+    );
+    assert.equal(
+      friendlyTournamentPreviewDetail({
+        day: "",
+        venueName: "Padel Hub",
+        courtNames: ["Court 1", "Court 2"],
+        locale: "en",
+      }),
+      "Padel Hub · Court 1, Court 2",
+    );
   });
 });
 
@@ -1015,6 +1042,74 @@ describe("football create flow", () => {
       ),
       /Skip pitch\./,
     );
+  });
+});
+
+describe("Rating choice", () => {
+  it("shows only for a padel Game on a Group", () => {
+    assert.equal(
+      createRatingChoiceShown({ sport: "padel", hasGroup: true }),
+      true,
+    );
+    assert.equal(
+      createRatingChoiceShown({ sport: "football", hasGroup: true }),
+      false,
+    );
+    assert.equal(
+      createRatingChoiceShown({ sport: "padel", hasGroup: false }),
+      false,
+    );
+  });
+
+  it("describes Rated by the Group's scope and notes the picked one", () => {
+    const verified = createRatingChoice({
+      groupVerified: true,
+      rated: true,
+      locale: "en",
+    });
+    assert.equal(verified.title, "Rating");
+    assert.equal(verified.scope, "temba");
+    assert.equal(verified.scopeLabel, "Counts for Temba rating");
+    assert.deepEqual(
+      verified.options.map((option) => [
+        option.rated,
+        option.label,
+        option.description,
+      ]),
+      [
+        [true, "Rated", "Counts for Temba rating"],
+        [false, "Unrated", null],
+      ],
+    );
+    assert.equal(verified.note, messagesFor("en").you.ratingScope.temba_note);
+
+    const loose = createRatingChoice({
+      groupVerified: false,
+      rated: true,
+      locale: "en",
+    });
+    assert.equal(loose.scope, "group");
+    assert.equal(loose.options[0]?.description, "Counts for group rating");
+    assert.equal(loose.note, messagesFor("en").you.ratingScope.group_note);
+
+    const unrated = createRatingChoice({
+      groupVerified: true,
+      rated: false,
+      locale: "en",
+    });
+    assert.equal(unrated.scope, "unrated");
+    assert.equal(unrated.scopeLabel, "Unrated");
+    assert.equal(unrated.note, messagesFor("en").you.ratingScope.unrated_note);
+  });
+
+  it("reads in Arabic", () => {
+    const choice = createRatingChoice({
+      groupVerified: false,
+      rated: true,
+      locale: "ar",
+    });
+    assert.equal(choice.title, messagesFor("ar").you.ratingScope.title);
+    assert.equal(choice.scopeLabel, messagesFor("ar").you.ratingScope.group);
   });
 });
 

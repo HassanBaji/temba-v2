@@ -1,8 +1,6 @@
-const FALLBACK_INITIALS = "?";
+import { nameInitial } from "./player-name";
 
-function firstGrapheme(value: string): string | undefined {
-  return Array.from(value)[0];
-}
+const FALLBACK_INITIALS = "?";
 
 export function initials(name: string): string {
   const parts = name
@@ -14,7 +12,7 @@ export function initials(name: string): string {
     return FALLBACK_INITIALS;
   }
 
-  const first = firstGrapheme(parts[0]!);
+  const first = nameInitial(parts[0]!);
   if (!first) {
     return FALLBACK_INITIALS;
   }
@@ -23,7 +21,7 @@ export function initials(name: string): string {
     return first.toUpperCase();
   }
 
-  const last = firstGrapheme(parts[parts.length - 1]!);
+  const last = nameInitial(parts[parts.length - 1]!);
   if (!last) {
     return first.toUpperCase();
   }

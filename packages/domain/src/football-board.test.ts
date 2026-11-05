@@ -267,7 +267,7 @@ describe("score draft", () => {
         arabicNames,
         "ar",
       ),
-    ).toBe("تلعب في أبيض كـDEF.");
+    ).toBe("تلعب في أبيض بمركز دفاع.");
     expect(keeperSub([player("a")], "ar")).toBe("تبقّى مكانان");
   });
 

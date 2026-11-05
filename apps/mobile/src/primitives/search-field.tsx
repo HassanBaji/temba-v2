@@ -4,9 +4,11 @@ import { forwardRef } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
+import { isLayoutRtl } from "../i18n/rtl";
 import { fontFamilyFor } from "./font-family";
 import { hairline } from "./hairline-width";
 import { Text } from "./text";
+import { inputDirectionStyle } from "./text-direction";
 
 const FIELD_HEIGHT = 46;
 
@@ -29,7 +31,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
           flexDirection: "row",
           alignItems: "center",
           gap: 10,
-          paddingLeft: 14,
+          paddingStart: 14,
           borderRadius: radii.lg,
           borderWidth: hairline,
           borderColor: tone === "wash" ? colors.rule : colors.ink,
@@ -63,6 +65,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(
               mono: false,
             }),
             fontSize: typeScale.body.size,
+            ...inputDirectionStyle(isLayoutRtl()),
           }}
         />
         {value ? (

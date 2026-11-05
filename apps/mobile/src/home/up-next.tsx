@@ -1,7 +1,7 @@
 import { colors, radii, sizes, spacing } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
-import { unratedLabel } from "@repo/domain/game-rating-impact";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import {
   homeGameKind,
@@ -91,8 +91,8 @@ function Chip({ sport, kind }: { sport: Sport; kind: string }) {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        paddingLeft: 6,
-        paddingRight: 8,
+        paddingStart: 6,
+        paddingEnd: 8,
         paddingVertical: 3,
         borderRadius: radii.slot,
         borderWidth: hairline,
@@ -339,6 +339,7 @@ function GameHero({
   const day = relativeDay(startsAt, now, locale);
   const open = { kind: "game", gameId: game.id } as const;
   const [row] = homeComingUpRows([game], locale);
+  const ratingTag = ratingScopeTag(game, locale);
 
   if (row && row.kind !== "game") {
     const subline =
@@ -441,11 +442,11 @@ function GameHero({
     >
       <Kickoff startsAt={startsAt} endsAt={endsAt} />
       <Headline title={title} detail={place || null} pin />
-      {game.rated ? null : (
+      {ratingTag ? (
         <Text size="meta" weight="semibold">
-          {unratedLabel(locale)}
+          {ratingTag}
         </Text>
-      )}
+      ) : null}
     </HeroFrame>
   );
 }

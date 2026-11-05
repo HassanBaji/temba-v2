@@ -238,7 +238,30 @@ describe("submitRequest", () => {
       true,
     );
     expect(result.ok && result.request.kind).toBe("friendly_game");
+    if (result.ok && result.request.kind === "friendly_game") {
+      expect("rated" in result.request.input).toBe(false);
+    }
   });
+
+  it.each(["friendly_game", "friendly_tournament"] as const)(
+    "sends rated false once Unrated is picked for a %s",
+    (type) => {
+      const draft =
+        type === "friendly_game"
+          ? fixtures.drafts.gameReview
+          : fixtures.drafts.tournamentGroupsOnly;
+      const unrated = createReducer(stateAt(4, type, draft), {
+        kind: "setRated",
+        rated: false,
+      });
+      expect(unrated.draft.rated).toBe(false);
+      const result = submitRequest(unrated, NOW, false);
+      expect(result.ok).toBe(true);
+      if (result.ok && result.request.kind !== "football_game") {
+        expect(result.request.input.rated).toBe(false);
+      }
+    },
+  );
 
   it.each([
     "tournamentGroupsOnly",
@@ -413,6 +436,7 @@ describe("football create flow", () => {
       expect(result.request.input.playersAllowed).toBe(12);
       expect("sport" in result.request.input).toBe(false);
       expect("levelMinTenths" in result.request.input).toBe(false);
+      expect("rated" in result.request.input).toBe(false);
     }
   });
 

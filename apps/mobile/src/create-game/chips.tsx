@@ -18,6 +18,7 @@ export type Chip<T extends string | number> = {
   label: string;
   disabled?: boolean;
   accessibilityLabel?: string;
+  ltr?: boolean;
 };
 
 type ChipIcon = ComponentType<{ size: number; color: ColorValue }>;
@@ -33,6 +34,7 @@ export type ChoiceChipProps = {
   disabled?: boolean;
   dense?: boolean;
   fill?: boolean;
+  ltr?: boolean;
   accessibilityLabel?: string;
   onPress?: () => void;
 };
@@ -55,6 +57,7 @@ export function ChoiceChip({
   disabled = false,
   dense = false,
   fill = false,
+  ltr = false,
   accessibilityLabel,
   onPress,
 }: ChoiceChipProps) {
@@ -111,6 +114,7 @@ export function ChoiceChip({
           weight={selected ? "semibold" : "regular"}
           tone={escape ? "muted" : "default"}
           numberOfLines={fill ? FILL_CHIP_LINES : 1}
+          ltr={ltr}
           style={{ flexShrink: 1, textAlign: "center" }}
         >
           {label}
@@ -167,6 +171,7 @@ export function ChipGrid<T extends string | number>({
         check={check}
         dense={dense}
         fill={Boolean(columns)}
+        ltr={chip.ltr}
         disabled={chip.disabled}
         onPress={() => onSelect(chip.value)}
       />

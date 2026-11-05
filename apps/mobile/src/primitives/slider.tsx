@@ -8,11 +8,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { isLayoutRtl } from "../i18n/rtl";
 import { hairline } from "./hairline-width";
 import {
   sliderLabelLeft,
+  sliderThumbTranslateX,
   sliderValueFromDrag,
   sliderX,
+  type SliderDirection,
   type SliderTrack,
 } from "./slider-geometry";
 import { SurfaceToneContext } from "./surface-context";
@@ -59,14 +62,15 @@ export function Slider({
   const reducedMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
   const track: SliderTrack = { min, max, width, thumb: THUMB };
-  const latest = useRef({ value, track, onValueChange, disabled });
+  const direction: SliderDirection = isLayoutRtl() ? "rtl" : "ltr";
+  const latest = useRef({ value, track, direction, onValueChange, disabled });
   const startValue = useRef(value);
   const dragging = useRef(false);
   const settled = useRef(false);
   const x = useSharedValue(0);
 
   useEffect(() => {
-    latest.current = { value, track, onValueChange, disabled };
+    latest.current = { value, track, direction, onValueChange, disabled };
   });
 
   useEffect(() => {
@@ -94,6 +98,7 @@ export function Slider({
             startValue.current,
             gesture.dx,
             latest.current.track,
+            latest.current.direction,
           );
           if (next !== latest.current.value) {
             latest.current.onValueChange(next);
@@ -110,7 +115,9 @@ export function Slider({
   );
 
   const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value - THUMB / 2 }],
+    transform: [
+      { translateX: sliderThumbTranslateX(x.value, THUMB, direction) },
+    ],
   }));
   const fillStyle = useAnimatedStyle(() => ({ width: x.value }));
 
@@ -144,6 +151,7 @@ export function Slider({
             style={{
               position: "absolute",
               top: 0,
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: sliderLabelLeft(at(value), VALUE_LABEL_WIDTH, width),
               width: VALUE_LABEL_WIDTH,
               alignItems: "center",
@@ -183,6 +191,7 @@ export function Slider({
             pointerEvents="none"
             style={{
               position: "absolute",
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: at(marker.value) - hairline,
               width: 2 * hairline,
               height: MARKER_HEIGHT,
@@ -195,6 +204,7 @@ export function Slider({
           style={[
             {
               position: "absolute",
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: 0,
               width: THUMB,
               height: THUMB,
@@ -219,6 +229,7 @@ export function Slider({
             style={{
               position: "absolute",
               top: 0,
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: at(edge),
               width: hairline,
               height: TICK_HEIGHT,
@@ -234,6 +245,7 @@ export function Slider({
             style={{
               position: "absolute",
               top: TICK_HEIGHT,
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: at(mark.value) - 20,
               width: 40,
               textAlign: "center",
@@ -256,6 +268,7 @@ export function Slider({
             numberOfLines={1}
             style={{
               position: "absolute",
+              // eslint-disable-next-line no-restricted-syntax -- slider internals: slider-geometry.ts pairs these offsets with a physical translateX
               left: sliderLabelLeft(
                 at(marker.value),
                 MARKER_LABEL_WIDTH,

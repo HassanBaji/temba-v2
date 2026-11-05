@@ -32,6 +32,8 @@ import {
 } from "@repo/domain/game-card";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameFormatLabel } from "@repo/domain/game-format-label";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import {
   gameCardActionLabel,
   gameCardActionSolid,
@@ -315,6 +317,7 @@ export function GameSummaryCard({
   roundLabel,
   courtName,
   rated = true,
+  ratingScope,
 }: {
   name: string | null;
   /** Omitted by callers that predate it, which keep showing `name` as given. */
@@ -349,6 +352,7 @@ export function GameSummaryCard({
   roundLabel?: string | null;
   courtName?: string | null;
   rated?: boolean;
+  ratingScope?: GameRatingScope;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -356,6 +360,7 @@ export function GameSummaryCard({
   const [startAtPartner, setStartAtPartner] = React.useState(false);
   const [now, setNow] = React.useState(() => new Date());
   const startDate = startTime instanceof Date ? startTime : new Date(startTime);
+  const ratingTag = ratingScopeTag({ rated, ratingScope }, locale);
 
   React.useEffect(() => {
     const timer = window.setInterval(() => {
@@ -518,9 +523,9 @@ export function GameSummaryCard({
                 </span>
               ) : null}
             </span>
-            {!rated ? (
-              <Badge variant="outline" data-slot="game-card-unrated">
-                {m.common.unrated}
+            {ratingTag ? (
+              <Badge variant="outline" data-slot="game-card-rating-scope">
+                {ratingTag}
               </Badge>
             ) : null}
             {cancelled ? (

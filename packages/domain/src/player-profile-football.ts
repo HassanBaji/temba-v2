@@ -4,7 +4,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import { formatDayMonth } from "./format-game-start";
 import { gameDisplayName } from "./game-custom-name";
 import {
-  KEEPER_CODE,
+  footballKeeperCode,
   footballPositionChoices,
   footballPositionCode,
   type FootballPosition,
@@ -114,7 +114,7 @@ export function footballRoleView(
 ): FootballRoleView {
   const m = messagesFor(locale).profile;
   if (input.role === "keeper") {
-    return { label: m.football.keeper, code: KEEPER_CODE };
+    return { label: m.football.keeper, code: footballKeeperCode(locale) };
   }
   if (input.role == null) {
     return { label: m.player.noPreferenceSet, code: null };
@@ -123,7 +123,10 @@ export function footballRoleView(
     (choice) => choice.value === input.position,
   );
   return position
-    ? { label: position.label, code: footballPositionCode(position.value) }
+    ? {
+        label: position.label,
+        code: footballPositionCode(position.value, locale),
+      }
     : { label: m.football.outfield, code: null };
 }
 

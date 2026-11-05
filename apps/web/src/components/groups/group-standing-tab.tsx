@@ -106,6 +106,7 @@ function PlayerCell({
   const name = entry.name ?? m.community.memberFallback;
   const label = (
     <span
+      dir="auto"
       className={cn(
         "text-body block min-w-0 truncate",
         entry.isViewer && "font-semibold",
@@ -423,6 +424,7 @@ function Podium({
             </span>
             <span className="flex min-w-0 flex-1 items-center gap-1.5">
               <span
+                dir="auto"
                 className={cn(
                   "text-body truncate",
                   entry.isViewer && "font-semibold",
@@ -556,7 +558,7 @@ function LensChips({
     <div
       role="tablist"
       aria-label={m.webGroup.standing.seasonLens}
-      className="border-rule -mx-1 flex gap-1 overflow-x-auto border-b px-1"
+      className="border-rule -mx-1 flex gap-1 overflow-x-auto overflow-y-hidden border-b px-1"
     >
       {seasonLensChips(seasons, now, locale).map((chip) => {
         const selected = chip.seasonId === lensId;
@@ -643,6 +645,7 @@ function StandingPreview({
                 {linkToPlayers ? (
                   <Link
                     href={playerProfilePath(entry.userId)}
+                    dir="auto"
                     className={cn(
                       "text-body block min-w-0 truncate after:absolute after:inset-0",
                       entry.isViewer && "font-semibold",
@@ -652,6 +655,7 @@ function StandingPreview({
                   </Link>
                 ) : (
                   <span
+                    dir="auto"
                     className={cn(
                       "text-body block min-w-0 truncate",
                       entry.isViewer && "font-semibold",

@@ -162,9 +162,27 @@ export function groupMemberOrganizerToast(
   return action === "appoint" ? m.appointed(name) : m.dismissed(name);
 }
 
-/** The Standing W-L column: `{wins}-{losses}`, drawn even at `0-0`. */
+/**
+ * An Organizer of the Group (creator, appointed Organizer, Club Group Owner
+ * or Admin) sets other members' Group Levels (ADR-0053). `canCreateGame` is
+ * that check for a viewer outside the Standing; it also closes while a Club
+ * Community is archived, so the viewer's own Organizer mark is read too.
+ */
+export function viewerMaySetGroupLevel(group: {
+  sport: string | null | undefined;
+  canCreateGame: boolean;
+  leaderboard: readonly { isViewer: boolean; isOrganizer: boolean }[];
+}) {
+  return (
+    groupShowsLevel(group.sport) &&
+    (group.canCreateGame ||
+      group.leaderboard.some((entry) => entry.isViewer && entry.isOrganizer))
+  );
+}
+
+/** The Standing W-L column: `{wins}–{losses}`, drawn even at `0–0`. */
 export function groupStandingRecordLabel(wins: number, losses: number) {
-  return `${wins}-${losses}`;
+  return `${wins}–${losses}`;
 }
 
 export type LevelCellView =

@@ -63,6 +63,34 @@ const noDirectFont = [
   },
 ];
 
+const PHYSICAL_SIDE =
+  "^(marginLeft|marginRight|paddingLeft|paddingRight|borderLeft.*|borderRight.*)$";
+const PHYSICAL_SIDE_MESSAGE =
+  "Use logical sides so RTL mirrors: marginStart/End, paddingStart/End, borderStart*/borderEnd*, start/end. Deliberately physical geometry takes an eslint-disable comment that says why.";
+
+// A `left` and `right` set together is a symmetric pair and mirrors on its own.
+// A lone `left` holding words or a choice of values is copy ("Left: …"), not geometry.
+const noPhysicalSide = [
+  {
+    selector: `Property[key.name=/${PHYSICAL_SIDE}/]`,
+    message: PHYSICAL_SIDE_MESSAGE,
+  },
+  {
+    selector: `Property[key.value=/${PHYSICAL_SIDE}/]`,
+    message: PHYSICAL_SIDE_MESSAGE,
+  },
+  {
+    selector:
+      "ObjectExpression:not(:has(> Property[key.name='right'])) > Property[key.name='left']:not([value.type='ConditionalExpression']):not([value.type='Literal'][value.value=/[A-Za-z]/])",
+    message: PHYSICAL_SIDE_MESSAGE,
+  },
+  {
+    selector:
+      "ObjectExpression:not(:has(> Property[key.name='left'])) > Property[key.name='right']:not([value.type='ConditionalExpression']):not([value.type='Literal'][value.value=/[A-Za-z]/])",
+    message: PHYSICAL_SIDE_MESSAGE,
+  },
+];
+
 const noMountProps = [
   {
     selector: "JSXAttribute[name.name=/^(entering|exiting|layout)$/]",
@@ -90,6 +118,7 @@ export default [
         noRawColor,
         noDirectFont,
         noMountProps,
+        noPhysicalSide,
       ),
     },
   }),
@@ -100,13 +129,23 @@ export default [
       "src/primitives/search-field.tsx",
     ],
     rules: {
-      "no-restricted-syntax": restrict(noShadow, noRawColor, noMountProps),
+      "no-restricted-syntax": restrict(
+        noShadow,
+        noRawColor,
+        noMountProps,
+        noPhysicalSide,
+      ),
     },
   }),
   ...tseslint.config({
     files: ["src/primitives/mount-fill.tsx", "src/primitives/mount-draw.tsx"],
     rules: {
-      "no-restricted-syntax": restrict(noShadow, noRawColor, noDirectFont),
+      "no-restricted-syntax": restrict(
+        noShadow,
+        noRawColor,
+        noDirectFont,
+        noPhysicalSide,
+      ),
     },
   }),
 ];

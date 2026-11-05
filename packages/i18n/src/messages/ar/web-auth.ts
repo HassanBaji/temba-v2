@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { webAuth as source } from "../en/web-auth";
 
@@ -53,7 +54,7 @@ export const webAuth = {
     newCodeSent: "أُرسل رمز جديد",
   },
   verify: {
-    sentTo: (destination: string) => `أُرسل إلى ${destination}.`,
+    sentTo: (destination: string) => `أُرسل إلى ${isolate(destination)}.`,
     verify: "تحقق",
     verifying: "جارٍ التحقق…",
     helper: "يُفعَّل الزر عند إدخال ستة أرقام",

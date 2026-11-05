@@ -37,6 +37,7 @@ export function PlayerLevelCard({
       <p className="mt-2 flex items-baseline gap-3">
         <span
           aria-hidden="true"
+          dir="ltr"
           className="font-expanded text-[48px] leading-none"
         >
           {view.displayBand}

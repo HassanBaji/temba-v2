@@ -50,16 +50,20 @@ function playerMeta(
     ratedMatchCount: number;
   },
   o: Messages["webDashboard"]["operator"]["levels"],
-) {
-  const parts = [
-    player.unclaimed
-      ? o.unclaimedPlayer
-      : player.username
-        ? `@${player.username}`
-        : null,
-    o.ratedMatches(player.ratedMatchCount),
-  ];
-  return parts.filter(Boolean).join(" · ");
+): React.ReactNode {
+  const lead = player.unclaimed ? (
+    o.unclaimedPlayer
+  ) : player.username ? (
+    <bdi dir="ltr">@{player.username}</bdi>
+  ) : null;
+  const rated = o.ratedMatches(player.ratedMatchCount);
+  return lead ? (
+    <>
+      {lead} · {rated}
+    </>
+  ) : (
+    rated
+  );
 }
 
 export default function OperatorLevelsPage() {

@@ -42,84 +42,44 @@ const SLIDER_MARKS = LEVEL_SLIDER_TICKS.letters.map((letter) => ({
   label: letter.label,
 }));
 
-function SetLevelForm({
-  groupId,
-  view,
+/**
+ * The readout, slider and stepper of a Level override, shared by the Level
+ * setter and the Group Level override.
+ */
+export function LevelPicker({
+  tenths,
+  onTenths,
+  currentTenths,
+  wasLabel,
+  markerLabel,
+  disabled = false,
 }: {
-  groupId: string;
-  view: SetLevelView;
+  tenths: number;
+  onTenths: (tenths: number) => void;
+  currentTenths: number;
+  wasLabel: string;
+  /** Names the slider marker at `currentTenths`; null draws none. */
+  markerLabel?: string | null;
+  disabled?: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const copy = m.mobileGroup.setLevel;
-  const reasonChips = LEVEL_OVERRIDE_REASONS.map((value) => ({
-    value,
-    label: levelOverrideReasonLabel(value, locale),
-  }));
-  const router = useRouter();
-  const utils = api.useUtils();
-  const [tenths, setTenths] = useState(view.currentTenths);
-  const [reason, setReason] = useState<LevelOverrideReason | null>(null);
-
-  const setLevel = api.ratings.setLevel.useMutation({
-    onSuccess: async () => {
-      await utils.groups.byId.invalidate({ id: groupId });
-      router.dismissTo(
-        savedLevelPath(groupId, {
-          name: view.name,
-          levelLabel: levelSliderLabel(tenths),
-          reason,
-        }),
-      );
-    },
-  });
-
-  const readout = levelSliderReadout({
-    tenths,
-    currentTenths: view.currentTenths,
-  });
-  const error = setLevel.error
-    ? splitTrpcFormError(setLevel.error).globalMessage
-    : null;
+  const readout = levelSliderReadout({ tenths, currentTenths, locale });
 
   function step(delta: number) {
-    setTenths((value) => clampLevelTenths(value + delta));
+    onTenths(clampLevelTenths(tenths + delta));
   }
 
   return (
-    <Screen
-      footer={
-        <View style={{ flex: 1, gap: 10 }}>
-          <Text>{view.note}</Text>
-          <Button
-            label={setLevelConfirmLabel(tenths, locale)}
-            size="lg"
-            disabled={setLevelUnchanged(view, tenths)}
-            pending={setLevel.isPending}
-            onPress={() =>
-              setLevel.mutate({
-                groupId,
-                userId: view.userId,
-                levelTenths: tenths,
-                reason: reason ?? undefined,
-              })
-            }
-          />
-        </View>
-      }
-    >
-      <ScreenHeader
-        nav="back"
-        fallback={groupPath(groupId)}
-        title={copy.title(view.name)}
-      />
+    <>
       <Surface tone="ink" radius="card" style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text size="meta" weight="semibold">
             {copy.newLevel}
           </Text>
           <Text size="meta" tone="muted">
-            {view.wasLabel}
+            {wasLabel}
           </Text>
         </View>
         <View
@@ -132,13 +92,13 @@ function SetLevelForm({
           )}
           style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
         >
-          <Text size="hero" width="expanded" weight="bold">
+          <Text size="hero" width="expanded" weight="bold" ltr>
             {readout.displayBand}
           </Text>
           <Text size="h1" width="expanded" weight="bold">
             {readout.levelLabel}
           </Text>
-          <Text style={{ marginLeft: "auto" }}>{readout.deltaLabel}</Text>
+          <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text size="meta">
@@ -169,18 +129,24 @@ function SetLevelForm({
         min={LEVEL_TENTHS_MIN}
         max={LEVEL_TENTHS_MAX}
         value={tenths}
-        onValueChange={setTenths}
+        onValueChange={onTenths}
         label={m.common.level}
         valueText={levelSliderLabel(tenths)}
         startLabel={LEVEL_SLIDER_TICKS.startLabel}
         endLabel={LEVEL_SLIDER_TICKS.endLabel}
         edges={LEVEL_SLIDER_TICKS.edgesTenths}
         marks={SLIDER_MARKS}
-        marker={{
-          value: view.currentTenths,
-          label: copy.nowMarker(levelSliderLabel(view.currentTenths)),
-        }}
-        disabled={setLevel.isPending}
+        marker={
+          markerLabel === null
+            ? undefined
+            : {
+                value: currentTenths,
+                label:
+                  markerLabel ??
+                  copy.nowMarker(levelSliderLabel(currentTenths)),
+              }
+        }
+        disabled={disabled}
       />
 
       <View
@@ -217,10 +183,84 @@ function SetLevelForm({
         <Button
           label={copy.reset}
           variant="outline"
-          disabled={tenths === view.currentTenths}
-          onPress={() => setTenths(view.currentTenths)}
+          disabled={tenths === currentTenths}
+          onPress={() => onTenths(currentTenths)}
         />
       </View>
+    </>
+  );
+}
+
+function SetLevelForm({
+  groupId,
+  view,
+}: {
+  groupId: string;
+  view: SetLevelView;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGroup.setLevel;
+  const reasonChips = LEVEL_OVERRIDE_REASONS.map((value) => ({
+    value,
+    label: levelOverrideReasonLabel(value, locale),
+  }));
+  const router = useRouter();
+  const utils = api.useUtils();
+  const [tenths, setTenths] = useState(view.currentTenths);
+  const [reason, setReason] = useState<LevelOverrideReason | null>(null);
+
+  const setLevel = api.ratings.setLevel.useMutation({
+    onSuccess: async () => {
+      await utils.groups.byId.invalidate({ id: groupId });
+      router.dismissTo(
+        savedLevelPath(groupId, {
+          name: view.name,
+          levelLabel: levelSliderLabel(tenths),
+          reason,
+        }),
+      );
+    },
+  });
+
+  const error = setLevel.error
+    ? splitTrpcFormError(setLevel.error).globalMessage
+    : null;
+
+  return (
+    <Screen
+      footer={
+        <View style={{ flex: 1, gap: 10 }}>
+          <Text>{view.note}</Text>
+          <Button
+            label={setLevelConfirmLabel(tenths, locale)}
+            size="lg"
+            disabled={setLevelUnchanged(view, tenths)}
+            pending={setLevel.isPending}
+            onPress={() =>
+              setLevel.mutate({
+                groupId,
+                userId: view.userId,
+                levelTenths: tenths,
+                reason: reason ?? undefined,
+              })
+            }
+          />
+        </View>
+      }
+    >
+      <ScreenHeader
+        nav="back"
+        fallback={groupPath(groupId)}
+        title={copy.title(view.name)}
+      />
+      <LevelPicker
+        tenths={tenths}
+        onTenths={setTenths}
+        currentTenths={view.currentTenths}
+        wasLabel={view.wasLabel}
+        disabled={setLevel.isPending}
+      />
 
       <View style={{ gap: 8 }}>
         <Text weight="semibold">{copy.reason}</Text>

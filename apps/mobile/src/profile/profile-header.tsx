@@ -1,69 +1,62 @@
-import { playingSinceLine } from "@repo/domain/profile-all-time";
-import {
-  preferredPositionProfileLine,
-  type PreferredPosition,
-} from "@repo/domain/preferred-position";
+import { radii } from "@repo/design-tokens";
+import { Pencil, Settings } from "lucide-react-native";
 import { View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
-import { useLocale, useMessages } from "../i18n/locale-provider";
-import { Button } from "../primitives/button";
+import { InitialsTile } from "../primitives/initials-tile";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 
 export function ProfileHeader({
   name,
   imageUri,
-  position,
-  firstMatchAt,
-  changingPhoto,
-  onChangePhoto,
+  line,
+  onEdit,
+  onSettings,
 }: {
   name: string;
   imageUri: string | null;
-  position: PreferredPosition | null;
-  firstMatchAt: Date | string | null;
-  changingPhoto: boolean;
-  onChangePhoto: () => void;
+  line: string | null;
+  onEdit: () => void;
+  onSettings: () => void;
 }) {
   const m = useMessages();
-  const locale = useLocale();
-  const lines = [
-    preferredPositionProfileLine(position, locale),
-    playingSinceLine(firstMatchAt, locale),
-  ].filter((line): line is string => line != null);
-
   return (
-    <View style={{ gap: 14 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <Avatar name={name} uri={imageUri} size="xl" />
+    <ScreenHeader
+      title={m.you.header.title}
+      actions={
+        <>
+          <HeaderIconButton
+            icon={Pencil}
+            accessibilityLabel={m.you.header.edit}
+            onPress={onEdit}
+          />
+          <HeaderIconButton
+            icon={Settings}
+            accessibilityLabel={m.you.header.settings}
+            onPress={onSettings}
+          />
+        </>
+      }
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        {imageUri ? (
+          <Avatar name={name} uri={imageUri} size="court" radius={radii.md} />
+        ) : (
+          <InitialsTile name={name} size="lg" />
+        )}
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text
-            size="h2"
-            weight="semibold"
-            numberOfLines={1}
-            accessibilityRole="header"
-          >
+          <Text size="h2" weight="semibold" numberOfLines={1}>
             {name}
           </Text>
-          {lines.map((line) => (
-            <Text key={line} size="meta" tone="muted" numberOfLines={1}>
+          {line ? (
+            <Text size="meta" tone="muted" numberOfLines={1}>
               {line}
             </Text>
-          ))}
+          ) : null}
         </View>
       </View>
-      <View style={{ flexDirection: "row" }}>
-        <Button
-          label={
-            imageUri
-              ? m.mobileHome.profileHeader.editPhoto
-              : m.mobileHome.profileHeader.addPhoto
-          }
-          variant="outline"
-          pending={changingPhoto}
-          onPress={onChangePhoto}
-        />
-      </View>
-    </View>
+    </ScreenHeader>
   );
 }

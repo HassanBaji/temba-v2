@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import type { level as source } from "../en/level";
 
 export const level = {
@@ -12,12 +13,12 @@ export const level = {
   rangeOutsideParty: "مستوى أحد المستخدمين خارج نطاق هذه المباراة",
   rangePartner: "مستوى ذلك المستخدم خارج نطاق هذه المباراة",
   rangeTeam: "مستوى أحد شركاء الفريق خارج نطاق هذه المباراة",
-  andUp: (band: string) => `${band} فما فوق`,
-  andUnder: (band: string) => `${band} فما دون`,
+  andUp: (band: string) => `${isolate(band)} فما فوق`,
+  andUnder: (band: string) => `${isolate(band)} فما دون`,
   prose: (label: string) => `المستوى ${label}`,
   gateNoLevel: "ليس لديك مستوى بعد. حدّد واحدًا في «أنت»، أو اطلب اللعب.",
   gate: (range: string, band: string) =>
-    `هذه المباراة مخصصة لمن هم في ${range}. مستواك ${band}.`,
+    `هذه المباراة مخصصة لمن هم في ${range}. مستواك ${isolate(band)}.`,
   gateRangeFallback: "نطاق هذه المباراة",
   request: {
     title: "طلب اللعب",

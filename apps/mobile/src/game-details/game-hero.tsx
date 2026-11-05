@@ -12,6 +12,7 @@ import { ResultMark } from "../primitives/result-mark";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { FigurePair } from "./figure-pair";
 import { HeroTopLine } from "./hero-top-line";
@@ -203,9 +204,7 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
           </View>
         ) : null}
         {model.setLine ? (
-          <Text size="meta" tone="muted">
-            {model.setLine}
-          </Text>
+          <ScoreLine score={model.setLine} size="meta" tone="muted" />
         ) : null}
         <View>
           {model.venueName ? (

@@ -150,8 +150,8 @@ export function PlayedEmpty() {
               alignItems: "center",
               gap: 4,
               paddingVertical: 16,
-              borderLeftWidth: index > 0 ? hairline : 0,
-              borderLeftColor: colors.rule,
+              borderStartWidth: index > 0 ? hairline : 0,
+              borderStartColor: colors.rule,
             }}
           >
             <Text size="title" width="expanded" weight="bold" tone="muted">

@@ -232,7 +232,10 @@ function SideHalf({
       }}
     >
       {labelBelow ? null : label}
-      <View style={{ flexDirection: "row" }}>
+      <View
+        // Physical on purpose: Left and Right are court sides, not reading order.
+        style={{ flexDirection: "row", direction: "ltr" }}
+      >
         {(["left", "right"] as const).map((position, index) => {
           const seat = side[position];
           return (

@@ -55,7 +55,7 @@ export const mobileTournament = {
     in: "مشاركون",
     teamsNotSet: "الفرق غير جاهزة",
     youPlayIn: (team: string) => `تلعب في ${team}`,
-    asCode: (code: string) => `كـ${code}`,
+    asCode: (code: string) => `بمركز ${code}`,
     enteredBy: (name: string) => `أدخلها ${name}`,
     scoreIn: "النتيجة مُدخلة",
     scoreMissing: "النتيجة ناقصة",

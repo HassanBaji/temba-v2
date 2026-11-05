@@ -276,7 +276,7 @@ export const webDashboard = {
     groups: {
       title: "Verify Groups",
       description:
-        "Only a Verified Group can host Rated Games and open a Game to anyone with the link. Removing verification leaves existing Games unchanged.",
+        "Only a Verified Group's Games count for the Temba rating, and only it can open a Game to anyone with the link. Removing verification leaves existing Games unchanged.",
       verifiedToast: "Group verified",
       unverifiedToast: "Verification removed",
       searchLabel: "Search Groups",
@@ -298,7 +298,7 @@ export const webDashboard = {
       removeConfirm: {
         title: (name: string) => `Remove verification from ${name}?`,
         description:
-          "Existing Games keep their Rated and public settings. New Games in this Group will be Unrated and private.",
+          "Existing Games keep their rating and public settings. New Games in this Group will count for the group rating only and be private.",
       },
     },
     levels: {

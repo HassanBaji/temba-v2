@@ -40,6 +40,7 @@ export function PasswordField({
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!visible}
+        ltr
         autoCapitalize="none"
         autoCorrect={false}
         editable={editable}

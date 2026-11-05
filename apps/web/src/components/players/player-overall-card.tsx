@@ -7,7 +7,7 @@ export function PlayerOverallCard({ view }: { view: PlayerOverallView }) {
       <SurfaceLabel inset="profile" meta={view.scope}>
         {view.title}
       </SurfaceLabel>
-      <dl className="border-rule divide-rule grid grid-cols-2 divide-x border-t [&>div:nth-child(n+3)]:border-t">
+      <dl className="border-rule grid grid-cols-2 border-t [&>div:nth-child(n+3)]:border-t [&>div:nth-child(odd)]:border-e">
         {view.tiles.map((tile) => (
           <div key={tile.label} className="border-rule px-5 py-4">
             <dt className="text-meta text-muted-foreground">{tile.label}</dt>

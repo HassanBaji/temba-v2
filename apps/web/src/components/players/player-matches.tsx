@@ -82,7 +82,10 @@ export function PlayerMatches({ userId }: { userId: string }) {
           {m.webUi.player.lastTenGames}
         </h1>
         <p className="text-meta text-muted-foreground mt-1">
-          {`${data.player.name}, ${lastTenSummary(data.lastMatches, locale).record}`}
+          {m.webUi.player.matchesSubtitle(
+            data.player.name,
+            lastTenSummary(data.lastMatches, locale).record,
+          )}
         </p>
       </div>
       <div

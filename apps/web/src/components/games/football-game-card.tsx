@@ -22,6 +22,7 @@ import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import Link from "next/link";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { ScoreText } from "~/components/temba/score-text";
 import { Button } from "~/components/ui/button";
 
 import { BibChip, bibStyle } from "./football-bibs";
@@ -161,11 +162,11 @@ function ResultBody({ game }: { game: HubGameRow }) {
             </p>
           ) : null}
         </div>
-        <span className="font-expanded text-h1 tabular-nums">
+        <ScoreText className="font-expanded text-h1">
           {football.score
             ? `${football.score.slot1} – ${football.score.slot2}`
             : "– –"}
-        </span>
+        </ScoreText>
         <div className="min-w-0 flex-1 text-end">
           <p className="font-semibold">{name(2)}</p>
           {viewerSide === 2 ? (
@@ -215,7 +216,11 @@ function TeamsBody({ game }: { game: HubGameRow }) {
   const viewerSide = football.sides?.find(
     (side) => side.sideIndex === football.viewer.sideIndex,
   );
-  const code = footballSlotCode(football.viewer.role, football.viewer.position);
+  const code = footballSlotCode(
+    football.viewer.role,
+    football.viewer.position,
+    locale,
+  );
   return (
     <div className="space-y-4">
       <Kickoff game={game} />

@@ -44,8 +44,8 @@ export function LanguageSwitch() {
                 backgroundColor: selected
                   ? palette.foreground
                   : palette.background,
-                borderLeftWidth: index === 0 ? 0 : hairline,
-                borderLeftColor: palette.rule,
+                borderStartWidth: index === 0 ? 0 : hairline,
+                borderStartColor: palette.rule,
               }}
             >
               <Text

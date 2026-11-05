@@ -258,12 +258,18 @@ function HalfTeamCard({ team, linked }: { team: HalfTeam; linked: boolean }) {
           {linked ? (
             <Link
               href={playerProfilePath(team.occupant.userId)}
-              className="text-body focus-visible:ring-ring/50 truncate rounded-sm underline-offset-2 outline-none hover:underline focus-visible:ring-[3px]"
+              dir="auto"
+              className="text-body focus-visible:ring-ring/50 truncate rounded-sm underline-offset-2 outline-none [text-align:match-parent] hover:underline focus-visible:ring-[3px]"
             >
               {team.occupant.name}
             </Link>
           ) : (
-            <span className="text-body truncate">{team.occupant.name}</span>
+            <span
+              dir="auto"
+              className="text-body truncate [text-align:match-parent]"
+            >
+              {team.occupant.name}
+            </span>
           )}
           <span className="text-muted-foreground text-eyebrow">
             {mergeOccupantSubline(team.takenPosition, levelLabel, locale)}
@@ -313,7 +319,8 @@ function MergedPreview({
       <p className="text-muted-foreground text-meta">
         {m.tournament.halfTeams.previewLabel}
       </p>
-      <div className="mt-3.5 flex gap-2">
+      {/* Left and Right are court sides, so the seats keep their side in Arabic. */}
+      <div className="mt-3.5 flex gap-2 rtl:flex-row-reverse">
         <PreviewSeat occupant={left.team} position={left.position} />
         <PreviewSeat occupant={right.team} position={right.position} />
       </div>
@@ -359,7 +366,12 @@ function PreviewSeat({
         className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-body truncate">{occupant.occupant.name}</span>
+        <span
+          dir="auto"
+          className="text-body truncate [text-align:match-parent]"
+        >
+          {occupant.occupant.name}
+        </span>
         <span className="text-dim text-[11px] leading-none">
           {positionLabel}
         </span>

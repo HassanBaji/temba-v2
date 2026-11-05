@@ -18,6 +18,7 @@ import {
   SurfaceToneContext,
   useTonePalette,
 } from "../primitives/surface-context";
+import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 
 const INSET = 16;
@@ -37,12 +38,12 @@ function AvatarStack({ team }: { team: HistoryTeamRow }) {
   }
 
   return (
-    <View style={{ flexDirection: "row", paddingLeft: AVATAR_OVERLAP }}>
+    <View style={{ flexDirection: "row", paddingStart: AVATAR_OVERLAP }}>
       {team.avatars.map((member) => (
         <View
           key={member.id}
           style={{
-            marginLeft: -AVATAR_OVERLAP,
+            marginStart: -AVATAR_OVERLAP,
             borderRadius: 14,
             borderWidth: AVATAR_RING,
             borderColor: palette.background,
@@ -153,14 +154,12 @@ function ResultStrip({
     >
       <ResultMark variant={outcome} size={16} decorative />
       <Text weight="semibold">{resultMarkLabel(outcome, locale)}</Text>
-      <Text size="meta" tone="muted">
-        {scoreLine}
-      </Text>
+      <ScoreLine score={scoreLine} size="meta" tone="muted" />
       <Text
         size="eyebrow"
         tone="muted"
         numberOfLines={1}
-        style={{ marginLeft: "auto" }}
+        style={{ marginStart: "auto" }}
       >
         {day}
       </Text>
@@ -242,7 +241,7 @@ export function HistoryCard({
                 mono
                 uppercase
                 numberOfLines={1}
-                style={{ flexShrink: 1, marginLeft: "auto" }}
+                style={{ flexShrink: 1, marginStart: "auto" }}
               >
                 {model.groupName}
               </Text>

@@ -99,7 +99,7 @@ export function AddPlayerIdentityFields({
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               <NotOnTembaMark />
-              <Text size="meta" tone="muted">
+              <Text size="meta" tone="muted" ltr>
                 {preview.phoneMasked}
               </Text>
             </View>

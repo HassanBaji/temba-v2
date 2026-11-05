@@ -1,5 +1,6 @@
 import { bahrainDate } from "./bahrain-date.test-support";
 import assert from "node:assert/strict";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
 import { formatGameClock } from "./format-game-start";
@@ -529,15 +530,22 @@ describe("tournamentMatchRoundLabel", () => {
 describe("tournamentMatchVenueLine", () => {
   it("joins venue and court", () => {
     assert.equal(
-      tournamentMatchVenueLine("Padelhuset Bromma", "Court 2"),
+      tournamentMatchVenueLine("Padelhuset Bromma", "Court 2", "en"),
       "Padelhuset Bromma, Court 2",
     );
   });
 
   it("omits a missing court", () => {
     assert.equal(
-      tournamentMatchVenueLine("Padelhuset Bromma", null),
+      tournamentMatchVenueLine("Padelhuset Bromma", null, "en"),
       "Padelhuset Bromma",
+    );
+  });
+
+  it("isolates each name and joins with the Arabic comma", () => {
+    assert.equal(
+      tournamentMatchVenueLine("Padelhuset Bromma", "Court 2", "ar"),
+      `${isolate("Padelhuset Bromma")}، ${isolate("Court 2")}`,
     );
   });
 });
@@ -588,7 +596,7 @@ describe("tournamentMatchLastResultLine", () => {
         },
         "en",
       ),
-      "Won R1, 6-3 6-4",
+      "Won R1, 6–3 6–4",
     );
   });
 
@@ -605,7 +613,7 @@ describe("tournamentMatchLastResultLine", () => {
         },
         "en",
       ),
-      "Lost R1, 4-6 3-6",
+      "Lost R1, 4–6 3–6",
     );
   });
 
@@ -808,6 +816,7 @@ describe("tournamentMatchKickoffLine", () => {
       tournamentMatchKickoffLine(
         { time: "7:30", meridiem: "PM" },
         "Padelhuset Bromma",
+        "en",
       ),
       "7:30 PM, Padelhuset Bromma",
     );
@@ -815,8 +824,19 @@ describe("tournamentMatchKickoffLine", () => {
 
   it("omits a missing venue", () => {
     assert.equal(
-      tournamentMatchKickoffLine({ time: "19:30", meridiem: "" }, null),
+      tournamentMatchKickoffLine({ time: "19:30", meridiem: "" }, null, "en"),
       "19:30",
+    );
+  });
+
+  it("isolates the venue in Arabic", () => {
+    assert.equal(
+      tournamentMatchKickoffLine(
+        { time: "7:30", meridiem: "م" },
+        "Padelhuset Bromma",
+        "ar",
+      ),
+      `7:30 م، ${isolate("Padelhuset Bromma")}`,
     );
   });
 });
@@ -847,7 +867,7 @@ describe("tournamentMatchGroupStanding", () => {
         poolMatch({ viewerPosition: 2, lastResult: wonRoundOne }),
         "en",
       ),
-      "2nd, won R1 6-3 6-4",
+      "2nd, won R1 6–3 6–4",
     );
   });
 
@@ -879,7 +899,7 @@ describe("tournamentMatchGroupStanding", () => {
         poolMatch({ lastResult: wonRoundOne }),
         "en",
       ),
-      "Won R1 6-3 6-4",
+      "Won R1 6–3 6–4",
     );
   });
 

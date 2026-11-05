@@ -6,6 +6,7 @@ import {
   checklistFrom,
   checklistInputFrom,
   profileTaskPath,
+  settingsChecklist,
   sportsTaskMeta,
 } from "./profile-tasks-model";
 
@@ -127,5 +128,68 @@ describe("chip and paths", () => {
       total: 3,
       label: "Profile / Sports 2 of 3",
     });
+  });
+});
+
+describe("settingsChecklist", () => {
+  const list = checklistFrom(
+    {
+      firstName: "A",
+      lastName: "B",
+      hasImage: true,
+      primaryEmailAddress: null,
+    },
+    { onboardingCompletedAt: new Date() },
+    "en",
+  )!;
+
+  it("adds Your details and When you play to the count and the left line", () => {
+    expect(
+      settingsChecklist(
+        list,
+        { hasDetails: true, hasPlayWindows: false },
+        "en",
+      ),
+    ).toEqual({
+      done: 5,
+      total: 7,
+      complete: false,
+      left: "Left: verify email, when you usually play",
+      target: "/complete-profile",
+    });
+  });
+
+  it("opens the first open Settings screen once the checklist is done", () => {
+    const done = checklistFrom(
+      {
+        firstName: "A",
+        lastName: "B",
+        hasImage: true,
+        primaryEmailAddress: { verification: { status: "verified" } },
+      },
+      { onboardingCompletedAt: new Date() },
+      "en",
+    )!;
+    expect(
+      settingsChecklist(
+        done,
+        { hasDetails: false, hasPlayWindows: false },
+        "en",
+      ).target,
+    ).toBe("/profile/details");
+    const all = settingsChecklist(
+      done,
+      { hasDetails: true, hasPlayWindows: true },
+      "en",
+    );
+    expect(all.complete).toBe(true);
+    expect(all.left).toBe("All done.");
+  });
+
+  it("writes the left line in Arabic", () => {
+    expect(
+      settingsChecklist(list, { hasDetails: true, hasPlayWindows: true }, "ar")
+        .left,
+    ).toMatch(/[؀-ۿ]/);
   });
 });

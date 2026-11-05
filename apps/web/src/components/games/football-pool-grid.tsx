@@ -7,7 +7,6 @@ import {
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
-import { KEEPER_CODE } from "@repo/domain/football-lineup";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -34,8 +33,9 @@ function PlayerTile({
   onPress?: (userId: string) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const name = player.isViewer ? m.common.you : shortName(player.name);
-  const code = slotCode(player);
+  const code = slotCode(player, locale);
   const Tag = onPress ? "button" : "div";
   return (
     <Tag
@@ -60,7 +60,7 @@ function PlayerTile({
     >
       <span className="flex items-center justify-between">
         <UserAvatar name={player.name} image={player.image} size="sm" />
-        {code === KEEPER_CODE ? (
+        {player.role === "keeper" ? (
           <span className="bg-ink text-paper rounded-[4px] px-1 font-mono text-[11px]">
             {code}
           </span>
@@ -76,8 +76,10 @@ function PlayerTile({
         ) : null}
       </span>
       <span className="flex items-baseline justify-between gap-1">
-        <span className="truncate text-[12px]">{name}</span>
-        <span className="font-expanded text-meta">
+        <span dir="auto" className="truncate text-[12px]">
+          {name}
+        </span>
+        <span dir="ltr" className="font-expanded text-meta">
           {levelLabel(player.levelBand)}
         </span>
       </span>

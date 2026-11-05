@@ -2,6 +2,7 @@ import { View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
+import { ScoreLine } from "../primitives/score-pair";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
@@ -24,22 +25,24 @@ export function FigurePair({ figures }: { figures: Figure[] }) {
             flex: 1,
             minWidth: 0,
             gap: 2,
-            paddingLeft: index > 0 ? 16 : 0,
-            borderLeftWidth: index > 0 ? hairline : 0,
-            borderLeftColor: palette.rule,
+            paddingStart: index > 0 ? 16 : 0,
+            borderStartWidth: index > 0 ? hairline : 0,
+            borderStartColor: palette.rule,
           }}
         >
-          <Text
-            size="figure"
-            width="expanded"
-            weight="bold"
-            tone={figure.unset ? "muted" : "default"}
-            numberOfLines={1}
+          <View
             accessibilityElementsHidden
-            importantForAccessibility="no"
+            importantForAccessibility="no-hide-descendants"
           >
-            {figure.value}
-          </Text>
+            <ScoreLine
+              score={figure.value}
+              size="figure"
+              width="expanded"
+              weight="bold"
+              tone={figure.unset ? "muted" : "default"}
+              numberOfLines={1}
+            />
+          </View>
           <Text
             size="meta"
             tone="muted"

@@ -29,6 +29,7 @@ import {
   LEVEL_BANDS,
   type LevelBand,
 } from "./level-bands";
+import { nameInitial } from "./player-name";
 
 export type Side = 1 | 2;
 
@@ -52,14 +53,17 @@ export function levelLabel(band: LevelBand | null) {
   return band ? displayLabelFromStoredBand(band) : "–";
 }
 
-export function slotCode(player: Pick<BoardPlayer, "role" | "position">) {
-  return footballSlotCode(player.role, player.position);
+export function slotCode(
+  player: Pick<BoardPlayer, "role" | "position">,
+  locale: Locale,
+) {
+  return footballSlotCode(player.role, player.position, locale);
 }
 
 export function shortName(name: string) {
   const [first, ...rest] = name.trim().split(/\s+/);
   const last = rest[rest.length - 1];
-  return last ? `${first} ${last.charAt(0)}` : (first ?? name);
+  return last ? `${first} ${nameInitial(last) ?? ""}` : (first ?? name);
 }
 
 /**
@@ -147,7 +151,7 @@ export function seatSummary(
   const m = messagesFor(locale).football.board;
   return role === "keeper"
     ? m.seatKeeper
-    : m.seatPlayerPrefers(footballPositionCode(position));
+    : m.seatPlayerPrefers(footballPositionCode(position, locale));
 }
 
 export function joinActionLabel(
@@ -160,7 +164,7 @@ export function joinActionLabel(
   const lead =
     role === "keeper"
       ? m.joinAsKeeper
-      : m.joinAsPosition(footballPositionCode(position));
+      : m.joinAsPosition(footballPositionCode(position, locale));
   const free = messagesFor(locale).createGame.price.free;
   return price && price !== free ? m.joinWithPrice(lead, price) : lead;
 }
@@ -184,7 +188,7 @@ export function footballInviteJoinSubtitle(
     messagesFor(locale).football.board.seatsOpen(openSeats),
   ]
     .filter(Boolean)
-    .join(", ");
+    .join(messagesFor(locale).common.listSeparator);
 }
 
 export function bibNames(bibs: Bibs, locale: Locale) {
@@ -491,7 +495,7 @@ export function viewerSideLine(
   }
   const m = messagesFor(locale).football.board;
   const you = players.find((player) => player.isViewer);
-  const code = you ? slotCode(you) : null;
+  const code = you ? slotCode(you, locale) : null;
   const team = viewer.sideIndex === 1 ? names.slot1 : names.slot2;
   return code ? m.youPlayInAs(team, code) : m.youPlayIn(team);
 }
@@ -513,6 +517,7 @@ export function footballHeroLines(
   now: Date,
   locale: Locale,
 ) {
+  const { common } = messagesFor(locale);
   const m = messagesFor(locale).football.status;
   const start = input.windowStart;
   const played =
@@ -550,7 +555,13 @@ export function footballHeroLines(
       : null,
     time: kickoff?.time ?? null,
     meridiem: kickoff?.meridiem ?? null,
-    dayLine: [day, input.venueName].filter(Boolean).join(", ") || null,
-    subLine: [input.pitchName, duration].filter(Boolean).join(", ") || null,
+    dayLine:
+      [day, input.venueName ? common.isolate(input.venueName) : null]
+        .filter(Boolean)
+        .join(common.listSeparator) || null,
+    subLine:
+      [input.pitchName ? common.isolate(input.pitchName) : null, duration]
+        .filter(Boolean)
+        .join(common.listSeparator) || null,
   };
 }

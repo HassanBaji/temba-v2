@@ -1,4 +1,5 @@
 import { createGroupFixtures } from "@repo/domain/group-fixtures";
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -218,7 +219,7 @@ describe("memberList with an Unclaimed player", () => {
     ).rows;
     expect(approverRows.map((row) => row.unclaimed)).toEqual([false, true]);
     expect(approverRows.map((row) => row.selectable)).toEqual([false, true]);
-    expect(approverRows[1]!.caption).toContain("+973 •••• 4408");
+    expect(approverRows[1]!.caption).toContain(isolate("+973 •••• 4408"));
     expect(approverRows[1]!.accessibilityLabel).toContain("Not on Temba yet");
     expect(
       memberList(members, "", ORIGIN, "en").rows.some((row) => row.selectable),

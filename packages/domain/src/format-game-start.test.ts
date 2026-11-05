@@ -1,6 +1,6 @@
 import { bahrainDate, bahrainDayFromToday } from "./bahrain-date.test-support";
 import assert from "node:assert/strict";
-import { describe, it } from "vitest";
+import { describe, it, vi } from "vitest";
 
 import {
   formatAbsoluteDay,
@@ -24,6 +24,18 @@ describe("formatGameClock", () => {
 
   it("keeps Latin digits and a 12-hour clock in Arabic", () => {
     assert.match(formatGameClock(SATURDAY_EVENING, "ar"), /^7:30\sم$/u);
+  });
+
+  it("turns Arabic-Indic digits from Intl into Latin ones", () => {
+    const spy = vi
+      .spyOn(Date.prototype, "toLocaleTimeString")
+      .mockReturnValue("٧:٣٠ م");
+    try {
+      assert.equal(formatGameClock(SATURDAY_EVENING, "ar"), "7:30 م");
+      assert.equal(spy.mock.calls[0]?.[1]?.numberingSystem, "latn");
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

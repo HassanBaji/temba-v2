@@ -92,7 +92,11 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
                 <EntityMonogram name={manager.name} image={manager.image} />
               }
               title={manager.name}
-              meta={manager.username ? `@${manager.username}` : undefined}
+              meta={
+                manager.username ? (
+                  <bdi dir="ltr">@{manager.username}</bdi>
+                ) : undefined
+              }
               trailing={
                 <Button
                   type="button"
@@ -133,7 +137,11 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
                 <EntityMonogram name={candidate.name} image={candidate.image} />
               }
               title={candidate.name}
-              meta={candidate.username ? `@${candidate.username}` : undefined}
+              meta={
+                candidate.username ? (
+                  <bdi dir="ltr">@{candidate.username}</bdi>
+                ) : undefined
+              }
               trailing={
                 <Button
                   type="button"

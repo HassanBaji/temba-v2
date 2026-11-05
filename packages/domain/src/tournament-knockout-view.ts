@@ -7,6 +7,7 @@ import {
   knockoutFedBy,
   knockoutFeeds,
   knockoutMatchCode,
+  knockoutMatchLabel,
   knockoutQualifierLabel,
   knockoutRoundName,
   knockoutWinnerOfLabel,
@@ -31,6 +32,7 @@ export type KnockoutViewPlace =
       matchId: string | null;
       position: number;
       code: string;
+      label: string;
       startTime: Date | string | null;
       courtName: string | null;
       slot1: KnockoutViewSide;
@@ -45,6 +47,7 @@ export type KnockoutViewPlace =
       kind: "bye";
       position: number;
       code: string;
+      label: string;
       side: KnockoutViewSide;
     };
 
@@ -140,6 +143,13 @@ export function draftKnockoutFirstRound(args: {
   const places: KnockoutViewPlace[] = [];
   for (const place of tree.firstRound) {
     const code = knockoutMatchCode(1, place.position, tree.roundCount);
+    const label = knockoutMatchLabel(
+      1,
+      place.position,
+      tree.roundCount,
+      args.locale,
+      "full",
+    );
     if (place.kind === "bye") {
       const team = entrant(place.entrant);
       if (team) {
@@ -147,6 +157,7 @@ export function draftKnockoutFirstRound(args: {
           kind: "bye",
           position: place.position,
           code,
+          label,
           side: { kind: "team", team },
         });
       }
@@ -159,6 +170,7 @@ export function draftKnockoutFirstRound(args: {
       matchId: null,
       position: place.position,
       code,
+      label,
       startTime: null,
       courtName: null,
       slot1: slot1 ? { kind: "team", team: slot1 } : { kind: "open" },
@@ -260,7 +272,13 @@ export function postedKnockoutRounds(args: {
       return {
         kind: "winner_of",
         label: knockoutWinnerOfLabel(
-          knockoutMatchCode(fedBy.round, fedBy.position, roundCount),
+          knockoutMatchLabel(
+            fedBy.round,
+            fedBy.position,
+            roundCount,
+            args.locale,
+            "full",
+          ),
           args.locale,
         ),
       };
@@ -274,6 +292,13 @@ export function postedKnockoutRounds(args: {
     const positions = 2 ** (roundCount - round);
     for (let position = 1; position <= positions; position += 1) {
       const code = knockoutMatchCode(round, position, roundCount);
+      const label = knockoutMatchLabel(
+        round,
+        position,
+        roundCount,
+        args.locale,
+        "full",
+      );
       const match = byPlace.get(`${round}:${position}`);
       if (match) {
         places.push({
@@ -281,6 +306,7 @@ export function postedKnockoutRounds(args: {
           matchId: match.id,
           position,
           code,
+          label,
           startTime: match.startTime,
           courtName: match.courtName,
           slot1: sideFor(match, round, position, 1),
@@ -310,7 +336,7 @@ export function postedKnockoutRounds(args: {
         fed.slot,
       );
       if (side.kind === "team" || side.kind === "qualifier") {
-        places.push({ kind: "bye", position, code, side });
+        places.push({ kind: "bye", position, code, label, side });
       }
     }
     rounds.push({
@@ -441,7 +467,9 @@ export function knockoutPlaceMetaLine(
     startTime ? formatGameClock(startTime, locale) : null,
     courtName,
   ].filter((part): part is string => Boolean(part));
-  return parts.length > 0 ? parts.join(", ") : null;
+  return parts.length > 0
+    ? parts.join(messagesFor(locale).common.listSeparator)
+    : null;
 }
 
 /** `Sat 27 Sep`, from the round's earliest Match. */

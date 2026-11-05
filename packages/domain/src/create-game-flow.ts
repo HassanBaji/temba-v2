@@ -43,6 +43,11 @@ import {
   footballPlayersAllowedBounds,
   isFootballSideSize,
 } from "./game-shape";
+import {
+  gameRatingScopeLabel,
+  ratedScopeForGroup,
+  type GameRatingScope,
+} from "./game-rating-scope";
 import { DEFAULT_SPORT, type Sport } from "./sport";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
@@ -144,6 +149,58 @@ export function changeFootballPlayersAllowed<
 }
 
 /** A court price split across `players`, rounded up so the cap covers it. */
+/**
+ * The Rating choice on create (ADR-0053). Only a padel Game on a Group
+ * rates, so football and groupless Games skip it and stay Unrated.
+ */
+export function createRatingChoiceShown(args: {
+  sport: Sport;
+  hasGroup: boolean;
+}) {
+  return args.hasGroup && args.sport === "padel";
+}
+
+export type CreateRatingOption = {
+  rated: boolean;
+  label: string;
+  description: string | null;
+};
+
+export function createRatingChoice(args: {
+  groupVerified: boolean;
+  rated: boolean;
+  locale: Locale;
+}): {
+  title: string;
+  scope: GameRatingScope;
+  scopeLabel: string;
+  note: string;
+  options: readonly CreateRatingOption[];
+} {
+  const m = messagesFor(args.locale).you.ratingScope;
+  const ratedScope = ratedScopeForGroup(args.groupVerified);
+  const scope = args.rated ? ratedScope : "unrated";
+  const notes: Record<GameRatingScope, string> = {
+    temba: m.temba_note,
+    group: m.group_note,
+    unrated: m.unrated_note,
+  };
+  return {
+    title: m.title,
+    scope,
+    scopeLabel: gameRatingScopeLabel(scope, args.locale),
+    note: notes[scope],
+    options: [
+      {
+        rated: true,
+        label: m.rated,
+        description: gameRatingScopeLabel(ratedScope, args.locale),
+      },
+      { rated: false, label: m.unrated, description: null },
+    ],
+  };
+}
+
 export function splitCostAcrossPlayers(priceFils: number, players: number) {
   return Math.ceil(priceFils / Math.max(players, 1));
 }
@@ -879,8 +936,11 @@ export function friendlyTournamentPreviewDetail(input: {
   const dayLabel = input.day
     ? friendlyTournamentDayLabel(input.day, input.locale)
     : null;
+  const { common } = messagesFor(input.locale);
   const courts =
-    input.courtNames.length > 0 ? input.courtNames.join(", ") : null;
+    input.courtNames.length > 0
+      ? input.courtNames.map(common.isolate).join(common.listSeparator)
+      : null;
   return [dayLabel, input.venueName, courts]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
@@ -890,10 +950,11 @@ export function friendlyTournamentCourtsLabel(
   names: readonly string[],
   locale: Locale,
 ) {
+  const { common } = messagesFor(locale);
   if (names.length === 0) {
-    return messagesFor(locale).common.none;
+    return common.none;
   }
-  return names.join(", ");
+  return names.map(common.isolate).join(common.listSeparator);
 }
 
 export function gameTeamOfTwoCopy(price: string, locale: Locale) {

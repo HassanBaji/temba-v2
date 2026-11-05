@@ -63,6 +63,7 @@ export function PhoneField({
 
   return (
     <InputGroup
+      dir="ltr"
       className={cn(
         "h-13 min-h-13 rounded-lg shadow-none",
         "has-[[data-slot=input-group-control]:focus-visible]:border-ink has-[[data-slot=input-group-control]:focus-visible]:ring-0",
@@ -86,6 +87,7 @@ export function PhoneField({
           disabled={disabled}
         >
           <SelectTrigger
+            dir="ltr"
             aria-label={accessibleName}
             disabled={disabled}
             className="text-ink h-13 min-h-13 data-[size=default]:h-13 data-[size=default]:min-h-13 [&>svg]:text-muted-foreground rounded-none border-0 bg-transparent px-3.5 shadow-none focus-visible:border-0 focus-visible:ring-0 [&>svg]:size-[15px] [&>svg]:opacity-100"
@@ -104,7 +106,8 @@ export function PhoneField({
                   <span aria-hidden="true" className="leading-none">
                     {countryFlagEmoji(item.iso)}
                   </span>
-                  {callingCountryName(item.iso, locale)} +{item.callingCode}
+                  <bdi>{callingCountryName(item.iso, locale)}</bdi>
+                  <bdi dir="ltr">+{item.callingCode}</bdi>
                 </span>
               </SelectItem>
             ))}

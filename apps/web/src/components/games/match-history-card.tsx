@@ -4,6 +4,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { InkWonMark } from "~/components/games/played/played-hero";
 import { SummaryCardShell } from "~/components/games/summary-card-shell";
 import { ResultMark } from "~/components/temba/result-mark";
+import { ScoreText } from "~/components/temba/score-text";
 import {
   matchHistoryCardModel,
   PENDING_SET_COLUMNS,
@@ -139,14 +140,14 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
               />
             )}
             <span className="text-body font-semibold">{outcomeLabel}</span>
-            <span
+            <ScoreText
               className={cn(
-                "text-meta tabular-nums",
+                "text-meta",
                 won ? "text-dim" : "text-muted-foreground",
               )}
             >
               {model.scoreLine}
-            </span>
+            </ScoreText>
             <span
               className={cn(
                 "text-eyebrow ms-auto whitespace-nowrap",

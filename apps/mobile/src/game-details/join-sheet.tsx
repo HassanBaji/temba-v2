@@ -235,7 +235,10 @@ function SeatStep({
               <Text size="eyebrow" weight="medium" tone="muted" uppercase>
                 {sideLabel}
               </Text>
-              <View style={{ flexDirection: "row", gap: 6 }}>
+              <View
+                // Physical on purpose: Left and Right are court sides, not reading order.
+                style={{ flexDirection: "row", direction: "ltr", gap: 6 }}
+              >
                 {(["left", "right"] as const).map((position) => {
                   const occupant = side[position];
                   const seatName = copy.seatName(
