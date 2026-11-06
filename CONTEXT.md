@@ -54,6 +54,10 @@ _Avoid_: language code (when you mean the type), region, culture
 The typed object of every user-facing string in one Locale, read by property access (`messagesFor(locale).game.joinAction`, `useMessages().common.save`). One file per owning feature or App slice; the Arabic file mirrors the English one key for key.
 _Avoid_: translation file, dictionary, resource bundle, i18n keys (there are no string keys)
 
+**Email sender**:
+The one API Package seam through which every email leaves Temba: Resend behind it in production, nothing behind it until the provider is configured, a recording double in tests.
+_Avoid_: mailer, mail client, SMTP, Resend (when you mean the seam)
+
 ### Product
 
 **Community**:
@@ -546,8 +550,20 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, that a Level setter set their Level, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, that a Level setter set their Level, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an invite; its email copy is the Notification email.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
+
+**Notification email**:
+The email copy of one Notification, sent once to the recipient's verified email address moments after the Notification is written, while Email notifications are on for that User. It reads what the in-app row reads and links to the Game or Group on the Web App. Never a digest, never sent to an unverified address, never sent twice.
+_Avoid_: email alert, digest, newsletter, mail (when you mean this entity)
+
+**Email notifications**:
+The one on-or-off setting that says whether a User receives Notification emails. On for every User until they turn it off in Settings; it does nothing while the User has no verified email.
+_Avoid_: email preferences, subscription, opt-in, unsubscribe (when you mean the setting)
+
+**Stored Locale**:
+The Locale the API keeps for a User, written by the clients whenever the language they show changes, and read wherever the product speaks to the User away from a client, such as a Notification email. English until the User has used Temba in another language.
+_Avoid_: language preference, user language, locale setting, Accept-Language
 
 **Notifications page**:
 The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Notifications newest first, with a link to pending invites when there are any.

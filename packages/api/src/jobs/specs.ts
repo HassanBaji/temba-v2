@@ -8,6 +8,7 @@ export const JOB = {
   refund: "payment.refund",
   confirmed: "booking.confirmed",
   notification: "notification.booking",
+  notificationEmail: "notification.email",
   reconcile: "booking:reconcile",
 } as const;
 
@@ -19,6 +20,7 @@ export const MAX_ATTEMPTS = {
   refund: 8,
   confirmed: 5,
   notification: 5,
+  notificationEmail: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -121,6 +123,16 @@ export function bookingNotificationJob(args: {
       amountFils: args.amountFils,
     },
     maxAttempts: MAX_ATTEMPTS.notification,
+    mode: "unsafe_dedupe",
+  };
+}
+
+export function notificationEmailJob(notificationId: string): JobSpec {
+  return {
+    name: JOB.notificationEmail,
+    key: `notification:email:${notificationId}`,
+    payload: { notificationId },
+    maxAttempts: MAX_ATTEMPTS.notificationEmail,
     mode: "unsafe_dedupe",
   };
 }

@@ -14,6 +14,7 @@ import { profile } from "./profile";
 import { onboarding } from "./onboarding";
 import { booking } from "./booking";
 import { notification } from "./notification";
+import { email } from "./email";
 import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
@@ -54,6 +55,7 @@ export const ar: Messages = {
   onboarding,
   booking,
   notification,
+  email,
   auth,
   webGame,
   webTournament,

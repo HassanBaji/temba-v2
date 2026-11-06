@@ -103,6 +103,8 @@ export const user = pgTable(
     nationality: varchar("nationality", { length: 2 }),
     playWindows: playWindows("play_windows").array(),
     seatAlerts: boolean("seat_alerts").notNull().default(false),
+    /** Email notifications (ADR-0054): on until the User turns it off; nothing is sent without a verified email. */
+    emailNotifications: boolean("email_notifications").notNull().default(true),
     matchHistoryVisibility: matchHistoryVisibilities("match_history_visibility")
       .notNull()
       .default("everyone"),

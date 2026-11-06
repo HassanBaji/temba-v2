@@ -533,6 +533,13 @@
       "when": 1793811521270,
       "tag": "0075_profile_details_and_group_levels",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1794000118554,
+      "tag": "0076_notification_email",
+      "breakpoints": true
     }
   ]
 }
