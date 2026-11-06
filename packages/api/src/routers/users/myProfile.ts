@@ -21,8 +21,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import {
   loadCountedMatches,
   openableGameIds,
+  partnersFrom,
   teamPlayers,
   type CountedMatch,
+  type TeamPlayer,
 } from "#src/routers/users/playerProfile";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
@@ -44,7 +46,6 @@ const HISTORY_POINT_LIMIT = 24;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const LAST_TEN = 10;
 const RECENT_COUNT = 3;
-const PARTNER_COUNT = 3;
 /** Win rate shows once there are this many Matches in the scope. */
 export const WIN_RATE_MINIMUM = 5;
 
@@ -214,55 +215,6 @@ function currentRun(newest: readonly CountedMatch[]) {
   return { outcome, count: length };
 }
 
-type Player = { userId: string; name: string; image: string | null };
-
-function partnersFrom(
-  userId: string,
-  matches: readonly CountedMatch[],
-  playersOf: (teamId: string | null) => Player[],
-) {
-  const partners = new Map<
-    string,
-    Player & { won: number; lost: number; played: number; lastAt: number }
-  >();
-  for (const match of matches) {
-    const outcome = ownerOutcome(match);
-    for (const player of playersOf(match.slotTeamIds[match.userSlot])) {
-      if (player.userId === userId) {
-        continue;
-      }
-      const entry = partners.get(player.userId) ?? {
-        ...player,
-        won: 0,
-        lost: 0,
-        played: 0,
-        lastAt: 0,
-      };
-      entry.played += 1;
-      entry.won += outcome === "won" ? 1 : 0;
-      entry.lost += outcome === "lost" ? 1 : 0;
-      entry.lastAt = Math.max(entry.lastAt, match.displayTime.getTime());
-      partners.set(player.userId, entry);
-    }
-  }
-  return [...partners.values()]
-    .sort(
-      (left, right) =>
-        right.played - left.played ||
-        right.lastAt - left.lastAt ||
-        (left.userId < right.userId ? -1 : 1),
-    )
-    .slice(0, PARTNER_COUNT)
-    .map(({ userId: id, name, image, won, lost, played }) => ({
-      userId: id,
-      name,
-      image,
-      won,
-      lost,
-      played,
-    }));
-}
-
 async function assertGroupScope(
   database: DbClient,
   userId: string,
@@ -416,7 +368,7 @@ export async function loadMyProfile(
       ...new Set(recentMatches.map((match) => match.gameId)),
     ]),
   ]);
-  const playersOf = (teamId: string | null): Player[] =>
+  const playersOf = (teamId: string | null): TeamPlayer[] =>
     teamId ? (players.get(teamId) ?? []) : [];
 
   const recent = recentMatches.map((match) => {

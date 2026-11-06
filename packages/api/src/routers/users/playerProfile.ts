@@ -11,6 +11,7 @@ import {
   gameTeamPlayers,
   games,
   groupMembers,
+  groups,
   matches,
   ratingEvents,
   ratings,
@@ -374,6 +375,185 @@ export async function teamPlayers(
   return byTeam;
 }
 
+export type TeamPlayer = { userId: string; name: string; image: string | null };
+
+const PARTNER_COUNT = 3;
+
+// A completed Match with no scored Set has no winner, so it reads as a draw.
+function ownerOutcome(match: Pick<CountedMatch, "userSlot" | "sets">) {
+  return (
+    outcomeForSlot(match.userSlot, matchOutcome(match.sets).result) ?? "draw"
+  );
+}
+
+/** The three people the owner shared a side with most, with the record they made together. */
+export function partnersFrom(
+  userId: string,
+  matches: readonly CountedMatch[],
+  playersOf: (teamId: string | null) => TeamPlayer[],
+) {
+  const partners = new Map<
+    string,
+    TeamPlayer & { won: number; lost: number; played: number; lastAt: number }
+  >();
+  for (const match of matches) {
+    const outcome = ownerOutcome(match);
+    for (const player of playersOf(match.slotTeamIds[match.userSlot])) {
+      if (player.userId === userId) {
+        continue;
+      }
+      const entry = partners.get(player.userId) ?? {
+        ...player,
+        won: 0,
+        lost: 0,
+        played: 0,
+        lastAt: 0,
+      };
+      entry.played += 1;
+      entry.won += outcome === "won" ? 1 : 0;
+      entry.lost += outcome === "lost" ? 1 : 0;
+      entry.lastAt = Math.max(entry.lastAt, match.displayTime.getTime());
+      partners.set(player.userId, entry);
+    }
+  }
+  return [...partners.values()]
+    .sort(
+      (left, right) =>
+        right.played - left.played ||
+        right.lastAt - left.lastAt ||
+        (left.userId < right.userId ? -1 : 1),
+    )
+    .slice(0, PARTNER_COUNT)
+    .map(({ userId: id, name, image, won, lost, played }) => ({
+      userId: id,
+      name,
+      image,
+      won,
+      lost,
+      played,
+    }));
+}
+
+/** Partners (padel) or teammates (football) across every counted Match. */
+export async function mostPlayedPartners(
+  database: DbClient,
+  args: { playerId: string; now: Date },
+  counted: readonly CountedMatch[],
+) {
+  const ownTeamIds = [
+    ...new Set(
+      counted.flatMap((match) => {
+        const teamId = match.slotTeamIds[match.userSlot];
+        return teamId ? [teamId] : [];
+      }),
+    ),
+  ];
+  const players = await teamPlayers(database, ownTeamIds, args.now);
+  return partnersFrom(args.playerId, counted, (teamId) =>
+    teamId ? (players.get(teamId) ?? []) : [],
+  );
+}
+
+async function sharedGroupNames(
+  database: DbClient,
+  args: { viewerId: string; playerId: string; sport: GroupSportEnum },
+) {
+  const viewerMember = alias(groupMembers, "viewer_member");
+  const playerMember = alias(groupMembers, "player_member");
+  const rows = await database
+    .select({ name: groups.name, sport: groups.sport })
+    .from(viewerMember)
+    .innerJoin(playerMember, eq(viewerMember.groupId, playerMember.groupId))
+    .innerJoin(groups, eq(groups.id, viewerMember.groupId))
+    .where(
+      and(
+        eq(viewerMember.userId, args.viewerId),
+        eq(playerMember.userId, args.playerId),
+      ),
+    );
+  return rows
+    .filter((row) => (row.sport ?? GroupSportEnum.PADEL) === args.sport)
+    .flatMap((row) => (row.name?.trim() ? [row.name.trim()] : []))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * What the viewer and the owner share in one sport: their record on the same
+ * side, their head-to-head from the owner's side, and the Groups both are in.
+ * Null on the viewer's own profile, while the owner hides their Match history,
+ * and when they share neither a Match nor a Group of the sport.
+ */
+export async function withViewerFrom(
+  database: DbClient,
+  args: {
+    viewerId: string;
+    playerId: string;
+    sport: GroupSportEnum;
+    historyHidden: boolean;
+  },
+  counted: readonly CountedMatch[],
+) {
+  if (args.viewerId === args.playerId || args.historyHidden) {
+    return null;
+  }
+  const teamIds = [
+    ...new Set(
+      counted.flatMap((match) =>
+        [match.slotTeamIds[1], match.slotTeamIds[2]].filter(
+          (id): id is string => id != null,
+        ),
+      ),
+    ),
+  ];
+  const [viewerLinks, sharedGroups] = await Promise.all([
+    teamIds.length === 0
+      ? Promise.resolve([])
+      : database
+          .select({ gameTeamId: gameTeamPlayers.gameTeamId })
+          .from(gameTeamPlayers)
+          .innerJoin(
+            gamePlayers,
+            eq(gamePlayers.id, gameTeamPlayers.gamePlayerId),
+          )
+          .where(
+            and(
+              eq(gamePlayers.userId, args.viewerId),
+              inArray(gameTeamPlayers.gameTeamId, teamIds),
+            ),
+          ),
+    sharedGroupNames(database, args),
+  ]);
+  const viewerTeams = new Set(viewerLinks.map((link) => link.gameTeamId));
+  const together = { played: 0, won: 0, lost: 0, drawn: 0 };
+  const against = { played: 0, won: 0, lost: 0, drawn: 0 };
+  for (const match of counted) {
+    const own = match.slotTeamIds[match.userSlot];
+    const other = match.slotTeamIds[match.userSlot === 1 ? 2 : 1];
+    const tally =
+      own && viewerTeams.has(own)
+        ? together
+        : other && viewerTeams.has(other)
+          ? against
+          : null;
+    if (!tally) {
+      continue;
+    }
+    const outcome = ownerOutcome(match);
+    tally.played += 1;
+    if (outcome === "won") {
+      tally.won += 1;
+    } else if (outcome === "lost") {
+      tally.lost += 1;
+    } else {
+      tally.drawn += 1;
+    }
+  }
+  if (together.played + against.played === 0 && sharedGroups.length === 0) {
+    return null;
+  }
+  return { together, against, sharedGroups };
+}
+
 /**
  * The owner's rating change per Match. The band in effect before the Match
  * is not stored, so it is rebuilt the way `games.byId` rebuilds it.
@@ -622,11 +802,24 @@ export async function loadPlayerProfile(
       ? Promise.resolve([])
       : loadCountedMatches(database, player.id, GameSportEnum.PADEL),
   ]);
-  const lastMatches = await lastMatchesFrom(
-    database,
-    { viewerId: args.viewerId, playerId: player.id, now },
-    counted,
-  );
+  const [lastMatches, partners, withViewer] = await Promise.all([
+    lastMatchesFrom(
+      database,
+      { viewerId: args.viewerId, playerId: player.id, now },
+      counted,
+    ),
+    mostPlayedPartners(database, { playerId: player.id, now }, counted),
+    withViewerFrom(
+      database,
+      {
+        viewerId: args.viewerId,
+        playerId: player.id,
+        sport: GroupSportEnum.PADEL,
+        historyHidden,
+      },
+      counted,
+    ),
+  ]);
 
   return {
     player: {
@@ -647,6 +840,8 @@ export async function loadPlayerProfile(
       ...playedSideCounts(counted),
     },
     lastMatches,
+    partners,
+    withViewer,
   };
 }
 

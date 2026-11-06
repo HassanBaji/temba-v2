@@ -170,6 +170,132 @@ export const profile = {
       delta: string,
     ) => `${label}، من ${before} إلى ${after}، ${delta}`,
   },
+  playerPage: {
+    subtitlePositionVenue: (position: string, venue: string) =>
+      `${position}، يلعب في ${venue}`,
+    subtitleVenue: (venue: string) => `يلعب في ${venue}`,
+    subtitleSportPosition: (sport: string, position: string) =>
+      `${sport}، ${position}`,
+    subtitleSportPositionVenue: (
+      sport: string,
+      position: string,
+      venue: string,
+    ) => `${sport}، ${position}. يلعب في ${venue}`,
+    subtitleSportVenue: (sport: string, venue: string) =>
+      `${sport}. يلعب في ${venue}`,
+    games: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات",
+        one: "مباراة واحدة",
+        two: "مباراتان",
+        few: "{n} مباريات",
+        many: "{n} مباراة",
+        other: "{n} مباراة",
+      }),
+    level: "المستوى",
+    sportLevel: (sport: string) => `مستوى ${sport}`,
+    confirmed: "مؤكّد",
+    provisional: "مؤقت",
+    startingLevel: "مستوى البداية",
+    setAtSignUp: "حُدّد عند التسجيل",
+    ratedMatches: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات مصنّفة",
+        one: "مباراة مصنّفة واحدة",
+        two: "مباراتان مصنّفتان",
+        few: "{n} مباريات مصنّفة",
+        many: "{n} مباراة مصنّفة",
+        other: "{n} مباراة مصنّفة",
+      }),
+    toNext: (distance: string, band: string) =>
+      `${isolate(distance)} إلى ${isolate(band)}`,
+    ofTheWay: (percent: number) => `${percent}% من الطريق`,
+    trendSince: (delta: string, month: string) => `${delta} منذ ${month}`,
+    notMovingYet: "لا يتغيّر بالمباريات بعد",
+    noLevelYet: "لا مستوى بعد",
+    gamesSoFar: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات حتى الآن",
+        one: "مباراة واحدة حتى الآن",
+        two: "مباراتان حتى الآن",
+        few: "{n} مباريات حتى الآن",
+        many: "{n} مباراة حتى الآن",
+        other: "{n} مباراة حتى الآن",
+      }),
+    noGamesYet: "لا مباريات بعد",
+    since: (date: string) => `منذ ${date}`,
+    earlyNote: (n: number) =>
+      `تظهر السلاسل ونسبة الفوز والزملاء بعد ${n} مباريات.`,
+    earlyNotePadel: (n: number) =>
+      `تظهر السلاسل ونسبة الفوز والشركاء بعد ${n} مباريات.`,
+    currentStreak: "السلسلة الحالية",
+    bestStreak: "أفضل سلسلة",
+    winsUnit: (n: number) =>
+      plural("ar", n, {
+        zero: "انتصارات",
+        one: "انتصار",
+        two: "انتصاران",
+        few: "انتصارات",
+        many: "انتصارًا",
+        other: "انتصار",
+      }),
+    streakSpoken: (label: string, n: number, unit: string) =>
+      `${label}، ${n} ${unit}`,
+    preferredPosition: "المركز المفضّل",
+    preferredSide: "الجهة المفضّلة",
+    won: "الفوز",
+    wonDrawnLost: "فوز، تعادل، خسارة",
+    goal: "هدف",
+    goalsPerGame: "هدف لكل مباراة",
+    afterGames: (n: number) => `بعد ${n} مباريات`,
+    youAnd: (name: string) => `أنت و${name}`,
+    allTime: "منذ البداية",
+    asTeammates: "كزملاء",
+    asPartners: "كشريكين",
+    against: "في المواجهة",
+    againstEachOther: "ضد بعضكما",
+    inGames: (n: number) =>
+      plural("ar", n, {
+        zero: "في لا مباريات",
+        one: "في مباراة واحدة",
+        two: "في مباراتين",
+        few: "في {n} مباريات",
+        many: "في {n} مباراة",
+        other: "في {n} مباراة",
+      }),
+    toYou: "لصالحك",
+    toThem: (name: string) => `لصالح ${name}`,
+    allSquare: "متعادلان",
+    noGamesTogether: "لا مباريات معًا بعد.",
+    bothIn: (group: string) => `كلاكما في ${group}`,
+    bothInTwo: (first: string, second: string) =>
+      `كلاكما في ${first} و${second}`,
+    bothInMore: (first: string, more: number) =>
+      plural("ar", more, {
+        one: `كلاكما في ${first} ومجموعة أخرى`,
+        two: `كلاكما في ${first} ومجموعتين أخريين`,
+        few: `كلاكما في ${first} و{n} مجموعات أخرى`,
+        many: `كلاكما في ${first} و{n} مجموعة أخرى`,
+        other: `كلاكما في ${first} و{n} مجموعة أخرى`,
+      }),
+    teammates: "زملاء الفريق",
+    partners: "الشركاء",
+    mostPlayed: "الأكثر لعبًا",
+    lastTen: "آخر 10 مباريات",
+    gamesTitle: "المباريات",
+    played: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات",
+        one: "مباراة واحدة",
+        two: "مباراتان",
+        few: "{n} مباريات",
+        many: "{n} مباراة",
+        other: "{n} مباراة",
+      }),
+    recordSpoken: (title: string, record: string) => `${title}، ${record}`,
+    dateWithPartner: (date: string, partners: string) =>
+      `${date}، مع ${partners}`,
+  },
   allTime: {
     playingSince: (year: number) => `يلعب البادل منذ ${year}`,
     since: (year: number) => `منذ ${year}`,

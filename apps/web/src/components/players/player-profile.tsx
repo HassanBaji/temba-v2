@@ -1,44 +1,37 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { SportSegments } from "~/components/temba/sport-segments";
 import { Skeleton } from "~/components/ui/skeleton";
+import { YouSection } from "~/components/you/you-section";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   playerProfileRefused,
-  overallView,
-  playedSideView,
-  playerHeaderSubtitle,
   profileSport,
-  streaksView,
 } from "@repo/domain/player-profile";
-import {
-  footballLastTenSummary,
-  footballLevelCardView,
-  footballMatchRowView,
-  footballOverallView,
-  footballRoleView,
-} from "@repo/domain/player-profile-football";
-import { playerLevelCardView } from "@repo/domain/player-profile-level";
-import {
-  LAST_TEN_RECENT_ROWS,
-  lastTenSummary,
-  levelTrendLabel,
-  playerMatchRowView,
-} from "@repo/domain/player-profile-matches";
+import { sportSwitchView } from "@repo/domain/player-profile-page";
 import type { Sport } from "@repo/domain/sport";
-import { api, type RouterOutputs } from "~/trpc/react";
+import { api } from "~/trpc/react";
 
-import { PlayerFootballLastTenCard } from "./player-football-last-ten-card";
-import { PlayerFootballRoleCard } from "./player-football-role-card";
-import { PlayerBackButton, PlayerHeader } from "./player-header";
-import { PlayerLastTenCard } from "./player-last-ten-card";
-import { PlayerOverallCard } from "./player-overall-card";
-import { PlayerPositionCard } from "./player-position-card";
-import { PlayerStreaksCard } from "./player-streaks-card";
+import { PlayerBackButton } from "./player-header";
+import {
+  footballProfileModel,
+  padelProfileModel,
+  type PlayerProfileModel,
+} from "./player-profile-model";
+import { PlayerProfileHero } from "./player-profile-hero";
+import {
+  EarlyDaysCard,
+  FormMarks,
+  MatchList,
+  PartnersList,
+  PositionCard,
+  StatsGrid,
+  StreakTiles,
+  WithViewerCard,
+} from "./player-profile-sections";
 
 export function PlayerProfileRefused() {
   const locale = useLocale();
@@ -58,9 +51,12 @@ export function PlayerProfileRefused() {
 
 function PlayerProfileSkeleton() {
   return (
-    <div aria-busy="true" className="space-y-[26px]">
-      <Skeleton className="h-[300px] w-full rounded-xl" />
-      <Skeleton className="rounded-card h-[200px] w-full" />
+    <div
+      aria-busy="true"
+      className="grid gap-[26px] lg:grid-cols-2 lg:items-start"
+    >
+      <Skeleton className="rounded-card h-[420px] w-full" />
+      <Skeleton className="rounded-card h-[240px] w-full" />
     </div>
   );
 }
@@ -73,12 +69,17 @@ export function PlayerProfile({
   requestedSport?: unknown;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const [chosen, setChosen] = useState<Sport | null>(null);
   const padel = api.users.playerProfile.useQuery({ userId });
-  const sport = chosen ?? profileSport(requestedSport, padel.data?.sports);
+  const sports = padel.data?.sports;
+  const sport = chosen ?? profileSport(requestedSport, sports);
+  // Loaded for the switch's game count too, not only once football is picked.
   const football = api.users.footballProfile.useQuery(
     { userId },
-    { enabled: sport === "football" },
+    {
+      enabled: sport === "football" || (sports?.includes("football") ?? false),
+    },
   );
   const profile = sport === "football" ? football : padel;
 
@@ -90,92 +91,108 @@ export function PlayerProfile({
     return <PlayerProfileSkeleton />;
   }
 
-  const switcher = sport ? (
-    <SportSegments value={sport} onSelect={setChosen} />
-  ) : null;
+  const model =
+    sport === "football" && football.data
+      ? footballProfileModel(football.data, locale)
+      : sport === "padel" && padel.data
+        ? padelProfileModel(padel.data, locale)
+        : null;
 
-  if (sport === "football" && football.data) {
-    return <FootballProfile data={football.data} switcher={switcher} />;
-  }
-
-  if (sport === "padel" && padel.data) {
+  if (!model) {
     return (
-      <PadelProfile userId={userId} data={padel.data} switcher={switcher} />
+      <ErrorState
+        title={m.webUi.player.profileLoadError}
+        message={profile.error?.message}
+        onRetry={() => {
+          void profile.refetch();
+        }}
+      />
     );
   }
 
+  const played = (entry: Sport) =>
+    (entry === "football" ? football.data : padel.data)?.overall.played ?? null;
+
   return (
-    <ErrorState
-      title={m.webUi.player.profileLoadError}
-      message={profile.error?.message}
-      onRetry={() => {
-        void profile.refetch();
-      }}
+    <PlayerProfileView
+      model={model}
+      switchOptions={sportSwitchView(
+        model.sports.map((entry) => ({ sport: entry, played: played(entry) })),
+        model.sport,
+        locale,
+      )}
+      onSelectSport={setChosen}
     />
   );
 }
 
-function PadelProfile({
-  userId,
-  data,
-  switcher,
+/**
+ * The hero, early days or streaks and position on the start column; Overall,
+ * you and them, partners and the games on the end column. One column below lg.
+ */
+function PlayerProfileView({
+  model,
+  switchOptions,
+  onSelectSport,
 }: {
-  userId: string;
-  data: RouterOutputs["users"]["playerProfile"];
-  switcher: ReactNode;
+  model: PlayerProfileModel;
+  switchOptions: ReturnType<typeof sportSwitchView>;
+  onSelectSport: (sport: Sport) => void;
 }) {
-  const locale = useLocale();
+  const m = useMessages();
+  const page = m.profile.playerPage;
   return (
-    <div className="space-y-[26px]">
-      <PlayerHeader
-        name={data.player.name}
-        image={data.player.image}
-        subtitle={playerHeaderSubtitle(data.venue, locale)}
-        level={playerLevelCardView(data.rating, locale)}
-        trend={levelTrendLabel(data.trend, locale)}
-      />
-      {switcher}
-      <PlayerStreaksCard view={streaksView(data.streaks, locale)} />
-      <PlayerPositionCard view={playedSideView(data.position, locale)} />
-      <PlayerOverallCard view={overallView(data.overall, locale)} />
-      <PlayerLastTenCard
-        userId={userId}
-        summary={lastTenSummary(data.lastMatches, locale)}
-        rows={data.lastMatches
-          .slice(0, LAST_TEN_RECENT_ROWS)
-          .map((match) => playerMatchRowView(match, data.player.id, locale))}
-      />
-    </div>
-  );
-}
-
-function FootballProfile({
-  data,
-  switcher,
-}: {
-  data: RouterOutputs["users"]["footballProfile"];
-  switcher: ReactNode;
-}) {
-  const locale = useLocale();
-  return (
-    <div className="space-y-[26px]">
-      <PlayerHeader
-        name={data.player.name}
-        image={data.player.image}
-        subtitle={playerHeaderSubtitle(data.venue, locale, "football")}
-        level={footballLevelCardView(data.rating, locale)}
-        trend={null}
-      />
-      {switcher}
-      <PlayerStreaksCard view={streaksView(data.streaks, locale)} />
-      <PlayerFootballRoleCard view={footballRoleView(data.role, locale)} />
-      <PlayerOverallCard view={footballOverallView(data.overall, locale)} />
-      <PlayerFootballLastTenCard
-        summary={footballLastTenSummary(data.lastMatches, locale)}
-        rows={data.lastMatches.map((match) =>
-          footballMatchRowView(match, locale),
-        )}
-      />
+    <div className="grid gap-[26px] lg:grid-cols-2 lg:items-start">
+      <div className="flex min-w-0 flex-col gap-3.5">
+        <PlayerProfileHero
+          name={model.name}
+          image={model.image}
+          subtitle={model.subtitle}
+          switchOptions={switchOptions}
+          onSelectSport={onSelectSport}
+          level={model.level}
+        />
+        {model.early ? (
+          <EarlyDaysCard view={model.early} form={model.form} />
+        ) : null}
+        {model.streaks ? (
+          <StreakTiles
+            view={model.streaks}
+            labels={{ current: page.currentStreak, best: page.bestStreak }}
+          />
+        ) : null}
+        <PositionCard view={model.position} />
+      </div>
+      <div className="flex min-w-0 flex-col gap-[26px]">
+        <div className="flex flex-col gap-3.5">
+          <StatsGrid
+            title={m.profile.player.overall}
+            meta={m.profile.player.allTime}
+            tiles={model.stats}
+          />
+          {model.withViewer ? (
+            <WithViewerCard
+              view={model.withViewer}
+              playerName={model.name}
+              playerImage={model.image}
+            />
+          ) : null}
+        </div>
+        {model.partners ? (
+          <PartnersList
+            title={model.partners.title}
+            meta={model.partners.meta}
+            rows={model.partners.rows}
+            sport={model.sport}
+          />
+        ) : null}
+        {model.rows.length > 0 ? (
+          <YouSection title={model.form.title} meta={model.form.record}>
+            {model.early ? null : <FormMarks form={model.form} />}
+            <MatchList rows={model.rows} seeAll={model.seeAll} />
+          </YouSection>
+        ) : null}
+      </div>
     </div>
   );
 }

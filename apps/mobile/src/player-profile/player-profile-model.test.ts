@@ -13,113 +13,103 @@ const ORIGIN = "https://api.example.com";
 const fixtures = createPlayerProfileFixtures();
 
 describe("playerProfileModel", () => {
-  it("builds the header, Level card and Overall from one payload", () => {
+  it("builds the hero: name, subtitle and the confirmed Level", () => {
     const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
     expect(model.name).toBe("Elin Nilsson");
     expect(model.imageUri).toBeNull();
-    expect(model.subtitle).toBe("Padel, plays at Padelhuset Bromma");
-    expect(model.level).toMatchObject({ kind: "rated", displayBand: "B-" });
-    expect(model.overall.tiles.map((tile) => tile.value)).toEqual([
+    expect(model.subtitle).toBe("Padel, left side. Plays at Padelhuset Bromma");
+    expect(model.level).toMatchObject({
+      kind: "level",
+      label: "Padel level",
+      status: "Confirmed",
+      statusDetail: "64 rated matches",
+      band: "B-",
+      hatched: false,
+    });
+  });
+
+  it("builds streaks, side, Overall and the record with the viewer", () => {
+    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
+    expect(model.early).toBeNull();
+    expect(model.streaks).toMatchObject({
+      current: { value: "4", unit: "wins", marks: 4 },
+      best: { value: "7", when: "March 2026" },
+    });
+    expect(model.position).toMatchObject({
+      sport: "padel",
+      value: "Left side",
+      detail: "Played left in 72% of matches",
+      court: { left: "ink", right: "paper" },
+    });
+    expect(model.stats.map((tile) => tile.value)).toEqual([
       "64",
       "41",
       "64%",
       "61%",
     ]);
+    expect(model.withViewer).toMatchObject({
+      title: "You and Elin",
+      columns: [
+        { label: "As partners", record: "4–1", detail: "in 5 games" },
+        { label: "Against each other", record: "3–2", detail: "to you" },
+      ],
+      groups: "Both in Tuesday Crew",
+    });
+    expect(model.partners).toMatchObject({
+      title: "Partners",
+      rows: [{ name: "Jonas Berg", record: "9–3", percent: 75 }],
+    });
   });
 
-  it("builds the Streaks and Preferred Position cards", () => {
+  it("builds the Last 10 strip oldest first, three rows and See all", () => {
     const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
-    expect(model.streaks).toEqual({
-      current: { headline: "4 wins in a row", wonMarks: 4 },
-      best: { headline: "7 wins", reachedIn: "March 2026" },
-    });
-    expect(model.position).toEqual({
-      label: "Left side",
-      subtitle: "Played left in 72% of matches",
-      court: { left: "ink", right: "paper" },
-    });
-  });
-
-  it("hides the played side below five recorded Matches", () => {
-    expect(
-      playerProfileModel(fixtures.provisional, ORIGIN, "en").position,
-    ).toEqual({
-      label: "Either side",
-      subtitle: null,
-      court: { left: "ink", right: "ink" },
-    });
-  });
-
-  it("builds the Last 10 strip, the three recent rows and the trend", () => {
-    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "en");
-    expect(model.trend).toBe("Last 10: +0.3");
-    expect(model.lastTen.record).toBe("7 won, 3 lost");
-    expect(model.lastTen.marks).toHaveLength(10);
-    expect(model.lastTen.seeAll).toBe("See all 10 games");
-    expect(model.matches).toHaveLength(10);
-    expect(model.recentMatches.map((row) => row.meta)).toEqual([
-      "Thu 1 Oct, Tuesday Crew",
-      "Mon 28 Sep, Autumn Cup, Round 2",
-      "Sat 26 Sep, Autumn Cup, Semi-final",
+    expect(model.form.title).toBe("Last 10 games");
+    expect(model.form.record).toBe("7–3");
+    expect(model.form.slots).toHaveLength(10);
+    expect(model.seeAll).toBe("See all 10 games");
+    expect(model.rows.map((row) => [row.title, row.sub])).toEqual([
+      ["Tuesday Crew", "Thu 1 Oct, with Jonas B"],
+      ["Autumn Cup, Round 2", "Mon 28 Sep, with Jonas B"],
+      ["Autumn Cup, Semi-final", "Sat 26 Sep, with Jonas B"],
     ]);
-    expect(model.recentMatches[0]).toMatchObject({
-      opponents: "vs Sofia L & Adam R",
-      sets: ["6\u20134", "6\u20133"],
-      delta: "+0.1",
+    expect(model.rows[0]).toMatchObject({
+      score: "6\u20134, 6\u20133",
+      detail: "+0.1",
+      target: { kind: "match", matchId: "match-2026-10-01" },
     });
   });
 
-  it("shows No games yet with no See all and no trend for a new player", () => {
-    const model = playerProfileModel(fixtures.newPlayer, ORIGIN, "en");
-    expect(model.trend).toBeNull();
-    expect(model.lastTen).toMatchObject({
-      record: "No games yet.",
-      ends: null,
-      seeAll: null,
+  it("leads with the early days below five games, without streaks or partners", () => {
+    const model = playerProfileModel(fixtures.provisional, ORIGIN, "en");
+    expect(model.early).toMatchObject({ title: "3 games so far" });
+    expect(model.streaks).toBeNull();
+    expect(model.partners).toBeNull();
+    expect(model.stats[2]).toEqual({
+      value: "After 5 games",
+      label: "Win rate",
+      locked: true,
     });
-    expect(model.lastTen.marks.every((mark) => mark === "not-played")).toBe(
-      true,
-    );
-    expect(model.recentMatches).toEqual([]);
+    expect(model.form).toMatchObject({ title: "Games", record: "3 played" });
+    expect(model.rows).toHaveLength(3);
+    expect(model.seeAll).toBeNull();
+    expect(model.level).toMatchObject({
+      status: "Provisional",
+      hatched: true,
+    });
   });
 
-  it("resolves a stored image path against the API origin", () => {
-    const model = playerProfileModel(
-      {
-        ...fixtures.confirmed,
-        player: { ...fixtures.confirmed.player, image: "/media/u.png" },
-      },
-      ORIGIN,
-      "en",
-    );
-    expect(model.imageUri).toBe(`${ORIGIN}/media/u.png`);
-  });
-
-  it("renders a new player with no Level and empty Overall", () => {
+  it("shows no Level and no games for a new player", () => {
     const model = playerProfileModel(fixtures.newPlayer, ORIGIN, "en");
-    expect(model.subtitle).toBe("Padel");
-    expect(model.level).toEqual({ kind: "none", label: "No Level yet" });
-    expect(model.streaks.best.headline).toBe("—");
-    expect(model.position.label).toBe("No preference set");
-    expect(model.position.court).toEqual({ left: "hatch", right: "hatch" });
-    expect(model.overall.tiles.map((tile) => tile.value)).toEqual([
-      "0",
-      "0",
-      "—",
-      "—",
-    ]);
+    expect(model.level).toMatchObject({ kind: "none", value: "No Level yet" });
+    expect(model.early).toMatchObject({ title: "No games yet", since: null });
+    expect(model.rows).toEqual([]);
+    expect(model.form.slots.every((slot) => slot === "not-played")).toBe(true);
   });
 
-  it("shows a viewer's own profile with their name, not You", () => {
-    expect(playerProfileModel(fixtures.self, ORIGIN, "en").name).toBe(
-      "Elin Nilsson",
+  it("hides the you-and-them card on the viewer's own profile", () => {
+    expect(playerProfileModel(fixtures.self, ORIGIN, "en").withViewer).toBe(
+      null,
     );
-  });
-
-  it("reads the header and Last 10 copy in Arabic", () => {
-    const model = playerProfileModel(fixtures.confirmed, ORIGIN, "ar");
-    expect(model.subtitle).toBe("بادل، يلعب في Padelhuset Bromma");
-    expect(model.lastTen.record).toBe("7 فوز، 3 خسارة");
   });
 });
 
@@ -211,44 +201,73 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       canOpenGame: true,
     },
   ],
+  partners: [],
+  withViewer: null,
 };
 
 describe("footballProfileModel", () => {
-  it("builds the football header, Level, position and Overall", () => {
+  it("builds the football hero with the starting Level", () => {
     const model = footballProfileModel(FOOTBALL, ORIGIN, "en");
-    expect(model.subtitle).toBe("Football, plays at Riffa Pitch");
+    expect(model.subtitle).toBe("Football, forward. Plays at Riffa Pitch");
     expect(model.imageUri).toBe(`${ORIGIN}/media/users/ali.jpg`);
     expect(model.level).toMatchObject({
-      kind: "rated",
-      displayBand: "C+",
-      lines: ["Starting Level", "Football games don't move it yet"],
+      kind: "level",
+      label: "Football level",
+      band: "C+",
+      status: "Starting level",
+      statusDetail: "Set at sign up",
+      hatched: true,
     });
-    expect(model.trend).toBeNull();
-    expect(model.role).toEqual({ label: "Forward", code: "FWD" });
-    expect(model.overall.tiles.map((tile) => tile.value)).toEqual([
+    expect(model.position).toMatchObject({
+      sport: "football",
+      value: "Forward",
+      spot: "fwd",
+    });
+    expect(model.stats.map((tile) => tile.value)).toEqual([
       "2",
       "1",
-      "50%",
       "3",
+      "After 5 games",
     ]);
   });
 
-  it("lists every football Match in the Last 10, with no See all", () => {
+  it("lists every early football Match, opening only the Games it may", () => {
     const model = footballProfileModel(FOOTBALL, ORIGIN, "en");
-    expect(model.lastTen.record).toBe("1 won, 0 lost, 1 drawn");
-    expect(model.lastTen.seeAll).toBeNull();
+    expect(model.form.record).toBe("2 played");
+    expect(model.seeAll).toBeNull();
     expect(
-      model.matches.map((row) => [row.title, row.score, row.goals]),
+      model.rows.map((row) => [row.title, row.score, row.detail, row.target]),
     ).toEqual([
-      ["Thursday 5s", "2\u20132", null],
-      ["Riffa Ballers", "5\u20133", "3 goals"],
+      ["Thursday 5s", "2\u20132", null, null],
+      [
+        "Riffa Ballers",
+        "5\u20133",
+        "3 goals",
+        { kind: "game", gameId: "game-1" },
+      ],
     ]);
   });
 
-  it("reads the football header in Arabic", () => {
+  it("reads W–D–L once established", () => {
+    const model = footballProfileModel(
+      {
+        ...FOOTBALL,
+        overall: { played: 8, won: 5, lost: 2, drawn: 1, goals: 6 },
+      },
+      ORIGIN,
+      "en",
+    );
+    expect(model.form).toMatchObject({
+      title: "Last 10 games",
+      record: "1–1–0",
+    });
+    expect(model.stats[1]).toMatchObject({ value: "5–1–2" });
+  });
+
+  it("reads the football hero in Arabic", () => {
     const model = footballProfileModel(FOOTBALL, ORIGIN, "ar");
-    expect(model.subtitle).toBe("كرة القدم، يلعب في Riffa Pitch");
-    expect(model.role.label).toBe("مهاجم");
+    expect(model.subtitle).toBe("كرة القدم، مهاجم. يلعب في Riffa Pitch");
+    expect(model.position).toMatchObject({ value: "مهاجم" });
   });
 });
 
