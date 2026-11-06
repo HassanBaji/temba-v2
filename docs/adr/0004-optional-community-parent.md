@@ -1,6 +1,6 @@
 # Optional Community parent for Groups
 
-**Status:** superseded by [ADR-0054](./0054-community-is-retired-and-a-group-links-to-a-venue.md). Community is retired; a Group links to a Venue directly.
+**Status:** superseded by [ADR-0055](./0055-community-is-retired-and-a-group-links-to-a-venue.md). Community is retired; a Group links to a Venue directly.
 
 A Community is a club that may contain many Groups, but a Group does not have to belong to a Community. Club Groups and Loose Groups share one Group table; the parent is chosen at create time and is immutable. A required parent would have been a single social graph; we accepted two graphs so people can run a squad with no club.
 

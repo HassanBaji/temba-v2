@@ -90,6 +90,12 @@ export const game = {
       `${band} · ${level} بعد هذه المباراة`,
   },
   joinSheet: {
+    eitherSide: "أي جهة",
+    eitherSideNote: "يختار شريكك اليسار أو اليمين، وتأخذ أنت الجهة الأخرى.",
+    eitherSidePartnerOpen: "يمكن لشريكك أخذ أي من المكانين",
+    joinEitherSide: (side: string) => `انضم إلى ${side} في أي جهة`,
+    takeSeatFromEitherSide: (seat: string, name: string) =>
+      `خذ ${seat}. ${name} يلعب في أي جهة وسينتقل إلى الجهة الأخرى`,
     playWith: (name: string) => `ستلعب مع ${name}`,
     partnerSpotOpen: "مكان شريكك ما زال شاغرًا — يمكن لأي شخص أخذه",
     everySpotTaken: "كل الأماكن في هذه المباراة محجوزة",
@@ -342,6 +348,79 @@ export const game = {
     line: "تظهر هنا المباريات التي تنشئها أو تنضم إليها.",
     sportLine: (sport: string) =>
       `تظهر هنا مباريات ${sport} التي تنشئها أو تنضم إليها.`,
+  },
+  sides: {
+    left: "يسار",
+    right: "يمين",
+    either: "أي جهة",
+    eitherSide: "أي جهة",
+    eitherSideLabel: "أي جهة",
+    picked: (side: string, band: string | null) =>
+      band ? `${side}، ${band}` : side,
+    auto: (side: string) => `${side}، تلقائي`,
+    setByYou: (side: string) => `${side}، حددته أنت`,
+    setByOrganizer: (side: string) => `${side}، حدده المنظم`,
+    openAnySide: "أي جهة",
+    openSideOrEither: (side: string) => `${side}، أو أي جهة`,
+    noSidesPicked: "لم تُحدَّد الجهات",
+    lineupJoinNote:
+      "اضغط على فريق للانضمام إليه. الجهة اختيارية: اخترها، أو اتفقوا عليها في الملعب.",
+    lineupFullNote:
+      "الجهات لا تمنع أي مباراة. المقعد مقعد، والجهة ملاحظة بين الأربعة.",
+    viewerAutoNote: (partner: string, partnerSide: string, side: string) =>
+      `اختار ${partner} ${partnerSide}، لذا تلعب ${side}. لم تختر جهة.`,
+    viewerBothEitherNote:
+      "لم يختر أي منكما جهة. اتفقا عليها في الملعب، أو اختر واحدة في أي وقت قبل المباراة.",
+    viewerAloneEitherNote:
+      "لم تختر جهة. إن اختار شريكك جهة، تأخذ أنت الأخرى.",
+    pickASide: "اختر جهة",
+    setSides: "حدد الجهات",
+    swap: "بدّل",
+    setSidesPrompt:
+      "سيتفقان عليها في الملعب. حددها هنا إن أردتها مسجلة.",
+    setSidesDone: "حددتها أنت. أُبلغ اللاعبان.",
+    setSidesToast: "تم تحديد الجهات",
+    sideSavedToast: "تم حفظ الجهة",
+    joinTitle: "انضم إلى هذه المباراة",
+    joinSummary: (when: string, venue: string, price: string | null) =>
+      price ? `${when}، ${venue}. ${price} للاعب.` : `${when}، ${venue}.`,
+    teamHeading: "الفريق",
+    sideHeading: "الجهة",
+    sideOptional: "اختيارية",
+    sideOptionalUsual: (side: string) => `اختيارية، جهتك المعتادة ${side}`,
+    teamWith: (name: string, side: string, seats: number) =>
+      `مع ${name} (${side}). ${plural("ar", seats, { zero: "لا مقاعد", one: "مقعد واحد", two: "مقعدان", few: "{n} مقاعد", many: "{n} مقعدًا", other: "{n} مقعد" })}`,
+    teamEmpty: (seats: number) =>
+      `فارغ. ${plural("ar", seats, { zero: "لا مقاعد", one: "مقعد واحد", two: "مقعدان", few: "{n} مقاعد", many: "{n} مقعدًا", other: "{n} مقعد" })}`,
+    teamFull: "مكتمل",
+    takenBy: (side: string, name: string) => `${side}، يشغله ${name}`,
+    helpLeftWithPartner: (partner: string) =>
+      `تلعب يسارًا، ويلعب ${partner} يمينًا.`,
+    helpRightWithPartner: (partner: string) =>
+      `تلعب يمينًا، ويلعب ${partner} يسارًا.`,
+    helpLeftEmpty:
+      "من ينضم بعدك يأخذ اليمين، أو لا يختار ويلعب يمينًا تلقائيًا.",
+    helpRightEmpty:
+      "من ينضم بعدك يأخذ اليسار، أو لا يختار ويلعب يسارًا تلقائيًا.",
+    helpEitherNextToPicked: (partner: string, partnerSide: string, side: string) =>
+      `اختار ${partner} ${partnerSide}، لذا تلعب ${side} تلقائيًا. غيّرها في أي وقت قبل المباراة.`,
+    helpEither:
+      "إن اختار شريكك جهة تأخذ أنت الأخرى. وإن لم يختر أي منكما، اتفقا في الملعب؛ ويمكن للمنظم تسجيلها لاحقًا.",
+    yourSeat: "مقعدك",
+    seatSummary: (team: string, side: string) => `${team}، ${side}`,
+    courtCost: "تكلفة الملعب",
+    courtCostValue: (price: string) => `${price}، تُدفع في الملعب`,
+    joinTeam: (team: string) => `انضم إلى ${team}`,
+    joinTeamSide: (team: string, side: string) => `انضم إلى ${team}، ${side}`,
+    sideIsOptional: "الجهة اختيارية",
+    youreInTeam: (team: string) => `أنت في ${team}`,
+    sideOpenUntil: (partner: string) =>
+      `الجهة مفتوحة حتى تغيّرها أنت أو ${partner}`,
+    pickSideDescription: "اختر جهة في أي وقت قبل المباراة. يُبلَّغ شريكك إن غيّرت جهته.",
+    saveSide: "احفظ الجهة",
+    sideButton: (side: string) => `جهة ${side}`,
+    sideButtonTaken: (side: string, name: string) =>
+      `جهة ${side}، يشغلها ${name}`,
   },
   court: {
     joinSubline: "اختر جهتك بعد ذلك",

@@ -158,6 +158,7 @@ export const hubListWith = {
       players: {
         columns: {
           position: true,
+          eitherSide: true,
         },
         with: {
           gamePlayer: {
@@ -247,6 +248,7 @@ export type HubQueryRow = {
     bib?: string | null;
     players: {
       position: "left" | "right" | null;
+      eitherSide?: boolean;
       gamePlayer: {
         user: { id: string; name: string; image: string | null } | null;
       } | null;
@@ -295,6 +297,7 @@ function occupantFromLink(
     name: user.name,
     image: user.image,
     isViewer: user.id === viewerUserId,
+    eitherSide: link.eitherSide ?? false,
   };
 }
 

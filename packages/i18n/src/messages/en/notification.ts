@@ -54,6 +54,11 @@ export const notification = {
       plain(" added you to "),
       strong(game),
     ],
+    gameSideChanged: (actor: string, game: string) => [
+      strong(actor),
+      plain(" changed your side on "),
+      strong(game),
+    ],
     historyLinked: (gameCount: number) => [
       plain("We linked "),
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),

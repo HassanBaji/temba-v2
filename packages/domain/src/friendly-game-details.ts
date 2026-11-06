@@ -19,6 +19,8 @@ export type FriendlyGameDetailsSeat = {
   levelBand: LevelBand | null;
   unclaimed?: boolean;
   phoneMasked?: string | null;
+  /** Joined without picking a Position. */
+  eitherSide?: boolean;
 };
 
 export type FriendlyGameDetailsSide = {

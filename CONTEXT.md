@@ -58,7 +58,7 @@ _Avoid_: translation file, dictionary, resource bundle, i18n keys (there are no 
 
 **Venue**:
 A physical facility: one addressable site with a name, location, and Courts. Not a legal entity, not a brand. A Venue may link many Club Groups; each Group links to at most one Venue. Every Game points at exactly one Venue.
-_Avoid_: club (product copy may say club; the entity is a Venue), Community (retired, ADR-0054), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
+_Avoid_: club (product copy may say club; the entity is a Venue), Community (retired, ADR-0055), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
 A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
@@ -77,7 +77,7 @@ A Group that may host Rated Games and public Games: one an Operator verified, on
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
-A Group with a Venue link (`groups.venue_id`). A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue. It is a Verified Group and its new Games are held at the linked Venue. Its doors are the Loose Group doors: the Group creator and Appointed Organizers run it (ADR-0054).
+A Group with a Venue link (`groups.venue_id`). A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue. It is a Verified Group and its new Games are held at the linked Venue. Its doors are the Loose Group doors: the Group creator and Appointed Organizers run it (ADR-0055).
 _Avoid_: subgroup, channel, nested group, Community group, Venue group
 
 **Loose Group**:
@@ -150,15 +150,15 @@ _Avoid_: Email invite, invitation (when you mean a specific channel), Venue link
 
 **Venue link**:
 A Group’s live association with at most one Venue, stored as `groups.venue_id`. It is made when the Group creator accepts a Group link request and ended when the Group creator (`groups.unlinkFromVenue`) or a Venue manager (`venues.unlinkGroup`) unlinks the Group. A Group with a Venue link is a Club Group. Distinct from Invite link.
-_Avoid_: Invite link, membership, join, Community link, Venue Community (retired, ADR-0054)
+_Avoid_: Invite link, membership, join, Community link, Venue Community (retired, ADR-0055)
 
 **Group link request**:
 A Venue manager’s request that a Loose Group Public link to that Venue. The Group creator accepts or declines it; the Venue manager may cancel it while pending. Accepting turns the Loose Group into a Club Group of that Venue. Distinct from a Group join request (a User asking to join a Group).
-_Avoid_: Group join request, Venue link (that is the result), invite (when you mean this request), Group transfer, Venue link request (retired, ADR-0054)
+_Avoid_: Group join request, Venue link (that is the result), invite (when you mean this request), Group transfer, Venue link request (retired, ADR-0055)
 
 **Team**:
 A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. A Team stands on its own: it belongs to no Group and links to no Venue. A football Team has a creator and no captain: other members may leave, the creator dissolves.
-_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain, Club Team, Loose Team (retired, ADR-0054)
+_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain, Club Team, Loose Team (retired, ADR-0055)
 
 **Team roster rule**:
 The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.
@@ -176,9 +176,13 @@ _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred 
 A User's standing preference for Left or right, or Either. A default for the Game seat picker, not a Position itself.
 _Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
+**Either side**:
+On a padel Friendly game, a User's answer to "which side?" when they take a seat on a Game team without picking Left or Right (ADR-0054). Left, Right and Either are the three answers; a side is a label on a seat, so it never blocks a join. Either next to a User who picked plays the other side, shown "auto". Either next to Either stays open, shown "no sides picked", and is sorted on court. A side a partner picked cannot be taken; the Position an Either-side User holds can, and moves them over. A seated User may change their answer until the Game starts, and an Organizer may set a full Game team's sides on the sheet; a User whose Position moves because of either is told. Not on Friendly tournaments.
+_Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
+
 **Operator**:
 A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, and may set any other User's Level in either sport (ADR-0046).
-_Avoid_: Admin, Owner (retired Community roles, ADR-0054), system admin, platform admin, superadmin
+_Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
 A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers, reports and Group link requests for that Venue, from the Venue console. A User may manage many Venues. Not an Operator; an Operator may do everything a Venue manager may. Managing a Venue gives no door on its Club Groups.
