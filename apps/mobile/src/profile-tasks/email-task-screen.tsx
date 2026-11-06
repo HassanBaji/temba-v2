@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/expo";
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import { KeyRound, Lock, Receipt } from "lucide-react-native";
 import { useState } from "react";
@@ -14,6 +14,7 @@ import { type SplitFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 import { backToChecklist } from "./task-navigation";
 
 type Step = "email" | "code";
@@ -46,6 +47,7 @@ function NotNow({ disabled }: { disabled: boolean }) {
 
 export function EmailTaskScreen() {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const { user } = useUser();
   const [step, setStep] = useState<Step>("email");

@@ -1,4 +1,4 @@
-import { bibColors, colors } from "@repo/design-tokens";
+import { bibColors } from "@repo/design-tokens";
 import {
   formatDayMonth,
   formatGameCardDay,
@@ -26,6 +26,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { ScorePair } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { CardFooter, CardShell } from "./card-parts";
 import { useNow } from "./use-now";
 
@@ -94,6 +95,7 @@ function Kickoff({ game }: { game: HubGameRow }) {
 
 function SideLine({ side }: { side: HubGameFootballSide }) {
   const locale = useLocale();
+  const colors = useColors();
   const bib = bibOf(side);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

@@ -143,7 +143,7 @@ function TakenSeat({
         className={cn(
           "size-[52px] [&_[data-slot=avatar-fallback]]:text-base [&_[data-slot=avatar-fallback]]:font-bold",
           row.isYou
-            ? "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper"
+            ? "[&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control"
             : "[&_[data-slot=avatar-fallback]]:text-ink",
         )}
       />

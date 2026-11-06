@@ -44,8 +44,8 @@ function SportSwitch({
           className={cn(
             "focus-visible:ring-ring/50 flex h-[50px] flex-col items-center justify-center gap-0.5 rounded-[9px] outline-none transition-colors focus-visible:ring-[3px]",
             option.selected
-              ? "bg-paper text-ink"
-              : "text-dim hover:text-paper bg-transparent",
+              ? "bg-focus-control text-on-focus-control"
+              : "text-dim hover:text-on-focus bg-transparent",
           )}
         >
           <span className="text-meta font-semibold">{option.name}</span>
@@ -80,7 +80,7 @@ function LevelTrack({
       )}
     >
       <div
-        className="bg-paper h-full rounded-[4px] motion-reduce:transition-none"
+        className="bg-on-focus h-full rounded-[4px] motion-reduce:transition-none"
         style={{
           width: drawn ? `${percent}%` : "0%",
           transition: "width 900ms cubic-bezier(0.2, 0.7, 0.2, 1)",
@@ -161,7 +161,8 @@ export function PlayerProfileHero({
   return (
     <header
       className={cn(
-        "surface-ink bg-ink text-paper flex flex-col gap-5 px-4 py-[22px] min-[430px]:px-5 md:p-[22px]",
+        // Full bleed on phones, so the dark hairline only frames it as a card.
+        "surface-ink bg-focus text-on-focus md:surface-focus flex flex-col gap-5 px-4 py-[22px] min-[430px]:px-5 md:p-[22px]",
         PLAYER_HERO_BLEED,
       )}
     >
@@ -170,7 +171,7 @@ export function PlayerProfileHero({
         <UserAvatar
           name={name}
           image={image}
-          className="text-ink [&_[data-slot=avatar-fallback]]:bg-paper [&_[data-slot=avatar-fallback]]:text-ink size-16 rounded-[15px] text-[20px] font-bold data-[size=default]:size-16 [&_[data-slot=avatar-fallback]]:rounded-[15px] [&_[data-slot=avatar-fallback]]:text-[20px]"
+          className="text-on-focus-control [&_[data-slot=avatar-fallback]]:bg-focus-control [&_[data-slot=avatar-fallback]]:text-on-focus-control size-16 rounded-[15px] text-[20px] font-bold data-[size=default]:size-16 [&_[data-slot=avatar-fallback]]:rounded-[15px] [&_[data-slot=avatar-fallback]]:text-[20px]"
         />
         <div className="min-w-0 flex-1">
           <h1 className="break-words text-[28px] font-bold leading-[1.1] tracking-[-0.01em]">

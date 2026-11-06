@@ -16,6 +16,7 @@ import {
 } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { tonePalette } from "../primitives/tone-palette";
+import { useColors } from "../theme/theme-provider";
 import { FieldError } from "./chips";
 import {
   dateSheetStartMonth,
@@ -116,7 +117,8 @@ function DayCell({
   onPress: () => void;
 }) {
   const tone = selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -131,9 +133,12 @@ function DayCell({
           justifyContent: "center",
           borderRadius: radii.md,
           borderWidth: hairline,
-          borderColor: selected ? palette.background : palette.rule,
-          backgroundColor:
-            selected || !pressed ? palette.background : palette.wash,
+          borderColor: selected ? colors.ink : palette.rule,
+          backgroundColor: selected
+            ? colors.control
+            : pressed
+              ? palette.wash
+              : palette.background,
         })}
       >
         <Text size="eyebrow" tone="muted" numberOfLines={1}>
@@ -279,7 +284,8 @@ function MonthDay({
 }) {
   const locale = useLocale();
   const tone = selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -293,8 +299,11 @@ function MonthDay({
           alignItems: "center",
           justifyContent: "center",
           borderRadius: radii.md,
-          backgroundColor:
-            selected || !pressed ? palette.background : palette.wash,
+          backgroundColor: selected
+            ? colors.control
+            : pressed
+              ? palette.wash
+              : colors.sheet,
           opacity: cell.disabled ? DISABLED_OPACITY : 1,
         })}
       >

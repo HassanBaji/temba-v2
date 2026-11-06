@@ -291,7 +291,7 @@ export function StatsGrid({
 function ViewerTile() {
   const { user } = useUser();
   return (
-    <span className="bg-ink text-paper text-eyebrow flex size-7 items-center justify-center rounded-[8px]">
+    <span className="bg-control text-on-control text-eyebrow flex size-7 items-center justify-center rounded-[8px]">
       {initials(user?.fullName ?? "")}
     </span>
   );

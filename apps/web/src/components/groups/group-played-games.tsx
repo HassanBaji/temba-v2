@@ -227,7 +227,7 @@ export function GroupPlayedGames({
             className={cn(
               "text-body focus-visible:ring-ring/50 flex h-10 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-[10px] border px-3 outline-none transition-colors focus-visible:ring-[3px]",
               chip.selected
-                ? "border-ink bg-ink text-paper font-semibold"
+                ? "border-ink bg-control text-on-control font-semibold"
                 : "border-rule bg-paper text-ink hover:border-ink",
             )}
           >

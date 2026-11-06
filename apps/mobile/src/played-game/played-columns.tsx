@@ -1,4 +1,9 @@
-import { bibColors, colors, radii } from "@repo/design-tokens";
+import {
+  bibColors,
+  radii,
+  type ColorScheme,
+  type Palette,
+} from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
 import {
   playedWordLabel,
@@ -7,12 +12,14 @@ import {
 } from "@repo/domain/played-game";
 import { Pressable, View } from "react-native";
 
+import { bibEdge } from "../football/bib-edge";
 import { BibChip } from "../football/bib-picker";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 
 const ROW_HEIGHT = 48;
 const YOU_RING = 2;
@@ -20,7 +27,12 @@ const SWATCH = 14;
 
 type Fill = PlayedColumn["fill"] | FootballBib;
 
-function rowColors(row: PlayedRow, fill: Fill) {
+function rowColors(
+  row: PlayedRow,
+  fill: Fill,
+  colors: Palette,
+  scheme: ColorScheme,
+) {
   if (row.isYou) {
     return {
       background: colors.paper,
@@ -31,9 +43,9 @@ function rowColors(row: PlayedRow, fill: Fill) {
   }
   if (fill === "ink") {
     return {
-      background: colors.ink,
-      foreground: colors.paper,
-      border: colors.ink,
+      background: colors.control,
+      foreground: colors.onControl,
+      border: colors.controlEdge,
       borderWidth: hairline,
     };
   }
@@ -49,7 +61,7 @@ function rowColors(row: PlayedRow, fill: Fill) {
   return {
     background,
     foreground: on,
-    border: background === colors.paper ? colors.inputBorder : background,
+    border: bibEdge(background, colors, scheme),
     borderWidth: hairline,
   };
 }
@@ -63,8 +75,15 @@ function PlayerRow({
   fill: Fill;
   onPress?: () => void;
 }) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
   const m = useMessages();
-  const { background, foreground, border, borderWidth } = rowColors(row, fill);
+  const { background, foreground, border, borderWidth } = rowColors(
+    row,
+    fill,
+    colors,
+    scheme,
+  );
   const label = m.profile.matches.spokenParts(
     [
       row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
@@ -138,6 +157,7 @@ function PlayerRow({
 }
 
 function Swatch({ fill }: { fill: Fill }) {
+  const colors = useColors();
   if (fill !== "ink" && fill !== "paper") {
     return <BibChip bib={fill} size={SWATCH} />;
   }

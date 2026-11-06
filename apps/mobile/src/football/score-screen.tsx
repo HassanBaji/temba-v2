@@ -1,4 +1,4 @@
-import { colors, radii, spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import {
   formatDayMonth,
   formatGameClock,
@@ -25,6 +25,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import { BibChip } from "./bib-picker";
 import {
@@ -53,6 +54,7 @@ function StepButton({
   label: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
   const up = kind === "up";
   const Icon = up ? Plus : Minus;
   return (
@@ -66,13 +68,13 @@ function StepButton({
         borderRadius: radii.md,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: up ? colors.ink : colors.paper,
-        borderWidth: up ? 0 : hairline,
-        borderColor: colors.inputBorder,
+        backgroundColor: up ? colors.control : colors.paper,
+        borderWidth: hairline,
+        borderColor: up ? colors.controlEdge : colors.inputBorder,
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Icon size={18} color={up ? colors.paper : colors.ink} />
+      <Icon size={18} color={up ? colors.onControl : colors.ink} />
     </Pressable>
   );
 }
@@ -143,6 +145,7 @@ function ScorerChip({
   onRemove: () => void;
 }) {
   const messages = useMessages();
+  const colors = useColors();
   const m = messages.mobileTournament.scoreScreen;
   const scored = goals > 0;
   return (
@@ -169,7 +172,7 @@ function ScorerChip({
         borderRadius: radii.lg,
         borderWidth: hairline,
         borderColor: scored ? colors.ink : colors.rule,
-        backgroundColor: scored ? colors.ink : colors.paper,
+        backgroundColor: scored ? colors.control : colors.paper,
         opacity: pressed ? 0.8 : 1,
       })}
     >
@@ -177,7 +180,7 @@ function ScorerChip({
       <Text
         size="meta"
         weight="semibold"
-        style={{ color: scored ? colors.paper : colors.ink }}
+        style={{ color: scored ? colors.onControl : colors.ink }}
       >
         {player.isViewer ? messages.common.you : shortName(player.name)}
       </Text>
@@ -196,6 +199,7 @@ function ScorerChip({
  * who scored. The other side confirms the Score from the Game.
  */
 export function FootballScoreScreen({ gameId }: { gameId: string }) {
+  const colors = useColors();
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.mobileTournament.scoreScreen;

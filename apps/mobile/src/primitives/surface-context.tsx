@@ -1,6 +1,7 @@
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 import { createContext, useContext } from "react";
 
+import { useColors } from "../theme/theme-provider";
 import type { InkRegistry } from "./ink-registry";
 import { tonePalette } from "./tone-palette";
 
@@ -12,5 +13,5 @@ export function useSurfaceTone(): SurfaceTone {
 }
 
 export function useTonePalette() {
-  return tonePalette(useSurfaceTone());
+  return tonePalette(useSurfaceTone(), useColors());
 }

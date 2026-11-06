@@ -197,10 +197,10 @@ export function SetLevelFields({
         </div>
         <div
           aria-hidden="true"
-          className="bg-paper/25 h-1.5 overflow-hidden rounded-full"
+          className="bg-on-focus/25 h-1.5 overflow-hidden rounded-full"
         >
           <div
-            className="bg-paper h-full"
+            className="bg-on-focus h-full"
             style={{ width: `${readout.percentThroughRung}%` }}
           />
         </div>
@@ -289,7 +289,7 @@ export function SetLevelFields({
 
       <Button
         type="button"
-        className="bg-ink text-paper min-h-11 w-full font-semibold"
+        className="bg-control text-on-control border-control-edge min-h-11 w-full border font-semibold"
         disabled={unchanged || pending}
         aria-busy={pending}
         onClick={() =>

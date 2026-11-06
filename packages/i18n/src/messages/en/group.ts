@@ -557,7 +557,8 @@ export const group = {
           one: `${group} · 1 member`,
           other: `${group} · {n} members`,
         }),
-      spotsLeft: (left: number, open: number) => `${left} of ${open} spots left`,
+      spotsLeft: (left: number, open: number) =>
+        `${left} of ${open} spots left`,
       gameFull: "Game is full",
       inGame: "In game",
       onWaitlist: "On waitlist",

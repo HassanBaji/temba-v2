@@ -71,7 +71,9 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
+/* `.light` resets these inside share cards, which stay black in both schemes. */
+:root,
+.light {
   --foreground: oklch(0.145 0 0);
   --card-foreground: var(--foreground);
   --popover-foreground: var(--foreground);
@@ -95,49 +97,46 @@
   --sidebar-accent: oklch(0.22 0 0);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: oklch(1 0 0 / 12%);
+
+  --clerk-primary: #0a0a0a;
+  --clerk-primary-foreground: #ffffff;
+  --clerk-background: #ffffff;
+  --clerk-foreground: #171717;
+  --clerk-muted-foreground: #404040;
+  --clerk-danger: #dc2626;
+  --clerk-neutral: #636363;
 }
 
+/* The palette roles come from @repo/design-tokens/theme.css; these are the
+   shadcn names it does not own. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --surface-raised: oklch(0.205 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(1 0 0);
+  --foreground: #e6e6e6;
+  --secondary-foreground: #e6e6e6;
+  --accent-foreground: #e6e6e6;
+  --destructive: #f97066;
+  --destructive-foreground: #000000;
   --destructive-subtle: oklch(0.28 0.05 27);
   --success: oklch(0.72 0.13 155);
-  --success-foreground: oklch(0.145 0 0);
+  --success-foreground: #000000;
   --success-subtle: oklch(0.28 0.04 155);
   --warning: oklch(0.75 0.12 75);
-  --warning-foreground: oklch(0.145 0 0);
+  --warning-foreground: #000000;
   --warning-subtle: oklch(0.28 0.05 80);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.985 0 0);
-  --chart-1: #e5e5e5;
   --chart-2: oklch(0.708 0 0);
   --chart-3: oklch(0.556 0 0);
   --chart-4: oklch(0.439 0 0);
   --chart-5: oklch(0.85 0 0);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.985 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.985 0 0);
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #e6e6e6;
+  --sidebar-border: #3a3a3a;
+
+  --clerk-primary: #262626;
+  --clerk-primary-foreground: #e6e6e6;
+  --clerk-background: #0f0f0f;
+  --clerk-foreground: #e6e6e6;
+  --clerk-muted-foreground: #8e8e8e;
+  --clerk-danger: #f97066;
+  --clerk-neutral: #8e8e8e;
 }
 
 @layer base {
@@ -165,12 +164,23 @@
 }
 
 /* Always emit Home foundation utilities so later tickets can apply them. */
-@source inline("font-expanded hatch hatch-on-ink");
+@source inline("font-expanded hatch hatch-on-ink surface-focus");
 
 /* Black-surface scope: the default --ring is near-black and ~1:1 on ink, so
    every ring-ring / outline-ring / border-ring inside reads light (WCAG 2.4.7). */
 @utility surface-ink {
-  --ring: var(--color-paper);
+  --ring: var(--color-on-focus);
+}
+
+/* The focused surface (`Surface tone="ink"`). Light inverts it to black; dark
+   lifts it to #141414 and gives it the hairline it no longer gets from contrast. */
+@utility surface-focus {
+  --ring: var(--color-on-focus);
+  background-color: var(--color-focus);
+  color: var(--color-on-focus);
+  &:where(.dark *) {
+    box-shadow: inset 0 0 0 1px var(--color-dimrule);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

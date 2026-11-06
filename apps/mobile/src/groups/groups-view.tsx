@@ -1,4 +1,4 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { sizes, spacing } from "@repo/design-tokens";
 import type {
   GroupMineRowData,
   GroupPublicRowData,
@@ -25,6 +25,7 @@ import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { MyGroupsEmpty, PublicGroupsEmpty } from "./groups-empty";
 import {
   groupRowView,
@@ -194,6 +195,7 @@ function PublicGroupRow({
   onOpen: (groupId: string) => void;
   onJoin: (groupId: string, door: GroupJoinDoor) => void;
 }) {
+  const colors = useColors();
   const door = row.door;
   return (
     <View

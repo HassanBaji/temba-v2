@@ -1,4 +1,4 @@
-import { colors, motion, radii, sizes } from "@repo/design-tokens";
+import { motion, radii, sizes } from "@repo/design-tokens";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, View, type LayoutChangeEvent } from "react-native";
 import Animated, {
@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { isLayoutRtl } from "../i18n/rtl";
+import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import {
   sliderLabelLeft,
@@ -59,6 +60,7 @@ export function Slider({
   marker,
   disabled = false,
 }: SliderProps) {
+  const colors = useColors();
   const reducedMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
   const track: SliderTrack = { min, max, width, thumb: THUMB };
@@ -157,10 +159,15 @@ export function Slider({
               alignItems: "center",
               paddingVertical: 4,
               borderRadius: radii.sm,
-              backgroundColor: colors.ink,
+              backgroundColor: colors.control,
             }}
           >
-            <Text size="meta" weight="semibold" numberOfLines={1}>
+            <Text
+              size="meta"
+              weight="semibold"
+              numberOfLines={1}
+              style={{ color: colors.onControl }}
+            >
               {valueText}
             </Text>
           </View>

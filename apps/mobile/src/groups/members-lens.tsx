@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import type {
   GroupMemberFilterChip,
   GroupMemberSort,
@@ -21,7 +21,7 @@ import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { tonePalette } from "../primitives/tone-palette";
+import { useColors } from "../theme/theme-provider";
 
 const CHIP_HEIGHT = 40;
 const CHIP_HIT_SLOP = {
@@ -35,6 +35,7 @@ const RADIO = 24;
 
 function SortChip({ label, onPress }: { label: string; onPress: () => void }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -70,8 +71,8 @@ function FilterChip({
   onPress: () => void;
   onLayout: (frame: LayoutRectangle) => void;
 }) {
+  const colors = useColors();
   const tone = chip.selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -90,8 +91,11 @@ function FilterChip({
           borderRadius: radii.md,
           borderWidth: hairline,
           borderColor: chip.selected ? colors.ink : colors.rule,
-          backgroundColor:
-            pressed && !chip.selected ? palette.wash : palette.background,
+          backgroundColor: chip.selected
+            ? colors.control
+            : pressed
+              ? colors.wash
+              : colors.paper,
         })}
       >
         <Text weight={chip.selected ? "semibold" : "regular"} numberOfLines={1}>
@@ -122,6 +126,7 @@ export function MemberLensRow({
   onPickFilter: (chip: GroupMemberFilterChip) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const scroll = useRef<ScrollView>(null);
   const offset = useRef(0);
   const [viewport, setViewport] = useState(0);
@@ -208,6 +213,7 @@ function SortOption({
   option: GroupMemberSortOption;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="radio"

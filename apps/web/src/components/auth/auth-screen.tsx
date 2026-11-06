@@ -58,13 +58,13 @@ export function AuthScreen({
     : cn("mx-auto w-full", wide ? "max-w-content" : "max-w-column");
 
   return (
-    <div className="bg-ink flex min-h-svh justify-center overflow-x-hidden sm:items-center">
+    <div className="surface-ink bg-focus text-on-focus flex min-h-svh justify-center overflow-x-hidden sm:items-center">
       <Surface
         tone={welcome ? "ink" : "paper"}
         className={cn(
           "flex min-h-svh w-full max-w-[1000px] flex-col overflow-x-hidden sm:min-h-[844px]",
           welcome
-            ? "sm:border-ink sm:rounded-xl sm:border"
+            ? "sm:border-focus sm:rounded-xl sm:border"
             : "sm:border-rule sm:rounded-xl sm:border",
         )}
       >

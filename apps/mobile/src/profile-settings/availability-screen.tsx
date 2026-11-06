@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import {
   PLAY_WINDOW_PARTS,
   PLAY_WINDOWS,
@@ -17,6 +17,7 @@ import { Screen } from "../primitives/screen";
 import { ScreenHeader, useLeaveScreen } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { playWindowGrid, togglePlayWindow } from "./settings-model";
 import { SettingsGroup, SwitchRow } from "./settings-rows";
@@ -32,6 +33,7 @@ function isPlayWindow(value: string): value is PlayWindow {
 
 function AvailabilityForm({ details }: { details: Details }) {
   const m = useMessages();
+  const colors = useColors();
   const w = m.you.playWindows;
   const locale = useLocale();
   const toast = useToast();
@@ -97,13 +99,13 @@ function AvailabilityForm({ details }: { details: Details }) {
                   borderWidth: hairline,
                   borderColor: cell.on ? colors.ink : colors.rule,
                   backgroundColor: cell.on
-                    ? colors.ink
+                    ? colors.control
                     : pressed
                       ? colors.wash
                       : colors.paper,
                 })}
               >
-                {cell.on ? <Check size={16} color={colors.paper} /> : null}
+                {cell.on ? <Check size={16} color={colors.onControl} /> : null}
               </Pressable>
             ))}
           </View>

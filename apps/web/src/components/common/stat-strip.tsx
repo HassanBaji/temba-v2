@@ -30,7 +30,7 @@ export function StatStrip({
       className={cn(
         "grid min-w-0 overflow-hidden",
         isDark
-          ? "bg-primary text-primary-foreground divide-primary-foreground/15 divide-x rounded-xl p-1"
+          ? "surface-focus divide-on-focus/15 divide-x rounded-xl p-1"
           : "divide-border divide-x",
         columns,
         className,
@@ -47,7 +47,7 @@ export function StatStrip({
           <dt
             className={cn(
               "text-eyebrow truncate font-medium uppercase tracking-[0.06em]",
-              isDark ? "text-primary-foreground/70" : "text-muted-foreground",
+              isDark ? "text-on-focus/70" : "text-muted-foreground",
             )}
           >
             {item.label}

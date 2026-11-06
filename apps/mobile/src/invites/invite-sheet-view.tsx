@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import {
   Link as LinkIcon,
   MessageCircle,
@@ -40,6 +40,7 @@ import { SearchField } from "../primitives/search-field";
 import { Sheet } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const MODE_ICONS: Record<InviteMode, LucideIcon> = {
   players: Users,
@@ -115,6 +116,7 @@ export type InviteSheetViewProps = {
 
 function CloseAction({ onPress }: { onPress: () => void }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -144,6 +146,7 @@ function ModeSwitch({
   onChange: (mode: InviteMode) => void;
 }) {
   const locale = useLocale();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="tablist"
@@ -158,7 +161,7 @@ function ModeSwitch({
       {modes.map((entry) => {
         const selected = entry === mode;
         const Icon = MODE_ICONS[entry];
-        const foreground = selected ? colors.paper : colors.muted;
+        const foreground = selected ? colors.onControl : colors.muted;
         return (
           <Pressable
             key={entry}
@@ -174,7 +177,7 @@ function ModeSwitch({
               justifyContent: "center",
               gap: 6,
               borderRadius: radii.md,
-              backgroundColor: selected ? colors.ink : "transparent",
+              backgroundColor: selected ? colors.control : "transparent",
             }}
           >
             <Icon size={14} color={foreground} />
@@ -205,6 +208,7 @@ function PlayerRow({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const colors = useColors();
   const view = lookupResultView(row, invited, locale);
   return (
     <View
@@ -350,6 +354,7 @@ function ChannelButton({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <View style={{ flex: 1 }}>
       <Button
@@ -365,6 +370,7 @@ function ChannelButton({
 
 function LinkMode({ link }: { link: LinkModeProps }) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   return (
     <View style={{ gap: MODE_GAP }}>
@@ -408,7 +414,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         label={m.mobileInvite.sheet.shareLink}
         size="lg"
         pending={link.pending}
-        icon={<ShareIcon size={sizes.iconRow} color={colors.paper} />}
+        icon={<ShareIcon size={sizes.iconRow} color={colors.onControl} />}
         onPress={link.onShare}
       />
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -439,6 +445,7 @@ function PendingChip({
   onRevoke: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       style={{

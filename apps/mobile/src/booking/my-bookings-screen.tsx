@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -12,6 +12,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import { BookingRowCard, NextBooking, type BookingItem } from "./booking-cards";
 import { Notice } from "./booking-parts";
@@ -176,6 +177,7 @@ function Tabs({
   upcomingLabel: string;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const tabs = [
     { key: "upcoming", label: upcomingLabel },
     { key: "past", label: m.mobileBooking.past },

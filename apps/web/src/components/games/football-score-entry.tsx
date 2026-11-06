@@ -115,7 +115,9 @@ function ScorerChip({
     <li
       className={cn(
         "flex items-center rounded-lg border",
-        scored ? "bg-ink text-paper border-ink" : "bg-paper border-rule",
+        scored
+          ? "bg-control text-on-control border-ink"
+          : "bg-paper border-rule",
       )}
     >
       <button

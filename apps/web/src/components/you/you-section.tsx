@@ -67,7 +67,7 @@ export function InitialsTile({
       aria-hidden="true"
       className={cn(
         "text-eyebrow relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[9px] font-semibold",
-        hatched ? "border-rule text-ink border" : "bg-ink text-paper",
+        hatched ? "border-rule text-ink border" : "bg-control text-on-control",
         className,
       )}
     >

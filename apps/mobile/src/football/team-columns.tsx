@@ -6,6 +6,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
+import { useColorSchemeName } from "../theme/theme-provider";
 import { Text } from "../primitives/text";
 import { BibChip } from "./bib-picker";
 import {
@@ -36,7 +37,11 @@ export function BibRow({
   const locale = useLocale();
   const palette = useTonePalette();
   const { fill, on } = bibColors[bib];
-  const edge = fill === palette.background ? palette.muted : fill;
+  const scheme = useColorSchemeName();
+  // In dark the black bib sinks into both the page and the lifted hero.
+  const blendsIn =
+    scheme === "dark" ? bib === "black" : fill === palette.background;
+  const edge = blendsIn ? palette.muted : fill;
   const name = player.isViewer ? messages.common.you : shortName(player.name);
   const code = slotCode(player, locale);
   return (

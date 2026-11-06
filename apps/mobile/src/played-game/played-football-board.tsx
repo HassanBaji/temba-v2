@@ -1,4 +1,4 @@
-import { bibColors, colors, radii } from "@repo/design-tokens";
+import { bibColors, radii } from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
 import type {
   PlayedFootballSide,
@@ -9,11 +9,13 @@ import { View } from "react-native";
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const CHIP = 14;
 
 /** A bib square as it reads on ink: a black bib gets a dim edge. */
 function InkBibChip({ bib }: { bib: FootballBib }) {
+  const colors = useColors();
   const { fill } = bibColors[bib];
   return (
     <View
@@ -25,7 +27,7 @@ function InkBibChip({ bib }: { bib: FootballBib }) {
         borderRadius: radii.slot - 1,
         backgroundColor: fill,
         borderWidth: hairline,
-        borderColor: fill === colors.ink ? colors.dim : fill,
+        borderColor: fill === bibColors.black.fill ? colors.dim : fill,
       }}
     />
   );
@@ -121,10 +123,11 @@ export function PlayedFootballBoard({
   hasWinner: boolean;
   scorers: { a: PlayedScorer[]; b: PlayedScorer[] } | null;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const [a, b] = sides;
   const ink = (side: PlayedFootballSide) =>
-    side.won || !hasWinner ? colors.paper : colors.muted;
+    side.won || !hasWinner ? colors.onFocus : colors.muted;
   return (
     <View style={{ gap: 18 }}>
       <View

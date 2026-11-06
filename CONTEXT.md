@@ -54,6 +54,14 @@ _Avoid_: language code (when you mean the type), region, culture
 The typed object of every user-facing string in one Locale, read by property access (`messagesFor(locale).game.joinAction`, `useMessages().common.save`). One file per owning feature or App slice; the Arabic file mirrors the English one key for key.
 _Avoid_: translation file, dictionary, resource bundle, i18n keys (there are no string keys)
 
+**Appearance**:
+A User's choice of how an App is drawn on one device: Match my phone (the default), Light or Dark. Stored on the device, not the account. The **Color scheme** is the result, `light` or `dark`, that picks the palette.
+_Avoid_: theme (when you mean the choice), dark theme, night mode
+
+**Color role**:
+A token named for what it does, not how it looks: `ink`, `paper`, `rule`, `wash`, `focus`, `control`, `sheet`. Each role has one value per Color scheme in `@repo/design-tokens`; screens name roles and never branch on the scheme.
+_Avoid_: black, white (when you mean ink or paper), color name
+
 ### Product
 
 **Venue**:

@@ -1,4 +1,4 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import {
   bookingStatusLabel,
   cancelWindowClosedMessage,
@@ -24,6 +24,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { BookingHero, DetailRow, Notice } from "./booking-parts";
 import {
@@ -56,6 +57,7 @@ export function BookingDetailScreen({
   const utils = api.useUtils();
   const now = useNow();
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const [refreshing, setRefreshing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -157,7 +159,7 @@ export function BookingDetailScreen({
                 <Button
                   label={m.mobileBooking.detail.callVenue}
                   variant="outline-inverse"
-                  icon={<Phone size={sizes.iconRow} color={colors.paper} />}
+                  icon={<Phone size={sizes.iconRow} color={colors.onFocus} />}
                   onPress={() => void Linking.openURL(`tel:${phone}`)}
                 />
               </View>
@@ -166,7 +168,7 @@ export function BookingDetailScreen({
               <Button
                 label={m.common.share}
                 variant="outline-inverse"
-                icon={<Share2 size={sizes.iconRow} color={colors.paper} />}
+                icon={<Share2 size={sizes.iconRow} color={colors.onFocus} />}
                 onPress={() =>
                   void Share.share({
                     message: bookingShareMessage(data, locale),

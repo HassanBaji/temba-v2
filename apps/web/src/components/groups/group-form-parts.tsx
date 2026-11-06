@@ -73,7 +73,7 @@ export function GroupPhotoTile({
       className={cn(
         "focus-visible:ring-ring/50 relative size-20 shrink-0 overflow-hidden rounded-[16px] outline-none focus-visible:ring-[3px] disabled:opacity-50",
         filled
-          ? "bg-ink text-paper"
+          ? "bg-control text-on-control"
           : "border-input bg-surface-raised text-muted-foreground hover:border-ink hover:text-ink border border-dashed",
       )}
     >
@@ -94,7 +94,9 @@ export function GroupPhotoTile({
         <span
           className={cn(
             "text-eyebrow absolute inset-x-0 bottom-0 py-1 text-center font-medium",
-            imageUrl ? "bg-ink/80 text-paper" : "bg-dimrule text-paper",
+            imageUrl
+              ? "bg-focus/80 text-on-focus"
+              : "bg-dimrule text-on-control",
           )}
         >
           {label}
@@ -210,7 +212,7 @@ export function SportSegment({
             className={cn(
               "focus-visible:ring-ring/50 flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-2 py-2 outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
               selected
-                ? "bg-ink text-paper"
+                ? "bg-control text-on-control"
                 : "bg-paper text-ink hover:bg-wash",
             )}
           >

@@ -12,7 +12,7 @@ import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 const ACTION_BOX_DARK =
-  "bg-raised text-paper focus-visible:ring-ring/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]";
+  "bg-raised text-on-focus focus-visible:ring-ring/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]";
 
 export type TournamentHeroSeat = {
   userId: string;
@@ -54,7 +54,7 @@ function TournamentHeroSeatBlock({
       <UserAvatar
         name={occupant.name}
         image={occupant.image}
-        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
+        className="bg-dimrule text-on-focus size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span

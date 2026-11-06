@@ -1,8 +1,8 @@
-import { colors } from "@repo/design-tokens";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { Button } from "../primitives/button";
+import { useColors } from "../theme/theme-provider";
 
 export function ChoiceRow<T extends string>(props: {
   label: string;
@@ -11,6 +11,7 @@ export function ChoiceRow<T extends string>(props: {
   onSelect: (value: T) => void;
   disabled: boolean;
 }) {
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -24,7 +25,7 @@ export function ChoiceRow<T extends string>(props: {
             variant={props.value === choice.value ? "default" : "outline"}
             selected={props.value === choice.value}
             icon={choice.icon?.(
-              props.value === choice.value ? colors.paper : colors.ink,
+              props.value === choice.value ? colors.onControl : colors.ink,
             )}
             disabled={props.disabled}
             onPress={() => props.onSelect(choice.value)}

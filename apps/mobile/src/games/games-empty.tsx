@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import type { SportFilter } from "@repo/domain/football-hub";
 import {
   GAMES_HISTORY_PREVIEW_MARKS,
@@ -21,6 +21,7 @@ import { Hatch } from "../primitives/hatch";
 import { ResultMark } from "../primitives/result-mark";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const SEAT_SIZE = 32;
 
@@ -63,6 +64,7 @@ export function UpcomingEmpty({
 }) {
   const locale = useLocale();
   const m = useMessages().mobileTournament.games;
+  const colors = useColors();
   return (
     <View style={{ gap: spacing.compact }}>
       <Surface padded={false} style={{ overflow: "hidden" }}>
@@ -117,6 +119,7 @@ export function UpcomingEmpty({
 export function PlayedEmpty() {
   const locale = useLocale();
   const m = useMessages().mobileTournament.games;
+  const colors = useColors();
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View style={{ padding: spacing.surface, gap: spacing.compact }}>
