@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing, type Palette } from "@repo/design-tokens";
 import type { CardSeatPosition } from "@repo/domain/game-card";
 import type { HubGameRow, HubHistoryRow } from "@repo/domain/hub-game-row";
 import { Plus } from "lucide-react-native";
@@ -13,6 +13,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import type { Slot } from "../home/home-model";
 import { SportGlyph } from "../lib/sport-glyph";
+import { useColors } from "../theme/theme-provider";
 import {
   FootballGameCard,
   type FootballCardActions,
@@ -95,13 +96,15 @@ function ListSkeleton() {
   );
 }
 
-const segmentBarStyle = {
-  flexDirection: "row",
-  borderRadius: radii.lg,
-  borderWidth: hairline,
-  borderColor: colors.rule,
-  overflow: "hidden",
-} as const;
+function segmentBarStyle(colors: Palette) {
+  return {
+    flexDirection: "row",
+    borderRadius: radii.lg,
+    borderWidth: hairline,
+    borderColor: colors.rule,
+    overflow: "hidden",
+  } as const;
+}
 
 function Segment({
   role,
@@ -116,6 +119,7 @@ function Segment({
   onPress: () => void;
   children: (color: string) => React.ReactNode;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole={role}
@@ -128,13 +132,13 @@ function Segment({
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        backgroundColor: selected ? colors.ink : colors.paper,
+        backgroundColor: selected ? colors.control : colors.paper,
         borderStartWidth: first ? 0 : hairline,
         borderStartColor: colors.rule,
         opacity: pressed ? 0.85 : 1,
       })}
     >
-      {children(selected ? colors.paper : colors.muted)}
+      {children(selected ? colors.onControl : colors.muted)}
     </Pressable>
   );
 }
@@ -151,12 +155,13 @@ function TabButtons({
   historyCount: number | null;
 }) {
   const m = useMessages().mobileTournament.games;
+  const colors = useColors();
   const tabs = [
     { key: "my-games", label: m.upcomingTab, count: myGamesCount },
     { key: "history", label: m.playedTab, count: historyCount },
   ] as const;
   return (
-    <View accessibilityRole="tablist" style={segmentBarStyle}>
+    <View accessibilityRole="tablist" style={segmentBarStyle(colors)}>
       {tabs.map((entry, index) => {
         const selected = entry.key === tab;
         return (
@@ -196,11 +201,12 @@ function SportFilterRow({
 }) {
   const locale = useLocale();
   const m = useMessages().mobileTournament.games;
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel={m.sport}
-      style={segmentBarStyle}
+      style={segmentBarStyle(colors)}
     >
       {sportFilters(locale).map((entry, index) => {
         const selected = entry.key === filter;

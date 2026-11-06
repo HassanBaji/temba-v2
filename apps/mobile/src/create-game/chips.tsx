@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Check, Minus, Plus } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
@@ -11,6 +11,7 @@ import {
 } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { tonePalette } from "../primitives/tone-palette";
+import { useColors } from "../theme/theme-provider";
 import { gridRows } from "./grid-rows";
 
 export type Chip<T extends string | number> = {
@@ -63,11 +64,12 @@ export function ChoiceChip({
 }: ChoiceChipProps) {
   const ink = selected && selection === "ink";
   const tone = ink ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   const escape = dashed && !selected;
   const inactive = disabled || !onPress;
   const borderColor = ink
-    ? palette.background
+    ? colors.ink
     : selected
       ? palette.foreground
       : escape
@@ -104,8 +106,11 @@ export function ChoiceChip({
           borderWidth: hairline,
           borderStyle: escape ? "dashed" : "solid",
           borderColor,
-          backgroundColor:
-            ink || (!selected && !pressed) ? palette.background : palette.wash,
+          backgroundColor: ink
+            ? colors.control
+            : !selected && !pressed
+              ? palette.background
+              : palette.wash,
           opacity: disabled ? DISABLED_OPACITY : 1,
         })}
       >
@@ -249,6 +254,7 @@ export function Stepper({
   error?: string;
   hint?: string;
 }) {
+  const colors = useColors();
   return (
     <View style={{ gap: 8 }}>
       <Text size="lead" weight="semibold">

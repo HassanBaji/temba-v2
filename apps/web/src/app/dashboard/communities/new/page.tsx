@@ -153,7 +153,7 @@ export default function NewCommunityPage() {
             <Button
               type="submit"
               disabled={createCommunity.isPending || sports.length === 0}
-              className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
+              className="hover:border-dimrule hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
             >
               {createCommunity.isPending
                 ? m.webDashboard.creating

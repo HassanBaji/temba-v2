@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import type { GroupJoinRequestData } from "@repo/domain/group-data";
 import {
   groupJoinPolicyLine,
@@ -25,6 +25,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { Notice } from "./notice";
 
 export function JoinRequestsBanner({
@@ -36,6 +37,7 @@ export function JoinRequestsBanner({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   if (count === 0) {
     return null;
   }
@@ -58,7 +60,7 @@ export function JoinRequestsBanner({
           width: 6,
           height: 6,
           borderRadius: 3,
-          backgroundColor: colors.paper,
+          backgroundColor: colors.onFocus,
         }}
       />
       <Text size="meta" weight="semibold" style={{ flex: 1 }}>
@@ -69,7 +71,7 @@ export function JoinRequestsBanner({
         accessibilityLabel={m.mobileGroup.requests.review}
         size="sm"
         variant="outline-inverse"
-        icon={<ArrowDown size={sizes.iconRow - 2} color={colors.paper} />}
+        icon={<ArrowDown size={sizes.iconRow - 2} color={colors.onFocus} />}
         iconPlacement="trailing"
         onPress={onReview}
       />
@@ -79,6 +81,7 @@ export function JoinRequestsBanner({
 
 function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
   const m = useMessages();
+  const colors = useColors();
   const view = levelCellView(level?.levelBand, level?.provisional ?? true);
   if (!view.label) {
     return null;
@@ -153,6 +156,7 @@ function RequestRow({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const name = request.user.name ?? m.mobileGroup.unnamedUser;
   const meta = groupJoinRequestMeta(request, communityName, locale);
   const identity = (
@@ -221,7 +225,7 @@ function RequestRow({
           <Button
             label={m.mobileGroup.requests.approve}
             accessibilityLabel={m.mobileGroup.requests.approveName(name)}
-            icon={<Check size={sizes.iconRow} color={colors.paper} />}
+            icon={<Check size={sizes.iconRow} color={colors.onControl} />}
             pending={approving}
             disabled={rejecting}
             onPress={onApprove}
@@ -262,6 +266,7 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
     const { requests } = props;
     const locale = useLocale();
     const m = useMessages();
+    const colors = useColors();
     if (requests.status === "loading") {
       return <Skeleton height={72} radius={radii.card} />;
     }
@@ -332,10 +337,10 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
               alignItems: "center",
               gap: 8,
               paddingHorizontal: 16,
-              backgroundColor: colors.ink,
+              backgroundColor: colors.focus,
             }}
           >
-            <Inbox size={sizes.iconRow - 1} color={colors.paper} />
+            <Inbox size={sizes.iconRow - 1} color={colors.onFocus} />
             <Text size="meta" weight="semibold">
               {groupJoinRequestsHeading(requests.value.length, locale)}
             </Text>

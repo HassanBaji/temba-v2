@@ -1,4 +1,4 @@
-import { bibColors, colors } from "@repo/design-tokens";
+import { bibColors, palettes } from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
 import { View } from "react-native";
 
@@ -6,6 +6,9 @@ import { useMessages } from "../i18n/locale-provider";
 import { ResultMark } from "../primitives/result-mark";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text, type TextProps } from "../primitives/text";
+
+// Share cards render on black in both modes: they leave the App.
+const colors = palettes.light;
 
 /** Type at the card's own scale: these cards are laid out in export pixels. */
 export function Big({

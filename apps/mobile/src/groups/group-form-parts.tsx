@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import {
   groupNameCounter,
   GROUP_NAME_MAX_LENGTH,
@@ -18,6 +18,7 @@ import { initialsFor } from "../primitives/initials";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 
 const PHOTO_TILE = 80;
 const RADIO = 22;
@@ -60,6 +61,7 @@ export function PhotoTile({
   empty?: "camera" | "initials";
 }) {
   const m = useMessages();
+  const colors = useColors();
   const filled = Boolean(uri) || empty === "initials";
   return (
     <Pressable
@@ -84,7 +86,7 @@ export function PhotoTile({
             height: PHOTO_TILE,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: colors.ink,
+            backgroundColor: colors.control,
           }}
         >
           {uri ? (
@@ -95,7 +97,7 @@ export function PhotoTile({
               weight="semibold"
               accessibilityElementsHidden
               importantForAccessibility="no"
-              style={{ color: colors.paper }}
+              style={{ color: colors.onControl }}
             >
               {initialsFor(name)}
             </Text>
@@ -108,13 +110,13 @@ export function PhotoTile({
               bottom: 0,
               paddingVertical: 4,
               alignItems: "center",
-              backgroundColor: uri ? colors.ink : colors.dimrule,
+              backgroundColor: uri ? colors.control : colors.dimrule,
             }}
           >
             <Text
               size="eyebrow"
               weight="medium"
-              style={{ color: colors.paper }}
+              style={{ color: colors.onControl }}
             >
               {label}
             </Text>
@@ -216,6 +218,7 @@ export function SportSegment({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -250,7 +253,7 @@ export function SportSegment({
               borderStartWidth: index > 0 ? hairline : 0,
               borderColor: colors.rule,
               backgroundColor: selected
-                ? colors.ink
+                ? colors.control
                 : pressed
                   ? colors.wash
                   : colors.paper,
@@ -258,7 +261,7 @@ export function SportSegment({
           >
             <Text
               weight="semibold"
-              style={{ color: selected ? colors.paper : colors.ink }}
+              style={{ color: selected ? colors.onControl : colors.ink }}
             >
               {m.common[sport]}
             </Text>
@@ -283,6 +286,7 @@ export function LockedSportCard({
   help: string;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessible
@@ -316,6 +320,7 @@ export function LockedSportCard({
 }
 
 function RadioMark({ selected }: { selected: boolean }) {
+  const colors = useColors();
   return (
     <View
       accessibilityElementsHidden
@@ -361,6 +366,7 @@ export function RadioRow({
   leading?: React.ReactNode;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -448,6 +454,7 @@ export function ToggleCard({
   onChange: (next: boolean) => void;
   disabled?: boolean;
 }) {
+  const colors = useColors();
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
       <View

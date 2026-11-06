@@ -1,5 +1,4 @@
 import { sizes } from "@repo/design-tokens";
-import { colors } from "@repo/design-tokens";
 import { ChevronRight } from "lucide-react-native";
 import { View } from "react-native";
 
@@ -8,6 +7,7 @@ import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { PartnersCard } from "../profile/profile-sections";
 import { SectionHead } from "../profile/profile-parts";
+import { useColors } from "../theme/theme-provider";
 import type {
   PlayerProfileModel,
   ProfileMatchRow,
@@ -39,6 +39,7 @@ export function PlayerProfileBody({
   onOpenPlayer: (userId: string) => void;
   onSeeAll: () => void;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const page = m.profile.playerPage;
   return (

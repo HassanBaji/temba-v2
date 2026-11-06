@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import {
   groupDeleteNameMatches,
   groupDeleteSheetCopy,
@@ -12,6 +12,7 @@ import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 
 function StatCell({
   value,
@@ -23,6 +24,7 @@ function StatCell({
   first: boolean;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessible
@@ -67,6 +69,7 @@ export function DeleteGroupSheet({
   onClose: () => void;
 }) {
   const locale = useLocale();
+  const colors = useColors();
   const [typed, setTyped] = useState("");
   useEffect(() => {
     if (visible) {

@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { ChevronRight } from "lucide-react-native";
 import type { ComponentType } from "react";
 import { Pressable, Switch, View, type ColorValue } from "react-native";
@@ -9,6 +9,7 @@ import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const ROW_PADDING = { paddingHorizontal: 16, paddingVertical: 14 } as const;
 
@@ -52,6 +53,7 @@ export function SettingsGroup({
 
 /** A count in an ink disc, for things waiting on the User. */
 export function CountBadge({ count }: { count: number }) {
+  const colors = useColors();
   return (
     <SurfaceToneContext.Provider value="ink">
       <View
@@ -60,7 +62,7 @@ export function CountBadge({ count }: { count: number }) {
           height: 22,
           paddingHorizontal: 6,
           borderRadius: 11,
-          backgroundColor: colors.ink,
+          backgroundColor: colors.control,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -75,6 +77,7 @@ export function CountBadge({ count }: { count: number }) {
 
 /** A boxed mono word such as VERIFY. */
 export function TagBox({ label }: { label: string }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -111,6 +114,7 @@ export function SettingsRow({
   accessibilityLabel?: string;
   onPress?: () => void;
 }) {
+  const colors = useColors();
   const content = (
     <>
       {leading ??
@@ -187,6 +191,7 @@ export function SwitchRow({
   disabled?: boolean;
   onChange: (next: boolean) => void;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -233,6 +238,7 @@ export function Segmented<T extends string>({
   disabled?: boolean;
   onSelect: (value: T) => void;
 }) {
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -268,7 +274,7 @@ export function Segmented<T extends string>({
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: radii.md,
-                backgroundColor: selected ? colors.ink : undefined,
+                backgroundColor: selected ? colors.control : undefined,
               }}
             >
               <Text

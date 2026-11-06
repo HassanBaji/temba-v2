@@ -18,6 +18,7 @@ import { Sheet } from "../primitives/sheet";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { InfoRows } from "./info-rows";
 import {
   joinActionLabel,
@@ -45,7 +46,8 @@ function Choice({
 }) {
   const m = useMessages().mobileTournament.join;
   const tone = selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -61,9 +63,9 @@ function Choice({
           justifyContent: "center",
           gap: 2,
           borderRadius: radii.lg,
-          backgroundColor: palette.background,
+          backgroundColor: selected ? colors.control : palette.background,
           borderWidth: hairline,
-          borderColor: selected ? palette.background : palette.rule,
+          borderColor: selected ? colors.ink : palette.rule,
         }}
       >
         {locked ? <Hatch radius={radii.lg} /> : null}

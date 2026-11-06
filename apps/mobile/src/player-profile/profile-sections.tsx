@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/expo";
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import type {
   EarlyDaysView,
   ProfileFormView,
@@ -27,6 +27,7 @@ import {
 } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { SectionHead } from "../profile/profile-parts";
+import { useColors } from "../theme/theme-provider";
 import type { ProfileMatchRow } from "./player-profile-model";
 
 const GLYPH_WIDTH = 62;
@@ -211,6 +212,7 @@ function Pitch({
 }: {
   spot: Extract<ProfilePositionView, { sport: "football" }>["spot"];
 }) {
+  const colors = useColors();
   const ink = colors.ink;
   return (
     <Svg
@@ -434,6 +436,7 @@ export function StatsGrid({
 const PAIR_TILE = 28;
 
 function ViewerTile() {
+  const colors = useColors();
   const { user } = useUser();
   return (
     <SurfaceToneContext.Provider value="ink">
@@ -442,7 +445,7 @@ function ViewerTile() {
           width: PAIR_TILE,
           height: PAIR_TILE,
           borderRadius: radii.sm,
-          backgroundColor: colors.ink,
+          backgroundColor: colors.control,
           alignItems: "center",
           justifyContent: "center",
         }}

@@ -1,5 +1,5 @@
 import { useAuth, useUser } from "@clerk/expo";
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import {
   isFootballPosition,
@@ -48,6 +48,7 @@ import {
   profileTaskPath,
   settingsChecklist,
 } from "../profile-tasks/profile-tasks-model";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import {
   displayPhone,
@@ -70,6 +71,7 @@ const BADGE = 32;
 type Details = RouterOutputs["users"]["profileDetails"];
 
 function SportBadge({ label }: { label: string | null }) {
+  const colors = useColors();
   if (!label) {
     return (
       <View
@@ -98,7 +100,7 @@ function SportBadge({ label }: { label: string | null }) {
           borderRadius: radii.sm,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colors.ink,
+          backgroundColor: colors.control,
         }}
       >
         <Text size="meta" weight="bold" width="expanded">
@@ -110,6 +112,7 @@ function SportBadge({ label }: { label: string | null }) {
 }
 
 function SetUpPill({ label }: { label: string }) {
+  const colors = useColors();
   return (
     <SurfaceToneContext.Provider value="ink">
       <View
@@ -117,7 +120,7 @@ function SetUpPill({ label }: { label: string }) {
           paddingHorizontal: 12,
           paddingVertical: 6,
           borderRadius: radii.lg,
-          backgroundColor: colors.ink,
+          backgroundColor: colors.control,
         }}
       >
         <Text size="eyebrow" weight="semibold">
@@ -162,6 +165,7 @@ function LanguageGroup() {
 
 function SettingsBody({ details }: { details: Details }) {
   const m = useMessages();
+  const colors = useColors();
   const s = m.you.settings;
   const locale = useLocale();
   const router = useRouter();

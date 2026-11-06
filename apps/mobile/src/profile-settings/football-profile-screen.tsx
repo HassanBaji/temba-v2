@@ -1,4 +1,4 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { sizes, spacing } from "@repo/design-tokens";
 import {
   DEFAULT_FOOTBALL_POSITION,
   FOOTBALL_ROLES,
@@ -34,6 +34,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { footballLevelWord } from "../profile/profile-model";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { footballSavePlan } from "./settings-model";
 
@@ -72,6 +73,7 @@ function FootballProfileForm({
   state: OnboardingState;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const f = m.you.footballProfile;
   const locale = useLocale();
   const toast = useToast();

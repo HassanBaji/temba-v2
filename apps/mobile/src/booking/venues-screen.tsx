@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { type Sport } from "@repo/domain/sport";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { venueCardImage } from "@repo/domain/venue-photos";
@@ -21,6 +21,7 @@ import { SearchField } from "../primitives/search-field";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { BookingRowCard, NextBooking, type BookingItem } from "./booking-cards";
 import { Notice } from "./booking-parts";
@@ -59,6 +60,7 @@ const FILTER_BAR_PADDING = 12;
 export function VenuesScreen() {
   const router = useRouter();
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<VenueSort>("name");
@@ -319,6 +321,7 @@ function VenueCard({
   onPress: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const open = venue.todayOpen.length > 0;
   const price = formatBookingPriceFils(venue.fromHourlyRateFils, locale);
@@ -446,6 +449,7 @@ function SortChip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="radio"

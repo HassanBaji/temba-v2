@@ -30,7 +30,7 @@ const navIconButtonVariants = cva("shrink-0", {
       surface: "paper",
       className: "border-rule text-ink border",
     },
-    { variant: "boxed", surface: "ink", className: "bg-raised text-paper" },
+    { variant: "boxed", surface: "ink", className: "bg-raised text-on-focus" },
   ],
   defaultVariants: {
     variant: "plain",

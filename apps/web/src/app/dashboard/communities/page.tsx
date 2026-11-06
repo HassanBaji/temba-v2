@@ -137,7 +137,7 @@ function StartACommunityCard() {
       </p>
       <Button
         asChild
-        className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
+        className="hover:border-dimrule hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
       >
         <Link href="/dashboard/communities/new">
           {m.community.start.action}

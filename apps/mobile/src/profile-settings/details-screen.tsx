@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/expo";
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import { productDayKey } from "@repo/domain/product-timezone";
 import {
@@ -34,6 +34,7 @@ import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
 import { useProfilePhoto } from "../profile/use-profile-photo";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { PickerField } from "./picker-field";
 import { birthDateParts, readBirthDate } from "./settings-model";
@@ -55,6 +56,7 @@ function isNationality(value: string | null): value is Nationality {
 
 function PhotoRow({ name }: { name: string }) {
   const m = useMessages();
+  const colors = useColors();
   const toast = useToast();
   const { user } = useUser();
   const { pickPhoto, savePhoto, pending } = useProfilePhoto();
@@ -123,6 +125,7 @@ function PhotoRow({ name }: { name: string }) {
 
 function PrivacyNote() {
   const m = useMessages();
+  const colors = useColors();
   const d = m.you.details;
   return (
     <Surface padded={false} radius="card">
@@ -159,6 +162,7 @@ function PrivacyNote() {
 
 function DetailsForm({ details }: { details: Details }) {
   const m = useMessages();
+  const colors = useColors();
   const d = m.you.details;
   const locale = useLocale();
   const toast = useToast();

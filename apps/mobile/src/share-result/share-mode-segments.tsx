@@ -1,9 +1,10 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import type { ShareMode } from "./share-model";
 
 const MODE_VALUES: ShareMode[] = ["story", "sticker"];
@@ -19,6 +20,7 @@ export function ShareModeSegments({
   value: ShareMode;
   onSelect: (mode: ShareMode) => void;
 }) {
+  const colors = useColors();
   const m = useMessages().mobilePlayer.share;
   const modes = MODE_VALUES.map((mode) => ({ value: mode, label: m[mode] }));
   return (

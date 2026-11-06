@@ -1,4 +1,4 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { sizes, spacing } from "@repo/design-tokens";
 import type { GroupCreateContext } from "@repo/domain/group-create";
 import {
   groupJoiningToggleHelp,
@@ -15,6 +15,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import {
   FORM_GAP,
   FormBlock,
@@ -65,6 +66,7 @@ function InviteLinkCard({
   link: NonNullable<GroupEditViewProps["inviteLink"]>;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const edit = m.group.settings.edit;
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>

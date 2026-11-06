@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import type {
   GroupLeaderboardEntryData,
   GroupPlayedGameData,
@@ -38,6 +38,7 @@ import { Hatch } from "../primitives/hatch";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { Notice } from "./notice";
 import { PlayedGames } from "./played-games";
 
@@ -74,6 +75,7 @@ function NoGamesYet(props: GamesTabProps) {
   const router = useRouter();
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const { onInvite, createGameHref } = props;
   const needed = groupGamePlayersNeeded(props.sport);
   const seated = [...props.members]
@@ -155,7 +157,7 @@ function NoGamesYet(props: GamesTabProps) {
               icon={
                 <UserPlus
                   size={sizes.iconAction}
-                  color={createGameHref ? colors.ink : colors.paper}
+                  color={createGameHref ? colors.ink : colors.onControl}
                 />
               }
               onPress={onInvite}

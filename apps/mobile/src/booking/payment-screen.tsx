@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { courtFace } from "@repo/domain/court-sport-copy";
 import {
   isOnlinePaymentMethod,
@@ -42,6 +42,7 @@ import { Sheet } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { BookingHero, Notice, PAYMENT_METHOD_ICONS } from "./booking-parts";
 import {
@@ -97,6 +98,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
   const utils = api.useUtils();
   const now = useSecondClock();
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const opened = useRef<string | null>(null);
   const finished = useRef(false);
@@ -283,7 +285,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
                 size="lg"
                 disabled={browserOpen}
                 icon={
-                  <ExternalLink size={sizes.iconRow} color={colors.paper} />
+                  <ExternalLink size={sizes.iconRow} color={colors.onControl} />
                 }
                 onPress={() => void openPage(view.redirectUrl)}
               />
@@ -321,7 +323,7 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
                 }
                 size="lg"
                 pending={retry.isPending && !choosing}
-                icon={<RotateCw size={sizes.iconRow} color={colors.paper} />}
+                icon={<RotateCw size={sizes.iconRow} color={colors.onControl} />}
                 onPress={() => retry.mutate({ bookingId })}
               />
               {canSwitch ? (
@@ -404,6 +406,7 @@ function releaseRequest(
 
 function HoldLine({ countdown }: { countdown: string }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessible
@@ -432,6 +435,7 @@ function StatusBody({
   price: string;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const MethodIcon = methodIcon(method);
   const waiting = view.kind !== "failed" && view.kind !== "expired";
 
@@ -548,6 +552,7 @@ function CardRow({
   ruled?: boolean;
   children: React.ReactNode;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -585,6 +590,7 @@ function StatusMark({
   spinning: boolean;
   icon: LucideIcon;
 }) {
+  const colors = useColors();
   const reducedMotion = useReducedMotion();
   const turn = useSharedValue(0);
 

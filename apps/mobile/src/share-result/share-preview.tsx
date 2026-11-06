@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { stickerPlacement } from "@repo/domain/result-share-frame";
 import { Image } from "expo-image";
 import { Image as ImageIcon } from "lucide-react-native";
@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View, type ColorValue } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 /** The card's width in the fitted preview: the whole screen stays above the fold. */
 export const FITTED_WIDTH = 236;
@@ -21,6 +22,7 @@ export function PreviewWell({
   full: boolean;
   children: React.ReactNode;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -54,6 +56,7 @@ export function PhotoFrame({
   photoUri: string | null;
   children: React.ReactNode;
 }) {
+  const colors = useColors();
   const m = useMessages().mobilePlayer.share;
   return (
     <View
@@ -106,6 +109,7 @@ export function PreviewMeta({
     onPress: () => void;
   };
 }) {
+  const colors = useColors();
   const Icon = action.icon;
   return (
     <View

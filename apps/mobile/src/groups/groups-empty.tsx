@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import {
   PUBLIC_GROUPS_PREVIEW_MONOGRAMS,
   publicGroupsEmptyLine,
@@ -14,6 +14,7 @@ import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const MONOGRAM_SIZE = 40;
 const NEXT_GAME_WIDTH = 52;
@@ -49,6 +50,7 @@ export function MyGroupsEmpty({
   onBrowsePublic: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View style={{ gap: spacing.compact }}>
       <Surface padded={false} style={{ overflow: "hidden" }}>
