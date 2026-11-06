@@ -1,7 +1,5 @@
 import {
-  offersEitherSide,
   vacantJoinSeats,
-  type FriendlyGameJoinPick,
   type FriendlyGameJoinSeat,
 } from "./friendly-game-cta";
 import { isPreferredPosition } from "./preferred-position";
@@ -82,30 +80,6 @@ export function defaultJoinSeat(
   const vacant = vacantJoinSeats(sides);
   if (vacant.length === 1) {
     return vacant[0] ?? null;
-  }
-  return preferredJoinSeat(sides, preferredPosition);
-}
-
-/**
- * Opening pick for the Friendly game join sheet, which also offers Either
- * side. Like `defaultJoinSeat`, except that a Preferred Position of `either`
- * opens on Either side for the first Game team that offers it.
- */
-export function defaultFriendlyJoinPick(
-  sides: readonly {
-    sideIndex: number;
-    left: unknown;
-    right: unknown;
-  }[],
-  preferredPosition: string | null | undefined,
-): FriendlyGameJoinPick | null {
-  const vacant = vacantJoinSeats(sides);
-  if (vacant.length === 1) {
-    return vacant[0] ?? null;
-  }
-  if (preferredPosition === "either") {
-    const side = sides.find(offersEitherSide);
-    return side ? { sideIndex: side.sideIndex, position: "either" } : null;
   }
   return preferredJoinSeat(sides, preferredPosition);
 }

@@ -19,8 +19,10 @@ export type FriendlyGameDetailsSeat = {
   levelBand: LevelBand | null;
   unclaimed?: boolean;
   phoneMasked?: string | null;
-  /** Joined without picking a Position. */
+  /** Answered Either side rather than Left or Right. */
   eitherSide?: boolean;
+  /** The Organizer who set this Game team's sides, if one did. */
+  sideSetByUserId?: string | null;
 };
 
 export type FriendlyGameDetailsSide = {

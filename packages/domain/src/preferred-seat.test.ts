@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  defaultFriendlyJoinPick,
   defaultJoinSeat,
   preferredJoinSeat,
   remainingJoinSeatOnSide,
@@ -151,35 +150,6 @@ describe("defaultJoinSeat", () => {
     assert.deepEqual(defaultJoinSeat(sides, "left"), {
       sideIndex: 2,
       position: "left",
-    });
-  });
-});
-
-describe("defaultFriendlyJoinPick", () => {
-  const open = { sideIndex: 1, left: null, right: null };
-  const fixed = { sideIndex: 2, left: { eitherSide: false }, right: null };
-
-  it("opens on Either side for a Preferred Position of either", () => {
-    assert.deepEqual(defaultFriendlyJoinPick([fixed, open], "either"), {
-      sideIndex: 1,
-      position: "either",
-    });
-  });
-
-  it("opens on nothing for either when no Game team offers Either side", () => {
-    assert.equal(
-      defaultFriendlyJoinPick(
-        [fixed, { sideIndex: 1, left: { eitherSide: false }, right: null }],
-        "either",
-      ),
-      null,
-    );
-  });
-
-  it("still opens on the preferred Position for left or right", () => {
-    assert.deepEqual(defaultFriendlyJoinPick([open, fixed], "right"), {
-      sideIndex: 1,
-      position: "right",
     });
   });
 });

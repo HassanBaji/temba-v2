@@ -90,12 +90,6 @@ export const game = {
       `${band} · ${level} بعد هذه المباراة`,
   },
   joinSheet: {
-    eitherSide: "أي جهة",
-    eitherSideNote: "يختار شريكك اليسار أو اليمين، وتأخذ أنت الجهة الأخرى.",
-    eitherSidePartnerOpen: "يمكن لشريكك أخذ أي من المكانين",
-    joinEitherSide: (side: string) => `انضم إلى ${side} في أي جهة`,
-    takeSeatFromEitherSide: (seat: string, name: string) =>
-      `خذ ${seat}. ${name} يلعب في أي جهة وسينتقل إلى الجهة الأخرى`,
     playWith: (name: string) => `ستلعب مع ${name}`,
     partnerSpotOpen: "مكان شريكك ما زال شاغرًا — يمكن لأي شخص أخذه",
     everySpotTaken: "كل الأماكن في هذه المباراة محجوزة",
@@ -371,13 +365,11 @@ export const game = {
       `اختار ${partner} ${partnerSide}، لذا تلعب ${side}. لم تختر جهة.`,
     viewerBothEitherNote:
       "لم يختر أي منكما جهة. اتفقا عليها في الملعب، أو اختر واحدة في أي وقت قبل المباراة.",
-    viewerAloneEitherNote:
-      "لم تختر جهة. إن اختار شريكك جهة، تأخذ أنت الأخرى.",
+    viewerAloneEitherNote: "لم تختر جهة. إن اختار شريكك جهة، تأخذ أنت الأخرى.",
     pickASide: "اختر جهة",
     setSides: "حدد الجهات",
     swap: "بدّل",
-    setSidesPrompt:
-      "سيتفقان عليها في الملعب. حددها هنا إن أردتها مسجلة.",
+    setSidesPrompt: "سيتفقان عليها في الملعب. حددها هنا إن أردتها مسجلة.",
     setSidesDone: "حددتها أنت. أُبلغ اللاعبان.",
     setSidesToast: "تم تحديد الجهات",
     sideSavedToast: "تم حفظ الجهة",
@@ -402,7 +394,11 @@ export const game = {
       "من ينضم بعدك يأخذ اليمين، أو لا يختار ويلعب يمينًا تلقائيًا.",
     helpRightEmpty:
       "من ينضم بعدك يأخذ اليسار، أو لا يختار ويلعب يسارًا تلقائيًا.",
-    helpEitherNextToPicked: (partner: string, partnerSide: string, side: string) =>
+    helpEitherNextToPicked: (
+      partner: string,
+      partnerSide: string,
+      side: string,
+    ) =>
       `اختار ${partner} ${partnerSide}، لذا تلعب ${side} تلقائيًا. غيّرها في أي وقت قبل المباراة.`,
     helpEither:
       "إن اختار شريكك جهة تأخذ أنت الأخرى. وإن لم يختر أي منكما، اتفقا في الملعب؛ ويمكن للمنظم تسجيلها لاحقًا.",
@@ -416,7 +412,8 @@ export const game = {
     youreInTeam: (team: string) => `أنت في ${team}`,
     sideOpenUntil: (partner: string) =>
       `الجهة مفتوحة حتى تغيّرها أنت أو ${partner}`,
-    pickSideDescription: "اختر جهة في أي وقت قبل المباراة. يُبلَّغ شريكك إن غيّرت جهته.",
+    pickSideDescription:
+      "اختر جهة في أي وقت قبل المباراة. يُبلَّغ شريكك إن غيّرت جهته.",
     saveSide: "احفظ الجهة",
     sideButton: (side: string) => `جهة ${side}`,
     sideButtonTaken: (side: string, name: string) =>

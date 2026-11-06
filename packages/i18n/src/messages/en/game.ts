@@ -87,12 +87,6 @@ export const game = {
       `${band} · ${level} after this game`,
   },
   joinSheet: {
-    eitherSide: "Either side",
-    eitherSideNote: "Your partner picks left or right. You take the other.",
-    eitherSidePartnerOpen: "Your partner can take either spot",
-    joinEitherSide: (side: string) => `Join ${side} on either side`,
-    takeSeatFromEitherSide: (seat: string, name: string) =>
-      `Take ${seat}. ${name} plays either side and moves over`,
     playWith: (name: string) => `You'll play with ${name}`,
     partnerSpotOpen: "Your partner spot is still open — anyone can take it",
     everySpotTaken: "Every spot on this Game is taken",
@@ -359,7 +353,11 @@ export const game = {
       "Whoever joins next takes Right, or picks nothing and plays Right by default.",
     helpRightEmpty:
       "Whoever joins next takes Left, or picks nothing and plays Left by default.",
-    helpEitherNextToPicked: (partner: string, partnerSide: string, side: string) =>
+    helpEitherNextToPicked: (
+      partner: string,
+      partnerSide: string,
+      side: string,
+    ) =>
       `${partner} picked ${partnerSide}, so you'd play ${side} by default. Change it any time before the game.`,
     helpEither:
       "If your partner picks a side you take the other. If neither of you does, sort it on court; the organizer can note it later.",
@@ -373,7 +371,8 @@ export const game = {
     youreInTeam: (team: string) => `You're in, ${team}`,
     sideOpenUntil: (partner: string) =>
       `Side open until you or ${partner} change it`,
-    pickSideDescription: "Pick a side any time before the game. Your partner is told if it moves them.",
+    pickSideDescription:
+      "Pick a side any time before the game. Your partner is told if it moves them.",
     saveSide: "Save side",
     sideButton: (side: string) => `${side} side`,
     sideButtonTaken: (side: string, name: string) =>

@@ -226,54 +226,6 @@ export type FriendlyGameJoinPick = {
   position: "left" | "right" | "either";
 };
 
-type JoinSheetSideShape = {
-  sideIndex: number;
-  left: unknown;
-  right: unknown;
-};
-
-/** An occupant who joined Either side and has not been given a Position. */
-export function isEitherSideOccupant(occupant: unknown): boolean {
-  return (
-    typeof occupant === "object" &&
-    occupant !== null &&
-    "eitherSide" in occupant &&
-    occupant.eitherSide === true
-  );
-}
-
-/**
- * A Position the joiner can pick: vacant, or held by a User who joined Either
- * side while the other Position is still vacant. Taking that one moves the
- * Either-side User over.
- */
-export function isTakeableJoinSeat(
-  side: JoinSheetSideShape,
-  position: "left" | "right",
-): boolean {
-  const occupant = side[position];
-  if (occupant == null) {
-    return true;
-  }
-  const other = position === "left" ? side.right : side.left;
-  return isEitherSideOccupant(occupant) && other == null;
-}
-
-/**
- * Either side is offered on a Game team with a vacant Position and nobody on
- * it who picked one: there is still a choice of Position to leave open.
- */
-export function offersEitherSide(side: JoinSheetSideShape): boolean {
-  const { left, right } = side;
-  if (left != null && right != null) {
-    return false;
-  }
-  return (
-    (left == null || isEitherSideOccupant(left)) &&
-    (right == null || isEitherSideOccupant(right))
-  );
-}
-
 export function isSameJoinPick(
   a: FriendlyGameJoinPick | null,
   b: FriendlyGameJoinPick | null,
@@ -350,22 +302,17 @@ export function friendlyGameOverflowItems(
 export function friendlyGameJoinSheetCaption(
   sides: readonly {
     sideIndex: number;
-    left: { name: string; eitherSide?: boolean } | null;
-    right: { name: string; eitherSide?: boolean } | null;
+    left: { name: string } | null;
+    right: { name: string } | null;
   }[],
-  picked: FriendlyGameJoinPick | null,
+  picked: FriendlyGameJoinSeat | null,
   locale: Locale,
 ): string {
   const m = messagesFor(locale).game.joinSheet;
   if (picked) {
     const side = sides.find((row) => row.sideIndex === picked.sideIndex);
-    const partner = joinPickPartner(side, picked.position);
-    if (partner) {
-      return m.playWith(partner.name);
-    }
-    return picked.position === "either"
-      ? m.eitherSidePartnerOpen
-      : m.partnerSpotOpen;
+    const partner = picked.position === "left" ? side?.right : side?.left;
+    return partner ? m.playWith(partner.name) : m.partnerSpotOpen;
   }
 
   const vacantCount = vacantJoinSeats(sides).length;
@@ -376,21 +323,4 @@ export function friendlyGameJoinSheetCaption(
     return m.oneSpotOpen;
   }
   return m.spotsOpen(vacantCount, sides.length * 2);
-}
-
-function joinPickPartner<T extends { eitherSide?: boolean }>(
-  side: { left: T | null; right: T | null } | undefined,
-  position: FriendlyGameJoinPick["position"],
-): T | null {
-  if (!side) {
-    return null;
-  }
-  if (position === "either") {
-    return side.left ?? side.right;
-  }
-  const atPosition = side[position];
-  if (atPosition?.eitherSide) {
-    return atPosition;
-  }
-  return position === "left" ? side.right : side.left;
 }

@@ -30,7 +30,6 @@ import {
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   isSameJoinPick,
-  isTakeableJoinSeat,
   vacantJoinSeats,
   type FriendlyGameJoinPick,
   type FriendlyGameJoinSeat,
@@ -207,7 +206,6 @@ function PositionButton({
   occupant,
   position,
   sideLabel,
-  takeable,
   selected,
   disabled,
   onSelect,
@@ -215,7 +213,6 @@ function PositionButton({
   occupant: FriendlyGameJoinSheetOccupant | null;
   position: SeatPosition;
   sideLabel: string;
-  takeable: boolean;
   selected: boolean;
   disabled: boolean;
   onSelect: () => void;
@@ -225,27 +222,18 @@ function PositionButton({
     sideLabel,
     m.tournament.position[`${position}Lower`],
   );
-  // Taking an Either-side User's Position moves them over, so the tile shows
-  // the joiner once picked.
-  const shown = occupant && takeable && selected ? null : occupant;
   return (
     <SeatTile
-      occupant={shown}
-      level={occupantLevelLabel(shown)}
+      occupant={occupant}
+      level={occupantLevelLabel(occupant)}
       selected={selected}
-      caption={
-        occupant?.eitherSide
-          ? m.game.joinSheet.eitherSide
-          : m.tournament.position[position]
-      }
+      caption={m.tournament.position[position]}
       label={
-        !occupant
-          ? m.webGame.joinSheet.takeSeat(seatName)
-          : takeable
-            ? m.game.joinSheet.takeSeatFromEitherSide(seatName, occupant.name)
-            : m.webGame.joinSheet.seatTakenBy(seatName, occupant.name)
+        occupant
+          ? m.webGame.joinSheet.seatTakenBy(seatName, occupant.name)
+          : m.webGame.joinSheet.takeSeat(seatName)
       }
-      disabled={!takeable || disabled}
+      disabled={occupant != null || disabled}
       onSelect={onSelect}
     />
   );
@@ -280,7 +268,6 @@ function SideColumn({
             occupant={side[position]}
             position={position}
             sideLabel={sideLabel}
-            takeable={isTakeableJoinSeat(side, position)}
             selected={
               picked?.sideIndex === side.sideIndex &&
               picked.position === position
