@@ -14,6 +14,13 @@ import { cn } from "~/lib/utils";
 
 import { PlayerBackButton } from "./player-header";
 
+/**
+ * Edge to edge and flush with the top on phones, matching the mobile App; a
+ * card from `md` up. The `-mt-6` cancels the page's top margin.
+ */
+export const PLAYER_HERO_BLEED =
+  "-mx-4 -mt-6 rounded-none min-[430px]:-mx-5 md:mx-0 md:mt-0 md:rounded-card";
+
 function SportSwitch({
   options,
   onSelect,
@@ -152,7 +159,12 @@ export function PlayerProfileHero({
   level: ProfileLevelView;
 }) {
   return (
-    <header className="surface-ink bg-ink text-paper rounded-card flex flex-col gap-5 p-[22px]">
+    <header
+      className={cn(
+        "surface-ink bg-ink text-paper flex flex-col gap-5 px-4 py-[22px] min-[430px]:px-5 md:p-[22px]",
+        PLAYER_HERO_BLEED,
+      )}
+    >
       <PlayerBackButton surface="ink" />
       <div className="flex items-center gap-4">
         <UserAvatar

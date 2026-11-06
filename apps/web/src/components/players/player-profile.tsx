@@ -13,6 +13,7 @@ import {
 } from "@repo/domain/player-profile";
 import { sportSwitchView } from "@repo/domain/player-profile-page";
 import type { Sport } from "@repo/domain/sport";
+import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
 import { PlayerBackButton } from "./player-header";
@@ -21,7 +22,7 @@ import {
   padelProfileModel,
   type PlayerProfileModel,
 } from "./player-profile-model";
-import { PlayerProfileHero } from "./player-profile-hero";
+import { PLAYER_HERO_BLEED, PlayerProfileHero } from "./player-profile-hero";
 import {
   EarlyDaysCard,
   FormMarks,
@@ -55,7 +56,7 @@ function PlayerProfileSkeleton() {
       aria-busy="true"
       className="grid gap-[26px] lg:grid-cols-2 lg:items-start"
     >
-      <Skeleton className="rounded-card h-[420px] w-full" />
+      <Skeleton className={cn("h-[420px] w-auto", PLAYER_HERO_BLEED)} />
       <Skeleton className="rounded-card h-[240px] w-full" />
     </div>
   );
