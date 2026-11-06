@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { useRouter, type Href } from "expo-router";
 import { ChevronLeft, X } from "lucide-react-native";
 import type { ComponentType } from "react";
@@ -6,6 +6,7 @@ import { Pressable, View, type ColorValue } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
+import { useColors } from "../theme/theme-provider";
 import { backTarget } from "./back-target";
 import { hairline } from "./hairline-width";
 import { useSurfaceTone } from "./surface-context";
@@ -138,6 +139,7 @@ export function HeaderTextButton({
   label: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
   const onInk = useSurfaceTone() === "ink";
 
   return (
@@ -155,7 +157,7 @@ export function HeaderTextButton({
     >
       <Text
         weight="semibold"
-        style={{ color: onInk ? colors.paper : colors.ink }}
+        style={{ color: onInk ? colors.onFocus : colors.ink }}
       >
         {label}
       </Text>
@@ -174,6 +176,7 @@ export function HeaderIconButton({
   onPress: () => void;
   framed?: boolean;
 }) {
+  const colors = useColors();
   const onInk = useSurfaceTone() === "ink";
 
   if (framed) {
@@ -197,7 +200,7 @@ export function HeaderIconButton({
       >
         <Icon
           size={sizes.iconAction}
-          color={onInk ? colors.paper : colors.ink}
+          color={onInk ? colors.onFocus : colors.ink}
         />
       </Pressable>
     );

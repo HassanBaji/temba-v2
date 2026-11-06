@@ -73,7 +73,7 @@ function CountBadge({ count, label }: { count: number; label: string }) {
     <span
       role="status"
       aria-label={label}
-      className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
+      className="bg-control text-on-control text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
     >
       <span aria-hidden="true">{count}</span>
     </span>
@@ -156,7 +156,7 @@ function SportBadge({ band }: { band: string | null }) {
       <span
         aria-hidden="true"
         dir="ltr"
-        className="bg-ink text-paper text-meta flex size-9 items-center justify-center rounded-[9px] font-semibold"
+        className="bg-control text-on-control text-meta flex size-9 items-center justify-center rounded-[9px] font-semibold"
       >
         {band}
       </span>
@@ -243,7 +243,7 @@ function SportProfiles({ details }: { details: Details }) {
             subtitle={row.set ? row.sub : copy.notSetUp}
             trailing={
               row.set ? null : (
-                <span className="bg-ink text-paper text-meta shrink-0 rounded-full px-3 py-1 font-semibold">
+                <span className="bg-control text-on-control text-meta shrink-0 rounded-full px-3 py-1 font-semibold">
                   {copy.setUp}
                 </span>
               )

@@ -213,7 +213,7 @@ function Form({
         <UserAvatar
           name={displayName}
           image={clerkUser.hasImage ? clerkUser.imageUrl : null}
-          className="border-rule rounded-card text-h2 [&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper [&_[data-slot=avatar-fallback]]:rounded-card size-[72px] border font-semibold data-[size=default]:size-[72px]"
+          className="border-rule rounded-card text-h2 [&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control [&_[data-slot=avatar-fallback]]:rounded-card size-[72px] border font-semibold data-[size=default]:size-[72px]"
         />
         <div className="min-w-0">
           <Link

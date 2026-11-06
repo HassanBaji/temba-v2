@@ -46,7 +46,7 @@ function blockClosedTypeahead(event: KeyboardEvent<HTMLButtonElement>) {
 const MEMBER_TILE =
   "rounded-[10px] [&_[data-slot=avatar-fallback]]:rounded-[10px]";
 const VIEWER_TILE =
-  "[&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper";
+  "[&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control";
 const OTHER_TILE =
   "border-rule border [&_[data-slot=avatar-fallback]]:bg-paper [&_[data-slot=avatar-fallback]]:text-ink";
 
@@ -63,7 +63,7 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
       <Button
         type="button"
         onClick={onInvite}
-        className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
+        className="bg-control text-on-control hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
       >
         {m.community.inviteBlock.action}
       </Button>
@@ -242,7 +242,7 @@ export function CommunityMembersTab({
                     <SelectTrigger
                       id={selectId}
                       aria-label={m.webGroup.members.roleFor(name)}
-                      className="border-rule bg-paper dark:bg-paper w-28 shrink-0 rounded-[10px] px-3 text-sm data-[size=default]:h-10 data-[size=default]:min-h-10"
+                      className="border-rule bg-paper w-28 shrink-0 rounded-[10px] px-3 text-sm data-[size=default]:h-10 data-[size=default]:min-h-10"
                       onKeyDown={blockClosedTypeahead}
                     >
                       <SelectValue />

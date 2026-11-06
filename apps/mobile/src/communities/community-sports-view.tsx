@@ -1,4 +1,3 @@
-import { colors } from "@repo/design-tokens";
 import { communitySportsView } from "@repo/domain/community-sports";
 import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
@@ -9,6 +8,7 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 export type CommunitySportsViewProps = {
   sports: readonly string[];
@@ -20,6 +20,7 @@ export type CommunitySportsViewProps = {
 
 export function CommunitySportsBlock(props: CommunitySportsViewProps) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const view = communitySportsView(props.sports, props.canManage, locale);
   return (

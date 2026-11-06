@@ -53,7 +53,7 @@ export function AuthTermsNote({
   const linkClass = cn(
     touchHitArea,
     "underline",
-    onInk ? "text-paper" : "text-ink",
+    onInk ? "text-on-focus" : "text-ink",
   );
   return (
     <p

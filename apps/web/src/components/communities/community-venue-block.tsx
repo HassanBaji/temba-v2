@@ -90,7 +90,7 @@ export function CommunityVenueBlock({
       {canRequestLink ? (
         <Button
           type="button"
-          className="bg-ink text-paper hover:bg-dimrule h-11 w-full rounded-[10px] font-semibold"
+          className="bg-control text-on-control hover:bg-dimrule h-11 w-full rounded-[10px] font-semibold"
           onClick={onLinkVenue}
         >
           {m.community.action.linkVenue}

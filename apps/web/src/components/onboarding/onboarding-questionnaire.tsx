@@ -289,7 +289,7 @@ export function OnboardingQuestionnaire({
           </Group>
           {keeper ? (
             <div className="border-rule flex items-center gap-3 rounded-[14px] border px-4 py-3.5">
-              <span className="bg-ink text-paper text-eyebrow rounded-[5px] px-1.5 py-0.5 font-mono">
+              <span className="bg-control text-on-control text-eyebrow rounded-[5px] px-1.5 py-0.5 font-mono">
                 {footballKeeperCode(locale)}
               </span>
               <p className="text-meta text-muted-foreground">

@@ -1,4 +1,4 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { ChevronRight } from "lucide-react-native";
 import type { ComponentType } from "react";
 import {
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { mirrorInRtl } from "../i18n/rtl";
+import { useColors } from "../theme/theme-provider";
 import { Hairline } from "./hairline";
 import { Surface } from "./surface";
 import { Text } from "./text";
@@ -52,6 +53,7 @@ export function SheetMenuRow({
   accessibilityLabel,
   onPress,
 }: SheetMenuRowProps) {
+  const colors = useColors();
   const Trailing = trailing === "chevron" ? MenuChevron : trailing;
   const inactive = disabled || pending;
   const ink = tone === "danger" ? colors.danger : colors.ink;

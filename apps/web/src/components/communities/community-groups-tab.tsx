@@ -50,7 +50,7 @@ function StartAClubGroupCard({ onCreate }: { onCreate: () => void }) {
       </p>
       <Button
         type="button"
-        className="bg-ink text-paper hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
+        className="bg-control text-on-control hover:bg-dimrule mt-4 h-11 w-full rounded-[10px] font-semibold"
         onClick={onCreate}
       >
         {m.community.action.createClubGroup}

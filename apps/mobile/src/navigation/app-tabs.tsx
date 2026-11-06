@@ -1,4 +1,4 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { Tabs, useSegments } from "expo-router";
 import type { BottomTabScreenProps } from "expo-router/js-tabs";
 import {
@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { FieldIcon } from "./field-icon";
 import {
   stackMissingRoot,
@@ -53,6 +54,7 @@ const ROUTES: Record<TabSlot, string> = {
 
 export function AppTabs() {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const segments = useSegments();
   const m = useMessages();
   const tabs = visibleTabs(m);

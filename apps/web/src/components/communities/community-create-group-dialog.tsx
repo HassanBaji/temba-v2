@@ -229,7 +229,7 @@ function ClubGroupForm({
         type="submit"
         pending={pending}
         pendingLabel={m.webGroup.creating}
-        className="bg-ink text-paper hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
+        className="bg-control text-on-control hover:bg-dimrule h-[46px] w-full rounded-[12px] font-semibold"
       >
         {copy.submit}
       </Button>

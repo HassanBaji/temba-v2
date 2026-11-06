@@ -158,7 +158,7 @@ function YouAreIn({
       <div className="flex flex-col gap-5">
         <span
           aria-hidden="true"
-          className="bg-ink text-paper text-lead flex size-14 items-center justify-center rounded-xl font-semibold"
+          className="bg-control text-on-control text-lead flex size-14 items-center justify-center rounded-xl font-semibold"
         >
           {firstName ? initials(firstName) : "?"}
         </span>
