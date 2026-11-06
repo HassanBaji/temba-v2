@@ -35,14 +35,13 @@ async function insertVenue(database: TestDatabase) {
 
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; name?: string; communityId?: string },
+  args: { createdBy: string; name?: string },
 ) {
   const [row] = await database
     .insert(groups)
     .values({
       name: args.name ?? `Group ${crypto.randomUUID()}`,
       createdBy: args.createdBy,
-      communityId: args.communityId,
     })
     .returning({ id: groups.id });
   if (!row) {

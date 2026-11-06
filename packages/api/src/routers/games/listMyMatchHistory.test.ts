@@ -7,7 +7,6 @@ import {
   GameRegistrationModeEnum,
   GameSportEnum,
   MatchStatusEnum,
-  communities,
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
@@ -327,7 +326,7 @@ describe("listMyMatchHistoryRows", () => {
     }
   });
 
-  it("excludes cancelled Games and includes Soft-archived Club Group Friendly games", async () => {
+  it("excludes cancelled Games and includes Club Group Friendly games at a Soft-archived Venue", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "archive-viewer@example.com");
@@ -350,30 +349,22 @@ describe("listMyMatchHistoryRows", () => {
         sets: [{ slot1GamesWon: 6, slot2GamesWon: 1 }],
       });
 
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Archived Club",
-          type: "private",
-          createdBy: organizer.id,
-          archivedAt: NOW,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
       const [group] = await db
         .insert(groups)
         .values({
           name: "Club Group",
           createdBy: organizer.id,
-          communityId: community.id,
+          venueId: venue.id,
         })
         .returning({ id: groups.id });
       if (!group) {
         throw new Error("Failed to insert group");
       }
 
+      await db
+        .update(venues)
+        .set({ archivedAt: NOW })
+        .where(eq(venues.id, venue.id));
       const archived = await insertGame(db, {
         createdBy: organizer.id,
         venueId: venue.id,

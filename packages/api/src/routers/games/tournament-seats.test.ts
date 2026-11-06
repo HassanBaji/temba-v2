@@ -224,7 +224,6 @@ describe("Friendly tournament seats at 12 Game teams", () => {
           registrationMode: joiner.registrationMode,
           canRegister: joiner.canRegister,
           canWaitlist: joiner.canWaitlist,
-          joinFrozen: joiner.joinFrozen,
           isRegistered: joiner.isRegistered,
           isSeated: joiner.isSeated,
           isWaitlisted: joiner.isWaitlisted,
