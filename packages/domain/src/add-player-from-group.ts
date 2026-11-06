@@ -71,7 +71,7 @@ export function groupMemberRows(
   },
   locale: Locale,
 ): GroupMemberRowView[] {
-  const m = messagesFor(locale).mobileGameDetails.addPlayer;
+  const m = messagesFor(locale).group.addPlayer.fromGroup;
   const full = input.picked.length >= input.openSpots;
   return input.members
     .filter((member) => matchesQuery(member.name, input.query))
@@ -122,15 +122,15 @@ export function groupSpotsLine(
   pickedCount: number,
   locale: Locale,
 ): string {
-  const m = messagesFor(locale).mobileGameDetails.addPlayer;
+  const m = messagesFor(locale).group.addPlayer.fromGroup;
   return openSpots <= 0
     ? m.gameFull
     : m.spotsLeft(Math.max(0, openSpots - pickedCount), openSpots);
 }
 
 export function groupAddActionLabel(pickedCount: number, locale: Locale) {
-  const m = messagesFor(locale).mobileGameDetails.addPlayer;
-  return pickedCount === 0 ? m.selectPlayers : m.addCount(pickedCount);
+  const m = messagesFor(locale).group.addPlayer.fromGroup;
+  return pickedCount === 0 ? m.select : m.addCount(pickedCount);
 }
 
 /** First names of the picks, in the order they were picked. */
@@ -143,7 +143,7 @@ export function groupPickedNames(
   return picked
     .map((userId) => byId.get(userId)?.trim().split(/\s+/)[0])
     .filter((name): name is string => Boolean(name))
-    .join(messagesFor(locale).mobileGameDetails.listSeparator);
+    .join(messagesFor(locale).group.addPlayer.fromGroup.listSeparator);
 }
 
 export function groupAddedToast(
@@ -153,11 +153,11 @@ export function groupAddedToast(
   const [only] = added;
   return added.length === 1 && only
     ? messagesFor(locale).group.addPlayer.addedToast(only.name)
-    : messagesFor(locale).mobileGameDetails.addPlayer.addedCount(added.length);
+    : messagesFor(locale).group.addPlayer.fromGroup.addedCount(added.length);
 }
 
 export function groupNoMatchLine(query: string, locale: Locale) {
-  return messagesFor(locale).mobileGameDetails.addPlayer.noMatch(query.trim());
+  return messagesFor(locale).group.addPlayer.fromGroup.noMatch(query.trim());
 }
 
 /** The compact position choices under a picked member. */
@@ -168,7 +168,7 @@ export function groupMemberPositionChoices(locale: Locale): {
   return [
     {
       value: "none",
-      name: messagesFor(locale).mobileGameDetails.addPlayer.noPreferenceShort,
+      name: messagesFor(locale).group.addPlayer.fromGroup.noPreferenceShort,
     },
     ...footballPositionChoices(locale).map((choice) => ({
       value: choice.value,
