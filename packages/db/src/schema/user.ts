@@ -61,6 +61,11 @@ export const matchHistoryVisibilities = pgEnum(
   MATCH_HISTORY_VISIBILITY_VALUES,
 );
 
+/** Mirrors `LOCALES` in `@repo/i18n`, which this Package may not import. */
+export const USER_LOCALE_VALUES = ["en", "ar"] as const;
+
+export const userLocales = pgEnum("user_locale", USER_LOCALE_VALUES);
+
 export const user = pgTable(
   "user",
   {
@@ -105,6 +110,8 @@ export const user = pgTable(
     seatAlerts: boolean("seat_alerts").notNull().default(false),
     /** Email notifications (ADR-0054): on until the User turns it off; nothing is sent without a verified email. */
     emailNotifications: boolean("email_notifications").notNull().default(true),
+    /** Stored Locale (ADR-0054): the language the clients show, mirrored for email. Null reads as English. */
+    locale: userLocales("locale"),
     matchHistoryVisibility: matchHistoryVisibilities("match_history_visibility")
       .notNull()
       .default("everyone"),

@@ -12,8 +12,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Everything Settings shows and edits about the signed-in User: Your details,
- * Play windows, Seat alerts, Match history visibility and the sports they set
- * up. Only the User reads their own birth date, home area and nationality.
+ * Play windows, Seat alerts, Match history visibility, the Stored Locale and
+ * the sports they set up. Only the User reads their own birth date, home area
+ * and nationality.
  */
 export async function loadProfileDetails(database: DbClient, userId: string) {
   const row = await database.query.user.findFirst({
@@ -34,6 +35,7 @@ export async function loadProfileDetails(database: DbClient, userId: string) {
       playWindows: true,
       seatAlerts: true,
       matchHistoryVisibility: true,
+      locale: true,
       sports: true,
       preferredPosition: true,
       preferredFootballRole: true,

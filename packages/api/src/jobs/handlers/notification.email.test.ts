@@ -29,6 +29,7 @@ async function insertUser(
     email?: string | null;
     emailVerified?: boolean;
     emailNotifications?: boolean;
+    locale?: "en" | "ar" | null;
   },
 ) {
   const [row] = await database
@@ -41,6 +42,7 @@ async function insertUser(
         .padStart(7, "0")}`,
       emailVerified: args.emailVerified ?? true,
       emailNotifications: args.emailNotifications ?? true,
+      locale: args.locale ?? null,
     })
     .returning({ id: user.id });
   if (!row) {
@@ -207,6 +209,80 @@ describe("notification.email", () => {
         `href="${ORIGIN}/dashboard/games/${gameId}"`,
       );
     });
+  });
+
+  it("writes Arabic, right-to-left with Latin digits, for a User whose Stored Locale is ar", async () => {
+    vi.stubEnv("WEB_ORIGIN", ORIGIN);
+    await withScene(
+      async (db, scene) => {
+        const [row] = await db
+          .insert(notifications)
+          .values({
+            recipientUserId: scene.approver,
+            type: "history_linked",
+            audience: "player",
+            gameCount: 3,
+          })
+          .returning({ id: notifications.id });
+        if (!row) {
+          throw new Error("Failed to insert notification");
+        }
+
+        await handle(asDb(db), { notificationId: row.id });
+
+        expect(emails.sent).toHaveLength(1);
+        const [email] = emails.sent;
+        expect(email?.subject).toBe("ربطنا 3 مباريات لُعبت برقمك");
+        expect(email?.html).toContain('<html lang="ar" dir="rtl">');
+        expect(email?.html).toContain(">اطّلع على مبارياتك<");
+        expect(email?.html).toContain(
+          "إدارة إشعارات البريد الإلكتروني من الإعدادات",
+        );
+        expect(email?.html).not.toMatch(/[٠-٩]/);
+        expect(email?.html).not.toContain("See your Games");
+        expect(email?.text).toContain(`${ORIGIN}/dashboard/you/settings`);
+      },
+      { name: "approver", locale: "ar" },
+    );
+  });
+
+  it("writes English for a User whose Stored Locale is en", async () => {
+    await withScene(
+      async (db, scene) => {
+        const id = await insertJoined(db, {
+          recipient: scene.approver,
+          actor: scene.joiner,
+          groupId: scene.groupId,
+        });
+
+        await handle(asDb(db), { notificationId: id });
+
+        expect(emails.sent).toHaveLength(1);
+        expect(emails.sent[0]?.subject).toBe("joiner joined Night Crew");
+        expect(emails.sent[0]?.html).toContain('<html lang="en" dir="ltr">');
+        expect(emails.sent[0]?.html).toContain(">Open the Group<");
+      },
+      { name: "approver", locale: "en" },
+    );
+  });
+
+  it("writes English for a User who never set a Locale", async () => {
+    await withScene(
+      async (db, scene) => {
+        const id = await insertJoined(db, {
+          recipient: scene.approver,
+          actor: scene.joiner,
+          groupId: scene.groupId,
+        });
+
+        await handle(asDb(db), { notificationId: id });
+
+        expect(emails.sent).toHaveLength(1);
+        expect(emails.sent[0]?.subject).toBe("joiner joined Night Crew");
+        expect(emails.sent[0]?.html).toContain('<html lang="en" dir="ltr">');
+      },
+      { name: "approver", locale: null },
+    );
   });
 
   it("sends nothing twice: a stamped row completes without an email", async () => {

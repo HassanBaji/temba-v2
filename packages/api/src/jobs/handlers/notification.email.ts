@@ -3,7 +3,7 @@ import type { JobHelpers } from "graphile-worker";
 import { z } from "zod";
 
 import { notifications, user, type Db } from "@repo/db";
-import type { Locale } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { logJobFailed } from "#src/jobs/handler";
 import { JOB, MAX_ATTEMPTS, notificationEmailJob } from "#src/jobs/specs";
@@ -14,9 +14,6 @@ import { loadNotificationItems } from "#src/notifications/load-notification-item
 export const jobName = JOB.notificationEmail;
 export const payloadSchema = z.object({ notificationId: z.string().uuid() });
 export const maxAttempts = MAX_ATTEMPTS.notificationEmail;
-
-// English until the Stored Locale lands (spec `.scratch/email-notifications`, ticket 2).
-const LOCALE: Locale = "en";
 
 /**
  * Re-reads the Notification and decides whether to send. Every failed check is
@@ -38,7 +35,12 @@ export async function handle(
   }
   const recipient = await db.query.user.findFirst({
     where: eq(user.id, loaded.recipientUserId),
-    columns: { email: true, emailVerified: true, emailNotifications: true },
+    columns: {
+      email: true,
+      emailVerified: true,
+      emailNotifications: true,
+      locale: true,
+    },
   });
   if (
     !recipient?.email ||
@@ -49,7 +51,7 @@ export async function handle(
   }
   const email = renderNotificationEmail(
     loaded.item,
-    LOCALE,
+    recipient.locale ?? DEFAULT_LOCALE,
     process.env.WEB_ORIGIN ?? "",
   );
   if (!email) {

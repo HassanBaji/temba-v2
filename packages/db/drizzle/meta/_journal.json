@@ -540,6 +540,13 @@
       "when": 1794000118554,
       "tag": "0076_notification_email",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1794005654318,
+      "tag": "0077_user_locale",
+      "breakpoints": true
     }
   ]
 }

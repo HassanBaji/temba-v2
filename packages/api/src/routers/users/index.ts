@@ -10,6 +10,7 @@ import { profileStats } from "./profileStats";
 import { renameUnclaimedPlayerProcedure as renameUnclaimedPlayer } from "./renameUnclaimedPlayer";
 import { setMatchHistoryVisibility } from "./setMatchHistoryVisibility";
 import { setFootballPreferences } from "./setFootballPreferences";
+import { setLocale } from "./setLocale";
 import { setName } from "./setName";
 import { setPlayWindows } from "./setPlayWindows";
 import { setPreferredPosition } from "./setPreferredPosition";
@@ -34,4 +35,5 @@ export const usersRouter = createTRPCRouter({
   setMatchHistoryVisibility,
   setSports,
   setFootballPreferences,
+  setLocale,
 });
