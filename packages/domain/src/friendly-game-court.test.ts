@@ -46,7 +46,6 @@ describe("courtSeatSubline", () => {
   it("names the side of the court, then the level when there is one", () => {
     assert.equal(courtSeatSubline("left", null, "en"), "Left");
     assert.match(courtSeatSubline("right", "B", "en"), /^Right · /);
-    assert.equal(courtSeatSubline("either", null, "en"), "Either side");
   });
 
   it("puts the side first in Arabic, with the band isolated and no middle dot", () => {

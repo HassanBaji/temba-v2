@@ -12,6 +12,12 @@ import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import {
+  lineupSidesNote,
+  viewerSideOpenLine,
+  viewerTeam,
+  viewerTeamName,
+} from "@repo/domain/padel-sides";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import {
   friendlyGameVacantSeatAction,
@@ -60,6 +66,9 @@ export type DetailsHandlers = {
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
   onRequestLevel: () => void;
+  sidesPending: boolean;
+  onSetTeamSides: (sideIndex: number, leftUserId: string) => void;
+  onPickSide: () => void;
 };
 
 export type DetailsOrganizer = {
@@ -134,6 +143,14 @@ export function GameDetailsContent({
   const vacantSeatCount = vacantJoinSeats(game.sides).length;
   const canInvite = handlers.onInvite != null && vacantSeatCount > 0;
   const addsPlayers = handlers.onAddPlayerAt != null && vacantSeatCount > 0;
+  const beforeGame = phase === "upcoming" && !game.cancelledAt;
+  const seated = viewerTeam(game.sides, game.viewerUserId) != null;
+  const sidesNote = lineupSidesNote({
+    teams: game.sides,
+    viewerUserId: game.viewerUserId,
+    canJoin: game.canRegister && vacantSeatCount > 0,
+    locale,
+  });
 
   return (
     <View style={{ gap: SECTION_GAP }}>
@@ -170,11 +187,22 @@ export function GameDetailsContent({
         sides={game.sides}
         viewerUserId={game.viewerUserId}
         vacantSeatCount={vacantSeatCount}
-        hint={addsPlayers ? m.game.court.addPlayerHint : null}
+        hint={addsPlayers ? m.game.court.addPlayerHint : sidesNote}
         busy={handlers.movePending}
         openSeatAction={openSeatActionFor(game, handlers, m, locale)}
         onInvite={canInvite ? handlers.onInvite : undefined}
         onPressPlayer={handlers.onPressPlayer}
+        sidesActions={
+          game.cancelledAt
+            ? undefined
+            : {
+                isOrganizer: game.isOrganizer,
+                pending: handlers.sidesPending,
+                onSetTeamSides: handlers.onSetTeamSides,
+                onPickSide:
+                  beforeGame && seated ? handlers.onPickSide : undefined,
+              }
+        }
       />
       {live && firstMatch ? (
         <ScoreCard
@@ -243,7 +271,20 @@ function bottomBarLines(
   if (family.kind === "join") {
     return {
       title: courtSpotsLabel(vacantJoinSeats(game.sides).length, locale),
-      subline: messages.game.court.joinSubline,
+      subline: messages.game.sides.sideIsOptional,
+    };
+  }
+  if (family.kind === "upcoming") {
+    const team = viewerTeamName(game.sides, game.viewerUserId, locale);
+    if (!team) {
+      return null;
+    }
+    return {
+      title: messages.game.sides.youreInTeam(team),
+      subline:
+        family.vacantSeatCount > 0
+          ? (friendlyGameCtaCopy(family, locale)?.subline ?? null)
+          : viewerSideOpenLine(game.sides, game.viewerUserId, locale),
     };
   }
   if (family.kind === "needs_score" && plan.firstMatch) {

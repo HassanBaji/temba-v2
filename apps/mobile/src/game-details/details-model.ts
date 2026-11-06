@@ -1,13 +1,17 @@
-import {
-  isSameJoinPick,
-  type FriendlyGameJoinPick,
-} from "@repo/domain/friendly-game-cta";
 import { friendlyGameResultsSaveSets } from "@repo/domain/friendly-game-results";
 import {
   gameDisplayName,
   type GameDisplayNameInput,
 } from "@repo/domain/game-custom-name";
-import { defaultFriendlyJoinPick } from "@repo/domain/preferred-seat";
+import {
+  defaultJoinSide,
+  defaultJoinTeam,
+  joinSideFor,
+  teamVacancy,
+  type CourtSide,
+  type SideChoice,
+  type SidesTeam,
+} from "@repo/domain/padel-sides";
 import { gameDetailsChrome } from "@repo/domain/tournament-home";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -36,31 +40,46 @@ export function gameTitle(game: GameDisplayNameInput, locale: Locale) {
   return gameDisplayName(game, locale);
 }
 
-export type SeatSelection = {
-  touched: boolean;
-  seat: FriendlyGameJoinPick | null;
-};
+/** What the join sheet's Team and Side pickers hold until the viewer taps. */
+export type JoinSelection = { team: number | null; side: SideChoice | null };
 
-export const UNTOUCHED_SELECTION: SeatSelection = {
-  touched: false,
-  seat: null,
-};
+export const EMPTY_JOIN_SELECTION: JoinSelection = { team: null, side: null };
 
-export function pickedSeat(
-  selection: SeatSelection,
-  sides: Parameters<typeof defaultFriendlyJoinPick>[0],
-  preferredPosition: string | null | undefined,
-) {
-  return selection.touched
-    ? selection.seat
-    : defaultFriendlyJoinPick(sides, preferredPosition);
+export type JoinPick = { sideIndex: number; position: SideChoice };
+
+function freeSide(team: SidesTeam): CourtSide {
+  return team.left == null ? "left" : "right";
 }
 
-export function togglePickedSeat(
-  picked: FriendlyGameJoinPick | null,
-  seat: FriendlyGameJoinPick,
-): SeatSelection {
-  return { touched: true, seat: isSameJoinPick(picked, seat) ? null : seat };
+/**
+ * The seat the join sheet would submit. Untouched pickers fall back to the
+ * team with a partner on it and the viewer's usual side. A side the partner
+ * picked falls back to Either; on a tournament, which has no Either, to the
+ * free side.
+ */
+export function resolveJoinPick(
+  selection: JoinSelection,
+  teams: readonly SidesTeam[],
+  preferredPosition: string | null | undefined,
+  sidesOptional: boolean,
+): JoinPick | null {
+  const open = teams.filter((team) => teamVacancy(team) > 0);
+  const sideIndex =
+    selection.team != null &&
+    open.some((team) => team.sideIndex === selection.team)
+      ? selection.team
+      : defaultJoinTeam(open);
+  const team = open.find((row) => row.sideIndex === sideIndex) ?? null;
+  if (!team) {
+    return null;
+  }
+  const side = selection.side
+    ? joinSideFor(team, selection.side)
+    : defaultJoinSide(team, preferredPosition);
+  if (!sidesOptional && (side === "either" || team[side] != null)) {
+    return { sideIndex: team.sideIndex, position: freeSide(team) };
+  }
+  return { sideIndex: team.sideIndex, position: side };
 }
 
 export type ScoreDrafts = Record<string, { slot1: string; slot2: string }>;

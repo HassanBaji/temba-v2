@@ -2,20 +2,20 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  UNTOUCHED_SELECTION,
+  EMPTY_JOIN_SELECTION,
   digitsOnly,
   draftsFromSets,
   gameTitle,
   isFriendlyGameDetails,
-  pickedSeat,
+  resolveJoinPick,
   setsToSave,
-  togglePickedSeat,
   unsupportedFormatCopy,
   withDraftChange,
 } from "./details-model";
 
+const ali = { userId: "ali", name: "Ali", eitherSide: false };
 const sides = [
-  { sideIndex: 1, left: { name: "A" }, right: null },
+  { sideIndex: 1, left: null, right: ali },
   { sideIndex: 2, left: null, right: null },
 ];
 
@@ -84,26 +84,33 @@ describe("gameTitle", () => {
   });
 });
 
-describe("seat selection", () => {
-  it("defaults to a seat until the viewer taps", () => {
-    const seat = pickedSeat(UNTOUCHED_SELECTION, sides, "right");
-    assert.deepEqual(seat, { sideIndex: 1, position: "right" });
+describe("join selection", () => {
+  it("opens on the team with a partner and the viewer's usual side", () => {
+    assert.deepEqual(
+      resolveJoinPick(EMPTY_JOIN_SELECTION, sides, "left", true),
+      { sideIndex: 1, position: "left" },
+    );
   });
 
-  it("keeps the viewer's choice, including clearing it", () => {
-    const first = pickedSeat(UNTOUCHED_SELECTION, sides, "right");
-    assert.notEqual(first, null);
-    const cleared = togglePickedSeat(first, first!);
-    assert.deepEqual(cleared, { touched: true, seat: null });
-    assert.equal(pickedSeat(cleared, sides, "left"), null);
+  it("falls back to Either when the partner picked the usual side", () => {
+    assert.deepEqual(
+      resolveJoinPick(EMPTY_JOIN_SELECTION, sides, "right", true),
+      { sideIndex: 1, position: "either" },
+    );
   });
 
-  it("picks another seat on tap", () => {
-    const next = togglePickedSeat(null, { sideIndex: 2, position: "left" });
-    assert.deepEqual(next, {
-      touched: true,
-      seat: { sideIndex: 2, position: "left" },
-    });
+  it("keeps the viewer's team and side", () => {
+    assert.deepEqual(
+      resolveJoinPick({ team: 2, side: "right" }, sides, "left", true),
+      { sideIndex: 2, position: "right" },
+    );
+  });
+
+  it("takes the free side on a tournament, which has no Either", () => {
+    assert.deepEqual(
+      resolveJoinPick({ team: 1, side: "either" }, sides, null, false),
+      { sideIndex: 1, position: "left" },
+    );
   });
 });
 

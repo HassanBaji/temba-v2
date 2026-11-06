@@ -1,9 +1,7 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
 import {
-  courtPositionLabel,
   courtSeatName,
   courtSeatRow,
-  courtSeatSubline,
   courtSpotsLabel,
 } from "@repo/domain/friendly-game-court";
 import type {
@@ -12,8 +10,15 @@ import type {
 } from "@repo/domain/friendly-game-details";
 import { friendlyGameOpenSeatLabel } from "@repo/domain/friendly-game-players";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import {
+  offersSetSides,
+  offersSwapSides,
+  openSeatSideLabel,
+  seatSideLabel,
+  teamHasNoSidesPicked,
+} from "@repo/domain/padel-sides";
 import type { PlayedRow } from "@repo/domain/played-game";
-import { Plus, UserPlus } from "lucide-react-native";
+import { ArrowLeftRight, Plus, UserPlus } from "lucide-react-native";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
@@ -35,6 +40,14 @@ type Position = "left" | "right";
 export type OpenSeatAction = {
   accessibilityLabel: string;
   onPress: () => void;
+};
+
+export type LineupSidesActions = {
+  isOrganizer: boolean;
+  pending: boolean;
+  onSetTeamSides: (sideIndex: number, leftUserId: string) => void;
+  /** A seated viewer changes their own side; absent once the Game started. */
+  onPickSide?: () => void;
 };
 
 const SEAT_SIZE = 52;
@@ -71,10 +84,12 @@ function SeatLabels({
 }
 
 function OpenSeat({
+  side,
   position,
   action,
   busy,
 }: {
+  side: FriendlyGameDetailsSide;
   position: Position;
   action: OpenSeatAction | null;
   busy: boolean;
@@ -97,7 +112,7 @@ function OpenSeat({
       </View>
       <SeatLabels
         title={m.game.court.open}
-        subline={courtPositionLabel(position, locale)}
+        subline={openSeatSideLabel(side, position, locale)}
         strong={false}
       />
     </>
@@ -140,11 +155,13 @@ function OpenSeat({
 }
 
 function TakenSeat({
+  side,
   seat,
   position,
   viewerUserId,
   onPress,
 }: {
+  side: FriendlyGameDetailsSide;
   seat: FriendlyGameDetailsSeat;
   position: Position;
   viewerUserId: string;
@@ -154,11 +171,7 @@ function TakenSeat({
   const locale = useLocale();
   const row = courtSeatRow(seat, position, viewerUserId, locale);
   const name = courtSeatName(row, locale);
-  const subline = courtSeatSubline(
-    seat.eitherSide ? "either" : position,
-    seat.levelBand,
-    locale,
-  );
+  const subline = seatSideLabel(side, position, viewerUserId, locale) ?? "";
   const avatar = <Avatar name={seat.name} uri={seat.image} size="court" />;
   const body = (
     <>
@@ -201,6 +214,64 @@ function TakenSeat({
   );
 }
 
+/** J3: an Organizer may write a full team's sides on the sheet, then swap them. */
+function SetSidesPanel({
+  side,
+  viewerUserId,
+  sides,
+}: {
+  side: FriendlyGameDetailsSide;
+  viewerUserId: string;
+  sides: LineupSidesActions;
+}) {
+  const m = useMessages();
+  const palette = useTonePalette();
+  const { left, right } = side;
+  if (!left || !right) {
+    return null;
+  }
+  const canSet = offersSetSides(side, sides.isOrganizer);
+  const canSwap = sides.isOrganizer && offersSwapSides(side, viewerUserId);
+  if (!canSet && !canSwap) {
+    return null;
+  }
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: 12,
+        borderRadius: radii.card,
+        borderWidth: hairline,
+        borderStyle: "dashed",
+        borderColor: palette.rule,
+      }}
+    >
+      <Text size="meta" tone="muted" style={{ flex: 1 }}>
+        {canSet ? m.game.sides.setSidesPrompt : m.game.sides.setSidesDone}
+      </Text>
+      {canSet ? (
+        <Button
+          label={m.game.sides.setSides}
+          size="sm"
+          pending={sides.pending}
+          onPress={() => sides.onSetTeamSides(side.sideIndex, left.userId)}
+        />
+      ) : (
+        <Button
+          label={m.game.sides.swap}
+          variant="outline"
+          size="sm"
+          icon={<ArrowLeftRight size={15} color={palette.foreground} />}
+          pending={sides.pending}
+          onPress={() => sides.onSetTeamSides(side.sideIndex, right.userId)}
+        />
+      )}
+    </View>
+  );
+}
+
 function SideHalf({
   side,
   labelBelow,
@@ -208,6 +279,7 @@ function SideHalf({
   busy,
   openSeatAction,
   onPressPlayer,
+  sides,
 }: {
   side: FriendlyGameDetailsSide;
   labelBelow: boolean;
@@ -218,13 +290,29 @@ function SideHalf({
     position: Position,
   ) => OpenSeatAction | null;
   onPressPlayer: ((row: PlayedRow) => void) | undefined;
+  sides: LineupSidesActions | undefined;
 }) {
+  const m = useMessages();
   const locale = useLocale();
   const palette = useTonePalette();
   const label = (
-    <Text size="eyebrow" weight="semibold" tone="muted" uppercase>
-      {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
-    </Text>
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        gap: 8,
+      }}
+    >
+      <Text size="eyebrow" weight="semibold" tone="muted" uppercase>
+        {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
+      </Text>
+      {teamHasNoSidesPicked(side) ? (
+        <Text size="eyebrow" tone="muted" numberOfLines={1}>
+          {m.game.sides.noSidesPicked}
+        </Text>
+      ) : null}
+    </View>
   );
   return (
     <View
@@ -251,6 +339,7 @@ function SideHalf({
               ) : null}
               {seat ? (
                 <TakenSeat
+                  side={side}
                   seat={seat}
                   position={position}
                   viewerUserId={viewerUserId}
@@ -258,6 +347,7 @@ function SideHalf({
                 />
               ) : (
                 <OpenSeat
+                  side={side}
                   position={position}
                   action={openSeatAction(side.sideIndex, position)}
                   busy={busy}
@@ -267,6 +357,9 @@ function SideHalf({
           );
         })}
       </View>
+      {sides ? (
+        <SetSidesPanel side={side} viewerUserId={viewerUserId} sides={sides} />
+      ) : null}
       {labelBelow ? label : null}
     </View>
   );
@@ -322,6 +415,7 @@ export function LineupCard({
   openSeatAction,
   onInvite,
   onPressPlayer,
+  sidesActions,
 }: {
   sides: FriendlyGameDetailsSide[];
   viewerUserId: string;
@@ -334,6 +428,7 @@ export function LineupCard({
   ) => OpenSeatAction | null;
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
+  sidesActions?: LineupSidesActions;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -374,6 +469,14 @@ export function LineupCard({
             icon={<UserPlus size={15} color={palette.foreground} />}
             onPress={onInvite}
           />
+        ) : sidesActions?.onPickSide ? (
+          <Button
+            label={m.game.sides.pickASide}
+            variant="outline"
+            size="sm"
+            icon={<ArrowLeftRight size={15} color={palette.foreground} />}
+            onPress={sidesActions.onPickSide}
+          />
         ) : null}
       </View>
       <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
@@ -395,6 +498,7 @@ export function LineupCard({
                 busy={busy}
                 openSeatAction={openSeatAction}
                 onPressPlayer={onPressPlayer}
+                sides={sidesActions}
               />
             </Fragment>
           ))}

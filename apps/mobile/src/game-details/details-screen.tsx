@@ -84,6 +84,7 @@ import {
   unsupportedFormatCopy,
 } from "./details-model";
 import { JoinSheet } from "./join-sheet";
+import { PickSideSheet } from "./pick-side-sheet";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -167,6 +168,7 @@ export function GameDetailsScreen({
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayedRow | null>(null);
   const [addSeat, setAddSeat] = useState<FriendlyGameJoinSeat | null>(null);
+  const [pickSideOpen, setPickSideOpen] = useState(false);
   const shareGame = useShareGame(gameId);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
@@ -249,6 +251,18 @@ export function GameDetailsScreen({
   });
   const moveSeat = api.games.moveSeat.useMutation({
     onSuccess: () => toast.show(gameToast(locale).seatChanged),
+    onError: failure,
+    onSettled: refresh,
+  });
+  const setSeatSide = api.games.setSeatSide.useMutation({
+    onSuccess: () => {
+      toast.show(m.game.sides.sideSavedToast);
+      setPickSideOpen(false);
+    },
+    onSettled: refresh,
+  });
+  const setTeamSides = api.games.setTeamSides.useMutation({
+    onSuccess: () => toast.show(m.game.sides.setSidesToast),
     onError: failure,
     onSettled: refresh,
   });
@@ -520,6 +534,8 @@ export function GameDetailsScreen({
             levelMaxTenths: data.levelMaxTenths,
             offersPartner,
             partnerRequired: isPartnerRequiredGame(data),
+            sidesOptional: friendly,
+            preferredPosition: onboarding.data?.preferredPosition ?? null,
           }}
           preferredPosition={onboarding.data?.preferredPosition ?? null}
           seatPending={registerSeat.isPending}
@@ -706,6 +722,13 @@ export function GameDetailsScreen({
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
+    sidesPending: setTeamSides.isPending,
+    onSetTeamSides: (sideIndex, leftUserId) =>
+      setTeamSides.mutate({ gameId, sideIndex, leftUserId }),
+    onPickSide: () => {
+      setSeatSide.reset();
+      setPickSideOpen(true);
+    },
   };
 
   const hero = gameHeroModel(details, now, locale);
@@ -876,6 +899,15 @@ export function GameDetailsScreen({
           />
         </>
       )}
+      <PickSideSheet
+        visible={pickSideOpen}
+        sides={details.sides}
+        viewerUserId={details.viewerUserId}
+        pending={setSeatSide.isPending}
+        error={setSeatSide.error?.message ?? null}
+        onClose={() => setPickSideOpen(false)}
+        onSave={(side) => setSeatSide.mutate({ gameId, side })}
+      />
       {details.isOrganizer ? (
         <RenamePlayerSheet
           player={renaming}

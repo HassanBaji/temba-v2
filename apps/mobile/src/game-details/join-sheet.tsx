@@ -1,12 +1,21 @@
 import { sizes } from "@repo/design-tokens";
 import {
-  friendlyGameJoinSheetCaption,
-  isTakeableJoinSeat,
-  offersEitherSide,
   vacantJoinSeats,
-  type FriendlyGameJoinPick,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { formatGameCardDay } from "@repo/domain/format-game-start";
+import { formatHomeKickoff } from "@repo/domain/home-countdown";
+import {
+  joinSeatSummary,
+  joinSideHelp,
+  joinSideOptions,
+  joinTeamCta,
+  joinTeamOptions,
+  sidePickerHint,
+  type SideChoice,
+} from "@repo/domain/padel-sides";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import {
   friendlyGameJoinOpeningStep,
   friendlyGameJoinSheetHeader,
@@ -26,7 +35,6 @@ import {
   type PartnerSuggestion,
 } from "@repo/domain/friendly-game-partner";
 import { joinGameAction } from "@repo/domain/game-copy";
-import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { useEffect, useState } from "react";
@@ -35,7 +43,6 @@ import { Pressable, ScrollView, View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
-import { Hatch } from "../primitives/hatch";
 import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { useTonePalette } from "../primitives/surface-context";
@@ -43,21 +50,24 @@ import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import type { Slot } from "../home/home-model";
 import {
-  UNTOUCHED_SELECTION,
-  pickedSeat,
-  togglePickedSeat,
-  type SeatSelection,
+  EMPTY_JOIN_SELECTION,
+  resolveJoinPick,
+  type JoinPick,
+  type JoinSelection,
 } from "./details-model";
+import { SidePicker, SummaryRows, TeamPicker } from "./side-picker";
 
 const SHEET_MAX_HEIGHT = 560;
 
 type Position = "left" | "right";
 
 type SheetOccupant = {
+  userId: string;
   name: string;
   image: string | null;
   levelBand: LevelBand | null;
   eitherSide?: boolean;
+  sideSetByUserId?: string | null;
 };
 
 export type JoinSheetSide = {
@@ -90,6 +100,9 @@ export type JoinSheetGame = {
   levelMaxTenths: number | null;
   offersPartner: boolean;
   partnerRequired?: boolean;
+  /** Friendly games take Either; tournaments need a Position. */
+  sidesOptional: boolean;
+  preferredPosition: string | null;
 };
 
 type Step = "chooser" | "seat" | "partner" | "review";
@@ -107,7 +120,7 @@ export type JoinSheetProps = {
   searchResults: Slot<{ id: string; name: string }[]>;
   query: string;
   onQueryChange: (query: string) => void;
-  onJoinSeat: (seat: FriendlyGameJoinPick) => void;
+  onJoinSeat: (seat: JoinPick) => void;
   onRegisterWithPartner: (input: {
     partner: PartnerPick;
     sideIndex: number;
@@ -155,228 +168,120 @@ function Option({
   );
 }
 
-function SeatTile({
-  occupant,
-  caption,
-  label,
-  selected,
-  disabled,
-  onPress,
-}: {
-  occupant: SheetOccupant | null;
-  caption: string;
-  label: string;
-  selected: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const palette = useTonePalette();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled, selected }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flex: 1,
-        minHeight: 72,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 4,
-        borderRadius: 10,
-        borderWidth: selected ? 2 : hairline,
-        borderColor: selected ? palette.foreground : palette.rule,
-        backgroundColor: occupant ? palette.wash : undefined,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      {occupant ? null : <Hatch radius={10} bordered={false} />}
-      {occupant ? (
-        <Avatar name={occupant.name} uri={occupant.image} size="sm" />
-      ) : null}
-      <Text
-        size="eyebrow"
-        weight="medium"
-        numberOfLines={1}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      >
-        {occupant ? occupant.name : caption}
-      </Text>
-      {occupant?.eitherSide ? (
-        <Text
-          size="eyebrow"
-          tone="muted"
-          numberOfLines={1}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        >
-          {caption}
-        </Text>
-      ) : null}
-    </Pressable>
-  );
-}
-
-/** Joins the Game team without a Position, keeping both open for a partner. */
-function EitherSideOption({
-  label,
-  accessibleName,
-  selected,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  accessibleName: string;
-  selected: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const palette = useTonePalette();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibleName}
-      accessibilityState={{ disabled, selected }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: sizes.touchTarget,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 10,
-        borderWidth: selected ? 2 : hairline,
-        borderColor: selected ? palette.foreground : palette.rule,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Text size="meta" weight="medium">
-        {label}
-      </Text>
-    </Pressable>
-  );
+function joinSummaryLine(game: JoinSheetGame, locale: Locale) {
+  const m = messagesFor(locale);
+  const start = game.windowStart;
+  const kickoff = start ? formatHomeKickoff(start, locale) : null;
+  const when =
+    start && kickoff
+      ? m.game.partner.whenLine(
+          formatGameCardDay(start, locale),
+          kickoff.time,
+          kickoff.meridiem === "" ? null : kickoff.meridiem,
+        )
+      : null;
+  const venue = game.venueName?.trim() ? game.venueName.trim() : null;
+  const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
+  if (!when || !venue) {
+    return game.title;
+  }
+  return m.game.sides.joinSummary(when, venue, price);
 }
 
 function SeatStep({
   game,
+  selection,
   picked,
   pending,
-  onPick,
+  onSelectTeam,
+  onSelectSide,
   onConfirm,
 }: {
   game: JoinSheetGame;
-  picked: FriendlyGameJoinPick | null;
+  selection: JoinSelection;
+  picked: JoinPick | null;
   pending: boolean;
-  onPick: (seat: FriendlyGameJoinPick) => void;
+  onSelectTeam: (sideIndex: number) => void;
+  onSelectSide: (side: SideChoice) => void;
   onConfirm: () => void;
 }) {
   const m = useMessages();
-  const copy = m.mobileGameDetails.join;
+  const copy = m.game.sides;
   const locale = useLocale();
   const priceLabel = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
+  const teams = joinTeamOptions(game.sides, locale).filter((row) => row.open);
+  const team =
+    game.sides.find((row) => row.sideIndex === picked?.sideIndex) ?? null;
+  const sideOptions = joinSideOptions(team, locale).filter(
+    (option) => game.sidesOptional || option.side !== "either",
+  );
+  const summaryRows = picked
+    ? [
+        {
+          label: copy.yourSeat,
+          value: joinSeatSummary(picked.sideIndex, picked.position, locale),
+        },
+        ...(priceLabel
+          ? [{ label: copy.courtCost, value: copy.courtCostValue(priceLabel) }]
+          : []),
+      ]
+    : [];
   return (
     <View style={{ gap: 16 }}>
-      <View style={{ flexDirection: "row", gap: 12 }}>
-        {game.sides.map((side) => {
-          const sideLabel = formatGameSideLabel(
-            "friendly_game",
-            side.sideIndex,
-            locale,
-          );
-          return (
-            <View key={side.sideIndex} style={{ flex: 1, gap: 6 }}>
-              <Text size="eyebrow" weight="medium" tone="muted" uppercase>
-                {sideLabel}
-              </Text>
-              <View
-                // Physical on purpose: Left and Right are court sides, not reading order.
-                style={{ flexDirection: "row", direction: "ltr", gap: 6 }}
-              >
-                {(["left", "right"] as const).map((position) => {
-                  const occupant = side[position];
-                  const takeable = isTakeableJoinSeat(side, position);
-                  const selected =
-                    picked?.sideIndex === side.sideIndex &&
-                    picked.position === position;
-                  const seatName = copy.seatName(
-                    sideLabel,
-                    copy.positionWord[position],
-                  );
-                  // Taking an Either-side User's Position moves them over,
-                  // so the tile shows the joiner once picked.
-                  const shown =
-                    occupant && takeable && selected ? null : occupant;
-                  return (
-                    <SeatTile
-                      key={position}
-                      occupant={shown}
-                      caption={
-                        occupant?.eitherSide
-                          ? m.game.joinSheet.eitherSide
-                          : m.game.players[position]
-                      }
-                      label={
-                        !occupant
-                          ? copy.take(seatName)
-                          : takeable
-                            ? m.game.joinSheet.takeSeatFromEitherSide(
-                                seatName,
-                                occupant.name,
-                              )
-                            : copy.takenBy(seatName, occupant.name)
-                      }
-                      selected={selected}
-                      disabled={!takeable || pending}
-                      onPress={() =>
-                        onPick({ sideIndex: side.sideIndex, position })
-                      }
-                    />
-                  );
-                })}
-              </View>
-              {offersEitherSide(side) ? (
-                <EitherSideOption
-                  label={m.game.joinSheet.eitherSide}
-                  accessibleName={m.game.joinSheet.joinEitherSide(sideLabel)}
-                  selected={
-                    picked?.sideIndex === side.sideIndex &&
-                    picked.position === "either"
-                  }
-                  disabled={pending}
-                  onPress={() =>
-                    onPick({ sideIndex: side.sideIndex, position: "either" })
-                  }
-                />
-              ) : null}
-            </View>
-          );
-        })}
-      </View>
-      <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
-        {friendlyGameJoinSheetCaption(game.sides, picked, locale)}
+      <Text size="meta" tone="muted">
+        {joinSummaryLine(game, locale)}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        {priceLabel ? (
-          <View>
-            <Text size="lead" weight="bold" width="expanded">
-              {priceLabel}
-            </Text>
-            <Text size="eyebrow" tone="muted">
-              {copy.perPlayer}
-            </Text>
-          </View>
-        ) : null}
-        <View style={{ flex: 1 }}>
-          <Button
-            label={joinGameAction(locale)}
-            size="lg"
-            disabled={!picked}
-            pending={pending}
-            onPress={onConfirm}
-          />
-        </View>
+      <View style={{ gap: 8 }}>
+        <Text size="meta" tone="muted">
+          {copy.teamHeading}
+        </Text>
+        <TeamPicker
+          options={teams}
+          selected={picked?.sideIndex ?? selection.team}
+          onSelect={onSelectTeam}
+        />
       </View>
+      <View style={{ gap: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 12,
+          }}
+        >
+          <Text size="meta" tone="muted">
+            {copy.sideHeading}
+          </Text>
+          {game.sidesOptional ? (
+            <Text size="eyebrow" tone="muted" numberOfLines={1}>
+              {sidePickerHint(game.preferredPosition, locale)}
+            </Text>
+          ) : null}
+        </View>
+        <SidePicker
+          options={sideOptions}
+          selected={picked?.position ?? null}
+          onSelect={onSelectSide}
+        />
+        {picked && game.sidesOptional ? (
+          <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
+            {joinSideHelp(team, picked.position, locale)}
+          </Text>
+        ) : null}
+      </View>
+      {summaryRows.length > 0 ? <SummaryRows rows={summaryRows} /> : null}
+      <Button
+        label={
+          picked
+            ? joinTeamCta(picked.sideIndex, picked.position, locale)
+            : joinGameAction(locale)
+        }
+        size="lg"
+        disabled={!picked}
+        pending={pending}
+        onPress={onConfirm}
+      />
     </View>
   );
 }
@@ -736,15 +641,19 @@ export function JoinSheet(props: JoinSheetProps) {
   const locale = useLocale();
   const [step, setStep] = useState<Step>("seat");
   const [selection, setSelection] =
-    useState<SeatSelection>(UNTOUCHED_SELECTION);
+    useState<JoinSelection>(EMPTY_JOIN_SELECTION);
   const [partner, setPartner] = useState<PartnerPick | null>(null);
 
   useEffect(() => {
     if (visible) {
       setSelection(
         props.initialSeat
-          ? { touched: true, seat: props.initialSeat }
-          : UNTOUCHED_SELECTION,
+          ? {
+              team: props.initialSeat.sideIndex,
+              // A tapped Friendly seat names its team; the side stays optional.
+              side: game.sidesOptional ? null : props.initialSeat.position,
+            }
+          : EMPTY_JOIN_SELECTION,
       );
       setPartner(null);
       setStep(
@@ -759,7 +668,12 @@ export function JoinSheet(props: JoinSheetProps) {
     // Reset only when the sheet opens; the Game may change while it is open.
   }, [visible]);
 
-  const picked = pickedSeat(selection, game.sides, preferredPosition);
+  const picked = resolveJoinPick(
+    selection,
+    game.sides,
+    preferredPosition,
+    game.sidesOptional,
+  );
   const isFull = vacantJoinSeats(game.sides).length === 0;
   const header = friendlyGameJoinSheetHeader({
     step: step === "chooser" ? "chooser" : "seat",
@@ -772,7 +686,9 @@ export function JoinSheet(props: JoinSheetProps) {
       ? partnerPickerCopy(locale).title
       : step === "review"
         ? partnerReviewCopy(locale).title
-        : header.title;
+        : step === "seat" && !isFull
+          ? m.game.sides.joinTitle
+          : header.title;
   const vacantSideIndex = firstFullyVacantSideIndex(game.sides);
 
   return (
@@ -782,7 +698,7 @@ export function JoinSheet(props: JoinSheetProps) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ gap: 16 }}
       >
-        {step === "chooser" || step === "seat" ? (
+        {step === "chooser" || (step === "seat" && isFull) ? (
           <Text size="meta" tone="muted">
             {header.description}
           </Text>
@@ -797,7 +713,7 @@ export function JoinSheet(props: JoinSheetProps) {
             <Option
               {...joinAloneCopy(locale)}
               onPress={() => {
-                setSelection({ touched: true, seat: null });
+                setSelection(EMPTY_JOIN_SELECTION);
                 setStep("seat");
               }}
             />
@@ -811,9 +727,15 @@ export function JoinSheet(props: JoinSheetProps) {
           <>
             <SeatStep
               game={game}
+              selection={selection}
               picked={picked}
               pending={props.seatPending}
-              onPick={(seat) => setSelection(togglePickedSeat(picked, seat))}
+              onSelectTeam={(team) =>
+                setSelection((current) => ({ ...current, team }))
+              }
+              onSelectSide={(side) =>
+                setSelection((current) => ({ ...current, side }))
+              }
               onConfirm={() => picked && props.onJoinSeat(picked)}
             />
             {game.offersPartner ? (
