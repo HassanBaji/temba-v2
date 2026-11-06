@@ -81,8 +81,6 @@ export const webTournament = {
     ofSeats: (seats: number) => `of ${seats}`,
     teamsByOrganizer: "Teams by the organizer",
     cancelledHeading: "This Game is cancelled",
-    softArchivedHeading: "This Club Group's Community is Soft-archived",
-    softArchivedBody: "Registration, the waitlist, and invites stay closed.",
     lineupLoadFailed: "The lineup could not be loaded.",
     positionsNote:
       "Positions are preferences, not promises. The organizer makes the teams, with a keeper on each side.",

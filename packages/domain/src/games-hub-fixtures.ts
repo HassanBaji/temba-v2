@@ -56,7 +56,6 @@ function friendlyRow(args: {
     registeredTeamCount: 0,
     teamsAllowed: null,
     registrationStatus: args.registrationStatus ?? "open",
-    joinFrozen: false,
     isRegistered: args.viewerIn ?? false,
     isSeated: args.viewerIn ?? false,
     isWaitlisted: false,

@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { UserButton, useUser } from "@clerk/nextjs";
 import {
-  Building2,
   CalendarDays,
   ClipboardList,
   Gauge,
@@ -16,7 +15,6 @@ import {
   Users,
 } from "lucide-react";
 
-import { useCreateAccess } from "~/components/create-access-gate";
 import { useMessages } from "~/components/locale-provider";
 import type { Messages } from "@repo/i18n/messages";
 import { api } from "~/trpc/react";
@@ -52,11 +50,6 @@ function navMain(m: Messages) {
       title: m.common.teams,
       url: "/dashboard/teams",
       icon: UserRound,
-    },
-    {
-      title: m.common.communities,
-      url: "/dashboard/communities",
-      icon: Building2,
     },
     {
       title: m.common.invites,
@@ -107,12 +100,8 @@ function consoleNav(m: Messages) {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const m = useMessages();
-  const { isLoaded, hasCreateAccess } = useCreateAccess();
   const isOperator = user?.publicMetadata.operator === true;
-  const items = navMain(m).filter(
-    (item) =>
-      item.url !== "/dashboard/communities" || (isLoaded && hasCreateAccess),
-  );
+  const items = navMain(m);
   const managed = api.venues.listManaged.useQuery();
   const managesVenue = (managed.data?.length ?? 0) > 0;
   const console = consoleNav(m);

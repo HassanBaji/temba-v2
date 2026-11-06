@@ -1,5 +1,4 @@
 import {
-  communityInviteLinks,
   gameInviteLinks,
   groupInviteLinks,
   teamInviteLinks,
@@ -80,24 +79,6 @@ export async function mintLink(
     expiresAt: inviteLinkExpiresAt(createdAt),
   };
 
-  if (host.kind === "community") {
-    const [created] = await writeDb(database)
-      .insert(communityInviteLinks)
-      .values({ ...values, communityId: host.id })
-      .returning();
-    if (!created) {
-      return { ok: false, reason: "insert_failed" };
-    }
-    return {
-      ok: true,
-      link: {
-        id: created.id,
-        token: created.token,
-        createdAt: created.createdAt,
-        expiresAt: created.expiresAt,
-      },
-    };
-  }
   if (host.kind === "group") {
     return insertLinkWithShortCode(async (shortCode) => {
       const [created] = await writeDb(database)

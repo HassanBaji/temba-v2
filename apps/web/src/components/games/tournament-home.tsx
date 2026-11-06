@@ -283,7 +283,6 @@ export function TournamentHome({
         onShare={drawn ? onShare : undefined}
         sharePending={sharePending}
         registrationClosed={Boolean(data.registrationClosedAt)}
-        joinFrozen={data.joinFrozen}
         leavePending={leavePending}
         closePending={closePending}
         reopenPending={reopenPending}
@@ -620,7 +619,6 @@ function TournamentHomeActions({
   isWaitlisted,
   isOrganizerActive,
   registrationClosed,
-  joinFrozen,
   leavePending,
   closePending,
   reopenPending,
@@ -650,7 +648,6 @@ function TournamentHomeActions({
   isWaitlisted: boolean;
   isOrganizerActive: boolean;
   registrationClosed: boolean;
-  joinFrozen: boolean;
   leavePending: boolean;
   closePending: boolean;
   reopenPending: boolean;
@@ -789,7 +786,7 @@ function TournamentHomeActions({
                           key: "reopen_registration",
                           label: m.game.action.reopenRegistration,
                           icon: LockOpenIcon,
-                          disabled: joinFrozen || reopenPending,
+                          disabled: reopenPending,
                           onSelect: onReopenRegistration,
                         }
                       : {

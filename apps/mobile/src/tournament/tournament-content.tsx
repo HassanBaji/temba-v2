@@ -59,16 +59,6 @@ export function TournamentContent({
           </Text>
         </Surface>
       ) : null}
-      {game.joinFrozen && !game.cancelledAt ? (
-        <Surface style={{ gap: 4 }}>
-          <Text size="lead" weight="semibold" accessibilityRole="header">
-            {m.softArchivedTitle}
-          </Text>
-          <Text size="meta" tone="muted">
-            {m.softArchivedLine}
-          </Text>
-        </Surface>
-      ) : null}
       <RatingScopeCard scope={ratingScopeOf(game)} />
       {view.drawn ? (
         <StandingsView

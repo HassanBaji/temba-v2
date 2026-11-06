@@ -50,7 +50,6 @@ export const group = {
   },
   home: {
     since: (month: string) => `منذ ${month}`,
-    backToCommunity: "العودة إلى المجتمع",
     backToGroups: "العودة إلى المجموعات",
     openSeats: "أماكن شاغرة",
     organizerAction: {
@@ -141,8 +140,6 @@ export const group = {
     aGame: "المباراة",
   },
   join: {
-    archiveGamesCopy:
-      "تبقى المباريات الحالية مدرجة هنا، لا في المباريات العامة. الانضمام وقائمة الانتظار ودعوات المباريات مغلقة ما دام المجتمع مؤرشفًا.",
     gamesEmptyDescription:
       "حين تُحدَّد مباراة بفترة مفتوحة أو بمواجهة، ستظهر هنا.",
     requiresApprovalMeta: (members: string) => `${members} · تتطلب موافقة`,
@@ -157,26 +154,12 @@ export const group = {
     toast: {
       requested: "تم طلب الانضمام",
       joined: "انضممت إلى المجموعة",
-      leftClub: "غادرت المجموعة، وما زلت في المجتمع",
       left: "غادرت المجموعة",
     },
     leaveConfirm: {
       title: (name: string) => `مغادرة ${name}؟`,
       description: "ستغادر هذه المجموعة.",
       confirmLabel: "مغادرة المجموعة",
-    },
-    banner: {
-      archivedVisitor: {
-        heading: "مجتمع هذه المجموعة النادوية مؤرشف",
-        body: "الانضمام مغلق. ما زال بإمكان أعضاء المجتمع فتح السجل والمباريات. هذه ليست صفحة مفقودة.",
-      },
-      archivedMember: {
-        heading: "المجتمع مؤرشف",
-        body: "تبقى هذه المجموعة النادوية مرتبطة بمجتمعها. ما زال بإمكانك فتحها ورؤية السجل والمباريات ما دام المجتمع مؤرشفًا.",
-      },
-      approvalJoinsCommunity: (community: string) =>
-        `إذا قُبل طلبك، تصبح أيضًا عضوًا في ${community}.`,
-      thisCommunity: "هذا المجتمع",
     },
   },
   admin: {
@@ -199,9 +182,6 @@ export const group = {
       viaInviteLinkFrom: (name: string, when: string) =>
         `عبر رابط دعوة من ${name}، ${when}`,
       viaInviteLink: (when: string) => `عبر رابط دعوة، ${when}`,
-      foundInCommunity: (community: string, when: string) =>
-        `وجد المجموعة في ${community}، ${when}`,
-      theCommunity: "المجتمع",
     },
     requestsBanner: (n: number) =>
       plural("ar", n, {
@@ -239,8 +219,6 @@ export const group = {
         title: "أي شخص لديه الرابط",
         description: "ينضمون فورًا. الطلبات المعلّقة لا تُقبل تلقائيًا.",
       },
-      descriptionIn: (community: string) =>
-        `ينطبق على رابط الدعوة وعلى من يجد المجموعة في ${community}.`,
       description: "ينطبق على رابط الدعوة وعلى من يجد المجموعة.",
     },
     reject: {
@@ -265,38 +243,21 @@ export const group = {
     },
   },
   create: {
-    loose: {
-      publicLabel: "عامة (أي شخص لديه الرابط)",
-      privateLabel: "خاصة (بالدعوة فقط)",
-      publicHelp:
-        "يمكن لأي شخص لديه رابط المجموعة الانضمام، أو طلب الانضمام إذا اشترطت الموافقة.",
-      privateHelp: "أنت وحدك من يمكنه دعوة الأشخاص.",
-      approvalHelp:
-        "يطلب الأشخاص الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
-      submit: "إنشاء مجموعة",
-    },
-    club: {
-      publicLabel: "عامة (أعضاء المجتمع)",
-      privateLabel: "خاصة (بالدعوة فقط)",
-      publicHelp:
-        "يمكن لأي عضو في المجتمع الانضمام، أو طلب الانضمام إذا اشترطت الموافقة.",
-      privateHelp:
-        "يمكن للمالكين والمشرفين دعوة أي شخص. ويمكن لمنشئ المجموعة والمنظّمين دعوة أعضاء المجتمع.",
-      approvalHelp:
-        "يطلب أعضاء المجتمع الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
-      submit: "إنشاء مجموعة نادوية",
-    },
-    looseDescription:
-      "مجموعة من الأشخاص الذين تلعب معهم، خارج أي مجتمع. تنضم إليها كأول عضو.",
-    clubDescription: "مجموعة داخل مجتمعك. تنضم إليها كأول عضو.",
+    publicLabel: "عامة (أي شخص لديه الرابط)",
+    privateLabel: "خاصة (بالدعوة فقط)",
+    publicHelp:
+      "يمكن لأي شخص لديه رابط المجموعة الانضمام، أو طلب الانضمام إذا اشترطت الموافقة.",
+    privateHelp: "أنت وحدك من يمكنه دعوة الأشخاص.",
+    approvalHelp:
+      "يطلب الأشخاص الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
+    submit: "إنشاء مجموعة",
+    description:
+      "مجموعة من الأشخاص الذين تلعب معهم. تنضم إليها كأول عضو.",
     createdToast: "تم إنشاء المجموعة",
     screen: {
       title: "إنشاء مجموعة",
-      description: {
-        loose:
-          "المجموعة هي رفاقك المعتادون: رياضة واحدة، ترتيب واحد، ومباريات بلا حدود.",
-        club: "مجموعة داخل مجتمعك: رياضة واحدة، ترتيب واحد، ومباريات بلا حدود.",
-      },
+      description:
+        "المجموعة هي رفاقك المعتادون: رياضة واحدة، ترتيب واحد، ومباريات بلا حدود.",
       photo: "صورة",
       photoHelp: "صورة اختيارية، JPEG أو PNG",
       nameLabel: "اسم المجموعة",
@@ -315,27 +276,20 @@ export const group = {
     declineLabel: "رفض",
     declinedToast: "تم رفض الطلب",
     rowTitle: (venue: string, group: string) =>
-      `يريد ${venue} إضافة ${group} إلى مجتمعه`,
+      `يريد ${venue} ربط ${group}`,
     yourGroup: "مجموعتك",
     thisGroup: "هذه المجموعة",
-    bannerText: (venue: string) =>
-      `يريد ${venue} إضافة هذه المجموعة إلى مجتمعه.`,
+    bannerText: (venue: string) => `يريد ${venue} ربط هذه المجموعة.`,
     acceptedToast: (group: string, venue: string) =>
-      `${group} الآن جزء من ${venue}`,
+      `${group} مرتبطة الآن بـ ${venue}`,
     acceptConfirm: {
-      title: (group: string, venue: string) =>
-        `إضافة ${group} إلى مجتمع ${venue}؟`,
+      title: (group: string, venue: string) => `ربط ${group} بـ ${venue}؟`,
       description: (group: string) =>
         `تصبح ${group} مجموعة نادوية. إليك ما يتغير.`,
-      confirmLabel: "إضافة المجموعة",
+      confirmLabel: "ربط المجموعة",
       cancelLabel: "ليس الآن",
-      pendingLabel: "جارٍ الإضافة…",
+      pendingLabel: "جارٍ الربط…",
       consequences: {
-        members: "يصبح كل من في المجموعة عضوًا في المجتمع.",
-        noDirectJoin:
-          "لا يمكن للأشخاص الجدد الانضمام مباشرة. يرسلون طلبًا بدلًا من ذلك.",
-        noInviteLinks:
-          "لم يعد بإمكانك إنشاء روابط دعوة. ما زال بإمكانك دعوة أعضاء المجتمع الحاليين.",
         gamesHeldAt: (venue: string) => `تُقام المباريات الجديدة في ${venue}.`,
         verified:
           "المجموعة موثّقة، فيمكن أن تُحتسب مبارياتها في تصنيف Temba وأن تُفتح لأي شخص لديه الرابط.",
@@ -348,28 +302,26 @@ export const group = {
       confirmLabel: "رفض الطلب",
       cancelLabel: "إبقاء الطلب",
     },
-    partOf: (venue: string) => `جزء من ${venue}`,
+    partOf: (venue: string) => `مرتبطة بـ ${venue}`,
     unlinkLabel: "فك الارتباط",
-    leaveVenueLabel: (venue: string) => `مغادرة مجتمع ${venue}`,
+    leaveVenueLabel: (venue: string) => `فك الارتباط بـ ${venue}`,
     leaveVenueConfirm: {
-      title: (venue: string) => `مغادرة مجتمع ${venue}؟`,
+      title: (venue: string) => `فك الارتباط بـ ${venue}؟`,
       description: (group: string) =>
         `تعود ${group} مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّق مشغّل المجموعة.`,
-      confirmLabel: "مغادرة المجتمع",
-      cancelLabel: "البقاء",
-      pendingLabel: "جارٍ المغادرة…",
+      confirmLabel: "فك الارتباط",
+      cancelLabel: "إبقاء الارتباط",
+      pendingLabel: "جارٍ فك الارتباط…",
       consequences: {
         historyStays: "يبقى الأعضاء والمباريات السابقة والنتائج كما هي.",
-        membersStay: "يبقى الأعضاء في المجتمع حتى يغادروه بأنفسهم.",
         anyVenue: "يمكن إقامة المباريات الجديدة في أي نادٍ.",
-        inviteLinks: "يمكنك إنشاء روابط دعوة مجددًا.",
       },
     },
-    leftVenueToast: (venue: string) => `غادرت مجتمع ${venue}`,
+    leftVenueToast: (venue: string) => `تم فك الارتباط بـ ${venue}`,
     venueUnlinkConfirm: {
       title: (group: string) => `فك ارتباط ${group}؟`,
       description: (group: string) =>
-        `تغادر ${group} مجتمع ناديك وتصبح مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
+        `لم تعد ${group} مرتبطة بناديك وتصبح مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
       confirmLabel: "فك ارتباط المجموعة",
       cancelLabel: "إبقاء الارتباط",
     },
@@ -551,8 +503,7 @@ export const group = {
     visibility: {
       public: {
         title: "عامة",
-        descriptionClub: "تظهر في البحث وفي المجتمع.",
-        descriptionLoose: "تظهر في البحث وفي المجتمعات.",
+        description: "تظهر في البحث وفي قائمة المجموعات العامة.",
       },
       private: {
         title: "خاصة",

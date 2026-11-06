@@ -7,21 +7,16 @@ import { groupMembers, GroupMemberRoleEnum } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isStaffRole } from "#src/games/access";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
 
 export const ALWAYS_ORGANIZER_MESSAGE =
-  "The Group creator and Community Owner and Admin are always Organizers";
+  "The Group creator is always an Organizer";
 export const UNCLAIMED_ORGANIZER_MESSAGE =
   "Players not on Temba yet cannot be Organizers";
-export const NOT_A_COMMUNITY_MEMBER_ORGANIZER_MESSAGE =
-  "Only Community Members can be Organizers of this Group";
 
 export async function setOrganizer(
   database: DbClient,
@@ -33,16 +28,6 @@ export async function setOrganizer(
   },
 ) {
   const group = await requireGroup(database, args.groupId);
-  if (group.communityId) {
-    refuseIfFrozen(
-      await consult(database, { communityId: group.communityId }),
-      "host",
-      {
-        frozenMessage:
-          "Cannot change Organizers of a Group in an archived Community",
-      },
-    );
-  }
   await assertGroupApprover(database, group, args.approverUserId);
 
   const membership = await database.query.groupMembers.findFirst({
@@ -60,13 +45,7 @@ export async function setOrganizer(
     });
   }
 
-  const communityMembership = group.communityId
-    ? await requireCommunityMembership(database, group.communityId, args.userId)
-    : null;
-  if (
-    group.createdBy === args.userId ||
-    isStaffRole(communityMembership?.role)
-  ) {
+  if (group.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: ALWAYS_ORGANIZER_MESSAGE,
@@ -76,12 +55,6 @@ export async function setOrganizer(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: UNCLAIMED_ORGANIZER_MESSAGE,
-    });
-  }
-  if (args.organizer && group.communityId && !communityMembership) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: NOT_A_COMMUNITY_MEMBER_ORGANIZER_MESSAGE,
     });
   }
 

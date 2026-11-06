@@ -570,9 +570,6 @@ export function createVenueCopy(
     }
     return m.lockedLinked(optional);
   }
-  if (picker.groupKind === "club") {
-    return m.noLink(optional);
-  }
   return m.pick(optional);
 }
 
@@ -1112,7 +1109,7 @@ export function createDayChipLabel(
 export type CreateGroupOption = {
   id: string;
   name: string | null;
-  communityName: string | null;
+  venueName: string | null;
   sport?: string | null;
   verified: boolean;
 };

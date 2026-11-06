@@ -1,9 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import {
   groupCreateCanSubmit,
-  groupCreateCopy,
   groupCreateSubmitLabel,
-  type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
 import { groupJoiningToggleHelp } from "@repo/domain/group-settings";
@@ -25,7 +23,6 @@ import {
 } from "./group-form-parts";
 
 export type GroupCreateViewProps = {
-  context: GroupCreateContext;
   name: string;
   onNameChange: (name: string) => void;
   nameError: string | null;
@@ -50,7 +47,6 @@ export type GroupCreateViewProps = {
 export function GroupCreateView(props: GroupCreateViewProps) {
   const m = useMessages();
   const locale = useLocale();
-  const copy = groupCreateCopy(props.context, locale);
   const screen = m.group.create.screen;
   const joining = m.group.settings.joining;
 
@@ -78,7 +74,7 @@ export function GroupCreateView(props: GroupCreateViewProps) {
         }
       >
         <Text tone="muted" style={{ marginTop: -12 }}>
-          {screen.description[props.context]}
+          {screen.description}
         </Text>
       </ScreenHeader>
 
@@ -145,16 +141,10 @@ export function GroupCreateView(props: GroupCreateViewProps) {
 
         <FormBlock label={screen.visibilityLabel}>
           <VisibilityCards
-            context={props.context}
             value={props.type}
             onSelect={props.onTypeChange}
             disabled={props.pending}
           />
-          {props.context === "club" ? (
-            <Text size="eyebrow" tone="muted">
-              {props.type === "private" ? copy.privateHelp : copy.publicHelp}
-            </Text>
-          ) : null}
         </FormBlock>
 
         {props.type === "public" ? (
@@ -177,12 +167,10 @@ export function GroupCreateView(props: GroupCreateViewProps) {
 }
 
 export function GroupCreateFooter({
-  context,
   name,
   pending,
   onSubmit,
 }: {
-  context: GroupCreateContext;
   name: string;
   pending: boolean;
   onSubmit: () => void;
@@ -194,7 +182,7 @@ export function GroupCreateFooter({
     <View style={{ flex: 1, gap: 8, alignItems: "center" }}>
       <View style={{ alignSelf: "stretch" }}>
         <Button
-          label={groupCreateSubmitLabel(context, name, locale)}
+          label={groupCreateSubmitLabel(name, locale)}
           size="lg"
           pending={pending}
           disabled={!canSubmit}

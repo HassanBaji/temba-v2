@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { stackMissingRoot, tabBarHidden, visibleTabs } from "./tab-list";
 
 describe("visibleTabs", () => {
-  it("shows Home, Games, Book, Groups and Profile, without Communities", () => {
+  it("shows Home, Games, Book, Groups and Profile", () => {
     expect(visibleTabs(messagesFor("en")).map((tab) => tab.title)).toEqual([
       "Home",
       "Games",

@@ -77,7 +77,6 @@ function game(
     registrationMode: "individual",
     canRegister: false,
     canWaitlist: false,
-    joinFrozen: false,
     isRegistered: false,
     isSeated: false,
     isWaitlisted: false,
@@ -428,20 +427,8 @@ describe("tournamentCardAction", () => {
     assert.equal(tournamentCardActionLabel("view", "en"), "View tournament");
   });
 
-  it("shows View tournament when the Level range or a Soft-archive blocks joining", () => {
+  it("shows View tournament when the Level range blocks joining", () => {
     assert.equal(tournamentCardAction(game({ canRegister: false })), "view");
-    assert.equal(
-      tournamentCardAction(game({ canRegister: true, joinFrozen: true })),
-      "view",
-    );
-    assert.equal(
-      tournamentCardAction(
-        game({ isSeated: true, joinFrozen: true }, [
-          team({ isViewerTeam: true, left: YOU, right: null }),
-        ]),
-      ),
-      "view",
-    );
   });
 });
 

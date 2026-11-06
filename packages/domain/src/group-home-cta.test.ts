@@ -112,7 +112,6 @@ describe("groupHomeNextJoinableGame", () => {
   const openGame = {
     id: "soonest",
     registrationStatus: "open",
-    joinFrozen: false,
     isRegistered: false,
     isWaitlisted: false,
     isPublic: true,
@@ -125,13 +124,12 @@ describe("groupHomeNextJoinableGame", () => {
     );
   });
 
-  it("skips full, closed, frozen, registered, and waitlisted Games", () => {
+  it("skips full, closed, registered, and waitlisted Games", () => {
     assert.equal(
       groupHomeNextJoinableGame(
         [
           { ...openGame, id: "full", registrationStatus: "full" },
           { ...openGame, id: "closed", registrationStatus: "closed" },
-          { ...openGame, id: "frozen", joinFrozen: true },
           { ...openGame, id: "seated", isRegistered: true },
           { ...openGame, id: "wait", isWaitlisted: true },
         ],
@@ -154,11 +152,9 @@ describe("groupHomeNextJoinableGame", () => {
 });
 
 describe("groupHomeOverflowItems", () => {
-  it("offers leaving the Venue Community only when allowed", () => {
+  it("offers unlinking from the Venue only when allowed", () => {
     const base = {
       family: { kind: "none" as const },
-      hasCommunity: false,
-      hasCreateAccess: false,
       canShowCreateGame: false,
       isLoosePublic: false,
       canManageInvites: false,
@@ -169,8 +165,8 @@ describe("groupHomeOverflowItems", () => {
     };
     assert.deepEqual(groupHomeOverflowItems(base), ["leave"]);
     assert.deepEqual(
-      groupHomeOverflowItems({ ...base, canLeaveVenueCommunity: true }),
-      ["leave_venue_community", "leave"],
+      groupHomeOverflowItems({ ...base, canUnlinkVenue: true }),
+      ["unlink_venue", "leave"],
     );
     assert.deepEqual(
       groupHomeOverflowItems({ ...base, canManageSeasons: true }),
@@ -182,8 +178,6 @@ describe("groupHomeOverflowItems", () => {
     assert.deepEqual(
       groupHomeOverflowItems({
         family: { kind: "none" },
-        hasCommunity: false,
-        hasCreateAccess: false,
         canShowCreateGame: false,
         isLoosePublic: true,
         canManageInvites: false,
@@ -201,8 +195,6 @@ describe("groupHomeOverflowItems", () => {
     assert.deepEqual(
       groupHomeOverflowItems({
         family: { kind: "none" },
-        hasCommunity: false,
-        hasCreateAccess: false,
         canShowCreateGame: false,
         isLoosePublic: false,
         canManageInvites: false,
@@ -215,12 +207,10 @@ describe("groupHomeOverflowItems", () => {
     );
   });
 
-  it("lists Club Community doors and destructive confirms", () => {
+  it("lists Club Group doors and destructive confirms", () => {
     assert.deepEqual(
       groupHomeOverflowItems({
         family: { kind: "join_group", secondary: "create_game" },
-        hasCommunity: true,
-        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
@@ -230,8 +220,6 @@ describe("groupHomeOverflowItems", () => {
         canDelete: true,
       }),
       [
-        "open_community",
-        "all_communities",
         "manage_invites",
         "leave",
         "delete",
@@ -243,8 +231,6 @@ describe("groupHomeOverflowItems", () => {
     assert.deepEqual(
       groupHomeOverflowItems({
         family: { kind: "create_game", secondary: null },
-        hasCommunity: false,
-        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: true,
         canManageInvites: false,
@@ -261,8 +247,6 @@ describe("groupHomeOverflowItems", () => {
     assert.deepEqual(
       groupHomeOverflowItems({
         family: { kind: "none" },
-        hasCommunity: false,
-        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
@@ -283,8 +267,6 @@ describe("groupHomeOverflowItems", () => {
           gameId: "game-1",
           secondary: "create_game",
         },
-        hasCommunity: false,
-        hasCreateAccess: true,
         canShowCreateGame: true,
         isLoosePublic: false,
         canManageInvites: true,
@@ -297,51 +279,9 @@ describe("groupHomeOverflowItems", () => {
     );
   });
 
-  it("keeps Open Community without the create-access flag and omits All Communities", () => {
-    assert.deepEqual(
-      groupHomeOverflowItems({
-        family: { kind: "none" },
-        hasCommunity: true,
-        hasCreateAccess: false,
-        canShowCreateGame: false,
-        isLoosePublic: false,
-        canManageInvites: false,
-        canManageImage: false,
-        hasImage: false,
-        isMember: false,
-        canDelete: false,
-      }),
-      ["open_community"],
-    );
-  });
-
-  it("includes All Communities only when the create-access flag is true", () => {
-    const base = {
-      family: { kind: "none" } as const,
-      hasCommunity: true,
-      canShowCreateGame: false,
-      isLoosePublic: false,
-      canManageInvites: false,
-      canManageImage: false,
-      hasImage: false,
-      isMember: false,
-      canDelete: false,
-    };
-    assert.deepEqual(
-      groupHomeOverflowItems({ ...base, hasCreateAccess: false }),
-      ["open_community"],
-    );
-    assert.deepEqual(
-      groupHomeOverflowItems({ ...base, hasCreateAccess: true }),
-      ["open_community", "all_communities"],
-    );
-  });
-
   it("lists Change image when the viewer may manage the image, and Remove image only when an image is present", () => {
     const base = {
       family: { kind: "none" } as const,
-      hasCommunity: false,
-      hasCreateAccess: false,
       canShowCreateGame: false,
       isLoosePublic: false,
       canManageInvites: false,

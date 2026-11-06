@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
 
 import {
-  communityInviteLinkPath,
   gameInviteLinkPath,
   gameInviteShortPath,
   groupInviteLinkPath,
@@ -40,10 +39,6 @@ export function parseGameInviteShortCode(raw: string) {
     }
   }
   return code;
-}
-
-export function communityInviteLinkUrl(origin: string, token: string) {
-  return `${origin}${communityInviteLinkPath(token)}`;
 }
 
 export function groupInviteLinkUrl(origin: string, token: string) {
@@ -91,7 +86,6 @@ export function normalizeInviteEmail(email: string) {
 }
 
 export {
-  communityInviteLinkPath,
   gameInviteLinkPath,
   gameInviteShortPath,
   groupInviteLinkPath,

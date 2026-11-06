@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
 
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
-import { refuseIfLinkedCommunityArchived } from "#src/teams/helpers/refuse-if-linked-community-archived";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { type db } from "#src/db";
 
@@ -15,11 +14,6 @@ export async function requireIncompleteTeamCreator(
   userId: string,
 ) {
   const team = await requireTeam(database, teamId);
-  await refuseIfLinkedCommunityArchived(
-    database,
-    team,
-    "Cannot invite into a Team linked to an archived Community",
-  );
 
   if (team.createdBy !== userId) {
     throw new TRPCError({

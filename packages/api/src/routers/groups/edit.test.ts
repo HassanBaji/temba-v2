@@ -5,24 +5,17 @@ import { describe, expect, it } from "vitest";
 import {
   GameFormatEnum,
   GameRegistrationModeEnum,
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   games,
   groupMembers,
+  groups,
   user,
+  venueManagers,
   venues,
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import {
-  editGroup,
-  SPORT_LOCKED_MESSAGE,
-  SPORT_NOT_ALLOWED_MESSAGE,
-} from "#src/routers/groups/edit";
+import { editGroup, SPORT_LOCKED_MESSAGE } from "#src/routers/groups/edit";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -184,67 +177,68 @@ describe("editGroup", () => {
         editGroup(db, { groupId: group.id, userId: member.id, name: "Mine" }),
       );
       expect(error.code).toBe("FORBIDDEN");
+      expect(error.message).toBe("Only the Group owner can edit this Group");
     } finally {
       await close();
     }
   });
 
-  it("keeps a Club Group's sport on the Community allow-list and lets Admin edit", async () => {
+  it("on a Club Group lets only the owner edit, with the sport free of any Venue allow-list", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "owner@example.com");
-      const admin = await insertUser(db, "admin@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Arad", createdBy: owner.id })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("community");
-      }
-      await db.insert(communityMembers).values([
-        {
-          communityId: community.id,
-          userId: owner.id,
-          role: CommunityRoleEnum.OWNER,
-        },
-        {
-          communityId: community.id,
-          userId: admin.id,
-          role: CommunityRoleEnum.ADMIN,
-        },
-      ]);
+      const organizer = await insertUser(db, "organizer@example.com");
+      const manager = await insertUser(db, "manager@example.com");
+      const venue = await insertVenue(db);
       await db
-        .insert(communitySports)
-        .values({ communityId: community.id, sport: "padel" });
-      const group = await createClubPublic(db, {
+        .insert(venueManagers)
+        .values({ venueId: venue.id, userId: manager.id });
+      const group = await createLoosePublic(db, {
         name: "Club Crew",
         sport: "padel",
-        communityId: community.id,
         userId: owner.id,
       });
-
-      const error = await rejection(
-        editGroup(db, {
-          groupId: group.id,
-          userId: admin.id,
-          sport: "football",
-        }),
-      );
-      expect(error.message).toBe(SPORT_NOT_ALLOWED_MESSAGE);
-
-      const renamed = await editGroup(db, {
+      await db
+        .update(groups)
+        .set({ venueId: venue.id })
+        .where(eq(groups.id, group.id));
+      await db.insert(groupMembers).values({
         groupId: group.id,
-        userId: admin.id,
+        userId: organizer.id,
+        role: "organizer",
+      });
+
+      for (const userId of [organizer.id, manager.id]) {
+        const error = await rejection(
+          editGroup(db, { groupId: group.id, userId, name: "Mine" }),
+        );
+        expect(error.code).toBe("FORBIDDEN");
+        expect(
+          (await groupById(db, { groupId: group.id, userId: organizer.id }))
+            .canEdit,
+        ).toBe(false);
+      }
+
+      const switched = await editGroup(db, {
+        groupId: group.id,
+        userId: owner.id,
+        sport: "football",
         name: "Club Crew II",
       });
-      expect(renamed.name).toBe("Club Crew II");
-      expect(
-        (await groupById(db, { groupId: group.id, userId: admin.id })).canEdit,
-      ).toBe(true);
-      const stored = await db.query.groupMembers.findFirst({
-        where: eq(groupMembers.groupId, group.id),
+      expect(switched).toMatchObject({
+        name: "Club Crew II",
+        sport: "football",
       });
-      expect(stored).toBeDefined();
+      const asOwner = await groupById(db, {
+        groupId: group.id,
+        userId: owner.id,
+      });
+      expect(asOwner.canEdit).toBe(true);
+      expect(asOwner.venue).toEqual(expect.objectContaining({ id: venue.id }));
+      const stored = await db.query.groups.findFirst({
+        where: eq(groups.id, group.id),
+      });
+      expect(stored?.venueId).toBe(venue.id);
     } finally {
       await close();
     }

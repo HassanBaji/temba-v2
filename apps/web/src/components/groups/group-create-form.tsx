@@ -11,10 +11,8 @@ import {
 } from "@repo/domain/entity-image-file";
 import {
   groupCreateCanSubmit,
-  groupCreateCopy,
   groupCreateRequiresApproval,
   groupCreateSubmitLabel,
-  type GroupCreateContext,
   type GroupCreateType,
 } from "@repo/domain/group-create";
 import { groupJoiningToggleHelp } from "@repo/domain/group-settings";
@@ -43,25 +41,18 @@ export type GroupCreateValues = {
 
 /** The form of design "Group create and edit flow" 01. */
 export function GroupCreateForm({
-  context,
   idPrefix,
-  sports = SPORTS,
-  showSportPicker = true,
   pending,
   error,
   onSubmit,
 }: {
-  context: GroupCreateContext;
   idPrefix: string;
-  sports?: readonly Sport[];
-  showSportPicker?: boolean;
   pending: boolean;
   error?: { message: string; data?: { zodError?: unknown } | null } | null;
   onSubmit: (values: GroupCreateValues) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const copy = groupCreateCopy(context, locale);
   const screen = m.group.create.screen;
   const joining = m.group.settings.joining;
   const ids = {
@@ -80,10 +71,7 @@ export function GroupCreateForm({
   const [image, setImage] = React.useState<File | null>(null);
   const [imageError, setImageError] = React.useState<string | null>(null);
   const nameError = fieldErrorMessage(error, "name");
-  const sport =
-    pickedSport && sports.includes(pickedSport)
-      ? pickedSport
-      : (sports[0] ?? DEFAULT_SPORT);
+  const sport = pickedSport ?? DEFAULT_SPORT;
   const previewUrl = React.useMemo(
     () => (image ? URL.createObjectURL(image) : null),
     [image],
@@ -195,20 +183,16 @@ export function GroupCreateForm({
         />
       </div>
 
-      {showSportPicker ? (
-        <FormBlock label={screen.sportLabel} labelId={`${ids.sport}-label`}>
-          <SportSegment
-            labelledBy={`${ids.sport}-label`}
-            sports={sports}
-            value={sport}
-            onSelect={setPickedSport}
-            disabled={pending}
-          />
-          <p className="text-eyebrow text-muted-foreground">
-            {screen.sportHelp}
-          </p>
-        </FormBlock>
-      ) : null}
+      <FormBlock label={screen.sportLabel} labelId={`${ids.sport}-label`}>
+        <SportSegment
+          labelledBy={`${ids.sport}-label`}
+          sports={SPORTS}
+          value={sport}
+          onSelect={setPickedSport}
+          disabled={pending}
+        />
+        <p className="text-eyebrow text-muted-foreground">{screen.sportHelp}</p>
+      </FormBlock>
 
       <FormBlock
         label={screen.visibilityLabel}
@@ -216,7 +200,6 @@ export function GroupCreateForm({
       >
         <VisibilityCards
           labelledBy={`${ids.visibility}-label`}
-          context={context}
           value={type}
           onSelect={(next) => {
             setType(next);
@@ -226,11 +209,6 @@ export function GroupCreateForm({
           }}
           disabled={pending}
         />
-        {context === "club" ? (
-          <p className="text-eyebrow text-muted-foreground">
-            {type === "private" ? copy.privateHelp : copy.publicHelp}
-          </p>
-        ) : null}
       </FormBlock>
 
       {type === "public" ? (
@@ -255,7 +233,7 @@ export function GroupCreateForm({
           disabled={!groupCreateCanSubmit(name)}
           className="w-full font-semibold"
         >
-          {groupCreateSubmitLabel(context, name, locale)}
+          {groupCreateSubmitLabel(name, locale)}
         </Button>
         <p className="text-eyebrow text-muted-foreground">{screen.footnote}</p>
       </div>

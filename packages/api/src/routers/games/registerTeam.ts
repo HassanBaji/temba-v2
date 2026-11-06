@@ -50,7 +50,7 @@ export async function registerTeam(
     });
   }
 
-  await assertRegistrationOpen(database, game, now);
+  assertRegistrationOpen(game, now);
 
   const team = await database.query.teams.findFirst({
     where: eq(teams.id, args.teamId),

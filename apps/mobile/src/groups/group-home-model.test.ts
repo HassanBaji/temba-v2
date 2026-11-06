@@ -3,7 +3,6 @@ import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import {
-  groupBanner,
   groupHomeHeader,
   groupJoinCta,
   memberIsRemovable,
@@ -36,7 +35,7 @@ describe("groupJoinCta", () => {
     expect(groupJoinCta(home.nonMemberJoin, false, "en")).toEqual({
       label: "Join Group",
       disabled: false,
-      door: "joinLoosePublic",
+      door: "joinPublic",
     });
   });
 
@@ -58,24 +57,6 @@ describe("groupJoinCta", () => {
       disabled: true,
       door: null,
     });
-  });
-});
-
-describe("groupBanner", () => {
-  it("warns that a Club request also joins the Community", () => {
-    expect(groupBanner(home.clubRequest, "en")?.body).toBe(
-      "If approved, you also become a Member of Södermalm Padel.",
-    );
-  });
-
-  it("explains an archived Community", () => {
-    expect(groupBanner(home.archivedClub, "en")?.heading).toBe(
-      "Community Soft-archived",
-    );
-  });
-
-  it("is absent for a plain Loose Group", () => {
-    expect(groupBanner(home.member, "en")).toBeNull();
   });
 });
 

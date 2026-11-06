@@ -4,7 +4,7 @@ import { PageTitle } from "~/components/layout/page-title";
 import { cn } from "~/lib/utils";
 
 /**
- * The detail-page header for Groups, Communities, Teams and Venues: a leading
+ * The detail-page header for Groups, Teams and Venues: a leading
  * visual, the h1, badges and a meta line, then actions. Below `sm` the
  * primary action takes its own full-width row under the header and only the
  * overflow menu stays beside the title, so a 360px title is never squeezed.

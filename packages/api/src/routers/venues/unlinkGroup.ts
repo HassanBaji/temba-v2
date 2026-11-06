@@ -3,7 +3,7 @@ import { z } from "zod";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { protectedProcedure } from "#src/trpc";
-import { unlinkGroupFromVenueCommunity } from "#src/venue-community/unlink-group";
+import { unlinkGroupFromVenue } from "#src/groups/helpers/unlink-group-from-venue";
 import { requireVenue } from "#src/venues/helpers/require-venue";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
@@ -22,7 +22,7 @@ export async function unlinkGroup(
 ) {
   const venue = await requireVenue(database, args.venueId);
   await requireVenueManager(database, { venueId: venue.id, ...args.actor });
-  return unlinkGroupFromVenueCommunity(database, {
+  return unlinkGroupFromVenue(database, {
     groupId: args.groupId,
     venueId: venue.id,
   });

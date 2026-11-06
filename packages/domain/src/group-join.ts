@@ -5,23 +5,12 @@ import { groupHomeHasStandingResults } from "./group-home-chrome";
 
 export type GroupJoinMode = "join" | "request" | "requested";
 
-export type GroupJoinDoor =
-  | "joinLoosePublic"
-  | "joinClubPublic"
-  | "requestJoin";
+export type GroupJoinDoor = "joinPublic" | "requestJoin";
 
 export const GROUP_HISTORY_PAGE_SIZE = 20;
 
-export function groupArchiveGamesCopy(locale: Locale) {
-  return messagesFor(locale).group.join.archiveGamesCopy;
-}
-
-export function groupGamesEmptyDescription(
-  isCommunityArchived: boolean,
-  locale: Locale,
-) {
-  const m = messagesFor(locale).group.join;
-  return isCommunityArchived ? m.archiveGamesCopy : m.gamesEmptyDescription;
+export function groupGamesEmptyDescription(locale: Locale) {
+  return messagesFor(locale).group.join.gamesEmptyDescription;
 }
 
 export function groupHomeCanJoin(joinMode: string): joinMode is GroupJoinMode {
@@ -74,30 +63,25 @@ export function groupJoinDisabled(joinMode: GroupJoinMode, pending: boolean) {
 
 export function publicGroupJoinDoor(input: {
   joinMode: GroupJoinMode;
-  communityName: string | null;
 }): GroupJoinDoor | null {
   if (input.joinMode === "request") {
     return "requestJoin";
   }
   if (input.joinMode === "join") {
-    return input.communityName ? "joinClubPublic" : "joinLoosePublic";
+    return "joinPublic";
   }
   return null;
 }
 
 export function groupHomeJoinDoor(input: {
   joinMode: string;
-  canJoinLoosePublic: boolean;
-  canJoinClubPublic: boolean;
+  canJoin: boolean;
 }): GroupJoinDoor | null {
   if (input.joinMode === "request") {
     return "requestJoin";
   }
-  if (input.canJoinLoosePublic) {
-    return "joinLoosePublic";
-  }
-  if (input.canJoinClubPublic) {
-    return "joinClubPublic";
+  if (input.canJoin) {
+    return "joinPublic";
   }
   return null;
 }
@@ -107,12 +91,8 @@ export function groupJoinToast(door: GroupJoinDoor, locale: Locale) {
   return door === "requestJoin" ? m.requested : m.joined;
 }
 
-export function groupLeaveToast(
-  communityId: string | null | undefined,
-  locale: Locale,
-) {
-  const m = messagesFor(locale).group.join.toast;
-  return communityId ? m.leftClub : m.left;
+export function groupLeaveToast(locale: Locale) {
+  return messagesFor(locale).group.join.toast.left;
 }
 
 export function groupLeaveConfirm(groupName: string, locale: Locale) {
@@ -122,42 +102,6 @@ export function groupLeaveConfirm(groupName: string, locale: Locale) {
     description: m.description,
     confirmLabel: m.confirmLabel,
   };
-}
-
-export type GroupHomeBanner = { heading: string | null; body: string };
-
-export function groupHomeBanner(input: {
-  isCommunityArchived: boolean;
-  hasCommunityMembership: boolean;
-  communityId: string | null;
-  communityName: string | null;
-  joinMode: string;
-  locale: Locale;
-}): GroupHomeBanner | null {
-  const m = messagesFor(input.locale).group.join.banner;
-  if (input.isCommunityArchived && !input.hasCommunityMembership) {
-    return {
-      heading: m.archivedVisitor.heading,
-      body: m.archivedVisitor.body,
-    };
-  }
-  if (input.isCommunityArchived) {
-    return {
-      heading: m.archivedMember.heading,
-      body: m.archivedMember.body,
-    };
-  }
-  if (
-    input.communityId &&
-    !input.hasCommunityMembership &&
-    (input.joinMode === "request" || input.joinMode === "requested")
-  ) {
-    return {
-      heading: null,
-      body: m.approvalJoinsCommunity(input.communityName ?? m.thisCommunity),
-    };
-  }
-  return null;
 }
 
 export type GroupStandingState =

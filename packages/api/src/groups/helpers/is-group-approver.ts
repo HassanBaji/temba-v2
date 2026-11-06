@@ -1,49 +1,23 @@
 import type { DbClient, DbTx } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 
-import { communities, communityMembers, type groups } from "@repo/db";
-import { eq } from "drizzle-orm";
+import type { groups } from "@repo/db";
 
-import { isStaffRole } from "#src/games/access";
 import {
   appointedOrganizerUserIds,
   isAppointedOrganizer,
 } from "#src/groups/helpers/appointed-organizers";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
-import { consult } from "#src/soft-archive";
 
 type DbOrTx = DbClient | DbTx;
 
+type GroupForApprover = Pick<typeof groups.$inferSelect, "id" | "createdBy">;
+
+/** The Group creator or an Appointed Organizer (ADR-0047). */
 export async function isGroupApprover(
   database: DbOrTx,
-  group: typeof groups.$inferSelect,
+  group: GroupForApprover,
   userId: string,
 ) {
-  if (group.communityId) {
-    const community = await database.query.communities.findFirst({
-      where: eq(communities.id, group.communityId),
-      columns: { archivedAt: true },
-    });
-    if (!community) {
-      return false;
-    }
-    if (consult({ archivedAt: community.archivedAt }).freeze("host")) {
-      return false;
-    }
-    const membership = await requireCommunityMembership(
-      database,
-      group.communityId,
-      userId,
-    );
-    if (isStaffRole(membership?.role)) {
-      return true;
-    }
-    if (group.createdBy === userId && membership != null) {
-      return true;
-    }
-    return isAppointedOrganizer(database, group, userId);
-  }
-
   if (group.createdBy === userId) {
     return true;
   }
@@ -52,45 +26,19 @@ export async function isGroupApprover(
 
 export async function groupApproverUserIds(
   database: DbOrTx,
-  group: Pick<typeof groups.$inferSelect, "id" | "communityId" | "createdBy">,
+  group: GroupForApprover,
 ): Promise<string[]> {
-  if (!group.communityId) {
-    return [
-      ...new Set([
-        group.createdBy,
-        ...(await appointedOrganizerUserIds(database, group)),
-      ]),
-    ];
-  }
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, group.communityId),
-    columns: { archivedAt: true },
-  });
-  if (!community) {
-    return [];
-  }
-  if (consult({ archivedAt: community.archivedAt }).freeze("host")) {
-    return [];
-  }
-  const memberships = await database.query.communityMembers.findMany({
-    where: eq(communityMembers.communityId, group.communityId),
-    columns: { userId: true, role: true },
-  });
-  const approverIds = new Set<string>();
-  for (const membership of memberships) {
-    if (isStaffRole(membership.role) || membership.userId === group.createdBy) {
-      approverIds.add(membership.userId);
-    }
-  }
-  for (const userId of await appointedOrganizerUserIds(database, group)) {
-    approverIds.add(userId);
-  }
-  return [...approverIds];
+  return [
+    ...new Set([
+      group.createdBy,
+      ...(await appointedOrganizerUserIds(database, group)),
+    ]),
+  ];
 }
 
 export async function assertGroupApprover(
   database: DbOrTx,
-  group: typeof groups.$inferSelect,
+  group: GroupForApprover,
   userId: string,
 ) {
   if (await isGroupApprover(database, group, userId)) {

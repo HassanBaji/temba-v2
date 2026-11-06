@@ -1,8 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
-  communities,
-  communityInviteLinks,
   gameInviteLinks,
   games,
   groupInviteLinks,
@@ -25,32 +23,6 @@ export async function previewLink(
   hostKind: InviteHost["kind"],
   token: string,
 ): Promise<PreviewLinkResult> {
-  if (hostKind === "community") {
-    const link = await database.query.communityInviteLinks.findFirst({
-      where: eq(communityInviteLinks.token, token),
-    });
-    if (!link || !isInviteLinkLive(link.expiresAt)) {
-      return { ok: true, status: "invalid" };
-    }
-    const open = await assertInviteOpen(
-      database,
-      { kind: "community", id: link.communityId },
-      "accept",
-    );
-    if (!open.ok) {
-      return { ok: true, status: "unavailable" };
-    }
-    const community = await database.query.communities.findFirst({
-      where: eq(communities.id, link.communityId),
-      columns: { name: true },
-    });
-    return {
-      ok: true,
-      status: "ready",
-      name: community?.name ?? "Community",
-    };
-  }
-
   if (hostKind === "group") {
     const link = await database.query.groupInviteLinks.findFirst({
       where: eq(groupInviteLinks.token, token),

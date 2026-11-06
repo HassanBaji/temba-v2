@@ -132,10 +132,10 @@ async function weightForGame(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, groupId),
-    columns: { communityId: true },
+    columns: { venueId: true },
   });
 
-  if (group?.communityId) {
+  if (group?.venueId) {
     return CLUB_GROUP_RATING_WEIGHT;
   }
 

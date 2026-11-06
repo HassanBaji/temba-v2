@@ -29,7 +29,6 @@ export async function createLooseGroup(args: {
         description: args.description,
         type: args.type,
         sport: args.sport,
-        communityId: null,
         createdBy: args.createdBy,
         verifiedAt: args.verifiedBy ? new Date() : null,
         verifiedBy: args.verifiedBy ?? null,
@@ -61,7 +60,6 @@ export async function createLooseGroup(args: {
     description: created.description,
     type: created.type,
     sport: created.sport as GroupSportEnum,
-    communityId: created.communityId,
     createdBy: created.createdBy,
     createdAt: created.createdAt,
   };

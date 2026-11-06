@@ -6,7 +6,6 @@ import { groupMemberInvites, groupMembers, user } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroupLookupSender } from "#src/groups/helpers/require-group-lookup-sender";
 import { mintLookup } from "#src/invites/doors";
 
@@ -16,7 +15,7 @@ export async function sendLookupInvite(
   database: DbClient,
   args: { groupId: string; userId: string; userIds: string[] },
 ) {
-  const { group, canAutoAdmit } = await requireGroupLookupSender(
+  const group = await requireGroupLookupSender(
     database,
     args.groupId,
     args.userId,
@@ -45,21 +44,6 @@ export async function sendLookupInvite(
     if (!target) {
       refused.push({ name: "Unknown User", message: "User not found" });
       continue;
-    }
-
-    if (group.communityId && !canAutoAdmit) {
-      const inviteeMembership = await requireCommunityMembership(
-        database,
-        group.communityId,
-        target.id,
-      );
-      if (!inviteeMembership) {
-        refused.push({
-          name: target.name,
-          message: "Invitee must already be a Community Member",
-        });
-        continue;
-      }
     }
 
     const existingMember = await database.query.groupMembers.findFirst({

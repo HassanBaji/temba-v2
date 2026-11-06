@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   GROUP_HISTORY_PAGE_SIZE,
-  groupArchiveGamesCopy,
   groupDisplayName,
   groupGamesEmptyDescription,
   groupHomeCanJoin,
   groupHistoryCanLoadMore,
   groupHistoryPageExhausted,
-  groupHomeBanner,
   groupHomeJoinDoor,
   groupJoinDisabled,
   groupJoinLabel,
@@ -52,25 +50,13 @@ describe("groupJoinDisabled", () => {
 });
 
 describe("publicGroupJoinDoor", () => {
-  it("joins a Club Group through its Community door", () => {
-    expect(
-      publicGroupJoinDoor({ joinMode: "join", communityName: "Bromma" }),
-    ).toBe("joinClubPublic");
-  });
-
-  it("joins a Loose Group through the Loose door", () => {
-    expect(publicGroupJoinDoor({ joinMode: "join", communityName: null })).toBe(
-      "joinLoosePublic",
-    );
+  it("joins a Public Group through the one join door", () => {
+    expect(publicGroupJoinDoor({ joinMode: "join" })).toBe("joinPublic");
   });
 
   it("requests when approval is required and does nothing once requested", () => {
-    expect(
-      publicGroupJoinDoor({ joinMode: "request", communityName: null }),
-    ).toBe("requestJoin");
-    expect(
-      publicGroupJoinDoor({ joinMode: "requested", communityName: null }),
-    ).toBeNull();
+    expect(publicGroupJoinDoor({ joinMode: "request" })).toBe("requestJoin");
+    expect(publicGroupJoinDoor({ joinMode: "requested" })).toBeNull();
   });
 });
 
@@ -79,8 +65,7 @@ describe("groupHomeJoinDoor", () => {
     expect(
       groupHomeJoinDoor({
         joinMode: "request",
-        canJoinLoosePublic: false,
-        canJoinClubPublic: false,
+        canJoin: false,
       }),
     ).toBe("requestJoin");
   });
@@ -89,25 +74,16 @@ describe("groupHomeJoinDoor", () => {
     expect(
       groupHomeJoinDoor({
         joinMode: "join",
-        canJoinLoosePublic: true,
-        canJoinClubPublic: false,
+        canJoin: true,
       }),
-    ).toBe("joinLoosePublic");
-    expect(
-      groupHomeJoinDoor({
-        joinMode: "join",
-        canJoinLoosePublic: false,
-        canJoinClubPublic: true,
-      }),
-    ).toBe("joinClubPublic");
+    ).toBe("joinPublic");
   });
 
   it("has no door when the viewer cannot join", () => {
     expect(
       groupHomeJoinDoor({
         joinMode: "member",
-        canJoinLoosePublic: false,
-        canJoinClubPublic: false,
+        canJoin: false,
       }),
     ).toBeNull();
   });
@@ -116,14 +92,11 @@ describe("groupHomeJoinDoor", () => {
 describe("toasts and copy", () => {
   it("confirms the join or the request", () => {
     expect(groupJoinToast("requestJoin", "en")).toBe("Requested to join");
-    expect(groupJoinToast("joinLoosePublic", "en")).toBe("Joined Group");
+    expect(groupJoinToast("joinPublic", "en")).toBe("Joined Group");
   });
 
-  it("says the viewer remains in the Community after leaving a Club Group", () => {
-    expect(groupLeaveToast("c1", "en")).toBe(
-      "Left Group — you remain in the Community",
-    );
-    expect(groupLeaveToast(null, "en")).toBe("Left Group");
+  it("confirms leaving a Group", () => {
+    expect(groupLeaveToast("en")).toBe("Left Group");
   });
 
   it("falls back for an unnamed Group", () => {
@@ -147,45 +120,6 @@ describe("toasts and copy", () => {
         locale: "en",
       }),
     ).toBe("3 members");
-  });
-});
-
-describe("groupHomeBanner", () => {
-  const base = {
-    isCommunityArchived: false,
-    hasCommunityMembership: false,
-    communityId: "c1",
-    communityName: "Bromma",
-    joinMode: "join",
-    locale: "en" as const,
-  };
-
-  it("explains an archived Community to a non-member", () => {
-    expect(
-      groupHomeBanner({ ...base, isCommunityArchived: true })?.heading,
-    ).toBe("This Club Group's Community is Soft-archived");
-  });
-
-  it("explains an archived Community to a member", () => {
-    expect(
-      groupHomeBanner({
-        ...base,
-        isCommunityArchived: true,
-        hasCommunityMembership: true,
-      })?.heading,
-    ).toBe("Community Soft-archived");
-  });
-
-  it("warns that approval also joins the Community", () => {
-    expect(groupHomeBanner({ ...base, joinMode: "request" })).toEqual({
-      heading: null,
-      body: "If approved, you also become a Member of Bromma.",
-    });
-  });
-
-  it("shows nothing otherwise", () => {
-    expect(groupHomeBanner(base)).toBeNull();
-    expect(groupHomeBanner({ ...base, communityId: null })).toBeNull();
   });
 });
 
@@ -276,10 +210,7 @@ describe("groupHomeCanJoin", () => {
 });
 
 describe("groupGamesEmptyDescription", () => {
-  it("explains the archive freeze on an archived Community", () => {
-    expect(groupGamesEmptyDescription(true, "en")).toBe(
-      groupArchiveGamesCopy("en"),
-    );
-    expect(groupGamesEmptyDescription(false, "en")).toContain("live window");
+  it("explains when a Game will appear", () => {
+    expect(groupGamesEmptyDescription("en")).toContain("live window");
   });
 });

@@ -46,7 +46,6 @@ export type InviteDoor = DoorRights &
   (
     | { kind: "group"; groupId: string }
     | { kind: "game"; gameId: string }
-    | { kind: "community"; communityId: string }
     | { kind: "team"; teamId: string; squad: boolean; roster: TeamRosterInput }
   );
 
@@ -115,9 +114,7 @@ export function InviteDoorDialog({
   const utils = api.useUtils();
   const isGroup = door.kind === "group";
   const isTeam = door.kind === "team";
-  const isCommunity = door.kind === "community";
   const isGame = door.kind === "game";
-  const communityId = door.kind === "community" ? door.communityId : "";
   const groupId = door.kind === "group" ? door.groupId : "";
   const gameId = door.kind === "game" ? door.gameId : "";
   const teamId = door.kind === "team" ? door.teamId : "";
@@ -159,10 +156,6 @@ export function InviteDoorDialog({
     { teamId, query: trimmed },
     { enabled: lookupOn && isTeam, placeholderData: keepPrevious },
   );
-  const communitySearch = api.communities.searchLookupUsers.useQuery(
-    { communityId, query: trimmed },
-    { enabled: lookupOn && isCommunity, placeholderData: keepPrevious },
-  );
   const groupPending = api.groups.listLookupInvites.useQuery(
     { groupId },
     { enabled: lookupOn && isGroup },
@@ -174,10 +167,6 @@ export function InviteDoorDialog({
   const teamPending = api.teams.listInAppInvites.useQuery(
     { teamId },
     { enabled: lookupOn && isTeam },
-  );
-  const communityPending = api.communities.listLookupInvites.useQuery(
-    { communityId },
-    { enabled: lookupOn && isCommunity },
   );
   const groupLink = api.groups.getInviteLink.useQuery(
     { groupId },
@@ -191,41 +180,16 @@ export function InviteDoorDialog({
     { teamId },
     { enabled: linkOn && isTeam },
   );
-  const communityLink = api.communities.getInviteLink.useQuery(
-    { communityId },
-    { enabled: linkOn && isCommunity },
-  );
 
-  const search = isCommunity
-    ? communitySearch
-    : isGroup
-      ? groupSearch
-      : isTeam
-        ? teamSearch
-        : gameSearch;
+  const search = isGroup ? groupSearch : isTeam ? teamSearch : gameSearch;
   const currentLink: { shortUrl?: string | null; inviteUrl: string } | null =
-    (isCommunity
-      ? communityLink
-      : isGroup
-        ? groupLink
-        : isTeam
-          ? teamLink
-          : gameLink
-    ).data ?? null;
+    (isGroup ? groupLink : isTeam ? teamLink : gameLink).data ?? null;
   const pendingInvites: Slot<PendingLookupRow[]> = slotOf(
-    isCommunity
-      ? communityPending
-      : isGroup
-        ? groupPending
-        : isTeam
-          ? teamPending
-          : gamePending,
+    isGroup ? groupPending : isTeam ? teamPending : gamePending,
   );
 
   async function refreshPending() {
-    if (door.kind === "community") {
-      await utils.communities.listLookupInvites.invalidate({ communityId });
-    } else if (door.kind === "group") {
+    if (door.kind === "group") {
       await utils.groups.listLookupInvites.invalidate({ groupId });
     } else if (door.kind === "team") {
       await Promise.all([
@@ -255,10 +219,6 @@ export function InviteDoorDialog({
     onSuccess: afterSend,
     onError: toastGlobalFormError,
   });
-  const sendCommunity = api.communities.sendLookupInvite.useMutation({
-    onSuccess: afterSend,
-    onError: toastGlobalFormError,
-  });
   const sendTeam = api.teams.inviteInApp.useMutation({
     onSuccess: () => afterSend({ sent: [null], refused: [] }),
     onError: toastGlobalFormError,
@@ -275,8 +235,6 @@ export function InviteDoorDialog({
   };
   const revokeGroup = api.groups.revokeLookupInvite.useMutation(afterRevoke);
   const revokeGame = api.games.revokeLookupInvite.useMutation(afterRevoke);
-  const revokeCommunity =
-    api.communities.revokeLookupInvite.useMutation(afterRevoke);
   const revokeTeam = api.teams.revokeInAppInvite.useMutation(afterRevoke);
 
   const linkError = (error: { message: string }) => {
@@ -290,11 +248,6 @@ export function InviteDoorDialog({
     onSuccess: () => void utils.games.getInviteLink.invalidate({ gameId }),
     onError: linkError,
   });
-  const createCommunityLink = api.communities.createInviteLink.useMutation({
-    onSuccess: () =>
-      void utils.communities.getInviteLink.invalidate({ communityId }),
-    onError: linkError,
-  });
   const createTeamLink = api.teams.createInviteLink.useMutation({
     onSuccess: () => void utils.teams.getInviteLink.invalidate({ teamId }),
     onError: linkError,
@@ -305,11 +258,9 @@ export function InviteDoorDialog({
       const link: { shortUrl?: string | null; inviteUrl: string } =
         door.kind === "team"
           ? await createTeamLink.mutateAsync({ teamId })
-          : door.kind === "community"
-            ? await createCommunityLink.mutateAsync({ communityId })
-            : door.kind === "group"
-              ? await createGroupLink.mutateAsync({ groupId })
-              : await createGameLink.mutateAsync({ gameId });
+          : door.kind === "group"
+            ? await createGroupLink.mutateAsync({ groupId })
+            : await createGameLink.mutateAsync({ gameId });
       const url = link.shortUrl ?? link.inviteUrl;
       return door.shareMessage ? door.shareMessage(url) : url;
     } catch {
@@ -397,9 +348,6 @@ export function InviteDoorDialog({
         ? sendTeam.mutateAsync({ teamId, userId })
         : Promise.resolve();
     }
-    if (door.kind === "community") {
-      return sendCommunity.mutateAsync({ communityId, userIds });
-    }
     if (door.kind === "group") {
       return sendGroup.mutateAsync({ groupId, userIds });
     }
@@ -421,12 +369,6 @@ export function InviteDoorDialog({
   function searchByPhone(phoneQuery: string) {
     if (door.kind === "team") {
       return utils.teams.searchLookupUsers.fetch({ teamId, query: phoneQuery });
-    }
-    if (door.kind === "community") {
-      return utils.communities.searchLookupUsers.fetch({
-        communityId,
-        query: phoneQuery,
-      });
     }
     if (door.kind === "group") {
       return utils.groups.searchLookupUsers.fetch({
@@ -473,8 +415,6 @@ export function InviteDoorDialog({
   function revoke(inviteId: string) {
     if (door.kind === "team") {
       revokeTeam.mutate({ inviteId });
-    } else if (door.kind === "community") {
-      revokeCommunity.mutate({ inviteId });
     } else if (door.kind === "group") {
       revokeGroup.mutate({ inviteId });
     } else {
@@ -494,7 +434,6 @@ export function InviteDoorDialog({
   }
 
   const revokePendingId =
-    (revokeCommunity.isPending ? revokeCommunity.variables?.inviteId : null) ??
     (revokeGroup.isPending ? revokeGroup.variables?.inviteId : null) ??
     (revokeGame.isPending ? revokeGame.variables?.inviteId : null) ??
     (revokeTeam.isPending ? revokeTeam.variables?.inviteId : null) ??
@@ -504,7 +443,6 @@ export function InviteDoorDialog({
     pendingInvites.status === "ready" ? pendingInvites.value : [];
   const invitedUserIds = new Set(pendingRows.map((row) => row.user.id));
   const linkPending =
-    createCommunityLink.isPending ||
     createGroupLink.isPending ||
     createGameLink.isPending ||
     createTeamLink.isPending;

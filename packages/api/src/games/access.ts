@@ -3,8 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
-  communityMembers,
-  CommunityRoleEnum,
   gamePlayers,
   games,
   gameTeams,
@@ -19,7 +17,6 @@ import {
   isAppointedOrganizer,
 } from "#src/groups/helpers/appointed-organizers";
 import { groupApproverUserIds } from "#src/groups/helpers/is-group-approver";
-import { consult } from "#src/soft-archive";
 import type { RegistrationStatus } from "#src/games/utils";
 
 export type { RegistrationStatus };
@@ -30,10 +27,6 @@ export const FRIENDLY_PLAYERS_ALLOWED = 4;
 export const FRIENDLY_TEAMS_ALLOWED = 2;
 
 export type GameRow = typeof games.$inferSelect;
-
-export function isStaffRole(role: string | null | undefined) {
-  return role === CommunityRoleEnum.OWNER || role === CommunityRoleEnum.ADMIN;
-}
 
 export async function requireGame(database: DbOrTx, gameId: string) {
   const game = await database.query.games.findFirst({
@@ -65,31 +58,10 @@ export async function isGroupMember(
 
 type GroupForOrganize = {
   id: string;
-  communityId: string | null;
   createdBy: string;
 };
 
-async function isCommunityStaff(
-  database: DbOrTx,
-  communityId: string,
-  userId: string,
-) {
-  const membership = await database.query.communityMembers.findFirst({
-    where: and(
-      eq(communityMembers.communityId, communityId),
-      eq(communityMembers.userId, userId),
-    ),
-    columns: { role: true },
-  });
-  return isStaffRole(membership?.role);
-}
-
-async function clubCommunityIsArchived(database: DbOrTx, communityId: string) {
-  const view = await consult(database, { communityId });
-  return view.ok && view.freeze("host");
-}
-
-/** Group creator, Community Owner/Admin on a Club Group, or an Appointed Organizer. */
+/** The Group creator or an Appointed Organizer. */
 export async function mayOrganizeGroupGames(
   database: DbOrTx,
   group: GroupForOrganize,
@@ -98,55 +70,29 @@ export async function mayOrganizeGroupGames(
   if (group.createdBy === userId) {
     return true;
   }
-  if (
-    group.communityId &&
-    (await isCommunityStaff(database, group.communityId, userId))
-  ) {
-    return true;
-  }
   return isAppointedOrganizer(database, group, userId);
 }
 
 export async function mayCreateGameOnGroup(
   database: DbOrTx,
-  group: typeof groups.$inferSelect,
+  group: GroupForOrganize,
   userId: string,
 ) {
-  if (
-    group.communityId &&
-    (await clubCommunityIsArchived(database, group.communityId))
-  ) {
-    return false;
-  }
-
   return mayOrganizeGroupGames(database, group, userId);
 }
 
 export async function assertMayCreateGameOnGroup(
   database: DbOrTx,
-  group: typeof groups.$inferSelect,
+  group: GroupForOrganize,
   userId: string,
 ) {
-  if (
-    group.communityId &&
-    (await clubCommunityIsArchived(database, group.communityId))
-  ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Cannot create a Club Group Game while the Community is archived",
-    });
-  }
-
   if (await mayOrganizeGroupGames(database, group, userId)) {
     return;
   }
 
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: group.communityId
-      ? "Only Owner, Admin, the Group creator or an Organizer can create a Club Group Game"
-      : "Only the Group creator or an Organizer can create a Game on this Group",
+    message: "Only the Group creator or an Organizer can create a Game on this Group",
   });
 }
 
@@ -161,7 +107,7 @@ export async function isGameOrganizer(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { id: true, communityId: true, createdBy: true },
+    columns: { id: true, createdBy: true },
   });
   if (!group) {
     return false;
@@ -171,9 +117,7 @@ export async function isGameOrganizer(
 
 /**
  * The Game admin audience: who hears about a Game, never who may act on it.
- * On a Group Game, Organizers ∪ Group approvers minus a Club Group creator who
- * left the Community and everyone while it is Soft-archived reduces to the
- * Group approvers plus the Appointed Organizers, who lapse the same way.
+ * On a Group Game, the Group approvers plus the Appointed Organizers.
  */
 export async function gameAdminUserIds(
   database: DbOrTx,
@@ -184,18 +128,12 @@ export async function gameAdminUserIds(
   }
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { id: true, communityId: true, createdBy: true },
+    columns: { id: true, createdBy: true },
   });
   if (!group) {
     return [];
   }
   const approverIds = await groupApproverUserIds(database, group);
-  if (
-    group.communityId &&
-    (await clubCommunityIsArchived(database, group.communityId))
-  ) {
-    return approverIds;
-  }
   return [
     ...new Set([
       ...approverIds,
@@ -297,19 +235,7 @@ export async function canViewGame(
     }
   }
 
-  if (game.isPublic) {
-    if (game.groupId) {
-      const view = await consult(database, {
-        clubGroupGame: { groupId: game.groupId },
-      });
-      if (view.ok && view.freeze("join")) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  return false;
+  return game.isPublic;
 }
 
 export function isRegistrationOpen(game: GameRow, now: Date) {
@@ -325,21 +251,7 @@ export function isRegistrationOpen(game: GameRow, now: Date) {
   return true;
 }
 
-export async function isClubGroupGameJoinFrozen(
-  database: DbOrTx,
-  game: GameRow,
-) {
-  const view = await consult(database, {
-    clubGroupGame: { groupId: game.groupId },
-  });
-  return view.ok && view.freeze("join");
-}
-
-export async function assertRegistrationOpen(
-  database: DbOrTx,
-  game: GameRow,
-  now: Date,
-) {
+export function assertRegistrationOpen(game: GameRow, now: Date) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -347,12 +259,6 @@ export async function assertRegistrationOpen(
     });
   }
   if (!isRegistrationOpen(game, now)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "This Game is not open for registration",
-    });
-  }
-  if (await isClubGroupGameJoinFrozen(database, game)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "This Game is not open for registration",
@@ -374,15 +280,13 @@ export function registrationStatusFromState(
   now: Date,
   userCount: number,
   teamCount: number,
-  joinFrozen: boolean,
 ): RegistrationStatus {
   if (game.cancelledAt) {
     return "cancelled";
   }
   if (
     game.registrationClosedAt != null ||
-    (game.windowEnd != null && game.windowEnd.getTime() < now.getTime()) ||
-    joinFrozen
+    (game.windowEnd != null && game.windowEnd.getTime() < now.getTime())
   ) {
     return "closed";
   }
@@ -406,19 +310,12 @@ export async function getRegistrationStatus(
   if (game.cancelledAt) {
     return "cancelled";
   }
-  const joinFrozen = await isClubGroupGameJoinFrozen(database, game);
-  if (!isRegistrationOpen(game, now) || joinFrozen) {
+  if (!isRegistrationOpen(game, now)) {
     return "closed";
   }
   const userCount = await registeredUserCount(database, game.id);
   const teamCount = await registeredGameTeamCount(database, game.id);
-  return registrationStatusFromState(
-    game,
-    now,
-    userCount,
-    teamCount,
-    joinFrozen,
-  );
+  return registrationStatusFromState(game, now, userCount, teamCount);
 }
 
 export async function registeredUserCount(database: DbOrTx, gameId: string) {

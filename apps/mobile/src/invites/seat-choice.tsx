@@ -30,8 +30,8 @@ export function SeatChoice({
     right: m.game.partner.rightSeat,
   };
   const sitLabel = {
-    left: m.mobileCommunity.seatChoice.sitLeft,
-    right: m.mobileCommunity.seatChoice.sitRight,
+    left: m.mobileInvite.seatChoice.sitLeft,
+    right: m.mobileInvite.seatChoice.sitRight,
   };
   return (
     <View>
@@ -57,7 +57,7 @@ export function SeatChoice({
                       <View
                         key={position}
                         accessible
-                        accessibilityLabel={m.mobileCommunity.seatChoice.occupiedA11y(
+                        accessibilityLabel={m.mobileInvite.seatChoice.occupiedA11y(
                           label,
                           seatLabel[position],
                           occupant.name,

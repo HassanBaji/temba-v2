@@ -3,7 +3,6 @@ import {
   groupCreateRequiresApproval,
   type GroupCreateType,
 } from "@repo/domain/group-create";
-import { clubGroupSportChoice } from "@repo/domain/community-sports";
 import { DEFAULT_SPORT, SPORTS, type Sport } from "@repo/domain/sport";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -20,8 +19,7 @@ import type { PickedImage } from "./group-image";
 
 type Picked = { uri: string; upload: PickedImage & { ok: true } };
 
-export function GroupCreateScreen({ communityId }: { communityId?: string }) {
-  const context = communityId ? "club" : "loose";
+export function GroupCreateScreen() {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
@@ -37,64 +35,33 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const community = api.communities.byId.useQuery(
-    { id: communityId ?? "" },
-    { enabled: Boolean(communityId) },
-  );
-  const sportChoice =
-    context === "club"
-      ? clubGroupSportChoice(community.data?.sports ?? [])
-      : { sports: SPORTS, showPicker: true, defaultSport: DEFAULT_SPORT };
-  const sport =
-    pickedSport && sportChoice.sports.includes(pickedSport)
-      ? pickedSport
-      : sportChoice.defaultSport;
+  const sport = pickedSport ?? DEFAULT_SPORT;
 
   const createLoosePublic = api.groups.createLoosePublic.useMutation();
   const createLoosePrivate = api.groups.createLoosePrivate.useMutation();
-  const createClubPublic = api.groups.createClubPublic.useMutation();
-  const createClubPrivate = api.groups.createClubPrivate.useMutation();
   const uploadImage = api.groups.uploadImage.useMutation();
 
   async function createGroup(trimmed: string) {
-    const door = groupCreateDoor(context, type);
     const base = { name: trimmed, sport };
-    const approval = groupCreateRequiresApproval(type, requiresApproval);
-    switch (door) {
-      case "createLoosePublic":
-        return createLoosePublic.mutateAsync({
-          ...base,
-          requiresApproval: approval,
-        });
-      case "createLoosePrivate":
-        return createLoosePrivate.mutateAsync(base);
-      case "createClubPublic":
-        return createClubPublic.mutateAsync({
-          ...base,
-          communityId: communityId ?? "",
-          requiresApproval: approval,
-        });
-      case "createClubPrivate":
-        return createClubPrivate.mutateAsync({
-          ...base,
-          communityId: communityId ?? "",
-        });
+    if (groupCreateDoor(type) === "createLoosePrivate") {
+      return createLoosePrivate.mutateAsync(base);
     }
+    return createLoosePublic.mutateAsync({
+      ...base,
+      requiresApproval: groupCreateRequiresApproval(type, requiresApproval),
+    });
   }
 
   async function refreshAfterCreate() {
     await Promise.all([
       utils.groups.mine.invalidate(),
       utils.users.home.invalidate(),
-      communityId
-        ? utils.communities.byId.invalidate({ id: communityId })
-        : Promise.resolve(),
     ]);
   }
 
   async function submit() {
     const trimmed = name.trim();
-    if (submitting || !trimmed || (context === "club" && !community.data)) {
+    if (submitting || !trimmed) {
       return;
     }
     setNameError(null);
@@ -155,7 +122,6 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
     <Screen
       footer={
         <GroupCreateFooter
-          context={context}
           name={name}
           pending={submitting}
           onSubmit={() => void submit()}
@@ -163,13 +129,12 @@ export function GroupCreateScreen({ communityId }: { communityId?: string }) {
       }
     >
       <GroupCreateView
-        context={context}
         name={name}
         onNameChange={setName}
         nameError={nameError}
         formError={formError}
-        sports={sportChoice.sports}
-        showSportPicker={sportChoice.showPicker}
+        sports={SPORTS}
+        showSportPicker
         sport={sport}
         onSportChange={setPickedSport}
         type={type}

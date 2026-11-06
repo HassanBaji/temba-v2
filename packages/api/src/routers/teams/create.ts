@@ -33,7 +33,6 @@ export async function createTeam(
       .values({
         name: optionalTeamName(args.name),
         sport: args.sport,
-        communityId: null,
         createdBy: args.userId,
       })
       .returning();
@@ -58,7 +57,6 @@ export async function createTeam(
     name: created.name,
     displayName: teamDisplayName(created.name, [args.userName]),
     sport: created.sport as GroupSportEnum,
-    communityId: created.communityId,
     createdBy: created.createdBy,
     createdAt: created.createdAt,
     gamesPlayed: 0,

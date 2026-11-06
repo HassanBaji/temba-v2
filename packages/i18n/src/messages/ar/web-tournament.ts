@@ -98,8 +98,6 @@ export const webTournament = {
     ofSeats: (seats: number) => `من ${seats}`,
     teamsByOrganizer: "الفرق من المنظّم",
     cancelledHeading: "أُلغيت هذه المباراة",
-    softArchivedHeading: "مجتمع مجموعة هذا النادي مؤرشف مؤقتًا",
-    softArchivedBody: "يبقى التسجيل وقائمة الانتظار والدعوات مغلقة.",
     lineupLoadFailed: "تعذّر تحميل التشكيلة.",
     positionsNote:
       "المراكز تفضيلات لا وعود. المنظّم يشكّل الفريقين، مع حارس في كل جهة.",

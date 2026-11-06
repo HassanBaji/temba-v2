@@ -402,18 +402,16 @@ export function RadioRow({
 }
 
 export function VisibilityCards({
-  context,
   value,
   onSelect,
   disabled = false,
 }: {
-  context: "loose" | "club";
   value: GroupVisibility;
   onSelect: (value: GroupVisibility) => void;
   disabled?: boolean;
 }) {
   const locale = useLocale();
-  const copy = groupVisibilityCopy(context, locale);
+  const copy = groupVisibilityCopy(locale);
   return (
     <Surface
       accessibilityRole="radiogroup"

@@ -2,7 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
   courts,
   gameCourts,
   gamePlayers,
@@ -95,7 +94,7 @@ async function insertGroup(
   args: {
     createdBy: string;
     sport: "padel" | "football";
-    communityId?: string;
+    venueId?: string;
   },
 ) {
   const [row] = await database
@@ -104,7 +103,7 @@ async function insertGroup(
       name: `Group ${crypto.randomUUID()}`,
       createdBy: args.createdBy,
       sport: args.sport,
-      communityId: args.communityId,
+      venueId: args.venueId,
     })
     .returning();
   if (!row) {
@@ -259,19 +258,10 @@ describe("games.create on a football Group", () => {
     await withFootball(async (f) => {
       const lockedVenue = await insertVenue(f.db);
       const padelOnly = await insertCourt(f.db, lockedVenue.id, "padel");
-      const [community] = await f.db
-        .insert(communities)
-        .values({
-          name: "Locked Club",
-          type: "private",
-          createdBy: f.organizer.id,
-          venueId: lockedVenue.id,
-        })
-        .returning({ id: communities.id });
       const club = await insertGroup(f.db, {
         createdBy: f.organizer.id,
         sport: "football",
-        communityId: community!.id,
+        venueId: lockedVenue.id,
       });
       const input = {
         createdBy: f.organizer.id,

@@ -2,11 +2,7 @@ import type { DbClient, DbTx } from "@repo/db";
 
 export type FreezeKind = "join" | "catalog" | "host";
 
-export type Locator =
-  | { communityId: string }
-  | { clubGroupId: string }
-  | { clubGroupGame: { groupId: string | null } }
-  | { venueId: string };
+export type Locator = { venueId: string };
 
 export type SoftArchiveSnapshot = {
   archivedAt: Date | null;
@@ -25,7 +21,7 @@ export type ConsultResult =
   | SoftArchiveView
   | { ok: false; reason: "not_found" };
 
-export type CommitSubject = { communityId: string } | { venueId: string };
+export type CommitSubject = { venueId: string };
 
 export type CommitResult =
   | {

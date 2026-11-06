@@ -9,7 +9,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
   assertGameOrganizer,
-  isClubGroupGameJoinFrozen,
   requireGame,
   type GameRow,
 } from "#src/games/access";
@@ -22,13 +21,6 @@ async function reopenRegistrationOnGame(database: DbClient, game: GameRow) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Cannot reopen a cancelled Game",
-    });
-  }
-  if (await isClubGroupGameJoinFrozen(database, game)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        "Cannot reopen a Club Group Game while the Community is archived",
     });
   }
   if (!game.registrationClosedAt) {

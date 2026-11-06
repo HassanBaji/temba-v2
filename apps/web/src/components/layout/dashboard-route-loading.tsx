@@ -16,7 +16,7 @@ function isGameDetailPath(pathname: string) {
 }
 
 function isDetailPath(pathname: string) {
-  return /\/dashboard\/(groups|communities|teams|venues|games)\/(?!new$)[^/]+/.test(
+  return /\/dashboard\/(groups|teams|venues|games)\/(?!new$)[^/]+/.test(
     pathname,
   );
 }

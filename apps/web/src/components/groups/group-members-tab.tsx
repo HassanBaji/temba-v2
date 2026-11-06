@@ -433,7 +433,7 @@ function InviteBlock({ onInvite }: { onInvite: () => void }) {
         onClick={onInvite}
         className="mt-4 w-full font-semibold"
       >
-        {m.community.inviteBlock.action}
+        {m.webGroup.members.inviteBlockAction}
       </Button>
     </section>
   );

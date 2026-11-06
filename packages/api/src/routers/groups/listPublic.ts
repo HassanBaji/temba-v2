@@ -11,7 +11,6 @@ import {
   groupJoinMode,
   type GroupJoinMode,
 } from "#src/groups/helpers/group-join-mode";
-import { consult } from "#src/soft-archive";
 
 export type PublicGroupJoinMode = Exclude<GroupJoinMode, "member" | "none">;
 
@@ -19,7 +18,7 @@ export type PublicGroupRow = {
   id: string;
   name: string | null;
   sport: typeof groups.$inferSelect.sport;
-  communityName: string | null;
+  venueName: string | null;
   memberCount: number;
   requiresApproval: boolean;
   joinMode: PublicGroupJoinMode;
@@ -54,21 +53,13 @@ export async function listPublic(
         : undefined,
     ),
     with: {
-      community: {
-        columns: { name: true, archivedAt: true },
+      venue: {
+        columns: { name: true },
       },
     },
   });
 
-  const live = candidates.filter((group) => {
-    if (!group.communityId) {
-      return true;
-    }
-    if (!group.community) {
-      return false;
-    }
-    return !consult({ archivedAt: group.community.archivedAt }).freeze("join");
-  });
+  const live = candidates;
 
   if (live.length === 0) {
     return [];
@@ -109,7 +100,7 @@ export async function listPublic(
       id: group.id,
       name: group.name,
       sport: group.sport,
-      communityName: group.community?.name ?? null,
+      venueName: group.venue?.name ?? null,
       memberCount: memberCountByGroup.get(group.id) ?? 0,
       requiresApproval: group.requiresApproval,
       joinMode,

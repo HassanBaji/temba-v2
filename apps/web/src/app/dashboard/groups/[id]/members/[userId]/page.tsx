@@ -114,7 +114,7 @@ export default function SetLevelPage({
 
   const member = {
     userId: entry.userId,
-    name: entry.name ?? m.community.memberFallback,
+    name: entry.name ?? m.webGroup.memberFallback,
     levelBand: entry.levelBand,
     levelProvisional: entry.levelProvisional,
     level: entry.level,

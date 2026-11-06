@@ -83,11 +83,7 @@ export function MyGroupsEmpty({
         </View>
       </Surface>
       <View style={{ gap: 8 }}>
-        <Button
-          label={m.group.create.loose.submit}
-          size="lg"
-          onPress={onCreate}
-        />
+        <Button label={m.group.create.submit} size="lg" onPress={onCreate} />
         <Button
           label={m.mobileGroup.list.empty.browsePublic}
           size="lg"
@@ -142,11 +138,7 @@ export function PublicGroupsEmpty({
           />
         </View>
       </Surface>
-      <Button
-        label={m.group.create.loose.submit}
-        size="lg"
-        onPress={onCreate}
-      />
+      <Button label={m.group.create.submit} size="lg" onPress={onCreate} />
     </View>
   );
 }

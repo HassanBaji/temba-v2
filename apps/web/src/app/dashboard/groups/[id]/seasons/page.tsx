@@ -180,7 +180,7 @@ function CloseSeasonDialog({
               m.webDashboard.seasons.close.leader,
               leader
                 ? m.webDashboard.seasons.close.leaderValue(
-                    leader.name ?? m.community.memberFallback,
+                    leader.name ?? m.webGroup.memberFallback,
                     leader.points,
                   )
                 : m.webDashboard.seasons.close.nobodyRanked,

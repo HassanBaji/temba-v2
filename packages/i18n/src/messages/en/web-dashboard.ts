@@ -22,20 +22,6 @@ export const webDashboard = {
     yourSport: "Your sport",
     recentForm: "Recent form",
   },
-  communities: {
-    limited: {
-      title: "Communities list is limited",
-      description: "This list is set up by Temba staff.",
-    },
-    new: {
-      name: "Name",
-      type: "Type",
-    },
-  },
-  community: {
-    actionsLabel: "Community actions",
-    allCommunities: "All Communities",
-  },
   games: {
     errorTitle: "Games could not be loaded",
     loadMore: "Load more",
@@ -55,10 +41,6 @@ export const webDashboard = {
     addPlayerTo: (side: string, position: string) =>
       `Add a player to ${side} ${position}`,
     cancelledHeading: "This Game is cancelled",
-    softArchived: {
-      heading: "This Club Group's Community is Soft-archived",
-      body: "Registration, the waitlist, and invites stay closed.",
-    },
     friendlyGameHeading: "Friendly Game",
     tabs: {
       overview: "Overview",
@@ -286,13 +268,10 @@ export const webDashboard = {
         tryOther: "Try a different name.",
         none: "Groups will show up here once they are created.",
       },
-      clubGroupOf: (community: string) => `Club Group of ${community}`,
-      clubGroupOfArchived: (community: string) =>
-        `Club Group of ${community} (Soft-archived)`,
+      linkedTo: (venue: string) => `Linked to ${venue}`,
       looseGroup: "Loose Group",
       verified: "Verified",
-      verifiedByVenue: (venue: string) =>
-        `Verified by Venue Community: ${venue}`,
+      verifiedByVenue: (venue: string) => `Verified by Venue link: ${venue}`,
       removeVerification: "Remove verification",
       verify: "Verify",
       removeConfirm: {
@@ -331,19 +310,19 @@ export const webDashboard = {
   },
   team: {
     backToTeams: "Back to Teams",
-    linkedTo: "Linked to",
     actionsLabel: "Team actions",
     allTeams: "All Teams",
+    membersTitle: "Members",
     invitePartner: "Invite partner",
-    noCommunityToLink: "No Community to link",
-    goToCommunities: "Go to Communities",
-    loadingCommunities: "Loading Communities…",
-    selectCommunity: "Select a Community",
   },
   venue: {
     title: "Venue",
     errorTitle: "Venue could not be loaded",
     courtFallback: "Court",
+    location: (city: string, country: string) => `${city}, ${country}`,
+    softArchiveAction: "Soft-archive",
+    unarchiveAction: "Unarchive",
+    softArchivedBadge: "Soft-archived",
     logoReadError: "Logo could not be read",
     unarchiving: "Unarchiving…",
     toast: {
@@ -359,13 +338,13 @@ export const webDashboard = {
     },
     archivedBanner: {
       heading: "This Venue is Soft-archived",
-      body: "It is hidden from the Community request catalog. You can still edit fields, Courts, and logo. Unarchive to restore it to the live catalog. Live Community links stay.",
+      body: "It is hidden from Venue pickers and cannot send Group link requests. You can still edit fields, Courts, and logo. Unarchive to restore it. Linked Groups stay linked.",
     },
-    linkedCommunities: {
-      title: "Linked Communities",
+    linkedGroups: {
+      title: "Linked Groups",
       description:
-        "Communities that currently have a live Venue link. Sharing a Venue does not change membership.",
-      empty: "No Communities are live-linked to this Venue.",
+        "Club Groups with a live Venue link to this Venue. They hold Verified Games here.",
+      empty: "No Groups are linked to this Venue.",
     },
     details: {
       title: "Details",
@@ -401,24 +380,17 @@ export const webDashboard = {
     archiveConfirm: {
       title: (venue: string) => `Soft-archive ${venue}?`,
       description:
-        "It is hidden from the Community request catalog. Live Community links stay.",
+        "It is hidden from Venue pickers and cannot send Group link requests. Linked Groups stay linked.",
       confirmLabel: "Soft-archive Venue",
     },
   },
   venues: {
     description:
-      "Every Venue, including Soft-archived ones. Create a Venue before a Community asks to link it.",
+      "Every Venue, including Soft-archived ones.",
+    errorTitle: "Venues could not be loaded",
+    liveCount: (n: number) =>
+      plural("en", n, { one: "1 venue", other: "{n} venues" }),
     createAction: "Create Venue",
-    linkApprovedToast: "Venue link approved",
-    linkRejectedToast: "Venue link request rejected",
-    forVenue: (venue: string) => `For ${venue}`,
-    requests: {
-      description:
-        "Approve to link the Venue to that Community. If you reject, they can ask again.",
-      errorTitle: "Requests could not be loaded",
-      emptyDescription:
-        "Venue link requests from Communities will show up here.",
-    },
     empty: {
       title: "No Venues yet",
       description: "Create a Venue to start the catalog.",

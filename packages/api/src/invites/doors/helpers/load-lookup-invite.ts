@@ -1,7 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
 import {
-  communityMemberInvites,
   gameMemberInvites,
   groupMemberInvites,
   teamMemberInvites,
@@ -14,14 +13,6 @@ export async function loadLookupInvite(
   host: InviteHost,
   inviteId: string,
 ) {
-  if (host.kind === "community") {
-    return database.query.communityMemberInvites.findFirst({
-      where: and(
-        eq(communityMemberInvites.id, inviteId),
-        eq(communityMemberInvites.communityId, host.id),
-      ),
-    });
-  }
   if (host.kind === "group") {
     return database.query.groupMemberInvites.findFirst({
       where: and(

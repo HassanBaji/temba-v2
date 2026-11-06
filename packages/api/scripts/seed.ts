@@ -1,7 +1,6 @@
 /**
- * Local demo seed: fills an empty Temba database with enough Users,
- * Communities, Groups, Games, Teams, invites and requests to walk every App
- * flow by hand.
+ * Local demo seed: fills an empty Temba database with enough Users, Venues,
+ * Groups, Games, Teams, invites and requests to walk every App flow by hand.
  *
  * Writes go through the same router functions the tRPC doors call, so the
  * rows obey the App's invariants (admit, pool draw, Match result
@@ -16,7 +15,6 @@ import { eq, inArray, sql } from "drizzle-orm";
 
 import {
   bookings,
-  communityMemberInvites,
   gameTeamPlayers,
   games,
   gameMemberInvites,
@@ -25,7 +23,6 @@ import {
   matchSets,
   teamMemberInvites,
   user,
-  venueLinkRequests,
   venues,
 } from "@repo/db";
 
@@ -40,15 +37,6 @@ import { cancelMyBooking } from "#src/routers/bookings/cancel";
 import { createBooking } from "#src/routers/bookings/create";
 import { createBookingGame } from "#src/routers/bookings/createGame";
 
-import { approveTeamLink } from "#src/routers/communities/approveTeamLink";
-import { createCommunity } from "#src/routers/communities/create";
-import { createInviteLink as createCommunityInviteLink } from "#src/routers/communities/createInviteLink";
-import { requestJoin as requestCommunityJoin } from "#src/routers/communities/requestJoin";
-import { requestVenueLink } from "#src/routers/communities/requestVenueLink";
-import { sendLookupInvite as sendCommunityLookupInvite } from "#src/routers/communities/sendLookupInvite";
-import { setMemberRole } from "#src/routers/communities/setMemberRole";
-import { softArchive as softArchiveCommunity } from "#src/routers/communities/softArchive";
-import { acceptLookupInvite as acceptCommunityLookupInvite } from "#src/routers/communities/acceptLookupInvite";
 import { addSet } from "#src/routers/games/addSet";
 import { cancelGame } from "#src/routers/games/cancel";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
@@ -66,13 +54,10 @@ import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
-import { createClubPrivate } from "#src/routers/groups/createClubPrivate";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createInviteLink as createGroupInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { joinClubPublic } from "#src/routers/groups/joinClubPublic";
-import { joinLoosePublic } from "#src/routers/groups/joinLoosePublic";
+import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
@@ -80,16 +65,13 @@ import { acceptInAppInvite } from "#src/routers/teams/acceptInAppInvite";
 import { createTeam } from "#src/routers/teams/create";
 import { createInviteLink as createTeamInviteLink } from "#src/routers/teams/createInviteLink";
 import { inviteInApp } from "#src/routers/teams/inviteInApp";
-import { requestLink as requestTeamLink } from "#src/routers/teams/requestLink";
 import { markOnboardingComplete } from "#src/routers/users/completeOnboarding";
 import { writePreferredPosition } from "#src/routers/users/setPreferredPosition";
 import { acceptLinkRequest as acceptGroupLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { addCourt } from "#src/routers/venues/addCourt";
 import { addManager as addVenueManager } from "#src/routers/venues/addManager";
-import { approveLinkRequest as approveVenueLinkRequest } from "#src/routers/venues/approveLinkRequest";
 import { createVenue } from "#src/routers/venues/create";
 import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
-import { rejectLinkRequest as rejectVenueLinkRequest } from "#src/routers/venues/rejectLinkRequest";
 import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
 import { setPricingRules } from "#src/routers/venues/setPricingRules";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
@@ -600,183 +582,45 @@ async function seedBookings(u: Users, v: Venues) {
 }
 
 // ---------------------------------------------------------------------------
-// Communities
+// Venue links
 // ---------------------------------------------------------------------------
 
 type Venues = Awaited<ReturnType<typeof seedVenues>>;
 
-async function joinCommunityByInvite(
-  communityId: string,
-  inviterId: string,
-  inviteeIds: string[],
-) {
-  await sendCommunityLookupInvite(db, {
-    communityId,
-    userId: inviterId,
-    userIds: inviteeIds,
-  });
-  const invites = await db.query.communityMemberInvites.findMany({
-    where: eq(communityMemberInvites.communityId, communityId),
-  });
-  for (const invite of invites) {
-    if (!inviteeIds.includes(invite.userId)) continue;
-    await acceptCommunityLookupInvite(db, {
-      inviteId: invite.id,
-      userId: invite.userId,
-    });
-  }
+async function manageVenue(u: Users, venueId: string, key: string) {
+  await addVenueManager(db, {
+    venueId,
+    userId: u[key]!.id,
+    grantedByUserId: u.me!.id,
+  }).catch(() => undefined);
+  return { userId: u[key]!.id, publicMetadata: undefined };
 }
 
-async function seedCommunities(u: Users, venues: Venues) {
-  // Sam owns a live Public Community with a linked Venue, staff, members,
-  // pending join requests, and a Team link request to decide.
-  const lisbon = await createCommunity(db, {
-    name: "Lisbon Padel Club",
-    description:
-      "Weekly ladders, socials and friendly tournaments at Padel Central.",
-    type: "public",
-    sports: ["padel"],
-    userId: u.me!.id,
+/** A Venue manager asks; the Group creator accepts. The Group becomes a Club Group. */
+async function linkGroupToVenue(
+  u: Users,
+  args: {
+    venueId: string;
+    managerKey: string;
+    groupId: string;
+    creatorKey: string;
+  },
+) {
+  const actor = await manageVenue(u, args.venueId, args.managerKey);
+  const request = await sendGroupLinkRequest(db, {
+    venueId: args.venueId,
+    groupId: args.groupId,
+    actor,
   });
-  await joinCommunityByInvite(lisbon.id, u.me!.id, [
-    u.lina!.id,
-    u.omar!.id,
-    u.maya!.id,
-    u.diego!.id,
-    u.priya!.id,
-    u.sofia!.id,
-    u.yusuf!.id,
-    u.emma!.id,
-    u.leo!.id,
-  ]);
-  await setMemberRole(db, {
-    communityId: lisbon.id,
-    callerId: u.me!.id,
-    userId: u.lina!.id,
-    role: "admin",
+  await acceptGroupLinkRequest(db, {
+    requestId: request.id,
+    userId: u[args.creatorKey]!.id,
   });
-  await requestVenueLink(db, {
-    communityId: lisbon.id,
-    userId: u.me!.id,
-    venueId: venues.central.id,
-  });
-  const lisbonLink = await db.query.venueLinkRequests.findFirst({
-    where: eq(venueLinkRequests.communityId, lisbon.id),
-  });
-  await approveVenueLinkRequest(db, {
-    requestId: lisbonLink!.id,
-    userId: u.me!.id,
-  });
-  await requestCommunityJoin(db, { communityId: lisbon.id, userId: u.tom!.id });
-  await requestCommunityJoin(db, {
-    communityId: lisbon.id,
-    userId: u.hana!.id,
-  });
-  await sendCommunityLookupInvite(db, {
-    communityId: lisbon.id,
-    userId: u.me!.id,
-    userIds: [u.jonas!.id],
-  });
-  await createCommunityInviteLink(db, {
-    communityId: lisbon.id,
-    userId: u.me!.id,
-    origin: ORIGIN,
-  });
-
-  // Sam is a plain Member of a Private Community run by Marco.
-  const sunset = await createCommunity(db, {
-    name: "Sunset Social",
-    description: "Invite-only evening sessions at Riverside.",
-    type: "private",
-    sports: ["padel"],
-    userId: u.marco!.id,
-  });
-  await joinCommunityByInvite(sunset.id, u.marco!.id, [
-    u.me!.id,
-    u.zara!.id,
-    u.aisha!.id,
-    u.emma!.id,
-  ]);
-  await requestVenueLink(db, {
-    communityId: sunset.id,
-    userId: u.marco!.id,
-    venueId: venues.riverside.id,
-  });
-  const sunsetLink = await db.query.venueLinkRequests.findFirst({
-    where: eq(venueLinkRequests.communityId, sunset.id),
-  });
-  await approveVenueLinkRequest(db, {
-    requestId: sunsetLink!.id,
-    userId: u.marco!.id,
-  });
-
-  // A Public Community Sam is not in (join-by-URL request flow), with a
-  // Venue link request still waiting for an Operator.
-  const porto = await createCommunity(db, {
-    name: "Porto Padel Collective",
-    description: "Padel meetups around the Harbour.",
-    type: "public",
-    sports: ["padel"],
-    userId: u.zara!.id,
-  });
-  await joinCommunityByInvite(porto.id, u.zara!.id, [u.marco!.id, u.ben!.id]);
-  await requestVenueLink(db, {
-    communityId: porto.id,
-    userId: u.zara!.id,
-    venueId: venues.harbour.id,
-  });
-
-  // Sam has a pending Lookup invite into a Private Community.
-  const harbourCircle = await createCommunity(db, {
-    name: "Harbour Circle",
-    description: "Private league for Porto regulars.",
-    type: "private",
-    sports: ["padel"],
-    userId: u.emma!.id,
-  });
-  await sendCommunityLookupInvite(db, {
-    communityId: harbourCircle.id,
-    userId: u.emma!.id,
-    userIds: [u.me!.id],
-  });
-
-  // Sam owns a Soft-archived Community (unarchive flow, frozen doors).
-  const legacy = await createCommunity(db, {
-    name: "Old Town Padel (archived)",
-    description: "Our first club; kept for history.",
-    type: "public",
-    sports: ["padel"],
-    userId: u.me!.id,
-  });
-  await joinCommunityByInvite(legacy.id, u.me!.id, [u.tom!.id, u.jonas!.id]);
-  await requestVenueLink(db, {
-    communityId: legacy.id,
-    userId: u.me!.id,
-    venueId: venues.harbour.id,
-  });
-  const legacyLink = await db.query.venueLinkRequests.findFirst({
-    where: eq(venueLinkRequests.communityId, legacy.id),
-  });
-  await rejectVenueLinkRequest(db, {
-    requestId: legacyLink!.id,
-    userId: u.zara!.id,
-  });
-  const legacyGroup = await createClubPublic(db, {
-    communityId: legacy.id,
-    name: "Old Town Mornings",
-    sport: "padel",
-    userId: u.me!.id,
-  });
-  await softArchiveCommunity(db, { communityId: legacy.id, userId: u.me!.id });
-
-  return { lisbon, sunset, porto, harbourCircle, legacy, legacyGroup };
 }
 
 // ---------------------------------------------------------------------------
 // Groups
 // ---------------------------------------------------------------------------
-
-type Communities = Awaited<ReturnType<typeof seedCommunities>>;
 
 async function joinGroupByInvite(
   groupId: string,
@@ -800,10 +644,9 @@ async function joinGroupByInvite(
   }
 }
 
-async function seedGroups(u: Users, c: Communities) {
-  // Club Group Public in Sam's Community; the main place Games happen.
-  const ladder = await createClubPublic(db, {
-    communityId: c.lisbon.id,
+async function seedGroups(u: Users, v: Venues) {
+  // Club Group Public linked to Padel Central; the main place Games happen.
+  const ladder = await createLoosePublic(db, {
     name: "Tuesday Ladder",
     description: "Competitive doubles every Tuesday at Padel Central.",
     sport: "padel",
@@ -820,26 +663,35 @@ async function seedGroups(u: Users, c: Communities) {
     "emma",
     "leo",
   ]) {
-    await joinClubPublic(db, { groupId: ladder.id, userId: u[key]!.id });
+    await joinPublic(db, { groupId: ladder.id, userId: u[key]!.id });
   }
+  await linkGroupToVenue(u, {
+    venueId: v.central.id,
+    managerKey: "me",
+    groupId: ladder.id,
+    creatorKey: "me",
+  });
 
   // Club Group Public with Require approval on and pending requests.
-  const advanced = await createClubPublic(db, {
-    communityId: c.lisbon.id,
+  const advanced = await createLoosePublic(db, {
     name: "Advanced Squad",
-    description: "B-level and above. Requests reviewed by staff.",
+    description: "B-level and above. Requests reviewed by the Organizers.",
     sport: "padel",
     userId: u.me!.id,
     requiresApproval: true,
   });
   await requestGroupJoin(db, { groupId: advanced.id, userId: u.maya!.id });
   await requestGroupJoin(db, { groupId: advanced.id, userId: u.diego!.id });
-  // A non-Member request: approving it also admits them to the Community.
   await requestGroupJoin(db, { groupId: advanced.id, userId: u.marco!.id });
+  await linkGroupToVenue(u, {
+    venueId: v.central.id,
+    managerKey: "me",
+    groupId: advanced.id,
+    creatorKey: "me",
+  });
 
-  // Club Group Private, invite only.
-  const coaches = await createClubPrivate(db, {
-    communityId: c.lisbon.id,
+  // Loose Group Private, invite only.
+  const coaches = await createLoosePrivate(db, {
     name: "Coaches Circle",
     description: "Private planning group for session leads.",
     sport: "padel",
@@ -864,7 +716,7 @@ async function seedGroups(u: Users, c: Communities) {
     "jonas",
     "ben",
   ]) {
-    await joinLoosePublic(db, { groupId: friday.id, userId: u[key]!.id });
+    await joinPublic(db, { groupId: friday.id, userId: u[key]!.id });
   }
   await createGroupInviteLink(db, {
     groupId: friday.id,
@@ -872,22 +724,27 @@ async function seedGroups(u: Users, c: Communities) {
     origin: ORIGIN,
   });
 
-  // Sunset Social's Club Group; Sam joins as a Community Member.
-  const sunsetEvenings = await createClubPublic(db, {
-    communityId: c.sunset.id,
+  // Marco's Club Group linked to Riverside; Sam is a plain member.
+  const sunsetEvenings = await createLoosePublic(db, {
     name: "Sunset Evenings",
     sport: "padel",
     userId: u.marco!.id,
   });
   for (const key of ["me", "zara", "aisha", "emma"]) {
-    await joinClubPublic(db, {
+    await joinPublic(db, {
       groupId: sunsetEvenings.id,
       userId: u[key]!.id,
     });
   }
+  await linkGroupToVenue(u, {
+    venueId: v.riverside.id,
+    managerKey: "marco",
+    groupId: sunsetEvenings.id,
+    creatorKey: "marco",
+  });
 
   // Public Groups list for Sam: an open Loose Group, one that needs
-  // approval, and a Club Group Public in a Community Sam is not in.
+  // approval, and a Club Group Public Sam is not in.
   const beach = await createLoosePublic(db, {
     name: "Beach Padel Crew",
     description: "Sunday mornings by the sea.",
@@ -895,7 +752,7 @@ async function seedGroups(u: Users, c: Communities) {
     userId: u.aisha!.id,
   });
   for (const key of ["hana", "ben", "tom"]) {
-    await joinLoosePublic(db, { groupId: beach.id, userId: u[key]!.id });
+    await joinPublic(db, { groupId: beach.id, userId: u[key]!.id });
   }
   const earlyBirds = await createLoosePublic(db, {
     name: "Early Birds 7am",
@@ -904,17 +761,22 @@ async function seedGroups(u: Users, c: Communities) {
     userId: u.priya!.id,
     requiresApproval: true,
   });
-  await joinLoosePublic(db, {
+  await joinPublic(db, {
     groupId: earlyBirds.id,
     userId: u.zara!.id,
   }).catch(() => undefined);
-  const portoOpen = await createClubPublic(db, {
-    communityId: c.porto.id,
+  const portoOpen = await createLoosePublic(db, {
     name: "Porto Open Play",
     sport: "padel",
     userId: u.zara!.id,
   });
-  await joinClubPublic(db, { groupId: portoOpen.id, userId: u.marco!.id });
+  await joinPublic(db, { groupId: portoOpen.id, userId: u.marco!.id });
+  await linkGroupToVenue(u, {
+    venueId: v.harbour.id,
+    managerKey: "zara",
+    groupId: portoOpen.id,
+    creatorKey: "zara",
+  });
 
   // Loose Group Public for football; its Games are rosters.
   const fiveASide = await createLoosePublic(db, {
@@ -924,7 +786,7 @@ async function seedGroups(u: Users, c: Communities) {
     userId: u.tom!.id,
   });
   for (const key of ["me", "omar", "maya", "diego", "ben", "jonas"]) {
-    await joinLoosePublic(db, { groupId: fiveASide.id, userId: u[key]!.id });
+    await joinPublic(db, { groupId: fiveASide.id, userId: u[key]!.id });
   }
 
   // Loose Group Private that Sam has a pending Lookup invite to.
@@ -958,7 +820,7 @@ async function seedGroups(u: Users, c: Communities) {
 // Teams
 // ---------------------------------------------------------------------------
 
-async function seedTeams(u: Users, c: Communities) {
+async function seedTeams(u: Users) {
   const make = async (
     ownerKey: string,
     name: string | undefined,
@@ -977,19 +839,10 @@ async function seedTeams(u: Users, c: Communities) {
       inviteeUserId: u[toKey]!.id,
     });
 
-  // Complete Team: Sam + Omar, linked to Lisbon Padel Club.
+  // Complete Team: Sam + Omar.
   const smash = await make("me", "Smash Brothers");
   const smashInvite = await invite(smash.id, "me", "omar");
   await acceptInAppInvite(db, { inviteId: smashInvite.id, userId: u.omar!.id });
-  await requestTeamLink(db, {
-    teamId: smash.id,
-    communityId: c.lisbon.id,
-    userId: u.me!.id,
-  });
-  const smashLink = await db.query.teamLinkRequests.findFirst();
-  if (smashLink) {
-    await approveTeamLink(db, { requestId: smashLink.id, userId: u.me!.id });
-  }
 
   // Incomplete Team: Sam waiting on Maya, plus an Invite link.
   const netRunners = await make("me", "Net Runners");
@@ -1004,15 +857,10 @@ async function seedTeams(u: Users, c: Communities) {
   const lobs = await make("sofia", "Lob Stars");
   await invite(lobs.id, "sofia", "me");
 
-  // A complete Team asking to link to Sam's Community (Owner decides).
+  // Another complete Team.
   const duo = await make("lina", "Lina & Priya");
   const duoInvite = await invite(duo.id, "lina", "priya");
   await acceptInAppInvite(db, { inviteId: duoInvite.id, userId: u.priya!.id });
-  await requestTeamLink(db, {
-    teamId: duo.id,
-    communityId: c.lisbon.id,
-    userId: u.lina!.id,
-  });
 
   // Two more complete Teams for team-only registrations.
   const rally = await make("diego", "Rally Kings");
@@ -1722,7 +1570,7 @@ async function seedFootball(u: Users, v: Venues) {
   });
   for (const key of Object.keys(FOOTBALL_LEVELS)) {
     if (key === "me") continue;
-    await joinLoosePublic(db, { groupId: group.id, userId: u[key]!.id });
+    await joinPublic(db, { groupId: group.id, userId: u[key]!.id });
   }
 
   const pitch = v.pitches;
@@ -1867,34 +1715,19 @@ async function seedFootball(u: Users, v: Venues) {
 // ---------------------------------------------------------------------------
 
 async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
-  const manage = async (venueId: string, key: string) => {
-    await addVenueManager(db, {
-      venueId,
-      userId: u[key]!.id,
-      grantedByUserId: u.me!.id,
-    });
-    return {
-      userId: u[key]!.id,
-      publicMetadata: undefined,
-    };
-  };
-
-  const skylineManager = await manage(v.skyline.id, "zara");
+  // A pending request for Sam to decide on Friday Night Padel.
+  const skylineManager = await manageVenue(u, v.skyline.id, "zara");
   await sendGroupLinkRequest(db, {
     venueId: v.skyline.id,
     groupId: g.friday.id,
     actor: skylineManager,
   });
 
-  const bayManager = await manage(v.bay.id, "aisha");
-  const request = await sendGroupLinkRequest(db, {
+  await linkGroupToVenue(u, {
     venueId: v.bay.id,
+    managerKey: "aisha",
     groupId: g.beach.id,
-    actor: bayManager,
-  });
-  await acceptGroupLinkRequest(db, {
-    requestId: request.id,
-    userId: u.aisha!.id,
+    creatorKey: "aisha",
   });
 }
 
@@ -1905,9 +1738,8 @@ async function main() {
 
   const u = await step("users", seedUsers);
   const v = await step("venues", seedVenues);
-  const c = await step("communities", () => seedCommunities(u, v));
-  const g = await step("groups", () => seedGroups(u, c));
-  await step("teams", () => seedTeams(u, c));
+  const g = await step("groups", () => seedGroups(u, v));
+  await step("teams", () => seedTeams(u));
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
   await step("bookings", () => seedBookings(u, v));

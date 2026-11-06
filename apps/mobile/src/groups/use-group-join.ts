@@ -17,8 +17,6 @@ export function useGroupJoin() {
         utils.groups.mine.invalidate(),
         utils.groups.listPublic.invalidate(),
         utils.users.home.invalidate(),
-        utils.communities.mine.invalidate(),
-        utils.communities.byId.invalidate(),
       ]),
     [utils],
   );
@@ -29,12 +27,7 @@ export function useGroupJoin() {
     onSettled: refresh,
   });
 
-  const joinLoosePublic = api.groups.joinLoosePublic.useMutation(
-    options("joinLoosePublic"),
-  );
-  const joinClubPublic = api.groups.joinClubPublic.useMutation(
-    options("joinClubPublic"),
-  );
+  const joinPublic = api.groups.joinPublic.useMutation(options("joinPublic"));
   const [requestingGroupId, setRequestingGroupId] = useState<string | null>(
     null,
   );
@@ -47,8 +40,7 @@ export function useGroupJoin() {
   });
 
   const pendingGroupId =
-    (joinLoosePublic.isPending ? joinLoosePublic.variables?.groupId : null) ??
-    (joinClubPublic.isPending ? joinClubPublic.variables?.groupId : null) ??
+    (joinPublic.isPending ? joinPublic.variables?.groupId : null) ??
     (requestJoin.isPending ? requestJoin.variables?.groupId : null) ??
     null;
 
@@ -56,13 +48,11 @@ export function useGroupJoin() {
     (groupId: string, door: GroupJoinDoor) => {
       if (door === "requestJoin") {
         setRequestingGroupId(groupId);
-      } else if (door === "joinClubPublic") {
-        joinClubPublic.mutate({ groupId });
       } else {
-        joinLoosePublic.mutate({ groupId });
+        joinPublic.mutate({ groupId });
       }
     },
-    [joinClubPublic, joinLoosePublic],
+    [joinPublic],
   );
 
   return {

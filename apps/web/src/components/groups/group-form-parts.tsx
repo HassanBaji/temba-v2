@@ -308,19 +308,17 @@ export function RadioRow({
 
 export function VisibilityCards({
   labelledBy,
-  context,
   value,
   onSelect,
   disabled = false,
 }: {
   labelledBy: string;
-  context: "loose" | "club";
   value: GroupVisibility;
   onSelect: (value: GroupVisibility) => void;
   disabled?: boolean;
 }) {
   const locale = useLocale();
-  const copy = groupVisibilityCopy(context, locale);
+  const copy = groupVisibilityCopy(locale);
   return (
     <div
       role="radiogroup"

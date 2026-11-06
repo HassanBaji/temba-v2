@@ -14,8 +14,6 @@ import { z } from "zod";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
-  communities,
-  communityMembers,
   games,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
@@ -39,7 +37,7 @@ import { protectedProcedure } from "#src/trpc";
 import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isStaffRole, mayCreateGameOnGroup } from "#src/games/access";
+import { mayCreateGameOnGroup } from "#src/games/access";
 import {
   applyViewerLevelRangeToHubRows,
   hubListColumns,
@@ -68,10 +66,9 @@ import {
   isAppointedOrganizer,
 } from "#src/groups/helpers/appointed-organizers";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
-import { isGroupOwnerOrStaff } from "#src/groups/helpers/group-owner";
+import { isGroupOwner } from "#src/groups/helpers/group-owner";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
 import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import {
   groupFormMarks,
@@ -88,13 +85,11 @@ import {
 } from "#src/home/upcoming-games";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { startOfProductDay } from "@repo/domain/product-timezone";
-import { consult } from "#src/soft-archive";
 import { seasonStandingPosition } from "@repo/domain/season-standing";
 import { canManageSeasons } from "#src/groups/helpers/season-access";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
-import { mayUnlinkFromVenueCommunity } from "#src/venue-community/unlink-group";
 
 type DbClient = typeof db;
 
@@ -312,29 +307,14 @@ export async function groupById(
     ),
   });
 
-  let communityMembership = null;
-  let community = null;
-
-  if (group.communityId) {
-    community = await database.query.communities.findFirst({
-      where: eq(communities.id, group.communityId),
-    });
-    communityMembership = await requireCommunityMembership(
-      database,
-      group.communityId,
-      args.userId,
-    );
-  }
-
-  const venueCommunityVenue =
-    community?.isVenueCommunity && community.venueId
-      ? await database.query.venues.findFirst({
-          where: eq(venues.id, community.venueId),
-          columns: { id: true, name: true },
-        })
-      : undefined;
+  const venue = group.venueId
+    ? await database.query.venues.findFirst({
+        where: eq(venues.id, group.venueId),
+        columns: { id: true, name: true },
+      })
+    : undefined;
   const pendingLinkRequestCount =
-    !group.communityId && group.createdBy === args.userId
+    !group.venueId && group.createdBy === args.userId
       ? ((
           await database
             .select({ value: count() })
@@ -354,46 +334,21 @@ export async function groupById(
       : null;
 
   const canUnlinkFromVenue =
-    group.createdBy === args.userId &&
-    (await mayUnlinkFromVenueCommunity(database, group));
+    group.createdBy === args.userId && group.venueId !== null;
 
-  const isLoosePublic =
-    !group.communityId && group.type === GroupTypeEnum.PUBLIC;
-  const isLoosePrivate =
-    !group.communityId && group.type === GroupTypeEnum.PRIVATE;
-  const isClubPublic =
-    Boolean(group.communityId) && group.type === GroupTypeEnum.PUBLIC;
-  const isClubPrivate =
-    Boolean(group.communityId) && group.type === GroupTypeEnum.PRIVATE;
-  const archive = consult({
-    archivedAt: community?.archivedAt ?? null,
-  });
   const joinMode = await groupJoinMode(database, group, args.userId);
-  const canJoinClubPublic = joinMode === "join" && isClubPublic;
-  const canJoinLoosePublic = joinMode === "join" && isLoosePublic;
   const canJoin = joinMode === "join";
   const viewerIsAppointedOrganizer = await isAppointedOrganizer(
     database,
     group,
     args.userId,
   );
-  const canManageLookupInvites =
-    ((isLoosePublic || isLoosePrivate) &&
-      (group.createdBy === args.userId || viewerIsAppointedOrganizer)) ||
-    ((isClubPublic || isClubPrivate) &&
-      !archive.freeze("host") &&
-      Boolean(communityMembership) &&
-      (isStaffRole(communityMembership?.role) ||
-        group.createdBy === args.userId ||
-        viewerIsAppointedOrganizer));
-  const canManageInviteLinks =
-    ((isLoosePublic || isLoosePrivate) &&
-      (group.createdBy === args.userId || viewerIsAppointedOrganizer)) ||
-    ((isClubPublic || isClubPrivate) &&
-      !archive.freeze("host") &&
-      isStaffRole(communityMembership?.role));
+  const canManageInvites =
+    group.createdBy === args.userId || viewerIsAppointedOrganizer;
+  const canManageLookupInvites = canManageInvites;
+  const canManageInviteLinks = canManageInvites;
 
-  const canEdit = await isGroupOwnerOrStaff(database, group, args.userId);
+  const canEdit = isGroupOwner(group, args.userId);
   const canDelete = canEdit;
   const canChangeSport = canEdit && !(await groupHasGames(database, group.id));
   const canCreateGame = await mayCreateGameOnGroup(
@@ -478,27 +433,11 @@ export async function groupById(
     ? seasonStandingPosition(standingRows, args.userId)
     : null;
 
-  // "Organizer" on the Members tab: the Group creator, an Appointed Organizer,
-  // or — on a Club Group — a Community staff member
-  // (`.scratch/groups-redesign/spec.md` D8).
+  // "Organizer" on the Members tab: the Group creator or an Appointed
+  // Organizer (`.scratch/groups-redesign/spec.md` D8).
   const appointedUserIds = new Set(
     await appointedOrganizerUserIds(database, group),
   );
-  const staffUserIds = new Set<string>();
-  if (group.communityId && memberUserIds.length > 0) {
-    const communityRoles = await database.query.communityMembers.findMany({
-      where: and(
-        eq(communityMembers.communityId, group.communityId),
-        inArray(communityMembers.userId, memberUserIds),
-      ),
-      columns: { userId: true, role: true },
-    });
-    for (const row of communityRoles) {
-      if (isStaffRole(row.role)) {
-        staffUserIds.add(row.userId);
-      }
-    }
-  }
 
   // Level reads `ratings` for `(member.userId, group.sport)` — unique on that
   // pair (D5). A Group with no sport has no Rating to read, so every member
@@ -613,7 +552,6 @@ export async function groupById(
   }
 
   // Upcoming / history are scoped by this Group id only (excludes null groupId).
-  // Soft-archived Communities are not filtered — members still see Games.
   const groupGameRows = await database.query.games.findMany({
     where: eq(games.groupId, group.id),
     // The Scheduled cards are the Games hub's own rows, so this reads the hub
@@ -798,13 +736,9 @@ export async function groupById(
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
       joinedAt: memberRowByUserId.get(entry.userId)?.createdAt ?? null,
       isOrganizer:
-        entry.userId === group.createdBy ||
-        staffUserIds.has(entry.userId) ||
-        appointedUserIds.has(entry.userId),
+        entry.userId === group.createdBy || appointedUserIds.has(entry.userId),
       isAppointedOrganizer:
-        appointedUserIds.has(entry.userId) &&
-        entry.userId !== group.createdBy &&
-        !staffUserIds.has(entry.userId),
+        appointedUserIds.has(entry.userId) && entry.userId !== group.createdBy,
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
     };
@@ -840,19 +774,8 @@ export async function groupById(
     imageUrl: group.imageUrl ?? null,
     type: group.type,
     sport: group.sport as GroupSportEnum | null,
-    communityId: group.communityId,
-    isLoose: !group.communityId,
+    isLoose: group.venueId === null,
     totalGamesPlayed,
-    community: community
-      ? {
-          id: community.id,
-          name: community.name,
-          archivedAt: community.archivedAt,
-        }
-      : null,
-    isCommunityArchived:
-      consult({ archivedAt: community?.archivedAt ?? null }).phase ===
-      "archived",
     createdBy: group.createdBy,
     createdAt: group.createdAt,
     membership: membership
@@ -869,23 +792,15 @@ export async function groupById(
       gamesCounted: groupStanding?.gamesCounted ?? 0,
     },
     seasons,
-    canManageSeasons:
-      canEdit && (await canManageSeasons(database, group, args.userId)),
+    canManageSeasons: canEdit && canManageSeasons(group, args.userId),
     upcomingGames,
     gameHistory,
     gameHistoryCounts,
-    communityMembership: communityMembership
-      ? { role: communityMembership.role }
-      : null,
     canJoin,
-    canJoinLoosePublic,
-    canJoinClubPublic,
     joinMode,
     requiresApproval: group.requiresApproval,
-    verified: await groupIsVerified(database, group),
-    venueCommunity: venueCommunityVenue
-      ? { venueId: venueCommunityVenue.id, venueName: venueCommunityVenue.name }
-      : null,
+    verified: groupIsVerified(group),
+    venue: venue ? { id: venue.id, name: venue.name } : null,
     pendingLinkRequestCount,
     canUnlinkFromVenue,
     canDecideJoinRequests,

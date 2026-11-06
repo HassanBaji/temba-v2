@@ -5,7 +5,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { protectedProcedure } from "#src/trpc";
-import { unlinkGroupFromVenueCommunity } from "#src/venue-community/unlink-group";
+import { unlinkGroupFromVenue } from "#src/groups/helpers/unlink-group-from-venue";
 
 type DbClient = typeof db;
 
@@ -17,10 +17,10 @@ export async function unlinkFromVenue(
   if (group.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Group creator can leave the Venue's Community",
+      message: "Only the Group creator can unlink the Group from its Venue",
     });
   }
-  return unlinkGroupFromVenueCommunity(database, { groupId: group.id });
+  return unlinkGroupFromVenue(database, { groupId: group.id });
 }
 
 export const unlinkFromVenueProcedure = protectedProcedure

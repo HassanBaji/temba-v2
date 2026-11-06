@@ -328,7 +328,6 @@ export function FootballGameDetails({
     isOrganizer: game.isOrganizer,
     registrationStatus: game.registrationStatus,
     cancelledAt: game.cancelledAt,
-    joinFrozen: game.joinFrozen,
     registrationMode: game.registrationMode,
     partnerRequired: false,
   });
@@ -603,16 +602,6 @@ export function FootballGameDetails({
           <Surface accessibilityRole="alert">
             <Text size="title" weight="semibold">
               {copy.cancelledTitle}
-            </Text>
-          </Surface>
-        ) : null}
-        {game.joinFrozen && !game.cancelledAt ? (
-          <Surface style={{ gap: 4 }}>
-            <Text size="lead" weight="semibold" accessibilityRole="header">
-              {copy.frozen.title}
-            </Text>
-            <Text size="meta" tone="muted">
-              {copy.frozen.description}
             </Text>
           </Surface>
         ) : null}

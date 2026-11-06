@@ -1,13 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  communitySports,
   games,
   groupLinkRequests,
-  groupMemberInvites,
   groupMembers,
   groups,
   user,
@@ -18,16 +14,15 @@ import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
+import { loadGameCreateVenueContext } from "#src/games/helpers/load-game-create-venue-context";
 import { createGame } from "#src/routers/games/create";
-import { requestVenueLink } from "#src/routers/communities/requestVenueLink";
-import { unlinkVenue } from "#src/routers/communities/unlinkVenue";
 import { groupById } from "#src/routers/groups/byId";
 import { acceptLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { declineLinkRequest } from "#src/routers/groups/declineLinkRequest";
 import { listForOperator } from "#src/routers/groups/listForOperator";
 import { pendingLinkRequests } from "#src/routers/groups/pendingLinkRequests";
 import { cancelGroupLinkRequest } from "#src/routers/venues/cancelGroupLinkRequest";
-import { listCommunityGroups } from "#src/routers/venues/listCommunityGroups";
+import { listLinkedGroups } from "#src/routers/venues/listLinkedGroups";
 import { searchLinkableGroups } from "#src/routers/venues/searchLinkableGroups";
 import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 
@@ -76,7 +71,7 @@ async function insertGroup(
     memberIds?: string[];
     type?: "public" | "private";
     sport?: "padel" | "football";
-    communityId?: string;
+    venueId?: string;
   },
 ) {
   const [row] = await database
@@ -86,7 +81,7 @@ async function insertGroup(
       createdBy: args.createdBy,
       type: args.type ?? "public",
       sport: args.sport ?? "padel",
-      communityId: args.communityId,
+      venueId: args.venueId,
     })
     .returning();
   if (!row) {
@@ -127,13 +122,14 @@ async function send(
   });
 }
 
-async function venueCommunities(database: TestDatabase, venueId: string) {
-  return database.query.communities.findMany({
-    where: and(
-      eq(communities.venueId, venueId),
-      eq(communities.isVenueCommunity, true),
-    ),
+async function readGroup(database: TestDatabase, groupId: string) {
+  const row = await database.query.groups.findFirst({
+    where: eq(groups.id, groupId),
   });
+  if (!row) {
+    throw new Error("Group missing");
+  }
+  return row;
 }
 
 describe("sendGroupLinkRequest and cancelGroupLinkRequest", () => {
@@ -173,14 +169,11 @@ describe("sendGroupLinkRequest and cancelGroupLinkRequest", () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator } = await setup(db);
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Ordinary", createdBy: creator.id })
-        .returning();
+      const other = await insertVenue(db, { name: "Other Club" });
       const club = await insertGroup(db, {
         name: "Club side",
         createdBy: creator.id,
-        communityId: community?.id,
+        venueId: other.id,
       });
       await expect(
         send(db, {
@@ -188,7 +181,10 @@ describe("sendGroupLinkRequest and cancelGroupLinkRequest", () => {
           groupId: club.id,
           managerId: manager.id,
         }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "Only a Loose Group can be linked to a Venue",
+      });
     } finally {
       await close();
     }
@@ -293,8 +289,8 @@ describe("sendGroupLinkRequest and cancelGroupLinkRequest", () => {
   });
 });
 
-describe("searchLinkableGroups and listCommunityGroups", () => {
-  it("finds live Loose Group Public by name and hides pending ones", async () => {
+describe("searchLinkableGroups and listLinkedGroups", () => {
+  it("finds live Loose Group Public by name and hides pending and Club ones", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator, group } = await setup(db);
@@ -303,14 +299,11 @@ describe("searchLinkableGroups and listCommunityGroups", () => {
         createdBy: creator.id,
         type: "private",
       });
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Ordinary", createdBy: creator.id })
-        .returning();
+      const other = await insertVenue(db, { name: "Other Club" });
       await insertGroup(db, {
         name: "Tuesday Club",
         createdBy: creator.id,
-        communityId: community?.id,
+        venueId: other.id,
       });
 
       const found = await searchLinkableGroups(db, {
@@ -319,6 +312,7 @@ describe("searchLinkableGroups and listCommunityGroups", () => {
         actor: actor(manager.id),
       });
       expect(found.map((row) => row.id)).toEqual([group.id]);
+      expect(found[0]?.memberCount).toBe(2);
 
       await send(db, {
         venueId: venue.id,
@@ -337,19 +331,25 @@ describe("searchLinkableGroups and listCommunityGroups", () => {
     }
   });
 
-  it("lists no Community, then the Venue Community with its Groups and requests", async () => {
+  it("lists no Club Groups, then the linked Group with its requests", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator, group } = await setup(db);
-      const empty = await listCommunityGroups(db, {
+      const empty = await listLinkedGroups(db, {
         venueId: venue.id,
         actor: actor(manager.id),
       });
-      expect(empty.community).toBeNull();
+      expect(empty.venue).toEqual({ id: venue.id, archived: false });
       expect(empty.groups).toEqual([]);
+      expect(empty.pendingRequests).toEqual([]);
+      expect(empty.declinedRequests).toEqual([]);
 
       const second = await insertGroup(db, {
         name: "Friday Crew",
+        createdBy: creator.id,
+      });
+      const third = await insertGroup(db, {
+        name: "Sunday Crew",
         createdBy: creator.id,
       });
       const request = await send(db, {
@@ -362,6 +362,11 @@ describe("searchLinkableGroups and listCommunityGroups", () => {
         groupId: second.id,
         managerId: manager.id,
       });
+      const open = await send(db, {
+        venueId: venue.id,
+        groupId: third.id,
+        managerId: manager.id,
+      });
       await declineLinkRequest(db, {
         requestId: declined.id,
         userId: creator.id,
@@ -371,14 +376,27 @@ describe("searchLinkableGroups and listCommunityGroups", () => {
         userId: creator.id,
       });
 
-      const listed = await listCommunityGroups(db, {
+      const listed = await listLinkedGroups(db, {
         venueId: venue.id,
         actor: actor(manager.id),
       });
-      expect(listed.community?.name).toBe("Smash Club");
-      expect(listed.groups.map((row) => row.id)).toEqual([group.id]);
-      expect(listed.groups[0]?.memberCount).toBe(2);
-      expect(listed.pendingRequests).toEqual([]);
+      expect(listed.venue).toEqual({ id: venue.id, archived: false });
+      expect(listed.groups).toEqual([
+        {
+          id: group.id,
+          name: "Tuesday Crew",
+          type: "public",
+          sport: "padel",
+          memberCount: 2,
+          canUnlink: true,
+        },
+      ]);
+      expect(listed.pendingRequests.map((row) => row.id)).toEqual([open.id]);
+      expect(listed.pendingRequests[0]?.group).toEqual({
+        id: third.id,
+        name: "Sunday Crew",
+        sport: "padel",
+      });
       expect(listed.declinedRequests.map((row) => row.id)).toEqual([
         declined.id,
       ]);
@@ -386,19 +404,32 @@ describe("searchLinkableGroups and listCommunityGroups", () => {
       await close();
     }
   });
+
+  it("is refused for a caller who is not a manager of the Venue", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { venue, creator } = await setup(db);
+      await expect(
+        listLinkedGroups(db, { venueId: venue.id, actor: actor(creator.id) }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        searchLinkableGroups(db, {
+          venueId: venue.id,
+          query: "tuesday",
+          actor: actor(creator.id),
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    } finally {
+      await close();
+    }
+  });
 });
 
 describe("acceptLinkRequest", () => {
-  it("creates one Private Venue Community owned by the requester and admits every member", async () => {
+  it("links the Group to the Venue, approves the request and cancels the Group's other pending requests", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const { venue, manager, creator, member, group } = await setup(db);
-      const invitee = await insertUser(db, "Invitee");
-      const insider = await insertUser(db, "Insider");
-      await db.insert(groupMemberInvites).values([
-        { groupId: group.id, userId: invitee.id, invitedBy: creator.id },
-        { groupId: group.id, userId: insider.id, invitedBy: creator.id },
-      ]);
+      const { venue, manager, creator, group } = await setup(db);
       const other = await insertVenue(db, { name: "Other Club" });
       await insertManager(db, { venueId: other.id, userId: manager.id });
       const request = await send(db, {
@@ -416,44 +447,21 @@ describe("acceptLinkRequest", () => {
         requestId: request.id,
         userId: creator.id,
       });
-
-      const found = await venueCommunities(db, venue.id);
-      expect(found).toHaveLength(1);
-      const community = found[0];
-      expect(community).toMatchObject({
-        id: result.communityId,
-        name: "Smash Club",
-        type: "private",
-        createdBy: manager.id,
+      expect(result).toEqual({
+        ok: true,
+        groupId: group.id,
         venueId: venue.id,
       });
-      const sports = await db.query.communitySports.findMany({
-        where: eq(communitySports.communityId, result.communityId),
-      });
-      expect(sports.map((row) => row.sport)).toEqual(["padel"]);
 
-      const roles = new Map(
-        (
-          await db.query.communityMembers.findMany({
-            where: eq(communityMembers.communityId, result.communityId),
-          })
-        ).map((row) => [row.userId, row.role]),
-      );
-      expect(roles.get(manager.id)).toBe("owner");
-      expect(roles.get(creator.id)).toBe("member");
-      expect(roles.get(member.id)).toBe("member");
-      expect(roles.has(invitee.id)).toBe(false);
+      const updated = await readGroup(db, group.id);
+      expect(updated.venueId).toBe(venue.id);
+      expect(updated.type).toBe("public");
+      expect(updated.createdBy).toBe(creator.id);
 
-      const updated = await db.query.groups.findFirst({
-        where: eq(groups.id, group.id),
+      const members = await db.query.groupMembers.findMany({
+        where: eq(groupMembers.groupId, group.id),
       });
-      expect(updated?.communityId).toBe(result.communityId);
-      expect(updated?.type).toBe("public");
-
-      const invites = await db.query.groupMemberInvites.findMany({
-        where: eq(groupMemberInvites.groupId, group.id),
-      });
-      expect(invites.every((row) => row.revokedAt !== null)).toBe(true);
+      expect(members).toHaveLength(2);
 
       const approved = await db.query.groupLinkRequests.findFirst({
         where: eq(groupLinkRequests.id, request.id),
@@ -471,54 +479,7 @@ describe("acceptLinkRequest", () => {
     }
   });
 
-  it("keeps Lookup invites to users who are already Community Members", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const { venue, manager, creator, group } = await setup(db);
-      const first = await insertGroup(db, {
-        name: "First",
-        createdBy: creator.id,
-      });
-      const insider = await insertUser(db, "Insider");
-      const firstRequest = await send(db, {
-        venueId: venue.id,
-        groupId: first.id,
-        managerId: manager.id,
-      });
-      const accepted = await acceptLinkRequest(db, {
-        requestId: firstRequest.id,
-        userId: creator.id,
-      });
-      await db.insert(communityMembers).values({
-        communityId: accepted.communityId,
-        userId: insider.id,
-        role: "member",
-      });
-      await db.insert(groupMemberInvites).values({
-        groupId: group.id,
-        userId: insider.id,
-        invitedBy: creator.id,
-      });
-      const request = await send(db, {
-        venueId: venue.id,
-        groupId: group.id,
-        managerId: manager.id,
-      });
-      await acceptLinkRequest(db, {
-        requestId: request.id,
-        userId: creator.id,
-      });
-
-      const invite = await db.query.groupMemberInvites.findFirst({
-        where: eq(groupMemberInvites.userId, insider.id),
-      });
-      expect(invite?.revokedAt).toBeNull();
-    } finally {
-      await close();
-    }
-  });
-
-  it("reuses the Venue Community for a second Group, adds a missing sport and keeps an Admin", async () => {
+  it("links a second Group to the same Venue", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator, group } = await setup(db);
@@ -527,22 +488,12 @@ describe("acceptLinkRequest", () => {
         groupId: group.id,
         managerId: manager.id,
       });
-      const accepted = await acceptLinkRequest(db, {
-        requestId: first.id,
-        userId: creator.id,
-      });
+      await acceptLinkRequest(db, { requestId: first.id, userId: creator.id });
 
       const otherCreator = await insertUser(db, "OtherCreator");
-      const admin = await insertUser(db, "Admin");
-      await db.insert(communityMembers).values({
-        communityId: accepted.communityId,
-        userId: admin.id,
-        role: "admin",
-      });
       const football = await insertGroup(db, {
         name: "Football Crew",
         createdBy: otherCreator.id,
-        memberIds: [admin.id],
         sport: "football",
       });
       const second = await send(db, {
@@ -550,27 +501,17 @@ describe("acceptLinkRequest", () => {
         groupId: football.id,
         managerId: manager.id,
       });
-      const result = await acceptLinkRequest(db, {
+      await acceptLinkRequest(db, {
         requestId: second.id,
         userId: otherCreator.id,
       });
 
-      expect(result.communityId).toBe(accepted.communityId);
-      expect(await venueCommunities(db, venue.id)).toHaveLength(1);
-      const sports = await db.query.communitySports.findMany({
-        where: eq(communitySports.communityId, result.communityId),
+      const linked = await db.query.groups.findMany({
+        where: eq(groups.venueId, venue.id),
       });
-      expect(sports.map((row) => row.sport).sort()).toEqual([
-        "football",
-        "padel",
-      ]);
-      const adminRow = await db.query.communityMembers.findFirst({
-        where: and(
-          eq(communityMembers.communityId, result.communityId),
-          eq(communityMembers.userId, admin.id),
-        ),
-      });
-      expect(adminRow?.role).toBe("admin");
+      expect(linked.map((row) => row.id).sort()).toEqual(
+        [group.id, football.id].sort(),
+      );
     } finally {
       await close();
     }
@@ -589,9 +530,12 @@ describe("acceptLinkRequest", () => {
         acceptLinkRequest(db, { requestId: request.id, userId: member.id }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(
+        acceptLinkRequest(db, { requestId: request.id, userId: manager.id }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
         declineLinkRequest(db, { requestId: request.id, userId: member.id }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
-      expect(await venueCommunities(db, venue.id)).toHaveLength(0);
+      expect((await readGroup(db, group.id)).venueId).toBeNull();
     } finally {
       await close();
     }
@@ -606,21 +550,22 @@ describe("acceptLinkRequest", () => {
         groupId: group.id,
         managerId: manager.id,
       });
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Ordinary", createdBy: creator.id })
-        .returning();
+      const other = await insertVenue(db, { name: "Other Club" });
       await db
         .update(groups)
-        .set({ communityId: community?.id })
+        .set({ venueId: other.id })
         .where(eq(groups.id, group.id));
       await expect(
         acceptLinkRequest(db, { requestId: request.id, userId: creator.id }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "Only a Loose Group can be linked to a Venue",
+      });
+      expect((await readGroup(db, group.id)).venueId).toBe(other.id);
 
       await db
         .update(groups)
-        .set({ communityId: null })
+        .set({ venueId: null })
         .where(eq(groups.id, group.id));
       await cancelGroupLinkRequest(db, {
         requestId: request.id,
@@ -629,6 +574,28 @@ describe("acceptLinkRequest", () => {
       await expect(
         acceptLinkRequest(db, { requestId: request.id, userId: creator.id }),
       ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect((await readGroup(db, group.id)).venueId).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("is refused for an unknown request", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { creator } = await setup(db);
+      await expect(
+        acceptLinkRequest(db, {
+          requestId: crypto.randomUUID(),
+          userId: creator.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(
+        declineLinkRequest(db, {
+          requestId: crypto.randomUUID(),
+          userId: creator.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     } finally {
       await close();
     }
@@ -650,76 +617,28 @@ describe("acceptLinkRequest", () => {
       await expect(
         acceptLinkRequest(db, { requestId: request.id, userId: creator.id }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-      expect(await venueCommunities(db, venue.id)).toHaveLength(0);
+      expect((await readGroup(db, group.id)).venueId).toBeNull();
+      const row = await db.query.groupLinkRequests.findFirst({
+        where: eq(groupLinkRequests.id, request.id),
+      });
+      expect(row?.status).toBe("pending");
     } finally {
       await close();
     }
   });
 
-  it("produces exactly one Venue Community for concurrent first accepts", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const { venue, manager, creator, group } = await setup(db);
-      const otherCreator = await insertUser(db, "OtherCreator");
-      const other = await insertGroup(db, {
-        name: "Other Crew",
-        createdBy: otherCreator.id,
-      });
-      const first = await send(db, {
-        venueId: venue.id,
-        groupId: group.id,
-        managerId: manager.id,
-      });
-      const second = await send(db, {
-        venueId: venue.id,
-        groupId: other.id,
-        managerId: manager.id,
-      });
-
-      const results = await Promise.all([
-        acceptLinkRequest(db, { requestId: first.id, userId: creator.id }),
-        acceptLinkRequest(db, {
-          requestId: second.id,
-          userId: otherCreator.id,
-        }),
-      ]);
-
-      expect(results[0].communityId).toBe(results[1].communityId);
-      expect(await venueCommunities(db, venue.id)).toHaveLength(1);
-    } finally {
-      await close();
-    }
-  });
-
-  it("rejects a second Venue Community for one Venue at the database", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const { venue, manager } = await setup(db);
-      const values = {
-        name: "Dup",
-        createdBy: manager.id,
-        venueId: venue.id,
-        isVenueCommunity: true,
-      };
-      await db.insert(communities).values(values);
-      await expect(db.insert(communities).values(values)).rejects.toThrow();
-      await expect(
-        db.insert(communities).values({
-          name: "No Venue",
-          createdBy: manager.id,
-          isVenueCommunity: true,
-        }),
-      ).rejects.toThrow();
-    } finally {
-      await close();
-    }
-  });
-
-  it("applies Club Group rules afterwards: join becomes a request, Game create is locked, Group is Verified", async () => {
+  it("applies Club Group rules afterwards: Game create is locked to the Venue and the Group is Verified", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator, group } = await setup(db);
       const outsider = await insertUser(db, "Outsider");
+      expect(await loadGameCreateVenueContext(db, group.id)).toEqual({
+        locked: false,
+        groupKind: "loose",
+        linkedVenueId: null,
+      });
+      expect(groupIsVerified(await readGroup(db, group.id))).toBe(false);
+
       const request = await send(db, {
         venueId: venue.id,
         groupId: group.id,
@@ -730,14 +649,14 @@ describe("acceptLinkRequest", () => {
         userId: creator.id,
       });
 
-      const linked = await db.query.groups.findFirst({
-        where: eq(groups.id, group.id),
+      const linked = await readGroup(db, group.id);
+      expect(groupIsVerified(linked)).toBe(true);
+      expect(await groupJoinMode(db, linked, outsider.id)).toBe("join");
+      expect(await loadGameCreateVenueContext(db, group.id)).toEqual({
+        locked: true,
+        groupKind: "club",
+        linkedVenueId: venue.id,
       });
-      if (!linked) {
-        throw new Error("Group missing");
-      }
-      expect(await groupJoinMode(db, linked, outsider.id)).toBe("request");
-      expect(await groupIsVerified(db, linked)).toBe(true);
 
       const otherVenue = await insertVenue(db, { name: "Elsewhere" });
       const windowStart = new Date("2026-12-20T10:00:00");
@@ -773,34 +692,6 @@ describe("acceptLinkRequest", () => {
       await close();
     }
   });
-
-  it("refuses to unlink a Venue or request a Venue link on a Venue Community", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const { venue, manager, creator, group } = await setup(db);
-      const request = await send(db, {
-        venueId: venue.id,
-        groupId: group.id,
-        managerId: manager.id,
-      });
-      const { communityId } = await acceptLinkRequest(db, {
-        requestId: request.id,
-        userId: creator.id,
-      });
-      await expect(
-        unlinkVenue(db, { communityId, userId: manager.id }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-      await expect(
-        requestVenueLink(db, {
-          communityId,
-          userId: manager.id,
-          venueId: venue.id,
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    } finally {
-      await close();
-    }
-  });
 });
 
 describe("declineLinkRequest", () => {
@@ -821,6 +712,7 @@ describe("declineLinkRequest", () => {
         where: eq(groupLinkRequests.id, request.id),
       });
       expect(row).toMatchObject({ status: "rejected", decidedBy: creator.id });
+      expect((await readGroup(db, group.id)).venueId).toBeNull();
       await expect(
         declineLinkRequest(db, { requestId: request.id, userId: creator.id }),
       ).rejects.toMatchObject({ code: "CONFLICT" });
@@ -838,7 +730,7 @@ describe("declineLinkRequest", () => {
 });
 
 describe("pendingLinkRequests and groupById", () => {
-  it("lists a creator's pending requests and reports the count and Venue Community on byId", async () => {
+  it("lists a creator's pending requests and reports the count and the Venue on byId", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator, member, group } = await setup(db);
@@ -850,7 +742,13 @@ describe("pendingLinkRequests and groupById", () => {
 
       const pending = await pendingLinkRequests(db, { userId: creator.id });
       expect(pending).toMatchObject([
-        { id: request.id, groupName: "Tuesday Crew", venueName: "Smash Club" },
+        {
+          id: request.id,
+          groupId: group.id,
+          groupName: "Tuesday Crew",
+          venueId: venue.id,
+          venueName: "Smash Club",
+        },
       ]);
       await expect(
         pendingLinkRequests(db, { userId: member.id }),
@@ -861,7 +759,9 @@ describe("pendingLinkRequests and groupById", () => {
         userId: creator.id,
       });
       expect(asCreator.pendingLinkRequestCount).toBe(1);
-      expect(asCreator.venueCommunity).toBeNull();
+      expect(asCreator.venue).toBeNull();
+      expect(asCreator.isLoose).toBe(true);
+      expect(asCreator.verified).toBe(false);
       const asMember = await groupById(db, {
         groupId: group.id,
         userId: member.id,
@@ -872,15 +772,44 @@ describe("pendingLinkRequests and groupById", () => {
         requestId: request.id,
         userId: creator.id,
       });
+      await expect(
+        pendingLinkRequests(db, { userId: creator.id }),
+      ).resolves.toEqual([]);
       const linked = await groupById(db, {
         groupId: group.id,
         userId: member.id,
       });
-      expect(linked.venueCommunity).toEqual({
-        venueId: venue.id,
-        venueName: "Smash Club",
-      });
+      expect(linked.venue).toEqual({ id: venue.id, name: "Smash Club" });
+      expect(linked.isLoose).toBe(false);
       expect(linked.verified).toBe(true);
+      expect(linked.pendingLinkRequestCount).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("hides a pending request from a Soft-archived Venue", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { venue, manager, creator, group } = await setup(db);
+      await send(db, {
+        venueId: venue.id,
+        groupId: group.id,
+        managerId: manager.id,
+      });
+      await db
+        .update(venues)
+        .set({ archivedAt: new Date() })
+        .where(eq(venues.id, venue.id));
+
+      await expect(
+        pendingLinkRequests(db, { userId: creator.id }),
+      ).resolves.toEqual([]);
+      const asCreator = await groupById(db, {
+        groupId: group.id,
+        userId: creator.id,
+      });
+      expect(asCreator.pendingLinkRequestCount).toBe(0);
     } finally {
       await close();
     }
@@ -888,7 +817,7 @@ describe("pendingLinkRequests and groupById", () => {
 });
 
 describe("listForOperator verification source", () => {
-  it("reports Venue Community verification with the Venue name", async () => {
+  it("reports the Venue link with the Venue name", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { venue, manager, creator, group } = await setup(db);
@@ -909,30 +838,13 @@ describe("listForOperator verification source", () => {
       const { items } = await listForOperator(db, {});
       const byId = new Map(items.map((item) => [item.id, item]));
       expect(byId.get(group.id)).toMatchObject({
-        verificationSource: "venue_community",
-        venueCommunityVenueName: "Smash Club",
+        verificationSource: "venue_link",
+        venueName: "Smash Club",
       });
       expect(byId.get(plain.id)).toMatchObject({
         verificationSource: "none",
-        venueCommunityVenueName: null,
+        venueName: null,
       });
-    } finally {
-      await close();
-    }
-  });
-});
-
-describe("migration M2", () => {
-  it("creates no Communities and defaults is_venue_community to false", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      expect(await db.query.communities.findMany()).toEqual([]);
-      const { venue, creator } = await setup(db);
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Ordinary", createdBy: creator.id, venueId: venue.id })
-        .returning();
-      expect(community?.isVenueCommunity).toBe(false);
     } finally {
       await close();
     }

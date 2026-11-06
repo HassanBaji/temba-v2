@@ -228,7 +228,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
   const isTournament = input.format === "friendly_tournament";
   const { rated, groupRated } = ratingFlagsAtCreate({
     hasGroup: true,
-    groupVerified: await groupIsVerified(database, group),
+    groupVerified: groupIsVerified(group),
     sport: sportOrDefault(group.sport),
     rated: input.rated ?? true,
   });

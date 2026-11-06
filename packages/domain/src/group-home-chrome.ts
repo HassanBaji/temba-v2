@@ -63,20 +63,10 @@ export function groupHomeMetaLine(input: {
   return parts.join(m.metaSeparator);
 }
 
-export type GroupHomeBackTarget =
-  | { kind: "community"; communityId: string; label: string }
-  | { kind: "groups"; label: string };
+export type GroupHomeBackTarget = { kind: "groups"; label: string };
 
-/** A Club Group home returns to its Community; a Loose Group to Groups. */
-export function groupHomeBackTarget(
-  communityId: string | null | undefined,
-  locale: Locale,
-): GroupHomeBackTarget {
-  const m = messagesFor(locale).group.home;
-  if (communityId) {
-    return { kind: "community", communityId, label: m.backToCommunity };
-  }
-  return { kind: "groups", label: m.backToGroups };
+export function groupHomeBackTarget(locale: Locale): GroupHomeBackTarget {
+  return { kind: "groups", label: messagesFor(locale).group.home.backToGroups };
 }
 
 export function groupHomeHasStandingResults(
@@ -103,10 +93,9 @@ export function filterGroupMembersByName<T extends { name: string }>(
 export type GroupMemberOrganizerAction = "appoint" | "dismiss";
 
 /**
- * A Group approver may remove any player but the Organizers by role: the
- * Group creator and, on a Club Group, Community Owner and Admin. An Appointed
- * Organizer is removable like any other member. Nobody removes themself here;
- * that is Leave.
+ * A Group approver may remove any player but the Group creator, who is an
+ * Organizer by role. An Appointed Organizer is removable like any other
+ * member. Nobody removes themself here; that is Leave.
  */
 export function groupMemberIsRemovable(member: {
   isViewer: boolean;
@@ -120,9 +109,8 @@ export function groupMemberIsRemovable(member: {
 }
 
 /**
- * Only an Appointed Organizer can be dismissed: the Group creator and
- * Community Owner and Admin are Organizers by role, and an Unclaimed player
- * cannot sign in to organize.
+ * Only an Appointed Organizer can be dismissed: the Group creator is an
+ * Organizer by role, and an Unclaimed player cannot sign in to organize.
  */
 export function groupMemberOrganizerAction(member: {
   isViewer: boolean;
@@ -163,10 +151,9 @@ export function groupMemberOrganizerToast(
 }
 
 /**
- * An Organizer of the Group (creator, appointed Organizer, Club Group Owner
- * or Admin) sets other members' Group Levels (ADR-0053). `canCreateGame` is
- * that check for a viewer outside the Standing; it also closes while a Club
- * Community is archived, so the viewer's own Organizer mark is read too.
+ * An Organizer of the Group (creator or Appointed Organizer) sets other
+ * members' Group Levels (ADR-0053). `canCreateGame` is that check for a viewer
+ * outside the Standing; the viewer's own Organizer mark is read too.
  */
 export function viewerMaySetGroupLevel(group: {
   sport: string | null | undefined;

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { communities, groups, user, venues } from "@repo/db/schema";
+import { groups, user, venues } from "@repo/db/schema";
 
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { createGame } from "#src/routers/games/create";
@@ -34,7 +34,7 @@ async function insertVenue(database: TestDatabase) {
 
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; verifiedAt?: Date; communityId?: string },
+  args: { createdBy: string; verifiedAt?: Date; venueId?: string },
 ) {
   const [row] = await database
     .insert(groups)
@@ -42,7 +42,7 @@ async function insertGroup(
       name: `Group ${crypto.randomUUID()}`,
       createdBy: args.createdBy,
       verifiedAt: args.verifiedAt,
-      communityId: args.communityId,
+      venueId: args.venueId,
     })
     .returning();
   if (!row) {
@@ -87,7 +87,7 @@ function tournamentInput(args: {
 }
 
 describe("groupIsVerified", () => {
-  it("is true only when verified_at is set", async () => {
+  it("is true when verified_at is set", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "verified-flag@example.com");
@@ -97,48 +97,28 @@ describe("groupIsVerified", () => {
       });
       const unverified = await insertGroup(db, { createdBy: owner.id });
 
-      expect(await groupIsVerified(db, verified)).toBe(true);
-      expect(await groupIsVerified(db, unverified)).toBe(false);
+      expect(groupIsVerified(verified)).toBe(true);
+      expect(groupIsVerified(unverified)).toBe(false);
     } finally {
       await close();
     }
   });
 
-  it("is true for a Club Group of a Venue Community, not of an ordinary Venue-linked Community", async () => {
+  it("is true for a Club Group through its Venue link, not for a Loose Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "venue-community@example.com");
+      const owner = await insertUser(db, "club-group@example.com");
       const venue = await insertVenue(db);
-      const [venueCommunity] = await db
-        .insert(communities)
-        .values({
-          name: "Venue Community",
-          createdBy: owner.id,
-          venueId: venue.id,
-          isVenueCommunity: true,
-        })
-        .returning();
-      const [ordinary] = await db
-        .insert(communities)
-        .values({ name: "Ordinary", createdBy: owner.id, venueId: venue.id })
-        .returning();
-      if (!venueCommunity || !ordinary) {
-        throw new Error("Failed to insert communities");
-      }
 
-      const linked = await insertGroup(db, {
+      const club = await insertGroup(db, {
         createdBy: owner.id,
-        communityId: venueCommunity.id,
-      });
-      const ordinaryClub = await insertGroup(db, {
-        createdBy: owner.id,
-        communityId: ordinary.id,
+        venueId: venue.id,
       });
       const loose = await insertGroup(db, { createdBy: owner.id });
 
-      expect(await groupIsVerified(db, linked)).toBe(true);
-      expect(await groupIsVerified(db, ordinaryClub)).toBe(false);
-      expect(await groupIsVerified(db, loose)).toBe(false);
+      expect(club.verifiedAt).toBeNull();
+      expect(groupIsVerified(club)).toBe(true);
+      expect(groupIsVerified(loose)).toBe(false);
     } finally {
       await close();
     }
@@ -211,6 +191,38 @@ describe("Game create on a Verified Group", () => {
       });
       expect(row?.rated).toBe(true);
       expect(row?.isPublic).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+  it("stores rated true on a Club Group with no verified_at, at its linked Venue", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "club-games@example.com");
+      const venue = await insertVenue(db);
+      const club = await insertGroup(db, {
+        createdBy: owner.id,
+        venueId: venue.id,
+      });
+
+      const created = await createTournament(
+        db,
+        tournamentInput({
+          createdBy: owner.id,
+          groupId: club.id,
+          venueId: venue.id,
+          isPublic: true,
+        }),
+      );
+
+      const row = await db.query.games.findFirst({
+        where: (g, { eq: equals }) => equals(g.id, created.id),
+      });
+      expect(row).toMatchObject({
+        rated: true,
+        isPublic: true,
+        venueId: venue.id,
+      });
     } finally {
       await close();
     }

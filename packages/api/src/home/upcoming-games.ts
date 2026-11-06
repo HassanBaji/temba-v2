@@ -8,7 +8,6 @@
  * hub filters.
  */
 
-import { consult } from "#src/soft-archive";
 
 export type GameListMatch = {
   startTime: Date | null;
@@ -96,9 +95,8 @@ export type MyGamesHubListCandidate = GameListCandidate & {
 
 /**
  * Games hub My Games: live upcoming Games on Groups the User belongs to
- * (including Soft-archived Club Group Games), plus private Games they
- * created or are registered/waitlisted on. Community membership is not
- * consulted. Public groupless pickup stays on Public. Sorted with Games
+ * plus private Games they created or are registered/waitlisted on. Public
+ * groupless pickup stays on Public. Sorted with Games
  * the User has already joined first, then soonest start.
  */
 export function isMyGamesHubGame(
@@ -137,13 +135,11 @@ export function filterAndSortMyGamesHubGames<T extends MyGamesHubListCandidate>(
 
 export type PublicHubListCandidate = GameListCandidate & {
   isPublic: boolean;
-  communityArchivedAt: Date | null;
 };
 
 /**
- * Public hub: live `isPublic` Games (groupless allowed). Soft-archived Club
- * Group Games are excluded. Games on Groups the User belongs to are excluded
- * (My Games preferred).
+ * Public hub: live `isPublic` Games (groupless allowed). Games on Groups the
+ * User belongs to are excluded (My Games preferred).
  */
 export function isPublicHubGame(
   game: PublicHubListCandidate,
@@ -151,9 +147,6 @@ export function isPublicHubGame(
   now: Date,
 ): boolean {
   if (!game.isPublic) {
-    return false;
-  }
-  if (consult({ archivedAt: game.communityArchivedAt }).freeze("catalog")) {
     return false;
   }
   if (game.groupId !== null && memberGroupIds.has(game.groupId)) {

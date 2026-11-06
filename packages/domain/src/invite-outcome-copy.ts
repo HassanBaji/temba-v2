@@ -6,10 +6,9 @@ export type InviteOutcomeKind =
   | "unavailable"
   | "waiting_for_partner";
 
-export type InviteHostLabel = "Community" | "Group" | "Team" | "Game";
+export type InviteHostLabel = "Group" | "Team" | "Game";
 
 const HOST_KINDS = {
-  Community: "community",
   Group: "group",
   Team: "team",
   Game: "game",

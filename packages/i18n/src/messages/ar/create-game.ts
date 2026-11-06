@@ -92,11 +92,9 @@ export const createGame = {
     skipPitch: "تخطَّ الملعب.",
     skipCourt: "تخطَّ الملعب.",
     lockedArchived: (skip: string) =>
-      `النادي المرتبط بهذا المجتمع مؤرشف. ما زال بإمكانك إنشاء هذه المباراة هنا. ${skip}`,
+      `النادي المرتبط بهذه المجموعة مؤرشف. ما زال بإمكانك إنشاء هذه المباراة هنا. ${skip}`,
     lockedLinked: (optional: string) =>
-      `النادي هو النادي المرتبط بهذا المجتمع ولا يمكن تغييره. ${optional}`,
-    noLink: (optional: string) =>
-      `لا يوجد نادٍ مرتبط بهذا المجتمع. اختر ناديًا. ${optional}`,
+      `النادي هو النادي المرتبط بهذه المجموعة ولا يمكن تغييره. ${optional}`,
     pick: (optional: string) => `اختر ناديًا. ${optional}`,
     cardMeta: (courts: string, city: string) => `${courts} · ${city}`,
   },

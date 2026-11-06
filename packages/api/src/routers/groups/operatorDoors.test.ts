@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { communities, games, groups, user, venues } from "@repo/db/schema";
+import { games, groups, user, venues } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { createCaller } from "#src/root";
@@ -9,7 +9,6 @@ import { createTRPCContext } from "#src/trpc";
 import { createGame } from "#src/routers/games/create";
 import { listForOperator } from "#src/routers/groups/listForOperator";
 import { setVerified } from "#src/routers/groups/setVerified";
-import { commit } from "#src/soft-archive";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database
@@ -24,14 +23,14 @@ async function insertUser(database: TestDatabase, email: string) {
 
 async function insertGroup(
   database: TestDatabase,
-  args: { name: string; createdBy: string; communityId?: string },
+  args: { name: string; createdBy: string; venueId?: string },
 ) {
   const [row] = await database
     .insert(groups)
     .values({
       name: args.name,
       createdBy: args.createdBy,
-      communityId: args.communityId,
+      venueId: args.venueId,
     })
     .returning();
   if (!row) {
@@ -278,35 +277,29 @@ describe("listForOperator", () => {
     }
   });
 
-  it("finds Groups in Soft-archived Communities", async () => {
+  it("carries the Venue name and the Venue link as verification source for a Club Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "owner@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Old Club", type: "private", createdBy: owner.id })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
+      const [venue] = await db
+        .insert(venues)
+        .values({ name: "Old Club", city: "Lisbon", country: "PT" })
+        .returning({ id: venues.id });
+      if (!venue) {
+        throw new Error("Failed to insert venue");
       }
       const group = await insertGroup(db, {
-        name: "Archived Crew",
+        name: "Club Crew",
         createdBy: owner.id,
-        communityId: community.id,
+        venueId: venue.id,
       });
-      const archived = await commit(
-        db,
-        { communityId: community.id },
-        "archived",
-      );
-      expect(archived.ok).toBe(true);
 
-      const { items } = await listForOperator(db, { query: "Archived" });
+      const { items } = await listForOperator(db, { query: "Club Crew" });
       expect(items).toHaveLength(1);
       expect(items[0]).toMatchObject({
         id: group.id,
-        communityName: "Old Club",
-        communityArchived: true,
+        venueName: "Old Club",
+        verificationSource: "venue_link",
       });
     } finally {
       await close();

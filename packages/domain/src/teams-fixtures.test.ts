@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { teamLinkCommunityPicker } from "./team-link-community-picker";
 import { teamHomeView } from "./teams";
 import { createTeamsFixtures } from "./teams-fixtures";
 
@@ -12,9 +11,6 @@ describe("createTeamsFixtures", () => {
       teamHomeView(fixtures.home[key], "en");
     expect(view("incomplete").primaryInvite).toBe(true);
     expect(view("waiting").waitingNote).toBe(true);
-    expect(view("linked").canUnlink).toBe(true);
-    expect(view("pendingLink").pendingLinkNote).not.toBeNull();
-    expect(view("complete").canRequestLink).toBe(true);
     expect(view("record").stats[3]?.value).toBe("67%");
   });
 
@@ -24,15 +20,5 @@ describe("createTeamsFixtures", () => {
       true,
     ]);
     expect(fixtures.list.empty).toEqual([]);
-  });
-
-  it("offers Communities the picker accepts", () => {
-    expect(
-      teamLinkCommunityPicker({
-        isLoading: false,
-        isError: false,
-        data: fixtures.communities,
-      }).status,
-    ).toBe("ready");
   });
 });

@@ -131,14 +131,12 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const { join: joinGame, pendingGameId } = useGameJoin();
 
   const leave = api.groups.leave.useMutation({
-    onSuccess: async (result) => {
-      toast.show(groupLeaveToast(result.communityId, locale));
+    onSuccess: async () => {
+      toast.show(groupLeaveToast(locale));
       await Promise.all([
         utils.groups.byId.invalidate(),
         utils.groups.mine.invalidate(),
         utils.users.home.invalidate(),
-        utils.communities.mine.invalidate(),
-        utils.communities.byId.invalidate(),
       ]);
     },
     onError: (error) => toast.show(error.message),
@@ -149,7 +147,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     onSuccess: async () => {
       toast.show(
         groupLeftVenueToast(
-          group.data?.venueCommunity?.venueName ?? m.mobileGroup.theVenue,
+          group.data?.venue?.name ?? m.mobileGroup.theVenue,
           locale,
         ),
       );
@@ -158,7 +156,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         utils.groups.mine.invalidate(),
         utils.groups.mineLoose.invalidate(),
         utils.users.home.invalidate(),
-        utils.communities.mine.invalidate(),
       ]);
     },
     onError: (error) => toast.show(error.message),
@@ -179,7 +176,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
       Promise.all([
         utils.groups.byId.invalidate({ id: groupId }),
         utils.groups.listLookupInvites.invalidate({ groupId }),
-        utils.communities.byId.invalidate(),
       ]),
     [utils, groupId],
   );
@@ -422,7 +418,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onLeaveVenue={() => {
           const copy = groupLeaveVenueConfirm(
             name,
-            data.venueCommunity?.venueName ?? m.mobileGroup.theVenue,
+            data.venue?.name ?? m.mobileGroup.theVenue,
             locale,
           );
           setConfirm({
@@ -534,7 +530,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             groupId,
             name: data.name,
             sport: data.sport,
-            note: groupLookupNote(data.isLoose, locale),
+            note: groupLookupNote(locale),
             canLookup: data.canManageLookupInvites,
             canLink: data.canManageInviteLinks,
           }}

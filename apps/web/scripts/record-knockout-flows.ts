@@ -39,7 +39,7 @@ import { postPoolDraw } from "@repo/api/routers/games/postPoolDraw";
 import { registerWithPartner } from "@repo/api/routers/games/registerWithPartner";
 import { scoreSet } from "@repo/api/routers/games/scoreSet";
 import { createLoosePublic } from "@repo/api/routers/groups/createLoosePublic";
-import { joinLoosePublic } from "@repo/api/routers/groups/joinLoosePublic";
+import { joinPublic } from "@repo/api/routers/groups/joinPublic";
 import { selfDeclareRating } from "@repo/api/routers/ratings/selfDeclare";
 import { markOnboardingComplete } from "@repo/api/routers/users/completeOnboarding";
 import { writePreferredPosition } from "@repo/api/routers/users/setPreferredPosition";
@@ -169,7 +169,7 @@ async function ensureKnockoutGroup() {
     const members = new Set(GK_PAIRS.flat());
     members.delete("samrivera");
     for (const username of members) {
-      await joinLoosePublic(db, {
+      await joinPublic(db, {
         groupId: created.id,
         userId: need(users, username).id,
       });

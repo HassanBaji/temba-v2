@@ -20,13 +20,13 @@ import { groupSheetLabel, labelMatchesQuery } from "./venue-sheet";
 export function groupLabel(
   group: {
     name: string | null;
-    communityName: string | null;
+    venueName: string | null;
   },
   locale: Locale,
 ) {
   return (
     group.name ??
-    group.communityName ??
+    group.venueName ??
     messagesFor(locale).mobileCreateGame.group.untitled
   );
 }

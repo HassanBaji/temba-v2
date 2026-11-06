@@ -54,7 +54,6 @@ import {
   InviteDoorDialog,
 } from "~/components/invites/invite-door-dialog";
 import type { LookupUserSearchRow } from "@repo/api/types";
-import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -613,7 +612,6 @@ export default function GameHomePage({
         isOrganizer: data.isOrganizer,
         registrationStatus: data.registrationStatus,
         cancelledAt: data.cancelledAt,
-        joinFrozen: data.joinFrozen,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
       })
@@ -938,7 +936,7 @@ export default function GameHomePage({
                       key: "reopen_registration",
                       label: m.game.action.reopenRegistration,
                       icon: LockOpenIcon,
-                      disabled: data.joinFrozen || reopenRegistration.isPending,
+                      disabled: reopenRegistration.isPending,
                       onSelect: () => reopenRegistration.mutate({ gameId: id }),
                     }
                   : {
@@ -1070,14 +1068,6 @@ export default function GameHomePage({
 
         {usesDrawnTournamentChrome ? (
           <>
-            {data.joinFrozen && !data.cancelledAt ? (
-              <SoftArchiveBanner
-                headingLevel={2}
-                heading={g.softArchived.heading}
-              >
-                {g.softArchived.body}
-              </SoftArchiveBanner>
-            ) : null}
             <GameRatingScopeBlock scope={data.ratingScope} />
             <TournamentHome
               data={data}
@@ -1209,12 +1199,6 @@ export default function GameHomePage({
               }
             />
           </div>
-        ) : null}
-
-        {data.joinFrozen && !data.cancelledAt && !usesDrawnTournamentChrome ? (
-          <SoftArchiveBanner headingLevel={2} heading={g.softArchived.heading}>
-            {g.softArchived.body}
-          </SoftArchiveBanner>
         ) : null}
 
         {usesDrawnTournamentChrome ? null : playedMatch ? (

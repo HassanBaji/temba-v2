@@ -24,17 +24,17 @@ import type { Messages } from "@repo/i18n/messages";
 export type CreateGroup = {
   id: string;
   name: string | null;
-  communityName: string | null;
+  venueName: string | null;
   sport?: string | null;
   verified: boolean;
 };
 
 function groupOptionLabel(group: CreateGroup, m: Messages) {
   const name = group.name ?? m.group.untitled;
-  if (!group.communityName) {
+  if (!group.venueName) {
     return name;
   }
-  return `${name} · ${group.communityName}`;
+  return `${name} · ${group.venueName}`;
 }
 
 function GroupChips({

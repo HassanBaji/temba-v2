@@ -19,10 +19,6 @@ export const mobileGameDetails = {
     title: "المباراة غير موجودة",
     description: "ربما أُزيلت، أو ليست لديك صلاحية الوصول إليها.",
   },
-  frozen: {
-    title: "مجتمع هذه المجموعة النادوية مؤرشف",
-    description: "يبقى التسجيل وقائمة الانتظار والدعوات مغلقة.",
-  },
   toast: {
     resultConfirmed: "تم تأكيد النتيجة",
     scoreConfirmed: "تم تأكيد النتيجة",
