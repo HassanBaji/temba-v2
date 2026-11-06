@@ -69,6 +69,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Draws its subtree in light whatever the Appearance: share images leave the
+ * App and look the same in both schemes.
+ */
+export function LightScheme({ children }: { children: React.ReactNode }) {
+  const outer = useContext(ThemeContext);
+  const value = useMemo<ThemeContextValue>(
+    () => ({ ...outer, scheme: "light", colors: palettes.light }),
+    [outer],
+  );
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
+}
+
 /** The palette for the scheme on screen. Read colors here, never import them. */
 export function useColors(): Palette {
   return useContext(ThemeContext).colors;

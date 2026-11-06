@@ -6,6 +6,7 @@ import { useMessages } from "../i18n/locale-provider";
 import { ResultMark } from "../primitives/result-mark";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text, type TextProps } from "../primitives/text";
+import { LightScheme } from "../theme/theme-provider";
 
 // Share cards render on black in both modes: they leave the App.
 const colors = palettes.light;
@@ -138,8 +139,10 @@ export function InkCanvas({
   children: React.ReactNode;
 }) {
   return (
-    <SurfaceToneContext.Provider value="ink">
-      <View style={style}>{children}</View>
-    </SurfaceToneContext.Provider>
+    <LightScheme>
+      <SurfaceToneContext.Provider value="ink">
+        <View style={style}>{children}</View>
+      </SurfaceToneContext.Provider>
+    </LightScheme>
   );
 }

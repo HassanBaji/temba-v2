@@ -478,7 +478,7 @@ export function ToggleCard({
           onValueChange={onChange}
           disabled={disabled}
           trackColor={{ true: colors.ink, false: colors.rule }}
-          thumbColor={colors.paper}
+          thumbColor={value ? colors.paper : colors.onControl}
           ios_backgroundColor={colors.rule}
         />
       </View>

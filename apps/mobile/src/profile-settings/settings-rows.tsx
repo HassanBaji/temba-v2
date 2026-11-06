@@ -217,7 +217,7 @@ export function SwitchRow({
         disabled={disabled}
         onValueChange={onChange}
         trackColor={{ false: colors.rule, true: colors.ink }}
-        thumbColor={colors.paper}
+        thumbColor={value ? colors.paper : colors.onControl}
         ios_backgroundColor={colors.rule}
       />
     </View>

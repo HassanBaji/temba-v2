@@ -18,6 +18,7 @@ import {
   MailOpen,
   Plus,
   Smartphone,
+  SunMoon,
   Users,
 } from "lucide-react-native";
 import { useState } from "react";
@@ -48,7 +49,7 @@ import {
   profileTaskPath,
   settingsChecklist,
 } from "../profile-tasks/profile-tasks-model";
-import { useColors } from "../theme/theme-provider";
+import { useAppearance, useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import {
   displayPhone,
@@ -236,6 +237,12 @@ function SettingsBody({ details }: { details: Details }) {
   const email = user?.primaryEmailAddress ?? null;
   const emailVerified = email?.verification.status === "verified";
   const open = (href: string) => router.push(href);
+  const { appearance } = useAppearance();
+  const appearanceLabel = {
+    system: s.appearance.system,
+    light: s.appearance.light,
+    dark: s.appearance.dark,
+  }[appearance];
 
   const padelLevel = padel.data?.level ?? null;
   const footballRating = football.data?.rating ?? null;
@@ -480,6 +487,15 @@ function SettingsBody({ details }: { details: Details }) {
       </SettingsGroup>
 
       <LanguageGroup />
+
+      <SettingsGroup label={s.appearance.title}>
+        <SettingsRow
+          icon={SunMoon}
+          title={s.appearance.title}
+          sub={appearanceLabel}
+          onPress={() => open("/profile/appearance")}
+        />
+      </SettingsGroup>
 
       <SettingsGroup label={s.about}>
         <SettingsRow

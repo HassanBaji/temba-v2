@@ -25,15 +25,16 @@ describe("tonePalette", () => {
 
   it("lifts the focused surface in dark instead of inverting it", () => {
     const palette = tonePalette("ink", darkColors);
-    expect(palette.background).toBe("#141414");
+    expect(palette.background).toBe(darkColors.focus);
+    expect(palette.background).not.toBe(darkColors.ink);
     expect(palette.foreground).toBe(darkColors.ink);
-    expect(palette.rule).toBe("#3a3a3a");
+    expect(palette.rule).toBe(darkColors.dimrule);
   });
 
   it("never draws white in dark", () => {
     for (const tone of ["paper", "ink"] as const) {
       expect(Object.values(tonePalette(tone, darkColors))).not.toContain(
-        "#ffffff",
+        colors.paper,
       );
     }
   });

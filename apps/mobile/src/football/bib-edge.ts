@@ -1,8 +1,4 @@
-import {
-  bibColors,
-  type ColorScheme,
-  type Palette,
-} from "@repo/design-tokens";
+import { bibColors, type ColorScheme, type Palette } from "@repo/design-tokens";
 
 /**
  * The hairline a bib fill gets. The bib that matches the page (white in

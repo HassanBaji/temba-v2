@@ -323,7 +323,9 @@ export function PaymentScreen({ bookingId }: { bookingId: string }) {
                 }
                 size="lg"
                 pending={retry.isPending && !choosing}
-                icon={<RotateCw size={sizes.iconRow} color={colors.onControl} />}
+                icon={
+                  <RotateCw size={sizes.iconRow} color={colors.onControl} />
+                }
                 onPress={() => retry.mutate({ bookingId })}
               />
               {canSwitch ? (

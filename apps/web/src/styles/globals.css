@@ -71,7 +71,9 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
+/* `.light` resets these inside share cards, which stay black in both schemes. */
+:root,
+.light {
   --foreground: oklch(0.145 0 0);
   --card-foreground: var(--foreground);
   --popover-foreground: var(--foreground);
@@ -95,6 +97,14 @@
   --sidebar-accent: oklch(0.22 0 0);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: oklch(1 0 0 / 12%);
+
+  --clerk-primary: #0a0a0a;
+  --clerk-primary-foreground: #ffffff;
+  --clerk-background: #ffffff;
+  --clerk-foreground: #171717;
+  --clerk-muted-foreground: #404040;
+  --clerk-danger: #dc2626;
+  --clerk-neutral: #636363;
 }
 
 /* The palette roles come from @repo/design-tokens/theme.css; these are the
@@ -119,6 +129,14 @@
   --sidebar-accent: #262626;
   --sidebar-accent-foreground: #e6e6e6;
   --sidebar-border: #3a3a3a;
+
+  --clerk-primary: #262626;
+  --clerk-primary-foreground: #e6e6e6;
+  --clerk-background: #0f0f0f;
+  --clerk-foreground: #e6e6e6;
+  --clerk-muted-foreground: #8e8e8e;
+  --clerk-danger: #f97066;
+  --clerk-neutral: #8e8e8e;
 }
 
 @layer base {

@@ -35,15 +35,16 @@ export const metadata: Metadata = {
 const clerkAppearance = {
   theme: shadcn,
   variables: {
-    colorPrimary: "#0A0A0A",
-    colorPrimaryForeground: "#FFFFFF",
-    colorBackground: "#FFFFFF",
-    colorInput: "#FFFFFF",
-    colorInputForeground: "#171717",
-    colorForeground: "#171717",
-    colorMutedForeground: "#404040",
-    colorDanger: "#DC2626",
-    colorNeutral: "#636363",
+    // Per-scheme values live in globals.css so the popover follows dark mode.
+    colorPrimary: "var(--clerk-primary)",
+    colorPrimaryForeground: "var(--clerk-primary-foreground)",
+    colorBackground: "var(--clerk-background)",
+    colorInput: "var(--clerk-background)",
+    colorInputForeground: "var(--clerk-foreground)",
+    colorForeground: "var(--clerk-foreground)",
+    colorMutedForeground: "var(--clerk-muted-foreground)",
+    colorDanger: "var(--clerk-danger)",
+    colorNeutral: "var(--clerk-neutral)",
     borderRadius: "0.75rem",
   },
 } satisfies Appearance;
