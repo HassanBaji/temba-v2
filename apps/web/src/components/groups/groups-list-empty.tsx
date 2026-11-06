@@ -55,7 +55,7 @@ export function MyGroupsEmpty({
       </section>
       <div className="flex flex-col gap-2">
         <Button asChild size="lg" className="text-body w-full font-semibold">
-          <Link href={CREATE_GROUP_HREF}>{m.group.create.loose.submit}</Link>
+          <Link href={CREATE_GROUP_HREF}>{m.group.create.submit}</Link>
         </Button>
         <Button
           type="button"
@@ -100,7 +100,7 @@ export function PublicGroupsEmpty({
         </div>
       </section>
       <Button asChild size="lg" className="text-body w-full font-semibold">
-        <Link href={CREATE_GROUP_HREF}>{m.group.create.loose.submit}</Link>
+        <Link href={CREATE_GROUP_HREF}>{m.group.create.submit}</Link>
       </Button>
     </div>
   );

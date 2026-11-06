@@ -123,7 +123,6 @@ export function groupHomeNextJoinableGame(
   upcoming: readonly {
     id: string;
     registrationStatus: string;
-    joinFrozen: boolean;
     isRegistered: boolean;
     isWaitlisted: boolean;
     isPublic: boolean;
@@ -132,9 +131,6 @@ export function groupHomeNextJoinableGame(
 ): { id: string } | null {
   for (const game of upcoming) {
     if (game.registrationStatus !== "open") {
-      continue;
-    }
-    if (game.joinFrozen) {
       continue;
     }
     if (game.isRegistered || game.isWaitlisted) {

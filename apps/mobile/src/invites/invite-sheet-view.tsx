@@ -233,8 +233,8 @@ function PlayerRow({
         label={inviteButtonLabel(invited, locale)}
         accessibilityLabel={
           invited
-            ? m.mobileCommunity.inviteSheet.cancelInviteA11y(view.name)
-            : m.mobileCommunity.inviteSheet.inviteA11y(view.name)
+            ? m.mobileInvite.sheet.cancelInviteA11y(view.name)
+            : m.mobileInvite.sheet.inviteA11y(view.name)
         }
         size="sm"
         variant={invited ? "outline" : "default"}
@@ -257,8 +257,8 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
       <SearchField
         value={players.query}
         onChangeText={players.onQueryChange}
-        placeholder={m.mobileCommunity.inviteSheet.searchPlaceholder}
-        accessibilityLabel={m.mobileCommunity.inviteSheet.searchA11y}
+        placeholder={m.mobileInvite.sheet.searchPlaceholder}
+        accessibilityLabel={m.mobileInvite.sheet.searchA11y}
       />
       {players.refused && players.refused.length > 0 ? (
         <View style={{ gap: 4 }} accessibilityRole="alert">
@@ -268,10 +268,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
               size="meta"
               weight="medium"
             >
-              {m.mobileCommunity.inviteSheet.refusedLine(
-                item.name,
-                item.message,
-              )}
+              {m.mobileInvite.sheet.refusedLine(item.name, item.message)}
             </Text>
           ))}
         </View>
@@ -321,7 +318,7 @@ function PhoneMode({ phone }: { phone: PhoneModeProps }) {
   return (
     <View style={{ gap: MODE_GAP }}>
       <PhoneField
-        label={m.mobileCommunity.inviteSheet.phoneLabel}
+        label={m.mobileInvite.sheet.phoneLabel}
         countryIso={phone.countryIso}
         national={phone.national}
         onCountryIsoChange={phone.onCountryIsoChange}
@@ -397,7 +394,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         </View>
         <Button
           label={copyLinkLabel(link.copied, locale)}
-          accessibilityLabel={m.mobileCommunity.inviteSheet.copyLinkA11y}
+          accessibilityLabel={m.mobileInvite.sheet.copyLinkA11y}
           size="sm"
           variant={link.copied ? "outline" : "default"}
           disabled={link.pending}
@@ -408,7 +405,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         {inviteLinkNote(link.kind, locale)}
       </Text>
       <Button
-        label={m.mobileCommunity.inviteSheet.shareLink}
+        label={m.mobileInvite.sheet.shareLink}
         size="lg"
         pending={link.pending}
         icon={<ShareIcon size={sizes.iconRow} color={colors.paper} />}
@@ -416,13 +413,13 @@ function LinkMode({ link }: { link: LinkModeProps }) {
       />
       <View style={{ flexDirection: "row", gap: 8 }}>
         <ChannelButton
-          label={m.mobileCommunity.inviteSheet.whatsApp}
+          label={m.mobileInvite.sheet.whatsApp}
           Icon={MessageCircle}
           disabled={link.pending}
           onPress={link.onWhatsApp}
         />
         <ChannelButton
-          label={m.mobileCommunity.inviteSheet.messages}
+          label={m.mobileInvite.sheet.messages}
           Icon={MessageSquare}
           disabled={link.pending}
           onPress={link.onMessages}
@@ -462,7 +459,7 @@ function PendingChip({
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={m.mobileCommunity.inviteSheet.cancelInviteA11y(
+        accessibilityLabel={m.mobileInvite.sheet.cancelInviteA11y(
           row.user.name,
         )}
         disabled={revoking}

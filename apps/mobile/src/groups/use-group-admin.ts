@@ -47,18 +47,14 @@ export function useGroupAdmin(
   const m = useMessages();
   const toast = useToast();
   const utils = api.useUtils();
-  const communityId = data?.communityId ?? null;
 
   const refreshGroup = useCallback(
     () =>
       Promise.all([
         utils.groups.byId.invalidate({ id: groupId }),
         utils.groups.mine.invalidate(),
-        communityId
-          ? utils.communities.byId.invalidate({ id: communityId })
-          : Promise.resolve(),
       ]),
-    [utils, groupId, communityId],
+    [utils, groupId],
   );
 
   const requests = api.groups.listJoinRequests.useQuery(
@@ -84,7 +80,6 @@ export function useGroupAdmin(
       Promise.all([
         refreshGroup(),
         utils.groups.listJoinRequests.invalidate({ groupId }),
-        utils.communities.mine.invalidate(),
       ]),
     [refreshGroup, utils, groupId],
   );

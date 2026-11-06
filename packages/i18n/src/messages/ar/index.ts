@@ -29,6 +29,8 @@ import { mobileHome } from "./mobile-home";
 import { mobilePlayer } from "./mobile-player";
 import { you } from "./you";
 import { mobileYou } from "./mobile-you";
+import { mobileInvite } from "./mobile-invite";
+import { mobileTeam } from "./mobile-team";
 import { webYou } from "./web-you";
 
 import type { en } from "../en/index";
@@ -68,4 +70,6 @@ export const ar: Messages = {
   you,
   mobileYou,
   webYou,
+  mobileInvite,
+  mobileTeam,
 };

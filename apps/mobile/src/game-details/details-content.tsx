@@ -149,16 +149,6 @@ export function GameDetailsContent({
       ) : (
         <RatingScopeCard scope={ratingScopeOf(game)} />
       )}
-      {game.joinFrozen && !game.cancelledAt ? (
-        <Surface style={{ gap: 4 }}>
-          <Text size="lead" weight="semibold" accessibilityRole="header">
-            {m.mobileGameDetails.frozen.title}
-          </Text>
-          <Text size="meta" tone="muted">
-            {m.mobileGameDetails.frozen.description}
-          </Text>
-        </Surface>
-      ) : null}
       {levelCard ? (
         <LevelRequestCard
           card={levelCard}

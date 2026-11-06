@@ -154,7 +154,6 @@ export type TournamentDetails = {
   createdAt: Date;
   isOrganizer: boolean;
   viewerUserId: string;
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;

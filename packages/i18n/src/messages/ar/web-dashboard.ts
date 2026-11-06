@@ -343,12 +343,17 @@ export const webDashboard = {
     backToTeams: "العودة إلى الفرق",
     actionsLabel: "إجراءات الفريق",
     allTeams: "كل الفرق",
+    membersTitle: "الأعضاء",
     invitePartner: "دعوة شريك",
   },
   venue: {
     title: "النادي",
     errorTitle: "تعذّر تحميل النادي",
     courtFallback: "الملعب",
+    location: (city: string, country: string) => `${city}، ${country}`,
+    softArchiveAction: "أرشفة",
+    unarchiveAction: "إلغاء الأرشفة",
+    softArchivedBadge: "مؤرشف",
     logoReadError: "تعذّرت قراءة الشعار",
     unarchiving: "جارٍ إلغاء الأرشفة…",
     toast: {
@@ -413,6 +418,7 @@ export const webDashboard = {
   venues: {
     description:
       "كل النوادي، بما فيها المؤرشفة.",
+    errorTitle: "تعذّر تحميل النوادي",
     liveCount: (n: number) =>
       plural("ar", n, {
         one: "نادٍ واحد",

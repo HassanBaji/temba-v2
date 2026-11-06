@@ -312,12 +312,17 @@ export const webDashboard = {
     backToTeams: "Back to Teams",
     actionsLabel: "Team actions",
     allTeams: "All Teams",
+    membersTitle: "Members",
     invitePartner: "Invite partner",
   },
   venue: {
     title: "Venue",
     errorTitle: "Venue could not be loaded",
     courtFallback: "Court",
+    location: (city: string, country: string) => `${city}, ${country}`,
+    softArchiveAction: "Soft-archive",
+    unarchiveAction: "Unarchive",
+    softArchivedBadge: "Soft-archived",
     logoReadError: "Logo could not be read",
     unarchiving: "Unarchiving…",
     toast: {
@@ -382,6 +387,7 @@ export const webDashboard = {
   venues: {
     description:
       "Every Venue, including Soft-archived ones.",
+    errorTitle: "Venues could not be loaded",
     liveCount: (n: number) =>
       plural("en", n, { one: "1 venue", other: "{n} venues" }),
     createAction: "Create Venue",

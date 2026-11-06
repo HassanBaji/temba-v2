@@ -12,10 +12,6 @@ import type {
   GroupPlayedFilter,
 } from "@repo/domain/group-played-filter";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
-import {
-  groupArchiveGamesCopy,
-  groupGamesEmptyDescription,
-} from "@repo/domain/group-join";
 import { useRouter, type Href } from "expo-router";
 import { UserPlus } from "lucide-react-native";
 import { View } from "react-native";
@@ -38,7 +34,6 @@ import { Hatch } from "../primitives/hatch";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { Notice } from "./notice";
 import { PlayedGames } from "./played-games";
 
 export type GamesTabProps = {
@@ -48,7 +43,6 @@ export type GamesTabProps = {
   playedFilter: GroupPlayedFilter;
   onPlayedFilterChange: (filter: GroupPlayedFilter) => void;
   filtering: boolean;
-  isCommunityArchived: boolean;
   pendingGameId: string | null;
   canLoadMore: boolean;
   loadingMore: boolean;
@@ -170,7 +164,6 @@ function NoGamesYet(props: GamesTabProps) {
 export function GamesTab(props: GamesTabProps) {
   const { upcomingGames, playedGames, actions } = props;
   const router = useRouter();
-  const locale = useLocale();
   const m = useMessages();
   const footballActions = {
     onOpen: actions.onOpen,
@@ -182,28 +175,13 @@ export function GamesTab(props: GamesTabProps) {
 
   const noGames = upcomingGames.length === 0 && props.playedCounts.all === 0;
 
-  if (noGames && !props.isCommunityArchived) {
-    return <NoGamesYet {...props} />;
-  }
-
   if (noGames) {
-    return (
-      <Notice
-        title={m.mobileGroup.games.emptyTitle}
-        description={groupGamesEmptyDescription(
-          props.isCommunityArchived,
-          locale,
-        )}
-      />
-    );
+    return <NoGamesYet {...props} />;
   }
 
   return (
     <View style={{ gap: spacing.section }}>
       <Section title={m.mobileGroup.games.scheduled}>
-        {props.isCommunityArchived ? (
-          <Text tone="muted">{groupArchiveGamesCopy(locale)}</Text>
-        ) : null}
         {upcomingGames.length === 0 ? (
           <Text tone="muted">{m.mobileGroup.games.scheduledEmpty}</Text>
         ) : (

@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { useCreateAccess } from "~/components/create-access-gate";
 import { PageTitle } from "~/components/layout/page-title";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { detailBackHref } from "~/lib/dashboard-paths";
@@ -65,12 +64,11 @@ export function MobileTopBarFromPath({
   titleAs?: "h1" | "p";
 }) {
   const pathname = usePathname();
-  const { isLoaded, hasCreateAccess } = useCreateAccess();
   return (
     <MobileTopBar
       isSubPage={isSubPage}
       title={title}
-      backHref={detailBackHref(pathname, isLoaded && hasCreateAccess)}
+      backHref={detailBackHref(pathname)}
       action={action}
       icon={icon}
       titleAs={titleAs}

@@ -229,7 +229,6 @@ describe("hubGameCardPlan", () => {
     registrationMode: "individual",
     canRegister: true,
     canWaitlist: false,
-    joinFrozen: false,
     isRegistered: false,
     isSeated: false,
     isWaitlisted: false,

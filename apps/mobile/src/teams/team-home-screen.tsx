@@ -1,11 +1,9 @@
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { teamLinkCommunityPicker } from "@repo/domain/team-link-community-picker";
 import {
   teamDissolveConfirm,
   teamHomeView,
   teamLeaveConfirm,
-  teamUnlinkConfirm,
 } from "@repo/domain/teams";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -32,57 +30,11 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
   const utils = api.useUtils();
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(
-    null,
-  );
-  const [linkError, setLinkError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const team = api.teams.byId.useQuery({ id: teamId }, REFETCH_ON_FOREGROUND);
   const data = team.data;
-
-  const communities = api.communities.mine.useQuery(undefined, {
-    enabled: Boolean(data?.canRequestLink),
-  });
-  const linkPicker = teamLinkCommunityPicker({
-    isLoading: communities.isLoading,
-    isError: communities.isError,
-    data: communities.data,
-  });
-
-  const requestLink = api.teams.requestLink.useMutation({
-    onSuccess: async () => {
-      toast.show(m.team.toast.linkRequested);
-      await utils.teams.byId.invalidate({ id: teamId });
-      setLinkOpen(false);
-      setSelectedCommunityId(null);
-    },
-    onError: (error) => {
-      setLinkError(error.message);
-      toast.show(error.message);
-    },
-  });
-
-  const unlink = api.teams.unlink.useMutation({
-    onSuccess: async (result) => {
-      toast.show(m.team.toast.unlinked);
-      await Promise.all([
-        utils.teams.byId.invalidate({ id: teamId }),
-        utils.teams.mine.invalidate(),
-        result.communityId
-          ? utils.communities.byId.invalidate({ id: result.communityId })
-          : Promise.resolve(),
-        utils.communities.mine.invalidate(),
-      ]);
-    },
-    onError: (error) => {
-      setActionError(error.message);
-      toast.show(error.message);
-    },
-    onSettled: () => setConfirm(null),
-  });
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
@@ -170,38 +122,10 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
       <TeamHomeView
         view={view}
         sport={data.sport}
-        linkOpen={linkOpen}
-        linkPicker={linkPicker}
-        linkPickerMessage={communities.error?.message ?? null}
-        selectedCommunityId={selectedCommunityId}
-        linkError={linkError}
-        linkPending={requestLink.isPending}
         confirm={confirm}
-        confirmPending={
-          unlink.isPending || dissolve.isPending || leave.isPending
-        }
+        confirmPending={dissolve.isPending || leave.isPending}
         actionError={actionError}
         onInvite={() => setInviteOpen(true)}
-        onOpenLink={() => {
-          setLinkError(null);
-          setLinkOpen(true);
-        }}
-        onCloseLink={() => setLinkOpen(false)}
-        onSelectCommunity={setSelectedCommunityId}
-        onSubmitLink={() => {
-          if (selectedCommunityId) {
-            setLinkError(null);
-            requestLink.mutate({ teamId, communityId: selectedCommunityId });
-          }
-        }}
-        onRetryCommunities={() => void communities.refetch()}
-        onUnlink={() => {
-          setActionError(null);
-          setConfirm({
-            ...teamUnlinkConfirm(view.title, locale),
-            onConfirm: () => unlink.mutate({ teamId }),
-          });
-        }}
         onDissolve={() => {
           setActionError(null);
           setConfirm({

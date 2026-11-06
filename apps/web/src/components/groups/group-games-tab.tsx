@@ -1,11 +1,10 @@
 "use client";
 
-import { Calendar, UserRoundPlus } from "lucide-react";
+import { UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { EmptyState } from "~/components/common/empty-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
@@ -21,8 +20,6 @@ import type {
 import { Button } from "~/components/ui/button";
 import {
   GROUP_HISTORY_PAGE_SIZE,
-  groupArchiveGamesCopy,
-  groupGamesEmptyDescription,
   groupHistoryCanLoadMore,
   groupHistoryPageExhausted,
 } from "@repo/domain/group-join";
@@ -91,7 +88,7 @@ function NoGamesYet({
             {seated.map((member) => (
               <UserAvatar
                 key={member.userId}
-                name={member.name ?? m.community.memberFallback}
+                name={member.name ?? m.webGroup.memberFallback}
                 image={member.image}
                 className={cn(
                   "size-[34px] rounded-[9px] [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",
@@ -161,7 +158,6 @@ export function GroupGamesTab({
   filtering,
   groupId,
   groupName,
-  isCommunityArchived,
   canShowCreateGame,
   pendingGameId,
   onJoinSeat,
@@ -188,7 +184,6 @@ export function GroupGamesTab({
   filtering: boolean;
   groupId: string;
   groupName: string | null;
-  isCommunityArchived: boolean;
   canShowCreateGame: boolean;
   pendingGameId: string | null;
   onJoinSeat: (
@@ -200,7 +195,6 @@ export function GroupGamesTab({
   onRegister: (gameId: string) => void;
 }) {
   const m = useMessages();
-  const locale = useLocale();
   const utils = api.useUtils();
   const router = useRouter();
   const [olderPages, setOlderPages] = React.useState<{
@@ -248,15 +242,7 @@ export function GroupGamesTab({
   }
 
   const hasAny = upcomingGames.length > 0 || playedCounts.all > 0;
-  const createFirstGame = canShowCreateGame ? (
-    <Button asChild variant="outline">
-      <Link href={`/dashboard/games/new?groupId=${groupId}`}>
-        {m.webGroup.games.createFirst}
-      </Link>
-    </Button>
-  ) : null;
-
-  if (!hasAny && !isCommunityArchived) {
+  if (!hasAny) {
     return (
       <NoGamesYet
         sport={sport}
@@ -270,26 +256,10 @@ export function GroupGamesTab({
     );
   }
 
-  if (!hasAny) {
-    return (
-      <EmptyState
-        icon={Calendar}
-        title={m.webGroup.games.noGamesYet}
-        description={groupGamesEmptyDescription(isCommunityArchived, locale)}
-        action={createFirstGame}
-      />
-    );
-  }
-
   return (
     <div className="flex flex-col gap-[26px]">
       <section>
         <h2 className={HEADING}>{m.webGroup.games.scheduled}</h2>
-        {isCommunityArchived ? (
-          <p className="text-body text-muted-foreground pb-2.5">
-            {groupArchiveGamesCopy(locale)}
-          </p>
-        ) : null}
         {upcomingGames.length === 0 ? (
           <p className="text-body text-muted-foreground">
             {m.webGroup.games.noUpcoming}

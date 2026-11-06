@@ -40,7 +40,7 @@ import { JoinRequestsBanner, JoinRequestsCard } from "./group-approver-view";
 import { GroupMenuSheet } from "./group-menu-sheet";
 import { RejectRequestSheet, WhoCanJoinSheet } from "./join-request-sheets";
 import type { GroupApproverHandlers } from "./use-group-admin";
-import { groupBanner, groupHomeHeader, groupJoinCta } from "./group-home-model";
+import { groupHomeHeader, groupJoinCta } from "./group-home-model";
 import { MembersTab } from "./members-tab";
 import { SavedLevelBanner } from "./saved-level-banner";
 import type { SavedLevel } from "./set-level-model";
@@ -95,7 +95,6 @@ export type GroupHomeViewProps = {
   games: Omit<
     GamesTabProps,
     | "upcomingGames"
-    | "isCommunityArchived"
     | "actions"
     | "sport"
     | "members"
@@ -129,7 +128,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const m = useMessages();
   const header = groupHomeHeader(data, props.apiOrigin, locale);
   const cta = groupJoinCta(data, props.joinPending, locale);
-  const banner = groupBanner(data, locale);
   const door = cta?.door;
   const onInvite = groupHomeCanManageInvites(data) ? props.onInvite : undefined;
   const createGameHref = groupHomeCanShowCreateGame(data)
@@ -139,7 +137,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const { approver } = props.admin;
   const requestCount =
     approver.requests.status === "ready" ? approver.requests.value.length : 0;
-  const communityName = data.community?.name ?? null;
 
   return (
     <View style={{ gap: spacing.compact }}>
@@ -182,19 +179,16 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         </View>
       </ScreenHeader>
 
-      {data.venueCommunity ? (
+      {data.venue ? (
         <Text size="meta" tone="muted">
-          {groupPartOfVenueLine(data.venueCommunity.venueName, locale)}
+          {groupPartOfVenueLine(data.venue.name, locale)}
         </Text>
       ) : null}
 
-      {data.canUnlinkFromVenue && data.venueCommunity ? (
+      {data.canUnlinkFromVenue && data.venue ? (
         <View style={{ flexDirection: "row" }}>
           <Button
-            label={groupLeaveVenueActionLabel(
-              data.venueCommunity.venueName,
-              locale,
-            )}
+            label={groupLeaveVenueActionLabel(data.venue.name, locale)}
             size="sm"
             variant="outline"
             onPress={props.onLeaveVenue}
@@ -230,17 +224,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           </View>
         </Surface>
       ))}
-
-      {banner ? (
-        <Surface style={{ gap: 4 }}>
-          {banner.heading ? (
-            <Text weight="semibold">{banner.heading}</Text>
-          ) : null}
-          <Text size="meta" tone="muted">
-            {banner.body}
-          </Text>
-        </Surface>
-      ) : null}
 
       {cta ? (
         <Button
@@ -282,7 +265,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         <GamesTab
           {...props.games}
           upcomingGames={data.upcomingGames}
-          isCommunityArchived={data.isCommunityArchived}
           actions={props.actions}
           sport={data.sport ?? null}
           members={data.standing.leaderboard}
@@ -346,7 +328,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
                 requests={approver.requests}
                 requiresApproval={data.requiresApproval}
                 approvedToday={data.joinRequestsApprovedToday}
-                communityName={communityName}
                 apiOrigin={props.apiOrigin}
                 showLevel={groupShowsLevel(data.sport)}
                 approvePendingId={approver.approvePendingId}
@@ -365,13 +346,11 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         <>
           <RejectRequestSheet
             {...approver.rejectSheet}
-            communityName={communityName}
             apiOrigin={props.apiOrigin}
           />
           <WhoCanJoinSheet
             {...approver.whoCanJoinSheet}
             requiresApproval={data.requiresApproval}
-            communityName={communityName}
           />
         </>
       ) : null}

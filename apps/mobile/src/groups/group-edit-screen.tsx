@@ -1,4 +1,3 @@
-import { clubGroupSportChoice } from "@repo/domain/community-sports";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import {
   groupEditCanSave,
@@ -51,15 +50,6 @@ function GroupEditForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const admin = useGroupAdmin(groupId, data);
   const inviteLink = useGroupInviteLink(groupId, data.canManageInviteLinks);
-  const context = data.communityId ? "club" : "loose";
-  const community = api.communities.byId.useQuery(
-    { id: data.communityId ?? "" },
-    { enabled: Boolean(data.communityId) && data.canChangeSport },
-  );
-  const sports =
-    context === "club"
-      ? clubGroupSportChoice(community.data?.sports ?? []).sports
-      : SPORTS;
 
   const leaveToGroups = () => {
     if (router.canGoBack()) {
@@ -75,9 +65,6 @@ function GroupEditForm({
       utils.groups.mine.invalidate(),
       utils.groups.listPublic.invalidate(),
       utils.users.home.invalidate(),
-      data.communityId
-        ? utils.communities.byId.invalidate({ id: data.communityId })
-        : Promise.resolve(),
     ]);
 
   const save = api.groups.edit.useMutation({
@@ -99,7 +86,7 @@ function GroupEditForm({
     onSuccess: async () => {
       setDeleteOpen(false);
       toast.show(m.group.admin.deletedToast);
-      await Promise.all([refreshGroup(), utils.communities.mine.invalidate()]);
+      await refreshGroup();
       router.replace("/groups");
     },
     onError: (error) => toast.show(error.message),
@@ -128,12 +115,11 @@ function GroupEditForm({
       }
     >
       <GroupEditView
-        context={context}
         subtitle={groupEditSubtitle(data, locale)}
         draft={draft}
         onChange={setDraft}
         nameError={nameError}
-        sports={sports}
+        sports={SPORTS}
         canChangeSport={data.canChangeSport}
         pendingJoinRequestCount={data.pendingJoinRequestCount}
         imageUri={groupHomeHeader(data, apiOrigin, locale).imageUri}

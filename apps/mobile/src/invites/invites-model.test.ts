@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  communityPreview,
   gamePreview,
   gameShareMessage,
   groupPreview,
@@ -19,7 +18,6 @@ describe("inviteLandingPath", () => {
     expect(inviteLandingPath("game", "g1")).toBe("/games/g1");
     expect(inviteLandingPath("group", "gr1")).toBe("/groups/gr1");
     expect(inviteLandingPath("team", "t1")).toBe("/profile/teams/t1");
-    expect(inviteLandingPath("community", "c1")).toBe("/communities");
   });
 });
 
@@ -171,9 +169,6 @@ describe("whatsAppUrl", () => {
 
 describe("preview normalisers", () => {
   it("names the host for a ready link", () => {
-    expect(
-      communityPreview({ status: "ready", communityName: "Södermalm" }),
-    ).toEqual({ status: "ready", kind: "community", name: "Södermalm" });
     expect(
       groupPreview({
         status: "ready",

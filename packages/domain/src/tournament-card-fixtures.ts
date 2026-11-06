@@ -134,7 +134,6 @@ function buildRow(args: {
     registeredTeamCount: teams.length,
     teamsAllowed: TEAM_COUNT,
     registrationStatus: args.registrationStatus ?? "open",
-    joinFrozen: false,
     isRegistered: args.viewerSeated ?? false,
     isSeated: args.viewerSeated ?? false,
     isWaitlisted: false,

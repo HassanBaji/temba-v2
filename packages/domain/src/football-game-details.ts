@@ -38,7 +38,6 @@ export type FootballGameDetailsInput = {
   registrationClosedAt: Date | null;
   registrationStatus: string;
   rated: boolean;
-  joinFrozen: boolean;
   isOrganizer: boolean;
   viewerUserId: string;
   isRegistered: boolean;
@@ -183,7 +182,7 @@ export function footballGameCta(
   locale: Locale,
 ): FootballGameCta | null {
   const m = messagesFor(locale).football.details;
-  if (input.cancelledAt || input.joinFrozen) {
+  if (input.cancelledAt) {
     return null;
   }
   if (input.isWaitlisted) {

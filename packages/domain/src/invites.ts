@@ -238,13 +238,12 @@ export function gameInviteAccess(game: {
   isOrganizer: boolean;
   registrationStatus: string;
   cancelledAt: Date | string | null;
-  joinFrozen: boolean;
   registrationMode: string;
   partnerRequired: boolean;
 }) {
   const canManage = game.friendlyChrome
     ? friendlyGameCanMintInvite(game)
-    : Boolean(game.isOrganizer && !game.cancelledAt && !game.joinFrozen);
+    : Boolean(game.isOrganizer && !game.cancelledAt);
   const canSendLookup =
     canManage && game.registrationMode !== "team_only" && !game.partnerRequired;
   return { canManage, canSendLookup };

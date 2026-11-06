@@ -209,7 +209,6 @@ describe("gameInviteAccess", () => {
     isOrganizer: true,
     registrationStatus: "open",
     cancelledAt: null,
-    joinFrozen: false,
     registrationMode: "individual",
     partnerRequired: false,
   };
@@ -224,14 +223,11 @@ describe("gameInviteAccess", () => {
     ).toBe(false);
   });
 
-  it("closes the doors on a cancelled or frozen tournament", () => {
+  it("closes the doors on a cancelled tournament", () => {
     const tournament = { ...base, friendlyChrome: false };
     expect(gameInviteAccess(tournament).canManage).toBe(true);
     expect(
       gameInviteAccess({ ...tournament, cancelledAt: new Date() }).canManage,
-    ).toBe(false);
-    expect(
-      gameInviteAccess({ ...tournament, joinFrozen: true }).canManage,
     ).toBe(false);
   });
 

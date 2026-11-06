@@ -1,12 +1,6 @@
 import type { Messages } from "@repo/i18n/messages";
 
-export type TabSlot =
-  | "home"
-  | "games"
-  | "book"
-  | "groups"
-  | "communities"
-  | "profile";
+export type TabSlot = "home" | "games" | "book" | "groups" | "profile";
 
 export type TabEntry = { slot: TabSlot; title: string };
 

@@ -29,7 +29,6 @@ import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { clubGroupSportChoice } from "@repo/domain/community-sports";
 import {
   ENTITY_IMAGE_ACCEPT,
   entityImageFileError,
@@ -224,15 +223,6 @@ function EditGroupForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const context = data.communityId ? "club" : "loose";
-  const community = api.communities.byId.useQuery(
-    { id: data.communityId ?? "" },
-    { enabled: Boolean(data.communityId) && data.canChangeSport },
-  );
-  const sports =
-    context === "club"
-      ? clubGroupSportChoice(community.data?.sports ?? []).sports
-      : SPORTS;
 
   const refreshGroup = () =>
     Promise.all([
@@ -240,9 +230,6 @@ function EditGroupForm({
       utils.groups.mine.invalidate(),
       utils.groups.listPublic.invalidate(),
       utils.users.home.invalidate(),
-      data.communityId
-        ? utils.communities.byId.invalidate({ id: data.communityId })
-        : Promise.resolve(),
     ]);
 
   const save = api.groups.edit.useMutation({
@@ -257,15 +244,11 @@ function EditGroupForm({
   });
 
   const remove = api.groups.delete.useMutation({
-    onSuccess: async (result) => {
+    onSuccess: async () => {
       setDeleteOpen(false);
       toast.success(m.group.admin.deletedToast);
-      await Promise.all([refreshGroup(), utils.communities.mine.invalidate()]);
-      router.push(
-        result.communityId
-          ? `/dashboard/communities/${result.communityId}`
-          : "/dashboard/groups",
-      );
+      await refreshGroup();
+      router.push("/dashboard/groups");
     },
     onError: (error) => toast.error(error.message),
   });
@@ -409,7 +392,7 @@ function EditGroupForm({
             <div className="flex flex-col gap-1.5">
               <SportSegment
                 labelledBy={`${IDS.sport}-label`}
-                sports={sports}
+                sports={SPORTS}
                 value={draft.sport}
                 onSelect={(sport) => set({ sport })}
                 disabled={disabled}
@@ -432,7 +415,6 @@ function EditGroupForm({
         >
           <VisibilityCards
             labelledBy={`${IDS.visibility}-label`}
-            context={context}
             value={draft.visibility}
             onSelect={(visibility) => set({ visibility })}
             disabled={disabled}

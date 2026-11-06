@@ -45,7 +45,6 @@ const VIEWER_DEFAULTS = {
   levelMaxTenths: 45,
   cancelledAt: null,
   registrationClosedAt: null,
-  joinFrozen: false,
   isRegistered: false,
   isWaitlisted: false,
   waitlistPlace: null,
@@ -238,7 +237,6 @@ export type FriendlyGameOrganizerFixtureKey =
   | "needsScore"
   | "final"
   | "finalLocked"
-  | "softArchived"
   | "cancelled";
 
 export const FRIENDLY_GAME_ORGANIZER_FIXTURE_LABELS: Record<
@@ -251,7 +249,6 @@ export const FRIENDLY_GAME_ORGANIZER_FIXTURE_LABELS: Record<
   needsScore: "Needs results",
   final: "Final",
   finalLocked: "Final, locked",
-  softArchived: "Soft-archived",
   cancelled: "Cancelled",
 };
 
@@ -331,7 +328,6 @@ export function createFriendlyGameOrganizerFixtures(
         reason: "A later rated Game exists",
       },
     }),
-    softArchived: organizer(players.registered, { joinFrozen: true }),
     cancelled: organizer(players.cancelled),
   };
 }

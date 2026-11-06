@@ -12,7 +12,6 @@ import {
   Trash2Icon,
   UnlinkIcon,
   UserRoundPlusIcon,
-  UsersIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type RefObject } from "react";
@@ -32,7 +31,7 @@ import { groupMenuLabel } from "@repo/domain/group-settings";
 import { groupEditHref, groupSeasonsHref } from "~/lib/dashboard-paths";
 
 const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
-  "leave_venue_community",
+  "unlink_venue",
   "leave",
   "delete",
 ]);
@@ -54,15 +53,13 @@ export function GroupHomeOverflowMenu({
   groupName,
   roleLine,
   leaveBlockedHint,
-  communityId,
-  communityName,
   venueName,
   triggerRef,
   onCopyGroupUrl,
   onManageInvites,
   onChangeImage,
   onRemoveImage,
-  onLeaveVenueCommunity,
+  onUnlinkVenue,
   onLeave,
   onDelete,
 }: {
@@ -72,15 +69,13 @@ export function GroupHomeOverflowMenu({
   roleLine: string | null;
   /** Why Leave is disabled, or `null` when the viewer may leave. */
   leaveBlockedHint: string | null;
-  communityId: string | null;
-  communityName: string | null;
   venueName: string | null;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onCopyGroupUrl: () => void;
   onManageInvites: () => void;
   onChangeImage: () => void;
   onRemoveImage: () => void;
-  onLeaveVenueCommunity: () => void;
+  onUnlinkVenue: () => void;
   onLeave: () => void;
   onDelete: () => void;
 }) {
@@ -99,22 +94,6 @@ export function GroupHomeOverflowMenu({
           label: groupMenuLabel("edit", locale),
           icon: PencilIcon,
           href: groupEditHref(groupId),
-        };
-      case "open_community":
-        return communityId
-          ? {
-              label: m.webGroup.overflow.openCommunity(
-                communityName ?? m.community.fallbackName,
-              ),
-              icon: UsersIcon,
-              href: `/dashboard/communities/${communityId}`,
-            }
-          : null;
-      case "all_communities":
-        return {
-          label: m.webGroup.overflow.allCommunities,
-          icon: UsersIcon,
-          href: "/dashboard/communities",
         };
       case "create_game":
         return {
@@ -152,12 +131,12 @@ export function GroupHomeOverflowMenu({
           icon: CalendarRangeIcon,
           href: groupSeasonsHref(groupId),
         };
-      case "leave_venue_community":
+      case "unlink_venue":
         return venueName
           ? {
               label: groupLeaveVenueActionLabel(venueName, locale),
               icon: UnlinkIcon,
-              onSelect: onLeaveVenueCommunity,
+              onSelect: onUnlinkVenue,
             }
           : null;
       case "leave":

@@ -726,7 +726,7 @@ function NewGameForm() {
   const kickoff = friendlyGameKickoff(day, startTime, finishTime, locale);
   const previewLines = friendlyGamePreviewLines({
     day: startTime ? day : "",
-    groupName: selectedGroup?.name ?? selectedGroup?.communityName ?? null,
+    groupName: selectedGroup?.name ?? selectedGroup?.venueName ?? null,
     venueName: selectedVenue?.name ?? null,
     courtName:
       courtId !== "none"

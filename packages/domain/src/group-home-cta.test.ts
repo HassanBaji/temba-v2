@@ -112,7 +112,6 @@ describe("groupHomeNextJoinableGame", () => {
   const openGame = {
     id: "soonest",
     registrationStatus: "open",
-    joinFrozen: false,
     isRegistered: false,
     isWaitlisted: false,
     isPublic: true,
@@ -125,13 +124,12 @@ describe("groupHomeNextJoinableGame", () => {
     );
   });
 
-  it("skips full, closed, frozen, registered, and waitlisted Games", () => {
+  it("skips full, closed, registered, and waitlisted Games", () => {
     assert.equal(
       groupHomeNextJoinableGame(
         [
           { ...openGame, id: "full", registrationStatus: "full" },
           { ...openGame, id: "closed", registrationStatus: "closed" },
-          { ...openGame, id: "frozen", joinFrozen: true },
           { ...openGame, id: "seated", isRegistered: true },
           { ...openGame, id: "wait", isWaitlisted: true },
         ],

@@ -34,7 +34,6 @@ function friendly(
     registrationMode: "individual",
     canRegister: false,
     canWaitlist: false,
-    joinFrozen: false,
     isRegistered: true,
     isSeated: true,
     isWaitlisted: false,

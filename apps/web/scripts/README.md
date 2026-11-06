@@ -34,10 +34,9 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
 | Tournaments | Club Championship: open, 4 pairs + 2 half teams (merge). Autumn Cup: draw drafted, not posted. Friday Cup: posted, round 1 completed, round 2 part-scored |
 | Americano | Autumn Americano, 5/8 registered |
 | Groups | Club Public (Tuesday Ladder); Club Public with Require approval + 3 requests (Advanced Squad); Club Private; Loose Public; Public list with join / request rows; pending Loose Private invite |
-| Communities | Owner of Lisbon Padel Club (Admin, members, linked Venue, 2 join requests, a Team link request, a Lookup invite out). Member of Sunset Social (private). Outsider on Porto Padel Collective (pending Venue link request). Invite to Harbour Circle. Owner of a Soft-archived Community (with a rejected Venue link request) |
-| Teams | Complete Club Team; incomplete Team with an invite + Invite link; pending invite to Lob Stars |
-| Venues (Operator) | 3 live Venues with Courts, 1 archived, 1 pending link request |
-| Invite links | Game `/g/{code}`, Group `/gr/{code}`, Community and Team token links |
+| Teams | Complete Team; incomplete Team with an invite + Invite link; pending invite to Lob Stars |
+| Venues (Operator) | 3 live Venues with Courts, 1 archived |
+| Invite links | Game `/g/{code}`, Group `/gr/{code}`, Team token links |
 
 `newbie` (Nora Newman) has not done the onboarding questionnaire.
 

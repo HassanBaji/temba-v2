@@ -188,10 +188,6 @@ function SettingsBody({ details }: { details: Details }) {
     { ...REFETCH_ON_FOREGROUND, enabled: hasFootball },
   );
   const teams = api.teams.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
-  const communityInvites = api.communities.pendingLookupInvites.useQuery(
-    undefined,
-    REFETCH_ON_FOREGROUND,
-  );
   const groupInvites = api.groups.pendingLookupInvites.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
@@ -201,9 +197,7 @@ function SettingsBody({ details }: { details: Details }) {
     REFETCH_ON_FOREGROUND,
   );
   const inviteCount =
-    (communityInvites.data?.length ?? 0) +
-    (groupInvites.data?.length ?? 0) +
-    (teamInvites.data?.length ?? 0);
+    (groupInvites.data?.length ?? 0) + (teamInvites.data?.length ?? 0);
   const teamCount = teams.data?.length ?? 0;
 
   const savePlayWindows = api.users.setPlayWindows.useMutation({

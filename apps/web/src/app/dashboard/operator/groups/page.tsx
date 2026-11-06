@@ -99,19 +99,14 @@ export default function OperatorGroupsPage() {
                 setVerified.isPending &&
                 setVerified.variables?.groupId === group.id;
               const verified = group.verificationSource === "operator";
-              const viaVenueCommunity =
-                group.verificationSource === "venue_community";
+              const viaVenueLink = group.verificationSource === "venue_link";
               return (
                 <ListRow
                   key={group.id}
                   leading={<EntityMonogram name={name} size="lg" />}
                   title={name}
                   meta={
-                    group.communityName
-                      ? group.communityArchived
-                        ? o.clubGroupOfArchived(group.communityName)
-                        : o.clubGroupOf(group.communityName)
-                      : o.looseGroup
+                    group.venueName ? o.linkedTo(group.venueName) : o.looseGroup
                   }
                   stackTrailing
                   trailing={
@@ -119,14 +114,12 @@ export default function OperatorGroupsPage() {
                       {verified ? (
                         <Badge variant="secondary">{o.verified}</Badge>
                       ) : null}
-                      {viaVenueCommunity ? (
+                      {viaVenueLink ? (
                         <Badge variant="secondary">
-                          {o.verifiedByVenue(
-                            group.venueCommunityVenueName ?? "",
-                          )}
+                          {o.verifiedByVenue(group.venueName ?? "")}
                         </Badge>
                       ) : null}
-                      {viaVenueCommunity ? null : verified ? (
+                      {viaVenueLink ? null : verified ? (
                         <Button
                           variant="outline"
                           size="sm"

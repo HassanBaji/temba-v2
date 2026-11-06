@@ -17,7 +17,6 @@ import {
   SetGroupLevelDialog,
   type SetGroupLevelMember,
 } from "~/components/groups/set-group-level-dialog";
-import { useCreateAccess } from "~/components/create-access-gate";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
@@ -47,7 +46,6 @@ import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
-import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { groupMembersTabHref } from "~/lib/dashboard-paths";
@@ -75,7 +73,6 @@ import {
   entityImageUploadInput,
 } from "@repo/domain/entity-image-file";
 import {
-  groupHomeBanner,
   groupHasGames,
   groupHomeCanJoin,
   groupHomeJoinDoor,
@@ -125,7 +122,6 @@ export default function GroupHomePage({
   const [tab, setTabState] = useState(() => groupHomeTabFromQuery(tabParam));
   const savedUserId =
     (Array.isArray(query.saved) ? query.saved[0] : query.saved) ?? null;
-  const { hasCreateAccess } = useCreateAccess();
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
@@ -177,26 +173,9 @@ export default function GroupHomePage({
     { groupId: id },
     { enabled: Boolean(group.data?.canManageLookupInvites) },
   );
-  const joinClubPublic = api.groups.joinClubPublic.useMutation({
+  const joinPublic = api.groups.joinPublic.useMutation({
     onSuccess: async () => {
-      toast.success(groupJoinToast("joinClubPublic", locale));
-      await utils.groups.byId.invalidate({ id });
-      await utils.groups.mine.invalidate();
-      if (group.data?.communityId) {
-        await utils.communities.byId.invalidate({
-          id: group.data.communityId,
-        });
-        await utils.communities.mine.invalidate();
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
-    onSuccess: async () => {
-      toast.success(groupJoinToast("joinLoosePublic", locale));
+      toast.success(groupJoinToast("joinPublic", locale));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
     },
@@ -238,19 +217,6 @@ export default function GroupHomePage({
       utils.groups.byId.invalidate({ id }),
       utils.groups.mine.invalidate(),
       utils.groups.listJoinRequests.invalidate({ groupId: id }),
-      group.data?.communityId
-        ? utils.communities.byId.invalidate({
-            id: group.data.communityId,
-          })
-        : Promise.resolve(),
-      group.data?.communityId
-        ? utils.communities.mine.invalidate()
-        : Promise.resolve(),
-      group.data?.communityId
-        ? utils.communities.listJoinRequests.invalidate({
-            communityId: group.data.communityId,
-          })
-        : Promise.resolve(),
     ]);
   }
 
@@ -268,7 +234,7 @@ export default function GroupHomePage({
   ) {
     toast.success(
       groupJoinRequestDecidedToast(
-        request.user.name ?? m.community.userFallback,
+        request.user.name ?? m.webGroup.userFallback,
         decision,
         locale,
       ),
@@ -297,14 +263,10 @@ export default function GroupHomePage({
   });
 
   const leaveGroup = api.groups.leave.useMutation({
-    onSuccess: async (result) => {
-      toast.success(groupLeaveToast(result.communityId, locale));
+    onSuccess: async () => {
+      toast.success(groupLeaveToast(locale));
       await utils.groups.byId.invalidate({ id });
       await utils.groups.mine.invalidate();
-      if (result.communityId) {
-        await utils.communities.byId.invalidate({ id: result.communityId });
-        await utils.communities.mine.invalidate();
-      }
     },
   });
 
@@ -321,8 +283,7 @@ export default function GroupHomePage({
     onSuccess: async () => {
       toast.success(
         groupLeftVenueToast(
-          group.data?.venueCommunity?.venueName ??
-            m.webDashboard.group.theVenue,
+          group.data?.venue?.name ?? m.webDashboard.group.theVenue,
           locale,
         ),
       );
@@ -330,21 +291,14 @@ export default function GroupHomePage({
         utils.groups.byId.invalidate({ id }),
         utils.groups.mine.invalidate(),
         utils.groups.mineLoose.invalidate(),
-        utils.communities.mine.invalidate(),
       ]);
     },
   });
 
   const deleteGroup = api.groups.delete.useMutation({
-    onSuccess: async (result) => {
+    onSuccess: async () => {
       toast.success(m.group.admin.deletedToast);
       await utils.groups.mine.invalidate();
-      if (result.communityId) {
-        await utils.communities.byId.invalidate({ id: result.communityId });
-        await utils.communities.mine.invalidate();
-        router.push(`/dashboard/communities/${result.communityId}`);
-        return;
-      }
       router.push("/dashboard/groups");
     },
   });
@@ -379,9 +333,6 @@ export default function GroupHomePage({
     await Promise.all([
       utils.groups.byId.invalidate({ id }),
       utils.groups.listLookupInvites.invalidate({ groupId: id }),
-      group.data?.communityId
-        ? utils.communities.byId.invalidate({ id: group.data.communityId })
-        : Promise.resolve(),
     ]);
   }
 
@@ -466,10 +417,7 @@ export default function GroupHomePage({
     registerGame.mutate({ gameId });
   }
 
-  const joinPending =
-    joinClubPublic.isPending ||
-    joinLoosePublic.isPending ||
-    requestJoin.isPending;
+  const joinPending = joinPublic.isPending || requestJoin.isPending;
 
   function setTab(next: string) {
     const resolved = groupHomeTabFromQuery(next);
@@ -491,10 +439,8 @@ export default function GroupHomePage({
     const door = group.data ? groupHomeJoinDoor(group.data) : null;
     if (door === "requestJoin") {
       setRequestJoinOpen(true);
-    } else if (door === "joinLoosePublic") {
-      joinLoosePublic.mutate({ groupId: id });
-    } else if (door === "joinClubPublic") {
-      joinClubPublic.mutate({ groupId: id });
+    } else if (door === "joinPublic") {
+      joinPublic.mutate({ groupId: id });
     }
   }
 
@@ -571,8 +517,7 @@ export default function GroupHomePage({
 
   const data = group.data;
   const groupName = data.name ?? m.invite.kind.group;
-  const venueName =
-    data.venueCommunity?.venueName ?? m.webDashboard.group.theVenue;
+  const venueName = data.venue?.name ?? m.webDashboard.group.theVenue;
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
   });
@@ -596,8 +541,6 @@ export default function GroupHomePage({
   });
   const overflowItems = groupHomeOverflowItems({
     family: ctaFamily,
-    hasCommunity: data.community != null,
-    hasCreateAccess,
     canShowCreateGame,
     isLoosePublic: data.isLoose && data.type === "public",
     canManageInvites,
@@ -605,7 +548,7 @@ export default function GroupHomePage({
     hasImage: Boolean(data.imageUrl),
     isMember: data.membership != null,
     canDelete: data.canDelete,
-    canLeaveVenueCommunity: data.canUnlinkFromVenue,
+    canUnlinkVenue: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
   });
@@ -637,9 +580,7 @@ export default function GroupHomePage({
         isLoose: data.isLoose,
         locale,
       })}
-      communityId={data.community?.id ?? null}
-      communityName={data.community?.name ?? null}
-      venueName={data.venueCommunity?.venueName ?? null}
+      venueName={data.venue?.name ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
       }
@@ -658,7 +599,7 @@ export default function GroupHomePage({
         setRestoreFocus(which);
         setRemoveImageOpen(true);
       }}
-      onLeaveVenueCommunity={() => {
+      onUnlinkVenue={() => {
         setRestoreFocus(which);
         setLeaveVenueOpen(true);
       }}
@@ -673,14 +614,6 @@ export default function GroupHomePage({
     />
   );
 
-  const bannerCopy = groupHomeBanner({
-    isCommunityArchived: data.isCommunityArchived,
-    hasCommunityMembership: Boolean(data.communityMembership),
-    communityId: data.communityId,
-    communityName: data.community?.name ?? null,
-    joinMode: data.joinMode,
-    locale,
-  });
   const venueRequestBanners = (pendingLinkRequests.data ?? [])
     .filter((request) => request.groupId === id)
     .map((request) => (
@@ -695,15 +628,6 @@ export default function GroupHomePage({
         <VenueLinkRequestActions request={request} />
       </section>
     ));
-  const banners = bannerCopy ? (
-    bannerCopy.heading ? (
-      <SoftArchiveBanner headingLevel={2} heading={bannerCopy.heading}>
-        {bannerCopy.body}
-      </SoftArchiveBanner>
-    ) : (
-      <p className="text-body text-muted-foreground">{bannerCopy.body}</p>
-    )
-  ) : null;
 
   return (
     <DashboardShell
@@ -719,7 +643,6 @@ export default function GroupHomePage({
       <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-0">
         <GroupHomeChrome
           groupId={id}
-          communityId={data.communityId ?? null}
           name={groupName}
           imageUrl={data.imageUrl}
           sport={data.sport ?? null}
@@ -735,12 +658,11 @@ export default function GroupHomePage({
 
         <div className="space-y-6 pt-6">
           {venueRequestBanners}
-          {data.venueCommunity ? (
+          {data.venue ? (
             <p className="text-body text-muted-foreground">
-              {groupPartOfVenueLine(data.venueCommunity.venueName, locale)}
+              {groupPartOfVenueLine(data.venue.name, locale)}
             </p>
           ) : null}
-          {banners}
 
           {ctaFamily.kind === "join_group" ? (
             <Button
@@ -790,7 +712,6 @@ export default function GroupHomePage({
               filtering={group.isPlaceholderData}
               groupId={id}
               groupName={data.name}
-              isCommunityArchived={data.isCommunityArchived}
               canShowCreateGame={canShowCreateGame}
               pendingGameId={pendingGameId}
               onJoinSeat={onJoinSeat}
@@ -821,7 +742,7 @@ export default function GroupHomePage({
                 }
                 members={data.standing.leaderboard.map((entry) => ({
                   userId: entry.userId,
-                  name: entry.name ?? m.community.memberFallback,
+                  name: entry.name ?? m.webGroup.memberFallback,
                   image: entry.image,
                   isViewer: entry.isViewer,
                   isOrganizer: entry.isOrganizer,
@@ -891,7 +812,6 @@ export default function GroupHomePage({
                       }}
                       requiresApproval={data.requiresApproval}
                       approvedToday={data.joinRequestsApprovedToday}
-                      communityName={data.community?.name ?? null}
                       showLevel={groupShowsLevel(data.sport)}
                       linkToProfiles={groupMemberRowsLink(data.membership)}
                       approvePendingId={
@@ -956,7 +876,6 @@ export default function GroupHomePage({
         <>
           <RejectRequestDialog
             request={rejecting}
-            communityName={data.community?.name ?? null}
             pending={
               rejectJoinRequest.isPending
                 ? rejectJoinRequest.variables?.block
@@ -992,7 +911,6 @@ export default function GroupHomePage({
             open={whoCanJoinOpen}
             onOpenChange={setWhoCanJoinOpen}
             requiresApproval={data.requiresApproval}
-            communityName={data.community?.name ?? null}
             pending={setRequiresApproval.isPending}
             onSave={(requiresApproval) =>
               setRequiresApproval.mutate({ groupId: id, requiresApproval })
@@ -1124,7 +1042,7 @@ export default function GroupHomePage({
           groupId: id,
           canLookup: data.canManageLookupInvites,
           canLink: data.canManageInviteLinks,
-          subtitle: groupLookupNote(data.isLoose, locale),
+          subtitle: groupLookupNote(locale),
           shareMessage: (inviteUrl) =>
             groupInviteClipboardText({
               groupName: data.name,
