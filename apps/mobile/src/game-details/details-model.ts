@@ -1,10 +1,13 @@
-import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
+import {
+  isSameJoinPick,
+  type FriendlyGameJoinPick,
+} from "@repo/domain/friendly-game-cta";
 import { friendlyGameResultsSaveSets } from "@repo/domain/friendly-game-results";
 import {
   gameDisplayName,
   type GameDisplayNameInput,
 } from "@repo/domain/game-custom-name";
-import { defaultJoinSeat } from "@repo/domain/preferred-seat";
+import { defaultFriendlyJoinPick } from "@repo/domain/preferred-seat";
 import { gameDetailsChrome } from "@repo/domain/tournament-home";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -35,7 +38,7 @@ export function gameTitle(game: GameDisplayNameInput, locale: Locale) {
 
 export type SeatSelection = {
   touched: boolean;
-  seat: FriendlyGameJoinSeat | null;
+  seat: FriendlyGameJoinPick | null;
 };
 
 export const UNTOUCHED_SELECTION: SeatSelection = {
@@ -45,21 +48,19 @@ export const UNTOUCHED_SELECTION: SeatSelection = {
 
 export function pickedSeat(
   selection: SeatSelection,
-  sides: Parameters<typeof defaultJoinSeat>[0],
+  sides: Parameters<typeof defaultFriendlyJoinPick>[0],
   preferredPosition: string | null | undefined,
 ) {
   return selection.touched
     ? selection.seat
-    : defaultJoinSeat(sides, preferredPosition);
+    : defaultFriendlyJoinPick(sides, preferredPosition);
 }
 
 export function togglePickedSeat(
-  picked: FriendlyGameJoinSeat | null,
-  seat: FriendlyGameJoinSeat,
+  picked: FriendlyGameJoinPick | null,
+  seat: FriendlyGameJoinPick,
 ): SeatSelection {
-  const same =
-    picked?.sideIndex === seat.sideIndex && picked.position === seat.position;
-  return { touched: true, seat: same ? null : seat };
+  return { touched: true, seat: isSameJoinPick(picked, seat) ? null : seat };
 }
 
 export type ScoreDrafts = Record<string, { slot1: string; slot2: string }>;

@@ -92,6 +92,7 @@ export type {
   MatchRow,
   MatchUpdateInput,
   SeatOccupant,
+  SeatChoice,
   SeatPosition,
   TournamentMatchInput,
   VacatedSeat,

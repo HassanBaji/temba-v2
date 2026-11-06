@@ -90,6 +90,12 @@ export const game = {
       `${band} · ${level} بعد هذه المباراة`,
   },
   joinSheet: {
+    eitherSide: "أي جهة",
+    eitherSideNote: "يختار شريكك اليسار أو اليمين، وتأخذ أنت الجهة الأخرى.",
+    eitherSidePartnerOpen: "يمكن لشريكك أخذ أي من المكانين",
+    joinEitherSide: (side: string) => `انضم إلى ${side} في أي جهة`,
+    takeSeatFromEitherSide: (seat: string, name: string) =>
+      `خذ ${seat}. ${name} يلعب في أي جهة وسينتقل إلى الجهة الأخرى`,
     playWith: (name: string) => `ستلعب مع ${name}`,
     partnerSpotOpen: "مكان شريكك ما زال شاغرًا — يمكن لأي شخص أخذه",
     everySpotTaken: "كل الأماكن في هذه المباراة محجوزة",

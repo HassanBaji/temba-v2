@@ -126,7 +126,11 @@ function TakenSeat({
   const m = useMessages();
   const row = courtSeatRow(seat, position, viewerUserId, locale);
   const name = courtSeatName(row, locale);
-  const subline = courtSeatSubline(position, seat.levelBand, locale);
+  const subline = courtSeatSubline(
+    seat.eitherSide ? "either" : position,
+    seat.levelBand,
+    locale,
+  );
   const body = (
     <>
       <UserAvatar

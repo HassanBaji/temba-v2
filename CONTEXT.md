@@ -212,6 +212,10 @@ _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred 
 A User's standing preference for Left or right, or Either. A default for the Game seat picker, not a Position itself.
 _Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
+**Either side**:
+On a padel Friendly game, joining a Game team without picking a Position (ADR-0054). The User holds a Position only until a second User joins that Game team: the second User may pick either Position, and the Either-side User plays the other. A second User who picks a Position settles the Either-side User; two Either-side Users stay Either side, and their Matches record no Position for Played side. Offered while the Game team has a vacant Position and nobody on it picked one. Not on Friendly tournaments. Preferred Position Either opens the join sheet on it.
+_Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
+
 **Owner**:
 A Community role. The creator starts as Owner. A Community always has at least one Owner.
 _Avoid_: admin (when you mean Owner), founder

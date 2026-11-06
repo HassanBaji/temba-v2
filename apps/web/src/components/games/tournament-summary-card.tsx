@@ -407,7 +407,11 @@ export function TournamentSummaryCard({
           teamsAllowed={game.teamsAllowed}
           storedRoundCount={tournament.roundCount}
           allowSoloRegister={tournament.allowSoloRegister}
-          onPickSeat={onJoinSeat}
+          onPickSeat={(sideIndex, position) => {
+            if (position !== "either") {
+              onJoinSeat(sideIndex, position);
+            }
+          }}
         />
       ) : null}
     </Element>

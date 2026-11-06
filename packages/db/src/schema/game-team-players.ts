@@ -1,5 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import { pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  pgTable,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { gamePositions } from "./game-enums";
 import { gameTeams } from "./game-teams";
 import { gamePlayers } from "./game-players";
@@ -15,6 +21,9 @@ export const gameTeamPlayers = pgTable(
       .notNull()
       .references(() => gamePlayers.id, { onDelete: "cascade" }),
     position: gamePositions("position"),
+    // Either side: the User joined without picking a Position. `position` is
+    // only held until the other User on this Game team picks one.
+    eitherSide: boolean("either_side").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

@@ -21,6 +21,7 @@ export type HubListSideOccupant = {
   name: string;
   image: string | null;
   isViewer: boolean;
+  eitherSide?: boolean;
 };
 
 export type HubListSide = {
@@ -216,10 +217,15 @@ export type CreateGameInput = {
 
 export type SeatPosition = "left" | "right";
 
+/** A Position, or `either` for a User who joins a Game team without picking one. */
+export type SeatChoice = SeatPosition | "either";
+
 export type SeatOccupant = {
   userId: string;
   name: string;
   image: string | null;
+  /** Joined without picking a Position: the other User on the Game team may take this one. */
+  eitherSide: boolean;
 };
 
 export type GameSide = {
@@ -242,7 +248,7 @@ export type AdmitParty =
   | {
       kind: "user";
       userId: string;
-      seat?: { sideIndex: number; position: SeatPosition };
+      seat?: { sideIndex: number; position: SeatChoice };
     }
   | {
       kind: "pair";

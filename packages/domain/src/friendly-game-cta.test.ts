@@ -10,6 +10,8 @@ import {
   friendlyGameOverflowItems,
   friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
+  isTakeableJoinSeat,
+  offersEitherSide,
   vacantJoinSeats,
   type FriendlyGameCtaInput,
   type FriendlyGameOverflowInput,
@@ -445,6 +447,72 @@ describe("friendlyGameJoinSheetCaption", () => {
         "en",
       ),
       "Your partner spot is still open — anyone can take it",
+    );
+  });
+});
+
+describe("Either side", () => {
+  const either = { name: "Ada", eitherSide: true };
+  const fixed = { name: "Sofia", eitherSide: false };
+
+  it("lets the joiner take an Either-side User's Position while the other is vacant", () => {
+    const side = { sideIndex: 1, left: either, right: null };
+    assert.equal(isTakeableJoinSeat(side, "left"), true);
+    assert.equal(isTakeableJoinSeat(side, "right"), true);
+  });
+
+  it("does not let the joiner take a Position somebody picked", () => {
+    const side = { sideIndex: 1, left: fixed, right: null };
+    assert.equal(isTakeableJoinSeat(side, "left"), false);
+    assert.equal(isTakeableJoinSeat(side, "right"), true);
+  });
+
+  it("does not move an Either-side User once the Game team is full", () => {
+    const side = { sideIndex: 1, left: either, right: fixed };
+    assert.equal(isTakeableJoinSeat(side, "left"), false);
+  });
+
+  it("offers Either side only while nobody on the Game team picked a Position", () => {
+    assert.equal(
+      offersEitherSide({ sideIndex: 1, left: null, right: null }),
+      true,
+    );
+    assert.equal(
+      offersEitherSide({ sideIndex: 1, left: either, right: null }),
+      true,
+    );
+    assert.equal(
+      offersEitherSide({ sideIndex: 1, left: fixed, right: null }),
+      false,
+    );
+    assert.equal(
+      offersEitherSide({ sideIndex: 1, left: { name: "Omar" }, right: null }),
+      false,
+    );
+    assert.equal(
+      offersEitherSide({ sideIndex: 1, left: either, right: either }),
+      false,
+    );
+  });
+
+  it("names the Either-side User as partner whichever Position the joiner takes", () => {
+    const sides = [{ sideIndex: 1, left: either, right: null }];
+    for (const position of ["left", "right", "either"] as const) {
+      assert.equal(
+        friendlyGameJoinSheetCaption(sides, { sideIndex: 1, position }, "en"),
+        "You'll play with Ada",
+      );
+    }
+  });
+
+  it("says the partner can take either spot on an empty Game team", () => {
+    assert.equal(
+      friendlyGameJoinSheetCaption(
+        [{ sideIndex: 1, left: null, right: null }],
+        { sideIndex: 1, position: "either" },
+        "en",
+      ),
+      "Your partner can take either spot",
     );
   });
 });

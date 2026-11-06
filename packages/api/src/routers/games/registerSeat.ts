@@ -20,7 +20,7 @@ import {
   occupySeat,
   remainingCapacity,
 } from "#src/games/seats";
-import type { SeatPosition } from "#src/games/utils";
+import type { SeatChoice } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
 import {
@@ -36,7 +36,7 @@ export async function registerSeat(
     gameId: string;
     userId: string;
     sideIndex?: number;
-    position?: SeatPosition;
+    position?: SeatChoice;
     locale?: Locale;
   },
 ) {
@@ -150,7 +150,7 @@ export const registerSeatProcedure = protectedProcedure
     z.object({
       gameId: z.string().uuid(),
       sideIndex: z.number().int().min(1).optional(),
-      position: z.enum(["left", "right"]).optional(),
+      position: z.enum(["left", "right", "either"]).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

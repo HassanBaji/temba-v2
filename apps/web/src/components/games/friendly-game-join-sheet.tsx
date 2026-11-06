@@ -27,7 +27,11 @@ import { formatGameCardDay } from "@repo/domain/format-game-start";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
   friendlyGameJoinSheetCaption,
+  isSameJoinPick,
+  isTakeableJoinSeat,
+  offersEitherSide,
   vacantJoinSeats,
+  type FriendlyGameJoinPick,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
 import {
@@ -43,7 +47,7 @@ import {
   displayLabelFromStoredBand,
   type LevelBand,
 } from "@repo/domain/level-bands";
-import { defaultJoinSeat } from "@repo/domain/preferred-seat";
+import { defaultFriendlyJoinPick } from "@repo/domain/preferred-seat";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { tournamentFieldSummary } from "@repo/domain/tournament-home";
 import {
@@ -72,6 +76,14 @@ type JoinSheetStep = "chooser" | "seat" | "partner" | "partnerConfirm";
 
 type SeatPosition = "left" | "right";
 
+function seatOf(
+  pick: FriendlyGameJoinPick | null,
+): FriendlyGameJoinSeat | null {
+  return pick && pick.position !== "either"
+    ? { sideIndex: pick.sideIndex, position: pick.position }
+    : null;
+}
+
 /**
  * Structural side shape rather than one screen's router output: the sheet is
  * shared by the Game details page (`games.byId`) and the Games hub card
@@ -88,6 +100,7 @@ export type FriendlyGameJoinSheetOccupant = {
   name: string;
   image: string | null;
   levelBand?: LevelBand | null;
+  eitherSide?: boolean;
 };
 
 function occupantLevelLabel(occupant: FriendlyGameJoinSheetOccupant | null) {
@@ -166,6 +179,7 @@ function PositionButton({
   occupant,
   position,
   sideLabel,
+  takeable,
   selected,
   disabled,
   onSelect,
@@ -173,6 +187,7 @@ function PositionButton({
   occupant: FriendlyGameJoinSheetOccupant | null;
   position: SeatPosition;
   sideLabel: string;
+  takeable: boolean;
   selected: boolean;
   disabled: boolean;
   onSelect: () => void;
@@ -182,20 +197,60 @@ function PositionButton({
     sideLabel,
     m.tournament.position[`${position}Lower`],
   );
+  // Taking an Either-side User's Position moves them over, so the tile shows
+  // the joiner once picked.
+  const shown = occupant && takeable && selected ? null : occupant;
   return (
     <SeatTile
-      occupant={occupant}
-      level={occupantLevelLabel(occupant)}
+      occupant={shown}
+      level={occupantLevelLabel(shown)}
       selected={selected}
-      caption={m.tournament.position[position]}
-      label={
-        occupant
-          ? m.webGame.joinSheet.seatTakenBy(seatName, occupant.name)
-          : m.webGame.joinSheet.takeSeat(seatName)
+      caption={
+        occupant?.eitherSide
+          ? m.game.joinSheet.eitherSide
+          : m.tournament.position[position]
       }
-      disabled={occupant != null || disabled}
+      label={
+        !occupant
+          ? m.webGame.joinSheet.takeSeat(seatName)
+          : takeable
+            ? m.game.joinSheet.takeSeatFromEitherSide(seatName, occupant.name)
+            : m.webGame.joinSheet.seatTakenBy(seatName, occupant.name)
+      }
+      disabled={!takeable || disabled}
       onSelect={onSelect}
     />
+  );
+}
+
+/** Joins the Game team without a Position, keeping both open for a partner. */
+function EitherSideButton({
+  sideLabel,
+  selected,
+  disabled,
+  onSelect,
+}: {
+  sideLabel: string;
+  selected: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  const m = useMessages();
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={selected}
+      aria-label={m.game.joinSheet.joinEitherSide(sideLabel)}
+      onClick={onSelect}
+      className={cn(
+        "text-meta mt-2 flex h-9 w-full items-center justify-center rounded-lg border font-medium outline-none transition-colors",
+        "focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-default",
+        selected ? "border-ink bg-ink text-paper" : "border-rule text-ink",
+      )}
+    >
+      {m.game.joinSheet.eitherSide}
+    </button>
   );
 }
 
@@ -225,12 +280,17 @@ function SideColumn({
   picked,
   pending,
   onPick,
+  offersEither = false,
+  onPickEither,
 }: {
   side: FriendlyGameJoinSheetSide;
   format: string;
-  picked: FriendlyGameJoinSeat | null;
+  picked: FriendlyGameJoinPick | null;
   pending: boolean;
   onPick: (seat: FriendlyGameJoinSeat) => void;
+  /** Friendly games only: offer Either side on this Game team. */
+  offersEither?: boolean;
+  onPickEither?: () => void;
 }) {
   const locale = useLocale();
   const sideLabel = formatGameSideLabel(format, side.sideIndex, locale);
@@ -248,6 +308,7 @@ function SideColumn({
             occupant={side[position]}
             position={position}
             sideLabel={sideLabel}
+            takeable={isTakeableJoinSeat(side, position)}
             selected={
               picked?.sideIndex === side.sideIndex &&
               picked.position === position
@@ -257,6 +318,16 @@ function SideColumn({
           />
         ))}
       </div>
+      {offersEither && onPickEither && offersEitherSide(side) ? (
+        <EitherSideButton
+          sideLabel={sideLabel}
+          selected={
+            picked?.sideIndex === side.sideIndex && picked.position === "either"
+          }
+          disabled={pending}
+          onSelect={onPickEither}
+        />
+      ) : null}
     </div>
   );
 }
@@ -590,7 +661,7 @@ export function FriendlyGameJoinSheet({
   /** Return the join promise to keep the sheet open until it settles. */
   onPickSeat: (
     sideIndex: number,
-    position: SeatPosition,
+    position: FriendlyGameJoinPick["position"],
   ) => void | Promise<unknown>;
   gameId?: string;
   format?: string;
@@ -644,7 +715,7 @@ export function FriendlyGameJoinSheet({
   // the empty one they get by tapping the pre-selected Position off again.
   const [selection, setSelection] = useState<{
     touched: boolean;
-    seat: FriendlyGameJoinSeat | null;
+    seat: FriendlyGameJoinPick | null;
   }>({ touched: false, seat: null });
   const [step, setStep] = useState<JoinSheetStep>("seat");
   const [selectedPartner, setSelectedPartner] =
@@ -755,14 +826,16 @@ export function FriendlyGameJoinSheet({
           initialSeat ?? null,
         )
       : (initialSeat ??
-        defaultJoinSeat(sides, onboardingState.data?.preferredPosition));
-  const picked = isTournamentJoin
-    ? tournamentJoinResolvedSeat(sides, rawPicked)
+        defaultFriendlyJoinPick(
+          sides,
+          onboardingState.data?.preferredPosition,
+        ));
+  const picked: FriendlyGameJoinPick | null = isTournamentJoin
+    ? tournamentJoinResolvedSeat(sides, seatOf(rawPicked))
     : rawPicked;
 
-  function pick(seat: FriendlyGameJoinSeat) {
-    const same =
-      picked?.sideIndex === seat.sideIndex && picked.position === seat.position;
+  function pick(seat: FriendlyGameJoinPick) {
+    const same = isSameJoinPick(picked, seat);
     setSelection({ touched: true, seat: same ? null : seat });
   }
 
@@ -911,7 +984,7 @@ export function FriendlyGameJoinSheet({
             title={title}
             sides={sides}
             format={format ?? "friendly_tournament"}
-            picked={picked}
+            picked={seatOf(picked)}
             pending={pending}
             pricePerPlayerFils={pricePerPlayerFils}
             roundCount={roundCount}
@@ -960,6 +1033,13 @@ export function FriendlyGameJoinSheet({
                         picked={picked}
                         pending={pending}
                         onPick={pick}
+                        offersEither
+                        onPickEither={() =>
+                          pick({
+                            sideIndex: side.sideIndex,
+                            position: "either",
+                          })
+                        }
                       />
                     </Fragment>
                   ))}
