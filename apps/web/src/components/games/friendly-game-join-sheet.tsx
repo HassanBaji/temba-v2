@@ -1,7 +1,7 @@
 "use client";
 
 import { UserRound, Users } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -23,17 +23,34 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { BackButton, CloseButton } from "~/components/ui/nav-icon-button";
 import { SelectCard, SelectCardNote } from "~/components/ui/select-card";
-import { formatGameCardDay } from "@repo/domain/format-game-start";
+import {
+  formatGameCardDay,
+  formatGameStart,
+} from "@repo/domain/format-game-start";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import {
-  friendlyGameJoinSheetCaption,
   isSameJoinPick,
   isTakeableJoinSeat,
-  offersEitherSide,
   vacantJoinSeats,
   type FriendlyGameJoinPick,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import {
+  defaultJoinSide,
+  defaultJoinTeam,
+  joinSeatSummary,
+  joinSideFor,
+  joinSideHelp,
+  joinTeamCta,
+  sidePickerHint,
+  teamVacancy,
+  type SideChoice,
+  type SidesTeam,
+} from "@repo/domain/padel-sides";
+import {
+  SideOptionCards,
+  TeamOptionCards,
+} from "~/components/games/padel-side-picker";
 import {
   firstFullyVacantSideIndex,
   friendlyGameJoinOpeningStep,
@@ -47,7 +64,6 @@ import {
   displayLabelFromStoredBand,
   type LevelBand,
 } from "@repo/domain/level-bands";
-import { defaultFriendlyJoinPick } from "@repo/domain/preferred-seat";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { tournamentFieldSummary } from "@repo/domain/tournament-home";
 import {
@@ -97,11 +113,23 @@ export type FriendlyGameJoinSheetSide = {
 };
 
 export type FriendlyGameJoinSheetOccupant = {
+  userId?: string;
   name: string;
   image: string | null;
   levelBand?: LevelBand | null;
   eitherSide?: boolean;
+  sideSetByUserId?: string | null;
 };
+
+function sidesTeams(sides: readonly FriendlyGameJoinSheetSide[]): SidesTeam[] {
+  const occupant = (row: FriendlyGameJoinSheetOccupant | null) =>
+    row ? { ...row, userId: row.userId ?? row.name } : null;
+  return sides.map((side) => ({
+    sideIndex: side.sideIndex,
+    left: occupant(side.left),
+    right: occupant(side.right),
+  }));
+}
 
 function occupantLevelLabel(occupant: FriendlyGameJoinSheetOccupant | null) {
   if (!occupant?.levelBand) {
@@ -223,74 +251,18 @@ function PositionButton({
   );
 }
 
-/** Joins the Game team without a Position, keeping both open for a partner. */
-function EitherSideButton({
-  sideLabel,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  sideLabel: string;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  const m = useMessages();
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-pressed={selected}
-      aria-label={m.game.joinSheet.joinEitherSide(sideLabel)}
-      onClick={onSelect}
-      className={cn(
-        "text-meta mt-2 flex h-9 w-full items-center justify-center rounded-lg border font-medium outline-none transition-colors",
-        "focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-default",
-        selected ? "border-ink bg-ink text-paper" : "border-rule text-ink",
-      )}
-    >
-      {m.game.joinSheet.eitherSide}
-    </button>
-  );
-}
-
-/** The net between the two Game teams — decoration, mirroring the "vs" rule
- * `game-lineup-section.tsx` already puts between its two columns. */
-function NetDivider() {
-  const m = useMessages();
-  return (
-    <div
-      aria-hidden="true"
-      className="flex w-8 shrink-0 flex-col items-center self-stretch"
-    >
-      <span className="h-5 shrink-0" />
-      <span className="bg-rule w-px flex-1" />
-      <span className="text-muted-foreground text-eyebrow py-1.5 font-semibold">
-        {m.webGame.joinSheet.versus}
-      </span>
-      <span className="bg-rule w-px flex-1" />
-      <span className="h-7 shrink-0" />
-    </div>
-  );
-}
-
 function SideColumn({
   side,
   format,
   picked,
   pending,
   onPick,
-  offersEither = false,
-  onPickEither,
 }: {
   side: FriendlyGameJoinSheetSide;
   format: string;
   picked: FriendlyGameJoinPick | null;
   pending: boolean;
   onPick: (seat: FriendlyGameJoinSeat) => void;
-  /** Friendly games only: offer Either side on this Game team. */
-  offersEither?: boolean;
-  onPickEither?: () => void;
 }) {
   const locale = useLocale();
   const sideLabel = formatGameSideLabel(format, side.sideIndex, locale);
@@ -318,16 +290,6 @@ function SideColumn({
           />
         ))}
       </div>
-      {offersEither && onPickEither && offersEitherSide(side) ? (
-        <EitherSideButton
-          sideLabel={sideLabel}
-          selected={
-            picked?.sideIndex === side.sideIndex && picked.position === "either"
-          }
-          disabled={pending}
-          onSelect={onPickEither}
-        />
-      ) : null}
     </div>
   );
 }
@@ -601,6 +563,150 @@ function TournamentTakeASeat({
 }
 
 /**
+ * The Friendly game seat step (Padel Sides J1): pick a Game team, then a side
+ * that is optional. Either is a real answer; a side the partner picked is
+ * hatched with their name. Nothing is submitted until the footer button.
+ */
+function FriendlyTeamSideStep({
+  sides,
+  initialTeam,
+  preferredPosition,
+  windowStart,
+  venueName,
+  pricePerPlayerFils,
+  pending,
+  error,
+  onClose,
+  onConfirm,
+}: {
+  sides: readonly FriendlyGameJoinSheetSide[];
+  initialTeam: number | null;
+  preferredPosition: string | null | undefined;
+  windowStart?: Date | string | null;
+  venueName?: string | null;
+  pricePerPlayerFils?: number | null;
+  pending: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: (sideIndex: number, side: SideChoice) => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.game.sides;
+  const teams = sidesTeams(sides);
+  const [touchedTeam, setTouchedTeam] = useState<number | null>(null);
+  const [touchedSide, setTouchedSide] = useState<SideChoice | null>(null);
+
+  const openTeam = (sideIndex: number | null) =>
+    teams.find((team) => team.sideIndex === sideIndex && teamVacancy(team) > 0)
+      ?.sideIndex ?? null;
+  const teamIndex =
+    openTeam(touchedTeam) ?? openTeam(initialTeam) ?? defaultJoinTeam(teams);
+  const team = teams.find((row) => row.sideIndex === teamIndex) ?? null;
+  const side = joinSideFor(
+    team,
+    touchedSide ?? defaultJoinSide(team, preferredPosition),
+  );
+  const price = formatPricePerPlayerFils(pricePerPlayerFils, locale);
+  const when = windowStart ? formatGameStart(windowStart, locale) : null;
+  const summary =
+    when && venueName ? copy.joinSummary(when, venueName, price) : null;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-start justify-between gap-4 px-[22px] pt-[22px]">
+        <ResponsiveDialogHeader className="p-0 text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
+          <ResponsiveDialogTitle className="font-expanded text-display leading-none tracking-[-0.03em]">
+            {copy.joinTitle}
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription className="text-meta leading-relaxed">
+            {summary}
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
+        <CloseButton variant="boxed" onClick={onClose} />
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-[22px] py-5">
+        <FormErrorSummary message={error} />
+        <section className="flex flex-col gap-2.5">
+          <h3 className="text-meta text-muted-foreground font-medium">
+            {copy.teamHeading}
+          </h3>
+          <TeamOptionCards
+            teams={teams}
+            value={teamIndex}
+            disabled={pending}
+            onChange={setTouchedTeam}
+          />
+        </section>
+
+        <section className="flex flex-col gap-2.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-meta text-muted-foreground font-medium">
+              {copy.sideHeading}
+            </h3>
+            <p className="text-muted-foreground text-eyebrow truncate">
+              {sidePickerHint(preferredPosition, locale)}
+            </p>
+          </div>
+          <SideOptionCards
+            team={team}
+            value={side}
+            disabled={pending || team == null}
+            onChange={setTouchedSide}
+          />
+          <p
+            aria-live="polite"
+            className="text-muted-foreground text-meta leading-relaxed"
+          >
+            {joinSideHelp(team, side, locale)}
+          </p>
+        </section>
+
+        {team ? (
+          <dl className="border-rule divide-rule divide-y rounded-lg border">
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <dt className="text-muted-foreground text-meta">
+                {copy.yourSeat}
+              </dt>
+              <dd className="text-sm">
+                {joinSeatSummary(team.sideIndex, side, locale)}
+              </dd>
+            </div>
+            {price ? (
+              <div className="flex items-center justify-between gap-4 px-4 py-3">
+                <dt className="text-muted-foreground text-meta">
+                  {copy.courtCost}
+                </dt>
+                <dd className="text-sm tabular-nums">
+                  {copy.courtCostValue(price)}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : null}
+      </div>
+
+      <div className="mt-auto shrink-0 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-1">
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          disabled={team == null || pending}
+          onClick={() => team && onConfirm(team.sideIndex, side)}
+        >
+          {pending
+            ? m.game.cta.joining
+            : team
+              ? joinTeamCta(team.sideIndex, side, locale)
+              : m.game.joinSheet.gameIsFull}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Join sheet (join-sheet redesign): the viewer picks a Position off the
  * line-up itself — both Game teams either side of the net, taken Positions
  * shown with their occupant — then confirms in a footer that also states the
@@ -825,11 +931,7 @@ export function FriendlyGameJoinSheet({
           onboardingState.data?.preferredPosition,
           initialSeat ?? null,
         )
-      : (initialSeat ??
-        defaultFriendlyJoinPick(
-          sides,
-          onboardingState.data?.preferredPosition,
-        ));
+      : (initialSeat ?? null);
   const picked: FriendlyGameJoinPick | null = isTournamentJoin
     ? tournamentJoinResolvedSeat(sides, seatOf(rawPicked))
     : rawPicked;
@@ -867,14 +969,13 @@ export function FriendlyGameJoinSheet({
   }
 
   const isFull = vacantJoinSeats(sides).length === 0;
-  const priceLabel = formatPricePerPlayerFils(pricePerPlayerFils, locale);
   const vacantSideIndex = firstFullyVacantSideIndex(sides);
 
-  async function confirmSeat() {
-    if (!picked) {
+  async function confirmSeat(choice: FriendlyGameJoinPick | null = picked) {
+    if (!choice) {
       return;
     }
-    const joining = onPickSeat(picked.sideIndex, picked.position);
+    const joining = onPickSeat(choice.sideIndex, choice.position);
     if (!(joining instanceof Promise)) {
       onOpenChange(false);
       return;
@@ -928,9 +1029,7 @@ export function FriendlyGameJoinSheet({
       locale,
     });
   const showSheetHeader =
-    step !== "partner" &&
-    step !== "partnerConfirm" &&
-    !(isTournamentJoin && step === "seat");
+    step !== "partner" && step !== "partnerConfirm" && step !== "seat";
   const roundCount = plannedTournamentRoundCount({
     format: format ?? "",
     teamsAllowed,
@@ -1014,69 +1113,20 @@ export function FriendlyGameJoinSheet({
         ) : null}
 
         {step === "seat" && !isTournamentJoin ? (
-          <>
-            <div className="px-[22px] pt-[18px]">
-              {(partnerRaceMessage ?? seatError) ? (
-                <FormErrorSummary
-                  message={partnerRaceMessage ?? seatError}
-                  className="mb-4"
-                />
-              ) : null}
-              <div className="border-rule bg-paper overflow-hidden rounded-xl border">
-                <div className="flex items-start px-4 pb-4 pt-[18px]">
-                  {sides.map((side, index) => (
-                    <Fragment key={side.sideIndex}>
-                      {index > 0 ? <NetDivider /> : null}
-                      <SideColumn
-                        side={side}
-                        format={format ?? "friendly_game"}
-                        picked={picked}
-                        pending={pending}
-                        onPick={pick}
-                        offersEither
-                        onPickEither={() =>
-                          pick({
-                            sideIndex: side.sideIndex,
-                            position: "either",
-                          })
-                        }
-                      />
-                    </Fragment>
-                  ))}
-                </div>
-                <p
-                  aria-live="polite"
-                  className="border-rule text-muted-foreground text-meta border-t px-4 py-3"
-                >
-                  {friendlyGameJoinSheetCaption(sides, picked, locale)}
-                </p>
-              </div>
-            </div>
-
-            <div className="border-rule mt-[22px] flex items-center gap-4 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-4">
-              {priceLabel ? (
-                <div className="shrink-0">
-                  <p className="font-expanded text-lead tabular-nums leading-none">
-                    {priceLabel}
-                  </p>
-                  <p className="text-muted-foreground text-eyebrow mt-1.5">
-                    {m.tournament.join.pricePerPlayer}
-                  </p>
-                </div>
-              ) : null}
-              <Button
-                type="button"
-                size="lg"
-                className="flex-1"
-                disabled={!picked || pending}
-                onClick={() => {
-                  void confirmSeat();
-                }}
-              >
-                {pending ? m.game.cta.joining : m.game.action.joinGame}
-              </Button>
-            </div>
-          </>
+          <FriendlyTeamSideStep
+            sides={sides}
+            initialTeam={initialSeat?.sideIndex ?? null}
+            preferredPosition={onboardingState.data?.preferredPosition}
+            windowStart={windowStart}
+            venueName={venueName}
+            pricePerPlayerFils={pricePerPlayerFils}
+            pending={pending}
+            error={partnerRaceMessage ?? seatError}
+            onClose={() => onOpenChange(false)}
+            onConfirm={(sideIndex, side) => {
+              void confirmSeat({ sideIndex, position: side });
+            }}
+          />
         ) : null}
 
         {step === "partner" && gameId ? (
