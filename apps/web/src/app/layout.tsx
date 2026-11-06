@@ -64,8 +64,8 @@ export default async function RootLayout({
         <NavigationTrail />
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           <ClerkProvider

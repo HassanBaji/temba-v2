@@ -10,6 +10,7 @@ import { Fragment, useCallback } from "react";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { useColorSchemeName } from "../theme/theme-provider";
 import { Button } from "../primitives/button";
 import { MountFill } from "../primitives/mount-fill";
 import { Screen } from "../primitives/screen";
@@ -71,11 +72,12 @@ export function StepShell({
 }
 
 export function useLightStatusBar() {
+  const scheme = useColorSchemeName();
   useFocusEffect(
     useCallback(() => {
       setStatusBarStyle("light");
-      return () => setStatusBarStyle("dark");
-    }, []),
+      return () => setStatusBarStyle(scheme === "dark" ? "light" : "dark");
+    }, [scheme]),
   );
 }
 

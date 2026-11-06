@@ -3,6 +3,7 @@ import { useContext, useEffect } from "react";
 import { View, type ViewProps } from "react-native";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import { InkRegistryContext, SurfaceToneContext } from "./surface-context";
 import { tonePalette } from "./tone-palette";
@@ -20,7 +21,9 @@ export function Surface({
   style,
   ...props
 }: SurfaceProps) {
-  const palette = tonePalette(tone);
+  const palette = tonePalette(tone, useColors());
+  // Light inverts the focused surface; dark lifts it and needs its hairline.
+  const bordered = tone === "paper" || useColorSchemeName() === "dark";
   const inkRegistry = useContext(InkRegistryContext);
 
   useEffect(() => {
@@ -39,7 +42,7 @@ export function Surface({
             backgroundColor: palette.background,
             borderRadius: radii[radius],
             padding: padded ? spacing.surface : 0,
-            borderWidth: tone === "paper" ? hairline : 0,
+            borderWidth: bordered ? hairline : 0,
             borderColor: palette.rule,
           },
           style,

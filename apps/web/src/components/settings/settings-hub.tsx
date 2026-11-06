@@ -18,6 +18,7 @@ import * as React from "react";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { AppearanceControl } from "~/components/settings/appearance-control";
 import { LanguageControl } from "~/components/settings/language-control";
 import { PasswordDialog } from "~/components/settings/password-dialog";
 import {
@@ -465,6 +466,13 @@ export function SettingsHub() {
             <SettingsSection eyebrow={copy.language}>
               <LanguageControl />
             </SettingsSection>
+
+            <SettingsSection eyebrow={copy.appearance.title}>
+              <AppearanceControl />
+            </SettingsSection>
+            <p className="text-muted-foreground text-meta -mt-3 px-1">
+              {copy.appearance.shareNote}
+            </p>
 
             <SettingsSection eyebrow={copy.about}>
               <SettingsLinkRow

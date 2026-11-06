@@ -359,7 +359,11 @@ export const game = {
       "Whoever joins next takes Right, or picks nothing and plays Right by default.",
     helpRightEmpty:
       "Whoever joins next takes Left, or picks nothing and plays Left by default.",
-    helpEitherNextToPicked: (partner: string, partnerSide: string, side: string) =>
+    helpEitherNextToPicked: (
+      partner: string,
+      partnerSide: string,
+      side: string,
+    ) =>
       `${partner} picked ${partnerSide}, so you'd play ${side} by default. Change it any time before the game.`,
     helpEither:
       "If your partner picks a side you take the other. If neither of you does, sort it on court; the organizer can note it later.",
@@ -373,7 +377,8 @@ export const game = {
     youreInTeam: (team: string) => `You're in, ${team}`,
     sideOpenUntil: (partner: string) =>
       `Side open until you or ${partner} change it`,
-    pickSideDescription: "Pick a side any time before the game. Your partner is told if it moves them.",
+    pickSideDescription:
+      "Pick a side any time before the game. Your partner is told if it moves them.",
     saveSide: "Save side",
     sideButton: (side: string) => `${side} side`,
     sideButtonTaken: (side: string, name: string) =>

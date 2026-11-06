@@ -1,4 +1,14 @@
-import { colors, expanded, hatch, radii, sizes, typeScale } from "./tokens.ts";
+import {
+  darkColors,
+  colors,
+  expanded,
+  hatch,
+  radii,
+  sizes,
+  typeScale,
+  type ColorScheme,
+  type Palette,
+} from "./tokens.ts";
 
 function rem(px: number): string {
   return `${Number((px / 16).toFixed(4))}rem`;
@@ -6,6 +16,45 @@ function rem(px: number): string {
 
 function block(selector: string, lines: string[]): string {
   return `${selector} {\n${lines.map((line) => `  ${line}`).join("\n")}\n}\n`;
+}
+
+function schemeLines(palette: Palette, scheme: ColorScheme): string[] {
+  return [
+    `color-scheme: ${scheme};`,
+    `--background: ${palette.paper};`,
+    `--surface-raised: ${palette.surfaceRaised};`,
+    `--card: ${palette.paper};`,
+    `--popover: ${palette.sheet};`,
+    `--muted: ${palette.wash};`,
+    `--secondary: ${palette.wash};`,
+    `--accent: ${palette.wash};`,
+    `--muted-foreground: ${palette.muted};`,
+    `--border: ${palette.rule};`,
+    `--input: ${palette.inputBorder};`,
+    `--primary: ${palette.ink};`,
+    `--primary-foreground: ${palette.paper};`,
+    `--ring: ${palette.ink};`,
+    `--on-ink-muted: ${palette.dim};`,
+    `--on-ink-border: ${palette.dimrule};`,
+    `--on-ink-raised: ${palette.raised};`,
+    `--focus: ${palette.focus};`,
+    `--on-focus: ${palette.onFocus};`,
+    `--control: ${palette.control};`,
+    `--on-control: ${palette.onControl};`,
+    `--control-edge: ${palette.controlEdge};`,
+    `--focus-control: ${palette.focusControl};`,
+    `--on-focus-control: ${palette.onFocusControl};`,
+    `--sheet: ${palette.sheet};`,
+    `--scrim: ${palette.scrim};`,
+    `--hatch-stroke-paper: ${palette.hatchStroke};`,
+    `--hatch-stroke-ink: ${palette.hatchStrokeOnInk};`,
+    `--chart-1: ${palette.ink};`,
+    `--sidebar: ${palette.focus};`,
+    `--sidebar-foreground: ${palette.onFocus};`,
+    `--sidebar-primary: ${scheme === "light" ? palette.paper : palette.control};`,
+    `--sidebar-primary-foreground: ${scheme === "light" ? palette.ink : palette.onControl};`,
+    `--sidebar-ring: ${palette.onFocus};`,
+  ];
 }
 
 export function renderThemeCss(): string {
@@ -38,32 +87,19 @@ export function renderThemeCss(): string {
     "--color-dim: var(--on-ink-muted);",
     "--color-dimrule: var(--on-ink-border);",
     "--color-raised: var(--on-ink-raised);",
+    "--color-focus: var(--focus);",
+    "--color-on-focus: var(--on-focus);",
+    "--color-control: var(--control);",
+    "--color-on-control: var(--on-control);",
+    "--color-control-edge: var(--control-edge);",
+    "--color-focus-control: var(--focus-control);",
+    "--color-on-focus-control: var(--on-focus-control);",
+    "--color-sheet: var(--sheet);",
+    "--color-scrim: var(--scrim);",
   ]);
 
-  const root = block(":root", [
-    `--background: ${colors.paper};`,
-    `--surface-raised: ${colors.surfaceRaised};`,
-    `--card: ${colors.paper};`,
-    `--popover: ${colors.paper};`,
-    `--muted: ${colors.wash};`,
-    `--secondary: ${colors.wash};`,
-    `--accent: ${colors.wash};`,
-    `--muted-foreground: ${colors.muted};`,
-    `--border: ${colors.rule};`,
-    `--input: ${colors.inputBorder};`,
-    `--primary: ${colors.ink};`,
-    `--primary-foreground: ${colors.paper};`,
-    `--ring: ${colors.ink};`,
-    `--on-ink-muted: ${colors.dim};`,
-    `--on-ink-border: ${colors.dimrule};`,
-    `--on-ink-raised: ${colors.raised};`,
-    `--chart-1: ${colors.ink};`,
-    `--sidebar: ${colors.ink};`,
-    `--sidebar-foreground: ${colors.paper};`,
-    `--sidebar-primary: ${colors.paper};`,
-    `--sidebar-primary-foreground: ${colors.ink};`,
-    `--sidebar-ring: ${colors.paper};`,
-  ]);
+  const light = block(":root, .light", schemeLines(colors, "light"));
+  const dark = block(".dark", schemeLines(darkColors, "dark"));
 
   const expandedUtility = block("@utility font-expanded", [
     `font-weight: ${expanded.weight};`,
@@ -72,14 +108,14 @@ export function renderThemeCss(): string {
   ]);
 
   const hatchUtility = block("@utility hatch", [
-    `--hatch-stroke: ${colors.hatchStroke};`,
+    "--hatch-stroke: var(--hatch-stroke-paper);",
     "--hatch-inset: var(--color-rule);",
     `background-image: repeating-linear-gradient(${hatch.angle}deg, var(--hatch-stroke) 0 ${hatch.stroke}px, transparent ${hatch.stroke}px ${hatch.period}px);`,
     "box-shadow: inset 0 0 0 1px var(--hatch-inset);",
   ]);
 
   const hatchOnInkUtility = block("@utility hatch-on-ink", [
-    `--hatch-stroke: ${colors.hatchStrokeOnInk};`,
+    "--hatch-stroke: var(--hatch-stroke-ink);",
     "--hatch-inset: var(--color-dimrule);",
   ]);
 
@@ -90,7 +126,8 @@ export function renderThemeCss(): string {
     header,
     staticTheme,
     inlineTheme,
-    root,
+    light,
+    dark,
     expandedUtility,
     hatchUtility,
     hatchOnInkUtility,

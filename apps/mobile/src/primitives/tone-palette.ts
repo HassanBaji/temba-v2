@@ -1,4 +1,4 @@
-import { colors } from "@repo/design-tokens";
+import type { Palette } from "@repo/design-tokens";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
 export type TonePalette = {
@@ -8,27 +8,32 @@ export type TonePalette = {
   rule: string;
   wash: string;
   hatchStroke: string;
+  /** The control that sits on this tone: a primary button, an active cell. */
+  control: string;
+  onControl: string;
 };
 
-const PALETTES: Record<SurfaceTone, TonePalette> = {
-  paper: {
+export function tonePalette(tone: SurfaceTone, colors: Palette): TonePalette {
+  if (tone === "ink") {
+    return {
+      background: colors.focus,
+      foreground: colors.onFocus,
+      muted: colors.dim,
+      rule: colors.dimrule,
+      wash: colors.raised,
+      hatchStroke: colors.hatchStrokeOnInk,
+      control: colors.focusControl,
+      onControl: colors.onFocusControl,
+    };
+  }
+  return {
     background: colors.paper,
     foreground: colors.ink,
     muted: colors.muted,
     rule: colors.rule,
     wash: colors.wash,
     hatchStroke: colors.hatchStroke,
-  },
-  ink: {
-    background: colors.ink,
-    foreground: colors.paper,
-    muted: colors.dim,
-    rule: colors.dimrule,
-    wash: colors.raised,
-    hatchStroke: colors.hatchStrokeOnInk,
-  },
-};
-
-export function tonePalette(tone: SurfaceTone): TonePalette {
-  return PALETTES[tone];
+    control: colors.control,
+    onControl: colors.onControl,
+  };
 }
