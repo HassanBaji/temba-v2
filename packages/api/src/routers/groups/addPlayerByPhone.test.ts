@@ -3,27 +3,21 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   gamePlayers,
   groupMemberInvites,
   groupMembers,
-  GroupSportEnum,
+  GroupMemberRoleEnum,
+  groups,
   ratings,
   user,
+  venueManagers,
   venues,
 } from "@repo/db/schema";
 
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { addPlayerByPhone as addPlayerToGame } from "#src/routers/games/addPlayerByPhone";
-import {
-  addPlayerByPhone,
-  NOT_A_COMMUNITY_MEMBER_MESSAGE,
-} from "#src/routers/groups/addPlayerByPhone";
+import { addPlayerByPhone } from "#src/routers/groups/addPlayerByPhone";
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPrivate } from "#src/routers/groups/createClubPrivate";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { previewPlayerByPhone } from "#src/routers/groups/previewPlayerByPhone";
 import {
@@ -34,8 +28,6 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const HOUR = 60 * 60 * 1000;
-const ARCHIVED_MESSAGE =
-  "Cannot add players to a Group in an archived Community";
 
 async function insertUser(
   database: TestDatabase,
@@ -51,6 +43,17 @@ async function insertUser(
     .returning({ id: user.id });
   if (!row) {
     throw new Error("Failed to insert user");
+  }
+  return row.id;
+}
+
+async function insertVenue(database: TestDatabase, name: string) {
+  const [row] = await database
+    .insert(venues)
+    .values({ name, city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!row) {
+    throw new Error("Failed to insert venue");
   }
   return row.id;
 }
@@ -81,19 +84,6 @@ async function membershipOf(
   });
 }
 
-async function communityMembershipOf(
-  database: TestDatabase,
-  communityId: string,
-  userId: string,
-) {
-  return database.query.communityMembers.findFirst({
-    where: and(
-      eq(communityMembers.communityId, communityId),
-      eq(communityMembers.userId, userId),
-    ),
-  });
-}
-
 async function seedLoose(database: TestDatabase) {
   const creator = await insertUser(database, { name: "Creator" });
   const member = await insertUser(database, { name: "Member" });
@@ -112,45 +102,25 @@ async function seedLoose(database: TestDatabase) {
   return { creator, member, ahmed, groupId: group.id };
 }
 
+/** A Club Group: a Loose Group linked to a Venue, with an Appointed Organizer. */
 async function seedClub(database: TestDatabase) {
-  const owner = await insertUser(database, { name: "Owner" });
+  const manager = await insertUser(database, { name: "Manager" });
   const creator = await insertUser(database, { name: "Club creator" });
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Padel Club", type: "private", createdBy: owner })
-    .returning({ id: communities.id });
-  await database.insert(communitySports).values({
-    communityId: community!.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values([
-    {
-      communityId: community!.id,
-      userId: owner,
-      role: CommunityRoleEnum.OWNER,
-    },
-    {
-      communityId: community!.id,
-      userId: creator,
-      role: CommunityRoleEnum.ADMIN,
-    },
-  ]);
-  const group = await createClubPrivate(database, {
-    communityId: community!.id,
+  const organizer = await insertUser(database, { name: "Club organizer" });
+  const venueId = await insertVenue(database, "Padel Club");
+  await database.insert(venueManagers).values({ venueId, userId: manager });
+  const group = await createLoosePrivate(database, {
     name: "Club squad",
     sport: "padel",
     userId: creator,
   });
-  await database
-    .update(communityMembers)
-    .set({ role: CommunityRoleEnum.MEMBER })
-    .where(
-      and(
-        eq(communityMembers.communityId, community!.id),
-        eq(communityMembers.userId, creator),
-      ),
-    );
-  return { owner, creator, communityId: community!.id, groupId: group.id };
+  await database.update(groups).set({ venueId }).where(eq(groups.id, group.id));
+  await database.insert(groupMembers).values({
+    groupId: group.id,
+    userId: organizer,
+    role: GroupMemberRoleEnum.ORGANIZER,
+  });
+  return { manager, creator, organizer, venueId, groupId: group.id };
 }
 
 describe("groups.previewPlayerByPhone and groups.addPlayerByPhone", () => {
@@ -351,46 +321,61 @@ describe("groups.previewPlayerByPhone and groups.addPlayerByPhone", () => {
     }
   });
 
-  it("lets a Community Owner add a new number to a Club Group and creates their Member seat", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const f = await seedClub(db);
-      const added = await addPlayerByPhone(db, {
-        groupId: f.groupId,
-        approverUserId: f.owner,
-        ...bahrain("36124408"),
-        name: "Ali",
-      });
-      expect(added.outcome).toBe("added");
-      expect(
-        (await communityMembershipOf(db, f.communityId, added.userId))?.role,
-      ).toBe(CommunityRoleEnum.MEMBER);
-      expect(await membershipOf(db, f.groupId, added.userId)).toBeTruthy();
-    } finally {
-      await close();
-    }
-  });
-
-  it("limits the Club Group creator to Unclaimed players who are already Community Members", async () => {
+  it("on a Club Group lets the creator and an Appointed Organizer add a new number, not the Venue manager", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
 
-      const newNumber = await rejection(
+      const manager = await rejection(
         addPlayerByPhone(db, {
           groupId: f.groupId,
-          approverUserId: f.creator,
+          approverUserId: f.manager,
           ...bahrain("36124408"),
           name: "Ali",
         }),
       );
-      expect(newNumber.message).toBe(NOT_A_COMMUNITY_MEMBER_MESSAGE);
+      expect(manager.code).toBe("FORBIDDEN");
       expect(
         await db.query.user.findFirst({
           where: eq(user.phoneNumber, "+97336124408"),
         }),
       ).toBeUndefined();
 
+      const byCreator = await addPlayerByPhone(db, {
+        groupId: f.groupId,
+        approverUserId: f.creator,
+        ...bahrain("36124408"),
+        name: "Ali",
+      });
+      expect(byCreator.outcome).toBe("added");
+      expect(await membershipOf(db, f.groupId, byCreator.userId)).toBeTruthy();
+
+      const byOrganizer = await addPlayerByPhone(db, {
+        groupId: f.groupId,
+        approverUserId: f.organizer,
+        ...bahrain("36124409"),
+        name: "Sara",
+      });
+      expect(byOrganizer.outcome).toBe("added");
+      expect(
+        await membershipOf(db, f.groupId, byOrganizer.userId),
+      ).toBeTruthy();
+
+      const home = await groupById(db, {
+        groupId: f.groupId,
+        userId: f.organizer,
+      });
+      expect(home.canAddPlayers).toBe(true);
+      expect(home.standing.memberCount).toBe(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it("adds an Unclaimed player known from another Group without a new user row", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seedClub(db);
       const looseGroup = await createLoosePrivate(db, {
         name: "Elsewhere",
         sport: "padel",
@@ -402,25 +387,18 @@ describe("groups.previewPlayerByPhone and groups.addPlayerByPhone", () => {
         ...bahrain("36124408"),
         name: "Ali",
       });
-      const nonMember = await rejection(
-        addPlayerByPhone(db, {
+
+      await expect(
+        previewPlayerByPhone(db, {
           groupId: f.groupId,
           approverUserId: f.creator,
           ...bahrain("36124408"),
         }),
-      );
-      expect(nonMember.message).toBe(NOT_A_COMMUNITY_MEMBER_MESSAGE);
-      expect(
-        await membershipOf(db, f.groupId, outsider.userId),
-      ).toBeUndefined();
-      expect(
-        await communityMembershipOf(db, f.communityId, outsider.userId),
-      ).toBeUndefined();
-
-      await db.insert(communityMembers).values({
-        communityId: f.communityId,
-        userId: outsider.userId,
-        role: CommunityRoleEnum.MEMBER,
+      ).resolves.toEqual({
+        kind: "unclaimed",
+        name: "Ali",
+        alreadyInGroup: false,
+        phoneMasked: "+973 •••• 4408",
       });
       const added = await addPlayerByPhone(db, {
         groupId: f.groupId,
@@ -432,61 +410,54 @@ describe("groups.previewPlayerByPhone and groups.addPlayerByPhone", () => {
         userId: outsider.userId,
       });
       expect(await membershipOf(db, f.groupId, outsider.userId)).toBeTruthy();
+      expect(
+        await db.query.user.findMany({
+          where: eq(user.phoneNumber, "+97336124408"),
+        }),
+      ).toHaveLength(1);
     } finally {
       await close();
     }
   });
 
-  it("refuses every preview, add and remove while the Community is Soft-archived", async () => {
+  it("keeps preview, add and remove open while the Club Group's Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
       const added = await addPlayerByPhone(db, {
         groupId: f.groupId,
-        approverUserId: f.owner,
+        approverUserId: f.creator,
         ...bahrain("36124408"),
         name: "Ali",
       });
       await db
-        .update(communities)
+        .update(venues)
         .set({ archivedAt: new Date() })
-        .where(eq(communities.id, f.communityId));
+        .where(eq(venues.id, f.venueId));
 
-      const preview = await rejection(
+      await expect(
         previewPlayerByPhone(db, {
           groupId: f.groupId,
-          approverUserId: f.owner,
+          approverUserId: f.creator,
           ...bahrain("36124409"),
         }),
-      );
-      expect(preview.message).toBe(ARCHIVED_MESSAGE);
-      for (const approverUserId of [f.owner, f.creator]) {
-        const add = await rejection(
-          addPlayerByPhone(db, {
-            groupId: f.groupId,
-            approverUserId,
-            ...bahrain("36124409"),
-            name: "Sara",
-          }),
-        );
-        expect(add.message).toBe(ARCHIVED_MESSAGE);
-      }
-      const remove = await rejection(
+      ).resolves.toEqual({ kind: "new", name: null, alreadyInGroup: false });
+      const sara = await addPlayerByPhone(db, {
+        groupId: f.groupId,
+        approverUserId: f.organizer,
+        ...bahrain("36124409"),
+        name: "Sara",
+      });
+      expect(sara.outcome).toBe("added");
+      await expect(
         removeUnclaimedPlayer(db, {
           groupId: f.groupId,
-          approverUserId: f.owner,
+          approverUserId: f.creator,
           userId: added.userId,
         }),
-      );
-      expect(remove.message).toBe(
-        "Cannot remove players from a Group in an archived Community",
-      );
-      expect(
-        await db.query.user.findFirst({
-          where: eq(user.phoneNumber, "+97336124409"),
-        }),
-      ).toBeUndefined();
-      expect(await membershipOf(db, f.groupId, added.userId)).toBeTruthy();
+      ).resolves.toMatchObject({ ok: true });
+      expect(await membershipOf(db, f.groupId, added.userId)).toBeUndefined();
+      expect(await membershipOf(db, f.groupId, sara.userId)).toBeTruthy();
     } finally {
       await close();
     }
@@ -504,15 +475,12 @@ describe("groups.removeUnclaimedPlayer", () => {
         ...bahrain("36124408"),
         name: "Ali",
       });
-      const [venue] = await db
-        .insert(venues)
-        .values({ name: "Padel Central", city: "Manama", country: "BH" })
-        .returning({ id: venues.id });
+      const venueId = await insertVenue(db, "Padel Central");
       const windowStart = new Date(Date.now() + 24 * HOUR);
       const created = await createFriendlyGame(db, {
         createdBy: f.creator,
         groupId: f.groupId,
-        venueId: venue!.id,
+        venueId,
         windowStart,
         windowEnd: new Date(windowStart.getTime() + 2 * HOUR),
       });
@@ -582,24 +550,24 @@ describe("groups.removeUnclaimedPlayer", () => {
     }
   });
 
-  it("keeps the Community membership when a Club Group removes an Unclaimed player", async () => {
+  it("lets an Appointed Organizer of a Club Group remove an Unclaimed player", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
       const added = await addPlayerByPhone(db, {
         groupId: f.groupId,
-        approverUserId: f.owner,
+        approverUserId: f.creator,
         ...bahrain("36124408"),
         name: "Ali",
       });
       await removeUnclaimedPlayer(db, {
         groupId: f.groupId,
-        approverUserId: f.creator,
+        approverUserId: f.organizer,
         userId: added.userId,
       });
       expect(await membershipOf(db, f.groupId, added.userId)).toBeUndefined();
       expect(
-        await communityMembershipOf(db, f.communityId, added.userId),
+        await db.query.user.findFirst({ where: eq(user.id, added.userId) }),
       ).toBeTruthy();
     } finally {
       await close();

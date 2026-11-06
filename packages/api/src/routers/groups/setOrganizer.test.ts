@@ -1,15 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupMembers,
-  GroupSportEnum,
+  groups,
   user,
+  venueManagers,
+  venues,
 } from "@repo/db/schema";
 
 import {
@@ -19,11 +17,9 @@ import {
 } from "#src/games/access";
 import { listCreateGroups } from "#src/routers/games/listCreateGroups";
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPrivate } from "#src/routers/groups/createClubPrivate";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import {
   ALWAYS_ORGANIZER_MESSAGE,
-  NOT_A_COMMUNITY_MEMBER_ORGANIZER_MESSAGE,
   setOrganizer,
   UNCLAIMED_ORGANIZER_MESSAGE,
 } from "#src/routers/groups/setOrganizer";
@@ -89,47 +85,35 @@ async function seedLoose(database: TestDatabase) {
   return { creator, member, other, unclaimed, groupId: group.id };
 }
 
+/** A Club Group: a Loose Group linked to a Venue. */
 async function seedClub(database: TestDatabase) {
-  const owner = await insertUser(database, { name: "Owner" });
+  const manager = await insertUser(database, { name: "Manager" });
+  const creator = await insertUser(database, { name: "Club creator" });
   const member = await insertUser(database, { name: "Club member" });
-  const outsider = await insertUser(database, { name: "Outsider" });
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Padel Club", type: "private", createdBy: owner })
-    .returning({ id: communities.id });
-  await database.insert(communitySports).values({
-    communityId: community!.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values([
-    {
-      communityId: community!.id,
-      userId: owner,
-      role: CommunityRoleEnum.OWNER,
-    },
-    {
-      communityId: community!.id,
-      userId: member,
-      role: CommunityRoleEnum.MEMBER,
-    },
-  ]);
-  const group = await createClubPrivate(database, {
-    communityId: community!.id,
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "Padel Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!venue) {
+    throw new Error("Failed to insert venue");
+  }
+  await database
+    .insert(venueManagers)
+    .values({ venueId: venue.id, userId: manager });
+  const group = await createLoosePrivate(database, {
     name: "Club squad",
     sport: "padel",
-    userId: owner,
+    userId: creator,
   });
+  await database
+    .update(groups)
+    .set({ venueId: venue.id })
+    .where(eq(groups.id, group.id));
   await database.insert(groupMembers).values([
     { groupId: group.id, userId: member },
-    { groupId: group.id, userId: outsider },
+    { groupId: group.id, userId: manager },
   ]);
-  return {
-    owner,
-    member,
-    outsider,
-    communityId: community!.id,
-    groupId: group.id,
-  };
+  return { manager, creator, member, venueId: venue.id, groupId: group.id };
 }
 
 describe("groups.setOrganizer", () => {
@@ -249,7 +233,7 @@ describe("groups.setOrganizer", () => {
     }
   });
 
-  it("refuses the Group creator and Unclaimed players", async () => {
+  it("refuses the Group creator, Unclaimed players, and a player who is not in the Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedLoose(db);
@@ -262,6 +246,9 @@ describe("groups.setOrganizer", () => {
         }),
       );
       expect(creator.message).toBe(ALWAYS_ORGANIZER_MESSAGE);
+      expect(ALWAYS_ORGANIZER_MESSAGE).toBe(
+        "The Group creator is always an Organizer",
+      );
 
       const unclaimed = await rejection(
         setOrganizer(db, {
@@ -272,56 +259,73 @@ describe("groups.setOrganizer", () => {
         }),
       );
       expect(unclaimed.message).toBe(UNCLAIMED_ORGANIZER_MESSAGE);
+
+      const stranger = await insertUser(db, { name: "Stranger" });
+      const missing = await rejection(
+        setOrganizer(db, {
+          groupId: f.groupId,
+          approverUserId: f.creator,
+          userId: stranger,
+          organizer: true,
+        }),
+      );
+      expect(missing.code).toBe("NOT_FOUND");
     } finally {
       await close();
     }
   });
 
-  it("on a Club Group, needs a Community Member and lapses when they leave the Community", async () => {
+  it("on a Club Group appoints any member, the creator is always an Organizer, and the Venue manager is no approver", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
-      const groupGame = { createdBy: f.owner, groupId: f.groupId };
+      const groupGame = { createdBy: f.creator, groupId: f.groupId };
 
-      const outsider = await rejection(
+      const asManager = await rejection(
         setOrganizer(db, {
           groupId: f.groupId,
-          approverUserId: f.owner,
-          userId: f.outsider,
+          approverUserId: f.manager,
+          userId: f.member,
           organizer: true,
         }),
       );
-      expect(outsider.message).toBe(NOT_A_COMMUNITY_MEMBER_ORGANIZER_MESSAGE);
+      expect(asManager.code).toBe("FORBIDDEN");
 
-      const owner = await rejection(
+      const creator = await rejection(
         setOrganizer(db, {
           groupId: f.groupId,
-          approverUserId: f.owner,
-          userId: f.owner,
+          approverUserId: f.creator,
+          userId: f.creator,
           organizer: true,
         }),
       );
-      expect(owner.message).toBe(ALWAYS_ORGANIZER_MESSAGE);
+      expect(creator.message).toBe(ALWAYS_ORGANIZER_MESSAGE);
 
       await setOrganizer(db, {
         groupId: f.groupId,
-        approverUserId: f.owner,
+        approverUserId: f.creator,
         userId: f.member,
         organizer: true,
       });
       expect(await isGameOrganizer(db, groupGame, f.member)).toBe(true);
+      expect(await gameAdminUserIds(db, groupGame)).toEqual(
+        expect.arrayContaining([f.creator, f.member]),
+      );
+      expect(
+        (await listCreateGroups(db, { userId: f.member })).map(
+          (option) => option.id,
+        ),
+      ).toEqual([f.groupId]);
 
-      await db
-        .delete(communityMembers)
-        .where(
-          and(
-            eq(communityMembers.communityId, f.communityId),
-            eq(communityMembers.userId, f.member),
-          ),
-        );
-      expect(await isGameOrganizer(db, groupGame, f.member)).toBe(false);
-      expect(await gameAdminUserIds(db, groupGame)).not.toContain(f.member);
-      expect(await listCreateGroups(db, { userId: f.member })).toEqual([]);
+      await expect(
+        setOrganizer(db, {
+          groupId: f.groupId,
+          approverUserId: f.member,
+          userId: f.manager,
+          organizer: true,
+        }),
+      ).resolves.toMatchObject({ ok: true, organizer: true });
+      expect(await isGameOrganizer(db, groupGame, f.manager)).toBe(true);
     } finally {
       await close();
     }

@@ -2,24 +2,19 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupMembers,
   groups,
   GroupSportEnum,
   GroupTypeEnum,
   user,
+  venues,
 } from "@repo/db/schema";
 
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { joinLoosePublic } from "#src/routers/groups/joinLoosePublic";
+import { joinPublic } from "#src/routers/groups/joinPublic";
 import { listPublic } from "#src/routers/groups/listPublic";
 import { requestJoin } from "#src/routers/groups/requestJoin";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -33,35 +28,50 @@ async function insertUser(database: TestDatabase, email: string) {
   return row;
 }
 
-async function insertCommunity(
+async function insertVenue(
   database: TestDatabase,
-  args: { ownerId: string; name: string; type: "public" | "private" },
+  args: { name: string; archivedAt?: Date },
 ) {
-  const [community] = await database
-    .insert(communities)
+  const [row] = await database
+    .insert(venues)
     .values({
       name: args.name,
-      type: args.type,
-      createdBy: args.ownerId,
+      city: "Manama",
+      country: "BH",
+      archivedAt: args.archivedAt,
     })
-    .returning({ id: communities.id, name: communities.name });
-  if (!community) {
-    throw new Error("Failed to insert community");
+    .returning({ id: venues.id, name: venues.name });
+  if (!row) {
+    throw new Error("Failed to insert venue");
   }
-  await database.insert(communitySports).values({
-    communityId: community.id,
-    sport: GroupSportEnum.PADEL,
+  return row;
+}
+
+/** A Public Club Group: a Loose Group linked to a Venue. */
+async function createClubPublic(
+  database: TestDatabase,
+  args: {
+    venueId: string;
+    name: string;
+    userId: string;
+    requiresApproval?: boolean;
+  },
+) {
+  const group = await createLoosePublic(database, {
+    name: args.name,
+    sport: "padel",
+    userId: args.userId,
+    requiresApproval: args.requiresApproval,
   });
-  await database.insert(communityMembers).values({
-    communityId: community.id,
-    userId: args.ownerId,
-    role: CommunityRoleEnum.OWNER,
-  });
-  return community;
+  await database
+    .update(groups)
+    .set({ venueId: args.venueId })
+    .where(eq(groups.id, group.id));
+  return group;
 }
 
 describe("listPublic", () => {
-  it("lists live Public Groups of every sport the viewer is not in, with joinMode", async () => {
+  it("lists live Public Groups of every sport the viewer is not in, with joinMode and venueName", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "list-viewer@example.com");
@@ -103,46 +113,37 @@ describe("listPublic", () => {
         throw new Error("Failed to insert football Group");
       }
 
-      const publicCommunity = await insertCommunity(db, {
-        ownerId: owner.id,
-        name: "Open Club",
-        type: "public",
-      });
-      const privateCommunity = await insertCommunity(db, {
-        ownerId: owner.id,
-        name: "Hidden Club",
-        type: "private",
-      });
-      const archivedCommunity = await insertCommunity(db, {
-        ownerId: owner.id,
+      const openVenue = await insertVenue(db, { name: "Open Club" });
+      const archivedVenue = await insertVenue(db, {
         name: "Archived Club",
-        type: "public",
-      });
-      await db.insert(communityMembers).values({
-        communityId: publicCommunity.id,
-        userId: member.id,
-        role: CommunityRoleEnum.MEMBER,
+        archivedAt: new Date(),
       });
 
       const clubOpen = await createClubPublic(db, {
-        communityId: publicCommunity.id,
+        venueId: openVenue.id,
         name: "Club Open",
-        sport: "padel",
         userId: owner.id,
       });
-      const clubPrivateCommunity = await createClubPublic(db, {
-        communityId: privateCommunity.id,
-        name: "Club From Private",
-        sport: "padel",
+      const clubGated = await createClubPublic(db, {
+        venueId: openVenue.id,
+        name: "Club Gated",
         userId: owner.id,
+        requiresApproval: true,
       });
       const clubArchived = await createClubPublic(db, {
-        communityId: archivedCommunity.id,
+        venueId: archivedVenue.id,
         name: "Club Archived",
-        sport: "padel",
         userId: owner.id,
       });
-      await commit(db, { communityId: archivedCommunity.id }, "archived");
+      const deleted = await createLoosePublic(db, {
+        name: "Deleted Crew",
+        sport: "padel",
+        userId: creator.id,
+      });
+      await db
+        .update(groups)
+        .set({ deletedAt: new Date(), deletedBy: creator.id })
+        .where(eq(groups.id, deleted.id));
 
       await db.insert(groupMembers).values({
         groupId: looseOpen.id,
@@ -155,24 +156,25 @@ describe("listPublic", () => {
           looseOpen.id,
           looseGated.id,
           clubOpen.id,
-          clubPrivateCommunity.id,
+          clubGated.id,
+          clubArchived.id,
           football.id,
         ].sort(),
       );
       expect(viewerRows.map((row) => row.id)).not.toContain(mine.id);
       expect(viewerRows.map((row) => row.id)).not.toContain(privateGroup.id);
-      expect(viewerRows.map((row) => row.id)).toContain(football.id);
-      expect(viewerRows.map((row) => row.id)).not.toContain(clubArchived.id);
+      expect(viewerRows.map((row) => row.id)).not.toContain(deleted.id);
 
       const byId = new Map(viewerRows.map((row) => [row.id, row]));
       expect(byId.get(looseOpen.id)?.joinMode).toBe("join");
+      expect(byId.get(looseOpen.id)?.venueName).toBeNull();
       expect(byId.get(looseGated.id)?.joinMode).toBe("request");
-      expect(byId.get(clubOpen.id)?.joinMode).toBe("request");
-      expect(byId.get(clubOpen.id)?.communityName).toBe("Open Club");
-      expect(byId.get(clubPrivateCommunity.id)?.communityName).toBe(
-        "Hidden Club",
-      );
+      expect(byId.get(clubOpen.id)?.joinMode).toBe("join");
+      expect(byId.get(clubOpen.id)?.venueName).toBe("Open Club");
+      expect(byId.get(clubGated.id)?.joinMode).toBe("request");
+      expect(byId.get(clubArchived.id)?.venueName).toBe("Archived Club");
       expect(byId.get(looseOpen.id)?.memberCount).toBe(2);
+      expect(byId.get(looseOpen.id)).not.toHaveProperty("communityName");
 
       const footballRows = await listPublic(db, {
         userId: viewer.id,
@@ -202,12 +204,17 @@ describe("listPublic", () => {
         afterRequest.find((row) => row.id === looseGated.id)?.joinMode,
       ).toBe("requested");
 
-      await joinLoosePublic(db, {
+      await joinPublic(db, {
         groupId: looseOpen.id,
+        userId: viewer.id,
+      });
+      await joinPublic(db, {
+        groupId: clubOpen.id,
         userId: viewer.id,
       });
       const afterJoin = await listPublic(db, { userId: viewer.id });
       expect(afterJoin.map((row) => row.id)).not.toContain(looseOpen.id);
+      expect(afterJoin.map((row) => row.id)).not.toContain(clubOpen.id);
 
       const created = await createLoosePublic(db, {
         name: "Brand New",
