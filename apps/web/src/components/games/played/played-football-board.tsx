@@ -102,7 +102,7 @@ export function PlayedFootballBoard({
   const m = useMessages();
   const [a, b] = sides;
   const ink = (side: PlayedFootballSide) =>
-    side.won || !hasWinner ? "text-paper" : "text-muted-foreground";
+    side.won || !hasWinner ? "text-on-focus" : "text-muted-foreground";
   return (
     <div className="space-y-4">
       <div

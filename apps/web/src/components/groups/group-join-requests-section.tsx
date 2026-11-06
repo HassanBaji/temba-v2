@@ -53,7 +53,7 @@ export function JoinRequestsBanner({
       radius="card"
       className="flex items-center gap-2.5 py-2 pe-2 ps-4"
     >
-      <span aria-hidden="true" className="bg-paper size-1.5 rounded-full" />
+      <span aria-hidden="true" className="bg-on-focus size-1.5 rounded-full" />
       <span className="text-meta flex-1 font-semibold">
         {groupJoinRequestsBannerText(count, locale)}
       </span>
@@ -268,7 +268,7 @@ export const JoinRequestsCard = forwardRef<
       tabIndex={-1}
       className="border-ink rounded-card overflow-hidden border outline-none"
     >
-      <h2 className="bg-ink text-paper text-meta flex h-10 items-center gap-2 px-4 font-semibold">
+      <h2 className="surface-focus text-meta flex h-10 items-center gap-2 px-4 font-semibold">
         <Inbox aria-hidden="true" className="size-[15px]" />
         {heading}
       </h2>

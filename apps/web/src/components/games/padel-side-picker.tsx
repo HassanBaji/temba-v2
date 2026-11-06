@@ -11,7 +11,7 @@ import { cn } from "~/lib/utils";
 
 /** A two-cell court half: the filled cell is the side, Either hatches both. */
 function SideGlyph({ side, onInk }: { side: SideChoice; onInk: boolean }) {
-  const filled = onInk ? "bg-paper" : "bg-ink";
+  const filled = onInk ? "bg-on-control" : "bg-ink";
   const hatched = onInk ? "hatch hatch-on-ink" : "hatch";
   const cell = (on: boolean) =>
     side === "either" ? hatched : on ? filled : "bg-transparent";
@@ -20,7 +20,7 @@ function SideGlyph({ side, onInk }: { side: SideChoice; onInk: boolean }) {
       aria-hidden="true"
       className={cn(
         "flex h-[20px] w-[30px] overflow-hidden rounded-[3px] border",
-        onInk ? "border-paper" : "border-ink",
+        onInk ? "border-on-control" : "border-ink",
       )}
     >
       {/* Left and Right are court sides, so the glyph keeps its side in Arabic. */}
@@ -29,7 +29,7 @@ function SideGlyph({ side, onInk }: { side: SideChoice; onInk: boolean }) {
         <span
           className={cn(
             "flex-1 border-s",
-            onInk ? "border-paper" : "border-ink",
+            onInk ? "border-on-control" : "border-ink",
             cell(side === "right"),
           )}
         />
@@ -68,7 +68,7 @@ export function TeamOptionCards({
             className={cn(
               CARD,
               selected
-                ? "border-ink bg-ink text-paper"
+                ? "border-ink bg-control text-on-control"
                 : option.open
                   ? "border-rule text-ink hover:bg-muted/60"
                   : "hatch border-rule text-muted-foreground",
@@ -78,7 +78,7 @@ export function TeamOptionCards({
             <span
               className={cn(
                 "text-meta mt-0.5",
-                selected ? "text-paper/70" : "text-muted-foreground",
+                selected ? "text-on-control/70" : "text-muted-foreground",
               )}
             >
               {option.meta}
@@ -128,7 +128,7 @@ export function SideOptionCards({
               CARD,
               "items-center gap-1.5 text-center",
               selected
-                ? "border-ink bg-ink text-paper"
+                ? "border-ink bg-control text-on-control"
                 : taken
                   ? "hatch border-rule text-muted-foreground"
                   : "border-rule text-ink hover:bg-muted/60",

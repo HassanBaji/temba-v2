@@ -145,7 +145,7 @@ function ModeSwitch({ modes }: { modes: InviteMode[] }) {
           <TabsTrigger
             key={entry}
             value={entry}
-            className="text-muted-foreground text-meta data-[state=active]:bg-ink data-[state=active]:text-paper h-[38px] gap-1.5 border-none font-semibold"
+            className="text-muted-foreground text-meta data-[state=active]:bg-control data-[state=active]:text-on-control h-[38px] gap-1.5 border-none font-semibold"
           >
             <Icon className="size-3.5" aria-hidden="true" />
             {inviteModeLabel(entry, locale)}

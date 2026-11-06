@@ -431,7 +431,7 @@ export function FriendlyGamePartnerPicker({
         />
       </div>
 
-      <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+      <div className="border-rule bg-sheet mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
           size="lg"

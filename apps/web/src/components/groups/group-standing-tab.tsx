@@ -486,7 +486,7 @@ function SeasonHeader({
       <Surface tone="ink" radius="card" className="px-5 py-4">
         <div className="flex items-end justify-between gap-3">
           {title}
-          <span className="text-meta text-paper/70 shrink-0 tabular-nums">
+          <span className="text-meta text-on-focus/70 shrink-0 tabular-nums">
             {formatSeasonRange(season, locale)}
           </span>
         </div>
@@ -627,7 +627,7 @@ function StandingPreview({
               className={cn(
                 PREVIEW_ROW,
                 "border-rule border-t px-[18px] first:border-t-0",
-                entry.isViewer && "bg-ink text-paper",
+                entry.isViewer && "bg-control text-on-control",
                 linkToPlayers && "relative",
               )}
             >

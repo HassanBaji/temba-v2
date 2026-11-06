@@ -32,7 +32,7 @@ export function LevelSlider({
         <span
           data-slot="level-slider-value"
           aria-hidden="true"
-          className="bg-ink text-paper text-meta absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 font-semibold rtl:translate-x-1/2"
+          className="bg-control text-on-control text-meta absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-sm px-2 py-1 font-semibold rtl:translate-x-1/2"
           style={{ insetInlineStart: insetAt(tenths) }}
         >
           <bdi dir="ltr">{levelSliderLabel(tenths)}</bdi>
