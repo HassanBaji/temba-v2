@@ -2,14 +2,13 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
   GameFormatEnum,
   gameInviteLinks,
   gamePlayers,
   GameRegistrationModeEnum,
   games,
+  groupMembers,
+  GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
   matches,
@@ -20,7 +19,6 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { leave as leaveCommunity } from "#src/community-membership";
 import type { GameRow } from "#src/games/access";
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { acceptLookupInvite } from "#src/routers/games/acceptLookupInvite";
@@ -34,7 +32,7 @@ import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerTeam } from "#src/routers/games/registerTeam";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { sendLookupInvite } from "#src/routers/games/sendLookupInvite";
-import { commit } from "#src/soft-archive";
+import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const HOUR = 60 * 60 * 1000;
@@ -50,38 +48,15 @@ async function insertUser(database: TestDatabase, email: string) {
   return row.id;
 }
 
+/** A Club Group whose Game admins are the creator and two Appointed Organizers. */
 async function insertClub(database: TestDatabase) {
-  const owner = await insertUser(database, "game-owner@example.com");
-  const admin = await insertUser(database, "game-admin@example.com");
   const creator = await insertUser(database, "game-creator@example.com");
-  const member = await insertUser(database, "game-member@example.com");
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Game Club", type: "public", createdBy: owner })
-    .returning({ id: communities.id });
-  if (!community) {
-    throw new Error("Failed to insert community");
-  }
-  await database.insert(communityMembers).values(
-    [
-      { userId: owner, role: CommunityRoleEnum.OWNER },
-      { userId: admin, role: CommunityRoleEnum.ADMIN },
-      { userId: creator, role: CommunityRoleEnum.MEMBER },
-      { userId: member, role: CommunityRoleEnum.MEMBER },
-    ].map((row) => ({ ...row, communityId: community.id })),
+  const organizer = await insertUser(database, "game-organizer@example.com");
+  const coOrganizer = await insertUser(
+    database,
+    "game-co-organizer@example.com",
   );
-  const [group] = await database
-    .insert(groups)
-    .values({
-      name: "Club Squad",
-      type: GroupTypeEnum.PUBLIC,
-      createdBy: creator,
-      communityId: community.id,
-    })
-    .returning({ id: groups.id });
-  if (!group) {
-    throw new Error("Failed to insert group");
-  }
+  const member = await insertUser(database, "game-member@example.com");
   const [venue] = await database
     .insert(venues)
     .values({
@@ -93,15 +68,40 @@ async function insertClub(database: TestDatabase) {
   if (!venue) {
     throw new Error("Failed to insert venue");
   }
+  const [group] = await database
+    .insert(groups)
+    .values({
+      name: "Club Squad",
+      type: GroupTypeEnum.PUBLIC,
+      createdBy: creator,
+      venueId: venue.id,
+    })
+    .returning({ id: groups.id });
+  if (!group) {
+    throw new Error("Failed to insert group");
+  }
+  await database.insert(groupMembers).values([
+    { groupId: group.id, userId: creator },
+    {
+      groupId: group.id,
+      userId: organizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    {
+      groupId: group.id,
+      userId: coOrganizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    { groupId: group.id, userId: member },
+  ]);
   return {
-    communityId: community.id,
     groupId: group.id,
     venueId: venue.id,
-    owner,
-    admin,
     creator,
+    organizer,
+    coOrganizer,
     member,
-    admins: [owner, admin, creator].sort(),
+    admins: [creator, organizer, coOrganizer].sort(),
   };
 }
 
@@ -150,7 +150,7 @@ function insertAmericano(
   club: Awaited<ReturnType<typeof insertClub>>,
 ) {
   return insertGame(database, {
-    createdBy: club.admin,
+    createdBy: club.organizer,
     venueId: club.venueId,
     groupId: club.groupId,
     format: GameFormatEnum.AMERICANO,
@@ -239,7 +239,7 @@ describe("Game joined Notifications", () => {
       const club = await insertClub(db);
       const player = await insertUser(db, "seat-player@example.com");
       const game = await insertGame(db, {
-        createdBy: club.admin,
+        createdBy: club.organizer,
         venueId: club.venueId,
         groupId: club.groupId,
       });
@@ -265,24 +265,24 @@ describe("Game joined Notifications", () => {
     try {
       const club = await insertClub(db);
       const game = await insertGame(db, {
-        createdBy: club.owner,
+        createdBy: club.creator,
         venueId: club.venueId,
         groupId: club.groupId,
       });
 
       await registerWithPartner(db, {
         gameId: game.id,
-        userId: club.admin,
-        partnerUserId: club.creator,
+        userId: club.organizer,
+        partnerUserId: club.coOrganizer,
         sideIndex: 1,
         position: "left",
       });
 
       const rows = await joinedRows(db);
-      expect(recipients(rows)).toEqual([club.owner]);
+      expect(recipients(rows)).toEqual([club.creator]);
       expect(rows[0]).toMatchObject({
-        actor: club.admin,
-        partner: club.creator,
+        actor: club.organizer,
+        partner: club.coOrganizer,
         team: null,
         viaWaitlist: false,
       });
@@ -297,20 +297,20 @@ describe("Game joined Notifications", () => {
       const club = await insertClub(db);
       const teammate = await insertUser(db, "teammate@example.com");
       const game = await insertGame(db, {
-        createdBy: club.owner,
+        createdBy: club.creator,
         venueId: club.venueId,
         groupId: club.groupId,
         registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
       });
       const [team] = await db
         .insert(teams)
-        .values({ createdBy: club.creator, name: "Smash" })
+        .values({ createdBy: club.coOrganizer, name: "Smash" })
         .returning({ id: teams.id });
       if (!team) {
         throw new Error("Failed to insert team");
       }
       await db.insert(teamMembers).values([
-        { teamId: team.id, userId: club.creator },
+        { teamId: team.id, userId: club.coOrganizer },
         { teamId: team.id, userId: teammate },
       ]);
 
@@ -322,11 +322,11 @@ describe("Game joined Notifications", () => {
 
       expect(result).toEqual({ ok: true, waitlisted: false });
       const rows = await joinedRows(db);
-      expect(recipients(rows)).toEqual([club.owner, club.admin].sort());
+      expect(recipients(rows)).toEqual([club.creator, club.organizer].sort());
       for (const row of rows) {
         expect(row.team).toBe(team.id);
         expect([row.actor, row.partner].sort()).toEqual(
-          [club.creator, teammate].sort(),
+          [club.coOrganizer, teammate].sort(),
         );
       }
     } finally {
@@ -342,7 +342,7 @@ describe("Game joined Notifications", () => {
       const game = await insertAmericano(db, club);
       const sent = await sendLookupInvite(db, {
         gameId: game.id,
-        userId: club.owner,
+        userId: club.creator,
         userIds: [invitee],
       });
       const inviteId = sent.sent[0]?.id;
@@ -372,7 +372,7 @@ describe("Game joined Notifications", () => {
       const game = await insertAmericano(db, club);
       await createInviteLink(db, {
         gameId: game.id,
-        userId: club.owner,
+        userId: club.creator,
         origin: "https://temba.test",
       });
       const link = await db.query.gameInviteLinks.findFirst({
@@ -410,7 +410,7 @@ describe("Game joined Notifications", () => {
       );
       const waiting = await insertUser(db, "leave-waiting@example.com");
       const game = await insertGame(db, {
-        createdBy: club.admin,
+        createdBy: club.organizer,
         venueId: club.venueId,
         groupId: club.groupId,
       });
@@ -452,7 +452,7 @@ describe("Game joined Notifications", () => {
       );
       const waiting = await insertUser(db, "kick-waiting@example.com");
       const game = await insertGame(db, {
-        createdBy: club.admin,
+        createdBy: club.organizer,
         venueId: club.venueId,
         groupId: club.groupId,
       });
@@ -467,7 +467,7 @@ describe("Game joined Notifications", () => {
 
       await kick(db, {
         gameId: game.id,
-        organizerUserId: club.owner,
+        organizerUserId: club.creator,
         userId: players[1]!,
       });
 
@@ -481,30 +481,29 @@ describe("Game joined Notifications", () => {
     }
   });
 
-  it("follows the audience at event time: a creator who left and a demoted Admin get nothing, a promoted Admin gets one", async () => {
+  it("follows the audience at event time: a demoted Organizer gets nothing, a newly Appointed Organizer gets one", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
       const player = await insertUser(db, "audience-player@example.com");
       const game = await insertAmericano(db, club);
-      const left = await leaveCommunity(db, {
-        communityId: club.communityId,
-        userId: club.creator,
+      await setOrganizer(db, {
+        groupId: club.groupId,
+        approverUserId: club.creator,
+        userId: club.coOrganizer,
+        organizer: false,
       });
-      expect(left.ok).toBe(true);
-      await db
-        .update(communityMembers)
-        .set({ role: CommunityRoleEnum.MEMBER })
-        .where(eq(communityMembers.userId, club.admin));
-      await db
-        .update(communityMembers)
-        .set({ role: CommunityRoleEnum.ADMIN })
-        .where(eq(communityMembers.userId, club.member));
+      await setOrganizer(db, {
+        groupId: club.groupId,
+        approverUserId: club.creator,
+        userId: club.member,
+        organizer: true,
+      });
 
       await register(db, { gameId: game.id, userId: player });
 
       expect(recipients(await joinedRows(db))).toEqual(
-        [club.owner, club.member].sort(),
+        [club.creator, club.organizer, club.member].sort(),
       );
     } finally {
       await close();
@@ -535,44 +534,13 @@ describe("Game joined Notifications", () => {
     }
   });
 
-  it("writes nothing for a Club Group Game in a Soft-archived Community, including a promotion", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const club = await insertClub(db);
-      const players = await Promise.all(
-        [1, 2, 3, 4].map((n) => insertUser(db, `archived-p${n}@example.com`)),
-      );
-      const waiting = await insertUser(db, "archived-waiting@example.com");
-      const game = await insertGame(db, {
-        createdBy: club.admin,
-        venueId: club.venueId,
-        groupId: club.groupId,
-      });
-      await fillFriendlyGame(db, game, players);
-      await registerSeat(db, {
-        gameId: game.id,
-        userId: waiting,
-        sideIndex: 1,
-        position: "left",
-      });
-      await clearNotifications(db);
-      await commit(db, { communityId: club.communityId }, "archived");
-
-      await leaveGame(db, { gameId: game.id, userId: players[0]! });
-
-      expect(await joinedRows(db)).toEqual([]);
-    } finally {
-      await close();
-    }
-  });
-
   it("writes nothing when an already-registered User is re-seated", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
       const player = await insertUser(db, "reseat-player@example.com");
       const game = await insertGame(db, {
-        createdBy: club.admin,
+        createdBy: club.organizer,
         venueId: club.venueId,
         groupId: club.groupId,
       });
@@ -599,7 +567,7 @@ describe("Game joined Notifications", () => {
       const ada = await insertUser(db, "merge-ada@example.com");
       const jonas = await insertUser(db, "merge-jonas@example.com");
       const game = await insertGame(db, {
-        createdBy: club.admin,
+        createdBy: club.organizer,
         venueId: club.venueId,
         groupId: club.groupId,
         format: GameFormatEnum.FRIENDLY_TOURNAMENT,
@@ -620,7 +588,10 @@ describe("Game joined Notifications", () => {
         position: "right",
       });
       await clearNotifications(db);
-      const view = await gameById(db, { gameId: game.id, userId: club.admin });
+      const view = await gameById(db, {
+        gameId: game.id,
+        userId: club.organizer,
+      });
       const first = view.sides.find((side) => side.sideIndex === 1);
       const second = view.sides.find((side) => side.sideIndex === 2);
       if (!first?.gameTeamId || !second?.gameTeamId) {
@@ -629,7 +600,7 @@ describe("Game joined Notifications", () => {
 
       await mergeHalfTeams(db, {
         gameId: game.id,
-        organizerUserId: club.admin,
+        organizerUserId: club.organizer,
         firstGameTeamId: first.gameTeamId,
         secondGameTeamId: second.gameTeamId,
         firstPosition: "left",

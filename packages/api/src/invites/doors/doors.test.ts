@@ -1,12 +1,10 @@
 import {
-  communities,
-  communityMemberInvites,
-  communityMembers,
-  CommunityRoleEnum,
   gameInviteLinks,
   gameMemberInvites,
   games,
   groupInviteLinks,
+  groupMemberInvites,
+  groupMembers,
   groups,
   matches,
   teams,
@@ -14,10 +12,9 @@ import {
   venues,
   GameFormatEnum,
 } from "@repo/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { admit as admitCommunityMember } from "#src/community-membership";
 import {
   acceptLink,
   acceptLookup,
@@ -28,7 +25,6 @@ import {
   previewLink,
 } from "#src/invites/doors";
 import { GAME_INVITE_SHORT_CODE_ALPHABET } from "#src/invites/tokens";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -43,68 +39,6 @@ async function insertUser(database: TestDatabase, email: string) {
 }
 
 describe("Invite doors", () => {
-  it("refuses Community mint and accept while Soft-archived and keeps the Lookup invite", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const owner = await insertUser(db, "doors-owner@example.com");
-      const invitee = await insertUser(db, "doors-invitee@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Doors Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await admitCommunityMember(db, {
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
-
-      const host = { kind: "community" as const, id: community.id };
-      const minted = await mintLookup(db, host, {
-        userId: invitee.id,
-        invitedBy: owner.id,
-      });
-      expect(minted.ok).toBe(true);
-      if (!minted.ok) {
-        return;
-      }
-
-      await commit(db, { communityId: community.id }, "archived");
-
-      expect(
-        await mintLookup(db, host, {
-          userId: (await insertUser(db, "doors-other@example.com")).id,
-          invitedBy: owner.id,
-        }),
-      ).toEqual({ ok: false, reason: "frozen" });
-
-      expect(
-        await acceptLookup(db, host, {
-          inviteId: minted.invite.id,
-          userId: invitee.id,
-          locale: "en",
-        }),
-      ).toEqual({ ok: false, reason: "frozen" });
-
-      const unused = await db.query.communityMemberInvites.findFirst({
-        where: eq(communityMemberInvites.id, minted.invite.id),
-      });
-      expect(unused?.acceptedAt).toBeNull();
-      expect(unused?.revokedAt).toBeNull();
-
-      const link = await mintLink(db, host, { createdBy: owner.id });
-      expect(link).toEqual({ ok: false, reason: "frozen" });
-    } finally {
-      await close();
-    }
-  });
-
   it("requires a Position on Game accept and occupies through Game admit", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -181,38 +115,12 @@ describe("Invite doors", () => {
     }
   });
 
-  it("auto-admits a Club Group invitee through Community membership", async () => {
+  it("joins a Club Group through a Group Lookup invite accept and keeps the invite accepted", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "doors-group-owner@example.com");
       const invitee = await insertUser(db, "doors-group-invitee@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await admitCommunityMember(db, {
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
-      const [clubGroup] = await db
-        .insert(groups)
-        .values({
-          name: "Club Group",
-          createdBy: owner.id,
-          communityId: community.id,
-        })
-        .returning({ id: groups.id });
-      if (!clubGroup) {
-        throw new Error("Failed to insert club group");
-      }
+      const clubGroup = await insertClubGroup(db, owner.id);
 
       const host = { kind: "group" as const, id: clubGroup.id };
       const minted = await mintLookup(db, host, {
@@ -229,45 +137,77 @@ describe("Invite doors", () => {
         userId: invitee.id,
         locale: "en",
       });
-      expect(accepted).toMatchObject({ ok: true, alreadyMember: false });
-
-      const membership = await db.query.communityMembers.findFirst({
-        where: eq(communityMembers.userId, invitee.id),
+      expect(accepted).toEqual({
+        ok: true,
+        alreadyMember: false,
+        hostId: clubGroup.id,
       });
-      expect(membership?.communityId).toBe(community.id);
-      expect(membership?.role).toBe(CommunityRoleEnum.MEMBER);
+
+      const membership = await db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, clubGroup.id),
+          eq(groupMembers.userId, invitee.id),
+        ),
+      });
+      expect(membership).toBeDefined();
+      const invite = await db.query.groupMemberInvites.findFirst({
+        where: eq(groupMemberInvites.id, minted.invite.id),
+      });
+      expect(invite?.acceptedAt).toBeInstanceOf(Date);
+
+      expect(
+        await acceptLookup(db, host, {
+          inviteId: minted.invite.id,
+          userId: invitee.id,
+          locale: "en",
+        }),
+      ).toEqual({ ok: false, reason: "unavailable" });
     } finally {
       await close();
     }
   });
 
-  it("previews an Invite link as unavailable after Soft-archive without deleting the token", async () => {
+  it("answers not_found for a deleted Group host and previews its Invite link as unavailable", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "doors-link-owner@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Link Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      const host = { kind: "community" as const, id: community.id };
-      const minted = await mintLink(db, host, { createdBy: owner.id });
-      expect(minted.ok).toBe(true);
-      if (!minted.ok) {
+      const owner = await insertUser(db, "doors-deleted-owner@example.com");
+      const invitee = await insertUser(db, "doors-deleted-invitee@example.com");
+      const group = await insertLooseGroup(db, owner.id);
+      const host = { kind: "group" as const, id: group.id };
+      const link = await mintLink(db, host, { createdBy: owner.id });
+      expect(link.ok).toBe(true);
+      if (!link.ok) {
         return;
       }
 
-      await commit(db, { communityId: community.id }, "archived");
-      expect(await previewLink(db, "community", minted.link.token)).toEqual({
+      await db
+        .update(groups)
+        .set({ deletedAt: new Date(), deletedBy: owner.id })
+        .where(eq(groups.id, group.id));
+
+      expect(await previewLink(db, "group", link.link.token)).toEqual({
         ok: true,
         status: "unavailable",
       });
+      expect(
+        await acceptLink(db, "group", {
+          token: link.link.token,
+          userId: invitee.id,
+          locale: "en",
+        }),
+      ).toEqual({ ok: false, reason: "not_found" });
+      expect(await mintLink(db, host, { createdBy: owner.id })).toEqual({
+        ok: false,
+        reason: "not_found",
+      });
+      expect(
+        await mintLookup(db, host, { userId: invitee.id, invitedBy: owner.id }),
+      ).toEqual({ ok: false, reason: "not_found" });
+
+      const row = await db.query.groupInviteLinks.findFirst({
+        where: eq(groupInviteLinks.token, link.link.token),
+      });
+      expect(row?.token).toBe(link.link.token);
     } finally {
       await close();
     }
@@ -294,37 +234,6 @@ describe("Invite doors", () => {
       });
       expect(row?.shortCode).toBe(minted.link.shortCode);
       expect(row?.token).toBe(minted.link.token);
-    } finally {
-      await close();
-    }
-  });
-
-  it("leaves Community Invite link mint on the long token path without a short code", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const owner = await insertUser(db, "doors-community-short@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "No Short Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      const minted = await mintLink(
-        db,
-        { kind: "community", id: community.id },
-        { createdBy: owner.id },
-      );
-      expect(minted.ok).toBe(true);
-      if (!minted.ok) {
-        return;
-      }
-      expect(minted.link.shortCode).toBeUndefined();
-      expect(minted.link.token.length).toBeGreaterThan(8);
     } finally {
       await close();
     }
@@ -646,6 +555,28 @@ async function insertLooseGroup(
     .returning({ id: groups.id });
   if (!group) {
     throw new Error("Failed to insert group");
+  }
+  return group;
+}
+
+async function insertClubGroup(database: TestDatabase, createdBy: string) {
+  const [venue] = await database
+    .insert(venues)
+    .values({
+      name: `Doors Club ${crypto.randomUUID()}`,
+      city: "Lisbon",
+      country: "PT",
+    })
+    .returning({ id: venues.id });
+  if (!venue) {
+    throw new Error("Failed to insert venue");
+  }
+  const [group] = await database
+    .insert(groups)
+    .values({ name: "Club Group", createdBy, venueId: venue.id })
+    .returning({ id: groups.id });
+  if (!group) {
+    throw new Error("Failed to insert club group");
   }
   return group;
 }

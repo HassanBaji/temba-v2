@@ -2,32 +2,25 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupInviteLinks,
   groupMembers,
+  GroupMemberRoleEnum,
   groups,
-  GroupSportEnum,
   notifications,
   user,
+  venues,
 } from "@repo/db/schema";
 
-import { leave as leaveCommunity } from "#src/community-membership";
-import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { acceptInviteLink } from "#src/routers/groups/acceptInviteLink";
 import { acceptLookupInvite } from "#src/routers/groups/acceptLookupInvite";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { joinClubPublic } from "#src/routers/groups/joinClubPublic";
-import { joinLoosePublic } from "#src/routers/groups/joinLoosePublic";
+import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite } from "#src/routers/groups/sendLookupInvite";
-import { commit } from "#src/soft-archive";
+import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -42,50 +35,53 @@ async function insertUser(database: TestDatabase, email: string) {
 }
 
 async function insertClub(database: TestDatabase) {
-  const owner = await insertUser(database, "club-owner@example.com");
-  const admin = await insertUser(database, "club-admin@example.com");
   const creator = await insertUser(database, "club-creator@example.com");
+  const organizer = await insertUser(database, "club-organizer@example.com");
+  const coOrganizer = await insertUser(
+    database,
+    "club-co-organizer@example.com",
+  );
   const member = await insertUser(database, "club-member@example.com");
   const joiner = await insertUser(database, "club-joiner@example.com");
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Notify Club", type: "public", createdBy: owner })
-    .returning({ id: communities.id });
-  if (!community) {
-    throw new Error("Failed to insert community");
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "Notify Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!venue) {
+    throw new Error("Failed to insert venue");
   }
-  await database.insert(communitySports).values({
-    communityId: community.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values(
-    [
-      { userId: owner, role: CommunityRoleEnum.OWNER },
-      { userId: admin, role: CommunityRoleEnum.ADMIN },
-      { userId: creator, role: CommunityRoleEnum.MEMBER },
-      { userId: member, role: CommunityRoleEnum.MEMBER },
-      { userId: joiner, role: CommunityRoleEnum.MEMBER },
-    ].map((row) => ({ ...row, communityId: community.id })),
-  );
-  return { communityId: community.id, owner, admin, creator, member, joiner };
+  return { venueId: venue.id, creator, organizer, coOrganizer, member, joiner };
 }
 
+/** A Club Group: created by `creator`, with two Appointed Organizers and one member. */
 async function insertClubGroup(
   database: TestDatabase,
   club: Awaited<ReturnType<typeof insertClub>>,
   requiresApproval = false,
 ) {
-  const group = await createClubPublic(database, {
-    communityId: club.communityId,
+  const group = await createLoosePublic(database, {
     name: "Club Squad",
     sport: "padel",
-    userId: club.owner,
+    userId: club.creator,
     requiresApproval,
   });
   await database
     .update(groups)
-    .set({ createdBy: club.creator })
+    .set({ venueId: club.venueId })
     .where(eq(groups.id, group.id));
+  await database.insert(groupMembers).values([
+    {
+      groupId: group.id,
+      userId: club.organizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    {
+      groupId: group.id,
+      userId: club.coOrganizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    { groupId: group.id, userId: club.member },
+  ]);
   return group;
 }
 
@@ -118,7 +114,7 @@ describe("Group joined Notifications", () => {
       });
       expect(await joinedRows(db)).toEqual([]);
 
-      await joinLoosePublic(db, { groupId: group.id, userId: joiner });
+      await joinPublic(db, { groupId: group.id, userId: joiner });
 
       expect(await joinedRows(db)).toEqual([
         {
@@ -140,52 +136,36 @@ describe("Group joined Notifications", () => {
       const group = await insertClubGroup(db, club);
       expect(await joinedRows(db)).toEqual([]);
 
-      await joinClubPublic(db, { groupId: group.id, userId: club.joiner });
+      await joinPublic(db, { groupId: group.id, userId: club.joiner });
 
       const rows = await joinedRows(db);
       expect(sortedRecipients(rows)).toEqual(
-        [club.owner, club.admin, club.creator].sort(),
+        [club.creator, club.organizer, club.coOrganizer].sort(),
       );
       expect(rows.every((row) => row.actor === club.joiner)).toBe(true);
+      expect(rows.every((row) => row.audience === "admin")).toBe(true);
     } finally {
       await close();
     }
   });
 
-  it("skips a Club Group creator who left the Community", async () => {
+  it("skips an Organizer whose appointment was removed", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
       const group = await insertClubGroup(db, club);
-      const left = await leaveCommunity(db, {
-        communityId: club.communityId,
-        userId: club.creator,
+      await setOrganizer(db, {
+        groupId: group.id,
+        approverUserId: club.creator,
+        userId: club.coOrganizer,
+        organizer: false,
       });
-      expect(left.ok).toBe(true);
 
-      await joinClubPublic(db, { groupId: group.id, userId: club.joiner });
+      await joinPublic(db, { groupId: group.id, userId: club.joiner });
 
       expect(sortedRecipients(await joinedRows(db))).toEqual(
-        [club.owner, club.admin].sort(),
+        [club.creator, club.organizer].sort(),
       );
-    } finally {
-      await close();
-    }
-  });
-
-  it("writes nothing while the Community is Soft-archived", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const club = await insertClub(db);
-      const group = await insertClubGroup(db, club);
-      await commit(db, { communityId: club.communityId }, "archived");
-
-      await notifyGroupJoined(db, {
-        group: { ...group, createdBy: club.creator },
-        joinerUserId: club.joiner,
-      });
-
-      expect(await joinedRows(db)).toEqual([]);
     } finally {
       await close();
     }
@@ -203,11 +183,11 @@ describe("Group joined Notifications", () => {
 
       await approveJoinRequest(db, {
         requestId: request.id,
-        userId: club.admin,
+        userId: club.organizer,
       });
 
       expect(sortedRecipients(await joinedRows(db))).toEqual(
-        [club.owner, club.creator].sort(),
+        [club.creator, club.coOrganizer].sort(),
       );
     } finally {
       await close();
