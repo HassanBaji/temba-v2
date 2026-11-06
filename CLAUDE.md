@@ -115,7 +115,8 @@ apps/api               ──► @repo/api, @repo/db
 
 The design system is locked. See section 4 of the spec for values.
 
-- Black and white only. No accent color, no dark theme.
+- Black and white only. No accent color. Light and dark schemes share Color roles (ADR-0055, `.scratch/dark-mode/spec.md`): name the role, never branch on the scheme, and nothing in dark is `#ffffff`.
+- Read colors with `useColors()` from `src/theme/theme-provider`. Import `colors` statically only for output that stays light in both schemes (share images).
 - Hairline borders, never shadows.
 - Colors, spacing, radii and type sizes come from `@repo/design-tokens`. No hex literals in screens.
 - Text goes through the `Text` primitive, which sets the font family and tabular figures. Never set `fontFamily` or `fontWeight` directly.
