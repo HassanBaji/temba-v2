@@ -306,6 +306,79 @@ export const game = {
     sportLine: (sport: string) =>
       `${sport} Games you create or join show up here.`,
   },
+  sides: {
+    left: "Left",
+    right: "Right",
+    either: "Either",
+    eitherSide: "either side",
+    eitherSideLabel: "Either side",
+    picked: (side: string, band: string | null) =>
+      band ? `${side}, ${band}` : side,
+    auto: (side: string) => `${side}, auto`,
+    setByYou: (side: string) => `${side}, set by you`,
+    setByOrganizer: (side: string) => `${side}, set by organizer`,
+    openAnySide: "Any side",
+    openSideOrEither: (side: string) => `${side}, or either`,
+    noSidesPicked: "no sides picked",
+    lineupJoinNote:
+      "Tap a team to join it. Sides are optional: pick one, or sort it out on court.",
+    lineupFullNote:
+      "Sides never block a game. A seat is a seat; the side is a note for the four of them.",
+    viewerAutoNote: (partner: string, partnerSide: string, side: string) =>
+      `${partner} picked ${partnerSide}, so you play ${side}. You didn't pick a side.`,
+    viewerBothEitherNote:
+      "Neither of you picked a side. Sort it on court, or pick one any time before the game.",
+    viewerAloneEitherNote:
+      "You didn't pick a side. If your partner picks one, you take the other.",
+    pickASide: "Pick a side",
+    setSides: "Set sides",
+    swap: "Swap",
+    setSidesPrompt:
+      "They'll sort it on court. Set it here if you want it on the sheet.",
+    setSidesDone: "Set by you. Both players were told.",
+    setSidesToast: "Sides set",
+    sideSavedToast: "Side saved",
+    joinTitle: "Join this game",
+    joinSummary: (when: string, venue: string, price: string | null) =>
+      price ? `${when}, ${venue}. ${price} each.` : `${when}, ${venue}.`,
+    teamHeading: "Team",
+    sideHeading: "Side",
+    sideOptional: "optional",
+    sideOptionalUsual: (side: string) => `optional, your usual is ${side}`,
+    teamWith: (name: string, side: string, seats: number) =>
+      `With ${name} (${side}). ${plural("en", seats, { one: "1 seat", other: "{n} seats" })}`,
+    teamEmpty: (seats: number) =>
+      `Empty. ${plural("en", seats, { one: "1 seat", other: "{n} seats" })}`,
+    teamFull: "Full",
+    takenBy: (side: string, name: string) => `${side}, taken by ${name}`,
+    helpLeftWithPartner: (partner: string) =>
+      `You play Left, ${partner} plays Right.`,
+    helpRightWithPartner: (partner: string) =>
+      `You play Right, ${partner} plays Left.`,
+    helpLeftEmpty:
+      "Whoever joins next takes Right, or picks nothing and plays Right by default.",
+    helpRightEmpty:
+      "Whoever joins next takes Left, or picks nothing and plays Left by default.",
+    helpEitherNextToPicked: (partner: string, partnerSide: string, side: string) =>
+      `${partner} picked ${partnerSide}, so you'd play ${side} by default. Change it any time before the game.`,
+    helpEither:
+      "If your partner picks a side you take the other. If neither of you does, sort it on court; the organizer can note it later.",
+    yourSeat: "Your seat",
+    seatSummary: (team: string, side: string) => `${team}, ${side}`,
+    courtCost: "Court cost",
+    courtCostValue: (price: string) => `${price}, pay at the venue`,
+    joinTeam: (team: string) => `Join ${team}`,
+    joinTeamSide: (team: string, side: string) => `Join ${team}, ${side}`,
+    sideIsOptional: "Side is optional",
+    youreInTeam: (team: string) => `You're in, ${team}`,
+    sideOpenUntil: (partner: string) =>
+      `Side open until you or ${partner} change it`,
+    pickSideDescription: "Pick a side any time before the game. Your partner is told if it moves them.",
+    saveSide: "Save side",
+    sideButton: (side: string) => `${side} side`,
+    sideButtonTaken: (side: string, name: string) =>
+      `${side} side, taken by ${name}`,
+  },
   court: {
     joinSubline: "Pick your side next",
     addPlayerHint: "Tap an open spot to add a player there.",

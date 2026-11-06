@@ -224,8 +224,10 @@ export type SeatOccupant = {
   userId: string;
   name: string;
   image: string | null;
-  /** Joined without picking a Position: the other User on the Game team may take this one. */
+  /** Chose Either side rather than a Position. */
   eitherSide: boolean;
+  /** The Organizer who set this Game team's sides, if one did. */
+  sideSetByUserId: string | null;
 };
 
 export type GameSide = {

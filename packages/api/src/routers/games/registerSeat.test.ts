@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { games, groups, user, venues } from "@repo/db/schema";
+import { games, groups, notifications, user, venues } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { createFriendlyGame } from "#src/games/create-friendly";
@@ -10,6 +10,8 @@ import { gameById } from "#src/routers/games/byId";
 import { leaveGame } from "#src/routers/games/leave";
 import { moveSeat } from "#src/routers/games/moveSeat";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { setSeatSide } from "#src/routers/games/setSeatSide";
+import { setTeamSides } from "#src/routers/games/setTeamSides";
 
 async function insertUser(database: TestDatabase, name: string) {
   const [row] = await database
@@ -68,7 +70,7 @@ describe("resolveTeamSeat", () => {
       ok: true,
       position: "left",
       eitherSide: true,
-      partner: null,
+      movePartnerTo: null,
     });
   });
 
@@ -79,18 +81,18 @@ describe("resolveTeamSeat", () => {
       ok: true,
       position: "left",
       eitherSide: false,
-      partner: { position: "right", eitherSide: false },
+      movePartnerTo: "right",
     });
   });
 
-  it("settles an Either-side partner where they are when the joiner takes the other Position", () => {
+  it("leaves an Either-side partner where they are when the joiner takes the other Position", () => {
     expect(
       resolveTeamSeat({ position: "left", eitherSide: true }, "right"),
     ).toEqual({
       ok: true,
       position: "right",
       eitherSide: false,
-      partner: { position: "left", eitherSide: false },
+      movePartnerTo: null,
     });
   });
 
@@ -101,18 +103,18 @@ describe("resolveTeamSeat", () => {
       ok: true,
       position: "right",
       eitherSide: true,
-      partner: null,
+      movePartnerTo: null,
     });
   });
 
-  it("takes the open Position beside a partner who picked one, settled", () => {
+  it("puts an Either-side joiner on the side a partner did not pick", () => {
     expect(
       resolveTeamSeat({ position: "right", eitherSide: false }, "either"),
     ).toEqual({
       ok: true,
       position: "left",
-      eitherSide: false,
-      partner: null,
+      eitherSide: true,
+      movePartnerTo: null,
     });
   });
 
@@ -154,7 +156,7 @@ describe("registerSeat Either side", () => {
       });
       expect(settled.right).toMatchObject({
         userId: ada.id,
-        eitherSide: false,
+        eitherSide: true,
       });
     } finally {
       await close();
@@ -245,7 +247,182 @@ describe("registerSeat Either side", () => {
 
       const side = await sideOne(db, game.id, ada.id);
       expect(side.left).toMatchObject({ userId: sofia.id });
+      expect(side.right).toMatchObject({ userId: ada.id, eitherSide: true });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("setSeatSide", () => {
+  it("moves an Either-side partner and tells them when a User picks their Position", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const ada = await insertUser(db, "Ada");
+      const sofia = await insertUser(db, "Sofia");
+      const game = await insertPublicFriendly(db, ada.id);
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: ada.id,
+        sideIndex: 1,
+        position: "either",
+      });
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: sofia.id,
+        sideIndex: 1,
+        position: "either",
+      });
+
+      await setSeatSide(db, {
+        gameId: game.id,
+        userId: sofia.id,
+        side: "left",
+      });
+
+      const side = await sideOne(db, game.id, ada.id);
+      expect(side.left).toMatchObject({ userId: sofia.id, eitherSide: false });
+      expect(side.right).toMatchObject({ userId: ada.id, eitherSide: true });
+      const told = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.recipientUserId, ada.id));
+      expect(told.map((row) => row.type)).toContain("game_side_changed");
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses the Position a partner picked", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const ada = await insertUser(db, "Ada");
+      const sofia = await insertUser(db, "Sofia");
+      const game = await insertPublicFriendly(db, ada.id);
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: ada.id,
+        sideIndex: 1,
+        position: "right",
+      });
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: sofia.id,
+        sideIndex: 1,
+        position: "either",
+      });
+
+      await expect(
+        setSeatSide(db, { gameId: game.id, userId: sofia.id, side: "right" }),
+      ).rejects.toThrow("Your partner picked that side");
+    } finally {
+      await close();
+    }
+  });
+
+  it("goes back to Either side, keeping the Position beside a partner who picked", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const ada = await insertUser(db, "Ada");
+      const sofia = await insertUser(db, "Sofia");
+      const game = await insertPublicFriendly(db, ada.id);
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: ada.id,
+        sideIndex: 1,
+        position: "right",
+      });
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: sofia.id,
+        sideIndex: 1,
+        position: "left",
+      });
+
+      await setSeatSide(db, {
+        gameId: game.id,
+        userId: sofia.id,
+        side: "either",
+      });
+
+      const side = await sideOne(db, game.id, ada.id);
+      expect(side.left).toMatchObject({ userId: sofia.id, eitherSide: true });
       expect(side.right).toMatchObject({ userId: ada.id, eitherSide: false });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("setTeamSides", () => {
+  it("lets an Organizer set and swap a Game team's sides", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const organizer = await insertUser(db, "Hassan");
+      const ada = await insertUser(db, "Ada");
+      const sofia = await insertUser(db, "Sofia");
+      const game = await insertPublicFriendly(db, organizer.id);
+      for (const player of [ada, sofia]) {
+        await registerSeat(db, {
+          gameId: game.id,
+          userId: player.id,
+          sideIndex: 1,
+          position: "either",
+        });
+      }
+
+      await setTeamSides(db, {
+        gameId: game.id,
+        organizerUserId: organizer.id,
+        sideIndex: 1,
+        leftUserId: sofia.id,
+      });
+      let side = await sideOne(db, game.id, organizer.id);
+      expect(side.left).toMatchObject({
+        userId: sofia.id,
+        eitherSide: false,
+        sideSetByUserId: organizer.id,
+      });
+      expect(side.right).toMatchObject({ userId: ada.id, eitherSide: false });
+
+      await setTeamSides(db, {
+        gameId: game.id,
+        organizerUserId: organizer.id,
+        sideIndex: 1,
+        leftUserId: ada.id,
+      });
+      side = await sideOne(db, game.id, organizer.id);
+      expect(side.left).toMatchObject({ userId: ada.id });
+      expect(side.right).toMatchObject({ userId: sofia.id });
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a User who is not an Organizer", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const organizer = await insertUser(db, "Hassan");
+      const ada = await insertUser(db, "Ada");
+      const sofia = await insertUser(db, "Sofia");
+      const game = await insertPublicFriendly(db, organizer.id);
+      for (const player of [ada, sofia]) {
+        await registerSeat(db, {
+          gameId: game.id,
+          userId: player.id,
+          sideIndex: 1,
+          position: "either",
+        });
+      }
+
+      await expect(
+        setTeamSides(db, {
+          gameId: game.id,
+          organizerUserId: ada.id,
+          sideIndex: 1,
+          leftUserId: ada.id,
+        }),
+      ).rejects.toThrow("Only an organizer can do that");
     } finally {
       await close();
     }

@@ -213,7 +213,7 @@ A User's standing preference for Left or right, or Either. A default for the Gam
 _Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
 **Either side**:
-On a padel Friendly game, joining a Game team without picking a Position (ADR-0054). The User holds a Position only until a second User joins that Game team: the second User may pick either Position, and the Either-side User plays the other. A second User who picks a Position settles the Either-side User; two Either-side Users stay Either side, and their Matches record no Position for Played side. Offered while the Game team has a vacant Position and nobody on it picked one. Not on Friendly tournaments. Preferred Position Either opens the join sheet on it.
+On a padel Friendly game, a User's answer to "which side?" when they take a seat on a Game team without picking Left or Right (ADR-0054). Left, Right and Either are the three answers; a side is a label on a seat, so it never blocks a join. Either next to a User who picked plays the other side, shown "auto". Either next to Either stays open, shown "no sides picked", and is sorted on court. A side a partner picked cannot be taken; the Position an Either-side User holds can, and moves them over. A seated User may change their answer until the Game starts, and an Organizer may set a full Game team's sides on the sheet; a User whose Position moves because of either is told. Not on Friendly tournaments.
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Owner**:
