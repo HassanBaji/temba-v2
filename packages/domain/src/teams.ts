@@ -15,25 +15,17 @@ export function teamNameInput(name: string) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function teamRowMeta(
-  community: { name: string } | null,
-  locale: Locale,
-) {
-  const m = messagesFor(locale).team;
-  return community ? m.rowMeta(community.name) : m.looseLabel;
-}
-
 export type TeamListRowInput = {
   id: string;
   displayName: string;
-  community: { name: string } | null;
+  sport: string;
   incomplete: boolean;
   members: { name: string; image?: string | null }[];
 };
 
 export function teamListRowView(team: TeamListRowInput, locale: Locale) {
   const m = messagesFor(locale);
-  const meta = teamRowMeta(team.community, locale);
+  const meta = groupHomeSportLabel(team.sport, locale);
   return {
     id: team.id,
     title: team.displayName,
@@ -51,10 +43,6 @@ export function teamListRowView(team: TeamListRowInput, locale: Locale) {
   };
 }
 
-export function teamPendingLinkCopy(communityName: string, locale: Locale) {
-  return messagesFor(locale).team.pendingLink(communityName);
-}
-
 export function teamDissolveConfirm(displayName: string, locale: Locale) {
   const m = messagesFor(locale).team;
   return {
@@ -70,15 +58,6 @@ export function teamLeaveConfirm(displayName: string, locale: Locale) {
     title: m.leaveConfirm.title(displayName),
     description: m.leaveConfirm.description,
     confirmLabel: m.leaveLabel,
-  };
-}
-
-export function teamUnlinkConfirm(displayName: string, locale: Locale) {
-  const m = messagesFor(locale).team;
-  return {
-    title: m.unlinkConfirm.title(displayName),
-    description: m.unlinkConfirm.description,
-    confirmLabel: m.unlinkLabel,
   };
 }
 
@@ -130,24 +109,13 @@ export function teamInviteDescription(squad: boolean, locale: Locale) {
   return squad ? m.squadInviteDescription : m.inviteDescription;
 }
 
-export function teamRequestLinkHint(roster: TeamRosterInput, locale: Locale) {
-  if (roster.complete || !isSquadRoster(roster)) {
-    return null;
-  }
-  const m = messagesFor(locale).team.roster;
-  return `${m.needsForLink(roster.completeAt)} ${m.moreToGo(roster.completeAt - roster.count)}`;
-}
-
 export type TeamHomeInput = {
   displayName: string | null;
   sport: string;
-  isLoose: boolean;
   waitingForPartner: boolean;
   gamesPlayed: number;
   wins: number;
   losses: number;
-  community: { id: string; name: string } | null;
-  pendingLinkRequest: { community: { name: string } } | null;
   members: {
     id: string;
     name: string | null;
@@ -157,8 +125,6 @@ export type TeamHomeInput = {
   }[];
   roster: TeamRosterInput;
   canInvite: boolean;
-  canRequestLink: boolean;
-  canUnlink: boolean;
   canDissolve: boolean;
   viewerCanLeave: boolean;
 };
@@ -173,7 +139,6 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
   );
   const badges = [
     groupHomeSportLabel(data.sport, locale),
-    data.isLoose ? m.team.looseLabel : m.team.clubLabel,
     data.waitingForPartner ? m.team.incompleteLabel : null,
   ].filter((badge): badge is string => badge != null);
 
@@ -188,16 +153,11 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     squad,
     roster: teamRosterView(data.roster, locale),
     inviteLabel: teamInviteLabel(squad, locale),
-    requestLinkHint: teamRequestLinkHint(data.roster, locale),
-    linkedCommunity: data.community,
     primaryInvite: data.waitingForPartner && data.canInvite,
     waitingNote: data.waitingForPartner && !data.canInvite,
     waitingCopy: squad
       ? m.team.roster.waitingSquad(seatsToComplete)
       : m.team.waitingCopy,
-    pendingLinkNote: data.pendingLinkRequest
-      ? teamPendingLinkCopy(data.pendingLinkRequest.community.name, locale)
-      : null,
     stats: [
       { label: m.team.stats.gamesPlayed, value: String(data.gamesPlayed) },
       { label: m.common.wins, value: String(data.wins) },
@@ -215,8 +175,6 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
       creatorLabel: member.isCreator ? m.team.creatorLabel : null,
     })),
     canInvite: data.canInvite,
-    canRequestLink: data.canRequestLink,
-    canUnlink: data.canUnlink,
     canDissolve: data.canDissolve,
     canLeave: data.viewerCanLeave,
   };

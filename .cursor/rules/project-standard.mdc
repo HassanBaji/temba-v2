@@ -42,7 +42,7 @@ When adding a new feature:
 
 - Place UI components alongside similar existing components.
 - Place tRPC endpoint logic in that endpoint’s procedure file under `packages/api/src/routers/<domain>/` (see `api-one-endpoint-per-file`). Do **not** put a door’s logic in a twin `packages/api/src/<domain>/<verb>.ts` or a service/repository layer.
-- Shared glossary rules used by two or more doors (Soft-archive, Game admit, Community membership, Invite doors, and similar) stay in their existing App server modules.
+- Shared glossary rules used by two or more doors (Soft-archive, Game admit, Invite doors, and similar) stay in their existing App server modules.
 - Place shared types in the project's existing type locations (UI payloads: `RouterOutputs` / `RouterInputs`).
 - Do not invent new top-level directories without justification.
 

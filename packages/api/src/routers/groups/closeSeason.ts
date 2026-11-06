@@ -37,7 +37,7 @@ export async function closeSeason(
     throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
   }
   const group = await requireGroup(database, season.groupId);
-  await assertCanManageSeasons(database, group, args.userId);
+  assertCanManageSeasons(group, args.userId);
 
   if (groupSeasonStatus(season, now) !== "active") {
     throw new TRPCError({

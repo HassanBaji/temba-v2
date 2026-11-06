@@ -17,8 +17,6 @@ function member(
   };
 }
 
-const COMMUNITY = { id: "community-1", name: "Södermalm Padel" };
-
 const COMPLETE_MEMBERS = [
   member("m1", ADA, { isCreator: true, isViewer: true }),
   member("m2", KIM),
@@ -43,17 +41,12 @@ function roster(
 const BASE_HOME: TeamHomeInput = {
   displayName: "Ada Lindqvist & Kim Holm",
   sport: "padel",
-  isLoose: true,
   waitingForPartner: false,
   gamesPlayed: 0,
   wins: 0,
   losses: 0,
-  community: null,
-  pendingLinkRequest: null,
   members: COMPLETE_MEMBERS,
   canInvite: false,
-  canRequestLink: true,
-  canUnlink: false,
   canDissolve: true,
   roster: roster("padel", 2),
   viewerCanLeave: false,
@@ -74,14 +67,14 @@ export function createTeamsFixtures() {
       {
         id: "team-1",
         displayName: "Ada Lindqvist & Kim Holm",
-        community: { name: COMMUNITY.name },
+        sport: "padel",
         incomplete: false,
         members: [ADA, KIM],
       },
       {
         id: "team-2",
         displayName: "Sunday Smashers",
-        community: null,
+        sport: "padel",
         incomplete: true,
         members: [ADA],
       },
@@ -102,8 +95,6 @@ export function createTeamsFixtures() {
     | "record"
     | "incomplete"
     | "waiting"
-    | "linked"
-    | "pendingLink"
     | "footballCreatorBuilding"
     | "footballCreatorComplete"
     | "footballCreatorFull"
@@ -118,7 +109,6 @@ export function createTeamsFixtures() {
       waitingForPartner: true,
       members: [COMPLETE_MEMBERS[0]!],
       canInvite: true,
-      canRequestLink: false,
       roster: roster("padel", 1),
     },
     waiting: {
@@ -126,24 +116,8 @@ export function createTeamsFixtures() {
       displayName: "Sunday Smashers",
       waitingForPartner: true,
       members: [member("m3", KIM, { isCreator: true })],
-      canRequestLink: false,
       canDissolve: false,
       roster: roster("padel", 1),
-    },
-    linked: {
-      ...BASE_HOME,
-      isLoose: false,
-      community: COMMUNITY,
-      gamesPlayed: 5,
-      wins: 2,
-      losses: 3,
-      canRequestLink: false,
-      canUnlink: true,
-    },
-    pendingLink: {
-      ...BASE_HOME,
-      pendingLinkRequest: { community: { name: COMMUNITY.name } },
-      canRequestLink: false,
     },
     footballCreatorBuilding: {
       ...BASE_HOME,
@@ -152,7 +126,6 @@ export function createTeamsFixtures() {
       waitingForPartner: true,
       members: footballMembers(2),
       canInvite: true,
-      canRequestLink: false,
       roster: roster("football", 2),
     },
     footballCreatorComplete: {
@@ -178,16 +151,10 @@ export function createTeamsFixtures() {
       waitingForPartner: true,
       members: footballMembers(3),
       canDissolve: false,
-      canRequestLink: false,
       viewerCanLeave: true,
       roster: roster("football", 3),
     },
   };
 
-  const communities = [
-    { id: "community-1", name: COMMUNITY.name, archivedAt: null },
-    { id: "community-2", name: "Bromma Padel Club", archivedAt: null },
-  ];
-
-  return { list, pendingInvites, home, communities };
+  return { list, pendingInvites, home };
 }

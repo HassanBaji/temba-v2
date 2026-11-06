@@ -17,22 +17,18 @@ export type GroupHomeCtaInput = {
 
 export type GroupHomeOverflowItem =
   | "edit"
-  | "open_community"
-  | "all_communities"
   | "create_game"
   | "copy_group_url"
   | "manage_invites"
   | "change_image"
   | "remove_image"
   | "seasons"
-  | "leave_venue_community"
+  | "unlink_venue"
   | "leave"
   | "delete";
 
 export type GroupHomeOverflowInput = {
   family: GroupHomeCtaFamily;
-  hasCommunity: boolean;
-  hasCreateAccess: boolean;
   canShowCreateGame: boolean;
   isLoosePublic: boolean;
   canManageInvites: boolean;
@@ -40,7 +36,7 @@ export type GroupHomeOverflowInput = {
   hasImage: boolean;
   isMember: boolean;
   canDelete: boolean;
-  canLeaveVenueCommunity?: boolean;
+  canUnlinkVenue?: boolean;
   canManageSeasons?: boolean;
   canEdit?: boolean;
 };
@@ -162,12 +158,6 @@ export function groupHomeOverflowItems(
   if (input.canEdit) {
     items.push("edit");
   }
-  if (input.hasCommunity) {
-    items.push("open_community");
-    if (input.hasCreateAccess) {
-      items.push("all_communities");
-    }
-  }
   if (input.canShowCreateGame && !createOnBar) {
     items.push("create_game");
   }
@@ -186,8 +176,8 @@ export function groupHomeOverflowItems(
   if (input.canManageSeasons) {
     items.push("seasons");
   }
-  if (input.canLeaveVenueCommunity) {
-    items.push("leave_venue_community");
+  if (input.canUnlinkVenue) {
+    items.push("unlink_venue");
   }
   if (input.isMember) {
     items.push("leave");

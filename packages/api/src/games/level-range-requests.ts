@@ -9,7 +9,6 @@ import {
 import { type db } from "#src/db";
 import {
   assertGameOrganizer,
-  isClubGroupGameJoinFrozen,
   isRegistrationOpen,
   requireGame,
 } from "#src/games/access";
@@ -80,7 +79,7 @@ export async function requirePendingLevelRangeRequest(
   const game = await requireGame(database, request.gameId);
   await assertGameOrganizer(database, game, actorUserId);
 
-  if (game.cancelledAt || (await isClubGroupGameJoinFrozen(database, game))) {
+  if (game.cancelledAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: `Cannot ${action} Level range requests for this Game`,
@@ -122,10 +121,8 @@ export async function viewerLevelRangeFields(
   });
   const alreadyOnGame = await userAlreadyOnGame(database, game.id, userId);
   const isWaitlisted = await userAlreadyWaitlisted(database, game.id, userId);
-  const joinFrozen = await isClubGroupGameJoinFrozen(database, game);
   const now = new Date();
-  const openForRequests =
-    !game.cancelledAt && !joinFrozen && isRegistrationOpen(game, now);
+  const openForRequests = !game.cancelledAt && isRegistrationOpen(game, now);
   const inDisplayedRange =
     tenths != null && displayedLevelPassesRange(tenths, game);
   const approved = request?.status === "approved";

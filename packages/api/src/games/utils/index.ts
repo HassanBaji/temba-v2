@@ -107,7 +107,6 @@ export type HubListRow = {
   registeredTeamCount: number;
   teamsAllowed: number | null;
   registrationStatus: RegistrationStatus;
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;

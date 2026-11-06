@@ -1,7 +1,7 @@
 import type { DbClient, DbTx } from "@repo/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { communityMembers, CommunityRoleEnum, groups } from "@repo/db";
+import { groups } from "@repo/db";
 
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
@@ -15,10 +15,12 @@ type DbOrTx = DbClient | DbTx;
 export type CreateGroupOption = {
   id: string;
   name: string | null;
-  communityName: string | null;
+  venueName: string | null;
   sport: Sport;
   verified: boolean;
 };
+
+const groupWith = { venue: { columns: { name: true } } } as const;
 
 export async function listCreateGroups(
   database: DbOrTx,
@@ -26,41 +28,8 @@ export async function listCreateGroups(
 ): Promise<CreateGroupOption[]> {
   const createdRows = await database.query.groups.findMany({
     where: and(eq(groups.createdBy, args.userId), isNull(groups.deletedAt)),
-    with: {
-      community: {
-        columns: { name: true },
-      },
-    },
+    with: groupWith,
   });
-
-  const staffMemberships = await database.query.communityMembers.findMany({
-    where: and(
-      eq(communityMembers.userId, args.userId),
-      inArray(communityMembers.role, [
-        CommunityRoleEnum.OWNER,
-        CommunityRoleEnum.ADMIN,
-      ]),
-    ),
-    columns: { communityId: true },
-  });
-
-  const staffCommunityIds = staffMemberships.map(
-    (membership) => membership.communityId,
-  );
-  const clubRows =
-    staffCommunityIds.length === 0
-      ? []
-      : await database.query.groups.findMany({
-          where: and(
-            inArray(groups.communityId, staffCommunityIds),
-            isNull(groups.deletedAt),
-          ),
-          with: {
-            community: {
-              columns: { name: true },
-            },
-          },
-        });
 
   const appointedGroupIds = await appointedOrganizerGroupIds(
     database,
@@ -74,15 +43,11 @@ export async function listCreateGroups(
             inArray(groups.id, appointedGroupIds),
             isNull(groups.deletedAt),
           ),
-          with: {
-            community: {
-              columns: { name: true },
-            },
-          },
+          with: groupWith,
         });
 
   const byId = new Map<string, (typeof createdRows)[number]>();
-  for (const row of [...createdRows, ...clubRows, ...appointedRows]) {
+  for (const row of [...createdRows, ...appointedRows]) {
     byId.set(row.id, row);
   }
 
@@ -94,9 +59,9 @@ export async function listCreateGroups(
     eligible.push({
       id: row.id,
       name: row.name,
-      communityName: row.community?.name ?? null,
+      venueName: row.venue?.name ?? null,
       sport: sportOrDefault(row.sport),
-      verified: await groupIsVerified(database, row),
+      verified: groupIsVerified(row),
     });
   }
 

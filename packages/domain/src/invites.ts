@@ -7,10 +7,9 @@ import { gameDisplayName, type GameDisplayNameInput } from "./game-custom-name";
 import { gameJoinToast } from "./game-copy";
 import type { InviteHostLabel } from "./invite-outcome-copy";
 
-export type InviteKind = "community" | "group" | "team" | "game";
+export type InviteKind = "group" | "team" | "game";
 
 const KIND_HOST_LABELS: Record<InviteKind, InviteHostLabel> = {
-  community: "Community",
   group: "Group",
   team: "Team",
   game: "Game",
@@ -30,9 +29,8 @@ export function inviteRowMeta(
   return m.invite.inbox.rowMeta[kind](inviterName ?? m.common.someone);
 }
 
-export function groupLookupNote(isLoose: boolean, locale: Locale) {
-  const m = messagesFor(locale).invite.inbox.groupLookupNote;
-  return isLoose ? m.loose : m.club;
+export function groupLookupNote(locale: Locale) {
+  return messagesFor(locale).invite.inbox.groupLookupNote;
 }
 
 export type InviteInviter = {
@@ -55,7 +53,6 @@ export type InviteSide = {
 };
 
 export type InviteInboxSources<Side extends InviteSide = InviteSide> = {
-  community: (InviteRowBase & { communityName: string })[];
   group: (InviteRowBase & { groupName: string | null })[];
   team: (InviteRowBase & { displayName: string })[];
   game: (InviteRowBase & {
@@ -131,9 +128,6 @@ export function mergeInviteInbox<Side extends InviteSide = InviteSide>(
 ): InviteInboxItem<Side>[] {
   const untitledGroup = messagesFor(locale).group.untitled;
   const items: InviteInboxItem<Side>[] = [
-    ...(sources.community ?? []).map((row) =>
-      inboxItem<Side>("community", row, row.communityName, locale),
-    ),
     ...(sources.group ?? []).map((row) =>
       inboxItem<Side>("group", row, row.groupName ?? untitledGroup, locale),
     ),
@@ -292,7 +286,7 @@ export type InviteLinkPreview =
   | { status: "invalid" | "unavailable" }
   | {
       status: "ready";
-      kind: "community" | "group" | "team";
+      kind: "group" | "team";
       name: string;
       /** A Group whose Organizers approve new members: accepting sends a request. */
       requiresApproval?: boolean;
@@ -360,7 +354,7 @@ export type InviteLinkPath =
   | { kind: InviteKind; token: string }
   | { kind: "game-short" | "group-short"; code: string };
 
-const TOKEN_PATH = /^\/invites\/(community|group|team|game)\/link\/([^/]+)$/;
+const TOKEN_PATH = /^\/invites\/(group|team|game)\/link\/([^/]+)$/;
 const GAME_SHORT_PATH = /^\/g\/([^/]+)$/;
 const GROUP_SHORT_PATH = /^\/gr\/([^/]+)$/;
 

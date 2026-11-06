@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 
 import {
-  communityMemberInvites,
   gameMemberInvites,
   groupMemberInvites,
   teamMemberInvites,
@@ -37,12 +36,7 @@ export async function revokeLookup(
     return { ok: true };
   }
 
-  if (host.kind === "community") {
-    await writeDb(database)
-      .update(communityMemberInvites)
-      .set({ revokedAt: new Date(), updatedAt: new Date() })
-      .where(eq(communityMemberInvites.id, inviteId));
-  } else if (host.kind === "group") {
+  if (host.kind === "group") {
     await writeDb(database)
       .update(groupMemberInvites)
       .set({ revokedAt: new Date(), updatedAt: new Date() })

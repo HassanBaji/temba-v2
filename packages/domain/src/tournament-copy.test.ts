@@ -205,7 +205,7 @@ describe("Pool tournament copy sweep", () => {
     assert.equal(/\bGroup\b/u.test(poolCopy), false);
   });
 
-  it("names the Community Group only on the Group row and invite/create seat labels", () => {
+  it("names the Group only on the Group row and invite/create seat labels", () => {
     assert.equal(m.home.groupRow, "Group");
     assert.match(m.home.inviteFromGroup, /group/iu);
     assert.match(m.sizing.thisGroupOnly, /Group/u);

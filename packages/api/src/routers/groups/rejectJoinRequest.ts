@@ -9,7 +9,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
 
@@ -29,14 +28,6 @@ export async function rejectJoinRequest(
   }
 
   const group = await requireGroup(database, request.groupId);
-
-  if (group.communityId) {
-    const archive = await consult(database, { clubGroupId: group.id });
-    refuseIfFrozen(archive, "join", {
-      frozenMessage:
-        "Cannot reject join requests while the Community is archived",
-    });
-  }
 
   await assertGroupApprover(database, group, args.userId);
 

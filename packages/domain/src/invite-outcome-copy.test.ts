@@ -4,8 +4,8 @@ import { inviteOutcomeAction, inviteOutcomeCopy } from "./invite-outcome-copy";
 
 describe("inviteOutcomeCopy", () => {
   it("gives invalid and unavailable links different titles", () => {
-    const invalid = inviteOutcomeCopy("invalid", "Community", "en");
-    const unavailable = inviteOutcomeCopy("unavailable", "Community", "en");
+    const invalid = inviteOutcomeCopy("invalid", "Group", "en");
+    const unavailable = inviteOutcomeCopy("unavailable", "Group", "en");
     expect(invalid.title).toBe("Link expired or invalid");
     expect(unavailable.title).toBe("Not accepting new members");
     expect(invalid.title).not.toBe(unavailable.title);

@@ -33,17 +33,9 @@ describe("inviteRowMeta", () => {
 });
 
 describe("mergeInviteInbox", () => {
-  it("merges all four hosts, newest first", () => {
+  it("merges all three hosts, newest first", () => {
     const items = mergeInviteInbox(
       {
-        community: [
-          {
-            id: "c1",
-            createdAt: new Date("2026-09-01T10:00:00Z"),
-            invitedBy: inviter,
-            communityName: "Bromma",
-          },
-        ],
         group: [
           {
             id: "g1",
@@ -86,7 +78,6 @@ describe("mergeInviteInbox", () => {
       "game-x1",
       "group-g1",
       "team-t1",
-      "community-c1",
     ]);
     expect(items[1]).toMatchObject({
       title: "Untitled Group",
@@ -178,7 +169,7 @@ describe("gameInviteSeatCopy", () => {
 
 describe("toasts", () => {
   it("reads the accepted host", () => {
-    expect(lookupInviteAcceptToast("community", "en")).toBe("Joined Community");
+    expect(lookupInviteAcceptToast("group", "en")).toBe("Joined Group");
     expect(lookupInviteAcceptToast("game", "en", { waitlisted: true })).toBe(
       "Joined waitlist",
     );
@@ -311,9 +302,8 @@ describe("gameInviteLinkStage", () => {
 });
 
 describe("groupLookupNote", () => {
-  it("differs for Loose and Club Groups", () => {
-    expect(groupLookupNote(true, "en")).toContain("Organizers");
-    expect(groupLookupNote(false, "en")).toContain("Owners and Admins");
+  it("names the Group's Organizers", () => {
+    expect(groupLookupNote("en")).toContain("Organizers");
   });
 });
 
@@ -327,8 +317,9 @@ describe("parseInviteLink", () => {
       token: "t-1",
     });
     expect(
-      parseInviteLink(" https://temba.example/invites/community/link/c9/ "),
-    ).toEqual({ kind: "community", token: "c9" });
+      parseInviteLink(" https://temba.example/invites/group/link/c9/ "),
+    ).toEqual({ kind: "group", token: "c9" });
+    expect(parseInviteLink("/invites/community/link/c9")).toBeNull();
   });
 
   it("reads Game and Group short links", () => {

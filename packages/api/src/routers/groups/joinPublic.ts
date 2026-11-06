@@ -2,36 +2,27 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { communities, groupMembers, GroupTypeEnum } from "@repo/db";
+import { groupMembers, GroupTypeEnum } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
 
-export async function joinClubPublic(
+export async function joinPublic(
   database: DbClient,
   args: { groupId: string; userId: string },
 ) {
   const group = await requireGroup(database, args.groupId);
 
-  if (!group.communityId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "This is not a Club Group",
-    });
-  }
-
   if (group.type !== GroupTypeEnum.PUBLIC) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Club Group Private cannot be joined without an invite",
+      message: "Private Groups cannot be joined via the Group URL",
     });
   }
 
@@ -46,34 +37,6 @@ export async function joinClubPublic(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This Group requires approval. Request to join instead.",
-    });
-  }
-
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, group.communityId),
-  });
-
-  if (!community) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Community not found",
-    });
-  }
-
-  refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "join", {
-    frozenMessage: "Cannot join a Group in an archived Community",
-  });
-
-  const communityMembership = await requireCommunityMembership(
-    database,
-    group.communityId,
-    args.userId,
-  );
-
-  if (!communityMembership) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You must be a Community member to join its Club Groups",
     });
   }
 
@@ -113,11 +76,11 @@ export async function joinClubPublic(
   return { ok: true as const, groupId: group.id };
 }
 
-export const joinClubPublicProcedure = protectedProcedure
+export const joinPublicProcedure = protectedProcedure
   .input(z.object({ groupId: z.string().uuid() }))
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return joinClubPublic(ctx.db, {
+    return joinPublic(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
     });

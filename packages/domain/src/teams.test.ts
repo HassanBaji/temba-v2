@@ -9,8 +9,6 @@ import {
   teamLeaveConfirm,
   teamListRowView,
   teamNameInput,
-  teamRowMeta,
-  teamUnlinkConfirm,
 } from "./teams";
 import { createTeamsFixtures } from "./teams-fixtures";
 
@@ -24,29 +22,13 @@ describe("teamNameInput", () => {
   });
 });
 
-describe("teamRowMeta", () => {
-  it("names the Community of a Club Team", () => {
-    expect(teamRowMeta({ name: "Södermalm Padel" }, "en")).toBe(
-      "Club Team · Södermalm Padel",
-    );
-  });
-
-  it("says a loose Team is not linked", () => {
-    expect(teamRowMeta(null, "en")).toBe("Not linked to a Community");
-  });
-
-  it("reads in Arabic", () => {
-    expect(teamRowMeta(null, "ar")).toBe("غير مرتبط بمجتمع");
-  });
-});
-
 describe("teamListRowView", () => {
   it("marks an incomplete Team with an open seat", () => {
     const row = teamListRowView(fixtures.list.mixed[1]!, "en");
     expect(row.openSeats).toBe(1);
     expect(row.incompleteLabel).toBe("Incomplete");
     expect(row.accessibilityLabel).toBe(
-      "Sunday Smashers, Not linked to a Community, Incomplete",
+      "Sunday Smashers, Padel, Incomplete",
     );
   });
 
@@ -72,18 +54,12 @@ describe("teamHomeView", () => {
     });
   });
 
-  it("badges sport, link state and incompleteness", () => {
+  it("badges sport and incompleteness", () => {
     expect(teamHomeView(fixtures.home.complete, "en").badges).toEqual([
       "Padel",
-      "Not linked to a Community",
-    ]);
-    expect(teamHomeView(fixtures.home.linked, "en").badges).toEqual([
-      "Padel",
-      "Club Team",
     ]);
     expect(teamHomeView(fixtures.home.incomplete, "en").badges).toEqual([
       "Padel",
-      "Not linked to a Community",
       "Incomplete",
     ]);
   });
@@ -96,15 +72,6 @@ describe("teamHomeView", () => {
     const other = teamHomeView(fixtures.home.waiting, "en");
     expect(other.primaryInvite).toBe(false);
     expect(other.waitingNote).toBe(true);
-  });
-
-  it("describes a pending link request", () => {
-    expect(teamHomeView(fixtures.home.pendingLink, "en").pendingLinkNote).toBe(
-      "Pending request to Södermalm Padel.",
-    );
-    expect(
-      teamHomeView(fixtures.home.complete, "en").pendingLinkNote,
-    ).toBeNull();
   });
 
   it("falls back for a missing name and marks the creator", () => {
@@ -151,7 +118,6 @@ describe("teamHomeView roster", () => {
       expect(view.roster).toEqual({ label: null, status: null });
       expect(view.canLeave).toBe(false);
       expect(view.squad).toBe(false);
-      expect(view.requestLinkHint).toBeNull();
       expect(view.inviteLabel).toBe("Invite your partner");
     }
     expect(teamHomeView(fixtures.home.incomplete, "en").waitingCopy).toBe(
@@ -183,15 +149,9 @@ describe("teamHomeView roster", () => {
   it("says how many members a football Team still needs", () => {
     const building = teamHomeView(fixtures.home.footballCreatorBuilding, "en");
     expect(building.openSeats).toBe(3);
-    expect(building.requestLinkHint).toBe(
-      "A Team needs 5 members to request a Community link. 3 more members to go.",
-    );
     expect(teamHomeView(fixtures.home.footballMember, "en").waitingCopy).toBe(
       "Needs 2 more members to be complete.",
     );
-    expect(
-      teamHomeView(fixtures.home.footballCreatorComplete, "en").requestLinkHint,
-    ).toBeNull();
   });
 
   it("gives the creator invites and dissolve, and a member leave", () => {
@@ -249,7 +209,6 @@ describe("confirm copy", () => {
       description: "This cannot be undone.",
       confirmLabel: "Dissolve Team",
     });
-    expect(teamUnlinkConfirm("Smashers", "en").title).toBe("Unlink Smashers?");
   });
 });
 

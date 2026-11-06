@@ -1,7 +1,4 @@
-import { requireGroup } from "#src/groups/helpers/require-group";
-import { requireLiveClubCommunity } from "#src/groups/helpers/require-live-club-community";
-import { requireLooseInviter } from "#src/groups/helpers/require-loose-inviter";
-import { requireStaff } from "#src/groups/helpers/require-staff";
+import { requireGroupInviter } from "#src/groups/helpers/require-group-inviter";
 import { type db } from "#src/db";
 
 type DbClient = typeof db;
@@ -11,19 +8,5 @@ export async function requireGroupInviteLinkMinter(
   groupId: string,
   callerId: string,
 ) {
-  const group = await requireGroup(database, groupId);
-
-  if (!group.communityId) {
-    return requireLooseInviter(database, groupId, callerId);
-  }
-
-  await requireLiveClubCommunity(database, group.communityId);
-  await requireStaff(
-    database,
-    group.communityId,
-    callerId,
-    "Only Owner or Admin can mint a Club Group Invite link",
-  );
-
-  return group;
+  return requireGroupInviter(database, groupId, callerId);
 }

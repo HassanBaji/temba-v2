@@ -127,7 +127,7 @@ export async function createBookingGame(
             : "Pick a padel Group for this Court",
         });
       }
-      groupVerified = await groupIsVerified(tx, group);
+      groupVerified = groupIsVerified(group);
     }
     if (
       football &&

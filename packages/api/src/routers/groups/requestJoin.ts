@@ -52,9 +52,7 @@ export async function requestJoin(
 
   const details = {
     note: args.note ?? null,
-    source: group.communityId
-      ? ("community" as const)
-      : ("group_page" as const),
+    source: "group_page" as const,
     invitedBy: null,
   };
 

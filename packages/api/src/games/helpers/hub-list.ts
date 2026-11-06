@@ -38,7 +38,6 @@ import {
 } from "@repo/domain/pool-table";
 import { registrationStatusFromState } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
-import { consult } from "#src/soft-archive";
 import type {
   HubListFootball,
   HubListPoolMatch,
@@ -90,15 +89,7 @@ export const hubListWith = {
   group: {
     columns: {
       id: true,
-      communityId: true,
       name: true,
-    },
-    with: {
-      community: {
-        columns: {
-          archivedAt: true,
-        },
-      },
     },
   },
   venue: {
@@ -218,10 +209,8 @@ export type HubQueryRow = {
   sideSize: number | null;
   group: {
     id: string;
-    communityId: string | null;
     /** Nullable on `groups`; hub rows carry `groupName: null` for an unnamed Group. */
     name: string | null;
-    community: { archivedAt: Date | null } | null;
   } | null;
   venue: { id: string; name: string; city: string } | null;
   matches: {
@@ -628,9 +617,6 @@ export function toHubListRow(
   viewer: HubViewer,
   now: Date,
 ): HubListRow {
-  const joinFrozen = consult({
-    archivedAt: row.group?.community?.archivedAt ?? null,
-  }).freeze("join");
   const registeredUserCount = row.players.length;
   const registeredTeamCount = row.teams.length;
   const { isRegistered, isWaitlisted, isSeated } = viewerParticipation(
@@ -642,7 +628,6 @@ export function toHubListRow(
     now,
     registeredUserCount,
     registeredTeamCount,
-    joinFrozen,
   );
   const passesGate = userPassesHubJoinGate(
     row,
@@ -690,7 +675,6 @@ export function toHubListRow(
     registeredTeamCount,
     teamsAllowed: row.teamsAllowed,
     registrationStatus,
-    joinFrozen,
     isRegistered,
     isSeated,
     isWaitlisted,

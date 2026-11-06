@@ -8,7 +8,6 @@ import { teamIsSquad } from "@repo/domain/team-roster";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { refuseIfLinkedCommunityArchived } from "#src/teams/helpers/refuse-if-linked-community-archived";
 import { requireTeam } from "#src/teams/helpers/require-team";
 
 type DbClient = typeof db;
@@ -46,12 +45,6 @@ export async function leave(
       message: "The creator cannot leave; dissolve the Team instead",
     });
   }
-
-  await refuseIfLinkedCommunityArchived(
-    database,
-    team,
-    "Cannot leave a Team linked to an archived Community",
-  );
 
   await database.delete(teamMembers).where(eq(teamMembers.id, membership.id));
 

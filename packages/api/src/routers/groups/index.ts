@@ -8,8 +8,6 @@ import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoin
 import { byId } from "./byId";
 import { clearImageProcedure as clearImage } from "./clearImage";
 import { closeSeasonProcedure as closeSeason } from "./closeSeason";
-import { createClubPrivateProcedure as createClubPrivate } from "./createClubPrivate";
-import { createClubPublicProcedure as createClubPublic } from "./createClubPublic";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createLoosePrivateProcedure as createLoosePrivate } from "./createLoosePrivate";
 import { createLoosePublicProcedure as createLoosePublic } from "./createLoosePublic";
@@ -18,8 +16,7 @@ import { declineLinkRequestProcedure as declineLinkRequest } from "./declineLink
 import { deleteProcedure } from "./delete";
 import { editProcedure as edit } from "./edit";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
-import { joinClubPublicProcedure as joinClubPublic } from "./joinClubPublic";
-import { joinLoosePublicProcedure as joinLoosePublic } from "./joinLoosePublic";
+import { joinPublicProcedure as joinPublic } from "./joinPublic";
 import { leave } from "./leave";
 import { listJoinRequestsProcedure as listJoinRequests } from "./listJoinRequests";
 import { listForOperatorProcedure as listForOperator } from "./listForOperator";
@@ -51,16 +48,13 @@ import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./u
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
 
 export const groupsRouter = createTRPCRouter({
-  createClubPublic,
-  createClubPrivate,
   createLoosePublic,
   createLoosePrivate,
   mineLoose,
   mine,
   listPublic,
   byId,
-  joinClubPublic,
-  joinLoosePublic,
+  joinPublic,
   requestJoin,
   listJoinRequests,
   approveJoinRequest,

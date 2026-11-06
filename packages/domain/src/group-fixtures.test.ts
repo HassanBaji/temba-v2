@@ -64,10 +64,4 @@ describe("administration fixtures", () => {
     expect(fixtures.administration.private.canSetRequiresApproval).toBe(false);
     expect(fixtures.administration.private.canDecideJoinRequests).toBe(false);
   });
-
-  it("flags a requester who is not yet a Community Member", () => {
-    expect(
-      fixtures.joinRequests.map((request) => request.isCommunityMember),
-    ).toEqual([null, false]);
-  });
 });

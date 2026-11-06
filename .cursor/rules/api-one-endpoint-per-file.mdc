@@ -22,7 +22,7 @@ packages/api/src/routers/
     byId.ts
     create.ts
     register.ts
-  communities/
+  venues/
     index.ts
     create.ts
     byId.ts
@@ -54,7 +54,7 @@ validate input
 
 ## Shared glossary modules (call; do not reimplement)
 
-Keep and call existing shared modules when the rule is reused: Soft-archive, Game admit, Community membership, Invite doors, Friendly Game create, ratings/Glicko-2, Invite search-lookup, Venue logo storage, `resolveAppUser` / `requireOperator`, Game `access` / `seats` / Waitlist internals used by more than one door.
+Keep and call existing shared modules when the rule is reused: Soft-archive, Game admit, Invite doors, Friendly Game create, ratings/Glicko-2, Invite search-lookup, Venue logo storage, `resolveAppUser` / `requireOperator`, Game `access` / `seats` / Waitlist internals used by more than one door.
 
 Do not clone those modules under `packages/api/src/routers/`. Do not reimplement occupancy, freeze, membership admit/leave, or token lifecycle inside a procedure file.
 

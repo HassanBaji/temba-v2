@@ -6,19 +6,13 @@ import { type db } from "#src/db";
 
 type DbClient = typeof db;
 
-export async function requireLooseInviter(
+/** Who manages a Group's invites: its creator and its Appointed Organizers. */
+export async function requireGroupInviter(
   database: DbClient,
   groupId: string,
   callerId: string,
 ) {
   const group = await requireGroup(database, groupId);
-
-  if (group.communityId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "This Group belongs to a Community",
-    });
-  }
 
   if (
     group.createdBy !== callerId &&

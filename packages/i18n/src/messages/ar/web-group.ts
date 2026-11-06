@@ -11,14 +11,8 @@ export const webGroup = {
   nextGame: "المباراة التالية",
   searchMembers: "البحث في الأعضاء",
   groupFallback: "مجموعة",
-  createClubGroup: {
-    nameLabel: "الاسم",
-    typeLabel: "النوع",
-  },
-  communityHome: {
-    backToCommunities: "العودة إلى المجتمعات",
-    backToHome: "العودة إلى الرئيسية",
-  },
+  memberFallback: "عضو",
+  userFallback: "مستخدم",
   members: {
     roleFor: (name: string) => `دور ${name}`,
     manageName: (name: string) => `إدارة ${name}`,
@@ -33,6 +27,7 @@ export const webGroup = {
     inviteSomeoneElse: "دعوة شخص آخر",
     inviteBlockDescription:
       "ادعُ اللاعبين ويمتلئ الترتيب كلما صُنّفت مبارياتهم.",
+    inviteBlockAction: "مشاركة رابط الدعوة",
     manage: "إدارة",
     emptyTitle: "لا أعضاء بعد",
     emptyDescription: "من ينضم إلى هذه المجموعة يظهر هنا.",
@@ -61,8 +56,6 @@ export const webGroup = {
     reviewFrom: (venue: string) => `مراجعة الطلب من ${venue}`,
   },
   overflow: {
-    openCommunity: (name: string) => `فتح ${name}`,
-    allCommunities: "كل المجتمعات",
     changeImage: "تغيير الصورة",
     seasons: "المواسم",
     groupActions: "إجراءات المجموعة",
@@ -102,6 +95,7 @@ export const webGroup = {
     },
   },
   requests: {
+    title: "طلبات الانضمام",
     reviewAria: "مراجعة طلبات الانضمام",
     level: (label: string) => `المستوى ${label}`,
     levelProvisional: (label: string) => `المستوى ${label}، ما زال مبدئيًا`,

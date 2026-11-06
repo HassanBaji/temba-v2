@@ -3,7 +3,6 @@ import { createTRPCRouter } from "#src/trpc";
 import { addClosureProcedure as addClosure } from "./addClosure";
 import { addCourtProcedure as addCourt } from "./addCourt";
 import { addManagerProcedure as addManager } from "./addManager";
-import { approveLinkRequestProcedure as approveLinkRequest } from "./approveLinkRequest";
 import { byId } from "./byId";
 import { cancelGroupLinkRequestProcedure as cancelGroupLinkRequest } from "./cancelGroupLinkRequest";
 import { clearLogoProcedure as clearLogo } from "./clearLogo";
@@ -11,11 +10,9 @@ import { create } from "./create";
 import { deleteCourtProcedure as deleteCourt } from "./deleteCourt";
 import { deletePhotoProcedure as deletePhoto } from "./deletePhoto";
 import { list } from "./list";
-import { listCommunityGroupsProcedure as listCommunityGroups } from "./listCommunityGroups";
+import { listLinkedGroupsProcedure as listLinkedGroups } from "./listLinkedGroups";
 import { listManagedProcedure as listManaged } from "./listManaged";
-import { listPendingLinkRequestsProcedure as listPendingLinkRequests } from "./listPendingLinkRequests";
 import { managedById } from "./managedById";
-import { rejectLinkRequestProcedure as rejectLinkRequest } from "./rejectLinkRequest";
 import { removeManagerProcedure as removeManager } from "./removeManager";
 import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
@@ -64,10 +61,7 @@ export const venuesRouter = createTRPCRouter({
   setDisplayPhotos,
   softArchive,
   unarchive,
-  listPendingLinkRequests,
-  approveLinkRequest,
-  rejectLinkRequest,
-  listCommunityGroups,
+  listLinkedGroups,
   searchLinkableGroups,
   sendGroupLinkRequest,
   cancelGroupLinkRequest,

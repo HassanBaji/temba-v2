@@ -24,7 +24,6 @@ export function groupRemoveImageConfirm(groupName: string, locale: Locale) {
 
 export function groupJoinRequestMeta(
   request: Pick<GroupJoinRequestData, "createdAt" | "source" | "invitedBy">,
-  communityName: string | null,
   locale: Locale,
   now?: Date,
 ) {
@@ -34,9 +33,6 @@ export function groupJoinRequestMeta(
     return request.invitedBy
       ? m.viaInviteLinkFrom(request.invitedBy.name, when)
       : m.viaInviteLink(when);
-  }
-  if (request.source === "community") {
-    return m.foundInCommunity(communityName ?? m.theCommunity, when);
   }
   return formatRequestedAt(request.createdAt, locale, now);
 }
@@ -76,12 +72,8 @@ export function groupJoinRequestsSummary(input: {
   };
 }
 
-export function groupWhoCanJoinDescription(
-  communityName: string | null,
-  locale: Locale,
-) {
-  const m = messagesFor(locale).group.admin.whoCanJoin;
-  return communityName ? m.descriptionIn(communityName) : m.description;
+export function groupWhoCanJoinDescription(locale: Locale) {
+  return messagesFor(locale).group.admin.whoCanJoin.description;
 }
 
 export function groupRejectRequestCopy(name: string, locale: Locale) {

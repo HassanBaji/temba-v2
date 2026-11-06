@@ -40,7 +40,7 @@ _Avoid_: calling Root “the app” or putting App scripts there
 
 **Route `/public`**:
 A stub path in the Web App that redirects to login.
-_Avoid_: Public (EWA Connect’s second App), public app, public package, Community Public (that is a product type)
+_Avoid_: Public (EWA Connect’s second App), public app, public package
 
 **i18n Package**:
 The Package named `@repo/i18n`. It owns the Locale type, the English and Arabic Message catalogs and the `plural` helper. It imports nothing from the Workspace; `@repo/domain` and every App import it.
@@ -56,13 +56,9 @@ _Avoid_: translation file, dictionary, resource bundle, i18n keys (there are no 
 
 ### Product
 
-**Community**:
-A club people belong to. It may contain many Groups and many Teams, may link to at most one Venue, and offers one or more sports.
-_Avoid_: Workspace, club, org, server, workspace (when you mean Community)
-
 **Venue**:
-A physical facility: one addressable site with a name, location, and Courts. Not a Community, not a legal entity, not a brand. A Community may link to at most one Venue; a Venue may be linked by many Communities. Every Game points at exactly one Venue.
-_Avoid_: club (that is the avoided synonym for Community), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
+A physical facility: one addressable site with a name, location, and Courts. Not a legal entity, not a brand. A Venue may link many Club Groups; each Group links to at most one Venue. Every Game points at exactly one Venue.
+_Avoid_: club (product copy may say club; the entity is a Venue), Community (retired, ADR-0054), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
 A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
@@ -74,42 +70,30 @@ _Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the
 
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
-_Avoid_: Community, Team, lobby, channel
+_Avoid_: Team, lobby, channel, club (when you mean a Group)
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group of a Venue Community. Every other Group's new Games are private and count for a Group Level only (ADR-0053). A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; membership of a Venue Community is derived, not stored.
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private and count for a Group Level only (ADR-0053). A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
-A Group that belongs to a Community. A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue Community.
-_Avoid_: subgroup, channel, nested group
+A Group with a Venue link (`groups.venue_id`). A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue. It is a Verified Group and its new Games are held at the linked Venue. Its doors are the Loose Group doors: the Group creator and Appointed Organizers run it (ADR-0054).
+_Avoid_: subgroup, channel, nested group, Community group, Venue group
 
 **Loose Group**:
-A Group that does not belong to a Community. It stops being Loose when its Group link request is accepted, and is Loose again once it is unlinked from that Venue Community.
+A Group with no Venue link. It stops being Loose when its Group link request is accepted, and is Loose again once it is unlinked from that Venue.
 _Avoid_: orphan, standalone group, free group
 
-**Community Public**:
-A Community joinable by request if you have the Community URL. Owner or Admin may also send a Lookup invite or mint an Invite link (Invite link admits immediately). Listed in Directory when that planned surface ships.
-_Avoid_: open Community, listed Community (as the name of the type), Route `/public`
-
-**Community Private**:
-A Community joinable by Lookup invite or Invite link from Owner or Admin, or by Owner/Admin Club Group Lookup invite or Invite link that auto-admits as Member then joins the Club Group, or by an approved Group join request on one of its Club Group Public. No request-to-join on the Community itself.
-_Avoid_: secret Community, hidden Community, unlisted Community (when you mean this type)
-
-**Directory**:
-A planned App list of live Community Public clubs. Not a shipped surface. Distinct from the Public Groups list.
-_Avoid_: Group directory, marketplace, feed
-
 **Public Groups list**:
-An App list of live Public Groups of any sport the User is not in, filterable by sport (All, Padel or Football): Loose Group Public, and Club Group Public in live Communities (Public or Private). Separate from the Directory. Each row shows its sport and offers Join or Request to join.
+An App list of live Public Groups of any sport the User is not in, filterable by sport (All, Padel or Football): Loose Group Public and Club Group Public. Each row shows its sport, its linked Venue when it has one, and offers Join or Request to join.
 _Avoid_: Directory, Group directory, marketplace, feed
 
 **Club Group Public**:
-A Club Group listed on the Public Groups list. A Community Member may join (or request if Require approval is on). A non-Member may send a Group join request; approving it also creates the Community membership. Owner or Admin may also send a Lookup invite or mint an Invite link (accept auto-admits as Member then joins the Group). The Group creator and Appointed Organizers may Lookup-invite existing Members only and cannot mint Invite links.
+A Club Group listed on the Public Groups list. Any authenticated User with the Group URL may join, unless Require approval is on, exactly as on a Loose Group Public. The creator and Appointed Organizers may also send Lookup invites and mint Invite links.
 _Avoid_: open Group (when you mean Club Group Public)
 
 **Club Group Private**:
-A Club Group joinable by Lookup invite or Invite link. Owner or Admin may invite any User (accept auto-admits as Member then joins the Group). The Group creator and Appointed Organizers may Lookup-invite existing Members only and cannot mint Invite links.
+A Club Group that is not listed; joinable by Lookup invite or Invite link from the Group creator or an Appointed Organizer.
 _Avoid_: secret Group (when you mean Club Group Private)
 
 **Loose Group Public**:
@@ -121,27 +105,27 @@ A flag on a Public Group (Loose or Club). When it is on, the Group URL join and 
 _Avoid_: closed Group, moderated Group (when you mean this flag)
 
 **Group join request**:
-A User asking a Group approver to admit them to a Public Group that requires approval. May carry a short note (up to 280 characters) and records where it came from: an Invite link (and who minted it), the Community, or the Group page. No expiry. A rejected or leftover approved row may be reset to pending (same as a Community join request). A Group approver may undo a decision, which puts the request back to pending; undoing an approval removes the new member only while they have played no Game in the Group and are not an Appointed Organizer. Distinct from a Community join request and from a Game Level range request.
-_Avoid_: invitation, Invite, Community join request (when you mean this Group request)
+A User asking a Group approver to admit them to a Public Group that requires approval. May carry a short note (up to 280 characters) and records where it came from: an Invite link (and who minted it) or the Group page. No expiry. A rejected or leftover approved row may be reset to pending. A Group approver may undo a decision, which puts the request back to pending; undoing an approval removes the new member only while they have played no Game in the Group and are not an Appointed Organizer. Distinct from a Game Level range request.
+_Avoid_: invitation, Invite, join request (bare, when it could be a Game Level range request)
 
 **Group block**:
 A Group join request a Group approver rejected with "Reject and block". A blocked User cannot request to join, join through the Group URL, or accept that Group's Invite links, whether or not Require approval is on. Lookup invites and adding by phone still reach them, since a Group approver chose them. Undoing the decision lifts the block.
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers. On a Loose Group, the creator and Appointed Organizers. On a Club Group, Community Owner or Admin, the Group creator while still a Community Member, and Appointed Organizers while still Community Members. Nobody while the Club Group's Community is Soft-archived. Removing a player never removes the Group creator, nor Community Owner or Admin from a Club Group; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. On a Club Group only Owner or Admin may add someone who is not yet a Community Member, which also creates their Member seat.
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once.
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
 **Group owner**:
-The one User a Group belongs to: its creator, until ownership is transferred. Who may edit the Group (name, sport until the first Game, visibility, Require approval, photo, Invite link reset), transfer ownership and delete it. On a Club Group, Community Owner and Admin hold the same doors beside the owner, and the owner holds them only while a Community Member and the Community is not Soft-archived. The owner of a Loose Group cannot Leave; they transfer ownership or delete the Group first. A Group approver is not an owner.
+The one User a Group belongs to: its creator, until ownership is transferred. Who may edit the Group (name, sport until the first Game, visibility, Require approval, photo, Invite link reset), transfer ownership, delete it and, on a Club Group, unlink it from its Venue. The owner cannot Leave; they transfer ownership or delete the Group first. A Group approver is not an owner.
 _Avoid_: creator (in UI copy), admin
 
 **Transfer ownership**:
-The Group owner hands the Group to another member who is on Temba (never an Unclaimed player, and on a Club Group a Community Member). The new owner becomes the creator for every door; the previous owner stays a member and becomes an Appointed Organizer. Nobody else is notified.
+The Group owner hands the Group to another member who is on Temba (never an Unclaimed player). The new owner becomes the creator for every door; the previous owner stays a member and becomes an Appointed Organizer. Nobody else is notified.
 _Avoid_: handover, reassign
 
 **Group delete**:
-A Soft-delete by the Group owner (or Owner and Admin on a Club Group), confirmed by typing the Group name. The Group disappears from every list, door and Invite link for everyone; memberships, the standing and played Games are kept, so each player's history still shows them. Games that had not started are cancelled. Nobody is notified. Not a Soft-archive: there is no undo door.
+A Soft-delete by the Group owner, confirmed by typing the Group name. The Group disappears from every list, door and Invite link for everyone; memberships, the standing and played Games are kept, so each player's history still shows them. Games that had not started are cancelled. Nobody is notified. Not a Soft-archive: there is no undo door.
 _Avoid_: archive, remove (when you mean the whole Group)
 
 **Loose Group Private**:
@@ -149,7 +133,7 @@ A Loose Group that is not listed; joinable by Lookup invite or Invite link from 
 _Avoid_: secret Loose Group
 
 **Lookup invite**:
-An in-app invitation to an existing User, chosen from a searchable list of Users the sender is allowed to invite. The invitee must accept. Staff who may send may revoke unused Lookup invites. Community, Group, and Game allow selecting more than one User per send; incomplete Team allows one.
+An in-app invitation to an existing User, chosen from a searchable list of Users the sender is allowed to invite. The invitee must accept. Whoever may send may revoke unused Lookup invites. Group and Game allow selecting more than one User per send; incomplete Team allows one.
 _Avoid_: Email invite, phone invite, magic link, Invite link, User directory (there is no global directory page; search is the send door only)
 
 **Email invite**:
@@ -157,48 +141,28 @@ Retired as a product door. Do not send named invitations bound to an email addre
 _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Community, Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on Community (Public and Private), every Group type, incomplete Team, and Game. Accepting a Group Game's Invite link also joins the Group (and the Community on a Club Group) when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Community and Team stay token-path only.
+A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on every Group type, incomplete Team, and Game. Accepting a Group Game's Invite link also joins the Group when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Team stays token-path only.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Invite doors**:
-Lookup invite and Invite link as the two live invitation channels onto a Community, Group, Team, or Game.
+Lookup invite and Invite link as the two live invitation channels onto a Group, Team, or Game.
 _Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door)
 
 **Venue link**:
-A Community’s live association with at most one Venue, after an Operator approves a Venue link request. Owner or Admin may unlink. A Venue Community’s Venue link is set when it is created, without a Venue link request, and cannot be unlinked. Distinct from Invite link and from a Team’s Community link.
-_Avoid_: Invite link, membership, join, Club Team
-
-**Venue Community**:
-The one Community a Venue owns. It is created when the first Group link request to that Venue is accepted, and it carries a Venue link to that Venue that cannot be unlinked. It is Private, and the Venue manager who sent the first accepted request is its creator and Owner. Its Club Groups are Verified Groups. A Venue has at most one Venue Community; other Communities may still hold a Venue link to the same Venue.
-_Avoid_: venue club, default Community (in product copy), home Community
+A Group’s live association with at most one Venue, stored as `groups.venue_id`. It is made when the Group creator accepts a Group link request and ended when the Group creator (`groups.unlinkFromVenue`) or a Venue manager (`venues.unlinkGroup`) unlinks the Group. A Group with a Venue link is a Club Group. Distinct from Invite link.
+_Avoid_: Invite link, membership, join, Community link, Venue Community (retired, ADR-0054)
 
 **Group link request**:
-A Venue manager’s request that a Loose Group Public join that Venue’s Venue Community. The Group creator accepts or declines it; the Venue manager may cancel it while pending. Accepting turns the Loose Group into a Club Group of the Venue Community. Distinct from a Group join request (a User asking to join a Group), a Venue link request (a Community asking for a Venue) and a Team link request.
-_Avoid_: Group join request, Venue link, invite (when you mean this request), Group transfer
-
-**Venue link request**:
-A request by a Community Owner or Admin to associate that Community with an existing Venue. An Operator approves or rejects it. Distinct from a User’s Community join request.
-_Avoid_: join request (Community membership request, not a Game Level range request), Team link request
-
-**Community sports**:
-The allow-list of sports a Community offers (padel, football, or both). Each Group and each Team still has exactly one sport.
-_Avoid_: Group sports (that is the single sport on a Group), Team sports (that is the single sport on a Team)
+A Venue manager’s request that a Loose Group Public link to that Venue. The Group creator accepts or declines it; the Venue manager may cancel it while pending. Accepting turns the Loose Group into a Club Group of that Venue. Distinct from a Group join request (a User asking to join a Group).
+_Avoid_: Group join request, Venue link (that is the result), invite (when you mean this request), Group transfer, Venue link request (retired, ADR-0054)
 
 **Team**:
-A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. Every Team is created unattached; it may later link to at most one Community with Owner or Admin approval once complete, and any member may unlink. A football Team has a creator and no captain: other members may leave, the creator dissolves. Dropping below complete does not unlink a Team.
-_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain
+A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. A Team stands on its own: it belongs to no Group and links to no Venue. A football Team has a creator and no captain: other members may leave, the creator dissolves.
+_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain, Club Team, Loose Team (retired, ADR-0054)
 
 **Team roster rule**:
 The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.
 _Avoid_: team size (bare), squad size, captain rule
-
-**Club Team**:
-A Team currently linked to a Community.
-_Avoid_: Club Group, nested team
-
-**Loose Team**:
-A Team with no Community link (unattached).
-_Avoid_: orphan Team, standalone Team, free Team
 
 **Game team**:
 One side on a padel Game: a complete Team, an ad-hoc pair of Users, or one User occupying one of two Positions until a second User takes the other Position. Reused on that Game’s Matches. Not a Team. An Americano has no Game teams until Matches exist.
@@ -212,21 +176,13 @@ _Avoid_: Court, slot (when you mean this), seat (when you mean this), Preferred 
 A User's standing preference for Left or right, or Either. A default for the Game seat picker, not a Position itself.
 _Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
-**Owner**:
-A Community role. The creator starts as Owner. A Community always has at least one Owner.
-_Avoid_: admin (when you mean Owner), founder
-
-**Admin**:
-A Community role that helps run the Community (admit people, create Club Groups, archive, request a Venue link) but does not change Owner-ship.
-_Avoid_: Owner, moderator, Operator
-
 **Operator**:
-A Temba staff User. Not a Community role. Operators curate Venues and Courts, decide Venue link requests, and may set any other User's Level in either sport (ADR-0046).
-_Avoid_: Admin (that is a Community role), system admin, platform admin, superadmin, Owner
+A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, and may set any other User's Level in either sport (ADR-0046).
+_Avoid_: Admin, Owner (retired Community roles, ADR-0054), system admin, platform admin, superadmin
 
 **Venue manager**:
-A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers and reports for that Venue, from the Venue console. A User may manage many Venues. Not a Community role, not an Operator; an Operator may do everything a Venue manager may.
-_Avoid_: facility owner, venue admin, Owner (that is a Community role), Admin, Operator, staff
+A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers, reports and Group link requests for that Venue, from the Venue console. A User may manage many Venues. Not an Operator; an Operator may do everything a Venue manager may. Managing a Venue gives no door on its Club Groups.
+_Avoid_: facility owner, venue admin, Owner, Admin, Operator, staff
 
 **Venue photo**:
 A picture of a Venue that a Venue manager uploads from the Venue console, up to ten per Venue. One is the **Main photo**, which fronts the Venue's card in the App's Venue list; one is the **Details photo**, at the top of the Venue screen. They may be the same photo. With no Venue photo, the App shows the Venue logo.
@@ -265,8 +221,8 @@ One Court, one start on the Venue's grid, one duration and one price, offered to
 _Avoid_: Booking (that is the reservation), Position, Match slot, time slot (as an entity), window (that is a Game's registration window)
 
 **Customer**:
-A User as seen from one Venue: someone who holds or has held a Booking there. Derived from User and Bookings, never a separate record. Needs no Community or Group membership.
-_Avoid_: client, member (that is a Community role), player (when you mean this view), account
+A User as seen from one Venue: someone who holds or has held a Booking there. Derived from User and Bookings, never a separate record. Needs no Group membership.
+_Avoid_: client, member (when you mean a Group member), player (when you mean this view), account
 
 **Guest**:
 A person without a Temba account recorded on a Booking by name and phone by a Venue manager. A Guest Booking has no Customer and never a Game; a Venue's Guests are matched by phone. Not an Unclaimed player: a Guest is not a User.
@@ -293,23 +249,15 @@ The web App (`apps/console`) where a Venue manager runs a Venue: Schedule, Booki
 _Avoid_: Manage area (the name of the same section while it lived in the Web App), admin panel, admin dashboard, backoffice, facility dashboard
 
 **Level setter**:
-A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator, Organizer and Community roles.
+A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may set the Level of any other member of a Group they belong to. Granted and revoked only in the Clerk dashboard. Independent of Operator and Organizer.
 _Avoid_: admin, rating admin, rating editor, Operator (when you mean this)
 
-**Member**:
-A Community role with no staff powers. Community membership is required to join that Community’s Club Groups. Leaving a Community is refused while the User sits on any Team linked to that Community.
-_Avoid_: player (when you mean Member), user (when you mean this role)
-
-**Community membership**:
-A User’s Owner, Admin, or Member seat on a Community. Distinct from Group membership and from Team seats.
-_Avoid_: enrollment, subscription, Group membership (when you mean this), join (when you mean this seat)
-
 **Soft-archive**:
-A reversible hide. For a Community: hides it and its Club Groups together; Games are kept; existing Club Group Games stay visible to those allowed to open the Community or Group and are excluded from public pickup; new Club Group Games are refused; register, waitlist, and Game Lookup/Invite link mint and accept behave as closed; organizers may still add Matches and assign Courts and cannot reopen while archived; Club Groups stay attached; refuse new joins, invites, Team→Community link requests and decisions, Venue link requests and decisions, and invites/accept on already linked Teams; unattached Teams are untouched; linked Team history and stats and a live Venue link remain visible to those allowed to open the Community. For a Venue: hides it from the Community request catalog and from unlocked Game create; refuse new Venue link requests and decisions; refuse new Court assign on Games whose Venue is that site (skip/clear still allowed); live Community Venue links stay; a Club Group whose only linked Venue is Soft-archived may still create a Game there with skip Court and cannot pick another Venue; Members still see that Venue on Community home as history. Not a delete, not detaching Groups, and not unlinking a Venue.
+A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Game create and from the console’s Group search; refuses new Group link requests and their acceptance; refuses new Court assign on Games whose Venue is that site (skip/clear still allowed); Venue links stay, so a Club Group whose Venue is Soft-archived may still create a Game there with skip Court and cannot pick another Venue. Not a delete and not unlinking a Group. Groups, Teams and Games are never Soft-archived.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. A Game does not belong to a Community directly. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group whose Community has a Venue link, that Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator, and for a Club Group also Community Owner and Admin. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Roster registration**:
@@ -462,15 +410,15 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator, its Appointed Organizers, and for a Club Group also Community Owner and Admin. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
+Of a Group Game: that Group’s creator and its Appointed Organizers. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
-A Group member a Group approver made an Organizer of that Group's Games and, in turn, a Group approver (ADR-0047). Stored as the member's Group role. Holds the Group creator's powers: Lookup invites, Group join requests, adding and removing players, appointing and dismissing other Organizers, and on a Loose Group minting Invite links. Cannot remove the creator, unlink or delete the Group, or, on a Club Group, mint Invite links or invite non-Members. Never the Group creator, a Community Owner or Admin (already Organizers), or an Unclaimed player. On a Club Group only a Community Member can be appointed, and the appointment lapses while they are not one. Leaving the Group ends it.
+A Group member a Group approver made an Organizer of that Group's Games and, in turn, a Group approver (ADR-0047). Stored as the member's Group role. Holds the Group creator's powers: Lookup invites, Invite links, Group join requests, adding and removing players, appointing and dismissing other Organizers. Cannot remove the creator, edit, unlink or delete the Group. Never the Group creator (already an Organizer) or an Unclaimed player. Leaving the Group ends it.
 _Avoid_: co-organizer, co-host, Group admin, moderator
 
 **Game admins**:
-Who hears about a Game's joins and leaves, and gets the admin Finished Game notice: the Organizers and the Group approvers of the Game's Group, except a Club Group creator or Appointed Organizer who has left the Community, and nobody while the Community is Soft-archived. On a groupless Game, its creator. Decides who is notified only, never who may act.
+Who hears about a Game's joins and leaves, and gets the admin Finished Game notice: the Organizers and the Group approvers of the Game's Group. On a groupless Game, its creator. Decides who is notified only, never who may act.
 _Avoid_: Organizer (that is the write permission), game admin (lowercase, as a role), co-host, host
 
 **Finished Game**:
@@ -482,8 +430,8 @@ Optional inclusive minimum and/or maximum Level band bounds (D–A) on a Game, s
 _Avoid_: rank range, ELO range, skill cap (when you mean this), letterNumber D3–A (stored thirds, not the product face)
 
 **Game Level range request**:
-A User asking Organizers to waive that Game’s Level range for themselves. Distinct from a Community join request and from Game admit. No message. No expiry.
-_Avoid_: join request (that is Community membership), join (when you mean this request), Game admit
+A User asking Organizers to waive that Game’s Level range for themselves. Distinct from a Group join request and from Game admit. No message. No expiry.
+_Avoid_: join request (that is a Group join request), join (when you mean this request), Game admit
 
 **Game Level waiver**:
 An approved Game Level range request, or an Organizer Lookup invite, that excepts that User from that Game’s Level range. It does not Game admit them and does not occupy a Position or Waitlist row.
@@ -491,7 +439,7 @@ _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup i
 
 **User**:
 A person on Temba. Almost every User has a Temba account; the exception is an Unclaimed player, who has a phone and a name but no account yet.
-_Avoid_: player (when you mean User), member (when you mean the Community role)
+_Avoid_: player (when you mean User), member (when you mean a Group member)
 
 **Unclaimed player**:
 A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
@@ -518,7 +466,7 @@ A new football player's own starting Level, picked as Beginner, Casual, Competit
 _Avoid_: football rating (when you mean the self-placed start), skill level
 
 **Home**:
-The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Community home and Group home.
+The signed-in User’s landing dashboard after login. It shows that User’s Games, Level, and stats. Distinct from Group home.
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
 
 **Player profile**:
@@ -546,7 +494,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, that a Level setter set their Level, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Never sent for a Soft-archived Community. Not a push message, not an email, not an invite.
+An in-app record that tells one User that something happened on a Group or Game they run, that a Game they played on has finished, that an Organizer seated them on a Game, that a Level setter set their Level, or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an email, not an invite.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notifications page**:

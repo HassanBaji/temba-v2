@@ -60,7 +60,6 @@ export const common = {
   games: "Games",
   book: "Book",
   groups: "Groups",
-  communities: "Communities",
   profile: "Profile",
   teams: "Teams",
   invites: "Invites",

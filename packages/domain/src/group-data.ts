@@ -22,7 +22,7 @@ export type GroupPublicRowData = {
   name: string | null;
   imageUrl: string | null;
   sport: string | null;
-  communityName: string | null;
+  venueName: string | null;
   memberCount: number;
   requiresApproval: boolean;
   joinMode: "join" | "request" | "requested";
@@ -120,13 +120,9 @@ export type GroupHomeData = {
   name: string | null;
   imageUrl: string | null;
   sport: string | null;
-  communityId: string | null;
   createdAt: Date | string | null;
   totalGamesPlayed: number;
-  community: { id: string; name: string } | null;
-  isCommunityArchived: boolean;
   membership: object | null;
-  communityMembership: object | null;
   standing: {
     memberCount: number;
     leaderboard: GroupLeaderboardEntryData[];
@@ -141,15 +137,15 @@ export type GroupHomeData = {
   gameHistory: GroupPlayedGameData[];
   gameHistoryCounts: GroupPlayedCounts;
   joinMode: string;
-  canJoinLoosePublic: boolean;
-  canJoinClubPublic: boolean;
+  canJoin: boolean;
+  /** No Venue link; a Club Group is linked to one Venue. */
   isLoose: boolean;
   canManageLookupInvites: boolean;
   canManageInviteLinks: boolean;
   canCreateGame: boolean;
   requiresApproval: boolean;
   verified: boolean;
-  venueCommunity: { venueId: string; venueName: string } | null;
+  venue: { id: string; name: string } | null;
   pendingLinkRequestCount: number | null;
   canUnlinkFromVenue: boolean;
   canSetRequiresApproval: boolean;
@@ -171,13 +167,12 @@ export type GroupHomeData = {
   pendingJoinRequestCount: number;
 };
 
-export type GroupJoinRequestSource = "invite_link" | "community" | "group_page";
+export type GroupJoinRequestSource = "invite_link" | "group_page";
 
 export type GroupJoinRequestData = {
   id: string;
   createdAt: Date | string;
   user: { id: string; name: string | null; image: string | null };
-  isCommunityMember: boolean | null;
   note: string | null;
   source: GroupJoinRequestSource | null;
   invitedBy: { id: string; name: string } | null;

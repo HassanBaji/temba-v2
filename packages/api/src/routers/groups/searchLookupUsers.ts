@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { communityMembers, groupMemberInvites, groupMembers } from "@repo/db";
+import { groupMemberInvites, groupMembers } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,7 +15,7 @@ export async function searchLookupUsers(
   database: DbClient,
   args: { groupId: string; userId: string; query: string },
 ) {
-  const { group, canAutoAdmit } = await requireGroupLookupSender(
+  const group = await requireGroupLookupSender(
     database,
     args.groupId,
     args.userId,
@@ -39,21 +39,6 @@ export async function searchLookupUsers(
     ...members.map((member) => member.userId),
     ...unusedInvites.map((invite) => invite.userId),
   ];
-
-  if (group.communityId && !canAutoAdmit) {
-    const communityMembersRows = await database.query.communityMembers.findMany(
-      {
-        where: eq(communityMembers.communityId, group.communityId),
-        columns: { userId: true },
-      },
-    );
-
-    return searchLookupUsersDoor(database, {
-      query: args.query,
-      excludeUserIds,
-      includeUserIds: communityMembersRows.map((row) => row.userId),
-    });
-  }
 
   return searchLookupUsersDoor(database, {
     query: args.query,

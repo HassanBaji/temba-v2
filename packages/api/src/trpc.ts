@@ -156,7 +156,7 @@ export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
 /**
  * Operator procedure
  *
- * Clerk `publicMetadata.operator === true`. Community roles are unchanged.
+ * Clerk `publicMetadata.operator === true`.
  */
 export const operatorProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
@@ -168,8 +168,7 @@ export const operatorProcedure = protectedProcedure.use(
 /**
  * Level setter procedure
  *
- * Clerk `publicMetadata.levelSetter === true`. Independent of Operator and
- * Community roles.
+ * Clerk `publicMetadata.levelSetter === true`. Independent of Operator.
  */
 export const levelSetterProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {

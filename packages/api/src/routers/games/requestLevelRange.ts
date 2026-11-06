@@ -14,7 +14,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
   canViewGame,
-  isClubGroupGameJoinFrozen,
   isGameOrganizer,
   isRegistrationOpen,
   requireGame,
@@ -79,10 +78,9 @@ async function canAuthorizeLevelRangeRequest(
 
 function refuseIfNotOpenForRequests(
   game: Awaited<ReturnType<typeof requireGame>>,
-  joinFrozen: boolean,
   now: Date,
 ) {
-  if (game.cancelledAt || joinFrozen || !isRegistrationOpen(game, now)) {
+  if (game.cancelledAt || !isRegistrationOpen(game, now)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "This Game is not open for registration",
@@ -96,7 +94,6 @@ export async function requestLevelRange(
 ) {
   const game = await requireGame(database, args.gameId);
   const now = new Date();
-  const joinFrozen = await isClubGroupGameJoinFrozen(database, game);
 
   if (
     !(await canAuthorizeLevelRangeRequest(
@@ -139,7 +136,7 @@ export async function requestLevelRange(
     });
   }
 
-  refuseIfNotOpenForRequests(game, joinFrozen, now);
+  refuseIfNotOpenForRequests(game, now);
 
   const existing = await database.query.gameLevelRangeRequests.findFirst({
     where: and(

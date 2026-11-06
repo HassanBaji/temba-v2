@@ -103,7 +103,7 @@ describe("invite sheet copy", () => {
 
   it("describes the link for each door", () => {
     expect(inviteLinkNote("game", "en")).toContain("take a seat");
-    expect(inviteLinkNote("community", "en")).toContain("join the Community");
+    expect(inviteLinkNote("group", "en")).toContain("join the Group");
   });
 
   it("gives a Game link no clock and the other doors 6 hours", () => {

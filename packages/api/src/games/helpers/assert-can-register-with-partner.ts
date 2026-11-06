@@ -37,7 +37,7 @@ export async function assertCanRegisterWithPartner(
     });
   }
 
-  await assertRegistrationOpen(database, game, now);
+  assertRegistrationOpen(game, now);
   await assertUserPassesJoinGate(database, game, userId);
 
   if (await userAlreadyOnGame(database, game.id, userId)) {
