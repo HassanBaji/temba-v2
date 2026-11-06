@@ -2,6 +2,7 @@ import {
   playerProfileRefused,
   profileSport,
 } from "@repo/domain/player-profile";
+import { sportSwitchView } from "@repo/domain/player-profile-page";
 import type { Sport } from "@repo/domain/sport";
 import {
   useLocalSearchParams,
@@ -15,17 +16,18 @@ import { gamePath } from "../games/games-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
-import { SportSegments } from "../lib/sport-segments";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { api } from "../trpc/react";
-import { playerMatchesPath } from "./player-path";
+import { playerMatchesPath, playerPath } from "./player-path";
 import {
   footballProfileState,
   playerProfileState,
+  type ProfileMatchRow,
 } from "./player-profile-model";
-import { FootballProfileView, PlayerProfileView } from "./player-profile-view";
+import { PlayerProfileBody } from "./player-profile-view";
+import { ProfileHero } from "./profile-hero";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 const FALLBACK: Href = "/";
@@ -47,24 +49,32 @@ export function PlayerProfileScreen({
     { userId },
     REFETCH_ON_FOREGROUND,
   );
-  const sport = chosen ?? profileSport(requestedSport, padelQuery.data?.sports);
+  const sports = padelQuery.data?.sports;
+  const sport = chosen ?? profileSport(requestedSport, sports);
+  // Loaded for the switch's game count too, not only once football is picked.
+  const footballEnabled =
+    sport === "football" || (sports?.includes("football") ?? false);
   const footballQuery = api.users.footballProfile.useQuery(
     { userId },
-    { ...REFETCH_ON_FOREGROUND, enabled: sport === "football" },
+    { ...REFETCH_ON_FOREGROUND, enabled: footballEnabled },
   );
   const query = sport === "football" ? footballQuery : padelQuery;
-  const padelState = playerProfileState(padelQuery, apiOrigin, locale);
-  const footballState = footballProfileState(footballQuery, apiOrigin, locale);
-  const state = sport === "football" ? footballState : padelState;
+  const state =
+    sport === "football"
+      ? footballProfileState(footballQuery, apiOrigin, locale)
+      : playerProfileState(padelQuery, apiOrigin, locale);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await query.refetch();
+      await Promise.all([
+        padelQuery.refetch(),
+        footballEnabled ? footballQuery.refetch() : null,
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [query]);
+  }, [padelQuery, footballQuery, footballEnabled]);
 
   const header = <ScreenHeader nav="back" fallback={FALLBACK} />;
 
@@ -91,40 +101,59 @@ export function PlayerProfileScreen({
     );
   }
 
-  if (state.status === "loading") {
+  if (state.status === "loading" || !sport) {
     return (
       <Screen>
         {header}
-        <Skeleton height={280} radius={16} />
+        <Skeleton height={360} radius={16} />
         <Skeleton height={180} radius={16} />
       </Screen>
     );
   }
 
-  const switcher = sport ? (
-    <SportSegments value={sport} onSelect={setChosen} />
-  ) : null;
+  const model = state.model;
+  const played = (entry: Sport) =>
+    (entry === "football" ? footballQuery.data : padelQuery.data)?.overall
+      .played ?? null;
+  const switchOptions = sportSwitchView(
+    model.sports.map((entry) => ({ sport: entry, played: played(entry) })),
+    sport,
+    locale,
+  );
+
+  const onOpenRow = (target: NonNullable<ProfileMatchRow["target"]>) => {
+    router.push(
+      target.kind === "game"
+        ? gamePath(target.gameId)
+        : playerMatchesPath(segments, userId, target.matchId),
+    );
+  };
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      {sport === "football" && footballState.status === "ready" ? (
-        <FootballProfileView
-          model={footballState.model}
+    <Screen
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      statusBarTone="ink"
+      header={
+        <ProfileHero
+          name={model.name}
+          imageUri={model.imageUri}
+          subtitle={model.subtitle}
+          switchOptions={switchOptions}
+          onSelectSport={setChosen}
+          level={model.level}
           fallback={FALLBACK}
-          switcher={switcher}
-          onOpenGame={(gameId) => router.push(gamePath(gameId))}
         />
-      ) : padelState.status === "ready" ? (
-        <PlayerProfileView
-          model={padelState.model}
-          fallback={FALLBACK}
-          switcher={switcher}
-          onOpenMatch={(matchId) =>
-            router.push(playerMatchesPath(segments, userId, matchId))
-          }
-          onSeeAll={() => router.push(playerMatchesPath(segments, userId))}
-        />
-      ) : null}
+      }
+    >
+      <PlayerProfileBody
+        model={model}
+        onOpenRow={onOpenRow}
+        onOpenPlayer={(playerId) =>
+          router.push(playerPath(segments, playerId, sport))
+        }
+        onSeeAll={() => router.push(playerMatchesPath(segments, userId))}
+      />
     </Screen>
   );
 }

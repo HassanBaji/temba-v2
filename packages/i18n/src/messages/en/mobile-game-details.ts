@@ -79,38 +79,6 @@ export const mobileGameDetails = {
     side: "Side",
     position: "Position",
     saveName: "Save name",
-    fromGroup: "From group",
-    byPhone: "By phone",
-    modes: "How to add",
-    groupDescription:
-      "Pick from the group, then set how each one plays. Their profile fills it in.",
-    searchMembers: "Search members",
-    groupLine: (group: string, count: number) =>
-      plural("en", count, {
-        one: `${group} · 1 member`,
-        other: `${group} · {n} members`,
-      }),
-    spotsLeft: (left: number, open: number) => `${left} of ${open} spots left`,
-    gameFull: "Game is full",
-    inGame: "In game",
-    onWaitlist: "On waitlist",
-    noSpotsLeft: "no spots left",
-    level: (label: string) => `Level ${label}`,
-    noPreferenceShort: "No pref.",
-    selectPlayers: "Select players",
-    addCount: (count: number) =>
-      plural("en", count, {
-        one: "Add 1 player",
-        other: "Add {n} players",
-      }),
-    addedCount: (count: number) =>
-      plural("en", count, {
-        one: "1 player added to the game",
-        other: "{n} players added to the game",
-      }),
-    noMatch: (query: string) => `No member matches "${query}".`,
-    tryPhone: "Add them by phone instead.",
-    loadingMembers: "Loading members…",
   },
   organizer: {
     title: "Organizer",

@@ -1447,6 +1447,7 @@ export default function GameHomePage({
           placement={addPlacement}
           sides={data.sides}
           initialSeat={addSeat}
+          groupName={data.groupName}
           onAdded={() => utils.games.byId.invalidate({ id })}
         />
       ) : null}

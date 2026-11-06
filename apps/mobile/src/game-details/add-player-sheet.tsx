@@ -279,7 +279,7 @@ export function AddPlayerSheet({
       title={m.group.addPlayer.action}
       subtitle={
         inGroupMode
-          ? m.mobileGameDetails.addPlayer.groupDescription
+          ? m.group.addPlayer.fromGroup.description
           : m.group.addPlayer.description
       }
       tall
@@ -308,7 +308,7 @@ export function AddPlayerSheet({
           onQueryChange={setQuery}
           groupLine={
             roster
-              ? m.mobileGameDetails.addPlayer.groupLine(
+              ? m.group.addPlayer.fromGroup.groupLine(
                   roster.groupName,
                   roster.members.length,
                 )

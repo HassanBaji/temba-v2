@@ -10,6 +10,8 @@ import type {
   PlayerMatchPlayer,
   PlayerMatchRating,
 } from "./player-profile-matches";
+import type { WithViewerInput } from "./player-profile-page";
+import type { Sport } from "./sport";
 
 export type PlayerProfileFixture = {
   player: { id: string; name: string; image: string | null; isViewer: boolean };
@@ -20,6 +22,16 @@ export type PlayerProfileFixture = {
   position: PlayerPositionInput;
   trend: { levelChange: number } | null;
   lastMatches: PlayerMatchInput[];
+  sports: Sport[];
+  partners: {
+    userId: string;
+    name: string;
+    image: string | null;
+    won: number;
+    lost: number;
+    played: number;
+  }[];
+  withViewer: WithViewerInput | null;
 };
 
 const EMPTY_OVERALL: PlayerOverallInput = {
@@ -234,6 +246,22 @@ export function createPlayerProfileFixtures(): {
     },
     trend: { levelChange: 0.3 },
     lastMatches: CONFIRMED_LAST_MATCHES,
+    sports: ["padel"],
+    partners: [
+      {
+        userId: "8c0f1f4e-2d0c-4f49-9a55-6a1f3b1f0a02",
+        name: "Jonas Berg",
+        image: null,
+        won: 9,
+        lost: 3,
+        played: 12,
+      },
+    ],
+    withViewer: {
+      together: { played: 5, won: 4, lost: 1, drawn: 0 },
+      against: { played: 5, won: 2, lost: 3, drawn: 0 },
+      sharedGroups: ["Tuesday Crew"],
+    },
   };
 
   const provisional: PlayerProfileFixture = {
@@ -334,6 +362,9 @@ export function createPlayerProfileFixtures(): {
     position: { ...NO_POSITION, declared: "right" },
     trend: null,
     lastMatches: [],
+    sports: ["padel"],
+    partners: [],
+    withViewer: null,
   };
 
   const newPlayer: PlayerProfileFixture = {
@@ -345,11 +376,15 @@ export function createPlayerProfileFixtures(): {
     position: NO_POSITION,
     trend: null,
     lastMatches: [],
+    sports: ["padel"],
+    partners: [],
+    withViewer: null,
   };
 
   const self: PlayerProfileFixture = {
     ...confirmed,
     player: { ...ELIN, isViewer: true },
+    withViewer: null,
   };
 
   return {

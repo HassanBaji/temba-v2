@@ -124,6 +124,8 @@ describe("playerMatchRowView", () => {
     expect(row).toEqual({
       matchId: "match-2026-10-01",
       outcome: "won",
+      kind: "Tuesday Crew",
+      dateWithPartner: "Thu 1 Oct, with Jonas B",
       opponents: "vs Sofia L & Adam R",
       partnerVenue: "with Jonas B, Padelhuset Bromma",
       meta: "Thu 1 Oct, Tuesday Crew",

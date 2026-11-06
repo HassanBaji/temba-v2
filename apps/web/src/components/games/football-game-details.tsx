@@ -856,6 +856,7 @@ export function FootballGameDetails({
           gameId={gameId}
           placement="football"
           sides={[]}
+          groupName={game.groupName}
           onAdded={refreshGame}
         />
       ) : null}

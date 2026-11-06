@@ -135,6 +135,85 @@ export const profile = {
       delta: string,
     ) => `${label}, ${before} to ${after}, ${delta}`,
   },
+  playerPage: {
+    subtitlePositionVenue: (position: string, venue: string) =>
+      `${position}, plays at ${venue}`,
+    subtitleVenue: (venue: string) => `Plays at ${venue}`,
+    subtitleSportPosition: (sport: string, position: string) =>
+      `${sport}, ${position.toLowerCase()}`,
+    subtitleSportPositionVenue: (
+      sport: string,
+      position: string,
+      venue: string,
+    ) => `${sport}, ${position.toLowerCase()}. Plays at ${venue}`,
+    subtitleSportVenue: (sport: string, venue: string) =>
+      `${sport}. Plays at ${venue}`,
+    games: (n: number) =>
+      plural("en", n, { one: "1 game", other: "{n} games" }),
+    level: "Level",
+    sportLevel: (sport: string) => `${sport} level`,
+    confirmed: "Confirmed",
+    provisional: "Provisional",
+    startingLevel: "Starting level",
+    setAtSignUp: "Set at sign up",
+    ratedMatches: (n: number) =>
+      plural("en", n, { one: "1 rated match", other: "{n} rated matches" }),
+    toNext: (distance: string, band: string) => `${distance} to ${band}`,
+    ofTheWay: (percent: number) => `${percent}% of the way`,
+    trendSince: (delta: string, month: string) => `${delta} since ${month}`,
+    notMovingYet: "Doesn’t move with games yet",
+    noLevelYet: "No Level yet",
+    gamesSoFar: (n: number) =>
+      plural("en", n, { one: "1 game so far", other: "{n} games so far" }),
+    noGamesYet: "No games yet",
+    since: (date: string) => `since ${date}`,
+    earlyNote: (n: number) =>
+      `Streaks, win rate and teammates show after ${n} games.`,
+    earlyNotePadel: (n: number) =>
+      `Streaks, win rate and partners show after ${n} games.`,
+    currentStreak: "Current streak",
+    bestStreak: "Best streak",
+    winsUnit: (n: number) => plural("en", n, { one: "win", other: "wins" }),
+    streakSpoken: (label: string, n: number, unit: string) =>
+      `${label}, ${n} ${unit}`,
+    preferredPosition: "Preferred position",
+    preferredSide: "Preferred side",
+    won: "Won",
+    wonDrawnLost: "Won, drawn, lost",
+    goal: "Goal",
+    goalsPerGame: "Goals per game",
+    afterGames: (n: number) => `After ${n} games`,
+    youAnd: (name: string) => `You and ${name}`,
+    allTime: "all time",
+    asTeammates: "As teammates",
+    asPartners: "As partners",
+    against: "Against",
+    againstEachOther: "Against each other",
+    inGames: (n: number) =>
+      plural("en", n, { one: "in 1 game", other: "in {n} games" }),
+    toYou: "to you",
+    toThem: (name: string) => `to ${name}`,
+    allSquare: "all square",
+    noGamesTogether: "No games together yet.",
+    bothIn: (group: string) => `Both in ${group}`,
+    bothInTwo: (first: string, second: string) =>
+      `Both in ${first} and ${second}`,
+    bothInMore: (first: string, more: number) =>
+      plural("en", more, {
+        one: `Both in ${first} and 1 other group`,
+        other: `Both in ${first} and {n} other groups`,
+      }),
+    teammates: "Teammates",
+    partners: "Partners",
+    mostPlayed: "most played",
+    lastTen: "Last 10 games",
+    gamesTitle: "Games",
+    played: (n: number) =>
+      plural("en", n, { one: "1 played", other: "{n} played" }),
+    recordSpoken: (title: string, record: string) => `${title}, ${record}`,
+    dateWithPartner: (date: string, partners: string) =>
+      `${date}, with ${partners}`,
+  },
   allTime: {
     playingSince: (year: number) => `Playing padel since ${year}`,
     since: (year: number) => `Since ${year}`,

@@ -1,5 +1,6 @@
 "use client";
 
+import { Phone, Users } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -10,6 +11,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { GroupMemberList } from "~/components/games/add-player-group-list";
 import { AddPlayerIdentityFields } from "~/components/games/add-player-identity-fields";
 import {
   Group,
@@ -18,6 +20,7 @@ import {
 } from "~/components/onboarding/onboarding-choices";
 import { Button } from "~/components/ui/button";
 import { FieldError } from "~/components/ui/field";
+import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
   ADD_PLAYER_DEFAULT_FOOTBALL_POSITION,
@@ -37,6 +40,18 @@ import {
   type AddPlayerLevel,
   type AddPlayerPlacement,
 } from "@repo/domain/add-player-by-phone";
+import {
+  groupAddActionLabel,
+  groupAddedToast,
+  groupMemberFootballDefaults,
+  groupMemberRows,
+  groupNoMatchLine,
+  groupPickedNames,
+  groupSpotsLine,
+  toggleGroupMemberPick,
+  type AddPlayerMode,
+  type GroupMemberFootballPick,
+} from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
@@ -57,6 +72,7 @@ export function AddPlayerDialog({
   placement,
   sides,
   initialSeat = null,
+  groupName,
   onAdded,
 }: {
   open: boolean;
@@ -66,6 +82,8 @@ export function AddPlayerDialog({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer clicked on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The Game's Group; with one, the dialog opens on its members. */
+  groupName: string | null;
   onAdded: () => Promise<unknown>;
 }) {
   const locale = useLocale();
@@ -89,14 +107,28 @@ export function AddPlayerDialog({
     );
   const [picked, setPicked] = React.useState<FriendlyGameJoinSeat | null>(null);
   const [pickedSide, setPickedSide] = React.useState<number | null>(null);
+  const hasGroup = groupName != null;
+  const [mode, setMode] = React.useState<AddPlayerMode>(
+    hasGroup ? "group" : "phone",
+  );
+  const [query, setQuery] = React.useState("");
+  const [memberIds, setMemberIds] = React.useState<string[]>([]);
+  const [footballPicks, setFootballPicks] = React.useState<
+    Record<string, GroupMemberFootballPick>
+  >({});
 
   React.useEffect(() => {
     if (open) {
       setPicked(initialSeat);
+      setMode(hasGroup ? "group" : "phone");
+      setQuery("");
+      setMemberIds([]);
+      setFootballPicks({});
     }
-  }, [open, initialSeat]);
+  }, [open, initialSeat, hasGroup]);
 
   const isFootball = placement === "football";
+  const inGroupMode = hasGroup && mode === "group";
   const seatChoices =
     placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
   const seat =
@@ -140,6 +172,72 @@ export function AddPlayerDialog({
     },
   });
 
+  const groupMembers = api.games.listGroupMembersToAdd.useQuery(
+    { gameId },
+    { enabled: open && hasGroup },
+  );
+  const roster = groupMembers.data ?? null;
+  const openSpots = roster?.openSpots ?? 0;
+  const memberRows = roster
+    ? groupMemberRows(
+        {
+          members: roster.members,
+          query,
+          picked: memberIds,
+          openSpots,
+          isFootball,
+        },
+        locale,
+      )
+    : [];
+
+  const addMembers = api.games.addGroupMembers.useMutation({
+    onSuccess: async (result) => {
+      toast.success(groupAddedToast(result.added, locale));
+      setMemberIds([]);
+      setFootballPicks({});
+      setPicked(null);
+      await Promise.all([
+        utils.games.listGroupMembersToAdd.invalidate({ gameId }),
+        utils.games.previewPlayerByPhone.invalidate({ gameId }),
+        onAdded(),
+      ]);
+    },
+  });
+
+  function toggleMember(userId: string) {
+    const next = toggleGroupMemberPick(memberIds, userId, openSpots);
+    setMemberIds(next);
+    const member = roster?.members.find((entry) => entry.userId === userId);
+    if (next.includes(userId) && member && !footballPicks[userId]) {
+      setFootballPicks((current) => ({
+        ...current,
+        [userId]: groupMemberFootballDefaults(member),
+      }));
+    }
+  }
+
+  function submitMembers(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (memberIds.length === 0 || addMembers.isPending) {
+      return;
+    }
+    addMembers.mutate({
+      gameId,
+      players: memberIds.map((userId) => {
+        const pick = footballPicks[userId];
+        return {
+          userId,
+          football:
+            isFootball && pick
+              ? addPlayerFootballInput(pick.role, pick.position)
+              : undefined,
+        };
+      }),
+      seat: placement === "seat" ? (picked ?? undefined) : undefined,
+    });
+  }
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!addPlayerCanSubmit({ preview: previewData, name, placed })) {
@@ -162,7 +260,13 @@ export function AddPlayerDialog({
 
   const canSubmit =
     !add.isPending &&
+    !addMembers.isPending &&
     addPlayerCanSubmit({ preview: previewData, name, placed });
+  const pickedNames = roster
+    ? groupPickedNames(roster.members, memberIds, locale)
+    : "";
+  const formClass =
+    "max-h-[70vh] space-y-6 overflow-y-auto px-4 pb-4 md:max-h-none md:overflow-visible md:px-0 md:pb-0";
 
   return (
     <ResponsiveDialog
@@ -170,6 +274,7 @@ export function AddPlayerDialog({
       onOpenChange={(next) => {
         if (!next) {
           add.reset();
+          addMembers.reset();
         }
         onOpenChange(next);
       }}
@@ -180,126 +285,220 @@ export function AddPlayerDialog({
             {m.group.addPlayer.action}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {m.group.addPlayer.description}
+            {inGroupMode
+              ? m.group.addPlayer.fromGroup.description
+              : m.group.addPlayer.description}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <form
-          onSubmit={submit}
-          className="max-h-[70vh] space-y-6 overflow-y-auto px-4 pb-4 md:max-h-none md:overflow-visible md:px-0 md:pb-0"
-        >
-          <AddPlayerIdentityFields
-            countryIso={countryIso}
-            national={national}
-            onCountryIsoChange={setCountryIso}
-            onNationalChange={setNational}
-            complete={completePhone != null}
-            preview={
-              previewData
-                ? {
-                    line: addPlayerPreviewLine(previewData, locale),
-                    kind: previewData.kind,
-                    phoneMasked: previewData.phoneMasked,
-                  }
-                : null
-            }
-            previewError={preview.error?.message ?? null}
-            previewFetching={preview.isFetching}
-            name={name}
-            onNameChange={setName}
-            isFootball={isFootball}
-            level={level}
-            onLevelChange={setLevel}
-            footballLevel={footballLevel}
-            onFootballLevelChange={setFootballLevel}
-            disabled={add.isPending}
-          />
+        {hasGroup ? (
+          <Tabs
+            value={mode}
+            onValueChange={(next) => setMode(next as AddPlayerMode)}
+            className="px-4 md:px-0"
+          >
+            <TabsList
+              aria-label={m.group.addPlayer.fromGroup.modes}
+              className="bg-wash h-auto w-full gap-1 p-1"
+            >
+              <TabsTrigger
+                value="group"
+                className="text-muted-foreground text-meta data-[state=active]:bg-paper data-[state=active]:text-ink h-[38px] gap-1.5 border-none font-semibold"
+              >
+                <Users className="size-3.5" aria-hidden="true" />
+                {m.group.addPlayer.fromGroup.tab}
+              </TabsTrigger>
+              <TabsTrigger
+                value="phone"
+                className="text-muted-foreground text-meta data-[state=active]:bg-paper data-[state=active]:text-ink h-[38px] gap-1.5 border-none font-semibold"
+              >
+                <Phone className="size-3.5" aria-hidden="true" />
+                {m.group.addPlayer.fromGroup.phoneTab}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : null}
 
-          {isFootball ? (
-            <>
-              <Group>
-                <SectionLabel label={m.webGame.addPlayer.playsAs} />
-                <TileChoices
-                  label={m.webGame.addPlayer.playsAs}
-                  choices={addPlayerFootballRoleChoices(locale)}
-                  value={role}
-                  onSelect={setRole}
-                />
-              </Group>
-              {role === "outfield" ? (
+        {inGroupMode ? (
+          <form onSubmit={submitMembers} className={formClass}>
+            <GroupMemberList
+              query={query}
+              onQueryChange={setQuery}
+              groupLine={
+                roster
+                  ? m.group.addPlayer.fromGroup.groupLine(
+                      roster.groupName,
+                      roster.members.length,
+                    )
+                  : null
+              }
+              spotsLine={
+                roster
+                  ? groupSpotsLine(openSpots, memberIds.length, locale)
+                  : null
+              }
+              full={roster != null && memberIds.length >= openSpots}
+              rows={memberRows}
+              detailsById={
+                new Map(
+                  (roster?.members ?? []).map((member) => [
+                    member.userId,
+                    { unclaimed: member.unclaimed, image: member.image },
+                  ]),
+                )
+              }
+              footballById={isFootball ? footballPicks : null}
+              emptyLine={
+                roster && memberRows.length === 0 && query.trim()
+                  ? groupNoMatchLine(query, locale)
+                  : null
+              }
+              loading={groupMembers.isPending}
+              error={groupMembers.error?.message ?? null}
+              onToggle={toggleMember}
+              onFootballChange={(userId, pick) =>
+                setFootballPicks((current) => ({ ...current, [userId]: pick }))
+              }
+              disabled={addMembers.isPending}
+            />
+
+            <div className="border-rule space-y-2.5 border-t pt-3.5">
+              {addMembers.error ? (
+                <FieldError>{addMembers.error.message}</FieldError>
+              ) : null}
+              {pickedNames ? (
+                <p className="text-meta text-muted-foreground truncate">
+                  {pickedNames}
+                </p>
+              ) : null}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full font-semibold"
+                pending={addMembers.isPending}
+                disabled={memberIds.length === 0 || add.isPending}
+              >
+                {groupAddActionLabel(memberIds.length, locale)}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={submit} className={formClass}>
+            <AddPlayerIdentityFields
+              countryIso={countryIso}
+              national={national}
+              onCountryIsoChange={setCountryIso}
+              onNationalChange={setNational}
+              complete={completePhone != null}
+              preview={
+                previewData
+                  ? {
+                      line: addPlayerPreviewLine(previewData, locale),
+                      kind: previewData.kind,
+                      phoneMasked: previewData.phoneMasked,
+                    }
+                  : null
+              }
+              previewError={preview.error?.message ?? null}
+              previewFetching={preview.isFetching}
+              name={name}
+              onNameChange={setName}
+              isFootball={isFootball}
+              level={level}
+              onLevelChange={setLevel}
+              footballLevel={footballLevel}
+              onFootballLevelChange={setFootballLevel}
+              disabled={add.isPending}
+            />
+
+            {isFootball ? (
+              <>
                 <Group>
-                  <SectionLabel label={m.webGame.addPlayer.preferredPosition} />
+                  <SectionLabel label={m.webGame.addPlayer.playsAs} />
                   <TileChoices
-                    label={m.webGame.addPlayer.preferredPosition}
-                    choices={addPlayerFootballPositionChoices(locale)}
-                    value={footballPosition}
-                    onSelect={setFootballPosition}
+                    label={m.webGame.addPlayer.playsAs}
+                    choices={addPlayerFootballRoleChoices(locale)}
+                    value={role}
+                    onSelect={setRole}
                   />
                 </Group>
-              ) : null}
-            </>
-          ) : null}
+                {role === "outfield" ? (
+                  <Group>
+                    <SectionLabel
+                      label={m.webGame.addPlayer.preferredPosition}
+                    />
+                    <TileChoices
+                      label={m.webGame.addPlayer.preferredPosition}
+                      choices={addPlayerFootballPositionChoices(locale)}
+                      value={footballPosition}
+                      onSelect={setFootballPosition}
+                    />
+                  </Group>
+                ) : null}
+              </>
+            ) : null}
 
-          {placement === "side" ? (
-            side ? (
+            {placement === "side" ? (
+              side ? (
+                <Group>
+                  <SectionLabel label={m.webGame.addPlayer.side} />
+                  <TileChoices
+                    label={m.webGame.addPlayer.side}
+                    choices={sideChoices.map((choice) => ({
+                      value: String(choice.sideIndex),
+                      name: choice.team,
+                      detail: choice.detail,
+                    }))}
+                    value={String(side.sideIndex)}
+                    onSelect={(key) => setPickedSide(Number(key))}
+                  />
+                </Group>
+              ) : (
+                <p className="text-muted-foreground text-meta">
+                  {m.group.addPlayer.noSide}
+                </p>
+              )
+            ) : null}
+
+            {placement !== "seat" ? null : seat ? (
               <Group>
-                <SectionLabel label={m.webGame.addPlayer.side} />
+                <SectionLabel label={m.webGame.addPlayer.position} />
                 <TileChoices
-                  label={m.webGame.addPlayer.side}
-                  choices={sideChoices.map((choice) => ({
-                    value: String(choice.sideIndex),
-                    name: choice.team,
-                    detail: choice.detail,
+                  label={m.webGame.addPlayer.position}
+                  choices={seatChoices.map((choice) => ({
+                    value: seatKey(choice.seat),
+                    name: choice.side,
+                    detail: choice.team,
                   }))}
-                  value={String(side.sideIndex)}
-                  onSelect={(key) => setPickedSide(Number(key))}
+                  value={seatKey(seat)}
+                  onSelect={(key) =>
+                    setPicked(
+                      seatChoices.find((choice) => seatKey(choice.seat) === key)
+                        ?.seat ?? null,
+                    )
+                  }
                 />
               </Group>
             ) : (
               <p className="text-muted-foreground text-meta">
-                {m.group.addPlayer.noSide}
+                {m.group.addPlayer.noSeat}
               </p>
-            )
-          ) : null}
+            )}
 
-          {placement !== "seat" ? null : seat ? (
-            <Group>
-              <SectionLabel label={m.webGame.addPlayer.position} />
-              <TileChoices
-                label={m.webGame.addPlayer.position}
-                choices={seatChoices.map((choice) => ({
-                  value: seatKey(choice.seat),
-                  name: choice.side,
-                  detail: choice.team,
-                }))}
-                value={seatKey(seat)}
-                onSelect={(key) =>
-                  setPicked(
-                    seatChoices.find((choice) => seatKey(choice.seat) === key)
-                      ?.seat ?? null,
-                  )
-                }
-              />
-            </Group>
-          ) : (
-            <p className="text-muted-foreground text-meta">
-              {m.group.addPlayer.noSeat}
-            </p>
-          )}
+            {add.error ? <FieldError>{add.error.message}</FieldError> : null}
 
-          {add.error ? <FieldError>{add.error.message}</FieldError> : null}
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full font-semibold"
-            disabled={!canSubmit}
-          >
-            {add.isPending
-              ? m.webGame.addPlayer.adding
-              : m.group.addPlayer.addToGame}
-          </Button>
-        </form>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full font-semibold"
+              disabled={!canSubmit}
+            >
+              {add.isPending
+                ? m.webGame.addPlayer.adding
+                : m.group.addPlayer.addToGame}
+            </Button>
+          </form>
+        )}
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

@@ -60,6 +60,10 @@ export type PlayerMatchInput = {
 export type PlayerMatchRowView = {
   matchId: string;
   outcome: MatchOutcome;
+  /** The Group, or the Game's kind: "Thursday Padel", "Americano". */
+  kind: string;
+  /** "Thu 5 Nov, with Ali M". */
+  dateWithPartner: string;
   opponents: string;
   partnerVenue: string;
   meta: string;
@@ -164,6 +168,12 @@ function opponentNames(match: PlayerMatchInput) {
   return opponentTeam(match).map((player) => shortPlayerName(player.name));
 }
 
+function partnerNames(match: PlayerMatchInput, ownerId: string) {
+  return ownerTeam(match)
+    .filter((player) => player.userId !== ownerId)
+    .map((player) => shortPlayerName(player.name));
+}
+
 /** "with Jonas B, Padelhuset Bromma"; just the Venue when no partner sat. */
 function partnerVenueLine(
   match: PlayerMatchInput,
@@ -171,9 +181,7 @@ function partnerVenueLine(
   locale: Locale,
 ) {
   const m = messagesFor(locale).profile.matches;
-  const partners = ownerTeam(match)
-    .filter((player) => player.userId !== ownerId)
-    .map((player) => shortPlayerName(player.name));
+  const partners = partnerNames(match, ownerId);
   const venue = match.game.venueName;
   return partners.length > 0
     ? m.withPartnerAt(m.namesWithAmpersand(partners), venue)
@@ -213,15 +221,22 @@ export function playerMatchRowView(
     ratingTag,
   ];
 
+  const date = formatDayMonth(match.playedAt, locale, { weekday: "short" });
+  const partners = partnerNames(match, ownerId);
   return {
     matchId: match.matchId,
     outcome: match.outcome,
+    kind,
+    dateWithPartner:
+      partners.length > 0
+        ? messagesFor(locale).profile.playerPage.dateWithPartner(
+            date,
+            m.namesWithAmpersand(partners),
+          )
+        : date,
     opponents: names.length > 0 ? m.versus(m.namesWithAmpersand(names)) : "",
     partnerVenue: partnerVenueLine(match, ownerId, locale),
-    meta: m.dateComma(
-      formatDayMonth(match.playedAt, locale, { weekday: "short" }),
-      kind,
-    ),
+    meta: m.dateComma(date, kind),
     sets,
     delta: match.rating
       ? signedLevelChange(match.rating.levelChange, locale)
