@@ -18,9 +18,7 @@ import {
   occupySeat,
   remainingCapacity,
 } from "#src/games/seats";
-import { gameNotificationsSuppressed } from "#src/notifications/game-notifications-suppressed";
 import { notify } from "#src/notifications/notify";
-import { consult } from "#src/soft-archive";
 import { type db } from "#src/db";
 import {
   partyUserIdsForAdmit,
@@ -67,9 +65,6 @@ async function notifyGameJoined(
     addedByUserId?: string;
   },
 ) {
-  if (await gameNotificationsSuppressed(database, game)) {
-    return;
-  }
   const adminIds = await gameAdminUserIds(database, game);
   await notify(database, {
     type: "game_player_joined",
@@ -94,12 +89,6 @@ async function refuseRegisterDoors(
 ): Promise<AdmitResult | null> {
   if (door === "organizer_add" && game.cancelledAt) {
     return { ok: false, reason: "cancelled" };
-  }
-  const view = await consult(database, {
-    clubGroupGame: { groupId: game.groupId },
-  });
-  if (view.ok && view.freeze("join")) {
-    return { ok: false, reason: "join_frozen" };
   }
   if (door === "register" && !isRegistrationOpen(game, now)) {
     return { ok: false, reason: "registration_closed" };
@@ -169,7 +158,7 @@ async function admitUser(
     if ((await remainingCapacity(writeDb(database), game)) <= 0) {
       return { ok: false, reason: "full" };
     }
-    await occupySeat(
+    const occupied = await occupySeat(
       database as Tx,
       game,
       party.userId,
@@ -186,7 +175,7 @@ async function admitUser(
         kind: "user",
         userId: party.userId,
         sideIndex: party.seat.sideIndex,
-        position: party.seat.position,
+        position: occupied.position,
       },
     };
   }

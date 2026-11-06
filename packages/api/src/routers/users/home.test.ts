@@ -1,14 +1,6 @@
-import {
-  communities,
-  CommunityRoleEnum,
-  groupMembers,
-  groups,
-  teams,
-  user,
-} from "@repo/db/schema";
+import { groupMembers, groups, teams, user } from "@repo/db/schema";
 import { describe, expect, it } from "vitest";
 
-import { admit as admitCommunityMember } from "#src/community-membership";
 import { loadHome } from "#src/routers/users/home";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { acceptLookup, mintLookup } from "#src/invites/doors";
@@ -37,28 +29,11 @@ describe("loadHome pendingInviteCount", () => {
     }
   });
 
-  it("sums unused community, group, and team lookup invites", async () => {
+  it("sums unused group and team lookup invites", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "home-invites-owner@example.com");
       const viewer = await insertUser(db, "home-invites-viewer@example.com");
-
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Home Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await admitCommunityMember(db, {
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
 
       const [group] = await db
         .insert(groups)
@@ -76,11 +51,6 @@ describe("loadHome pendingInviteCount", () => {
         throw new Error("Failed to insert team");
       }
 
-      const communityMint = await mintLookup(
-        db,
-        { kind: "community", id: community.id },
-        { userId: viewer.id, invitedBy: owner.id },
-      );
       const groupMint = await mintLookup(
         db,
         { kind: "group", id: group.id },
@@ -91,12 +61,11 @@ describe("loadHome pendingInviteCount", () => {
         { kind: "team", id: team.id },
         { userId: viewer.id, invitedBy: owner.id },
       );
-      expect(communityMint.ok).toBe(true);
       expect(groupMint.ok).toBe(true);
       expect(teamMint.ok).toBe(true);
 
       const result = await loadHome(db, { userId: viewer.id });
-      expect(result.pendingInviteCount).toBe(3);
+      expect(result.pendingInviteCount).toBe(2);
     } finally {
       await close();
     }
@@ -113,24 +82,15 @@ describe("loadHome pendingInviteCount", () => {
         db,
         "home-invites-accepted-viewer@example.com",
       );
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Accepted Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
+      const [group] = await db
+        .insert(groups)
+        .values({ name: "Accepted Group", createdBy: owner.id })
+        .returning({ id: groups.id });
+      if (!group) {
+        throw new Error("Failed to insert group");
       }
-      await admitCommunityMember(db, {
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
 
-      const host = { kind: "community" as const, id: community.id };
+      const host = { kind: "group" as const, id: group.id };
       const minted = await mintLookup(db, host, {
         userId: viewer.id,
         invitedBy: owner.id,

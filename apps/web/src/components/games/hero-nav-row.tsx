@@ -20,7 +20,7 @@ export function HeroNavRow({
         <div
           className={cn(
             "flex shrink-0 items-center gap-2",
-            tone === "ink" ? "text-paper" : "text-ink",
+            tone === "ink" ? "text-on-focus" : "text-ink",
           )}
         >
           {actions}

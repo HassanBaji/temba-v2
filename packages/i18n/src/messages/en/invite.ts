@@ -2,7 +2,6 @@ import { plural } from "../../plural";
 
 export const invite = {
   kind: {
-    community: "Community",
     group: "Group",
     team: "Team",
     game: "Game",
@@ -39,8 +38,6 @@ export const invite = {
       game: "Anyone with the link can take a seat. Good for WhatsApp groups.",
       group:
         "Anyone with the link can join the Group. Good for WhatsApp groups.",
-      community:
-        "Anyone with the link can join the Community. Good for WhatsApp groups.",
       team: "Send it to the partner you want on your Team.",
     },
     pendingHeading: (n: number) => `Pending, ${n}`,
@@ -56,7 +53,6 @@ export const invite = {
       playersTitle: "Not accepting new players",
       membersTitle: "Not accepting new members",
       description: {
-        community: "This Community isn't accepting new members right now.",
         group: "This Group isn't accepting new members right now.",
         team: "This Team isn't accepting new members right now.",
         game: "This Game isn't accepting new players right now.",
@@ -70,7 +66,6 @@ export const invite = {
   },
   inbox: {
     rowMeta: {
-      community: (inviter: string) => `Community invite from ${inviter}`,
       group: (inviter: string) => `Group invite from ${inviter}`,
       team: (inviter: string) => `Team invite from ${inviter}`,
       game: (inviter: string) => `Game invite from ${inviter}`,
@@ -78,7 +73,7 @@ export const invite = {
     empty: {
       title: "Nothing waiting",
       description:
-        "Invites to Games, Groups, Teams and Communities show up here.",
+        "Invites to Games, Groups and Teams show up here.",
     },
     errorTitle: "Invites could not be loaded",
     acceptLabel: "Accept",
@@ -87,11 +82,8 @@ export const invite = {
     linkCopiedToast: "Invite link copied",
     linkCopyFailedToast: "Couldn't copy the link",
     lookupRevokedToast: "Lookup invite revoked",
-    groupLookupNote: {
-      loose:
-        "You and the Group's Organizers can invite people here. Invites don't expire.",
-      club: "Owners and Admins can invite anyone, who then joins the Community too. The Group's creator and Organizers can invite Community Members.",
-    },
+    groupLookupNote:
+      "You and the Group's Organizers can invite people here. Invites don't expire.",
     seatCopy: {
       frozen:
         "Occupied seats show who is already registered. This Game is not open for registration.",
@@ -104,7 +96,6 @@ export const invite = {
       pick: "Occupied seats show who is already registered. Pick a vacant Position to sit.",
     },
     joinedToast: {
-      community: "Joined Community",
       group: "Joined Group",
       team: "Joined Team",
     },

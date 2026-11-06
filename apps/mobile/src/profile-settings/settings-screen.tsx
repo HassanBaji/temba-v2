@@ -1,5 +1,5 @@
 import { useAuth, useUser } from "@clerk/expo";
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import {
   isFootballPosition,
@@ -18,6 +18,7 @@ import {
   MailOpen,
   Plus,
   Smartphone,
+  SunMoon,
   Users,
 } from "lucide-react-native";
 import { useState } from "react";
@@ -48,6 +49,7 @@ import {
   profileTaskPath,
   settingsChecklist,
 } from "../profile-tasks/profile-tasks-model";
+import { useAppearance, useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import {
   displayPhone,
@@ -70,6 +72,7 @@ const BADGE = 32;
 type Details = RouterOutputs["users"]["profileDetails"];
 
 function SportBadge({ label }: { label: string | null }) {
+  const colors = useColors();
   if (!label) {
     return (
       <View
@@ -98,7 +101,7 @@ function SportBadge({ label }: { label: string | null }) {
           borderRadius: radii.sm,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colors.ink,
+          backgroundColor: colors.control,
         }}
       >
         <Text size="meta" weight="bold" width="expanded">
@@ -110,6 +113,7 @@ function SportBadge({ label }: { label: string | null }) {
 }
 
 function SetUpPill({ label }: { label: string }) {
+  const colors = useColors();
   return (
     <SurfaceToneContext.Provider value="ink">
       <View
@@ -117,7 +121,7 @@ function SetUpPill({ label }: { label: string }) {
           paddingHorizontal: 12,
           paddingVertical: 6,
           borderRadius: radii.lg,
-          backgroundColor: colors.ink,
+          backgroundColor: colors.control,
         }}
       >
         <Text size="eyebrow" weight="semibold">
@@ -162,6 +166,7 @@ function LanguageGroup() {
 
 function SettingsBody({ details }: { details: Details }) {
   const m = useMessages();
+  const colors = useColors();
   const s = m.you.settings;
   const locale = useLocale();
   const router = useRouter();
@@ -188,10 +193,6 @@ function SettingsBody({ details }: { details: Details }) {
     { ...REFETCH_ON_FOREGROUND, enabled: hasFootball },
   );
   const teams = api.teams.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
-  const communityInvites = api.communities.pendingLookupInvites.useQuery(
-    undefined,
-    REFETCH_ON_FOREGROUND,
-  );
   const groupInvites = api.groups.pendingLookupInvites.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
@@ -201,9 +202,7 @@ function SettingsBody({ details }: { details: Details }) {
     REFETCH_ON_FOREGROUND,
   );
   const inviteCount =
-    (communityInvites.data?.length ?? 0) +
-    (groupInvites.data?.length ?? 0) +
-    (teamInvites.data?.length ?? 0);
+    (groupInvites.data?.length ?? 0) + (teamInvites.data?.length ?? 0);
   const teamCount = teams.data?.length ?? 0;
 
   const savePlayWindows = api.users.setPlayWindows.useMutation({
@@ -232,6 +231,12 @@ function SettingsBody({ details }: { details: Details }) {
   const email = user?.primaryEmailAddress ?? null;
   const emailVerified = email?.verification.status === "verified";
   const open = (href: string) => router.push(href);
+  const { appearance } = useAppearance();
+  const appearanceLabel = {
+    system: s.appearance.system,
+    light: s.appearance.light,
+    dark: s.appearance.dark,
+  }[appearance];
 
   const padelLevel = padel.data?.level ?? null;
   const footballRating = football.data?.rating ?? null;
@@ -476,6 +481,15 @@ function SettingsBody({ details }: { details: Details }) {
       </SettingsGroup>
 
       <LanguageGroup />
+
+      <SettingsGroup label={s.appearance.title}>
+        <SettingsRow
+          icon={SunMoon}
+          title={s.appearance.title}
+          sub={appearanceLabel}
+          onPress={() => open("/profile/appearance")}
+        />
+      </SettingsGroup>
 
       <SettingsGroup label={s.about}>
         <SettingsRow

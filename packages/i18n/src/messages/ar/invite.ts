@@ -3,7 +3,6 @@ import type { invite as source } from "../en/invite";
 
 export const invite = {
   kind: {
-    community: "المجتمع",
     group: "المجموعة",
     team: "الفريق",
     game: "المباراة",
@@ -40,8 +39,6 @@ export const invite = {
       game: "يمكن لأي شخص لديه الرابط أخذ مكان. مناسب لمجموعات واتساب.",
       group:
         "يمكن لأي شخص لديه الرابط الانضمام إلى المجموعة. مناسب لمجموعات واتساب.",
-      community:
-        "يمكن لأي شخص لديه الرابط الانضمام إلى المجتمع. مناسب لمجموعات واتساب.",
       team: "أرسله إلى الشريك الذي تريده في فريقك.",
     },
     pendingHeading: (n: number) => `معلّقة، ${n}`,
@@ -57,7 +54,6 @@ export const invite = {
       playersTitle: "لا يقبل لاعبين جددًا",
       membersTitle: "لا يقبل أعضاء جددًا",
       description: {
-        community: "هذا المجتمع لا يقبل أعضاء جددًا حاليًا.",
         group: "هذه المجموعة لا تقبل أعضاء جددًا حاليًا.",
         team: "هذا الفريق لا يقبل أعضاء جددًا حاليًا.",
         game: "هذه المباراة لا تقبل لاعبين جددًا حاليًا.",
@@ -71,14 +67,13 @@ export const invite = {
   },
   inbox: {
     rowMeta: {
-      community: (inviter: string) => `دعوة إلى مجتمع من ${inviter}`,
       group: (inviter: string) => `دعوة إلى مجموعة من ${inviter}`,
       team: (inviter: string) => `دعوة إلى فريق من ${inviter}`,
       game: (inviter: string) => `دعوة إلى مباراة من ${inviter}`,
     },
     empty: {
       title: "لا شيء بانتظارك",
-      description: "تظهر هنا دعوات المباريات والمجموعات والفرق والمجتمعات.",
+      description: "تظهر هنا دعوات المباريات والمجموعات والفرق.",
     },
     errorTitle: "تعذّر تحميل الدعوات",
     acceptLabel: "قبول",
@@ -87,10 +82,8 @@ export const invite = {
     linkCopiedToast: "تم نسخ رابط الدعوة",
     linkCopyFailedToast: "تعذّر نسخ الرابط",
     lookupRevokedToast: "أُلغيت الدعوة المباشرة",
-    groupLookupNote: {
-      loose: "يمكنك أنت ومنظّمو المجموعة دعوة الأشخاص هنا. الدعوات لا تنتهي.",
-      club: "يمكن للمالكين والمشرفين دعوة أي شخص، فينضم إلى المجتمع أيضًا. ويمكن لمنشئ المجموعة والمنظّمين دعوة أعضاء المجتمع.",
-    },
+    groupLookupNote:
+      "يمكنك أنت ومنظّمو المجموعة دعوة الأشخاص هنا. الدعوات لا تنتهي.",
     seatCopy: {
       frozen:
         "تُظهر الأماكن المشغولة من سجّل بالفعل. هذه المباراة غير مفتوحة للتسجيل.",
@@ -102,7 +95,6 @@ export const invite = {
       pick: "تُظهر الأماكن المشغولة من سجّل بالفعل. اختر مركزًا شاغرًا للجلوس.",
     },
     joinedToast: {
-      community: "انضممت إلى المجتمع",
       group: "انضممت إلى المجموعة",
       team: "انضممت إلى الفريق",
     },

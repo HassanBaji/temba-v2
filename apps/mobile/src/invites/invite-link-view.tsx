@@ -155,7 +155,7 @@ function FootballReady({
       <Hero kind="game" name={name} note={subtitle} />
       <View style={{ flexDirection: "row" }}>
         <Button
-          label={m.mobileCommunity.inviteLink.chooseHowYouPlay}
+          label={m.mobileInvite.link.chooseHowYouPlay}
           size="lg"
           onPress={() => setOpen(true)}
         />
@@ -169,8 +169,8 @@ function FootballReady({
         price={formatPricePerPlayerFils(football.pricePerPlayerFils, locale)}
         teamsLine={
           football.teamsSet
-            ? m.mobileCommunity.inviteLink.teamsSet
-            : m.mobileCommunity.inviteLink.teamsByOrganizer
+            ? m.mobileInvite.link.teamsSet
+            : m.mobileInvite.link.teamsByOrganizer
         }
         pending={props.acceptPending}
         error={props.acceptError}
@@ -320,7 +320,7 @@ export function InviteLinkView(props: InviteLinkViewProps) {
     return (
       <View
         style={{ gap: 12 }}
-        accessibilityLabel={m.mobileCommunity.inviteLink.loadingA11y}
+        accessibilityLabel={m.mobileInvite.link.loadingA11y}
       >
         <Skeleton height={120} radius={16} />
         <Skeleton height={52} radius={12} />
@@ -331,8 +331,8 @@ export function InviteLinkView(props: InviteLinkViewProps) {
     return (
       <Notice
         alert
-        title={m.mobileCommunity.inviteLink.loadErrorTitle}
-        description={m.mobileCommunity.inviteLink.loadErrorDescription}
+        title={m.mobileInvite.link.loadErrorTitle}
+        description={m.mobileInvite.link.loadErrorDescription}
         onRetry={props.onRetry}
       />
     );

@@ -26,7 +26,6 @@ export const group = {
   },
   home: {
     since: (month: string) => `since ${month}`,
-    backToCommunity: "Back to Community",
     backToGroups: "Back to Groups",
     openSeats: "Open seats",
     organizerAction: {
@@ -90,8 +89,6 @@ export const group = {
     aGame: "A Game",
   },
   join: {
-    archiveGamesCopy:
-      "Existing Games stay listed here, not on public pickup. Join, waitlist, and Game invites are closed while the Community is Soft-archived.",
     gamesEmptyDescription:
       "When a Game is set with a live window or Match, it will show up here.",
     requiresApprovalMeta: (members: string) => `${members} · Requires approval`,
@@ -106,26 +103,12 @@ export const group = {
     toast: {
       requested: "Requested to join",
       joined: "Joined Group",
-      leftClub: "Left Group — you remain in the Community",
       left: "Left Group",
     },
     leaveConfirm: {
       title: (name: string) => `Leave ${name}?`,
       description: "You will leave this Group.",
       confirmLabel: "Leave Group",
-    },
-    banner: {
-      archivedVisitor: {
-        heading: "This Club Group's Community is Soft-archived",
-        body: "It is not open for join. Members of the Community can still open history and Games. This is not a missing page.",
-      },
-      archivedMember: {
-        heading: "Community Soft-archived",
-        body: "This Club Group stays attached to its Community. You can still open it and see history and Games while the Community is archived.",
-      },
-      approvalJoinsCommunity: (community: string) =>
-        `If approved, you also become a Member of ${community}.`,
-      thisCommunity: "this Community",
     },
   },
   admin: {
@@ -148,9 +131,6 @@ export const group = {
       viaInviteLinkFrom: (name: string, when: string) =>
         `Via invite link from ${name}, ${when}`,
       viaInviteLink: (when: string) => `Via invite link, ${when}`,
-      foundInCommunity: (community: string, when: string) =>
-        `Found the Group in ${community}, ${when}`,
-      theCommunity: "the Community",
     },
     requestsBanner: (n: number) =>
       plural("en", n, {
@@ -182,8 +162,6 @@ export const group = {
         description:
           "They join instantly. Pending requests are not admitted automatically.",
       },
-      descriptionIn: (community: string) =>
-        `Applies to the invite link and to people who find the Group in ${community}.`,
       description:
         "Applies to the invite link and to people who find the Group.",
     },
@@ -209,39 +187,21 @@ export const group = {
     },
   },
   create: {
-    loose: {
-      publicLabel: "Public (anyone with the link)",
-      privateLabel: "Private (invite only)",
-      publicHelp:
-        "Anyone with the Group link can join, or ask to join if you require approval.",
-      privateHelp: "Only you can invite people.",
-      approvalHelp:
-        "People ask to join. You approve or reject them on Group home.",
-      submit: "Create Group",
-    },
-    club: {
-      publicLabel: "Public (Community Members)",
-      privateLabel: "Private (invite only)",
-      publicHelp:
-        "Any Community Member can join, or ask to join if you require approval.",
-      privateHelp:
-        "Owners and Admins can invite anyone. The Group's creator and Organizers can invite Community Members.",
-      approvalHelp:
-        "Community Members ask to join. You approve or reject them on Group home.",
-      submit: "Create Club Group",
-    },
-    looseDescription:
-      "A Group of people you play with, outside any Community. You join it as its first member.",
-    clubDescription:
-      "A Group inside your Community. You join it as its first member.",
+    publicLabel: "Public (anyone with the link)",
+    privateLabel: "Private (invite only)",
+    publicHelp:
+      "Anyone with the Group link can join, or ask to join if you require approval.",
+    privateHelp: "Only you can invite people.",
+    approvalHelp:
+      "People ask to join. You approve or reject them on Group home.",
+    submit: "Create Group",
+    description:
+      "A Group of people you play with. You join it as its first member.",
     createdToast: "Group created",
     screen: {
       title: "Create Group",
-      description: {
-        loose:
-          "A Group is your regulars: one sport, one standing, as many Games as you like.",
-        club: "A Group inside your Community: one sport, one standing, as many Games as you like.",
-      },
+      description:
+        "A Group is your regulars: one sport, one standing, as many Games as you like.",
       photo: "Photo",
       photoHelp: "Optional photo, JPEG or PNG",
       nameLabel: "Group name",
@@ -260,27 +220,20 @@ export const group = {
     declineLabel: "Decline",
     declinedToast: "Request declined",
     rowTitle: (venue: string, group: string) =>
-      `${venue} wants to add ${group} to its Community`,
+      `${venue} wants to link ${group}`,
     yourGroup: "your Group",
     thisGroup: "this Group",
-    bannerText: (venue: string) =>
-      `${venue} wants to add this Group to its Community.`,
+    bannerText: (venue: string) => `${venue} wants to link this Group.`,
     acceptedToast: (group: string, venue: string) =>
-      `${group} is now part of ${venue}`,
+      `${group} is now linked to ${venue}`,
     acceptConfirm: {
-      title: (group: string, venue: string) =>
-        `Add ${group} to ${venue}’s Community?`,
+      title: (group: string, venue: string) => `Link ${group} to ${venue}?`,
       description: (group: string) =>
         `${group} becomes a Club Group. Here is what changes.`,
-      confirmLabel: "Add Group",
+      confirmLabel: "Link Group",
       cancelLabel: "Not now",
-      pendingLabel: "Adding…",
+      pendingLabel: "Linking…",
       consequences: {
-        members: "Everyone in the Group becomes a Community Member.",
-        noDirectJoin:
-          "New people can’t join directly. They send a request instead.",
-        noInviteLinks:
-          "You can’t make Invite links any more. You can still invite existing Community Members.",
         gamesHeldAt: (venue: string) => `New Games are held at ${venue}.`,
         verified:
           "The Group is Verified, so its Games can count for the Temba rating and be open to anyone with the link.",
@@ -293,29 +246,26 @@ export const group = {
       confirmLabel: "Decline request",
       cancelLabel: "Keep request",
     },
-    partOf: (venue: string) => `Part of ${venue}`,
+    partOf: (venue: string) => `Linked to ${venue}`,
     unlinkLabel: "Unlink",
-    leaveVenueLabel: (venue: string) => `Leave ${venue}’s Community`,
+    leaveVenueLabel: (venue: string) => `Unlink from ${venue}`,
     leaveVenueConfirm: {
-      title: (venue: string) => `Leave ${venue}’s Community?`,
+      title: (venue: string) => `Unlink from ${venue}?`,
       description: (group: string) =>
         `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified the Group.`,
-      confirmLabel: "Leave Community",
-      cancelLabel: "Stay",
-      pendingLabel: "Leaving…",
+      confirmLabel: "Unlink",
+      cancelLabel: "Stay linked",
+      pendingLabel: "Unlinking…",
       consequences: {
         historyStays: "Members, past Games and results stay as they are.",
-        membersStay:
-          "Members stay in the Community until they leave it themselves.",
         anyVenue: "New Games can be held at any Venue.",
-        inviteLinks: "You can make Invite links again.",
       },
     },
-    leftVenueToast: (venue: string) => `Left ${venue}’s Community`,
+    leftVenueToast: (venue: string) => `Unlinked from ${venue}`,
     venueUnlinkConfirm: {
       title: (group: string) => `Unlink ${group}?`,
       description: (group: string) =>
-        `${group} leaves your Venue's Community and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
       confirmLabel: "Unlink Group",
       cancelLabel: "Keep linked",
     },
@@ -452,8 +402,7 @@ export const group = {
     visibility: {
       public: {
         title: "Public",
-        descriptionClub: "Shows up in search and on the Community.",
-        descriptionLoose: "Shows up in search and on Communities.",
+        description: "Shows up in search and on the Public Groups list.",
       },
       private: {
         title: "Private",
@@ -608,7 +557,8 @@ export const group = {
           one: `${group} · 1 member`,
           other: `${group} · {n} members`,
         }),
-      spotsLeft: (left: number, open: number) => `${left} of ${open} spots left`,
+      spotsLeft: (left: number, open: number) =>
+        `${left} of ${open} spots left`,
       gameFull: "Game is full",
       inGame: "In game",
       onWaitlist: "On waitlist",

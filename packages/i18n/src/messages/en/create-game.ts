@@ -74,11 +74,9 @@ export const createGame = {
     skipPitch: "Skip pitch.",
     skipCourt: "Skip Court.",
     lockedArchived: (skip: string) =>
-      `This Community’s linked Venue is Soft-archived. You can still create this Game here. ${skip}`,
+      `This Group’s Venue is Soft-archived. You can still create this Game here. ${skip}`,
     lockedLinked: (optional: string) =>
-      `Venue is this Community’s linked Venue and cannot be changed. ${optional}`,
-    noLink: (optional: string) =>
-      `This Community has no Venue link. Pick a Venue. ${optional}`,
+      `Venue is this Group’s linked Venue and cannot be changed. ${optional}`,
     pick: (optional: string) => `Pick a Venue. ${optional}`,
     cardMeta: (courts: string, city: string) => `${courts} · ${city}`,
   },

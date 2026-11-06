@@ -1,5 +1,4 @@
 import { bookingsRouter } from "#src/routers/bookings";
-import { communitiesRouter } from "#src/routers/communities";
 import { gamesRouter } from "#src/routers/games";
 import { groupsRouter } from "#src/routers/groups";
 import { notificationsRouter } from "#src/routers/notifications";
@@ -16,7 +15,6 @@ import { createCallerFactory, createTRPCRouter } from "#src/trpc";
  */
 export const appRouter = createTRPCRouter({
   bookings: bookingsRouter,
-  communities: communitiesRouter,
   games: gamesRouter,
   groups: groupsRouter,
   notifications: notificationsRouter,

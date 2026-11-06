@@ -9,14 +9,8 @@ export const webGroup = {
   nextGame: "Next Game",
   searchMembers: "Search members",
   groupFallback: "Group",
-  createClubGroup: {
-    nameLabel: "Name",
-    typeLabel: "Type",
-  },
-  communityHome: {
-    backToCommunities: "Back to Communities",
-    backToHome: "Back to Home",
-  },
+  memberFallback: "Member",
+  userFallback: "User",
   members: {
     roleFor: (name: string) => `Role for ${name}`,
     manageName: (name: string) => `Manage ${name}`,
@@ -32,6 +26,7 @@ export const webGroup = {
     inviteSomeoneElse: "Invite someone else",
     inviteBlockDescription:
       "Invite players and the standing fills in as their matches are rated.",
+    inviteBlockAction: "Share invite link",
     manage: "Manage",
     emptyTitle: "No members yet",
     emptyDescription: "People who join this Group will show up here.",
@@ -60,8 +55,6 @@ export const webGroup = {
     reviewFrom: (venue: string) => `Review the request from ${venue}`,
   },
   overflow: {
-    openCommunity: (name: string) => `Open ${name}`,
-    allCommunities: "All Communities",
     changeImage: "Change image",
     seasons: "Seasons",
     groupActions: "Group actions",
@@ -95,6 +88,7 @@ export const webGroup = {
     },
   },
   requests: {
+    title: "Join requests",
     reviewAria: "Review join requests",
     level: (label: string) => `Level ${label}`,
     levelProvisional: (label: string) => `Level ${label}, still Provisional`,

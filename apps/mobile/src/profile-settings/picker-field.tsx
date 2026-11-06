@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Check, ChevronDown, type LucideIcon } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -8,6 +8,7 @@ import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 /** A select field: shows the choice, opens a sheet listing the options. */
 export function PickerField<T extends string>({
@@ -34,6 +35,7 @@ export function PickerField<T extends string>({
   onSelect: (value: T | null) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const [open, setOpen] = useState(false);
   const chosen = options.find((option) => option.value === value) ?? null;
 

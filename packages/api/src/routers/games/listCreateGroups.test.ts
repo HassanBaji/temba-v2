@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
+  groupMembers,
+  GroupMemberRoleEnum,
   groups,
   user,
+  venues,
 } from "@repo/db/schema";
 
 import { listCreateGroups } from "#src/routers/games/listCreateGroups";
@@ -23,12 +23,23 @@ async function insertUser(database: TestDatabase, email: string) {
   return row;
 }
 
+async function insertVenue(database: TestDatabase, name: string) {
+  const [row] = await database
+    .insert(venues)
+    .values({ name, city: "Lisbon", country: "PT" })
+    .returning({ id: venues.id, name: venues.name });
+  if (!row) {
+    throw new Error("Failed to insert venue");
+  }
+  return row;
+}
+
 async function insertGroup(
   database: TestDatabase,
   args: {
     createdBy: string;
     name: string;
-    communityId?: string;
+    venueId?: string;
     sport?: "padel" | "football";
   },
 ) {
@@ -37,7 +48,7 @@ async function insertGroup(
     .values({
       name: args.name,
       createdBy: args.createdBy,
-      communityId: args.communityId,
+      venueId: args.venueId,
       sport: args.sport,
     })
     .returning({ id: groups.id, name: groups.name });
@@ -65,7 +76,7 @@ describe("listCreateGroups", () => {
 
       const rows = await listCreateGroups(db, { userId: owner.id });
       expect(rows.map((row) => row.id)).toEqual([alpha.id, zebra.id]);
-      expect(rows[0]?.communityName).toBeNull();
+      expect(rows[0]?.venueName).toBeNull();
       expect(rows.map((row) => row.verified)).toEqual([false, false]);
     } finally {
       await close();
@@ -93,41 +104,25 @@ describe("listCreateGroups", () => {
     }
   });
 
-  it("includes Club Groups the caller staffs even when they did not create them", async () => {
+  it("lists a Club Group with its Venue name and Verified for its creator", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "list-create-staff@example.com");
       const creator = await insertUser(db, "list-create-creator@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Live Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id, name: communities.name });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await db.insert(communityMembers).values({
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
+      const venue = await insertVenue(db, "Live Club");
       const clubGroup = await insertGroup(db, {
         createdBy: creator.id,
         name: "Club Squad",
-        communityId: community.id,
+        venueId: venue.id,
       });
 
-      const rows = await listCreateGroups(db, { userId: owner.id });
+      const rows = await listCreateGroups(db, { userId: creator.id });
       expect(rows).toEqual([
         {
           id: clubGroup.id,
           name: "Club Squad",
-          communityName: "Live Club",
+          venueName: "Live Club",
           sport: "padel",
-          verified: false,
+          verified: true,
         },
       ]);
     } finally {
@@ -135,46 +130,69 @@ describe("listCreateGroups", () => {
     }
   });
 
-  it("excludes Groups the caller may not organize and Club Groups in Soft-archived Communities", async () => {
+  it("includes Groups where the caller is an Appointed Organizer, not a plain member", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "list-create-archive@example.com");
+      const creator = await insertUser(db, "list-create-appointer@example.com");
+      const organizer = await insertUser(
+        db,
+        "list-create-organizer@example.com",
+      );
       const member = await insertUser(db, "list-create-member@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Archived Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await db.insert(communityMembers).values([
-        {
-          communityId: community.id,
-          userId: owner.id,
-          role: CommunityRoleEnum.OWNER,
-        },
-        {
-          communityId: community.id,
-          userId: member.id,
-          role: CommunityRoleEnum.MEMBER,
-        },
-      ]);
+      const venue = await insertVenue(db, "Appointing Club");
       const clubGroup = await insertGroup(db, {
-        createdBy: owner.id,
-        name: "Hidden Club Group",
-        communityId: community.id,
+        createdBy: creator.id,
+        name: "Appointed Squad",
+        venueId: venue.id,
       });
-      await commit(db, { communityId: community.id }, "archived");
+      const looseGroup = await insertGroup(db, {
+        createdBy: creator.id,
+        name: "Loose Squad",
+      });
+      await db.insert(groupMembers).values([
+        {
+          groupId: clubGroup.id,
+          userId: organizer.id,
+          role: GroupMemberRoleEnum.ORGANIZER,
+        },
+        {
+          groupId: looseGroup.id,
+          userId: organizer.id,
+          role: GroupMemberRoleEnum.ORGANIZER,
+        },
+        { groupId: clubGroup.id, userId: member.id },
+        { groupId: looseGroup.id, userId: member.id },
+      ]);
 
-      const ownerRows = await listCreateGroups(db, { userId: owner.id });
-      expect(ownerRows.map((row) => row.id)).not.toContain(clubGroup.id);
+      const organizerRows = await listCreateGroups(db, {
+        userId: organizer.id,
+      });
+      expect(organizerRows.map((row) => row.id)).toEqual([
+        clubGroup.id,
+        looseGroup.id,
+      ]);
 
       const memberRows = await listCreateGroups(db, { userId: member.id });
       expect(memberRows).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps listing a Club Group while its linked Venue is Soft-archived", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "list-create-archive@example.com");
+      const venue = await insertVenue(db, "Archived Club");
+      const clubGroup = await insertGroup(db, {
+        createdBy: creator.id,
+        name: "Still Listed",
+        venueId: venue.id,
+      });
+      await commit(db, { venueId: venue.id }, "archived");
+
+      const rows = await listCreateGroups(db, { userId: creator.id });
+      expect(rows.map((row) => row.id)).toEqual([clubGroup.id]);
     } finally {
       await close();
     }

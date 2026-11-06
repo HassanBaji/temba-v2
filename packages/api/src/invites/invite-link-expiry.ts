@@ -1,5 +1,5 @@
 /**
- * Community, Group and Team Invite link tokens expire 6 hours after mint.
+ * Group and Team Invite link tokens expire 6 hours after mint.
  * Check-on-read; no worker. Game Invite links have no expiry of their own:
  * they work while the Game is open for registration.
  */

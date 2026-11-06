@@ -7,10 +7,6 @@ import {
   GameRegistrationModeEnum,
   GroupSportEnum,
   MatchStatusEnum,
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   courts,
   gamePlayers,
   gameTeamPlayers,
@@ -30,9 +26,7 @@ import {
 import { groupById } from "#src/routers/groups/byId";
 import { loadRatingsMe } from "#src/routers/ratings/me";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
@@ -195,7 +189,6 @@ describe("groupById Games tab", () => {
         isSeated: false,
         isWaitlisted: false,
         canRegister: true,
-        joinFrozen: false,
         pricePerPlayerFils: 500,
       });
       expect(row?.sides).toEqual([
@@ -885,43 +878,41 @@ describe("groupById canManageImage", () => {
     }
   });
 
-  it("is false for a Club Group whose Community is Soft-archived", async () => {
+  it("is true for the creator of a Club Group, even when its Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "byid-image-frozen@example.com");
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Frozen Club",
-          type: "public",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await db.insert(communitySports).values({
-        communityId: community.id,
-        sport: GroupSportEnum.PADEL,
+      const creator = await insertUser(db, "byid-image-club@example.com");
+      const member = await insertUser(db, "byid-image-club-member@example.com");
+      const venue = await insertVenue(db, "Frozen Club");
+      const group = await insertGroup(db, creator.id, {
+        members: [member.id],
       });
-      await db.insert(communityMembers).values({
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
-      const group = await createClubPublic(db, {
-        communityId: community.id,
-        name: "Frozen Crew",
-        sport: "padel",
-        userId: owner.id,
-      });
-      await commit(db, { communityId: community.id }, "archived");
+      await db
+        .update(groups)
+        .set({ venueId: venue.id })
+        .where(eq(groups.id, group.id));
+      await db
+        .update(venues)
+        .set({ archivedAt: new Date() })
+        .where(eq(venues.id, venue.id));
 
       const detail = await groupById(db, {
         groupId: group.id,
-        userId: owner.id,
+        userId: creator.id,
       });
-      expect(detail.canManageImage).toBe(false);
+      expect(detail.canManageImage).toBe(true);
+      expect(detail.verified).toBe(true);
+      expect(detail.isLoose).toBe(false);
+      expect(detail.venue).toEqual({ id: venue.id, name: "Frozen Club" });
+      expect(detail).not.toHaveProperty("communityId");
+      expect(detail).not.toHaveProperty("community");
+      expect(detail).not.toHaveProperty("isCommunityArchived");
+      expect(detail).not.toHaveProperty("communityMembership");
+      expect(detail).not.toHaveProperty("venueCommunity");
+      expect(
+        (await groupById(db, { groupId: group.id, userId: member.id }))
+          .canManageImage,
+      ).toBe(false);
     } finally {
       await close();
     }

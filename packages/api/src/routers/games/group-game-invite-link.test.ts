@@ -3,9 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
   GameFormatEnum,
   gameInviteLinks,
   gamePlayers,
@@ -73,25 +70,20 @@ async function insertLooseGroup(
 }
 
 async function insertClubGroup(database: TestDatabase, ownerId: string) {
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Link Club", type: "private", createdBy: ownerId })
-    .returning({ id: communities.id });
-  if (!community) {
-    throw new Error("Failed to insert community");
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "Link Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!venue) {
+    throw new Error("Failed to insert venue");
   }
-  await database.insert(communityMembers).values({
-    communityId: community.id,
-    userId: ownerId,
-    role: CommunityRoleEnum.OWNER,
-  });
   const [group] = await database
     .insert(groups)
     .values({
       name: "Club Squad",
       type: GroupTypeEnum.PRIVATE,
       createdBy: ownerId,
-      communityId: community.id,
+      venueId: venue.id,
     })
     .returning({ id: groups.id });
   if (!group) {
@@ -100,7 +92,7 @@ async function insertClubGroup(database: TestDatabase, ownerId: string) {
   await database
     .insert(groupMembers)
     .values({ groupId: group.id, userId: ownerId });
-  return { communityId: community.id, groupId: group.id };
+  return { venueId: venue.id, groupId: group.id };
 }
 
 async function insertFriendlyGroupGame(
@@ -217,12 +209,12 @@ describe("Group Game Invite link joins the Group", () => {
     }
   });
 
-  it("admits an outsider to the Community and the Club Group", async () => {
+  it("admits an outsider to the Club Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "club-owner@example.com");
       const outsider = await insertUser(db, "club-outsider@example.com");
-      const { communityId, groupId } = await insertClubGroup(db, owner);
+      const { groupId } = await insertClubGroup(db, owner);
       const game = await insertFriendlyGroupGame(db, {
         createdBy: owner,
         groupId,
@@ -240,13 +232,6 @@ describe("Group Game Invite link joins the Group", () => {
         outcome: "registered",
         joinedGroup: true,
       });
-      const membership = await db.query.communityMembers.findFirst({
-        where: and(
-          eq(communityMembers.communityId, communityId),
-          eq(communityMembers.userId, outsider),
-        ),
-      });
-      expect(membership?.role).toBe(CommunityRoleEnum.MEMBER);
       expect(await groupMembershipRows(db, groupId, outsider)).toHaveLength(1);
       expect(await isOnGame(db, game.id, outsider)).toBe(true);
     } finally {

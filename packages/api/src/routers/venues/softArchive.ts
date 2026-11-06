@@ -13,8 +13,8 @@ export async function softArchive(
 ) {
   await requireVenue(database, args.venueId);
 
-  // Soft-archive hides the Venue from the Community request catalog.
-  // Edits stay allowed. Live Community pointers are not cleared.
+  // Soft-archive hides the Venue from Venue pickers and stops new Group link
+  // requests. Edits stay allowed. Linked Groups are not unlinked.
   const updated = await commit(database, { venueId: args.venueId }, "archived");
   if (!updated.ok) {
     throwCommitFailure(updated, "Venue");

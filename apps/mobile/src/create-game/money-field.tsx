@@ -1,4 +1,4 @@
-import { colors, numerals, radii, sizes } from "@repo/design-tokens";
+import { numerals, radii, sizes } from "@repo/design-tokens";
 import { useRef } from "react";
 import { Pressable, TextInput, View } from "react-native";
 
@@ -6,6 +6,7 @@ import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { inputType } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 import { FieldError } from "./chips";
 
 const FIELD_HEIGHT = 56;
@@ -23,6 +24,7 @@ export function MoneyField({
   error?: string;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const input = useRef<TextInput>(null);
   return (
     <View style={{ gap: 6 }}>

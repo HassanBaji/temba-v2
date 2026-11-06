@@ -1,5 +1,5 @@
 import type { Sport } from "@repo/domain/sport";
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { courtFace } from "@repo/domain/court-sport-copy";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { formatGameClock } from "@repo/domain/format-game-start";
@@ -25,6 +25,7 @@ import { Screen } from "../primitives/screen";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { DetailRow, Notice, Pill, SectionHeading } from "./booking-parts";
 import { checkoutPath, relativeDay, venueDetailsPath } from "./booking-model";
@@ -61,6 +62,7 @@ export function VenueScreen({
   const router = useRouter();
   const now = useNow();
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const [refreshing, setRefreshing] = useState(false);
   const [dayKey, setDayKey] = useState<string | null>(null);
@@ -253,7 +255,7 @@ export function VenueScreen({
                   borderRadius: radii.md,
                   borderWidth: hairline,
                   borderColor: isSelected ? colors.ink : colors.rule,
-                  backgroundColor: isSelected ? colors.ink : colors.paper,
+                  backgroundColor: isSelected ? colors.control : colors.paper,
                   opacity: pressed ? 0.7 : 1,
                 })}
               >
@@ -266,7 +268,7 @@ export function VenueScreen({
                 <Text
                   size="title"
                   weight="bold"
-                  style={{ color: isSelected ? colors.paper : colors.ink }}
+                  style={{ color: isSelected ? colors.onControl : colors.ink }}
                 >
                   {String(entry.dayOfMonth)}
                 </Text>
@@ -464,6 +466,7 @@ function Footer({
   onContinue: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   return (
     <>
@@ -495,7 +498,7 @@ function Footer({
         icon={
           <ArrowRight
             size={sizes.iconAction}
-            color={colors.paper}
+            color={colors.onControl}
             style={mirrorInRtl}
           />
         }

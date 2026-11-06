@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import {
   Link as LinkIcon,
   MessageCircle,
@@ -40,6 +40,7 @@ import { SearchField } from "../primitives/search-field";
 import { Sheet } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const MODE_ICONS: Record<InviteMode, LucideIcon> = {
   players: Users,
@@ -115,6 +116,7 @@ export type InviteSheetViewProps = {
 
 function CloseAction({ onPress }: { onPress: () => void }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -144,6 +146,7 @@ function ModeSwitch({
   onChange: (mode: InviteMode) => void;
 }) {
   const locale = useLocale();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="tablist"
@@ -158,7 +161,7 @@ function ModeSwitch({
       {modes.map((entry) => {
         const selected = entry === mode;
         const Icon = MODE_ICONS[entry];
-        const foreground = selected ? colors.paper : colors.muted;
+        const foreground = selected ? colors.onControl : colors.muted;
         return (
           <Pressable
             key={entry}
@@ -174,7 +177,7 @@ function ModeSwitch({
               justifyContent: "center",
               gap: 6,
               borderRadius: radii.md,
-              backgroundColor: selected ? colors.ink : "transparent",
+              backgroundColor: selected ? colors.control : "transparent",
             }}
           >
             <Icon size={14} color={foreground} />
@@ -205,6 +208,7 @@ function PlayerRow({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const colors = useColors();
   const view = lookupResultView(row, invited, locale);
   return (
     <View
@@ -233,8 +237,8 @@ function PlayerRow({
         label={inviteButtonLabel(invited, locale)}
         accessibilityLabel={
           invited
-            ? m.mobileCommunity.inviteSheet.cancelInviteA11y(view.name)
-            : m.mobileCommunity.inviteSheet.inviteA11y(view.name)
+            ? m.mobileInvite.sheet.cancelInviteA11y(view.name)
+            : m.mobileInvite.sheet.inviteA11y(view.name)
         }
         size="sm"
         variant={invited ? "outline" : "default"}
@@ -257,8 +261,8 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
       <SearchField
         value={players.query}
         onChangeText={players.onQueryChange}
-        placeholder={m.mobileCommunity.inviteSheet.searchPlaceholder}
-        accessibilityLabel={m.mobileCommunity.inviteSheet.searchA11y}
+        placeholder={m.mobileInvite.sheet.searchPlaceholder}
+        accessibilityLabel={m.mobileInvite.sheet.searchA11y}
       />
       {players.refused && players.refused.length > 0 ? (
         <View style={{ gap: 4 }} accessibilityRole="alert">
@@ -268,10 +272,7 @@ function PlayersMode({ players }: { players: PlayersModeProps }) {
               size="meta"
               weight="medium"
             >
-              {m.mobileCommunity.inviteSheet.refusedLine(
-                item.name,
-                item.message,
-              )}
+              {m.mobileInvite.sheet.refusedLine(item.name, item.message)}
             </Text>
           ))}
         </View>
@@ -321,7 +322,7 @@ function PhoneMode({ phone }: { phone: PhoneModeProps }) {
   return (
     <View style={{ gap: MODE_GAP }}>
       <PhoneField
-        label={m.mobileCommunity.inviteSheet.phoneLabel}
+        label={m.mobileInvite.sheet.phoneLabel}
         countryIso={phone.countryIso}
         national={phone.national}
         onCountryIsoChange={phone.onCountryIsoChange}
@@ -353,6 +354,7 @@ function ChannelButton({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <View style={{ flex: 1 }}>
       <Button
@@ -368,6 +370,7 @@ function ChannelButton({
 
 function LinkMode({ link }: { link: LinkModeProps }) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   return (
     <View style={{ gap: MODE_GAP }}>
@@ -397,7 +400,7 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         </View>
         <Button
           label={copyLinkLabel(link.copied, locale)}
-          accessibilityLabel={m.mobileCommunity.inviteSheet.copyLinkA11y}
+          accessibilityLabel={m.mobileInvite.sheet.copyLinkA11y}
           size="sm"
           variant={link.copied ? "outline" : "default"}
           disabled={link.pending}
@@ -408,21 +411,21 @@ function LinkMode({ link }: { link: LinkModeProps }) {
         {inviteLinkNote(link.kind, locale)}
       </Text>
       <Button
-        label={m.mobileCommunity.inviteSheet.shareLink}
+        label={m.mobileInvite.sheet.shareLink}
         size="lg"
         pending={link.pending}
-        icon={<ShareIcon size={sizes.iconRow} color={colors.paper} />}
+        icon={<ShareIcon size={sizes.iconRow} color={colors.onControl} />}
         onPress={link.onShare}
       />
       <View style={{ flexDirection: "row", gap: 8 }}>
         <ChannelButton
-          label={m.mobileCommunity.inviteSheet.whatsApp}
+          label={m.mobileInvite.sheet.whatsApp}
           Icon={MessageCircle}
           disabled={link.pending}
           onPress={link.onWhatsApp}
         />
         <ChannelButton
-          label={m.mobileCommunity.inviteSheet.messages}
+          label={m.mobileInvite.sheet.messages}
           Icon={MessageSquare}
           disabled={link.pending}
           onPress={link.onMessages}
@@ -442,6 +445,7 @@ function PendingChip({
   onRevoke: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       style={{
@@ -462,7 +466,7 @@ function PendingChip({
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={m.mobileCommunity.inviteSheet.cancelInviteA11y(
+        accessibilityLabel={m.mobileInvite.sheet.cancelInviteA11y(
           row.user.name,
         )}
         disabled={revoking}

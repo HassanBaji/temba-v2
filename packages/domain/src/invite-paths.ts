@@ -1,7 +1,3 @@
-export function communityInviteLinkPath(token: string) {
-  return `/invites/community/link/${token}`;
-}
-
 export function groupInviteLinkPath(token: string) {
   return `/invites/group/link/${token}`;
 }

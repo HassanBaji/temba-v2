@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import type { ComponentType } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +9,7 @@ import {
 
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const TILE_HEIGHT = 66;
 const TILE_ICON = 18;
@@ -29,6 +30,7 @@ export function ActionTile({
   disabled = false,
   onPress,
 }: ActionTileProps) {
+  const colors = useColors();
   const inactive = disabled || pending;
   return (
     <Pressable

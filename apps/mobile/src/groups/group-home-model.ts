@@ -12,12 +12,10 @@ import {
 } from "@repo/domain/group-home-chrome";
 import {
   groupDisplayName,
-  groupHomeBanner,
   groupHomeCanJoin,
   groupHomeJoinDoor,
   groupJoinDisabled,
   groupJoinLabel,
-  type GroupHomeBanner,
   type GroupJoinDoor,
 } from "@repo/domain/group-join";
 import {
@@ -82,20 +80,6 @@ export function groupJoinCta(
     disabled: groupJoinDisabled(data.joinMode, pending),
     door: groupHomeJoinDoor(data),
   };
-}
-
-export function groupBanner(
-  data: GroupHomeData,
-  locale: Locale,
-): GroupHomeBanner | null {
-  return groupHomeBanner({
-    isCommunityArchived: data.isCommunityArchived,
-    hasCommunityMembership: data.communityMembership != null,
-    communityId: data.communityId,
-    communityName: data.community?.name ?? null,
-    joinMode: data.joinMode,
-    locale,
-  });
 }
 
 export type StandingRowView = {

@@ -14,7 +14,6 @@ import { type db } from "#src/db";
 import { isAppointedOrganizer } from "#src/groups/helpers/appointed-organizers";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
 
@@ -40,14 +39,6 @@ export async function undoJoinRequestDecision(
   }
 
   const group = await requireGroup(database, request.groupId);
-
-  if (group.communityId) {
-    const archive = await consult(database, { clubGroupId: group.id });
-    refuseIfFrozen(archive, "join", {
-      frozenMessage:
-        "Cannot change join requests while the Community is archived",
-    });
-  }
 
   await assertGroupApprover(database, group, args.userId);
 
@@ -82,7 +73,6 @@ export async function undoJoinRequestDecision(
         }
         await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
       }
-      // Community admission stays: they may have joined other Groups in that Community since.
     }
 
     await tx

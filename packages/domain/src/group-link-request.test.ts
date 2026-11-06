@@ -15,32 +15,31 @@ import {
 describe("group link request copy", () => {
   it("names the Group and the Venue in the row title", () => {
     expect(groupLinkRequestRowTitle("Padel Hub", "Sunday Four", "en")).toBe(
-      "Padel Hub wants to add Sunday Four to its Community",
+      "Padel Hub wants to link Sunday Four",
     );
     expect(groupLinkRequestRowTitle("Padel Hub", null, "en")).toBe(
-      "Padel Hub wants to add your Group to its Community",
+      "Padel Hub wants to link your Group",
     );
   });
 
   it("states the banner and toast", () => {
     expect(groupLinkRequestBannerText("Padel Hub", "en")).toBe(
-      "Padel Hub wants to add this Group to its Community.",
+      "Padel Hub wants to link this Group.",
     );
     expect(groupLinkRequestAcceptedToast(null, "Padel Hub", "en")).toBe(
-      "this Group is now part of Padel Hub",
+      "this Group is now linked to Padel Hub",
     );
   });
 
-  it("accept confirm lists no direct Join, no Invite links and Venue-locked Games", () => {
+  it("accept confirm lists Venue-locked Games and verification", () => {
     const confirm = groupLinkRequestAcceptConfirm(
       "Sunday Four",
       "Padel Hub",
       "en",
     );
-    expect(confirm.title).toBe("Add Sunday Four to Padel Hub’s Community?");
-    expect(confirm.consequences).toHaveLength(5);
-    expect(confirm.consequences.join(" ")).toContain("can’t join directly");
-    expect(confirm.consequences.join(" ")).toContain("Invite links");
+    expect(confirm.title).toBe("Link Sunday Four to Padel Hub?");
+    expect(confirm.consequences).toHaveLength(2);
+    expect(confirm.consequences.join(" ")).toContain("Verified");
     expect(confirm.consequences.join(" ")).toContain(
       "New Games are held at Padel Hub.",
     );
@@ -52,25 +51,26 @@ describe("group link request copy", () => {
     );
   });
 
-  it("part-of line", () => {
-    expect(groupPartOfVenueLine("Padel Hub", "en")).toBe("Part of Padel Hub");
+  it("linked-to line", () => {
+    expect(groupPartOfVenueLine("Padel Hub", "en")).toBe("Linked to Padel Hub");
   });
 
   it("reads in Arabic", () => {
-    expect(groupPartOfVenueLine("Padel Hub", "ar")).toBe("جزء من Padel Hub");
+    expect(groupPartOfVenueLine("Padel Hub", "ar")).toBe("مرتبطة بـ Padel Hub");
     expect(groupLinkRequestAcceptConfirm(null, "Padel Hub", "ar").title).toBe(
-      "إضافة هذه المجموعة إلى مجتمع Padel Hub؟",
+      "ربط هذه المجموعة بـ Padel Hub؟",
     );
   });
 });
 
-describe("leaving a Venue Community copy", () => {
+describe("unlinking from a Venue copy", () => {
   it("names the Venue and warns that new Games rate the group only", () => {
     expect(groupLeaveVenueActionLabel("Smash Club", "en")).toBe(
-      "Leave Smash Club’s Community",
+      "Unlink from Smash Club",
     );
     const confirm = groupLeaveVenueConfirm("Tuesday Crew", "Smash Club", "en");
-    expect(confirm.title).toBe("Leave Smash Club’s Community?");
+    expect(confirm.title).toBe("Unlink from Smash Club?");
+    expect(confirm.consequences).toHaveLength(2);
     expect(confirm.description).toContain("Tuesday Crew");
     expect(confirm.description).toContain("group rating only");
     expect(confirm.description).toContain("Operator");

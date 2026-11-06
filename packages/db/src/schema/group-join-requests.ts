@@ -26,7 +26,6 @@ export enum GroupJoinRequestStatusEnum {
 
 export const groupJoinRequestSources = pgEnum("group_join_request_source", [
   "invite_link",
-  "community",
   "group_page",
 ]);
 

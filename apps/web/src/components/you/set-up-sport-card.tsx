@@ -30,7 +30,7 @@ export function SetUpSportCard() {
             <li key={sport}>
               <Link
                 href={SPORT_SETTINGS_HREF[sport]}
-                className="border-dimrule hover:bg-raised focus-visible:ring-paper/50 flex items-center gap-3 rounded-xl border px-4 py-3.5 outline-none focus-visible:ring-[3px]"
+                className="border-dimrule hover:bg-raised focus-visible:ring-on-focus/50 flex items-center gap-3 rounded-xl border px-4 py-3.5 outline-none focus-visible:ring-[3px]"
               >
                 <span className="min-w-0 flex-1">
                   <span className="text-lead block font-semibold">

@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import type { GroupHomeData } from "@repo/domain/group-data";
 import {
   groupStandingEmptyFooter,
@@ -43,6 +43,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import {
   standingRowView,
@@ -119,6 +120,7 @@ function StandingRow({
   onOpen?: (userId: string) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const muted = notPlayedYet || !row.ranked;
   const count = (value: number) => (
     <Text
@@ -237,6 +239,7 @@ function StandingTable({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const columns = m.mobileGroup.standing.columns;
   const ranked = notPlayedYet ? rows : rows.filter((row) => row.ranked);
   const unranked = notPlayedYet ? [] : rows.filter((row) => !row.ranked);
@@ -326,6 +329,7 @@ function StandingTable({
 function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const palette = useTonePalette();
   const top = rows.filter((row) => row.ranked).slice(0, 3);
   if (top.length === 0) {
@@ -413,6 +417,7 @@ function SeasonHeader({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const name = seasonDisplayName(season.name, locale);
   const uppercase = !isRtl(locale);
   if (season.status === "upcoming") {
@@ -568,6 +573,7 @@ function LensChips({
   onPick: (seasonId: string | null) => void;
 }) {
   const locale = useLocale();
+  const colors = useColors();
   return (
     <View
       style={{
@@ -618,6 +624,7 @@ function OpenSeatRow({
   onInvite?: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       style={{
@@ -873,6 +880,7 @@ export function StandingTab({
   const router = useRouter();
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const now = new Date();
   const seasons = data.seasons;
   const defaultLens = data.standing.seasonId;
@@ -919,7 +927,9 @@ export function StandingTab({
               <Button
                 label={m.group.settings.menu.invite}
                 size="lg"
-                icon={<UserPlus size={sizes.iconAction} color={colors.paper} />}
+                icon={
+                  <UserPlus size={sizes.iconAction} color={colors.onControl} />
+                }
                 onPress={onInvite}
               />
             ) : null}

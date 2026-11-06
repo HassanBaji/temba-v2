@@ -244,7 +244,6 @@ export function tournamentCardAction(
   if (
     game.tournament != null &&
     !game.tournament.drawPosted &&
-    !game.joinFrozen &&
     game.registrationStatus !== "closed" &&
     game.registrationStatus !== "cancelled" &&
     viewerTeamIsHalf(game.tournament.teams)

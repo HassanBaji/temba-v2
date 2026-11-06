@@ -189,7 +189,7 @@ export function SeatTile({
     taken
       ? "border-rule bg-paper"
       : picked
-        ? "border-ink bg-ink text-paper"
+        ? "border-ink bg-control text-on-control"
         : "hatch text-muted-foreground border-transparent",
   );
 

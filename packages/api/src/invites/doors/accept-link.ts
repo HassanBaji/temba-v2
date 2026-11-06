@@ -2,8 +2,6 @@ import { type Locale } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
-  communityInviteLinks,
-  CommunityRoleEnum,
   gameInviteLinks,
   groupInviteLinks,
   groupJoinRequests,
@@ -16,7 +14,6 @@ import {
 } from "@repo/db";
 
 import { type db } from "#src/db";
-import { admit as admitCommunityMember } from "#src/community-membership";
 import { requireGame } from "#src/games/access";
 import {
   admitIndividualUser,
@@ -76,34 +73,6 @@ export async function acceptLink(
   hostKind: InviteHost["kind"],
   args: { token: string; userId: string; seat?: AcceptSeat; locale: Locale },
 ): Promise<AcceptLinkResult> {
-  if (hostKind === "community") {
-    const link = await database.query.communityInviteLinks.findFirst({
-      where: eq(communityInviteLinks.token, args.token),
-    });
-    if (!link || !isInviteLinkLive(link.expiresAt)) {
-      return { ok: false, reason: "not_found" };
-    }
-    const host = { kind: "community" as const, id: link.communityId };
-    const open = await assertInviteOpen(database, host, "accept");
-    if (!open.ok) {
-      return open.reason === "frozen"
-        ? { ok: false, reason: "frozen" }
-        : { ok: false, reason: "not_found" };
-    }
-    const admitted = await admitCommunityMember(database, {
-      communityId: host.id,
-      userId: args.userId,
-      role: CommunityRoleEnum.MEMBER,
-    });
-    if (!admitted.ok && admitted.reason === "already_member") {
-      return { ok: false, reason: "already_member" };
-    }
-    if (!admitted.ok) {
-      return { ok: false, reason: "not_found" };
-    }
-    return { ok: true, alreadyMember: false, hostId: host.id };
-  }
-
   if (hostKind === "group") {
     const link = await database.query.groupInviteLinks.findFirst({
       where: eq(groupInviteLinks.token, args.token),
@@ -122,7 +91,6 @@ export async function acceptLink(
       where: and(eq(groups.id, host.id), isNull(groups.deletedAt)),
       columns: {
         id: true,
-        communityId: true,
         createdBy: true,
         type: true,
         requiresApproval: true,
@@ -161,16 +129,6 @@ export async function acceptLink(
         requested: true,
         hostId: host.id,
       };
-    }
-    if (group.communityId) {
-      const admitted = await admitCommunityMember(database, {
-        communityId: group.communityId,
-        userId: args.userId,
-        role: CommunityRoleEnum.MEMBER,
-      });
-      if (!admitted.ok && admitted.reason !== "already_member") {
-        return { ok: false, reason: "not_found" };
-      }
     }
     await writeDb(database).insert(groupMembers).values({
       groupId: host.id,

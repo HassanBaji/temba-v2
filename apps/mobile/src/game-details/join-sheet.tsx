@@ -1,7 +1,10 @@
 import { sizes } from "@repo/design-tokens";
 import {
   friendlyGameJoinSheetCaption,
+  isTakeableJoinSeat,
+  offersEitherSide,
   vacantJoinSeats,
+  type FriendlyGameJoinPick,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
 import {
@@ -54,6 +57,7 @@ type SheetOccupant = {
   name: string;
   image: string | null;
   levelBand: LevelBand | null;
+  eitherSide?: boolean;
 };
 
 export type JoinSheetSide = {
@@ -103,7 +107,7 @@ export type JoinSheetProps = {
   searchResults: Slot<{ id: string; name: string }[]>;
   query: string;
   onQueryChange: (query: string) => void;
-  onJoinSeat: (seat: FriendlyGameJoinSeat) => void;
+  onJoinSeat: (seat: FriendlyGameJoinPick) => void;
   onRegisterWithPartner: (input: {
     partner: PartnerPick;
     sideIndex: number;
@@ -200,6 +204,56 @@ function SeatTile({
       >
         {occupant ? occupant.name : caption}
       </Text>
+      {occupant?.eitherSide ? (
+        <Text
+          size="eyebrow"
+          tone="muted"
+          numberOfLines={1}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          {caption}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+/** Joins the Game team without a Position, keeping both open for a partner. */
+function EitherSideOption({
+  label,
+  accessibleName,
+  selected,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  accessibleName: string;
+  selected: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const palette = useTonePalette();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibleName}
+      accessibilityState={{ disabled, selected }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: sizes.touchTarget,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        borderWidth: selected ? 2 : hairline,
+        borderColor: selected ? palette.foreground : palette.rule,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text size="meta" weight="medium">
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -212,9 +266,9 @@ function SeatStep({
   onConfirm,
 }: {
   game: JoinSheetGame;
-  picked: FriendlyGameJoinSeat | null;
+  picked: FriendlyGameJoinPick | null;
   pending: boolean;
-  onPick: (seat: FriendlyGameJoinSeat) => void;
+  onPick: (seat: FriendlyGameJoinPick) => void;
   onConfirm: () => void;
 }) {
   const m = useMessages();
@@ -241,25 +295,39 @@ function SeatStep({
               >
                 {(["left", "right"] as const).map((position) => {
                   const occupant = side[position];
+                  const takeable = isTakeableJoinSeat(side, position);
+                  const selected =
+                    picked?.sideIndex === side.sideIndex &&
+                    picked.position === position;
                   const seatName = copy.seatName(
                     sideLabel,
                     copy.positionWord[position],
                   );
+                  // Taking an Either-side User's Position moves them over,
+                  // so the tile shows the joiner once picked.
+                  const shown =
+                    occupant && takeable && selected ? null : occupant;
                   return (
                     <SeatTile
                       key={position}
-                      occupant={occupant}
-                      caption={m.game.players[position]}
+                      occupant={shown}
+                      caption={
+                        occupant?.eitherSide
+                          ? m.game.joinSheet.eitherSide
+                          : m.game.players[position]
+                      }
                       label={
-                        occupant
-                          ? copy.takenBy(seatName, occupant.name)
-                          : copy.take(seatName)
+                        !occupant
+                          ? copy.take(seatName)
+                          : takeable
+                            ? m.game.joinSheet.takeSeatFromEitherSide(
+                                seatName,
+                                occupant.name,
+                              )
+                            : copy.takenBy(seatName, occupant.name)
                       }
-                      selected={
-                        picked?.sideIndex === side.sideIndex &&
-                        picked.position === position
-                      }
-                      disabled={occupant != null || pending}
+                      selected={selected}
+                      disabled={!takeable || pending}
                       onPress={() =>
                         onPick({ sideIndex: side.sideIndex, position })
                       }
@@ -267,6 +335,20 @@ function SeatStep({
                   );
                 })}
               </View>
+              {offersEitherSide(side) ? (
+                <EitherSideOption
+                  label={m.game.joinSheet.eitherSide}
+                  accessibleName={m.game.joinSheet.joinEitherSide(sideLabel)}
+                  selected={
+                    picked?.sideIndex === side.sideIndex &&
+                    picked.position === "either"
+                  }
+                  disabled={pending}
+                  onPress={() =>
+                    onPick({ sideIndex: side.sideIndex, position: "either" })
+                  }
+                />
+              ) : null}
             </View>
           );
         })}

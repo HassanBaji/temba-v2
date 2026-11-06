@@ -533,6 +533,27 @@
       "when": 1793811521270,
       "tag": "0075_profile_details_and_group_levels",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793996214869,
+      "tag": "0076_game_team_player_either_side",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793999356789,
+      "tag": "0077_game_side_set_by",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794003903083,
+      "tag": "0078_retire_community_venue_linked_groups",
+      "breakpoints": true
     }
   ]
 }

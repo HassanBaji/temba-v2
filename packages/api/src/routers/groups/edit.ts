@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { communitySports, groups, GroupTypeEnum } from "@repo/db";
+import { groups, GroupTypeEnum } from "@repo/db";
 import { GROUP_NAME_MAX_LENGTH } from "@repo/domain/group-settings";
 import { sportSchema } from "@repo/validators/sport";
 
@@ -10,15 +10,13 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
-import { assertGroupOwnerOrStaff } from "#src/groups/helpers/group-owner";
+import { assertGroupOwner } from "#src/groups/helpers/group-owner";
 import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
 export const SPORT_LOCKED_MESSAGE =
   "The sport is locked once the Group has a Game";
-export const SPORT_NOT_ALLOWED_MESSAGE =
-  "Sport is not on this Community's sports allow-list";
 
 /**
  * Edit Group: name, sport, visibility and Require approval in one save. Only
@@ -37,12 +35,7 @@ export async function editGroup(
   },
 ) {
   const group = await requireGroup(database, args.groupId);
-  await assertGroupOwnerOrStaff(
-    database,
-    group,
-    args.userId,
-    "Only the Group owner can edit this Group",
-  );
+  assertGroupOwner(group, args.userId, "Only the Group owner can edit this Group");
 
   const patch: Partial<typeof groups.$inferInsert> = {};
 
@@ -56,21 +49,6 @@ export async function editGroup(
         code: "BAD_REQUEST",
         message: SPORT_LOCKED_MESSAGE,
       });
-    }
-    if (group.communityId) {
-      const allowed = await database.query.communitySports.findFirst({
-        where: and(
-          eq(communitySports.communityId, group.communityId),
-          eq(communitySports.sport, args.sport),
-        ),
-        columns: { id: true },
-      });
-      if (!allowed) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: SPORT_NOT_ALLOWED_MESSAGE,
-        });
-      }
     }
     patch.sport = args.sport;
   }

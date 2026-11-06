@@ -31,7 +31,6 @@ import { type db } from "#src/db";
 import {
   canViewGame,
   getRegistrationStatus,
-  isClubGroupGameJoinFrozen,
   isGameOrganizer,
   isGroupMember,
   registeredGameTeamCount,
@@ -696,7 +695,6 @@ export async function gameById(
       ? await isGroupMember(database, game.groupId, args.userId)
       : false,
     viewerUserId: args.userId,
-    joinFrozen: await isClubGroupGameJoinFrozen(database, game),
     isRegistered: alreadyOnGame,
     isSeated,
     isWaitlisted,

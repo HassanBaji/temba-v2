@@ -19,7 +19,6 @@ import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { userAlreadyWaitlisted } from "#src/games/helpers/user-already-waitlisted";
 import { firstVacantPosition } from "#src/games/seats";
 import type { SeatPosition } from "#src/games/utils";
-import { gameNotificationsSuppressed } from "#src/notifications/game-notifications-suppressed";
 import { notify } from "#src/notifications/notify";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -160,7 +159,7 @@ export async function organizerAddPlayer(
       );
   }
 
-  if (args.notifyPlayer && !(await gameNotificationsSuppressed(tx, game))) {
+  if (args.notifyPlayer) {
     await notify(tx, {
       type: "game_seated_by_organizer",
       recipients: [{ userId: player.id, audience: "player" }],

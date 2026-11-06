@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import {
   CALLING_COUNTRIES,
   callingCountryByIso,
@@ -14,6 +14,7 @@ import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 
 export type PhoneFieldProps = {
   label: string;
@@ -37,6 +38,7 @@ export function PhoneField({
   placeholder,
 }: PhoneFieldProps) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const [picking, setPicking] = useState(false);
   const country = callingCountryByIso(countryIso);

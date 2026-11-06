@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import type { AddPlayerFootballPosition } from "@repo/domain/add-player-by-phone";
 import { addPlayerFootballRoleChoices } from "@repo/domain/add-player-by-phone";
 import {
@@ -19,6 +19,7 @@ import { SearchField } from "../primitives/search-field";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { tonePalette } from "../primitives/tone-palette";
+import { useColors } from "../theme/theme-provider";
 
 const SEGMENT_INSET = 4;
 const SEGMENT_HEIGHT = 38;
@@ -35,6 +36,7 @@ export function AddPlayerModeSwitch({
   mode: AddPlayerMode;
   onChange: (mode: AddPlayerMode) => void;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const labels = {
     group: m.group.addPlayer.fromGroup.tab,
@@ -98,6 +100,7 @@ function CompactChoices<T extends string>({
   onSelect: (value: T) => void;
   disabled: boolean;
 }) {
+  const colors = useColors();
   const m = useMessages();
   return (
     <View style={{ gap: 6 }}>
@@ -112,7 +115,7 @@ function CompactChoices<T extends string>({
         {choices.map((choice) => {
           const selected = choice.value === value;
           const tone = selected ? "ink" : "paper";
-          const palette = tonePalette(tone);
+          const palette = tonePalette(tone, colors);
           return (
             <SurfaceToneContext.Provider key={choice.value} value={tone}>
               <Pressable
@@ -140,9 +143,12 @@ function CompactChoices<T extends string>({
                   gap: 5,
                   borderRadius: radii.md,
                   borderWidth: hairline,
-                  borderColor: selected ? palette.background : palette.rule,
-                  backgroundColor:
-                    pressed && !selected ? palette.wash : palette.background,
+                  borderColor: selected ? colors.ink : palette.rule,
+                  backgroundColor: selected
+                    ? colors.control
+                    : pressed
+                      ? palette.wash
+                      : palette.background,
                 })}
               >
                 <Text
@@ -167,6 +173,7 @@ function CompactChoices<T extends string>({
 }
 
 function PickMark({ selected }: { selected: boolean }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -202,6 +209,7 @@ function MemberRow({
   onFootballChange: (pick: GroupMemberFootballPick) => void;
   disabled: boolean;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const locale = useLocale();
   const unavailable = row.status != null || row.blocked;

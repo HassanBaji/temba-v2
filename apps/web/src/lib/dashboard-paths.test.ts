@@ -73,14 +73,6 @@ describe("detailBackHref", () => {
     assert.equal(detailBackHref("/dashboard/teams/abc"), "/dashboard/teams");
     assert.equal(detailBackHref("/dashboard/venues/abc"), "/dashboard/venues");
     assert.equal(detailBackHref("/dashboard/games/abc"), "/dashboard/games");
-    assert.equal(
-      detailBackHref("/dashboard/communities/abc", true),
-      "/dashboard/communities",
-    );
-    assert.equal(
-      detailBackHref("/dashboard/communities/abc", false),
-      "/dashboard",
-    );
   });
 });
 
@@ -101,7 +93,6 @@ describe("pageHidesMobileTopBar", () => {
     "/dashboard/games/abc",
     "/dashboard/groups",
     "/dashboard/groups/new",
-    "/dashboard/communities/abc",
     "/dashboard/invites",
     "/dashboard/youth",
   ])("keeps the top bar on %s", (pathname) => {

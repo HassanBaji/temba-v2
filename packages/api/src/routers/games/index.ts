@@ -36,6 +36,8 @@ import { listPartnerSuggestionsProcedure as listPartnerSuggestions } from "./lis
 import { listPublicPickup } from "./listPublicPickup";
 import { mergeHalfTeamsProcedure as mergeHalfTeams } from "./mergeHalfTeams";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
+import { setSeatSideProcedure as setSeatSide } from "./setSeatSide";
+import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
@@ -87,6 +89,8 @@ export const gamesRouter = createTRPCRouter({
   register,
   registerSeat,
   moveSeat,
+  setSeatSide,
+  setTeamSides,
   searchPartnerUsers,
   listPartnerSuggestions,
   registerWithPartner,

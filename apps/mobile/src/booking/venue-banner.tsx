@@ -1,4 +1,3 @@
-import { colors } from "@repo/design-tokens";
 import { type VenueBannerImage } from "@repo/domain/venue-photos";
 import { useState } from "react";
 import { View } from "react-native";
@@ -7,6 +6,7 @@ import { apiOrigin } from "../lib/api-origin-runtime";
 import { mediaUrl } from "../lib/media-url";
 import { CachedImage } from "../primitives/cached-image";
 import { Hatch } from "../primitives/hatch";
+import { useColors } from "../theme/theme-provider";
 
 const LOGO_RATIO = 0.6;
 
@@ -20,6 +20,7 @@ export function VenueBanner({
   height: number;
   children?: React.ReactNode;
 }) {
+  const colors = useColors();
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const uri = image.kind === "none" ? null : mediaUrl(image.url, apiOrigin);
   const shown = uri !== null && uri !== failedUri ? uri : null;

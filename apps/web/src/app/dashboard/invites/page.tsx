@@ -28,29 +28,16 @@ export default function InvitesPage() {
   const m = useMessages();
   const locale = useLocale();
   const utils = api.useUtils();
-  const communityInvites = api.communities.pendingLookupInvites.useQuery();
   const groupInvites = api.groups.pendingLookupInvites.useQuery();
   const teamInvites = api.teams.pendingInvites.useQuery();
   const gameInvites = api.games.pendingLookupInvites.useQuery();
   const venueRequests = api.groups.pendingLinkRequests.useQuery();
-
-  const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
-    onSuccess: async () => {
-      toast.success(lookupInviteAcceptToast("community", locale));
-      await utils.communities.pendingLookupInvites.invalidate();
-      await utils.communities.mine.invalidate();
-    },
-    onError: (error) => {
-      toastGlobalFormError(error);
-    },
-  });
 
   const acceptGroup = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async () => {
       toast.success(lookupInviteAcceptToast("group", locale));
       await utils.groups.pendingLookupInvites.invalidate();
       await utils.groups.mine.invalidate();
-      await utils.communities.mine.invalidate();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -82,13 +69,11 @@ export default function InvitesPage() {
   });
 
   const isLoading =
-    communityInvites.isLoading ||
     groupInvites.isLoading ||
     teamInvites.isLoading ||
     gameInvites.isLoading ||
     venueRequests.isLoading;
   const error =
-    communityInvites.error ??
     groupInvites.error ??
     teamInvites.error ??
     gameInvites.error ??
@@ -96,7 +81,6 @@ export default function InvitesPage() {
   const venueRequestRows = venueRequests.data ?? [];
   const items = mergeInviteInbox(
     {
-      community: communityInvites.data,
       group: groupInvites.data,
       team: teamInvites.data,
       game: gameInvites.data,
@@ -105,11 +89,6 @@ export default function InvitesPage() {
   );
 
   function isRowPending(kind: string, id: string) {
-    if (kind === "community") {
-      return (
-        acceptCommunity.isPending && acceptCommunity.variables?.inviteId === id
-      );
-    }
     if (kind === "group") {
       return acceptGroup.isPending && acceptGroup.variables?.inviteId === id;
     }
@@ -120,10 +99,6 @@ export default function InvitesPage() {
   }
 
   function onAccept(kind: (typeof items)[number]["kind"], id: string) {
-    if (kind === "community") {
-      acceptCommunity.mutate({ inviteId: id });
-      return;
-    }
     if (kind === "group") {
       acceptGroup.mutate({ inviteId: id });
       return;
@@ -147,7 +122,6 @@ export default function InvitesPage() {
           title={m.invite.inbox.errorTitle}
           message={error.message}
           onRetry={() => {
-            void communityInvites.refetch();
             void groupInvites.refetch();
             void teamInvites.refetch();
             void gameInvites.refetch();

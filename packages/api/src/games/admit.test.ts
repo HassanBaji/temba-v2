@@ -1,5 +1,4 @@
 import {
-  communities,
   gamePlayers,
   gameTeams,
   gameWaitlist,
@@ -384,29 +383,18 @@ describe("Game admit self-register", () => {
     }
   });
 
-  it("refuses join-frozen Club Group Games via Soft-archive consult", async () => {
+  it("keeps a Club Group Game open while the linked Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "owner-frozen@example.com");
-      const player = await insertUser(db, "frozen@example.com");
+      const owner = await insertUser(db, "owner-archived-venue@example.com");
+      const player = await insertUser(db, "archived-venue@example.com");
       const venue = await insertVenue(db);
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Archived Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
       const [clubGroup] = await db
         .insert(groups)
         .values({
           name: "Club Group",
           createdBy: owner.id,
-          communityId: community.id,
+          venueId: venue.id,
         })
         .returning({ id: groups.id });
       if (!clubGroup) {
@@ -418,15 +406,17 @@ describe("Game admit self-register", () => {
         format: GameFormatEnum.AMERICANO,
         groupId: clubGroup.id,
       });
-      await commit(db, { communityId: community.id }, "archived");
+      await commit(db, { venueId: venue.id }, "archived");
 
       const result = await admit(db, {
         game,
         door: "register",
         party: { kind: "user", userId: player.id },
       });
-      expect(result).toEqual({ ok: false, reason: "join_frozen" });
-      await expect(waitlistCount(db, game.id)).resolves.toBe(0);
+      expect(result).toEqual({
+        ok: true,
+        placement: { kind: "user", userId: player.id },
+      });
     } finally {
       await close();
     }
@@ -659,55 +649,6 @@ describe("Game admit invite accept and promote", () => {
       });
       expect(side?.sideIndex).toBe(1);
       expect(match?.slot1GameTeamId).toBe(side?.id);
-    } finally {
-      await close();
-    }
-  });
-
-  it("refuses promote and register when Club Group Game join is frozen", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const owner = await insertUser(db, "promote-frozen-owner@example.com");
-      const player = await insertUser(db, "promote-frozen@example.com");
-      const venue = await insertVenue(db);
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Frozen Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      const [clubGroup] = await db
-        .insert(groups)
-        .values({
-          name: "Frozen Group",
-          createdBy: owner.id,
-          communityId: community.id,
-        })
-        .returning({ id: groups.id });
-      if (!clubGroup) {
-        throw new Error("Failed to insert club group");
-      }
-      const game = await insertGame(db, {
-        createdBy: owner.id,
-        venueId: venue.id,
-        format: GameFormatEnum.AMERICANO,
-        groupId: clubGroup.id,
-        registrationClosedAt: new Date(),
-      });
-      await commit(db, { communityId: community.id }, "archived");
-
-      expect(
-        await admit(db, {
-          game,
-          door: "promote",
-          party: { kind: "user", userId: player.id },
-        }),
-      ).toEqual({ ok: false, reason: "join_frozen" });
     } finally {
       await close();
     }

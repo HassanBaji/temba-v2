@@ -1,4 +1,3 @@
-import { colors } from "@repo/design-tokens";
 import {
   playedWordLabel,
   type PlayedPadelBoardRow,
@@ -8,11 +7,13 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const SET_CELL = 34;
 const SET_GAP = 14;
 
 function SetCells({ sets }: { sets: PlayedPadelBoardRow["sets"] }) {
+  const colors = useColors();
   return (
     <View style={{ flexDirection: "row", gap: SET_GAP }}>
       {sets.map((set) => (
@@ -24,7 +25,7 @@ function SetCells({ sets }: { sets: PlayedPadelBoardRow["sets"] }) {
           style={{
             width: SET_CELL,
             textAlign: "center",
-            color: set.won ? colors.paper : colors.muted,
+            color: set.won ? colors.onFocus : colors.muted,
           }}
         >
           {String(set.value)}
@@ -35,6 +36,7 @@ function SetCells({ sets }: { sets: PlayedPadelBoardRow["sets"] }) {
 }
 
 function PairRow({ row }: { row: PlayedPadelBoardRow }) {
+  const colors = useColors();
   const locale = useLocale();
   const m = useMessages();
   const word = playedWordLabel(row.word, locale);
@@ -57,7 +59,7 @@ function PairRow({ row }: { row: PlayedPadelBoardRow }) {
         <Text
           weight="semibold"
           numberOfLines={1}
-          style={{ color: row.won ? colors.paper : colors.dim }}
+          style={{ color: row.won ? colors.onFocus : colors.dim }}
         >
           {row.line}
         </Text>

@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
 import { Check, CreditCard, Store } from "lucide-react-native";
 import { Image, Pressable, View } from "react-native";
@@ -9,6 +9,7 @@ import benefitPayMark from "../../assets/payment/benefitpay.png";
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const MARK_HEIGHT = 18;
 const TILE_SIZE = 40;
@@ -27,6 +28,7 @@ const BRAND_MARKS: Partial<
 };
 
 function PaymentMethodMark({ method }: { method: BookingPaymentMethod }) {
+  const colors = useColors();
   const brand = BRAND_MARKS[method];
   if (brand) {
     return (
@@ -56,6 +58,7 @@ export function PaymentMethodCard({
   onPress: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const border = selected ? SELECTED_BORDER : hairline;
   const inset = border - hairline;
 

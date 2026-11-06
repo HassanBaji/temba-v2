@@ -1,4 +1,4 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { sizes, spacing } from "@repo/design-tokens";
 import {
   checklistCountLabel,
   homeChecklistAfterSkip,
@@ -14,6 +14,7 @@ import { mirrorInRtl } from "../i18n/rtl";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import {
   ChecklistSegments,
   TaskMarker,
@@ -42,6 +43,7 @@ function TaskRow({
   task: ProfileTask;
   onPress: () => void;
 }) {
+  const colors = useColors();
   const m = useMessages();
   return (
     <Pressable
@@ -119,6 +121,7 @@ export function ProfileChecklistCard({
   onSkip,
   onShow,
 }: ProfileChecklistCardProps) {
+  const colors = useColors();
   const m = useMessages();
   const locale = useLocale();
   const openTask = (task: ProfileTask) =>

@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
   courts,
   gameCourts,
   games,
@@ -69,7 +68,7 @@ async function insertCourt(
 
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; communityId?: string },
+  args: { createdBy: string; venueId?: string },
 ) {
   const [row] = await database
     .insert(groups)
@@ -77,7 +76,7 @@ async function insertGroup(
       verifiedAt: new Date(),
       name: `Group ${crypto.randomUUID()}`,
       createdBy: args.createdBy,
-      communityId: args.communityId,
+      venueId: args.venueId,
     })
     .returning({ id: groups.id });
   if (!row) {
@@ -437,44 +436,40 @@ describe("createTournament", () => {
     }
   });
 
-  it("refuses a Club Group whose Community is Soft-archived", async () => {
+  it("creates a Club Group Game at its Soft-archived linked Venue, skipping Court", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "tournament-archived@example.com");
       const venue = await insertVenue(db);
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Archived Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
+      const court = await insertCourt(db, venue.id, "Court 1");
       const group = await insertGroup(db, {
         createdBy: owner.id,
-        communityId: community.id,
+        venueId: venue.id,
       });
-      await commit(db, { communityId: community.id }, "archived");
+      await commit(db, { venueId: venue.id }, "archived");
+      const input = {
+        createdBy: owner.id,
+        name: "Archived Cup",
+        groupId: group.id,
+        isPublic: false,
+        registrationMode: "individual" as const,
+        teamCount: 8,
+        poolCount: 2,
+        venueId: venue.id,
+        ...windowTimes(),
+      };
       await expect(
-        createTournament(db, {
-          createdBy: owner.id,
-          name: "Archived Cup",
-          groupId: group.id,
-          isPublic: false,
-          registrationMode: "individual",
-          teamCount: 8,
-          poolCount: 2,
-          venueId: venue.id,
-          ...windowTimes(),
-        }),
+        createTournament(db, { ...input, courtIds: [court.id] }),
       ).rejects.toMatchObject({
         code: "FORBIDDEN",
-        message:
-          "Cannot create a Club Group Game while the Community is archived",
+        message: "Skip Court when the linked Venue is Soft-archived",
       });
+
+      const created = await createTournament(db, input);
+      const row = await db.query.games.findFirst({
+        where: eq(games.id, created.id),
+      });
+      expect(row?.venueId).toBe(venue.id);
     } finally {
       await close();
     }
@@ -530,21 +525,9 @@ describe("createTournament", () => {
       const owner = await insertUser(db, "tournament-linked@example.com");
       const linked = await insertVenue(db);
       const other = await insertVenue(db);
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Linked Club",
-          type: "private",
-          createdBy: owner.id,
-          venueId: linked.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
       const group = await insertGroup(db, {
         createdBy: owner.id,
-        communityId: community.id,
+        venueId: linked.id,
       });
       await expect(
         createTournament(db, {
@@ -560,7 +543,7 @@ describe("createTournament", () => {
         }),
       ).rejects.toMatchObject({
         code: "FORBIDDEN",
-        message: "Venue must be this Community’s linked Venue",
+        message: "Venue must be this Group’s linked Venue",
       });
 
       const created = await createTournament(db, {

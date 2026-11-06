@@ -59,7 +59,6 @@ export const common = {
   games: "المباريات",
   book: "حجز",
   groups: "المجموعات",
-  communities: "المجتمعات",
   profile: "الملف الشخصي",
   teams: "الفرق",
   invites: "الدعوات",

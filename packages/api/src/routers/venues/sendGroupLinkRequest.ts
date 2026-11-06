@@ -40,15 +40,15 @@ export async function sendGroupLinkRequest(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, args.groupId),
-    columns: { id: true, communityId: true },
+    columns: { id: true, venueId: true },
   });
   if (!group) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
   }
-  if (group.communityId) {
+  if (group.venueId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a Loose Group can be linked to a Venue Community",
+      message: "Only a Loose Group can be linked to a Venue",
     });
   }
 

@@ -44,7 +44,6 @@ import {
   InviteDoorDialog,
 } from "~/components/invites/invite-door-dialog";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -259,7 +258,6 @@ export function FootballGameDetails({
     isOrganizer: game.isOrganizer,
     registrationStatus: game.registrationStatus,
     cancelledAt: game.cancelledAt,
-    joinFrozen: game.joinFrozen,
     registrationMode: game.registrationMode,
     partnerRequired: false,
   });
@@ -571,7 +569,7 @@ export function FootballGameDetails({
                 key: "reopen_registration",
                 label: reopenRegistrationAction(locale),
                 icon: LockOpenIcon,
-                disabled: game.joinFrozen || reopenRegistration.isPending,
+                disabled: reopenRegistration.isPending,
                 onSelect: () => reopenRegistration.mutate({ gameId }),
               }
             : {
@@ -626,7 +624,7 @@ export function FootballGameDetails({
       <div
         className={cn(
           "space-y-6",
-          (game.cancelledAt != null || game.joinFrozen) && "max-md:pt-4",
+          game.cancelledAt != null && "max-md:pt-4",
           joinFamily && !playedModel && "max-lg:pb-20",
         )}
       >
@@ -646,11 +644,6 @@ export function FootballGameDetails({
               </p>
             </div>
           </section>
-        ) : null}
-        {game.joinFrozen && !game.cancelledAt ? (
-          <SoftArchiveBanner headingLevel={2} heading={t.softArchivedHeading}>
-            {t.softArchivedBody}
-          </SoftArchiveBanner>
         ) : null}
 
         {playedModel ? (

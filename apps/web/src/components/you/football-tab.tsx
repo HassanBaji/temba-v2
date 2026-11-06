@@ -50,7 +50,7 @@ function GoalsLastTen({ profile }: { profile: FootballProfile }) {
             <span
               className={
                 bar.goals
-                  ? "bg-paper rounded-[3px]"
+                  ? "bg-on-focus rounded-[3px]"
                   : "bg-dimrule rounded-[3px]"
               }
               style={{

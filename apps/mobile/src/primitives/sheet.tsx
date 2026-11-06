@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { X } from "lucide-react-native";
 import {
   Modal,
@@ -12,11 +12,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useMessages } from "../i18n/locale-provider";
+import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
 import { Text } from "./text";
 
-const SCRIM_OPACITY = 0.45;
 const TALL_HEIGHT_RATIO = 0.8;
 const PADDING_TOP = 10;
 const PADDING_BOTTOM = 28;
@@ -61,6 +61,7 @@ export function Sheet({
   children,
 }: SheetProps) {
   const m = useMessages();
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
   const bottomPadding = Math.max(PADDING_BOTTOM, insets.bottom + BODY_GAP);
@@ -80,16 +81,13 @@ export function Sheet({
           accessibilityRole="button"
           accessibilityLabel={m.common.close}
           onPress={onClose}
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: colors.ink, opacity: SCRIM_OPACITY },
-          ]}
+          style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}
         />
         <SurfaceToneContext.Provider value="paper">
           <View
             accessibilityViewIsModal
             style={{
-              backgroundColor: colors.paper,
+              backgroundColor: colors.sheet,
               borderTopLeftRadius: radii.sheet,
               borderTopRightRadius: radii.sheet,
               paddingTop: PADDING_TOP,
@@ -147,6 +145,7 @@ export function Sheet({
 
 export function SheetCloseButton({ onPress }: { onPress: () => void }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -169,6 +168,7 @@ export function SheetCloseButton({ onPress }: { onPress: () => void }) {
 }
 
 function Grabber() {
+  const colors = useColors();
   return (
     <View
       accessibilityElementsHidden

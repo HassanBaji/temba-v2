@@ -53,7 +53,7 @@ export function JoinRequestsBanner({
       radius="card"
       className="flex items-center gap-2.5 py-2 pe-2 ps-4"
     >
-      <span aria-hidden="true" className="bg-paper size-1.5 rounded-full" />
+      <span aria-hidden="true" className="bg-on-focus size-1.5 rounded-full" />
       <span className="text-meta flex-1 font-semibold">
         {groupJoinRequestsBannerText(count, locale)}
       </span>
@@ -113,7 +113,6 @@ function ChangePolicyButton({ onClick }: { onClick: () => void }) {
 
 function RequestItem({
   request,
-  communityName,
   showLevel,
   linkToProfile,
   approving,
@@ -122,7 +121,6 @@ function RequestItem({
   onReject,
 }: {
   request: JoinRequest;
-  communityName: string | null;
   showLevel: boolean;
   linkToProfile: boolean;
   approving: boolean;
@@ -132,8 +130,8 @@ function RequestItem({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = request.user.name ?? m.community.userFallback;
-  const meta = groupJoinRequestMeta(request, communityName, locale);
+  const name = request.user.name ?? m.webGroup.userFallback;
+  const meta = groupJoinRequestMeta(request, locale);
   const identity = (
     <>
       <UserAvatar name={name} image={request.user.image} />
@@ -206,7 +204,6 @@ export const JoinRequestsCard = forwardRef<
     onRetry: () => void;
     requiresApproval: boolean;
     approvedToday: number;
-    communityName: string | null;
     showLevel: boolean;
     linkToProfiles: boolean;
     approvePendingId?: string;
@@ -242,7 +239,7 @@ export const JoinRequestsCard = forwardRef<
     return (
       <section
         ref={ref}
-        aria-label={m.community.joinRequestsTitle}
+        aria-label={m.webGroup.requests.title}
         className="border-rule rounded-card hatch flex items-center gap-3 border py-3 pe-2.5 ps-[18px]"
       >
         <Inbox
@@ -268,7 +265,7 @@ export const JoinRequestsCard = forwardRef<
       tabIndex={-1}
       className="border-ink rounded-card overflow-hidden border outline-none"
     >
-      <h2 className="bg-ink text-paper text-meta flex h-10 items-center gap-2 px-4 font-semibold">
+      <h2 className="surface-focus text-meta flex h-10 items-center gap-2 px-4 font-semibold">
         <Inbox aria-hidden="true" className="size-[15px]" />
         {heading}
       </h2>
@@ -277,7 +274,6 @@ export const JoinRequestsCard = forwardRef<
           <RequestItem
             key={request.id}
             request={request}
-            communityName={props.communityName}
             showLevel={props.showLevel}
             linkToProfile={props.linkToProfiles}
             approving={props.approvePendingId === request.id}
@@ -299,20 +295,18 @@ export const JoinRequestsCard = forwardRef<
 
 export function RejectRequestDialog({
   request,
-  communityName,
   pending,
   onReject,
   onOpenChange,
 }: {
   request: JoinRequest | null;
-  communityName: string | null;
   pending: "reject" | "block" | null;
   onReject: (block: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = request?.user.name ?? m.community.userFallback;
+  const name = request?.user.name ?? m.webGroup.userFallback;
   const copy = groupRejectRequestCopy(name, locale);
   return (
     <ResponsiveDialog open={request != null} onOpenChange={onOpenChange}>
@@ -328,7 +322,7 @@ export function RejectRequestDialog({
               <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
               {request ? (
                 <p className="text-meta text-muted-foreground">
-                  {groupJoinRequestMeta(request, communityName, locale)}
+                  {groupJoinRequestMeta(request, locale)}
                 </p>
               ) : null}
             </div>
@@ -377,14 +371,12 @@ export function WhoCanJoinDialog({
   open,
   onOpenChange,
   requiresApproval,
-  communityName,
   pending,
   onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   requiresApproval: boolean;
-  communityName: string | null;
   pending: boolean;
   onSave: (requiresApproval: boolean) => void;
 }) {
@@ -405,7 +397,7 @@ export function WhoCanJoinDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>{whoCanJoin.title}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {groupWhoCanJoinDescription(communityName, locale)}
+            {groupWhoCanJoinDescription(locale)}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div

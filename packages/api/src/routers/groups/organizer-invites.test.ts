@@ -1,20 +1,17 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupMembers,
   GroupMemberRoleEnum,
-  GroupSportEnum,
+  groups,
   user,
+  venueManagers,
+  venues,
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPrivate } from "#src/routers/groups/createClubPrivate";
 import { createInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { listLookupInvites } from "#src/routers/groups/listLookupInvites";
@@ -69,49 +66,47 @@ async function seedLoose(database: TestDatabase) {
   return { creator, organizer, member, outsider, groupId: group.id };
 }
 
+/** A Club Group: a Loose Group linked to a Venue, with an Appointed Organizer. */
 async function seedClub(database: TestDatabase) {
-  const owner = await insertUser(database, "Owner");
+  const manager = await insertUser(database, "Manager");
+  const creator = await insertUser(database, "Club creator");
   const organizer = await insertUser(database, "Club organizer");
-  const clubMember = await insertUser(database, "Club member");
+  const member = await insertUser(database, "Club member");
   const outsider = await insertUser(database, "Outsider");
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Padel Club", type: "private", createdBy: owner })
-    .returning({ id: communities.id });
-  await database.insert(communitySports).values({
-    communityId: community!.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values([
-    { communityId: community!.id, userId: owner, role: CommunityRoleEnum.OWNER },
-    {
-      communityId: community!.id,
-      userId: organizer,
-      role: CommunityRoleEnum.MEMBER,
-    },
-    {
-      communityId: community!.id,
-      userId: clubMember,
-      role: CommunityRoleEnum.MEMBER,
-    },
-  ]);
-  const group = await createClubPrivate(database, {
-    communityId: community!.id,
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "Padel Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!venue) {
+    throw new Error("Failed to insert venue");
+  }
+  await database
+    .insert(venueManagers)
+    .values({ venueId: venue.id, userId: manager });
+  const group = await createLoosePrivate(database, {
     name: "Club squad",
     sport: "padel",
-    userId: owner,
+    userId: creator,
   });
-  await database.insert(groupMembers).values({
-    groupId: group.id,
-    userId: organizer,
-    role: GroupMemberRoleEnum.ORGANIZER,
-  });
+  await database
+    .update(groups)
+    .set({ venueId: venue.id })
+    .where(eq(groups.id, group.id));
+  await database.insert(groupMembers).values([
+    {
+      groupId: group.id,
+      userId: organizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    { groupId: group.id, userId: member },
+  ]);
   return {
-    owner,
+    manager,
+    creator,
     organizer,
-    clubMember,
+    member,
     outsider,
-    communityId: community!.id,
+    venueId: venue.id,
     groupId: group.id,
   };
 }
@@ -180,7 +175,7 @@ describe("Appointed Organizer invite doors", () => {
     }
   });
 
-  it("on a Club Group invites Community Members only, cannot mint links, and lapses on leaving the Community", async () => {
+  it("on a Club Group has the same doors: invites anyone, mints Invite links, and the Venue manager has none", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
@@ -191,52 +186,61 @@ describe("Appointed Organizer invite doors", () => {
       });
       expect(home).toMatchObject({
         canManageLookupInvites: true,
-        canManageInviteLinks: false,
+        canManageInviteLinks: true,
+        canAddPlayers: true,
         canRemovePlayers: true,
         canAppointOrganizers: true,
+        canDelete: false,
+        isLoose: false,
       });
 
       const sent = await sendLookupInvite(db, {
         groupId: f.groupId,
         userId: f.organizer,
-        userIds: [f.clubMember, f.outsider],
+        userIds: [f.outsider, f.member],
       });
-      expect(sent.sent.map((invite) => invite.userId)).toEqual([f.clubMember]);
+      expect(sent.sent.map((invite) => invite.userId)).toEqual([f.outsider]);
       expect(sent.refused).toEqual([
         {
-          name: "Outsider",
-          message: "Invitee must already be a Community Member",
+          name: "Club member",
+          message: "User is already a member of this Group",
         },
       ]);
 
-      const link = await rejection(
-        createInviteLink(db, {
-          groupId: f.groupId,
-          userId: f.organizer,
-          origin: ORIGIN,
-        }),
-      );
-      expect(link.code).toBe("FORBIDDEN");
+      const link = await createInviteLink(db, {
+        groupId: f.groupId,
+        userId: f.organizer,
+        origin: ORIGIN,
+      });
+      expect(link.inviteUrl.startsWith(ORIGIN)).toBe(true);
 
-      await db
-        .delete(communityMembers)
-        .where(
-          and(
-            eq(communityMembers.communityId, f.communityId),
-            eq(communityMembers.userId, f.organizer),
-          ),
-        );
-      const lapsed = await rejection(
+      const asManager = await rejection(
         sendLookupInvite(db, {
           groupId: f.groupId,
-          userId: f.organizer,
+          userId: f.manager,
           userIds: [f.outsider],
         }),
       );
-      expect(lapsed.code).toBe("FORBIDDEN");
+      expect(asManager.code).toBe("FORBIDDEN");
+      const managerLink = await rejection(
+        createInviteLink(db, {
+          groupId: f.groupId,
+          userId: f.manager,
+          origin: ORIGIN,
+        }),
+      );
+      expect(managerLink.code).toBe("FORBIDDEN");
+      const asMember = await rejection(
+        createInviteLink(db, {
+          groupId: f.groupId,
+          userId: f.member,
+          origin: ORIGIN,
+        }),
+      );
+      expect(asMember.code).toBe("FORBIDDEN");
       expect(
-        (await groupById(db, { groupId: f.groupId, userId: f.organizer }))
-          .canManageLookupInvites,
+        (await groupById(db, { groupId: f.groupId, userId: f.member }))
+          .canManageInviteLinks,
       ).toBe(false);
     } finally {
       await close();

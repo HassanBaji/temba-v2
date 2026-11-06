@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
-import { games, teams } from "@repo/db";
+import { games, groups, teams } from "@repo/db";
 
 import { consult, type ConsultResult } from "#src/soft-archive";
 import type {
@@ -11,37 +11,30 @@ import type {
   OpenResult,
 } from "#src/invites/doors/utils";
 
+/** No invite host is Soft-archived any more; the door only has to exist. */
 export async function consultInviteHost(
   database: InviteDb,
   host: InviteHost,
 ): Promise<ConsultResult> {
-  if (host.kind === "community") {
-    return consult(database, { communityId: host.id });
-  }
   if (host.kind === "group") {
-    return consult(database, { clubGroupId: host.id });
+    const group = await database.query.groups.findFirst({
+      where: and(eq(groups.id, host.id), isNull(groups.deletedAt)),
+      columns: { id: true },
+    });
+    return group ? consult({ archivedAt: null }) : { ok: false, reason: "not_found" };
   }
   if (host.kind === "team") {
     const team = await database.query.teams.findFirst({
       where: eq(teams.id, host.id),
-      columns: { communityId: true },
+      columns: { id: true },
     });
-    if (!team) {
-      return { ok: false, reason: "not_found" };
-    }
-    if (!team.communityId) {
-      return consult({ archivedAt: null });
-    }
-    return consult(database, { communityId: team.communityId });
+    return team ? consult({ archivedAt: null }) : { ok: false, reason: "not_found" };
   }
   const game = await database.query.games.findFirst({
     where: eq(games.id, host.id),
-    columns: { groupId: true },
+    columns: { id: true },
   });
-  if (!game) {
-    return { ok: false, reason: "not_found" };
-  }
-  return consult(database, { clubGroupGame: { groupId: game.groupId } });
+  return game ? consult({ archivedAt: null }) : { ok: false, reason: "not_found" };
 }
 
 export function freezeKindForPhase(

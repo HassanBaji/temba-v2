@@ -45,9 +45,6 @@ export function titleFromPath(pathname: string, m: Messages) {
   if (pathname.startsWith("/dashboard/groups/new")) {
     return titles.createGroup;
   }
-  if (pathname.startsWith("/dashboard/communities/new")) {
-    return titles.createCommunity;
-  }
   if (pathname.startsWith("/dashboard/teams/new")) {
     return titles.createTeam;
   }
@@ -69,9 +66,6 @@ export function titleFromPath(pathname: string, m: Messages) {
   if (pathname.startsWith("/dashboard/groups/")) {
     return titles.group;
   }
-  if (pathname.startsWith("/dashboard/communities/")) {
-    return titles.community;
-  }
   if (pathname.startsWith("/dashboard/teams/")) {
     return titles.team;
   }
@@ -83,9 +77,6 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (pathname.startsWith("/dashboard/groups")) {
     return m.common.groups;
-  }
-  if (pathname.startsWith("/dashboard/communities")) {
-    return m.common.communities;
   }
   if (pathname.startsWith("/dashboard/teams")) {
     return titles.myTeams;
@@ -111,10 +102,7 @@ export function pageHidesMobileTopBar(pathname: string) {
   );
 }
 
-export function detailBackHref(
-  pathname: string | null,
-  hasCreateAccess = false,
-): string | undefined {
+export function detailBackHref(pathname: string | null): string | undefined {
   if (!pathname) {
     return undefined;
   }
@@ -130,9 +118,6 @@ export function detailBackHref(
   }
   if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/groups";
-  }
-  if (/^\/dashboard\/communities\/(?!new$)[^/]+/.test(pathname)) {
-    return hasCreateAccess ? "/dashboard/communities" : "/dashboard";
   }
   if (/^\/dashboard\/teams\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/teams";

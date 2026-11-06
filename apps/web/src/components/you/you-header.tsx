@@ -20,7 +20,7 @@ const iconLinkClassName =
   "text-ink focus-visible:ring-ring/50 hover:bg-wash relative flex size-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]";
 
 export const profileAvatarClassName =
-  "border-rule rounded-card size-14 border text-lead font-semibold data-[size=default]:size-14 data-[size=default]:rounded-card [&_[data-slot=avatar-fallback]]:rounded-card [&_[data-slot=avatar-fallback]]:bg-ink [&_[data-slot=avatar-fallback]]:text-paper [&_[data-slot=avatar-fallback]]:text-lead [&_[data-slot=avatar-fallback]]:font-semibold";
+  "border-rule rounded-card size-14 border text-lead font-semibold data-[size=default]:size-14 data-[size=default]:rounded-card [&_[data-slot=avatar-fallback]]:rounded-card [&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control [&_[data-slot=avatar-fallback]]:text-lead [&_[data-slot=avatar-fallback]]:font-semibold";
 
 export function YouHeader({
   pendingInviteCount,

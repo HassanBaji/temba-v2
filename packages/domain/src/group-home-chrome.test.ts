@@ -17,19 +17,11 @@ import {
 } from "./group-home-chrome";
 
 describe("groupHomeBackTarget", () => {
-  it("returns a Club Group home to its Community home", () => {
-    assert.deepEqual(groupHomeBackTarget("community-1", "en"), {
-      kind: "community",
-      communityId: "community-1",
-      label: "Back to Community",
+  it("returns every Group home to the Groups index", () => {
+    assert.deepEqual(groupHomeBackTarget("en"), {
+      kind: "groups",
+      label: "Back to Groups",
     });
-  });
-
-  it("returns a Loose Group home to the Groups index", () => {
-    const loose = { kind: "groups", label: "Back to Groups" };
-    assert.deepEqual(groupHomeBackTarget(null, "en"), loose);
-    assert.deepEqual(groupHomeBackTarget(undefined, "en"), loose);
-    assert.deepEqual(groupHomeBackTarget("", "en"), loose);
   });
 });
 

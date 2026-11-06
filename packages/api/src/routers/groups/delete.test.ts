@@ -139,7 +139,6 @@ describe("deleteGroup", () => {
       expect(result).toEqual({
         ok: true,
         groupId: f.group.id,
-        communityId: null,
         cancelledGameCount: 1,
       });
       const row = await db.query.groups.findFirst({

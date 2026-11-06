@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { chromium, type Browser, type Page } from "playwright";
 
-import { communities, games, groups, teams } from "@repo/db";
+import { games, groups, teams } from "@repo/db";
 
 import { db } from "@repo/db";
 
@@ -26,7 +26,7 @@ const VIEWPORT = { width: 430, height: 932 };
 const AUTH_STATE = join(OUT_DIR, ".auth-me.json");
 
 async function idOf(
-  table: typeof games | typeof groups | typeof communities | typeof teams,
+  table: typeof games | typeof groups | typeof teams,
   name: string,
 ) {
   const [row] = await db
@@ -140,10 +140,6 @@ async function flows(): Promise<Flow[]> {
     ladder: await idOf(groups, "Tuesday Ladder"),
     advanced: await idOf(groups, "Advanced Squad"),
     friday: await idOf(groups, "Friday Night Padel"),
-    lisbon: await idOf(communities, "Lisbon Padel Club"),
-    sunset: await idOf(communities, "Sunset Social"),
-    porto: await idOf(communities, "Porto Padel Collective"),
-    legacy: await idOf(communities, "Old Town Padel (archived)"),
     smash: await idOf(teams, "Smash Brothers"),
     netRunners: await idOf(teams, "Net Runners"),
   };
@@ -270,22 +266,6 @@ async function flows(): Promise<Flow[]> {
         await visit(page, `/dashboard/groups/${ids.ladder}?tab=members`);
         await visit(page, `/dashboard/groups/${ids.advanced}?tab=members`);
         await visit(page, "/dashboard/groups/new");
-      },
-    },
-    {
-      name: "13-communities",
-      as: "me",
-      run: async (page) => {
-        await visit(page, "/dashboard/communities");
-        await visit(page, `/dashboard/communities/${ids.lisbon}`);
-        await openTab(page, /members/i);
-        await openTab(page, /teams/i);
-        await openTab(page, /requests/i);
-        await clickIfPresent(page, /^approve$/i);
-        await visit(page, `/dashboard/communities/${ids.sunset}`);
-        await visit(page, `/dashboard/communities/${ids.porto}`);
-        await visit(page, `/dashboard/communities/${ids.legacy}`);
-        await visit(page, "/dashboard/communities/new");
       },
     },
     {

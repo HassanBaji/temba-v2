@@ -213,7 +213,7 @@ function PublicGroupRows({
                 {name}
               </Link>
             }
-            subtitle={group.communityName ?? undefined}
+            subtitle={group.venueName ?? undefined}
             meta={meta}
             footer={
               group.sport ? <SportBadge sport={group.sport} /> : undefined
@@ -289,20 +289,9 @@ export default function GroupsIndexPage({
     },
   });
 
-  const joinLoosePublic = api.groups.joinLoosePublic.useMutation({
+  const joinPublic = api.groups.joinPublic.useMutation({
     onSuccess: async () => {
-      toast.success(groupJoinToast("joinLoosePublic", locale));
-      await utils.groups.listPublic.invalidate();
-      await utils.groups.mine.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const joinClubPublic = api.groups.joinClubPublic.useMutation({
-    onSuccess: async () => {
-      toast.success(groupJoinToast("joinClubPublic", locale));
+      toast.success(groupJoinToast("joinPublic", locale));
       await utils.groups.listPublic.invalidate();
       await utils.groups.mine.invalidate();
     },
@@ -330,8 +319,7 @@ export default function GroupsIndexPage({
     ? (acceptInvite.variables?.inviteId ?? null)
     : null;
   const pendingPublicGroupId =
-    (joinLoosePublic.isPending ? joinLoosePublic.variables?.groupId : null) ??
-    (joinClubPublic.isPending ? joinClubPublic.variables?.groupId : null) ??
+    (joinPublic.isPending ? joinPublic.variables?.groupId : null) ??
     (requestJoin.isPending ? requestJoin.variables?.groupId : null) ??
     null;
 
@@ -432,13 +420,7 @@ export default function GroupsIndexPage({
               <PublicGroupRows
                 groups={publicGroups.data}
                 pendingGroupId={pendingPublicGroupId}
-                onJoin={(group) => {
-                  if (publicGroupJoinDoor(group) === "joinClubPublic") {
-                    joinClubPublic.mutate({ groupId: group.id });
-                    return;
-                  }
-                  joinLoosePublic.mutate({ groupId: group.id });
-                }}
+                onJoin={(group) => joinPublic.mutate({ groupId: group.id })}
                 onRequest={setRequestingGroupId}
               />
             ) : null}

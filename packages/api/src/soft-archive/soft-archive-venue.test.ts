@@ -47,8 +47,20 @@ describe("Soft-archive Venue", () => {
       expect(archived.ok && archived.phase === "archived").toBe(true);
 
       const frozen = await consult(db, { venueId: venue.id });
-      expect(frozen.ok && frozen.freeze("catalog")).toBe(true);
-      expect(frozen.ok && frozen.freeze("host")).toBe(true);
+      expect(frozen.ok).toBe(true);
+      if (!frozen.ok) {
+        return;
+      }
+      expect(frozen.phase).toBe("archived");
+      expect(frozen.archivedAt).toBeInstanceOf(Date);
+      expect(frozen.freeze("join")).toBe(true);
+      expect(frozen.freeze("catalog")).toBe(true);
+      expect(frozen.freeze("host")).toBe(true);
+
+      const snapshot = consult({ archivedAt: frozen.archivedAt });
+      expect(snapshot.phase).toBe("archived");
+      expect(snapshot.freeze("join")).toBe(true);
+      expect(consult({ archivedAt: null }).freeze("host")).toBe(false);
 
       const restored = await commit(db, { venueId: venue.id }, "live");
       expect(restored).toMatchObject({
@@ -89,6 +101,14 @@ describe("Soft-archive Venue", () => {
         consult(db, {
           venueId: "00000000-0000-4000-8000-000000000099",
         }),
+      ).resolves.toEqual({ ok: false, reason: "not_found" });
+
+      await expect(
+        commit(
+          db,
+          { venueId: "00000000-0000-4000-8000-000000000099" },
+          "archived",
+        ),
       ).resolves.toEqual({ ok: false, reason: "not_found" });
 
       await expect(commit(db, { venueId: venue.id }, "live")).resolves.toEqual({

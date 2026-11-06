@@ -1,17 +1,11 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { Tabs, useSegments } from "expo-router";
 import type { BottomTabScreenProps } from "expo-router/js-tabs";
 import {
   CommonActions,
   type ParamListBase,
 } from "expo-router/react-navigation";
-import {
-  Building2,
-  CalendarCheck,
-  CircleUser,
-  House,
-  Users,
-} from "lucide-react-native";
+import { CalendarCheck, CircleUser, House, Users } from "lucide-react-native";
 import type { ComponentType } from "react";
 import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { FieldIcon } from "./field-icon";
 import {
   stackMissingRoot,
@@ -38,7 +33,6 @@ const ICONS: Record<TabSlot, TabIcon> = {
   games: FieldIcon,
   book: CalendarCheck,
   groups: Users,
-  communities: Building2,
   profile: CircleUser,
 };
 
@@ -47,12 +41,12 @@ const ROUTES: Record<TabSlot, string> = {
   games: "games",
   book: "book",
   groups: "groups",
-  communities: "communities",
   profile: "profile",
 };
 
 export function AppTabs() {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const segments = useSegments();
   const m = useMessages();
   const tabs = visibleTabs(m);

@@ -468,7 +468,6 @@ export function GameDetailsScreen({
         isOrganizer: data.isOrganizer,
         registrationStatus: data.registrationStatus,
         cancelledAt: data.cancelledAt,
-        joinFrozen: data.joinFrozen,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
       })

@@ -15,11 +15,7 @@ export async function mine(database: DbClient, args: { userId: string }) {
   const memberships = await database.query.teamMembers.findMany({
     where: eq(teamMembers.userId, args.userId),
     with: {
-      team: {
-        with: {
-          community: true,
-        },
-      },
+      team: true,
     },
   });
 
@@ -51,20 +47,12 @@ export async function mine(database: DbClient, args: { userId: string }) {
     const team = membership.team;
     const members = membersByTeam.get(team.id) ?? [];
     const memberNames = members.map((member) => member.user.name);
-    const community = team.community;
 
     return {
       id: team.id,
       name: team.name,
       displayName: teamDisplayName(team.name, memberNames),
       sport: team.sport as GroupSportEnum,
-      community: community
-        ? {
-            id: community.id,
-            name: community.name,
-            archivedAt: community.archivedAt,
-          }
-        : null,
       members: members.map((member) => ({
         name: member.user.name,
         image: member.user.image,

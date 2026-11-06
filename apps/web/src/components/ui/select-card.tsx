@@ -37,7 +37,7 @@ export function SelectCard({
           ? "rounded-card gap-3 border px-5 py-[18px]"
           : "border-b px-[18px] py-4 last:border-b-0",
         selected
-          ? "border-ink bg-ink text-paper"
+          ? "border-ink bg-control text-on-control"
           : "border-rule bg-paper text-ink hover:bg-wash",
         className,
       )}

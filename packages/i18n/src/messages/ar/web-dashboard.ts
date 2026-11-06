@@ -23,20 +23,6 @@ export const webDashboard = {
     yourSport: "رياضتك",
     recentForm: "الأداء الأخير",
   },
-  communities: {
-    limited: {
-      title: "قائمة المجتمعات محدودة",
-      description: "يُعِدّ فريق Temba هذه القائمة.",
-    },
-    new: {
-      name: "الاسم",
-      type: "النوع",
-    },
-  },
-  community: {
-    actionsLabel: "إجراءات المجتمع",
-    allCommunities: "كل المجتمعات",
-  },
   games: {
     errorTitle: "تعذّر تحميل المباريات",
     loadMore: "تحميل المزيد",
@@ -56,10 +42,6 @@ export const webDashboard = {
     addPlayerTo: (side: string, position: string) =>
       `إضافة لاعب إلى ${side} ${position}`,
     cancelledHeading: "أُلغيت هذه المباراة",
-    softArchived: {
-      heading: "مجتمع مجموعة النادي هذه مؤرشف",
-      body: "يبقى التسجيل وقائمة الانتظار والدعوات مغلقة.",
-    },
     friendlyGameHeading: "مباراة ودية",
     tabs: {
       overview: "نظرة عامة",
@@ -313,12 +295,10 @@ export const webDashboard = {
         tryOther: "جرّب اسمًا آخر.",
         none: "ستظهر المجموعات هنا بعد إنشائها.",
       },
-      clubGroupOf: (community: string) => `مجموعة نادي ${community}`,
-      clubGroupOfArchived: (community: string) =>
-        `مجموعة نادي ${community} (مؤرشف)`,
+      linkedTo: (venue: string) => `مرتبطة بـ ${venue}`,
       looseGroup: "مجموعة مستقلة",
       verified: "موثّقة",
-      verifiedByVenue: (venue: string) => `موثّقة عبر مجتمع النادي: ${venue}`,
+      verifiedByVenue: (venue: string) => `موثّقة عبر ارتباط النادي: ${venue}`,
       removeVerification: "إزالة التوثيق",
       verify: "توثيق",
       removeConfirm: {
@@ -361,19 +341,19 @@ export const webDashboard = {
   },
   team: {
     backToTeams: "العودة إلى الفرق",
-    linkedTo: "مرتبط بـ",
     actionsLabel: "إجراءات الفريق",
     allTeams: "كل الفرق",
+    membersTitle: "الأعضاء",
     invitePartner: "دعوة شريك",
-    noCommunityToLink: "لا يوجد مجتمع للربط",
-    goToCommunities: "الذهاب إلى المجتمعات",
-    loadingCommunities: "جارٍ تحميل المجتمعات…",
-    selectCommunity: "اختر مجتمعًا",
   },
   venue: {
     title: "النادي",
     errorTitle: "تعذّر تحميل النادي",
     courtFallback: "الملعب",
+    location: (city: string, country: string) => `${city}، ${country}`,
+    softArchiveAction: "أرشفة",
+    unarchiveAction: "إلغاء الأرشفة",
+    softArchivedBadge: "مؤرشف",
     logoReadError: "تعذّرت قراءة الشعار",
     unarchiving: "جارٍ إلغاء الأرشفة…",
     toast: {
@@ -389,13 +369,13 @@ export const webDashboard = {
     },
     archivedBanner: {
       heading: "هذا النادي مؤرشف",
-      body: "إنه مخفي من دليل طلبات المجتمعات. لا يزال بإمكانك تعديل الحقول والملاعب والشعار. ألغِ الأرشفة لإعادته إلى الدليل النشط. تبقى روابط المجتمعات النشطة.",
+      body: "إنه مخفي من قوائم اختيار النوادي ولا يمكنه إرسال طلبات ربط المجموعات. لا يزال بإمكانك تعديل الحقول والملاعب والشعار. ألغِ الأرشفة لإعادته. تبقى المجموعات المرتبطة مرتبطة.",
     },
-    linkedCommunities: {
-      title: "المجتمعات المرتبطة",
+    linkedGroups: {
+      title: "المجموعات المرتبطة",
       description:
-        "المجتمعات التي لديها حاليًا رابط نشط بالنادي. مشاركة النادي لا تغيّر العضوية.",
-      empty: "لا توجد مجتمعات مرتبطة بهذا النادي حاليًا.",
+        "مجموعات النادي التي لديها ارتباط نشط بهذا النادي. تُقام مبارياتها الموثّقة هنا.",
+      empty: "لا توجد مجموعات مرتبطة بهذا النادي.",
     },
     details: {
       title: "التفاصيل",
@@ -431,23 +411,23 @@ export const webDashboard = {
     archiveConfirm: {
       title: (venue: string) => `أرشفة ${venue}؟`,
       description:
-        "سيُخفى من دليل طلبات المجتمعات. تبقى روابط المجتمعات النشطة.",
+        "سيُخفى من قوائم اختيار النوادي ولن يمكنه إرسال طلبات ربط المجموعات. تبقى المجموعات المرتبطة مرتبطة.",
       confirmLabel: "أرشفة النادي",
     },
   },
   venues: {
     description:
-      "كل النوادي، بما فيها المؤرشفة. أنشئ ناديًا قبل أن يطلب مجتمع ربطه.",
+      "كل النوادي، بما فيها المؤرشفة.",
+    errorTitle: "تعذّر تحميل النوادي",
+    liveCount: (n: number) =>
+      plural("ar", n, {
+        one: "نادٍ واحد",
+        two: "ناديان",
+        few: "{n} نوادٍ",
+        many: "{n} ناديًا",
+        other: "{n} نادٍ",
+      }),
     createAction: "إنشاء نادٍ",
-    linkApprovedToast: "تمت الموافقة على ربط النادي",
-    linkRejectedToast: "تم رفض طلب ربط النادي",
-    forVenue: (venue: string) => `لـ ${venue}`,
-    requests: {
-      description:
-        "وافق لربط النادي بذلك المجتمع. إن رفضت، يمكنهم الطلب مجددًا.",
-      errorTitle: "تعذّر تحميل الطلبات",
-      emptyDescription: "ستظهر هنا طلبات ربط النوادي من المجتمعات.",
-    },
     empty: {
       title: "لا توجد نوادٍ بعد",
       description: "أنشئ ناديًا لبدء الدليل.",

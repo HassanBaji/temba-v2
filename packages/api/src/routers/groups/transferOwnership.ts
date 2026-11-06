@@ -7,8 +7,7 @@ import { groupMembers, GroupMemberRoleEnum, groups } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGroupOwnerOrStaff } from "#src/groups/helpers/group-owner";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
+import { assertGroupOwner } from "#src/groups/helpers/group-owner";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
@@ -18,8 +17,6 @@ export const ALREADY_OWNER_MESSAGE = "They already own this Group";
 export const NOT_A_MEMBER_MESSAGE = "This player is not in the Group";
 export const UNCLAIMED_OWNER_MESSAGE =
   "Players not on Temba yet cannot own a Group";
-export const NOT_A_COMMUNITY_MEMBER_OWNER_MESSAGE =
-  "Only a Community Member can own this Group";
 
 /**
  * Hand the Group to another member. The new owner becomes the creator for
@@ -31,8 +28,7 @@ export async function transferOwnership(
   args: { groupId: string; userId: string; newOwnerUserId: string },
 ) {
   const group = await requireGroup(database, args.groupId);
-  await assertGroupOwnerOrStaff(
-    database,
+  assertGroupOwner(
     group,
     args.userId,
     "Only the Group owner can transfer ownership",
@@ -60,19 +56,6 @@ export async function transferOwnership(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: UNCLAIMED_OWNER_MESSAGE,
-    });
-  }
-  if (
-    group.communityId &&
-    !(await requireCommunityMembership(
-      database,
-      group.communityId,
-      args.newOwnerUserId,
-    ))
-  ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: NOT_A_COMMUNITY_MEMBER_OWNER_MESSAGE,
     });
   }
 

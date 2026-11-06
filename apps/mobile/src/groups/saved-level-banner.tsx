@@ -1,4 +1,4 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { X } from "lucide-react-native";
 import { useEffect } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
@@ -6,6 +6,7 @@ import { AccessibilityInfo, Pressable, View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { savedLevelText, type SavedLevel } from "./set-level-model";
 
 export function SavedLevelBanner({
@@ -17,6 +18,7 @@ export function SavedLevelBanner({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const text = savedLevelText(saved, locale);
   const spoken = [text.headline, text.reason].filter(Boolean).join(" ");
 
@@ -48,7 +50,7 @@ export function SavedLevelBanner({
           justifyContent: "center",
         }}
       >
-        <X size={sizes.iconAction} color={colors.paper} />
+        <X size={sizes.iconAction} color={colors.onFocus} />
       </Pressable>
     </Surface>
   );

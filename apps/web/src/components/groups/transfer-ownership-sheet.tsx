@@ -85,7 +85,7 @@ export function TransferOwnershipSheet({
               className="border-rule divide-rule flex max-h-[50vh] flex-col divide-y overflow-y-auto rounded-[16px] border"
             >
               {candidates.map((member) => {
-                const name = member.name ?? m.community.memberFallback;
+                const name = member.name ?? m.webGroup.memberFallback;
                 return (
                   <RadioRow
                     key={member.userId}
@@ -111,7 +111,7 @@ export function TransferOwnershipSheet({
               if (picked) {
                 onTransfer({
                   userId: picked.userId,
-                  name: picked.name ?? m.community.memberFallback,
+                  name: picked.name ?? m.webGroup.memberFallback,
                 });
               }
             }}

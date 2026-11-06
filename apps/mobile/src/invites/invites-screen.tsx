@@ -31,10 +31,6 @@ export function InvitesScreen() {
   const [linkText, setLinkText] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  const community = api.communities.pendingLookupInvites.useQuery(
-    undefined,
-    REFETCH_ON_FOREGROUND,
-  );
   const group = api.groups.pendingLookupInvites.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
@@ -57,13 +53,12 @@ export function InvitesScreen() {
   const refetchAll = useCallback(
     () =>
       Promise.all([
-        community.refetch(),
         group.refetch(),
         team.refetch(),
         game.refetch(),
         venueRequests.refetch(),
       ]),
-    [community, group, team, game, venueRequests],
+    [group, team, game, venueRequests],
   );
 
   const onRefresh = useCallback(async () => {
@@ -79,24 +74,12 @@ export function InvitesScreen() {
     router.push(inviteLandingPath(kind, id));
   }
 
-  const acceptCommunity = api.communities.acceptLookupInvite.useMutation({
-    onSuccess: async (result) => {
-      toast.show(lookupInviteAcceptToast("community", locale));
-      await Promise.all([
-        utils.communities.pendingLookupInvites.invalidate(),
-        utils.communities.mine.invalidate(),
-      ]);
-      land("community", result.communityId);
-    },
-    onError: (error) => toast.show(error.message),
-  });
   const acceptGroup = api.groups.acceptLookupInvite.useMutation({
     onSuccess: async (result) => {
       toast.show(lookupInviteAcceptToast("group", locale));
       await Promise.all([
         utils.groups.pendingLookupInvites.invalidate(),
         utils.groups.mine.invalidate(),
-        utils.communities.mine.invalidate(),
       ]);
       land("group", result.groupId);
     },
@@ -132,9 +115,7 @@ export function InvitesScreen() {
 
   function accept(item: InviteInboxItem) {
     const input = { inviteId: item.id };
-    if (item.kind === "community") {
-      acceptCommunity.mutate(input);
-    } else if (item.kind === "group") {
+    if (item.kind === "group") {
       acceptGroup.mutate(input);
     } else if (item.kind === "team") {
       acceptTeam.mutate(input);
@@ -144,9 +125,6 @@ export function InvitesScreen() {
   }
 
   const pendingKey =
-    (acceptCommunity.isPending
-      ? `community-${acceptCommunity.variables?.inviteId}`
-      : null) ??
     (acceptGroup.isPending
       ? `group-${acceptGroup.variables?.inviteId}`
       : null) ??
@@ -154,14 +132,8 @@ export function InvitesScreen() {
     (acceptGame.isPending ? `game-${acceptGame.variables?.inviteId}` : null);
 
   const error =
-    community.error ??
-    group.error ??
-    team.error ??
-    game.error ??
-    venueRequests.error ??
-    null;
+    group.error ?? team.error ?? game.error ?? venueRequests.error ?? null;
   const loading =
-    community.isLoading ||
     group.isLoading ||
     team.isLoading ||
     game.isLoading ||
@@ -174,7 +146,6 @@ export function InvitesScreen() {
           status: "ready",
           value: mergeInviteInbox(
             {
-              community: community.data,
               group: group.data,
               team: team.data,
               game: game.data,
@@ -185,7 +156,7 @@ export function InvitesScreen() {
 
   async function pasteLink() {
     const text = (await Clipboard.getStringAsync()).trim();
-    setLinkError(text ? null : m.mobileCommunity.invites.pasteEmpty);
+    setLinkError(text ? null : m.mobileInvite.inbox.pasteEmpty);
     if (text) {
       setLinkText(text);
     }
@@ -194,7 +165,7 @@ export function InvitesScreen() {
   function openLink() {
     const link = parseInviteLink(linkText);
     if (!link) {
-      setLinkError(m.mobileCommunity.invites.pasteInvalid);
+      setLinkError(m.mobileInvite.inbox.pasteInvalid);
       return;
     }
     setLinkError(null);

@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
@@ -20,6 +20,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import type { RouterOutputs } from "../trpc/react";
 import {
   bookingGamePath,
@@ -61,6 +62,7 @@ export function NextBooking({
 }) {
   const router = useRouter();
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const minutes = minutesBetween(item.startsAt, item.endsAt);
   const kickoff = formatHomeKickoff(item.startsAt, locale);
@@ -125,7 +127,7 @@ export function NextBooking({
                 borderColor: colors.dimrule,
               }}
             >
-              {paid ? <Check size={BADGE_ICON} color={colors.paper} /> : null}
+              {paid ? <Check size={BADGE_ICON} color={colors.onFocus} /> : null}
               <Text size="eyebrow" mono uppercase>
                 {badge}
               </Text>
@@ -247,7 +249,8 @@ export function CardAction({
   primary?: boolean;
   onPress: () => void;
 }) {
-  const foreground = primary ? colors.ink : colors.paper;
+  const colors = useColors();
+  const foreground = primary ? colors.onFocusControl : colors.onFocus;
   return (
     <Pressable
       accessibilityRole="button"
@@ -264,8 +267,8 @@ export function CardAction({
         gap: 6,
         borderRadius: radii.md,
         borderWidth: hairline,
-        borderColor: primary ? colors.paper : colors.dimrule,
-        backgroundColor: primary ? colors.paper : "transparent",
+        borderColor: primary ? colors.focusControl : colors.dimrule,
+        backgroundColor: primary ? colors.focusControl : "transparent",
         opacity: pressed ? 0.85 : 1,
       })}
     >
@@ -294,6 +297,7 @@ export function BookingRowCard({
   onPress: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const block = dayBlock(item.startsAt, locale);
   const badge = rowBadge(item, now, locale);

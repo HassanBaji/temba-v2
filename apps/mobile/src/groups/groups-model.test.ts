@@ -48,7 +48,7 @@ describe("publicGroupRowView", () => {
       joinLabel: "Join",
       joinDisabled: false,
       joinOutlined: false,
-      door: "joinLoosePublic",
+      door: "joinPublic",
     });
   });
 

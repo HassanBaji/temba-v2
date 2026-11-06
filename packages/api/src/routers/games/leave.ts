@@ -12,7 +12,6 @@ import { type db } from "#src/db";
 import { gameAdminUserIds, type GameRow, requireGame } from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { leaveRegisteredSeat } from "#src/games/leave-registered-seat";
-import { gameNotificationsSuppressed } from "#src/notifications/game-notifications-suppressed";
 import { notify } from "#src/notifications/notify";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -57,9 +56,6 @@ async function notifyGameLeft(
   leaverUserId: string,
   partnerUserId: string | null,
 ) {
-  if (await gameNotificationsSuppressed(tx, game)) {
-    return;
-  }
   const adminIds = await gameAdminUserIds(tx, game);
   await notify(tx, {
     type: "game_player_left",

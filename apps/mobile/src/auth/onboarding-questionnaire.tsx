@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import {
   footballPositionChoices,
   footballKeeperCode,
@@ -34,6 +34,7 @@ import { hairline } from "../primitives/hairline-width";
 import { sportsTaskMeta } from "../profile-tasks/profile-tasks-model";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AuthScreen } from "./auth-screen";
 import { FormErrorSummary } from "./form-error-summary";
@@ -87,6 +88,7 @@ export function SportsQuestionnaire({
   onBack: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const q = m.mobileHome.questionnaire;
   const utils = api.useUtils();
@@ -297,7 +299,7 @@ export function SportsQuestionnaire({
             <SurfaceToneContext.Provider value="ink">
               <View
                 style={{
-                  backgroundColor: colors.ink,
+                  backgroundColor: colors.control,
                   borderRadius: radii.slot,
                   paddingHorizontal: 6,
                   paddingVertical: 2,

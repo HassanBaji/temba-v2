@@ -16,19 +16,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "border border-control-edge bg-control bg-clip-padding text-on-control hover:border-control-edge/90 hover:bg-control/90",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline underline-offset-4",
-        inverse: "bg-paper text-ink hover:bg-paper/90",
+        inverse:
+          "bg-focus-control text-on-focus-control hover:bg-focus-control/90",
         "outline-inverse":
-          "border border-dimrule bg-transparent text-paper hover:bg-raised",
+          "border border-dimrule bg-transparent text-on-focus hover:bg-raised",
       },
       size: {
         default: "h-11 min-h-11 px-4 py-2 has-[>svg]:px-3",

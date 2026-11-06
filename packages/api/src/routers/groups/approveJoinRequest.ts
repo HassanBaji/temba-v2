@@ -3,9 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  communityJoinRequests,
-  CommunityJoinRequestStatusEnum,
-  CommunityRoleEnum,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
@@ -13,15 +10,10 @@ import {
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
-import {
-  admit as admitCommunityMember,
-  throwAdmitFailure,
-} from "#src/community-membership";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
 
@@ -42,14 +34,6 @@ export async function approveJoinRequest(
 
   const group = await requireGroup(database, request.groupId);
 
-  if (group.communityId) {
-    const archive = await consult(database, { clubGroupId: group.id });
-    refuseIfFrozen(archive, "join", {
-      frozenMessage:
-        "Cannot approve join requests while the Community is archived",
-    });
-  }
-
   await assertGroupApprover(database, group, args.userId);
 
   if (request.status !== "pending") {
@@ -60,40 +44,6 @@ export async function approveJoinRequest(
   }
 
   await database.transaction(async (tx) => {
-    if (group.communityId) {
-      const admitted = await admitCommunityMember(tx, {
-        communityId: group.communityId,
-        userId: request.userId,
-        role: CommunityRoleEnum.MEMBER,
-      });
-      if (!admitted.ok && admitted.reason !== "already_member") {
-        throwAdmitFailure(admitted);
-      }
-
-      const pendingCommunityRequest =
-        await tx.query.communityJoinRequests.findFirst({
-          where: and(
-            eq(communityJoinRequests.communityId, group.communityId),
-            eq(communityJoinRequests.userId, request.userId),
-            eq(
-              communityJoinRequests.status,
-              CommunityJoinRequestStatusEnum.PENDING,
-            ),
-          ),
-          columns: { id: true },
-        });
-      if (pendingCommunityRequest) {
-        await tx
-          .update(communityJoinRequests)
-          .set({
-            status: CommunityJoinRequestStatusEnum.APPROVED,
-            decidedBy: args.userId,
-            updatedAt: new Date(),
-          })
-          .where(eq(communityJoinRequests.id, pendingCommunityRequest.id));
-      }
-    }
-
     const [updated] = await tx
       .update(groupJoinRequests)
       .set({

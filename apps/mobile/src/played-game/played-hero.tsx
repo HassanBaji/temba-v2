@@ -1,4 +1,4 @@
-import { colors, radii, spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import {
   playedTagLabel,
   type PlayedResultLine,
@@ -17,6 +17,7 @@ import { ResultMark } from "../primitives/result-mark";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const HERO_PADDING_BOTTOM = 22;
 const NAV_TO_DATE_GAP = 24;
@@ -29,6 +30,7 @@ function LightStatusBar() {
 
 /** A small mono tag: solid for a win, outlined otherwise. */
 function Pill({ label, solid = false }: { label: string; solid?: boolean }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -36,14 +38,14 @@ function Pill({ label, solid = false }: { label: string; solid?: boolean }) {
         paddingVertical: 5,
         paddingHorizontal: 8,
         borderWidth: hairline,
-        borderColor: solid ? colors.paper : colors.muted,
-        backgroundColor: solid ? colors.paper : "transparent",
+        borderColor: solid ? colors.onFocus : colors.muted,
+        backgroundColor: solid ? colors.onFocus : "transparent",
       }}
     >
       <Text
         size="eyebrow"
         mono
-        style={{ color: solid ? colors.ink : colors.paper }}
+        style={{ color: solid ? colors.focus : colors.onFocus }}
       >
         {label}
       </Text>
@@ -81,6 +83,7 @@ export function PlayedHero({
   onMore,
   children,
 }: PlayedHeroProps) {
+  const colors = useColors();
   const locale = useLocale();
   const m = useMessages();
   return (

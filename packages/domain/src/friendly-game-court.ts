@@ -28,12 +28,16 @@ export function courtPositionLabel(position: Position, locale: Locale) {
   return position === "left" ? m.left : m.right;
 }
 
+/** `either` is a User who joined Either side and has not been given a Position. */
 export function courtSeatSubline(
-  position: Position,
+  position: Position | "either",
   levelBand: LevelBand | null,
   locale: Locale,
 ) {
-  const label = courtPositionLabel(position, locale);
+  const label =
+    position === "either"
+      ? messagesFor(locale).game.joinSheet.eitherSide
+      : courtPositionLabel(position, locale);
   return levelBand
     ? messagesFor(locale).game.court.seatMeta(
         label,

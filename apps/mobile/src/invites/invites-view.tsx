@@ -86,7 +86,7 @@ function InviteRow({
             <View style={{ flexDirection: "row" }}>
               <Button
                 label={m.invite.inbox.joinWaitlistLabel}
-                accessibilityLabel={m.mobileCommunity.invites.joinWaitlistA11y(
+                accessibilityLabel={m.mobileInvite.inbox.joinWaitlistA11y(
                   item.title,
                 )}
                 pending={pending}
@@ -99,7 +99,7 @@ function InviteRow({
         <View style={{ flexDirection: "row" }}>
           <Button
             label={m.invite.inbox.acceptLabel}
-            accessibilityLabel={m.mobileCommunity.invites.acceptInviteA11y(
+            accessibilityLabel={m.mobileInvite.inbox.acceptInviteA11y(
               item.title,
             )}
             pending={pending}
@@ -141,7 +141,7 @@ function VenueRequestRow({
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button
           label={m.group.linkRequest.declineLabel}
-          accessibilityLabel={m.mobileCommunity.invites.declineRequestA11y(
+          accessibilityLabel={m.mobileInvite.inbox.declineRequestA11y(
             request.venueName,
           )}
           variant="outline"
@@ -150,7 +150,7 @@ function VenueRequestRow({
         />
         <Button
           label={m.group.linkRequest.acceptLabel}
-          accessibilityLabel={m.mobileCommunity.invites.reviewRequestA11y(
+          accessibilityLabel={m.mobileInvite.inbox.reviewRequestA11y(
             request.venueName,
           )}
           pending={pending}
@@ -211,7 +211,7 @@ function Inbox({
     return (
       <View
         style={{ gap: 12 }}
-        accessibilityLabel={m.mobileCommunity.invites.loadingA11y}
+        accessibilityLabel={m.mobileInvite.inbox.loadingA11y}
       >
         {[0, 1, 2].map((key) => (
           <Skeleton key={key} height={88} radius={16} />
@@ -256,7 +256,7 @@ export function InvitesView(props: InvitesViewProps) {
       <View style={{ gap: 4 }}>
         <ScreenHeader nav="back" fallback="/profile" title={m.common.invites} />
         <Text size="meta" tone="muted">
-          {m.mobileCommunity.invites.description}
+          {m.mobileInvite.inbox.description}
         </Text>
       </View>
       <Inbox {...props} hasVenueRequests={props.venueRequests.length > 0} />
@@ -266,14 +266,14 @@ export function InvitesView(props: InvitesViewProps) {
         onAccept={props.onAcceptVenueRequest}
         onDecline={props.onDeclineVenueRequest}
       />
-      <Section title={m.mobileCommunity.invites.linkSectionTitle}>
+      <Section title={m.mobileInvite.inbox.linkSectionTitle}>
         <Surface style={{ gap: 12 }}>
           <TextField
-            label={m.mobileCommunity.invites.linkLabel}
+            label={m.mobileInvite.inbox.linkLabel}
             value={props.linkText}
             onChangeText={props.onLinkTextChange}
             error={props.linkError ?? undefined}
-            placeholder={m.mobileCommunity.invites.linkPlaceholder}
+            placeholder={m.mobileInvite.inbox.linkPlaceholder}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
@@ -283,12 +283,12 @@ export function InvitesView(props: InvitesViewProps) {
           />
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Button
-              label={m.mobileCommunity.invites.paste}
+              label={m.mobileInvite.inbox.paste}
               variant="outline"
               onPress={props.onPasteLink}
             />
             <Button
-              label={m.mobileCommunity.invites.openLink}
+              label={m.mobileInvite.inbox.openLink}
               disabled={props.linkText.trim().length === 0}
               onPress={props.onOpenLink}
             />

@@ -8,7 +8,7 @@ type DbOrTx = DbClient | DbTx;
 export async function notifyGroupJoined(
   database: DbOrTx,
   args: {
-    group: Pick<typeof groups.$inferSelect, "id" | "communityId" | "createdBy">;
+    group: Pick<typeof groups.$inferSelect, "id" | "createdBy">;
     joinerUserId: string;
     decidedByUserId?: string;
   },

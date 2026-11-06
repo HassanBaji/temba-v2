@@ -1,4 +1,4 @@
-import { colors, radii, spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import { router } from "expo-router";
 import { Phone } from "lucide-react-native";
 import { View } from "react-native";
@@ -14,6 +14,7 @@ import { Hatch } from "../../src/primitives/hatch";
 import { ResultMark } from "../../src/primitives/result-mark";
 import { SurfaceToneContext } from "../../src/primitives/surface-context";
 import { Text } from "../../src/primitives/text";
+import { useColors } from "../../src/theme/theme-provider";
 
 const TILE = 36;
 const PHONE_ICON = 18;
@@ -21,6 +22,7 @@ const PHONE_ICON = 18;
 const TONIGHT_PLAYERS = ["MK", "AH", "SR"];
 
 function PlayerTile({ initials }: { initials: string }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -43,6 +45,7 @@ function PlayerTile({ initials }: { initials: string }) {
 
 function TonightStrip() {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessibilityElementsHidden
@@ -84,6 +87,7 @@ function TonightStrip() {
 
 export default function Welcome() {
   const m = useMessages();
+  const colors = useColors();
   const insets = useSafeAreaInsets();
 
   return (
@@ -91,7 +95,7 @@ export default function Welcome() {
       <View
         style={{
           flex: 1,
-          backgroundColor: colors.ink,
+          backgroundColor: colors.focus,
           paddingTop: insets.top + spacing.section,
           paddingBottom: insets.bottom + spacing.section,
           paddingHorizontal: spacing.section,
@@ -134,7 +138,7 @@ export default function Welcome() {
           <Button
             label={m.mobileHome.welcome.continueWithPhone}
             size="lg"
-            icon={<Phone size={PHONE_ICON} color={colors.ink} />}
+            icon={<Phone size={PHONE_ICON} color={colors.onFocusControl} />}
             onPress={() => router.push("/sign-in")}
           />
           <OauthButtons variant="outline-inverse" divider={false} />

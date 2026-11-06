@@ -2,9 +2,8 @@ import type { DbClient } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 
-import { communityMembers, groupMembers, type GroupSportEnum } from "@repo/db";
+import { groupMembers, type GroupSportEnum } from "@repo/db";
 
-import { pendingLookupInvites as pendingCommunityInvites } from "#src/routers/communities/pendingLookupInvites";
 import { pendingLookupInvites as pendingGroupInvites } from "#src/routers/groups/pendingLookupInvites";
 import { pendingInvites as pendingTeamInvites } from "#src/routers/teams/pendingInvites";
 import { protectedProcedure } from "#src/trpc";
@@ -20,8 +19,7 @@ import { loadGroupStandings } from "#src/standing/load-group-standing";
  * Stats (Played / Won / Lost) are completed Matches the User sat on, including
  * zeros when they have not played. Drawn Matches count as played only. The
  * Home carousel is a dedicated live-Game list (Game admit or Organizer), not
- * the My Games hub filter. Soft-archived Club Group Games still appear when
- * live if the viewer qualifies. Standing position is among that Group's
+ * the My Games hub filter. Standing position is among that Group's
  * members only — not a global rank, and not a heading on the Level surface.
  */
 export async function loadHome(
@@ -30,19 +28,12 @@ export async function loadHome(
 ) {
   const now = new Date();
 
-  const [communityMemberships, communityInvites, groupInvites, teamInvites] =
-    await Promise.all([
-      database.query.communityMembers.findMany({
-        where: eq(communityMembers.userId, args.userId),
-        columns: { id: true },
-      }),
-      pendingCommunityInvites(database, { userId: args.userId }),
-      pendingGroupInvites(database, { userId: args.userId }),
-      pendingTeamInvites(database, { userId: args.userId }),
-    ]);
+  const [groupInvites, teamInvites] = await Promise.all([
+    pendingGroupInvites(database, { userId: args.userId }),
+    pendingTeamInvites(database, { userId: args.userId }),
+  ]);
 
-  const pendingInviteCount =
-    communityInvites.length + groupInvites.length + teamInvites.length;
+  const pendingInviteCount = groupInvites.length + teamInvites.length;
 
   const myGroupMemberships = (
     await database.query.groupMembers.findMany({
@@ -92,7 +83,6 @@ export async function loadHome(
     gamesLost: stats.gamesLost,
     setsWon: stats.setsWon,
     pendingInviteCount,
-    communitiesCount: communityMemberships.length,
     groupsCount: myGroupMemberships.length,
     carouselGames,
     standing,

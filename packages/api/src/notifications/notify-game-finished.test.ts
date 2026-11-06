@@ -2,15 +2,14 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
   courts,
   GameFormatEnum,
   gamePlayers,
   GameRegistrationModeEnum,
   games,
   gameTeams,
+  groupMembers,
+  GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
   matches,
@@ -22,7 +21,6 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { leave as leaveCommunity } from "#src/community-membership";
 import type { GameRow } from "#src/games/access";
 import { isGameFinishedByResults } from "#src/notifications/notify-game-finished";
 import { addMatch } from "#src/routers/games/addMatch";
@@ -40,7 +38,7 @@ import { registerTeam } from "#src/routers/games/registerTeam";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
-import { commit } from "#src/soft-archive";
+import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const HOUR = 60 * 60 * 1000;
@@ -85,37 +83,14 @@ async function insertUsers(
   return ids;
 }
 
+/** A Club Group whose Game admins are the creator and two Appointed Organizers. */
 async function insertClub(database: TestDatabase) {
-  const owner = await insertUser(database, "finish-owner@example.com");
-  const admin = await insertUser(database, "finish-admin@example.com");
   const creator = await insertUser(database, "finish-creator@example.com");
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Finish Club", type: "public", createdBy: owner })
-    .returning({ id: communities.id });
-  if (!community) {
-    throw new Error("Failed to insert community");
-  }
-  await database.insert(communityMembers).values(
-    [
-      { userId: owner, role: CommunityRoleEnum.OWNER },
-      { userId: admin, role: CommunityRoleEnum.ADMIN },
-      { userId: creator, role: CommunityRoleEnum.MEMBER },
-    ].map((row) => ({ ...row, communityId: community.id })),
+  const organizer = await insertUser(database, "finish-organizer@example.com");
+  const coOrganizer = await insertUser(
+    database,
+    "finish-co-organizer@example.com",
   );
-  const [group] = await database
-    .insert(groups)
-    .values({
-      verifiedAt: new Date(),
-      name: "Finish Squad",
-      type: GroupTypeEnum.PUBLIC,
-      createdBy: creator,
-      communityId: community.id,
-    })
-    .returning({ id: groups.id });
-  if (!group) {
-    throw new Error("Failed to insert group");
-  }
   const [venue] = await database
     .insert(venues)
     .values({
@@ -127,6 +102,32 @@ async function insertClub(database: TestDatabase) {
   if (!venue) {
     throw new Error("Failed to insert venue");
   }
+  const [group] = await database
+    .insert(groups)
+    .values({
+      verifiedAt: new Date(),
+      name: "Finish Squad",
+      type: GroupTypeEnum.PUBLIC,
+      createdBy: creator,
+      venueId: venue.id,
+    })
+    .returning({ id: groups.id });
+  if (!group) {
+    throw new Error("Failed to insert group");
+  }
+  await database.insert(groupMembers).values([
+    { groupId: group.id, userId: creator },
+    {
+      groupId: group.id,
+      userId: organizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    {
+      groupId: group.id,
+      userId: coOrganizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+  ]);
   const courtRows = await database
     .insert(courts)
     .values([
@@ -135,14 +136,13 @@ async function insertClub(database: TestDatabase) {
     ])
     .returning({ id: courts.id });
   return {
-    communityId: community.id,
     groupId: group.id,
     venueId: venue.id,
     courtIds: courtRows.map((court) => court.id),
-    owner,
-    admin,
     creator,
-    admins: [owner, admin, creator].sort(),
+    organizer,
+    coOrganizer,
+    admins: [creator, organizer, coOrganizer].sort(),
   };
 }
 
@@ -160,7 +160,7 @@ async function insertFriendlyGame(
       format: GameFormatEnum.FRIENDLY_GAME,
       registrationMode,
       venueId: club.venueId,
-      createdBy: club.admin,
+      createdBy: club.organizer,
       groupId: club.groupId,
       isPublic: true,
       playersAllowed: 4,
@@ -274,7 +274,7 @@ async function seedPostedTournament(
   shape: TournamentShape,
 ) {
   const created = await createTournament(database, {
-    createdBy: club.owner,
+    createdBy: club.creator,
     name: "Finish day",
     groupId: club.groupId,
     isPublic: true,
@@ -308,12 +308,12 @@ async function seedPostedTournament(
   }
   await drawPools(database, {
     gameId: created.id,
-    organizerUserId: club.owner,
+    organizerUserId: club.creator,
     shuffle: identityShuffle,
   });
   await postPoolDraw(database, {
     gameId: created.id,
-    organizerUserId: club.owner,
+    organizerUserId: club.creator,
   });
   const sideTeams = await database.query.gameTeams.findMany({
     where: eq(gameTeams.gameId, created.id),
@@ -458,19 +458,19 @@ describe("Finished Game Notifications on a Friendly game", () => {
         throw new Error("Expected three players");
       }
       const game = await insertFriendlyGame(db, club);
-      await fillFriendlyGame(db, game, [club.admin, p1, p2, p3]);
+      await fillFriendlyGame(db, game, [club.organizer, p1, p2, p3]);
       const match = await onlyMatch(db, game.id);
 
       await forceComplete(db, {
         gameId: game.id,
         matchId: match.id,
-        userId: club.admin,
+        userId: club.organizer,
       });
 
       const rows = await finishedRows(db);
-      expect(rows.filter((row) => row.recipient === club.admin)).toHaveLength(
-        1,
-      );
+      expect(
+        rows.filter((row) => row.recipient === club.organizer),
+      ).toHaveLength(1);
       expect(await audiences(db)).toEqual(expected(club.admins, [p1, p2, p3]));
     } finally {
       await close();
@@ -505,7 +505,7 @@ describe("Finished Game Notifications on a Friendly game", () => {
       await forceComplete(db, {
         gameId: game.id,
         matchId: match.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await audiences(db)).toEqual(
@@ -549,7 +549,7 @@ describe("Finished Game Notifications on a Friendly game", () => {
       await forceComplete(db, {
         gameId: game.id,
         matchId: match.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await audiences(db)).toEqual(expected(club.admins, members));
@@ -558,85 +558,65 @@ describe("Finished Game Notifications on a Friendly game", () => {
     }
   });
 
-  it("gives a Club Group creator who left the Community only the player row while still registered", async () => {
+  it("gives an Organizer whose appointment was removed only the player row while still registered", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
-      const [p1, p2, p3] = await insertUsers(db, "creator-gone", 3);
+      const [p1, p2, p3] = await insertUsers(db, "demoted", 3);
       if (!p1 || !p2 || !p3) {
         throw new Error("Expected three players");
       }
       const game = await insertFriendlyGame(db, club);
-      await fillFriendlyGame(db, game, [club.creator, p1, p2, p3]);
-      const left = await leaveCommunity(db, {
-        communityId: club.communityId,
-        userId: club.creator,
+      await fillFriendlyGame(db, game, [club.coOrganizer, p1, p2, p3]);
+      await setOrganizer(db, {
+        groupId: club.groupId,
+        approverUserId: club.creator,
+        userId: club.coOrganizer,
+        organizer: false,
       });
-      expect(left.ok).toBe(true);
       const match = await onlyMatch(db, game.id);
 
       await forceComplete(db, {
         gameId: game.id,
         matchId: match.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await audiences(db)).toEqual(
-        expected([club.owner, club.admin], [club.creator, p1, p2, p3]),
+        expected(
+          [club.creator, club.organizer],
+          [club.coOrganizer, p1, p2, p3],
+        ),
       );
     } finally {
       await close();
     }
   });
 
-  it("gives a Club Group creator who left the Community and is not registered nothing", async () => {
+  it("gives an Organizer whose appointment was removed and who is not registered nothing", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
-      const players = await insertUsers(db, "creator-out", 4);
+      const players = await insertUsers(db, "demoted-out", 4);
       const game = await insertFriendlyGame(db, club);
       await fillFriendlyGame(db, game, players);
-      await leaveCommunity(db, {
-        communityId: club.communityId,
-        userId: club.creator,
+      await setOrganizer(db, {
+        groupId: club.groupId,
+        approverUserId: club.creator,
+        userId: club.coOrganizer,
+        organizer: false,
       });
       const match = await onlyMatch(db, game.id);
 
       await forceComplete(db, {
         gameId: game.id,
         matchId: match.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await audiences(db)).toEqual(
-        expected([club.owner, club.admin], players),
+        expected([club.creator, club.organizer], players),
       );
-    } finally {
-      await close();
-    }
-  });
-
-  it("writes nothing in a Soft-archived Community", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const club = await insertClub(db);
-      const players = await insertUsers(db, "archived", 4);
-      const game = await insertFriendlyGame(db, club);
-      await fillFriendlyGame(db, game, players);
-      await db.delete(notifications);
-      await commit(db, { communityId: club.communityId }, "archived");
-      const match = await onlyMatch(db, game.id);
-
-      await forceComplete(db, {
-        gameId: game.id,
-        matchId: match.id,
-        userId: club.owner,
-      });
-
-      expect((await onlyMatch(db, game.id)).status).toBe(
-        MatchStatusEnum.COMPLETED,
-      );
-      expect(await db.query.notifications.findMany()).toEqual([]);
     } finally {
       await close();
     }
@@ -653,7 +633,7 @@ describe("Finished Game Notifications on a Friendly game", () => {
 
       const result = await cancelMatch(db, {
         gameId: game.id,
-        userId: club.owner,
+        userId: club.creator,
         matchId: match.id,
       });
 
@@ -672,7 +652,7 @@ describe("Finished Game Notifications on a Friendly game", () => {
       const game = await insertFriendlyGame(db, club);
       await fillFriendlyGame(db, game, players);
       const match = await onlyMatch(db, game.id);
-      const args = { gameId: game.id, matchId: match.id, userId: club.owner };
+      const args = { gameId: game.id, matchId: match.id, userId: club.creator };
       await forceComplete(db, args);
       const first = await finishedRows(db);
       expect(first).toHaveLength(7);
@@ -710,7 +690,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
         await forceComplete(db, {
           gameId: seeded.gameId,
           matchId: match.id,
-          userId: club.owner,
+          userId: club.creator,
         });
       }
       expect(await finishedRows(db)).toEqual([]);
@@ -718,7 +698,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
       await forceComplete(db, {
         gameId: seeded.gameId,
         matchId: pool.at(-1)!.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await audiences(db)).toEqual(
@@ -742,13 +722,13 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
         await forceComplete(db, {
           gameId: seeded.gameId,
           matchId: match.id,
-          userId: club.owner,
+          userId: club.creator,
         });
       }
 
       await cancelMatch(db, {
         gameId: seeded.gameId,
-        userId: club.owner,
+        userId: club.creator,
         matchId: pool.at(-1)!.id,
       });
 
@@ -772,7 +752,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
       for (const match of await poolMatches(db, seeded.gameId)) {
         await cancelMatch(db, {
           gameId: seeded.gameId,
-          userId: club.owner,
+          userId: club.creator,
           matchId: match.id,
         });
       }
@@ -806,14 +786,14 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
         await forceComplete(db, {
           gameId: seeded.gameId,
           matchId: match.id,
-          userId: club.owner,
+          userId: club.creator,
         });
       }
       expect(await finishedRows(db)).toEqual([]);
 
       await kick(db, {
         gameId: seeded.gameId,
-        organizerUserId: club.owner,
+        organizerUserId: club.creator,
         userId: kicked,
       });
 
@@ -846,7 +826,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
         await forceComplete(db, {
           gameId: seeded.gameId,
           matchId: match.id,
-          userId: club.owner,
+          userId: club.creator,
         });
       }
       const first = await finishedRows(db);
@@ -854,7 +834,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
 
       const added = await addMatch(db, {
         gameId: seeded.gameId,
-        userId: club.owner,
+        userId: club.creator,
         startTime: null,
         endTime: null,
         durationInMinutes: null,
@@ -865,7 +845,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
       await forceComplete(db, {
         gameId: seeded.gameId,
         matchId: added.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await finishedRows(db)).toEqual(first);
@@ -889,7 +869,7 @@ describe("Finished Game Notifications on a Knockout", () => {
       await forceComplete(database, {
         gameId: seeded.gameId,
         matchId: semi.id,
-        userId: club.owner,
+        userId: club.creator,
       });
     }
     const [final] = await knockoutRound(database, seeded.gameId, 2);
@@ -909,7 +889,7 @@ describe("Finished Game Notifications on a Knockout", () => {
       await forceComplete(db, {
         gameId: seeded.gameId,
         matchId: seeded.final.id,
-        userId: club.owner,
+        userId: club.creator,
       });
 
       expect(await audiences(db)).toEqual(
@@ -928,7 +908,7 @@ describe("Finished Game Notifications on a Knockout", () => {
 
       await cancelMatch(db, {
         gameId: seeded.gameId,
-        userId: club.owner,
+        userId: club.creator,
         matchId: seeded.final.id,
         advancingGameTeamId: seeded.final.slot1GameTeamId!,
       });

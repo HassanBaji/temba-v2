@@ -13,10 +13,8 @@ import { listInAppInvitesProcedure as listInAppInvites } from "./listInAppInvite
 import { mineProcedure as mine } from "./mine";
 import { pendingInvitesProcedure as pendingInvites } from "./pendingInvites";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
-import { requestLinkProcedure as requestLink } from "./requestLink";
 import { revokeInAppInviteProcedure as revokeInAppInvite } from "./revokeInAppInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
-import { unlinkProcedure as unlink } from "./unlink";
 
 export const teamsRouter = createTRPCRouter({
   create,
@@ -32,8 +30,6 @@ export const teamsRouter = createTRPCRouter({
   createInviteLink,
   previewInviteLink,
   acceptInviteLink,
-  requestLink,
-  unlink,
   dissolve,
   leave,
 });

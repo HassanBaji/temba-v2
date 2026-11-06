@@ -54,7 +54,6 @@ import {
   InviteDoorDialog,
 } from "~/components/invites/invite-door-dialog";
 import type { LookupUserSearchRow } from "@repo/api/types";
-import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -79,9 +78,17 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import {
   friendlyGameCanMintInvite,
+  friendlyGameVacantSeatLine,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import {
+  lineupSidesNote,
+  viewerSideOpenLine,
+  viewerTeam,
+  viewerTeamName,
+} from "@repo/domain/padel-sides";
+import { PickSideDialog } from "~/components/games/pick-side-dialog";
 import {
   friendlyGameCtaCopy,
   friendlyGameFooterActions,
@@ -219,6 +226,7 @@ export default function GameHomePage({
   const [cancelKnockoutPlace, setCancelKnockoutPlace] =
     React.useState<KnockoutMatchPlace | null>(null);
   const [joinPickerOpen, setJoinPickerOpen] = React.useState(false);
+  const [pickSideOpen, setPickSideOpen] = React.useState(false);
   const [joinPickerSeat, setJoinPickerSeat] =
     React.useState<FriendlyGameJoinSeat | null>(null);
   const [kickConfirm, setKickConfirm] = React.useState<GameKickTarget | null>(
@@ -256,6 +264,27 @@ export default function GameHomePage({
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const setSeatSide = api.games.setSeatSide.useMutation({
+    onSuccess: async () => {
+      toast.success(m.game.sides.sideSavedToast);
+      setPickSideOpen(false);
+      await utils.games.byId.invalidate({ id });
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const setTeamSides = api.games.setTeamSides.useMutation({
+    onSuccess: async () => {
+      toast.success(m.game.sides.setSidesToast);
+      await utils.games.byId.invalidate({ id });
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -583,7 +612,6 @@ export default function GameHomePage({
         isOrganizer: data.isOrganizer,
         registrationStatus: data.registrationStatus,
         cancelledAt: data.cancelledAt,
-        joinFrozen: data.joinFrozen,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
       })
@@ -793,8 +821,9 @@ export default function GameHomePage({
         <Button
           type="button"
           size="icon"
+          variant="ghost"
           aria-label={g.shareGame}
-          className="bg-raised text-paper hover:bg-raised/80 rounded-md"
+          className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
           onClick={shareInviteLink}
         >
           <Share aria-hidden="true" className="size-5" />
@@ -863,18 +892,29 @@ export default function GameHomePage({
     ctaFamily.kind === "needs_score" && firstMatch
       ? scoreLeadLine(firstMatch, plan.viewerGameTeamId, locale)
       : null;
+  const seatedTeamName = viewerTeamName(data.sides, data.viewerUserId, locale);
   const ctaLines =
     ctaFamily.kind === "join"
       ? {
           title: courtSpotsLabel(vacantSeatCount, locale),
-          subline: m.game.court.joinSubline,
+          subline: m.game.sides.sideIsOptional,
         }
-      : leadLine
+      : ctaFamily.kind === "upcoming" && seatedTeamName
         ? {
-            title: leadLine,
-            subline: friendlyGameCtaCopy(ctaFamily, locale)?.subline ?? null,
+            title: m.game.sides.youreInTeam(seatedTeamName),
+            subline:
+              friendlyGameVacantSeatLine(
+                ctaFamily.vacantSeatCount,
+                ctaFamily.live,
+                locale,
+              ) ?? viewerSideOpenLine(data.sides, data.viewerUserId, locale),
           }
-        : null;
+        : leadLine
+          ? {
+              title: leadLine,
+              subline: friendlyGameCtaCopy(ctaFamily, locale)?.subline ?? null,
+            }
+          : null;
   const organizerMenu = usesFriendlyChrome ? null : showMenu ||
     primaryLeave ||
     primaryLeaveWaitlist ? (
@@ -896,7 +936,7 @@ export default function GameHomePage({
                       key: "reopen_registration",
                       label: m.game.action.reopenRegistration,
                       icon: LockOpenIcon,
-                      disabled: data.joinFrozen || reopenRegistration.isPending,
+                      disabled: reopenRegistration.isPending,
                       onSelect: () => reopenRegistration.mutate({ gameId: id }),
                     }
                   : {
@@ -1028,14 +1068,6 @@ export default function GameHomePage({
 
         {usesDrawnTournamentChrome ? (
           <>
-            {data.joinFrozen && !data.cancelledAt ? (
-              <SoftArchiveBanner
-                headingLevel={2}
-                heading={g.softArchived.heading}
-              >
-                {g.softArchived.body}
-              </SoftArchiveBanner>
-            ) : null}
             <GameRatingScopeBlock scope={data.ratingScope} />
             <TournamentHome
               data={data}
@@ -1169,12 +1201,6 @@ export default function GameHomePage({
           </div>
         ) : null}
 
-        {data.joinFrozen && !data.cancelledAt && !usesDrawnTournamentChrome ? (
-          <SoftArchiveBanner headingLevel={2} heading={g.softArchived.heading}>
-            {g.softArchived.body}
-          </SoftArchiveBanner>
-        ) : null}
-
         {usesDrawnTournamentChrome ? null : playedMatch ? (
           <PlayedFriendlyGame
             gameId={id}
@@ -1222,6 +1248,30 @@ export default function GameHomePage({
               onPressPlayer={
                 gamePlayersLink(data) || data.isOrganizer
                   ? setSelectedPlayer
+                  : undefined
+              }
+              note={lineupSidesNote({
+                teams: data.sides,
+                viewerUserId: data.viewerUserId,
+                canJoin: data.canRegister && vacantSeatCount > 0,
+                locale,
+              })}
+              isOrganizer={data.isOrganizer}
+              setSidesPending={setTeamSides.isPending}
+              onSetSides={
+                data.isOrganizer &&
+                (data.phase === "upcoming" ||
+                  data.phase === "ongoing" ||
+                  data.phase === "needs_results")
+                  ? (sideIndex, leftUserId) =>
+                      setTeamSides.mutate({ gameId: id, sideIndex, leftUserId })
+                  : undefined
+              }
+              onPickSide={
+                !data.isOrganizer &&
+                data.phase === "upcoming" &&
+                viewerTeam(data.sides, data.viewerUserId)
+                  ? () => setPickSideOpen(true)
                   : undefined
               }
             />
@@ -1431,6 +1481,17 @@ export default function GameHomePage({
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutateAsync({ gameId: id, sideIndex, position })
           }
+        />
+      ) : null}
+
+      {usesFriendlyChrome && viewerTeam(data.sides, data.viewerUserId) ? (
+        <PickSideDialog
+          open={pickSideOpen}
+          onOpenChange={setPickSideOpen}
+          teams={data.sides}
+          viewerUserId={data.viewerUserId}
+          pending={setSeatSide.isPending}
+          onSave={(side) => setSeatSide.mutate({ gameId: id, side })}
         />
       ) : null}
 

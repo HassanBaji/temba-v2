@@ -37,9 +37,6 @@ export function groupLinkRequestAcceptConfirm(
     cancelLabel: m.acceptConfirm.cancelLabel,
     pendingLabel: m.acceptConfirm.pendingLabel,
     consequences: [
-      m.acceptConfirm.consequences.members,
-      m.acceptConfirm.consequences.noDirectJoin,
-      m.acceptConfirm.consequences.noInviteLinks,
       m.acceptConfirm.consequences.gamesHeldAt(venueName),
       m.acceptConfirm.consequences.verified,
     ],
@@ -82,9 +79,7 @@ export function groupLeaveVenueConfirm(
     pendingLabel: m.leaveVenueConfirm.pendingLabel,
     consequences: [
       m.leaveVenueConfirm.consequences.historyStays,
-      m.leaveVenueConfirm.consequences.membersStay,
       m.leaveVenueConfirm.consequences.anyVenue,
-      m.leaveVenueConfirm.consequences.inviteLinks,
     ],
   };
 }

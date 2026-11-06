@@ -30,7 +30,7 @@ function optionClassName(
         ? "min-h-[52px] flex-1 rounded-lg px-2"
         : "min-h-[52px] flex-1 rounded-xl border px-2 py-2",
     selected
-      ? "border-ink bg-ink text-paper"
+      ? "border-ink bg-control text-on-control"
       : variant === "segmented"
         ? "text-muted-foreground hover:text-ink"
         : "border-rule bg-paper text-ink hover:bg-wash",
