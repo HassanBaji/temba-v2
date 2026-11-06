@@ -172,12 +172,28 @@ export async function loadCountedMatches(
     where: eq(gamePlayers.userId, userId),
     columns: { id: true },
     with: {
-      gameTeamPlayers: { columns: { gameTeamId: true, position: true } },
+      gameTeamPlayers: {
+        columns: { gameTeamId: true, position: true, eitherSide: true },
+        with: {
+          gameTeam: {
+            columns: {},
+            with: { players: { columns: { eitherSide: true } } },
+          },
+        },
+      },
     },
   });
+  // Either side next to a partner who picked is the other Position ("auto");
+  // two Either-side Users on one Game team recorded no Position.
   const positionByTeam = new Map(
     seats.flatMap((seat) =>
-      seat.gameTeamPlayers.map((link) => [link.gameTeamId, link.position]),
+      seat.gameTeamPlayers.map((link) => [
+        link.gameTeamId,
+        link.eitherSide &&
+        link.gameTeam.players.every((player) => player.eitherSide)
+          ? null
+          : link.position,
+      ]),
     ),
   );
   const teamIds = new Set(positionByTeam.keys());

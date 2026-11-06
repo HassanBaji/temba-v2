@@ -1,0 +1,1 @@
+ALTER TABLE "game_team_players" ADD COLUMN "either_side" boolean DEFAULT false NOT NULL;

@@ -5,6 +5,8 @@ export type HubGameOccupant = {
   name: string;
   image: string | null;
   isViewer: boolean;
+  /** Joined without picking a Position. */
+  eitherSide?: boolean;
 };
 
 export type HubGameSide = {

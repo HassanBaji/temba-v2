@@ -194,7 +194,7 @@ export function GroupGamesTab({
   onJoinSeat: (
     gameId: string,
     sideIndex: number,
-    position: "left" | "right",
+    position: "left" | "right" | "either",
   ) => void;
   onJoinWaitlist: (game: ScheduledGame) => void;
   onRegister: (gameId: string) => void;

@@ -449,7 +449,7 @@ export default function GroupHomePage({
   function onJoinSeat(
     gameId: string,
     sideIndex: number,
-    position: "left" | "right",
+    position: "left" | "right" | "either",
   ) {
     registerSeat.mutate({ gameId, sideIndex, position });
   }

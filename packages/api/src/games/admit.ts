@@ -169,7 +169,7 @@ async function admitUser(
     if ((await remainingCapacity(writeDb(database), game)) <= 0) {
       return { ok: false, reason: "full" };
     }
-    await occupySeat(
+    const occupied = await occupySeat(
       database as Tx,
       game,
       party.userId,
@@ -186,7 +186,7 @@ async function admitUser(
         kind: "user",
         userId: party.userId,
         sideIndex: party.seat.sideIndex,
-        position: party.seat.position,
+        position: occupied.position,
       },
     };
   }

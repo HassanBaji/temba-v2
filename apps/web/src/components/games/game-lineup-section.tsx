@@ -1,10 +1,9 @@
 "use client";
 
-import { Plus, UserPlus } from "lucide-react";
+import { ArrowLeftRight, Plus, UserPlus } from "lucide-react";
 import { Fragment } from "react";
 
 import {
-  courtPositionLabel,
   courtSeatName,
   courtSeatRow,
   courtSeatSubline,
@@ -12,6 +11,13 @@ import {
 } from "@repo/domain/friendly-game-court";
 import { friendlyGameOpenSeatLabel } from "@repo/domain/friendly-game-players";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import {
+  offersSetSides,
+  offersSwapSides,
+  openSeatSideLabel,
+  seatSideLabel,
+  teamHasNoSidesPicked,
+} from "@repo/domain/padel-sides";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -60,10 +66,12 @@ function SeatLabels({
 
 function OpenSeat({
   position,
+  subline,
   action,
   busy,
 }: {
   position: SeatPosition;
+  subline: string;
   action: OpenSeatAction | null;
   busy: boolean;
 }) {
@@ -77,11 +85,7 @@ function OpenSeat({
       >
         {action ? <Plus className="text-muted-foreground size-[18px]" /> : null}
       </span>
-      <SeatLabels
-        title={m.game.court.open}
-        subline={courtPositionLabel(position, locale)}
-        strong={false}
-      />
+      <SeatLabels title={m.game.court.open} subline={subline} strong={false} />
     </>
   );
 
@@ -112,11 +116,13 @@ function OpenSeat({
 }
 
 function TakenSeat({
+  side,
   seat,
   position,
   viewerUserId,
   onPress,
 }: {
+  side: GameDetailsSide;
   seat: GameDetailsSeat;
   position: SeatPosition;
   viewerUserId: string;
@@ -126,7 +132,9 @@ function TakenSeat({
   const m = useMessages();
   const row = courtSeatRow(seat, position, viewerUserId, locale);
   const name = courtSeatName(row, locale);
-  const subline = courtSeatSubline(position, seat.levelBand, locale);
+  const subline =
+    seatSideLabel(side, position, viewerUserId, locale) ??
+    courtSeatSubline(position, seat.levelBand, locale);
   const body = (
     <>
       <UserAvatar
@@ -166,6 +174,49 @@ function TakenSeat({
   );
 }
 
+/**
+ * An Organizer's note on a full Game team whose players picked no sides: set
+ * them for the sheet, or swap them once set. Never needed to play or score.
+ */
+function SidesPanel({
+  side,
+  viewerUserId,
+  isOrganizer,
+  pending,
+  onSetSides,
+}: {
+  side: GameDetailsSide;
+  viewerUserId: string;
+  isOrganizer: boolean;
+  pending: boolean;
+  onSetSides: (sideIndex: number, leftUserId: string) => void;
+}) {
+  const m = useMessages();
+  const canSet = offersSetSides(side, isOrganizer);
+  const canSwap = isOrganizer && offersSwapSides(side, viewerUserId);
+  if ((!canSet && !canSwap) || !side.left || !side.right) {
+    return null;
+  }
+  const leftUserId = canSet ? side.left.userId : side.right.userId;
+  return (
+    <div className="border-rule flex items-center gap-3 rounded-lg border border-dashed px-3 py-2.5">
+      <p className="text-muted-foreground text-meta flex-1 leading-snug">
+        {canSet ? m.game.sides.setSidesPrompt : m.game.sides.setSidesDone}
+      </p>
+      <Button
+        type="button"
+        size="sm"
+        variant={canSet ? "default" : "outline"}
+        className="shrink-0"
+        disabled={pending}
+        onClick={() => onSetSides(side.sideIndex, leftUserId)}
+      >
+        {canSet ? m.game.sides.setSides : m.game.sides.swap}
+      </Button>
+    </div>
+  );
+}
+
 function SideHalf({
   side,
   labelBelow,
@@ -173,6 +224,9 @@ function SideHalf({
   busy,
   openSeatAction,
   onPressPlayer,
+  isOrganizer,
+  setSidesPending,
+  onSetSides,
 }: {
   side: GameDetailsSide;
   labelBelow: boolean;
@@ -183,12 +237,23 @@ function SideHalf({
     position: SeatPosition,
   ) => OpenSeatAction | null;
   onPressPlayer?: (row: PlayedRow) => void;
+  isOrganizer: boolean;
+  setSidesPending: boolean;
+  onSetSides?: (sideIndex: number, leftUserId: string) => void;
 }) {
   const locale = useLocale();
+  const m = useMessages();
   const label = (
-    <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
-      {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
-    </p>
+    <div className="flex items-baseline justify-between gap-3">
+      <p className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
+        {formatGameSideLabel("friendly_game", side.sideIndex, locale)}
+      </p>
+      {teamHasNoSidesPicked(side) ? (
+        <p className="text-muted-foreground text-eyebrow">
+          {m.game.sides.noSidesPicked}
+        </p>
+      ) : null}
+    </div>
   );
   return (
     <div
@@ -205,6 +270,7 @@ function SideHalf({
           const cell = seat ? (
             <TakenSeat
               key={position}
+              side={side}
               seat={seat}
               position={position}
               viewerUserId={viewerUserId}
@@ -214,6 +280,7 @@ function SideHalf({
             <OpenSeat
               key={position}
               position={position}
+              subline={openSeatSideLabel(side, position, locale)}
               action={openSeatAction(side.sideIndex, position)}
               busy={busy}
             />
@@ -228,6 +295,15 @@ function SideHalf({
           );
         })}
       </div>
+      {onSetSides ? (
+        <SidesPanel
+          side={side}
+          viewerUserId={viewerUserId}
+          isOrganizer={isOrganizer}
+          pending={setSidesPending}
+          onSetSides={onSetSides}
+        />
+      ) : null}
       {labelBelow ? label : null}
     </div>
   );
@@ -257,6 +333,11 @@ export function GameLineupSection({
   openSeatAction,
   onInvite,
   onPressPlayer,
+  note = null,
+  isOrganizer = false,
+  setSidesPending = false,
+  onSetSides,
+  onPickSide,
 }: {
   sides: GameDetailsSide[];
   viewerUserId: string;
@@ -269,6 +350,12 @@ export function GameLineupSection({
   ) => OpenSeatAction | null;
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
+  /** How sides work for this viewer, under the court. */
+  note?: string | null;
+  isOrganizer?: boolean;
+  setSidesPending?: boolean;
+  onSetSides?: (sideIndex: number, leftUserId: string) => void;
+  onPickSide?: () => void;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -284,18 +371,30 @@ export function GameLineupSection({
             {courtSpotsLabel(vacantSeatCount, locale)}
           </p>
         </div>
-        {onInvite ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            onClick={onInvite}
-          >
-            <UserPlus aria-hidden="true" className="size-[15px]" />
-            {m.invite.door.inviteButton}
-          </Button>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          {onPickSide ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onPickSide}
+            >
+              <ArrowLeftRight aria-hidden="true" className="size-[15px]" />
+              {m.game.sides.pickASide}
+            </Button>
+          ) : null}
+          {onInvite ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onInvite}
+            >
+              <UserPlus aria-hidden="true" className="size-[15px]" />
+              {m.invite.door.inviteButton}
+            </Button>
+          ) : null}
+        </div>
       </div>
       <div className="px-3.5 pb-3.5">
         <div className="border-ink overflow-hidden rounded-xl border-[1.5px]">
@@ -309,12 +408,20 @@ export function GameLineupSection({
                 busy={busy}
                 openSeatAction={openSeatAction}
                 onPressPlayer={onPressPlayer}
+                isOrganizer={isOrganizer}
+                setSidesPending={setSidesPending}
+                onSetSides={onSetSides}
               />
             </Fragment>
           ))}
         </div>
         {hint ? (
           <p className="text-muted-foreground text-meta px-1 pt-3">{hint}</p>
+        ) : null}
+        {note ? (
+          <p className="text-muted-foreground text-meta px-1 pt-3 leading-relaxed">
+            {note}
+          </p>
         ) : null}
       </div>
     </section>
