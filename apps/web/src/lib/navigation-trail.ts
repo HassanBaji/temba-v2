@@ -9,7 +9,7 @@ const MAX_TRAIL = 50;
 /** Pages a back button steps over: create flows and editors that hand off to another page when done. */
 const PASS_THROUGH = [
   /^\/dashboard\/games\/new(-tournament)?$/,
-  /^\/dashboard\/(groups|communities|teams|venues)\/new$/,
+  /^\/dashboard\/(groups|teams|venues)\/new$/,
   /^\/dashboard\/games\/[^/]+\/(score|teams|partner)$/,
   /^\/dashboard\/groups\/[^/]+\/members\/[^/]+$/,
 ];

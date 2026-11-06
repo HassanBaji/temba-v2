@@ -1,15 +1,12 @@
-import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
   groupMembers,
   GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
   user,
+  venues,
 } from "@repo/db/schema";
 
 import {
@@ -30,9 +27,20 @@ async function insertUser(database: TestDatabase, email: string) {
   return row.id;
 }
 
+async function insertVenue(database: TestDatabase) {
+  const [row] = await database
+    .insert(venues)
+    .values({ name: "Parity Club", city: "Lisbon", country: "PT" })
+    .returning({ id: venues.id });
+  if (!row) {
+    throw new Error("Failed to insert venue");
+  }
+  return row.id;
+}
+
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; communityId?: string },
+  args: { createdBy: string; venueId?: string },
 ) {
   const [row] = await database
     .insert(groups)
@@ -40,7 +48,7 @@ async function insertGroup(
       name: "Parity Group",
       type: GroupTypeEnum.PUBLIC,
       createdBy: args.createdBy,
-      communityId: args.communityId ?? null,
+      venueId: args.venueId ?? null,
     })
     .returning();
   if (!row) {
@@ -49,27 +57,11 @@ async function insertGroup(
   return row;
 }
 
-async function insertCommunity(database: TestDatabase, ownerId: string) {
-  const [row] = await database
-    .insert(communities)
-    .values({ name: "Parity Club", type: "public", createdBy: ownerId })
-    .returning({ id: communities.id });
-  if (!row) {
-    throw new Error("Failed to insert community");
-  }
-  return row.id;
-}
-
-async function seat(
+async function appoint(
   database: TestDatabase,
-  communityId: string,
+  groupId: string,
   userId: string,
-  role: CommunityRoleEnum,
 ) {
-  await database.insert(communityMembers).values({ communityId, userId, role });
-}
-
-async function appoint(database: TestDatabase, groupId: string, userId: string) {
   await database.insert(groupMembers).values({
     groupId,
     userId,
@@ -92,29 +84,21 @@ async function expectParity(
 }
 
 async function clubFixture(database: TestDatabase) {
-  const owner = await insertUser(database, "parity-owner@example.com");
-  const admin = await insertUser(database, "parity-admin@example.com");
-  const member = await insertUser(database, "parity-member@example.com");
   const creator = await insertUser(database, "parity-creator@example.com");
+  const member = await insertUser(database, "parity-member@example.com");
   const outsider = await insertUser(database, "parity-outsider@example.com");
-  const communityId = await insertCommunity(database, owner);
-  await seat(database, communityId, owner, CommunityRoleEnum.OWNER);
-  await seat(database, communityId, admin, CommunityRoleEnum.ADMIN);
-  await seat(database, communityId, member, CommunityRoleEnum.MEMBER);
-  await seat(database, communityId, creator, CommunityRoleEnum.MEMBER);
-  const group = await insertGroup(database, {
-    createdBy: creator,
-    communityId,
-  });
+  const venueId = await insertVenue(database);
+  const group = await insertGroup(database, { createdBy: creator, venueId });
+  await database
+    .insert(groupMembers)
+    .values({ groupId: group.id, userId: member });
   return {
-    communityId,
+    venueId,
     group,
-    owner,
-    admin,
     member,
     creator,
     outsider,
-    everyone: [owner, admin, member, creator, outsider],
+    everyone: [member, creator, outsider],
   };
 }
 
@@ -137,11 +121,16 @@ describe("groupApproverUserIds", () => {
     const { db, close } = await createPgliteDb();
     try {
       const creator = await insertUser(db, "parity-loose-creator@example.com");
-      const organizer = await insertUser(db, "parity-loose-organizer@example.com");
+      const organizer = await insertUser(
+        db,
+        "parity-loose-organizer@example.com",
+      );
       const other = await insertUser(db, "parity-loose-other@example.com");
       const group = await insertGroup(db, { createdBy: creator });
       await appoint(db, group.id, organizer);
-      await db.insert(groupMembers).values({ groupId: group.id, userId: other });
+      await db
+        .insert(groupMembers)
+        .values({ groupId: group.id, userId: other });
 
       expect((await groupApproverUserIds(db, group)).sort()).toEqual(
         [creator, organizer].sort(),
@@ -152,41 +141,28 @@ describe("groupApproverUserIds", () => {
     }
   });
 
-  it("includes an Appointed Organizer on a Club Group only while they hold a seat", async () => {
+  it("is the creator alone on a Club Group without Appointed Organizers", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const fixture = await clubFixture(db);
-      await appoint(db, fixture.group.id, fixture.member);
 
-      expect(await groupApproverUserIds(db, fixture.group)).toContain(
-        fixture.member,
-      );
-      await expectParity(db, fixture.group, fixture.everyone);
-
-      await db
-        .delete(communityMembers)
-        .where(
-          and(
-            eq(communityMembers.communityId, fixture.communityId),
-            eq(communityMembers.userId, fixture.member),
-          ),
-        );
-      expect(await groupApproverUserIds(db, fixture.group)).not.toContain(
-        fixture.member,
-      );
+      expect(await groupApproverUserIds(db, fixture.group)).toEqual([
+        fixture.creator,
+      ]);
       await expectParity(db, fixture.group, fixture.everyone);
     } finally {
       await close();
     }
   });
 
-  it("is Owners, Admins and a creator who still holds a seat on a Club Group", async () => {
+  it("includes an Appointed Organizer on a Club Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const fixture = await clubFixture(db);
+      await appoint(db, fixture.group.id, fixture.outsider);
 
       expect((await groupApproverUserIds(db, fixture.group)).sort()).toEqual(
-        [fixture.owner, fixture.admin, fixture.creator].sort(),
+        [fixture.creator, fixture.outsider].sort(),
       );
       await expectParity(db, fixture.group, fixture.everyone);
     } finally {
@@ -194,68 +170,33 @@ describe("groupApproverUserIds", () => {
     }
   });
 
-  it("lists an Owner who is also the creator once", async () => {
+  it("lists a creator who is also an Appointed Organizer once", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "parity-owner-creator@example.com");
-      const communityId = await insertCommunity(db, owner);
-      await seat(db, communityId, owner, CommunityRoleEnum.OWNER);
-      const group = await insertGroup(db, { createdBy: owner, communityId });
-
-      expect(await groupApproverUserIds(db, group)).toEqual([owner]);
-      await expectParity(db, group, [owner]);
-    } finally {
-      await close();
-    }
-  });
-
-  it("drops a Club Group creator who left the Community", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const fixture = await clubFixture(db);
-      await db
-        .delete(communityMembers)
-        .where(
-          and(
-            eq(communityMembers.communityId, fixture.communityId),
-            eq(communityMembers.userId, fixture.creator),
-          ),
-        );
-
-      expect(await groupApproverUserIds(db, fixture.group)).not.toContain(
-        fixture.creator,
+      const creator = await insertUser(
+        db,
+        "parity-creator-organizer@example.com",
       );
-      await expectParity(db, fixture.group, fixture.everyone);
+      const group = await insertGroup(db, { createdBy: creator });
+      await appoint(db, group.id, creator);
+
+      expect(await groupApproverUserIds(db, group)).toEqual([creator]);
+      await expectParity(db, group, [creator]);
     } finally {
       await close();
     }
   });
 
-  it("drops a demoted Admin", async () => {
+  it("keeps the Club Group doors while the linked Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const fixture = await clubFixture(db);
-      await db
-        .update(communityMembers)
-        .set({ role: CommunityRoleEnum.MEMBER })
-        .where(eq(communityMembers.userId, fixture.admin));
+      await appoint(db, fixture.group.id, fixture.outsider);
+      await commit(db, { venueId: fixture.venueId }, "archived");
 
-      expect(await groupApproverUserIds(db, fixture.group)).not.toContain(
-        fixture.admin,
+      expect((await groupApproverUserIds(db, fixture.group)).sort()).toEqual(
+        [fixture.creator, fixture.outsider].sort(),
       );
-      await expectParity(db, fixture.group, fixture.everyone);
-    } finally {
-      await close();
-    }
-  });
-
-  it("is nobody while the Community is Soft-archived", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const fixture = await clubFixture(db);
-      await commit(db, { communityId: fixture.communityId }, "archived");
-
-      expect(await groupApproverUserIds(db, fixture.group)).toEqual([]);
       await expectParity(db, fixture.group, fixture.everyone);
     } finally {
       await close();

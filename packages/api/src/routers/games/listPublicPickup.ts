@@ -28,10 +28,7 @@ export async function listPublicHubRows(
     and(eq(games.isPublic, true), isNull(games.cancelledAt)),
   );
   const filtered = filterAndSortPublicHubGames(
-    (rows as HubQueryRow[]).map((row) => ({
-      ...row,
-      communityArchivedAt: row.group?.community?.archivedAt ?? null,
-    })),
+    rows as HubQueryRow[],
     viewer.memberGroupIds,
     now,
   );
@@ -45,8 +42,7 @@ export async function listPublicHubRows(
 
 /**
  * Public pickup Games (parent events). Live `isPublic` Games only.
- * Soft-archived Community Club Group Games are excluded; the Game
- * `isPublic` row flag is not flipped. Groupless public Games are included.
+ * Groupless public Games are included.
  * Games already listed on My Games are excluded (My Games preferred).
  */
 export const listPublicPickup = protectedProcedure.query(async ({ ctx }) => {

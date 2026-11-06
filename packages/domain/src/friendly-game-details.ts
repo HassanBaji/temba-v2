@@ -105,7 +105,6 @@ export type FriendlyGameDetails = {
   registrationClosedAt: Date | null;
   isOrganizer: boolean;
   viewerUserId: string;
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;

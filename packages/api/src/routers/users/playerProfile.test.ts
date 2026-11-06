@@ -7,8 +7,6 @@ import {
   GameSportEnum,
   GroupSportEnum,
   MatchStatusEnum,
-  communities,
-  communityMembers,
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
@@ -82,14 +80,14 @@ async function insertVenue(database: TestDatabase, name: string) {
 
 async function insertGroup(
   database: TestDatabase,
-  args: { createdBy: string; communityId?: string },
+  args: { createdBy: string; venueId?: string },
 ) {
   const [row] = await database
     .insert(groups)
     .values({
       name: "Tuesday Crew",
       createdBy: args.createdBy,
-      communityId: args.communityId ?? null,
+      venueId: args.venueId ?? null,
     })
     .returning();
   if (!row) {
@@ -301,17 +299,18 @@ describe("mayViewPlayer", () => {
     });
   });
 
-  it("allows a shared Club Group in a Soft-archived Community", async () => {
+  it("allows a shared Club Group whose linked Venue is Soft-archived", async () => {
     await withDb(async (db) => {
       const viewer = await insertUser(db, "Viewer");
       const player = await insertUser(db, "Player");
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Club", createdBy: viewer.id, archivedAt: T1 })
-        .returning();
+      const venue = await insertVenue(db, "Club");
+      await db
+        .update(venues)
+        .set({ archivedAt: T1 })
+        .where(eq(venues.id, venue.id));
       const group = await insertGroup(db, {
         createdBy: viewer.id,
-        communityId: community!.id,
+        venueId: venue.id,
       });
       await joinGroup(db, group.id, [viewer.id, player.id]);
       expect(
@@ -348,24 +347,6 @@ describe("mayViewPlayer", () => {
           playerId: cancelled.id,
         }),
       ).toBe(true);
-    });
-  });
-
-  it("refuses a viewer who shares only a Community", async () => {
-    await withDb(async (db) => {
-      const viewer = await insertUser(db, "Viewer");
-      const player = await insertUser(db, "Player");
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Club", createdBy: viewer.id })
-        .returning();
-      await db.insert(communityMembers).values([
-        { communityId: community!.id, userId: viewer.id },
-        { communityId: community!.id, userId: player.id },
-      ]);
-      expect(
-        await mayViewPlayer(db, { viewerId: viewer.id, playerId: player.id }),
-      ).toBe(false);
     });
   });
 

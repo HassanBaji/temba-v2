@@ -30,8 +30,6 @@ export function inviteLandingPath(kind: InviteKind, id: string) {
       return `/groups/${id}`;
     case "team":
       return `/profile/teams/${id}`;
-    case "community":
-      return "/communities";
   }
 }
 
@@ -47,7 +45,7 @@ function single(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-const KINDS: readonly string[] = ["community", "group", "team", "game"];
+const KINDS: readonly string[] = ["group", "team", "game"];
 
 export function inviteLinkFromParams(
   params: InviteLinkParams,
@@ -111,8 +109,7 @@ export function gameShareMessage(
     roster: {
       customName: game.customName,
       venueName:
-        game.venueName ??
-        messagesFor(locale).mobileCommunity.share.venueFallback,
+        game.venueName ?? messagesFor(locale).mobileInvite.share.venueFallback,
       courtName: game.courtName,
       windowStart: game.windowStart,
       windowEnd: game.windowEnd,
@@ -130,7 +127,7 @@ export function gameInviteSubtitle(
   now: Date,
   locale: Locale,
 ) {
-  const m = messagesFor(locale).mobileCommunity.inviteSubtitle;
+  const m = messagesFor(locale).mobileInvite.subtitle;
   const start = game.windowStart ? new Date(game.windowStart) : null;
   const when = start
     ? m.when(relativeDay(start, now, locale), formatGameClock(start, locale))
@@ -149,18 +146,9 @@ export function whatsAppUrl(body: string) {
   return `whatsapp://send?text=${encodeURIComponent(body)}`;
 }
 
-type CommunityPreviewData = RouterOutputs["communities"]["previewInviteLink"];
 type GroupPreviewData = RouterOutputs["groups"]["previewInviteLink"];
 type TeamPreviewData = RouterOutputs["teams"]["previewInviteLink"];
 type GamePreviewData = RouterOutputs["games"]["previewInviteLink"];
-
-export function communityPreview(
-  data: CommunityPreviewData,
-): InviteLinkPreview {
-  return data.status === "ready"
-    ? { status: "ready", kind: "community", name: data.communityName }
-    : { status: data.status };
-}
 
 export function groupPreview(data: GroupPreviewData): InviteLinkPreview {
   return data.status === "ready"

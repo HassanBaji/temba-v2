@@ -53,7 +53,7 @@ export async function moveSeat(
     });
   }
 
-  await assertRegistrationOpen(database, game, now);
+  assertRegistrationOpen(game, now);
   const status = await getRegistrationStatus(database, game, now);
   if (status === "full") {
     throw new TRPCError({

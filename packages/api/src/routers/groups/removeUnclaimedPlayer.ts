@@ -9,7 +9,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
@@ -22,16 +21,6 @@ export async function removeUnclaimedPlayer(
   args: { groupId: string; approverUserId: string; userId: string },
 ) {
   const group = await requireGroup(database, args.groupId);
-  if (group.communityId) {
-    refuseIfFrozen(
-      await consult(database, { communityId: group.communityId }),
-      "host",
-      {
-        frozenMessage:
-          "Cannot remove players from a Group in an archived Community",
-      },
-    );
-  }
   await assertGroupApprover(database, group, args.approverUserId);
 
   const membership = await database.query.groupMembers.findFirst({

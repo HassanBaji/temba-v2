@@ -4,7 +4,6 @@ const TAB_PREFIX: Record<string, string> = {
   "(home)": "",
   games: "/games",
   groups: "/groups",
-  communities: "/communities",
   profile: "/profile",
 };
 

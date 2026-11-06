@@ -1,13 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-import { communities, groups } from "@repo/db";
+import { groups } from "@repo/db";
 
 import { type db } from "#src/db";
 import type { GameCreateVenueContext } from "#src/games/utils";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** A Club Group's Games are held at its linked Venue; a Loose Group picks one. */
 export async function loadGameCreateVenueContext(
   database: DbClient,
   groupId: string | undefined,
@@ -18,7 +19,7 @@ export async function loadGameCreateVenueContext(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, groupId),
-    columns: { id: true, communityId: true },
+    columns: { id: true, venueId: true },
   });
   if (!group) {
     throw new TRPCError({
@@ -26,21 +27,9 @@ export async function loadGameCreateVenueContext(
       message: "Group not found",
     });
   }
-  if (!group.communityId) {
+  if (!group.venueId) {
     return { locked: false, groupKind: "loose", linkedVenueId: null };
   }
 
-  const community = await database.query.communities.findFirst({
-    where: eq(communities.id, group.communityId),
-    columns: { id: true, venueId: true },
-  });
-  if (!community?.venueId) {
-    return { locked: false, groupKind: "club", linkedVenueId: null };
-  }
-
-  return {
-    locked: true,
-    groupKind: "club",
-    linkedVenueId: community.venueId,
-  };
+  return { locked: true, groupKind: "club", linkedVenueId: group.venueId };
 }

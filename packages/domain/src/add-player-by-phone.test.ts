@@ -353,7 +353,6 @@ describe("organizerCanAddPlayer", () => {
   const game = {
     isOrganizer: true,
     cancelledAt: null,
-    joinFrozen: false,
     phase: "upcoming",
     format: "friendly_game",
     sport: "padel",
@@ -383,7 +382,6 @@ describe("organizerCanAddPlayer", () => {
       false,
     );
     assert.equal(organizerCanAddPlayer({ ...game, phase: "cancelled" }), false);
-    assert.equal(organizerCanAddPlayer({ ...game, joinFrozen: true }), false);
     assert.equal(
       organizerCanAddPlayer({ ...game, registrationMode: "team_only" }),
       false,

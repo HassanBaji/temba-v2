@@ -1,5 +1,4 @@
 import { colors, sizes, spacing } from "@repo/design-tokens";
-import type { GroupCreateContext } from "@repo/domain/group-create";
 import {
   groupJoiningToggleHelp,
   type GroupEditFields,
@@ -27,7 +26,6 @@ import {
 } from "./group-form-parts";
 
 export type GroupEditViewProps = {
-  context: GroupCreateContext;
   subtitle: string;
   draft: GroupEditFields;
   onChange: (next: GroupEditFields) => void;
@@ -235,7 +233,6 @@ export function GroupEditView(props: GroupEditViewProps) {
 
         <FormBlock label={edit.visibilityLabel}>
           <VisibilityCards
-            context={props.context}
             value={draft.visibility}
             onSelect={(visibility) => set({ visibility })}
             disabled={disabled}

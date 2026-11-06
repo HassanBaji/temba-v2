@@ -1,7 +1,6 @@
 import { and, eq, gt } from "drizzle-orm";
 
 import {
-  communityInviteLinks,
   gameInviteLinks,
   groupInviteLinks,
   teamInviteLinks,
@@ -11,15 +10,6 @@ import type { InviteDb, InviteHost } from "#src/invites/doors/utils";
 
 export async function getLiveLink(database: InviteDb, host: InviteHost) {
   const now = new Date();
-  if (host.kind === "community") {
-    return database.query.communityInviteLinks.findFirst({
-      where: and(
-        eq(communityInviteLinks.communityId, host.id),
-        gt(communityInviteLinks.expiresAt, now),
-      ),
-      orderBy: (table, { desc }) => [desc(table.createdAt)],
-    });
-  }
   if (host.kind === "group") {
     return database.query.groupInviteLinks.findFirst({
       where: and(

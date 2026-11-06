@@ -370,7 +370,7 @@ export function GroupsView(props: GroupsViewProps) {
         actions={
           <HeaderIconButton
             icon={Plus}
-            accessibilityLabel={m.group.create.loose.submit}
+            accessibilityLabel={m.group.create.submit}
             onPress={props.onCreate}
           />
         }

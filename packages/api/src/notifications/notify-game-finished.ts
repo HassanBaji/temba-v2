@@ -4,7 +4,6 @@ import { and, eq, isNotNull } from "drizzle-orm";
 import { gamePlayers, matches } from "@repo/db";
 
 import { gameAdminUserIds, type GameRow } from "#src/games/access";
-import { gameNotificationsSuppressed } from "#src/notifications/game-notifications-suppressed";
 import { notify } from "#src/notifications/notify";
 
 type DbOrTx = DbClient | DbTx;
@@ -55,9 +54,6 @@ export async function notifyIfGameFinished(
       rows.map((row) => row.status),
     )
   ) {
-    return;
-  }
-  if (await gameNotificationsSuppressed(database, game)) {
     return;
   }
 

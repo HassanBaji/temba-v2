@@ -15,7 +15,6 @@ export const webUi = {
     lastTenGames: "آخر 10 مباريات",
     player: "اللاعب",
     createGroup: "إنشاء مجموعة",
-    createCommunity: "إنشاء مجتمع",
     createTeam: "إنشاء فريق",
     createVenue: "إنشاء نادٍ",
     createGame: "إنشاء مباراة",
@@ -23,7 +22,6 @@ export const webUi = {
     editGroup: "تعديل المجموعة",
     seasons: "المواسم",
     group: "المجموعة",
-    community: "المجتمع",
     team: "الفريق",
     venue: "النادي",
     game: "المباراة",
@@ -71,7 +69,7 @@ export const webUi = {
     unknown: "لا أعرف",
   },
   groupType: {
-    loose: "مجموعة خارج مجتمع",
+    loose: "مجموعة حرة",
     club: "مجموعة نادٍ",
     clubPublic: "مجموعة نادٍ عامة",
     clubPrivate: "مجموعة نادٍ خاصة",
@@ -98,7 +96,6 @@ export const webUi = {
     cancelled: "ملغى",
   },
   inviteKind: {
-    community: "مجتمع",
     group: "مجموعة",
     team: "فريق",
     game: "مباراة",

@@ -11,7 +11,7 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
-/** A Loose Group needs its owner; a Club Group has Owner and Admin behind it. */
+/** A Group needs its owner. */
 export const OWNER_CANNOT_LEAVE_MESSAGE =
   "Transfer ownership to another member before leaving, or delete the Group";
 
@@ -35,7 +35,7 @@ export async function leaveGroup(
     });
   }
 
-  if (!group.communityId && group.createdBy === args.userId) {
+  if (group.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: OWNER_CANNOT_LEAVE_MESSAGE,
@@ -47,7 +47,6 @@ export async function leaveGroup(
   return {
     ok: true as const,
     groupId: group.id,
-    communityId: group.communityId,
   };
 }
 

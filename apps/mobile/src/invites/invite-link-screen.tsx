@@ -20,7 +20,6 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import {
-  communityPreview,
   gamePreview,
   groupPreview,
   inviteLandingPath,
@@ -50,7 +49,7 @@ function InviteLinkHeader() {
     <ScreenHeader
       nav="back"
       fallback="/profile"
-      title={m.mobileCommunity.inviteLink.title}
+      title={m.mobileInvite.link.title}
     />
   );
 }
@@ -64,8 +63,8 @@ export function InviteLinkScreen() {
       <Screen>
         <InviteLinkHeader />
         <Notice
-          title={m.mobileCommunity.inviteLink.incompleteTitle}
-          description={m.mobileCommunity.inviteLink.incompleteDescription}
+          title={m.mobileInvite.link.incompleteTitle}
+          description={m.mobileInvite.link.incompleteDescription}
         />
       </Screen>
     );
@@ -107,10 +106,6 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   const enabled = Boolean(token);
   const input = { token: token ?? "" };
 
-  const community = api.communities.previewInviteLink.useQuery(input, {
-    enabled: enabled && kind === "community",
-    ...REFETCH_ON_FOREGROUND,
-  });
   const group = api.groups.previewInviteLink.useQuery(input, {
     enabled: enabled && kind === "group",
     ...REFETCH_ON_FOREGROUND,
@@ -124,12 +119,9 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     ...REFETCH_ON_FOREGROUND,
   });
 
-  const active = { community, group, team, game }[kind];
+  const active = { group, team, game }[kind];
 
   function previewOf(): InviteLinkPreview | undefined {
-    if (kind === "community" && community.data) {
-      return communityPreview(community.data);
-    }
     if (kind === "group" && group.data) {
       return groupPreview(group.data);
     }
@@ -174,14 +166,6 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     router.replace(inviteLandingPath(kind, id));
   }
 
-  const acceptCommunity = api.communities.acceptInviteLink.useMutation({
-    onSuccess: async (result) => {
-      toast.show(inviteLinkAcceptToast("community", locale));
-      await utils.communities.mine.invalidate();
-      land(result.communityId);
-    },
-    onError: (e) => toast.show(e.message),
-  });
   const acceptGroup = api.groups.acceptInviteLink.useMutation({
     onSuccess: async (result) => {
       toast.show(
@@ -189,10 +173,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
           ? groupJoinToast("requestJoin", locale)
           : inviteLinkAcceptToast("group", locale),
       );
-      await Promise.all([
-        utils.groups.mine.invalidate(),
-        utils.communities.mine.invalidate(),
-      ]);
+      await utils.groups.mine.invalidate();
       land(result.groupId);
     },
     onError: (e) => toast.show(e.message),
@@ -245,9 +226,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     if (!token) {
       return;
     }
-    if (kind === "community") {
-      acceptCommunity.mutate({ token });
-    } else if (kind === "group") {
+    if (kind === "group") {
       acceptGroup.mutate({ token });
     } else if (kind === "team") {
       acceptTeam.mutate({ token });
@@ -263,10 +242,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   }
 
   const acceptPending =
-    acceptCommunity.isPending ||
-    acceptGroup.isPending ||
-    acceptTeam.isPending ||
-    acceptGame.isPending;
+    acceptGroup.isPending || acceptTeam.isPending || acceptGame.isPending;
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>

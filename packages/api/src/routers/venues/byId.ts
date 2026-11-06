@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { communities, venues } from "@repo/db";
+import { groups, venues } from "@repo/db";
 
 import { operatorProcedure } from "#src/trpc";
 import { type db } from "#src/db";
@@ -42,19 +42,19 @@ export async function venueById(database: DbClient, args: { venueId: string }) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
   }
 
-  const linkedCommunities = await database.query.communities.findMany({
-    where: eq(communities.venueId, venue.id),
+  const linkedGroups = await database.query.groups.findMany({
+    where: and(eq(groups.venueId, venue.id), isNull(groups.deletedAt)),
     columns: {
       id: true,
       name: true,
-      archivedAt: true,
+      sport: true,
     },
     orderBy: (table, { asc }) => [asc(table.name)],
   });
 
   return {
     ...venue,
-    linkedCommunities,
+    linkedGroups,
   };
 }
 

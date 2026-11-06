@@ -36,10 +36,6 @@ export function AcceptInviteFlow({
   const m = useMessages();
   const locale = useLocale();
 
-  const communityPreview = api.communities.previewInviteLink.useQuery(
-    { token },
-    { enabled: kind === "community" },
-  );
   const groupPreview = api.groups.previewInviteLink.useQuery(
     { token },
     { enabled: kind === "group" },
@@ -49,15 +45,6 @@ export function AcceptInviteFlow({
     { enabled: kind === "team" },
   );
 
-  const communityAccept = api.communities.acceptInviteLink.useMutation({
-    onSuccess: (result) => {
-      toast.success(inviteLinkAcceptToast("community", locale));
-      router.replace(`/dashboard/communities/${result.communityId}`);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
   const groupAccept = api.groups.acceptInviteLink.useMutation({
     onSuccess: (result) => {
       toast.success(
@@ -81,30 +68,17 @@ export function AcceptInviteFlow({
     },
   });
 
-  const preview =
-    kind === "community"
-      ? communityPreview
-      : kind === "group"
-        ? groupPreview
-        : teamPreview;
-  const accept =
-    kind === "community"
-      ? communityAccept
-      : kind === "group"
-        ? groupAccept
-        : teamAccept;
+  const preview = kind === "group" ? groupPreview : teamPreview;
+  const accept = kind === "group" ? groupAccept : teamAccept;
 
-  const hostLabel =
-    kind === "community" ? "Community" : kind === "group" ? "Group" : "Team";
+  const hostLabel = kind === "group" ? "Group" : "Team";
   const entityLabel = m.invite.kind[kind];
   const readyPreview =
     preview.data?.status === "ready" ? preview.data : undefined;
   const entityName = readyPreview
-    ? "communityName" in readyPreview
-      ? readyPreview.communityName
-      : "groupName" in readyPreview
-        ? (readyPreview.groupName ?? m.invite.kind.group)
-        : readyPreview.teamName
+    ? "groupName" in readyPreview
+      ? (readyPreview.groupName ?? m.invite.kind.group)
+      : readyPreview.teamName
     : entityLabel;
   const requiresApproval = Boolean(
     readyPreview &&

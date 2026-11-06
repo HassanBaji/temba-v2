@@ -8,7 +8,7 @@ import { type db } from "#src/db";
 
 type DbClient = typeof db;
 
-/** Loose Groups the caller belongs to (Club Groups live under Communities). */
+/** Loose Groups the caller belongs to: Groups with no Venue link. */
 export async function mineLoose(database: DbClient, args: { userId: string }) {
   const memberships = await database.query.groupMembers.findMany({
     where: eq(groupMembers.userId, args.userId),
@@ -20,7 +20,7 @@ export async function mineLoose(database: DbClient, args: { userId: string }) {
   return memberships
     .filter(
       (membership) =>
-        membership.group.communityId === null &&
+        membership.group.venueId === null &&
         membership.group.deletedAt === null,
     )
     .map((membership) => ({

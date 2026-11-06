@@ -26,7 +26,7 @@ export async function listSeasons(
   const group = await requireGroup(database, args.groupId);
   const now = args.now ?? new Date();
 
-  const [membership, canManage, rows] = await Promise.all([
+  const [membership, rows] = await Promise.all([
     database.query.groupMembers.findFirst({
       where: and(
         eq(groupMembers.groupId, group.id),
@@ -34,7 +34,6 @@ export async function listSeasons(
       ),
       columns: { id: true },
     }),
-    canManageSeasons(database, group, args.userId),
     database.query.groupSeasons.findMany({
       where: eq(groupSeasons.groupId, group.id),
     }),
@@ -44,7 +43,7 @@ export async function listSeasons(
     groupId: group.id,
     groupName: group.name,
     isMember: membership != null,
-    canManage,
+    canManage: canManageSeasons(group, args.userId),
     seasons: sortSeasonsNewestFirst(rows.map((row) => toSeasonRow(row, now))),
   };
 }

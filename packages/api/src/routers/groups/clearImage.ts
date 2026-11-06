@@ -9,7 +9,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 import { removeGroupImageObject } from "#src/storage/group-images";
 
 type DbClient = typeof db;
@@ -19,14 +18,6 @@ export async function clearImage(
   args: { groupId: string; userId: string },
 ) {
   const group = await requireGroup(database, args.groupId);
-
-  if (group.communityId) {
-    const archive = await consult(database, { clubGroupId: group.id });
-    refuseIfFrozen(archive, "host", {
-      frozenMessage:
-        "Cannot clear a Group image while the Community is archived",
-    });
-  }
 
   await assertGroupApprover(database, group, args.userId);
 

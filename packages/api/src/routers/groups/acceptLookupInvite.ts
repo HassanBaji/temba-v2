@@ -48,12 +48,6 @@ export async function acceptLookupInvite(
     ),
   );
   if (!accepted.ok) {
-    if (accepted.reason === "must_be_member") {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You must be a Community Member to join its Club Groups",
-      });
-    }
     if (accepted.reason === "frozen") {
       throwInviteFrozen({ kind: "group", id: group.id }, "accept", "frozen");
     }

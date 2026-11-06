@@ -2,16 +2,14 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  CommunityRoleEnum,
   GameFormatEnum,
   GameRegistrationModeEnum,
   MatchStatusEnum,
-  communities,
-  communityMembers,
   courts,
   gamePlayers,
   games,
   groupMembers,
+  GroupMemberRoleEnum,
   groups,
   matches,
   notifications,
@@ -315,36 +313,25 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
   it("tells the other Game admins about the join, not the adding Organizer", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, { name: "Owner" });
+      const organizer = await insertUser(db, { name: "Organizer" });
       const creator = await insertUser(db, { name: "Creator" });
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Club", type: "public", createdBy: owner })
-        .returning({ id: communities.id });
-      await db.insert(communityMembers).values([
-        {
-          communityId: community!.id,
-          userId: owner,
-          role: CommunityRoleEnum.OWNER,
-        },
-        {
-          communityId: community!.id,
-          userId: creator,
-          role: CommunityRoleEnum.MEMBER,
-        },
-      ]);
+      const [venue] = await db
+        .insert(venues)
+        .values({ name: "Club Courts", city: "Manama", country: "BH" })
+        .returning({ id: venues.id });
       const [group] = await db
         .insert(groups)
         .values({
           name: "Club padel",
           createdBy: creator,
-          communityId: community!.id,
+          venueId: venue!.id,
         })
         .returning({ id: groups.id });
-      const [venue] = await db
-        .insert(venues)
-        .values({ name: "Club Courts", city: "Manama", country: "BH" })
-        .returning({ id: venues.id });
+      await db.insert(groupMembers).values({
+        groupId: group!.id,
+        userId: organizer,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
       const windowStart = new Date(Date.now() + 24 * HOUR);
       const { game } = await createFriendlyGame(db, {
         createdBy: creator,
@@ -356,7 +343,7 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
 
       const added = await addPlayerByPhone(db, {
         gameId: game.id,
-        organizerUserId: owner,
+        organizerUserId: organizer,
         ...bahrain("36124408"),
         name: "Ali",
         seat: { sideIndex: 1, position: "left" },

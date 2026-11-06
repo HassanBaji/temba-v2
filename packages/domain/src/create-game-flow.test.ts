@@ -287,7 +287,7 @@ describe("where helpers", () => {
         },
         "en",
       ),
-      "Venue is this Community’s linked Venue and cannot be changed. Court is optional.",
+      "Venue is this Group’s linked Venue and cannot be changed. Court is optional.",
     );
     assert.equal(
       createVenueCopy(
@@ -298,18 +298,7 @@ describe("where helpers", () => {
         },
         "en",
       ),
-      "This Community’s linked Venue is Soft-archived. You can still create this Game here. Skip Court.",
-    );
-    assert.equal(
-      createVenueCopy(
-        {
-          locked: false,
-          groupKind: "club",
-          venues: [],
-        },
-        "en",
-      ),
-      "This Community has no Venue link. Pick a Venue. Court is optional.",
+      "This Group’s Venue is Soft-archived. You can still create this Game here. Skip Court.",
     );
     assert.equal(
       createVenueCopy(

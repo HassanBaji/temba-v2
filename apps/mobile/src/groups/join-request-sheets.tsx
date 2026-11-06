@@ -53,14 +53,12 @@ function SheetAction({
 
 export function RejectRequestSheet({
   request,
-  communityName,
   apiOrigin,
   pending,
   onReject,
   onClose,
 }: {
   request: GroupJoinRequestData | null;
-  communityName: string | null;
   apiOrigin: string;
   pending: "reject" | "block" | null;
   onReject: (block: boolean) => void;
@@ -85,7 +83,7 @@ export function RejectRequestSheet({
                 {copy.title}
               </Text>
               <Text size="meta" tone="muted" numberOfLines={2}>
-                {groupJoinRequestMeta(request, communityName, locale)}
+                {groupJoinRequestMeta(request, locale)}
               </Text>
             </View>
           </View>
@@ -123,14 +121,12 @@ export function RejectRequestSheet({
 export function WhoCanJoinSheet({
   visible,
   requiresApproval,
-  communityName,
   pending,
   onSave,
   onClose,
 }: {
   visible: boolean;
   requiresApproval: boolean;
-  communityName: string | null;
   pending: boolean;
   onSave: (requiresApproval: boolean) => void;
   onClose: () => void;
@@ -150,7 +146,7 @@ export function WhoCanJoinSheet({
     <Sheet visible={visible} onClose={onClose} title={copy.title}>
       <View style={{ gap: 16 }}>
         <Text size="meta" tone="muted">
-          {groupWhoCanJoinDescription(communityName, locale)}
+          {groupWhoCanJoinDescription(locale)}
         </Text>
         <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
           <ChoiceCard

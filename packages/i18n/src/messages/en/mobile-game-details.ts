@@ -17,10 +17,6 @@ export const mobileGameDetails = {
     title: "Game not found",
     description: "It may have been removed, or you may not have access.",
   },
-  frozen: {
-    title: "This Club Group's Community is Soft-archived",
-    description: "Registration, the waitlist, and invites stay closed.",
-  },
   toast: {
     resultConfirmed: "Result confirmed",
     scoreConfirmed: "Score confirmed",

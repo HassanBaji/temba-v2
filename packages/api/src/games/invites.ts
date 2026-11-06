@@ -2,7 +2,6 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
 import {
-  CommunityRoleEnum,
   gameInviteLinkConsents,
   gamePlayers,
   gameWaitlist,
@@ -13,7 +12,6 @@ import {
 } from "@repo/db";
 
 import { type db } from "#src/db";
-import { admit as admitCommunityMember } from "#src/community-membership";
 import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
@@ -46,9 +44,9 @@ export async function assertGameInviteDoorsOpen(
   game: GameRow,
   now = new Date(),
 ) {
-  // Closed includes organizer-close, ended window, cancel, and Soft-archived
-  // Club Group Games (TEM-43). Mint and accept share this door.
-  await assertRegistrationOpen(database, game, now);
+  // Closed includes organizer-close, ended window and cancel (TEM-43). Mint
+  // and accept share this door.
+  assertRegistrationOpen(game, now);
 }
 
 export async function assertInviteeAllowedOnGame(
@@ -72,9 +70,9 @@ export async function assertInviteeAllowedOnGame(
 
 /**
  * A Game Invite link is an Organizer's invitation, so on a Group Game it also
- * opens the Group door: a non-member joins the Group (and the Community on a
- * Club Group) as they register. A blocked User is refused on a private Game and
- * registers without joining on a public one.
+ * opens the Group door: a non-member joins the Group as they register. A
+ * blocked User is refused on a private Game and registers without joining on
+ * a public one.
  */
 export async function admitInviteeToGroup(
   database: Tx,
@@ -98,23 +96,10 @@ export async function admitInviteeToGroup(
   }
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { id: true, communityId: true, createdBy: true },
+    columns: { id: true, createdBy: true },
   });
   if (!group) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
-  }
-  if (group.communityId) {
-    const admitted = await admitCommunityMember(database, {
-      communityId: group.communityId,
-      userId,
-      role: CommunityRoleEnum.MEMBER,
-    });
-    if (!admitted.ok && admitted.reason !== "already_member") {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Community not found",
-      });
-    }
   }
   await database.insert(groupMembers).values({ groupId: group.id, userId });
   await notifyGroupJoined(database, { group, joinerUserId: userId });

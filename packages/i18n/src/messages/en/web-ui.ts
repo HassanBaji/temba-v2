@@ -13,7 +13,6 @@ export const webUi = {
     lastTenGames: "Last 10 games",
     player: "Player",
     createGroup: "Create Group",
-    createCommunity: "Create Community",
     createTeam: "Create Team",
     createVenue: "Create Venue",
     createGame: "Create Game",
@@ -21,7 +20,6 @@ export const webUi = {
     editGroup: "Edit Group",
     seasons: "Seasons",
     group: "Group",
-    community: "Community",
     team: "Team",
     venue: "Venue",
     game: "Game",
@@ -62,7 +60,7 @@ export const webUi = {
     unknown: "I don’t know",
   },
   groupType: {
-    loose: "Group outside a Community",
+    loose: "Loose Group",
     club: "Club Group",
     clubPublic: "Club Group Public",
     clubPrivate: "Club Group Private",
@@ -89,7 +87,6 @@ export const webUi = {
     cancelled: "Cancelled",
   },
   inviteKind: {
-    community: "Community",
     group: "Group",
     team: "Team",
     game: "Game",

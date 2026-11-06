@@ -3,20 +3,15 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupMembers,
+  GroupMemberRoleEnum,
   groups,
-  GroupSportEnum,
   user,
+  venues,
 } from "@repo/db/schema";
 
 import { clearImage } from "#src/routers/groups/clearImage";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const removeGroupImageObject = vi.fn();
@@ -57,31 +52,15 @@ async function insertUser(database: TestDatabase, email: string) {
   return row;
 }
 
-async function insertCommunity(
-  database: TestDatabase,
-  args: { ownerId: string; name: string },
-) {
-  const [community] = await database
-    .insert(communities)
-    .values({
-      name: args.name,
-      type: "public",
-      createdBy: args.ownerId,
-    })
-    .returning({ id: communities.id, name: communities.name });
-  if (!community) {
-    throw new Error("Failed to insert community");
+async function insertVenue(database: TestDatabase) {
+  const [row] = await database
+    .insert(venues)
+    .values({ name: "Padel Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!row) {
+    throw new Error("Failed to insert venue");
   }
-  await database.insert(communitySports).values({
-    communityId: community.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values({
-    communityId: community.id,
-    userId: args.ownerId,
-    role: CommunityRoleEnum.OWNER,
-  });
-  return community;
+  return row;
 }
 
 async function setImageUrl(
@@ -161,41 +140,42 @@ describe("clearImage", () => {
     }
   });
 
-  it("refuses clear on a Club Group whose Community is Soft-archived", async () => {
+  it("lets an Appointed Organizer clear the image on a Club Group, even when its Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "clear-frozen-owner@example.com");
-      const community = await insertCommunity(db, {
-        ownerId: owner.id,
-        name: "Frozen Club",
-      });
-      const group = await createClubPublic(db, {
-        communityId: community.id,
-        name: "Frozen Crew",
+      const creator = await insertUser(db, "clear-club-creator@example.com");
+      const organizer = await insertUser(
+        db,
+        "clear-club-organizer@example.com",
+      );
+      const venue = await insertVenue(db);
+      const group = await createLoosePublic(db, {
+        name: "Club Crew",
         sport: "padel",
-        userId: owner.id,
+        userId: creator.id,
+      });
+      await db
+        .update(groups)
+        .set({ venueId: venue.id })
+        .where(eq(groups.id, group.id));
+      await db.insert(groupMembers).values({
+        groupId: group.id,
+        userId: organizer.id,
+        role: GroupMemberRoleEnum.ORGANIZER,
       });
       await setImageUrl(db, group.id, STORED_URL);
-      await commit(db, { communityId: community.id }, "archived");
+      await db
+        .update(venues)
+        .set({ archivedAt: new Date() })
+        .where(eq(venues.id, venue.id));
 
-      await expect(
-        clearImage(db, {
-          groupId: group.id,
-          userId: owner.id,
-        }),
-      ).rejects.toSatisfy((error) => {
-        expectTrpc(
-          error,
-          "BAD_REQUEST",
-          "Cannot clear a Group image while the Community is archived",
-        );
-        return true;
+      const updated = await clearImage(db, {
+        groupId: group.id,
+        userId: organizer.id,
       });
-      expect(removeGroupImageObject).not.toHaveBeenCalled();
-      const stored = await db.query.groups.findFirst({
-        where: eq(groups.id, group.id),
-      });
-      expect(stored?.imageUrl).toBe(STORED_URL);
+
+      expect(updated).toEqual({ id: group.id, imageUrl: null });
+      expect(removeGroupImageObject).toHaveBeenCalledWith(group.id);
     } finally {
       await close();
     }

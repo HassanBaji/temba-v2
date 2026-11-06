@@ -13,7 +13,6 @@ import { type db } from "#src/db";
 import { acceptLookup } from "#src/invites/doors";
 import { killTeamOpenSeatDoors } from "#src/teams/helpers/kill-team-open-seat-doors";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
-import { refuseIfLinkedCommunityArchived } from "#src/teams/helpers/refuse-if-linked-community-archived";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { unorderedPairIsReserved } from "#src/teams/helpers/unordered-pair-is-reserved";
 
@@ -42,11 +41,6 @@ export async function acceptInAppInvite(
   }
 
   const team = await requireTeam(database, invite.teamId);
-  await refuseIfLinkedCommunityArchived(
-    database,
-    team,
-    "Cannot accept a Team invite while the linked Community is archived",
-  );
   const memberRows = await listTeamMembers(database, team.id);
 
   const existing = memberRows.find((row) => row.userId === args.userId);

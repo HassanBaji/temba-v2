@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
   GameFormatEnum,
   games,
   groups,
@@ -217,24 +216,12 @@ describe("Friendly Game create", () => {
         db,
         `Locked ${crypto.randomUUID()}`,
       );
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Locked Club",
-          type: "private",
-          createdBy: owner.id,
-          venueId: lockedVenue.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
       const [clubGroup] = await db
         .insert(groups)
         .values({
           name: "Club Group",
           createdBy: owner.id,
-          communityId: community.id,
+          venueId: lockedVenue.id,
         })
         .returning({ id: groups.id });
       if (!clubGroup) {

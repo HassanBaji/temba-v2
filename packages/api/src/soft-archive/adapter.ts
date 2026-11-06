@@ -22,7 +22,7 @@ export function refuseIfFrozen(
   if (!view.ok) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: args.notFoundMessage ?? "Community not found",
+      message: args.notFoundMessage ?? "Venue not found",
     });
   }
   if (view.freeze(kind)) {
@@ -35,7 +35,7 @@ export function refuseIfFrozen(
 
 export function throwCommitFailure(
   result: Extract<CommitResult, { ok: false }>,
-  subjectLabel: "Community" | "Venue" = "Community",
+  subjectLabel: "Venue" = "Venue",
 ): never {
   if (result.reason === "not_found") {
     throw new TRPCError({

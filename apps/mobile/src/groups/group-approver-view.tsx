@@ -132,7 +132,6 @@ function ChangePolicyLink({ onPress }: { onPress: () => void }) {
 
 function RequestRow({
   request,
-  communityName,
   apiOrigin,
   showLevel,
   approving,
@@ -142,7 +141,6 @@ function RequestRow({
   onOpenProfile,
 }: {
   request: GroupJoinRequestData;
-  communityName: string | null;
   apiOrigin: string;
   showLevel: boolean;
   approving: boolean;
@@ -154,7 +152,7 @@ function RequestRow({
   const locale = useLocale();
   const m = useMessages();
   const name = request.user.name ?? m.mobileGroup.unnamedUser;
-  const meta = groupJoinRequestMeta(request, communityName, locale);
+  const meta = groupJoinRequestMeta(request, locale);
   const identity = (
     <>
       <Avatar name={name} uri={mediaUrl(request.user.image, apiOrigin)} />
@@ -244,7 +242,6 @@ export type JoinRequestsCardProps = {
   requests: Slot<GroupJoinRequestData[]>;
   requiresApproval: boolean;
   approvedToday: number;
-  communityName: string | null;
   apiOrigin: string;
   showLevel: boolean;
   approvePendingId: string | null;
@@ -346,7 +343,6 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
             {index > 0 ? <Hairline /> : null}
             <RequestRow
               request={request}
-              communityName={props.communityName}
               apiOrigin={props.apiOrigin}
               showLevel={props.showLevel}
               approving={props.approvePendingId === request.id}

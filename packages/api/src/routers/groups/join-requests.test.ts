@@ -3,37 +3,32 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupInviteLinks,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
+  GroupMemberRoleEnum,
   groups,
-  GroupSportEnum,
   GroupTypeEnum,
   user,
+  venueManagers,
+  venues,
 } from "@repo/db/schema";
 
 import { acceptInviteLink } from "#src/routers/groups/acceptInviteLink";
 import { acceptLookupInvite } from "#src/routers/groups/acceptLookupInvite";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { joinClubPublic } from "#src/routers/groups/joinClubPublic";
-import { joinLoosePublic } from "#src/routers/groups/joinLoosePublic";
+import { joinPublic } from "#src/routers/groups/joinPublic";
 import { leaveGroup } from "#src/routers/groups/leave";
 import { listJoinRequests } from "#src/routers/groups/listJoinRequests";
 import { rejectJoinRequest } from "#src/routers/groups/rejectJoinRequest";
 import { requestJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { setRequiresApproval } from "#src/routers/groups/setRequiresApproval";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -47,31 +42,38 @@ async function insertUser(database: TestDatabase, email: string) {
   return row;
 }
 
-async function insertCommunity(
-  database: TestDatabase,
-  args: { ownerId: string; name: string },
-) {
-  const [community] = await database
-    .insert(communities)
-    .values({
-      name: args.name,
-      type: "public",
-      createdBy: args.ownerId,
-    })
-    .returning({ id: communities.id, name: communities.name });
-  if (!community) {
-    throw new Error("Failed to insert community");
+async function insertVenue(database: TestDatabase, name: string) {
+  const [row] = await database
+    .insert(venues)
+    .values({ name, city: "Manama", country: "BH" })
+    .returning({ id: venues.id, name: venues.name });
+  if (!row) {
+    throw new Error("Failed to insert venue");
   }
-  await database.insert(communitySports).values({
-    communityId: community.id,
-    sport: GroupSportEnum.PADEL,
+  return row;
+}
+
+/** A Public Club Group: a Loose Group linked to a Venue. */
+async function createClubPublic(
+  database: TestDatabase,
+  args: {
+    venueId: string;
+    name: string;
+    userId: string;
+    requiresApproval?: boolean;
+  },
+) {
+  const group = await createLoosePublic(database, {
+    name: args.name,
+    sport: "padel",
+    userId: args.userId,
+    requiresApproval: args.requiresApproval,
   });
-  await database.insert(communityMembers).values({
-    communityId: community.id,
-    userId: args.ownerId,
-    role: CommunityRoleEnum.OWNER,
-  });
-  return community;
+  await database
+    .update(groups)
+    .set({ venueId: args.venueId })
+    .where(eq(groups.id, group.id));
+  return group;
 }
 
 async function memberCount(database: TestDatabase, groupId: string) {
@@ -114,7 +116,7 @@ describe("group join requests", () => {
     }
   });
 
-  it("admits via joinLoosePublic when Require approval is off", async () => {
+  it("admits via joinPublic when Require approval is off", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const creator = await insertUser(db, "join-off-creator@example.com");
@@ -125,18 +127,53 @@ describe("group join requests", () => {
         userId: creator.id,
       });
 
-      await joinLoosePublic(db, { groupId: group.id, userId: joiner.id });
+      await joinPublic(db, { groupId: group.id, userId: joiner.id });
 
       const members = await memberCount(db, group.id);
       expect(members.map((row) => row.userId).sort()).toEqual(
         [creator.id, joiner.id].sort(),
       );
+      await expect(
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(error, "CONFLICT", "You are already a member of this Group");
+        return true;
+      });
     } finally {
       await close();
     }
   });
 
-  it("refuses joinLoosePublic when the flag is on, then the creator can approve", async () => {
+  it("refuses joinPublic on a Private Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "join-private-creator@example.com");
+      const joiner = await insertUser(db, "join-private-joiner@example.com");
+      const group = await createLoosePrivate(db, {
+        name: "Private Crew",
+        sport: "padel",
+        userId: creator.id,
+      });
+
+      await expect(
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(
+          error,
+          "BAD_REQUEST",
+          "Private Groups cannot be joined via the Group URL",
+        );
+        return true;
+      });
+      expect(
+        (await memberCount(db, group.id)).map((row) => row.userId),
+      ).toEqual([creator.id]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses joinPublic when the flag is on, then the creator can approve", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const creator = await insertUser(db, "join-on-creator@example.com");
@@ -156,7 +193,7 @@ describe("group join requests", () => {
       expect(stored?.requiresApproval).toBe(true);
 
       await expect(
-        joinLoosePublic(db, { groupId: group.id, userId: joiner.id }),
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
       ).rejects.toSatisfy((error) => {
         expectTrpc(
           error,
@@ -417,49 +454,32 @@ describe("group join requests", () => {
     }
   });
 
-  it("lets Club Public Member requesters be approved by Owner, Admin, or Group creator, and refuses joinClubPublic", async () => {
+  it("on a Club Group lets the creator or an Appointed Organizer approve, not the Venue manager, and refuses joinPublic", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "club-owner@example.com");
-      const admin = await insertUser(db, "club-admin@example.com");
+      const manager = await insertUser(db, "club-manager@example.com");
+      const organizer = await insertUser(db, "club-organizer@example.com");
       const creator = await insertUser(db, "club-creator@example.com");
       const member = await insertUser(db, "club-member@example.com");
-      const community = await insertCommunity(db, {
-        ownerId: owner.id,
-        name: "Live Club",
-      });
-      await db.insert(communityMembers).values([
-        {
-          communityId: community.id,
-          userId: admin.id,
-          role: CommunityRoleEnum.ADMIN,
-        },
-        {
-          communityId: community.id,
-          userId: creator.id,
-          role: CommunityRoleEnum.MEMBER,
-        },
-        {
-          communityId: community.id,
-          userId: member.id,
-          role: CommunityRoleEnum.MEMBER,
-        },
-      ]);
+      const venue = await insertVenue(db, "Live Club");
+      await db
+        .insert(venueManagers)
+        .values({ venueId: venue.id, userId: manager.id });
 
       const group = await createClubPublic(db, {
-        communityId: community.id,
+        venueId: venue.id,
         name: "Club Squad",
-        sport: "padel",
-        userId: owner.id,
+        userId: creator.id,
         requiresApproval: true,
       });
-      await db
-        .update(groups)
-        .set({ createdBy: creator.id })
-        .where(eq(groups.id, group.id));
+      await db.insert(groupMembers).values({
+        groupId: group.id,
+        userId: organizer.id,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
 
       await expect(
-        joinClubPublic(db, { groupId: group.id, userId: member.id }),
+        joinPublic(db, { groupId: group.id, userId: member.id }),
       ).rejects.toSatisfy((error) => {
         expectTrpc(
           error,
@@ -469,23 +489,29 @@ describe("group join requests", () => {
         return true;
       });
 
-      const ownerRequest = await requestJoin(db, {
+      const managerRequest = await requestJoin(db, {
         groupId: group.id,
         userId: member.id,
       });
-      await approveJoinRequest(db, {
-        requestId: ownerRequest.id,
-        userId: owner.id,
+      await expect(
+        listJoinRequests(db, { groupId: group.id, userId: manager.id }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(error, "FORBIDDEN");
+        return true;
       });
-      await leaveGroup(db, { groupId: group.id, userId: member.id });
+      await expect(
+        approveJoinRequest(db, {
+          requestId: managerRequest.id,
+          userId: manager.id,
+        }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(error, "FORBIDDEN");
+        return true;
+      });
 
-      const adminRequest = await requestJoin(db, {
-        groupId: group.id,
-        userId: member.id,
-      });
       await approveJoinRequest(db, {
-        requestId: adminRequest.id,
-        userId: admin.id,
+        requestId: managerRequest.id,
+        userId: organizer.id,
       });
       await leaveGroup(db, { groupId: group.id, userId: member.id });
 
@@ -505,33 +531,17 @@ describe("group join requests", () => {
     }
   });
 
-  it("refuses request, approve, reject, and setRequiresApproval while the Community is Soft-archived", async () => {
+  it("keeps request, approve, reject, and setRequiresApproval open while the Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "archive-owner@example.com");
+      const creator = await insertUser(db, "archive-creator@example.com");
       const member = await insertUser(db, "archive-member@example.com");
       const later = await insertUser(db, "archive-later@example.com");
-      const community = await insertCommunity(db, {
-        ownerId: owner.id,
-        name: "Archived Club",
-      });
-      await db.insert(communityMembers).values([
-        {
-          communityId: community.id,
-          userId: member.id,
-          role: CommunityRoleEnum.MEMBER,
-        },
-        {
-          communityId: community.id,
-          userId: later.id,
-          role: CommunityRoleEnum.MEMBER,
-        },
-      ]);
+      const venue = await insertVenue(db, "Archived Club");
       const group = await createClubPublic(db, {
-        communityId: community.id,
-        name: "Frozen Squad",
-        sport: "padel",
-        userId: owner.id,
+        venueId: venue.id,
+        name: "Still Open Squad",
+        userId: creator.id,
         requiresApproval: true,
       });
       const pending = await requestJoin(db, {
@@ -539,58 +549,32 @@ describe("group join requests", () => {
         userId: member.id,
       });
 
-      await commit(db, { communityId: community.id }, "archived");
+      await db
+        .update(venues)
+        .set({ archivedAt: new Date() })
+        .where(eq(venues.id, venue.id));
 
-      await expect(
-        requestJoin(db, { groupId: group.id, userId: later.id }),
-      ).rejects.toSatisfy((error) => {
-        expectTrpc(
-          error,
-          "BAD_REQUEST",
-          "You cannot request to join this Group",
-        );
-        return true;
+      const second = await requestJoin(db, {
+        groupId: group.id,
+        userId: later.id,
       });
+      expect(second.status).toBe("pending");
       await expect(
-        approveJoinRequest(db, {
-          requestId: pending.id,
-          userId: owner.id,
-        }),
-      ).rejects.toSatisfy((error) => {
-        expectTrpc(
-          error,
-          "BAD_REQUEST",
-          "Cannot approve join requests while the Community is archived",
-        );
-        return true;
-      });
+        approveJoinRequest(db, { requestId: pending.id, userId: creator.id }),
+      ).resolves.toEqual({ ok: true });
       await expect(
-        rejectJoinRequest(db, {
-          requestId: pending.id,
-          userId: owner.id,
-        }),
-      ).rejects.toSatisfy((error) => {
-        expectTrpc(
-          error,
-          "BAD_REQUEST",
-          "Cannot reject join requests while the Community is archived",
-        );
-        return true;
-      });
+        rejectJoinRequest(db, { requestId: second.id, userId: creator.id }),
+      ).resolves.toEqual({ ok: true });
       await expect(
         setRequiresApproval(db, {
           groupId: group.id,
           requiresApproval: false,
-          userId: owner.id,
+          userId: creator.id,
         }),
-      ).rejects.toSatisfy((error) => {
-        expectTrpc(
-          error,
-          "BAD_REQUEST",
-          "Cannot change Require approval while the Community is archived",
-        );
-        return true;
-      });
+      ).resolves.toEqual({ id: group.id, requiresApproval: false });
+      expect(
+        (await memberCount(db, group.id)).map((row) => row.userId),
+      ).toEqual(expect.arrayContaining([creator.id, member.id]));
     } finally {
       await close();
     }

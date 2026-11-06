@@ -3,7 +3,7 @@ import type { SeatPosition } from "#src/games/utils";
 
 export type InviteDb = DbClient | DbTx;
 
-export type InviteHostKind = "community" | "group" | "team" | "game";
+export type InviteHostKind = "group" | "team" | "game";
 
 export type InviteHost = {
   kind: InviteHostKind;
@@ -60,8 +60,7 @@ export type AcceptLookupResult =
         | "frozen"
         | "wrong_user"
         | "unavailable"
-        | "seat_required"
-        | "must_be_member";
+        | "seat_required";
     };
 
 export type MintLinkResult =

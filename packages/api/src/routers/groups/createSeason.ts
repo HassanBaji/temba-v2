@@ -44,7 +44,7 @@ export async function createSeason(
   },
 ) {
   const group = await requireGroup(database, args.groupId);
-  await assertCanManageSeasons(database, group, args.userId);
+  assertCanManageSeasons(group, args.userId);
   const now = args.now ?? new Date();
 
   const existing = await database.query.groupSeasons.findMany({

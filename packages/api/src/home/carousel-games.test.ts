@@ -2,12 +2,10 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  CommunityRoleEnum,
   GameFormatEnum,
   GameRegistrationModeEnum,
+  GroupMemberRoleEnum,
   MatchStatusEnum,
-  communities,
-  communityMembers,
   gamePlayers,
   gameWaitlist,
   games,
@@ -21,7 +19,6 @@ import {
 import { listMyGamesHubRows } from "#src/games/list-my-games";
 import { admit } from "#src/games/admit";
 import { loadHome } from "#src/routers/users/home";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import {
   filterAndSortHomeCarouselGames,
@@ -425,14 +422,14 @@ async function insertVenue(database: TestDatabase) {
 async function insertGroup(
   database: TestDatabase,
   createdBy: string,
-  communityId?: string,
+  venueId?: string,
 ) {
   const [row] = await database
     .insert(groups)
     .values({
       name: `Group ${crypto.randomUUID()}`,
       createdBy,
-      communityId,
+      venueId,
     })
     .returning({ id: groups.id });
   if (!row) {
@@ -611,89 +608,36 @@ describe("Home carousel list", () => {
     }
   });
 
-  it("keeps Soft-archived Club Group Games when the viewer still qualifies", async () => {
+  it("includes Club Group Games an Appointed Organizer organizes but did not sit on", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, "archive-owner@example.com");
-      const viewer = await insertUser(db, "archive-player@example.com");
-      const venue = await insertVenue(db);
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Archived Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await db.insert(communityMembers).values({
-        communityId: community.id,
-        userId: owner.id,
-        role: CommunityRoleEnum.OWNER,
-      });
-      const clubGroup = await insertGroup(db, owner.id, community.id);
-      await db.insert(groupMembers).values([
-        { groupId: clubGroup.id, userId: owner.id },
-        { groupId: clubGroup.id, userId: viewer.id },
-      ]);
-      const game = await insertGame(db, {
-        createdBy: owner.id,
-        venueId: venue.id,
-        groupId: clubGroup.id,
-      });
-      await db.insert(gamePlayers).values({
-        gameId: game.id,
-        userId: viewer.id,
-      });
-      await commit(db, { communityId: community.id }, "archived");
-
-      const rows = await listHomeCarouselGames(db, viewer.id, NOW);
-      expect(rows.map((row) => row.id)).toEqual([game.id]);
-    } finally {
-      await close();
-    }
-  });
-
-  it("includes Club Group Games a Community Owner organizes but did not sit on", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const owner = await insertUser(db, "club-owner@example.com");
+      const organizer = await insertUser(db, "club-organizer@example.com");
       const creator = await insertUser(db, "club-creator@example.com");
+      const member = await insertUser(db, "club-member@example.com");
       const venue = await insertVenue(db);
-      const [community] = await db
-        .insert(communities)
-        .values({
-          name: "Live Club",
-          type: "private",
-          createdBy: owner.id,
-        })
-        .returning({ id: communities.id });
-      if (!community) {
-        throw new Error("Failed to insert community");
-      }
-      await db.insert(communityMembers).values([
+      const clubGroup = await insertGroup(db, creator.id, venue.id);
+      await db.insert(groupMembers).values([
         {
-          communityId: community.id,
-          userId: owner.id,
-          role: CommunityRoleEnum.OWNER,
+          groupId: clubGroup.id,
+          userId: organizer.id,
+          role: GroupMemberRoleEnum.ORGANIZER,
         },
-        {
-          communityId: community.id,
-          userId: creator.id,
-          role: CommunityRoleEnum.MEMBER,
-        },
+        { groupId: clubGroup.id, userId: member.id },
       ]);
-      const clubGroup = await insertGroup(db, creator.id, community.id);
       const game = await insertGame(db, {
         createdBy: creator.id,
         venueId: venue.id,
         groupId: clubGroup.id,
       });
 
-      const rows = await listHomeCarouselGames(db, owner.id, NOW);
-      expect(rows.map((row) => row.id)).toEqual([game.id]);
+      const organizerRows = await listHomeCarouselGames(db, organizer.id, NOW);
+      expect(organizerRows.map((row) => row.id)).toEqual([game.id]);
+
+      const creatorRows = await listHomeCarouselGames(db, creator.id, NOW);
+      expect(creatorRows.map((row) => row.id)).toEqual([game.id]);
+
+      const memberRows = await listHomeCarouselGames(db, member.id, NOW);
+      expect(memberRows).toEqual([]);
     } finally {
       await close();
     }

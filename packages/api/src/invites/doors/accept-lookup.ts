@@ -2,9 +2,6 @@ import { type Locale } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
-  communityMemberInvites,
-  communityMembers,
-  CommunityRoleEnum,
   gameMemberInvites,
   groupMemberInvites,
   groupMembers,
@@ -14,8 +11,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "#src/db";
-import { admit as admitCommunityMember } from "#src/community-membership";
-import { isStaffRole, requireGame } from "#src/games/access";
+import { requireGame } from "#src/games/access";
 import { admitIndividualUser } from "#src/games/invites";
 import { isIndividualSeatGame } from "#src/games/seats";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
@@ -37,20 +33,6 @@ async function markLookupAccepted(
   host: InviteHost,
   inviteId: string,
 ) {
-  if (host.kind === "community") {
-    const [updated] = await writeDb(database)
-      .update(communityMemberInvites)
-      .set({ acceptedAt: new Date(), updatedAt: new Date() })
-      .where(
-        and(
-          eq(communityMemberInvites.id, inviteId),
-          isNull(communityMemberInvites.acceptedAt),
-          isNull(communityMemberInvites.revokedAt),
-        ),
-      )
-      .returning({ id: communityMemberInvites.id });
-    return Boolean(updated);
-  }
   if (host.kind === "group") {
     const [updated] = await writeDb(database)
       .update(groupMemberInvites)
@@ -111,29 +93,10 @@ export async function acceptLookup(
     return open;
   }
 
-  if (host.kind === "community") {
-    const admitted = await admitCommunityMember(database, {
-      communityId: host.id,
-      userId: args.userId,
-      role: CommunityRoleEnum.MEMBER,
-    });
-    if (!admitted.ok && admitted.reason !== "already_member") {
-      return { ok: false, reason: "not_found" };
-    }
-    if (!(await markLookupAccepted(database, host, args.inviteId))) {
-      return { ok: false, reason: "unavailable" };
-    }
-    return {
-      ok: true,
-      alreadyMember: !admitted.ok,
-      hostId: host.id,
-    };
-  }
-
   if (host.kind === "group") {
     const group = await database.query.groups.findFirst({
       where: and(eq(groups.id, host.id), isNull(groups.deletedAt)),
-      columns: { id: true, communityId: true, createdBy: true },
+      columns: { id: true, createdBy: true },
     });
     if (!group) {
       return { ok: false, reason: "not_found" };
@@ -153,41 +116,6 @@ export async function acceptLookup(
         decidedBy: args.userId,
       });
       return { ok: true, alreadyMember: true, hostId: host.id };
-    }
-
-    if (group.communityId) {
-      const inviterMembership = await database.query.communityMembers.findFirst(
-        {
-          where: and(
-            eq(communityMembers.communityId, group.communityId),
-            eq(communityMembers.userId, invite.invitedBy),
-          ),
-          columns: { role: true },
-        },
-      );
-      const inviteeMembership = await database.query.communityMembers.findFirst(
-        {
-          where: and(
-            eq(communityMembers.communityId, group.communityId),
-            eq(communityMembers.userId, args.userId),
-          ),
-          columns: { id: true },
-        },
-      );
-      const canAutoAdmit = isStaffRole(inviterMembership?.role);
-      if (!inviteeMembership && !canAutoAdmit) {
-        return { ok: false, reason: "must_be_member" };
-      }
-      if (!inviteeMembership && canAutoAdmit) {
-        const admitted = await admitCommunityMember(database, {
-          communityId: group.communityId,
-          userId: args.userId,
-          role: CommunityRoleEnum.MEMBER,
-        });
-        if (!admitted.ok && admitted.reason !== "already_member") {
-          return { ok: false, reason: "not_found" };
-        }
-      }
     }
 
     if (!(await markLookupAccepted(database, host, args.inviteId))) {

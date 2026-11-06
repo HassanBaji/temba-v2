@@ -2,7 +2,6 @@ import type { DbClient, DbTx } from "@repo/db";
 import { and, eq } from "drizzle-orm";
 
 import {
-  communities,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
@@ -11,8 +10,6 @@ import {
 } from "@repo/db";
 
 import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
-import { consult } from "#src/soft-archive";
 
 type DbOrTx = DbClient | DbTx;
 
@@ -43,19 +40,6 @@ export async function groupJoinMode(
     return "none";
   }
 
-  if (group.communityId) {
-    const community = await database.query.communities.findFirst({
-      where: eq(communities.id, group.communityId),
-      columns: { archivedAt: true },
-    });
-    if (
-      !community ||
-      consult({ archivedAt: community.archivedAt }).freeze("join")
-    ) {
-      return "none";
-    }
-  }
-
   if (group.type !== GroupTypeEnum.PUBLIC) {
     return "none";
   }
@@ -70,19 +54,6 @@ export async function groupJoinMode(
   });
   if (pending) {
     return "requested";
-  }
-
-  if (!group.communityId) {
-    return group.requiresApproval ? "request" : "join";
-  }
-
-  const communityMembership = await requireCommunityMembership(
-    database,
-    group.communityId,
-    userId,
-  );
-  if (!communityMembership) {
-    return "request";
   }
 
   return group.requiresApproval ? "request" : "join";

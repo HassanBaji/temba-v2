@@ -71,7 +71,6 @@ export type HubGameRow = {
   registeredTeamCount: number;
   teamsAllowed: number | null;
   registrationStatus: "open" | "full" | "closed" | "cancelled";
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;

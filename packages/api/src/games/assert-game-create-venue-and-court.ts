@@ -32,7 +32,7 @@ export async function assertGameCreateVenueAndCourt(
     if (!context.linkedVenueId || input.venueId !== context.linkedVenueId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Venue must be this Community’s linked Venue",
+        message: "Venue must be this Group’s linked Venue",
       });
     }
     if (!venue) {

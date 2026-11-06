@@ -28,7 +28,6 @@ describe("groupJoinRequestMeta", () => {
           source: "invite_link",
           invitedBy: { id: "ali", name: "Ali Haji" },
         },
-        null,
         "en",
         now,
       ),
@@ -39,29 +38,16 @@ describe("groupJoinRequestMeta", () => {
     expect(
       groupJoinRequestMeta(
         { createdAt: now, source: "invite_link", invitedBy: null },
-        null,
         "en",
         now,
       ),
     ).toBe("Via invite link, today");
   });
 
-  it("names the Community the Group was found in", () => {
-    expect(
-      groupJoinRequestMeta(
-        { createdAt: yesterday, source: "community", invitedBy: null },
-        "Södermalm Padel",
-        "en",
-        now,
-      ),
-    ).toBe("Found the Group in Södermalm Padel, yesterday");
-  });
-
   it("falls back to when the request was made", () => {
     expect(
       groupJoinRequestMeta(
         { createdAt: now, source: null, invitedBy: null },
-        null,
         "en",
         now,
       ),
@@ -69,7 +55,6 @@ describe("groupJoinRequestMeta", () => {
     expect(
       groupJoinRequestMeta(
         { createdAt: now, source: "group_page", invitedBy: null },
-        null,
         "en",
         now,
       ),
@@ -80,7 +65,6 @@ describe("groupJoinRequestMeta", () => {
     expect(
       groupJoinRequestMeta(
         { createdAt: now, source: "invite_link", invitedBy: null },
-        null,
         "ar",
         now,
       ),
@@ -152,11 +136,8 @@ describe("decision copy", () => {
     );
   });
 
-  it("names the Community a Club Group lives in", () => {
-    expect(groupWhoCanJoinDescription("Arad", "en")).toBe(
-      "Applies to the invite link and to people who find the Group in Arad.",
-    );
-    expect(groupWhoCanJoinDescription(null, "en")).toBe(
+  it("describes who the approval switch applies to", () => {
+    expect(groupWhoCanJoinDescription("en")).toBe(
       "Applies to the invite link and to people who find the Group.",
     );
   });
@@ -203,8 +184,6 @@ describe("groupManageActions", () => {
     const input = { canManageImage: true, imageUrl: "/x", canDelete: true };
     const overflow = groupHomeOverflowItems({
       family: { kind: "none" },
-      hasCommunity: false,
-      hasCreateAccess: false,
       canShowCreateGame: false,
       isLoosePublic: false,
       canManageInvites: false,

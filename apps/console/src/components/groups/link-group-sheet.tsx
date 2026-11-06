@@ -41,7 +41,7 @@ export function LinkGroupSheet({
   const send = api.venues.sendGroupLinkRequest.useMutation({
     onSuccess: async () => {
       toast.success("Request sent. The Group creator decides.");
-      await utils.venues.listCommunityGroups.invalidate({ venueId });
+      await utils.venues.listLinkedGroups.invalidate({ venueId });
       await utils.venues.searchLinkableGroups.invalidate();
     },
     onError: (error) => {
@@ -65,7 +65,7 @@ export function LinkGroupSheet({
         <SheetHeader className="p-0">
           <SheetTitle>Link a Group</SheetTitle>
           <SheetDescription>
-            Search public Groups that are not part of a Community. Nothing
+            Search public Groups that are not linked to a Venue yet. Nothing
             changes until the Group creator accepts.
           </SheetDescription>
         </SheetHeader>
@@ -98,8 +98,8 @@ export function LinkGroupSheet({
           ) : null}
           {canSearch && search.data && results.length === 0 ? (
             <p className="text-muted-foreground text-[13px]">
-              No Groups found. Private Groups and Groups already in a Community
-              can&rsquo;t be linked.
+              No Groups found. Private Groups and Groups already linked to a
+              Venue can&rsquo;t be linked.
             </p>
           ) : null}
           {results.length > 0 ? (

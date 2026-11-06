@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { games } from "./games";
-import { communities } from "./communities";
+import { venues } from "./venues";
 import {
   groupSports,
   groupTypes,
@@ -36,7 +36,7 @@ export const groups = pgTable("groups", {
   totalGamesPlayed: integer("total_games_played").notNull().default(0),
   type: groupTypes().default(GroupTypeEnum.PRIVATE),
   sport: groupSports().default(GroupSportEnum.PADEL),
-  communityId: uuid("community_id").references(() => communities.id, {
+  venueId: uuid("venue_id").references(() => venues.id, {
     onDelete: "restrict",
   }),
   requiresApproval: boolean("requires_approval").notNull().default(false),
@@ -58,9 +58,9 @@ export const groups = pgTable("groups", {
 
 export const groupRelations = relations(groups, ({ one, many }) => ({
   createdBy: one(user, { fields: [groups.createdBy], references: [user.id] }),
-  community: one(communities, {
-    fields: [groups.communityId],
-    references: [communities.id],
+  venue: one(venues, {
+    fields: [groups.venueId],
+    references: [venues.id],
   }),
   games: many(games),
   memberInvites: many(groupMemberInvites),

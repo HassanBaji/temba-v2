@@ -3,26 +3,21 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupMembers,
   GroupMemberRoleEnum,
-  GroupSportEnum,
+  groups,
   user,
+  venueManagers,
+  venues,
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPrivate } from "#src/routers/groups/createClubPrivate";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import {
   CANNOT_REMOVE_CREATOR_MESSAGE,
   CANNOT_REMOVE_SELF_MESSAGE,
-  CANNOT_REMOVE_STAFF_MESSAGE,
   removePlayer,
 } from "#src/routers/groups/removePlayer";
-import { commit } from "#src/soft-archive";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, name: string) {
@@ -84,41 +79,33 @@ async function seedLoose(database: TestDatabase) {
   return { creator, organizer, member, other, groupId: group.id };
 }
 
+/** A Club Group: a Loose Group linked to a Venue, with an Appointed Organizer. */
 async function seedClub(database: TestDatabase) {
-  const owner = await insertUser(database, "Owner");
-  const admin = await insertUser(database, "Admin");
+  const manager = await insertUser(database, "Manager");
+  const creator = await insertUser(database, "Club creator");
   const organizer = await insertUser(database, "Club organizer");
   const member = await insertUser(database, "Club member");
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Padel Club", type: "private", createdBy: owner })
-    .returning({ id: communities.id });
-  await database.insert(communitySports).values({
-    communityId: community!.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values([
-    { communityId: community!.id, userId: owner, role: CommunityRoleEnum.OWNER },
-    { communityId: community!.id, userId: admin, role: CommunityRoleEnum.ADMIN },
-    {
-      communityId: community!.id,
-      userId: organizer,
-      role: CommunityRoleEnum.MEMBER,
-    },
-    {
-      communityId: community!.id,
-      userId: member,
-      role: CommunityRoleEnum.MEMBER,
-    },
-  ]);
-  const group = await createClubPrivate(database, {
-    communityId: community!.id,
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "Padel Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!venue) {
+    throw new Error("Failed to insert venue");
+  }
+  await database
+    .insert(venueManagers)
+    .values({ venueId: venue.id, userId: manager });
+  const group = await createLoosePrivate(database, {
     name: "Club squad",
     sport: "padel",
-    userId: owner,
+    userId: creator,
   });
+  await database
+    .update(groups)
+    .set({ venueId: venue.id })
+    .where(eq(groups.id, group.id));
   await database.insert(groupMembers).values([
-    { groupId: group.id, userId: admin },
+    { groupId: group.id, userId: manager },
     {
       groupId: group.id,
       userId: organizer,
@@ -127,11 +114,11 @@ async function seedClub(database: TestDatabase) {
     { groupId: group.id, userId: member },
   ]);
   return {
-    owner,
-    admin,
+    manager,
+    creator,
     organizer,
     member,
-    communityId: community!.id,
+    venueId: venue.id,
     groupId: group.id,
   };
 }
@@ -229,52 +216,54 @@ describe("groups.removePlayer", () => {
     }
   });
 
-  it("on a Club Group keeps Owner and Admin and freezes while Soft-archived", async () => {
+  it("on a Club Group keeps the creator, removes any other member including the Venue manager, and the manager is no approver", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
 
-      const owner = await rejection(
+      const creator = await rejection(
         removePlayer(db, {
           groupId: f.groupId,
           approverUserId: f.organizer,
-          userId: f.owner,
+          userId: f.creator,
         }),
       );
-      expect(owner.message).toBe(CANNOT_REMOVE_CREATOR_MESSAGE);
+      expect(creator.message).toBe(CANNOT_REMOVE_CREATOR_MESSAGE);
 
-      const admin = await rejection(
+      const asManager = await rejection(
         removePlayer(db, {
           groupId: f.groupId,
-          approverUserId: f.organizer,
-          userId: f.admin,
+          approverUserId: f.manager,
+          userId: f.member,
         }),
       );
-      expect(admin.message).toBe(CANNOT_REMOVE_STAFF_MESSAGE);
+      expect(asManager.code).toBe("FORBIDDEN");
+      expect(
+        (await groupById(db, { groupId: f.groupId, userId: f.manager }))
+          .canRemovePlayers,
+      ).toBe(false);
 
       await expect(
         removePlayer(db, {
           groupId: f.groupId,
           approverUserId: f.organizer,
-          userId: f.member,
+          userId: f.manager,
         }),
-      ).resolves.toMatchObject({ ok: true });
+      ).resolves.toMatchObject({ ok: true, userId: f.manager });
+      expect(await membershipOf(db, f.groupId, f.manager)).toBeUndefined();
 
-      await db.insert(groupMembers).values({
-        groupId: f.groupId,
-        userId: f.member,
-      });
-      await commit(db, { communityId: f.communityId }, "archived");
-      const frozen = await rejection(
+      await db
+        .update(venues)
+        .set({ archivedAt: new Date() })
+        .where(eq(venues.id, f.venueId));
+      await expect(
         removePlayer(db, {
           groupId: f.groupId,
-          approverUserId: f.owner,
+          approverUserId: f.creator,
           userId: f.member,
         }),
-      );
-      expect(frozen.message).toBe(
-        "Cannot remove players from a Group in an archived Community",
-      );
+      ).resolves.toMatchObject({ ok: true, userId: f.member });
+      expect(await membershipOf(db, f.groupId, f.member)).toBeUndefined();
     } finally {
       await close();
     }

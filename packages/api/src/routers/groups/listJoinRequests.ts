@@ -14,9 +14,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroup } from "#src/groups/helpers/require-group";
-import { consult, refuseIfFrozen } from "#src/soft-archive";
 
 type DbClient = typeof db;
 
@@ -25,14 +23,6 @@ export async function listJoinRequests(
   args: { groupId: string; userId: string; now?: Date },
 ) {
   const group = await requireGroup(database, args.groupId);
-
-  if (group.communityId) {
-    const archive = await consult(database, { clubGroupId: group.id });
-    refuseIfFrozen(archive, "join", {
-      frozenMessage:
-        "Cannot list join requests while the Community is archived",
-    });
-  }
 
   await assertGroupApprover(database, group, args.userId);
 
@@ -75,35 +65,21 @@ export async function listJoinRequests(
     }
   }
 
-  return Promise.all(
-    rows.map(async (row) => {
-      const communityMembership = group.communityId
-        ? await requireCommunityMembership(
-            database,
-            group.communityId,
-            row.userId,
-          )
-        : null;
-      return {
-        id: row.id,
-        createdAt: row.createdAt,
-        user: {
-          id: row.user.id,
-          name: row.user.name,
-          image: row.user.image,
-        },
-        isCommunityMember: group.communityId
-          ? Boolean(communityMembership)
-          : null,
-        note: row.note,
-        source: row.source,
-        invitedBy: row.invitedBy
-          ? { id: row.invitedBy.id, name: row.invitedBy.name }
-          : null,
-        level: levelByUserId.get(row.userId) ?? null,
-      };
-    }),
-  );
+  return rows.map((row) => ({
+    id: row.id,
+    createdAt: row.createdAt,
+    user: {
+      id: row.user.id,
+      name: row.user.name,
+      image: row.user.image,
+    },
+    note: row.note,
+    source: row.source,
+    invitedBy: row.invitedBy
+      ? { id: row.invitedBy.id, name: row.invitedBy.name }
+      : null,
+    level: levelByUserId.get(row.userId) ?? null,
+  }));
 }
 
 export const listJoinRequestsProcedure = protectedProcedure

@@ -7,7 +7,7 @@ import { operatorProcedure } from "#src/trpc";
 
 export const OPERATOR_GROUPS_PAGE_SIZE = 50;
 
-export type GroupVerificationSource = "operator" | "venue_community" | "none";
+export type GroupVerificationSource = "operator" | "venue_link" | "none";
 
 export async function listForOperator(
   database: DbClient,
@@ -30,10 +30,7 @@ export async function listForOperator(
       verifiedAt: true,
     },
     with: {
-      community: {
-        columns: { name: true, archivedAt: true, isVenueCommunity: true },
-        with: { venue: { columns: { id: true, name: true } } },
-      },
+      venue: { columns: { id: true, name: true } },
     },
     orderBy: [asc(groups.name), asc(groups.id)],
     limit: limit + 1,
@@ -42,26 +39,19 @@ export async function listForOperator(
 
   const page = rows.slice(0, limit);
   return {
-    items: page.map((group) => {
-      const venueCommunityVenue = group.community?.isVenueCommunity
-        ? group.community.venue
-        : null;
-      return {
-        id: group.id,
-        name: group.name,
-        type: group.type,
-        sport: group.sport,
-        communityName: group.community?.name ?? null,
-        communityArchived: group.community?.archivedAt != null,
-        verifiedAt: group.verifiedAt,
-        venueCommunityVenueName: venueCommunityVenue?.name ?? null,
-        verificationSource: (group.verifiedAt
-          ? "operator"
-          : venueCommunityVenue
-            ? "venue_community"
-            : "none") satisfies GroupVerificationSource,
-      };
-    }),
+    items: page.map((group) => ({
+      id: group.id,
+      name: group.name,
+      type: group.type,
+      sport: group.sport,
+      verifiedAt: group.verifiedAt,
+      venueName: group.venue?.name ?? null,
+      verificationSource: (group.verifiedAt
+        ? "operator"
+        : group.venue
+          ? "venue_link"
+          : "none") satisfies GroupVerificationSource,
+    })),
     nextCursor: rows.length > limit ? offset + limit : undefined,
   };
 }

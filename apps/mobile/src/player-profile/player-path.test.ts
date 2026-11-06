@@ -15,9 +15,6 @@ describe("playerPath", () => {
     expect(playerPath(["(app)", "games", "[id]"], USER)).toBe(
       `/games/players/${USER}`,
     );
-    expect(playerPath(["(app)", "communities", "[id]"], USER)).toBe(
-      `/communities/players/${USER}`,
-    );
     expect(playerPath(["(app)", "profile", "teams", "[id]"], USER)).toBe(
       `/profile/players/${USER}`,
     );

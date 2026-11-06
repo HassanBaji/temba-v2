@@ -46,7 +46,6 @@ function fallbackLabel(value: string): string {
 
 export function inviteKindLabel(kind: string, m: Messages): string {
   switch (kind) {
-    case "community":
     case "group":
     case "team":
     case "game":

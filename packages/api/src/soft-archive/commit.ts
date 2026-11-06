@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { communities, venues } from "@repo/db";
+import { venues } from "@repo/db";
 
 import { type db } from "#src/db";
 import { viewFromArchivedAt } from "#src/soft-archive/consult";
@@ -21,41 +21,6 @@ export async function commit(
   phase: SoftArchivePhase,
   now = new Date(),
 ): Promise<CommitResult> {
-  if ("communityId" in subject) {
-    const community = await database.query.communities.findFirst({
-      where: eq(communities.id, subject.communityId),
-      columns: { id: true, archivedAt: true },
-    });
-    if (!community) {
-      return { ok: false, reason: "not_found" };
-    }
-    const current = viewFromArchivedAt(community.archivedAt);
-    if (current.phase === phase) {
-      return {
-        ok: false,
-        reason: phase === "archived" ? "already_archived" : "already_live",
-      };
-    }
-    const archivedAt = phase === "archived" ? now : null;
-    const [updated] = await writeDb(database)
-      .update(communities)
-      .set({ archivedAt, updatedAt: now })
-      .where(eq(communities.id, community.id))
-      .returning({
-        id: communities.id,
-        archivedAt: communities.archivedAt,
-      });
-    if (!updated) {
-      return { ok: false, reason: "not_found" };
-    }
-    return {
-      ok: true,
-      phase,
-      id: updated.id,
-      archivedAt: updated.archivedAt,
-    };
-  }
-
   const venue = await database.query.venues.findFirst({
     where: eq(venues.id, subject.venueId),
     columns: { id: true, archivedAt: true },
