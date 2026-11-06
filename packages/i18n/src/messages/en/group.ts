@@ -596,6 +596,41 @@ export const group = {
     renameDescription:
       "Their phone stays the same. If the number is wrong, remove them and add them again.",
     renamedToast: (name: string) => `Name changed to ${name}`,
+    fromGroup: {
+      tab: "From group",
+      phoneTab: "By phone",
+      modes: "How to add",
+      description:
+        "Pick from the group, then set how each one plays. Their profile fills it in.",
+      search: "Search members",
+      groupLine: (group: string, count: number) =>
+        plural("en", count, {
+          one: `${group} · 1 member`,
+          other: `${group} · {n} members`,
+        }),
+      spotsLeft: (left: number, open: number) => `${left} of ${open} spots left`,
+      gameFull: "Game is full",
+      inGame: "In game",
+      onWaitlist: "On waitlist",
+      noSpotsLeft: "no spots left",
+      level: (label: string) => `Level ${label}`,
+      noPreferenceShort: "No pref.",
+      select: "Select players",
+      addCount: (count: number) =>
+        plural("en", count, {
+          one: "Add 1 player",
+          other: "Add {n} players",
+        }),
+      addedCount: (count: number) =>
+        plural("en", count, {
+          one: "1 player added to the game",
+          other: "{n} players added to the game",
+        }),
+      noMatch: (query: string) => `No member matches "${query}".`,
+      tryPhone: "Add them by phone instead.",
+      loading: "Loading members…",
+      listSeparator: ", ",
+    },
     seat: {
       left: "Left",
       right: "Right",

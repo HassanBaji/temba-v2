@@ -37,13 +37,13 @@ export function AddPlayerModeSwitch({
 }) {
   const m = useMessages();
   const labels = {
-    group: m.mobileGameDetails.addPlayer.fromGroup,
-    phone: m.mobileGameDetails.addPlayer.byPhone,
+    group: m.group.addPlayer.fromGroup.tab,
+    phone: m.group.addPlayer.fromGroup.phoneTab,
   };
   return (
     <View
       accessibilityRole="tablist"
-      accessibilityLabel={m.mobileGameDetails.addPlayer.modes}
+      accessibilityLabel={m.group.addPlayer.fromGroup.modes}
       style={{
         flexDirection: "row",
         gap: SEGMENT_INSET,
@@ -323,8 +323,8 @@ export function GroupMemberList({
         tone="wash"
         value={query}
         onChangeText={onQueryChange}
-        placeholder={m.mobileGameDetails.addPlayer.searchMembers}
-        accessibilityLabel={m.mobileGameDetails.addPlayer.searchMembers}
+        placeholder={m.group.addPlayer.fromGroup.search}
+        accessibilityLabel={m.group.addPlayer.fromGroup.search}
       />
       {groupLine ? (
         <View
@@ -351,7 +351,7 @@ export function GroupMemberList({
       ) : null}
       {loading ? (
         <Text size="meta" tone="muted">
-          {m.mobileGameDetails.addPlayer.loadingMembers}
+          {m.group.addPlayer.fromGroup.loading}
         </Text>
       ) : error ? (
         <Text size="meta" tone="muted">
@@ -382,7 +382,7 @@ export function GroupMemberList({
             >
               {emptyLine}
               {"\n"}
-              {m.mobileGameDetails.addPlayer.tryPhone}
+              {m.group.addPlayer.fromGroup.tryPhone}
             </Text>
           ) : null}
         </View>
