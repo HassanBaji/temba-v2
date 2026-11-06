@@ -441,7 +441,7 @@ export function footballStatTiles(
   return [
     matches,
     {
-      value: `${input.won}–${input.drawn}–${input.lost}`,
+      value: record(input, "football", locale),
       label: m.wonDrawnLost,
       locked: false,
     },
@@ -454,13 +454,17 @@ export function footballStatTiles(
   ];
 }
 
+/** W–D–L in football or with a draw, else W–L; isolated so Arabic keeps the order. */
 function record(
   tally: { won: number; lost: number; drawn: number },
   sport: Sport,
+  locale: Locale,
 ) {
-  return sport === "football" || tally.drawn > 0
-    ? `${tally.won}–${tally.drawn}–${tally.lost}`
-    : `${tally.won}–${tally.lost}`;
+  return messagesFor(locale).common.isolate(
+    sport === "football" || tally.drawn > 0
+      ? `${tally.won}–${tally.drawn}–${tally.lost}`
+      : `${tally.won}–${tally.lost}`,
+  );
 }
 
 export type ProfileFormView = {
@@ -500,7 +504,9 @@ export function profileFormView(
 
   return {
     title,
-    record: early ? m.played(options.played) : record(tally, options.sport),
+    record: early
+      ? m.played(options.played)
+      : record(tally, options.sport, locale),
     slots: [
       ...[...shown].reverse().map((match) => match.outcome),
       ...Array.from(
@@ -627,7 +633,9 @@ export function withViewerView(
   const together: WithViewerColumn = {
     label: football ? m.asTeammates : m.asPartners,
     record:
-      input.together.played > 0 ? record(input.together, options.sport) : EMPTY,
+      input.together.played > 0
+        ? record(input.together, options.sport, locale)
+        : EMPTY,
     detail: input.together.played > 0 ? m.inGames(input.together.played) : null,
   };
 
@@ -642,6 +650,7 @@ export function withViewerView(
         ? record(
             { won: lead, lost: trail, drawn: input.against.drawn },
             options.sport,
+            locale,
           )
         : EMPTY,
     detail:
@@ -679,4 +688,50 @@ export function partnersTitle(sport: Sport, locale: Locale) {
     title: sport === "football" ? m.teammates : m.partners,
     meta: m.mostPlayed,
   };
+}
+
+export type PartnerRowView = {
+  userId: string;
+  name: string;
+  image: string | null;
+  record: string;
+  /** Wins over Matches played together. */
+  percent: number;
+  spoken: string;
+};
+
+/** Partners or teammates: W–L in padel, W–D–L in football, and the win share. */
+export function partnerRowsView(
+  partners: readonly {
+    userId: string;
+    name: string;
+    image: string | null;
+    won: number;
+    lost: number;
+    played: number;
+  }[],
+  sport: Sport,
+  locale: Locale,
+): PartnerRowView[] {
+  const m = messagesFor(locale).you.partners;
+  return partners.map((partner) => {
+    const percent =
+      partner.played > 0 ? Math.round((partner.won / partner.played) * 100) : 0;
+    return {
+      userId: partner.userId,
+      name: partner.name,
+      image: partner.image,
+      record: record(
+        {
+          won: partner.won,
+          lost: partner.lost,
+          drawn: partner.played - partner.won - partner.lost,
+        },
+        sport,
+        locale,
+      ),
+      percent,
+      spoken: m.spoken(partner.name, partner.won, partner.lost, percent),
+    };
+  });
 }

@@ -21,6 +21,7 @@ import {
   levelTrendSince,
   padelPositionView,
   padelStatTiles,
+  partnerRowsView,
   partnersTitle,
   profileFormView,
   profileHeroSubtitle,
@@ -28,6 +29,7 @@ import {
   profileStreaksView,
   withViewerView,
   type EarlyDaysView,
+  type PartnerRowView,
   type ProfileFormView,
   type ProfileLevelView,
   type ProfilePositionView,
@@ -40,7 +42,6 @@ import type { MatchOutcome } from "@repo/domain/result-mark";
 import type { Sport } from "@repo/domain/sport";
 
 import { mediaUrl } from "../lib/media-url";
-import { partnerRows, type PartnerRow } from "../profile/profile-model";
 import type { RouterOutputs } from "../trpc/react";
 
 type ApiPlayerProfile = RouterOutputs["users"]["playerProfile"];
@@ -78,7 +79,7 @@ export type PlayerProfileModel = {
   position: ProfilePositionView;
   stats: ProfileStatTile[];
   withViewer: WithViewerView | null;
-  partners: { title: string; meta: string; rows: PartnerRow[] } | null;
+  partners: { title: string; meta: string; rows: PartnerRowView[] } | null;
   form: ProfileFormView;
   rows: ProfileMatchRow[];
   seeAll: string | null;
@@ -134,7 +135,7 @@ function sharedModel(
 ) {
   const hasSwitch = data.sports.length > 1;
   const early = isEarlyDays(options.played);
-  const rows = partnerRows(data.partners, options.sport, locale).map((row) => ({
+  const rows = partnerRowsView(data.partners, options.sport, locale).map((row) => ({
     ...row,
     image: mediaUrl(row.image, apiOrigin),
   }));

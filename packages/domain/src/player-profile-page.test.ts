@@ -1,3 +1,4 @@
+import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,6 +7,7 @@ import {
   footballStatTiles,
   heroPositionLabel,
   levelTrendSince,
+  partnerRowsView,
   padelStatTiles,
   profileFormView,
   profileHeroSubtitle,
@@ -349,5 +351,36 @@ describe("footballPositionView", () => {
     expect(
       footballPositionView({ role: null, position: null }, "en"),
     ).toMatchObject({ spot: null });
+  });
+});
+
+describe("partnerRowsView", () => {
+  it("reads W–D–L for teammates, W–L for partners, and the win share", () => {
+    const partner = {
+      userId: "u1",
+      name: "Ali Mansoor",
+      image: null,
+      won: 6,
+      lost: 1,
+      played: 8,
+    };
+    expect(partnerRowsView([partner], "football", "en")[0]).toMatchObject({
+      record: "6–1–1",
+      percent: 75,
+    });
+    expect(
+      partnerRowsView([{ ...partner, played: 7 }], "padel", "en")[0],
+    ).toMatchObject({ record: "6–1", percent: 86 });
+  });
+});
+
+describe("records in Arabic", () => {
+  it("isolates W–D–L so the digits keep their order", () => {
+    expect(
+      footballStatTiles(
+        { played: 24, won: 14, drawn: 4, lost: 6, goals: 19 },
+        "ar",
+      )[1]?.value,
+    ).toBe(isolate("14–4–6"));
   });
 });
