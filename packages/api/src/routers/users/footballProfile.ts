@@ -16,10 +16,12 @@ import {
   loadCountedMatches,
   matchHistoryHidden,
   mayViewPlayer,
+  mostPlayedPartners,
   openableGameIds,
   sportRating,
   streaksFrom,
   usualVenue,
+  withViewerFrom,
   type CountedMatch,
 } from "#src/routers/users/playerProfile";
 import { matchOutcome } from "@repo/domain/match-outcome";
@@ -125,7 +127,7 @@ export async function loadFootballProfile(
       : loadCountedMatches(database, player.id, GameSportEnum.Football),
   ]);
   const shown = counted.slice(0, LAST_TEN_SIZE);
-  const [goals, openable] = await Promise.all([
+  const [goals, openable, partners, withViewer] = await Promise.all([
     goalsByMatch(
       database,
       player.id,
@@ -134,6 +136,17 @@ export async function loadFootballProfile(
     openableGameIds(database, args.viewerId, [
       ...new Set(shown.map((match) => match.gameId)),
     ]),
+    mostPlayedPartners(database, { playerId: player.id, now }, counted),
+    withViewerFrom(
+      database,
+      {
+        viewerId: args.viewerId,
+        playerId: player.id,
+        sport: GroupSportEnum.FOOTBALL,
+        historyHidden,
+      },
+      counted,
+    ),
   ]);
 
   const lastMatches: FootballMatchInput[] = shown.map((match) => ({
@@ -172,6 +185,8 @@ export async function loadFootballProfile(
     overall: overallFrom(counted, goals),
     streaks: streaksFrom(counted),
     lastMatches,
+    partners,
+    withViewer,
   };
 }
 

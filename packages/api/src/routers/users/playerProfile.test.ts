@@ -523,6 +523,8 @@ describe("loadPlayerProfile", () => {
         },
         trend: null,
         lastMatches: [],
+        partners: [],
+        withViewer: null,
       });
     });
   });
@@ -1064,6 +1066,118 @@ describe("loadPlayerProfile", () => {
         true,
         false,
       ]);
+    });
+  });
+
+  it("ranks the most played partners with the record made together", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      const other = await insertUser(db, "Nora Ek");
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      await friendlyMatch(db, people, { sets: LOSS, startTime: at(2) });
+      const game = await insertGame(db, {
+        createdBy: people.player.id,
+        venueId: people.venue.id,
+      });
+      await playMatch(db, {
+        gameId: game.id,
+        slot1: [people.player.id, other.id],
+        slot2: [people.left.id, people.right.id],
+        sets: WIN,
+        startTime: at(3),
+      });
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.player.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+
+      expect(result.partners).toEqual([
+        {
+          userId: people.partner.id,
+          name: "Jonas Berg",
+          image: null,
+          won: 1,
+          lost: 1,
+          played: 2,
+        },
+        {
+          userId: other.id,
+          name: "Nora Ek",
+          image: null,
+          won: 1,
+          lost: 0,
+          played: 1,
+        },
+      ]);
+    });
+  });
+
+  it("reads the viewer's record with and against the owner and the Groups they share", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      const group = await insertGroup(db, { createdBy: people.player.id });
+      await joinGroup(db, group.id, [people.player.id, people.left.id]);
+      const footballGroup = await insertGroup(db, {
+        createdBy: people.player.id,
+      });
+      await db
+        .update(groups)
+        .set({ name: "Five a side", sport: GroupSportEnum.FOOTBALL })
+        .where(eq(groups.id, footballGroup.id));
+      await joinGroup(db, footballGroup.id, [people.player.id, people.left.id]);
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      await friendlyMatch(db, people, { sets: LOSS, startTime: at(2) });
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(3) });
+
+      const asOpponent = await loadPlayerProfile(db, {
+        viewerId: people.left.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+      const asPartner = await loadPlayerProfile(db, {
+        viewerId: people.partner.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+      const own = await loadPlayerProfile(db, {
+        viewerId: people.player.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+
+      expect(asOpponent.withViewer).toEqual({
+        together: { played: 0, won: 0, lost: 0, drawn: 0 },
+        against: { played: 3, won: 2, lost: 1, drawn: 0 },
+        sharedGroups: ["Tuesday Crew"],
+      });
+      expect(asPartner.withViewer).toEqual({
+        together: { played: 3, won: 2, lost: 1, drawn: 0 },
+        against: { played: 0, won: 0, lost: 0, drawn: 0 },
+        sharedGroups: [],
+      });
+      expect(own.withViewer).toBeNull();
+    });
+  });
+
+  it("leaves out what the viewer shares while the owner hides their history", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      await db
+        .update(user)
+        .set({ matchHistoryVisibility: "only_me" })
+        .where(eq(user.id, people.player.id));
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.partner.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+
+      expect(result.withViewer).toBeNull();
+      expect(result.partners).toEqual([]);
     });
   });
 });

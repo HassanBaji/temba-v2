@@ -66,14 +66,14 @@ export function displayBandSpan(band: LevelBand): {
   return { lower: lower / 100, upper: upper / 100 };
 }
 
-function percentThroughDisplayBand(levelValue: number, band: LevelBand) {
+export function percentThroughDisplayBand(levelValue: number, band: LevelBand) {
   const span = displayBandSpan(band);
   const lower = Math.round(span.lower * 100);
   const width = Math.round(span.upper * 100) - lower;
   return clampPercent(((hundredths(levelValue) - lower) / width) * 100);
 }
 
-function distanceToNextRung(
+export function distanceToNextRung(
   levelValue: number,
   next: AssignableDisplayLevelBand,
 ) {
