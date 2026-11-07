@@ -8,6 +8,11 @@ import { toast } from "sonner";
 import { ErrorState } from "~/components/common/error-state";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
+import {
+  GameLinkGroupJoined,
+  GameLinkGroupLanding,
+  GameLinkGroupRequested,
+} from "~/components/invites/game-link-group";
 import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
 import {
   InviteOutcome,
@@ -22,12 +27,15 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
+import { groupDisplayName } from "@repo/domain/group-join";
 import {
+  gameInviteGroupGate,
   gameInviteSeatCopy,
   gameInviteLinkStage,
   gameInviteSeatState,
   inviteLinkAcceptToast,
   levelRangeGateAction,
+  type GameInviteGroupChoice,
 } from "@repo/domain/invites";
 import {
   formatLevelRangeGateCopy,
@@ -51,6 +59,10 @@ export function AcceptGameInviteLink({
   const m = useMessages();
   const locale = useLocale();
   const [footballOpen, setFootballOpen] = React.useState(true);
+  const [groupDialogOpen, setGroupDialogOpen] = React.useState(false);
+  const [groupDecided, setGroupDecided] = React.useState(false);
+  const [holdSeat, setHoldSeat] = React.useState(false);
+  const [justJoinedGroup, setJustJoinedGroup] = React.useState(false);
   const preview = api.games.previewInviteLink.useQuery({ token });
   const requestLevelRange = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
@@ -86,6 +98,53 @@ export function AcceptGameInviteLink({
 
   const ready = preview.data?.status === "ready" ? preview.data : undefined;
   const stage = ready ? gameInviteLinkStage(ready, isSignedIn) : "accept";
+  const group = ready?.group ?? null;
+  const groupGate = gameInviteGroupGate(group);
+  const groupName = group ? groupDisplayName(group.name, locale) : null;
+  const joinGroup = api.games.joinGroupFromInviteLink.useMutation({
+    onSuccess: async (result) => {
+      setGroupDialogOpen(false);
+      setGroupDecided(false);
+      setHoldSeat(false);
+      if (result.outcome === "joined") {
+        toast.success(
+          m.mobileInvite.link.group.joinedToast(groupName ?? m.group.untitled),
+        );
+        setJustJoinedGroup(true);
+      } else if (result.outcome === "requested") {
+        toast.success(m.mobileInvite.link.group.requestedToast);
+      }
+      await preview.refetch();
+    },
+    onError: (error, variables) => {
+      if (!variables.football) {
+        toast.error(error.message);
+      }
+      void preview.refetch();
+    },
+  });
+  const withdraw = api.groups.withdrawJoinRequest.useMutation({
+    onSuccess: async () => {
+      toast.success(m.mobileInvite.link.group.withdrawnToast);
+      await preview.refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  // The Group question stands between a signed-in non-member and the seat
+  // on every join stage; Level range and partner stages keep their own gate.
+  const groupStage =
+    stage === "seat_pick" || stage === "football" || stage === "accept";
+  const groupAsks =
+    isSignedIn && group != null && groupStage && groupGate !== "none";
+  const groupBlocks = groupAsks && (groupGate === "requested" || !groupDecided);
+  const openSeats = ready?.football
+    ? Math.max(
+        0,
+        (ready.football.playersAllowed ?? 0) - ready.football.players.length,
+      )
+    : (ready?.vacantSeats.length ?? 0);
   const blockedByLevelRange = stage === "level_range";
   const partnerRequiredJoin = stage === "partner";
   const needsSeatPick = stage === "seat_pick";
@@ -139,11 +198,20 @@ export function AcceptGameInviteLink({
     ) {
       return;
     }
+    if (groupBlocks || holdSeat) {
+      return;
+    }
     accept.mutate({ token });
-  }, [accept, isSignedIn, preview.data, token]);
+  }, [accept, groupBlocks, holdSeat, isSignedIn, preview.data, token]);
+
+  const joinPending = accept.isPending || joinGroup.isPending;
 
   function onJoinSeat(sideIndex: number, position: "left" | "right") {
-    if (accept.isPending) {
+    if (joinPending) {
+      return;
+    }
+    if (holdSeat) {
+      joinGroup.mutate({ token, holdSeat: true, sideIndex, position });
       return;
     }
     accept.mutate({
@@ -154,18 +222,59 @@ export function AcceptGameInviteLink({
   }
 
   function onJoinFootball(role: FootballRole, position: FootballPosition) {
-    if (accept.isPending) {
+    if (joinPending) {
+      return;
+    }
+    if (holdSeat) {
+      joinGroup.mutate({ token, holdSeat: true, football: { role, position } });
       return;
     }
     accept.mutate({ token, football: { role, position } });
   }
 
   function onJoinWaitlist() {
-    if (accept.isPending) {
+    if (joinPending) {
+      return;
+    }
+    if (holdSeat) {
+      joinGroup.mutate({ token, holdSeat: true });
       return;
     }
     accept.mutate({ token });
   }
+
+  function onChooseGroup(choice: GameInviteGroupChoice) {
+    if (joinPending) {
+      return;
+    }
+    if (choice === "group_only") {
+      joinGroup.mutate({ token });
+      return;
+    }
+    const hold = groupGate === "approval";
+    setGroupDialogOpen(false);
+    setGroupDecided(true);
+    setHoldSeat(hold);
+    setFootballOpen(true);
+    // Without a hold, the auto-join effect takes the seat once the gate lifts.
+    if (stage === "accept" && hold) {
+      joinGroup.mutate({ token, holdSeat: true });
+    }
+  }
+
+  const groupChoicePending: GameInviteGroupChoice | null = joinGroup.isPending
+    ? joinGroup.variables?.holdSeat
+      ? "with_seat"
+      : "group_only"
+    : null;
+  const joinedNotice =
+    group && justJoinedGroup ? (
+      <GameLinkGroupJoined
+        group={group}
+        openSeats={openSeats}
+        groupHref={`/dashboard/groups/${group.id}`}
+      />
+    ) : null;
 
   if (preview.isLoading || (preview.isError && preview.isFetching)) {
     return (
@@ -283,9 +392,37 @@ export function AcceptGameInviteLink({
     );
   }
 
+  if (group && groupAsks && groupGate === "requested") {
+    return (
+      <GameLinkGroupRequested
+        group={group}
+        gameName={gameName}
+        rangeLabel={rangeLabel}
+        withdrawPending={withdraw.isPending}
+        onWithdraw={(requestId) => withdraw.mutate({ requestId })}
+      />
+    );
+  }
+
+  if (group && groupBlocks) {
+    return (
+      <GameLinkGroupLanding
+        group={group}
+        gameName={gameName}
+        rangeLabel={rangeLabel}
+        openSeats={openSeats}
+        pending={groupChoicePending}
+        dialogOpen={groupDialogOpen}
+        onDialogOpenChange={setGroupDialogOpen}
+        onChoose={onChooseGroup}
+      />
+    );
+  }
+
   if (needsSeatPick && !accept.isSuccess) {
     return (
       <div className="space-y-4">
+        {joinedNotice}
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
             {m.invite.link.joinLabel(gameName)}
@@ -305,7 +442,7 @@ export function AcceptGameInviteLink({
           sides={sides}
           canJoinVacant={canJoinVacant}
           joinLabel={m.invite.inbox.sitHereLabel}
-          joining={accept.isPending}
+          joining={joinPending}
           canMove={false}
           moving={false}
           isOrganizer={false}
@@ -321,9 +458,9 @@ export function AcceptGameInviteLink({
             <Button
               className="min-h-11"
               onClick={onJoinWaitlist}
-              disabled={accept.isPending}
+              disabled={joinPending}
             >
-              {accept.isPending
+              {joinPending
                 ? m.webAuth.invites.joiningShort
                 : m.invite.inbox.joinWaitlistLabel}
             </Button>
@@ -342,6 +479,7 @@ export function AcceptGameInviteLink({
     const subtitle = footballInviteJoinSubtitle(football, locale);
     return (
       <div className="space-y-4">
+        {joinedNotice}
         <div className="space-y-2">
           <h1 className="text-title font-semibold">
             {m.invite.link.joinLabel(gameName)}
@@ -367,8 +505,8 @@ export function AcceptGameInviteLink({
               ? m.webAuth.invites.football.teamsSet
               : m.webAuth.invites.football.teamsByOrganizer
           }
-          pending={accept.isPending}
-          error={accept.error?.message ?? null}
+          pending={joinPending}
+          error={accept.error?.message ?? joinGroup.error?.message ?? null}
           onSubmit={onJoinFootball}
         />
       </div>
@@ -399,6 +537,7 @@ export function AcceptGameInviteLink({
 
   return (
     <div aria-busy="true" className="space-y-3">
+      {joinedNotice}
       <h1 className="text-title font-semibold">
         {m.webAuth.invites.joining(gameName)}
       </h1>
