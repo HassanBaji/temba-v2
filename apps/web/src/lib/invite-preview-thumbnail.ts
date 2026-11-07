@@ -1,12 +1,12 @@
 import sharp from "sharp";
 
 /**
- * WhatsApp draws an og:image smaller than 600×315 as a small thumbnail beside
- * the title, and a larger one as a full-width banner above it. Invite previews
+ * WhatsApp draws an og:image 300 px or wider as a full-width banner above the
+ * title and anything narrower as a small thumbnail beside it. Invite previews
  * want the Group logo beside the Group name, so the logo is shrunk to a square
- * well under that bound and kept far below WhatsApp's ~300 KB image limit.
+ * under that bound and kept far below WhatsApp's image size limit.
  */
-export const INVITE_PREVIEW_THUMBNAIL_SIZE = 300;
+export const INVITE_PREVIEW_THUMBNAIL_SIZE = 200;
 
 export async function invitePreviewThumbnail(
   imageUrl: string | null,
