@@ -3,6 +3,7 @@
 import { UserAvatar } from "~/components/common/user-avatar";
 import { InkWonMark } from "~/components/games/played/played-hero";
 import { SummaryCardShell } from "~/components/games/summary-card-shell";
+import { CoinStack } from "~/components/marks/coin-stack";
 import { ResultMark } from "~/components/temba/result-mark";
 import { ScoreText } from "~/components/temba/score-text";
 import {
@@ -10,6 +11,7 @@ import {
   PENDING_SET_COLUMNS,
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
+import { markName } from "@repo/domain/marks";
 import { resultMarkLabel } from "@repo/domain/result-mark";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
@@ -110,17 +112,29 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
   const model = matchHistoryCardModel(row, locale);
   const won = model.outcome === "won";
   const outcomeLabel = resultMarkLabel(model.outcome, locale);
+  const cardLabel = m.webGame.history.linkLabel(
+    outcomeLabel,
+    model.scoreLine,
+    model.meta,
+  );
+  const linkLabel =
+    model.coins.length > 0
+      ? m.webMarks.sentences([
+          cardLabel,
+          m.webMarks.history.coinsSpoken(
+            model.coins
+              .map((kind) => markName(kind, locale))
+              .join(m.common.listSeparator),
+          ),
+        ])
+      : cardLabel;
 
   return (
     <li data-slot="match-history-card">
       <SummaryCardShell
         emphasis={won}
         href={`/dashboard/games/${row.id}`}
-        linkLabel={m.webGame.history.linkLabel(
-          outcomeLabel,
-          model.scoreLine,
-          model.meta,
-        )}
+        linkLabel={linkLabel}
       >
         <div className="pointer-events-none relative z-10 flex min-w-0 flex-col">
           <div
@@ -148,6 +162,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
             >
               {model.scoreLine}
             </ScoreText>
+            <CoinStack kinds={model.coins} size="row" />
             <span
               className={cn(
                 "text-eyebrow ms-auto whitespace-nowrap",

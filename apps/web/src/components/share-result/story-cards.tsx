@@ -5,10 +5,12 @@ import type {
   FootballResultCard,
   PadelResultCard,
   ResultCard,
+  ResultCardMvp,
   ResultCardPerson,
 } from "@repo/domain/game-result-share";
 
 import { useMessages } from "~/components/locale-provider";
+import { MarkCoin } from "~/components/marks/mark-coin";
 
 import { STORY_HEIGHT, STORY_WIDTH } from "./scaled-canvas";
 import { Big, BibSquare, InitialsSquare, Label, Wordmark } from "./story-parts";
@@ -18,8 +20,18 @@ const PAD_TOP = 180;
 const PAD_BOTTOM = 160;
 const MAX_SCORERS = 5;
 const MAX_LINEUP = 6;
+const FRAME_GAP = 64;
+// The MVP line takes a row of its own; a tighter rhythm keeps five scorers
+// or two full lineups on the canvas.
+const FRAME_GAP_WITH_MVP = 48;
 
-function StoryFrame({ children }: { children: React.ReactNode }) {
+function StoryFrame({
+  card,
+  children,
+}: {
+  card: ResultCard;
+  children: React.ReactNode;
+}) {
   return (
     <div
       className="bg-ink text-paper flex flex-col"
@@ -27,7 +39,7 @@ function StoryFrame({ children }: { children: React.ReactNode }) {
         width: STORY_WIDTH,
         height: STORY_HEIGHT,
         padding: `${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px`,
-        gap: 64,
+        gap: card.mvp ? FRAME_GAP_WITH_MVP : FRAME_GAP,
       }}
     >
       {children}
@@ -42,6 +54,24 @@ function StoryHead({ typeLine }: { typeLine: string }) {
       <Label px={22} className="text-dim shrink-0 whitespace-nowrap">
         {typeLine}
       </Label>
+    </div>
+  );
+}
+
+function StoryMvp({ mvp }: { mvp: ResultCardMvp | null }) {
+  const m = useMessages().webMarks;
+  if (!mvp) {
+    return null;
+  }
+  return (
+    <div data-slot="story-mvp" className="flex items-center gap-6">
+      <MarkCoin kind="mvp" size="sheet" />
+      <Big px={40} className="min-w-0 shrink truncate font-semibold">
+        {m.mvp.title(mvp.name)}
+      </Big>
+      <Big px={30} className="text-dim min-w-0 shrink-[2] truncate">
+        {mvp.decidedBy}
+      </Big>
     </div>
   );
 }
@@ -119,7 +149,7 @@ function PadelSide({
 function PadelStory({ card }: { card: PadelResultCard }) {
   const tag = useMessages().game.played.tag;
   return (
-    <StoryFrame>
+    <StoryFrame card={card}>
       <StoryHead typeLine={card.typeLine} />
       <div className="flex flex-1 flex-col justify-center" style={{ gap: 56 }}>
         <PadelSide
@@ -202,6 +232,7 @@ function PadelStory({ card }: { card: PadelResultCard }) {
           ))}
         </div>
       </div>
+      <StoryMvp mvp={card.mvp} />
       <StoryFoot card={card} />
     </StoryFrame>
   );
@@ -373,7 +404,7 @@ function LineupGrid({
 function FootballStory({ card }: { card: FootballResultCard }) {
   const tag = useMessages().game.played.tag;
   return (
-    <StoryFrame>
+    <StoryFrame card={card}>
       <StoryHead typeLine={card.typeLine} />
       <FootballScoreRow
         side={card.win}
@@ -406,6 +437,7 @@ function FootballStory({ card }: { card: FootballResultCard }) {
           />
         </div>
       )}
+      <StoryMvp mvp={card.mvp} />
       <StoryFoot card={card} />
     </StoryFrame>
   );

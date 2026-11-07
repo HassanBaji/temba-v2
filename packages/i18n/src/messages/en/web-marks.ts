@@ -88,6 +88,9 @@ export const webMarks = {
     coinsSpoken: (name: string, coins: string) =>
       `Marks for ${name}: ${coins}. Show who gave them`,
   },
+  history: {
+    coinsSpoken: (coins: string) => `Your marks: ${coins}`,
+  },
   givers: {
     title: (name: string) => `Marks for ${name}`,
   },
