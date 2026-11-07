@@ -342,7 +342,7 @@ describe("addPlayerLevelChoices", () => {
   it("starts with Not sure, then the Onboarding Level bands", () => {
     assert.deepEqual(
       addPlayerLevelChoices("en").map((choice) => choice.value),
-      ["not_sure", "D", "D+", "C-", "C+", "B-", "B+", "A"],
+      ["not_sure", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A"],
     );
     assert.equal(addPlayerLevelChoices("en")[0]?.name, "Not sure");
     assert.equal(addPlayerLevelChoices("ar")[0]?.name, "غير متأكد");
