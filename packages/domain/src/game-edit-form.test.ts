@@ -183,6 +183,19 @@ describe("gameEditPlan", () => {
     ).toBe("Season linked");
   });
 
+  it("lists a change the caller saves outside the plan after the planned ones", () => {
+    expect(
+      gameEditChangeNote(saved, saved, football, "en", {
+        extraPhrases: ["MVP"],
+      }),
+    ).toBe("MVP");
+    expect(
+      gameEditChangeNote(saved, { ...saved, price: "2.500" }, football, "ar", {
+        extraPhrases: ["نجم المباراة"],
+      }),
+    ).toBe("السعر، نجم المباراة");
+  });
+
   it("refuses a price it cannot read", () => {
     expect(
       gameEditPlan(saved, { ...saved, price: "2.0000" }, football, "en"),

@@ -98,6 +98,8 @@ function historyRow(args: {
   scoredSets: HubHistoryRow["scoredSets"];
   groupName?: string | null;
   opponents?: HubHistoryMember[];
+  viewerMarks?: HubHistoryRow["viewerMarks"];
+  viewerIsMvp?: boolean;
 }): HubHistoryRow {
   const mine = [
     historyMember("viewer", "Alex Rivera", true),
@@ -125,6 +127,8 @@ function historyRow(args: {
     viewerSlot: args.viewerSlot,
     outcome: args.outcome,
     rated: true,
+    viewerMarks: args.viewerMarks ?? [],
+    viewerIsMvp: args.viewerIsMvp ?? false,
   };
 }
 
@@ -151,6 +155,8 @@ export function createGamesHubFixtures(now = new Date()): {
         { slot1GamesWon: 6, slot2GamesWon: 3 },
         { slot1GamesWon: 6, slot2GamesWon: 4 },
       ],
+      viewerMarks: ["clutch", "dynamo", "good_game"],
+      viewerIsMvp: true,
     }),
     historyRow({
       matchId: "match-lost",
@@ -163,6 +169,7 @@ export function createGamesHubFixtures(now = new Date()): {
         { slot1GamesWon: 3, slot2GamesWon: 6 },
         { slot1GamesWon: 6, slot2GamesWon: 4 },
       ],
+      viewerMarks: ["good_game"],
     }),
     historyRow({
       matchId: "match-unscored",

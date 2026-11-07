@@ -16,6 +16,7 @@ import { relations, sql } from "drizzle-orm";
 import { account } from "./account";
 import { footballPositions, footballRoles } from "./game-enums";
 import { groupSports } from "./group-enums";
+import { marks } from "./marks";
 import { session } from "./session";
 
 /**
@@ -115,6 +116,8 @@ export const user = pgTable(
     matchHistoryVisibility: matchHistoryVisibilities("match_history_visibility")
       .notNull()
       .default("everyone"),
+    /** Leaves the Roasts out of the cabinet other viewers see; Game screens still show them. */
+    hideRoasts: boolean("hide_roasts").notNull().default(false),
     addedByUserId: uuid("added_by_user_id").references(
       (): AnyPgColumn => user.id,
       { onDelete: "set null" },
@@ -149,4 +152,6 @@ export const user = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   account: many(account),
   session: many(session),
+  marksReceived: many(marks, { relationName: "markReceiver" }),
+  marksGiven: many(marks, { relationName: "markGiver" }),
 }));

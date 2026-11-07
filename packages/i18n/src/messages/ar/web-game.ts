@@ -207,6 +207,7 @@ export const webGame = {
       level: "نطاق المستوى",
       rounds: "الجولات",
       season: "الموسم",
+      mvp: "نجم المباراة",
     },
     stepFailed: (step: string, message: string) => `${step}: ${message}`,
     movedToWaitlist: (n: number) =>

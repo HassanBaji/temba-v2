@@ -44,6 +44,9 @@ import {
   InviteDoorDialog,
 } from "~/components/invites/invite-door-dialog";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { MarksSection } from "~/components/marks/marks-section";
+import { MvpRow } from "~/components/marks/mvp-row";
+import { useGameMarks } from "~/components/marks/use-game-marks";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -139,6 +142,7 @@ export function FootballGameDetails({
   const teams = board.data?.teams ?? null;
   const names = teams ? bibNames(teams.bibs, locale) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
+  const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
 
   const input: FootballGameDetailsInput = {
     ...game,
@@ -249,6 +253,10 @@ export function FootballGameDetails({
     sections: editSections,
     seasons: game.groupSeasons,
     open: editOpen,
+    mvpEnabled:
+      game.isOrganizer &&
+      game.format === "friendly_game" &&
+      game.cancelledAt == null,
     onSaved: refreshGame,
     onClose: () => setEditOpen(false),
   });
@@ -668,6 +676,10 @@ export function FootballGameDetails({
                 scorers={playedModel.scorers}
               />
             }
+            heroFooter={
+              <MvpRow marks={marks} canOpenProfile={canOpenProfiles} />
+            }
+            marks={<MarksSection marks={marks} />}
             columns={playedModel.columns}
             unplaced={playedModel.unplaced}
             facts={playedModel.facts}

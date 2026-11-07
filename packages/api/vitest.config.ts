@@ -11,7 +11,7 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 60_000,
     include: ["src/**/*.test.ts"],
-    setupFiles: ["src/test/setup.ts"],
+    setupFiles: ["src/test/job-sink.setup.ts"],
     env: {
       TEMBA_DRIZZLE_MIGRATIONS: resolve(packageRoot, "../db/drizzle"),
       SKIP_ENV_VALIDATION: "true",

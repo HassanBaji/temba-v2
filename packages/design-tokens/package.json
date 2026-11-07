@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/tokens.ts",
+    "./marks": "./src/marks.ts",
     "./theme.css": "./theme.css"
   },
   "scripts": {

@@ -1,5 +1,5 @@
 {
-  "id": "23d3c8c0-5925-4b9b-a852-e2df41dd5757",
+  "id": "6d63c47f-c020-48eb-86ef-00c646e72ebf",
   "prevId": "c8427b68-4bf5-4bd3-b09d-3164a3e29fe5",
   "version": "7",
   "dialect": "postgresql",
@@ -359,20 +359,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "email_notifications": {
-          "name": "email_notifications",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "locale": {
-          "name": "locale",
-          "type": "user_locale",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
         },
         "match_history_visibility": {
           "name": "match_history_visibility",
@@ -3789,6 +3775,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4692,6 +4684,144 @@
         "match_goals_goals_check": {
           "name": "match_goals_goals_check",
           "value": "\"match_goals\".\"goals\" between 1 and 99"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.marks": {
+      "name": "marks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "giver_user_id": {
+          "name": "giver_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receiver_user_id": {
+          "name": "receiver_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "mark_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "marks_receiver_user_id_idx": {
+          "name": "marks_receiver_user_id_idx",
+          "columns": [
+            {
+              "expression": "receiver_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "marks_match_id_idx": {
+          "name": "marks_match_id_idx",
+          "columns": [
+            {
+              "expression": "match_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "marks_match_id_matches_id_fk": {
+          "name": "marks_match_id_matches_id_fk",
+          "tableFrom": "marks",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "marks_giver_user_id_user_id_fk": {
+          "name": "marks_giver_user_id_user_id_fk",
+          "tableFrom": "marks",
+          "tableTo": "user",
+          "columnsFrom": [
+            "giver_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "marks_receiver_user_id_user_id_fk": {
+          "name": "marks_receiver_user_id_user_id_fk",
+          "tableFrom": "marks",
+          "tableTo": "user",
+          "columnsFrom": [
+            "receiver_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "marks_match_giver_receiver_unique": {
+          "name": "marks_match_giver_receiver_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_id",
+            "giver_user_id",
+            "receiver_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "marks_not_self_check": {
+          "name": "marks_not_self_check",
+          "value": "\"marks\".\"giver_user_id\" <> \"marks\".\"receiver_user_id\""
         }
       },
       "isRLSEnabled": false
@@ -6904,6 +7034,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "mark_kind": {
+          "name": "mark_kind",
+          "type": "mark_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "dedupe_key": {
           "name": "dedupe_key",
           "type": "varchar(255)",
@@ -6912,12 +7049,6 @@
         },
         "read_at": {
           "name": "read_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emailed_at": {
-          "name": "emailed_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
@@ -7125,14 +7256,6 @@
         "male",
         "female",
         "unspecified"
-      ]
-    },
-    "public.user_locale": {
-      "name": "user_locale",
-      "schema": "public",
-      "values": [
-        "en",
-        "ar"
       ]
     },
     "public.user_preferred_position": {
@@ -7353,6 +7476,24 @@
         "knockout_only"
       ]
     },
+    "public.mark_kind": {
+      "name": "mark_kind",
+      "schema": "public",
+      "values": [
+        "dynamo",
+        "let_him_cook",
+        "mr_fumble",
+        "sayed_malek",
+        "clutch",
+        "mr_ice",
+        "smash_machine",
+        "goal_machine",
+        "great_wall",
+        "comeback_king",
+        "underdog",
+        "good_game"
+      ]
+    },
     "public.game_level_range_request_status": {
       "name": "game_level_range_request_status",
       "schema": "public",
@@ -7433,7 +7574,8 @@
         "game_seated_by_organizer",
         "game_side_changed",
         "history_linked",
-        "level_set"
+        "level_set",
+        "mark_received"
       ]
     }
   },

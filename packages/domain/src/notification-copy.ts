@@ -9,6 +9,7 @@ import {
   levelOverrideReasonLabel,
   type LevelOverrideReason,
 } from "./level-slider";
+import { formatMarksClose, isMarkKind, markName } from "./marks";
 import { productDaysBetween, zonedParts } from "./product-timezone";
 
 export type NotificationTitlePart = { text: string; strong: boolean };
@@ -29,6 +30,9 @@ export type NotificationCopyInput = {
   game?: NotificationGame | null;
   gameCount?: number | null;
   levelSet?: NotificationLevelSet | null;
+  markKind?: string | null;
+  /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
+  actorIsRecipient?: boolean;
 };
 
 type NotificationLevelSet = {
@@ -41,6 +45,8 @@ type NotificationGame = {
   name: string | null;
   format: string;
   windowStart: Date | string | null;
+  /** Set only while the Game's Marks window is open. */
+  marksClosesAt?: Date | string | null;
 };
 
 const MS_PER_MINUTE = 60 * 1000;
@@ -97,13 +103,19 @@ function joinSubject(
   return [strong(actorName(item.actor, locale))];
 }
 
-function gameFinishedSubline(audience: string, locale: Locale) {
+function gameFinishedSubline(
+  audience: string,
+  game: NotificationGame,
+  locale: Locale,
+) {
   const m = messagesFor(locale).notification.subline;
   if (audience === "admin") {
     return m.everyMatchIn;
   }
   if (audience === "player") {
-    return m.seeYourResults;
+    return game.marksClosesAt
+      ? m.marksOpen(formatMarksClose(game.marksClosesAt, locale))
+      : m.seeYourResults;
   }
   return null;
 }
@@ -205,8 +217,38 @@ export function notificationCopy(
       subline: reason ? levelOverrideReasonLabel(reason, locale) : null,
     };
   }
+  if (
+    item.type === "mark_received" &&
+    item.audience === "player" &&
+    item.game &&
+    isMarkKind(item.markKind)
+  ) {
+    return {
+      title: m.markReceived(
+        actorName(item.actor, locale),
+        markName(item.markKind, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (item.type === "mvp_decided" && item.audience === "player" && item.game) {
+    const game = notificationGameName(item.game, locale);
+    return {
+      title: item.actorIsRecipient
+        ? m.youAreMvp(game)
+        : m.mvpDecided(actorName(item.actor, locale), game),
+      subline: null,
+    };
+  }
+  if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {
+    return {
+      title: m.mvpTieBreak(notificationGameName(item.game, locale)),
+      subline: null,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
-    const subline = gameFinishedSubline(item.audience, locale);
+    const subline = gameFinishedSubline(item.audience, item.game, locale);
     if (subline) {
       return {
         title: m.gameFinished(notificationGameName(item.game, locale)),

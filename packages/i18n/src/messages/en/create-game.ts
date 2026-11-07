@@ -93,6 +93,13 @@ export const createGame = {
     perPlayer: (amount: string) => `${amount} / player`,
     teamOfTwo: (amount: string) => `${amount} a Game team of two`,
   },
+  mvp: {
+    title: "MVP",
+    decidedAfterGame: "Decided after the game",
+    marks: "Marks",
+    lockedNote:
+      "The score is confirmed, so how the MVP is decided can’t change.",
+  },
   tournament: {
     defaultName: (day: string) => `Friendly tournament · ${day}`,
     defaultNameNoDay: "Friendly tournament",
@@ -178,6 +185,7 @@ export const createGame = {
       seasonUnlinked: "season unlinked",
       seasonLinked: "season linked",
       seasonChanged: "season changed",
+      mvp: "MVP",
     },
     listSeparator: ", ",
     seasonNeedsFix: "Season needs a fix.",

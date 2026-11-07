@@ -291,7 +291,7 @@ One of the two halves an Organizer splits a football Game's roster into, by Leve
 _Avoid_: Team (the persistent roster), squad
 
 **Bib**:
-The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. The only place colour appears in the product.
+The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. One of the two places colour appears in the product; the other is a Mark coin (ADR-0056).
 
 **Score**:
 On a football Match, the goals each Football side scored, stored as the Match's one Set. A player on either side or an Organizer enters it from kick-off; it is agreed once one player from each side confirms, or as soon as an Organizer confirms. A changed Score asks again.
@@ -317,8 +317,36 @@ A seated User's acknowledgement that a Match's entered Sets are correct. The Use
 _Avoid_: complete (the resulting Match status), verify, approve, agree, confirmed Match status (`MatchStatusEnum.CONFIRMED` is deliberately unused — see ADR-0011)
 
 **Played game**:
-A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result.
+A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result. During the Marks window its screen also carries the MVP row and the marks rows.
 _Avoid_: finished game, past game, archived game
+
+**Mark**:
+One of twelve honours a player gives another on a completed Friendly game, during the Marks window: a coin with a name, a description, a Giver group and the sports it applies to. Each giver gives at most three per Game and at most one to any one player, never to themselves, and may take one back while the window is open. Givers are seated account holders; anyone seated receives, Unclaimed players included. A Mark is a Match fact that hangs off both Users' rows. Product copy says mark.
+_Avoid_: badge, trophy, award, honor (bare), ResultMark or form mark (those are the W/L glyphs), sticker
+
+**Roast**:
+A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like any Mark on the Game screen. Its receiver may hide every Roast from their Player profile with one setting; hidden Roasts still show to everyone who can open that Game.
+_Avoid_: negative mark, penalty, insult
+
+**Marks window**:
+The 48 hours after a Match's completion during which Marks are given and the MVP is decided. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
+_Avoid_: voting period, deadline, grace period
+
+**MVP**:
+The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
+_Avoid_: man of the match, player of the game, best player, star (bare)
+
+**MVP mode**:
+How a Friendly game decides its MVP, chosen by the Organizer at create: players vote (the default), the Organizer picks, or no MVP. The Organizer may change it until the Match completes; after that it is fixed. Every other format has no MVP. In organizer mode the Organizer never picks themselves, but may break a tied vote in their own favour.
+_Avoid_: MVP setting, MVP type
+
+**Giver group**:
+Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.
+_Avoid_: category, tier
+
+**Cabinet**:
+The Marks and MVPs a User has collected, shown on their Player profile per sport: a summary row, every kind with its count or "Not yet", and per kind the Games it came from. A Mark counts on the sport of the Game it was given in, an MVP on the sport it was won in, once it has settled. Follows Match history visibility; when the owner hides Roasts, other viewers see no trace of them.
+_Avoid_: trophy case, collection, badge wall, achievements
 
 **Result card**:
 A 1080 by 1920 picture of a Played game's result on ink, sized for a story: the winners first, the score or the Sets, the scorers or line-ups, the Venue and the date. Saved to the photo library or handed to the share sheet as a PNG.

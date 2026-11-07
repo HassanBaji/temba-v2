@@ -38,7 +38,8 @@ export async function listNotifications(
   nextCursor: NotificationCursor | null;
 }> {
   const limit = args.limit ?? DEFAULT_PAGE_SIZE;
-  const cutoff = notificationRetentionCutoff(args.now ?? new Date());
+  const now = args.now ?? new Date();
+  const cutoff = notificationRetentionCutoff(now);
   const { cursor } = args;
 
   const rows = await loadNotificationItems(database, {
@@ -56,6 +57,7 @@ export async function listNotifications(
         : undefined,
     ),
     limit: limit + 1,
+    now,
   });
 
   const items = rows.slice(0, limit).map((row) => row.item);

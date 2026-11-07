@@ -5,10 +5,12 @@ import {
   PENDING_SET_COLUMNS,
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
+import { markName, type CoinKind } from "@repo/domain/marks";
 import { resultMarkLabel } from "@repo/domain/result-mark";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { CoinStack } from "../marks/coin-stack";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -132,10 +134,12 @@ function TeamRow({ team }: { team: HistoryTeamRow }) {
 function ResultStrip({
   outcome,
   scoreLine,
+  coins,
   day,
 }: {
   outcome: HubHistoryRow["outcome"];
   scoreLine: string;
+  coins: CoinKind[];
   day: string;
 }) {
   const locale = useLocale();
@@ -155,6 +159,7 @@ function ResultStrip({
       <ResultMark variant={outcome} size={16} decorative />
       <Text weight="semibold">{resultMarkLabel(outcome, locale)}</Text>
       <ScoreLine score={scoreLine} size="meta" tone="muted" />
+      <CoinStack kinds={coins} size="row" />
       <Text
         size="eyebrow"
         tone="muted"
@@ -175,10 +180,27 @@ export function HistoryCard({
   onOpen: (gameId: string) => void;
 }) {
   const locale = useLocale();
-  const m = useMessages().mobileTournament.history;
+  const messages = useMessages();
+  const m = messages.mobileTournament.history;
   const palette = useTonePalette();
   const model = matchHistoryCardModel(row, locale);
   const won = model.outcome === "won";
+  const card = m.accessibleName(
+    resultMarkLabel(model.outcome, locale),
+    model.scoreLine,
+    model.meta,
+  );
+  const accessibilityLabel =
+    model.coins.length > 0
+      ? messages.mobileMarks.sentences([
+          card,
+          messages.mobileMarks.history.coinsSpoken(
+            model.coins
+              .map((kind) => markName(kind, locale))
+              .join(messages.common.listSeparator),
+          ),
+        ])
+      : card;
 
   return (
     <View
@@ -192,11 +214,7 @@ export function HistoryCard({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={m.accessibleName(
-          resultMarkLabel(model.outcome, locale),
-          model.scoreLine,
-          model.meta,
-        )}
+        accessibilityLabel={accessibilityLabel}
         onPress={() => onOpen(row.id)}
         style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >
@@ -204,6 +222,7 @@ export function HistoryCard({
           <ResultStrip
             outcome={model.outcome}
             scoreLine={model.scoreLine}
+            coins={model.coins}
             day={model.day}
           />
         </SurfaceToneContext.Provider>

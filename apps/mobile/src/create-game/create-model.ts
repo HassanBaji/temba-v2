@@ -33,6 +33,7 @@ import {
   type CreateSubmitIssue,
 } from "@repo/domain/create-game-submit";
 import type { LevelBandSelectValue } from "@repo/domain/level-range";
+import type { MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -44,6 +45,8 @@ export type CreateState = {
   type: CreateGameTypeId | null;
   step: CreateFlowStep;
   draft: CreateGameDraft;
+  /** Sent only with a Friendly game; tournaments have no MVP. */
+  mvpMode: MvpMode;
   locale: Locale;
 };
 
@@ -77,7 +80,8 @@ export type CreateAction =
   | { kind: "setCustomName"; customName: string }
   | { kind: "setPublic"; isPublic: boolean }
   | { kind: "setAllowSolo"; allowSoloRegister: boolean }
-  | { kind: "setRated"; rated: boolean };
+  | { kind: "setRated"; rated: boolean }
+  | { kind: "setMvpMode"; mode: MvpMode };
 
 export function initialCreateState(
   now: Date,
@@ -90,6 +94,7 @@ export function initialCreateState(
     type,
     step: type ? 2 : 1,
     draft: { ...initialCreateGameDraft(now, locale), groupId: groupId ?? "" },
+    mvpMode: "vote",
     locale,
   };
 }
@@ -109,11 +114,10 @@ export function createReducer(
         return { ...state, step: 1 };
       }
       return {
-        sport: state.sport,
+        ...state,
         type: action.type,
         step: 1,
         draft: resetCreateBranch(draft, action.type, locale),
-        locale,
       };
     }
     case "setStep":
@@ -125,6 +129,7 @@ export function createReducer(
         return { ...state, sport, draft: grouped };
       }
       return {
+        ...state,
         sport,
         type: "friendly_game",
         step: Math.max(
@@ -135,7 +140,6 @@ export function createReducer(
           state.type === "friendly_game"
             ? grouped
             : resetCreateBranch(grouped, "friendly_game", locale),
-        locale,
       };
     }
     case "setSideSize":
@@ -242,6 +246,8 @@ export function createReducer(
       return patch(state, { allowSoloRegister: action.allowSoloRegister });
     case "setRated":
       return patch(state, { rated: action.rated });
+    case "setMvpMode":
+      return { ...state, mvpMode: action.mode };
   }
 }
 
@@ -336,14 +342,14 @@ export type SubmitRequest =
       input: Extract<
         ReturnType<typeof validateFootballGameSubmit>,
         { ok: true }
-      >["input"];
+      >["input"] & { mvpMode: MvpMode };
     }
   | {
       kind: "friendly_game";
       input: Extract<
         ReturnType<typeof validateFriendlyGameSubmit>,
         { ok: true }
-      >["input"];
+      >["input"] & { mvpMode: MvpMode };
     }
   | {
       kind: "friendly_tournament";
@@ -367,7 +373,7 @@ export function submitRequest(
     step: issue.step,
     errors: { [issue.field]: issue.message },
   });
-  const { locale } = state;
+  const { locale, mvpMode } = state;
   if (state.type === "friendly_tournament") {
     const result = validateFriendlyTournamentSubmit(
       state.draft,
@@ -385,12 +391,21 @@ export function submitRequest(
   if (state.sport === "football") {
     const football = validateFootballGameSubmit(state.draft, now, locale);
     return football.ok
-      ? { ok: true, request: { kind: "football_game", input: football.input } }
+      ? {
+          ok: true,
+          request: {
+            kind: "football_game",
+            input: { ...football.input, mvpMode },
+          },
+        }
       : issueResult(football);
   }
   const result = validateFriendlyGameSubmit(state.draft, now, locale);
   return result.ok
-    ? { ok: true, request: { kind: "friendly_game", input: result.input } }
+    ? {
+        ok: true,
+        request: { kind: "friendly_game", input: { ...result.input, mvpMode } },
+      }
     : issueResult(result);
 }
 

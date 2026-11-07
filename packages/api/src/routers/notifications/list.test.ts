@@ -3,6 +3,13 @@ import { describe, expect, it } from "vitest";
 
 import { groups, GroupTypeEnum, notifications, user } from "@repo/db/schema";
 
+import {
+  MARKS_HOUR,
+  completePadelMatch,
+  matchCompletedAt,
+  seatPadelFriendlyGame,
+} from "#src/marks/marks.test-support";
+import { give } from "#src/routers/marks/give";
 import { listNotifications } from "#src/routers/notifications/list";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -238,6 +245,45 @@ describe("notifications.list", () => {
         game: null,
         group: null,
       });
+    } finally {
+      await close();
+    }
+  });
+
+  it("returns the kind of a received mark and the close of an open Marks window", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const game = await seatPadelFriendlyGame(db);
+      await completePadelMatch(db, game);
+      await give(db, {
+        gameId: game.gameId,
+        userId: game.a.id,
+        receiverUserId: game.b.id,
+        kind: "dynamo",
+      });
+      const completedAt = await matchCompletedAt(db, game.matchId);
+      const closesAt = new Date(completedAt!.getTime() + 48 * MARKS_HOUR);
+
+      const open = await listNotifications(db, { userId: game.b.id });
+      expect(
+        open.items.map((item) => [
+          item.type,
+          item.markKind,
+          item.game?.marksClosesAt,
+        ]),
+      ).toEqual([
+        ["mark_received", "dynamo", closesAt],
+        ["game_finished", null, closesAt],
+      ]);
+
+      const closed = await listNotifications(db, {
+        userId: game.b.id,
+        now: closesAt,
+      });
+      expect(closed.items.map((item) => item.game?.marksClosesAt)).toEqual([
+        null,
+        null,
+      ]);
     } finally {
       await close();
     }

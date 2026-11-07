@@ -13,6 +13,7 @@ import type { CreateVenuePicker } from "@repo/domain/create-game-flow";
 import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
+import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   groupsThenKnockoutReviewValue,
@@ -37,6 +38,7 @@ import {
   LevelRangeRows,
 } from "./level-range-field";
 import { MoneyField } from "./money-field";
+import { MvpModeField } from "./mvp-mode-field";
 import { RatingField } from "./rating-field";
 import { ReviewCard, type ReviewRow } from "./review-card";
 import type { StepProps } from "./step-props";
@@ -109,6 +111,24 @@ function CustomNameField({ state, errors, dispatch }: StepProps) {
   );
 }
 
+function FriendlyMvpField({ state, dispatch }: StepProps) {
+  return (
+    <MvpModeField
+      mode={state.mvpMode}
+      onSelect={(mode) => dispatch({ kind: "setMvpMode", mode })}
+    />
+  );
+}
+
+/** The MVP choice and when marks open, repeated on a Friendly game's review card. */
+function mvpReviewRows(mode: MvpMode, locale: Locale): ReviewRow[] {
+  const m = messagesFor(locale);
+  return [
+    { label: m.createGame.mvp.title, value: mvpModeCopy(mode, locale).label },
+    { label: m.createGame.mvp.marks, value: m.marks.window.opensAfterScore },
+  ];
+}
+
 function customNameReviewRows(customName: string, locale: Locale): ReviewRow[] {
   const trimmed = customName.trim();
   return trimmed
@@ -139,6 +159,7 @@ export function FootballDetailsStep(props: DetailsProps) {
       <CustomNameField {...props} />
       <FootballSizeFields {...props} />
       <PriceField {...props} />
+      <FriendlyMvpField {...props} />
       <ReviewCard
         rows={[
           ...customNameReviewRows(draft.customName, locale),
@@ -155,6 +176,7 @@ export function FootballDetailsStep(props: DetailsProps) {
             value: createFlowSeatsLabel("football", draft, locale),
           },
           { label: review.rating, value: unratedLabel(locale) },
+          ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
     </View>
@@ -203,6 +225,7 @@ export function GameDetailsStep(props: DetailsProps) {
       <CustomNameField {...props} />
       <LevelRangeField {...props} />
       <PriceField {...props} />
+      <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />
       <ReviewCard
         rows={[
@@ -219,6 +242,7 @@ export function GameDetailsStep(props: DetailsProps) {
             value: createFlowSeatsLabel("padel", draft, locale),
           },
           ratingReviewRow(props, locale),
+          ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
     </View>

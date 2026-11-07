@@ -13,6 +13,7 @@ import {
   levelOverrides,
   ratingEvents,
   ratings,
+  user,
   type DbClient,
 } from "@repo/db";
 
@@ -258,7 +259,11 @@ export async function loadMyProfile(
     ? { kind: "group", groupId: group.id, sport: ratingSport }
     : { kind: "general", sport: ratingSport };
 
-  const [row, changes, allMatches] = await Promise.all([
+  const [owner, row, changes, allMatches] = await Promise.all([
+    database.query.user.findFirst({
+      where: eq(user.id, args.userId),
+      columns: { hideRoasts: true },
+    }),
     scopeRating(database, args.userId, scope),
     levelChanges(database, args.userId, scope),
     loadCountedMatches(
@@ -422,6 +427,7 @@ export async function loadMyProfile(
     lastTen,
     partners: partnersFrom(args.userId, matches, playersOf),
     recent,
+    hideRoasts: owner?.hideRoasts ?? false,
   };
 }
 

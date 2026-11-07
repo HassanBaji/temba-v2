@@ -14,6 +14,7 @@ import { onboarding } from "./onboarding";
 import { booking } from "./booking";
 import { notification } from "./notification";
 import { email } from "./email";
+import { marks } from "./marks";
 import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
@@ -32,7 +33,9 @@ import { you } from "./you";
 import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
+import { mobileMarks } from "./mobile-marks";
 import { webYou } from "./web-you";
+import { webMarks } from "./web-marks";
 
 export const en = {
   common,
@@ -51,6 +54,7 @@ export const en = {
   booking,
   notification,
   email,
+  marks,
   auth,
   webGame,
   webTournament,
@@ -68,6 +72,8 @@ export const en = {
   you,
   mobileYou,
   webYou,
+  webMarks,
   mobileInvite,
   mobileTeam,
+  mobileMarks,
 };
