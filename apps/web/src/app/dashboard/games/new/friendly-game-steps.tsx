@@ -56,6 +56,7 @@ import {
 } from "@repo/domain/game-shape";
 import {
   formatTimeSlotLabel,
+  upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
@@ -186,7 +187,7 @@ export function FriendlyGameSteps({
   const startSlots = upcomingGameWindowTimeSlots(day, now);
   const visibleStarts = previewStartSlots(startSlots, startTime, startExpanded);
   const finishSlots = startTime
-    ? startSlots.filter((slot) => slot > startTime)
+    ? upcomingGameWindowFinishSlots(day, startTime, now)
     : [];
   const durationPreset = matchingDurationPreset(startTime, finishTime);
   const showCustomFinish =

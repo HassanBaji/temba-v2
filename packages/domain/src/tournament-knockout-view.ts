@@ -1,7 +1,7 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
-import { formatDayMonth, formatGameClock } from "./format-game-start";
+import { formatGameClock, formatGameDay } from "./format-game-start";
 import {
   buildKnockoutTree,
   knockoutFedBy,
@@ -488,7 +488,7 @@ export function knockoutRoundDayLine(round: KnockoutViewRound, locale: Locale) {
     }
   }
   return earliest
-    ? formatDayMonth(earliest, locale, { weekday: "short" })
+    ? formatGameDay(earliest, locale, { weekday: "short" })
     : null;
 }
 

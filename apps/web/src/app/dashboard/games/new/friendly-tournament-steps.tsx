@@ -45,6 +45,7 @@ import {
 import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   formatTimeSlotLabel,
+  upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import { type LevelBandSelectValue } from "@repo/domain/level-range";
@@ -221,7 +222,7 @@ export function FriendlyTournamentSteps({
   const startSlots = upcomingGameWindowTimeSlots(day, now);
   const visibleStarts = previewStartSlots(startSlots, startTime, startExpanded);
   const finishSlots = startTime
-    ? startSlots.filter((slot) => slot > startTime)
+    ? upcomingGameWindowFinishSlots(day, startTime, now)
     : [];
   const visibleFinishes = previewStartSlots(
     finishSlots,

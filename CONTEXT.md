@@ -279,6 +279,10 @@ _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
+**Game day**:
+The product-timezone day a Game is listed, picked and labelled under. It opens at 00:30 and closes at the following midnight, which still belongs to it: a Game that starts exactly at midnight is the evening before's. A Game's window may run past that midnight, to 03:00 at the latest, and stays a one-day window (ADR-0058). Picker slots count minutes from the Game day's midnight, so 1:30 AM after a late start reads `25:30`.
+_Avoid_: calendar day (when you mean this), night, session
+
 **Roster registration**:
 A Game admit that occupies a count against players allowed and no Position. Used by Americano before its Matches exist and by every football Game. Waitlist, leave, kick and the Invite doors apply; the seat picker does not.
 _Avoid_: pool registration (a Pool is a tournament stage), open registration (registration is open or closed on every Game), seatless

@@ -109,7 +109,7 @@ describe("product timezone", () => {
     assert.equal(productDayKey(addProductDays(instant, 1)), "2027-01-01");
   });
 
-  it("splits a two-day window at Bahrain midnight", () => {
+  it("keeps a window that runs past Bahrain midnight on one Game day", () => {
     const beforeMidnight = new Date("2026-10-03T20:59:00.000Z");
     const afterMidnight = new Date("2026-10-03T21:01:00.000Z");
     const result = assertIdenticalEverywhere(() => [
@@ -118,6 +118,22 @@ describe("product timezone", () => {
         roundCount: 2,
         windowStart: beforeMidnight,
         windowEnd: new Date("2026-10-03T21:30:00.000Z"),
+        matchMinutes: 20,
+      })?.dateLines,
+    ]);
+    assert.deepEqual(result, [true, ["Saturday 3 October"]]);
+  });
+
+  it("splits a window that reaches the next Bahrain evening", () => {
+    const result = assertIdenticalEverywhere(() => [
+      isOneDayTournamentWindow(
+        new Date("2026-10-03T17:00:00.000Z"),
+        new Date("2026-10-04T17:00:00.000Z"),
+      ),
+      tournamentRoundSummary({
+        roundCount: 2,
+        windowStart: new Date("2026-10-03T17:00:00.000Z"),
+        windowEnd: new Date("2026-10-04T17:00:00.000Z"),
         matchMinutes: 20,
       })?.dateLines,
     ]);
@@ -130,7 +146,7 @@ describe("product timezone", () => {
   it("keeps a window inside one Bahrain day as one day", () => {
     const result = assertIdenticalEverywhere(() =>
       isOneDayTournamentWindow(
-        new Date("2026-10-02T21:00:00.000Z"),
+        new Date("2026-10-03T06:00:00.000Z"),
         new Date("2026-10-03T20:59:00.000Z"),
       ),
     );
@@ -138,6 +154,7 @@ describe("product timezone", () => {
   });
 
   it("computes today, tomorrow and days ago on Bahrain days", () => {
+    // At 23:50 the closing midnight slot is still ahead, so today stays open.
     const result = assertIdenticalEverywhere(() => [
       productDaysBetween(
         new Date("2026-10-10T20:59:00.000Z"),
@@ -153,7 +170,7 @@ describe("product timezone", () => {
       "2026-10-09T21:00:00.000Z",
       "Requested yesterday",
       "Requested yesterday",
-      "2026-10-10T21:00:00.000Z",
+      "2026-10-09T21:00:00.000Z",
     ]);
   });
 });

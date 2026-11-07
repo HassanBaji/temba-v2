@@ -429,9 +429,64 @@ describe("when helpers", () => {
     );
   });
 
+  it("lets a Game run past midnight and start at the closing midnight", () => {
+    const lateGame = validateFriendlyGameWhen(
+      "2026-09-23",
+      "22:30",
+      "24:00",
+      "en",
+      NOW,
+    );
+    assert.equal(lateGame.ok, true);
+    if (lateGame.ok) {
+      assert.equal(
+        lateGame.windowStart.toISOString(),
+        bahrainDate(2026, 8, 23, 22, 30).toISOString(),
+      );
+      assert.equal(
+        lateGame.windowEnd.toISOString(),
+        bahrainDate(2026, 8, 24, 0, 0).toISOString(),
+      );
+    }
+    const midnightGame = validateFriendlyGameWhen(
+      "2026-09-23",
+      "24:00",
+      "25:30",
+      "en",
+      NOW,
+    );
+    assert.equal(midnightGame.ok, true);
+    if (midnightGame.ok) {
+      assert.equal(
+        midnightGame.windowEnd.toISOString(),
+        bahrainDate(2026, 8, 24, 1, 30).toISOString(),
+      );
+    }
+    const tooLate = validateFriendlyGameWhen(
+      "2026-09-23",
+      "24:00",
+      "27:30",
+      "en",
+      NOW,
+    );
+    assert.equal(tooLate.ok, false);
+    if (!tooLate.ok) {
+      assert.equal(tooLate.message, "Pick a finish time");
+    }
+    assert.equal(
+      validateFriendlyGameWhen("2026-09-23", "00:00", "01:00", "en", NOW).ok,
+      false,
+    );
+  });
+
   it("maps duration chips onto 30-minute finish slots", () => {
     assert.equal(finishSlotForDuration("20:00", 90), "21:30");
-    assert.equal(finishSlotForDuration("23:00", 120), null);
+    assert.equal(finishSlotForDuration("23:00", 120), "25:00");
+    assert.equal(finishSlotForDuration("24:00", 90), "25:30");
+    assert.equal(finishSlotForDuration("24:00", 240), null);
+    assert.equal(finishSlotForDuration("00:00", 60), null);
+    assert.equal(matchingDurationPreset("22:30", "24:00"), 90);
+    assert.equal(matchingDurationPreset("24:00", "25:30"), 90);
     assert.equal(matchingDurationPreset("20:00", "21:00"), 60);
     assert.equal(matchingDurationPreset("20:00", "21:30"), 90);
     assert.equal(matchingDurationPreset("20:00", "22:00"), 120);

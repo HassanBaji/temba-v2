@@ -12,7 +12,8 @@ import {
   homeGameRowLines,
   homeOpenSpotsLabel,
 } from "@repo/domain/home-game-lines";
-import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
+import { gameDayMinutes, gameDayStart } from "@repo/domain/game-day";
+import { productDaysBetween } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -75,7 +76,7 @@ export function upNextWeekLabel(
 ): string {
   const m = messagesFor(locale).webAuth.home;
   const count = items.filter(
-    (item) => productDaysBetween(now, item.startsAt) < WEEK_DAYS,
+    (item) => productDaysBetween(now, gameDayStart(item.startsAt)) < WEEK_DAYS,
   ).length;
   return count === 0 ? m.nothingThisWeek : m.thisWeekCount(count);
 }
@@ -86,14 +87,15 @@ export function upNextDayLabel(
   now: Date,
   locale: Locale,
 ): string {
-  const days = productDaysBetween(now, startsAt);
+  const day = gameDayStart(startsAt);
+  const days = productDaysBetween(now, day);
   if (days <= 0) {
     return messagesFor(locale).common.today;
   }
   if (days < WEEK_DAYS) {
-    return formatWeekday(startsAt, "short", locale);
+    return formatWeekday(day, "short", locale);
   }
-  return formatDayMonth(startsAt, locale);
+  return formatDayMonth(day, locale);
 }
 
 /** "Tonight", "Today", "Tomorrow" or "Tue 20 Oct". */
@@ -103,16 +105,17 @@ export function upNextHeroDay(
   locale: Locale,
 ): string {
   const m = messagesFor(locale);
-  const days = productDaysBetween(now, startsAt);
+  const day = gameDayStart(startsAt);
+  const days = productDaysBetween(now, day);
   if (days === 0) {
-    return zonedParts(startsAt).hour >= EVENING_HOUR
+    return gameDayMinutes(startsAt) >= EVENING_HOUR * 60
       ? m.dates.tonight
       : m.common.today;
   }
   if (days === 1) {
     return m.common.tomorrow;
   }
-  return formatDayMonth(startsAt, locale, { weekday: "short" });
+  return formatDayMonth(day, locale, { weekday: "short" });
 }
 
 /** "in 2 h 15 min" inside the coming day, "on now" while it runs. */

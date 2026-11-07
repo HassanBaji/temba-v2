@@ -1,7 +1,7 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
-import { formatDayMonth, formatGameClock } from "./format-game-start";
+import { formatGameClock, formatGameDay } from "./format-game-start";
 import { friendlyGameWaitlistOrdinal } from "./friendly-game-cta";
 import {
   gameSummaryPrimaryAction,
@@ -78,7 +78,7 @@ function asDate(value: Date | string) {
 
 /** `Thu 25 Sep` */
 function shortDay(date: Date, locale: Locale) {
-  return formatDayMonth(date, locale, { weekday: "short" });
+  return formatGameDay(date, locale, { weekday: "short" });
 }
 
 export function tournamentCardDateLine(

@@ -1,6 +1,6 @@
 import { bibColors } from "@repo/design-tokens";
 import {
-  formatDayMonth,
+  formatGameDay,
   formatGameCardDay,
 } from "@repo/domain/format-game-start";
 import {
@@ -169,7 +169,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
         <Text size="meta" tone="muted">
           {messages.home.comingUp.parts(
             [
-              formatDayMonth(game.startTime, locale, { weekday: "short" }),
+              formatGameDay(game.startTime, locale, { weekday: "short" }),
               game.venue?.name,
             ].filter((part): part is string => Boolean(part)),
           )}

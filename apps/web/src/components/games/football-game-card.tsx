@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  formatDayMonth,
+  formatGameDay,
   formatGameCardDay,
 } from "@repo/domain/format-game-start";
 import { footballSection } from "@repo/domain/football-hub";
@@ -144,7 +144,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
       <div className="text-muted-foreground text-meta flex justify-between">
         <span>
           {[
-            formatDayMonth(game.startTime, locale, { weekday: "short" }),
+            formatGameDay(game.startTime, locale, { weekday: "short" }),
             game.venue?.name,
           ]
             .filter(Boolean)

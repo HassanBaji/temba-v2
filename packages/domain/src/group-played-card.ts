@@ -13,7 +13,7 @@ import {
   footballBibName,
   type FootballBib,
 } from "./football-lineup";
-import { formatDayMonth, formatMonth } from "./format-game-start";
+import { formatGameDay, formatMonth } from "./format-game-start";
 import type { GroupPlayedGameData } from "./group-data";
 import {
   GROUP_PLAYED_FILTERS,
@@ -154,7 +154,7 @@ export function groupPlayedCard(
     ? game.venueName
     : (game.courtName ?? game.venueName);
   const whenLine = [
-    formatDayMonth(game.displayTime, locale, { weekday: "short" }),
+    formatGameDay(game.displayTime, locale, { weekday: "short" }),
     place,
   ]
     .filter(Boolean)

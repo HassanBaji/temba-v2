@@ -6,6 +6,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatWeekday } from "./format-game-start";
+import { gameDayStart } from "./game-day";
 import { memberCountLabel } from "./member-count-label";
 
 /**
@@ -32,5 +33,5 @@ export function groupNextGameWeekday(startTime: Date | string, locale: Locale) {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return formatWeekday(date, "short", locale);
+  return formatWeekday(gameDayStart(date), "short", locale);
 }

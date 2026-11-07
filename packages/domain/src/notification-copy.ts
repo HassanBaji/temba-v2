@@ -1,7 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatDayMonth } from "./format-game-start";
+import { formatDayMonth, formatGameDay } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -81,7 +81,7 @@ function notificationGameName(game: NotificationGame, locale: Locale) {
   return game.windowStart
     ? messagesFor(locale).notification.gameNameWithDay(
         format,
-        formatDayMonth(game.windowStart, locale, { weekday: "short" }),
+        formatGameDay(game.windowStart, locale, { weekday: "short" }),
       )
     : format;
 }
