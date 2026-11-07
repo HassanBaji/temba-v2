@@ -93,6 +93,7 @@ export function useOrganizerActions({
     sections: editSections,
     seasons: game?.groupSeasons ?? [],
     open: section === "edit",
+    mvpEnabled: plan != null && game?.format === "friendly_game",
     onSaved: refresh,
     onClose: () => setSection(null),
   });

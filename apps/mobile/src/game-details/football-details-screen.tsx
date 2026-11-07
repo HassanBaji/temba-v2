@@ -247,6 +247,7 @@ export function FootballGameDetails({
     sections: editSections,
     seasons: game.groupSeasons,
     open: editOpen,
+    mvpEnabled: model.organizer != null && game.format === "friendly_game",
     onSaved: refresh,
     onClose: () => setEditOpen(false),
   });
