@@ -217,7 +217,11 @@ export async function reportWrongScore(
       .where(eq(matchResultConfirmations.matchId, locked.id));
     await tx
       .update(matches)
-      .set({ status: MatchStatusEnum.PENDING, updatedAt: now })
+      .set({
+        status: MatchStatusEnum.PENDING,
+        completedAt: null,
+        updatedAt: now,
+      })
       .where(eq(matches.id, locked.id));
   });
 

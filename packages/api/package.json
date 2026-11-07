@@ -64,6 +64,11 @@
       "types": "./dist/routers/groups/index.d.ts",
       "default": "./src/routers/groups/index.ts"
     },
+    "#src/routers/marks": {
+      "temba-source": "./src/routers/marks/index.ts",
+      "types": "./dist/routers/marks/index.d.ts",
+      "default": "./src/routers/marks/index.ts"
+    },
     "#src/routers/notifications": {
       "temba-source": "./src/routers/notifications/index.ts",
       "types": "./dist/routers/notifications/index.d.ts",

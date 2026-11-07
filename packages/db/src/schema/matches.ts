@@ -6,6 +6,7 @@ import { games } from "./games";
 import { gameTeams } from "./game-teams";
 import { matchSets } from "./match-sets";
 import { matchGoals } from "./match-goals";
+import { marks } from "./marks";
 import { matchResultConfirmations } from "./match-result-confirmations";
 import { gameStatus, MatchStatusEnum } from "./game-enums";
 
@@ -38,6 +39,8 @@ export const matches = pgTable("matches", {
     () => gameTeams.id,
     { onDelete: "set null" },
   ),
+  /** Set with `status = completed`, cleared when a wrong score reopens the Match. Anchors the Marks window. */
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -58,4 +61,5 @@ export const matchRelations = relations(matches, ({ one, many }) => ({
   sets: many(matchSets),
   goals: many(matchGoals),
   confirmations: many(matchResultConfirmations),
+  marks: many(marks),
 }));

@@ -8,6 +8,8 @@ import {
   type NotificationType,
 } from "@repo/db";
 
+import type { MarkKind } from "@repo/domain/marks";
+
 import { notificationRetentionCutoff } from "#src/notifications/retention";
 import { unclaimedUserSql } from "#src/unclaimed-players/is-unclaimed";
 
@@ -30,6 +32,7 @@ export type NotifyArgs = {
   levelOverrideId?: string | null;
   viaWaitlist?: boolean;
   gameCount?: number | null;
+  markKind?: MarkKind | null;
   dedupeKey?: string | null;
 };
 
@@ -87,6 +90,7 @@ export async function notify(
     levelOverrideId: args.levelOverrideId ?? null,
     viaWaitlist: args.viaWaitlist ?? false,
     gameCount: args.gameCount ?? null,
+    markKind: args.markKind ?? null,
     dedupeKey: args.dedupeKey ?? null,
   }));
 

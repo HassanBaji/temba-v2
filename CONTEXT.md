@@ -306,8 +306,24 @@ A seated User's acknowledgement that a Match's entered Sets are correct. The Use
 _Avoid_: complete (the resulting Match status), verify, approve, agree, confirmed Match status (`MatchStatusEnum.CONFIRMED` is deliberately unused — see ADR-0011)
 
 **Played game**:
-A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result.
+A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result. During the Marks window its screen also carries the marks rows.
 _Avoid_: finished game, past game, archived game
+
+**Mark**:
+One of twelve honours a player gives another on a completed Friendly game, during the Marks window: a coin with a name, a description, a Giver group and the sports it applies to. Each giver gives at most three per Game and at most one to any one player, never to themselves, and may take one back while the window is open. Givers are seated account holders; anyone seated receives, Unclaimed players included. A Mark is a Match fact that hangs off both Users' rows. Product copy says mark.
+_Avoid_: badge, trophy, award, honor (bare), ResultMark or form mark (those are the W/L glyphs), sticker
+
+**Roast**:
+A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like any Mark on the Game screen. Its receiver may hide every Roast from their Player profile with one setting; hidden Roasts still show to everyone who can open that Game.
+_Avoid_: negative mark, penalty, insult
+
+**Marks window**:
+The 48 hours after a Match's completion during which Marks are given. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. Judged by the server clock.
+_Avoid_: voting period, deadline, grace period
+
+**Giver group**:
+Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.
+_Avoid_: category, tier
 
 **Result card**:
 A 1080 by 1920 picture of a Played game's result on ink, sized for a story: the winners first, the score or the Sets, the scorers or line-ups, the Venue and the date. Saved to the photo library or handed to the share sheet as a PNG.

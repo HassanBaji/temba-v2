@@ -62,9 +62,14 @@ export async function runMatchCompletionEffect(
       return;
     }
 
+    const now = new Date();
     await tx
       .update(matches)
-      .set({ status: MatchStatusEnum.COMPLETED, updatedAt: new Date() })
+      .set({
+        status: MatchStatusEnum.COMPLETED,
+        completedAt: now,
+        updatedAt: now,
+      })
       .where(eq(matches.id, locked.id));
 
     await applyRatedMatch(tx, game, locked, outcome.result);

@@ -15,6 +15,7 @@ type ExpectedTopLevel =
   | "bookings"
   | "games"
   | "groups"
+  | "marks"
   | "notifications"
   | "ratings"
   | "teams"
@@ -164,6 +165,8 @@ type ExpectedGroups =
   | "closeSeason"
   | "seasonStanding";
 
+type ExpectedMarks = "forGame" | "give" | "retract";
+
 type ExpectedNotifications =
   | "list"
   | "unreadCount"
@@ -254,6 +257,7 @@ type _Bookings = AssertTrue<
 >;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
+type _Marks = AssertTrue<Equal<keyof RouterInputs["marks"], ExpectedMarks>>;
 type _Notifications = AssertTrue<
   Equal<keyof RouterInputs["notifications"], ExpectedNotifications>
 >;
@@ -269,6 +273,7 @@ export type AppRouterShapeChecks = [
   _TopLevel,
   _Games,
   _Groups,
+  _Marks,
   _Notifications,
   _Ratings,
   _Teams,

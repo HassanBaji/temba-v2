@@ -15,6 +15,7 @@ import {
   groupMembers,
   groups,
   levelOverrides,
+  marks,
   matchResultConfirmations,
   matchSets,
   matches,
@@ -378,6 +379,62 @@ describe("mergeIntoAccount", () => {
       });
       expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
       expect(match?.sets).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("moves the Marks the Unclaimed player received to the account, and drops one between the two", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const { matchId } = await playCompletedMatch(db, {
+        gameId,
+        side1: [people.partner.id, people.unclaimed.id],
+        side2: [people.oppLeft.id, people.oppRight.id],
+      });
+      const otherGameId = await insertGame(db, people);
+      const other = await playCompletedMatch(db, {
+        gameId: otherGameId,
+        side1: [people.survivor.id, people.partner.id],
+        side2: [people.unclaimed.id, people.oppRight.id],
+      });
+      await db.insert(marks).values([
+        {
+          matchId,
+          giverUserId: people.partner.id,
+          receiverUserId: people.unclaimed.id,
+          kind: "dynamo",
+        },
+        {
+          matchId,
+          giverUserId: people.oppLeft.id,
+          receiverUserId: people.unclaimed.id,
+          kind: "great_wall",
+        },
+        {
+          matchId: other.matchId,
+          giverUserId: people.survivor.id,
+          receiverUserId: people.unclaimed.id,
+          kind: "good_game",
+        },
+      ]);
+
+      await merge(db, people);
+
+      const received = await db.query.marks.findMany({
+        where: eq(marks.receiverUserId, people.survivor.id),
+      });
+      expect(received.map((row) => row.kind).sort()).toEqual([
+        "dynamo",
+        "great_wall",
+      ]);
+      expect(
+        await db.query.marks.findMany({
+          where: eq(marks.matchId, other.matchId),
+        }),
+      ).toHaveLength(0);
     } finally {
       await close();
     }

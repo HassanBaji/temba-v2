@@ -70,10 +70,18 @@ export const notification = {
       strong(level),
     ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
+    markReceived: (actor: string, kind: string, game: string) => [
+      strong(actor),
+      plain(" gave you "),
+      strong(kind),
+      plain(" on "),
+      strong(game),
+    ],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
     seeYourResults: "See your results.",
+    marksOpen: (when: string) => `Give your marks before ${when}.`,
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

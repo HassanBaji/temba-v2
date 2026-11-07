@@ -1,5 +1,5 @@
 import type { DbClient, DbTx, UserMergeSummary } from "@repo/db";
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, or, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 
 import {
@@ -27,6 +27,7 @@ import {
   groupSeasons,
   groups,
   levelOverrides,
+  marks,
   matchGoals,
   matchResultConfirmations,
   notifications,
@@ -76,6 +77,14 @@ const uniqueUserReferences: UniqueUserReference[] = [
     sameKeys: [matchResultConfirmations.matchId],
   },
   { column: matchGoals.userId, sameKeys: [matchGoals.matchId] },
+  {
+    column: marks.receiverUserId,
+    sameKeys: [marks.matchId, marks.giverUserId],
+  },
+  {
+    column: marks.giverUserId,
+    sameKeys: [marks.matchId, marks.receiverUserId],
+  },
   {
     column: gameInviteLinkConsents.userId,
     sameKeys: [gameInviteLinkConsents.gameInviteLinkId],
@@ -193,6 +202,24 @@ async function dropMergedDuplicates(
           and ${sql.join([...sameKeys, ...unused], sql` and `)}
       )
   `);
+}
+
+/** A Mark between the two would become a Mark to oneself, which the table refuses. */
+async function dropMarksBetween(tx: DbTx, ids: MergeIds) {
+  await tx
+    .delete(marks)
+    .where(
+      or(
+        and(
+          eq(marks.giverUserId, ids.survivorUserId),
+          eq(marks.receiverUserId, ids.mergedUserId),
+        ),
+        and(
+          eq(marks.giverUserId, ids.mergedUserId),
+          eq(marks.receiverUserId, ids.survivorUserId),
+        ),
+      ),
+    );
 }
 
 async function reassign(tx: DbTx, column: PgColumn, ids: MergeIds) {
@@ -486,6 +513,7 @@ export async function mergeIntoAccount(
     const counts = await seatAndMembershipCounts(tx, ids);
     const ratingKeptBySport = await resolveRatings(tx, ids);
     await resolveGroupRatings(tx, ids);
+    await dropMarksBetween(tx, ids);
 
     for (const reference of uniqueUserReferences) {
       await dropMergedDuplicates(tx, reference, ids);

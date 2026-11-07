@@ -1,6 +1,7 @@
 import { bookingsRouter } from "#src/routers/bookings";
 import { gamesRouter } from "#src/routers/games";
 import { groupsRouter } from "#src/routers/groups";
+import { marksRouter } from "#src/routers/marks";
 import { notificationsRouter } from "#src/routers/notifications";
 import { ratingsRouter } from "#src/routers/ratings";
 import { teamsRouter } from "#src/routers/teams";
@@ -17,6 +18,7 @@ export const appRouter = createTRPCRouter({
   bookings: bookingsRouter,
   games: gamesRouter,
   groups: groupsRouter,
+  marks: marksRouter,
   notifications: notificationsRouter,
   ratings: ratingsRouter,
   teams: teamsRouter,

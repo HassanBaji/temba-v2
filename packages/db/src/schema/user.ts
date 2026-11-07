@@ -16,6 +16,7 @@ import { relations, sql } from "drizzle-orm";
 import { account } from "./account";
 import { footballPositions, footballRoles } from "./game-enums";
 import { groupSports } from "./group-enums";
+import { marks } from "./marks";
 import { session } from "./session";
 
 /**
@@ -140,4 +141,6 @@ export const user = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   account: many(account),
   session: many(session),
+  marksReceived: many(marks, { relationName: "markReceiver" }),
+  marksGiven: many(marks, { relationName: "markGiver" }),
 }));
