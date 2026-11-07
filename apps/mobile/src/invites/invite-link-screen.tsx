@@ -1,9 +1,13 @@
 import {
+  gameInviteGroupGate,
+  gameInviteLinkStage,
   inviteLinkAcceptToast,
+  type GameInviteGroupChoice,
   type InviteKind,
   type InviteLinkPath,
   type InviteLinkPreview,
 } from "@repo/domain/invites";
+import { groupDisplayName } from "@repo/domain/group-join";
 import { groupJoinToast } from "@repo/domain/group-join";
 import {
   type FootballPosition,
@@ -81,6 +85,10 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   const kind = kindOf(link);
   const [refreshing, setRefreshing] = useState(false);
   const [waitingForPartner, setWaitingForPartner] = useState(false);
+  const [groupSheetOpen, setGroupSheetOpen] = useState(false);
+  const [groupDecided, setGroupDecided] = useState(false);
+  const [holdSeat, setHoldSeat] = useState(false);
+  const [justJoinedGroup, setJustJoinedGroup] = useState(false);
 
   const gameCode = api.games.inviteLinkByShortCode.useQuery(
     { code: "code" in link ? link.code : "" },
@@ -145,6 +153,14 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     : normalised
       ? { status: "ready", value: normalised }
       : { status: "loading" };
+  const readyGame =
+    normalised?.status === "ready" && normalised.kind === "game"
+      ? normalised.game
+      : null;
+  const groupGate = gameInviteGroupGate(readyGame?.group);
+  const groupName = readyGame?.group
+    ? groupDisplayName(readyGame.group.name, locale)
+    : null;
 
   const refetch = useCallback(async () => {
     await Promise.all([
@@ -221,6 +237,36 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     },
     onError: (e) => toast.show(e.message),
   });
+  const joinGroup = api.games.joinGroupFromInviteLink.useMutation({
+    onSuccess: async (result) => {
+      setGroupSheetOpen(false);
+      setGroupDecided(false);
+      setHoldSeat(false);
+      if (result.outcome === "joined") {
+        toast.show(
+          m.mobileInvite.link.group.joinedToast(groupName ?? m.group.untitled),
+        );
+        setJustJoinedGroup(true);
+        await utils.groups.mine.invalidate();
+      } else if (result.outcome === "requested") {
+        toast.show(m.mobileInvite.link.group.requestedToast);
+      }
+      await game.refetch();
+    },
+    onError: (e, variables) => {
+      if (!variables.football) {
+        toast.show(e.message);
+      }
+      void game.refetch();
+    },
+  });
+  const withdraw = api.groups.withdrawJoinRequest.useMutation({
+    onSuccess: async () => {
+      toast.show(m.mobileInvite.link.group.withdrawnToast);
+      await game.refetch();
+    },
+    onError: (e) => toast.show(e.message),
+  });
 
   function accept(seat?: Seat) {
     if (!token) {
@@ -230,19 +276,58 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       acceptGroup.mutate({ token });
     } else if (kind === "team") {
       acceptTeam.mutate({ token });
+    } else if (holdSeat) {
+      joinGroup.mutate({ token, holdSeat: true, ...seat });
     } else {
       acceptGame.mutate({ token, ...seat });
     }
   }
 
   function acceptFootball(role: FootballRole, position: FootballPosition) {
-    if (token) {
+    if (!token) {
+      return;
+    }
+    if (holdSeat) {
+      joinGroup.mutate({ token, holdSeat: true, football: { role, position } });
+    } else {
       acceptGame.mutate({ token, football: { role, position } });
     }
   }
 
+  function chooseGroup(choice: GameInviteGroupChoice) {
+    if (!token || !readyGame) {
+      return;
+    }
+    if (choice === "group_only") {
+      joinGroup.mutate({ token });
+      return;
+    }
+    const hold = groupGate === "approval";
+    setGroupSheetOpen(false);
+    setGroupDecided(true);
+    setHoldSeat(hold);
+    if (gameInviteLinkStage(readyGame, true) === "accept") {
+      if (hold) {
+        joinGroup.mutate({ token, holdSeat: true });
+      } else {
+        acceptGame.mutate({ token });
+      }
+    }
+  }
+
+  const groupChoicePending: GameInviteGroupChoice | null = joinGroup.isPending
+    ? joinGroup.variables?.holdSeat
+      ? "with_seat"
+      : "group_only"
+    : acceptGame.isPending && groupDecided && !acceptGame.variables?.football
+      ? "with_seat"
+      : null;
+
   const acceptPending =
-    acceptGroup.isPending || acceptTeam.isPending || acceptGame.isPending;
+    acceptGroup.isPending ||
+    acceptTeam.isPending ||
+    acceptGame.isPending ||
+    joinGroup.isPending;
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
@@ -251,7 +336,9 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
         kind={kind}
         preview={preview}
         acceptPending={acceptPending}
-        acceptError={acceptGame.error?.message ?? null}
+        acceptError={
+          acceptGame.error?.message ?? joinGroup.error?.message ?? null
+        }
         requestPending={requestLevel.isPending}
         waitingForPartner={waitingForPartner}
         onAccept={accept}
@@ -262,6 +349,16 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
         onPickPartner={(gameId) => router.replace(`/games/${gameId}` as Href)}
         onGoHome={() => router.replace("/")}
         onRetry={() => void refetch()}
+        groupSheetOpen={groupSheetOpen}
+        groupChoicePending={groupChoicePending}
+        groupDecided={groupDecided}
+        justJoinedGroup={justJoinedGroup}
+        withdrawPending={withdraw.isPending}
+        onOpenGroupSheet={() => setGroupSheetOpen(true)}
+        onCloseGroupSheet={() => setGroupSheetOpen(false)}
+        onChooseGroup={chooseGroup}
+        onWithdraw={(requestId) => withdraw.mutate({ requestId })}
+        onOpenGroup={(groupId) => router.push(`/groups/${groupId}` as Href)}
       />
     </Screen>
   );
