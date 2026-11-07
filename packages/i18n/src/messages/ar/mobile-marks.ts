@@ -2,6 +2,27 @@ import { isolate } from "../../bidi";
 import type { mobileMarks as source } from "../en/mobile-marks";
 import { plural } from "../../plural";
 
+function timesAr(n: number) {
+  return plural("ar", n, {
+    one: "مرة",
+    two: "مرتان",
+    few: "{n} مرات",
+    many: "{n} مرة",
+    other: "{n} مرة",
+  });
+}
+
+function kindsAr(n: number) {
+  return plural("ar", n, {
+    zero: "لا أنواع",
+    one: "نوع واحد",
+    two: "نوعان",
+    few: "{n} أنواع",
+    many: "{n} نوعًا",
+    other: "{n} نوع",
+  });
+}
+
 export const mobileMarks = {
   sentences: (parts: string[]) => parts.join(". "),
   and: (first: string, second: string) => `${first} و${second}`,
@@ -91,5 +112,69 @@ export const mobileMarks = {
   },
   givers: {
     title: (name: string) => `أوسمة ${isolate(name)}`,
+  },
+  cabinet: {
+    empty: "لا أوسمة بعد",
+    unavailableTitle: "هذه الأوسمة غير متاحة",
+    unavailableDescription:
+      "تتبع الأوسمة من يسمح لهم اللاعب برؤية سجل مبارياته.",
+    loadError: "تعذّر تحميل الأوسمة",
+    coinSpoken: (name: string, n: number) => `${name} ${n}`,
+    rowSpoken: (received: string, coins: string) =>
+      `الأوسمة، ${received}. ${coins}`,
+    showAll: "اعرض كل الأوسمة",
+    marksReceived: (n: number) =>
+      plural("ar", n, {
+        zero: "لا أوسمة",
+        one: "وسام واحد",
+        two: "وسامان",
+        few: "{n} أوسمة",
+        many: "{n} وسامًا",
+        other: "{n} وسام",
+      }),
+    marksReceivedIn: (marks: string, games: number) =>
+      `${marks} في ${plural("ar", games, {
+        zero: "0 مباراة",
+        one: "مباراة واحدة",
+        two: "مباراتين",
+        few: "{n} مباريات",
+        many: "{n} مباراة",
+        other: "{n} مباراة",
+      })}`,
+    sections: {
+      teammate: "من الزملاء",
+      anyone: "من أي لاعب",
+      opponent: "من الخصوم",
+    },
+    kinds: (n: number) => kindsAr(n),
+    kindsIn: (n: number, sport: "padel" | "football") =>
+      `${kindsAr(n)} في ${sport === "padel" ? "البادل" : "كرة القدم"}`,
+    from: (name: string, when: string) => `من ${isolate(name)}، ${when}`,
+    mvpTimes: {
+      vote: (n: number) => `${timesAr(n)} بالتصويت`,
+      organizer: (n: number) => `${timesAr(n)} من المنظّم`,
+      tieBreak: (n: number) => `${timesAr(n)} من المنظّم بعد تعادل التصويت`,
+    },
+    mvpHow: (parts: string[]) => parts.join(" و"),
+    lastOne: (when: string, game: string) => `آخرها ${when}، ${isolate(game)}`,
+  },
+  detail: {
+    about: (description: string, givenBy: string) =>
+      `${description} ${givenBy}`,
+    givenBy: {
+      teammate: "يمنحه زميل أو شريك.",
+      anyone: "يمكن لأي لاعب في المباراة منحه.",
+      opponent: "يمنحه لاعب من الفريق الآخر.",
+    },
+    byVote: "بالتصويت",
+    firstOne: (when: string) => `الأول ${when}`,
+    otherTab: (sport: "padel" | "football") =>
+      sport === "padel"
+        ? "أوسمة البادل تظهر تحت تبويب بادل"
+        : "أوسمة كرة القدم تظهر تحت تبويب كرة القدم",
+    otherTabMvp: (sport: "padel" | "football") =>
+      sport === "padel"
+        ? "نجم المباراة في البادل يظهر تحت تبويب بادل"
+        : "نجم المباراة في كرة القدم يظهر تحت تبويب كرة القدم",
   },
 } satisfies typeof source;

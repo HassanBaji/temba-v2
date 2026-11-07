@@ -9,7 +9,9 @@ import { gamePath } from "../games/games-model";
 import { Block } from "../home/slot-block";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
-import { playerPath } from "../player-profile/player-path";
+import { cabinetRowModel } from "../marks/cabinet-model";
+import { CabinetRow } from "../marks/cabinet-row";
+import { playerMarksPath, playerPath } from "../player-profile/player-path";
 import { Screen } from "../primitives/screen";
 import { api } from "../trpc/react";
 import { FootballTab } from "./football-tab";
@@ -173,6 +175,10 @@ export function ProfileScreen() {
     { sport: "football" },
     { ...REFETCH_ON_FOREGROUND, enabled: sport === "football" },
   );
+  const cabinet = api.marks.cabinet.useQuery(
+    { userId: details.data?.id ?? "" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sport !== null && !!details.data },
+  );
 
   const refetchAll = useCallback(
     () =>
@@ -182,9 +188,10 @@ export function ProfileScreen() {
         sport === "padel" ? padel.refetch() : null,
         sport === "football" ? football.refetch() : null,
         sport === "football" ? teammates.refetch() : null,
+        sport ? cabinet.refetch() : null,
         user?.reload(),
       ]),
-    [details, sport, groupLevels, padel, football, teammates, user],
+    [details, sport, groupLevels, padel, football, teammates, cabinet, user],
   );
 
   const onRefresh = useCallback(async () => {
@@ -201,6 +208,14 @@ export function ProfileScreen() {
     open(playerPath(PROFILE_TAB, userId, sport ?? undefined));
   const name =
     user?.fullName ?? details.data?.name ?? user?.firstName ?? m.common.you;
+  const cabinetRow = sport
+    ? cabinetRowModel(cabinet.data, sport, locale)
+    : null;
+  const openCabinet = () => {
+    if (details.data && sport) {
+      open(playerMarksPath(PROFILE_TAB, details.data.id, sport));
+    }
+  };
 
   return (
     <Screen refreshing={refreshing} onRefresh={() => void onRefresh()}>
@@ -278,6 +293,9 @@ export function ProfileScreen() {
                   </ScrollView>
                 ) : null}
               </View>
+              {cabinetRow ? (
+                <CabinetRow row={cabinetRow} onOpen={openCabinet} />
+              ) : null}
               {sport === "padel" ? (
                 <Block
                   slot={slotOf(padel)}

@@ -1,6 +1,16 @@
 import { plural } from "../../plural";
 
-/** The Marks and MVP rows and sheets on the mobile Played game screen. */
+function timesEn(n: number) {
+  if (n === 2) {
+    return "twice";
+  }
+  return plural("en", n, { one: "once", other: "{n} times" });
+}
+
+/**
+ * The Marks and MVP rows and sheets on the mobile Played game screen, and
+ * the cabinet on the profile.
+ */
 export const mobileMarks = {
   sentences: (parts: string[]) => parts.join(". "),
   and: (first: string, second: string) => `${first} and ${second}`,
@@ -79,5 +89,63 @@ export const mobileMarks = {
   },
   givers: {
     title: (name: string) => `Marks for ${name}`,
+  },
+  cabinet: {
+    empty: "No marks yet",
+    unavailableTitle: "These marks aren’t available",
+    unavailableDescription:
+      "Marks follow who the player lets see their Match history.",
+    loadError: "Marks could not be loaded",
+    coinSpoken: (name: string, n: number) => `${name} ${n}`,
+    rowSpoken: (received: string, coins: string) =>
+      `Marks, ${received}. ${coins}`,
+    showAll: "Show all marks",
+    marksReceived: (n: number) =>
+      plural("en", n, {
+        one: "1 mark received",
+        other: "{n} marks received",
+      }),
+    marksReceivedIn: (marks: string, games: number) =>
+      `${marks} in ${plural("en", games, { one: "1 game", other: "{n} games" })}`,
+    sections: {
+      teammate: "From teammates",
+      anyone: "From anyone",
+      opponent: "From opponents",
+    },
+    kinds: (n: number) =>
+      plural("en", n, { one: "1 kind", other: "{n} kinds" }),
+    kindsIn: (n: number, sport: "padel" | "football") =>
+      `${plural("en", n, { one: "1 kind", other: "{n} kinds" })} in ${sport}`,
+    from: (name: string, when: string) => `From ${name}, ${when}`,
+    mvpTimes: {
+      vote: (n: number) => `${timesEn(n)} by vote`,
+      organizer: (n: number) => `${timesEn(n)} by the organizer`,
+      tieBreak: (n: number) =>
+        `${timesEn(n)} by the organizer after a tied vote`,
+    },
+    mvpHow: (parts: string[]) => {
+      const joined = parts.join(", ");
+      return joined.charAt(0).toUpperCase() + joined.slice(1);
+    },
+    lastOne: (when: string, game: string) => `Last one ${when}, ${game}`,
+  },
+  detail: {
+    about: (description: string, givenBy: string) =>
+      `${description} ${givenBy}`,
+    givenBy: {
+      teammate: "A teammate or partner gives it.",
+      anyone: "Anyone in the game can give it.",
+      opponent: "Someone on the other side gives it.",
+    },
+    byVote: "By vote",
+    firstOne: (when: string) => `First one ${when}`,
+    otherTab: (sport: "padel" | "football"): string =>
+      sport === "padel"
+        ? "Padel marks show under the Padel tab"
+        : "Football marks show under the Football tab",
+    otherTabMvp: (sport: "padel" | "football"): string =>
+      sport === "padel"
+        ? "Padel MVPs show under the Padel tab"
+        : "Football MVPs show under the Football tab",
   },
 };

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { playerMatchesPath, playerPath } from "./player-path";
+import {
+  playerMarkPath,
+  playerMarksPath,
+  playerMatchesPath,
+  playerPath,
+} from "./player-path";
 
 const USER = "8c0f1f4e-2d0c-4f49-9a55-6a1f3b1f0a01";
 
@@ -49,5 +54,32 @@ describe("playerMatchesPath", () => {
     expect(playerMatchesPath(["(app)", "(home)"], USER, "match-1")).toBe(
       `/players/${USER}/matches?match=match-1`,
     );
+  });
+});
+
+describe("playerMarksPath", () => {
+  it("opens all marks in each tab's stack", () => {
+    expect(
+      playerMarksPath(["(app)", "groups", "players", "[userId]"], USER),
+    ).toBe(`/groups/players/${USER}/marks`);
+    expect(playerMarksPath(["profile"], USER, "football")).toBe(
+      `/profile/players/${USER}/marks?sport=football`,
+    );
+    expect(playerMarksPath(["(app)", "(home)"], USER, "padel")).toBe(
+      `/players/${USER}/marks?sport=padel`,
+    );
+  });
+});
+
+describe("playerMarkPath", () => {
+  it("opens one kind on one sport's tab in the current tab", () => {
+    expect(
+      playerMarkPath(
+        ["(app)", "games", "players", "[userId]", "marks"],
+        USER,
+        "clutch",
+        "football",
+      ),
+    ).toBe(`/games/players/${USER}/marks/clutch?sport=football`);
   });
 });

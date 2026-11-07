@@ -1,3 +1,4 @@
+import type { CoinKind } from "@repo/domain/marks";
 import type { Sport } from "@repo/domain/sport";
 
 const TAB_PREFIX: Record<string, string> = {
@@ -31,4 +32,24 @@ export function playerMatchesPath(
 ) {
   const path = `${playerPath(segments, userId)}/matches`;
   return matchId ? `${path}?match=${matchId}` : path;
+}
+
+/** All marks (3a), opened on one sport's tab when given. */
+export function playerMarksPath(
+  segments: readonly string[],
+  userId: string,
+  sport?: Sport,
+) {
+  const path = `${playerPath(segments, userId)}/marks`;
+  return sport ? `${path}?sport=${sport}` : path;
+}
+
+/** One kind's detail (3b) on one sport's tab. */
+export function playerMarkPath(
+  segments: readonly string[],
+  userId: string,
+  kind: CoinKind,
+  sport: Sport,
+) {
+  return `${playerPath(segments, userId)}/marks/${kind}?sport=${sport}`;
 }
