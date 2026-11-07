@@ -41,6 +41,55 @@ export const mobileInvite = {
     teamsSet: "محدّدة",
     teamsByOrganizer: "يحدّدها المنظّم",
     fromALink: "من رابط",
+    hero: {
+      countIn: (inCount: number, seats: number | null) =>
+        seats == null ? `${inCount} انضموا` : `${inCount} من ${seats} انضموا`,
+      priceEach: (price: string) => `${price} لكل لاعب`,
+      openSeatA11y: "مكان شاغر",
+      rosterA11y: (inCount: number, seats: number | null) =>
+        seats == null
+          ? plural("ar", inCount, {
+              zero: "لا لاعبين بعد",
+              one: "لاعب واحد انضم",
+              two: "لاعبان انضمّا",
+              few: "{n} لاعبين انضموا",
+              many: "{n} لاعبًا انضموا",
+              other: "{n} لاعب انضموا",
+            })
+          : `${inCount} من ${seats} أماكن محجوزة`,
+      organizerRow: "المنظّم",
+      levelFits: (range: string) => `${range}، مستواك مناسب`,
+      levelOutside: (range: string) => `${range}، خارج مستواك`,
+      memberNote: (group: string) => `${group}. أنت عضو.`,
+      joinedNote: (group: string) => `${group}. انضممت اليوم.`,
+      levelCard: {
+        fits: (range: string, yours: string) =>
+          `هذه المباراة لمستوى ${range}. مستواك ${yours}، فأنت مناسب.`,
+        outside: (range: string, yours: string) =>
+          `هذه المباراة لمستوى ${range}. مستواك ${yours}، فالانضمام يسأل المنظّم.`,
+        noLevel: (range: string) =>
+          `هذه المباراة لمستوى ${range}. حدّد مستواك لترى إن كنت مناسبًا.`,
+        signedOut: (range: string) =>
+          `هذه المباراة لمستوى ${range}. سجّل الدخول لترى إن كنت مناسبًا، أو أنشئ حسابًا في دقيقة. المكان ينتظرك.`,
+        asksFirst: "الانضمام يسأل عن المجموعة أولًا.",
+      },
+      notMemberYet: (sharer: string | null) =>
+        sharer ? `شاركها ${sharer}. لست عضوًا بعد.` : "لست عضوًا بعد.",
+      formatRow: "الصيغة",
+      rated: "تُحتسب للتصنيف",
+      unrated: "لا تُحتسب للتصنيف",
+      courtRow: "الملعب",
+      payAtVenue: (court: string | null) =>
+        court ? `${court}، الدفع في الملعب` : "الدفع في الملعب",
+      linkRow: "الرابط",
+      linkUntil: (when: string) => `يعمل حتى ${when} أو حتى تمتلئ المقاعد`,
+      linkOpen: "يعمل حتى تمتلئ المقاعد",
+      signInToJoin: "سجّل الدخول للانضمام",
+      signInSubline: "رقم هاتفك ودقيقة واحدة",
+      playingTitle: "أنت في هذه المباراة",
+      share: "مشاركة",
+      openGameTitle: "فتح المباراة",
+    },
     group: {
       sharedBy: (name: string) => `شاركها ${name}.`,
       notInYet: (group: string) => `لست عضوًا في ${group} بعد.`,

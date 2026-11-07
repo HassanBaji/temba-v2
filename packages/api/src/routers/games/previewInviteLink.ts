@@ -17,6 +17,7 @@ import {
 import { footballSides } from "#src/games/football-lineup";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { gameInviteLinkGroup } from "#src/games/invite-link-group";
+import { gameInviteLinkHero } from "#src/games/invite-link-hero";
 import { viewerLevelRangeFields } from "#src/games/level-range-requests";
 import {
   isIndividualSeatGame,
@@ -120,6 +121,12 @@ export async function previewInviteLink(
         sharedByUserId: link.createdBy,
       })
     : null;
+  const hero = await gameInviteLinkHero(database, {
+    game: gameRow,
+    sharedByUserId: link.createdBy,
+    linkExpiresAt: link.expiresAt,
+    viewerUserId: args.userId,
+  });
   return {
     status: "ready" as const,
     gameId: gameRow.id,
@@ -149,6 +156,7 @@ export async function previewInviteLink(
     canRequestLevelRange: levelFields?.canRequestLevelRange ?? false,
     football,
     group,
+    hero,
   };
 }
 

@@ -65,7 +65,7 @@ export default async function GameInviteShortCodePage({
   const returnPath = gameInviteShortPath(code);
 
   return (
-    <InviteShell wide>
+    <InviteShell tone="ink">
       <AcceptGameInviteLink
         token={token}
         isSignedIn={Boolean(userId)}

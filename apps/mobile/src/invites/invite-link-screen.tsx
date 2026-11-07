@@ -330,36 +330,35 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     joinGroup.isPending;
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <InviteLinkHeader />
-      <InviteLinkView
-        kind={kind}
-        preview={preview}
-        acceptPending={acceptPending}
-        acceptError={
-          acceptGame.error?.message ?? joinGroup.error?.message ?? null
-        }
-        requestPending={requestLevel.isPending}
-        waitingForPartner={waitingForPartner}
-        onAccept={accept}
-        onAcceptFootball={acceptFootball}
-        onRequestLevel={(gameId) =>
-          token && requestLevel.mutate({ gameId, inviteToken: token })
-        }
-        onPickPartner={(gameId) => router.replace(`/games/${gameId}` as Href)}
-        onGoHome={() => router.replace("/")}
-        onRetry={() => void refetch()}
-        groupSheetOpen={groupSheetOpen}
-        groupChoicePending={groupChoicePending}
-        groupDecided={groupDecided}
-        justJoinedGroup={justJoinedGroup}
-        withdrawPending={withdraw.isPending}
-        onOpenGroupSheet={() => setGroupSheetOpen(true)}
-        onCloseGroupSheet={() => setGroupSheetOpen(false)}
-        onChooseGroup={chooseGroup}
-        onWithdraw={(requestId) => withdraw.mutate({ requestId })}
-        onOpenGroup={(groupId) => router.push(`/groups/${groupId}` as Href)}
-      />
-    </Screen>
+    <InviteLinkView
+      kind={kind}
+      preview={preview}
+      refreshing={refreshing}
+      onRefresh={() => void onRefresh()}
+      acceptPending={acceptPending}
+      acceptError={
+        acceptGame.error?.message ?? joinGroup.error?.message ?? null
+      }
+      requestPending={requestLevel.isPending}
+      waitingForPartner={waitingForPartner}
+      onAccept={accept}
+      onAcceptFootball={acceptFootball}
+      onRequestLevel={(gameId) =>
+        token && requestLevel.mutate({ gameId, inviteToken: token })
+      }
+      onPickPartner={(gameId) => router.replace(`/games/${gameId}` as Href)}
+      onGoHome={() => router.replace("/")}
+      onRetry={() => void refetch()}
+      groupSheetOpen={groupSheetOpen}
+      groupChoicePending={groupChoicePending}
+      groupDecided={groupDecided}
+      justJoinedGroup={justJoinedGroup}
+      withdrawPending={withdraw.isPending}
+      onOpenGroupSheet={() => setGroupSheetOpen(true)}
+      onCloseGroupSheet={() => setGroupSheetOpen(false)}
+      onChooseGroup={chooseGroup}
+      onWithdraw={(requestId) => withdraw.mutate({ requestId })}
+      onOpenGroup={(groupId) => router.push(`/groups/${groupId}` as Href)}
+    />
   );
 }

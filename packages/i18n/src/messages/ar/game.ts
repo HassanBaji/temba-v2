@@ -265,6 +265,7 @@ export const game = {
     heldHours: (n: number) => `محجوز ${n} س`,
     heldMinutes: (n: number) => `محجوز ${n} د`,
     outsideRange: "خارج نطاق المستوى، وطلب رغم ذلك",
+    sentence: (text: string) => `${text}.`,
     decline: "رفض",
     approveSeatAndMembership: "الموافقة على المكان والعضوية",
     note: "يمكن لأي منظّم في المجموعة أن يقرّر. يتحرّر المكان المحجوز عند انتهاء الحجز أو عند الرفض.",

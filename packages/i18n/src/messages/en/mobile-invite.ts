@@ -35,6 +35,54 @@ export const mobileInvite = {
     teamsSet: "Set",
     teamsByOrganizer: "Made by the organizer",
     fromALink: "From a link",
+    hero: {
+      countIn: (inCount: number, seats: number | null) =>
+        seats == null ? `${inCount} in` : `${inCount} of ${seats} in`,
+      priceEach: (price: string) => `${price} each`,
+      openSeatA11y: "Open seat",
+      rosterA11y: (inCount: number, seats: number | null) =>
+        seats == null
+          ? plural("en", inCount, {
+              one: "1 player in",
+              other: "{n} players in",
+            })
+          : `${inCount} of ${seats} seats taken`,
+      organizerRow: "Organizer",
+      levelFits: (range: string) => `${range}, yours fits`,
+      levelOutside: (range: string) => `${range}, outside yours`,
+      memberNote: (group: string) => `${group}. You're a member.`,
+      joinedNote: (group: string) => `${group}. You joined today.`,
+      levelCard: {
+        fits: (range: string, yours: string) =>
+          `This game is ${range}. You're ${yours}, so you fit.`,
+        outside: (range: string, yours: string) =>
+          `This game is ${range}. You're ${yours}, so joining asks the organizer.`,
+        noLevel: (range: string) =>
+          `This game is ${range}. Set your level to see if you fit.`,
+        signedOut: (range: string) =>
+          `This game is ${range}. Sign in to see if you fit, or create an account in a minute. The seat waits.`,
+        asksFirst: "Joining asks about the group first.",
+      },
+      notMemberYet: (sharer: string | null) =>
+        sharer
+          ? `Shared by ${sharer}. You're not a member yet.`
+          : "You're not a member yet.",
+      formatRow: "Format",
+      rated: "Counts for rating",
+      unrated: "Doesn't count for rating",
+      courtRow: "Court",
+      payAtVenue: (court: string | null) =>
+        court ? `${court}, pay at the venue` : "Pay at the venue",
+      linkRow: "Link",
+      linkUntil: (when: string) =>
+        `Works until ${when} or until the seats fill`,
+      linkOpen: "Works until the seats fill",
+      signInToJoin: "Sign in to join",
+      signInSubline: "Your phone number and a minute",
+      playingTitle: "You're in this game",
+      share: "Share",
+      openGameTitle: "Open the game",
+    },
     group: {
       sharedBy: (name: string) => `Shared by ${name}.`,
       notInYet: (group: string) => `You're not in ${group} yet.`,

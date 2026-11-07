@@ -214,6 +214,58 @@ describe("Game Invite link: the Group behind it", () => {
     }
   });
 
+  it("shows anyone with the link when, who organizes and who is in", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Yousif Kadhem");
+      const sharer = await insertUser(db, "Ali Mahmood");
+      const groupId = await insertPrivateGroup(db, creator);
+      await db.insert(groupMembers).values({ groupId, userId: sharer });
+      const game = await insertGame(db, { createdBy: creator, groupId });
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: creator,
+        sideIndex: 1,
+        position: "left",
+      });
+      const token = await mintToken(db, game.id, creator);
+      await db
+        .update(gameInviteLinks)
+        .set({ createdBy: sharer })
+        .where(eq(gameInviteLinks.token, token));
+
+      const signedOut = await previewInviteLink(db, { token });
+      expect(signedOut.status).toBe("ready");
+      if (signedOut.status !== "ready") {
+        return;
+      }
+      expect(signedOut.hero).toMatchObject({
+        sport: "padel",
+        seatCount: 4,
+        players: [{ name: "Yousif Kadhem", isViewer: false }],
+        organizerName: "Yousif Kadhem",
+        sharedByName: "Ali Mahmood",
+        groupCard: {
+          id: groupId,
+          name: "Loose Squad",
+          memberCount: 2,
+          memberNames: ["Yousif Kadhem", "Ali Mahmood"],
+        },
+      });
+      expect(signedOut.hero.venueName).toMatch(/^Venue /);
+
+      const forCreator = await previewInviteLink(db, {
+        token,
+        userId: creator,
+      });
+      expect(
+        forCreator.status === "ready" && forCreator.hero.players[0]?.isViewer,
+      ).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
   it("joins the Group only, leaving the seat open", async () => {
     const { db, close } = await createPgliteDb();
     try {
