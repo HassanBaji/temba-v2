@@ -7,6 +7,12 @@ import {
   formatWeekday,
 } from "./format-game-start";
 import {
+  GAME_DAY_LAST_FINISH_MINUTES,
+  GAME_DAY_MINUTES,
+  gameDayStart,
+  minutesIntoGameDay,
+} from "./game-day";
+import {
   addProductDays,
   startOfProductDay,
   zonedDateTimeToInstant,
@@ -15,20 +21,80 @@ import {
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_PATTERN = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;
-const LAST_SLOT_MINUTES = 23 * 60 + 30;
 
 export const GAME_WINDOW_TIME_STEP_MINUTES = 30;
 
-export const GAME_WINDOW_TIME_SLOTS: readonly string[] = Array.from(
-  { length: (24 * 60) / GAME_WINDOW_TIME_STEP_MINUTES },
-  (_, index) => {
-    const minutes = index * GAME_WINDOW_TIME_STEP_MINUTES;
-    return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
-  },
+/**
+ * Slots are wall-clock minutes from the picked day's midnight, written
+ * `HH:MM`. A day's Games start from 00:30 up to 24:00, the midnight that
+ * closes it (`gameDayStart`), and may finish past that midnight, so finish
+ * slots run on to `GAME_DAY_LAST_FINISH_MINUTES` and read `25:30` for 1:30 AM.
+ */
+function slotRange(fromMinutes: number, toMinutes: number): readonly string[] {
+  const slots: string[] = [];
+  for (
+    let minutes = fromMinutes;
+    minutes <= toMinutes;
+    minutes += GAME_WINDOW_TIME_STEP_MINUTES
+  ) {
+    slots.push(timeSlotFromMinutes(minutes));
+  }
+  return slots;
+}
+
+export const GAME_WINDOW_TIME_SLOTS: readonly string[] = slotRange(
+  GAME_WINDOW_TIME_STEP_MINUTES,
+  GAME_DAY_MINUTES,
 );
+
+export const GAME_WINDOW_FINISH_SLOTS: readonly string[] = slotRange(
+  GAME_WINDOW_TIME_STEP_MINUTES,
+  GAME_DAY_LAST_FINISH_MINUTES,
+);
+
+export type FinishAtStart = "allowed" | "blocked";
 
 function pad(value: number) {
   return String(value).padStart(2, "0");
+}
+
+export function timeSlotFromMinutes(minutes: number): string {
+  return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+}
+
+export function timeSlotMinutes(slot: string): number | null {
+  const timeMatch = TIME_PATTERN.exec(slot.trim());
+  if (!timeMatch) {
+    return null;
+  }
+  return Number(timeMatch[1]) * 60 + Number(timeMatch[2]);
+}
+
+/** Finish slots a Game starting at `startTime` may pick. */
+export function gameWindowFinishSlots(
+  startTime: string,
+  finishAtStart: FinishAtStart = "blocked",
+): readonly string[] {
+  if (!startTime) {
+    return GAME_WINDOW_FINISH_SLOTS;
+  }
+  return GAME_WINDOW_FINISH_SLOTS.filter((slot) =>
+    finishAtStart === "allowed" ? slot >= startTime : slot > startTime,
+  );
+}
+
+/** Finish slots for the picker: the start's finish slots, or the day's upcoming starts until one is picked. */
+export function upcomingGameWindowFinishSlots(
+  day: string,
+  startTime: string,
+  now: Date = new Date(),
+  finishAtStart: FinishAtStart = "blocked",
+): readonly string[] {
+  const starts = upcomingGameWindowTimeSlots(day, now);
+  if (!startTime || !starts.includes(startTime)) {
+    return starts;
+  }
+  return gameWindowFinishSlots(startTime, finishAtStart);
 }
 
 export function upcomingGameWindowTimeSlots(
@@ -101,21 +167,12 @@ export function parseDateInputValue(day: string): Date | undefined {
   return date;
 }
 
-function toDateInputValue(value: Date | string | null | undefined) {
-  const date = asDate(value);
-  if (!date) {
+function toTimeInputValue(dayStart: Date, value: Date | null) {
+  if (!value) {
     return "";
   }
-  return formatDateInputValue(date);
-}
-
-function toTimeInputValue(value: Date | string | null | undefined) {
-  const date = asDate(value);
-  if (!date) {
-    return "";
-  }
-  const { hour, minute } = zonedParts(date);
-  return snapTimeInputValue(`${pad(hour)}:${pad(minute)}`);
+  const minutes = Math.max(0, minutesIntoGameDay(dayStart, value));
+  return snapTimeInputValue(timeSlotFromMinutes(minutes));
 }
 
 export function snapTimeInputValue(time: string): string {
@@ -133,8 +190,7 @@ export function snapTimeInputValue(time: string): string {
   const snapped =
     Math.round(totalMinutes / GAME_WINDOW_TIME_STEP_MINUTES) *
     GAME_WINDOW_TIME_STEP_MINUTES;
-  const clamped = Math.min(Math.max(snapped, 0), LAST_SLOT_MINUTES);
-  return `${pad(Math.floor(clamped / 60))}:${pad(clamped % 60)}`;
+  return timeSlotFromMinutes(Math.max(snapped, 0));
 }
 
 export function formatDayLabel(day: string, locale: Locale) {
@@ -192,6 +248,14 @@ function combineDateAndTime(day: string, time: string): Date | undefined {
   const hours = Number(timeMatch[1]);
   const minutes = Number(timeMatch[2]);
   const seconds = Number(timeMatch[3] ?? 0);
+  const calendarDay = new Date(Date.UTC(year, month - 1, dayOfMonth));
+  if (
+    calendarDay.getUTCFullYear() !== year ||
+    calendarDay.getUTCMonth() + 1 !== month ||
+    calendarDay.getUTCDate() !== dayOfMonth
+  ) {
+    return undefined;
+  }
   const combined = zonedDateTimeToInstant({
     year,
     month,
@@ -200,15 +264,19 @@ function combineDateAndTime(day: string, time: string): Date | undefined {
     minute: minutes,
     second: seconds,
   });
+  // Hours of 24 and more roll into the next day; the wall clock must agree.
+  const expected = new Date(
+    Date.UTC(year, month - 1, dayOfMonth, hours, minutes, seconds),
+  );
   const parts = zonedParts(combined);
   if (
     Number.isNaN(combined.getTime()) ||
-    parts.year !== year ||
-    parts.month !== month ||
-    parts.day !== dayOfMonth ||
-    parts.hour !== hours ||
-    parts.minute !== minutes ||
-    parts.second !== seconds
+    parts.year !== expected.getUTCFullYear() ||
+    parts.month !== expected.getUTCMonth() + 1 ||
+    parts.day !== expected.getUTCDate() ||
+    parts.hour !== expected.getUTCHours() ||
+    parts.minute !== expected.getUTCMinutes() ||
+    parts.second !== expected.getUTCSeconds()
   ) {
     return undefined;
   }
@@ -239,10 +307,14 @@ export function splitGameWindow(
   const start = asDate(windowStart);
   const end = asDate(windowEnd);
   const daySource = start ?? end;
+  if (!daySource) {
+    return { day: "", startTime: "", finishTime: "" };
+  }
+  const dayStart = gameDayStart(daySource);
   return {
-    day: toDateInputValue(daySource),
-    startTime: toTimeInputValue(start),
-    finishTime: toTimeInputValue(end),
+    day: formatDateInputValue(dayStart),
+    startTime: toTimeInputValue(dayStart, start),
+    finishTime: toTimeInputValue(dayStart, end),
   };
 }
 
@@ -265,7 +337,7 @@ export function gameEditWindowChoices(
     current.startTime,
   );
   const finishSlots = withCurrent(
-    startSlots.filter((slot) => slot > current.startTime),
+    current.startTime ? gameWindowFinishSlots(current.startTime) : startSlots,
     current.finishTime,
   );
   return { days, startSlots, finishSlots };

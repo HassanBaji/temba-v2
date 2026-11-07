@@ -32,6 +32,7 @@ import {
   formatDayLabel,
   formatTimeSlotLabel,
   parseDateInputValue,
+  upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -139,9 +140,12 @@ export function GameWindowFields({
     [],
   );
   const startSlots = upcomingGameWindowTimeSlots(day, now);
-  const finishSlots = startTime
-    ? startSlots.filter((slot) => slot >= startTime)
-    : startSlots;
+  const finishSlots = upcomingGameWindowFinishSlots(
+    day,
+    startTime,
+    now,
+    "allowed",
+  );
   const [displayedMonth, setDisplayedMonth] = React.useState(
     () => selectedDay ?? earliestDay,
   );
@@ -162,10 +166,12 @@ export function GameWindowFields({
     if (startTime && !slots.includes(startTime)) {
       onStartTimeChange("");
     }
-    const nextFinishSlots =
-      startTime && slots.includes(startTime)
-        ? slots.filter((slot) => slot >= startTime)
-        : slots;
+    const nextFinishSlots = upcomingGameWindowFinishSlots(
+      day,
+      startTime,
+      new Date(),
+      "allowed",
+    );
     if (includeFinish && finishTime && !nextFinishSlots.includes(finishTime)) {
       onFinishTimeChange("");
     }

@@ -2,7 +2,6 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
 import { formatAbsoluteDay } from "./format-game-start";
-import { productDayKey } from "./product-timezone";
 import {
   fewWeeksRoundStarts,
   isOneDayTournamentWindow,
@@ -333,7 +332,7 @@ function roundDateLines(args: {
   });
   const first = schedule[0]?.start ?? asDate(args.windowStart);
   const last = schedule[schedule.length - 1]?.start ?? first;
-  return productDayKey(last) === productDayKey(first)
+  return isOneDayTournamentWindow(first, last)
     ? [formatAbsoluteDay(first, args.locale)]
     : [
         formatAbsoluteDay(first, args.locale),

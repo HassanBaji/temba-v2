@@ -127,8 +127,13 @@ describe("formatGameClockWithoutMeridiem", () => {
 
 describe("formatPlayedRelativeDay", () => {
   it("reads as today for a start earlier the same local day", () => {
-    const today = bahrainDayFromToday(0, 0);
+    const today = bahrainDayFromToday(0, 1);
     assert.equal(formatPlayedRelativeDay(today, "en"), "Played today");
+  });
+
+  it("counts a midnight start as the evening before", () => {
+    const midnight = bahrainDayFromToday(0, 0);
+    assert.equal(formatPlayedRelativeDay(midnight, "en"), "Played 1 day ago");
   });
 
   it("keeps a singular day for yesterday", () => {

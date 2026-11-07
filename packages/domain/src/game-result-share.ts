@@ -11,7 +11,7 @@ import {
 } from "./football-board";
 import type { FootballBib } from "./football-lineup";
 import { isFootballRosterGame } from "./football-game-details";
-import { formatDayMonth, formatGameClock } from "./format-game-start";
+import { formatGameClock, formatGameDay } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
@@ -154,10 +154,10 @@ function cardWhen(windowStart: Date | null, locale: Locale) {
   }
   return {
     when: messagesFor(locale).game.share.when(
-      formatDayMonth(windowStart, locale, { weekday: "short", year: true }),
+      formatGameDay(windowStart, locale, { weekday: "short", year: true }),
       formatGameClock(windowStart, locale),
     ),
-    whenShort: formatDayMonth(windowStart, locale, { weekday: "short" }),
+    whenShort: formatGameDay(windowStart, locale, { weekday: "short" }),
   };
 }
 

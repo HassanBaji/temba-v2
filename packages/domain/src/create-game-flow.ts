@@ -16,10 +16,13 @@ import {
   earliestGameWindowDay,
   formatDayLabel,
   formatDateInputValue,
+  GAME_WINDOW_FINISH_SLOTS,
   GAME_WINDOW_TIME_SLOTS,
   GAME_WINDOW_TIME_STEP_MINUTES,
   parseDateInputValue,
   parseRequiredGameWindow,
+  timeSlotFromMinutes,
+  timeSlotMinutes,
   upcomingGameWindowTimeSlots,
 } from "./game-window";
 import { formatHeroKickoffTrailer, formatHomeKickoff } from "./home-countdown";
@@ -368,7 +371,7 @@ export function validateFriendlyGameWhen(
       elementId: CREATE_FLOW_FIELD_IDS.windowStart ?? "game-window-start",
     };
   }
-  if (!finishTime || !slots.includes(finishTime)) {
+  if (!finishTime || !GAME_WINDOW_FINISH_SLOTS.includes(finishTime)) {
     return {
       ok: false,
       field: "windowEnd",
@@ -679,24 +682,33 @@ export function finishSlotForDuration(
   startTime: string,
   minutes: number,
 ): string | null {
-  const startIndex = GAME_WINDOW_TIME_SLOTS.indexOf(startTime);
-  if (startIndex < 0 || minutes % GAME_WINDOW_TIME_STEP_MINUTES !== 0) {
+  const startMinutes = timeSlotMinutes(startTime);
+  if (
+    startMinutes == null ||
+    !GAME_WINDOW_TIME_SLOTS.includes(startTime) ||
+    minutes % GAME_WINDOW_TIME_STEP_MINUTES !== 0
+  ) {
     return null;
   }
-  const steps = minutes / GAME_WINDOW_TIME_STEP_MINUTES;
-  return GAME_WINDOW_TIME_SLOTS[startIndex + steps] ?? null;
+  const finish = timeSlotFromMinutes(startMinutes + minutes);
+  return GAME_WINDOW_FINISH_SLOTS.includes(finish) ? finish : null;
 }
 
 export function matchingDurationPreset(
   startTime: string,
   finishTime: string,
 ): CreateFlowDuration | null {
-  const startIndex = GAME_WINDOW_TIME_SLOTS.indexOf(startTime);
-  const finishIndex = GAME_WINDOW_TIME_SLOTS.indexOf(finishTime);
-  if (startIndex < 0 || finishIndex < 0) {
+  const startMinutes = timeSlotMinutes(startTime);
+  const finishMinutes = timeSlotMinutes(finishTime);
+  if (
+    startMinutes == null ||
+    finishMinutes == null ||
+    !GAME_WINDOW_TIME_SLOTS.includes(startTime) ||
+    !GAME_WINDOW_FINISH_SLOTS.includes(finishTime)
+  ) {
     return null;
   }
-  const minutes = (finishIndex - startIndex) * GAME_WINDOW_TIME_STEP_MINUTES;
+  const minutes = finishMinutes - startMinutes;
   return CREATE_FLOW_DURATIONS.find((preset) => preset === minutes) ?? null;
 }
 
@@ -989,7 +1001,7 @@ export function reconcileWindowForDay(
       : current.finishTime <= current.startTime;
   if (
     current.finishTime &&
-    (!slots.includes(current.finishTime) ||
+    (!GAME_WINDOW_FINISH_SLOTS.includes(current.finishTime) ||
       (current.startTime && finishTooEarly))
   ) {
     return { startTime: current.startTime, finishTime: "" };

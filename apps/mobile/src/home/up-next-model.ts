@@ -12,6 +12,7 @@ import {
   homeGameRowLines,
   homeOpenSpotsLabel,
 } from "@repo/domain/home-game-lines";
+import { gameDayStart } from "@repo/domain/game-day";
 import { productDaysBetween } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
@@ -105,7 +106,7 @@ export function upNextWeekLabel(
 ): string {
   const m = messagesFor(locale).mobileHome.upNext;
   const count = items.filter(
-    (item) => productDaysBetween(now, item.startsAt) < WEEK_DAYS,
+    (item) => productDaysBetween(now, gameDayStart(item.startsAt)) < WEEK_DAYS,
   ).length;
   return count === 0 ? m.nothingThisWeek : m.thisWeek(count);
 }
@@ -116,14 +117,15 @@ export function upNextDayLabel(
   now: Date,
   locale: Locale,
 ): string {
-  const days = productDaysBetween(now, startsAt);
+  const day = gameDayStart(startsAt);
+  const days = productDaysBetween(now, day);
   if (days <= 0) {
     return messagesFor(locale).common.today;
   }
   if (days < WEEK_DAYS) {
-    return formatWeekday(startsAt, "short", locale);
+    return formatWeekday(day, "short", locale);
   }
-  return formatDayMonth(startsAt, locale);
+  return formatDayMonth(day, locale);
 }
 
 function gameRow(

@@ -15,6 +15,7 @@ import {
 } from "@repo/domain/create-game-submit";
 import {
   formatTimeSlotLabel,
+  upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import {
@@ -106,9 +107,7 @@ function Duration({ state, now, errors, dispatch }: StepProps) {
   const preset = matchingDurationPreset(draft.startTime, draft.finishTime);
   const showCustom =
     customOpen || (Boolean(draft.finishTime) && preset == null);
-  const slots = upcomingGameWindowTimeSlots(draft.day, now).filter(
-    (slot) => slot > draft.startTime,
-  );
+  const slots = upcomingGameWindowFinishSlots(draft.day, draft.startTime, now);
   const durations = CREATE_FLOW_DURATIONS.map((minutes) => ({
     value: minutes,
     label: m.dates.minutes(minutes),
@@ -338,9 +337,7 @@ function Rounds({ errors, dispatch, plan }: PlanProps) {
 
 function Finish({ state, now, errors, dispatch }: StepProps) {
   const { draft } = state;
-  const slots = upcomingGameWindowTimeSlots(draft.day, now).filter(
-    (slot) => slot > draft.startTime,
-  );
+  const slots = upcomingGameWindowFinishSlots(draft.day, draft.startTime, now);
   const locale = useLocale();
   const copy = useMessages().mobileCreateGame.when;
 

@@ -18,10 +18,11 @@ import {
   type FootballTeamsMethod,
 } from "./football-lineup";
 import {
-  formatDayMonth,
+  formatGameDay,
   formatWeekday,
   formatWindowDuration,
 } from "./format-game-start";
+import { gameDayStart } from "./game-day";
 import { sideSizeLabel } from "./game-shape";
 import { formatHomeKickoff } from "./home-countdown";
 import {
@@ -523,7 +524,9 @@ export function footballHeroLines(
   const played =
     input.windowEnd != null && input.windowEnd.getTime() < now.getTime();
   const live = start != null && start.getTime() <= now.getTime();
-  const weekday = start ? formatWeekday(start, "long", locale) : null;
+  const weekday = start
+    ? formatWeekday(gameDayStart(start), "long", locale)
+    : null;
   const status = input.cancelledAt
     ? m.cancelled
     : played
@@ -540,9 +543,7 @@ export function footballHeroLines(
             ? m.upcomingOn(weekday)
             : m.upcoming;
   const kickoff = start ? formatHomeKickoff(start, locale) : null;
-  const day = start
-    ? formatDayMonth(start, locale, { weekday: "short" })
-    : null;
+  const day = start ? formatGameDay(start, locale, { weekday: "short" }) : null;
   const duration = formatWindowDuration(
     input.windowStart,
     input.windowEnd,

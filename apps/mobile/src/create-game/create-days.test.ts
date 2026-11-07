@@ -36,10 +36,24 @@ describe("visibleDayOptions", () => {
     expect(visibleDayOptions(NOW, "", "en").laterLabel).toBe(null);
   });
 
-  it("starts tomorrow once today has no upcoming slot", () => {
+  it("keeps today while its closing midnight slot is still ahead", () => {
     const late = bahrainDate(2026, 9, 4, 23, 45, 0);
     const { cells } = visibleDayOptions(late, "", "en");
-    expect(cells[0]).toEqual({ value: "2026-10-05", weekday: "Mon", date: 5 });
+    expect(cells[0]).toEqual({
+      value: "2026-10-04",
+      weekday: "Today",
+      date: 4,
+    });
+  });
+
+  it("starts tomorrow once that midnight has passed", () => {
+    const midnight = bahrainDate(2026, 9, 5, 0, 0, 0);
+    const { cells } = visibleDayOptions(midnight, "", "en");
+    expect(cells[0]).toEqual({
+      value: "2026-10-05",
+      weekday: "Today",
+      date: 5,
+    });
   });
 });
 
