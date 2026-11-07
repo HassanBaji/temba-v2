@@ -4,6 +4,11 @@ import { useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import {
+  cabinetRowModel,
+  type CabinetRowModel,
+} from "~/components/marks/cabinet-model";
+import { CabinetRow } from "~/components/marks/cabinet-row";
 import { Skeleton } from "~/components/ui/skeleton";
 import { YouSection } from "~/components/you/you-section";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -13,6 +18,7 @@ import {
 } from "@repo/domain/player-profile";
 import { sportSwitchView } from "@repo/domain/player-profile-page";
 import type { Sport } from "@repo/domain/sport";
+import { playerMarksPath } from "~/lib/dashboard-paths";
 import { api } from "~/trpc/react";
 
 import { PlayerBackButton } from "./player-header";
@@ -82,6 +88,7 @@ export function PlayerProfile({
     },
   );
   const profile = sport === "football" ? football : padel;
+  const cabinet = api.marks.cabinet.useQuery({ userId });
 
   if (isNotFoundError(profile.error)) {
     return <PlayerProfileRefused />;
@@ -116,6 +123,8 @@ export function PlayerProfile({
   return (
     <PlayerProfileView
       model={model}
+      cabinet={cabinetRowModel(cabinet.data, model.sport, locale)}
+      cabinetHref={playerMarksPath(userId, model.sport)}
       switchOptions={sportSwitchView(
         model.sports.map((entry) => ({ sport: entry, played: played(entry) })),
         model.sport,
@@ -127,15 +136,20 @@ export function PlayerProfile({
 }
 
 /**
- * The hero, early days or streaks and position on the start column; Overall,
- * you and them, partners and the games on the end column. One column below lg.
+ * The hero, the marks cabinet, early days or streaks and position on the
+ * start column; Overall, you and them, partners and the games on the end
+ * column. One column below lg.
  */
 function PlayerProfileView({
   model,
+  cabinet,
+  cabinetHref,
   switchOptions,
   onSelectSport,
 }: {
   model: PlayerProfileModel;
+  cabinet: CabinetRowModel | null;
+  cabinetHref: string;
   switchOptions: ReturnType<typeof sportSwitchView>;
   onSelectSport: (sport: Sport) => void;
 }) {
@@ -152,6 +166,7 @@ function PlayerProfileView({
           onSelectSport={onSelectSport}
           level={model.level}
         />
+        {cabinet ? <CabinetRow row={cabinet} href={cabinetHref} /> : null}
         {model.early ? (
           <EarlyDaysCard view={model.early} form={model.form} />
         ) : null}
