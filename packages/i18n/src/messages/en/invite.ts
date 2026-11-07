@@ -72,8 +72,7 @@ export const invite = {
     },
     empty: {
       title: "Nothing waiting",
-      description:
-        "Invites to Games, Groups and Teams show up here.",
+      description: "Invites to Games, Groups and Teams show up here.",
     },
     errorTitle: "Invites could not be loaded",
     acceptLabel: "Accept",

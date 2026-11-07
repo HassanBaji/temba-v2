@@ -116,8 +116,12 @@ A flag on a Public Group (Loose or Club). When it is on, the Group URL join and 
 _Avoid_: closed Group, moderated Group (when you mean this flag)
 
 **Group join request**:
-A User asking a Group approver to admit them to a Public Group that requires approval. May carry a short note (up to 280 characters) and records where it came from: an Invite link (and who minted it) or the Group page. No expiry. A rejected or leftover approved row may be reset to pending. A Group approver may undo a decision, which puts the request back to pending; undoing an approval removes the new member only while they have played no Game in the Group and are not an Appointed Organizer. Distinct from a Game Level range request.
+A User asking a Group approver to admit them to a Public Group that requires approval. May carry a short note (up to 280 characters) and records where it came from: a Group or Game Invite link (and who minted it) or the Group page. May carry a Seat hold. No expiry. A rejected or leftover approved row may be reset to pending. A Group approver may undo a decision, which puts the request back to pending; undoing an approval removes the new member only while they have played no Game in the Group and are not an Appointed Organizer. Distinct from a Game Level range request.
 _Avoid_: invitation, Invite, join request (bare, when it could be a Game Level range request)
+
+**Seat hold**:
+A Group join request sent from a Game Invite link that also asks for a seat on that Game while the Group decides (ADR-0057). Lives 24 hours. On approval the requester is seated on the Game if the hold is live and the Game is open; a seat that went falls back to any vacant one, a full Game to its Waitlist. Does not count against the Game's capacity. The requester may withdraw it. Only offered where Organizers approve; where anyone with the link may join, the link takes the seat at once.
+_Avoid_: reservation, booking (that is a Court), waitlist (a hold is not on the Waitlist)
 
 **Group block**:
 A Group join request a Group approver rejected with "Reject and block". A blocked User cannot request to join, join through the Group URL, or accept that Group's Invite links, whether or not Require approval is on. Lookup invites and adding by phone still reach them, since a Group approver chose them. Undoing the decision lifts the block.

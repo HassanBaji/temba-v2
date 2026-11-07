@@ -27,8 +27,7 @@ export const team = {
   },
   forbidden: {
     title: "You cannot open this Team",
-    description:
-      "Only Team members or a pending invitee can open a Team home.",
+    description: "Only Team members or a pending invitee can open a Team home.",
   },
   lookupNote: "Pick one person. Invites don't expire.",
   squadLookupNote: "Pick the people to invite. Invites don't expire.",

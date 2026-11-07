@@ -5,13 +5,21 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
+import { formatGameClock } from "@repo/domain/format-game-start";
 import {
+  gameInviteGroupGate,
+  gameInviteGroupCard,
+  gameInviteGroupJoinedCopy,
+  gameInviteGroupLandingCopy,
+  gameInviteGroupRequestCard,
   gameInviteLinkStage,
   gameInviteSeatCopy,
   gameInviteSeatState,
   inviteKindLabel,
   inviteLinkJoinLabel,
   levelRangeGateAction,
+  type GameInviteGroup,
+  type GameInviteGroupChoice,
   type GameInviteLinkReady,
   type InviteKind,
   type InviteLinkPreview,
@@ -29,16 +37,24 @@ import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { relativeDay } from "../booking/booking-model";
+import { InfoRows, type InfoRow } from "../football/info-rows";
+import { useNow } from "../games/use-now";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { Hairline } from "../primitives/hairline";
+import { Hatch } from "../primitives/hatch";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { GroupJoinSheet } from "./group-join-sheet";
 import { SeatChoice } from "./seat-choice";
+
+const HOLD_MARK = 44;
 
 export type InviteLinkViewProps = {
   kind: InviteKind;
@@ -53,7 +69,246 @@ export type InviteLinkViewProps = {
   onPickPartner: (gameId: string) => void;
   onGoHome: () => void;
   onRetry: () => void;
+  /** The Group question on a Game link (design "Join via link"). */
+  groupSheetOpen: boolean;
+  groupChoicePending: GameInviteGroupChoice | null;
+  /** The viewer chose the seat and the Group; the join stage shows as usual. */
+  groupDecided: boolean;
+  justJoinedGroup: boolean;
+  withdrawPending: boolean;
+  onOpenGroupSheet: () => void;
+  onCloseGroupSheet: () => void;
+  onChooseGroup: (choice: GameInviteGroupChoice) => void;
+  onWithdraw: (requestId: string) => void;
+  onOpenGroup: (groupId: string) => void;
 };
+
+function openSeatsOf(game: GameInviteLinkReady) {
+  if (game.football) {
+    return Math.max(
+      0,
+      (game.football.playersAllowed ?? 0) - game.football.players.length,
+    );
+  }
+  return game.vacantSeats.length;
+}
+
+function groupRows(
+  group: GameInviteGroup,
+  rangeLabel: string | null,
+  locale: ReturnType<typeof useLocale>,
+  m: ReturnType<typeof useMessages>,
+): InfoRow[] {
+  const card = gameInviteGroupCard(group, locale);
+  const rows: InfoRow[] = [
+    { label: m.mobileInvite.link.group.groupRow, value: card.meta },
+  ];
+  if (rangeLabel) {
+    rows.push({ label: m.common.level, value: rangeLabel });
+  }
+  return rows;
+}
+
+function BarLines({
+  title,
+  subline,
+}: {
+  title: string | null;
+  subline: string | null;
+}) {
+  if (!title && !subline) {
+    return null;
+  }
+  return (
+    <View style={{ flex: 1, minWidth: 0 }}>
+      {title ? (
+        <Text size="body" weight="semibold">
+          {title}
+        </Text>
+      ) : null}
+      {subline ? (
+        <Text size="meta" tone="muted">
+          {subline}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/** Design 1a: the Game as the hook, the decision about the Group. */
+function GroupLanding({
+  game,
+  group,
+  name,
+  rangeLabel,
+  props,
+}: {
+  game: GameInviteLinkReady;
+  group: GameInviteGroup;
+  name: string;
+  rangeLabel: string | null;
+  props: InviteLinkViewProps;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = gameInviteGroupLandingCopy(group, openSeatsOf(game), locale);
+  const groupOnlyPending = props.groupChoicePending === "group_only";
+  return (
+    <View style={{ gap: spacing.compact }}>
+      <Hero kind="game" name={name} note={copy.heroNote} />
+      <InfoRows rows={groupRows(group, rangeLabel, locale, m)} />
+      <Surface style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Text size="meta" tone="muted" style={{ flex: 1 }}>
+          {copy.note}
+        </Text>
+        <Button
+          label={copy.joinGroupLabel}
+          variant="outline"
+          size="sm"
+          pending={groupOnlyPending}
+          disabled={props.groupChoicePending != null}
+          onPress={() => props.onChooseGroup("group_only")}
+        />
+      </Surface>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <BarLines title={copy.barTitle} subline={copy.barSubline} />
+        <Button
+          label={copy.joinGameLabel}
+          size="lg"
+          disabled={props.groupChoicePending != null}
+          onPress={props.onOpenGroupSheet}
+        />
+      </View>
+      <GroupJoinSheet
+        visible={props.groupSheetOpen}
+        group={group}
+        pending={props.groupChoicePending}
+        onChoose={props.onChooseGroup}
+        onClose={props.onCloseGroupSheet}
+      />
+    </View>
+  );
+}
+
+/** Design 1f: the request is with the Organizers; the seat may be held. */
+function GroupRequested({
+  group,
+  name,
+  rangeLabel,
+  props,
+}: {
+  group: GameInviteGroup;
+  name: string;
+  rangeLabel: string | null;
+  props: InviteLinkViewProps;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const now = useNow();
+  const request = group.pendingRequest;
+  const heldUntil = request?.seatHeldUntil
+    ? new Date(request.seatHeldUntil)
+    : null;
+  const heldLabel = heldUntil
+    ? m.mobileInvite.subtitle.when(
+        relativeDay(heldUntil, now, locale),
+        formatGameClock(heldUntil, locale),
+      )
+    : null;
+  const copy = gameInviteGroupRequestCard(group, heldLabel, locale);
+  return (
+    <View style={{ gap: spacing.compact }}>
+      <Hero kind="game" name={name} />
+      <Surface padded={false} style={{ overflow: "hidden" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            padding: spacing.surface,
+          }}
+        >
+          <View style={{ width: HOLD_MARK, height: HOLD_MARK }}>
+            <Hatch radius={HOLD_MARK / 2} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text size="lead" weight="semibold">
+              {copy.title}
+            </Text>
+            <Text size="meta" tone="muted">
+              {copy.description}
+            </Text>
+          </View>
+        </View>
+        {copy.sharedByValue ? (
+          <>
+            <Hairline />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 16,
+                paddingHorizontal: spacing.surface,
+                paddingVertical: 14,
+              }}
+            >
+              <Text tone="muted">{copy.sharedByLabel}</Text>
+              <Text style={{ flexShrink: 1, textAlign: "right" }}>
+                {copy.sharedByValue}
+              </Text>
+            </View>
+          </>
+        ) : null}
+        {request ? (
+          <>
+            <Hairline />
+            <View style={{ padding: spacing.compact, alignItems: "center" }}>
+              <Button
+                label={copy.withdrawLabel}
+                variant="outline"
+                pending={props.withdrawPending}
+                onPress={() => props.onWithdraw(request.id)}
+              />
+            </View>
+          </>
+        ) : null}
+      </Surface>
+      <InfoRows rows={groupRows(group, rangeLabel, locale, m)} />
+      <BarLines title={copy.barTitle} subline={copy.barSubline} />
+    </View>
+  );
+}
+
+/** Design 1d: in the Group now, the seat still open. */
+function GroupJoinedNotice({
+  game,
+  group,
+  onOpenGroup,
+}: {
+  game: GameInviteLinkReady;
+  group: GameInviteGroup;
+  onOpenGroup: (groupId: string) => void;
+}) {
+  const locale = useLocale();
+  const copy = gameInviteGroupJoinedCopy(group, openSeatsOf(game), locale);
+  return (
+    <Surface style={{ gap: 8 }}>
+      <Text size="lead" weight="semibold">
+        {copy.title}
+      </Text>
+      <Text size="meta" tone="muted">
+        {copy.description}
+      </Text>
+      <View style={{ flexDirection: "row", marginTop: 4 }}>
+        <Button
+          label={copy.openGroupLabel}
+          variant="outline"
+          onPress={() => onOpenGroup(group.id)}
+        />
+      </View>
+    </Surface>
+  );
+}
 
 function Outcome({
   outcome,
@@ -261,9 +516,42 @@ function GameReady({
     );
   }
 
+  const group = game.group ?? null;
+  const gate = gameInviteGroupGate(group);
+  if (group && gate === "requested") {
+    return (
+      <GroupRequested
+        group={group}
+        name={name}
+        rangeLabel={rangeLabel}
+        props={props}
+      />
+    );
+  }
+  if (group && gate !== "none" && !props.groupDecided) {
+    return (
+      <GroupLanding
+        game={game}
+        group={group}
+        name={name}
+        rangeLabel={rangeLabel}
+        props={props}
+      />
+    );
+  }
+  const joinedNotice =
+    group && props.justJoinedGroup ? (
+      <GroupJoinedNotice
+        game={game}
+        group={group}
+        onOpenGroup={props.onOpenGroup}
+      />
+    ) : null;
+
   if (stage === "seat_pick") {
     return (
       <View style={{ gap: spacing.compact }}>
+        {joinedNotice}
         <Hero
           kind="game"
           name={name}
@@ -294,11 +582,17 @@ function GameReady({
   }
 
   if (stage === "football" && game.football) {
-    return <FootballReady name={name} football={game.football} props={props} />;
+    return (
+      <View style={{ gap: spacing.compact }}>
+        {joinedNotice}
+        <FootballReady name={name} football={game.football} props={props} />
+      </View>
+    );
   }
 
   return (
     <View style={{ gap: spacing.compact }}>
+      {joinedNotice}
       <Hero kind="game" name={name} note={rangeLabel} />
       <View style={{ flexDirection: "row" }}>
         <Button

@@ -385,8 +385,7 @@ export const webDashboard = {
     },
   },
   venues: {
-    description:
-      "Every Venue, including Soft-archived ones.",
+    description: "Every Venue, including Soft-archived ones.",
     errorTitle: "Venues could not be loaded",
     liveCount: (n: number) =>
       plural("en", n, { one: "1 venue", other: "{n} venues" }),

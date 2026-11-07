@@ -251,8 +251,7 @@ export const group = {
     approvalHelp:
       "يطلب الأشخاص الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
     submit: "إنشاء مجموعة",
-    description:
-      "مجموعة من الأشخاص الذين تلعب معهم. تنضم إليها كأول عضو.",
+    description: "مجموعة من الأشخاص الذين تلعب معهم. تنضم إليها كأول عضو.",
     createdToast: "تم إنشاء المجموعة",
     screen: {
       title: "إنشاء مجموعة",
@@ -275,8 +274,7 @@ export const group = {
     acceptLabel: "قبول",
     declineLabel: "رفض",
     declinedToast: "تم رفض الطلب",
-    rowTitle: (venue: string, group: string) =>
-      `يريد ${venue} ربط ${group}`,
+    rowTitle: (venue: string, group: string) => `يريد ${venue} ربط ${group}`,
     yourGroup: "مجموعتك",
     thisGroup: "هذه المجموعة",
     bannerText: (venue: string) => `يريد ${venue} ربط هذه المجموعة.`,

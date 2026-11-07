@@ -1,4 +1,5 @@
 import {
+  jsonb,
   pgTable,
   uuid,
   timestamp,
@@ -8,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./user";
+import { games } from "./games";
 import { groups } from "./groups";
 
 export const groupJoinRequestStatuses = pgEnum("group_join_request_status", [
@@ -32,6 +34,19 @@ export const groupJoinRequestSources = pgEnum("group_join_request_source", [
 export type GroupJoinRequestSource =
   (typeof groupJoinRequestSources.enumValues)[number];
 
+/**
+ * The seat a Game Invite link holder asked for while the Group decides: a
+ * padel Position, or a football role and position. Null when the Game has
+ * no seat to pick.
+ */
+export type GroupJoinRequestHeldSeat =
+  | { kind: "position"; sideIndex: number; position: "left" | "right" }
+  | {
+      kind: "football";
+      role: "outfield" | "keeper";
+      position: "def" | "mid" | "fwd";
+    };
+
 export const groupJoinRequests = pgTable(
   "group_join_requests",
   {
@@ -55,6 +70,13 @@ export const groupJoinRequests = pgTable(
     invitedBy: uuid("invited_by").references(() => user.id, {
       onDelete: "set null",
     }),
+    // A Seat hold (ADR-0057): the Game a link holder wants a seat on while
+    // the Group decides, and when that hold lapses.
+    heldGameId: uuid("held_game_id").references(() => games.id, {
+      onDelete: "set null",
+    }),
+    seatHeldUntil: timestamp("seat_held_until"),
+    heldSeat: jsonb("held_seat").$type<GroupJoinRequestHeldSeat>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -81,6 +103,10 @@ export const groupJoinRequestRelations = relations(
       fields: [groupJoinRequests.invitedBy],
       references: [user.id],
       relationName: "groupJoinRequestInviter",
+    }),
+    heldGame: one(games, {
+      fields: [groupJoinRequests.heldGameId],
+      references: [games.id],
     }),
   }),
 );

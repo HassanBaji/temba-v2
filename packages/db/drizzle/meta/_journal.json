@@ -582,6 +582,13 @@
       "when": 1794036533335,
       "tag": "0082_notification_email_and_user_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1794072694324,
+      "tag": "0083_group_join_request_seat_hold",
+      "breakpoints": true
     }
   ]
 }

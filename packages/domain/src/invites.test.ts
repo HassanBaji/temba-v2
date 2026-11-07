@@ -2,17 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import {
   gameInviteAccess,
+  gameInviteGroupCard,
+  gameInviteGroupGate,
+  gameInviteGroupJoinedCopy,
+  gameInviteGroupLandingCopy,
+  gameInviteGroupRequestCard,
+  gameInviteGroupSheetCopy,
   gameInviteLinkStage,
   gameInviteSeatCopy,
   gameInviteSeatState,
   groupLookupNote,
   inviteLinkAcceptToast,
+  isSeatHoldLive,
   levelRangeGateAction,
   inviteRowMeta,
   lookupInviteAcceptToast,
   lookupInviteSentToast,
   mergeInviteInbox,
   parseInviteLink,
+  seatHoldExpiry,
 } from "./invites";
 
 const inviter = { name: "Sam Chen", image: null };
@@ -390,5 +398,115 @@ describe("levelRangeGateAction", () => {
         locale: "en",
       }),
     ).toMatchObject({ disabled: true });
+  });
+});
+
+describe("Game Invite link Group gate", () => {
+  const base = {
+    id: "gr1",
+    name: "Gooz of Arad",
+    sport: "football",
+    imageUrl: null,
+    memberCount: 14,
+    memberNames: ["Yousif Kadhem", "Ali Mahmood", "Sara Haddad"],
+    sharedBy: { name: "Yousif Kadhem" },
+    pendingRequest: null,
+  };
+
+  it("maps the join mode to the gate", () => {
+    expect(gameInviteGroupGate(null)).toBe("none");
+    expect(gameInviteGroupGate({ ...base, joinMode: "member" })).toBe("none");
+    expect(gameInviteGroupGate({ ...base, joinMode: "blocked" })).toBe("none");
+    expect(gameInviteGroupGate({ ...base, joinMode: "join" })).toBe("open");
+    expect(gameInviteGroupGate({ ...base, joinMode: "request" })).toBe(
+      "approval",
+    );
+    expect(gameInviteGroupGate({ ...base, joinMode: "requested" })).toBe(
+      "requested",
+    );
+  });
+
+  it("offers the seat and the group, or the group only, on an open Group", () => {
+    const copy = gameInviteGroupSheetCopy({ ...base, joinMode: "join" }, "en");
+    expect(copy.lead).toBe(
+      "Gooz of Arad lets anyone with the link in. Pick how far you want to go.",
+    );
+    expect(copy.options.map((option) => option.title)).toEqual([
+      "Join the group and take the seat",
+      "Join the group only",
+    ]);
+    expect(copy.dismissLabel).toBe("Just looking for now");
+    expect(copy.note).toBeNull();
+  });
+
+  it("turns both options into requests on an approval Group", () => {
+    const copy = gameInviteGroupSheetCopy(
+      { ...base, joinMode: "request" },
+      "en",
+    );
+    expect(copy.lead).toBe(
+      "Gooz of Arad's organizers approve new members. Yousif K shared the game, so the seat can be held while they decide.",
+    );
+    expect(copy.options.map((option) => option.title)).toEqual([
+      "Request to join and hold the seat",
+      "Request to join the group only",
+    ]);
+    expect(copy.options[0]?.description).toBe(
+      "Seat held 24 hours. If they approve, you're in the game and the group.",
+    );
+    expect(copy.dismissLabel).toBeNull();
+    expect(copy.note).toContain("Yousif K shared the link");
+  });
+
+  it("names the Group, its sport and a few members", () => {
+    const card = gameInviteGroupCard({ ...base, joinMode: "join" }, "en");
+    expect(card.sport).toBe("Football");
+    expect(card.meta).toBe("Football, 14 members");
+    expect(card.memberLine).toBe("Yousif K, Ali M, Sara H and 11 others");
+  });
+
+  it("writes the landing, joined and request cards", () => {
+    const open = { ...base, joinMode: "join" as const };
+    expect(gameInviteGroupLandingCopy(open, 4, "en")).toMatchObject({
+      heroNote: "Shared by Yousif K. You're not in Gooz of Arad yet.",
+      barTitle: "4 seats open",
+      barSubline: "Join asks about the group first",
+    });
+    expect(gameInviteGroupJoinedCopy(open, 0, "en")).toMatchObject({
+      title: "You're in Gooz of Arad",
+      description: "Their games now show in your Games tab.",
+      barTitle: null,
+    });
+    const requested = {
+      ...base,
+      joinMode: "requested" as const,
+      pendingRequest: { id: "r1", seatHeldUntil: null },
+    };
+    expect(
+      gameInviteGroupRequestCard(requested, "Tue 2:40 PM", "en"),
+    ).toMatchObject({
+      title: "Request sent to Gooz of Arad",
+      description:
+        "Seat held until Tue 2:40 PM. You'll hear as soon as an organizer answers.",
+      sharedByValue: "Yousif Kadhem, organizer",
+    });
+    expect(gameInviteGroupRequestCard(requested, null, "en").description).toBe(
+      "No seat held. You can join a game once you're approved.",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    const copy = gameInviteGroupSheetCopy({ ...base, joinMode: "join" }, "ar");
+    expect(copy.title).toBe("لست في هذه المجموعة بعد");
+    expect(copy.options[1]?.title).toBe("الانضمام إلى المجموعة فقط");
+  });
+
+  it("keeps a Seat hold live for 24 hours", () => {
+    const now = new Date("2026-11-09T10:40:00Z");
+    const until = seatHoldExpiry(now);
+    expect(until.toISOString()).toBe("2026-11-10T10:40:00.000Z");
+    expect(isSeatHoldLive(until, now)).toBe(true);
+    expect(isSeatHoldLive(until, new Date("2026-11-10T10:41:00Z"))).toBe(false);
+    expect(isSeatHoldLive(null, now)).toBe(false);
   });
 });

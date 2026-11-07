@@ -16,6 +16,7 @@ import {
 } from "#src/games/access";
 import { footballSides } from "#src/games/football-lineup";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
+import { gameInviteLinkGroup } from "#src/games/invite-link-group";
 import { viewerLevelRangeFields } from "#src/games/level-range-requests";
 import {
   isIndividualSeatGame,
@@ -112,6 +113,13 @@ export async function previewInviteLink(
     args.userId && isFootballGame(gameRow) && !blockedByLevelRange
       ? await footballJoinPreview(database, gameRow, args.userId)
       : null;
+  const group = args.userId
+    ? await gameInviteLinkGroup(database, {
+        game: gameRow,
+        userId: args.userId,
+        sharedByUserId: link.createdBy,
+      })
+    : null;
   return {
     status: "ready" as const,
     gameId: gameRow.id,
@@ -140,6 +148,7 @@ export async function previewInviteLink(
     levelRangeRequest: levelFields?.levelRangeRequest ?? null,
     canRequestLevelRange: levelFields?.canRequestLevelRange ?? false,
     football,
+    group,
   };
 }
 

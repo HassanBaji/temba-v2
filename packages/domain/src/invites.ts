@@ -1,8 +1,10 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { shortName } from "./football-board";
 import type { FootballPosition, FootballRole } from "./football-lineup";
 import { friendlyGameCanMintInvite } from "./friendly-game-cta";
+import { sportLabel } from "./sport";
 import { gameDisplayName, type GameDisplayNameInput } from "./game-custom-name";
 import { gameJoinToast } from "./game-copy";
 import type { InviteHostLabel } from "./invite-outcome-copy";
@@ -279,7 +281,184 @@ export type GameInviteLinkReady = {
   canRequestLevelRange: boolean;
   /** Set for a signed-in viewer who can still join a football Game. */
   football: GameInviteFootball | null;
+  /** The Game's Group as the signed-in viewer stands to it; null off a Group. */
+  group?: GameInviteGroup | null;
 };
+
+export type GameInviteGroupJoinMode =
+  | "member"
+  | "join"
+  | "request"
+  | "requested"
+  | "blocked";
+
+export type GameInviteGroup = {
+  id: string;
+  name: string | null;
+  sport: string | null;
+  imageUrl: string | null;
+  memberCount: number;
+  /** A few member names for the stack line, longest-standing first. */
+  memberNames: string[];
+  joinMode: GameInviteGroupJoinMode;
+  sharedBy: { name: string | null } | null;
+  pendingRequest: {
+    id: string;
+    seatHeldUntil: Date | string | null;
+  } | null;
+};
+
+/** How long a Seat hold lasts while the Group decides (ADR-0057). */
+export const GAME_INVITE_SEAT_HOLD_HOURS = 24;
+
+export function seatHoldExpiry(now: Date) {
+  return new Date(now.getTime() + GAME_INVITE_SEAT_HOLD_HOURS * 60 * 60 * 1000);
+}
+
+export function isSeatHoldLive(
+  seatHeldUntil: Date | string | null | undefined,
+  now: Date,
+) {
+  return (
+    seatHeldUntil != null && new Date(seatHeldUntil).getTime() > now.getTime()
+  );
+}
+
+/**
+ * What stands between a link holder and the seat: nothing, the Group's open
+ * door, its approval queue, or a request they already sent.
+ */
+export type GameInviteGroupGate = "none" | "open" | "approval" | "requested";
+
+export function gameInviteGroupGate(
+  group: GameInviteGroup | null | undefined,
+): GameInviteGroupGate {
+  switch (group?.joinMode) {
+    case "join":
+      return "open";
+    case "request":
+      return "approval";
+    case "requested":
+      return "requested";
+    default:
+      return "none";
+  }
+}
+
+export type GameInviteGroupChoice = "with_seat" | "group_only";
+
+function groupNameOf(group: GameInviteGroup, locale: Locale) {
+  return group.name ?? messagesFor(locale).group.untitled;
+}
+
+function sharerNameOf(group: GameInviteGroup) {
+  return group.sharedBy?.name ? shortName(group.sharedBy.name) : null;
+}
+
+export function gameInviteGroupCard(group: GameInviteGroup, locale: Locale) {
+  const m = messagesFor(locale).mobileInvite.link.group;
+  const members = m.members(group.memberCount);
+  const names = group.memberNames.slice(0, 3).map(shortName);
+  return {
+    name: groupNameOf(group, locale),
+    sport: sportLabel(group.sport, locale),
+    meta: m.groupMeta(sportLabel(group.sport, locale), members),
+    memberLine:
+      names.length > 0
+        ? m.memberNames(names, group.memberCount - names.length)
+        : members,
+  };
+}
+
+export function gameInviteGroupSheetCopy(
+  group: GameInviteGroup,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileInvite.link.group;
+  const name = groupNameOf(group, locale);
+  const sharer = sharerNameOf(group);
+  const approval = gameInviteGroupGate(group) === "approval";
+  return {
+    title: m.sheetTitle,
+    lead: approval ? m.approvalLead(name, sharer) : m.openLead(name),
+    options: [
+      {
+        choice: "with_seat" as const,
+        title: approval ? m.requestBoth.title : m.joinBoth.title,
+        description: approval
+          ? m.requestBoth.description(GAME_INVITE_SEAT_HOLD_HOURS)
+          : m.joinBoth.description(name),
+      },
+      {
+        choice: "group_only" as const,
+        title: approval ? m.requestGroupOnly.title : m.joinGroupOnly.title,
+        description: approval
+          ? m.requestGroupOnly.description
+          : m.joinGroupOnly.description,
+      },
+    ],
+    dismissLabel: approval ? null : m.justLooking,
+    note: approval ? m.approvalNote(sharer) : null,
+  };
+}
+
+export function gameInviteGroupLandingCopy(
+  group: GameInviteGroup,
+  openSeats: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileInvite.link.group;
+  const name = groupNameOf(group, locale);
+  const sharer = sharerNameOf(group);
+  return {
+    heroNote: [sharer ? m.sharedBy(sharer) : null, m.notInYet(name)]
+      .filter(Boolean)
+      .join(" "),
+    note: m.landingNote(name),
+    joinGroupLabel: m.joinGroup,
+    joinGameLabel: m.joinGame,
+    barTitle: openSeats > 0 ? m.seatsOpen(openSeats) : null,
+    barSubline: m.asksFirst,
+  };
+}
+
+export function gameInviteGroupJoinedCopy(
+  group: GameInviteGroup,
+  openSeats: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileInvite.link.group;
+  const name = groupNameOf(group, locale);
+  return {
+    title: m.joinedTitle(name),
+    description: m.joinedDescription(
+      openSeats > 0 ? m.seatsOpen(openSeats) : null,
+    ),
+    openGroupLabel: m.openGroup,
+    barTitle: openSeats > 0 ? m.seatsOpen(openSeats) : null,
+    barSubline: m.oneTap,
+  };
+}
+
+export function gameInviteGroupRequestCard(
+  group: GameInviteGroup,
+  heldUntilLabel: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).mobileInvite.link.group;
+  const sharerName = group.sharedBy?.name ?? null;
+  return {
+    title: m.requestSentTitle(groupNameOf(group, locale)),
+    description: heldUntilLabel
+      ? m.seatHeldUntil(heldUntilLabel)
+      : m.noSeatHeld,
+    sharedByLabel: m.sharedByLabel,
+    sharedByValue: sharerName ? m.sharedByOrganizer(sharerName) : null,
+    withdrawLabel: m.withdraw,
+    barTitle: m.waitingTitle,
+    barSubline: m.waitingSubline,
+  };
+}
 
 export type InviteLinkPreview =
   | { status: "invalid" | "unavailable" }
