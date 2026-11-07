@@ -201,6 +201,28 @@ export const game = {
   organizer: {
     userFallback: "User",
   },
+  requests: {
+    title: "Requests",
+    waiting: (n: number) =>
+      plural("en", n, { one: "1 waiting", other: "{n} waiting" }),
+    waitingSeatsHeld: (n: number) =>
+      plural("en", n, {
+        one: "1 waiting, seat held",
+        other: "{n} waiting, seats held",
+      }),
+    none: "No requests waiting.",
+    seatAndGroup: (group: string) => `Wants the seat and to join ${group}`,
+    viaLinkFrom: (name: string) => `Came through ${name}'s link`,
+    viaLink: "Came through a link",
+    heldHours: (n: number) => `held ${n}h`,
+    heldMinutes: (n: number) => `held ${n} min`,
+    outsideRange: "Outside the Level range, asked anyway",
+    decline: "Decline",
+    approveSeatAndMembership: "Approve seat and membership",
+    note: "Any organizer of the Group can decide. A held seat frees itself when the hold runs out or when you decline.",
+    approvedToast: (name: string) => `${name} approved`,
+    declinedToast: (name: string) => `${name} declined`,
+  },
   players: {
     left: "Left",
     right: "Right",

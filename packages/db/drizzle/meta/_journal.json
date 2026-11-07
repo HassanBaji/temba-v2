@@ -589,6 +589,13 @@
       "when": 1794072694324,
       "tag": "0083_group_join_request_seat_hold",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1794076360248,
+      "tag": "0084_request_notifications",
+      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,7 @@ import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range"
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { previewLink } from "#src/invites/doors";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
+import { notifyGroupJoinRequested } from "#src/notifications/notify-requests";
 
 type DbClient = typeof db;
 
@@ -173,16 +174,27 @@ export async function joinGroupFromInviteLink(
       !args.holdSeat &&
       pending.heldGameId != null &&
       pending.heldGameId !== game.id;
-    const [updated] = await database
-      .update(groupJoinRequests)
-      .set({
-        ...(keepsHold ? {} : hold),
-        source: "invite_link",
-        invitedBy: link.createdBy,
-        updatedAt: now,
-      })
-      .where(eq(groupJoinRequests.id, pending.id))
-      .returning();
+    const newHold = args.holdSeat && pending.heldGameId !== game.id;
+    const updated = await database.transaction(async (tx) => {
+      const [row] = await tx
+        .update(groupJoinRequests)
+        .set({
+          ...(keepsHold ? {} : hold),
+          source: "invite_link",
+          invitedBy: link.createdBy,
+          updatedAt: now,
+        })
+        .where(eq(groupJoinRequests.id, pending.id))
+        .returning();
+      if (newHold) {
+        await notifyGroupJoinRequested(tx, {
+          group,
+          requesterUserId: args.userId,
+          gameId: game.id,
+        });
+      }
+      return row;
+    });
     return {
       outcome: "requested" as const,
       groupId: group.id,
@@ -205,22 +217,30 @@ export async function joinGroupFromInviteLink(
     invitedBy: link.createdBy,
     ...hold,
   };
-  const [request] = existing
-    ? await database
-        .update(groupJoinRequests)
-        .set({ ...details, updatedAt: now })
-        .where(eq(groupJoinRequests.id, existing.id))
-        .returning()
-    : await database
-        .insert(groupJoinRequests)
-        .values({ groupId: group.id, userId: args.userId, ...details })
-        .returning();
-  if (!request) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create join request",
+  const request = await database.transaction(async (tx) => {
+    const [row] = existing
+      ? await tx
+          .update(groupJoinRequests)
+          .set({ ...details, updatedAt: now })
+          .where(eq(groupJoinRequests.id, existing.id))
+          .returning()
+      : await tx
+          .insert(groupJoinRequests)
+          .values({ groupId: group.id, userId: args.userId, ...details })
+          .returning();
+    if (!row) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create join request",
+      });
+    }
+    await notifyGroupJoinRequested(tx, {
+      group,
+      requesterUserId: args.userId,
+      gameId: hold.heldGameId,
     });
-  }
+    return row;
+  });
   return {
     outcome: "requested" as const,
     groupId: group.id,
