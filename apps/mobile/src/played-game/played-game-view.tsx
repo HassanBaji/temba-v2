@@ -17,8 +17,12 @@ import { PlayedHero, type PlayedHeroProps } from "./played-hero";
 const SHARE_ICON = 17;
 
 export type PlayedGameViewProps = {
-  hero: Omit<PlayedHeroProps, "children" | "onShare" | "onMore">;
+  hero: Omit<PlayedHeroProps, "children" | "onShare" | "onMore" | "footer">;
   board: React.ReactNode;
+  /** The MVP row, last in the hero. */
+  heroFooter?: React.ReactNode;
+  /** The marks rows, between the columns and the facts. */
+  marks?: React.ReactNode;
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
@@ -33,6 +37,8 @@ export type PlayedGameViewProps = {
 export function PlayedGameView({
   hero,
   board,
+  heroFooter,
+  marks,
   columns,
   unplaced,
   facts,
@@ -49,7 +55,12 @@ export function PlayedGameView({
       onRefresh={onRefresh}
       statusBarTone="ink"
       header={
-        <PlayedHero {...hero} onShare={onShare} onMore={onMore}>
+        <PlayedHero
+          {...hero}
+          onShare={onShare}
+          onMore={onMore}
+          footer={heroFooter}
+        >
           {board}
         </PlayedHero>
       }
@@ -59,6 +70,7 @@ export function PlayedGameView({
         unplaced={unplaced}
         onPressPlayer={onPressPlayer}
       />
+      {marks}
       <InfoRows rows={facts} />
       <View>
         <Button

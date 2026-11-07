@@ -32,6 +32,7 @@ import { you } from "./you";
 import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
+import { mobileMarks } from "./mobile-marks";
 import { webYou } from "./web-you";
 
 import type { en } from "../en/index";
@@ -74,4 +75,5 @@ export const ar: Messages = {
   webYou,
   mobileInvite,
   mobileTeam,
+  mobileMarks,
 };

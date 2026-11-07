@@ -61,6 +61,8 @@ export type PlayedHeroProps = {
   avatar: { name: string; image: string | null } | null;
   onShare: () => void;
   onMore?: () => void;
+  /** Under everything else on black: the MVP row while there is one. */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -79,6 +81,7 @@ export function PlayedHero({
   avatar,
   onShare,
   onMore,
+  footer,
   children,
 }: PlayedHeroProps) {
   const locale = useLocale();
@@ -190,6 +193,8 @@ export function PlayedHero({
             </View>
           </View>
         ) : null}
+
+        {footer}
       </View>
     </Surface>
   );

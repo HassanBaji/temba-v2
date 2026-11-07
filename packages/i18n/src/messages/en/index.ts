@@ -32,6 +32,7 @@ import { you } from "./you";
 import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
+import { mobileMarks } from "./mobile-marks";
 import { webYou } from "./web-you";
 
 export const en = {
@@ -70,4 +71,5 @@ export const en = {
   webYou,
   mobileInvite,
   mobileTeam,
+  mobileMarks,
 };
