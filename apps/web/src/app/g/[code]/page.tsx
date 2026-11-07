@@ -6,6 +6,8 @@ import { InviteShell } from "~/components/invites/invite-shell";
 import { genericTembaOpenGraph } from "@repo/domain/game-invite-open-graph";
 import { gameInviteShortPath } from "@repo/domain/invite-paths";
 import { LOCALES } from "@repo/i18n/locale";
+import { env } from "~/env";
+import { INVITE_PREVIEW_THUMBNAIL_SIZE } from "~/lib/invite-preview-thumbnail";
 import { createApiClient } from "~/trpc/api-client";
 
 export async function generateMetadata({
@@ -16,6 +18,17 @@ export async function generateMetadata({
   const { code } = await params;
   const api = await createApiClient();
   const fields = await api.games.inviteLinkByShortCode.query({ code });
+  const images = fields.image
+    ? [
+        {
+          url: `${env.WEB_ORIGIN}${gameInviteShortPath(code)}/image`,
+          width: INVITE_PREVIEW_THUMBNAIL_SIZE,
+          height: INVITE_PREVIEW_THUMBNAIL_SIZE,
+          type: "image/jpeg",
+          alt: fields.title,
+        },
+      ]
+    : [];
   return {
     title: LOCALES.some(
       (locale) => fields.title === genericTembaOpenGraph(locale).title,
@@ -26,13 +39,13 @@ export async function generateMetadata({
     openGraph: {
       title: fields.title,
       description: fields.description,
-      images: fields.image ? [{ url: fields.image, alt: fields.title }] : [],
+      images,
     },
     twitter: {
       card: "summary",
       title: fields.title,
       description: fields.description,
-      images: fields.image ? [fields.image] : [],
+      images,
     },
   };
 }
