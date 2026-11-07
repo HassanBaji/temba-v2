@@ -782,7 +782,7 @@ export async function setTeamSides(
       },
     },
   });
-  if (!team || team.players.length !== 2) {
+  if (team?.players.length !== 2) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Sides are set on a full Game team",
