@@ -110,6 +110,8 @@ export const mobileInvite = {
       withdrawnToast: "Request withdrawn",
       waitingTitle: "Waiting on the organizers",
       waitingSubline: "The game stays visible to you meanwhile",
+      approvalRequired:
+        "This group's organizers approve new members. Send a request to join first.",
     },
   },
   inbox: {

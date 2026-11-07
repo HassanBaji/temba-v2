@@ -16,6 +16,7 @@ import {
 } from "@repo/db/schema";
 
 import { listGameSides } from "#src/games/seats";
+import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
 import { withdrawJoinRequest } from "#src/routers/groups/withdrawJoinRequest";
@@ -70,7 +71,12 @@ async function insertPrivateGroup(database: TestDatabase, createdBy: string) {
 
 async function insertGame(
   database: TestDatabase,
-  args: { createdBy: string; groupId: string; windowStart?: Date },
+  args: {
+    createdBy: string;
+    groupId: string;
+    windowStart?: Date;
+    isPublic?: boolean;
+  },
 ) {
   const windowStart = args.windowStart ?? new Date(Date.now() + 24 * HOUR);
   const [game] = await database
@@ -80,6 +86,7 @@ async function insertGame(
       venueId: await insertVenue(database),
       createdBy: args.createdBy,
       groupId: args.groupId,
+      isPublic: args.isPublic ?? false,
       playersAllowed: 4,
       windowStart,
       windowEnd: new Date(windowStart.getTime() + 2 * HOUR),
@@ -462,6 +469,136 @@ describe("Game Invite link: the Group behind it", () => {
       expect(preview.status === "ready" && preview.group?.joinMode).toBe(
         "request",
       );
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a non-member's one-tap join on an approval Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Bypass Creator");
+      const joiner = await insertUser(db, "Bypass Joiner");
+      const groupId = await approvalGroup(db, creator);
+      const game = await insertGame(db, { createdBy: creator, groupId });
+      const token = await mintToken(db, game.id, creator);
+
+      await expect(
+        acceptInviteLink(db, {
+          token,
+          userId: joiner,
+          sideIndex: 1,
+          position: "left",
+        }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(
+          error,
+          "FORBIDDEN",
+          "This group's organizers approve new members. Send a request to join first.",
+        );
+        return true;
+      });
+      expect(await isMember(db, groupId, joiner)).toBe(false);
+      expect(await seatOf(db, game, joiner)).toBeNull();
+      expect(await pendingRequest(db, groupId, joiner)).toBeUndefined();
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps a member's one-tap join on an approval Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Member Creator");
+      const member = await insertUser(db, "Member Joiner");
+      const groupId = await approvalGroup(db, creator);
+      await db.insert(groupMembers).values({ groupId, userId: member });
+      const game = await insertGame(db, { createdBy: creator, groupId });
+      const token = await mintToken(db, game.id, creator);
+
+      const result = await acceptInviteLink(db, {
+        token,
+        userId: member,
+        sideIndex: 1,
+        position: "left",
+      });
+
+      expect(result).toMatchObject({
+        outcome: "registered",
+        joinedGroup: false,
+      });
+      expect(await seatOf(db, game, member)).toEqual({
+        sideIndex: 1,
+        position: "left",
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("seats a non-member on a public Game of an approval Group without joining it", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Public Creator");
+      const joiner = await insertUser(db, "Public Joiner");
+      const groupId = await approvalGroup(db, creator);
+      const game = await insertGame(db, {
+        createdBy: creator,
+        groupId,
+        isPublic: true,
+      });
+      const token = await mintToken(db, game.id, creator);
+
+      const result = await acceptInviteLink(db, {
+        token,
+        userId: joiner,
+        sideIndex: 1,
+        position: "left",
+      });
+
+      expect(result).toMatchObject({
+        outcome: "registered",
+        joinedGroup: false,
+      });
+      expect(await isMember(db, groupId, joiner)).toBe(false);
+      expect(await seatOf(db, game, joiner)).toEqual({
+        sideIndex: 1,
+        position: "left",
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("still joins a non-member to a public Group that lets anyone in", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Open Public Creator");
+      const joiner = await insertUser(db, "Open Public Joiner");
+      const group = await createLoosePublic(db, {
+        name: "Open Arad",
+        sport: "padel",
+        userId: creator,
+        requiresApproval: false,
+      });
+      const game = await insertGame(db, {
+        createdBy: creator,
+        groupId: group.id,
+      });
+      const token = await mintToken(db, game.id, creator);
+
+      const result = await acceptInviteLink(db, {
+        token,
+        userId: joiner,
+        sideIndex: 1,
+        position: "left",
+      });
+
+      expect(result).toMatchObject({
+        outcome: "registered",
+        joinedGroup: true,
+      });
+      expect(await isMember(db, group.id, joiner)).toBe(true);
     } finally {
       await close();
     }
