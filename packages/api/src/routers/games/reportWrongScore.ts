@@ -23,6 +23,7 @@ import {
   takeBackKnockoutWinner,
 } from "#src/games/knockout-advance";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
+import { suspendMvp } from "#src/marks/settle-mvp";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -223,6 +224,7 @@ export async function reportWrongScore(
         updatedAt: now,
       })
       .where(eq(matches.id, locked.id));
+    await suspendMvp(tx, game);
   });
 
   return { ok: true as const };

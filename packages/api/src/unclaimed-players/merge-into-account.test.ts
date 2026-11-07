@@ -12,6 +12,7 @@ import {
   gameWaitlist,
   games,
   groupJoinRequests,
+  gameMvpVotes,
   groupMembers,
   groups,
   levelOverrides,
@@ -435,6 +436,48 @@ describe("mergeIntoAccount", () => {
           where: eq(marks.matchId, other.matchId),
         }),
       ).toHaveLength(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("carries the MVP and the votes for the Unclaimed player to the account, and drops a vote between the two", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const otherGameId = await insertGame(db, people);
+      await db
+        .update(games)
+        .set({ mvpUserId: people.unclaimed.id, mvpDecidedBy: "vote" })
+        .where(eq(games.id, gameId));
+      await db.insert(gameMvpVotes).values([
+        {
+          gameId,
+          voterUserId: people.partner.id,
+          candidateUserId: people.unclaimed.id,
+        },
+        {
+          gameId: otherGameId,
+          voterUserId: people.survivor.id,
+          candidateUserId: people.unclaimed.id,
+        },
+      ]);
+
+      await merge(db, people);
+
+      expect(
+        (
+          await db.query.games.findFirst({
+            where: eq(games.id, gameId),
+            columns: { mvpUserId: true },
+          })
+        )?.mvpUserId,
+      ).toBe(people.survivor.id);
+      const votes = await db.query.gameMvpVotes.findMany();
+      expect(votes.map((vote) => [vote.gameId, vote.candidateUserId])).toEqual([
+        [gameId, people.survivor.id],
+      ]);
     } finally {
       await close();
     }

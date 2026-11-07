@@ -1,13 +1,19 @@
 import type { FootballBib } from "./football-lineup";
 import {
   MARKS_WINDOW_HOURS,
+  gameMvpView,
   marksWindow,
+  mvpOutcome,
   remainingMarks,
   type GameMark,
   type GameMarks,
   type GameMarksParticipant,
   type GivenMark,
   type MarkKind,
+  type MvpMode,
+  type MvpPick,
+  type MvpQuestion,
+  type StoredMvp,
 } from "./marks";
 import type { Sport } from "./sport";
 
@@ -21,7 +27,12 @@ export type MarksFixtureKey =
   | "unclaimedReceiver"
   | "football"
   | "spectator"
-  | "closed";
+  | "closed"
+  | "mvpVoting"
+  | "mvpTie"
+  | "mvpDecided"
+  | "mvpOrganizerPick"
+  | "mvpNone";
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -54,6 +65,34 @@ const FOOTBALL_BIBS: Record<1 | 2, FootballBib> = { 1: "black", 2: "white" };
 
 type MarkSeed = [giverUserId: string, receiverUserId: string, kind: MarkKind];
 
+type MvpSeed = {
+  mode?: MvpMode;
+  votes?: [voterUserId: string, candidateUserId: string][];
+  pick?: MvpPick | null;
+  viewerIsOrganizer?: boolean;
+};
+
+/** Settled the way the server would: the Job at the close, or at once when final. */
+function storedMvp(question: MvpQuestion, now: Date): StoredMvp {
+  const outcome = mvpOutcome(question);
+  if (question.mode === "none" || !question.window || !outcome.final) {
+    return {
+      userId: question.pick?.userId ?? null,
+      decidedBy: question.pick?.decidedBy ?? null,
+      decidedAt: question.pick ? now : null,
+      settledAt: null,
+    };
+  }
+  const settledAt =
+    question.window.state === "closed" ? question.window.closesAt : now;
+  return {
+    userId: outcome.userId,
+    decidedBy: outcome.decidedBy,
+    decidedAt: outcome.userId ? settledAt : null,
+    settledAt,
+  };
+}
+
 function receivedBy(userId: string, marks: GameMark[]) {
   const counts = new Map<MarkKind, number>();
   for (const mark of marks) {
@@ -70,6 +109,7 @@ function gameMarks(args: {
   marks: MarkSeed[];
   completedAt: Date | null;
   now: Date;
+  mvp?: MvpSeed;
 }): GameMarks {
   const viewerId = MARKS_FIXTURE_VIEWER_ID;
   const marks: GameMark[] = args.marks.map(
@@ -104,6 +144,22 @@ function gameMarks(args: {
     (participant) => participant.userId === viewerId,
   );
   const remaining = remainingMarks(given);
+  const question: MvpQuestion = {
+    mode: args.mvp?.mode ?? "vote",
+    window: marksWindowState,
+    participants,
+    votes: (args.mvp?.votes ?? []).map(([voterUserId, candidateUserId]) => ({
+      voterUserId,
+      candidateUserId,
+    })),
+    pick: args.mvp?.pick ?? null,
+  };
+  const mvp = gameMvpView({
+    question,
+    stored: storedMvp(question, args.now),
+    viewerUserId: viewerId,
+    isOrganizer: args.mvp?.viewerIsOrganizer ?? false,
+  });
   return {
     gameId: `game-${args.sport}`,
     sport: args.sport,
@@ -121,7 +177,9 @@ function gameMarks(args: {
         isParticipant && marksWindowState?.state === "open" && remaining > 0,
       remaining,
       given,
+      ...mvp.viewer,
     },
+    mvp: mvp.mvp,
   };
 }
 
@@ -205,6 +263,73 @@ export function createMarksFixtures(
       ],
       completedAt: longAgo,
       now,
+    }),
+    mvpVoting: gameMarks({
+      sport: "padel",
+      seats: PADEL_SEATS,
+      marks: [],
+      completedAt,
+      now,
+      mvp: {
+        votes: [
+          [viewer, "user-ali"],
+          ["user-bo", "user-ali"],
+        ],
+      },
+    }),
+    mvpTie: gameMarks({
+      sport: "padel",
+      seats: PADEL_SEATS,
+      marks: [],
+      completedAt,
+      now,
+      mvp: {
+        viewerIsOrganizer: true,
+        votes: [
+          [viewer, "user-ali"],
+          ["user-ali", viewer],
+          ["user-bo", "user-ali"],
+          ["user-khalid", viewer],
+        ],
+      },
+    }),
+    mvpDecided: gameMarks({
+      sport: "football",
+      seats: FOOTBALL_SEATS,
+      marks: [
+        [viewer, "user-yousif", "dynamo"],
+        ["user-bo", "user-yousif", "good_game"],
+      ],
+      completedAt: longAgo,
+      now,
+      mvp: {
+        votes: [
+          [viewer, "user-yousif"],
+          ["user-hamad", "user-yousif"],
+          ["user-bo", "user-yousif"],
+          ["user-khalid", "user-bo"],
+        ],
+      },
+    }),
+    mvpOrganizerPick: gameMarks({
+      sport: "football",
+      seats: FOOTBALL_SEATS,
+      marks: [],
+      completedAt,
+      now,
+      mvp: {
+        mode: "organizer",
+        viewerIsOrganizer: true,
+        pick: { userId: "user-yousif", decidedBy: "organizer" },
+      },
+    }),
+    mvpNone: gameMarks({
+      sport: "padel",
+      seats: PADEL_SEATS,
+      marks: [[viewer, "user-ali", "dynamo"]],
+      completedAt,
+      now,
+      mvp: { mode: "none" },
     }),
   };
 }

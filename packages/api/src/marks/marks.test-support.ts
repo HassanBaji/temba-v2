@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { afterEach, beforeEach } from "vitest";
 
 import {
   GamePositionEnum,
@@ -10,12 +11,16 @@ import {
   groups,
   matchSets,
   matches,
+  notifications,
   user,
   venues,
+  type NotificationType,
 } from "@repo/db/schema";
 import type { TestDatabase } from "@repo/db/testing";
 
 import { type db } from "#src/db";
+import { resetJobSink, setJobSink } from "#src/jobs/enqueue";
+import { RecordingJobSink } from "#src/jobs/job-sink.test-support";
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createGame } from "#src/routers/games/create";
@@ -338,3 +343,55 @@ export async function matchCompletedAt(
 }
 
 export const MARKS_HOUR = HOUR;
+
+/** Installs a fresh recording Job sink for the tests in the calling suite. */
+export function recordJobs() {
+  const sink = new RecordingJobSink();
+  beforeEach(() => {
+    sink.clear();
+    setJobSink(sink);
+  });
+  afterEach(() => resetJobSink());
+  return sink;
+}
+
+export async function marksClosesAt(database: TestDatabase, matchId: string) {
+  const completedAt = await matchCompletedAt(database, matchId);
+  if (!completedAt) {
+    throw new Error("Expected a completed Match");
+  }
+  return new Date(completedAt.getTime() + 48 * HOUR);
+}
+
+export async function gameMvpColumns(database: TestDatabase, gameId: string) {
+  const game = await database.query.games.findFirst({
+    where: (table, { eq: equals }) => equals(table.id, gameId),
+    columns: {
+      mvpMode: true,
+      mvpUserId: true,
+      mvpDecidedBy: true,
+      mvpDecidedAt: true,
+      mvpSettledAt: true,
+    },
+  });
+  if (!game) {
+    throw new Error("Expected the Game");
+  }
+  return game;
+}
+
+export function notificationsOf(
+  database: TestDatabase,
+  gameId: string,
+  type: NotificationType,
+) {
+  return database.query.notifications.findMany({
+    where: and(eq(notifications.gameId, gameId), eq(notifications.type, type)),
+    columns: {
+      recipientUserId: true,
+      audience: true,
+      actorUserId: true,
+      dedupeKey: true,
+    },
+  });
+}

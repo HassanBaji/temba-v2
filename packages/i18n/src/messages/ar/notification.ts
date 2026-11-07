@@ -99,6 +99,17 @@ export const notification = {
       plain(" في "),
       strong(game),
     ],
+    mvpDecided: (mvp: string, game: string) => [
+      strong(mvp),
+      plain(" نجم مباراة "),
+      strong(game),
+    ],
+    youAreMvp: (game: string) => [plain("أنت نجم مباراة "), strong(game)],
+    mvpTieBreak: (game: string) => [
+      plain("تعادل في التصويت على "),
+      strong(game),
+      plain(". اختر نجم المباراة."),
+    ],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",

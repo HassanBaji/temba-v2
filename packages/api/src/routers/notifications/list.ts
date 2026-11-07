@@ -51,6 +51,8 @@ export type NotificationItem = {
     marksClosesAt: Date | null;
   } | null;
   markKind: MarkKind | null;
+  /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
+  actorIsRecipient: boolean;
   levelSet: {
     level: string;
     levelBand: LevelBand;
@@ -144,6 +146,7 @@ export async function listNotifications(
     .slice(0, limit)
     .map(({ levelOverride, game, ...item }) => ({
       ...item,
+      actorIsRecipient: item.actor?.id === args.userId,
       game: game
         ? {
             id: game.id,

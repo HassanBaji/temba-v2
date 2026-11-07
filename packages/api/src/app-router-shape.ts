@@ -165,7 +165,13 @@ type ExpectedGroups =
   | "closeSeason"
   | "seasonStanding";
 
-type ExpectedMarks = "forGame" | "give" | "retract";
+type ExpectedMarks =
+  | "forGame"
+  | "give"
+  | "retract"
+  | "castMvpVote"
+  | "setMvp"
+  | "setMvpMode";
 
 type ExpectedNotifications =
   | "list"

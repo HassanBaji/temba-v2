@@ -22,11 +22,14 @@ import { gameWaitlist } from "./game-waitlist";
 import { gameMemberInvites } from "./game-member-invites";
 import { gameInviteLinks } from "./game-invite-links";
 import { gameLevelRangeRequests } from "./game-level-range-requests";
+import { gameMvpVotes } from "./marks";
 import {
   gameFormats,
   gameRegistrationModes,
   gameSports,
   footballTeamsMethods,
+  mvpDecidedBys,
+  mvpModes,
   tournamentShapes,
   GameFormatEnum,
   GameRegistrationModeEnum,
@@ -76,6 +79,16 @@ export const games = pgTable(
     sport: gameSports("sport").default(GameSportEnum.PADEL),
     sideSize: integer("side_size"),
     footballTeamsMethod: footballTeamsMethods("football_teams_method"),
+    /** How the MVP is decided. A new Friendly game writes `vote`; every other format stays `none`. */
+    mvpMode: mvpModes("mvp_mode").notNull().default("none"),
+    /** The MVP, or the Organizer's current pick before the question settles. */
+    mvpUserId: uuid("mvp_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    mvpDecidedBy: mvpDecidedBys("mvp_decided_by"),
+    mvpDecidedAt: timestamp("mvp_decided_at"),
+    /** The MVP question is final, with or without an MVP, and its Notification is sent. */
+    mvpSettledAt: timestamp("mvp_settled_at"),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -99,6 +112,7 @@ export const games = pgTable(
 
 export const gameRelations = relations(games, ({ one, many }) => ({
   createdBy: one(user, { fields: [games.createdBy], references: [user.id] }),
+  mvp: one(user, { fields: [games.mvpUserId], references: [user.id] }),
   group: one(groups, { fields: [games.groupId], references: [groups.id] }),
   season: one(groupSeasons, {
     fields: [games.seasonId],
@@ -113,4 +127,5 @@ export const gameRelations = relations(games, ({ one, many }) => ({
   memberInvites: many(gameMemberInvites),
   inviteLinks: many(gameInviteLinks),
   levelRangeRequests: many(gameLevelRangeRequests),
+  mvpVotes: many(gameMvpVotes),
 }));

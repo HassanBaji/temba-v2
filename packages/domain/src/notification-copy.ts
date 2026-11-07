@@ -31,6 +31,8 @@ export type NotificationCopyInput = {
   gameCount?: number | null;
   levelSet?: NotificationLevelSet | null;
   markKind?: string | null;
+  /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
+  actorIsRecipient?: boolean;
 };
 
 type NotificationLevelSet = {
@@ -227,6 +229,21 @@ export function notificationCopy(
         markName(item.markKind, locale),
         notificationGameName(item.game, locale),
       ),
+      subline: null,
+    };
+  }
+  if (item.type === "mvp_decided" && item.audience === "player" && item.game) {
+    const game = notificationGameName(item.game, locale);
+    return {
+      title: item.actorIsRecipient
+        ? m.youAreMvp(game)
+        : m.mvpDecided(actorName(item.actor, locale), game),
+      subline: null,
+    };
+  }
+  if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {
+    return {
+      title: m.mvpTieBreak(notificationGameName(item.game, locale)),
       subline: null,
     };
   }

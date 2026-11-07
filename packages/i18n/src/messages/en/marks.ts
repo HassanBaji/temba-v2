@@ -50,6 +50,10 @@ export const marks = {
       name: "Good Game",
       description: "Fair, fun, respect.",
     },
+    mvp: {
+      name: "MVP",
+      description: "Most valuable player, one per game.",
+    },
   },
   group: {
     teammate: "From your teammate or partner",
@@ -83,4 +87,49 @@ export const marks = {
       other: "{n} players",
     })}`,
   count: (n: number) => `×${n}`,
+  mvp: {
+    mode: {
+      vote: {
+        label: "Players vote",
+        description:
+          "Everyone in the game gets one vote after the score. Hidden until it closes.",
+        help: "A tied vote comes to you to break. Voting closes 48 hours after the score, or earlier when everyone has voted.",
+      },
+      organizer: {
+        label: "Organizer picks",
+        description: "You choose, with marks and goals shown as hints.",
+        help: "You can change your pick until the 48-hour window closes.",
+      },
+      none: {
+        label: "No MVP",
+        description: "Marks still work. Nobody gets the gold coin.",
+        help: "You can turn this on later from the game, as long as the score isn’t confirmed yet.",
+      },
+    },
+    notDecided: "MVP not decided yet",
+    vote: "Vote",
+    pick: "Pick the MVP",
+    changePick: "Change pick",
+    progress: (cast: number, eligible: number, closes: string) =>
+      `${cast} of ${eligible} have voted, ${closes}`,
+    byVote: (cast: number, eligible: number) =>
+      `By vote, ${cast} of ${eligible}`,
+    organizerPick: "Organizer’s pick",
+    tieBreak: "Tied vote, Organizer’s pick",
+    noMvp: "No MVP this game",
+    make: (firstName: string) => `Make ${firstName} the MVP`,
+    tieNotice: (n: number) =>
+      `Tied vote, ${plural("en", n, {
+        one: "{n} player",
+        other: "{n} players",
+      })}. Pick the MVP.`,
+    refused: {
+      wrongMode: "This game doesn’t decide its MVP that way.",
+      notVoter: "Only players in this game vote for the MVP.",
+      notOrganizer: "Only an organizer picks the MVP.",
+      self: "You can’t pick yourself.",
+      notCandidate: "That player can’t be the MVP here.",
+      closed: "The MVP is no longer open.",
+    },
+  },
 };

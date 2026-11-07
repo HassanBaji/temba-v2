@@ -46,6 +46,7 @@ describe("bookings.createGame", () => {
         pricePerPlayerFils: 2_500,
         levelMinTenths: 20,
         levelMaxTenths: null,
+        mvpMode: "vote",
       });
       const match = await db.query.matches.findFirst({
         where: eq(matches.id, created.matchId),
@@ -305,6 +306,7 @@ describe("bookings.createGame", () => {
         sideSize: 7,
         playersAllowed: 16,
         teamsAllowed: null,
+        mvpMode: "vote",
       });
       expect(await db.select({ id: matches.id }).from(matches)).toHaveLength(0);
 

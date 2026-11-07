@@ -9,6 +9,7 @@ export const JOB = {
   confirmed: "booking.confirmed",
   notification: "notification.booking",
   reconcile: "booking:reconcile",
+  settleMvp: "marks.settle-mvp",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -19,12 +20,28 @@ export const MAX_ATTEMPTS = {
   refund: 8,
   confirmed: 5,
   notification: 5,
+  settleMvp: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
 
 export function expireHoldKey(bookingId: string) {
   return `booking:expire:${bookingId}`;
+}
+
+export function settleMvpJobKey(gameId: string) {
+  return `mvp:settle:${gameId}`;
+}
+
+/** Settles a Game's MVP when its Marks window closes; enqueued at `closesAt`. */
+export function settleMvpJob(gameId: string): JobSpec {
+  return {
+    name: JOB.settleMvp,
+    key: settleMvpJobKey(gameId),
+    payload: { gameId },
+    maxAttempts: MAX_ATTEMPTS.settleMvp,
+    mode: "replace",
+  };
 }
 
 export function createChargeJob(paymentId: string): JobSpec {

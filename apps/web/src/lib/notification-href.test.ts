@@ -74,6 +74,15 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Game an MVP notification is about", () => {
+    for (const type of ["mvp_decided", "mvp_tie_break"]) {
+      assert.equal(
+        notificationHref({ type, group: null, game: { id: "x6" } }),
+        "/dashboard/games/x6",
+      );
+    }
+  });
+
   it("opens Match history for a claimed history", () => {
     assert.equal(
       notificationHref({ type: "history_linked", group: null, game: null }),

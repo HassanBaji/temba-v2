@@ -28,6 +28,8 @@ export const NOTIFICATION_TYPE_VALUES = [
   "history_linked",
   "level_set",
   "mark_received",
+  "mvp_decided",
+  "mvp_tie_break",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

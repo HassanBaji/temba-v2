@@ -35,6 +35,7 @@ import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
+import { MVP_MODES } from "@repo/domain/marks";
 import {
   GAME_CUSTOM_NAME_MAX_LENGTH,
   normalizeGameCustomName,
@@ -88,6 +89,8 @@ export const createGameInputSchema = z
       .max(LEVEL_TENTHS_MAX)
       .nullable()
       .optional(),
+    /** How the MVP is decided; Friendly game only. Omitted = players vote. */
+    mvpMode: z.enum(MVP_MODES).optional(),
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
@@ -139,6 +142,13 @@ export const createGameInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "courtId is only for Friendly game",
         path: ["courtId"],
+      });
+    }
+    if (value.format !== "friendly_game" && value.mvpMode !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Only a Friendly game has an MVP",
+        path: ["mvpMode"],
       });
     }
     if (
@@ -206,6 +216,7 @@ async function createFootballGameOnGroup(
     pricePerPlayerFils: input.pricePerPlayerFils ?? null,
     sideSize,
     playersAllowed: input.playersAllowed ?? 2 * sideSize,
+    mvpMode: input.mvpMode,
   });
   return { id: created.game.id, matchId: null as string | null };
 }
@@ -251,6 +262,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
       levelMaxTenths: input.levelMaxTenths ?? null,
       rated,
       groupRated,
+      mvpMode: input.mvpMode,
     });
     return {
       id: created.game.id,

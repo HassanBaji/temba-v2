@@ -459,6 +459,110 @@ describe("notificationCopy for a received mark", () => {
   });
 });
 
+describe("notificationCopy for the MVP", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  function mvp(
+    item: Partial<NotificationCopyInput>,
+    locale: "en" | "ar" = "en",
+  ) {
+    return notificationCopy(
+      {
+        type: "mvp_decided",
+        audience: "player",
+        actor: { name: "Yousif" },
+        group: null,
+        game,
+        ...item,
+      },
+      locale,
+    );
+  }
+
+  it("names the MVP and the Game to the other players", () => {
+    assert.deepEqual(mvp({}), {
+      title: [
+        { text: "Yousif", strong: true },
+        { text: " is the MVP of ", strong: false },
+        { text: "Thursday Padel", strong: true },
+      ],
+      subline: null,
+    });
+    assert.deepEqual(
+      mvp({}, "ar")?.title.map((part) => part.text),
+      [isolate("Yousif"), " نجم مباراة ", isolate("Thursday Padel")],
+    );
+  });
+
+  it("tells the MVP it is them", () => {
+    assert.equal(
+      mvp({ actorIsRecipient: true })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "You’re the MVP of Thursday Padel",
+    );
+    assert.equal(
+      mvp({ actorIsRecipient: true }, "ar")
+        ?.title.map((part) => part.text)
+        .join(""),
+      `أنت نجم مباراة ${isolate("Thursday Padel")}`,
+    );
+  });
+
+  it("asks the Organizers to break a tied vote", () => {
+    for (const locale of ["en", "ar"] as const) {
+      const copy = notificationCopy(
+        {
+          type: "mvp_tie_break",
+          audience: "admin",
+          actor: null,
+          group: null,
+          game,
+        },
+        locale,
+      );
+      assert.notEqual(copy, null);
+    }
+    assert.equal(
+      notificationCopy(
+        {
+          type: "mvp_tie_break",
+          audience: "admin",
+          actor: null,
+          group: null,
+          game,
+        },
+        "en",
+      )
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Tied vote on Thursday Padel. Pick the MVP.",
+    );
+  });
+
+  it("returns null without a Game or for the wrong audience", () => {
+    assert.equal(mvp({ game: null }), null);
+    assert.equal(mvp({ audience: "admin" }), null);
+    assert.equal(
+      notificationCopy(
+        {
+          type: "mvp_tie_break",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+        },
+        "en",
+      ),
+      null,
+    );
+  });
+});
+
 describe("notificationCopy for a Level set", () => {
   function levelSet(item: Partial<NotificationCopyInput>) {
     return notificationCopy(

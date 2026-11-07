@@ -82,4 +82,49 @@ describe("createMarksFixtures", () => {
       expect(received, key).toBe(fixture.marks.length);
     }
   });
+
+  it("covers every MVP state, the tally shown only once settled", () => {
+    expect(fixtures.openNoneGiven.mvp).toMatchObject({
+      mode: "vote",
+      state: "pending",
+    });
+    expect(fixtures.mvpVoting.mvp).toMatchObject({
+      state: "pending",
+      votes: { cast: 2, eligible: 4 },
+      tally: null,
+    });
+    expect(fixtures.mvpVoting.viewer).toMatchObject({
+      canVote: true,
+      vote: "user-ali",
+    });
+    expect(fixtures.mvpTie.mvp).toMatchObject({
+      state: "tie",
+      tiedUserIds: ["user-ali", MARKS_FIXTURE_VIEWER_ID],
+    });
+    expect(fixtures.mvpTie.viewer).toMatchObject({
+      isOrganizer: true,
+      canPickMvp: true,
+      canVote: false,
+    });
+    expect(fixtures.mvpDecided.mvp).toMatchObject({
+      state: "decided",
+      userId: "user-yousif",
+      decidedBy: "vote",
+    });
+    expect(fixtures.mvpDecided.mvp.tally).not.toBeNull();
+    expect(fixtures.mvpDecided.mvp.settledAt).not.toBeNull();
+    expect(fixtures.mvpOrganizerPick.mvp).toMatchObject({
+      mode: "organizer",
+      state: "decided",
+      decidedBy: "organizer",
+      settledAt: null,
+    });
+    expect(fixtures.mvpNone.mvp).toMatchObject({
+      mode: "none",
+      state: "none",
+      userId: null,
+    });
+    expect(fixtures.closed.mvp).toMatchObject({ state: "none" });
+    expect(fixtures.closed.mvp.settledAt).not.toBeNull();
+  });
 });

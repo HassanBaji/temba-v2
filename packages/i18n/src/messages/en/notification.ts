@@ -77,6 +77,17 @@ export const notification = {
       plain(" on "),
       strong(game),
     ],
+    mvpDecided: (mvp: string, game: string) => [
+      strong(mvp),
+      plain(" is the MVP of "),
+      strong(game),
+    ],
+    youAreMvp: (game: string) => [plain("You’re the MVP of "), strong(game)],
+    mvpTieBreak: (game: string) => [
+      plain("Tied vote on "),
+      strong(game),
+      plain(". Pick the MVP."),
+    ],
   },
   subline: {
     everyMatchIn: "Every Match is in.",

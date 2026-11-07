@@ -85,6 +85,7 @@ export async function createFootballGame(
         sport: GameSportEnum.Football,
         sideSize: input.sideSize,
         rated: false,
+        mvpMode: input.mvpMode ?? "vote",
         createdBy: input.createdBy,
       })
       .returning();
@@ -182,6 +183,7 @@ export async function createFriendlyGame(
         sport: GameSportEnum.PADEL,
         rated: input.rated ?? true,
         groupRated: input.groupRated ?? false,
+        mvpMode: input.mvpMode ?? "vote",
         createdBy: input.createdBy,
       })
       .returning();

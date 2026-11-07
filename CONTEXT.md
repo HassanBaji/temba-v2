@@ -306,7 +306,7 @@ A seated User's acknowledgement that a Match's entered Sets are correct. The Use
 _Avoid_: complete (the resulting Match status), verify, approve, agree, confirmed Match status (`MatchStatusEnum.CONFIRMED` is deliberately unused — see ADR-0011)
 
 **Played game**:
-A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result. During the Marks window its screen also carries the marks rows.
+A Friendly game whose window has ended or whose Match is completed. Its roster is the record of who played: join and leave are gone for everyone, and only an Organizer adds or removes players. On the Mobile App its screen leads with the result on ink, then the two rosters, the facts, and Share result. During the Marks window its screen also carries the MVP row and the marks rows.
 _Avoid_: finished game, past game, archived game
 
 **Mark**:
@@ -318,8 +318,16 @@ A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like a
 _Avoid_: negative mark, penalty, insult
 
 **Marks window**:
-The 48 hours after a Match's completion during which Marks are given. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. Judged by the server clock.
+The 48 hours after a Match's completion during which Marks are given and the MVP is decided. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
 _Avoid_: voting period, deadline, grace period
+
+**MVP**:
+The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
+_Avoid_: man of the match, player of the game, best player, star (bare)
+
+**MVP mode**:
+How a Friendly game decides its MVP, chosen by the Organizer at create: players vote (the default), the Organizer picks, or no MVP. The Organizer may change it until the Match completes; after that it is fixed. Every other format has no MVP. In organizer mode the Organizer never picks themselves, but may break a tied vote in their own favour.
+_Avoid_: MVP setting, MVP type
 
 **Giver group**:
 Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.

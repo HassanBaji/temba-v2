@@ -54,6 +54,10 @@ describe("marks.forGame", () => {
         canGive: false,
         remaining: 3,
         given: [],
+        canVote: false,
+        vote: null,
+        isOrganizer: false,
+        canPickMvp: false,
       });
     });
   });
@@ -180,6 +184,10 @@ describe("marks.forGame", () => {
         canGive: false,
         remaining: 3,
         given: [],
+        canVote: false,
+        vote: null,
+        isOrganizer: false,
+        canPickMvp: false,
       });
 
       const giver = await forGame(db, {
@@ -194,6 +202,10 @@ describe("marks.forGame", () => {
           { receiverUserId: game.b.id, kind: "dynamo" },
           { receiverUserId: game.d.id, kind: "good_game" },
         ],
+        canVote: true,
+        vote: null,
+        isOrganizer: false,
+        canPickMvp: false,
       });
       expect(
         giver.participants.find((participant) => participant.isViewer)?.userId,

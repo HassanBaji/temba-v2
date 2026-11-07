@@ -2,11 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { MatchStatusEnum, marks } from "@repo/db";
+import { marks } from "@repo/db";
 
 import {
   MARK_KINDS,
-  marksWindow,
+  gameMvpView,
   remainingMarks,
   type GameMarks,
   type MarkKind,
@@ -15,11 +15,12 @@ import { sportOrDefault } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { canViewGame, requireGame } from "#src/games/access";
+import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
 import {
   loadMatchParticipants,
   marksMatch,
 } from "#src/marks/match-participants";
+import { mvpQuestion, settleMvpIfDue } from "#src/marks/settle-mvp";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -41,8 +42,9 @@ function receivedKinds(receiverUserId: string, rows: GameMarks["marks"]) {
 
 /**
  * The Marks on a Game, for the Game screen: the window, who sat on which
- * side, every mark with its giver, and what the viewer may still give.
- * Visible to anyone who may open the Game, roasts included.
+ * side, every mark with its giver, what the viewer may still give, and the
+ * MVP. Visible to anyone who may open the Game, roasts included. Once the
+ * window has closed, a read settles an MVP the Job has not settled yet.
  */
 export async function forGame(
   database: DbClient,
@@ -55,13 +57,30 @@ export async function forGame(
   }
 
   const match = await marksMatch(database, game);
-  const windowState =
-    match?.status === MatchStatusEnum.COMPLETED
-      ? marksWindow(match.completedAt, now)
-      : null;
+  const current = (await settleMvpIfDue(database, game, match, now))
+    ? await requireGame(database, game.id)
+    : game;
   const participants = match
     ? await loadMatchParticipants(database, match, game)
     : [];
+  const question = await mvpQuestion(database, {
+    game: current,
+    match,
+    participants,
+    now,
+  });
+  const windowState = question.window;
+  const mvp = gameMvpView({
+    question,
+    stored: {
+      userId: current.mvpUserId,
+      decidedBy: current.mvpDecidedBy,
+      decidedAt: current.mvpDecidedAt,
+      settledAt: current.mvpSettledAt,
+    },
+    viewerUserId: args.userId,
+    isOrganizer: await isGameOrganizer(database, game, args.userId),
+  });
   const rows = match
     ? await database.query.marks.findMany({
         where: eq(marks.matchId, match.id),
@@ -105,7 +124,9 @@ export async function forGame(
       canGive: isParticipant && windowState?.state === "open" && remaining > 0,
       remaining,
       given,
+      ...mvp.viewer,
     },
+    mvp: mvp.mvp,
   };
 }
 
