@@ -5,6 +5,7 @@ import {
   markCoinSizes,
   markCoins,
   type CoinElement,
+  type CoinGreys,
   type CoinState,
   type MarkCoinSize,
 } from "@repo/design-tokens/marks";
@@ -15,6 +16,16 @@ import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
 
 const DISC_INSET = `${((coinDisc.cx - coinDisc.r) / coinViewBox) * 100}%`;
+
+// A not-yet glyph follows the scheme through the theme variables, as Hatch does.
+const THEME_GREYS: CoinGreys = {
+  rule: "var(--color-rule)",
+  muted: "var(--color-muted-foreground)",
+  paper: "var(--color-paper)",
+  dimrule: "var(--color-dimrule)",
+  dim: "var(--color-dim)",
+  focus: "var(--color-focus)",
+};
 
 function CoinShape({
   element,
@@ -57,7 +68,7 @@ export function MarkCoin({
   className?: string;
 }) {
   const px = markCoinSizes[size];
-  const tones = coinToneColors(kind, state, tone);
+  const tones = coinToneColors(kind, state, tone, THEME_GREYS);
 
   return (
     <span

@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
 import type { MatchSlot } from "@repo/domain/marks";
 import { Pressable, View } from "react-native";
@@ -7,6 +7,7 @@ import { BibChip } from "../football/bib-picker";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { CoinStack } from "./coin-stack";
 import type { RosterModel, RosterRow } from "./marks-model";
 
@@ -21,6 +22,7 @@ function SideSwatch({
   slot: MatchSlot;
   bib: FootballBib | null;
 }) {
+  const colors = useColors();
   if (bib) {
     return <BibChip bib={bib} size={SWATCH} />;
   }
@@ -50,6 +52,7 @@ function Row({
   first: boolean;
   onPressCoins: (userId: string) => void;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -108,6 +111,7 @@ export function MarksRoster({
   roster: RosterModel;
   onPressCoins: (userId: string) => void;
 }) {
+  const colors = useColors();
   return (
     <View style={{ gap: 12 }}>
       <View

@@ -1,9 +1,10 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import type { CabinetRowModel } from "./cabinet-model";
 import { MarkCoin } from "./mark-coin";
 
@@ -18,6 +19,7 @@ export function CabinetRow({
   onOpen: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"

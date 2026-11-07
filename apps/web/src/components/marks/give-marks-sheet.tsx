@@ -190,7 +190,7 @@ function KindTile({
       className={cn(
         "flex min-h-11 flex-col items-center gap-1.5 rounded-lg border px-1.5 py-3 outline-none",
         "hover:bg-wash focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        selected ? "border-ink bg-wash" : "border-rule bg-paper",
+        selected ? "border-ink bg-wash" : "border-rule bg-sheet",
       )}
     >
       <MarkCoin kind={kind} size="cabinet" />

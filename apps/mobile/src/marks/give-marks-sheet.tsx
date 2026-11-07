@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import type { GameMarks, MarkKind } from "@repo/domain/marks";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -9,6 +9,7 @@ import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { MarkCoin } from "./mark-coin";
 import {
   givePlayersModel,
@@ -56,6 +57,7 @@ function PlayerRow({
   onRetract: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -74,7 +76,7 @@ function PlayerRow({
         paddingHorizontal: 14,
         borderTopWidth: first ? 0 : hairline,
         borderColor: colors.rule,
-        backgroundColor: pressed ? colors.wash : colors.paper,
+        backgroundColor: pressed ? colors.wash : colors.sheet,
       })}
     >
       <Avatar name={row.name} uri={row.image} />
@@ -121,6 +123,7 @@ function PlayersStep({
   onRetract: (userId: string) => void;
 }) {
   const locale = useLocale();
+  const colors = useColors();
   const model = givePlayersModel(data, locale);
   return (
     <>
@@ -163,6 +166,7 @@ function KindTile({
   selected: boolean;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -179,7 +183,7 @@ function KindTile({
         borderRadius: radii.lg,
         borderWidth: hairline,
         borderColor: selected ? colors.ink : colors.rule,
-        backgroundColor: selected || pressed ? colors.wash : colors.paper,
+        backgroundColor: selected || pressed ? colors.wash : colors.sheet,
       })}
     >
       <MarkCoin kind={kind} size="cabinet" />

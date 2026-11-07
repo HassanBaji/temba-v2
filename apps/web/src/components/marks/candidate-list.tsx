@@ -14,7 +14,7 @@ function RadioDot({ selected }: { selected: boolean }) {
       aria-hidden="true"
       className={cn(
         "flex size-5 shrink-0 items-center justify-center rounded-full border",
-        selected ? "bg-ink border-ink" : "bg-paper border-input",
+        selected ? "bg-ink border-ink" : "bg-sheet border-input",
       )}
     >
       {selected ? <span className="bg-paper size-2 rounded-full" /> : null}
@@ -61,7 +61,7 @@ export function CandidateList({
             className={cn(
               "border-rule flex min-h-14 w-full items-center gap-3 border-t px-3.5 py-2.5 text-start outline-none first:border-t-0",
               "hover:bg-wash focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:ring-inset",
-              on ? "bg-wash" : "bg-paper",
+              on ? "bg-wash" : "bg-sheet",
             )}
           >
             <RadioDot selected={on} />

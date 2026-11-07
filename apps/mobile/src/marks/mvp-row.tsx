@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { ArrowUpRight } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
@@ -7,6 +7,7 @@ import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { MarkCoin } from "./mark-coin";
 import { mvpRowModel } from "./marks-model";
 import type { GameMarksController } from "./use-game-marks";
@@ -27,6 +28,7 @@ export function MvpRow({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const model = marks.data ? mvpRowModel(marks.data, locale) : null;
   if (!model) {
     return null;
@@ -83,7 +85,7 @@ export function MvpRow({
         >
           <ArrowUpRight
             size={sizes.iconRow}
-            color={colors.paper}
+            color={colors.onFocus}
             style={mirrorInRtl}
           />
         </Pressable>

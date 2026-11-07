@@ -8,6 +8,7 @@ import {
   type CoinTone,
   type MarkCoinKind,
 } from "./marks.ts";
+import { darkColors } from "./tokens.ts";
 
 const MARKS_DIR = new URL("../marks/", import.meta.url);
 const SHAPES = new Set(["circle", "ellipse", "rect", "path", "polygon"]);
@@ -187,6 +188,30 @@ describe("coinToneColors", () => {
       shade: "#2e2e2e",
       ink: "#8e8e8e",
       paper: "#0a0a0a",
+    });
+  });
+
+  it("keeps an earned coin's colours in the dark scheme", () => {
+    expect(coinToneColors("mvp", "earned", "paper", darkColors)).toEqual(
+      coinToneColors("mvp", "earned"),
+    );
+    expect(coinToneColors("mvp", "earned", "ink", darkColors)).toEqual(
+      coinToneColors("mvp", "earned"),
+    );
+  });
+
+  it("draws a not-yet glyph in the dark scheme's greys", () => {
+    expect(coinToneColors("clutch", "notYet", "paper", darkColors)).toEqual({
+      disc: null,
+      shade: "#2e2e2e",
+      ink: "#8e8e8e",
+      paper: "#000000",
+    });
+    expect(coinToneColors("clutch", "notYet", "ink", darkColors)).toEqual({
+      disc: null,
+      shade: "#3a3a3a",
+      ink: "#8e8e8e",
+      paper: "#141414",
     });
   });
 });

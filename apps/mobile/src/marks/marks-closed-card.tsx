@@ -1,8 +1,9 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { CoinStack } from "./coin-stack";
 import type { ClosedCardModel, GiveRowModel } from "./marks-model";
 
@@ -46,6 +47,7 @@ export function MarksGiveCard({
   model: GiveRowModel;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -79,6 +81,7 @@ export function MarksGiveCard({
 
 /** 2f: what the viewer gave and when the window closed. */
 export function MarksClosedCard({ model }: { model: ClosedCardModel }) {
+  const colors = useColors();
   return (
     <View
       style={{

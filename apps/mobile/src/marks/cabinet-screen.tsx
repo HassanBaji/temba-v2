@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import type { CoinKind } from "@repo/domain/marks";
 import type { Sport } from "@repo/domain/sport";
@@ -23,6 +23,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { SettingsGroup, SwitchRow } from "../profile-settings/settings-rows";
 import { SectionHead } from "../profile/profile-parts";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import {
   cabinetScreenModel,
@@ -48,6 +49,7 @@ function SportTabs({
   onSelect: (sport: Sport) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -78,7 +80,7 @@ function SportTabs({
                 paddingHorizontal: 12,
                 justifyContent: "center",
                 borderRadius: radii.sm,
-                backgroundColor: selected ? colors.ink : colors.paper,
+                backgroundColor: selected ? colors.control : colors.paper,
               }}
             >
               <Text

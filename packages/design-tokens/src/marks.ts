@@ -1,4 +1,4 @@
-import { colors } from "./tokens";
+import { colors, type Palette } from "./tokens";
 
 /**
  * Mark coins (ADR-0056). Like `bibColors`, these are data, not chrome: a coin
@@ -1191,24 +1191,37 @@ export const markCoins = {
 
 export type MarkCoinKind = keyof typeof markCoins;
 
+/** The greys a not-yet glyph is drawn in, from the palette on screen. */
+export type CoinGreys = Pick<
+  Palette,
+  "rule" | "muted" | "paper" | "dimrule" | "dim" | "focus"
+>;
+
 /**
  * A coin not yet earned keeps its glyph and drops its colour: the disc
  * becomes a Hatch, ink parts turn muted, paper parts take the surface and the
  * shade turns rule grey, so a paper glyph still has an edge against the hatch.
+ * It carries no coin colour, so its greys follow the scheme like Hatch does.
  */
-const notYetTones = {
-  paper: { shade: colors.rule, ink: colors.muted, paper: colors.paper },
-  ink: { shade: colors.dimrule, ink: colors.dim, paper: colors.ink },
-} as const;
+function notYetTones(surface: "paper" | "ink", greys: CoinGreys) {
+  return surface === "ink"
+    ? { shade: greys.dimrule, ink: greys.dim, paper: greys.focus }
+    : { shade: greys.rule, ink: greys.muted, paper: greys.paper };
+}
 
-/** The colour each tone paints, or `null` when the state drops it. */
+/**
+ * The colour each tone paints, or `null` when the state drops it. An earned
+ * coin is data and keeps the light ink and paper in both schemes (ADR-0055);
+ * only a not-yet coin reads `greys`.
+ */
 export function coinToneColors(
   kind: MarkCoinKind,
   state: CoinState,
   surface: "paper" | "ink" = "paper",
+  greys: CoinGreys = colors,
 ): Record<CoinTone, string | null> {
   if (state === "notYet") {
-    return { disc: null, ...notYetTones[surface] };
+    return { disc: null, ...notYetTones(surface, greys) };
   }
   const coin = markCoins[kind];
   return {

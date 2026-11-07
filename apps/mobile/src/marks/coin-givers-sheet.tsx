@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { View } from "react-native";
 
 import { useLocale } from "../i18n/locale-provider";
@@ -6,6 +6,7 @@ import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { MarkCoin } from "./mark-coin";
 import { coinGiversModel } from "./marks-model";
 import type { GameMarksController } from "./use-game-marks";
@@ -15,6 +16,7 @@ const TALL_AFTER_KINDS = 2;
 /** E24: who gave each coin on a player's roster row, teammate or opponent. */
 export function CoinGiversSheet({ marks }: { marks: GameMarksController }) {
   const locale = useLocale();
+  const colors = useColors();
   const userId = marks.sheet?.kind === "givers" ? marks.sheet.userId : null;
   const model =
     marks.data && userId ? coinGiversModel(marks.data, userId, locale) : null;

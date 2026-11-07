@@ -14,6 +14,7 @@ import Svg, { Circle, Ellipse, Path, Polygon, Rect } from "react-native-svg";
 
 import { Hatch } from "../primitives/hatch";
 import { useSurfaceTone } from "../primitives/surface-context";
+import { useColors } from "../theme/theme-provider";
 
 export type MarkCoinProps = {
   kind: CoinKind;
@@ -49,8 +50,9 @@ function CoinShape({
 /** A Mark or MVP coin. Decorative: the text beside it names the mark. */
 export function MarkCoin({ kind, size, state = "earned" }: MarkCoinProps) {
   const surface = useSurfaceTone();
+  const colors = useColors();
   const px = markCoinSizes[size];
-  const tones = coinToneColors(kind, state, surface);
+  const tones = coinToneColors(kind, state, surface, colors);
   const discRadius = (coinDisc.r / coinViewBox) * px;
   const discInset = px / 2 - discRadius;
 

@@ -1,10 +1,11 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { CoinStack } from "./coin-stack";
 import type { CandidateRow } from "./marks-model";
 
@@ -13,6 +14,7 @@ const DOT = 8;
 const ROW_MIN_HEIGHT = 56;
 
 function Radio({ selected }: { selected: boolean }) {
+  const colors = useColors();
   return (
     <View
       accessibilityElementsHidden
@@ -23,7 +25,7 @@ function Radio({ selected }: { selected: boolean }) {
         borderRadius: RING / 2,
         borderWidth: hairline,
         borderColor: selected ? colors.ink : colors.inputBorder,
-        backgroundColor: selected ? colors.ink : colors.paper,
+        backgroundColor: selected ? colors.ink : colors.sheet,
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -55,6 +57,7 @@ export function CandidateList({
   onSelect: (userId: string) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -89,7 +92,7 @@ export function CandidateList({
               paddingHorizontal: 14,
               borderTopWidth: index === 0 ? 0 : hairline,
               borderColor: colors.rule,
-              backgroundColor: on || pressed ? colors.wash : colors.paper,
+              backgroundColor: on || pressed ? colors.wash : colors.sheet,
             })}
           >
             <Radio selected={on} />

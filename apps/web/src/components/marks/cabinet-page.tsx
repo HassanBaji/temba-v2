@@ -107,7 +107,7 @@ function SportTabs({
               "text-meta relative h-9 rounded-sm px-3 transition-colors after:absolute after:inset-x-0 after:top-1/2 after:min-h-11 after:-translate-y-1/2",
               focusRing,
               selected
-                ? "bg-ink text-paper font-semibold"
+                ? "bg-control text-on-control font-semibold"
                 : "text-muted-foreground hover:text-ink bg-paper",
             )}
           >

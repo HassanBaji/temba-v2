@@ -37,7 +37,8 @@ describe("MarkCoin", () => {
       expect(html).toContain('class="hatch absolute rounded-full"');
       expect(html).not.toContain(markCoins[kind].disc);
       expect(html).not.toContain(markCoins[kind].shade);
-      expect(html).toContain('="#6e6e6e"');
+      expect(html).toContain('="var(--color-muted-foreground)"');
+      expect(html).not.toMatch(/="#[0-9a-f]{6}"/);
     },
   );
 
@@ -65,7 +66,8 @@ describe("MarkCoin", () => {
       }),
     );
     expect(html).toContain("hatch hatch-on-ink");
-    expect(html).toContain('fill="#8e8e8e"');
+    expect(html).toContain('fill="var(--color-dim)"');
+    expect(html).toContain('fill="var(--color-focus)"');
   });
 
   it.each(["earned", "notYet"] as const)("renders %s as before", (state) => {
