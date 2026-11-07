@@ -13,7 +13,7 @@ Writes go through the router functions the tRPC doors call (the same ones the te
 
 Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local App. To use the seed:
 
-1. Create a User with username + password on your Clerk **development** instance. With Clerk test mode on, sign up at `/signup` using a test number `+1 555 555 01xx` (US) and code `424242`. Numbers already used on the instance are refused, so pick an unused one. Copy the User's id (`user_…`) from the dashboard, or from `window.Clerk.user.id` in the browser.
+1. Create a User with username + password on your Clerk **development** instance. With Clerk test mode on, sign up at `/signup` using a test number `+1 201 555 01xx` (US: area code 201, not 555, which Clerk refuses as malformed) and code `424242`. Numbers already used on the instance are refused, so pick an unused one. Copy the User's id (`user_…`) from the dashboard, or from `window.Clerk.user.id` in the browser.
 2. Seed with that id on the `me` persona:
    ```bash
    SEED_CLERK_ID_ME=user_xxx pnpm --filter @repo/api db:seed
