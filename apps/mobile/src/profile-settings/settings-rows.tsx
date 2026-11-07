@@ -176,6 +176,7 @@ export function SwitchRow({
   icon: Icon,
   title,
   sub,
+  subAction,
   value,
   disabled = false,
   onChange,
@@ -183,6 +184,7 @@ export function SwitchRow({
   icon?: RowIcon;
   title: string;
   sub?: string;
+  subAction?: { label: string; onPress: () => void };
   value: boolean;
   disabled?: boolean;
   onChange: (next: boolean) => void;
@@ -204,6 +206,22 @@ export function SwitchRow({
           <Text size="eyebrow" tone="muted">
             {sub}
           </Text>
+        ) : null}
+        {subAction ? (
+          <Pressable
+            accessibilityRole="link"
+            onPress={subAction.onPress}
+            hitSlop={8}
+            style={{ alignSelf: "flex-start" }}
+          >
+            <Text
+              size="eyebrow"
+              weight="semibold"
+              style={{ textDecorationLine: "underline" }}
+            >
+              {subAction.label}
+            </Text>
+          </Pressable>
         ) : null}
       </View>
       <Switch

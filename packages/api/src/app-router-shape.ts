@@ -249,7 +249,8 @@ type ExpectedUsers =
   | "setMatchHistoryVisibility"
   | "setSports"
   | "setFootballPreferences"
-  | "setLocale";
+  | "setLocale"
+  | "setEmailNotifications";
 
 type ExpectedVenues =
   | "list"
