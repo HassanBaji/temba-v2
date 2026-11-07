@@ -28,6 +28,11 @@ export default function clientBoundary(files = ["src/**/*.{ts,tsx}"]) {
               allowTypeImports: true,
               message: "Import @repo/api/types with `import type`.",
             },
+            {
+              group: ["*.svg"],
+              message:
+                "Clients never import an .svg file. Mark coins are data in @repo/design-tokens/marks (ADR-0056).",
+            },
           ],
         },
       ],

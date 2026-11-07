@@ -280,7 +280,7 @@ One of the two halves an Organizer splits a football Game's roster into, by Leve
 _Avoid_: Team (the persistent roster), squad
 
 **Bib**:
-The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. The only place colour appears in the product.
+The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. One of the two places colour appears in the product; the other is a Mark coin (ADR-0056).
 
 **Score**:
 On a football Match, the goals each Football side scored, stored as the Match's one Set. A player on either side or an Organizer enters it from kick-off; it is agreed once one player from each side confirms, or as soon as an Organizer confirms. A changed Score asks again.
