@@ -11,6 +11,8 @@ import { renameUnclaimedPlayerProcedure as renameUnclaimedPlayer } from "./renam
 import { setHideRoastsProcedure as setHideRoasts } from "./setHideRoasts";
 import { setMatchHistoryVisibility } from "./setMatchHistoryVisibility";
 import { setFootballPreferences } from "./setFootballPreferences";
+import { setEmailNotifications } from "./setEmailNotifications";
+import { setLocale } from "./setLocale";
 import { setName } from "./setName";
 import { setPlayWindows } from "./setPlayWindows";
 import { setPreferredPosition } from "./setPreferredPosition";
@@ -36,4 +38,6 @@ export const usersRouter = createTRPCRouter({
   setHideRoasts,
   setSports,
   setFootballPreferences,
+  setLocale,
+  setEmailNotifications,
 });

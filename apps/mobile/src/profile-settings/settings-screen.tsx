@@ -15,6 +15,7 @@ import {
   FileText,
   KeyRound,
   Mail,
+  MailCheck,
   MailOpen,
   Plus,
   Smartphone,
@@ -177,6 +178,9 @@ function SettingsBody({ details }: { details: Details }) {
   const [signingOut, setSigningOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [seatAlerts, setSeatAlerts] = useState<boolean | null>(null);
+  const [emailNotifications, setEmailNotifications] = useState<boolean | null>(
+    null,
+  );
 
   const hasPadel = details.sports.includes("padel");
   const hasFootball = details.sports.includes("football");
@@ -209,6 +213,14 @@ function SettingsBody({ details }: { details: Details }) {
     onSuccess: () => utils.users.profileDetails.invalidate(),
     onError: (error) => {
       setSeatAlerts(null);
+      toast.show(error.message);
+    },
+  });
+
+  const saveEmailNotifications = api.users.setEmailNotifications.useMutation({
+    onSuccess: () => utils.users.profileDetails.invalidate(),
+    onError: (error) => {
+      setEmailNotifications(null);
       toast.show(error.message);
     },
   });
@@ -435,6 +447,29 @@ function SettingsBody({ details }: { details: Details }) {
               playWindows: details.playWindows,
               seatAlerts: next,
             });
+          }}
+        />
+        <SwitchRow
+          icon={MailCheck}
+          title={s.emailNotifications}
+          sub={
+            emailVerified
+              ? s.emailNotificationsSub
+              : s.emailNotificationsNeedEmail
+          }
+          subAction={
+            emailVerified
+              ? undefined
+              : {
+                  label: s.emailNotificationsAddEmail,
+                  onPress: () => open(profileTaskPath("email")),
+                }
+          }
+          value={emailNotifications ?? details.emailNotifications}
+          disabled={saveEmailNotifications.isPending}
+          onChange={(next) => {
+            setEmailNotifications(next);
+            saveEmailNotifications.mutate({ emailNotifications: next });
           }}
         />
       </SettingsGroup>

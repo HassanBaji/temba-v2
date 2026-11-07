@@ -224,7 +224,9 @@ type ExpectedUsers =
   | "setMatchHistoryVisibility"
   | "setHideRoasts"
   | "setSports"
-  | "setFootballPreferences";
+  | "setFootballPreferences"
+  | "setLocale"
+  | "setEmailNotifications";
 
 type ExpectedVenues =
   | "list"

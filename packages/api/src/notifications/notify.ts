@@ -10,6 +10,8 @@ import {
 
 import type { MarkKind } from "@repo/domain/marks";
 
+import { enqueue } from "#src/jobs/enqueue";
+import { notificationEmailJob } from "#src/jobs/specs";
 import { notificationRetentionCutoff } from "#src/notifications/retention";
 import { unclaimedUserSql } from "#src/unclaimed-players/is-unclaimed";
 
@@ -67,7 +69,11 @@ async function dropUnclaimedRecipients(
   }
 }
 
-/** The only writer of `notifications` rows; call it inside the event's transaction. */
+/**
+ * The only writer of `notifications` rows; call it inside the event's
+ * transaction. Each inserted row also gets its Notification email Job there,
+ * so an email exists only if the event commits (ADR-0054).
+ */
 export async function notify(
   database: DbOrTx,
   args: NotifyArgs,
@@ -94,8 +100,13 @@ export async function notify(
     dedupeKey: args.dedupeKey ?? null,
   }));
 
-  const insert = database.insert(notifications).values(rows);
-  await (args.dedupeKey ? insert.onConflictDoNothing() : insert);
+  const insert = database.insert(notifications).values(rows).returning();
+  const inserted = await (args.dedupeKey
+    ? insert.onConflictDoNothing()
+    : insert);
+  for (const { id } of inserted) {
+    await enqueue(database, notificationEmailJob(id));
+  }
 
   await database
     .delete(notifications)

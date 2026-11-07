@@ -575,6 +575,13 @@
       "when": 1794015946831,
       "tag": "0081_temba_hide_roasts",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794036533335,
+      "tag": "0082_notification_email_and_user_locale",
+      "breakpoints": true
     }
   ]
 }

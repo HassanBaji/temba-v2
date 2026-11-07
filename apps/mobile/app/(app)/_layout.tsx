@@ -3,6 +3,7 @@ import { Redirect } from "expo-router";
 
 import { AuthLoading } from "../../src/auth/auth-loading";
 import { OnboardingGate } from "../../src/auth/onboarding-gate";
+import { StoredLocaleSync } from "../../src/i18n/stored-locale-sync";
 import { AppTabs } from "../../src/navigation/app-tabs";
 
 export default function SignedInLayout() {
@@ -16,6 +17,7 @@ export default function SignedInLayout() {
   }
   return (
     <OnboardingGate>
+      <StoredLocaleSync />
       <AppTabs />
     </OnboardingGate>
   );

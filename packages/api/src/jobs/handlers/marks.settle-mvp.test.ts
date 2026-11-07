@@ -65,6 +65,10 @@ describe("marks.settle-mvp", () => {
       expect(
         await notificationsOf(db, game.gameId, "mvp_decided"),
       ).toHaveLength(4);
+      expect(jobs.added.map((job) => job.name)).toEqual(
+        Array<string>(4).fill("notification.email"),
+      );
+      jobs.clear();
 
       await handle(
         asDb(db),

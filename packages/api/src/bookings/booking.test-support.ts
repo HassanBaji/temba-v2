@@ -21,10 +21,11 @@ import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 
 import { handle as createCharge } from "#src/jobs/handlers/payment.create-charge";
 import { createBooking } from "#src/routers/bookings/create";
-import { resetJobSink, setJobSink } from "#src/jobs/enqueue";
-import { RecordingJobSink } from "#src/jobs/job-sink.test-support";
+import type { RecordingJobSink } from "#src/jobs/job-sink.test-support";
 import { resetPaymentProvider, setPaymentProvider } from "#src/payments/index";
 import { FakePaymentProvider } from "#src/payments/fake.test-support";
+
+export { recordJobs } from "#src/jobs/job-sink.test-support";
 
 // 2030-01-05 is a Saturday.
 export const NOW = zonedDateTimeToInstant({
@@ -118,17 +119,6 @@ export async function withBookableVenue(
   } finally {
     await close();
   }
-}
-
-/** Routes `enqueue` to a recording sink for the tests in the calling suite. */
-export function recordJobs() {
-  const sink = new RecordingJobSink();
-  beforeEach(() => {
-    sink.clear();
-    setJobSink(sink);
-  });
-  afterEach(() => resetJobSink());
-  return sink;
 }
 
 /** Installs a fresh scripted provider for the tests in the calling suite. */

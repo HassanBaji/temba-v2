@@ -82,6 +82,8 @@ export const notifications = pgTable(
     markKind: markKinds("mark_kind"),
     dedupeKey: varchar("dedupe_key", { length: 255 }),
     readAt: timestamp("read_at"),
+    /** Set when the Email sender accepted this row's Notification email (ADR-0054). */
+    emailedAt: timestamp("emailed_at"),
     // Millisecond precision so a JavaScript Date round-trips exactly as a list cursor.
     createdAt: timestamp("created_at", { precision: 3 }).notNull().defaultNow(),
   },

@@ -43,6 +43,9 @@ const parsedEnv = createEnv({
     PAYMENT_RETURN_URL: z.string().min(1).default("temba://book/bookings"),
     API_PUBLIC_URL: z.string().url().optional(),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
+    EMAIL_PROVIDER: z.enum(["none", "resend"]).default("none"),
+    RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().min(1).optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
@@ -60,6 +63,17 @@ if (parsedEnv.PAYMENT_PROVIDER === "tap" && !process.env.SKIP_ENV_VALIDATION) {
   if (missing.length > 0) {
     throw new Error(
       `PAYMENT_PROVIDER=tap requires ${missing.join(", ")} to be set`,
+    );
+  }
+}
+
+const RESEND_REQUIRED = ["RESEND_API_KEY", "EMAIL_FROM"] as const;
+
+if (parsedEnv.EMAIL_PROVIDER === "resend" && !process.env.SKIP_ENV_VALIDATION) {
+  const missing = RESEND_REQUIRED.filter((key) => !parsedEnv[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `EMAIL_PROVIDER=resend requires ${missing.join(", ")} to be set`,
     );
   }
 }

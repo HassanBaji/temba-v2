@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { groups, GroupTypeEnum, notifications, user } from "@repo/db/schema";
 
+import { setJobSink } from "#src/jobs/enqueue";
+import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { notify } from "#src/notifications/notify";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -37,6 +39,8 @@ async function rowsFor(database: TestDatabase, userId: string) {
 }
 
 describe("notify", () => {
+  const jobs = recordJobs();
+
   it("writes one row per recipient and skips excluded Users", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -160,7 +164,7 @@ describe("notify", () => {
     }
   });
 
-  it("writes a keyed row once per recipient", async () => {
+  it("writes a keyed row once per recipient and emails it once", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const recipient = await insertUser(db, "notify-keyed@example.com");
@@ -174,7 +178,81 @@ describe("notify", () => {
       await notify(db, args);
       await notify(db, args);
 
-      expect(await rowsFor(db, recipient)).toHaveLength(1);
+      const rows = await rowsFor(db, recipient);
+      expect(rows).toHaveLength(1);
+      expect(jobs.added).toHaveLength(1);
+      expect(jobs.added[0]).toMatchObject({
+        key: `notification:email:${rows[0]?.id}`,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("enqueues one Notification email Job per inserted row", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const actor = await insertUser(db, "notify-email-actor@example.com");
+      const admin = await insertUser(db, "notify-email-admin@example.com");
+      const player = await insertUser(db, "notify-email-player@example.com");
+      const groupId = await insertGroup(db, admin);
+
+      await notify(db, {
+        type: "group_member_joined",
+        recipients: [
+          { userId: admin, audience: "admin" },
+          { userId: player, audience: "admin" },
+          { userId: actor, audience: "admin" },
+        ],
+        excludeUserIds: [actor],
+        actorUserId: actor,
+        groupId,
+      });
+
+      const ids = (await db.query.notifications.findMany()).map(
+        (row) => row.id,
+      );
+      expect(ids).toHaveLength(2);
+      expect(jobs.added.map((job) => job.key).sort()).toEqual(
+        ids.map((id) => `notification:email:${id}`).sort(),
+      );
+      expect(jobs.added[0]).toMatchObject({
+        name: "notification.email",
+        payload: { notificationId: expect.any(String) as string },
+        maxAttempts: 5,
+        mode: "unsafe_dedupe",
+        runAt: null,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("enqueues the Job on the event's own transaction", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const recipient = await insertUser(db, "notify-tx@example.com");
+      const seen: unknown[] = [];
+      setJobSink({
+        add: (tx) => {
+          seen.push(tx);
+          return Promise.resolve();
+        },
+        remove: () => Promise.resolve(),
+      });
+
+      let transaction: unknown;
+      await db.transaction(async (tx) => {
+        transaction = tx;
+        await notify(tx, {
+          type: "group_member_joined",
+          recipients: [{ userId: recipient, audience: "admin" }],
+          excludeUserIds: [],
+        });
+      });
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0]).toBe(transaction);
     } finally {
       await close();
     }

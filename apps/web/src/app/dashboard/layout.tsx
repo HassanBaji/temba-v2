@@ -6,6 +6,7 @@ import {
   dashboardOnboardingRedirect,
   PATHNAME_HEADER,
 } from "~/lib/dashboard-onboarding-gate";
+import { StoredLocaleSync } from "~/components/stored-locale-sync";
 import { loadCallerOnboardingState } from "~/lib/caller-onboarding-state";
 import { getRequestMessages } from "~/lib/request-locale";
 
@@ -41,6 +42,9 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="bg-background text-foreground min-h-screen">{children}</div>
+    <div className="bg-background text-foreground min-h-screen">
+      <StoredLocaleSync />
+      {children}
+    </div>
   );
 }
