@@ -240,6 +240,37 @@ export const game = {
   organizer: {
     userFallback: "مستخدم",
   },
+  requests: {
+    title: "الطلبات",
+    waiting: (n: number) =>
+      plural("ar", n, {
+        one: "طلب واحد بالانتظار",
+        two: "طلبان بالانتظار",
+        few: "{n} طلبات بالانتظار",
+        many: "{n} طلبًا بالانتظار",
+        other: "{n} طلب بالانتظار",
+      }),
+    waitingSeatsHeld: (n: number) =>
+      plural("ar", n, {
+        one: "طلب واحد بالانتظار، المكان محجوز",
+        two: "طلبان بالانتظار، المكانان محجوزان",
+        few: "{n} طلبات بالانتظار، الأماكن محجوزة",
+        many: "{n} طلبًا بالانتظار، الأماكن محجوزة",
+        other: "{n} طلب بالانتظار، الأماكن محجوزة",
+      }),
+    none: "لا طلبات بالانتظار.",
+    seatAndGroup: (group: string) => `يريد المكان والانضمام إلى ${group}`,
+    viaLinkFrom: (name: string) => `جاء عبر رابط ${name}`,
+    viaLink: "جاء عبر رابط",
+    heldHours: (n: number) => `محجوز ${n} س`,
+    heldMinutes: (n: number) => `محجوز ${n} د`,
+    outsideRange: "خارج نطاق المستوى، وطلب رغم ذلك",
+    decline: "رفض",
+    approveSeatAndMembership: "الموافقة على المكان والعضوية",
+    note: "يمكن لأي منظّم في المجموعة أن يقرّر. يتحرّر المكان المحجوز عند انتهاء الحجز أو عند الرفض.",
+    approvedToast: (name: string) => `تمت الموافقة على ${name}`,
+    declinedToast: (name: string) => `رُفض ${name}`,
+  },
   players: {
     left: "يسار",
     right: "يمين",

@@ -9,6 +9,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { notifyGroupJoinDecided } from "#src/notifications/notify-requests";
 
 type DbClient = typeof db;
 
@@ -38,24 +39,36 @@ export async function rejectJoinRequest(
     });
   }
 
-  const [updated] = await database
-    .update(groupJoinRequests)
-    .set({
-      status: args.block
-        ? GroupJoinRequestStatusEnum.BLOCKED
-        : GroupJoinRequestStatusEnum.REJECTED,
-      decidedBy: args.userId,
-      updatedAt: new Date(),
-    })
-    .where(eq(groupJoinRequests.id, request.id))
-    .returning();
+  await database.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(groupJoinRequests)
+      .set({
+        status: args.block
+          ? GroupJoinRequestStatusEnum.BLOCKED
+          : GroupJoinRequestStatusEnum.REJECTED,
+        decidedBy: args.userId,
+        heldGameId: null,
+        seatHeldUntil: null,
+        heldSeat: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(groupJoinRequests.id, request.id))
+      .returning();
 
-  if (!updated) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to reject join request",
+    if (!updated) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to reject join request",
+      });
+    }
+    await notifyGroupJoinDecided(tx, {
+      group,
+      requesterUserId: request.userId,
+      deciderUserId: args.userId,
+      approved: false,
+      gameId: request.heldGameId,
     });
-  }
+  });
 
   return { ok: true as const };
 }

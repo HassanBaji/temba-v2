@@ -561,7 +561,7 @@ describe("group join requests", () => {
       expect(second.status).toBe("pending");
       await expect(
         approveJoinRequest(db, { requestId: pending.id, userId: creator.id }),
-      ).resolves.toEqual({ ok: true });
+      ).resolves.toEqual({ ok: true, heldSeat: null });
       await expect(
         rejectJoinRequest(db, { requestId: second.id, userId: creator.id }),
       ).resolves.toEqual({ ok: true });

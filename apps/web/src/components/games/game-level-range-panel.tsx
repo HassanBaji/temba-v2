@@ -14,6 +14,10 @@ import {
   levelRangeRequestCard,
   levelRangeRequestRowMeta,
 } from "@repo/domain/level-range-request";
+import {
+  requestsQueueHeading,
+  seatHoldRequestRowMeta,
+} from "@repo/domain/seat-hold-request";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
@@ -52,9 +56,36 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
       toastGlobalFormError(error);
     },
   });
+  const approveSeatHold = api.groups.approveJoinRequest.useMutation({
+    onSuccess: async () => {
+      toast.success(m.webGame.levelRange.requestApproved);
+      await utils.games.byId.invalidate({ id: game.id });
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+  const rejectSeatHold = api.groups.rejectJoinRequest.useMutation({
+    onSuccess: async () => {
+      toast.success(m.webGame.levelRange.requestRejected);
+      await utils.games.byId.invalidate({ id: game.id });
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
 
   const requestCard = levelRangeRequestCard(game, locale);
-  const showOrganizerQueue = levelRangeQueueVisible(game);
+  const seatHolds = game.pendingSeatHolds ?? [];
+  const showOrganizerQueue =
+    levelRangeQueueVisible(game) || seatHolds.length > 0;
+  const queueHeading = requestsQueueHeading(
+    {
+      levelRange: game.pendingLevelRangeRequests.length,
+      seatHolds: seatHolds.length,
+    },
+    locale,
+  );
 
   if (!requestCard && !showOrganizerQueue) {
     return null;
@@ -92,15 +123,48 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
 
       {showOrganizerQueue ? (
         <Section
-          title={m.webGame.levelRange.sectionTitle}
+          title={m.game.requests.title}
           description={
-            game.pendingLevelRangeRequests.length > 0
-              ? m.webGame.levelRange.sectionDescription
-              : undefined
+            seatHolds.length > 0
+              ? m.game.requests.note
+              : game.pendingLevelRangeRequests.length > 0
+                ? m.webGame.levelRange.sectionDescription
+                : undefined
           }
         >
-          {game.pendingLevelRangeRequests.length > 0 ? (
+          {seatHolds.length + game.pendingLevelRangeRequests.length > 0 ? (
             <RowList>
+              {seatHolds.map((request) => {
+                const name = request.user.name ?? m.game.organizer.userFallback;
+                return (
+                  <RequestRow
+                    key={request.id}
+                    leading={
+                      <UserAvatar
+                        name={name}
+                        image={request.user.image}
+                        size="lg"
+                      />
+                    }
+                    title={name}
+                    meta={seatHoldRequestRowMeta(request, locale)}
+                    approvePending={
+                      approveSeatHold.isPending &&
+                      approveSeatHold.variables?.requestId === request.id
+                    }
+                    rejectPending={
+                      rejectSeatHold.isPending &&
+                      rejectSeatHold.variables?.requestId === request.id
+                    }
+                    onApprove={() =>
+                      approveSeatHold.mutate({ requestId: request.id })
+                    }
+                    onReject={() =>
+                      rejectSeatHold.mutate({ requestId: request.id })
+                    }
+                  />
+                );
+              })}
               {game.pendingLevelRangeRequests.map((request) => {
                 const name = request.user.name ?? m.game.organizer.userFallback;
                 return (
@@ -130,9 +194,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
               })}
             </RowList>
           ) : (
-            <p className="text-body text-muted-foreground">
-              {m.webGame.levelRange.noPending}
-            </p>
+            <p className="text-body text-muted-foreground">{queueHeading}</p>
           )}
         </Section>
       ) : null}

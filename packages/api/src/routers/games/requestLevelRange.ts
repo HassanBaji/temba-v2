@@ -26,6 +26,7 @@ import {
   displayedLevelTenthsForUser,
   gameHasLevelRange,
 } from "#src/games/user-allowed-by-level-range";
+import { notifyLevelRangeRequested } from "#src/notifications/notify-requests";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -171,46 +172,41 @@ export async function requestLevelRange(
     };
   }
 
-  if (existing?.status === "rejected") {
-    const [updated] = await database
-      .update(gameLevelRangeRequests)
-      .set({
-        status: GameLevelRangeRequestStatusEnum.PENDING,
-        decidedBy: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(gameLevelRangeRequests.id, existing.id))
-      .returning();
-    if (!updated) {
+  return database.transaction(async (tx) => {
+    const [request] =
+      existing?.status === "rejected"
+        ? await tx
+            .update(gameLevelRangeRequests)
+            .set({
+              status: GameLevelRangeRequestStatusEnum.PENDING,
+              decidedBy: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(gameLevelRangeRequests.id, existing.id))
+            .returning()
+        : await tx
+            .insert(gameLevelRangeRequests)
+            .values({
+              gameId: game.id,
+              userId: args.userId,
+              status: GameLevelRangeRequestStatusEnum.PENDING,
+            })
+            .returning();
+    if (!request) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to re-request Level range",
+        message: "Failed to create Level range request",
       });
     }
-    return {
-      id: updated.id,
-      status: asRequestStatus(updated.status),
-    };
-  }
-
-  const [created] = await database
-    .insert(gameLevelRangeRequests)
-    .values({
-      gameId: game.id,
-      userId: args.userId,
-      status: GameLevelRangeRequestStatusEnum.PENDING,
-    })
-    .returning();
-  if (!created) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create Level range request",
+    await notifyLevelRangeRequested(tx, {
+      game,
+      requesterUserId: args.userId,
     });
-  }
-  return {
-    id: created.id,
-    status: asRequestStatus(created.status),
-  };
+    return {
+      id: request.id,
+      status: asRequestStatus(request.status),
+    };
+  });
 }
 
 export const requestLevelRangeProcedure = protectedProcedure

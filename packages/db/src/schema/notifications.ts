@@ -30,6 +30,12 @@ export const NOTIFICATION_TYPE_VALUES = [
   "mark_received",
   "mvp_decided",
   "mvp_tie_break",
+  "group_join_requested",
+  "group_join_approved",
+  "group_join_declined",
+  "game_level_range_requested",
+  "game_level_range_approved",
+  "game_level_range_declined",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

@@ -161,6 +161,16 @@ export function useOrganizerActions({
     onError: failure,
     onSettled: refresh,
   });
+  const approveSeatHold = api.groups.approveJoinRequest.useMutation({
+    onSuccess: () => toast.show(copy.toast.requestApproved),
+    onError: failure,
+    onSettled: refresh,
+  });
+  const rejectSeatHold = api.groups.rejectJoinRequest.useMutation({
+    onSuccess: () => toast.show(copy.toast.requestRejected),
+    onError: failure,
+    onSettled: refresh,
+  });
   const updateMatch = api.games.updateMatch.useMutation({
     onSuccess: () => {
       toast.show(copy.toast.matchUpdated);
@@ -267,19 +277,28 @@ export function useOrganizerActions({
     registrationPending:
       closeRegistration.isPending || reopenRegistration.isPending,
     completePending: completeMatch.isPending,
-    decidingRequestId: approve.isPending
-      ? (approve.variables?.requestId ?? null)
-      : reject.isPending
-        ? (reject.variables?.requestId ?? null)
-        : null,
+    decidingRequestId:
+      (approve.isPending ? approve.variables?.requestId : null) ??
+      (reject.isPending ? reject.variables?.requestId : null) ??
+      (approveSeatHold.isPending
+        ? approveSeatHold.variables?.requestId
+        : null) ??
+      (rejectSeatHold.isPending ? rejectSeatHold.variables?.requestId : null) ??
+      null,
     onToggleRegistration: () =>
       plan?.registration === "reopen"
         ? reopenRegistration.mutate({ gameId })
         : closeRegistration.mutate({ gameId }),
     onChooseCourt: () => setSection("court"),
     onComplete: askCompleteMatch,
-    onApprove: (requestId) => approve.mutate({ requestId }),
-    onReject: (requestId) => reject.mutate({ requestId }),
+    onApprove: (request) =>
+      request.kind === "seat_hold"
+        ? approveSeatHold.mutate({ requestId: request.id })
+        : approve.mutate({ requestId: request.id }),
+    onReject: (request) =>
+      request.kind === "seat_hold"
+        ? rejectSeatHold.mutate({ requestId: request.id })
+        : reject.mutate({ requestId: request.id }),
     onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
     onKickPlayer: (userId) => askKick({ userId }),
     onAddPlayer: () => setAddPlayerOpen(true),

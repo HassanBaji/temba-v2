@@ -9,6 +9,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { notifyGroupJoinRequested } from "#src/notifications/notify-requests";
 
 type DbClient = typeof db;
 
@@ -56,46 +57,41 @@ export async function requestJoin(
     invitedBy: null,
   };
 
-  if (existing?.status === "rejected" || existing?.status === "approved") {
-    const [updated] = await database
-      .update(groupJoinRequests)
-      .set({
-        status: GroupJoinRequestStatusEnum.PENDING,
-        decidedBy: null,
-        ...details,
-        updatedAt: new Date(),
-      })
-      .where(eq(groupJoinRequests.id, existing.id))
-      .returning();
+  return database.transaction(async (tx) => {
+    const [request] =
+      existing?.status === "rejected" || existing?.status === "approved"
+        ? await tx
+            .update(groupJoinRequests)
+            .set({
+              status: GroupJoinRequestStatusEnum.PENDING,
+              decidedBy: null,
+              ...details,
+              updatedAt: new Date(),
+            })
+            .where(eq(groupJoinRequests.id, existing.id))
+            .returning()
+        : await tx
+            .insert(groupJoinRequests)
+            .values({
+              groupId: group.id,
+              userId: args.userId,
+              status: GroupJoinRequestStatusEnum.PENDING,
+              ...details,
+            })
+            .returning();
 
-    if (!updated) {
+    if (!request) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to re-request join",
+        message: "Failed to create join request",
       });
     }
-
-    return { id: updated.id, status: "pending" as const };
-  }
-
-  const [created] = await database
-    .insert(groupJoinRequests)
-    .values({
-      groupId: group.id,
-      userId: args.userId,
-      status: GroupJoinRequestStatusEnum.PENDING,
-      ...details,
-    })
-    .returning();
-
-  if (!created) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create join request",
+    await notifyGroupJoinRequested(tx, {
+      group,
+      requesterUserId: args.userId,
     });
-  }
-
-  return { id: created.id, status: "pending" as const };
+    return { id: request.id, status: "pending" as const };
+  });
 }
 
 export const requestJoinProcedure = protectedProcedure

@@ -27,6 +27,7 @@ import {
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
+import { notifyGroupJoinDecided } from "#src/notifications/notify-requests";
 
 type DbClient = typeof db;
 type Tx = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
@@ -178,7 +179,18 @@ export async function approveJoinRequest(
         decidedByUserId: args.userId,
       });
     }
-    return seatHeldGame(tx, request, locale, now);
+    const heldSeat = await seatHeldGame(tx, request, locale, now);
+    await notifyGroupJoinDecided(tx, {
+      group,
+      requesterUserId: request.userId,
+      deciderUserId: args.userId,
+      approved: true,
+      gameId:
+        heldSeat === "registered" || heldSeat === "waitlisted"
+          ? request.heldGameId
+          : null,
+    });
+    return heldSeat;
   });
 
   return { ok: true as const, heldSeat };
