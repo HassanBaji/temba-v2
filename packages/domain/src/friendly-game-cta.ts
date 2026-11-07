@@ -67,6 +67,34 @@ export function friendlyGameCanMintInvite(game: {
   );
 }
 
+export type FriendlyGameShareLink = "invite_link" | "game_page";
+
+/**
+ * What the hero's share sends. An Invite link is the Organizer's invitation
+ * (it can also admit to the Group), so only they mint one; every other viewer
+ * shares the Game page, which opens for whoever may already see the Game.
+ * A cancelled or played Game has nothing to share here: a played result has
+ * its own share.
+ */
+export function friendlyGameShareLink(game: {
+  canMintInvite: boolean;
+  cancelled: boolean;
+  phase: FriendlyGameCtaPhase | null;
+}): FriendlyGameShareLink | null {
+  if (game.canMintInvite) {
+    return "invite_link";
+  }
+  if (
+    game.cancelled ||
+    game.phase === "cancelled" ||
+    game.phase === "needs_results" ||
+    game.phase === "final"
+  ) {
+    return null;
+  }
+  return "game_page";
+}
+
 /**
  * Sticky bottom bar family (game-details redesign, TEM-183). Reworked around
  * the page's `phase` prop rather than the old tab-suppression check: the

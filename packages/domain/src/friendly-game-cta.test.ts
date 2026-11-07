@@ -8,6 +8,7 @@ import {
   friendlyGameJoinSheetCaption,
   friendlyGameLevelUpdatedLine,
   friendlyGameOverflowItems,
+  friendlyGameShareLink,
   friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
   isTakeableJoinSeat,
@@ -217,6 +218,48 @@ describe("friendlyGameLevelUpdatedLine", () => {
       friendlyGameLevelUpdatedLine("C1", 3.1, "en"),
       "C+ · 3.1 after this game",
     );
+  });
+});
+
+describe("friendlyGameShareLink", () => {
+  const base = { canMintInvite: false, cancelled: false, phase: null } as const;
+
+  it("sends the Invite link when the viewer may mint one", () => {
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        canMintInvite: true,
+        phase: "upcoming",
+      }),
+      "invite_link",
+    );
+  });
+
+  it("sends the Game page to every other viewer before and during play", () => {
+    assert.equal(
+      friendlyGameShareLink({ ...base, phase: "upcoming" }),
+      "game_page",
+    );
+    assert.equal(
+      friendlyGameShareLink({ ...base, phase: "ongoing" }),
+      "game_page",
+    );
+  });
+
+  it("sends the Game page when the Game has no tracked phase", () => {
+    assert.equal(friendlyGameShareLink(base), "game_page");
+  });
+
+  it("shares nothing once the Game is cancelled or played", () => {
+    assert.equal(
+      friendlyGameShareLink({ ...base, cancelled: true, phase: "upcoming" }),
+      null,
+    );
+    assert.equal(
+      friendlyGameShareLink({ ...base, phase: "needs_results" }),
+      null,
+    );
+    assert.equal(friendlyGameShareLink({ ...base, phase: "final" }), null);
   });
 });
 

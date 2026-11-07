@@ -1,5 +1,7 @@
 import { Share } from "react-native";
 
+import type { FriendlyGameShareLink } from "@repo/domain/friendly-game-cta";
+
 import {
   gameShareMessage,
   type GameShareContext,
@@ -8,7 +10,10 @@ import { useLocale } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 
-/** The hero's share: mints the Game's invite link and opens the share sheet. */
+/**
+ * The hero's share: the Organizer mints the Game's invite link, everyone
+ * else shares the Game page, then the share sheet opens.
+ */
 export function useShareGame(gameId: string) {
   const toast = useToast();
   const locale = useLocale();
@@ -18,8 +23,21 @@ export function useShareGame(gameId: string) {
     onError: (error) => toast.show(error.message),
   });
 
-  return async (context: GameShareContext) => {
-    const link = await createLink.mutateAsync({ gameId }).catch(() => null);
+  async function gamePageLink() {
+    try {
+      const page = await utils.games.resultLink.fetch({ gameId });
+      return { shortUrl: null, inviteUrl: page.url };
+    } catch (error) {
+      toast.show(error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  }
+
+  return async (context: GameShareContext, kind: FriendlyGameShareLink) => {
+    const link =
+      kind === "invite_link"
+        ? await createLink.mutateAsync({ gameId }).catch(() => null)
+        : await gamePageLink();
     if (link) {
       await Share.share({ message: gameShareMessage(context, link, locale) });
     }
