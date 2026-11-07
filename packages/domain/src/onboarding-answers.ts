@@ -87,8 +87,10 @@ const PADEL_LEVEL_KEYS = [
   ["D", "newToPadel"],
   ["D+", "beginner"],
   ["C-", "improver"],
+  ["C", "clubPlayer"],
   ["C+", "intermediate"],
   ["B-", "advanced"],
+  ["B", "competitor"],
   ["B+", "expert"],
   ["A", "pro"],
 ] as const satisfies readonly (readonly [
