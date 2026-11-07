@@ -3,11 +3,13 @@ import type {
   FootballResultCard,
   PadelResultCard,
   ResultCard,
+  ResultCardMvp,
   ResultCardPerson,
 } from "@repo/domain/game-result-share";
 import { View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
+import { MarkCoin } from "../marks/mark-coin";
 import {
   Big,
   BibSquare,
@@ -24,8 +26,18 @@ const PAD_BOTTOM = 160;
 const RULE = 1;
 const MAX_SCORERS = 5;
 const MAX_LINEUP = 6;
+const FRAME_GAP = 64;
+// The MVP line takes a row of its own; a tighter rhythm keeps five scorers
+// or two full lineups on the canvas.
+const FRAME_GAP_WITH_MVP = 48;
 
-function StoryFrame({ children }: { children: React.ReactNode }) {
+function StoryFrame({
+  card,
+  children,
+}: {
+  card: ResultCard;
+  children: React.ReactNode;
+}) {
   return (
     <InkCanvas
       style={{
@@ -35,7 +47,7 @@ function StoryFrame({ children }: { children: React.ReactNode }) {
         paddingHorizontal: PAD_X,
         paddingTop: PAD_TOP,
         paddingBottom: PAD_BOTTOM,
-        gap: 64,
+        gap: card.mvp ? FRAME_GAP_WITH_MVP : FRAME_GAP,
       }}
     >
       {children}
@@ -57,6 +69,29 @@ function StoryHead({ typeLine }: { typeLine: string }) {
       <Label px={22} tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
         {typeLine}
       </Label>
+    </View>
+  );
+}
+
+function StoryMvp({ mvp }: { mvp: ResultCardMvp | null }) {
+  const m = useMessages().mobileMarks;
+  if (!mvp) {
+    return null;
+  }
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 24 }}>
+      <MarkCoin kind="mvp" size="sheet" />
+      <Big
+        px={40}
+        weight="semibold"
+        numberOfLines={1}
+        style={{ flexShrink: 1 }}
+      >
+        {m.mvp.title(mvp.name)}
+      </Big>
+      <Big px={30} tone="muted" numberOfLines={1} style={{ flexShrink: 2 }}>
+        {mvp.decidedBy}
+      </Big>
     </View>
   );
 }
@@ -161,7 +196,7 @@ function PadelStory({ card }: { card: PadelResultCard }) {
   const m = useMessages();
   const tag = m.game.played.tag;
   return (
-    <StoryFrame>
+    <StoryFrame card={card}>
       <StoryHead typeLine={card.typeLine} />
       <View style={{ flex: 1, justifyContent: "center", gap: 56 }}>
         <PadelSide
@@ -269,6 +304,7 @@ function PadelStory({ card }: { card: PadelResultCard }) {
           ))}
         </View>
       </View>
+      <StoryMvp mvp={card.mvp} />
       <StoryFoot card={card} />
     </StoryFrame>
   );
@@ -497,7 +533,7 @@ function FootballStory({ card }: { card: FootballResultCard }) {
   const winWord = card.draw ? tag.draw : tag.won;
   const loseWord = card.draw ? tag.draw : tag.lost;
   return (
-    <StoryFrame>
+    <StoryFrame card={card}>
       <StoryHead typeLine={card.typeLine} />
       <FootballScoreRow side={card.win} word={winWord} strong />
       <View style={{ marginTop: -28 }}>
@@ -526,6 +562,7 @@ function FootballStory({ card }: { card: FootballResultCard }) {
           />
         </View>
       )}
+      <StoryMvp mvp={card.mvp} />
       <StoryFoot card={card} />
     </StoryFrame>
   );

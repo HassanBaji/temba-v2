@@ -1,4 +1,5 @@
 import type { GameRatingScope } from "./game-rating-scope";
+import type { MarkKind } from "./marks";
 
 export type HubGameOccupant = {
   userId: string;
@@ -134,4 +135,6 @@ export type HubHistoryRow = {
   viewerSlot: 1 | 2;
   outcome: "won" | "lost" | "draw";
   rated: boolean;
+  viewerMarks: MarkKind[];
+  viewerIsMvp: boolean;
 };

@@ -110,6 +110,9 @@ export const mobileMarks = {
     coinsSpoken: (name: string, coins: string) =>
       `أوسمة ${isolate(name)}: ${coins}. اعرض من منحها`,
   },
+  history: {
+    coinsSpoken: (coins: string) => `أوسمتك: ${coins}`,
+  },
   givers: {
     title: (name: string) => `أوسمة ${isolate(name)}`,
   },
