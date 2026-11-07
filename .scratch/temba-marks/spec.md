@@ -1,6 +1,15 @@
 # Temba marks
 
-Status: draft for the product owner's review. Every open question carries a recommended call (section 5); the ones the owner should confirm are listed in section 14. Nothing in this spec is implemented.
+Status: implemented on the recommended calls (all twelve tickets, TEM-418 … TEM-429). The section 14 questions are still open for the owner; a different answer means a follow-up change.
+
+Where the code differs from this text:
+
+- The coin ADR is ADR-0056 (`docs/adr/0056-mark-coins-are-illustrated-assets.md`); ADR-0055 was taken. Migrations are `0079_temba_marks`, `0080_temba_mvp` and `0081_temba_hide_roasts`.
+- The games hub fields `viewerMarks` and `viewerIsMvp` are on `games.listMyMatchHistory`, which serves the history cards, not on `games.listMyGames` (D12, 7.2).
+- `marks.kindDetail` returns the score as numbers per Set and a `game` object for display names, not a score string and `gameName` (7.2). `marks.cabinet` reports MVPs apart in `mvpCount` and `mvpDecidedBy`, and its `total` counts Marks only.
+- `forGame` participants carry `bib` rather than `sideLabel`.
+- A not-yet coin keeps its shade in a grey rule tone so white glyph parts stay readable (ADR-0056).
+- Mark kind detail is a route on both clients; the mockup draws it as a sheet.
 
 Tickets: TEM-418 … TEM-429 in Linear (created 2026-11-07), listed in section 16 with their blocking relations.
 
