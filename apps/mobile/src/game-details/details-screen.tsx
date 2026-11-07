@@ -2,7 +2,10 @@ import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import { courtFigures } from "@repo/domain/friendly-game-court";
-import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
+import {
+  friendlyGameShareLink,
+  type FriendlyGameJoinSeat,
+} from "@repo/domain/friendly-game-cta";
 import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
@@ -484,6 +487,13 @@ export function GameDetailsScreen({
         sides: data.sides,
       }
     : null;
+  const shareLink = data
+    ? friendlyGameShareLink({
+        canMintInvite: inviteAccess?.canManage ?? false,
+        cancelled: data.cancelledAt != null,
+        phase: data.phase ?? null,
+      })
+    : null;
   const inviteEntry = inviteAccess?.canManage ? (
     <InviteEntry onPress={() => setInviteOpen(true)} />
   ) : null;
@@ -786,8 +796,8 @@ export function GameDetailsScreen({
                   place={heroPlace}
                   figures={heroFigures}
                   onShare={
-                    inviteAccess?.canManage && shareContext
-                      ? () => void shareGame(shareContext)
+                    shareLink && shareContext
+                      ? () => void shareGame(shareContext, shareLink)
                       : undefined
                   }
                   onMore={

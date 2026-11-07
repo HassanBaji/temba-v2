@@ -78,6 +78,7 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import {
   friendlyGameCanMintInvite,
+  friendlyGameShareLink,
   friendlyGameVacantSeatLine,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
@@ -560,6 +561,14 @@ export default function GameHomePage({
     void shareLinkWithFeedback(text, g.toast.inviteLinkCopied, locale);
   }
 
+  function shareGamePage() {
+    const text = utils.games.resultLink
+      .fetch({ gameId: id })
+      .then((result) => ({ text: inviteShareText(result.url) }))
+      .catch(() => null);
+    void shareLinkWithFeedback(text, g.toast.linkCopied, locale);
+  }
+
   const data = game.data;
   const editSections = gameEditSectionsFor({
     format: data?.format ?? "friendly_game",
@@ -819,16 +828,23 @@ export default function GameHomePage({
         onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
       />
     ) : null;
+  const shareLink = friendlyGameShareLink({
+    canMintInvite: canManageGameInvites,
+    cancelled: data.cancelledAt != null,
+    phase: data.phase ?? null,
+  });
   const heroActions = (
     <>
-      {canManageGameInvites ? (
+      {shareLink ? (
         <Button
           type="button"
           size="icon"
           variant="ghost"
           aria-label={g.shareGame}
           className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
-          onClick={shareInviteLink}
+          onClick={
+            shareLink === "invite_link" ? shareInviteLink : shareGamePage
+          }
         >
           <Share aria-hidden="true" className="size-5" />
         </Button>
