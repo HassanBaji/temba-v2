@@ -20,6 +20,9 @@ import * as React from "react";
 import { ACTION_MENU_INK_BOXED_TRIGGER } from "~/components/common/action-menu";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { MarksSection } from "~/components/marks/marks-section";
+import { MvpRow } from "~/components/marks/mvp-row";
+import { useGameMarks } from "~/components/marks/use-game-marks";
 
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -48,6 +51,7 @@ export function PlayedFriendlyGame({
   const locale = useLocale();
   const m = useMessages();
   const [selected, setSelected] = React.useState<PlayedRow | null>(null);
+  const marks = useGameMarks(gameId);
   const model = React.useMemo(
     () =>
       playedPadelModel(
@@ -142,6 +146,8 @@ export function PlayedFriendlyGame({
         board={
           <PlayedPadelBoard setLabels={model.setLabels} rows={model.board} />
         }
+        heroFooter={<MvpRow marks={marks} canOpenProfile={linkToPlayers} />}
+        marks={<MarksSection marks={marks} />}
         columns={model.columns}
         facts={model.facts}
         onPressPlayer={

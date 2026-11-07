@@ -21,9 +21,13 @@ export function shareResultHref(gameId: string) {
 
 export type PlayedGameViewProps = {
   gameId: string;
-  hero: Omit<PlayedHeroProps, "children" | "actions">;
+  hero: Omit<PlayedHeroProps, "children" | "actions" | "footer">;
   menu?: React.ReactNode;
   board: React.ReactNode;
+  /** The MVP row, last in the hero. */
+  heroFooter?: React.ReactNode;
+  /** The marks rows, between the columns and the facts. */
+  marks?: React.ReactNode;
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
@@ -36,6 +40,8 @@ export function PlayedGameView({
   hero,
   menu,
   board,
+  heroFooter,
+  marks,
   columns,
   unplaced,
   facts,
@@ -61,6 +67,7 @@ export function PlayedGameView({
             {menu}
           </>
         }
+        footer={heroFooter}
       >
         {board}
       </PlayedHero>
@@ -69,6 +76,7 @@ export function PlayedGameView({
         unplaced={unplaced}
         onPressPlayer={onPressPlayer}
       />
+      {marks}
       <FootballInfoRows rows={facts} />
       <Button size="lg" className="w-full" asChild>
         <Link href={href}>
