@@ -1,14 +1,9 @@
-import {
-  colors,
-  expanded,
-  radii,
-  spacing,
-  typeScale,
-} from "@repo/design-tokens";
+import { expanded, radii, spacing, typeScale } from "@repo/design-tokens";
 import { forwardRef } from "react";
 import { TextInput, View, type TextInputProps } from "react-native";
 
 import { isLayoutRtl } from "../i18n/rtl";
+import { useColors } from "../theme/theme-provider";
 import { fontFamilyFor, type TextWidth } from "./font-family";
 import { hairline } from "./hairline-width";
 import { Text } from "./text";
@@ -55,6 +50,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
     },
     ref,
   ) {
+    const colors = useColors();
     const invalid = Boolean(error);
     const disabled = editable === false;
 

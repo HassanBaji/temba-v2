@@ -50,6 +50,7 @@ export function notificationEmailDestination(
     (item.type === "game_player_joined" ||
       item.type === "game_player_left" ||
       item.type === "game_seated_by_organizer" ||
+      item.type === "game_side_changed" ||
       item.type === "game_finished") &&
     item.game
   ) {

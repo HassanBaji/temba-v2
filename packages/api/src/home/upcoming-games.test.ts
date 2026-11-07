@@ -53,7 +53,6 @@ function publicCandidate(
   return {
     ...candidate(overrides),
     isPublic: true,
-    communityArchivedAt: null,
     ...overrides,
   };
 }
@@ -64,17 +63,17 @@ describe("My Games hub list", () => {
     assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
   });
 
-  it("excludes Club Group Games when the User is not a Group member", () => {
+  it("excludes Group Games when the User is not a Group member", () => {
     const game = myGamesCandidate({
-      id: "community-only",
+      id: "other-group-only",
       groupId: OTHER_GROUP,
     });
     assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
-  it("includes Soft-archived Club Group Games the User is a member of", () => {
+  it("includes public Games on Groups the User belongs to", () => {
     const game = myGamesCandidate({
-      id: "archived-member",
+      id: "member-public",
       isPublic: true,
     });
     assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
@@ -220,15 +219,6 @@ describe("Public hub list", () => {
     });
     assert.equal(isPublicHubGame(grouped, memberGroupIds, NOW), true);
     assert.equal(isPublicHubGame(groupless, memberGroupIds, NOW), true);
-  });
-
-  it("excludes Soft-archived Club Group public Games", () => {
-    const game = publicCandidate({
-      id: "archived-public",
-      groupId: OTHER_GROUP,
-      communityArchivedAt: new Date("2026-08-15T00:00:00.000Z"),
-    });
-    assert.equal(isPublicHubGame(game, memberGroupIds, NOW), false);
   });
 
   it("excludes public Games already listed on My Games (My preferred)", () => {

@@ -35,7 +35,6 @@ export const ACTION_BOX =
  */
 export function GroupHomeChrome({
   groupId,
-  communityId,
   name,
   imageUrl,
   sport,
@@ -49,7 +48,6 @@ export function GroupHomeChrome({
   imagePending = false,
 }: {
   groupId: string;
-  communityId: string | null;
   name: string;
   imageUrl?: string | null;
   sport: string | null;
@@ -65,11 +63,8 @@ export function GroupHomeChrome({
   const m = useMessages();
   const locale = useLocale();
   const meta = groupHomeMetaLine({ sport, memberCount, createdAt, locale });
-  const back = groupHomeBackTarget(communityId, locale);
-  const backHref =
-    back.kind === "community"
-      ? `/dashboard/communities/${back.communityId}`
-      : "/dashboard/groups";
+  const back = groupHomeBackTarget(locale);
+  const backHref = "/dashboard/groups";
   const showCreateBox = tab === "games" && canCreateGame;
   const showInviteBox = tab !== "games" && canInvite;
 

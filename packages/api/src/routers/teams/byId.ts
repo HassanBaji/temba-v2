@@ -3,13 +3,9 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  communities,
-  communityMembers,
   gameTeams,
   matches,
   MatchStatusEnum,
-  teamLinkRequests,
-  TeamLinkRequestStatusEnum,
   teamMembers,
   type GroupSportEnum,
 } from "@repo/db";
@@ -24,7 +20,6 @@ import {
   teamIsSquad,
   teamRosterRule,
 } from "@repo/domain/team-roster";
-import { consult } from "#src/soft-archive";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
@@ -130,27 +125,9 @@ export async function teamById(
     ),
   });
 
-  let communityMembership = null;
-  let community = null;
-
-  if (team.communityId) {
-    community = await database.query.communities.findFirst({
-      where: eq(communities.id, team.communityId),
-    });
-    communityMembership = await database.query.communityMembers.findFirst({
-      where: and(
-        eq(communityMembers.communityId, team.communityId),
-        eq(communityMembers.userId, args.userId),
-      ),
-    });
-  }
-
   const isMember = Boolean(membership);
-  const canOpenLinkedAsCommunityMember = Boolean(
-    team.communityId && communityMembership,
-  );
 
-  if (!isMember && !canOpenLinkedAsCommunityMember) {
+  if (!isMember) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You cannot open this Team",
@@ -161,51 +138,23 @@ export async function teamById(
   const memberNames = memberRows.map((row) => row.user.name);
   const incomplete = !teamIsComplete(memberRows.length, team.sport);
   const full = teamIsFull(memberRows.length, team.sport);
-  const hostFrozen = consult({
-    archivedAt: community?.archivedAt ?? null,
-  }).freeze("host");
   const isCreator = team.createdBy === args.userId;
-  const canInvite = isMember && !full && isCreator && !hostFrozen;
+  const canInvite = isMember && !full && isCreator;
   const unusedInvite = canInvite
     ? ((await unusedLookupInvitesForTeam(database, team.id))[0] ?? null)
     : null;
 
   const canDissolve =
     isMember && (isCreator || (!incomplete && !teamIsSquad(team.sport)));
-  const viewerCanLeave =
-    isMember && !isCreator && teamIsSquad(team.sport) && !hostFrozen;
-
-  const pendingLinkRequest = isMember
-    ? await database.query.teamLinkRequests.findFirst({
-        where: and(
-          eq(teamLinkRequests.teamId, team.id),
-          eq(teamLinkRequests.status, TeamLinkRequestStatusEnum.PENDING),
-        ),
-        with: {
-          community: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      })
-    : null;
+  const viewerCanLeave = isMember && !isCreator && teamIsSquad(team.sport);
 
   const record = await loadTeamRecord(database, team.id);
-
-  const canRequestLink =
-    isMember && !incomplete && !team.communityId && !pendingLinkRequest;
-  const canUnlink = isMember && Boolean(team.communityId);
 
   return {
     id: team.id,
     name: team.name,
     displayName: teamDisplayName(team.name, memberNames),
     sport: team.sport as GroupSportEnum,
-    communityId: team.communityId,
-    isLoose: !team.communityId,
-    linkState: team.communityId ? ("linked" as const) : ("unattached" as const),
     gamesPlayed: record.gamesPlayed,
     wins: record.wins,
     losses: record.losses,
@@ -219,13 +168,6 @@ export async function teamById(
       complete: !incomplete,
       full,
     },
-    community: community
-      ? {
-          id: community.id,
-          name: community.name,
-          archivedAt: community.archivedAt,
-        }
-      : null,
     createdBy: team.createdBy,
     createdAt: team.createdAt,
     membership: membership ? { id: membership.id } : null,
@@ -240,15 +182,6 @@ export async function teamById(
     canInvite,
     canDissolve,
     viewerCanLeave,
-    canRequestLink,
-    canUnlink,
-    pendingLinkRequest: pendingLinkRequest
-      ? {
-          id: pendingLinkRequest.id,
-          community: pendingLinkRequest.community,
-          createdAt: pendingLinkRequest.createdAt,
-        }
-      : null,
     unusedInvite:
       canInvite && unusedInvite
         ? {

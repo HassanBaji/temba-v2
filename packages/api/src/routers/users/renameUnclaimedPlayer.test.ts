@@ -3,14 +3,9 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   gameWaitlist,
   groupMembers,
   groups,
-  GroupSportEnum,
   user,
   venues,
 } from "@repo/db/schema";
@@ -27,7 +22,6 @@ import { addPlayerByPhone as addPlayerToGame } from "#src/routers/games/addPlaye
 import { gameById } from "#src/routers/games/byId";
 import { addPlayerByPhone as addPlayerToGroup } from "#src/routers/groups/addPlayerByPhone";
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPrivate } from "#src/routers/groups/createClubPrivate";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import {
   ONLY_UNCLAIMED_RENAMABLE_MESSAGE,
@@ -251,55 +245,47 @@ describe("users.renameUnclaimedPlayer", () => {
     }
   });
 
-  it("lets a Community Owner of a Club Group fix the name, and nobody while the Community is Soft-archived", async () => {
+  it("lets the creator of a Club Group fix the name, also while the linked Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const owner = await insertUser(db, { name: "Owner" });
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Padel Club", type: "private", createdBy: owner })
-        .returning({ id: communities.id });
-      await db.insert(communitySports).values({
-        communityId: community!.id,
-        sport: GroupSportEnum.PADEL,
-      });
-      await db.insert(communityMembers).values({
-        communityId: community!.id,
-        userId: owner,
-        role: CommunityRoleEnum.OWNER,
-      });
-      const group = await createClubPrivate(db, {
-        communityId: community!.id,
+      const creator = await insertUser(db, { name: "Creator" });
+      const [venue] = await db
+        .insert(venues)
+        .values({ name: "Padel Club", city: "Manama", country: "BH" })
+        .returning({ id: venues.id });
+      const group = await createLoosePrivate(db, {
         name: "Club squad",
         sport: "padel",
-        userId: owner,
+        userId: creator,
       });
+      await db
+        .update(groups)
+        .set({ venueId: venue!.id })
+        .where(eq(groups.id, group.id));
       const added = await addPlayerToGroup(db, {
         groupId: group.id,
-        approverUserId: owner,
+        approverUserId: creator,
         ...bahrain("36124408"),
         name: "Ally",
       });
 
       await renameUnclaimedPlayer(db, {
-        callerUserId: owner,
+        callerUserId: creator,
         userId: added.userId,
         name: "Ali Hassan",
       });
       expect(await nameOf(db, added.userId)).toBe("Ali Hassan");
 
       await db
-        .update(communities)
+        .update(venues)
         .set({ archivedAt: new Date() })
-        .where(eq(communities.id, community!.id));
-      const refused = await rejection(
-        renameUnclaimedPlayer(db, {
-          callerUserId: owner,
-          userId: added.userId,
-          name: "Ali",
-        }),
-      );
-      expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+        .where(eq(venues.id, venue!.id));
+      await renameUnclaimedPlayer(db, {
+        callerUserId: creator,
+        userId: added.userId,
+        name: "Ali",
+      });
+      expect(await nameOf(db, added.userId)).toBe("Ali");
     } finally {
       await close();
     }

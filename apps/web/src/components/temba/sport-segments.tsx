@@ -32,7 +32,7 @@ export function SportSegments({
             className={cn(
               "focus-visible:ring-ring/50 flex min-h-11 flex-1 items-center justify-center gap-2 outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-inset",
               selected
-                ? "bg-ink text-paper font-semibold"
+                ? "bg-control text-on-control font-semibold"
                 : "bg-paper text-muted-foreground hover:text-ink",
             )}
           >

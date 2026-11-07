@@ -19,7 +19,7 @@ const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 export function HeroCard({ children }: { children: ReactNode }) {
   return (
-    <section className="bg-ink text-paper rounded-card flex flex-col gap-5 overflow-hidden p-5">
+    <section className="surface-focus rounded-card flex flex-col gap-5 overflow-hidden p-5">
       {children}
     </section>
   );
@@ -80,7 +80,7 @@ export function HeroRing({
           fill="none"
           strokeWidth="8"
           strokeLinecap="round"
-          className="stroke-paper motion-reduce:transition-none"
+          className="stroke-on-focus motion-reduce:transition-none"
           strokeDasharray={`${drawn ? filled : 0} ${RING_LENGTH}`}
           style={{
             transition: "stroke-dasharray 900ms cubic-bezier(0.2, 0.7, 0.2, 1)",
@@ -154,11 +154,11 @@ function RatingCurveChart({
               strokeLinejoin="round"
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
-              className="stroke-paper"
+              className="stroke-on-focus"
             />
           </svg>
           <span
-            className="bg-paper absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="bg-on-focus absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               left: `${(curve.dot.x / CURVE_WIDTH) * 100}%`,
               top: `${(curve.dot.y / CURVE_HEIGHT) * 100}%`,
@@ -229,7 +229,7 @@ export function LevelHeroSkeleton() {
   return (
     <div
       aria-busy="true"
-      className={cn("bg-ink rounded-card flex flex-col gap-5 p-5")}
+      className={cn("surface-focus rounded-card flex flex-col gap-5 p-5")}
     >
       <Skeleton className="bg-raised h-3 w-28" />
       <div className="flex items-center gap-5">

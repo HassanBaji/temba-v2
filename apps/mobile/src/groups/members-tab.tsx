@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
 import {
   groupMemberOrganizerActionHint,
@@ -32,6 +32,7 @@ import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { SearchField } from "../primitives/search-field";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import {
   memberIsRemovable,
   memberList,
@@ -52,6 +53,7 @@ const ROW_PADDING_END = 10;
 
 function YouMark() {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       style={{
@@ -82,6 +84,7 @@ function MemberRow({
   onManage?: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const content = (
     <>
       <Avatar name={row.name} uri={row.imageUri} />
@@ -179,6 +182,7 @@ function TableHeader({
   countLine: string;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       style={{
@@ -222,6 +226,7 @@ function PendingInvitesCard({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const title = groupPendingInvitesTitle(names.length, locale);
   return (
     <Pressable
@@ -316,6 +321,7 @@ export function MembersTab({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);

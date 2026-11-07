@@ -73,8 +73,6 @@ export const mobileTournament = {
   },
   content: {
     gameCancelled: "أُلغيت هذه المباراة",
-    softArchivedTitle: "مجتمع مجموعة النادي هذه مؤرشف",
-    softArchivedLine: "يبقى التسجيل وقائمة الانتظار والدعوات مغلقة.",
   },
   model: {
     knockoutHeading: (roundName: string, code: string) =>

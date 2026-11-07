@@ -83,19 +83,19 @@ export function createCreateGameFixtures(
       {
         id: "group-friends",
         name: "Friday Padel",
-        communityName: null,
+        venueName: null,
         verified: true,
       },
       {
         id: "group-club",
         name: null,
-        communityName: "Seef Padel Club",
+        venueName: "Seef Padel Club",
         verified: true,
       },
       {
         id: "group-juniors",
         name: "Weekend Juniors",
-        communityName: null,
+        venueName: null,
         verified: true,
       },
     ],

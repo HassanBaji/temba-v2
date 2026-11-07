@@ -154,7 +154,10 @@ function SideRoster({
   side: HubListSide;
   joinPosition: "left" | "right" | null;
   actionPending: boolean;
-  onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
+  onJoinSeat?: (
+    sideIndex: number,
+    position: "left" | "right" | "either",
+  ) => void;
 }) {
   if (joinPosition == null || onJoinSeat == null) {
     return (
@@ -215,7 +218,10 @@ function FriendlyRoster({
   sides: HubListSide[];
   joinable: boolean;
   actionPending: boolean;
-  onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
+  onJoinSeat?: (
+    sideIndex: number,
+    position: "left" | "right" | "either",
+  ) => void;
 }) {
   const m = useMessages();
   return (
@@ -346,7 +352,10 @@ export function GameSummaryCard({
   registrationMode?: string | null;
   canRegister?: boolean;
   isOrganizer?: boolean;
-  onJoinSeat?: (sideIndex: number, position: "left" | "right") => void;
+  onJoinSeat?: (
+    sideIndex: number,
+    position: "left" | "right" | "either",
+  ) => void;
   onJoinWaitlist?: () => void;
   onRegister?: () => void;
   roundLabel?: string | null;

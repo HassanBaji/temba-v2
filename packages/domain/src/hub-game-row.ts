@@ -5,6 +5,8 @@ export type HubGameOccupant = {
   name: string;
   image: string | null;
   isViewer: boolean;
+  /** Joined without picking a Position. */
+  eitherSide?: boolean;
 };
 
 export type HubGameSide = {
@@ -69,7 +71,6 @@ export type HubGameRow = {
   registeredTeamCount: number;
   teamsAllowed: number | null;
   registrationStatus: "open" | "full" | "closed" | "cancelled";
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;

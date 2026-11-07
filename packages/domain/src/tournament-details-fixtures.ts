@@ -394,7 +394,6 @@ function baseTournament(args: {
     createdAt: args.now,
     isOrganizer: args.isOrganizer,
     viewerUserId: args.viewerUserId,
-    joinFrozen: false,
     isRegistered: seated || args.isOrganizer,
     isSeated: seated,
     isWaitlisted: false,

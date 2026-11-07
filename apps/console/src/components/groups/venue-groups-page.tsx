@@ -39,12 +39,12 @@ export function VenueGroupsPage() {
     id: string;
     name: string | null;
   } | null>(null);
-  const data = api.venues.listCommunityGroups.useQuery({ venueId: venue.id });
+  const data = api.venues.listLinkedGroups.useQuery({ venueId: venue.id });
 
   const cancel = api.venues.cancelGroupLinkRequest.useMutation({
     onSuccess: async () => {
       toast.success("Request cancelled");
-      await utils.venues.listCommunityGroups.invalidate({ venueId: venue.id });
+      await utils.venues.listLinkedGroups.invalidate({ venueId: venue.id });
       await utils.venues.searchLinkableGroups.invalidate();
     },
     onError: (error) => {
@@ -56,7 +56,7 @@ export function VenueGroupsPage() {
   const unlink = api.venues.unlinkGroup.useMutation({
     onSuccess: async () => {
       toast.success(m.venueUnlinkedToast);
-      await utils.venues.listCommunityGroups.invalidate({ venueId: venue.id });
+      await utils.venues.listLinkedGroups.invalidate({ venueId: venue.id });
       await utils.venues.searchLinkableGroups.invalidate();
     },
     onError: () => {
@@ -74,7 +74,7 @@ export function VenueGroupsPage() {
     <ConsolePage>
       <PageHeader
         title="Groups"
-        description="Link a Group to bring its players into this Venue's Community. Linked Groups can host Rated Games and play at this Venue."
+        description="Link a Group to this Venue. Linked Groups are Club Groups: they host Rated Games and play at this Venue."
         action={
           <Button
             type="button"
@@ -104,10 +104,10 @@ export function VenueGroupsPage() {
         <div className="space-y-[22px]">
           <ConsoleCard>
             <ConsoleCardHeader
-              title={data.data.community?.name ?? "Venue Community"}
+              title="Linked Groups"
               action={
-                data.data.community?.archivedAt ? (
-                  <Badge variant="secondary">Soft-archived</Badge>
+                archived ? (
+                  <Badge variant="secondary">Venue Soft-archived</Badge>
                 ) : undefined
               }
             />
@@ -152,14 +152,8 @@ export function VenueGroupsPage() {
               <EmptyState
                 icon={Users}
                 headingLevel={3}
-                title={
-                  data.data.community ? "No Groups yet" : "No Community yet"
-                }
-                description={
-                  data.data.community
-                    ? "Groups that accept your request appear here."
-                    : "It is created when the first Group accepts."
-                }
+                title="No Groups yet"
+                description="Groups that accept your request appear here."
               />
             )}
           </ConsoleCard>

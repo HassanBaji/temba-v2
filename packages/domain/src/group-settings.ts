@@ -19,15 +19,12 @@ export function groupSportSublabel(sport: Sport, locale: Locale) {
 
 export type GroupVisibility = "public" | "private";
 
-export function groupVisibilityCopy(context: "loose" | "club", locale: Locale) {
+export function groupVisibilityCopy(locale: Locale) {
   const m = messagesFor(locale).group.settings.visibility;
   return {
     public: {
       title: m.public.title,
-      description:
-        context === "club"
-          ? m.public.descriptionClub
-          : m.public.descriptionLoose,
+      description: m.public.description,
     },
     private: {
       title: m.private.title,
@@ -101,7 +98,7 @@ export function groupMenuRoleLine(input: {
 /**
  * Why Leave is disabled in the More menu, or `null` when it is not: the
  * owner of a Loose Group hands it on first. A Club Group's creator may leave;
- * its Community's Owner and Admin still run it.
+ * the linked Venue keeps the Group on its books.
  */
 export function groupLeaveBlockedHint(input: {
   isOwner: boolean;

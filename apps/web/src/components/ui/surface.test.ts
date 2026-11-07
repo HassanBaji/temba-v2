@@ -11,7 +11,7 @@ function classes(markup: string) {
 }
 
 describe("Surface", () => {
-  it("keeps the classes the hand-written ink surfaces carried", () => {
+  it("renders the ink tone as the focused surface", () => {
     const markup = renderToStaticMarkup(
       createElement(Surface, {
         as: "article",
@@ -22,13 +22,7 @@ describe("Surface", () => {
     );
     expect(markup.startsWith("<article")).toBe(true);
     expect(classes(markup)).toEqual(
-      new Set([
-        "surface-ink",
-        "bg-ink",
-        "text-paper",
-        "rounded-xl",
-        "p-[22px]",
-      ]),
+      new Set(["surface-focus", "rounded-xl", "p-[22px]"]),
     );
   });
 
@@ -42,7 +36,7 @@ describe("Surface", () => {
   it("defaults to a paper div", () => {
     const markup = renderToStaticMarkup(createElement(Surface));
     expect(markup.startsWith("<div")).toBe(true);
-    expect(classes(markup).has("surface-ink")).toBe(false);
+    expect(classes(markup).has("surface-focus")).toBe(false);
   });
 });
 

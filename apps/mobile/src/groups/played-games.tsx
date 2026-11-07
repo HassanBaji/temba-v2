@@ -1,4 +1,4 @@
-import { bibColors, colors, radii, spacing } from "@repo/design-tokens";
+import { bibColors, radii, spacing } from "@repo/design-tokens";
 import type { GroupPlayedGameData } from "@repo/domain/group-data";
 import {
   groupPlayedFilterChips,
@@ -19,6 +19,7 @@ import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const CHIP_HEIGHT = 40;
 const CARD_PADDING_X = 16;
@@ -50,6 +51,7 @@ function FilterChip({
   chip: GroupPlayedFilterChip;
   onPress: () => void;
 }) {
+  const colors = useColors();
   const { selected } = chip;
   return (
     <Pressable
@@ -66,7 +68,7 @@ function FilterChip({
         borderRadius: radii.md,
         borderWidth: hairline,
         borderColor: selected ? colors.ink : colors.rule,
-        backgroundColor: selected ? colors.ink : colors.paper,
+        backgroundColor: selected ? colors.control : colors.paper,
         opacity: pressed ? 0.85 : 1,
       })}
     >
@@ -82,7 +84,7 @@ function FilterChip({
       ) : null}
       <Text
         weight={selected ? "semibold" : "regular"}
-        style={selected ? { color: colors.paper } : undefined}
+        style={selected ? { color: colors.onControl } : undefined}
       >
         {chip.label}
       </Text>
@@ -106,6 +108,7 @@ function SideRow({
   isFootball: boolean;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const weakCell = isFootball ? colors.muted : colors.dim;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -165,6 +168,7 @@ function PlayedCard({
   onEnterScore: (card: GroupPlayedCard) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const cancelled = card.status === "cancelled";
   return (
     <Pressable
@@ -271,6 +275,7 @@ function PlayedCard({
 export function PlayedGames(props: PlayedGamesProps) {
   const locale = useLocale();
   const m = useMessages();
+  const colors = useColors();
   const copy = m.mobileGroup.games;
   const played = m.group.played;
   const record = groupPlayedRecordLine(props.counts, props.sport, locale);

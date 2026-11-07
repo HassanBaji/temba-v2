@@ -13,7 +13,6 @@ type AssertTrue<T extends true> = T;
 
 type ExpectedTopLevel =
   | "bookings"
-  | "communities"
   | "games"
   | "groups"
   | "notifications"
@@ -44,38 +43,6 @@ type ExpectedBookings =
   | "settlePayment"
   | "recordRefund";
 
-type ExpectedCommunities =
-  | "create"
-  | "byId"
-  | "listMembers"
-  | "setMemberRole"
-  | "softArchive"
-  | "unarchive"
-  | "leave"
-  | "addSport"
-  | "removeSport"
-  | "listTeamLinkRequests"
-  | "approveTeamLink"
-  | "rejectTeamLink"
-  | "mine"
-  | "requestJoin"
-  | "listJoinRequests"
-  | "approveJoinRequest"
-  | "rejectJoinRequest"
-  | "searchLookupUsers"
-  | "sendLookupInvite"
-  | "listLookupInvites"
-  | "revokeLookupInvite"
-  | "pendingLookupInvites"
-  | "acceptLookupInvite"
-  | "getInviteLink"
-  | "createInviteLink"
-  | "previewInviteLink"
-  | "acceptInviteLink"
-  | "searchLiveVenues"
-  | "requestVenueLink"
-  | "unlinkVenue";
-
 type ExpectedGames =
   | "hello"
   | "listMyGames"
@@ -93,6 +60,8 @@ type ExpectedGames =
   | "register"
   | "registerSeat"
   | "moveSeat"
+  | "setSeatSide"
+  | "setTeamSides"
   | "searchPartnerUsers"
   | "listPartnerSuggestions"
   | "registerWithPartner"
@@ -148,16 +117,13 @@ type ExpectedGames =
   | "getSecretMessage";
 
 type ExpectedGroups =
-  | "createClubPublic"
-  | "createClubPrivate"
   | "createLoosePublic"
   | "createLoosePrivate"
   | "mineLoose"
   | "mine"
   | "listPublic"
   | "byId"
-  | "joinClubPublic"
-  | "joinLoosePublic"
+  | "joinPublic"
   | "requestJoin"
   | "listJoinRequests"
   | "approveJoinRequest"
@@ -227,8 +193,6 @@ type ExpectedTeams =
   | "createInviteLink"
   | "previewInviteLink"
   | "acceptInviteLink"
-  | "requestLink"
-  | "unlink"
   | "dissolve"
   | "leave";
 
@@ -269,14 +233,11 @@ type ExpectedVenues =
   | "setDisplayPhotos"
   | "softArchive"
   | "unarchive"
-  | "listPendingLinkRequests"
-  | "listCommunityGroups"
+  | "listLinkedGroups"
   | "searchLinkableGroups"
   | "sendGroupLinkRequest"
   | "cancelGroupLinkRequest"
   | "unlinkGroup"
-  | "approveLinkRequest"
-  | "rejectLinkRequest"
   | "listManaged"
   | "managedById"
   | "addManager"
@@ -293,9 +254,6 @@ type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
 type _Bookings = AssertTrue<
   Equal<keyof RouterInputs["bookings"], ExpectedBookings>
 >;
-type _Communities = AssertTrue<
-  Equal<keyof RouterInputs["communities"], ExpectedCommunities>
->;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
 type _Notifications = AssertTrue<
@@ -311,7 +269,6 @@ type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
 export type AppRouterShapeChecks = [
   _Bookings,
   _TopLevel,
-  _Communities,
   _Games,
   _Groups,
   _Notifications,

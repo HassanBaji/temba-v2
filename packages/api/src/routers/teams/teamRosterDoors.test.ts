@@ -1,13 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import {
-  communities,
-  communitySports,
-  teamMemberInvites,
-  teamMembers,
-  user,
-} from "@repo/db/schema";
+import { teamMemberInvites, teamMembers, user } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { acceptInAppInvite } from "./acceptInAppInvite";
@@ -18,7 +12,6 @@ import { dissolve } from "./dissolve";
 import { inviteInApp } from "./inviteInApp";
 import { leave } from "./leave";
 import { mine } from "./mine";
-import { requestLink } from "./requestLink";
 import { teamById } from "./byId";
 
 type Db = Parameters<typeof createTeam>[0];
@@ -283,29 +276,12 @@ describe("padel Team invites", () => {
 });
 
 describe("teams.leave", () => {
-  it("lets a football member leave and keeps a linked Team linked below complete", async () => {
+  it("lets a football member leave below complete", async () => {
     await withDb(async (database, db) => {
       const ids = await makeUsers(database, 5);
       const [creator, ...others] = ids as [string, ...string[]];
       const teamId = await makeTeam(database, { id: creator }, "football");
       await addMembers(database, teamId, others);
-      const [community] = await database
-        .insert(communities)
-        .values({ name: "Club", createdBy: creator })
-        .returning({ id: communities.id });
-      await database
-        .insert(communitySports)
-        .values({ communityId: community!.id, sport: "football" });
-      await requestLink(db, {
-        teamId,
-        communityId: community!.id,
-        userId: creator,
-      });
-      const { teams } = await import("@repo/db/schema");
-      await database
-        .update(teams)
-        .set({ communityId: community!.id })
-        .where(eq(teams.id, teamId));
 
       const before = await teamById(db, { teamId, userId: others[0]! });
       expect(before.viewerCanLeave).toBe(true);
@@ -313,7 +289,6 @@ describe("teams.leave", () => {
 
       const after = await teamById(db, { teamId, userId: creator });
       expect(after.roster).toMatchObject({ count: 4, complete: false });
-      expect(after.communityId).toBe(community!.id);
     });
   });
 
@@ -351,30 +326,6 @@ describe("teams.leave", () => {
       );
     });
   });
-
-  it("refuses while the linked Community is Soft-archived", async () => {
-    await withDb(async (database, db) => {
-      const [creator, a] = (await makeUsers(database, 2)) as [string, string];
-      const teamId = await makeTeam(database, { id: creator }, "football");
-      await addMembers(database, teamId, [a]);
-      const [community] = await database
-        .insert(communities)
-        .values({ name: "Club", createdBy: creator, archivedAt: new Date() })
-        .returning({ id: communities.id });
-      const { teams } = await import("@repo/db/schema");
-      await database
-        .update(teams)
-        .set({ communityId: community!.id })
-        .where(eq(teams.id, teamId));
-
-      await expect(leave(db, { teamId, userId: a })).rejects.toThrow(
-        "archived Community",
-      );
-      expect((await teamById(db, { teamId, userId: a })).viewerCanLeave).toBe(
-        false,
-      );
-    });
-  });
 });
 
 describe("teams.dissolve on a football Team", () => {
@@ -388,44 +339,6 @@ describe("teams.dissolve on a football Team", () => {
         dissolve(db, { teamId, userId: others[0]! }),
       ).rejects.toThrow("Only the creator can dissolve this Team");
       await dissolve(db, { teamId, userId: creator });
-    });
-  });
-});
-
-describe("teams.requestLink", () => {
-  async function setup(database: TestDatabase, members: number) {
-    const ids = await makeUsers(database, members);
-    const [creator, ...others] = ids as [string, ...string[]];
-    const teamId = await makeTeam(database, { id: creator }, "football");
-    await addMembers(database, teamId, others);
-    const [community] = await database
-      .insert(communities)
-      .values({ name: "Club", createdBy: creator })
-      .returning({ id: communities.id });
-    await database
-      .insert(communitySports)
-      .values({ communityId: community!.id, sport: "football" });
-    return { creator, teamId, communityId: community!.id };
-  }
-
-  it("is refused below five members", async () => {
-    await withDb(async (database, db) => {
-      const { creator, teamId, communityId } = await setup(database, 4);
-      await expect(
-        requestLink(db, { teamId, communityId, userId: creator }),
-      ).rejects.toThrow("Incomplete Teams cannot request a Community link");
-    });
-  });
-
-  it("is allowed at five members", async () => {
-    await withDb(async (database, db) => {
-      const { creator, teamId, communityId } = await setup(database, 5);
-      const created = await requestLink(db, {
-        teamId,
-        communityId,
-        userId: creator,
-      });
-      expect(created.status).toBe("pending");
     });
   });
 });

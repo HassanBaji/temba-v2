@@ -537,15 +537,29 @@
     {
       "idx": 76,
       "version": "7",
-      "when": 1794000118554,
-      "tag": "0076_notification_email",
+      "when": 1793996214869,
+      "tag": "0076_game_team_player_either_side",
       "breakpoints": true
     },
     {
       "idx": 77,
       "version": "7",
-      "when": 1794005654318,
-      "tag": "0077_user_locale",
+      "when": 1793999356789,
+      "tag": "0077_game_side_set_by",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794003903083,
+      "tag": "0078_retire_community_venue_linked_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1794034375535,
+      "tag": "0079_notification_email_and_user_locale",
       "breakpoints": true
     }
   ]

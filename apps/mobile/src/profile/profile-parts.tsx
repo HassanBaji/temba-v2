@@ -6,6 +6,7 @@ import { hairline } from "../primitives/hairline-width";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 /** A section title with a muted note at the far end: "Partners  most played". */
 export function SectionHead({ title, meta }: { title: string; meta?: string }) {
@@ -54,8 +55,9 @@ export function Chip({
   accessibilityLabel?: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
   const tone = selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const palette = tonePalette(tone, colors);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -73,9 +75,12 @@ export function Chip({
           borderRadius: radii.lg,
           borderWidth: hairline,
           borderStyle: dashed ? "dashed" : "solid",
-          borderColor: selected ? palette.background : palette.rule,
-          backgroundColor:
-            pressed && !selected ? palette.wash : palette.background,
+          borderColor: selected ? colors.ink : palette.rule,
+          backgroundColor: selected
+            ? colors.control
+            : pressed
+              ? palette.wash
+              : palette.background,
         })}
       >
         <Text
@@ -105,8 +110,9 @@ export function GroupTile({
   hatched: boolean;
   size?: number;
 }) {
+  const colors = useColors();
   const tone = hatched ? "paper" : "ink";
-  const palette = tonePalette(tone);
+  const palette = tonePalette(tone, colors);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <View
@@ -119,7 +125,7 @@ export function GroupTile({
           overflow: "hidden",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: palette.background,
+          backgroundColor: hatched ? palette.background : colors.control,
           borderWidth: hatched ? hairline : 0,
           borderColor: palette.rule,
         }}
@@ -141,7 +147,7 @@ export function DifferenceBox({
   label: string;
   above: boolean;
 }) {
-  const palette = tonePalette("paper");
+  const palette = tonePalette("paper", useColors());
   return (
     <View
       style={{
@@ -160,7 +166,7 @@ export function DifferenceBox({
 
 /** A thin win-share bar under a partner's name. */
 export function ShareBar({ percent }: { percent: number }) {
-  const palette = tonePalette("paper");
+  const palette = tonePalette("paper", useColors());
   return (
     <View
       style={{

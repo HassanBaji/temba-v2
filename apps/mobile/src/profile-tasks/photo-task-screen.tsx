@@ -1,5 +1,4 @@
 import { useUser } from "@clerk/expo";
-import { colors } from "@repo/design-tokens";
 import { Camera, Images } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -18,6 +17,7 @@ import {
   type PhotoSource,
   type PickedPhoto,
 } from "../profile/use-profile-photo";
+import { useColors } from "../theme/theme-provider";
 import { backToChecklist } from "./task-navigation";
 
 const CIRCLE = 168;
@@ -25,6 +25,7 @@ const ICON = 18;
 
 export function PhotoTaskScreen() {
   const m = useMessages();
+  const colors = useColors();
   const t = m.mobileHome.photoTask;
   const { user } = useUser();
   const { pickPhoto, savePhoto, pending } = useProfilePhoto();

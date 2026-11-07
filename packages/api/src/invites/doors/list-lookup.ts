@@ -1,7 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
-  communityMemberInvites,
   gameMemberInvites,
   groupMemberInvites,
   teamMemberInvites,
@@ -17,18 +16,6 @@ export async function listLookup(
   database: InviteDb,
   host: InviteHost,
 ): Promise<LookupListItem[]> {
-  if (host.kind === "community") {
-    const rows = await database.query.communityMemberInvites.findMany({
-      where: and(
-        eq(communityMemberInvites.communityId, host.id),
-        isNull(communityMemberInvites.acceptedAt),
-        isNull(communityMemberInvites.revokedAt),
-      ),
-      with: { user: true },
-      orderBy: (table, { desc }) => [desc(table.createdAt)],
-    });
-    return rows.map((row) => mapLookupRow(row));
-  }
   if (host.kind === "group") {
     const rows = await database.query.groupMemberInvites.findMany({
       where: and(

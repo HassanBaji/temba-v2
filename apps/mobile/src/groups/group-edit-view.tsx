@@ -1,5 +1,4 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
-import type { GroupCreateContext } from "@repo/domain/group-create";
+import { sizes, spacing } from "@repo/design-tokens";
 import {
   groupJoiningToggleHelp,
   type GroupEditFields,
@@ -15,6 +14,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import {
   FORM_GAP,
   FormBlock,
@@ -27,7 +27,6 @@ import {
 } from "./group-form-parts";
 
 export type GroupEditViewProps = {
-  context: GroupCreateContext;
   subtitle: string;
   draft: GroupEditFields;
   onChange: (next: GroupEditFields) => void;
@@ -65,6 +64,7 @@ function InviteLinkCard({
   link: NonNullable<GroupEditViewProps["inviteLink"]>;
 }) {
   const m = useMessages();
+  const colors = useColors();
   const edit = m.group.settings.edit;
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
@@ -235,7 +235,6 @@ export function GroupEditView(props: GroupEditViewProps) {
 
         <FormBlock label={edit.visibilityLabel}>
           <VisibilityCards
-            context={props.context}
             value={draft.visibility}
             onSelect={(visibility) => set({ visibility })}
             disabled={disabled}

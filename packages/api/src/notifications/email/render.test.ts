@@ -125,6 +125,13 @@ describe("renderNotificationEmail", () => {
     expect(seated.html).not.toContain('<p style="margin:0 0 8px;"></p>');
   });
 
+  it("sends a changed side to the Game page", () => {
+    const email = render(
+      item({ type: "game_side_changed", audience: "player", game: GAME }),
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
   it("emails a set Level with its reason and a button to the Group", () => {
     const email = render(
       item({

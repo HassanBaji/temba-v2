@@ -2,8 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
   games,
   groupJoinRequests,
   groupMemberInvites,
@@ -16,11 +14,12 @@ import {
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { loadGameCreateVenueContext } from "#src/games/helpers/load-game-create-venue-context";
 import { createGame } from "#src/routers/games/create";
 import { groupById } from "#src/routers/groups/byId";
 import { acceptLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { unlinkFromVenue } from "#src/routers/groups/unlinkFromVenue";
-import { listCommunityGroups } from "#src/routers/venues/listCommunityGroups";
+import { listLinkedGroups } from "#src/routers/venues/listLinkedGroups";
 import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 import { unlinkGroup } from "#src/routers/venues/unlinkGroup";
 
@@ -87,17 +86,23 @@ async function linkGroup(
   });
 }
 
-describe("unlinking a Group from its Venue Community", () => {
+async function readGroup(database: TestDatabase, groupId: string) {
+  const row = await database.query.groups.findFirst({
+    where: eq(groups.id, groupId),
+  });
+  if (!row) {
+    throw new Error("Group missing");
+  }
+  return row;
+}
+
+describe("unlinking a Club Group from its Venue", () => {
   it("lets the Venue manager unlink and keeps memberships, Games and pending requests", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const s = await setup(db);
       await linkGroup(db, s);
-      const linked = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
-      });
-      const communityId = linked?.communityId;
-      expect(communityId).toBeTruthy();
+      expect((await readGroup(db, s.group.id)).venueId).toBe(s.venue.id);
 
       const created = await createGame(db, {
         createdBy: s.creator.id,
@@ -130,33 +135,29 @@ describe("unlinking a Group from its Venue Community", () => {
         groupId: s.group.id,
         actor: actor(s.manager.id),
       });
-      expect(result).toMatchObject({ ok: true, groupId: s.group.id });
-
-      const after = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
+      expect(result).toEqual({
+        ok: true,
+        groupId: s.group.id,
+        venueId: s.venue.id,
       });
+
+      const after = await readGroup(db, s.group.id);
       expect(after).toMatchObject({
-        communityId: null,
+        venueId: null,
         type: "public",
         createdBy: s.creator.id,
       });
-      expect(await groupIsVerified(db, after!)).toBe(false);
+      expect(groupIsVerified(after)).toBe(false);
+      expect(await loadGameCreateVenueContext(db, s.group.id)).toEqual({
+        locked: false,
+        groupKind: "loose",
+        linkedVenueId: null,
+      });
 
       const members = await db.query.groupMembers.findMany({
         where: eq(groupMembers.groupId, s.group.id),
       });
       expect(members).toHaveLength(2);
-      const communityUsers = await db.query.communityMembers.findMany({
-        where: eq(communityMembers.communityId, communityId!),
-      });
-      expect(communityUsers.map((row) => row.userId)).toEqual(
-        expect.arrayContaining([s.creator.id, s.member.id]),
-      );
-      expect(
-        await db.query.communities.findFirst({
-          where: eq(communities.id, communityId!),
-        }),
-      ).toBeTruthy();
 
       const gameAfter = await db.query.games.findFirst({
         where: eq(games.id, created.id),
@@ -165,6 +166,7 @@ describe("unlinking a Group from its Venue Community", () => {
         rated: gameBefore?.rated,
         isPublic: gameBefore?.isPublic,
         venueId: s.venue.id,
+        cancelledAt: null,
       });
 
       const stillPending = await db.query.groupJoinRequests.findFirst({
@@ -178,6 +180,12 @@ describe("unlinking a Group from its Venue Community", () => {
         ),
       });
       expect(invite?.revokedAt).toBeNull();
+
+      const listed = await listLinkedGroups(db, {
+        venueId: s.venue.id,
+        actor: actor(s.manager.id),
+      });
+      expect(listed.groups).toEqual([]);
     } finally {
       await close();
     }
@@ -193,16 +201,19 @@ describe("unlinking a Group from its Venue Community", () => {
         .set({ verifiedAt: new Date(), verifiedBy: s.manager.id })
         .where(eq(groups.id, s.group.id));
 
-      await unlinkFromVenue(db, {
+      const result = await unlinkFromVenue(db, {
         groupId: s.group.id,
         userId: s.creator.id,
       });
-
-      const after = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
+      expect(result).toEqual({
+        ok: true,
+        groupId: s.group.id,
+        venueId: s.venue.id,
       });
-      expect(after?.communityId).toBeNull();
-      expect(await groupIsVerified(db, after!)).toBe(true);
+
+      const after = await readGroup(db, s.group.id);
+      expect(after.venueId).toBeNull();
+      expect(groupIsVerified(after)).toBe(true);
     } finally {
       await close();
     }
@@ -213,9 +224,24 @@ describe("unlinking a Group from its Venue Community", () => {
     try {
       const s = await setup(db);
       await linkGroup(db, s);
+      await db
+        .update(groupMembers)
+        .set({ role: "organizer" })
+        .where(
+          and(
+            eq(groupMembers.groupId, s.group.id),
+            eq(groupMembers.userId, s.member.id),
+          ),
+        );
 
       await expect(
         unlinkFromVenue(db, { groupId: s.group.id, userId: s.member.id }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: "Only the Group creator can unlink the Group from its Venue",
+      });
+      await expect(
+        unlinkFromVenue(db, { groupId: s.group.id, userId: s.manager.id }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(
         unlinkGroup(db, {
@@ -225,23 +251,16 @@ describe("unlinking a Group from its Venue Community", () => {
         }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
-      const after = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
-      });
-      expect(after?.communityId).not.toBeNull();
+      expect((await readGroup(db, s.group.id)).venueId).toBe(s.venue.id);
     } finally {
       await close();
     }
   });
 
-  it("is refused for a Group created directly in the Venue Community", async () => {
+  it("lets every Club Group be unlinked, however it was linked", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const s = await setup(db);
-      await linkGroup(db, s);
-      const linked = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
-      });
       const [direct] = await db
         .insert(groups)
         .values({
@@ -249,67 +268,54 @@ describe("unlinking a Group from its Venue Community", () => {
           createdBy: s.creator.id,
           type: "public",
           sport: "padel",
-          communityId: linked!.communityId,
+          venueId: s.venue.id,
         })
         .returning();
       await db
         .insert(groupMembers)
         .values({ groupId: direct!.id, userId: s.creator.id });
 
-      await expect(
-        unlinkFromVenue(db, { groupId: direct!.id, userId: s.creator.id }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-      await expect(
-        unlinkGroup(db, {
-          venueId: s.venue.id,
-          groupId: direct!.id,
-          actor: actor(s.manager.id),
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-
       const byId = await groupById(db, {
         groupId: direct!.id,
         userId: s.creator.id,
       });
-      expect(byId.canUnlinkFromVenue).toBe(false);
+      expect(byId.canUnlinkFromVenue).toBe(true);
+      const listed = await listLinkedGroups(db, {
+        venueId: s.venue.id,
+        actor: actor(s.manager.id),
+      });
+      expect(listed.groups.map((row) => row.canUnlink)).toEqual([true]);
+
+      await unlinkFromVenue(db, { groupId: direct!.id, userId: s.creator.id });
+      expect((await readGroup(db, direct!.id)).venueId).toBeNull();
     } finally {
       await close();
     }
   });
 
-  it("is refused while the Venue Community is Soft-archived", async () => {
+  it("is still allowed while the Venue is Soft-archived", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const s = await setup(db);
       await linkGroup(db, s);
-      const linked = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
-      });
       await db
-        .update(communities)
+        .update(venues)
         .set({ archivedAt: new Date() })
-        .where(eq(communities.id, linked!.communityId!));
+        .where(eq(venues.id, s.venue.id));
 
-      await expect(
-        unlinkFromVenue(db, { groupId: s.group.id, userId: s.creator.id }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-      await expect(
-        unlinkGroup(db, {
-          venueId: s.venue.id,
-          groupId: s.group.id,
-          actor: actor(s.manager.id),
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-
-      const listed = await listCommunityGroups(db, {
+      const listed = await listLinkedGroups(db, {
         venueId: s.venue.id,
         actor: actor(s.manager.id),
       });
-      expect(listed.groups.map((row) => row.canUnlink)).toEqual([false]);
-      const after = await db.query.groups.findFirst({
-        where: eq(groups.id, s.group.id),
+      expect(listed.venue).toEqual({ id: s.venue.id, archived: true });
+      expect(listed.groups.map((row) => row.canUnlink)).toEqual([true]);
+
+      await unlinkGroup(db, {
+        venueId: s.venue.id,
+        groupId: s.group.id,
+        actor: actor(s.manager.id),
       });
-      expect(after?.communityId).toBe(linked!.communityId);
+      expect((await readGroup(db, s.group.id)).venueId).toBeNull();
     } finally {
       await close();
     }
@@ -321,6 +327,16 @@ describe("unlinking a Group from its Venue Community", () => {
       const s = await setup(db);
       await expect(
         unlinkFromVenue(db, { groupId: s.group.id, userId: s.creator.id }),
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "This Group is not linked to the Venue",
+      });
+      await expect(
+        unlinkGroup(db, {
+          venueId: s.venue.id,
+          groupId: s.group.id,
+          actor: actor(s.manager.id),
+        }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
       await linkGroup(db, s);
@@ -337,7 +353,42 @@ describe("unlinking a Group from its Venue Community", () => {
           groupId: s.group.id,
           actor: actor(s.member.id),
         }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "This Group is not linked to the Venue",
+      });
+      expect((await readGroup(db, s.group.id)).venueId).toBe(s.venue.id);
+    } finally {
+      await close();
+    }
+  });
+
+  it("is refused for an unknown or deleted Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const s = await setup(db);
+      await linkGroup(db, s);
+      await expect(
+        unlinkFromVenue(db, {
+          groupId: crypto.randomUUID(),
+          userId: s.creator.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(
+        unlinkGroup(db, {
+          venueId: s.venue.id,
+          groupId: crypto.randomUUID(),
+          actor: actor(s.manager.id),
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+      await db
+        .update(groups)
+        .set({ deletedAt: new Date(), deletedBy: s.creator.id })
+        .where(eq(groups.id, s.group.id));
+      await expect(
+        unlinkFromVenue(db, { groupId: s.group.id, userId: s.creator.id }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     } finally {
       await close();
     }
@@ -358,9 +409,11 @@ describe("unlinking a Group from its Venue Community", () => {
         userId: s.member.id,
       });
       expect(asCreator.canUnlinkFromVenue).toBe(true);
+      expect(asCreator.isLoose).toBe(false);
+      expect(asCreator.venue).toEqual({ id: s.venue.id, name: "Smash Club" });
       expect(asMember.canUnlinkFromVenue).toBe(false);
 
-      const listed = await listCommunityGroups(db, {
+      const listed = await listLinkedGroups(db, {
         venueId: s.venue.id,
         actor: actor(s.manager.id),
       });
@@ -373,6 +426,8 @@ describe("unlinking a Group from its Venue Community", () => {
       });
       expect(loose.canUnlinkFromVenue).toBe(false);
       expect(loose.isLoose).toBe(true);
+      expect(loose.venue).toBeNull();
+      expect(loose.verified).toBe(false);
     } finally {
       await close();
     }

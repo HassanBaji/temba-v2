@@ -55,7 +55,7 @@ export function LanguageControl() {
               className={cn(
                 "focus-visible:ring-ring/50 text-body min-h-11 w-full rounded-sm outline-none focus-visible:ring-[3px] aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
                 isSelected
-                  ? "bg-ink text-paper font-semibold"
+                  ? "bg-control text-on-control font-semibold"
                   : "text-muted-foreground hover:text-ink bg-transparent",
               )}
               onClick={() => {

@@ -103,7 +103,7 @@ function PlayerCell({
   muted?: boolean;
 }) {
   const m = useMessages();
-  const name = entry.name ?? m.community.memberFallback;
+  const name = entry.name ?? m.webGroup.memberFallback;
   const label = (
     <span
       dir="auto"
@@ -430,7 +430,7 @@ function Podium({
                   entry.isViewer && "font-semibold",
                 )}
               >
-                {entry.name ?? m.community.memberFallback}
+                {entry.name ?? m.webGroup.memberFallback}
               </span>
               {entry.isViewer ? <YouTag /> : null}
             </span>
@@ -486,7 +486,7 @@ function SeasonHeader({
       <Surface tone="ink" radius="card" className="px-5 py-4">
         <div className="flex items-end justify-between gap-3">
           {title}
-          <span className="text-meta text-paper/70 shrink-0 tabular-nums">
+          <span className="text-meta text-on-focus/70 shrink-0 tabular-nums">
             {formatSeasonRange(season, locale)}
           </span>
         </div>
@@ -620,21 +620,21 @@ function StandingPreview({
         {leaderboard.map((entry, index) => {
           const name = entry.isViewer
             ? m.common.you
-            : (entry.name ?? m.community.memberFallback);
+            : (entry.name ?? m.webGroup.memberFallback);
           return (
             <li
               key={entry.userId}
               className={cn(
                 PREVIEW_ROW,
                 "border-rule border-t px-[18px] first:border-t-0",
-                entry.isViewer && "bg-ink text-paper",
+                entry.isViewer && "bg-control text-on-control",
                 linkToPlayers && "relative",
               )}
             >
               <span className="font-expanded text-lead">{index + 1}</span>
               <span className="flex min-w-0 items-center gap-2.5">
                 <UserAvatar
-                  name={entry.name ?? m.community.memberFallback}
+                  name={entry.name ?? m.webGroup.memberFallback}
                   image={entry.image}
                   className={cn(
                     "size-7 rounded-lg [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",

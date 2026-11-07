@@ -1,9 +1,10 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const TILE_GAP = 8;
 
@@ -28,9 +29,10 @@ export function ChipTile({
   onPress,
 }: ChipTileProps) {
   const m = useMessages();
+  const colors = useColors();
   const inactive = struck || disabled;
   const foreground = selected
-    ? colors.paper
+    ? colors.onControl
     : inactive
       ? colors.muted
       : colors.ink;
@@ -58,7 +60,7 @@ export function ChipTile({
         borderRadius: radii.md,
         borderWidth: hairline,
         borderColor: selected ? colors.ink : colors.rule,
-        backgroundColor: selected ? colors.ink : colors.paper,
+        backgroundColor: selected ? colors.control : colors.paper,
         opacity: pressed ? 0.7 : 1,
       })}
     >

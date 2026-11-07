@@ -65,6 +65,12 @@ export const notification = {
       plain(" إلى "),
       strong(game),
     ],
+    gameSideChanged: (actor: string, game: string) => [
+      plain("غيّر "),
+      strong(actor),
+      plain(" جهتك في "),
+      strong(game),
+    ],
     historyLinked: (gameCount: number) => [
       plain("ربطنا "),
       strong(

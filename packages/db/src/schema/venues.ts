@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { courts } from "./courts";
-import { communities } from "./communities";
+import { groups } from "./groups";
 import { venueClosures } from "./venue-closures";
 import { venueManagers } from "./venue-managers";
 import { venueOpeningHours } from "./venue-opening-hours";
@@ -96,7 +96,7 @@ export const venues = pgTable(
 
 export const venueRelations = relations(venues, ({ many }) => ({
   courts: many(courts),
-  communities: many(communities),
+  groups: many(groups),
   managers: many(venueManagers),
   openingHours: many(venueOpeningHours),
   closures: many(venueClosures),

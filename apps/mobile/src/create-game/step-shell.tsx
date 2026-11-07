@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import {
   CREATE_FLOW_STEP_COUNT,
   type CreateFlowStep,
@@ -10,6 +10,7 @@ import { Fragment, useCallback } from "react";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { Button } from "../primitives/button";
 import { MountFill } from "../primitives/mount-fill";
 import { Screen } from "../primitives/screen";
@@ -71,11 +72,12 @@ export function StepShell({
 }
 
 export function useLightStatusBar() {
+  const scheme = useColorSchemeName();
   useFocusEffect(
     useCallback(() => {
       setStatusBarStyle("light");
-      return () => setStatusBarStyle("dark");
-    }, []),
+      return () => setStatusBarStyle(scheme === "dark" ? "light" : "dark");
+    }, [scheme]),
   );
 }
 
@@ -190,6 +192,7 @@ function ContextRow({
   parts: readonly string[];
 }) {
   const palette = useTonePalette();
+  const colors = useColors();
   const Icon = icon ? CONTEXT_ICONS[icon] : null;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -216,6 +219,7 @@ function ContextRow({
 }
 
 function Progress({ step }: { step: CreateFlowStep }) {
+  const colors = useColors();
   return (
     <View
       accessibilityElementsHidden
@@ -234,7 +238,7 @@ function Progress({ step }: { step: CreateFlowStep }) {
                 style={{
                   height: PROGRESS_HEIGHT,
                   borderRadius: radii.sm,
-                  backgroundColor: bar < step ? colors.paper : colors.dimrule,
+                  backgroundColor: bar < step ? colors.onFocus : colors.dimrule,
                 }}
               />
             )}

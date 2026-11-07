@@ -31,7 +31,7 @@ function slotUserIds(team: SlotTeam): string[] {
 }
 
 /**
- * Groups the caller is a member of (Loose Groups and joined Club Groups),
+ * Groups the caller is a member of (Loose Groups and Club Groups),
  * carrying the facts the Groups list leads with: how many members, where the
  * viewer stands, when the Group next plays, and how the viewer has been going
  * (`.scratch/groups-redesign/spec.md` §1.1 and §6).
@@ -53,7 +53,7 @@ export async function mine(
       with: {
         group: {
           with: {
-            community: true,
+            venue: { columns: { id: true, name: true } },
           },
         },
       },
@@ -144,7 +144,6 @@ export async function mine(
 
   return memberships.map((membership) => {
     const group = membership.group;
-    const community = group.community;
     const standing = standingByGroup.get(group.id);
     const members = standing?.rows ?? [];
 
@@ -155,13 +154,7 @@ export async function mine(
       type: group.type,
       sport: group.sport as GroupSportEnum | null,
       imageUrl: group.imageUrl ?? null,
-      community: community
-        ? {
-            id: community.id,
-            name: community.name,
-            archivedAt: community.archivedAt,
-          }
-        : null,
+      venue: group.venue ? { id: group.venue.id, name: group.venue.name } : null,
       memberCount: members.length,
       // Unranked until the member has played enough in the lens: no rank
       // worth reading before then.

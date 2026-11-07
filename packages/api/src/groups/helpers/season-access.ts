@@ -1,29 +1,24 @@
-import type { DbClient, DbTx, groups } from "@repo/db";
+import type { groups } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 
-import { isGroupOwnerOrStaff } from "#src/groups/helpers/group-owner";
-
-type DbOrTx = DbClient | DbTx;
+import { isGroupOwner } from "#src/groups/helpers/group-owner";
 
 /**
  * Seasons are a Group setting (design "Seasons" 1j): whoever may edit the
- * Group may open and close them — the creator who owns it, or Owner and
- * Admin on a Club Group.
+ * Group may open and close them — the creator who owns it.
  */
-export async function canManageSeasons(
-  database: DbOrTx,
-  group: Pick<typeof groups.$inferSelect, "id" | "communityId" | "createdBy">,
+export function canManageSeasons(
+  group: Pick<typeof groups.$inferSelect, "createdBy">,
   userId: string,
 ) {
-  return isGroupOwnerOrStaff(database, group, userId);
+  return isGroupOwner(group, userId);
 }
 
-export async function assertCanManageSeasons(
-  database: DbOrTx,
-  group: Pick<typeof groups.$inferSelect, "id" | "communityId" | "createdBy">,
+export function assertCanManageSeasons(
+  group: Pick<typeof groups.$inferSelect, "createdBy">,
   userId: string,
 ) {
-  if (await canManageSeasons(database, group, userId)) {
+  if (canManageSeasons(group, userId)) {
     return;
   }
   throw new TRPCError({

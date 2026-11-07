@@ -19,6 +19,7 @@ import * as React from "react";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { AppearanceControl } from "~/components/settings/appearance-control";
 import { LanguageControl } from "~/components/settings/language-control";
 import { PasswordDialog } from "~/components/settings/password-dialog";
 import {
@@ -73,7 +74,7 @@ function CountBadge({ count, label }: { count: number; label: string }) {
     <span
       role="status"
       aria-label={label}
-      className="bg-ink text-paper text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
+      className="bg-control text-on-control text-eyebrow flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full px-[7px] font-semibold"
     >
       <span aria-hidden="true">{count}</span>
     </span>
@@ -156,7 +157,7 @@ function SportBadge({ band }: { band: string | null }) {
       <span
         aria-hidden="true"
         dir="ltr"
-        className="bg-ink text-paper text-meta flex size-9 items-center justify-center rounded-[9px] font-semibold"
+        className="bg-control text-on-control text-meta flex size-9 items-center justify-center rounded-[9px] font-semibold"
       >
         {band}
       </span>
@@ -243,7 +244,7 @@ function SportProfiles({ details }: { details: Details }) {
             subtitle={row.set ? row.sub : copy.notSetUp}
             trailing={
               row.set ? null : (
-                <span className="bg-ink text-paper text-meta shrink-0 rounded-full px-3 py-1 font-semibold">
+                <span className="bg-control text-on-control text-meta shrink-0 rounded-full px-3 py-1 font-semibold">
                   {copy.setUp}
                 </span>
               )
@@ -530,6 +531,13 @@ export function SettingsHub() {
             <SettingsSection eyebrow={copy.language}>
               <LanguageControl />
             </SettingsSection>
+
+            <SettingsSection eyebrow={copy.appearance.title}>
+              <AppearanceControl />
+            </SettingsSection>
+            <p className="text-muted-foreground text-meta -mt-3 px-1">
+              {copy.appearance.shareNote}
+            </p>
 
             <SettingsSection eyebrow={copy.about}>
               <SettingsLinkRow

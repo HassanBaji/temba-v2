@@ -1,32 +1,25 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull, ne, notInArray } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
-  CommunityTypeEnum,
   groupLinkRequests,
   GroupLinkRequestStatusEnum,
-  groupMemberInvites,
-  groupMembers,
   groups,
   venues,
 } from "@repo/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
-import {
-  admit as admitCommunityMember,
-  throwAdmitFailure,
-} from "#src/community-membership";
 import { type db } from "#src/db";
 import { consult, refuseIfFrozen } from "#src/soft-archive";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
 
+/**
+ * The Group creator accepts a Venue's Group link request: the Loose Group
+ * becomes a Club Group of that Venue, and its other pending requests lapse.
+ */
 export async function acceptLinkRequest(
   database: DbClient,
   args: { requestId: string; userId: string },
@@ -78,10 +71,10 @@ export async function acceptLinkRequest(
         message: "Only the Group creator can decide this request",
       });
     }
-    if (group.communityId) {
+    if (group.venueId) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Only a Loose Group can join a Venue Community",
+        message: "Only a Loose Group can be linked to a Venue",
       });
     }
     refuseIfFrozen(consult({ archivedAt: venue.archivedAt }), "host", {
@@ -89,86 +82,11 @@ export async function acceptLinkRequest(
       notFoundMessage: "Venue not found",
     });
 
-    let community = await tx.query.communities.findFirst({
-      where: and(
-        eq(communities.venueId, venue.id),
-        eq(communities.isVenueCommunity, true),
-      ),
-    });
-    if (!community) {
-      const [created] = await tx
-        .insert(communities)
-        .values({
-          name: venue.name,
-          type: CommunityTypeEnum.PRIVATE,
-          createdBy: request.requestedBy,
-          venueId: venue.id,
-          isVenueCommunity: true,
-        })
-        .returning();
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create the Venue Community",
-        });
-      }
-      community = created;
-      throwAdmitFailure(
-        await admitCommunityMember(tx, {
-          communityId: community.id,
-          userId: request.requestedBy,
-          role: CommunityRoleEnum.OWNER,
-        }),
-      );
-    } else {
-      refuseIfFrozen(consult({ archivedAt: community.archivedAt }), "host", {
-        frozenMessage: "The Venue's Community is Soft-archived",
-      });
-    }
-
-    if (group.sport) {
-      await tx
-        .insert(communitySports)
-        .values({ communityId: community.id, sport: group.sport })
-        .onConflictDoNothing();
-    }
-
-    const members = await tx
-      .select({ userId: groupMembers.userId })
-      .from(groupMembers)
-      .where(eq(groupMembers.groupId, group.id));
-    for (const member of members) {
-      const admitted = await admitCommunityMember(tx, {
-        communityId: community.id,
-        userId: member.userId,
-        role: CommunityRoleEnum.MEMBER,
-      });
-      if (!admitted.ok && admitted.reason !== "already_member") {
-        throwAdmitFailure(admitted);
-      }
-    }
-
     const now = new Date();
     await tx
       .update(groups)
-      .set({ communityId: community.id, updatedAt: now })
+      .set({ venueId: venue.id, updatedAt: now })
       .where(eq(groups.id, group.id));
-
-    const communityMemberIds = tx
-      .select({ userId: communityMembers.userId })
-      .from(communityMembers)
-      .where(eq(communityMembers.communityId, community.id));
-    await tx
-      .update(groupMemberInvites)
-      .set({ revokedAt: now, updatedAt: now })
-      .where(
-        and(
-          eq(groupMemberInvites.groupId, group.id),
-          isNull(groupMemberInvites.acceptedAt),
-          isNull(groupMemberInvites.revokedAt),
-          notInArray(groupMemberInvites.userId, communityMemberIds),
-        ),
-      );
 
     await tx
       .update(groupLinkRequests)
@@ -195,7 +113,6 @@ export async function acceptLinkRequest(
     return {
       ok: true as const,
       groupId: group.id,
-      communityId: community.id,
       venueId: venue.id,
     };
   });

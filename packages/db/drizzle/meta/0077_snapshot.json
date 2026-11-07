@@ -1,6 +1,6 @@
 {
-  "id": "5c9eef12-c462-4723-9cf8-04adc1ecd60d",
-  "prevId": "c6caccad-714b-48b1-98b9-ed43dc2ff59f",
+  "id": "8bf7f14d-a131-467a-a4fd-b451bbd87f73",
+  "prevId": "e7f8de48-8b5c-45df-ac34-590c676419d7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -359,20 +359,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "email_notifications": {
-          "name": "email_notifications",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "locale": {
-          "name": "locale",
-          "type": "user_locale",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
         },
         "match_history_visibility": {
           "name": "match_history_visibility",
@@ -4272,6 +4258,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "either_side": {
+          "name": "either_side",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "side_set_by": {
+          "name": "side_set_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -4336,6 +4335,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_team_players_side_set_by_user_id_fk": {
+          "name": "game_team_players_side_set_by_user_id_fk",
+          "tableFrom": "game_team_players",
+          "tableTo": "user",
+          "columnsFrom": [
+            "side_set_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -7951,12 +7963,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "emailed_at": {
-          "name": "emailed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp (3)",
@@ -8160,14 +8166,6 @@
         "male",
         "female",
         "unspecified"
-      ]
-    },
-    "public.user_locale": {
-      "name": "user_locale",
-      "schema": "public",
-      "values": [
-        "en",
-        "ar"
       ]
     },
     "public.user_preferred_position": {
@@ -8511,6 +8509,7 @@
         "game_player_left",
         "game_finished",
         "game_seated_by_organizer",
+        "game_side_changed",
         "history_linked",
         "level_set"
       ]

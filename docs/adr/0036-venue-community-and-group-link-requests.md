@@ -1,6 +1,6 @@
 # A Venue has one Venue Community, and Loose Groups join it by Group link request
 
-**Status:** accepted. Spec: `.scratch/verified-groups/spec.md`. Partly supersedes ADR-0004.
+**Status:** superseded by [ADR-0055](./0055-community-is-retired-and-a-group-links-to-a-venue.md): the Venue Community is gone and a Group link request sets `groups.venue_id` directly. Spec: `.scratch/verified-groups/spec.md`. Partly superseded ADR-0004.
 
 A Venue manager can vouch for a Group by bringing it into the Venue's own Community. That needs a Community the Venue owns, and a way to move an existing Loose Group into it.
 

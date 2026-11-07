@@ -91,7 +91,7 @@ export function publicGroupRowView(
     id: row.id,
     name: groupDisplayName(row.name, locale),
     imageUri: mediaUrl(row.imageUrl, apiOrigin),
-    subtitle: row.communityName,
+    subtitle: row.venueName,
     meta: publicGroupMetaLine({
       memberCountLabel: memberCountLabel(row.memberCount, locale),
       requiresApproval: row.requiresApproval,

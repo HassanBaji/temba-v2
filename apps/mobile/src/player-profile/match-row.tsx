@@ -1,10 +1,11 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { sizes, spacing } from "@repo/design-tokens";
 import type { PlayerMatchRowView } from "@repo/domain/player-profile-matches";
 import { Pressable, View, type ViewStyle } from "react-native";
 
 import { ResultMark } from "../primitives/result-mark";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const ROW: ViewStyle = {
   minHeight: sizes.touchTarget,
@@ -26,6 +27,7 @@ export function PlayerMatchRow({
   showPartner?: boolean;
   selected?: boolean;
 }) {
+  const colors = useColors();
   const content = (
     <>
       <ResultMark variant={row.outcome} size={20} decorative />

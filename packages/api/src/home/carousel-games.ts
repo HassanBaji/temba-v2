@@ -9,13 +9,12 @@ import type { DbClient } from "@repo/db";
 
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
-import { communityMembers, gamePlayers, games, groups } from "@repo/db";
+import { gamePlayers, games, groups } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
-  isStaffRole,
 } from "#src/games/access";
 import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import {
@@ -203,26 +202,8 @@ async function organizerGroupIdsForViewer(
     where: and(eq(groups.createdBy, userId), isNull(groups.deletedAt)),
     columns: { id: true },
   });
-  const staffMemberships = await database.query.communityMembers.findMany({
-    where: eq(communityMembers.userId, userId),
-    columns: { communityId: true, role: true },
-  });
-  const staffCommunityIds = staffMemberships
-    .filter((row) => isStaffRole(row.role))
-    .map((row) => row.communityId);
-  const staffGroups =
-    staffCommunityIds.length === 0
-      ? []
-      : await database.query.groups.findMany({
-          where: and(
-            inArray(groups.communityId, staffCommunityIds),
-            isNull(groups.deletedAt),
-          ),
-          columns: { id: true },
-        });
   return new Set([
     ...created.map((row) => row.id),
-    ...staffGroups.map((row) => row.id),
     ...(await appointedOrganizerGroupIds(database, userId)),
   ]);
 }

@@ -56,12 +56,12 @@ function InviteRow({
           {invite.displayName}
         </Text>
         <Text size="meta" tone="muted" numberOfLines={1}>
-          {m.mobileCommunity.teams.invitedBy(inviter)}
+          {m.mobileTeam.list.invitedBy(inviter)}
         </Text>
       </View>
       <Button
         label={m.invite.inbox.acceptLabel}
-        accessibilityLabel={m.mobileCommunity.invites.acceptInviteA11y(
+        accessibilityLabel={m.mobileInvite.inbox.acceptInviteA11y(
           invite.displayName,
         )}
         pending={pending}
@@ -94,7 +94,7 @@ function PendingInvites({
   return (
     <View style={{ gap: 8 }}>
       <Text size="meta" tone="muted" accessibilityRole="header">
-        {m.mobileCommunity.teams.pendingInvitesTitle}
+        {m.mobileTeam.list.pendingInvitesTitle}
       </Text>
       <Surface padded={false} style={{ overflow: "hidden" }}>
         {invites.value.map((invite, index) => (
@@ -173,7 +173,7 @@ function TeamList({
     return (
       <View
         style={{ gap: 12 }}
-        accessibilityLabel={m.mobileCommunity.teams.loadingA11y}
+        accessibilityLabel={m.mobileTeam.list.loadingA11y}
       >
         {[0, 1, 2].map((key) => (
           <Skeleton key={key} height={76} radius={16} />

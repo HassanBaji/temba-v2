@@ -186,7 +186,7 @@ function SeasonBadge({
       className={cn(
         "shrink-0 rounded-[4px] px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.06em]",
         active
-          ? "bg-ink text-paper"
+          ? "bg-control text-on-control"
           : "border-rule text-muted-foreground border",
       )}
     >
@@ -389,7 +389,7 @@ function SeasonSection({
             )
           }
         />
-        <div className="bg-ink text-paper rounded-lg px-4 py-3.5">
+        <div className="surface-focus rounded-lg px-4 py-3.5">
           <div className="flex items-baseline justify-between gap-3">
             <span className="font-expanded text-h2">
               {linked.name.toUpperCase()}

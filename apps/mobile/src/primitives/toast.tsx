@@ -1,4 +1,4 @@
-import { colors, radii, spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import {
   createContext,
   useCallback,
@@ -11,6 +11,7 @@ import {
 import { AccessibilityInfo, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useColors } from "../theme/theme-provider";
 import { Button } from "./button";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
@@ -36,6 +37,7 @@ export function useToast(): ToastApi {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const [toast, setToast] = useState<{
     message: string;
     action?: ToastAction;
@@ -92,7 +94,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             borderRadius: radii.md,
             borderWidth: hairline,
             borderColor: colors.rule,
-            backgroundColor: colors.paper,
+            backgroundColor: colors.sheet,
           }}
         >
           <SurfaceToneContext.Provider value="paper">

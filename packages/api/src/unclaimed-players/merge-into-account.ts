@@ -8,17 +8,12 @@ import {
   bookings,
   coach,
   coachingSessionPlayers,
-  communities,
-  communityEmailInvites,
-  communityInviteLinks,
-  communityJoinRequests,
-  communityMemberInvites,
-  communityMembers,
   gameInviteLinkConsents,
   gameInviteLinks,
   gameLevelRangeRequests,
   gameMemberInvites,
   gamePlayers,
+  gameTeamPlayers,
   games,
   gameWaitlist,
   groupEmailInvites,
@@ -41,14 +36,12 @@ import {
   session,
   teamEmailInvites,
   teamInviteLinks,
-  teamLinkRequests,
   teamMemberInvites,
   teamMembers,
   teams,
   user,
   userMerges,
   venueClosures,
-  venueLinkRequests,
   venueManagers,
 } from "@repo/db";
 
@@ -77,10 +70,6 @@ const uniqueUserReferences: UniqueUserReference[] = [
   { column: gamePlayers.userId, sameKeys: [gamePlayers.gameId] },
   { column: gameWaitlist.userId, sameKeys: [gameWaitlist.gameId] },
   { column: groupMembers.userId, sameKeys: [groupMembers.groupId] },
-  {
-    column: communityMembers.userId,
-    sameKeys: [communityMembers.communityId],
-  },
   { column: teamMembers.userId, sameKeys: [teamMembers.teamId] },
   { column: venueManagers.userId, sameKeys: [venueManagers.venueId] },
   {
@@ -103,21 +92,9 @@ const uniqueUserReferences: UniqueUserReference[] = [
     whileUnused: [groupMemberInvites.acceptedAt, groupMemberInvites.revokedAt],
   },
   {
-    column: communityMemberInvites.userId,
-    sameKeys: [communityMemberInvites.communityId],
-    whileUnused: [
-      communityMemberInvites.acceptedAt,
-      communityMemberInvites.revokedAt,
-    ],
-  },
-  {
     column: teamMemberInvites.userId,
     sameKeys: [teamMemberInvites.teamId],
     whileUnused: [teamMemberInvites.acceptedAt, teamMemberInvites.revokedAt],
-  },
-  {
-    column: communityJoinRequests.userId,
-    sameKeys: [communityJoinRequests.communityId],
   },
   { column: groupJoinRequests.userId, sameKeys: [groupJoinRequests.groupId] },
   {
@@ -155,34 +132,25 @@ const plainUserReferences: PgColumn[] = [
   groups.deletedBy,
   groupSeasons.createdBy,
   groupSeasons.closedBy,
-  communities.createdBy,
   teams.createdBy,
   coach.addedBy,
   coachingSessionPlayers.userId,
   gameMemberInvites.invitedBy,
   groupMemberInvites.invitedBy,
-  communityMemberInvites.invitedBy,
   teamMemberInvites.invitedBy,
   groupEmailInvites.userId,
   groupEmailInvites.invitedBy,
-  communityEmailInvites.userId,
-  communityEmailInvites.invitedBy,
   teamEmailInvites.userId,
   teamEmailInvites.invitedBy,
   gameInviteLinks.createdBy,
   groupInviteLinks.createdBy,
-  communityInviteLinks.createdBy,
   teamInviteLinks.createdBy,
-  communityJoinRequests.decidedBy,
   groupJoinRequests.decidedBy,
   groupJoinRequests.invitedBy,
   gameLevelRangeRequests.decidedBy,
+  gameTeamPlayers.sideSetBy,
   groupLinkRequests.requestedBy,
   groupLinkRequests.decidedBy,
-  teamLinkRequests.requestedBy,
-  teamLinkRequests.decidedBy,
-  venueLinkRequests.requestedBy,
-  venueLinkRequests.decidedBy,
   venueManagers.grantedByUserId,
   venueClosures.createdByUserId,
   bookings.userId,
@@ -431,7 +399,7 @@ async function resolveGroupRatings(tx: DbTx, ids: MergeIds) {
 
 async function seatAndMembershipCounts(tx: DbTx, ids: MergeIds) {
   const both = [ids.survivorUserId, ids.mergedUserId];
-  const [seatRows, groupRows, communityRows] = await Promise.all([
+  const [seatRows, groupRows] = await Promise.all([
     tx
       .select({ userId: gamePlayers.userId, key: gamePlayers.gameId })
       .from(gamePlayers)
@@ -440,13 +408,6 @@ async function seatAndMembershipCounts(tx: DbTx, ids: MergeIds) {
       .select({ userId: groupMembers.userId, key: groupMembers.groupId })
       .from(groupMembers)
       .where(inArray(groupMembers.userId, both)),
-    tx
-      .select({
-        userId: communityMembers.userId,
-        key: communityMembers.communityId,
-      })
-      .from(communityMembers)
-      .where(inArray(communityMembers.userId, both)),
   ]);
 
   function split(rows: { userId: string | null; key: string }[]) {
@@ -464,7 +425,7 @@ async function seatAndMembershipCounts(tx: DbTx, ids: MergeIds) {
   return {
     seatsMoved: seats.moved,
     seatsDropped: seats.dropped,
-    membershipsMoved: split(groupRows).moved + split(communityRows).moved,
+    membershipsMoved: split(groupRows).moved,
   };
 }
 

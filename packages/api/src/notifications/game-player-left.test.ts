@@ -2,13 +2,12 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
   GameFormatEnum,
   gamePlayers,
   GameRegistrationModeEnum,
   games,
+  groupMembers,
+  GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
   matches,
@@ -17,14 +16,13 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { leave as leaveCommunity } from "#src/community-membership";
 import type { GameRow } from "#src/games/access";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
 import { leaveWaitlist } from "#src/routers/games/leaveWaitlist";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
-import { commit } from "#src/soft-archive";
+import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const HOUR = 60 * 60 * 1000;
@@ -40,36 +38,14 @@ async function insertUser(database: TestDatabase, email: string) {
   return row.id;
 }
 
+/** A Club Group whose Game admins are the creator and two Appointed Organizers. */
 async function insertClub(database: TestDatabase) {
-  const owner = await insertUser(database, "left-owner@example.com");
-  const admin = await insertUser(database, "left-admin@example.com");
   const creator = await insertUser(database, "left-creator@example.com");
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Leave Club", type: "public", createdBy: owner })
-    .returning({ id: communities.id });
-  if (!community) {
-    throw new Error("Failed to insert community");
-  }
-  await database.insert(communityMembers).values(
-    [
-      { userId: owner, role: CommunityRoleEnum.OWNER },
-      { userId: admin, role: CommunityRoleEnum.ADMIN },
-      { userId: creator, role: CommunityRoleEnum.MEMBER },
-    ].map((row) => ({ ...row, communityId: community.id })),
+  const organizer = await insertUser(database, "left-organizer@example.com");
+  const coOrganizer = await insertUser(
+    database,
+    "left-co-organizer@example.com",
   );
-  const [group] = await database
-    .insert(groups)
-    .values({
-      name: "Leave Squad",
-      type: GroupTypeEnum.PUBLIC,
-      createdBy: creator,
-      communityId: community.id,
-    })
-    .returning({ id: groups.id });
-  if (!group) {
-    throw new Error("Failed to insert group");
-  }
   const [venue] = await database
     .insert(venues)
     .values({
@@ -81,14 +57,38 @@ async function insertClub(database: TestDatabase) {
   if (!venue) {
     throw new Error("Failed to insert venue");
   }
+  const [group] = await database
+    .insert(groups)
+    .values({
+      name: "Leave Squad",
+      type: GroupTypeEnum.PUBLIC,
+      createdBy: creator,
+      venueId: venue.id,
+    })
+    .returning({ id: groups.id });
+  if (!group) {
+    throw new Error("Failed to insert group");
+  }
+  await database.insert(groupMembers).values([
+    { groupId: group.id, userId: creator },
+    {
+      groupId: group.id,
+      userId: organizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+    {
+      groupId: group.id,
+      userId: coOrganizer,
+      role: GroupMemberRoleEnum.ORGANIZER,
+    },
+  ]);
   return {
-    communityId: community.id,
     groupId: group.id,
     venueId: venue.id,
-    owner,
-    admin,
     creator,
-    admins: [owner, admin, creator].sort(),
+    organizer,
+    coOrganizer,
+    admins: [creator, organizer, coOrganizer].sort(),
   };
 }
 
@@ -106,7 +106,7 @@ async function insertFriendlyGame(
       format: GameFormatEnum.FRIENDLY_GAME,
       registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
       venueId: club.venueId,
-      createdBy: club.admin,
+      createdBy: club.organizer,
       groupId,
       isPublic: true,
       playersAllowed: 4,
@@ -134,7 +134,7 @@ async function insertPartnerRequiredTournament(
       registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
       allowSoloRegister: false,
       venueId: club.venueId,
-      createdBy: club.admin,
+      createdBy: club.organizer,
       groupId: club.groupId,
       isPublic: true,
       playersAllowed: 8,
@@ -242,14 +242,14 @@ describe("Game left Notifications", () => {
     try {
       const club = await insertClub(db);
       const game = await insertFriendlyGame(db, club);
-      await fillFriendlyGame(db, game, [club.admin]);
+      await fillFriendlyGame(db, game, [club.organizer]);
       await clearNotifications(db);
 
-      await leaveGame(db, { gameId: game.id, userId: club.admin });
+      await leaveGame(db, { gameId: game.id, userId: club.organizer });
 
       const rows = await rowsOfType(db, "game_player_left");
-      expect(recipients(rows)).toEqual([club.owner, club.creator].sort());
-      expect(rows.every((row) => row.actor === club.admin)).toBe(true);
+      expect(recipients(rows)).toEqual([club.creator, club.coOrganizer].sort());
+      expect(rows.every((row) => row.actor === club.organizer)).toBe(true);
     } finally {
       await close();
     }
@@ -302,51 +302,33 @@ describe("Game left Notifications", () => {
       await leaveGame(db, { gameId: game.id, userId: player });
 
       const rows = await rowsOfType(db, "game_player_left");
-      expect(recipients(rows)).toEqual([club.admin]);
+      expect(recipients(rows)).toEqual([club.organizer]);
       expect(rows[0]?.group).toBeNull();
     } finally {
       await close();
     }
   });
 
-  it("gives nothing to a Club Group creator who left the Community", async () => {
+  it("gives nothing to an Organizer whose appointment was removed", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
-      const player = await insertUser(db, "creator-gone-leaver@example.com");
+      const player = await insertUser(db, "demoted-leaver@example.com");
       const game = await insertFriendlyGame(db, club);
       await fillFriendlyGame(db, game, [player]);
-      const left = await leaveCommunity(db, {
-        communityId: club.communityId,
-        userId: club.creator,
+      await setOrganizer(db, {
+        groupId: club.groupId,
+        approverUserId: club.creator,
+        userId: club.coOrganizer,
+        organizer: false,
       });
-      expect(left.ok).toBe(true);
       await clearNotifications(db);
 
       await leaveGame(db, { gameId: game.id, userId: player });
 
       expect(recipients(await rowsOfType(db, "game_player_left"))).toEqual(
-        [club.owner, club.admin].sort(),
+        [club.creator, club.organizer].sort(),
       );
-    } finally {
-      await close();
-    }
-  });
-
-  it("writes nothing for a leave in a Soft-archived Community", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const club = await insertClub(db);
-      const player = await insertUser(db, "archived-leaver@example.com");
-      const game = await insertFriendlyGame(db, club);
-      await fillFriendlyGame(db, game, [player]);
-      await clearNotifications(db);
-      await commit(db, { communityId: club.communityId }, "archived");
-
-      const result = await leaveGame(db, { gameId: game.id, userId: player });
-
-      expect(result).toEqual({ ok: true });
-      expect(await db.query.notifications.findMany()).toEqual([]);
     } finally {
       await close();
     }
@@ -398,7 +380,7 @@ describe("Game left Notifications", () => {
 
       await kick(db, {
         gameId: game.id,
-        organizerUserId: club.owner,
+        organizerUserId: club.creator,
         userId: player,
       });
 

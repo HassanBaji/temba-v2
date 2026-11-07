@@ -1,4 +1,4 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import {
   checklistBlurb,
   checklistCountLabel,
@@ -21,6 +21,7 @@ import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { InitialsTile } from "../primitives/initials-tile";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { ChecklistSegments, TaskMarker } from "./checklist-marks";
 import { profileTaskPath } from "./profile-tasks-model";
 import { exitChecklist, leaveChecklist } from "./task-navigation";
@@ -40,6 +41,7 @@ function TaskList({
   trailing: "time" | "chevron";
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       style={{
@@ -224,6 +226,7 @@ function Checklist({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const colors = useColors();
   const doneAtSignUp = [
     name
       ? { label: m.mobileHome.tasks.short.name, value: name, ltr: false }

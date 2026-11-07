@@ -38,7 +38,9 @@ export function LanguageToggle({ className }: { className?: string }) {
             }}
             className={cn(
               "text-meta focus-visible:ring-ring/50 min-w-[72px] px-3 font-semibold outline-none transition-colors focus-visible:ring-[3px] disabled:opacity-60",
-              selected ? "bg-ink text-paper" : "text-ink hover:bg-wash",
+              selected
+                ? "bg-control text-on-control"
+                : "text-ink hover:bg-wash",
             )}
           >
             {LOCALE_LABELS[option]}

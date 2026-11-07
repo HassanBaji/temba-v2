@@ -3,27 +3,21 @@ import { TRPCError } from "@trpc/server";
 import type { InviteHost, InvitePhase } from "#src/invites/doors/utils";
 
 export function frozenMintMessage(host: InviteHost) {
-  if (host.kind === "community") {
-    return "Cannot manage invites for an archived Community";
-  }
   if (host.kind === "group") {
-    return "Cannot invite into a Group in an archived Community";
+    return "This Group is not accepting invites right now";
   }
   if (host.kind === "team") {
-    return "Cannot invite into a Team linked to an archived Community";
+    return "This Team is not accepting invites right now";
   }
   return "This Game is not open for registration";
 }
 
 export function frozenAcceptMessage(host: InviteHost) {
-  if (host.kind === "community") {
-    return "Cannot join an archived Community";
-  }
   if (host.kind === "group") {
-    return "Cannot join a Group in an archived Community";
+    return "This Group is not accepting new members right now";
   }
   if (host.kind === "team") {
-    return "Cannot accept a Team invite while the linked Community is archived";
+    return "This Team is not accepting new members right now";
   }
   return "This Game is not open for registration";
 }
@@ -37,13 +31,11 @@ export function throwInviteFrozen(
     throw new TRPCError({
       code: "NOT_FOUND",
       message:
-        host.kind === "community"
-          ? "Community not found"
-          : host.kind === "group"
-            ? "Group not found"
-            : host.kind === "team"
-              ? "Team not found"
-              : "Game not found",
+        host.kind === "group"
+          ? "Group not found"
+          : host.kind === "team"
+            ? "Team not found"
+            : "Game not found",
     });
   }
   throw new TRPCError({

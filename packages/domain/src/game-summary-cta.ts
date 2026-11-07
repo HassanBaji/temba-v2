@@ -17,7 +17,6 @@ export type GameSummaryCtaInput = {
   registrationMode: string;
   canRegister: boolean;
   canWaitlist: boolean;
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;
@@ -34,7 +33,6 @@ export function gameSummaryPrimaryAction(
     game.isRegistered ||
     game.isSeated ||
     game.isWaitlisted ||
-    game.joinFrozen ||
     game.registrationStatus === "closed" ||
     game.registrationStatus === "cancelled"
   ) {

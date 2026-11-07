@@ -48,7 +48,7 @@ export function SportChips({
                 chipClassName,
                 "font-semibold",
                 selected
-                  ? "border-ink bg-ink text-paper"
+                  ? "border-ink bg-control text-on-control"
                   : "border-rule bg-paper text-ink hover:bg-wash",
               )}
             >
@@ -107,7 +107,7 @@ export function ScopeChips({
             className={cn(
               "focus-visible:ring-ring/50 text-meta inline-flex min-h-9 max-w-[220px] shrink-0 items-center gap-1.5 rounded-lg border px-3 outline-none focus-visible:ring-[3px]",
               selected
-                ? "border-ink bg-ink text-paper"
+                ? "border-ink bg-control text-on-control"
                 : "border-rule bg-paper text-ink hover:bg-wash",
             )}
           >

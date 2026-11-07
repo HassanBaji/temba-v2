@@ -1,9 +1,9 @@
-import { colors } from "@repo/design-tokens";
 import { SPORTS, type Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
+import { useColors } from "../theme/theme-provider";
 import { SportGlyph } from "./sport-glyph";
 
 export function SportToggleRow(props: {
@@ -12,6 +12,7 @@ export function SportToggleRow(props: {
   disabled: boolean;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="toolbar"
@@ -30,7 +31,7 @@ export function SportToggleRow(props: {
               icon={
                 <SportGlyph
                   sport={sport}
-                  color={on ? colors.paper : colors.ink}
+                  color={on ? colors.onControl : colors.ink}
                 />
               }
               onPress={() => props.onToggle(sport)}

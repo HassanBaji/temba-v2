@@ -60,7 +60,7 @@ export function CreateFlowShell({
               key={index}
               className={cn(
                 "h-[3px] rounded-sm",
-                index < step ? "bg-paper" : "bg-dimrule",
+                index < step ? "bg-on-focus" : "bg-dimrule",
               )}
             />
           ))}

@@ -52,7 +52,7 @@ function PlayerTile({
       className={cn(
         "focus-visible:ring-ring/50 flex h-[74px] w-full min-w-0 flex-col justify-between rounded-md border p-2 text-start outline-none focus-visible:ring-[3px]",
         player.isViewer
-          ? "bg-ink text-paper border-ink"
+          ? "bg-control text-on-control border-control-edge"
           : "bg-paper border-rule",
         player.unclaimed && "border-ink border-dashed",
         onPress && !player.isViewer && "hover:bg-wash",
@@ -61,7 +61,7 @@ function PlayerTile({
       <span className="flex items-center justify-between">
         <UserAvatar name={player.name} image={player.image} size="sm" />
         {player.role === "keeper" ? (
-          <span className="bg-ink text-paper rounded-[4px] px-1 font-mono text-[11px]">
+          <span className="bg-control text-on-control rounded-[4px] px-1 font-mono text-[11px]">
             {code}
           </span>
         ) : code ? (
@@ -204,7 +204,7 @@ export function SeatBar({
             key={index}
             className={cn(
               "h-6 flex-1 rounded-[3px]",
-              tone === "ink" ? "bg-paper" : "bg-ink",
+              tone === "ink" ? "bg-on-focus" : "bg-ink",
             )}
           />
         ) : (

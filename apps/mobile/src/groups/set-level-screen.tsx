@@ -1,4 +1,4 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import {
   clampLevelTenths,
   LEVEL_OVERRIDE_REASONS,
@@ -26,6 +26,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Slider } from "../primitives/slider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import { Notice } from "./notice";
 import { groupPath } from "./groups-model";
@@ -64,6 +65,7 @@ export function LevelPicker({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const colors = useColors();
   const copy = m.mobileGroup.setLevel;
   const readout = levelSliderReadout({ tenths, currentTenths, locale });
 

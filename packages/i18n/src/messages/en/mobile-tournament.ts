@@ -57,8 +57,6 @@ export const mobileTournament = {
   },
   content: {
     gameCancelled: "This Game is cancelled",
-    softArchivedTitle: "This Club Group's Community is Soft-archived",
-    softArchivedLine: "Registration, the waitlist, and invites stay closed.",
   },
   model: {
     knockoutHeading: (roundName: string, code: string) =>

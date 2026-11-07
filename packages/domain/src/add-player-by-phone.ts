@@ -315,7 +315,6 @@ export function sameJoinSeat(
 export function organizerCanAddPlayer(game: {
   isOrganizer: boolean;
   cancelledAt: Date | string | null;
-  joinFrozen: boolean;
   phase: string | null;
   format: string;
   sport: string | null;
@@ -324,7 +323,7 @@ export function organizerCanAddPlayer(game: {
   drawPostedAt?: Date | string | null;
   roster?: { count: number; cap: number | null } | null;
 }): boolean {
-  if (!game.isOrganizer || game.cancelledAt || game.joinFrozen) {
+  if (!game.isOrganizer || game.cancelledAt) {
     return false;
   }
   const placement = addPlayerPlacement(game);

@@ -23,6 +23,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_player_left",
   "game_finished",
   "game_seated_by_organizer",
+  "game_side_changed",
   "history_linked",
   "level_set",
 ] as const;

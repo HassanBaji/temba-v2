@@ -30,7 +30,6 @@ export function useGroupLinkRequest() {
       utils.groups.byId.invalidate(),
       utils.groups.mine.invalidate(),
       utils.groups.mineLoose.invalidate(),
-      utils.communities.mine.invalidate(),
     ]);
   }
 

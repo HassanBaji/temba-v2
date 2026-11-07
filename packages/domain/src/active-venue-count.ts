@@ -9,5 +9,5 @@ export function activeVenueCountLabel(
   if (count === 0) {
     return null;
   }
-  return messagesFor(locale).community.venue.count(count);
+  return messagesFor(locale).webDashboard.venues.liveCount(count);
 }

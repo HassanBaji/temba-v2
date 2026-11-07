@@ -3,29 +3,25 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  communities,
-  communityMembers,
-  CommunityRoleEnum,
-  communitySports,
   groupInviteLinks,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
   GroupMemberRoleEnum,
+  groups,
   GroupSportEnum,
   ratings,
   user,
+  venues,
 } from "@repo/db/schema";
 
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { acceptInviteLink } from "#src/routers/groups/acceptInviteLink";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
 import { groupById } from "#src/routers/groups/byId";
-import { createClubPublic } from "#src/routers/groups/createClubPublic";
 import { createInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { joinClubPublic } from "#src/routers/groups/joinClubPublic";
-import { joinLoosePublic } from "#src/routers/groups/joinLoosePublic";
+import { joinPublic } from "#src/routers/groups/joinPublic";
 import { listJoinRequests } from "#src/routers/groups/listJoinRequests";
 import { previewInviteLink } from "#src/routers/groups/previewInviteLink";
 import { rejectJoinRequest } from "#src/routers/groups/rejectJoinRequest";
@@ -47,24 +43,15 @@ async function insertUser(database: TestDatabase, email: string) {
   return row;
 }
 
-async function insertCommunity(database: TestDatabase, ownerId: string) {
-  const [community] = await database
-    .insert(communities)
-    .values({ name: "Club", type: "public", createdBy: ownerId })
-    .returning({ id: communities.id });
-  if (!community) {
-    throw new Error("Failed to insert community");
+async function insertVenue(database: TestDatabase) {
+  const [row] = await database
+    .insert(venues)
+    .values({ name: "Club", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  if (!row) {
+    throw new Error("Failed to insert venue");
   }
-  await database.insert(communitySports).values({
-    communityId: community.id,
-    sport: GroupSportEnum.PADEL,
-  });
-  await database.insert(communityMembers).values({
-    communityId: community.id,
-    userId: ownerId,
-    role: CommunityRoleEnum.OWNER,
-  });
-  return community;
+  return row;
 }
 
 async function gatedGroup(database: TestDatabase, creatorId: string) {
@@ -74,6 +61,25 @@ async function gatedGroup(database: TestDatabase, creatorId: string) {
     userId: creatorId,
     requiresApproval: true,
   });
+}
+
+/** A Public Club Group: a Loose Group linked to a Venue. */
+async function clubGroup(
+  database: TestDatabase,
+  args: { creatorId: string; requiresApproval?: boolean },
+) {
+  const venue = await insertVenue(database);
+  const group = await createLoosePublic(database, {
+    name: "Club Crew",
+    sport: "padel",
+    userId: args.creatorId,
+    requiresApproval: args.requiresApproval,
+  });
+  await database
+    .update(groups)
+    .set({ venueId: venue.id })
+    .where(eq(groups.id, group.id));
+  return group;
 }
 
 async function mintLink(
@@ -159,19 +165,17 @@ describe("group join request decisions", () => {
       });
 
       const owner = await insertUser(db, "note-owner@example.com");
-      const community = await insertCommunity(db, owner.id);
-      const clubGroup = await createClubPublic(db, {
-        communityId: community.id,
-        name: "Club Crew",
-        sport: "padel",
-        userId: owner.id,
+      const club = await clubGroup(db, {
+        creatorId: owner.id,
         requiresApproval: true,
       });
       const clubRequest = await requestJoin(db, {
-        groupId: clubGroup.id,
+        groupId: club.id,
         userId: joiner.id,
       });
-      expect((await findRequest(db, clubRequest.id))?.source).toBe("community");
+      expect((await findRequest(db, clubRequest.id))?.source).toBe(
+        "group_page",
+      );
     } finally {
       await close();
     }
@@ -212,7 +216,7 @@ describe("group join request decisions", () => {
         requiresApproval: false,
       });
       await expect(
-        joinLoosePublic(db, { groupId: group.id, userId: joiner.id }),
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
       ).rejects.toSatisfy(expectTrpc("FORBIDDEN", "You can't join this Group"));
 
       const link = await mintLink(db, {
@@ -228,23 +232,12 @@ describe("group join request decisions", () => {
     }
   });
 
-  it("refuses joinClubPublic for a blocked Community Member", async () => {
+  it("refuses joinPublic for a blocked player on a Club Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "club-block-owner@example.com");
       const joiner = await insertUser(db, "club-block-joiner@example.com");
-      const community = await insertCommunity(db, owner.id);
-      await db.insert(communityMembers).values({
-        communityId: community.id,
-        userId: joiner.id,
-        role: CommunityRoleEnum.MEMBER,
-      });
-      const group = await createClubPublic(db, {
-        communityId: community.id,
-        name: "Club Crew",
-        sport: "padel",
-        userId: owner.id,
-      });
+      const group = await clubGroup(db, { creatorId: owner.id });
       await db.insert(groupJoinRequests).values({
         groupId: group.id,
         userId: joiner.id,
@@ -253,8 +246,9 @@ describe("group join request decisions", () => {
       });
 
       await expect(
-        joinClubPublic(db, { groupId: group.id, userId: joiner.id }),
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
       ).rejects.toSatisfy(expectTrpc("FORBIDDEN", "You can't join this Group"));
+      expect(await findMembership(db, group.id, joiner.id)).toBeUndefined();
     } finally {
       await close();
     }
@@ -483,6 +477,7 @@ describe("group join request decisions", () => {
         invitedBy: { id: creator.id, name: creator.name },
         level: null,
       });
+      expect(listed[0]).not.toHaveProperty("isCommunityMember");
     } finally {
       await close();
     }

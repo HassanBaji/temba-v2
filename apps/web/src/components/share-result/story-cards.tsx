@@ -19,10 +19,11 @@ const PAD_BOTTOM = 160;
 const MAX_SCORERS = 5;
 const MAX_LINEUP = 6;
 
+// Story cards render on black in both modes, so they keep the light palette.
 function StoryFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="bg-ink text-paper flex flex-col"
+      className="light bg-ink text-paper flex flex-col"
       style={{
         width: STORY_WIDTH,
         height: STORY_HEIGHT,

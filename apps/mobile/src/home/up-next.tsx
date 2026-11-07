@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { homeComingUpRows } from "@repo/domain/home-coming-up";
 import { ratingScopeTag } from "@repo/domain/game-rating-impact";
@@ -37,6 +37,7 @@ import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { venueCountLabel } from "./home-model";
 import type { HomeNavTarget } from "./home-target";
 import {
@@ -83,6 +84,7 @@ export function UpNextHeading({ label }: { label: string }) {
 }
 
 function Chip({ sport, kind }: { sport: Sport; kind: string }) {
+  const colors = useColors();
   const m = useMessages();
   const locale = useLocale();
   return (
@@ -99,7 +101,7 @@ function Chip({ sport, kind }: { sport: Sport; kind: string }) {
         borderColor: colors.dimrule,
       }}
     >
-      <SportGlyph sport={sport} color={colors.paper} size={CHIP_ICON} />
+      <SportGlyph sport={sport} color={colors.onFocus} size={CHIP_ICON} />
       <Text size="eyebrow" mono uppercase>
         {sportLabel(sport, locale)}
         <Text size="eyebrow" mono uppercase style={{ color: colors.dim }}>
@@ -127,6 +129,7 @@ function HeroFrame({
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
+  const colors = useColors();
   const m = useMessages();
   return (
     <Surface tone="ink" padded={false} style={{ padding: spacing.compact }}>
@@ -185,6 +188,7 @@ function Kickoff({
   startsAt: Date;
   endsAt: Date | null;
 }) {
+  const colors = useColors();
   const locale = useLocale();
   const kickoff = formatHomeKickoff(startsAt, locale);
   return (
@@ -224,6 +228,7 @@ function Headline({
   detail: string | null;
   pin?: boolean;
 }) {
+  const colors = useColors();
   return (
     <View style={{ gap: 4 }}>
       <Text size="lead" weight="semibold" numberOfLines={2}>
@@ -614,6 +619,7 @@ function BookRow({
   venues: string | null;
   onPress: () => void;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const label = m.mobileHome.upNext.book[sport];
   return (
@@ -668,6 +674,7 @@ function OutlineTile({
   icon: typeof Search;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -702,6 +709,7 @@ export function UpNextEmpty({
   createAction: HomeNoGamesCreateAction;
   onNavigate: Navigate;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const locale = useLocale();
   return (

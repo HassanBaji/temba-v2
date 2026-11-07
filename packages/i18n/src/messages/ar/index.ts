@@ -6,7 +6,6 @@ import { dates } from "./dates";
 import { tournament } from "./tournament";
 import { football } from "./football";
 import { group } from "./group";
-import { community } from "./community";
 import { invite } from "./invite";
 import { team } from "./team";
 import { home } from "./home";
@@ -28,10 +27,11 @@ import { mobileCreateGame } from "./mobile-create-game";
 import { mobileBooking } from "./mobile-booking";
 import { mobileTournament } from "./mobile-tournament";
 import { mobileHome } from "./mobile-home";
-import { mobileCommunity } from "./mobile-community";
 import { mobilePlayer } from "./mobile-player";
 import { you } from "./you";
 import { mobileYou } from "./mobile-you";
+import { mobileInvite } from "./mobile-invite";
+import { mobileTeam } from "./mobile-team";
 import { webYou } from "./web-you";
 
 import type { en } from "../en/index";
@@ -47,7 +47,6 @@ export const ar: Messages = {
   tournament,
   football,
   group,
-  community,
   invite,
   team,
   home,
@@ -69,9 +68,10 @@ export const ar: Messages = {
   mobileBooking,
   mobileTournament,
   mobileHome,
-  mobileCommunity,
   mobilePlayer,
   you,
   mobileYou,
   webYou,
+  mobileInvite,
+  mobileTeam,
 };

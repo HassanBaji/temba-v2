@@ -1,7 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
-  communityMemberInvites,
   gameMemberInvites,
   groupMemberInvites,
   teamMemberInvites,
@@ -28,29 +27,6 @@ export async function mintLookup(
   const unused = await findUnusedLookup(database, host, args.userId);
   if (unused) {
     return { ok: false, reason: "unused_exists" };
-  }
-
-  if (host.kind === "community") {
-    const [created] = await writeDb(database)
-      .insert(communityMemberInvites)
-      .values({
-        communityId: host.id,
-        userId: args.userId,
-        invitedBy: args.invitedBy,
-      })
-      .returning();
-    if (!created) {
-      return { ok: false, reason: "insert_failed" };
-    }
-    return {
-      ok: true,
-      invite: {
-        id: created.id,
-        hostId: created.communityId,
-        userId: created.userId,
-        createdAt: created.createdAt,
-      },
-    };
   }
 
   if (host.kind === "group") {
@@ -126,17 +102,6 @@ async function findUnusedLookup(
   host: InviteHost,
   userId: string,
 ) {
-  if (host.kind === "community") {
-    return database.query.communityMemberInvites.findFirst({
-      where: and(
-        eq(communityMemberInvites.communityId, host.id),
-        eq(communityMemberInvites.userId, userId),
-        isNull(communityMemberInvites.acceptedAt),
-        isNull(communityMemberInvites.revokedAt),
-      ),
-      columns: { id: true },
-    });
-  }
   if (host.kind === "group") {
     return database.query.groupMemberInvites.findFirst({
       where: and(

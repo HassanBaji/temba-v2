@@ -3,7 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { teamInviteLabel } from "./teams";
 
-export type InviteDoorKind = "game" | "group" | "community" | "team";
+export type InviteDoorKind = "game" | "group" | "team";
 export type InviteMode = "players" | "phone" | "link";
 
 export function inviteModeLabel(mode: InviteMode, locale: Locale) {

@@ -8,6 +8,7 @@ import { Hatch } from "../primitives/hatch";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import {
   levelLabel,
   poolSections,
@@ -25,12 +26,13 @@ type Cell =
   | { kind: "open"; key: string };
 
 function CodeTag({ code, keeper }: { code: string | null; keeper: boolean }) {
+  const colors = useColors();
   if (keeper) {
     return (
       <SurfaceToneContext.Provider value="ink">
         <View
           style={{
-            backgroundColor: tonePalette("ink").background,
+            backgroundColor: colors.control,
             borderRadius: 4,
             paddingHorizontal: 4,
             paddingVertical: 1,
@@ -60,7 +62,8 @@ function PlayerTile({
   const messages = useMessages();
   const locale = useLocale();
   const tone = player.isViewer ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   const name = player.isViewer ? messages.common.you : shortName(player.name);
   const code = slotCode(player, locale);
   return (
@@ -78,9 +81,11 @@ function PlayerTile({
           padding: 8,
           justifyContent: "space-between",
           borderRadius: radii.md,
-          backgroundColor: palette.background,
+          backgroundColor: player.isViewer
+            ? colors.control
+            : palette.background,
           borderWidth: hairline,
-          borderColor: player.isViewer ? palette.background : palette.rule,
+          borderColor: player.isViewer ? colors.controlEdge : palette.rule,
         }}
       >
         <View

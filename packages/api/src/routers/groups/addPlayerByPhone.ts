@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { CommunityRoleEnum, groupMembers, type groups } from "@repo/db";
+import { groupMembers, type groups } from "@repo/db";
 
 import { ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL } from "@repo/domain/add-player-by-phone";
 import {
@@ -13,12 +13,7 @@ import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import type { PadelLevelChoice } from "@repo/domain/onboarding-answers";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
-import {
-  admit as admitCommunityMember,
-  throwAdmitFailure,
-} from "#src/community-membership";
 import { type db } from "#src/db";
-import { requireCommunityMembership } from "#src/groups/helpers/require-community-membership";
 import { requireGroupPhoneAdder } from "#src/groups/helpers/require-group-phone-adder";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
 import { sendLookupInvite } from "#src/routers/groups/sendLookupInvite";
@@ -32,9 +27,6 @@ import { resolvePhonePlayer } from "#src/unclaimed-players/resolve-phone-player"
 type DbClient = typeof db;
 
 type AddPlayerLevel = PadelLevelChoice | "not_sure" | FootballSelfPlacement;
-
-export const NOT_A_COMMUNITY_MEMBER_MESSAGE =
-  "Only an Owner or Admin can add someone who is not a Community Member";
 
 function isFootballPlacement(
   level: AddPlayerLevel,
@@ -76,7 +68,7 @@ export async function addPlayerByPhone(
     level?: AddPlayerLevel;
   },
 ) {
-  const { group, canAdmitCommunityMember } = await requireGroupPhoneAdder(
+  const group = await requireGroupPhoneAdder(
     database,
     args.groupId,
     args.approverUserId,
@@ -106,23 +98,6 @@ export async function addPlayerByPhone(
   }
 
   return database.transaction(async (tx) => {
-    const communityId = group.communityId;
-    if (communityId && !canAdmitCommunityMember) {
-      const isCommunityMember =
-        resolved.kind === "unclaimed" &&
-        (await requireCommunityMembership(
-          tx,
-          communityId,
-          resolved.user.id,
-        )) !== null;
-      if (!isCommunityMember) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: NOT_A_COMMUNITY_MEMBER_MESSAGE,
-        });
-      }
-    }
-
     let player;
     if (resolved.kind === "new") {
       if (!name) {
@@ -150,17 +125,6 @@ export async function addPlayerByPhone(
         code: "CONFLICT",
         message: `${player.name} is already in this Group`,
       });
-    }
-
-    if (communityId && canAdmitCommunityMember) {
-      const admitted = await admitCommunityMember(tx, {
-        communityId,
-        userId: player.id,
-        role: CommunityRoleEnum.MEMBER,
-      });
-      if (!admitted.ok && admitted.reason !== "already_member") {
-        throwAdmitFailure(admitted);
-      }
     }
 
     await tx.insert(groupMembers).values({

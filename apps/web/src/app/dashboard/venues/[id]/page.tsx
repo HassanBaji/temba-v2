@@ -18,7 +18,6 @@ import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { VenueManagersSection } from "~/components/venues/venue-managers-section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -302,7 +301,7 @@ export default function VenueHomePage({
             />
           }
           title={venueName}
-          meta={m.community.venue.location(data.city, data.country)}
+          meta={v.location(data.city, data.country)}
           primaryAction={
             data.archivedAt ? (
               <Button
@@ -311,7 +310,7 @@ export default function VenueHomePage({
                 pending={unarchive.isPending}
                 pendingLabel={v.unarchiving}
               >
-                {m.community.action.unarchive}
+                {v.unarchiveAction}
               </Button>
             ) : (
               <Button
@@ -319,7 +318,7 @@ export default function VenueHomePage({
                 variant="outline"
                 onClick={() => setArchiveOpen(true)}
               >
-                {m.community.action.softArchive}
+                {v.softArchiveAction}
               </Button>
             )
           }
@@ -335,30 +334,21 @@ export default function VenueHomePage({
         ) : null}
 
         <Section
-          title={v.linkedCommunities.title}
-          description={v.linkedCommunities.description}
+          title={v.linkedGroups.title}
+          description={v.linkedGroups.description}
         >
-          {data.linkedCommunities.length === 0 ? (
+          {data.linkedGroups.length === 0 ? (
             <p className="text-body text-muted-foreground">
-              {v.linkedCommunities.empty}
+              {v.linkedGroups.empty}
             </p>
           ) : (
             <RowList>
-              {data.linkedCommunities.map((community) => (
+              {data.linkedGroups.map((group) => (
                 <ListRow
-                  key={community.id}
-                  asChild
-                  title={community.name}
-                  trailing={
-                    community.archivedAt ? (
-                      <Badge variant="outline">
-                        {m.community.badge.softArchived}
-                      </Badge>
-                    ) : undefined
-                  }
-                >
-                  <Link href={`/dashboard/communities/${community.id}`} />
-                </ListRow>
+                  key={group.id}
+                  title={group.name}
+                  meta={sportLabel(group.sport, locale)}
+                />
               ))}
             </RowList>
           )}

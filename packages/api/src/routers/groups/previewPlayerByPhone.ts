@@ -29,7 +29,7 @@ export async function previewPlayerByPhone(
     nationalNumber: string;
   },
 ): Promise<GroupPhonePlayerPreview> {
-  const { group } = await requireGroupPhoneAdder(
+  const group = await requireGroupPhoneAdder(
     database,
     args.groupId,
     args.approverUserId,

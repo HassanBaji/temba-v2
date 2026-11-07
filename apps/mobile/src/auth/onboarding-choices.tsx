@@ -6,6 +6,7 @@ import { hairline } from "../primitives/hairline-width";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 function ChoiceSurface(props: {
   selected: boolean;
@@ -16,7 +17,8 @@ function ChoiceSurface(props: {
   children: React.ReactNode;
 }) {
   const tone = props.selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -32,9 +34,12 @@ function ChoiceSurface(props: {
           {
             minHeight: sizes.touchTarget,
             borderWidth: hairline,
-            borderColor: props.selected ? palette.background : palette.rule,
-            backgroundColor:
-              pressed && !props.selected ? palette.wash : palette.background,
+            borderColor: props.selected ? colors.ink : palette.rule,
+            backgroundColor: props.selected
+              ? colors.control
+              : pressed
+                ? palette.wash
+                : palette.background,
             opacity: props.disabled ? 0.5 : 1,
           },
           props.style,

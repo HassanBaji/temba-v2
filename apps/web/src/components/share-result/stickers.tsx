@@ -13,7 +13,8 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { STICKER_WIDTH } from "./scaled-canvas";
 import { Big, BibSquare, InitialsSquare, Label, Wordmark } from "./story-parts";
 
-/** The black card itself; the canvas around it stays transparent. */
+/** The black card itself; the canvas around it stays transparent. It renders
+ * on black in both modes, so it keeps the light palette. */
 function StickerFrame({
   typeLine,
   children,
@@ -22,7 +23,7 @@ function StickerFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ width: STICKER_WIDTH }}>
+    <div className="light" style={{ width: STICKER_WIDTH }}>
       <div
         className="bg-ink text-paper flex flex-col"
         style={{ borderRadius: 32, padding: "40px 44px", gap: 28 }}

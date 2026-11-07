@@ -2,13 +2,10 @@ import { getTableName, eq, inArray } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  CommunityRoleEnum,
   GameFormatEnum,
   GamePositionEnum,
   GameRegistrationModeEnum,
   MatchStatusEnum,
-  communities,
-  communityMembers,
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
@@ -285,13 +282,6 @@ describe("mergeIntoAccount", () => {
       await db
         .insert(groupMembers)
         .values({ groupId, userId: people.unclaimed.id });
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Club", createdBy: people.organizer.id })
-        .returning({ id: communities.id });
-      await db
-        .insert(communityMembers)
-        .values({ communityId: community!.id, userId: people.unclaimed.id });
       const gameId = await insertGame(db, people, groupId);
       const { matchId } = await playCompletedMatch(db, {
         gameId,
@@ -327,12 +317,6 @@ describe("mergeIntoAccount", () => {
         where: eq(groupMembers.userId, people.survivor.id),
       });
       expect(memberships.map((row) => row.groupId)).toEqual([groupId]);
-      const communitySeats = await db.query.communityMembers.findMany({
-        where: eq(communityMembers.userId, people.survivor.id),
-      });
-      expect(communitySeats.map((row) => row.communityId)).toEqual([
-        community!.id,
-      ]);
 
       const keptRatings = await db
         .select()
@@ -445,39 +429,6 @@ describe("mergeIntoAccount", () => {
       expect(
         standing.find((row) => row.userId === people.survivor.id),
       ).toMatchObject({ played: 2, wins: 2, points: 6 });
-    } finally {
-      await close();
-    }
-  });
-
-  it("same Community: keeps the account's Member seat and its role", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const people = await seedPeople(db);
-      const [community] = await db
-        .insert(communities)
-        .values({ name: "Club", createdBy: people.organizer.id })
-        .returning({ id: communities.id });
-      await db.insert(communityMembers).values([
-        {
-          communityId: community!.id,
-          userId: people.survivor.id,
-          role: CommunityRoleEnum.ADMIN,
-        },
-        { communityId: community!.id, userId: people.unclaimed.id },
-      ]);
-
-      const record = await merge(db, people);
-
-      expect(record?.summary.membershipsMoved).toBe(0);
-      const rows = await db.query.communityMembers.findMany({
-        where: eq(communityMembers.communityId, community!.id),
-      });
-      expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({
-        userId: people.survivor.id,
-        role: CommunityRoleEnum.ADMIN,
-      });
     } finally {
       await close();
     }

@@ -1,8 +1,6 @@
-import { colors, spacing } from "@repo/design-tokens";
+import { spacing } from "@repo/design-tokens";
 import { sportGlyph } from "@repo/domain/sport";
 import { type TeamHomeView as TeamHomeViewData } from "@repo/domain/teams";
-import type { TeamLinkCommunityPicker } from "@repo/domain/team-link-community-picker";
-import { noLinkableCommunityCopy } from "@repo/domain/team-link-community-picker";
 import { View } from "react-native";
 
 import {
@@ -10,41 +8,26 @@ import {
   type ConfirmRequest,
 } from "../game-details/confirm-sheet";
 import { Notice } from "../groups/notice";
-import { useLocale, useMessages } from "../i18n/locale-provider";
+import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { SportGlyph } from "../lib/sport-glyph";
 import { Hairline } from "../primitives/hairline";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Section } from "../primitives/section";
-import { Sheet } from "../primitives/sheet";
-import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { TeamAvatars } from "./team-avatars";
 import { TEAMS_PATH } from "./teams-model";
-
-export type LinkCommunity = { id: string; name: string };
 
 export type TeamHomeViewProps = {
   view: TeamHomeViewData;
   sport: string;
-  linkOpen: boolean;
-  linkPicker: TeamLinkCommunityPicker<LinkCommunity>;
-  linkPickerMessage: string | null;
-  selectedCommunityId: string | null;
-  linkError: string | null;
-  linkPending: boolean;
   confirm: ConfirmRequest | null;
   confirmPending: boolean;
   actionError: string | null;
   onInvite: () => void;
-  onOpenLink: () => void;
-  onCloseLink: () => void;
-  onSelectCommunity: (communityId: string) => void;
-  onSubmitLink: () => void;
-  onRetryCommunities: () => void;
-  onUnlink: () => void;
   onDissolve: () => void;
   onLeave: () => void;
   onCloseConfirm: () => void;
@@ -59,7 +42,7 @@ function Stats({ stats }: { stats: TeamHomeViewData["stats"] }) {
           <View key={stat.label} style={{ flex: 1, flexDirection: "row" }}>
             <View
               accessible
-              accessibilityLabel={m.mobileCommunity.team.statA11y(
+              accessibilityLabel={m.mobileTeam.home.statA11y(
                 stat.label,
                 stat.value,
               )}
@@ -145,77 +128,10 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
   );
 }
 
-function LinkSheet(props: TeamHomeViewProps) {
-  const { linkPicker } = props;
-  const m = useMessages();
-  const locale = useLocale();
-  return (
-    <Sheet
-      visible={props.linkOpen}
-      onClose={props.onCloseLink}
-      title={m.team.requestLinkLabel}
-    >
-      <Text size="meta" tone="muted">
-        {m.team.requestLinkDescription}
-      </Text>
-      {props.linkError ? (
-        <Text size="meta" weight="medium" accessibilityRole="alert">
-          {props.linkError}
-        </Text>
-      ) : null}
-      {linkPicker.status === "loading" ? (
-        <Skeleton height={48} radius={12} />
-      ) : linkPicker.status === "error" ? (
-        <Notice
-          alert
-          title={m.community.errorTitle}
-          description={props.linkPickerMessage}
-          onRetry={props.onRetryCommunities}
-        />
-      ) : linkPicker.status === "empty" ? (
-        <Notice
-          title={m.mobileCommunity.team.noCommunityToLink}
-          description={noLinkableCommunityCopy(locale)}
-        />
-      ) : (
-        <View style={{ gap: 12 }}>
-          <View
-            accessibilityRole="radiogroup"
-            accessibilityLabel={m.community.fallbackName}
-            style={{ gap: 8 }}
-          >
-            {linkPicker.communities.map((community) => (
-              <Button
-                key={community.id}
-                label={community.name}
-                variant={
-                  props.selectedCommunityId === community.id
-                    ? "default"
-                    : "outline"
-                }
-                selected={props.selectedCommunityId === community.id}
-                disabled={props.linkPending}
-                onPress={() => props.onSelectCommunity(community.id)}
-              />
-            ))}
-          </View>
-          <View style={{ flexDirection: "row" }}>
-            <Button
-              label={m.team.requestLinkSubmitLabel}
-              pending={props.linkPending}
-              disabled={props.selectedCommunityId == null}
-              onPress={props.onSubmitLink}
-            />
-          </View>
-        </View>
-      )}
-    </Sheet>
-  );
-}
-
 export function TeamHomeView(props: TeamHomeViewProps) {
   const { view } = props;
   const m = useMessages();
+  const colors = useColors();
   return (
     <View style={{ gap: spacing.section }}>
       <View style={{ gap: spacing.compact }}>
@@ -242,11 +158,6 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             {view.badges.join(" · ")}
           </Text>
         </View>
-        {view.linkedCommunity ? (
-          <Text size="meta" tone="muted">
-            {m.mobileCommunity.team.linkedTo(view.linkedCommunity.name)}
-          </Text>
-        ) : null}
         {props.actionError ? (
           <Text size="meta" weight="medium" accessibilityRole="alert">
             {props.actionError}
@@ -264,20 +175,10 @@ export function TeamHomeView(props: TeamHomeViewProps) {
           {view.waitingCopy}
         </Text>
       ) : null}
-      {view.requestLinkHint ? (
-        <Text size="meta" tone="muted">
-          {view.requestLinkHint}
-        </Text>
-      ) : null}
-      {view.pendingLinkNote ? (
-        <Text size="meta" tone="muted">
-          {view.pendingLinkNote}
-        </Text>
-      ) : null}
 
       <Stats stats={view.stats} />
 
-      <Section title={m.community.tab.members}>
+      <Section title={m.mobileTeam.home.membersTitle}>
         {view.roster.label ? (
           <Text size="eyebrow" tone="muted" mono uppercase>
             {[view.roster.label, view.roster.status]
@@ -288,12 +189,8 @@ export function TeamHomeView(props: TeamHomeViewProps) {
         <Members members={view.members} />
       </Section>
 
-      {view.canInvite ||
-      view.canRequestLink ||
-      view.canUnlink ||
-      view.canLeave ||
-      view.canDissolve ? (
-        <Section title={m.mobileCommunity.team.actionsTitle}>
+      {view.canInvite || view.canLeave || view.canDissolve ? (
+        <Section title={m.mobileTeam.home.actionsTitle}>
           <View style={{ gap: 8 }}>
             {view.canInvite && !view.primaryInvite ? (
               <View style={{ flexDirection: "row" }}>
@@ -301,24 +198,6 @@ export function TeamHomeView(props: TeamHomeViewProps) {
                   label={view.inviteLabel}
                   variant="outline"
                   onPress={props.onInvite}
-                />
-              </View>
-            ) : null}
-            {view.canRequestLink ? (
-              <View style={{ flexDirection: "row" }}>
-                <Button
-                  label={m.team.requestLinkLabel}
-                  variant="outline"
-                  onPress={props.onOpenLink}
-                />
-              </View>
-            ) : null}
-            {view.canUnlink ? (
-              <View style={{ flexDirection: "row" }}>
-                <Button
-                  label={m.team.unlinkLabel}
-                  variant="outline"
-                  onPress={props.onUnlink}
                 />
               </View>
             ) : null}
@@ -344,7 +223,6 @@ export function TeamHomeView(props: TeamHomeViewProps) {
         </Section>
       ) : null}
 
-      <LinkSheet {...props} />
       <ConfirmSheet
         request={props.confirm}
         pending={props.confirmPending}

@@ -1,5 +1,5 @@
 {
-  "id": "c6caccad-714b-48b1-98b9-ed43dc2ff59f",
+  "id": "e7f8de48-8b5c-45df-ac34-590c676419d7",
   "prevId": "9ab13d8f-2224-4c01-bfea-826ba7a688ce",
   "version": "7",
   "dialect": "postgresql",
@@ -359,13 +359,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "email_notifications": {
-          "name": "email_notifications",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "match_history_visibility": {
           "name": "match_history_visibility",
@@ -4265,6 +4258,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "either_side": {
+          "name": "either_side",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -7940,12 +7940,6 @@
         },
         "read_at": {
           "name": "read_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emailed_at": {
-          "name": "emailed_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false

@@ -1,4 +1,4 @@
-import { bibColors, colors, radii } from "@repo/design-tokens";
+import { bibColors, radii } from "@repo/design-tokens";
 import {
   footballBibName,
   MORE_FOOTBALL_BIBS,
@@ -14,6 +14,8 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
+import { bibEdge } from "./bib-edge";
 import type { Bibs, Side } from "@repo/domain/football-board";
 
 const SWATCH = 30;
@@ -27,6 +29,8 @@ export function BibChip({
   bib: FootballBib;
   size?: number;
 }) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
   const { fill } = bibColors[bib];
   return (
     <View
@@ -39,7 +43,7 @@ export function BibChip({
         borderRadius: Math.round(size / 4),
         backgroundColor: fill,
         borderWidth: hairline,
-        borderColor: fill === colors.paper ? colors.inputBorder : fill,
+        borderColor: bibEdge(fill, colors, scheme),
       }}
     />
   );
@@ -56,6 +60,8 @@ function Swatch({
   label: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
   const { fill } = bibColors[bib];
   return (
     <Pressable
@@ -80,7 +86,7 @@ function Swatch({
           borderRadius: SWATCH / 2,
           backgroundColor: fill,
           borderWidth: hairline,
-          borderColor: fill === colors.paper ? colors.inputBorder : fill,
+          borderColor: bibEdge(fill, colors, scheme),
         }}
       />
     </Pressable>
@@ -88,6 +94,7 @@ function Swatch({
 }
 
 function MoreSwatch({ open, onPress }: { open: boolean; onPress: () => void }) {
+  const colors = useColors();
   const m = useMessages().mobileTournament.bibs;
   return (
     <Pressable

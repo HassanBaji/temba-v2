@@ -85,7 +85,7 @@ function StatusTag({ status }: { status: GroupSeasonStatus }) {
       className={cn(
         "shrink-0 rounded-[4px] px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.06em]",
         status === "active"
-          ? "bg-ink text-paper"
+          ? "bg-control text-on-control"
           : status === "upcoming"
             ? "border-ink text-ink border"
             : "border-rule text-muted-foreground border",
@@ -180,7 +180,7 @@ function CloseSeasonDialog({
               m.webDashboard.seasons.close.leader,
               leader
                 ? m.webDashboard.seasons.close.leaderValue(
-                    leader.name ?? m.community.memberFallback,
+                    leader.name ?? m.webGroup.memberFallback,
                     leader.points,
                   )
                 : m.webDashboard.seasons.close.nobodyRanked,

@@ -1,4 +1,4 @@
-import { bibColors, colors, radii } from "@repo/design-tokens";
+import { bibColors, radii } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import {
   FOOTBALL_TEAMS_METHODS,
@@ -21,7 +21,9 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { api } from "../trpc/react";
+import { bibEdge } from "./bib-edge";
 import { BibChip, BibPicker } from "./bib-picker";
 import {
   balancedSides,
@@ -50,6 +52,7 @@ function MethodToggle({
   method: FootballTeamsMethod;
   onChange: (method: FootballTeamsMethod) => void;
 }) {
+  const colors = useColors();
   const m = useMessages().mobileTournament.makeTeams;
   const methodLabels: Record<FootballTeamsMethod, string> = {
     level: m.methodByLevel,
@@ -79,13 +82,13 @@ function MethodToggle({
               height: 40,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: selected ? colors.ink : colors.paper,
+              backgroundColor: selected ? colors.control : colors.paper,
             }}
           >
             <Text
               size="meta"
               weight={selected ? "semibold" : "regular"}
-              style={{ color: selected ? colors.paper : colors.muted }}
+              style={{ color: selected ? colors.onControl : colors.muted }}
             >
               {methodLabels[value]}
             </Text>
@@ -97,6 +100,8 @@ function MethodToggle({
 }
 
 function Bar({ share, bib }: { share: number; bib: FootballBib }) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
   const fill = bibColors[bib].fill;
   return (
     <View
@@ -112,7 +117,7 @@ function Bar({ share, bib }: { share: number; bib: FootballBib }) {
         style={{
           width: `${Math.round(Math.min(1, share) * 100)}%`,
           height: BAR_HEIGHT,
-          backgroundColor: fill === colors.paper ? colors.inputBorder : fill,
+          backgroundColor: bibEdge(fill, colors, scheme),
         }}
       />
     </View>
@@ -252,6 +257,8 @@ function SwatchButton({
   label: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
   const fill = bibColors[bib].fill;
   return (
     <Pressable
@@ -274,7 +281,7 @@ function SwatchButton({
           borderRadius: radii.sm - 2,
           backgroundColor: fill,
           borderWidth: hairline,
-          borderColor: fill === colors.paper ? colors.inputBorder : fill,
+          borderColor: bibEdge(fill, colors, scheme),
           opacity: selected ? 1 : 0.55,
         }}
       />
@@ -293,6 +300,8 @@ function ManualRow({
   names: { slot1: string; slot2: string };
   onPlace: (side: Side) => void;
 }) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
   const messages = useMessages();
   const locale = useLocale();
   const m = messages.mobileTournament.makeTeams;
@@ -314,7 +323,7 @@ function ManualRow({
         backgroundColor: fill,
         borderWidth: hairline,
         borderStyle: bib ? "solid" : "dashed",
-        borderColor: bib && fill !== colors.paper ? fill : colors.inputBorder,
+        borderColor: bib ? bibEdge(fill, colors, scheme) : colors.inputBorder,
       }}
     >
       <Avatar name={player.name} uri={player.image} />
@@ -419,6 +428,7 @@ function ManualLists({
  * each team's bib colour and publishes.
  */
 export function MakeTeamsScreen({ gameId }: { gameId: string }) {
+  const colors = useColors();
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.mobileTournament.makeTeams;

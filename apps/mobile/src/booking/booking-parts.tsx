@@ -1,4 +1,4 @@
-import { colors, radii, spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import type { BookingPaymentMethod } from "@repo/domain/booking-payment";
 import type { Href } from "expo-router";
 import {
@@ -16,6 +16,7 @@ import { hairline } from "../primitives/hairline-width";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text, type TextSize } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 const HERO_PADDING_BOTTOM = 22;
 
@@ -124,6 +125,7 @@ export function SectionHeading({
   meta?: string | null;
   metaIcon?: LucideIcon;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -179,6 +181,7 @@ export function DetailRow({
   children: React.ReactNode;
   first?: boolean;
 }) {
+  const colors = useColors();
   return (
     <View
       style={{
@@ -231,6 +234,7 @@ export function Notice({
 
 /** A small outlined pill: "4 courts", "Open to 11 PM". */
 export function Pill({ label }: { label: string }) {
+  const colors = useColors();
   return (
     <View
       style={{

@@ -19,6 +19,8 @@ export type FriendlyGameDetailsSeat = {
   levelBand: LevelBand | null;
   unclaimed?: boolean;
   phoneMasked?: string | null;
+  /** Joined without picking a Position. */
+  eitherSide?: boolean;
 };
 
 export type FriendlyGameDetailsSide = {
@@ -103,7 +105,6 @@ export type FriendlyGameDetails = {
   registrationClosedAt: Date | null;
   isOrganizer: boolean;
   viewerUserId: string;
-  joinFrozen: boolean;
   isRegistered: boolean;
   isSeated: boolean;
   isWaitlisted: boolean;

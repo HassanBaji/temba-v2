@@ -258,7 +258,7 @@ export async function createTournament(
     });
   }
   await assertMayCreateGameOnGroup(database, group, input.createdBy);
-  const groupVerified = await groupIsVerified(database, group);
+  const groupVerified = groupIsVerified(group);
   if (input.isPublic && !groupVerified) {
     throw new TRPCError({
       code: "FORBIDDEN",

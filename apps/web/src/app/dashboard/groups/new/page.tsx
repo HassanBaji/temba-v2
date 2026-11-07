@@ -118,12 +118,11 @@ export default function NewLooseGroupPage() {
               {m.group.create.screen.title}
             </PageTitle>
             <p className="text-body text-muted-foreground">
-              {m.group.create.screen.description.loose}
+              {m.group.create.screen.description}
             </p>
           </div>
         </header>
         <GroupCreateForm
-          context="loose"
           idPrefix="group"
           pending={isPending}
           error={submitError}

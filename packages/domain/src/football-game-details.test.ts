@@ -31,7 +31,6 @@ function game(
     registrationClosedAt: null,
     registrationStatus: "open",
     rated: false,
-    joinFrozen: false,
     isOrganizer: false,
     viewerUserId: "me",
     isRegistered: false,
@@ -202,7 +201,6 @@ describe("footballGameCta", () => {
 
   it("offers nothing once cancelled or frozen", () => {
     assert.equal(footballGameCta(game({ cancelledAt: NOW }), "en"), null);
-    assert.equal(footballGameCta(game({ joinFrozen: true }), "en"), null);
     assert.equal(footballGameCta(game({ canRegister: false }), "en"), null);
   });
 });

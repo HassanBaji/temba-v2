@@ -21,7 +21,6 @@ function game(
     registrationMode: "individual",
     canRegister: false,
     canWaitlist: false,
-    joinFrozen: false,
     isRegistered: false,
     isSeated: false,
     isWaitlisted: false,
@@ -86,11 +85,7 @@ describe("gameSummaryPrimaryAction", () => {
     );
   });
 
-  it("offers View when Soft-archived, closed, or cancelled", () => {
-    assert.equal(
-      gameSummaryPrimaryAction(game({ canRegister: true, joinFrozen: true })),
-      "view",
-    );
+  it("offers View when closed or cancelled", () => {
     assert.equal(
       gameSummaryPrimaryAction(
         game({ canRegister: true, registrationStatus: "closed" }),
@@ -180,12 +175,6 @@ describe("gameSummaryPrimaryAction", () => {
           canRegister: false,
           tournament: { drawPosted: false },
         }),
-      ),
-      "view",
-    );
-    assert.equal(
-      gameSummaryPrimaryAction(
-        game({ ...pool, joinFrozen: true, tournament: { drawPosted: false } }),
       ),
       "view",
     );

@@ -99,6 +99,20 @@ const noMountProps = [
   },
 ];
 
+const noStaticPalette = [
+  "error",
+  {
+    paths: [
+      {
+        name: "@repo/design-tokens",
+        importNames: ["colors", "darkColors"],
+        message:
+          "Read colors with useColors() so dark mode follows (ADR-0055). Output that stays light in both schemes reads palettes.light.",
+      },
+    ],
+  },
+];
+
 function restrict(...groups) {
   return [
     "error",
@@ -120,7 +134,12 @@ export default [
         noMountProps,
         noPhysicalSide,
       ),
+      "no-restricted-imports": noStaticPalette,
     },
+  }),
+  ...tseslint.config({
+    files: ["**/*.test.ts", "**/*.test.tsx"],
+    rules: { "no-restricted-imports": "off" },
   }),
   ...tseslint.config({
     files: [

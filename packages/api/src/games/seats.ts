@@ -22,6 +22,7 @@ import {
 import { isPoolDrawPosted } from "#src/games/assert-pool-draw-not-posted";
 import type {
   GameSide,
+  SeatChoice,
   SeatOccupant,
   SeatPosition,
   VacatedSeat,
@@ -29,6 +30,7 @@ import type {
 
 export type {
   GameSide,
+  SeatChoice,
   SeatOccupant,
   SeatPosition,
   VacatedSeat,
@@ -165,6 +167,7 @@ export async function assertFullyVacantSide(
 async function requirePlayerUser(
   database: DbClient,
   gamePlayerId: string,
+  side: { eitherSide: boolean; sideSetBy: string | null },
 ): Promise<SeatOccupant | null> {
   const player = await database.query.gamePlayers.findFirst({
     where: eq(gamePlayers.id, gamePlayerId),
@@ -179,6 +182,8 @@ async function requirePlayerUser(
     userId: player.user.id,
     name: player.user.name,
     image: player.user.image,
+    eitherSide: side.eitherSide,
+    sideSetByUserId: side.sideSetBy,
   };
 }
 
@@ -191,7 +196,12 @@ export async function listGameSides(
     where: eq(gameTeams.gameId, game.id),
     with: {
       players: {
-        columns: { gamePlayerId: true, position: true },
+        columns: {
+          gamePlayerId: true,
+          position: true,
+          eitherSide: true,
+          sideSetBy: true,
+        },
       },
     },
   });
@@ -209,7 +219,11 @@ export async function listGameSides(
     let right: SeatOccupant | null = null;
     if (team) {
       for (const link of team.players) {
-        const occupant = await requirePlayerUser(database, link.gamePlayerId);
+        const occupant = await requirePlayerUser(
+          database,
+          link.gamePlayerId,
+          link,
+        );
         if (!occupant) {
           continue;
         }
@@ -270,21 +284,6 @@ export async function setFriendlyMatchSlotForSide(
     .where(eq(matches.id, match.id));
 }
 
-async function occupantAt(
-  database: DbClient,
-  gameTeamId: string,
-  position: SeatPosition,
-) {
-  const link = await database.query.gameTeamPlayers.findFirst({
-    where: and(
-      eq(gameTeamPlayers.gameTeamId, gameTeamId),
-      eq(gameTeamPlayers.position, position),
-    ),
-    columns: { id: true },
-  });
-  return Boolean(link);
-}
-
 async function gameTeamPlayerCount(database: DbClient, gameTeamId: string) {
   const links = await database.query.gameTeamPlayers.findMany({
     where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
@@ -293,12 +292,109 @@ async function gameTeamPlayerCount(database: DbClient, gameTeamId: string) {
   return links.length;
 }
 
+type TeamSeatLink = {
+  id: string;
+  position: SeatPosition | null;
+  eitherSide: boolean;
+};
+
+async function teamSeatLinks(
+  database: DbClient,
+  gameTeamId: string,
+): Promise<TeamSeatLink[]> {
+  return database.query.gameTeamPlayers.findMany({
+    where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
+    columns: { id: true, position: true, eitherSide: true },
+  });
+}
+
+function throwPositionOccupied(): never {
+  throw new TRPCError({
+    code: "CONFLICT",
+    message: "That Position is occupied",
+  });
+}
+
+/**
+ * Where a joiner sits on a Game team that has at most one User. Either side is
+ * the joiner's own answer and stays theirs: next to a User who picked a
+ * Position they take the other one ("auto"), next to another Either-side
+ * User nobody has a side yet. A joiner who picks the Position an Either-side
+ * User holds moves that User to the other one; a picked Position is never
+ * taken.
+ */
+export function resolveTeamSeat(
+  partner: { position: SeatPosition | null; eitherSide: boolean } | null,
+  choice: SeatChoice,
+):
+  | {
+      ok: true;
+      position: SeatPosition;
+      eitherSide: boolean;
+      movePartnerTo: SeatPosition | null;
+    }
+  | { ok: false } {
+  const eitherSide = choice === "either";
+  if (!partner) {
+    return {
+      ok: true,
+      position: eitherSide ? "left" : choice,
+      eitherSide,
+      movePartnerTo: null,
+    };
+  }
+  const partnerPosition = partner.position ?? "left";
+  if (choice === "either" || choice !== partnerPosition) {
+    return {
+      ok: true,
+      position: otherPosition(partnerPosition),
+      eitherSide,
+      movePartnerTo: null,
+    };
+  }
+  if (!partner.eitherSide) {
+    return { ok: false };
+  }
+  return {
+    ok: true,
+    position: choice,
+    eitherSide: false,
+    movePartnerTo: otherPosition(choice),
+  };
+}
+
+async function claimTeamSeat(
+  database: Tx,
+  gameTeamId: string,
+  choice: SeatChoice,
+) {
+  const links = await teamSeatLinks(database, gameTeamId);
+  if (links.length >= 2) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "That side already has two Users",
+    });
+  }
+  const partner = links[0] ?? null;
+  const seat = resolveTeamSeat(partner, choice);
+  if (!seat.ok) {
+    throwPositionOccupied();
+  }
+  if (partner && seat.movePartnerTo) {
+    await database
+      .update(gameTeamPlayers)
+      .set({ position: seat.movePartnerTo, updatedAt: new Date() })
+      .where(eq(gameTeamPlayers.id, partner.id));
+  }
+  return { position: seat.position, eitherSide: seat.eitherSide };
+}
+
 export async function occupySeat(
   database: Tx,
   game: GameRow,
   userId: string,
   sideIndex: number,
-  position: SeatPosition,
+  choice: SeatChoice,
   existingPlayerId?: string,
 ) {
   const n = sideCount(game);
@@ -306,6 +402,12 @@ export async function occupySeat(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "That side is not on this Game",
+    });
+  }
+  if (choice === "either" && game.format !== "friendly_game") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Pick a Position on a tournament",
     });
   }
 
@@ -316,21 +418,7 @@ export async function occupySeat(
     ),
   });
 
-  if (team) {
-    const count = await gameTeamPlayerCount(database, team.id);
-    if (count >= 2) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "That side already has two Users",
-      });
-    }
-    if (await occupantAt(database, team.id, position)) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "That Position is occupied",
-      });
-    }
-  } else {
+  if (!team) {
     try {
       const [created] = await database
         .insert(gameTeams)
@@ -357,30 +445,16 @@ export async function occupySeat(
         ),
       });
       if (!existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "That Position is occupied",
-        });
+        throwPositionOccupied();
       }
       team = existing;
     }
     if (game.format === "friendly_game") {
       await setFriendlyMatchSlotForSide(database, game.id, sideIndex, team.id);
     }
-    const count = await gameTeamPlayerCount(database, team.id);
-    if (count >= 2) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "That side already has two Users",
-      });
-    }
-    if (await occupantAt(database, team.id, position)) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "That Position is occupied",
-      });
-    }
   }
+
+  const seat = await claimTeamSeat(database, team.id, choice);
 
   let playerId = existingPlayerId;
   if (!playerId) {
@@ -401,19 +475,17 @@ export async function occupySeat(
     await database.insert(gameTeamPlayers).values({
       gameTeamId: team.id,
       gamePlayerId: playerId,
-      position,
+      position: seat.position,
+      eitherSide: seat.eitherSide,
     });
   } catch (error) {
     if (!isUniqueViolation(error)) {
       throw error;
     }
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "That Position is occupied",
-    });
+    throwPositionOccupied();
   }
 
-  return team;
+  return Object.assign(team, { position: seat.position });
 }
 
 export async function insertIndividualPairOnVacantSide(
@@ -559,11 +631,16 @@ export async function moveToSeat(
     ),
     columns: { id: true },
   });
-  if (destTeam && (await occupantAt(database, destTeam.id, position))) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "That Position is occupied",
-    });
+  if (destTeam) {
+    const others = (await teamSeatLinks(database, destTeam.id)).filter(
+      (other) => other.id !== link.id,
+    );
+    if (
+      others.length >= 2 ||
+      !resolveTeamSeat(others[0] ?? null, position).ok
+    ) {
+      throwPositionOccupied();
+    }
   }
 
   await database.delete(gameTeamPlayers).where(eq(gameTeamPlayers.id, link.id));
@@ -574,4 +651,169 @@ export async function moveToSeat(
   }
 
   await occupySeat(database, game, userId, sideIndex, position, player.id);
+}
+
+async function requireOwnSeatLink(database: Tx, game: GameRow, userId: string) {
+  const player = await database.query.gamePlayers.findFirst({
+    where: and(eq(gamePlayers.gameId, game.id), eq(gamePlayers.userId, userId)),
+    columns: { id: true },
+  });
+  const link = player
+    ? await database.query.gameTeamPlayers.findFirst({
+        where: eq(gameTeamPlayers.gamePlayerId, player.id),
+        columns: { id: true, gameTeamId: true },
+      })
+    : undefined;
+  if (!link) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "You are not seated on this Game",
+    });
+  }
+  return link;
+}
+
+async function teamPartnerLink(
+  database: Tx,
+  gameTeamId: string,
+  ownLinkId: string,
+) {
+  const links = await database.query.gameTeamPlayers.findMany({
+    where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
+    columns: { id: true, position: true, eitherSide: true },
+    with: { gamePlayer: { columns: { userId: true } } },
+  });
+  return links.find((link) => link.id !== ownLinkId) ?? null;
+}
+
+/** Writes two Positions on one Game team without tripping the unique index. */
+async function placeLinks(
+  database: Tx,
+  rows: {
+    id: string;
+    position: SeatPosition;
+    eitherSide: boolean;
+    sideSetBy: string | null;
+  }[],
+) {
+  const now = new Date();
+  for (const row of rows) {
+    await database
+      .update(gameTeamPlayers)
+      .set({ position: null, updatedAt: now })
+      .where(eq(gameTeamPlayers.id, row.id));
+  }
+  for (const row of rows) {
+    await database
+      .update(gameTeamPlayers)
+      .set({
+        position: row.position,
+        eitherSide: row.eitherSide,
+        sideSetBy: row.sideSetBy,
+        updatedAt: now,
+      })
+      .where(eq(gameTeamPlayers.id, row.id));
+  }
+}
+
+/**
+ * A seated User changes their own side. Picking the Position an Either-side
+ * partner holds moves the partner over; a Position the partner picked is
+ * refused. Returns the partner when their Position changed, so they can be told.
+ */
+export async function changeOwnSide(
+  database: Tx,
+  game: GameRow,
+  userId: string,
+  choice: SeatChoice,
+): Promise<{ movedPartnerUserId: string | null }> {
+  const own = await requireOwnSeatLink(database, game, userId);
+  const partner = await teamPartnerLink(database, own.gameTeamId, own.id);
+  const seat = resolveTeamSeat(partner, choice);
+  if (!seat.ok) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Your partner picked that side",
+    });
+  }
+  const rows: Parameters<typeof placeLinks>[1] = [
+    {
+      id: own.id,
+      position: seat.position,
+      eitherSide: seat.eitherSide,
+      sideSetBy: null,
+    },
+  ];
+  if (partner && seat.movePartnerTo) {
+    rows.push({
+      id: partner.id,
+      position: seat.movePartnerTo,
+      eitherSide: partner.eitherSide,
+      sideSetBy: null,
+    });
+  }
+  await placeLinks(database, rows);
+  return {
+    movedPartnerUserId: seat.movePartnerTo
+      ? (partner?.gamePlayer.userId ?? null)
+      : null,
+  };
+}
+
+/**
+ * An Organizer writes a full Game team's sides on the sheet: `leftUserId`
+ * plays left, the other User right. Both are then settled, set by the Organizer.
+ */
+export async function setTeamSides(
+  database: Tx,
+  game: GameRow,
+  args: { sideIndex: number; leftUserId: string; organizerUserId: string },
+): Promise<{ userIds: string[] }> {
+  const team = await database.query.gameTeams.findFirst({
+    where: and(
+      eq(gameTeams.gameId, game.id),
+      eq(gameTeams.sideIndex, args.sideIndex),
+    ),
+    columns: { id: true },
+    with: {
+      players: {
+        columns: { id: true },
+        with: { gamePlayer: { columns: { userId: true } } },
+      },
+    },
+  });
+  if (team?.players.length !== 2) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Sides are set on a full Game team",
+    });
+  }
+  if (
+    !team.players.some((link) => link.gamePlayer.userId === args.leftUserId)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That User is not on this Game team",
+    });
+  }
+  if (await sitsOnCompletedMatch(database, game.id, team.id)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "The Match is already completed",
+    });
+  }
+  await placeLinks(
+    database,
+    team.players.map((link) => ({
+      id: link.id,
+      position: link.gamePlayer.userId === args.leftUserId ? "left" : "right",
+      eitherSide: false,
+      sideSetBy: args.organizerUserId,
+    })),
+  );
+  return {
+    userIds: team.players.flatMap((link) =>
+      link.gamePlayer.userId ? [link.gamePlayer.userId] : [],
+    ),
+  };
 }
