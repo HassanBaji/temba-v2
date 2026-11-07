@@ -896,11 +896,6 @@ export function expandDrawnTournamentHubRows(
 
 export function sortExpandedHubListRows(rows: HubListRow[]) {
   return [...rows].sort((left, right) => {
-    const leftIn = left.isRegistered || left.isSeated || left.isWaitlisted;
-    const rightIn = right.isRegistered || right.isSeated || right.isWaitlisted;
-    if (leftIn !== rightIn) {
-      return leftIn ? -1 : 1;
-    }
     const byTime = left.startTime.getTime() - right.startTime.getTime();
     if (byTime !== 0) {
       return byTime;

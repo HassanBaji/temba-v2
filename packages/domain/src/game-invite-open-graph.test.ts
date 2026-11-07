@@ -62,6 +62,43 @@ describe("gameInviteOpenGraphMetadata", () => {
     expect(metadata.description).not.toMatch(/5\.2|Your Level/);
   });
 
+  it("titles a Group Game with the Group name and leads the description with the Venue", () => {
+    const start = bahrainDate(2026, 8, 15, 19, 0, 0);
+    const end = bahrainDate(2026, 8, 15, 20, 0, 0);
+    const metadata = gameInviteOpenGraphMetadata({
+      venueName: "Padel Club",
+      groupName: "Friday Night",
+      windowStart: start,
+      windowEnd: end,
+      format: "friendly_game",
+      registrationMode: "individual",
+      occupiedCount: 3,
+      levelMinTenths: 30,
+      levelMaxTenths: 45,
+      locale: "en",
+    });
+    expect(metadata.title).toBe("Friday Night");
+    expect(metadata.description).toBe(
+      `Padel Club · ${formatAbsoluteDay(start, "en")}, ${formatGameTimeWindow(start, end, start, "en")}, 3/4 sitting, Level C/B-`,
+    );
+  });
+
+  it("keeps the Venue title when the Group has no name", () => {
+    const start = bahrainDate(2026, 8, 15, 19, 0, 0);
+    const metadata = gameInviteOpenGraphMetadata({
+      venueName: "Padel Club",
+      groupName: "  ",
+      windowStart: start,
+      windowEnd: null,
+      format: "americano",
+      registrationMode: "individual",
+      occupiedCount: 0,
+      locale: "en",
+    });
+    expect(metadata.title).toBe("Padel Club");
+    expect(metadata.description).not.toContain("·");
+  });
+
   it("omits occupancy for other Game formats", () => {
     const start = bahrainDate(2026, 8, 15, 19, 0, 0);
     const end = bahrainDate(2026, 8, 15, 20, 0, 0);

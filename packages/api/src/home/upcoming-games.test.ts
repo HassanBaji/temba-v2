@@ -175,7 +175,7 @@ describe("My Games hub list", () => {
     );
   });
 
-  it("sorts joined Games before Games the User has not joined, then by soonest", () => {
+  it("sorts by soonest whether or not the User has joined", () => {
     const laterJoined = myGamesCandidate({
       id: "later-joined",
       windowStart: new Date("2026-09-03T18:00:00.000Z"),
@@ -202,7 +202,7 @@ describe("My Games hub list", () => {
     );
     assert.deepEqual(
       sorted.map((game) => game.id),
-      ["sooner-joined", "later-joined", "sooner-open"],
+      ["sooner-joined", "sooner-open", "later-joined"],
     );
   });
 });

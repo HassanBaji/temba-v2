@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { createGame as source } from "../en/create-game";
 
@@ -178,6 +179,8 @@ export const createGame = {
     dayTime: (day: string, timeWindow: string) => `${day}، ${timeWindow}`,
     withLevelRange: (description: string, range: string) =>
       `${description}، ${range}`,
+    atVenue: (venue: string, details: string) =>
+      `${isolate(venue)} · ${details}`,
   },
   image: {
     help: "اختياري. JPEG أو PNG أو WebP، بحد أقصى 2 ميغابايت.",

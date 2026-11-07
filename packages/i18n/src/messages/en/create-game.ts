@@ -146,6 +146,7 @@ export const createGame = {
     dayTime: (day: string, timeWindow: string) => `${day}, ${timeWindow}`,
     withLevelRange: (description: string, range: string) =>
       `${description}, ${range}`,
+    atVenue: (venue: string, details: string) => `${venue} · ${details}`,
   },
   image: {
     help: "Optional. JPEG, PNG, or WebP, at most 2 MB.",
