@@ -8,6 +8,7 @@ import {
   type CreateGroup,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import { MvpModeField } from "~/app/dashboard/games/new/_parts/mvp-mode-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
@@ -57,6 +58,7 @@ import {
   formatTimeSlotLabel,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 const SMALLEST_SIDE_SIZE = Math.min(...FOOTBALL_SIDE_SIZES);
@@ -113,6 +115,8 @@ export function FriendlyGameSteps({
   groupVerified,
   rated,
   onRated,
+  mvpMode,
+  onMvpMode,
 }: {
   sport?: Sport;
   sideSize: number;
@@ -167,6 +171,8 @@ export function FriendlyGameSteps({
   groupVerified: boolean;
   rated: boolean;
   onRated: (rated: boolean) => void;
+  mvpMode: MvpMode;
+  onMvpMode: (mode: MvpMode) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -706,6 +712,8 @@ export function FriendlyGameSteps({
             </FieldError>
           </section>
 
+          <MvpModeField idPrefix="game" mode={mvpMode} onMode={onMvpMode} />
+
           {ratingShown ? (
             <RatingField
               idPrefix="game"
@@ -732,6 +740,14 @@ export function FriendlyGameSteps({
             <ReviewRow
               label={ratingChoice.title}
               value={ratingChoice.scopeLabel}
+            />
+            <ReviewRow
+              label={m.createGame.mvp.title}
+              value={mvpModeCopy(mvpMode, locale).label}
+            />
+            <ReviewRow
+              label={m.createGame.mvp.marks}
+              value={m.marks.window.opensAfterScore}
             />
           </div>
         </>

@@ -6,6 +6,7 @@ import * as React from "react";
 import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
 import { RoundCountField } from "~/components/games/round-count-field";
+import { MvpModeChoices } from "~/components/marks/mvp-mode-choices";
 import type { GameEditController } from "~/components/games/use-game-edit";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import {
@@ -47,6 +48,7 @@ import {
   type GameSeasonChoice,
 } from "@repo/domain/game-season-link";
 import { footballPlayersAllowedBounds } from "@repo/domain/game-shape";
+import { mvpModeCopy } from "@repo/domain/marks";
 import {
   formatSeasonRange,
   type GroupSeasonData,
@@ -65,18 +67,22 @@ export type GameEditContext = {
 
 function SectionHead({
   title,
+  titleId,
   meta,
   metaTone = "muted",
   action,
 }: {
   title: string;
+  titleId?: string;
   meta?: string | null;
   metaTone?: "muted" | "tag";
   action?: React.ReactNode;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <h3 className="font-expanded text-title">{title}</h3>
+      <h3 id={titleId} className="font-expanded text-title">
+        {title}
+      </h3>
       {action ??
         (meta ? (
           <span
@@ -457,6 +463,54 @@ function SeasonSection({
   );
 }
 
+function MvpSection({
+  mvp,
+  onPick,
+  error,
+}: {
+  mvp: NonNullable<GameEditController["mvp"]>;
+  onPick: GameEditController["pickMvpMode"];
+  error: string | undefined;
+}) {
+  const locale = useLocale();
+  const copy = useMessages().createGame.mvp;
+  const picked = mvpModeCopy(mvp.picked, locale);
+  if (!mvp.editable) {
+    return (
+      <section className="space-y-3">
+        <SectionHead title={copy.title} />
+        <div className="border-rule rounded-card border px-[18px] py-4">
+          <p className="text-lead font-semibold">{picked.label}</p>
+          <p className="text-muted-foreground text-meta mt-0.5">
+            {picked.description}
+          </p>
+        </div>
+        <Hint>{copy.lockedNote}</Hint>
+      </section>
+    );
+  }
+  return (
+    <section className="space-y-3">
+      <SectionHead
+        title={copy.title}
+        meta={copy.decidedAfterGame}
+        titleId="edit-mvp-label"
+      />
+      <MvpModeChoices
+        id="edit-mvp"
+        labelledBy="edit-mvp-label"
+        describedBy={error ? "edit-mvp-error" : "edit-mvp-help"}
+        mode={mvp.picked}
+        onSelect={onPick}
+      />
+      <FieldError id="edit-mvp-error">{error}</FieldError>
+      <div id="edit-mvp-help" aria-live="polite">
+        <Hint>{picked.help}</Hint>
+      </div>
+    </section>
+  );
+}
+
 export function GameEditDialog({
   open,
   onOpenChange,
@@ -773,6 +827,13 @@ export function GameEditDialog({
                     <Hint>{m.tournament.sizing.oneDayOverrun}</Hint>
                   ) : null}
                 </section>
+              ) : null}
+              {edit.mvp ? (
+                <MvpSection
+                  mvp={edit.mvp}
+                  onPick={edit.pickMvpMode}
+                  error={errorFor("mvp")}
+                />
               ) : null}
               {showSeason ? (
                 <SeasonSection

@@ -573,6 +573,10 @@ export default function GameHomePage({
     sections: editSections,
     seasons: data?.groupSeasons ?? [],
     open: editOpen,
+    mvpEnabled:
+      data?.isOrganizer === true &&
+      data.format === "friendly_game" &&
+      data.cancelledAt == null,
     onSaved: refreshGame,
     onClose: () => setEditOpen(false),
   });

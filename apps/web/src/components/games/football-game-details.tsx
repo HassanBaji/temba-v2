@@ -249,6 +249,10 @@ export function FootballGameDetails({
     sections: editSections,
     seasons: game.groupSeasons,
     open: editOpen,
+    mvpEnabled:
+      game.isOrganizer &&
+      game.format === "friendly_game" &&
+      game.cancelledAt == null,
     onSaved: refreshGame,
     onClose: () => setEditOpen(false),
   });
