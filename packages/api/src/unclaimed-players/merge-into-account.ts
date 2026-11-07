@@ -1,5 +1,5 @@
 import type { DbClient, DbTx, UserMergeSummary } from "@repo/db";
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, or, sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 
 import {
@@ -12,7 +12,9 @@ import {
   gameInviteLinks,
   gameLevelRangeRequests,
   gameMemberInvites,
+  gameMvpVotes,
   gamePlayers,
+  gameTeamPlayers,
   games,
   gameWaitlist,
   groupEmailInvites,
@@ -27,6 +29,7 @@ import {
   groupSeasons,
   groups,
   levelOverrides,
+  marks,
   matchGoals,
   matchResultConfirmations,
   notifications,
@@ -77,6 +80,15 @@ const uniqueUserReferences: UniqueUserReference[] = [
   },
   { column: matchGoals.userId, sameKeys: [matchGoals.matchId] },
   {
+    column: marks.receiverUserId,
+    sameKeys: [marks.matchId, marks.giverUserId],
+  },
+  {
+    column: marks.giverUserId,
+    sameKeys: [marks.matchId, marks.receiverUserId],
+  },
+  { column: gameMvpVotes.voterUserId, sameKeys: [gameMvpVotes.gameId] },
+  {
     column: gameInviteLinkConsents.userId,
     sameKeys: [gameInviteLinkConsents.gameInviteLinkId],
   },
@@ -126,6 +138,9 @@ const plainUserReferences: PgColumn[] = [
   notifications.actorUserId,
   notifications.partnerUserId,
   games.createdBy,
+  games.mvpUserId,
+  gameMvpVotes.candidateUserId,
+  gameTeamPlayers.sideSetBy,
   groups.createdBy,
   groups.verifiedBy,
   groups.deletedBy,
@@ -193,6 +208,42 @@ async function dropMergedDuplicates(
           and ${sql.join([...sameKeys, ...unused], sql` and `)}
       )
   `);
+}
+
+/** A Mark between the two would become a Mark to oneself, which the table refuses. */
+async function dropMarksBetween(tx: DbTx, ids: MergeIds) {
+  await tx
+    .delete(marks)
+    .where(
+      or(
+        and(
+          eq(marks.giverUserId, ids.survivorUserId),
+          eq(marks.receiverUserId, ids.mergedUserId),
+        ),
+        and(
+          eq(marks.giverUserId, ids.mergedUserId),
+          eq(marks.receiverUserId, ids.survivorUserId),
+        ),
+      ),
+    );
+}
+
+/** A vote between the two would become a vote for oneself, which the table refuses. */
+async function dropMvpVotesBetween(tx: DbTx, ids: MergeIds) {
+  await tx
+    .delete(gameMvpVotes)
+    .where(
+      or(
+        and(
+          eq(gameMvpVotes.voterUserId, ids.survivorUserId),
+          eq(gameMvpVotes.candidateUserId, ids.mergedUserId),
+        ),
+        and(
+          eq(gameMvpVotes.voterUserId, ids.mergedUserId),
+          eq(gameMvpVotes.candidateUserId, ids.survivorUserId),
+        ),
+      ),
+    );
 }
 
 async function reassign(tx: DbTx, column: PgColumn, ids: MergeIds) {
@@ -486,6 +537,8 @@ export async function mergeIntoAccount(
     const counts = await seatAndMembershipCounts(tx, ids);
     const ratingKeptBySport = await resolveRatings(tx, ids);
     await resolveGroupRatings(tx, ids);
+    await dropMarksBetween(tx, ids);
+    await dropMvpVotesBetween(tx, ids);
 
     for (const reference of uniqueUserReferences) {
       await dropMergedDuplicates(tx, reference, ids);

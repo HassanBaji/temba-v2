@@ -5,6 +5,8 @@ import { View } from "react-native";
 import { useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
+import type { CabinetRowModel } from "../marks/cabinet-model";
+import { CabinetRow } from "../marks/cabinet-row";
 import { PartnersCard } from "../profile/profile-sections";
 import { SectionHead } from "../profile/profile-parts";
 import { useColors } from "../theme/theme-provider";
@@ -25,16 +27,21 @@ import {
 const TIGHT = 14;
 
 /**
- * Everything under the hero, in the design's order: early days or streaks,
- * position, Overall, you and them, partners, then the games.
+ * Everything under the hero, in the design's order: the marks cabinet,
+ * early days or streaks, position, Overall, you and them, partners, then the
+ * games.
  */
 export function PlayerProfileBody({
   model,
+  cabinet,
+  onOpenCabinet,
   onOpenRow,
   onOpenPlayer,
   onSeeAll,
 }: {
   model: PlayerProfileModel;
+  cabinet: CabinetRowModel | null;
+  onOpenCabinet: () => void;
   onOpenRow: (target: NonNullable<ProfileMatchRow["target"]>) => void;
   onOpenPlayer: (userId: string) => void;
   onSeeAll: () => void;
@@ -44,6 +51,7 @@ export function PlayerProfileBody({
   const page = m.profile.playerPage;
   return (
     <>
+      {cabinet ? <CabinetRow row={cabinet} onOpen={onOpenCabinet} /> : null}
       <View style={{ gap: TIGHT }}>
         {model.early ? (
           <EarlyDaysCard view={model.early} form={model.form} />

@@ -5,16 +5,20 @@ import { db as defaultDb, type Db } from "@repo/db";
 import * as bookingConfirmed from "./handlers/booking.confirmed";
 import * as bookingExpireHold from "./handlers/booking.expire-hold";
 import * as bookingReconcile from "./handlers/booking.reconcile";
+import * as notificationEmail from "./handlers/notification.email";
+import * as marksSettleMvp from "./handlers/marks.settle-mvp";
 import * as paymentCreateCharge from "./handlers/payment.create-charge";
 import * as paymentPollCharge from "./handlers/payment.poll-charge";
 import * as paymentProcessWebhook from "./handlers/payment.process-webhook";
 import * as paymentRefund from "./handlers/payment.refund";
-import type { JobHandler } from "./handler";
+import { logJobFailed, type JobHandler } from "./handler";
 
 const handlers: Record<string, JobHandler> = {
   [bookingReconcile.jobName]: bookingReconcile,
   [bookingConfirmed.jobName]: bookingConfirmed,
   [bookingExpireHold.jobName]: bookingExpireHold,
+  [notificationEmail.jobName]: notificationEmail,
+  [marksSettleMvp.jobName]: marksSettleMvp,
   [paymentCreateCharge.jobName]: paymentCreateCharge,
   [paymentPollCharge.jobName]: paymentPollCharge,
   [paymentProcessWebhook.jobName]: paymentProcessWebhook,
@@ -23,17 +27,12 @@ const handlers: Record<string, JobHandler> = {
 
 export const crontab = [bookingReconcile.crontabLine].join("\n");
 
-function logJobFailed(helpers: JobHelpers, error: unknown, permanent: boolean) {
-  console.error(
-    JSON.stringify({
-      event: "job_failed",
-      name: helpers.job.task_identifier,
-      key: helpers.job.key,
-      attempts: helpers.job.attempts,
-      permanent,
-      error: error instanceof Error ? error.message : String(error),
-    }),
-  );
+function jobOf(helpers: JobHelpers) {
+  return {
+    name: helpers.job.task_identifier,
+    key: helpers.job.key,
+    attempts: helpers.job.attempts,
+  };
 }
 
 export function wrapHandler(handler: JobHandler, db: Db) {
@@ -42,14 +41,14 @@ export function wrapHandler(handler: JobHandler, db: Db) {
     if (!parsed.success) {
       // Retrying cannot fix a payload that fails its schema, so the job
       // completes after logging instead of throwing.
-      logJobFailed(helpers, parsed.error, true);
+      logJobFailed(jobOf(helpers), parsed.error, true);
       return;
     }
     try {
       await handler.handle(db, parsed.data, helpers);
     } catch (error) {
       const isFinalAttempt = helpers.job.attempts >= helpers.job.max_attempts;
-      if (isFinalAttempt) logJobFailed(helpers, error, false);
+      if (isFinalAttempt) logJobFailed(jobOf(helpers), error, false);
       throw error;
     }
   };

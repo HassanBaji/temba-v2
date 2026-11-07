@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 
 import {
   HISTORY_PAGE_SIZE,
+  historyCoins,
   historyTeamLabel,
   matchHistoryCardModel,
   nextHistoryCursor,
@@ -261,5 +262,38 @@ describe("historyTeamLabel in Arabic", () => {
       "ar",
     );
     assert.ok(label.endsWith(` ${isolate("+1")}`), label);
+  });
+});
+
+describe("historyCoins", () => {
+  it("shows no coins on a card without marks", () => {
+    assert.deepEqual(historyCoins(row()), []);
+    assert.deepEqual(matchHistoryCardModel(row(), "en").coins, []);
+    assert.deepEqual(
+      historyCoins(row({ viewerMarks: [], viewerIsMvp: false })),
+      [],
+    );
+  });
+
+  it("keeps the received kinds in order, up to three", () => {
+    assert.deepEqual(
+      historyCoins(
+        row({ viewerMarks: ["clutch", "dynamo", "good_game", "mr_ice"] }),
+      ),
+      ["clutch", "dynamo", "good_game"],
+    );
+  });
+
+  it("puts the MVP coin first and still shows three at most", () => {
+    assert.deepEqual(
+      historyCoins(
+        row({
+          viewerIsMvp: true,
+          viewerMarks: ["clutch", "dynamo", "good_game"],
+        }),
+      ),
+      ["mvp", "clutch", "dynamo"],
+    );
+    assert.deepEqual(historyCoins(row({ viewerIsMvp: true })), ["mvp"]);
   });
 });

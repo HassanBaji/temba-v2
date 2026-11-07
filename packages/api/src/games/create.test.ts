@@ -223,3 +223,90 @@ describe("createGame Level range", () => {
     }
   });
 });
+
+describe("createGame MVP mode", () => {
+  it("defaults a Friendly game to a vote, keeps the Organizer's choice, and leaves other formats without one", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "create-mvp@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      const base = {
+        createdBy: owner.id,
+        groupId: group.id,
+        isPublic: false,
+        registrationMode: "individual" as const,
+        venueId: venue.id,
+        ...window(),
+      };
+      const mvpModeOf = async (id: string) =>
+        (
+          await db.query.games.findFirst({
+            where: eq(games.id, id),
+            columns: { mvpMode: true },
+          })
+        )?.mvpMode;
+
+      const byDefault = await createGame(db, {
+        ...base,
+        format: "friendly_game",
+      });
+      expect(byDefault).toEqual({
+        id: expect.any(String),
+        matchId: expect.any(String),
+      });
+      expect(await mvpModeOf(byDefault.id)).toBe("vote");
+      for (const mvpMode of ["organizer", "none"] as const) {
+        const chosen = await createGame(db, {
+          ...base,
+          format: "friendly_game",
+          mvpMode,
+        });
+        expect(await mvpModeOf(chosen.id)).toBe(mvpMode);
+      }
+      for (const format of ["americano", "friendly_tournament"] as const) {
+        const other = await createGame(db, {
+          ...base,
+          format,
+          playersAllowed: 8,
+        });
+        expect(await mvpModeOf(other.id)).toBe("none");
+      }
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses an MVP mode on a tournament or an Americano", () => {
+    for (const format of ["americano", "friendly_tournament"] as const) {
+      const parsed = createGameInputSchema.safeParse({
+        groupId: crypto.randomUUID(),
+        isPublic: false,
+        format,
+        registrationMode: "individual",
+        playersAllowed: 8,
+        windowStart: new Date(),
+        windowEnd: new Date(Date.now() + 60 * 60 * 1000),
+        venueId: crypto.randomUUID(),
+        mvpMode: "vote",
+      });
+      expect(parsed.success).toBe(false);
+      if (parsed.success) {
+        return;
+      }
+      expect(parsed.error.flatten().fieldErrors.mvpMode).toBeDefined();
+    }
+    expect(
+      createGameInputSchema.safeParse({
+        groupId: crypto.randomUUID(),
+        isPublic: false,
+        format: "friendly_game",
+        registrationMode: "individual",
+        windowStart: new Date(),
+        windowEnd: new Date(Date.now() + 60 * 60 * 1000),
+        venueId: crypto.randomUUID(),
+        mvpMode: "organizer",
+      }).success,
+    ).toBe(true);
+  });
+});

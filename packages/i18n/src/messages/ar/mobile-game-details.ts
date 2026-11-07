@@ -142,6 +142,7 @@ export const mobileGameDetails = {
       level: "نطاق المستوى",
       rounds: "الجولات",
       season: "الموسم",
+      mvp: "نجم المباراة",
     },
     movedToWaitlist: (n: number) =>
       plural("ar", n, {

@@ -111,6 +111,12 @@ export const createGame = {
     perPlayer: (amount: string) => `${amount} / لاعب`,
     teamOfTwo: (amount: string) => `${amount} لفريق من لاعبَين`,
   },
+  mvp: {
+    title: "نجم المباراة",
+    decidedAfterGame: "يُحدَّد بعد المباراة",
+    marks: "الأوسمة",
+    lockedNote: "النتيجة مؤكَّدة، لذا لا يمكن تغيير طريقة اختيار نجم المباراة.",
+  },
   tournament: {
     defaultName: (day: string) => `بطولة ودية · ${day}`,
     defaultNameNoDay: "بطولة ودية",
@@ -211,6 +217,7 @@ export const createGame = {
       seasonUnlinked: "أُلغي ربط الموسم",
       seasonLinked: "رُبط الموسم",
       seasonChanged: "تغيّر الموسم",
+      mvp: "نجم المباراة",
     },
     listSeparator: "، ",
     seasonNeedsFix: "الموسم يحتاج إلى تصحيح.",

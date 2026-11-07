@@ -1,3 +1,6 @@
+import { afterEach, beforeEach } from "vitest";
+
+import { resetJobSink, setJobSink } from "./enqueue";
 import type { AddedJob, JobSink } from "./job-sink";
 
 export class RecordingJobSink implements JobSink {
@@ -18,4 +21,15 @@ export class RecordingJobSink implements JobSink {
     this.added.length = 0;
     this.removed.length = 0;
   }
+}
+
+/** Records every Job the tests in the calling suite enqueue instead of writing to Graphile Worker. */
+export function recordJobs(): RecordingJobSink {
+  const sink = new RecordingJobSink();
+  beforeEach(() => {
+    sink.clear();
+    setJobSink(sink);
+  });
+  afterEach(() => resetJobSink());
+  return sink;
 }

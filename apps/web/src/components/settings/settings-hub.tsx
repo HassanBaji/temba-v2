@@ -8,6 +8,7 @@ import {
   FileText,
   KeyRound,
   Mail,
+  MailCheck,
   Plus,
   Smartphone,
   Users,
@@ -293,6 +294,64 @@ function SeatAlertsRow({ details }: { details: Details }) {
   );
 }
 
+function EmailNotificationsRow({
+  details,
+  emailVerified,
+}: {
+  details: Details;
+  emailVerified: boolean;
+}) {
+  const m = useMessages();
+  const copy = m.you.settings;
+  const utils = api.useUtils();
+  const save = api.users.setEmailNotifications.useMutation({
+    onMutate: ({ emailNotifications }) => {
+      utils.users.profileDetails.setData(undefined, (old) =>
+        old ? { ...old, emailNotifications } : old,
+      );
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+    onSettled: async () => {
+      await utils.users.profileDetails.invalidate();
+    },
+  });
+  const titleId = "settings-email-notifications";
+
+  return (
+    <SettingsStaticRow
+      icon={<MailCheck {...iconProps} />}
+      title={<span id={titleId}>{copy.emailNotifications}</span>}
+      subtitle={
+        emailVerified ? (
+          copy.emailNotificationsSub
+        ) : (
+          <span className="block whitespace-normal">
+            {copy.emailNotificationsNeedEmail}{" "}
+            <Link
+              href={COMPLETION_HREF.email}
+              className="text-ink focus-visible:ring-ring/50 rounded-sm underline underline-offset-4 outline-none focus-visible:ring-[3px]"
+            >
+              {copy.emailNotificationsAddEmail}
+            </Link>
+          </span>
+        )
+      }
+      trailing={
+        <Switch
+          aria-labelledby={titleId}
+          checked={details.emailNotifications}
+          disabled={save.isPending}
+          onCheckedChange={(emailNotifications) =>
+            save.mutate({ emailNotifications })
+          }
+        />
+      }
+    />
+  );
+}
+
 function HubSkeleton() {
   return (
     <div aria-busy="true" className="grid gap-7 lg:grid-cols-2">
@@ -407,6 +466,12 @@ export function SettingsHub() {
                 }
               />
               <SeatAlertsRow details={details.data} />
+              <EmailNotificationsRow
+                details={details.data}
+                emailVerified={
+                  user.primaryEmailAddress?.verification.status === "verified"
+                }
+              />
             </SettingsSection>
           </div>
 

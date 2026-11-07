@@ -32,7 +32,10 @@
     "PAYMENT_RETURN_URL",
     "TAP_SECRET_KEY",
     "TAP_PUBLIC_KEY",
-    "TAP_PAYMENT_METHODS"
+    "TAP_PAYMENT_METHODS",
+    "EMAIL_PROVIDER",
+    "RESEND_API_KEY",
+    "EMAIL_FROM"
   ],
   "tasks": {
     "build": {

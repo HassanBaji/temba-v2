@@ -62,6 +62,8 @@ export type PlayedHeroProps = {
   avatar: { name: string; image: string | null } | null;
   /** Share and the organizer's menu, top right across from back. */
   actions?: React.ReactNode;
+  /** The MVP row, last in the hero; it sets its own top margin. */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -79,6 +81,7 @@ export function PlayedHero({
   you,
   avatar,
   actions,
+  footer,
   children,
 }: PlayedHeroProps) {
   const locale = useLocale();
@@ -135,6 +138,8 @@ export function PlayedHero({
           <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
         </div>
       ) : null}
+
+      {footer}
     </Surface>
   );
 }

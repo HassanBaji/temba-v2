@@ -10,6 +10,7 @@ import {
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { scheduleMvpSettle } from "#src/marks/settle-mvp";
 import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
 
@@ -62,10 +63,16 @@ export async function runMatchCompletionEffect(
       return;
     }
 
+    const now = new Date();
     await tx
       .update(matches)
-      .set({ status: MatchStatusEnum.COMPLETED, updatedAt: new Date() })
+      .set({
+        status: MatchStatusEnum.COMPLETED,
+        completedAt: now,
+        updatedAt: now,
+      })
       .where(eq(matches.id, locked.id));
+    await scheduleMvpSettle(tx, game.id, now);
 
     await applyRatedMatch(tx, game, locked, outcome.result);
     await advanceKnockoutWinner(tx, locked, outcome.result);

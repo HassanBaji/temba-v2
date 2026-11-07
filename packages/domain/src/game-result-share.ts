@@ -16,6 +16,7 @@ import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
 import { initials } from "./initials";
+import { mvpDecidedByCopy, type GameMarks } from "./marks";
 import {
   padelPairLine,
   padelSetPairs,
@@ -44,6 +45,12 @@ export type ResultSetRow = {
   l: number;
 };
 
+export type ResultCardMvp = {
+  name: string;
+  /** "By vote, 7 of 12", "Organizer’s pick" or "Tied vote, Organizer’s pick". */
+  decidedBy: string;
+};
+
 type ResultCardBase = {
   /** "FRIENDLY · PADEL" at the top of the card. */
   typeLine: string;
@@ -52,7 +59,41 @@ type ResultCardBase = {
   venue: string;
   when: string;
   whenShort: string;
+  /** The Game's MVP once settled; null while undecided or when there is none. */
+  mvp: ResultCardMvp | null;
 };
+
+/**
+ * The MVP line for the card, from `marks.forGame`. Only a settled MVP counts:
+ * before settlement an Organizer's pick may still change.
+ */
+export function resultCardMvp(
+  marks: Pick<GameMarks, "mvp" | "participants"> | null | undefined,
+  locale: Locale,
+): ResultCardMvp | null {
+  if (!marks) {
+    return null;
+  }
+  const { mvp } = marks;
+  if (
+    mvp.state !== "decided" ||
+    !mvp.settledAt ||
+    !mvp.userId ||
+    !mvp.decidedBy
+  ) {
+    return null;
+  }
+  const participant = marks.participants.find(
+    (row) => row.userId === mvp.userId,
+  );
+  if (!participant) {
+    return null;
+  }
+  return {
+    name: participant.name,
+    decidedBy: mvpDecidedByCopy(mvp.decidedBy, mvp.votes, locale),
+  };
+}
 
 export type PadelResultCard = ResultCardBase & {
   kind: "padel";
@@ -153,6 +194,7 @@ export type PadelResultCardInput = PlayedPlace & {
   viewerUserId: string;
   match: FriendlyGameHeroMatch;
   rated: boolean;
+  mvp?: ResultCardMvp | null;
 };
 
 export function padelResultCard(
@@ -201,6 +243,7 @@ export function padelResultCard(
     draw: !aWon && !bWon,
     venue: cardVenue(input, locale),
     ...cardWhen(input.windowStart, locale),
+    mvp: input.mvp ?? null,
   };
 }
 
@@ -210,6 +253,7 @@ export type FootballResultCardInput = PlayedPlace & {
   score: { slot1: number; slot2: number };
   sideSize: number | null;
   rated: boolean;
+  mvp?: ResultCardMvp | null;
 };
 
 export function footballResultCard(
@@ -276,6 +320,7 @@ export function footballResultCard(
       : null,
     venue: cardVenue(input, locale),
     ...cardWhen(input.windowStart, locale),
+    mvp: input.mvp ?? null,
   };
 }
 
@@ -382,6 +427,7 @@ export function resultShareCard(
   game: ResultShareGame,
   board: ResultShareBoard | null,
   locale: Locale,
+  mvp: ResultCardMvp | null = null,
 ): ResultCard | null {
   const place = {
     windowStart: game.windowStart,
@@ -405,6 +451,7 @@ export function resultShareCard(
         sideSize: game.sideSize,
         courtName: game.recordedCourts[0]?.name ?? null,
         rated: game.rated,
+        mvp,
       },
       locale,
     );
@@ -421,6 +468,7 @@ export function resultShareCard(
       match,
       courtName: match.courtName,
       rated: game.rated,
+      mvp,
     },
     locale,
   );

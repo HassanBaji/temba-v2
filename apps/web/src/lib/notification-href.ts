@@ -16,7 +16,10 @@ export function notificationHref(item: {
       item.type === "game_player_left" ||
       item.type === "game_seated_by_organizer" ||
       item.type === "game_side_changed" ||
-      item.type === "game_finished") &&
+      item.type === "game_finished" ||
+      item.type === "mark_received" ||
+      item.type === "mvp_decided" ||
+      item.type === "mvp_tie_break") &&
     item.game
   ) {
     return `/dashboard/games/${item.game.id}`;

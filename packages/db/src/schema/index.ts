@@ -30,6 +30,7 @@ export * from "./game-team-players";
 export * from "./game-waitlist";
 export * from "./match-sets";
 export * from "./match-goals";
+export * from "./marks";
 export * from "./game-member-invites";
 export * from "./game-invite-links";
 export * from "./game-invite-link-consents";

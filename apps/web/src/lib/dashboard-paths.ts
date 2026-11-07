@@ -1,8 +1,11 @@
+import { isCoinKind, type CoinKind } from "@repo/domain/marks";
 import type { Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 
 const PLAYER_PROFILE = /^\/dashboard\/players\/[^/]+\/?$/;
 const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
+const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
+const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
 /** The Player profile, opened on `sport` when given. */
 export function playerProfilePath(userId: string, sport?: Sport) {
@@ -16,6 +19,17 @@ export function playerMatchesPath(userId: string, matchId?: string) {
   return matchId ? `${path}?match=${matchId}` : path;
 }
 
+/** All marks (3a), opened on one sport's tab when given. */
+export function playerMarksPath(userId: string, sport?: Sport) {
+  const path = `/dashboard/players/${userId}/marks`;
+  return sport ? `${path}?sport=${sport}` : path;
+}
+
+/** One kind's detail (3b) on one sport's tab. */
+export function playerMarkPath(userId: string, kind: CoinKind, sport: Sport) {
+  return `/dashboard/players/${userId}/marks/${kind}?sport=${sport}`;
+}
+
 export function titleFromPath(pathname: string, m: Messages) {
   const titles = m.webUi.pageTitle;
   if (pathname === "/dashboard") {
@@ -23,6 +37,13 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (PLAYER_MATCHES.test(pathname)) {
     return titles.lastTenGames;
+  }
+  const kind = PLAYER_MARK.exec(pathname)?.[2];
+  if (kind !== undefined) {
+    return isCoinKind(kind) ? m.marks.kind[kind].name : m.marks.cabinet.title;
+  }
+  if (PLAYER_MARKS.test(pathname)) {
+    return m.marks.cabinet.title;
   }
   if (pathname.startsWith("/dashboard/players/")) {
     return titles.player;
@@ -115,6 +136,14 @@ export function detailBackHref(pathname: string | null): string | undefined {
   const playerMatches = PLAYER_MATCHES.exec(pathname);
   if (playerMatches?.[1]) {
     return playerProfilePath(playerMatches[1]);
+  }
+  const playerMark = PLAYER_MARK.exec(pathname);
+  if (playerMark?.[1]) {
+    return playerMarksPath(playerMark[1]);
+  }
+  const playerMarks = PLAYER_MARKS.exec(pathname);
+  if (playerMarks?.[1]) {
+    return playerProfilePath(playerMarks[1]);
   }
   if (/^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/groups";

@@ -8,8 +8,11 @@ import { playerProfile } from "./playerProfile";
 import { profileDetails } from "./profileDetails";
 import { profileStats } from "./profileStats";
 import { renameUnclaimedPlayerProcedure as renameUnclaimedPlayer } from "./renameUnclaimedPlayer";
+import { setHideRoastsProcedure as setHideRoasts } from "./setHideRoasts";
 import { setMatchHistoryVisibility } from "./setMatchHistoryVisibility";
 import { setFootballPreferences } from "./setFootballPreferences";
+import { setEmailNotifications } from "./setEmailNotifications";
+import { setLocale } from "./setLocale";
 import { setName } from "./setName";
 import { setPlayWindows } from "./setPlayWindows";
 import { setPreferredPosition } from "./setPreferredPosition";
@@ -32,6 +35,9 @@ export const usersRouter = createTRPCRouter({
   setProfileDetails,
   setPlayWindows,
   setMatchHistoryVisibility,
+  setHideRoasts,
   setSports,
   setFootballPreferences,
+  setLocale,
+  setEmailNotifications,
 });

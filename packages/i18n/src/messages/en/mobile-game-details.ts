@@ -140,6 +140,7 @@ export const mobileGameDetails = {
       level: "Level range",
       rounds: "Rounds",
       season: "Season",
+      mvp: "MVP",
     },
     movedToWaitlist: (n: number) =>
       plural("en", n, {

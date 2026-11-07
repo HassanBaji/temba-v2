@@ -2,6 +2,7 @@
 
 import {
   formatResultShareMessage,
+  resultCardMvp,
   resultShareCard,
 } from "@repo/domain/game-result-share";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
@@ -137,6 +138,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     { enabled: football },
   );
   const link = api.games.resultLink.useQuery({ gameId });
+  const marks = api.marks.forGame.useQuery({ gameId });
 
   const card = React.useMemo(
     () =>
@@ -145,9 +147,10 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
             game.data,
             football ? (board.data ?? null) : null,
             locale,
+            resultCardMvp(marks.data, locale),
           )
         : null,
-    [game.data, board.data, football, locale],
+    [game.data, board.data, football, marks.data, locale],
   );
   const url = link.data?.url ?? null;
   const gameHref = `/dashboard/games/${gameId}`;
@@ -174,7 +177,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
       </DashboardShell>
     );
   }
-  if (!game.data || (football && !board.data)) {
+  if (!game.data || (football && !board.data) || marks.isLoading) {
     return (
       <DashboardShell title={m.title} action={doneAction} isSubPage>
         <GameDetailsSkeleton />

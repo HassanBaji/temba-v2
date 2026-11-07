@@ -7,6 +7,8 @@ import {
   detailBackHref,
   groupMembersTabHref,
   pageHidesMobileTopBar,
+  playerMarkPath,
+  playerMarksPath,
   playerMatchesPath,
   playerProfilePath,
   titleFromPath,
@@ -159,5 +161,70 @@ describe("Player profile paths", () => {
 
   it("hides the mobile top bar under the ink header", () => {
     assert.equal(pageHidesMobileTopBar(`/dashboard/players/${userId}`), true);
+  });
+});
+
+describe("Player marks paths", () => {
+  const userId = "8c0f1f4e-2d0c-4f49-9a55-6a1f3b1f0a01";
+  const ar = messagesFor("ar");
+
+  it("builds all marks, opened on a sport's tab when given", () => {
+    assert.equal(playerMarksPath(userId), `/dashboard/players/${userId}/marks`);
+    assert.equal(
+      playerMarksPath(userId, "football"),
+      `/dashboard/players/${userId}/marks?sport=football`,
+    );
+  });
+
+  it("builds one kind's detail on one sport's tab", () => {
+    assert.equal(
+      playerMarkPath(userId, "clutch", "padel"),
+      `/dashboard/players/${userId}/marks/clutch?sport=padel`,
+    );
+  });
+
+  it("titles all marks Marks and a kind's detail with the mark's name", () => {
+    assert.equal(
+      titleFromPath(`/dashboard/players/${userId}/marks`, en),
+      "Marks",
+    );
+    assert.equal(
+      titleFromPath(`/dashboard/players/${userId}/marks/clutch`, en),
+      "Clutch",
+    );
+    assert.equal(
+      titleFromPath(`/dashboard/players/${userId}/marks/mvp`, en),
+      "MVP",
+    );
+    assert.equal(
+      titleFromPath(`/dashboard/players/${userId}/marks/clutch`, ar),
+      "رجل الحسم",
+    );
+    assert.equal(
+      titleFromPath(`/dashboard/players/${userId}/marks/chess`, en),
+      "Marks",
+    );
+  });
+
+  it("sends a kind's detail back to all marks and all marks to the profile", () => {
+    assert.equal(
+      detailBackHref(`/dashboard/players/${userId}/marks/clutch`),
+      `/dashboard/players/${userId}/marks`,
+    );
+    assert.equal(
+      detailBackHref(`/dashboard/players/${userId}/marks`),
+      `/dashboard/players/${userId}`,
+    );
+  });
+
+  it("keeps the mobile top bar with its Back on the marks pages", () => {
+    assert.equal(
+      pageHidesMobileTopBar(`/dashboard/players/${userId}/marks`),
+      false,
+    );
+    assert.equal(
+      pageHidesMobileTopBar(`/dashboard/players/${userId}/marks/clutch`),
+      false,
+    );
   });
 });

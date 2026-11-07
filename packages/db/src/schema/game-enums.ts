@@ -55,6 +55,18 @@ export const footballTeamsMethods = pgEnum("football_teams_method", [
   "manual",
 ]);
 
+export const MVP_MODE_VALUES = ["vote", "organizer", "none"] as const;
+
+export const mvpModes = pgEnum("mvp_mode", MVP_MODE_VALUES);
+
+export const MVP_DECIDED_BY_VALUES = [
+  "vote",
+  "organizer",
+  "tie_break",
+] as const;
+
+export const mvpDecidedBys = pgEnum("mvp_decided_by", MVP_DECIDED_BY_VALUES);
+
 export enum MatchStatusEnum {
   PENDING = "pending",
   CONFIRMED = "confirmed",
