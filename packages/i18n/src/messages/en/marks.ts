@@ -87,6 +87,23 @@ export const marks = {
       other: "{n} players",
     })}`,
   count: (n: number) => `×${n}`,
+  roast: {
+    hiddenFromOthers: "Hidden from others",
+  },
+  cabinet: {
+    title: "Marks",
+    received: (n: number) => `${n} received`,
+    notYet: "Not yet",
+    kindsNotYet: (n: number, total: number) => `${n} of ${total} kinds not yet`,
+    lastFrom: (name: string, game: string) => `Last from ${name}, ${game}`,
+    fromTeammate: "Teammate",
+    fromOpponent: "Opponent",
+  },
+  settings: {
+    hideRoasts: "Hide roasts from my profile",
+    hideRoastsHelp:
+      "Mr Fumble and Sayed Malek. Still visible inside each game.",
+  },
   mvp: {
     mode: {
       vote: {

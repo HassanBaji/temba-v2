@@ -60,6 +60,19 @@ export function isMarkKind(value: unknown): value is MarkKind {
   return (MARK_KINDS as readonly unknown[]).includes(value);
 }
 
+/** Every coin: the twelve Marks and the MVP, which nobody gives. */
+export const COIN_KINDS = [...MARK_KINDS, "mvp"] as const;
+
+export type CoinKind = (typeof COIN_KINDS)[number];
+
+export function isCoinKind(value: unknown): value is CoinKind {
+  return (COIN_KINDS as readonly unknown[]).includes(value);
+}
+
+export function isRoast(kind: CoinKind): boolean {
+  return kind !== "mvp" && MARK_META[kind].roast;
+}
+
 export type MarksWindow = {
   state: "open" | "closed";
   opensAt: Date;
@@ -632,11 +645,118 @@ export type GameMarks = {
   mvp: GameMvp;
 };
 
-export function markName(kind: MarkKind, locale: Locale): string {
+export type CabinetGroup = "mvp" | GiverGroup;
+
+export function cabinetGroup(kind: CoinKind): CabinetGroup {
+  return kind === "mvp" ? "mvp" : MARK_META[kind].group;
+}
+
+/**
+ * The twelve coins on one sport's cabinet tab: the MVP first, then the Marks
+ * of that sport by Giver group. Smash Machine is padel only, Goal Machine
+ * football only.
+ */
+export function cabinetKinds(sport: Sport): CoinKind[] {
+  return [
+    "mvp",
+    ...MARK_KINDS.filter((kind) => MARK_META[kind].sports.includes(sport)),
+  ];
+}
+
+/** One coin a User received: a Mark, or an MVP they were named. */
+export type CabinetEntry = {
+  kind: CoinKind;
+  /** The sport of the Game it came from. */
+  sport: Sport;
+  playedAt: Date;
+  receivedAt: Date;
+  /** How an MVP was decided; null for a Mark. */
+  decidedBy: MvpDecidedBy | null;
+};
+
+/** Newest Game first; two coins from one Game by when they were received. */
+export function newestCabinetEntryFirst(
+  left: CabinetEntry,
+  right: CabinetEntry,
+): number {
+  return (
+    right.playedAt.getTime() - left.playedAt.getTime() ||
+    right.receivedAt.getTime() - left.receivedAt.getTime()
+  );
+}
+
+export type CabinetKindView<Entry extends CabinetEntry> = {
+  kind: CoinKind;
+  group: CabinetGroup;
+  /** Zero reads as "Not yet". */
+  count: number;
+  /** A Roast the owner hides from others, flagged on the owner's own view. */
+  hiddenFromOthers: boolean;
+  last: Entry | null;
+};
+
+export type CabinetSportView<Entry extends CabinetEntry> = {
+  /** Marks received on the sport; the MVP is not a Mark and counts apart. */
+  total: number;
+  mvpCount: number;
+  mvpDecidedBy: Record<MvpDecidedBy, number>;
+  kinds: CabinetKindView<Entry>[];
+  kindsNotYet: number;
+};
+
+/**
+ * One sport's tab of a cabinet as one viewer sees it. When the owner hides
+ * Roasts, another viewer gets no trace of them: not in the counts, not in
+ * the kinds, not as "Not yet". The owner still sees them, flagged.
+ */
+export function cabinetView<Entry extends CabinetEntry>(args: {
+  entries: readonly Entry[];
+  sport: Sport;
+  viewerIsOwner: boolean;
+  hideRoasts: boolean;
+}): CabinetSportView<Entry> {
+  const hideFromViewer = args.hideRoasts && !args.viewerIsOwner;
+  const shown = cabinetKinds(args.sport).filter(
+    (kind) => !(hideFromViewer && isRoast(kind)),
+  );
+  const entries = args.entries
+    .filter((entry) => entry.sport === args.sport && shown.includes(entry.kind))
+    .sort(newestCabinetEntryFirst);
+  const kinds = shown.map((kind) => {
+    const ofKind = entries.filter((entry) => entry.kind === kind);
+    return {
+      kind,
+      group: cabinetGroup(kind),
+      count: ofKind.length,
+      hiddenFromOthers: args.hideRoasts && args.viewerIsOwner && isRoast(kind),
+      last: ofKind[0] ?? null,
+    };
+  });
+  const mvpDecidedBy: Record<MvpDecidedBy, number> = {
+    vote: 0,
+    organizer: 0,
+    tie_break: 0,
+  };
+  for (const entry of entries) {
+    if (entry.kind === "mvp" && entry.decidedBy) {
+      mvpDecidedBy[entry.decidedBy] += 1;
+    }
+  }
+  const mvpCount = entries.filter((entry) => entry.kind === "mvp").length;
+  return {
+    total: entries.length - mvpCount,
+    mvpCount,
+    mvpDecidedBy,
+    kinds,
+    kindsNotYet: kinds.filter((kind) => kind.count === 0).length,
+  };
+}
+
+export function markName(kind: CoinKind, locale: Locale): string {
   return messagesFor(locale).marks.kind[kind].name;
 }
 
-export function markDescription(kind: MarkKind, locale: Locale): string {
+export function markDescription(kind: CoinKind, locale: Locale): string {
   return messagesFor(locale).marks.kind[kind].description;
 }
 
@@ -738,4 +858,36 @@ export function mvpRefusedCopy(reason: MvpRefusal, locale: Locale): string {
     case "closed":
       return m.closed;
   }
+}
+
+/** `11 received`. */
+export function cabinetReceivedCopy(count: number, locale: Locale): string {
+  return messagesFor(locale).marks.cabinet.received(count);
+}
+
+/** `4 of 12 kinds not yet`. */
+export function cabinetKindsNotYetCopy(
+  notYet: number,
+  total: number,
+  locale: Locale,
+): string {
+  return messagesFor(locale).marks.cabinet.kindsNotYet(notYet, total);
+}
+
+/** `Last from Ali, Thursday padel`. */
+export function cabinetLastFromCopy(
+  name: string,
+  game: string,
+  locale: Locale,
+): string {
+  return messagesFor(locale).marks.cabinet.lastFrom(name, game);
+}
+
+/** `Teammate` or `Opponent`: who a Mark came from, on a kind detail row. */
+export function markRelationCopy(
+  relation: MarkRelation,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).marks.cabinet;
+  return relation === "teammate" ? m.fromTeammate : m.fromOpponent;
 }

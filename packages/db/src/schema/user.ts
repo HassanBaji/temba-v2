@@ -107,6 +107,8 @@ export const user = pgTable(
     matchHistoryVisibility: matchHistoryVisibilities("match_history_visibility")
       .notNull()
       .default("everyone"),
+    /** Leaves the Roasts out of the cabinet other viewers see; Game screens still show them. */
+    hideRoasts: boolean("hide_roasts").notNull().default(false),
     addedByUserId: uuid("added_by_user_id").references(
       (): AnyPgColumn => user.id,
       { onDelete: "set null" },

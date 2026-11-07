@@ -100,6 +100,31 @@ export const marks = {
       other: `${given} منحها {n} لاعب`,
     }),
   count: (n: number) => `×${n}`,
+  roast: {
+    hiddenFromOthers: "مخفي عن الآخرين",
+  },
+  cabinet: {
+    title: "الأوسمة",
+    received: (n: number) =>
+      plural("ar", n, {
+        zero: "لا أوسمة بعد",
+        one: "وسام واحد",
+        two: "وسامان",
+        few: "{n} أوسمة",
+        many: "{n} وسامًا",
+        other: "{n} وسام",
+      }),
+    notYet: "ليس بعد",
+    kindsNotYet: (n: number, total: number) => `${n} من ${total} لم تُنَل بعد`,
+    lastFrom: (name: string, game: string) =>
+      `آخرها من ${isolate(name)}، ${isolate(game)}`,
+    fromTeammate: "زميل",
+    fromOpponent: "منافس",
+  },
+  settings: {
+    hideRoasts: "إخفاء أوسمة المزاح من ملفي",
+    hideRoastsHelp: "أبو زلّة وسيد مالك. تبقى ظاهرة داخل كل مباراة.",
+  },
   mvp: {
     mode: {
       vote: {

@@ -171,7 +171,9 @@ type ExpectedMarks =
   | "retract"
   | "castMvpVote"
   | "setMvp"
-  | "setMvpMode";
+  | "setMvpMode"
+  | "cabinet"
+  | "kindDetail";
 
 type ExpectedNotifications =
   | "list"
@@ -220,6 +222,7 @@ type ExpectedUsers =
   | "setProfileDetails"
   | "setPlayWindows"
   | "setMatchHistoryVisibility"
+  | "setHideRoasts"
   | "setSports"
   | "setFootballPreferences";
 

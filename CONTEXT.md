@@ -333,6 +333,10 @@ _Avoid_: MVP setting, MVP type
 Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.
 _Avoid_: category, tier
 
+**Cabinet**:
+The Marks and MVPs a User has collected, shown on their Player profile per sport: a summary row, every kind with its count or "Not yet", and per kind the Games it came from. A Mark counts on the sport of the Game it was given in, an MVP on the sport it was won in, once it has settled. Follows Match history visibility; when the owner hides Roasts, other viewers see no trace of them.
+_Avoid_: trophy case, collection, badge wall, achievements
+
 **Result card**:
 A 1080 by 1920 picture of a Played game's result on ink, sized for a story: the winners first, the score or the Sets, the scorers or line-ups, the Venue and the date. Saved to the photo library or handed to the share sheet as a PNG.
 _Avoid_: story (that is where it goes), poster, screenshot

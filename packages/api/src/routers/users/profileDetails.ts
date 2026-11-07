@@ -34,6 +34,7 @@ export async function loadProfileDetails(database: DbClient, userId: string) {
       playWindows: true,
       seatAlerts: true,
       matchHistoryVisibility: true,
+      hideRoasts: true,
       sports: true,
       preferredPosition: true,
       preferredFootballRole: true,
