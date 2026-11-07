@@ -16,7 +16,7 @@ import {
   type FootballBib,
   type FootballTeamsMethod,
 } from "./football-lineup";
-import { formatDayMonth, formatGameClock } from "./format-game-start";
+import { formatGameClock, formatGameDay } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
@@ -88,7 +88,7 @@ export type PlayedPlace = {
 export function playedDateLine(windowStart: Date | null, locale: Locale) {
   const m = messagesFor(locale).game.played;
   return windowStart
-    ? m.playedOn(formatDayMonth(windowStart, locale, { weekday: "short" }))
+    ? m.playedOn(formatGameDay(windowStart, locale, { weekday: "short" }))
     : m.played;
 }
 

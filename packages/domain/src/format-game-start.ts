@@ -10,6 +10,7 @@ import { latinDigits } from "@repo/i18n/digits";
 import { intlLocale, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { gameDayStart } from "./game-day";
 import {
   PRODUCT_TIMEZONE,
   productDaysBetween,
@@ -67,9 +68,18 @@ export function formatDayMonth(
   return parts.filter((part) => part != null).join(" ");
 }
 
+/** The day a Game is listed under: a midnight start still belongs to the evening before. */
+export function formatGameDay(
+  startTime: Date | string,
+  locale: Locale,
+  options: { weekday?: NameStyle; month?: NameStyle; year?: boolean } = {},
+) {
+  return formatDayMonth(gameDayStart(asDate(startTime)), locale, options);
+}
+
 export function formatGameStart(startTime: Date | string, locale: Locale) {
   return messagesFor(locale).dates.gameStart(
-    formatDayMonth(startTime, locale, { weekday: "short" }),
+    formatGameDay(startTime, locale, { weekday: "short" }),
     formatGameClock(startTime, locale),
   );
 }
@@ -128,8 +138,8 @@ export function formatGameTimeWindow(
   return formatGameClock(startTime, locale);
 }
 
-function daysUntilProductDay(date: Date) {
-  return productDaysBetween(new Date(), date);
+function daysUntilGameDay(date: Date) {
+  return productDaysBetween(new Date(), gameDayStart(date));
 }
 
 export type GameDayProximity = "today" | "tomorrow" | "later";
@@ -137,7 +147,7 @@ export type GameDayProximity = "today" | "tomorrow" | "later";
 /** Lets cards tint the day label without re-parsing the relative-day copy. */
 export function gameDayProximity(startTime: Date | string): GameDayProximity {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilProductDay(date);
+  const diffDays = daysUntilGameDay(date);
 
   if (diffDays === 0) {
     return "today";
@@ -155,7 +165,7 @@ export function formatRelativeDay(
 ) {
   const m = messagesFor(locale);
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilProductDay(date);
+  const diffDays = daysUntilGameDay(date);
 
   if (diffDays === 0) {
     return options?.sameDayLabel === "Today" ? m.common.today : m.dates.tonight;
@@ -164,19 +174,19 @@ export function formatRelativeDay(
     return m.common.tomorrow;
   }
 
-  return formatDayMonth(date, locale, { weekday: "short" });
+  return formatGameDay(date, locale, { weekday: "short" });
 }
 
 /** Detail headings: `Saturday 4 October`. */
 export function formatAbsoluteDay(startTime: Date | string, locale: Locale) {
-  return formatDayMonth(startTime, locale, { weekday: "long", month: "long" });
+  return formatGameDay(startTime, locale, { weekday: "long", month: "long" });
 }
 
 /** Hub Game card day: Today / Tomorrow / `Thursday 11 Sep`. */
 export function formatGameCardDay(startTime: Date | string, locale: Locale) {
   const m = messagesFor(locale);
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilProductDay(date);
+  const diffDays = daysUntilGameDay(date);
 
   if (diffDays === 0) {
     return m.common.today;
@@ -185,7 +195,7 @@ export function formatGameCardDay(startTime: Date | string, locale: Locale) {
     return m.common.tomorrow;
   }
 
-  return formatDayMonth(date, locale, { weekday: "long" });
+  return formatGameDay(date, locale, { weekday: "long" });
 }
 
 /**
@@ -219,7 +229,7 @@ export function formatPlayedRelativeDay(
 ) {
   const m = messagesFor(locale);
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const daysAgo = -daysUntilProductDay(date);
+  const daysAgo = -daysUntilGameDay(date);
 
   if (daysAgo <= 0) {
     return m.dates.playedToday;

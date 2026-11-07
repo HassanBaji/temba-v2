@@ -147,7 +147,8 @@ export const mobileCreateGame = {
     setFinishTime: "حدّد وقت النهاية",
     finishTime: "وقت النهاية",
     finish: "النهاية",
-    helper: "لليوم الحالي، تظهر الأوقات القادمة فقط.",
+    helper:
+      "يمكن أن تمتد اللعبة إلى ما بعد منتصف الليل. لليوم الحالي، تظهر الأوقات القادمة فقط.",
     groups: "المجموعات",
     fewerGroups: "مجموعات أقل",
     moreGroups: "مجموعات أكثر",

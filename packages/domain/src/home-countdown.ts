@@ -2,8 +2,8 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import {
-  formatDayMonth,
   formatGameClock,
+  formatGameDay,
   gameDayProximity,
 } from "./format-game-start";
 
@@ -109,7 +109,7 @@ export function formatHomeKickoff(
       ? m.tonightInSentence
       : proximity === "tomorrow"
         ? m.tomorrowInSentence
-        : formatDayMonth(startsAt, locale, { weekday: "short" });
+        : formatGameDay(startsAt, locale, { weekday: "short" });
 
   return { time, meridiem, relativeDay };
 }

@@ -46,6 +46,7 @@ import { transferOwnershipProcedure as transferOwnership } from "./transferOwner
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./undoJoinRequestDecision";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
+import { withdrawJoinRequestProcedure as withdrawJoinRequest } from "./withdrawJoinRequest";
 
 export const groupsRouter = createTRPCRouter({
   createLoosePublic,
@@ -60,6 +61,7 @@ export const groupsRouter = createTRPCRouter({
   approveJoinRequest,
   rejectJoinRequest,
   undoJoinRequestDecision,
+  withdrawJoinRequest,
   setRequiresApproval,
   leave,
   delete: deleteProcedure,

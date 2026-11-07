@@ -24,6 +24,7 @@ import { isBlockedFromGroup } from "#src/groups/helpers/is-blocked-from-group";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { writeDb } from "#src/invites/doors/helpers/write-db";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
+import { notifyGroupJoinRequested } from "#src/notifications/notify-requests";
 import { isInviteLinkLive } from "#src/invites/invite-link-expiry";
 import { assertInviteOpen } from "#src/invites/doors/consult";
 import type {
@@ -37,11 +38,17 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 async function requestGroupJoinFromLink(
   database: InviteDb,
-  args: { groupId: string; userId: string; invitedBy: string },
+  args: {
+    group: { id: string; createdBy: string };
+    userId: string;
+    invitedBy: string;
+  },
 ) {
+  const { group } = args;
+  const groupId = group.id;
   const existing = await database.query.groupJoinRequests.findFirst({
     where: and(
-      eq(groupJoinRequests.groupId, args.groupId),
+      eq(groupJoinRequests.groupId, groupId),
       eq(groupJoinRequests.userId, args.userId),
     ),
     columns: { id: true, status: true },
@@ -61,11 +68,15 @@ async function requestGroupJoinFromLink(
       .update(groupJoinRequests)
       .set({ ...details, updatedAt: new Date() })
       .where(eq(groupJoinRequests.id, existing.id));
-    return;
+  } else {
+    await writeDb(database)
+      .insert(groupJoinRequests)
+      .values({ groupId, userId: args.userId, ...details });
   }
-  await writeDb(database)
-    .insert(groupJoinRequests)
-    .values({ groupId: args.groupId, userId: args.userId, ...details });
+  await notifyGroupJoinRequested(database, {
+    group,
+    requesterUserId: args.userId,
+  });
 }
 
 export async function acceptLink(
@@ -119,7 +130,7 @@ export async function acceptLink(
     }
     if (group.type === GroupTypeEnum.PUBLIC && group.requiresApproval) {
       await requestGroupJoinFromLink(database, {
-        groupId: host.id,
+        group,
         userId: args.userId,
         invitedBy: link.createdBy,
       });

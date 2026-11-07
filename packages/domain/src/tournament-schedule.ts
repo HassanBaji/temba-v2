@@ -1,4 +1,4 @@
-import { productDayKey } from "./product-timezone";
+import { endsInsideGameDay } from "./game-day";
 import {
   suggestedRoundCount,
   tournamentMatchMinutes,
@@ -20,8 +20,9 @@ export type ScheduledPoolMatch = {
   slot2GameTeamId: string;
 };
 
+/** One Game day, which may run past midnight into the small hours. */
 export function isOneDayTournamentWindow(start: Date, end: Date) {
-  return productDayKey(start) === productDayKey(end);
+  return endsInsideGameDay(start, end);
 }
 
 function addMinutes(start: Date, minutes: number) {

@@ -1,6 +1,6 @@
 import { radii, spacing } from "@repo/design-tokens";
 import {
-  formatDayMonth,
+  formatGameDay,
   formatGameClock,
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
@@ -324,7 +324,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         nav="back"
         fallback={fallback}
         title={
-          start ? formatDayMonth(start, locale, { weekday: "short" }) : m.title
+          start ? formatGameDay(start, locale, { weekday: "short" }) : m.title
         }
         actions={
           <Text size="meta" tone="muted">

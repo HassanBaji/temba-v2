@@ -1,7 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatDayMonth } from "./format-game-start";
+import { formatDayMonth, formatGameDay } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -81,7 +81,7 @@ function notificationGameName(game: NotificationGame, locale: Locale) {
   return game.windowStart
     ? messagesFor(locale).notification.gameNameWithDay(
         format,
-        formatDayMonth(game.windowStart, locale, { weekday: "short" }),
+        formatGameDay(game.windowStart, locale, { weekday: "short" }),
       )
     : format;
 }
@@ -126,6 +126,7 @@ export function notificationCopy(
   locale: Locale,
 ): NotificationCopy | null {
   const m = messagesFor(locale).notification.title;
+  const sub = messagesFor(locale).notification.subline;
   if (item.type === "group_member_joined" && item.audience === "admin") {
     return {
       title: m.groupMemberJoined(
@@ -244,6 +245,85 @@ export function notificationCopy(
   if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {
     return {
       title: m.mvpTieBreak(notificationGameName(item.game, locale)),
+      subline: null,
+    };
+  }
+  if (item.type === "group_join_requested" && item.audience === "admin") {
+    const actor = actorName(item.actor, locale);
+    const group = groupName(item.group, locale);
+    return item.game
+      ? {
+          title: m.groupJoinRequestedWithSeat(
+            actor,
+            group,
+            notificationGameName(item.game, locale),
+          ),
+          subline: sub.decideOnGame,
+        }
+      : {
+          title: m.groupJoinRequested(actor, group),
+          subline: sub.decideOnGroup,
+        };
+  }
+  if (item.type === "group_join_approved" && item.audience === "player") {
+    const actor = actorName(item.actor, locale);
+    const group = groupName(item.group, locale);
+    return {
+      title: item.game
+        ? m.groupJoinApprovedWithSeat(
+            actor,
+            group,
+            notificationGameName(item.game, locale),
+          )
+        : m.groupJoinApproved(actor, group),
+      subline: null,
+    };
+  }
+  if (item.type === "group_join_declined" && item.audience === "player") {
+    return {
+      title: m.groupJoinDeclined(
+        actorName(item.actor, locale),
+        groupName(item.group, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "game_level_range_requested" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.levelRangeRequested(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.decideOnGame,
+    };
+  }
+  if (
+    item.type === "game_level_range_approved" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.levelRangeApproved(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.takeYourSeat,
+    };
+  }
+  if (
+    item.type === "game_level_range_declined" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.levelRangeDeclined(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
       subline: null,
     };
   }

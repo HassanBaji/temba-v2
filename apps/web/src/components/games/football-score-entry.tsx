@@ -18,7 +18,7 @@ import {
   stepFootballGoals,
 } from "@repo/domain/football-lineup";
 import {
-  formatDayMonth,
+  formatGameDay,
   formatGameClock,
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
@@ -197,7 +197,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   const start = game.data?.windowStart ?? null;
   const teams = board.data?.teams ?? null;
   const title = start
-    ? formatDayMonth(start, locale, { weekday: "short" })
+    ? formatGameDay(start, locale, { weekday: "short" })
     : m.game.played.score;
   const description = [
     [game.data?.venue?.name, game.data?.recordedCourts[0]?.name]

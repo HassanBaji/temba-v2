@@ -8,9 +8,9 @@ import {
   seasonOutsideDayMessage,
   seasonsOpenForDay,
 } from "@repo/domain/game-season-link";
+import { gameDayKey } from "@repo/domain/game-day";
 import { groupSeasonStatus } from "@repo/domain/group-season";
 import { MATCH_STATUS } from "@repo/domain/match-status";
-import { productDayKey } from "@repo/domain/product-timezone";
 import { type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -33,7 +33,7 @@ export async function seasonCoveringGameDay(
 ): Promise<SeasonRow | null> {
   const seasons = await groupSeasonRows(database, args.groupId);
   return (
-    seasonsOpenForDay(seasons, productDayKey(args.windowStart), args.now)[0] ??
+    seasonsOpenForDay(seasons, gameDayKey(args.windowStart), args.now)[0] ??
     null
   );
 }
@@ -78,7 +78,7 @@ export async function linkUnlinkedGamesToSeason(
     .filter(
       (row) =>
         row.windowStart != null &&
-        seasonContainsDay(season, productDayKey(row.windowStart)),
+        seasonContainsDay(season, gameDayKey(row.windowStart)),
     )
     .map((row) => row.id);
   if (ids.length === 0) {
@@ -106,7 +106,7 @@ export async function relinkGamesAfterSeasonClose(
   });
   const later = rows.filter(
     (row) =>
-      row.windowStart != null && productDayKey(row.windowStart) > season.endsOn,
+      row.windowStart != null && gameDayKey(row.windowStart) > season.endsOn,
   );
   if (later.length === 0) {
     return;
@@ -116,7 +116,7 @@ export async function relinkGamesAfterSeasonClose(
     const next =
       seasonsOpenForDay(
         seasons.filter((candidate) => candidate.id !== season.id),
-        productDayKey(row.windowStart!),
+        gameDayKey(row.windowStart!),
         now,
       )[0] ?? null;
     await database
@@ -183,7 +183,7 @@ export async function resolveGameSeasonLink(
       message: m.notInGroup,
     });
   }
-  const dayKey = productDayKey(args.windowStart);
+  const dayKey = gameDayKey(args.windowStart);
   if (!seasonContainsDay(season, dayKey)) {
     throw new TRPCError({
       code: "BAD_REQUEST",

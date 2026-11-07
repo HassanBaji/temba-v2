@@ -52,6 +52,7 @@ import {
   matchSeatedUserIds,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
+import { listGameSeatHolds } from "#src/games/seat-holds";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
@@ -448,6 +449,9 @@ export async function gameById(
         userId: args.userId,
       })
     : [];
+  const pendingSeatHolds = organizer
+    ? await listGameSeatHolds(database, game, args.userId, now)
+    : [];
 
   // `sides[].left/right` per-seat Level band (TEM-177): joined from the
   // existing `ratings` table for every seated User across every side, `null`
@@ -828,6 +832,7 @@ export async function gameById(
     eligibleTeams,
     ...levelRange,
     pendingLevelRangeRequests,
+    pendingSeatHolds,
     poolTables: computePoolTables({
       format: game.format,
       poolCount: game.poolCount,

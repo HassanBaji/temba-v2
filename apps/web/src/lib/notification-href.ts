@@ -6,7 +6,12 @@ export function notificationHref(item: {
   game?: { id: string } | null;
 }): string | null {
   if (
-    (item.type === "group_member_joined" || item.type === "level_set") &&
+    (item.type === "group_member_joined" ||
+      item.type === "level_set" ||
+      ((item.type === "group_join_requested" ||
+        item.type === "group_join_approved" ||
+        item.type === "group_join_declined") &&
+        !item.game)) &&
     item.group
   ) {
     return `/dashboard/groups/${item.group.id}`;
@@ -19,7 +24,13 @@ export function notificationHref(item: {
       item.type === "game_finished" ||
       item.type === "mark_received" ||
       item.type === "mvp_decided" ||
-      item.type === "mvp_tie_break") &&
+      item.type === "mvp_tie_break" ||
+      item.type === "group_join_requested" ||
+      item.type === "group_join_approved" ||
+      item.type === "group_join_declined" ||
+      item.type === "game_level_range_requested" ||
+      item.type === "game_level_range_approved" ||
+      item.type === "game_level_range_declined") &&
     item.game
   ) {
     return `/dashboard/games/${item.game.id}`;

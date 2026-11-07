@@ -10,7 +10,9 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { requireGame } from "#src/games/access";
 import { requirePendingLevelRangeRequest } from "#src/games/level-range-requests";
+import { notifyLevelRangeDecided } from "#src/notifications/notify-requests";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -24,21 +26,30 @@ export async function approveLevelRangeRequest(
     args.userId,
     "approve",
   );
-  const [updated] = await database
-    .update(gameLevelRangeRequests)
-    .set({
-      status: GameLevelRangeRequestStatusEnum.APPROVED,
-      decidedBy: args.userId,
-      updatedAt: new Date(),
-    })
-    .where(eq(gameLevelRangeRequests.id, request.id))
-    .returning();
-  if (!updated) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to approve Level range request",
+  const game = await requireGame(database, request.gameId);
+  await database.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(gameLevelRangeRequests)
+      .set({
+        status: GameLevelRangeRequestStatusEnum.APPROVED,
+        decidedBy: args.userId,
+        updatedAt: new Date(),
+      })
+      .where(eq(gameLevelRangeRequests.id, request.id))
+      .returning();
+    if (!updated) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to approve Level range request",
+      });
+    }
+    await notifyLevelRangeDecided(tx, {
+      game,
+      requesterUserId: request.userId,
+      deciderUserId: args.userId,
+      approved: true,
     });
-  }
+  });
   return { ok: true as const };
 }
 

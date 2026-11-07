@@ -46,9 +46,41 @@ describe("friendlyGameOrganizerPlan", () => {
     assert.deepEqual(plan?.waitlist, [
       { id: "waitlist-1", name: "Noor Haddad", image: null },
     ]);
-    assert.equal(plan?.showLevelRequests, true);
-    assert.equal(plan?.levelRequests[0]?.name, "Tariq Aziz");
-    assert.equal(plan?.levelRequests[0]?.meta.includes("Requested"), true);
+    assert.equal(plan?.showRequests, true);
+    assert.equal(plan?.requests[0]?.kind, "level_range");
+    assert.equal(plan?.requests[0]?.name, "Tariq Aziz");
+    assert.equal(plan?.requests[0]?.meta.includes("Requested"), true);
+  });
+
+  it("puts a Seat hold from the Game's link ahead of the Level range requests", () => {
+    const plan = friendlyGameOrganizerPlan(
+      {
+        ...fixtures.upcoming,
+        levelMinTenths: null,
+        levelMaxTenths: null,
+        pendingLevelRangeRequests: [],
+        pendingSeatHolds: [
+          {
+            id: "hold-1",
+            createdAt: NOW,
+            seatHeldUntil: new Date(NOW.getTime() + 20 * 60 * 60 * 1000),
+            user: { id: "user-hassan", name: "Hassan Haji", image: null },
+            invitedBy: { id: "user-yousif", name: "Yousif Kadhem" },
+            groupName: "Gooz of Arad",
+            levelTenths: 24,
+            provisional: false,
+          },
+        ],
+      },
+      "en",
+      NOW,
+    );
+    assert.equal(plan?.showRequests, true);
+    assert.deepEqual(
+      plan?.requests.map((request) => [request.kind, request.name]),
+      [["seat_hold", "Hassan Haji"]],
+    );
+    assert.equal(plan?.requests[0]?.meta.includes("held 20h"), true);
   });
 
   it("hides the request queue when the Game has no Level range", () => {
@@ -57,7 +89,7 @@ describe("friendlyGameOrganizerPlan", () => {
       "en",
       NOW,
     );
-    assert.equal(plan?.showLevelRequests, false);
+    assert.equal(plan?.showRequests, false);
   });
 
   it("offers Complete Match only when the server says a Match can complete", () => {
@@ -101,6 +133,6 @@ describe("friendlyGameOrganizerPlan", () => {
       "ar",
       NOW,
     );
-    assert.equal(plan?.levelRequests[0]?.name, "مستخدم");
+    assert.equal(plan?.requests[0]?.name, "مستخدم");
   });
 });

@@ -21,6 +21,7 @@ import { footballBoardProcedure as footballBoard } from "./footballBoard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { getSecretMessage } from "./getSecretMessage";
 import { hello } from "./hello";
+import { joinGroupFromInviteLinkProcedure as joinGroupFromInviteLink } from "./joinGroupFromInviteLink";
 import { kickProcedure as kick } from "./kick";
 import { leave } from "./leave";
 import { leaveWaitlistProcedure as leaveWaitlist } from "./leaveWaitlist";
@@ -143,5 +144,6 @@ export const gamesRouter = createTRPCRouter({
   inviteLinkByShortCode,
   previewInviteLink,
   acceptInviteLink,
+  joinGroupFromInviteLink,
   getSecretMessage,
 });

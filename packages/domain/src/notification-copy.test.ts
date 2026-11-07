@@ -750,3 +750,111 @@ describe("invitesWaitingLabel", () => {
     assert.equal(invitesWaitingLabel(3, "en"), "3 invites waiting");
   });
 });
+
+describe("request notifications", () => {
+  const game = {
+    name: null,
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 10, 11, 19, 0, 0),
+  };
+
+  it("tells admins who asked, and where to decide", () => {
+    const withSeat = notificationCopy(
+      {
+        type: "group_join_requested",
+        audience: "admin",
+        actor: { name: "Hassan Haji" },
+        group: { name: "Gooz of Arad" },
+        game,
+      },
+      "en",
+    );
+    assert.equal(
+      withSeat?.title.map((part) => part.text).join(""),
+      "Hassan Haji asked to join Gooz of Arad and hold a seat on Friendly game · Wed 11 Nov",
+    );
+    assert.equal(withSeat?.subline, "Approve or decline on the Game.");
+    const groupOnly = notificationCopy(
+      {
+        type: "group_join_requested",
+        audience: "admin",
+        actor: { name: "Hassan Haji" },
+        group: { name: "Gooz of Arad" },
+        game: null,
+      },
+      "en",
+    );
+    assert.equal(groupOnly?.subline, "Approve or decline on the Group.");
+    assert.equal(
+      notificationCopy(
+        {
+          type: "game_level_range_requested",
+          audience: "admin",
+          actor: { name: "Omar T" },
+          group: null,
+          game,
+        },
+        "en",
+      )
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Omar T asked to play Friendly game · Wed 11 Nov outside the Level range",
+    );
+  });
+
+  it("tells the player who decided", () => {
+    assert.equal(
+      notificationCopy(
+        {
+          type: "group_join_approved",
+          audience: "player",
+          actor: { name: "Yousif Kadhem" },
+          group: { name: "Gooz of Arad" },
+          game,
+        },
+        "en",
+      )
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Yousif Kadhem approved you. You're in Friendly game · Wed 11 Nov and a member of Gooz of Arad",
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "group_join_declined",
+          audience: "player",
+          actor: { name: "Yousif Kadhem" },
+          group: { name: "Gooz of Arad" },
+        },
+        "ar",
+      )
+        ?.title.map((part) => part.text)
+        .join(""),
+      `رفض ${isolate("Yousif Kadhem")} طلبك للانضمام إلى ${isolate("Gooz of Arad")}`,
+    );
+    const levelApproved = notificationCopy(
+      {
+        type: "game_level_range_approved",
+        audience: "player",
+        actor: { name: "Yousif Kadhem" },
+        group: null,
+        game,
+      },
+      "en",
+    );
+    assert.equal(levelApproved?.subline, "You can join the Game now.");
+    assert.equal(
+      notificationCopy(
+        {
+          type: "game_level_range_approved",
+          audience: "admin",
+          actor: { name: "Yousif Kadhem" },
+          group: null,
+          game,
+        },
+        "en",
+      ),
+      null,
+    );
+  });
+});

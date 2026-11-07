@@ -1,6 +1,10 @@
 import { spacing } from "@repo/design-tokens";
 import { kickAction } from "@repo/domain/game-copy";
-import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
+import type {
+  FriendlyGameOrganizerPlan,
+  OrganizerRequest,
+} from "@repo/domain/friendly-game-organizer";
+import { requestsQueueHeading } from "@repo/domain/seat-hold-request";
 import { Fragment } from "react";
 import { View } from "react-native";
 
@@ -18,8 +22,8 @@ export type OrganizerHandlers = {
   onToggleRegistration: () => void;
   onChooseCourt: () => void;
   onComplete: (matchId: string) => void;
-  onApprove: (requestId: string) => void;
-  onReject: (requestId: string) => void;
+  onApprove: (request: OrganizerRequest) => void;
+  onReject: (request: OrganizerRequest) => void;
   onKickWaitlist: (waitlistId: string) => void;
   onKickPlayer: (userId: string) => void;
   onAddPlayer: () => void;
@@ -83,45 +87,58 @@ export function OrganizerCard({
   const copy = m.mobileGameDetails.organizer;
   const blocks: React.ReactNode[] = [];
 
-  if (plan.showLevelRequests) {
+  if (plan.showRequests) {
+    const seatHolds = plan.requests.filter(
+      (request) => request.kind === "seat_hold",
+    ).length;
     blocks.push(
       <Block key="requests">
-        <Text weight="medium" accessibilityRole="header">
-          {copy.levelRequests}
-        </Text>
-        {plan.levelRequests.length === 0 ? (
-          <Text size="meta" tone="muted">
-            {copy.noLevelRequests}
+        <View>
+          <Text weight="medium" accessibilityRole="header">
+            {m.game.requests.title}
           </Text>
-        ) : (
-          plan.levelRequests.map((request) => {
-            const deciding = handlers.decidingRequestId === request.id;
-            return (
-              <PersonRow
-                key={request.id}
-                name={request.name}
-                image={request.image}
-                meta={request.meta}
-              >
-                <Button
-                  label={copy.approve}
-                  accessibilityLabel={copy.approveName(request.name)}
-                  size="sm"
-                  disabled={deciding}
-                  onPress={() => handlers.onApprove(request.id)}
-                />
-                <Button
-                  label={copy.reject}
-                  accessibilityLabel={copy.rejectName(request.name)}
-                  size="sm"
-                  variant="outline"
-                  disabled={deciding}
-                  onPress={() => handlers.onReject(request.id)}
-                />
-              </PersonRow>
-            );
-          })
-        )}
+          <Text size="meta" tone="muted">
+            {requestsQueueHeading(
+              {
+                levelRange: plan.requests.length - seatHolds,
+                seatHolds,
+              },
+              locale,
+            )}
+          </Text>
+        </View>
+        {plan.requests.map((request) => {
+          const deciding = handlers.decidingRequestId === request.id;
+          return (
+            <PersonRow
+              key={request.id}
+              name={request.name}
+              image={request.image}
+              meta={request.meta}
+            >
+              <Button
+                label={copy.approve}
+                accessibilityLabel={copy.approveName(request.name)}
+                size="sm"
+                disabled={deciding}
+                onPress={() => handlers.onApprove(request)}
+              />
+              <Button
+                label={m.game.requests.decline}
+                accessibilityLabel={copy.rejectName(request.name)}
+                size="sm"
+                variant="outline"
+                disabled={deciding}
+                onPress={() => handlers.onReject(request)}
+              />
+            </PersonRow>
+          );
+        })}
+        {seatHolds > 0 ? (
+          <Text size="eyebrow" tone="muted">
+            {m.game.requests.note}
+          </Text>
+        ) : null}
       </Block>,
     );
   }

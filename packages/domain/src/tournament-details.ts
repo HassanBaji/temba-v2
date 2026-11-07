@@ -1,6 +1,7 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
+import type { SeatHoldRequestRow } from "./seat-hold-request";
 import { formatGameCardDay } from "./format-game-start";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
@@ -196,6 +197,8 @@ export type TournamentDetails = {
     createdAt: Date;
     user: { id: string; name: string | null; image: string | null };
   }[];
+  /** Seat holds the viewer may decide (ADR-0057); absent on older API builds. */
+  pendingSeatHolds?: SeatHoldRequestRow[];
   poolTables: ComputedPoolTables | null;
   knockout: KnockoutViewRound[] | null;
 };

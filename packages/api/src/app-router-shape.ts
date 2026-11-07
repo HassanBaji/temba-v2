@@ -115,6 +115,7 @@ type ExpectedGames =
   | "inviteLinkByShortCode"
   | "previewInviteLink"
   | "acceptInviteLink"
+  | "joinGroupFromInviteLink"
   | "getSecretMessage";
 
 type ExpectedGroups =
@@ -130,6 +131,7 @@ type ExpectedGroups =
   | "approveJoinRequest"
   | "rejectJoinRequest"
   | "undoJoinRequestDecision"
+  | "withdrawJoinRequest"
   | "setRequiresApproval"
   | "leave"
   | "delete"

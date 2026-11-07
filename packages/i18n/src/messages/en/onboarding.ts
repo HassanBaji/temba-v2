@@ -21,6 +21,11 @@ export const onboarding = {
       name: "Improver",
       detail: "Overheads and volleys are reliable, errors still creep in.",
     },
+    clubPlayer: {
+      name: "Club player",
+      detail:
+        "Comfortable off the glass, builds the point instead of rushing it.",
+    },
     intermediate: {
       name: "Intermediate",
       detail:
@@ -29,6 +34,11 @@ export const onboarding = {
     advanced: {
       name: "Advanced",
       detail: "Wins tournaments, finishes points at the net.",
+    },
+    competitor: {
+      name: "Competitor",
+      detail:
+        "Places in tournaments, pressures at the net, defends the lob well.",
     },
     expert: {
       name: "Expert",

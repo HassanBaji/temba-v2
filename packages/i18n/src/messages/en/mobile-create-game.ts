@@ -125,7 +125,7 @@ export const mobileCreateGame = {
     finishTime: "Finish time",
     finish: "Finish",
     helper:
-      "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals; for today, only upcoming times are listed.",
+      "Day, start time, and finish time are required. Pick today or a later day. Times are in 30-minute intervals and a game may run past midnight; for today, only upcoming times are listed.",
     groups: "Groups",
     fewerGroups: "Fewer groups",
     moreGroups: "More groups",
