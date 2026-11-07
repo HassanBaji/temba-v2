@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { Eye, EyeOff } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -7,6 +7,7 @@ import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { TextField, type TextFieldProps } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 import { passwordStrength } from "./password-strength";
 
 const TOGGLE = 48;
@@ -30,6 +31,7 @@ export function PasswordField({
   ...props
 }: PasswordFieldProps) {
   const m = useMessages();
+  const colors = useColors();
   const [visible, setVisible] = useState(false);
   const segments = passwordStrength(value);
 

@@ -1,6 +1,6 @@
 import { courtFace } from "@repo/domain/court-sport-copy";
 import type { Sport } from "@repo/domain/sport";
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDayKey } from "@repo/domain/product-timezone";
 import { useRouter } from "expo-router";
@@ -20,6 +20,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import { BookingHero, Notice, SectionHeading } from "./booking-parts";
 import {
@@ -53,6 +54,7 @@ export function CheckoutScreen({
   const utils = api.useUtils();
   const now = useNow();
   const m = useMessages();
+  const colors = useColors();
   const locale = useLocale();
   const startsAt = new Date(startsAtIso);
   const validStart =
@@ -202,7 +204,7 @@ export function CheckoutScreen({
               ready ? (
                 <ArrowRight
                   size={sizes.iconRow}
-                  color={colors.paper}
+                  color={colors.onControl}
                   style={mirrorInRtl}
                 />
               ) : undefined

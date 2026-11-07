@@ -359,11 +359,11 @@ function PreviewSeat({
       : m.tournament.home.rightSeat;
 
   return (
-    <div className="bg-ink text-paper flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
+    <div className="surface-focus flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
       <UserAvatar
         name={occupant.occupant.name}
         image={occupant.occupant.image}
-        className="bg-dimrule text-paper size-[34px] shrink-0 rounded-sm"
+        className="bg-dimrule text-on-focus size-[34px] shrink-0 rounded-sm"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span

@@ -16,7 +16,7 @@ import { cn } from "~/lib/utils";
 
 /** Trigger overrides for a boxed menu on an ink surface, beside other boxed actions. */
 export const ACTION_MENU_INK_BOXED_TRIGGER =
-  "bg-raised text-paper hover:bg-raised/80 hover:text-paper rounded-md";
+  "bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md";
 
 /** Trigger overrides for a boxed menu on paper, beside other boxed actions. */
 export const ACTION_MENU_PAPER_BOXED_TRIGGER =

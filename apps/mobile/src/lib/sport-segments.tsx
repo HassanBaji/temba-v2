@@ -1,10 +1,11 @@
-import { colors, radii, sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { SPORTS, type Sport } from "@repo/domain/sport";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { SportGlyph } from "./sport-glyph";
 
 export function SportSegments({
@@ -15,6 +16,7 @@ export function SportSegments({
   onSelect: (sport: Sport) => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="radiogroup"
@@ -29,7 +31,7 @@ export function SportSegments({
     >
       {SPORTS.map((sport, index) => {
         const selected = sport === value;
-        const color = selected ? colors.paper : colors.muted;
+        const color = selected ? colors.onControl : colors.muted;
         return (
           <Pressable
             key={sport}
@@ -43,7 +45,7 @@ export function SportSegments({
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              backgroundColor: selected ? colors.ink : colors.paper,
+              backgroundColor: selected ? colors.control : colors.paper,
               borderStartWidth: index === 0 ? 0 : hairline,
               borderStartColor: colors.rule,
               opacity: pressed ? 0.85 : 1,

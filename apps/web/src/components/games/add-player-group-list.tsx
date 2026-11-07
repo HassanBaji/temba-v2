@@ -59,7 +59,7 @@ function CompactChoices<T extends string>({
               className={cn(
                 "focus-visible:ring-ring/50 flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border px-0.5 outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
                 selected
-                  ? "border-ink bg-ink text-paper"
+                  ? "border-ink bg-control text-on-control"
                   : "border-rule bg-paper text-ink hover:bg-wash",
               )}
             >

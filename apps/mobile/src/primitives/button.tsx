@@ -1,6 +1,7 @@
-import { colors, radii, spacing } from "@repo/design-tokens";
+import { radii, spacing, type Palette } from "@repo/design-tokens";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
+import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import { buttonGeometry, type ButtonSize } from "./button-target";
 import { useSurfaceTone } from "./surface-context";
@@ -25,23 +26,36 @@ export type ButtonProps = {
   iconPlacement?: "leading" | "trailing";
 };
 
-const VARIANTS: Record<
-  ButtonVariant,
-  { background: string; foreground: string; border: string | null }
-> = {
-  default: { background: colors.ink, foreground: colors.paper, border: null },
-  outline: {
-    background: colors.paper,
-    foreground: colors.ink,
-    border: colors.inputBorder,
-  },
-  inverse: { background: colors.paper, foreground: colors.ink, border: null },
-  "outline-inverse": {
-    background: colors.ink,
-    foreground: colors.paper,
-    border: colors.dimrule,
-  },
+type Colorway = {
+  background: string;
+  foreground: string;
+  border: string | null;
 };
+
+function colorways(colors: Palette): Record<ButtonVariant, Colorway> {
+  return {
+    default: {
+      background: colors.control,
+      foreground: colors.onControl,
+      border: colors.controlEdge,
+    },
+    outline: {
+      background: colors.paper,
+      foreground: colors.ink,
+      border: colors.inputBorder,
+    },
+    inverse: {
+      background: colors.focusControl,
+      foreground: colors.onFocusControl,
+      border: null,
+    },
+    "outline-inverse": {
+      background: colors.focus,
+      foreground: colors.onFocus,
+      border: colors.dimrule,
+    },
+  };
+}
 
 export function Button({
   label,
@@ -57,7 +71,7 @@ export function Button({
 }: ButtonProps) {
   const tone = useSurfaceTone();
   const resolved = variant ?? (tone === "ink" ? "inverse" : "default");
-  const colorway = VARIANTS[resolved];
+  const colorway = colorways(useColors())[resolved];
   const { height, hitSlop } = buttonGeometry(size);
   const inactive = disabled || pending;
 

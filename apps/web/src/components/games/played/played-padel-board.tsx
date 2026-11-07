@@ -23,7 +23,7 @@ function PairRow({ row }: { row: PlayedPadelBoardRow }) {
         <p
           className={cn(
             "truncate font-semibold",
-            row.won ? "text-paper" : "text-dim",
+            row.won ? "text-on-focus" : "text-dim",
           )}
         >
           {row.line}
@@ -36,7 +36,7 @@ function PairRow({ row }: { row: PlayedPadelBoardRow }) {
             key={set.id}
             className={cn(
               "font-expanded w-[34px] text-center text-[44px] tabular-nums leading-[0.94]",
-              set.won ? "text-paper" : "text-muted-foreground",
+              set.won ? "text-on-focus" : "text-muted-foreground",
             )}
           >
             {set.value}

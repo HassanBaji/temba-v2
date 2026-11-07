@@ -25,11 +25,11 @@ export function InkWonMark({ className }: { className?: string }) {
       aria-hidden="true"
       className={cn("block shrink-0", className)}
     >
-      <circle cx="50" cy="50" r="44" fill="var(--color-paper)" />
+      <circle cx="50" cy="50" r="44" fill="var(--color-on-focus)" />
       <path
         d="M6,50 C18,16 82,16 94,50"
         fill="none"
-        stroke="var(--color-ink)"
+        stroke="var(--color-focus)"
         strokeWidth="5"
       />
     </svg>
@@ -43,8 +43,8 @@ function Pill({ label, solid = false }: { label: string; solid?: boolean }) {
       className={cn(
         "text-eyebrow rounded-[6px] border px-2 py-1 font-mono tracking-[0.08em]",
         solid
-          ? "bg-paper text-ink border-paper"
-          : "text-paper border-muted-foreground",
+          ? "bg-focus-control text-on-focus-control border-focus-control"
+          : "text-on-focus border-muted-foreground",
       )}
     >
       {label}
@@ -128,7 +128,7 @@ export function PlayedHero({
               name={avatar.name}
               image={avatar.image}
               size="lg"
-              className="ring-paper ring-2"
+              className="ring-on-focus ring-2"
             />
           ) : null}
           <div className="min-w-0 flex-1">

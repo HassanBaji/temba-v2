@@ -16,7 +16,63 @@ export const colors = {
   hatchStrokeOnInk: "#333333",
   // The one colour outside black and white: a destructive action, never chrome.
   danger: "#b42318",
+  // The focused surface (`Surface tone="ink"`) and the text on it.
+  focus: "#0a0a0a",
+  onFocus: "#ffffff",
+  // Primary buttons, the active segment, a selected chip, your own avatar.
+  control: "#0a0a0a",
+  onControl: "#ffffff",
+  controlEdge: "#0a0a0a",
+  // A control that sits on the focused surface, such as its Vote button.
+  focusControl: "#ffffff",
+  onFocusControl: "#0a0a0a",
+  sheet: "#ffffff",
+  scrim: "rgba(10, 10, 10, 0.5)",
 } as const;
+
+export type ColorRole = keyof typeof colors;
+export type Palette = Record<ColorRole, string>;
+
+/**
+ * The same roles with dark values (ADR-0055). Nothing here is #ffffff: ink is
+ * #e6e6e6, and the focused surface lifts to #141414 instead of inverting.
+ * Depths run 000 page, 0f sheet, 14 focus, 1c raised, 26 control.
+ */
+export const darkColors: Palette = {
+  ink: "#e6e6e6",
+  paper: "#000000",
+  rule: "#2e2e2e",
+  wash: "#1c1c1c",
+  // 6.41:1 on paper, 5.20:1 on wash
+  muted: "#8e8e8e",
+  // 5.62:1 on focus, 4.62:1 on control
+  dim: "#8e8e8e",
+  dimrule: "#3a3a3a",
+  raised: "#262626",
+  // 4.12:1 on paper, 3.61:1 on focus
+  inputBorder: "#6e6e6e",
+  surfaceRaised: "#0f0f0f",
+  hatchStroke: "#2e2e2e",
+  hatchStrokeOnInk: "#3a3a3a",
+  // 7.54:1 on paper
+  danger: "#f97066",
+  focus: "#141414",
+  onFocus: "#e6e6e6",
+  control: "#262626",
+  onControl: "#e6e6e6",
+  controlEdge: "#3a3a3a",
+  focusControl: "#262626",
+  onFocusControl: "#e6e6e6",
+  sheet: "#0f0f0f",
+  scrim: "rgba(0, 0, 0, 0.72)",
+};
+
+export type ColorScheme = "light" | "dark";
+
+export const palettes: Record<ColorScheme, Palette> = {
+  light: colors,
+  dark: darkColors,
+};
 
 export const spacing = {
   surface: 22,

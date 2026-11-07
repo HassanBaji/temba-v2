@@ -1,4 +1,4 @@
-import { colors, sizes, spacing } from "@repo/design-tokens";
+import { sizes, spacing } from "@repo/design-tokens";
 import {
   isPreferredPosition,
   PREFERRED_POSITIONS,
@@ -23,6 +23,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { displayBand, groupLevelRows } from "../profile/profile-model";
+import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { Segmented } from "./settings-rows";
 
@@ -49,6 +50,7 @@ function Heading({ title, note }: { title: string; note?: string }) {
 
 function LockedLevel({ setUp }: { setUp: boolean }) {
   const m = useMessages();
+  const colors = useColors();
   const p = m.you.padel;
   const locale = useLocale();
   const profile = api.users.myProfile.useQuery(
@@ -143,6 +145,7 @@ function LockedLevel({ setUp }: { setUp: boolean }) {
 
 function PadelProfileForm({ details }: { details: Details }) {
   const m = useMessages();
+  const colors = useColors();
   const p = m.you.padel;
   const toast = useToast();
   const utils = api.useUtils();

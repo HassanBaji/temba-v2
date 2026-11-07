@@ -36,8 +36,8 @@ function StatusPill({ label, solid }: { label: string; solid: boolean }) {
       className={cn(
         "text-eyebrow shrink-0 rounded-full border px-[9px] py-[3px] tabular-nums",
         solid
-          ? "bg-paper text-ink border-paper font-semibold"
-          : "border-dimrule text-paper",
+          ? "bg-focus-control text-on-focus-control border-focus-control font-semibold"
+          : "border-dimrule text-on-focus",
       )}
     >
       {label}
@@ -62,7 +62,7 @@ function PlaceRow({ place }: { place: FriendlyGameHeroPlace }) {
           variant="outline"
           size="sm"
           asChild
-          className="border-dimrule text-paper hover:bg-raised hover:text-paper shrink-0 bg-transparent"
+          className="border-dimrule text-on-focus hover:bg-raised hover:text-on-focus shrink-0 bg-transparent"
         >
           <a
             href={place.directionsUrl}

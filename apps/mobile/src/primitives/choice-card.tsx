@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
 
 import { mirrorInRtl } from "../i18n/rtl";
+import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
 import { tonePalette } from "./tone-palette";
@@ -40,7 +41,8 @@ export function ChoiceCard({
   children,
 }: ChoiceCardProps) {
   const tone = selected ? "ink" : "paper";
-  const palette = tonePalette(tone);
+  const colors = useColors();
+  const palette = tonePalette(tone, colors);
   const card = variant === "card";
 
   return (
@@ -58,8 +60,11 @@ export function ChoiceCard({
           {
             minHeight: sizes.touchTarget,
             gap: 12,
-            backgroundColor:
-              pressed && !selected ? palette.wash : palette.background,
+            backgroundColor: selected
+              ? colors.control
+              : pressed
+                ? palette.wash
+                : palette.background,
             opacity: disabled ? 0.5 : 1,
           },
           card
@@ -67,7 +72,7 @@ export function ChoiceCard({
                 ...CARD_PADDING,
                 borderRadius: radii.card,
                 borderWidth: hairline,
-                borderColor: selected ? palette.background : palette.rule,
+                borderColor: selected ? colors.ink : palette.rule,
               }
             : ROW_PADDING,
         ]}

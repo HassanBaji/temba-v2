@@ -116,7 +116,7 @@ function Form({ details }: { details: Details }) {
                     className={cn(
                       "focus-visible:ring-ring/50 flex h-[52px] items-center justify-center rounded-[10px] border outline-none focus-visible:ring-[3px] disabled:opacity-60",
                       on
-                        ? "border-ink bg-ink text-paper"
+                        ? "border-ink bg-control text-on-control"
                         : "border-rule bg-paper hover:bg-wash",
                     )}
                   >

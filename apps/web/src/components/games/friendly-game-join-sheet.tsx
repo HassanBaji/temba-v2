@@ -148,7 +148,7 @@ function TwoSeatDiagram({ onInk }: { onInk: boolean }) {
       <span
         className={cn(
           "h-[26px] flex-1 rounded-md",
-          onInk ? "bg-paper" : "bg-ink",
+          onInk ? "bg-on-focus" : "bg-ink",
         )}
       />
       <span

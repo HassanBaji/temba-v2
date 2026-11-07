@@ -124,7 +124,7 @@ function PreviewCard({ name, phone }: { name: string | null; phone: string }) {
     <div className="border-rule flex items-center gap-3.5 rounded-[14px] border px-4 py-3.5">
       <span
         aria-hidden="true"
-        className="bg-ink text-paper text-body flex size-11 shrink-0 items-center justify-center rounded-lg font-semibold"
+        className="bg-control text-on-control text-body flex size-11 shrink-0 items-center justify-center rounded-lg font-semibold"
       >
         {name ? initials(name) : "?"}
       </span>

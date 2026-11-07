@@ -25,6 +25,7 @@ const FRAME_GAP = 64;
 // or two full lineups on the canvas.
 const FRAME_GAP_WITH_MVP = 48;
 
+// Story cards render on black in both modes, so they keep the light palette.
 function StoryFrame({
   card,
   children,
@@ -34,7 +35,7 @@ function StoryFrame({
 }) {
   return (
     <div
-      className="bg-ink text-paper flex flex-col"
+      className="light bg-ink text-paper flex flex-col"
       style={{
         width: STORY_WIDTH,
         height: STORY_HEIGHT,

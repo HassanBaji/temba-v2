@@ -1,10 +1,11 @@
-import { colors } from "@repo/design-tokens";
 import { ActivityIndicator, View } from "react-native";
 
 import { Screen } from "../primitives/screen";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 export function AuthLoading({ label }: { label?: string }) {
+  const colors = useColors();
   return (
     <Screen scroll={false}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

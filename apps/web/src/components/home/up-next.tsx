@@ -62,7 +62,7 @@ function Chip({ sport, kind }: { sport: Sport; kind: string }) {
   const locale = useLocale();
   return (
     <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] pe-2 ps-1.5 font-mono uppercase">
-      <SportGlyph sport={sport} className="text-paper size-[13px]" />
+      <SportGlyph sport={sport} className="text-on-focus size-[13px]" />
       <span>
         {sportLabel(sport, locale)}
         <span className="text-dim">{m.webAuth.home.withEmphasis(kind)}</span>
@@ -89,8 +89,8 @@ function CardAction({
         "text-meta flex h-9 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 transition-opacity hover:opacity-85",
         FOCUS_RING,
         primary
-          ? "border-paper bg-paper text-ink flex-1 font-semibold"
-          : "border-dimrule text-paper",
+          ? "border-focus-control bg-focus-control text-on-focus-control flex-1 font-semibold"
+          : "border-dimrule text-on-focus",
       )}
     >
       {Icon ? <Icon aria-hidden="true" className="size-3.5" /> : null}
@@ -129,7 +129,7 @@ function HeroFrame({
           <p className="text-meta text-dim min-w-0 truncate">
             {when.day}
             {when.emphasis ? (
-              <span className="text-paper">
+              <span className="text-on-focus">
                 {when.day
                   ? m.webAuth.home.withEmphasis(when.emphasis)
                   : when.emphasis}

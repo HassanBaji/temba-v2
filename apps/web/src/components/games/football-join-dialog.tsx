@@ -57,7 +57,7 @@ function Choice({
       className={cn(
         "focus-visible:ring-ring/50 relative flex h-[52px] flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg border outline-none focus-visible:ring-[3px]",
         selected
-          ? "bg-ink text-paper border-ink"
+          ? "bg-control text-on-control border-ink"
           : "bg-paper border-rule hover:bg-wash",
         locked && "text-muted-foreground hover:bg-paper cursor-not-allowed",
       )}

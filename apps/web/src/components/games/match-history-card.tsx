@@ -141,7 +141,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
             className={cn(
               "flex items-center gap-2.5 py-3",
               CARD_INSET,
-              won ? "bg-ink text-paper" : "bg-wash text-ink",
+              won ? "surface-focus" : "bg-wash text-ink",
             )}
           >
             {won ? (

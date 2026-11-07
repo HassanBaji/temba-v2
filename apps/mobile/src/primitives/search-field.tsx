@@ -1,10 +1,11 @@
-import { colors, radii, sizes, typeScale } from "@repo/design-tokens";
+import { radii, sizes, typeScale } from "@repo/design-tokens";
 import { Search } from "lucide-react-native";
 import { forwardRef } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { isLayoutRtl } from "../i18n/rtl";
+import { useColors } from "../theme/theme-provider";
 import { fontFamilyFor } from "./font-family";
 import { hairline } from "./hairline-width";
 import { Text } from "./text";
@@ -24,6 +25,7 @@ export type SearchFieldProps = Omit<
 export const SearchField = forwardRef<TextInput, SearchFieldProps>(
   function SearchField({ value, onChangeText, tone = "paper", ...props }, ref) {
     const m = useMessages();
+    const colors = useColors();
     return (
       <View
         style={{

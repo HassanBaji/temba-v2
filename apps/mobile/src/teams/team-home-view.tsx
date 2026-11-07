@@ -1,4 +1,4 @@
-import { colors, spacing } from "@repo/design-tokens";
+import { spacing } from "@repo/design-tokens";
 import { sportGlyph } from "@repo/domain/sport";
 import { type TeamHomeView as TeamHomeViewData } from "@repo/domain/teams";
 import { View } from "react-native";
@@ -17,6 +17,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { TeamAvatars } from "./team-avatars";
 import { TEAMS_PATH } from "./teams-model";
 
@@ -130,6 +131,7 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
 export function TeamHomeView(props: TeamHomeViewProps) {
   const { view } = props;
   const m = useMessages();
+  const colors = useColors();
   return (
     <View style={{ gap: spacing.section }}>
       <View style={{ gap: spacing.compact }}>

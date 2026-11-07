@@ -1,4 +1,4 @@
-import { colors, sizes } from "@repo/design-tokens";
+import { sizes } from "@repo/design-tokens";
 import { router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -7,6 +7,7 @@ import { useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { Screen } from "../primitives/screen";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 export type AuthScreenProps = {
   title?: string;
@@ -33,6 +34,7 @@ export function goBackOrWelcome() {
 
 function BackButton(props: { onPress: () => void }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -76,6 +78,7 @@ function ProgressSegments(props: {
   label?: string;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
       accessibilityRole="progressbar"
@@ -113,6 +116,7 @@ export function AuthScreen({
   children,
 }: AuthScreenProps) {
   const m = useMessages();
+  const colors = useColors();
   const headerMeta = meta ?? progress?.label;
   return (
     <Screen

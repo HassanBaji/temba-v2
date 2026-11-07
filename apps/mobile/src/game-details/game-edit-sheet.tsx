@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
@@ -56,6 +56,7 @@ import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import { useColors } from "../theme/theme-provider";
 import type { GameEditController } from "./use-game-edit";
 
 export type GameEditContext = {
@@ -135,6 +136,7 @@ function ValueStepper({
   decreaseLabel: string;
   increaseLabel: string;
 }) {
+  const colors = useColors();
   const m = useMessages();
   return (
     <View
@@ -228,6 +230,7 @@ function SeasonPicker({
   context: GameEditContext;
   onBack: () => void;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const copy = m.mobileGameDetails.edit;
   const locale = useLocale();
@@ -290,7 +293,7 @@ function SeasonPicker({
       <Button
         label={seasonLinkActionLabel(chosen, locale)}
         size="lg"
-        icon={<Trophy size={sizes.iconRow} color={colors.paper} />}
+        icon={<Trophy size={sizes.iconRow} color={colors.onControl} />}
         onPress={() => {
           edit.update({ seasonId: picked });
           onBack();
@@ -309,6 +312,7 @@ function SeasonSection({
   context: GameEditContext;
   onOpenPicker: () => void;
 }) {
+  const colors = useColors();
   const m = useMessages();
   const copy = m.mobileGameDetails.edit;
   const seasonCopy = m.createGame.season;
@@ -445,7 +449,7 @@ function SeasonSection({
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
-              <Check size={sizes.iconRow} color={colors.paper} />
+              <Check size={sizes.iconRow} color={colors.onFocus} />
               <Text size="meta" weight="medium">
                 {seasonCopy.countsLine}
               </Text>

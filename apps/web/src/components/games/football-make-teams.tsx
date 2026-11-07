@@ -66,7 +66,7 @@ function MethodToggle({
             className={cn(
               "text-meta focus-visible:ring-ring/50 h-10 flex-1 outline-none focus-visible:ring-[3px]",
               selected
-                ? "bg-ink text-paper font-semibold"
+                ? "bg-control text-on-control font-semibold"
                 : "bg-paper text-muted-foreground hover:bg-wash",
             )}
           >

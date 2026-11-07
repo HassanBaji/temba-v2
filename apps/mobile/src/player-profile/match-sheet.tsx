@@ -1,4 +1,4 @@
-import { colors, radii, sizes, spacing } from "@repo/design-tokens";
+import { radii, sizes, spacing } from "@repo/design-tokens";
 import { openGameAction } from "@repo/domain/player-profile-matches";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -11,8 +11,8 @@ import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { Sheet } from "../primitives/sheet";
-import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import type {
   PlayerMatchSheetModel,
   PlayerMatchSheetPlayerModel,
@@ -22,43 +22,50 @@ const SET_CHIP = 28;
 const LEVEL_PLACEHOLDER = { width: 44, height: 20 };
 
 function ResultBadge({ sheet }: { sheet: PlayerMatchSheetModel }) {
+  const colors = useColors();
   const won = sheet.outcome === "won";
   return (
-    <SurfaceToneContext.Provider value={won ? "ink" : "paper"}>
-      <View
-        style={{
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-          borderRadius: radii.md,
-          borderWidth: hairline,
-          borderColor: colors.ink,
-          backgroundColor: won ? colors.ink : colors.paper,
-        }}
+    <View
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: radii.md,
+        borderWidth: hairline,
+        borderColor: colors.ink,
+        backgroundColor: won ? colors.ink : colors.paper,
+      }}
+    >
+      <Text
+        size="meta"
+        weight="semibold"
+        style={{ color: won ? colors.paper : colors.ink }}
       >
-        <Text size="meta" weight="semibold">
-          {sheet.badge}
-        </Text>
-      </View>
-    </SurfaceToneContext.Provider>
+        {sheet.badge}
+      </Text>
+    </View>
   );
 }
 
 function SetChip({ games, won }: { games: number; won: boolean }) {
+  const colors = useColors();
   return (
-    <SurfaceToneContext.Provider value={won ? "ink" : "paper"}>
-      <View
-        style={{
-          width: SET_CHIP,
-          height: SET_CHIP,
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: radii.md,
-          backgroundColor: won ? colors.ink : colors.wash,
-        }}
+    <View
+      style={{
+        width: SET_CHIP,
+        height: SET_CHIP,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: radii.md,
+        backgroundColor: won ? colors.ink : colors.wash,
+      }}
+    >
+      <Text
+        weight="semibold"
+        style={{ color: won ? colors.paper : colors.ink }}
       >
-        <Text weight="semibold">{String(games)}</Text>
-      </View>
-    </SurfaceToneContext.Provider>
+        {String(games)}
+      </Text>
+    </View>
   );
 }
 
@@ -112,6 +119,7 @@ export function PlayerMatchSheet({
   onOpenPlayer: (userId: string) => void;
   onOpenGame: (gameId: string) => void;
 }) {
+  const colors = useColors();
   const locale = useLocale();
   const m = useMessages();
   return (

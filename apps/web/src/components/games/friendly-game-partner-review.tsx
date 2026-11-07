@@ -190,7 +190,7 @@ export function FriendlyGamePartnerReview({
                 "text-body flex-1 py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "left"
-                  ? "bg-ink text-paper"
+                  ? "bg-control text-on-control"
                   : "text-muted-foreground",
               )}
             >
@@ -207,7 +207,7 @@ export function FriendlyGamePartnerReview({
                 "border-rule text-body flex-1 border-s py-[15px] font-semibold outline-none",
                 "focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 callerPosition === "right"
-                  ? "bg-ink text-paper"
+                  ? "bg-control text-on-control"
                   : "text-muted-foreground",
               )}
             >
@@ -230,7 +230,7 @@ export function FriendlyGamePartnerReview({
         ) : null}
       </div>
 
-      <div className="border-rule bg-background mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+      <div className="border-rule bg-sheet mt-[22px] flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
         <Button
           type="button"
           size="lg"

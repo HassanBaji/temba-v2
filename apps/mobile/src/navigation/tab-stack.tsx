@@ -1,7 +1,9 @@
-import { colors } from "@repo/design-tokens";
 import { Stack } from "expo-router";
 
+import { useColors } from "../theme/theme-provider";
+
 export function TabStack() {
+  const colors = useColors();
   return (
     <Stack
       screenOptions={{

@@ -1,4 +1,3 @@
-import { colors } from "@repo/design-tokens";
 import type {
   PlayedColumn,
   PlayedFact,
@@ -11,6 +10,7 @@ import { InfoRows } from "../football/info-rows";
 import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
+import { useColors } from "../theme/theme-provider";
 import { PlayedColumns } from "./played-columns";
 import { PlayedHero, type PlayedHeroProps } from "./played-hero";
 
@@ -48,6 +48,7 @@ export function PlayedGameView({
   onMore,
   onPressPlayer,
 }: PlayedGameViewProps) {
+  const colors = useColors();
   const m = useMessages();
   return (
     <Screen
@@ -76,7 +77,7 @@ export function PlayedGameView({
         <Button
           label={m.game.cta.shareResult}
           size="lg"
-          icon={<Share size={SHARE_ICON} color={colors.paper} />}
+          icon={<Share size={SHARE_ICON} color={colors.onControl} />}
           onPress={onShare}
         />
       </View>

@@ -1,4 +1,3 @@
-import { colors } from "@repo/design-tokens";
 import type { GroupJoinRequestData } from "@repo/domain/group-data";
 import {
   groupJoinRequestMeta,
@@ -17,6 +16,7 @@ import { Hairline } from "../primitives/hairline";
 import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 
 function SheetAction({
   label,
@@ -30,6 +30,7 @@ function SheetAction({
   onPress: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <Pressable
       accessibilityRole="button"

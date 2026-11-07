@@ -1,4 +1,4 @@
-import { colors, radii } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import {
   formatResultShareMessage,
@@ -36,6 +36,7 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import { ActionTile, ActionTileRow } from "./share-actions";
 import { shareModeCopy, type ShareMode } from "./share-model";
@@ -74,6 +75,7 @@ function Notice({
 }
 
 export function ShareResultScreen({ gameId }: { gameId: string }) {
+  const colors = useColors();
   const locale = useLocale();
   const m = useMessages();
   const share = m.mobilePlayer.share;
@@ -306,7 +308,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
         <Button
           label={copy.share}
           size="lg"
-          icon={<ShareIcon size={SHARE_ICON} color={colors.paper} />}
+          icon={<ShareIcon size={SHARE_ICON} color={colors.onControl} />}
           pending={pending === "share_image"}
           disabled={pending != null}
           onPress={shareImage}

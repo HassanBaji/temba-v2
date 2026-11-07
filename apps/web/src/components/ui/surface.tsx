@@ -15,7 +15,7 @@ export const surfaceRadiusClass: Record<SurfaceRadius, string> = {
 };
 
 const toneClass: Record<SurfaceTone, string> = {
-  ink: "surface-ink bg-ink text-paper",
+  ink: "surface-focus",
   paper: "bg-paper text-ink",
 };
 

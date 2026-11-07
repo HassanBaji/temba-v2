@@ -1,8 +1,9 @@
-import { colors, spacing } from "@repo/design-tokens";
+import { spacing } from "@repo/design-tokens";
 import { useMemo } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import { createInkRegistry } from "./ink-registry";
 import { isNearEnd } from "./scroll-end";
@@ -42,6 +43,7 @@ export function Screen({
   scrollRef,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const registry = useMemo(
     () =>
       createInkRegistry((message) => {
@@ -75,7 +77,8 @@ export function Screen({
       <View
         style={{
           flex: 1,
-          backgroundColor: colors[statusBarTone],
+          backgroundColor:
+            statusBarTone === "ink" ? colors.focus : colors.paper,
           paddingTop: bleedHeader && header ? 0 : insets.top,
         }}
       >

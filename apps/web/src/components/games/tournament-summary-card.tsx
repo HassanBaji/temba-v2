@@ -73,7 +73,7 @@ function CardBand({ label, meta }: { label: string; meta: string | null }) {
   return (
     <div
       className={cn(
-        "bg-ink text-paper pointer-events-none relative z-10 flex items-center justify-between gap-2.5 py-3",
+        "surface-focus pointer-events-none relative z-10 flex items-center justify-between gap-2.5 py-3",
         SUMMARY_CARD_INSET,
       )}
     >
@@ -140,7 +140,7 @@ function PairSquare({
           ? "*:data-[slot=avatar-fallback]:text-eyebrow"
           : "*:data-[slot=avatar-fallback]:text-[11px]",
         onInk
-          ? "*:data-[slot=avatar-fallback]:bg-ink *:data-[slot=avatar-fallback]:text-paper"
+          ? "*:data-[slot=avatar-fallback]:bg-control *:data-[slot=avatar-fallback]:text-on-control"
           : "border-rule *:data-[slot=avatar-fallback]:bg-paper *:data-[slot=avatar-fallback]:text-ink border",
       )}
     />

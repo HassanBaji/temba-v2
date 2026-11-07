@@ -825,8 +825,9 @@ export default function GameHomePage({
         <Button
           type="button"
           size="icon"
+          variant="ghost"
           aria-label={g.shareGame}
-          className="bg-raised text-paper hover:bg-raised/80 rounded-md"
+          className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
           onClick={shareInviteLink}
         >
           <Share aria-hidden="true" className="size-5" />

@@ -1,4 +1,4 @@
-import { colors } from "@repo/design-tokens";
+import { palettes } from "@repo/design-tokens";
 import {
   padelStickerLine,
   type FootballResultCard,
@@ -17,6 +17,9 @@ import {
   Wordmark,
 } from "./story-parts";
 import { STICKER_WIDTH } from "./story-canvas";
+
+// Share cards render on black in both modes: they leave the App.
+const colors = palettes.light;
 
 const RULE = 1;
 
