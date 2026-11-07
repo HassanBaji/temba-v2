@@ -23,6 +23,7 @@ export async function inviteLinkByShortCode(
     token: link?.token ?? null,
     title: openGraph.title,
     description: openGraph.description,
+    image: openGraph.image,
   };
 }
 

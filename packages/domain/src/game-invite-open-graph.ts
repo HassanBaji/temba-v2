@@ -12,6 +12,7 @@ export function genericTembaOpenGraph(locale: Locale) {
 
 export type GameInviteOpenGraphInput = {
   venueName: string;
+  groupName?: string | null;
   windowStart: Date | string | null | undefined;
   windowEnd: Date | string | null | undefined;
   format: string;
@@ -65,14 +66,40 @@ function withLevelRange(
 }
 
 export function gameInviteOpenGraphMetadata(input: GameInviteOpenGraphInput) {
-  const m = messagesFor(input.locale).createGame.openGraph;
-  const start = input.windowStart ?? input.windowEnd;
-  if (!start) {
+  const schedule = scheduleDetails(input);
+  const groupName = nonBlank(input.groupName);
+  if (!schedule) {
     return {
-      title: input.venueName,
+      title: groupName ?? input.venueName,
       description: withLevelRange(input.venueName, input),
     };
   }
+  if (!groupName) {
+    return { title: input.venueName, description: schedule };
+  }
+  return {
+    title: groupName,
+    description: messagesFor(input.locale).createGame.openGraph.atVenue(
+      input.venueName,
+      schedule,
+    ),
+  };
+}
+
+function nonBlank(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed;
+}
+
+function scheduleDetails(input: GameInviteOpenGraphInput) {
+  const start = input.windowStart ?? input.windowEnd;
+  if (!start) {
+    return null;
+  }
+  const m = messagesFor(input.locale).createGame.openGraph;
   const day = formatAbsoluteDay(start, input.locale);
   const timeWindow = formatGameTimeWindow(
     input.windowStart,
@@ -80,17 +107,8 @@ export function gameInviteOpenGraphMetadata(input: GameInviteOpenGraphInput) {
     start,
     input.locale,
   );
-  if (showsFriendlyRoster(input.format, input.registrationMode)) {
-    return {
-      title: input.venueName,
-      description: withLevelRange(
-        m.dayTimeSitting(day, timeWindow, input.occupiedCount),
-        input,
-      ),
-    };
-  }
-  return {
-    title: input.venueName,
-    description: withLevelRange(m.dayTime(day, timeWindow), input),
-  };
+  const description = showsFriendlyRoster(input.format, input.registrationMode)
+    ? m.dayTimeSitting(day, timeWindow, input.occupiedCount)
+    : m.dayTime(day, timeWindow);
+  return withLevelRange(description, input);
 }

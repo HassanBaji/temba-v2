@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
-import { venues } from "@repo/db";
+import { groups, venues } from "@repo/db";
 
 import {
   gameInviteOpenGraphMetadata,
@@ -21,6 +21,10 @@ function writeDb(database: InviteDb): typeof db {
   return database as typeof db;
 }
 
+function genericOpenGraph(locale: Locale) {
+  return { ...genericTembaOpenGraph(locale), image: null };
+}
+
 export async function loadGameInviteOpenGraph(
   database: InviteDb,
   rawCode: string,
@@ -28,15 +32,15 @@ export async function loadGameInviteOpenGraph(
 ) {
   const link = await findGameInviteLinkByShortCode(database, rawCode);
   if (!link) {
-    return genericTembaOpenGraph(locale);
+    return genericOpenGraph(locale);
   }
   const previewed = await previewLink(database, "game", link.token);
   if (previewed.status !== "ready") {
-    return genericTembaOpenGraph(locale);
+    return genericOpenGraph(locale);
   }
   const game = await requireGame(writeDb(database), link.gameId);
   if (game.cancelledAt) {
-    return genericTembaOpenGraph(locale);
+    return genericOpenGraph(locale);
   }
   const venue = game.venueId
     ? await database.query.venues.findFirst({
@@ -45,13 +49,20 @@ export async function loadGameInviteOpenGraph(
       })
     : null;
   if (!venue) {
-    return genericTembaOpenGraph(locale);
+    return genericOpenGraph(locale);
   }
+  const group = game.groupId
+    ? await database.query.groups.findFirst({
+        where: and(eq(groups.id, game.groupId), isNull(groups.deletedAt)),
+        columns: { name: true, imageUrl: true },
+      })
+    : null;
   const sides = isIndividualSeatGame(game)
     ? await listGameSides(writeDb(database), game)
     : [];
-  return gameInviteOpenGraphMetadata({
+  const metadata = gameInviteOpenGraphMetadata({
     venueName: venue.name,
+    groupName: group?.name,
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     format: game.format,
@@ -61,4 +72,5 @@ export async function loadGameInviteOpenGraph(
     levelMaxTenths: game.levelMaxTenths,
     locale,
   });
+  return { ...metadata, image: group?.imageUrl ?? null };
 }

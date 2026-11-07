@@ -16,7 +16,11 @@ describe("groups.inviteLinkByShortCode", () => {
         .returning({ id: user.id });
       const [group] = await db
         .insert(groups)
-        .values({ name: "Friday Night", createdBy: owner!.id })
+        .values({
+          name: "Friday Night",
+          createdBy: owner!.id,
+          imageUrl: "/api/media/group-images/friday/image?v=1",
+        })
         .returning({ id: groups.id });
       const minted = await mintLink(
         db,
@@ -33,10 +37,12 @@ describe("groups.inviteLinkByShortCode", () => {
         token: minted.link.token,
         title: "Friday Night",
         description: 'You are invited to join "Friday Night" for "Padel"',
+        image: "/api/media/group-images/friday/image?v=1",
       });
       expect(await inviteLinkByShortCode(db, { code: "ZZZZZZZZ" })).toEqual({
         token: null,
         ...genericTembaOpenGraph("en"),
+        image: null,
       });
     } finally {
       await close();

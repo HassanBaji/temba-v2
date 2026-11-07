@@ -78,12 +78,14 @@ describe("loadGameInviteOpenGraph", () => {
       expect(live.description).toContain("0/4 sitting");
       expect(live.description).not.toMatch(/Test User|og-owner/);
 
-      expect(await loadGameInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual(
-        genericTembaOpenGraph("en"),
-      );
-      expect(await loadGameInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual(
-        genericTembaOpenGraph("en"),
-      );
+      expect(await loadGameInviteOpenGraph(db, "0O1ILUAB", "en")).toEqual({
+        ...genericTembaOpenGraph("en"),
+        image: null,
+      });
+      expect(await loadGameInviteOpenGraph(db, "ZZZZZZZZ", "en")).toEqual({
+        ...genericTembaOpenGraph("en"),
+        image: null,
+      });
 
       await db
         .update(games)
@@ -91,7 +93,7 @@ describe("loadGameInviteOpenGraph", () => {
         .where(eq(games.id, game.id));
       expect(
         await loadGameInviteOpenGraph(db, minted.link.shortCode!, "en"),
-      ).toEqual(genericTembaOpenGraph("en"));
+      ).toEqual({ ...genericTembaOpenGraph("en"), image: null });
     } finally {
       await close();
     }
