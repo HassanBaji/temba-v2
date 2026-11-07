@@ -416,7 +416,8 @@ export const webDashboard = {
     },
   },
   venues: {
-    description: "كل النوادي، بما فيها المؤرشفة.",
+    description:
+      "كل النوادي، بما فيها المؤرشفة.",
     errorTitle: "تعذّر تحميل النوادي",
     liveCount: (n: number) =>
       plural("ar", n, {
