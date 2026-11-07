@@ -353,6 +353,37 @@ describe("notificationCopy for a Finished Game", () => {
     });
   });
 
+  it("asks a player for their marks while the Marks window is open", () => {
+    const marksClosesAt = bahrainDate(2026, 10, 6, 19, 0, 0);
+    assert.equal(
+      finished({ audience: "player", game: { ...game, marksClosesAt } })
+        ?.subline,
+      "Give your marks before Fri 7:00 PM.",
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "game_finished",
+          audience: "player",
+          actor: null,
+          group: null,
+          game: { ...game, marksClosesAt },
+        },
+        "ar",
+      )?.subline,
+      "امنح أوسمتك قبل الجمعة 7:00 م.",
+    );
+    assert.equal(
+      finished({ game: { ...game, marksClosesAt } })?.subline,
+      "Every Match is in.",
+    );
+    assert.equal(
+      finished({ audience: "player", game: { ...game, marksClosesAt: null } })
+        ?.subline,
+      "See your results.",
+    );
+  });
+
   it("falls back to the format and day for a Game with no name", () => {
     assert.equal(
       finished({ game: { ...game, name: null, format: "friendly_game" } })
@@ -365,6 +396,170 @@ describe("notificationCopy for a Finished Game", () => {
   it("returns null without a Game or for an audience it does not know", () => {
     assert.equal(finished({ game: null }), null);
     assert.equal(finished({ audience: "spectator" }), null);
+  });
+});
+
+describe("notificationCopy for a received mark", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  function received(
+    item: Partial<NotificationCopyInput>,
+    locale: "en" | "ar" = "en",
+  ) {
+    return notificationCopy(
+      {
+        type: "mark_received",
+        audience: "player",
+        actor: { name: "Ali" },
+        group: null,
+        game,
+        markKind: "dynamo",
+        ...item,
+      },
+      locale,
+    );
+  }
+
+  it("names the giver, the mark and the Game", () => {
+    assert.deepEqual(received({}), {
+      title: [
+        { text: "Ali", strong: true },
+        { text: " gave you ", strong: false },
+        { text: "Dynamo", strong: true },
+        { text: " on ", strong: false },
+        { text: "Thursday Padel", strong: true },
+      ],
+      subline: null,
+    });
+  });
+
+  it("reads in Arabic with the set's Arabic name", () => {
+    assert.deepEqual(
+      received({}, "ar")?.title.map((part) => part.text),
+      [
+        "منحك ",
+        isolate("Ali"),
+        " وسام ",
+        "الدينامو",
+        " في ",
+        isolate("Thursday Padel"),
+      ],
+    );
+  });
+
+  it("returns null without a Game, a known kind, or the player audience", () => {
+    assert.equal(received({ game: null }), null);
+    assert.equal(received({ markKind: null }), null);
+    assert.equal(received({ markKind: "mvp" }), null);
+    assert.equal(received({ audience: "admin" }), null);
+  });
+});
+
+describe("notificationCopy for the MVP", () => {
+  const game = {
+    name: "Thursday Padel",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 8, 19, 0, 0),
+  };
+
+  function mvp(
+    item: Partial<NotificationCopyInput>,
+    locale: "en" | "ar" = "en",
+  ) {
+    return notificationCopy(
+      {
+        type: "mvp_decided",
+        audience: "player",
+        actor: { name: "Yousif" },
+        group: null,
+        game,
+        ...item,
+      },
+      locale,
+    );
+  }
+
+  it("names the MVP and the Game to the other players", () => {
+    assert.deepEqual(mvp({}), {
+      title: [
+        { text: "Yousif", strong: true },
+        { text: " is the MVP of ", strong: false },
+        { text: "Thursday Padel", strong: true },
+      ],
+      subline: null,
+    });
+    assert.deepEqual(
+      mvp({}, "ar")?.title.map((part) => part.text),
+      [isolate("Yousif"), " نجم مباراة ", isolate("Thursday Padel")],
+    );
+  });
+
+  it("tells the MVP it is them", () => {
+    assert.equal(
+      mvp({ actorIsRecipient: true })
+        ?.title.map((part) => part.text)
+        .join(""),
+      "You’re the MVP of Thursday Padel",
+    );
+    assert.equal(
+      mvp({ actorIsRecipient: true }, "ar")
+        ?.title.map((part) => part.text)
+        .join(""),
+      `أنت نجم مباراة ${isolate("Thursday Padel")}`,
+    );
+  });
+
+  it("asks the Organizers to break a tied vote", () => {
+    for (const locale of ["en", "ar"] as const) {
+      const copy = notificationCopy(
+        {
+          type: "mvp_tie_break",
+          audience: "admin",
+          actor: null,
+          group: null,
+          game,
+        },
+        locale,
+      );
+      assert.notEqual(copy, null);
+    }
+    assert.equal(
+      notificationCopy(
+        {
+          type: "mvp_tie_break",
+          audience: "admin",
+          actor: null,
+          group: null,
+          game,
+        },
+        "en",
+      )
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Tied vote on Thursday Padel. Pick the MVP.",
+    );
+  });
+
+  it("returns null without a Game or for the wrong audience", () => {
+    assert.equal(mvp({ game: null }), null);
+    assert.equal(mvp({ audience: "admin" }), null);
+    assert.equal(
+      notificationCopy(
+        {
+          type: "mvp_tie_break",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+        },
+        "en",
+      ),
+      null,
+    );
   });
 });
 

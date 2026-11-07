@@ -5,6 +5,7 @@ import { gameDisplayName } from "./game-custom-name";
 import { ratingScopeOf, ratingScopeTag } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
 import { formatRelativeDay } from "./format-game-start";
+import type { CoinKind, MarkKind } from "./marks";
 import { shortPlayerName } from "./player-name";
 import { sportLabel } from "./sport";
 
@@ -32,6 +33,8 @@ export type HistoryRowInput = {
   outcome: "won" | "lost" | "draw";
   rated: boolean;
   ratingScope?: GameRatingScope;
+  viewerMarks?: readonly MarkKind[];
+  viewerIsMvp?: boolean;
 };
 
 export const HISTORY_PAGE_SIZE = 20;
@@ -40,6 +43,17 @@ export const PENDING_SET_COLUMNS = 3;
 
 /** Seats drawn as stacked avatars on a team row; the label names the rest. */
 export const HISTORY_AVATAR_LIMIT = 3;
+
+export const HISTORY_COIN_LIMIT = 3;
+
+/** The viewer's own coins on the card: the MVP first, then the Marks they received. */
+export function historyCoins(row: HistoryRowInput): CoinKind[] {
+  const coins: CoinKind[] = [
+    ...(row.viewerIsMvp ? (["mvp"] as const) : []),
+    ...(row.viewerMarks ?? []),
+  ];
+  return coins.slice(0, HISTORY_COIN_LIMIT);
+}
 
 export function nextHistoryCursor(
   lastPage: readonly { displayTime: Date; matchId: string }[],
@@ -165,6 +179,7 @@ export type MatchHistoryCardModel = {
   unrated: boolean;
   /** The viewer's team first, whatever the result. */
   teams: [HistoryTeamRow, HistoryTeamRow];
+  coins: CoinKind[];
 };
 
 export function matchHistoryCardModel(
@@ -214,5 +229,6 @@ export function matchHistoryCardModel(
     meta: historyMeta(row, locale),
     unrated: ratingScopeOf(row) === "unrated",
     teams: [mine, theirs],
+    coins: historyCoins(row),
   };
 }

@@ -2,7 +2,7 @@ import type { DbClient } from "@repo/db";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { MatchStatusEnum, gamePlayers, matches } from "@repo/db";
+import { MatchStatusEnum, gamePlayers, marks, matches } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -21,6 +21,7 @@ import {
   gameRatingScope,
   type GameRatingScope,
 } from "@repo/domain/game-rating-scope";
+import { MARK_KINDS, type MarkKind } from "@repo/domain/marks";
 
 export type MatchHistoryMember = MatchSlotMember;
 
@@ -44,7 +45,13 @@ export type MatchHistoryRow = {
   outcome: "won" | "lost" | "draw";
   rated: boolean;
   ratingScope: GameRatingScope;
+  /** The kinds of Mark the viewer received on this Match, most received first. */
+  viewerMarks: MarkKind[];
+  /** The viewer is this Game's settled MVP. */
+  viewerIsMvp: boolean;
 };
+
+type HistoryRowWithoutMarks = Omit<MatchHistoryRow, "viewerMarks">;
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -123,6 +130,8 @@ export async function listMyMatchHistoryRows(
           createdAt: true,
           rated: true,
           groupRated: true,
+          mvpUserId: true,
+          mvpSettledAt: true,
         },
         with: {
           group: {
@@ -189,7 +198,7 @@ export async function listMyMatchHistoryRows(
     byGameId.set(match.game.id, list);
   }
 
-  const rows: MatchHistoryRow[] = [];
+  const rows: HistoryRowWithoutMarks[] = [];
   for (const gameMatches of byGameId.values()) {
     const game = gameMatches[0]?.game;
     if (!game) {
@@ -288,6 +297,7 @@ export async function listMyMatchHistoryRows(
         outcome: chosen.outcome,
         rated: game.rated,
         ratingScope: gameRatingScope(game),
+        viewerIsMvp: game.mvpSettledAt != null && game.mvpUserId === userId,
       });
     }
   }
@@ -300,6 +310,13 @@ export async function listMyMatchHistoryRows(
     return a.matchId < b.matchId ? 1 : a.matchId > b.matchId ? -1 : 0;
   });
 
+  return withViewerMarks(database, userId, pageOf(rows, page));
+}
+
+function pageOf<Row extends { displayTime: Date; matchId: string }>(
+  rows: Row[],
+  page: MatchHistoryPage,
+): Row[] {
   if (!page) {
     return rows;
   }
@@ -316,6 +333,43 @@ export async function listMyMatchHistoryRows(
     return [];
   }
   return rows.slice(start, start + limit);
+}
+
+async function withViewerMarks(
+  database: DbClient,
+  userId: string,
+  rows: HistoryRowWithoutMarks[],
+): Promise<MatchHistoryRow[]> {
+  const received =
+    rows.length === 0
+      ? []
+      : await database.query.marks.findMany({
+          where: and(
+            eq(marks.receiverUserId, userId),
+            inArray(
+              marks.matchId,
+              rows.map((row) => row.matchId),
+            ),
+          ),
+          columns: { matchId: true, kind: true },
+        });
+  const countsByMatch = new Map<string, Map<MarkKind, number>>();
+  for (const mark of received) {
+    const counts =
+      countsByMatch.get(mark.matchId) ?? new Map<MarkKind, number>();
+    counts.set(mark.kind, (counts.get(mark.kind) ?? 0) + 1);
+    countsByMatch.set(mark.matchId, counts);
+  }
+  return rows.map((row) => ({
+    ...row,
+    viewerMarks: [...(countsByMatch.get(row.matchId) ?? [])]
+      .sort(
+        ([leftKind, leftCount], [rightKind, rightCount]) =>
+          rightCount - leftCount ||
+          MARK_KINDS.indexOf(leftKind) - MARK_KINDS.indexOf(rightKind),
+      )
+      .map(([kind]) => kind),
+  }));
 }
 
 export const listMyMatchHistory = protectedProcedure

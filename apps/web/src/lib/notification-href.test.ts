@@ -63,6 +63,26 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Game a received mark came from", () => {
+    assert.equal(
+      notificationHref({
+        type: "mark_received",
+        group: null,
+        game: { id: "x5" },
+      }),
+      "/dashboard/games/x5",
+    );
+  });
+
+  it("opens the Game an MVP notification is about", () => {
+    for (const type of ["mvp_decided", "mvp_tie_break"]) {
+      assert.equal(
+        notificationHref({ type, group: null, game: { id: "x6" } }),
+        "/dashboard/games/x6",
+      );
+    }
+  });
+
   it("opens Match history for a claimed history", () => {
     assert.equal(
       notificationHref({ type: "history_linked", group: null, game: null }),

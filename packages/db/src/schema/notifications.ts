@@ -16,6 +16,7 @@ import { teams } from "./teams";
 import { groups } from "./groups";
 import { games } from "./games";
 import { levelOverrides } from "./level-overrides";
+import { markKinds } from "./marks";
 
 export const NOTIFICATION_TYPE_VALUES = [
   "group_member_joined",
@@ -26,6 +27,9 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_side_changed",
   "history_linked",
   "level_set",
+  "mark_received",
+  "mvp_decided",
+  "mvp_tie_break",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];
@@ -75,6 +79,7 @@ export const notifications = pgTable(
     ),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
     gameCount: integer("game_count"),
+    markKind: markKinds("mark_kind"),
     dedupeKey: varchar("dedupe_key", { length: 255 }),
     readAt: timestamp("read_at"),
     // Millisecond precision so a JavaScript Date round-trips exactly as a list cursor.

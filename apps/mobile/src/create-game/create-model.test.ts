@@ -27,6 +27,7 @@ function stateAt(
     type,
     step,
     draft: { ...draft, day: "2026-10-09" },
+    mvpMode: "vote",
     locale: "en",
   };
 }
@@ -307,6 +308,51 @@ describe("submitRequest", () => {
     expect(result).toMatchObject({ ok: false, step: 2 });
   });
 
+  it("asks players to vote for the MVP unless the Organizer picks otherwise", () => {
+    const state = initialCreateState(NOW, "en");
+    expect(state.mvpMode).toBe("vote");
+    const voted = submitRequest(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      NOW,
+      true,
+    );
+    expect(voted.ok && voted.request.input).toMatchObject({ mvpMode: "vote" });
+    const picked = createReducer(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "setMvpMode", mode: "organizer" },
+    );
+    const result = submitRequest(picked, NOW, true);
+    expect(result.ok && result.request.input).toMatchObject({
+      mvpMode: "organizer",
+    });
+  });
+
+  it("keeps the MVP choice when the type changes and never sends it with a tournament", () => {
+    const none = createReducer(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "setMvpMode", mode: "none" },
+    );
+    const tournament = createReducer(none, {
+      kind: "selectType",
+      type: "friendly_tournament",
+    });
+    expect(tournament.mvpMode).toBe("none");
+    const result = submitRequest(
+      {
+        ...stateAt(
+          4,
+          "friendly_tournament",
+          fixtures.drafts.tournamentGroupsOnly,
+        ),
+        mvpMode: tournament.mvpMode,
+      },
+      NOW,
+      true,
+    );
+    expect(result.ok && result.request.kind).toBe("friendly_tournament");
+    expect(result.ok && "mvpMode" in result.request.input).toBe(false);
+  });
+
   it("never requests a public tournament for a Group that is not Verified", () => {
     const draft = { ...fixtures.drafts.tournamentGroupsOnly, isPublic: true };
     const result = submitRequest(
@@ -437,7 +483,19 @@ describe("football create flow", () => {
       expect("sport" in result.request.input).toBe(false);
       expect("levelMinTenths" in result.request.input).toBe(false);
       expect("rated" in result.request.input).toBe(false);
+      expect(result.request.input.mvpMode).toBe("vote");
     }
+  });
+
+  it("sends the MVP choice on a football Group's Friendly game", () => {
+    const none = createReducer(footballState(), {
+      kind: "setMvpMode",
+      mode: "none",
+    });
+    const result = submitRequest(none, NOW, false);
+    expect(result.ok && result.request.input).toMatchObject({
+      mvpMode: "none",
+    });
   });
 
   it("points a cap error back at step 4", () => {

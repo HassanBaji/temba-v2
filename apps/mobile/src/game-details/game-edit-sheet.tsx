@@ -32,6 +32,7 @@ import {
 } from "@repo/domain/group-season";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
+import { mvpModeCopy } from "@repo/domain/marks";
 import {
   Check,
   ChevronRight,
@@ -44,6 +45,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { ChipGrid, FieldError, StepperButton } from "../create-game/chips";
+import { MvpModeChoices } from "../create-game/mvp-mode-field";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
@@ -179,6 +181,42 @@ function ValueStepper({
         disabled={!canIncrease}
         onPress={onIncrease}
       />
+    </View>
+  );
+}
+
+function MvpSection({
+  mvp,
+  onPick,
+  error,
+}: {
+  mvp: NonNullable<GameEditController["mvp"]>;
+  onPick: GameEditController["pickMvpMode"];
+  error: string | undefined;
+}) {
+  const copy = useMessages().createGame.mvp;
+  const locale = useLocale();
+  const picked = mvpModeCopy(mvp.picked, locale);
+  if (!mvp.editable) {
+    return (
+      <View style={{ gap: SECTION_GAP }}>
+        <SectionHead title={copy.title} />
+        <Surface style={{ gap: 2 }}>
+          <Text weight="semibold">{picked.label}</Text>
+          <Text size="meta" tone="muted">
+            {picked.description}
+          </Text>
+        </Surface>
+        <Hint>{copy.lockedNote}</Hint>
+      </View>
+    );
+  }
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={copy.title} meta={copy.decidedAfterGame} />
+      <MvpModeChoices mode={mvp.picked} onSelect={onPick} />
+      <FieldError message={error} />
+      <Hint>{picked.help}</Hint>
     </View>
   );
 }
@@ -741,6 +779,13 @@ export function GameEditSheet({
               />
               <FieldError message={errorFor("level")} />
             </View>
+          ) : null}
+          {edit.mvp ? (
+            <MvpSection
+              mvp={edit.mvp}
+              onPick={edit.pickMvpMode}
+              error={errorFor("mvp")}
+            />
           ) : null}
           {showSeason ? (
             <SeasonSection

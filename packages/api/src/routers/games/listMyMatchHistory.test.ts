@@ -13,6 +13,7 @@ import {
   gameWaitlist,
   games,
   groups,
+  marks,
   matchSets,
   matches,
   user,
@@ -779,6 +780,153 @@ describe("listMyMatchHistoryRows by sport", () => {
         sport: "football",
       });
       expect(onlyFootball.map((row) => row.outcome)).toEqual(["won"]);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("listMyMatchHistoryRows marks", () => {
+  it("lists the kinds the viewer received on each Match, most received first, and a settled MVP only", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "marks-viewer@example.com");
+      const partner = await insertUser(db, "marks-partner@example.com");
+      const oppLeft = await insertUser(db, "marks-opp-left@example.com");
+      const oppRight = await insertUser(db, "marks-opp-right@example.com");
+      const venue = await insertVenue(db);
+
+      const settled = await insertGame(db, {
+        createdBy: partner.id,
+        venueId: venue.id,
+        name: "Settled MVP",
+      });
+      await seatCompletedFriendly(db, {
+        gameId: settled.game.id,
+        matchId: settled.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+        startTime: new Date("2026-08-03T18:00:00.000Z"),
+      });
+      await db.insert(marks).values([
+        {
+          matchId: settled.match.id,
+          giverUserId: oppRight.id,
+          receiverUserId: viewer.id,
+          kind: "good_game",
+        },
+        {
+          matchId: settled.match.id,
+          giverUserId: partner.id,
+          receiverUserId: viewer.id,
+          kind: "clutch",
+        },
+        {
+          matchId: settled.match.id,
+          giverUserId: oppLeft.id,
+          receiverUserId: viewer.id,
+          kind: "clutch",
+        },
+        {
+          matchId: settled.match.id,
+          giverUserId: viewer.id,
+          receiverUserId: partner.id,
+          kind: "dynamo",
+        },
+      ]);
+      await db
+        .update(games)
+        .set({
+          mvpMode: "vote",
+          mvpUserId: viewer.id,
+          mvpDecidedBy: "vote",
+          mvpDecidedAt: PAST_END,
+          mvpSettledAt: PAST_END,
+        })
+        .where(eq(games.id, settled.game.id));
+
+      const unsettled = await insertGame(db, {
+        createdBy: partner.id,
+        venueId: venue.id,
+        name: "Pick not settled",
+      });
+      await seatCompletedFriendly(db, {
+        gameId: unsettled.game.id,
+        matchId: unsettled.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 6 }],
+        startTime: new Date("2026-08-02T18:00:00.000Z"),
+      });
+      await db
+        .update(games)
+        .set({
+          mvpMode: "organizer",
+          mvpUserId: viewer.id,
+          mvpDecidedBy: "organizer",
+          mvpDecidedAt: PAST_END,
+        })
+        .where(eq(games.id, unsettled.game.id));
+
+      const someoneElse = await insertGame(db, {
+        createdBy: partner.id,
+        venueId: venue.id,
+        name: "Partner MVP",
+      });
+      await seatCompletedFriendly(db, {
+        gameId: someoneElse.game.id,
+        matchId: someoneElse.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 4 }],
+        startTime: new Date("2026-08-01T18:00:00.000Z"),
+      });
+      await db.insert(marks).values({
+        matchId: someoneElse.match.id,
+        giverUserId: viewer.id,
+        receiverUserId: partner.id,
+        kind: "mr_ice",
+      });
+      await db
+        .update(games)
+        .set({
+          mvpMode: "vote",
+          mvpUserId: partner.id,
+          mvpDecidedBy: "vote",
+          mvpDecidedAt: PAST_END,
+          mvpSettledAt: PAST_END,
+        })
+        .where(eq(games.id, someoneElse.game.id));
+
+      const expected = [
+        {
+          name: "Settled MVP",
+          viewerMarks: ["clutch", "good_game"],
+          viewerIsMvp: true,
+        },
+        { name: "Pick not settled", viewerMarks: [], viewerIsMvp: false },
+        { name: "Partner MVP", viewerMarks: [], viewerIsMvp: false },
+      ];
+      const pick = (rows: Awaited<ReturnType<typeof listMyMatchHistoryRows>>) =>
+        rows.map(({ name, viewerMarks, viewerIsMvp }) => ({
+          name,
+          viewerMarks,
+          viewerIsMvp,
+        }));
+      expect(pick(await listMyMatchHistoryRows(db, viewer.id, NOW))).toEqual(
+        expected,
+      );
+      expect(
+        pick(await listMyMatchHistoryRows(db, viewer.id, NOW, { limit: 2 })),
+      ).toEqual(expected.slice(0, 2));
+
+      const [partnerRow] = await listMyMatchHistoryRows(db, partner.id, NOW);
+      expect(partnerRow).toMatchObject({
+        name: "Settled MVP",
+        viewerMarks: ["dynamo"],
+        viewerIsMvp: false,
+      });
     } finally {
       await close();
     }

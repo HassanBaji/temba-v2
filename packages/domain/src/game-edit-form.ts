@@ -331,12 +331,15 @@ export function gameEditChangeNote(
   draft: GameEditDraft,
   sections: GameEditSections,
   locale: Locale,
-  options: { seasonNeedsFix?: boolean } = {},
+  options: { seasonNeedsFix?: boolean; extraPhrases?: readonly string[] } = {},
 ) {
   const m = messagesFor(locale).createGame.edit;
-  const phrases = gameEditChangedSections(saved, draft, sections).flatMap(
-    (key) => changePhrase(key, saved, draft, locale),
-  );
+  const phrases = [
+    ...gameEditChangedSections(saved, draft, sections).flatMap((key) =>
+      changePhrase(key, saved, draft, locale),
+    ),
+    ...(options.extraPhrases ?? []),
+  ];
   const list = phrases.join(m.listSeparator);
   const sentence = list.charAt(0).toUpperCase() + list.slice(1);
   if (options.seasonNeedsFix) {

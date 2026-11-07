@@ -1,9 +1,11 @@
 import type {
+  MARK_KIND_VALUES,
   MatchStatusEnum,
   RATING_LEVEL_BAND_VALUES,
 } from "@repo/db/schema";
 
 import type { LEVEL_BANDS } from "@repo/domain/level-bands";
+import type { MARK_KINDS } from "@repo/domain/marks";
 import type { MatchStatus } from "@repo/domain/match-status";
 
 type Equal<A, B> =
@@ -21,4 +23,7 @@ export type DomainEnumParity = [
     >
   >,
   AssertTrue<Equal<`${MatchStatusEnum}`, MatchStatus>>,
+  AssertTrue<
+    Equal<(typeof MARK_KINDS)[number], (typeof MARK_KIND_VALUES)[number]>
+  >,
 ];

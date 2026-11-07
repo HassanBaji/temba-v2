@@ -56,6 +56,9 @@ import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteIconEntry } from "../invites/invite-entry";
+import { MarksSection } from "../marks/marks-section";
+import { MvpRow } from "../marks/mvp-row";
+import { useGameMarks } from "../marks/use-game-marks";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
 import { PlayedGameView } from "../played-game/played-game-view";
@@ -145,6 +148,7 @@ export function FootballGameDetails({
   const names = teams ? bibNames(teams.bibs, locale) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
+  const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
 
   const input: FootballGameDetailsInput = {
     ...game,
@@ -247,6 +251,7 @@ export function FootballGameDetails({
     sections: editSections,
     seasons: game.groupSeasons,
     open: editOpen,
+    mvpEnabled: model.organizer != null && game.format === "friendly_game",
     onSaved: refresh,
     onClose: () => setEditOpen(false),
   });
@@ -545,6 +550,9 @@ export function FootballGameDetails({
   const refreshAll = () => {
     onRefresh();
     void board.refetch();
+    if (playedModel) {
+      void marks.refetch();
+    }
   };
 
   const screen = playedModel ? (
@@ -565,6 +573,13 @@ export function FootballGameDetails({
           scorers={playedModel.scorers}
         />
       }
+      heroFooter={
+        <MvpRow
+          marks={marks}
+          onOpenPlayer={canOpenProfile ? openProfile : undefined}
+        />
+      }
+      marks={<MarksSection marks={marks} />}
       columns={playedModel.columns}
       unplaced={playedModel.unplaced}
       facts={playedModel.facts}

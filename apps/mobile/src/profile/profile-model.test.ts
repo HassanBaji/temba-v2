@@ -61,6 +61,7 @@ function profile(overrides: Partial<MyProfile> = {}): MyProfile {
     lastTen: [],
     partners: [],
     recent: [],
+    hideRoasts: false,
     ...overrides,
   };
 }

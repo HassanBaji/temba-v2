@@ -11,6 +11,7 @@ import { games, matches } from "@repo/db";
 import type { HubGameFootball } from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
+import type { MvpMode } from "@repo/domain/marks";
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
 
@@ -169,6 +170,8 @@ export type CreateFriendlyGameInput = {
   /** Null / omitted = that bound unset. 0 = Level 0.0. */
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  /** How the MVP is decided. Omitted = players vote. */
+  mvpMode?: MvpMode;
 };
 
 export type CreateFootballGameInput = {
@@ -184,6 +187,8 @@ export type CreateFootballGameInput = {
   pricePerPlayerFils?: number | null;
   sideSize: number;
   playersAllowed: number;
+  /** How the MVP is decided. Omitted = players vote. */
+  mvpMode?: MvpMode;
 };
 
 export type CreateFriendlyGameResult = {
@@ -212,6 +217,8 @@ export type CreateGameInput = {
   pricePerPlayerFils?: number | null;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  /** Friendly game only. Omitted = players vote. */
+  mvpMode?: MvpMode;
 };
 
 export type SeatPosition = "left" | "right";

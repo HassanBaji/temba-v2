@@ -157,7 +157,8 @@ export const motion = {
 
 /**
  * Football bib colours. These are data, not chrome: a team wears the colour
- * its Organizer picks, so these are the one place colour appears.
+ * its Organizer picks. These and the Mark coins in `marks.ts` (ADR-0056) are
+ * the two places colour appears.
  * `on` is the ink that reads on the fill.
  */
 export const bibColors = {

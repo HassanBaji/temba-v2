@@ -11,9 +11,11 @@ import {
   gameResultPath,
   padelResultCard,
   padelStickerLine,
+  resultCardMvp,
   resultShareCard,
   type ResultShareGame,
 } from "./game-result-share";
+import { createMarksFixtures } from "./marks-fixtures";
 
 const VIEWER = "user-you";
 
@@ -375,5 +377,63 @@ describe("resultShareCard", () => {
       ),
       null,
     );
+  });
+});
+
+describe("resultCardMvp", () => {
+  const fixtures = createMarksFixtures(new Date("2026-10-12T12:00:00.000Z"));
+
+  it("names a settled MVP with how they were decided", () => {
+    assert.deepEqual(resultCardMvp(fixtures.mvpDecided, "en"), {
+      name: "Yousif Kadhem",
+      decidedBy: "By vote, 4 of 6",
+    });
+  });
+
+  it("names nobody until the MVP is settled, or when there is none", () => {
+    assert.equal(resultCardMvp(fixtures.mvpOrganizerPick, "en"), null);
+    assert.equal(resultCardMvp(fixtures.mvpVoting, "en"), null);
+    assert.equal(resultCardMvp(fixtures.mvpTie, "en"), null);
+    assert.equal(resultCardMvp(fixtures.mvpNone, "en"), null);
+    assert.equal(resultCardMvp(fixtures.closed, "en"), null);
+    assert.equal(resultCardMvp(undefined, "en"), null);
+  });
+
+  it("names nobody when the MVP no longer sits on the Match", () => {
+    const decided = fixtures.mvpDecided;
+    assert.equal(
+      resultCardMvp(
+        {
+          ...decided,
+          participants: decided.participants.filter(
+            (row) => row.userId !== decided.mvp.userId,
+          ),
+        },
+        "en",
+      ),
+      null,
+    );
+  });
+
+  it("carries the MVP onto both cards and leaves it null by default", () => {
+    const mvp = { name: "Maryam Khalaf", decidedBy: "Organizer’s pick" };
+    assert.deepEqual(resultShareCard(padel, null, "en", mvp)?.mvp, mvp);
+    assert.equal(resultShareCard(padel, null, "en")?.mvp, null);
+    const football: ResultShareGame = {
+      ...padel,
+      sport: "football",
+      roster: { users: [], count: 0, cap: 12 },
+      sideSize: 6,
+      recordedCourts: [],
+      sides: [],
+      matches: [],
+    };
+    const board = {
+      players: [],
+      teams: { bibs: { slot1: "black" as const, slot2: "white" as const } },
+      match: { status: "completed", score: { slot1: 2, slot2: 1 } },
+    };
+    assert.deepEqual(resultShareCard(football, board, "en", mvp)?.mvp, mvp);
+    assert.equal(resultShareCard(football, board, "en")?.mvp, null);
   });
 });

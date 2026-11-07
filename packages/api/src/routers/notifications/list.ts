@@ -12,6 +12,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { notificationRetentionCutoff } from "#src/notifications/retention";
 import { displayedLevelFromMu } from "@repo/domain/level";
+import { marksWindow, type MarkKind } from "@repo/domain/marks";
 import { type LevelBand } from "@repo/domain/level-bands";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
 
@@ -46,13 +47,36 @@ export type NotificationItem = {
     name: string | null;
     format: string;
     windowStart: Date | null;
+    /** Set only while the Game's Marks window is open. */
+    marksClosesAt: Date | null;
   } | null;
+  markKind: MarkKind | null;
+  /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
+  actorIsRecipient: boolean;
   levelSet: {
     level: string;
     levelBand: LevelBand;
     reason: LevelOverrideReason | null;
   } | null;
 };
+
+/** A Friendly game has one Match; its `completedAt` is set only while it is completed. */
+function openMarksClosesAt(
+  game: {
+    format: string;
+    cancelledAt: Date | null;
+    matches: { completedAt: Date | null }[];
+  },
+  now: Date,
+) {
+  if (game.format !== "friendly_game" || game.cancelledAt) {
+    return null;
+  }
+  const completedAt =
+    game.matches.find((match) => match.completedAt)?.completedAt ?? null;
+  const marks = marksWindow(completedAt, now);
+  return marks?.state === "open" ? marks.closesAt : null;
+}
 
 export async function listNotifications(
   database: DbClient,
@@ -67,7 +91,8 @@ export async function listNotifications(
   nextCursor: NotificationCursor | null;
 }> {
   const limit = args.limit ?? DEFAULT_PAGE_SIZE;
-  const cutoff = notificationRetentionCutoff(args.now ?? new Date());
+  const now = args.now ?? new Date();
+  const cutoff = notificationRetentionCutoff(now);
   const { cursor } = args;
 
   const rows = await database.query.notifications.findMany({
@@ -94,6 +119,7 @@ export async function listNotifications(
       readAt: true,
       viaWaitlist: true,
       gameCount: true,
+      markKind: true,
     },
     with: {
       actor: { columns: { id: true, name: true, image: true } },
@@ -101,7 +127,14 @@ export async function listNotifications(
       team: { columns: { id: true, name: true } },
       group: { columns: { id: true, name: true } },
       game: {
-        columns: { id: true, name: true, format: true, windowStart: true },
+        columns: {
+          id: true,
+          name: true,
+          format: true,
+          windowStart: true,
+          cancelledAt: true,
+        },
+        with: { matches: { columns: { completedAt: true } } },
       },
       levelOverride: {
         columns: { muAfter: true, levelBandAfter: true, reason: true },
@@ -109,16 +142,28 @@ export async function listNotifications(
     },
   });
 
-  const items = rows.slice(0, limit).map(({ levelOverride, ...item }) => ({
-    ...item,
-    levelSet: levelOverride
-      ? {
-          level: displayedLevelFromMu(levelOverride.muAfter),
-          levelBand: levelOverride.levelBandAfter,
-          reason: levelOverride.reason,
-        }
-      : null,
-  }));
+  const items = rows
+    .slice(0, limit)
+    .map(({ levelOverride, game, ...item }) => ({
+      ...item,
+      actorIsRecipient: item.actor?.id === args.userId,
+      game: game
+        ? {
+            id: game.id,
+            name: game.name,
+            format: game.format,
+            windowStart: game.windowStart,
+            marksClosesAt: openMarksClosesAt(game, now),
+          }
+        : null,
+      levelSet: levelOverride
+        ? {
+            level: displayedLevelFromMu(levelOverride.muAfter),
+            levelBand: levelOverride.levelBandAfter,
+            reason: levelOverride.reason,
+          }
+        : null,
+    }));
   const last = items.at(-1);
   return {
     items,

@@ -186,6 +186,7 @@ export const webGame = {
       level: "Level range",
       rounds: "Rounds",
       season: "Season",
+      mvp: "MVP",
     },
     stepFailed: (step: string, message: string) => `${step}: ${message}`,
     movedToWaitlist: (n: number) =>

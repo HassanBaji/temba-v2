@@ -20,7 +20,8 @@ import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { api } from "../trpc/react";
-import { playerMatchesPath, playerPath } from "./player-path";
+import { cabinetRowModel } from "../marks/cabinet-model";
+import { playerMarksPath, playerMatchesPath, playerPath } from "./player-path";
 import {
   footballProfileState,
   playerProfileState,
@@ -58,6 +59,10 @@ export function PlayerProfileScreen({
     { userId },
     { ...REFETCH_ON_FOREGROUND, enabled: footballEnabled },
   );
+  const cabinetQuery = api.marks.cabinet.useQuery(
+    { userId },
+    REFETCH_ON_FOREGROUND,
+  );
   const query = sport === "football" ? footballQuery : padelQuery;
   const state =
     sport === "football"
@@ -70,11 +75,12 @@ export function PlayerProfileScreen({
       await Promise.all([
         padelQuery.refetch(),
         footballEnabled ? footballQuery.refetch() : null,
+        cabinetQuery.refetch(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [padelQuery, footballQuery, footballEnabled]);
+  }, [padelQuery, footballQuery, footballEnabled, cabinetQuery]);
 
   const header = <ScreenHeader nav="back" fallback={FALLBACK} />;
 
@@ -148,6 +154,10 @@ export function PlayerProfileScreen({
     >
       <PlayerProfileBody
         model={model}
+        cabinet={cabinetRowModel(cabinetQuery.data, sport, locale)}
+        onOpenCabinet={() =>
+          router.push(playerMarksPath(segments, userId, sport))
+        }
         onOpenRow={onOpenRow}
         onOpenPlayer={(playerId) =>
           router.push(playerPath(segments, playerId, sport))

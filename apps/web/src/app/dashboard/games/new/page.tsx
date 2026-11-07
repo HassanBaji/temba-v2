@@ -92,6 +92,7 @@ import {
   defaultPoolCount,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "@repo/domain/tournament-sizing";
+import type { MvpMode } from "@repo/domain/marks";
 import { sportOrDefault } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
@@ -165,6 +166,7 @@ function NewGameForm() {
     () => initialCreateGameDraft(session.now, locale).playersAllowed,
   );
   const [rated, setRated] = React.useState(true);
+  const [mvpMode, setMvpMode] = React.useState<MvpMode>("vote");
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
   >({});
@@ -673,7 +675,7 @@ function NewGameForm() {
         reportSubmitIssue(footballResult);
         return;
       }
-      createGame.mutate(footballResult.input);
+      createGame.mutate({ ...footballResult.input, mvpMode });
       return;
     }
     const result = validateFriendlyGameSubmit(
@@ -697,7 +699,7 @@ function NewGameForm() {
       reportSubmitIssue(result);
       return;
     }
-    createGame.mutate(result.input);
+    createGame.mutate({ ...result.input, mvpMode });
   }
 
   const cancelHref = selectedGroupId
@@ -1261,6 +1263,8 @@ function NewGameForm() {
               groupVerified={groupVerified}
               rated={rated}
               onRated={setRated}
+              mvpMode={mvpMode}
+              onMvpMode={setMvpMode}
               reviewVenue={
                 selectedVenue
                   ? courtId === "none"
