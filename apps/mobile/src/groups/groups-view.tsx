@@ -136,6 +136,11 @@ function MyGroupRow({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={row.name} uri={row.imageUri} size="lg" />
         <View style={{ flex: 1, minWidth: 0 }}>
+          {row.sportLabel ? (
+            <Text size="meta" tone="muted" numberOfLines={1}>
+              {row.sportLabel}
+            </Text>
+          ) : null}
           <Text size="lead" weight="semibold" numberOfLines={1}>
             {row.name}
           </Text>

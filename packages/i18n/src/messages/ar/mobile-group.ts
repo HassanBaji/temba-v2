@@ -23,6 +23,7 @@ export const mobileGroup = {
     nextGame: "المباراة القادمة",
     yourFormHere: "أداؤك الأخير هنا",
     filterBySport: "تصفية حسب الرياضة",
+    rowSportName: (sport: string, name: string) => `${sport}، ${name}`,
     rowNextGame: (name: string, meta: string, weekday: string) =>
       `${name}، ${meta}، المباراة القادمة ${weekday}`,
     rowNoGame: (name: string, meta: string) =>

@@ -32,6 +32,7 @@ export type GroupRowView = {
   id: string;
   name: string;
   imageUri: string | null;
+  sportLabel: string | null;
   meta: string;
   nextGameWeekday: string | null;
   formMarks: FormMark[];
@@ -45,6 +46,8 @@ export function groupRowView(
 ): GroupRowView {
   const m = messagesFor(locale).mobileGroup.list;
   const name = groupDisplayName(row.name, locale);
+  const rowSportLabel = sportLabel(row.sport, locale);
+  const spokenName = rowSportLabel ? m.rowSportName(rowSportLabel, name) : name;
   const meta = groupRowMetaLine({
     memberCount: row.memberCount,
     standingPosition: row.standingPosition,
@@ -57,12 +60,13 @@ export function groupRowView(
     id: row.id,
     name,
     imageUri: mediaUrl(row.imageUrl, apiOrigin),
+    sportLabel: rowSportLabel,
     meta,
     nextGameWeekday,
     formMarks: row.formMarks,
     accessibilityLabel: nextGameWeekday
-      ? m.rowNextGame(name, meta, nextGameWeekday)
-      : m.rowNoGame(name, meta),
+      ? m.rowNextGame(spokenName, meta, nextGameWeekday)
+      : m.rowNoGame(spokenName, meta),
   };
 }
 

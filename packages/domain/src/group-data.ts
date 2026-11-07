@@ -11,6 +11,7 @@ export type GroupMineRowData = {
   id: string;
   name: string | null;
   imageUrl: string | null;
+  sport: string | null;
   memberCount: number;
   standingPosition: number | null;
   nextGameStartTime: Date | string | null;
