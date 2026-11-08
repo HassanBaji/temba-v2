@@ -10,7 +10,10 @@ import {
   teams,
   WEEKDAY_VALUES,
 } from "@repo/db";
-import { challengeExpiresAt } from "@repo/domain/challenge-clock";
+import {
+  challengeExpiresAt,
+  isChallengeOpen,
+} from "@repo/domain/challenge-clock";
 import {
   CHALLENGE_DEFAULT_DURATION_MINUTES,
   CHALLENGE_MAX_SLOTS,
@@ -30,6 +33,7 @@ import { liveVenuesOfferingSport } from "#src/challenges/venues-for-sport";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { enqueueAt } from "#src/jobs/enqueue";
+import { applyChallengeExpiry } from "#src/jobs/handlers/challenge.expire";
 import { challengeExpireJob } from "#src/jobs/specs";
 import { notifyRematchNudge } from "#src/notifications/notify-challenge";
 import { userActsForTeam } from "#src/teams/acts-for-team";
@@ -38,6 +42,7 @@ import { loadTeamMatches } from "#src/teams/team-record";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
+type Tx = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
 
 const levelTenths = z
   .number()
@@ -96,6 +101,30 @@ async function requireNudgeTeam(
     refuse(m.challenge.errors.nudgeNotPlayed);
   }
   return nudgeTeam;
+}
+
+function openChallengeOf(tx: Tx, teamId: string) {
+  return tx.query.challenges.findFirst({
+    where: and(eq(challenges.teamId, teamId), eq(challenges.status, "open")),
+    columns: { id: true, status: true, expiresAt: true },
+  });
+}
+
+/**
+ * A Challenge whose seven days are up but which the clock job has not stamped
+ * yet is expired here, the way the job would, so it never blocks a new post.
+ * One kept alive by a pending Proposal stays open.
+ */
+async function stillHasOpenChallenge(tx: Tx, teamId: string, now: Date) {
+  const open = await openChallengeOf(tx, teamId);
+  if (!open) {
+    return false;
+  }
+  if (isChallengeOpen(open, now)) {
+    return true;
+  }
+  await applyChallengeExpiry(tx, open.id, now);
+  return (await openChallengeOf(tx, teamId)) != null;
 }
 
 /**
@@ -166,20 +195,15 @@ export async function postChallenge(
     ? await requireNudgeTeam(database, team, input.nudgeTeamId, m)
     : null;
 
-  const alreadyOpen = await database.query.challenges.findFirst({
-    where: and(eq(challenges.teamId, team.id), eq(challenges.status, "open")),
-    columns: { id: true },
-  });
-  if (alreadyOpen) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: m.challenge.errors.alreadyOpen,
-    });
-  }
-
   const expiresAt = challengeExpiresAt(now);
   try {
     return await database.transaction(async (tx) => {
+      if (await stillHasOpenChallenge(tx, team.id, now)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: m.challenge.errors.alreadyOpen,
+        });
+      }
       const [created] = await tx
         .insert(challenges)
         .values({
