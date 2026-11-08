@@ -108,7 +108,9 @@ export function OtpInput({
         aria-label={ariaLabel ?? m.webUi.otpLabel}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid}
-        className="absolute inset-0 cursor-text opacity-0 disabled:cursor-not-allowed"
+        // Transparent text, not opacity-0: iOS can withhold the "From Messages"
+        // code suggestion from a fully invisible field.
+        className="absolute inset-0 cursor-text appearance-none border-0 bg-transparent text-base text-transparent caret-transparent outline-none selection:bg-transparent disabled:cursor-not-allowed"
       />
     </div>
   );
