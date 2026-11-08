@@ -70,6 +70,9 @@ export type ChallengeCardInput = {
     members: readonly { name: string | null }[];
   };
   viewer: { ineligibleReason: ChallengeIneligibleReason | null };
+  /** A Rematch: the Team it was sent straight to. */
+  nudgedTeam?: { displayName: string } | null;
+  viewerTeamIsNudged?: boolean;
 };
 
 function bandLabel(tenths: number) {
@@ -272,6 +275,10 @@ export function challengeCardView(
   const greyedLine = reason
     ? challengeIneligibleLine(reason, input, locale)
     : null;
+  const nudgeLine =
+    input.viewerTeamIsNudged && input.nudgedTeam
+      ? m.challenge.card.nudged(input.nudgedTeam.displayName)
+      : null;
   return {
     id: input.id,
     title: input.team.displayName,
@@ -286,8 +293,10 @@ export function challengeCardView(
     opponentSeatsLabel: m.challenge.card.opponentSeats,
     greyed: reason != null && reason !== "own",
     greyedLine,
+    nudgeLine,
     accessibilityLabel: [
       m.challenge.card.open(input.team.displayName),
+      nudgeLine,
       sportLine,
       whenLine,
       slotsLine,

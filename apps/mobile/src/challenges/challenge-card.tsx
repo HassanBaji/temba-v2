@@ -96,6 +96,11 @@ export function ChallengeCard({
         <ChallengeSeats card={card} />
         <ChallengeLines card={card} />
         {card.note ? <Text size="meta">{card.note}</Text> : null}
+        {card.nudgeLine ? (
+          <Text size="meta" weight="medium">
+            {card.nudgeLine}
+          </Text>
+        ) : null}
         {card.greyedLine ? (
           <Text size="meta" weight="medium">
             {card.greyedLine}

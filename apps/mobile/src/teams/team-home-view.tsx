@@ -38,6 +38,7 @@ export type TeamHomeViewProps = {
     remove: NonNullable<TeamHomeViewData["members"][number]["remove"]>,
   ) => void;
   onOpenTeam: (teamId: string) => void;
+  onRematch: (opponentTeamId: string) => void;
   onOpenGroup: (() => void) | null;
   tagPending: boolean;
   onTag: (groupId: string, toast: string) => void;
@@ -284,9 +285,11 @@ function FormLine({ form }: { form: TeamHomeViewData["form"] }) {
 function Rivals({
   view,
   onOpenTeam,
+  onRematch,
 }: {
   view: TeamHomeViewData;
   onOpenTeam: (teamId: string) => void;
+  onRematch: (opponentTeamId: string) => void;
 }) {
   const m = useMessages();
   if (view.rivals.length === 0) {
@@ -336,9 +339,12 @@ function Rivals({
             {view.rematch ? (
               <Button
                 label={view.rematch.label}
+                accessibilityLabel={
+                  view.rematch.accessibilityLabels[rival.teamId]
+                }
                 variant="outline"
                 size="sm"
-                disabled={view.rematch.disabled}
+                onPress={() => onRematch(rival.teamId)}
               />
             ) : null}
           </View>
@@ -478,7 +484,11 @@ export function TeamHomeView(props: TeamHomeViewProps) {
       </Section>
 
       <Section title={m.team.rivals.title}>
-        <Rivals view={view} onOpenTeam={props.onOpenTeam} />
+        <Rivals
+          view={view}
+          onOpenTeam={props.onOpenTeam}
+          onRematch={props.onRematch}
+        />
       </Section>
 
       <Section title={m.team.roster.title}>

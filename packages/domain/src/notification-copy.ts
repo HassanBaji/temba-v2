@@ -404,6 +404,14 @@ export function notificationCopy(
       subline: sub.seeWhoIsNamed,
     };
   }
+  if (item.type === "challenge_rematch_nudge") {
+    return {
+      title: item.team?.name
+        ? m.challengeRematchNudge(userName(item.team.name, locale))
+        : m.challengeRematchNudgeUnnamed,
+      subline: sub.acceptRematch,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
     const subline = gameFinishedSubline(item.audience, item.game, locale);
     if (subline) {

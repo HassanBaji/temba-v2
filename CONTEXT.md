@@ -223,6 +223,10 @@ _Avoid_: stats, standing (that is a Season Standing), win rate
 Another Team this Team has completed two or more Matches against, shown with its head-to-head and last result. A Team played once is the closest candidate, shown when there is no Rival yet.
 _Avoid_: opponent (any Team on the other side of one Match), nemesis, rivalry (as an entity)
 
+**Rematch**:
+Posting a Challenge pre-filled from a Team you have played and sending it straight to that Team: a nudge Notification to the Users who act for it, and the nudged Team's view of the Challenge says so and offers Accept. The target is another Team of the same sport that the posting Team has completed at least one Match against. The form opens on the Team, the last Game's Format and Venue and a Level wanted one band either side of the opponent's Team Level, all still editable; the review screen can also send any Challenge straight to a Team played. It still sits on the open board for everyone eligible.
+_Avoid_: return match, revenge, invite (a Rematch is a Challenge, not an Invite)
+
 **Head-to-head**:
 The wins–losses (wins–draws–losses in football) between a Team and one Rival, from this Team's side, derived from the same Matches as the Team record.
 _Avoid_: H2H (in product copy), series, rivalry score

@@ -73,7 +73,7 @@ describe("teamHomeView", () => {
     expect(played.emptyCopy).toBeNull();
   });
 
-  it("lists Rivals with head-to-head and a disabled Rematch for those who act", () => {
+  it("lists Rivals with head-to-head and a Rematch for those who act", () => {
     const view = teamHomeView(fixtures.home.rivals, "en");
     expect(view.rivals).toEqual([
       {
@@ -89,7 +89,10 @@ describe("teamHomeView", () => {
     ]);
     expect(view.closestLine).toBeNull();
     expect(view.rivalsEmptyCopy).toBeNull();
-    expect(view.rematch).toEqual({ label: "Rematch", disabled: true });
+    expect(view.rematch).toEqual({
+      label: "Rematch",
+      accessibilityLabels: { "team-rival": "Rematch Seef Smashers" },
+    });
 
     const football = teamHomeView(fixtures.home.footballRecord, "en");
     expect(football.rivals[0]?.headToHead).toBe("1–1–1");

@@ -201,6 +201,7 @@ export const team = {
       `Closest: ${name}, played once. One more Match makes them a Rival.`,
     empty: "Play the same Team twice and they become a Rival.",
     rematch: "Rematch",
+    rematchA11y: (team: string) => `Rematch ${team}`,
     opponentFallback: "Opponent",
   },
   games: {

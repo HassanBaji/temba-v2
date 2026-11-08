@@ -1,6 +1,7 @@
 import { challengeCardView } from "@repo/domain/challenge-card";
 import { challengeExpiresAt } from "@repo/domain/challenge-clock";
 import {
+  challengeNudgeView,
   challengeReviewLines,
   challengeSlotDayOptions,
   challengeSlotInstant,
@@ -28,13 +29,18 @@ import {
   challengePath,
   draftTeam,
   previewCardInput,
+  rematchDraft,
   toggleValue,
 } from "./challenges-model";
 import { PostChallengeForm, PostChallengeReview } from "./post-challenge-view";
 
 const DEFAULT_SLOT_MINUTES = 19 * 60;
 
-export function PostChallengeScreen() {
+export function PostChallengeScreen({
+  rematch = null,
+}: {
+  rematch?: { teamId: string; opponentTeamId: string } | null;
+}) {
   const router = useRouter();
   const toast = useToast();
   const m = useMessages();
@@ -54,6 +60,18 @@ export function PostChallengeScreen() {
     () => challengeSlotDayOptions(now, locale)[1]?.value ?? "",
   );
   const [slotMinutes, setSlotMinutes] = useState(DEFAULT_SLOT_MINUTES);
+  const [prefilled, setPrefilled] = useState(rematch == null);
+  if (!prefilled && rematch && options.data) {
+    setPrefilled(true);
+    const prefill = rematchDraft(
+      options.data,
+      rematch.teamId,
+      rematch.opponentTeamId,
+    );
+    if (prefill) {
+      setDraft(prefill);
+    }
+  }
 
   const post = api.challenges.post.useMutation({
     onSuccess: async ({ id }) => {
@@ -142,9 +160,15 @@ export function PostChallengeScreen() {
             ? current.sideSize
             : null,
         venueIds: sameSport ? current.venueIds : [],
+        nudgeTeamId: teamId === current.teamId ? current.nudgeTeamId : null,
       };
     });
     setErrors({});
+  }
+
+  function setNudge(nudgeTeamId: string | null) {
+    setDraft((current) => ({ ...current, nudgeTeamId }));
+    setReview((current) => (current ? { ...current, nudgeTeamId } : current));
   }
 
   function openReview() {
@@ -187,6 +211,12 @@ export function PostChallengeScreen() {
         <PostChallengeReview
           card={card}
           lines={challengeReviewLines(draftTeam(team), review.sideSize, locale)}
+          nudge={challengeNudgeView(
+            team.playedTeams,
+            review.nudgeTeamId,
+            locale,
+          )}
+          onNudge={setNudge}
           formError={formError}
           pending={post.isPending}
           onBack={() => setReview(null)}

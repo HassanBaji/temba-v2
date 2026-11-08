@@ -238,6 +238,7 @@ export const team = {
       `الأقرب: ${name}، لعبتم مرة واحدة. مباراة أخرى تجعله منافسًا.`,
     empty: "العب ضد الفريق نفسه مرتين ليصبح منافسًا.",
     rematch: "مباراة إعادة",
+    rematchA11y: (team: string) => `مباراة إعادة ضد ${isolate(team)}`,
     opponentFallback: "المنافس",
   },
   games: {

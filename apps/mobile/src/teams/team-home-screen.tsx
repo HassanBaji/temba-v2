@@ -17,6 +17,7 @@ import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
+import { rematchPath } from "../challenges/challenges-model";
 import { groupPath } from "../groups/groups-model";
 import { api } from "../trpc/react";
 import { TEAMS_PATH, teamPath } from "./teams-model";
@@ -182,6 +183,9 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
           });
         }}
         onOpenTeam={(id) => router.push(teamPath(id))}
+        onRematch={(opponentTeamId) =>
+          router.push(rematchPath(teamId, opponentTeamId))
+        }
         onOpenGroup={
           data.groupTag
             ? () => {

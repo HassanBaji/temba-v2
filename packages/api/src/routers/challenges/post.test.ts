@@ -2,13 +2,15 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { challengeVenues } from "@repo/db/schema";
+import { challengeVenues, notifications } from "@repo/db/schema";
+import type { TestDatabase } from "@repo/db/testing";
 
 import {
   challengeRow,
   makeTeam,
   makeUsers,
   makeVenue,
+  playTeams,
   withDb,
 } from "#src/challenges/challenges.test-support";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
@@ -322,6 +324,168 @@ describe("challenges.post", () => {
         message: "Pick venues with a padel court",
       });
       expect(await database.query.challenges.findMany()).toEqual([]);
+    });
+  });
+});
+
+describe("challenges.post with a Rematch nudge", () => {
+  recordJobs();
+
+  async function padelRivals(database: TestDatabase) {
+    const [ali, omar, rafi, saad, hana, lulu] = await makeUsers(
+      database,
+      "Player",
+      6,
+    );
+    const seef = await makeTeam(database, {
+      name: "Seef Smashers",
+      sport: "padel",
+      userIds: [ali!, omar!],
+    });
+    const riffa = await makeTeam(database, {
+      name: "Riffa Rackets",
+      sport: "padel",
+      userIds: [rafi!, saad!],
+    });
+    const stranger = await makeTeam(database, {
+      name: "Juffair Jets",
+      sport: "padel",
+      userIds: [hana!, lulu!],
+    });
+    const venue = await makeVenue(database, {
+      name: "Padel Central",
+      city: "Manama",
+      sport: "padel",
+    });
+    await playTeams(database, {
+      teamIds: [seef.id, riffa.id],
+      createdBy: ali!,
+      venueId: venue.id,
+      sport: "padel",
+      playedAt: new Date("2026-11-01T18:00:00Z"),
+    });
+    return {
+      seef,
+      riffa,
+      stranger,
+      venue,
+      poster: ali!,
+      partner: omar!,
+      nudged: [rafi!, saad!],
+    };
+  }
+
+  it("refuses a Team never played, the poster's own Team and another sport", async () => {
+    await withDb(async ({ database, db }) => {
+      const { seef, stranger, poster } = await padelRivals(database);
+      const footballers = await makeUsers(database, "Arad", 5);
+      const arad = await makeTeam(database, {
+        name: "Arad Athletic",
+        sport: "football",
+        userIds: footballers,
+      });
+      const base = { teamId: seef.id, userId: poster, now };
+      expect(
+        await refusal(postChallenge(db, { ...base, nudgeTeamId: stranger.id })),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "You can only send it straight to a Team you've played",
+      });
+      expect(
+        await refusal(postChallenge(db, { ...base, nudgeTeamId: seef.id })),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Send it to another Team, not your own",
+      });
+      expect(
+        await refusal(postChallenge(db, { ...base, nudgeTeamId: arad.id })),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Send it to a Team of the same sport",
+      });
+      expect(
+        await refusal(
+          postChallenge(db, { ...base, nudgeTeamId: crypto.randomUUID() }),
+        ),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "You can only send it straight to a Team you've played",
+      });
+      expect(await database.query.challenges.findMany()).toEqual([]);
+      expect(await database.query.notifications.findMany()).toEqual([]);
+    });
+  });
+
+  it("stores the nudge on a Team played once and tells each of its acting Users, not the poster", async () => {
+    await withDb(async ({ database, db }) => {
+      const { seef, riffa, poster, partner, nudged } =
+        await padelRivals(database);
+      const { id } = await postChallenge(db, {
+        teamId: seef.id,
+        nudgeTeamId: riffa.id,
+        userId: poster,
+        now,
+      });
+      expect(await challengeRow(database, id)).toMatchObject({
+        status: "open",
+        nudgeTeamId: riffa.id,
+      });
+      const rows = await database.query.notifications.findMany({
+        where: eq(notifications.type, "challenge_rematch_nudge"),
+      });
+      expect(rows.map((row) => row.recipientUserId).sort()).toEqual(
+        [...nudged].sort(),
+      );
+      expect(rows.every((row) => row.challengeId === id)).toBe(true);
+      expect(rows.every((row) => row.teamId === seef.id)).toBe(true);
+      expect(rows.every((row) => row.actorUserId === poster)).toBe(true);
+      expect(
+        rows.some(
+          (row) =>
+            row.recipientUserId === poster || row.recipientUserId === partner,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  it("tells only who acts for a nudged football Team", async () => {
+    await withDb(async ({ database, db }) => {
+      const hiddIds = await makeUsers(database, "Hidd", 6);
+      const aradIds = await makeUsers(database, "Arad", 6);
+      const hidd = await makeTeam(database, {
+        name: "Hidd United",
+        sport: "football",
+        userIds: hiddIds,
+      });
+      const arad = await makeTeam(database, {
+        name: "Arad Athletic",
+        sport: "football",
+        userIds: aradIds,
+      });
+      const venue = await makeVenue(database, {
+        name: "Pitch Park",
+        city: "Hidd",
+        sport: "football",
+      });
+      await playTeams(database, {
+        teamIds: [arad.id, hidd.id],
+        createdBy: aradIds[0]!,
+        venueId: venue.id,
+        sport: "football",
+        sideSize: 6,
+        playedAt: new Date("2026-11-01T18:00:00Z"),
+      });
+      await postChallenge(db, {
+        teamId: hidd.id,
+        sideSize: 6,
+        nudgeTeamId: arad.id,
+        userId: hiddIds[0]!,
+        now,
+      });
+      const rows = await database.query.notifications.findMany({
+        where: eq(notifications.type, "challenge_rematch_nudge"),
+      });
+      expect(rows.map((row) => row.recipientUserId)).toEqual([aradIds[0]]);
     });
   });
 });

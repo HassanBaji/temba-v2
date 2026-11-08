@@ -1059,4 +1059,32 @@ describe("notificationCopy for a Proposal", () => {
       "أنت في تشكيلة تحدٍّ",
     );
   });
+
+  it("names the posting Team on a Rematch nudge", () => {
+    assert.equal(
+      title("challenge_rematch_nudge", "Smash Brothers", "en"),
+      "Smash Brothers challenged you to a rematch",
+    );
+    assert.equal(
+      title("challenge_rematch_nudge", null, "en"),
+      "A Team you've played challenged you to a rematch",
+    );
+    assert.equal(
+      title("challenge_rematch_nudge", null, "ar"),
+      "فريق لعبتم ضده يتحداكم في مباراة إعادة",
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "challenge_rematch_nudge",
+          audience: "player",
+          actor: null,
+          team: { name: "Smash Brothers" },
+          group: null,
+        },
+        "en",
+      )?.subline,
+      "Accept it to propose a time and a venue.",
+    );
+  });
 });

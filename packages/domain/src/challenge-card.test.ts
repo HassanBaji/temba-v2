@@ -109,6 +109,32 @@ describe("challengeCardView", () => {
     );
     expect(view.slotsLine).toBe("Or Fri 13 Nov, 7:00 PM");
   });
+
+  it("tells only the nudged Team that a Rematch was sent straight to it", () => {
+    const nudged = challengeCardView(
+      card({
+        nudgedTeam: { displayName: "Arad Athletic" },
+        viewerTeamIsNudged: true,
+      }),
+      "en",
+      now,
+    );
+    expect(nudged.nudgeLine).toBe(
+      "A rematch, sent straight to Arad Athletic. It's on the open board too.",
+    );
+    expect(nudged.accessibilityLabel).toContain(nudged.nudgeLine);
+    expect(
+      challengeCardView(
+        card({
+          nudgedTeam: { displayName: "Arad Athletic" },
+          viewerTeamIsNudged: false,
+        }),
+        "en",
+        now,
+      ).nudgeLine,
+    ).toBeNull();
+    expect(challengeCardView(card(), "en", now).nudgeLine).toBeNull();
+  });
 });
 
 describe("challengeLevelWanted and challengeWhenLine", () => {

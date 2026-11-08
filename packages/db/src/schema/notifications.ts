@@ -46,6 +46,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "challenge_proposal_passed_over",
   "challenge_squad_due",
   "challenge_squad_named",
+  "challenge_rematch_nudge",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

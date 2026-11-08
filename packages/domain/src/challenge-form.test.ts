@@ -3,13 +3,17 @@ import { describe, expect, it } from "vitest";
 import {
   challengeFormatOptions,
   challengeFormatProblem,
+  challengeLevelWantedAround,
+  challengeNudgeView,
   challengeReviewLines,
   challengeSlotDayOptions,
   challengeSlotInstant,
   challengeSlotTimeOptions,
   emptyChallengeDraft,
+  rematchChallengeDraft,
   validateChallengeDraft,
   type ChallengeDraftTeam,
+  type ChallengePlayedTeam,
 } from "./challenge-form";
 
 const now = new Date("2026-11-08T10:00:00Z");
@@ -127,6 +131,7 @@ describe("validateChallengeDraft", () => {
         timings: ["evening"],
         exactSlots: [slot],
         note: "Friendly, on time",
+        nudgeTeamId: null,
       },
     });
   });
@@ -215,5 +220,113 @@ describe("exact slots", () => {
     expect(challengeSlotInstant("2026-11-13", 19 * 60)).toEqual(
       new Date("2026-11-13T16:00:00Z"),
     );
+  });
+});
+
+const arad: ChallengePlayedTeam = {
+  id: "arad",
+  displayName: "Arad Athletic",
+  teamLevel: { tenths: 28 },
+  lastGame: { sideSize: 6, venueId: "pitches" },
+};
+
+describe("rematchChallengeDraft", () => {
+  it("pre-fills the Format, the Venue, a Level around the opponent and the nudge", () => {
+    const draft = rematchChallengeDraft(gooz, arad, ["pitches", "arena"]);
+    expect(draft).toEqual({
+      ...emptyChallengeDraft("gooz"),
+      sideSize: 6,
+      venueIds: ["pitches"],
+      levelMin: "C-",
+      levelMax: "C+",
+      nudgeTeamId: "arad",
+    });
+    const result = validateChallengeDraft(draft, gooz, "en", now);
+    expect(result.ok && result.input).toMatchObject({
+      sideSize: 6,
+      venueIds: ["pitches"],
+      levelMinTenths: 21,
+      levelMaxTenths: 41,
+      nudgeTeamId: "arad",
+    });
+  });
+
+  it("stays editable: every pre-filled field can be changed before Post", () => {
+    const edited = {
+      ...rematchChallengeDraft(gooz, arad, ["pitches", "arena"]),
+      sideSize: 7,
+      venueIds: ["arena"],
+      levelMin: "B-" as const,
+      levelMax: "B" as const,
+    };
+    const result = validateChallengeDraft(edited, gooz, "en", now);
+    expect(result.ok && result.input).toMatchObject({
+      sideSize: 7,
+      venueIds: ["arena"],
+      levelMinTenths: 42,
+      levelMaxTenths: 55,
+      nudgeTeamId: "arad",
+    });
+  });
+
+  it("leaves out a Format the Roster cannot field, a Venue no longer offered and a missing Team Level", () => {
+    const draft = rematchChallengeDraft(
+      { ...gooz, rosterCount: 5 },
+      { ...arad, teamLevel: null },
+      ["arena"],
+    );
+    expect(draft).toMatchObject({
+      sideSize: null,
+      venueIds: [],
+      levelMin: "none",
+      levelMax: "none",
+      nudgeTeamId: "arad",
+    });
+    expect(
+      rematchChallengeDraft(
+        seef,
+        { ...arad, lastGame: { sideSize: null, venueId: "central" } },
+        ["central"],
+      ),
+    ).toMatchObject({ sideSize: null, venueIds: ["central"] });
+  });
+});
+
+describe("challengeLevelWantedAround", () => {
+  it("stops at the lowest and highest bands", () => {
+    expect(challengeLevelWantedAround(3)).toEqual({
+      levelMin: "D",
+      levelMax: "D+",
+    });
+    expect(challengeLevelWantedAround(70)).toEqual({
+      levelMin: "B+",
+      levelMax: "A",
+    });
+  });
+});
+
+describe("challengeNudgeView", () => {
+  it("lists the Teams played and names the one picked", () => {
+    const view = challengeNudgeView([arad], "arad", "en");
+    expect(view).toEqual({
+      title: "Also send it straight to a team you've played?",
+      hint: "Who acts for that team hears now. It still sits on the open board for everyone.",
+      teamsLabel: "Teams you've played",
+      on: true,
+      selected: "arad",
+      options: [{ value: "arad", label: "Arad Athletic" }],
+      line: "Sent straight to Arad Athletic too",
+    });
+    expect(challengeNudgeView([arad], null, "en")).toMatchObject({
+      on: false,
+      line: null,
+    });
+    expect(challengeNudgeView([arad], "arad", "ar")?.title).toBe(
+      "هل ترسله أيضًا مباشرة إلى فريق لعبتم ضده؟",
+    );
+  });
+
+  it("has nothing to offer a Team that has played nobody", () => {
+    expect(challengeNudgeView([], null, "en")).toBeNull();
   });
 });

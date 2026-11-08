@@ -9,8 +9,13 @@ import {
 } from "./format-game-start";
 import { sideSizeLabel } from "./game-shape";
 import {
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
+  displayLabelFromStoredBand,
+} from "./level-bands";
+import {
   LEVEL_BAND_SELECT_NONE,
   parseLevelBandSelectTenths,
+  tenthsToLevelBand,
   type LevelBandSelectValue,
 } from "./level-range";
 import {
@@ -232,6 +237,8 @@ export type ChallengeDraft = {
   levelMin: LevelBandSelectValue;
   levelMax: LevelBandSelectValue;
   note: string;
+  /** A Rematch: the Team played that it is also sent straight to. */
+  nudgeTeamId: string | null;
 };
 
 export type ChallengeDraftTeam = {
@@ -254,8 +261,99 @@ export function emptyChallengeDraft(
     levelMin: LEVEL_BAND_SELECT_NONE,
     levelMax: LEVEL_BAND_SELECT_NONE,
     note: "",
+    nudgeTeamId: null,
   };
 }
+
+/** A Team the posting Team has played, as `challenges.listPostOptions` lists it. */
+export type ChallengePlayedTeam = {
+  id: string;
+  displayName: string | null;
+  teamLevel: { tenths: number } | null;
+  lastGame: { sideSize: number | null; venueId: string | null };
+};
+
+/** Level wanted one display band either side of a Team Level; any level without one. */
+export function challengeLevelWantedAround(tenths: number | null): {
+  levelMin: LevelBandSelectValue;
+  levelMax: LevelBandSelectValue;
+} {
+  if (tenths == null) {
+    return {
+      levelMin: LEVEL_BAND_SELECT_NONE,
+      levelMax: LEVEL_BAND_SELECT_NONE,
+    };
+  }
+  const bands = ASSIGNABLE_DISPLAY_LEVEL_BANDS;
+  const index = bands.indexOf(
+    displayLabelFromStoredBand(tenthsToLevelBand(tenths)),
+  );
+  return {
+    levelMin: bands[Math.max(0, index - 1)] ?? LEVEL_BAND_SELECT_NONE,
+    levelMax:
+      bands[Math.min(bands.length - 1, index + 1)] ?? LEVEL_BAND_SELECT_NONE,
+  };
+}
+
+/**
+ * Rematch pre-fills the post form from the Team played: the last Game's
+ * Format while the Roster can still field it, its Venue while that still
+ * offers the sport, a Level wanted around the opponent's Team Level, and the
+ * nudge. Every field stays editable before Post.
+ */
+export function rematchChallengeDraft(
+  team: ChallengeDraftTeam,
+  opponent: ChallengePlayedTeam,
+  sportVenueIds: readonly string[],
+): ChallengeDraft {
+  const side = opponent.lastGame.sideSize;
+  const venueId = opponent.lastGame.venueId;
+  return {
+    ...emptyChallengeDraft(team.id),
+    sideSize:
+      team.sport === "football" &&
+      side != null &&
+      FOOTBALL_CHALLENGE_SIDE_SIZES.some((each) => each === side) &&
+      teamCanPostFormat(team.rosterCount, side)
+        ? side
+        : null,
+    venueIds: venueId && sportVenueIds.includes(venueId) ? [venueId] : [],
+    ...challengeLevelWantedAround(opponent.teamLevel?.tenths ?? null),
+    nudgeTeamId: opponent.id,
+  };
+}
+
+/**
+ * The review screen's "Also send it straight to a team you've played?": the
+ * Teams played, newest first, and a line naming the one picked. Null when the
+ * Team has played nobody.
+ */
+export function challengeNudgeView(
+  playedTeams: readonly Pick<ChallengePlayedTeam, "id" | "displayName">[],
+  nudgeTeamId: string | null,
+  locale: Locale,
+) {
+  if (playedTeams.length === 0) {
+    return null;
+  }
+  const m = messagesFor(locale);
+  const name = (team: Pick<ChallengePlayedTeam, "displayName">) =>
+    team.displayName ?? m.team.fallbackName;
+  const picked = playedTeams.find((team) => team.id === nudgeTeamId) ?? null;
+  return {
+    title: m.challenge.review.nudge,
+    hint: m.challenge.review.nudgeHint,
+    teamsLabel: m.challenge.review.nudgeTeams,
+    on: picked != null,
+    selected: picked?.id ?? null,
+    options: playedTeams.map((team) => ({ value: team.id, label: name(team) })),
+    line: picked ? m.challenge.review.nudgeLine(name(picked)) : null,
+  };
+}
+
+export type ChallengeNudgeView = NonNullable<
+  ReturnType<typeof challengeNudgeView>
+>;
 
 export type ChallengePostInput = {
   teamId: string;
@@ -267,6 +365,7 @@ export type ChallengePostInput = {
   timings: ChallengeTiming[];
   exactSlots: Date[];
   note: string | null;
+  nudgeTeamId: string | null;
 };
 
 export type ChallengeDraftField =
@@ -337,6 +436,7 @@ export function validateChallengeDraft(
       timings: draft.timings,
       exactSlots: draft.exactSlots,
       note: note.length > 0 ? note : null,
+      nudgeTeamId: draft.nudgeTeamId,
     },
   };
 }

@@ -104,12 +104,13 @@ describe("notificationHref", () => {
     );
   });
 
-  it("opens the Challenge a Proposal was received, declined, expired or passed over on, and the Game a confirm or squad reminder is about", () => {
+  it("opens the Challenge a Proposal was received, declined, expired or passed over on, or a Rematch nudged, and the Game a confirm or squad reminder is about", () => {
     for (const type of [
       "challenge_proposal_received",
       "challenge_proposal_declined",
       "challenge_proposal_expired",
       "challenge_proposal_passed_over",
+      "challenge_rematch_nudge",
     ]) {
       assert.equal(
         notificationHref({ type, group: null, challenge: { id: "c1" } }),

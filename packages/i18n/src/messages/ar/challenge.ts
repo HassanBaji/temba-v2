@@ -125,6 +125,8 @@ export const challenge = {
     proposalsLine: (proposals: string, days: string) => `${proposals}، ${days}`,
     opponentSeats: "مطلوب منافس",
     open: (team: string) => `افتح تحدي ${isolate(team)}`,
+    nudged: (team: string) =>
+      `مباراة إعادة، أُرسلت مباشرة إلى ${isolate(team)}. وهي على اللوحة المفتوحة أيضًا.`,
   },
   ineligible: {
     noTeam: {
@@ -210,6 +212,11 @@ export const challenge = {
     },
     openFor: (days: number) => `مفتوح لمدة ${days} أيام`,
     proposals: "العروض: تؤكد واحدًا، ويُبلَّغ الباقون",
+    nudge: "هل ترسله أيضًا مباشرة إلى فريق لعبتم ضده؟",
+    nudgeHint:
+      "يُبلَّغ الآن من يتصرف باسم ذلك الفريق. ويبقى التحدي على اللوحة المفتوحة للجميع.",
+    nudgeTeams: "فرق لعبتم ضدها",
+    nudgeLine: (team: string) => `أُرسل مباشرة إلى ${isolate(team)} أيضًا`,
   },
   errors: {
     pickTeam: "اختر فريقًا",
@@ -235,6 +242,9 @@ export const challenge = {
     slotPast: "يجب أن تكون المواعيد المحددة في المستقبل",
     alreadyOpen: "لهذا الفريق تحدٍّ مفتوح. اسحبه لتنشر غيره.",
     notActing: "هذا متاح فقط لمن يتصرف باسم الفريق",
+    nudgeOwn: "أرسله إلى فريق آخر، لا إلى فريقك",
+    nudgeSport: "أرسله إلى فريق من الرياضة نفسها",
+    nudgeNotPlayed: "يمكنك إرساله مباشرة فقط إلى فريق لعبتم ضده",
     notOpen: "هذا التحدي لم يعد مفتوحًا",
     pickVenue: "اختر ملعبًا",
     pickSlot: "اختر وقتًا",

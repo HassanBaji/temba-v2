@@ -18,6 +18,7 @@ import {
   loadViewerTeams,
   viewerEligibility,
 } from "#src/challenges/challenge-eligibility";
+import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { loadTeamLevels } from "#src/teams/team-level";
 import { loadTeamMatches, teamRecordFromMatches } from "#src/teams/team-record";
@@ -30,8 +31,9 @@ export type ChallengeState = "open" | "confirmed" | "expired" | "withdrawn";
 
 /**
  * Everything a card and the detail's open state read: the poster Team, its
- * Team Level and record, preferred Venues, pending Proposals, and the viewer's
- * eligible Teams. Read-time expiry is applied here.
+ * Team Level and record, preferred Venues, pending Proposals, the viewer's
+ * eligible Teams, and the Team a Rematch was sent straight to. Read-time
+ * expiry is applied here.
  */
 export async function loadChallengeCards(
   database: typeof db,
@@ -71,10 +73,14 @@ export async function loadChallengeCards(
       }),
     ]);
 
-  const [levels, matches, viewerTeams] = await Promise.all([
+  const [levels, matches, viewerTeams, nudgedNames] = await Promise.all([
     loadTeamLevels(database, teamRows, args.now),
     loadTeamMatches(database, teamIds),
     loadViewerTeams(database, args.userId, args.now),
+    loadTeamDisplayNames(
+      database,
+      rows.flatMap((row) => (row.nudgeTeamId ? [row.nudgeTeamId] : [])),
+    ),
   ]);
 
   return rows.map((row) => {
@@ -93,6 +99,17 @@ export async function loadChallengeCards(
       row,
       roster.map((member) => member.userId),
       viewerTeams,
+    );
+    const nudgedName = row.nudgeTeamId
+      ? nudgedNames.get(row.nudgeTeamId)
+      : null;
+    const viewerTeamIsNudged = viewerTeams.some(
+      (candidate) => candidate.id === row.nudgeTeamId,
+    );
+    // The nudged Team leads, so Accept proposes with it.
+    const eligibleTeams = [...viewer.eligibleTeams].sort(
+      (a, b) =>
+        Number(b.id === row.nudgeTeamId) - Number(a.id === row.nudgeTeamId),
     );
     return {
       id: row.id,
@@ -128,8 +145,13 @@ export async function loadChallengeCards(
         record: teamRecordFromMatches(matches.get(row.teamId) ?? []),
       },
       postedBy: { id: row.postedBy, name: poster?.name ?? null },
+      nudgedTeam:
+        row.nudgeTeamId && nudgedName
+          ? { id: row.nudgeTeamId, displayName: nudgedName }
+          : null,
+      viewerTeamIsNudged,
       viewer: open
-        ? viewer
+        ? { ...viewer, eligibleTeams }
         : { ...viewer, eligibleTeams: [], ineligibleReason: null },
     };
   });

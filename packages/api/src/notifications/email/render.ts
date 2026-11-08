@@ -90,7 +90,8 @@ export function notificationEmailDestination(
     (item.type === "challenge_proposal_received" ||
       item.type === "challenge_proposal_declined" ||
       item.type === "challenge_proposal_expired" ||
-      item.type === "challenge_proposal_passed_over") &&
+      item.type === "challenge_proposal_passed_over" ||
+      item.type === "challenge_rematch_nudge") &&
     item.challenge
   ) {
     return {

@@ -7,6 +7,7 @@ import {
   challengeVenues,
   challenges,
   teamMembers,
+  teams,
   WEEKDAY_VALUES,
 } from "@repo/db";
 import { challengeExpiresAt } from "@repo/domain/challenge-clock";
@@ -30,8 +31,10 @@ import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { enqueueAt } from "#src/jobs/enqueue";
 import { challengeExpireJob } from "#src/jobs/specs";
+import { notifyRematchNudge } from "#src/notifications/notify-challenge";
 import { userActsForTeam } from "#src/teams/acts-for-team";
 import { requireTeam } from "#src/teams/helpers/require-team";
+import { loadTeamMatches } from "#src/teams/team-record";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -54,6 +57,7 @@ export const postChallengeInput = z.object({
   timings: z.array(z.enum(CHALLENGE_TIMING_VALUES)).default([]),
   exactSlots: z.array(z.date()).max(CHALLENGE_MAX_SLOTS).default([]),
   note: z.string().max(1000).nullable().optional(),
+  nudgeTeamId: z.string().uuid().nullable().optional(),
 });
 
 export type PostChallengeInput = z.input<typeof postChallengeInput>;
@@ -63,10 +67,44 @@ function refuse(message: string): never {
 }
 
 /**
+ * A Rematch target: another Team of the same sport that the posting Team has
+ * completed at least one Match against.
+ */
+async function requireNudgeTeam(
+  database: DbClient,
+  posterTeam: Pick<typeof teams.$inferSelect, "id" | "sport">,
+  nudgeTeamId: string,
+  m: ReturnType<typeof messagesFor>,
+) {
+  if (nudgeTeamId === posterTeam.id) {
+    refuse(m.challenge.errors.nudgeOwn);
+  }
+  const nudgeTeam = await database.query.teams.findFirst({
+    where: eq(teams.id, nudgeTeamId),
+    columns: { id: true, sport: true, createdBy: true, groupId: true },
+  });
+  if (!nudgeTeam) {
+    refuse(m.challenge.errors.nudgeNotPlayed);
+  }
+  if (nudgeTeam.sport !== posterTeam.sport) {
+    refuse(m.challenge.errors.nudgeSport);
+  }
+  const played = (await loadTeamMatches(database, [posterTeam.id])).get(
+    posterTeam.id,
+  );
+  if (!played?.some((match) => match.opponentTeamId === nudgeTeam.id)) {
+    refuse(m.challenge.errors.nudgeNotPlayed);
+  }
+  return nudgeTeam;
+}
+
+/**
  * Post a Challenge for a Team the User acts for: one open at a time, a Format
  * on football that the Roster can field, none on padel and both players, a
  * Level wanted that is not inverted, Venues that offer the sport, and exact
  * slots still ahead. Open for seven days; the expiry job is enqueued now.
+ * A Rematch also sends it straight to a Team the poster has played, whose
+ * acting Users are told; it still sits on the open board.
  */
 export async function postChallenge(
   database: DbClient,
@@ -124,6 +162,9 @@ export async function postChallenge(
   if (input.exactSlots.some((slot) => slot.getTime() <= now.getTime())) {
     refuse(m.challenge.errors.slotPast);
   }
+  const nudgeTeam = input.nudgeTeamId
+    ? await requireNudgeTeam(database, team, input.nudgeTeamId, m)
+    : null;
 
   const alreadyOpen = await database.query.challenges.findFirst({
     where: and(eq(challenges.teamId, team.id), eq(challenges.status, "open")),
@@ -153,6 +194,7 @@ export async function postChallenge(
           durationMinutes: CHALLENGE_DEFAULT_DURATION_MINUTES[team.sport],
           sideSize,
           note: note.length > 0 ? note : null,
+          nudgeTeamId: nudgeTeam?.id ?? null,
           expiresAt,
           createdAt: now,
           updatedAt: now,
@@ -171,6 +213,14 @@ export async function postChallenge(
         );
       }
       await enqueueAt(tx, challengeExpireJob(created.id), expiresAt);
+      if (nudgeTeam) {
+        await notifyRematchNudge(tx, {
+          challengeId: created.id,
+          nudgedTeam: nudgeTeam,
+          posterTeamId: team.id,
+          postedBy: args.userId,
+        });
+      }
       return { id: created.id };
     });
   } catch (error) {

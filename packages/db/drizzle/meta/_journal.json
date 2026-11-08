@@ -645,6 +645,13 @@
       "when": 1794162093602,
       "tag": "0091_challenge_squad_named",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1794164550348,
+      "tag": "0092_challenge_rematch_nudge",
+      "breakpoints": true
     }
   ]
 }

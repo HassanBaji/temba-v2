@@ -21,7 +21,10 @@ export type TeamMatch = {
   matchId: string;
   gameId: string;
   playedAt: Date;
+  venueId: string | null;
   venueName: string | null;
+  /** The Game's Side size on football; null on padel. */
+  sideSize: number | null;
   /** The Team on the other slot, when that Game team is bound to one. */
   opponentTeamId: string | null;
   opponentSideName: string | null;
@@ -208,7 +211,12 @@ export async function loadTeamMatches(
     },
     with: {
       game: {
-        columns: { cancelledAt: true, windowStart: true },
+        columns: {
+          cancelledAt: true,
+          windowStart: true,
+          venueId: true,
+          sideSize: true,
+        },
         with: { venue: { columns: { name: true } } },
       },
       sets: {
@@ -244,7 +252,9 @@ export async function loadTeamMatches(
         matchId: match.id,
         gameId: match.gameId,
         playedAt: match.startTime ?? match.game.windowStart ?? match.createdAt,
+        venueId: match.game.venueId ?? null,
         venueName: match.game.venue?.name ?? null,
+        sideSize: match.game.sideSize ?? null,
         opponentTeamId: opponent?.teamId ?? null,
         opponentSideName: opponent?.name ?? null,
         sets: sets.map((set) =>

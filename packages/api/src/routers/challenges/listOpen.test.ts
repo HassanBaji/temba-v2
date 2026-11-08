@@ -4,6 +4,7 @@ import {
   makeTeam,
   makeUsers,
   makeVenue,
+  playTeams,
   rate,
   withDb,
   type Fixture,
@@ -237,6 +238,120 @@ describe("challenges.listOpen filters", () => {
       expect(await ids({ sport: "football", weekday: "sat" })).toEqual([
         saturdayChallenge.id,
       ]);
+    });
+  });
+});
+
+describe("challenges.listOpen and byId on a Rematch", () => {
+  it("names the nudged Team, tells its acting Users so with Accept for it, and keeps the Challenge open to everyone eligible", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar, rafi, saad, rafiPartner, hana, lulu] = await makeUsers(
+        database,
+        "Player",
+        7,
+      );
+      const rafiTwo = await makeTeam(database, {
+        name: "Rafi Two",
+        sport: "padel",
+        userIds: [rafi!, rafiPartner!],
+      });
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const riffa = await makeTeam(database, {
+        name: "Riffa Rackets",
+        sport: "padel",
+        userIds: [rafi!, saad!],
+      });
+      const juffair = await makeTeam(database, {
+        name: "Juffair Jets",
+        sport: "padel",
+        userIds: [hana!, lulu!],
+      });
+      const venue = await makeVenue(database, {
+        name: "Padel Central",
+        city: "Manama",
+        sport: "padel",
+      });
+      await playTeams(database, {
+        teamIds: [seef.id, riffa.id],
+        createdBy: ali!,
+        venueId: venue.id,
+        sport: "padel",
+        playedAt: new Date("2026-11-01T18:00:00Z"),
+      });
+      const { id } = await postChallenge(db, {
+        teamId: seef.id,
+        venueIds: [venue.id],
+        nudgeTeamId: riffa.id,
+        userId: ali!,
+        now,
+      });
+      const nudgedTeam = { id: riffa.id, displayName: "Riffa Rackets" };
+
+      const forRafi = (await listOpen(db, { userId: rafi!, now })).challenges;
+      expect(forRafi).toHaveLength(1);
+      expect(forRafi[0]).toMatchObject({
+        id,
+        nudgedTeam,
+        viewerTeamIsNudged: true,
+      });
+      expect(forRafi[0]!.viewer.eligibleTeams.map((team) => team.id)).toEqual([
+        riffa.id,
+        rafiTwo.id,
+      ]);
+
+      for (const userId of [hana!, ali!]) {
+        const [card] = (await listOpen(db, { userId, now })).challenges;
+        expect(card).toMatchObject({
+          id,
+          nudgedTeam,
+          viewerTeamIsNudged: false,
+        });
+      }
+      const [forHana] = (await listOpen(db, { userId: hana!, now })).challenges;
+      expect(forHana!.viewer.eligibleTeams).toEqual([
+        { id: juffair.id, displayName: "Juffair Jets" },
+      ]);
+
+      const detail = await challengeById(db, {
+        challengeId: id,
+        userId: saad!,
+        now,
+      });
+      expect(detail).toMatchObject({
+        state: "open",
+        nudgedTeam,
+        viewerTeamIsNudged: true,
+        viewerEligibleTeams: [{ id: riffa.id, displayName: "Riffa Rackets" }],
+      });
+      expect(
+        await challengeById(db, { challengeId: id, userId: hana!, now }),
+      ).toMatchObject({ nudgedTeam, viewerTeamIsNudged: false });
+    });
+  });
+
+  it("reads no nudge on an ordinary Challenge", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar, hana] = await makeUsers(database, "Player", 3);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const { id } = await postChallenge(db, {
+        teamId: seef.id,
+        userId: ali!,
+        now,
+      });
+      const [card] = (await listOpen(db, { userId: hana!, now })).challenges;
+      expect(card).toMatchObject({
+        id,
+        nudgedTeam: null,
+        viewerTeamIsNudged: false,
+      });
     });
   });
 });

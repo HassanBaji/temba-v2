@@ -12,6 +12,7 @@ import {
   challengeWeekdayOptions,
   type ChallengeDraft,
   type ChallengeDraftField,
+  type ChallengeNudgeView,
   type ChallengeTiming,
   type ChallengeWeekday,
 } from "@repo/domain/challenge-form";
@@ -23,7 +24,7 @@ import {
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { X } from "lucide-react-native";
-import { Pressable, View } from "react-native";
+import { Pressable, Switch, View } from "react-native";
 
 import { ChipGrid, FieldError } from "../create-game/chips";
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -327,10 +328,53 @@ export function PostChallengeForm(props: PostChallengeFormProps) {
   );
 }
 
+/** "Also send it straight to a team you've played?", then which one. */
+function NudgeToggle({
+  nudge,
+  onNudge,
+}: {
+  nudge: ChallengeNudgeView;
+  onNudge: (teamId: string | null) => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text weight="semibold">{nudge.title}</Text>
+          <Text size="meta" tone="muted">
+            {nudge.hint}
+          </Text>
+        </View>
+        <Switch
+          accessibilityLabel={nudge.title}
+          value={nudge.on}
+          onValueChange={(on) =>
+            onNudge(on ? (nudge.options[0]?.value ?? null) : null)
+          }
+          trackColor={{ false: colors.rule, true: colors.ink }}
+          thumbColor={nudge.on ? colors.paper : colors.onControl}
+          ios_backgroundColor={colors.rule}
+        />
+      </View>
+      {nudge.on ? (
+        <ChipGrid
+          label={nudge.teamsLabel}
+          chips={nudge.options}
+          isSelected={(id) => id === nudge.selected}
+          onSelect={onNudge}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 /** 3b: the card as it will appear, then what posting means. */
 export function PostChallengeReview({
   card,
   lines,
+  nudge,
+  onNudge,
   formError,
   pending,
   onBack,
@@ -338,6 +382,8 @@ export function PostChallengeReview({
 }: {
   card: ChallengeCardView;
   lines: { key: string; text: string }[];
+  nudge: ChallengeNudgeView | null;
+  onNudge: (teamId: string | null) => void;
   formError: string | null;
   pending: boolean;
   onBack: () => void;
@@ -380,7 +426,9 @@ export function PostChallengeReview({
         {lines.map((line) => (
           <Text key={line.key}>{line.text}</Text>
         ))}
+        {nudge?.line ? <Text>{nudge.line}</Text> : null}
       </View>
+      {nudge ? <NudgeToggle nudge={nudge} onNudge={onNudge} /> : null}
       {formError ? (
         <Text size="meta" weight="medium" accessibilityRole="alert">
           {formError}

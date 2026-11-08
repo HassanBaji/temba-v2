@@ -431,10 +431,17 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     closestLine,
     rivalsEmptyCopy:
       rivals.length === 0 && closestLine == null ? m.team.rivals.empty : null,
-    /** Disabled until Rematch ships with Challenges. */
     rematch:
       data.viewerActsForTeam && rivals.length > 0
-        ? { label: m.team.rivals.rematch, disabled: true }
+        ? {
+            label: m.team.rivals.rematch,
+            accessibilityLabels: Object.fromEntries(
+              rivals.map((rival) => [
+                rival.teamId,
+                m.team.rivals.rematchA11y(rival.name),
+              ]),
+            ),
+          }
         : null,
     games: data.games.map((game) => gameRow(game, locale)),
     gamesEmptyCopy: data.games.length === 0 ? m.team.games.empty : null,

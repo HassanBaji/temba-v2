@@ -213,6 +213,7 @@ describe("renderNotificationEmail", () => {
       "challenge_proposal_declined",
       "challenge_proposal_expired",
       "challenge_proposal_passed_over",
+      "challenge_rematch_nudge",
     ] as const) {
       expect(
         notificationEmailDestination({

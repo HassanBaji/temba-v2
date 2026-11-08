@@ -200,6 +200,9 @@ export default function ChallengePage({
             formatGameDay(data.createdAt, locale, { weekday: "short" }),
           )}
         </p>
+        {data.state === "open" && card.nudgeLine ? (
+          <p className="text-body font-medium">{card.nudgeLine}</p>
+        ) : null}
         {data.state === "open" && eligibleLine ? (
           <p className="text-body font-medium">{eligibleLine}</p>
         ) : null}

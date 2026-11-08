@@ -8,7 +8,18 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { ResultTag } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 
-export function TeamRivalsList({ view }: { view: TeamHomeView }) {
+/** Rematch opens the post form for this Team, pre-filled from the Rival. */
+function rematchHref(teamId: string, rivalTeamId: string) {
+  return `/dashboard/challenges/new?${new URLSearchParams({ team: teamId, rematch: rivalTeamId }).toString()}`;
+}
+
+export function TeamRivalsList({
+  view,
+  teamId,
+}: {
+  view: TeamHomeView;
+  teamId: string;
+}) {
   if (view.rivals.length === 0) {
     return (
       <p className="text-body text-muted-foreground">
@@ -42,8 +53,13 @@ export function TeamRivalsList({ view }: { view: TeamHomeView }) {
           stackTrailing
           action={
             view.rematch ? (
-              <Button variant="outline" size="sm" disabled>
-                {view.rematch.label}
+              <Button variant="outline" size="sm" asChild>
+                <Link
+                  href={rematchHref(teamId, rival.teamId)}
+                  aria-label={view.rematch.accessibilityLabels[rival.teamId]}
+                >
+                  {view.rematch.label}
+                </Link>
               </Button>
             ) : undefined
           }

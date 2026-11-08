@@ -219,3 +219,29 @@ export async function notifySquadNamed(
     challengeId: args.challengeId,
   });
 }
+
+/**
+ * A Rematch: the Challenge was sent straight to a Team the poster has played.
+ * Everyone who acts for that Team hears, with the posting Team named, except
+ * the poster.
+ */
+export async function notifyRematchNudge(
+  database: DbOrTx,
+  args: {
+    challengeId: string;
+    nudgedTeam: TeamForActing;
+    posterTeamId: string;
+    postedBy: string;
+  },
+) {
+  const recipients = await actingUserIds(database, args.nudgedTeam);
+  return notify(database, {
+    type: "challenge_rematch_nudge",
+    recipients: recipients.map((userId) => ({ userId, audience: "player" })),
+    excludeUserIds: [args.postedBy],
+    actorUserId: args.postedBy,
+    teamId: args.posterTeamId,
+    challengeId: args.challengeId,
+    dedupeKey: `challenge_rematch_nudge:${args.challengeId}`,
+  });
+}

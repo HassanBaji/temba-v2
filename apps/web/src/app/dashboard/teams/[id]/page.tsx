@@ -298,7 +298,7 @@ export default function TeamHomePage({
         </Section>
 
         <Section title={m.team.rivals.title}>
-          <TeamRivalsList view={view} />
+          <TeamRivalsList view={view} teamId={id} />
         </Section>
 
         <Section title={m.team.roster.title}>

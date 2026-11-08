@@ -5,8 +5,11 @@ import {
   challengePath,
   MINE_PATH,
   NEW_CHALLENGE_PATH,
+  rematchDraft,
+  rematchPath,
   setBoardFilter,
   toggleValue,
+  type PostOptions,
 } from "./challenges-model";
 
 describe("challenge paths", () => {
@@ -14,6 +17,57 @@ describe("challenge paths", () => {
     expect(challengePath("c1")).toBe("/challenges/c1");
     expect(NEW_CHALLENGE_PATH).toBe("/challenges/new");
     expect(MINE_PATH).toBe("/challenges?tab=mine");
+    expect(rematchPath("t1", "t2")).toBe("/challenges/new?team=t1&rematch=t2");
+  });
+});
+
+describe("rematchDraft", () => {
+  const options = {
+    teams: [
+      {
+        id: "gooz",
+        displayName: "Gooz FC",
+        sport: "football",
+        rosterCount: 12,
+        formatsPlayable: [5, 6, 7],
+        members: [],
+        teamLevel: null,
+        record: { gamesPlayed: 1, wins: 1, draws: 0, losses: 0 },
+        playedTeams: [
+          {
+            id: "arad",
+            displayName: "Arad Athletic",
+            teamLevel: { tenths: 28, level: "2.8", band: "C" },
+            lastGame: {
+              playedAt: new Date("2026-11-01T18:00:00Z"),
+              sideSize: 6,
+              venueId: "pitches",
+            },
+          },
+        ],
+      },
+    ],
+    venues: {
+      padel: [],
+      football: [{ id: "pitches", name: "Matchday Pitches", city: "Manama" }],
+    },
+    defaultDurationMinutes: { padel: 90, football: 60 },
+  } satisfies PostOptions;
+
+  it("pre-fills the post form from the Team played", () => {
+    expect(rematchDraft(options, "gooz", "arad")).toMatchObject({
+      teamId: "gooz",
+      sideSize: 6,
+      venueIds: ["pitches"],
+      levelMin: "C-",
+      levelMax: "C+",
+      nudgeTeamId: "arad",
+    });
+  });
+
+  it("opens a blank form for a Team that cannot post or has not played them", () => {
+    expect(rematchDraft(options, "other", "arad")).toBeNull();
+    expect(rematchDraft(options, "gooz", "hidd")).toBeNull();
   });
 });
 

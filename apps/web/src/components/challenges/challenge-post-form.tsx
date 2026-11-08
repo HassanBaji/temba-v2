@@ -20,6 +20,7 @@ import {
 } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
+import { Switch } from "~/components/ui/switch";
 import { challengeCardView } from "@repo/domain/challenge-card";
 import { challengeExpiresAt } from "@repo/domain/challenge-clock";
 import {
@@ -28,6 +29,7 @@ import {
   CHALLENGE_NOTE_MAX,
   challengeFormatOptions,
   challengeNoteCount,
+  challengeNudgeView,
   challengeReviewLines,
   challengeSlotDayOptions,
   challengeSlotInstant,
@@ -35,6 +37,7 @@ import {
   challengeTimingOptions,
   challengeWeekdayOptions,
   emptyChallengeDraft,
+  rematchChallengeDraft,
   validateChallengeDraft,
   type ChallengeDraft,
   type ChallengeDraftField,
@@ -107,8 +110,15 @@ function LevelBound({
   );
 }
 
-/** 3a and 3b: the post form, then the card as it will appear before posting. */
-export function ChallengePostForm() {
+/**
+ * 3a and 3b: the post form, then the card as it will appear before posting.
+ * A Rematch opens it pre-filled from the Team played.
+ */
+export function ChallengePostForm({
+  rematch = null,
+}: {
+  rematch?: { teamId: string; opponentTeamId: string } | null;
+}) {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
@@ -127,6 +137,27 @@ export function ChallengePostForm() {
     () => challengeSlotDayOptions(now, locale)[1]?.value ?? "",
   );
   const [slotMinutes, setSlotMinutes] = React.useState(DEFAULT_SLOT_MINUTES);
+  const [prefilled, setPrefilled] = React.useState(rematch == null);
+  const nudgeTitleId = React.useId();
+  const nudgeHintId = React.useId();
+  if (!prefilled && rematch && options.data) {
+    setPrefilled(true);
+    const team = options.data.teams.find(
+      (candidate) => candidate.id === rematch.teamId,
+    );
+    const opponent = team?.playedTeams.find(
+      (candidate) => candidate.id === rematch.opponentTeamId,
+    );
+    if (team && opponent) {
+      setDraft(
+        rematchChallengeDraft(
+          draftTeam(team),
+          opponent,
+          options.data.venues[team.sport].map((venue) => venue.id),
+        ),
+      );
+    }
+  }
 
   const post = api.challenges.post.useMutation({
     onSuccess: async ({ id }) => {
@@ -187,9 +218,15 @@ export function ChallengePostForm() {
             ? current.sideSize
             : null,
         venueIds: previous?.sport === next?.sport ? current.venueIds : [],
+        nudgeTeamId: teamId === current.teamId ? current.nudgeTeamId : null,
       };
     });
     setErrors({});
+  }
+
+  function setNudge(nudgeTeamId: string | null) {
+    setDraft((current) => ({ ...current, nudgeTeamId }));
+    setReview((current) => (current ? { ...current, nudgeTeamId } : current));
   }
 
   function onReview(event: React.FormEvent<HTMLFormElement>) {
@@ -235,6 +272,11 @@ export function ChallengePostForm() {
       locale,
       now,
     );
+    const nudge = challengeNudgeView(
+      team.playedTeams,
+      review.nudgeTeamId,
+      locale,
+    );
     return (
       <Card variant="outlined" className="w-full space-y-6">
         <h2 className="text-title font-semibold">{m.challenge.review.title}</h2>
@@ -254,7 +296,38 @@ export function ChallengePostForm() {
               </li>
             ),
           )}
+          {nudge?.line ? <li className="text-body">{nudge.line}</li> : null}
         </ul>
+        {nudge ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <p id={nudgeTitleId} className="text-body font-semibold">
+                  {nudge.title}
+                </p>
+                <p id={nudgeHintId} className="text-meta text-muted-foreground">
+                  {nudge.hint}
+                </p>
+              </div>
+              <Switch
+                aria-labelledby={nudgeTitleId}
+                aria-describedby={nudgeHintId}
+                checked={nudge.on}
+                onCheckedChange={(on) =>
+                  setNudge(on ? (nudge.options[0]?.value ?? null) : null)
+                }
+              />
+            </div>
+            {nudge.on ? (
+              <ChallengeChips
+                label={nudge.teamsLabel}
+                chips={nudge.options}
+                isSelected={(id) => id === nudge.selected}
+                onSelect={setNudge}
+              />
+            ) : null}
+          </div>
+        ) : null}
         <FormErrorSummary message={post.error?.message ?? null} />
         <div className="flex items-center gap-3">
           <Button

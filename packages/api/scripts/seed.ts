@@ -921,7 +921,9 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
  * Seven can answer. Two confirmed: Sunday Seven play Gooz FC at 5-a-side in
  * four days, Gooz FC's squad named in full (five and three Reserves) and
  * Sunday Seven's four short of the side, and Smash Brothers beat Rally Kings
- * at padel two days ago.
+ * at padel two days ago. Smash Brothers then sent a Rematch straight to Rally
+ * Kings, who won it yesterday, so the two are Rivals at one each; Rally Kings
+ * have an open Rematch nudging Smash Brothers for the decider.
  */
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
   const padel = await postChallenge(db, {
@@ -1032,6 +1034,53 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
     ],
     ["diego"],
   );
+
+  const rematchPostedAt = at(-2, 22);
+  const sentStraight = await postChallenge(db, {
+    teamId: t.smash.id,
+    venueIds: [v.central.id],
+    nudgeTeamId: t.rally.id,
+    userId: u.me!.id,
+    now: rematchPostedAt,
+  });
+  const rallyProposal = await proposeOnChallenge(db, {
+    challengeId: sentStraight.id,
+    teamId: t.rally.id,
+    venueId: v.central.id,
+    startsAt: at(-1, 19),
+    userId: u.diego!.id,
+    now: rematchPostedAt,
+  });
+  const replayed = await confirmProposal(db, {
+    proposalId: rallyProposal.id,
+    userId: u.omar!.id,
+    now: rematchPostedAt,
+  });
+  const replayedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, replayed.gameId),
+    columns: { id: true },
+  });
+  // Smash Brothers posted, so Rally Kings win this one on side 2.
+  await playFriendly(
+    u,
+    { id: replayed.gameId, matchId: replayedMatch!.id },
+    "diego",
+    [
+      [3, 6],
+      [4, 6],
+    ],
+    ["me"],
+  );
+
+  await postChallenge(db, {
+    teamId: t.rally.id,
+    venueIds: [v.central.id],
+    days: ["fri", "sat"],
+    timings: ["evening"],
+    nudgeTeamId: t.smash.id,
+    note: "One each. Decider?",
+    userId: u.diego!.id,
+  });
 }
 
 // ---------------------------------------------------------------------------

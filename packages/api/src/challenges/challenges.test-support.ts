@@ -2,10 +2,18 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import {
+  GameFormatEnum,
+  GameRegistrationModeEnum,
+  GameSportEnum,
+  MatchStatusEnum,
   challengeProposals,
   challengeVenues,
   challenges,
   courts,
+  gameTeams,
+  games,
+  matchSets,
+  matches,
   ratings,
   teamMembers,
   teams,
@@ -302,4 +310,67 @@ export async function footballMatchup(
     hiddIds,
     aradIds,
   };
+}
+
+/**
+ * A completed Match between two Teams on a team-only Friendly game, the first
+ * Team on side 1 winning one set to nil.
+ */
+export async function playTeams(
+  database: TestDatabase,
+  args: {
+    teamIds: [string, string];
+    createdBy: string;
+    venueId: string;
+    sport: "padel" | "football";
+    playedAt: Date;
+    sideSize?: number;
+  },
+) {
+  const football = args.sport === "football";
+  const sideSize = football ? (args.sideSize ?? 5) : null;
+  const [game] = await database
+    .insert(games)
+    .values({
+      name: "Team game",
+      format: GameFormatEnum.FRIENDLY_GAME,
+      registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
+      sport: football ? GameSportEnum.Football : GameSportEnum.PADEL,
+      sideSize,
+      venueId: args.venueId,
+      createdBy: args.createdBy,
+      isPublic: false,
+      playersAllowed: football ? 2 * (sideSize ?? 5) : 4,
+      teamsAllowed: 2,
+      windowStart: args.playedAt,
+      windowEnd: new Date(args.playedAt.getTime() + 90 * 60 * 1000),
+    })
+    .returning({ id: games.id });
+  const sides = await database
+    .insert(gameTeams)
+    .values(
+      args.teamIds.map((teamId, index) => ({
+        gameId: game!.id,
+        teamId,
+        sideIndex: index + 1,
+      })),
+    )
+    .returning({ id: gameTeams.id });
+  const [match] = await database
+    .insert(matches)
+    .values({
+      gameId: game!.id,
+      startTime: args.playedAt,
+      status: MatchStatusEnum.COMPLETED,
+      slot1GameTeamId: sides[0]!.id,
+      slot2GameTeamId: sides[1]!.id,
+    })
+    .returning({ id: matches.id });
+  await database.insert(matchSets).values({
+    matchId: match!.id,
+    setNumber: 1,
+    slot1GamesWon: football ? 2 : 6,
+    slot2GamesWon: football ? 1 : 3,
+  });
+  return { gameId: game!.id };
 }

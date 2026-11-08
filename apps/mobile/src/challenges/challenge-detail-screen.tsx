@@ -249,6 +249,9 @@ export function ChallengeDetailScreen({
             formatGameDay(data.createdAt, locale, { weekday: "short" }),
           )}
         </Text>
+        {open && card.nudgeLine ? (
+          <Text weight="medium">{card.nudgeLine}</Text>
+        ) : null}
         {open && eligibleLine ? (
           <Text weight="medium">{eligibleLine}</Text>
         ) : null}

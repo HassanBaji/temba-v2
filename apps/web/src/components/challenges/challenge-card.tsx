@@ -69,6 +69,9 @@ export function ChallengeCard({ card }: { card: ChallengeCardView }) {
       )}
     >
       <ChallengeCardBody card={card} />
+      {card.nudgeLine ? (
+        <p className="text-meta font-medium">{card.nudgeLine}</p>
+      ) : null}
       {card.greyedLine ? (
         <p className="text-meta font-medium">{card.greyedLine}</p>
       ) : null}

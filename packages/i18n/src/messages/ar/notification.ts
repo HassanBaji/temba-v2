@@ -218,6 +218,13 @@ export const notification = {
       strong(team),
     ],
     challengeSquadNamedUnnamed: [plain("أنت في تشكيلة تحدٍّ")],
+    challengeRematchNudge: (team: string) => [
+      strong(team),
+      plain(" يتحداكم في مباراة إعادة"),
+    ],
+    challengeRematchNudgeUnnamed: [
+      plain("فريق لعبتم ضده يتحداكم في مباراة إعادة"),
+    ],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",
@@ -235,6 +242,7 @@ export const notification = {
     findAnother: "ابحث عن تحدٍّ آخر في لوحة التحديات المفتوحة.",
     kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
     seeWhoIsNamed: "اطّلع على المباراة ومن سُمّي معك.",
+    acceptRematch: "اقبله لتقترح وقتًا وملعبًا.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

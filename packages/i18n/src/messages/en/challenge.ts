@@ -110,6 +110,8 @@ export const challenge = {
     proposalsLine: (proposals: string, days: string) => `${proposals}, ${days}`,
     opponentSeats: "Opponent wanted",
     open: (team: string) => `Open ${team}'s challenge`,
+    nudged: (team: string) =>
+      `A rematch, sent straight to ${team}. It's on the open board too.`,
   },
   ineligible: {
     noTeam: {
@@ -193,6 +195,11 @@ export const challenge = {
     },
     openFor: (days: number) => `Open for ${days} days`,
     proposals: "Proposals: You confirm one; the rest are told",
+    nudge: "Also send it straight to a team you've played?",
+    nudgeHint:
+      "Who acts for that team hears now. It still sits on the open board for everyone.",
+    nudgeTeams: "Teams you've played",
+    nudgeLine: (team: string) => `Sent straight to ${team} too`,
   },
   errors: {
     pickTeam: "Pick a Team",
@@ -216,6 +223,9 @@ export const challenge = {
     alreadyOpen:
       "This Team already has an open challenge. Withdraw it to post another.",
     notActing: "Only someone who acts for the Team can do that",
+    nudgeOwn: "Send it to another Team, not your own",
+    nudgeSport: "Send it to a Team of the same sport",
+    nudgeNotPlayed: "You can only send it straight to a Team you've played",
     notOpen: "This challenge is no longer open",
     pickVenue: "Pick a venue",
     pickSlot: "Pick a time",

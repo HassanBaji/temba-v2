@@ -194,6 +194,13 @@ export const notification = {
       strong(team),
     ],
     challengeSquadNamedUnnamed: [plain("You're in the squad for a challenge")],
+    challengeRematchNudge: (team: string) => [
+      strong(team),
+      plain(" challenged you to a rematch"),
+    ],
+    challengeRematchNudgeUnnamed: [
+      plain("A Team you've played challenged you to a rematch"),
+    ],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
@@ -212,6 +219,7 @@ export const notification = {
     findAnother: "Find another challenge on the open board.",
     kickOffTomorrow: "Kick-off is in 24 hours.",
     seeWhoIsNamed: "See the Game and who else is named.",
+    acceptRematch: "Accept it to propose a time and a venue.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,
