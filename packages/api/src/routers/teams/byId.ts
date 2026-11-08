@@ -1,7 +1,14 @@
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { GroupSportEnum, groups, ratings, teamMembers, teams } from "@repo/db";
+import {
+  GroupSportEnum,
+  groupMembers,
+  groups,
+  ratings,
+  teamMembers,
+  teams,
+} from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -102,6 +109,25 @@ async function organizedGroups(
   });
 }
 
+/** A Team is tagged only to a Group its Captain is in. */
+async function captainGroupIds(
+  database: DbClient,
+  captainUserId: string,
+  groupIds: string[],
+) {
+  if (groupIds.length === 0) {
+    return new Set<string>();
+  }
+  const rows = await database.query.groupMembers.findMany({
+    where: and(
+      eq(groupMembers.userId, captainUserId),
+      inArray(groupMembers.groupId, groupIds),
+    ),
+    columns: { groupId: true },
+  });
+  return new Set(rows.map((row) => row.groupId));
+}
+
 async function groupTagView(
   database: DbClient,
   team: { groupId: string | null; createdBy: string },
@@ -118,12 +144,18 @@ async function groupTagView(
   const canClear = tagged
     ? isCaptain || (await mayOrganizeGroupGames(database, tagged, userId))
     : false;
-  const options =
+  const organized =
     tagged && !canClear
       ? []
       : (await organizedGroups(database, sport, userId)).filter(
           (group) => group.id !== tagged?.id,
         );
+  const captainIn = await captainGroupIds(
+    database,
+    team.createdBy,
+    organized.map((group) => group.id),
+  );
+  const options = organized.filter((group) => captainIn.has(group.id));
   return {
     groupTag: tagged ? { id: tagged.id, name: tagged.name } : null,
     canClearGroupTag: canClear,

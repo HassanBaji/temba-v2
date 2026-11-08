@@ -184,7 +184,7 @@ The members of a Team: who is on the Team. Padel exactly two; football two to tw
 _Avoid_: squad (that is the Matchday squad), line-up, members (bare, in product copy)
 
 **Group tag**:
-An optional reference from a Team to one Group of the same sport (`teams.group_id`). The Group does not own the Team: the record and Rivals belong to the Team. The tag shows on the Team's detail ("Gooz of Arad's team"), lists the Team on the Group page, and lets the Group's Organizers act for a football Team on its Challenge doors, not its Roster doors. Set at create or later by the Captain or an Organizer of the target Group; cleared by the Captain or an Organizer of the tagged Group, and when the Group is deleted.
+An optional reference from a Team to one Group of the same sport (`teams.group_id`). The Group does not own the Team: the record and Rivals belong to the Team. The tag shows on the Team's detail ("Gooz of Arad's team"), lists the Team on the Group page, and lets the Group's Organizers act for a football Team on its Challenge doors, not its Roster doors. Set at create or later by the Captain or an Organizer of the target Group, and only to a Group the Captain is a member of; cleared by the Captain or an Organizer of the tagged Group, and when the Group is deleted.
 _Avoid_: Group team, Club Team (retired), owned by, parent
 
 **Challenge format**:

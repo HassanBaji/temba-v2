@@ -8,7 +8,10 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { mayOrganizeGroupGames } from "#src/games/access";
-import { requireTagGroup } from "#src/teams/helpers/require-tag-group";
+import {
+  requireCaptainInTagGroup,
+  requireTagGroup,
+} from "#src/teams/helpers/require-tag-group";
 import { requireTeam } from "#src/teams/helpers/require-team";
 
 type DbClient = typeof db;
@@ -27,8 +30,9 @@ async function currentTagGroup(database: DbClient, groupId: string | null) {
 
 /**
  * Tag a Team as a Group's team, or clear the tag. The Captain or an Organizer
- * of the target Group may set it; the Captain or an Organizer of the tagged
- * Group may clear it. Moving the tag to another Group needs both rights.
+ * of the target Group may set it, and only to a Group the Captain is in; the
+ * Captain or an Organizer of the tagged Group may clear it. Moving the tag to
+ * another Group needs both rights.
  */
 export async function setGroupTag(
   database: DbClient,
@@ -63,6 +67,7 @@ export async function setGroupTag(
           "Only the Captain or an Organizer of that Group can tag this Team",
       });
     }
+    await requireCaptainInTagGroup(database, target.id, team.createdBy);
   }
 
   const [updated] = await database

@@ -3,6 +3,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  GroupSportEnum,
+  groupMembers,
+  groups,
   notifications,
   teamMemberInvites,
   teamMembers,
@@ -140,6 +143,52 @@ describe("teams.create with a Roster", () => {
       );
       expect(error.code).toBe("BAD_REQUEST");
       expect(await database.select().from(teams)).toHaveLength(0);
+      expect(await database.select().from(teamMemberInvites)).toHaveLength(0);
+      expect(await inviteNotices(database)).toHaveLength(0);
+      expect(
+        await database.query.user.findMany({
+          where: eq(user.phoneNumber, "+97336124401"),
+        }),
+      ).toHaveLength(0);
+    });
+  });
+
+  it("refuses a Group tag the creator is not in and writes nothing", async () => {
+    await withDb(async (database, db) => {
+      const [captain, owner, invitee] = (await makeUsers(database, 3)) as [
+        string,
+        string,
+        string,
+      ];
+      const [group] = await database
+        .insert(groups)
+        .values({
+          name: "Gooz of Arad",
+          createdBy: owner,
+          sport: GroupSportEnum.FOOTBALL,
+        })
+        .returning({ id: groups.id });
+      await database
+        .insert(groupMembers)
+        .values({ groupId: group!.id, userId: owner });
+
+      const error = await rejection(
+        createTeam(db, {
+          name: "Gooz FC",
+          sport: "football",
+          userId: captain,
+          userName: "Captain",
+          groupId: group!.id,
+          inviteUserIds: [invitee],
+          phonePlayers: [{ ...bahrain("3612 4401"), name: "Hamad" }],
+        }),
+      );
+      expect(error.code).toBe("BAD_REQUEST");
+      expect(error.message).toBe(
+        "A Team can only be tagged to a Group its Captain is in",
+      );
+      expect(await database.select().from(teams)).toHaveLength(0);
+      expect(await database.select().from(teamMembers)).toHaveLength(0);
       expect(await database.select().from(teamMemberInvites)).toHaveLength(0);
       expect(await inviteNotices(database)).toHaveLength(0);
       expect(

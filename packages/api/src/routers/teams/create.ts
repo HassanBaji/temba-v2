@@ -11,7 +11,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { mintLookup } from "#src/invites/doors";
 import { notifyTeamInvite } from "#src/notifications/notify-team-invite";
-import { requireTagGroup } from "#src/teams/helpers/require-tag-group";
+import {
+  requireCaptainInTagGroup,
+  requireTagGroup,
+} from "#src/teams/helpers/require-tag-group";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { unorderedPairIsReserved } from "#src/teams/helpers/unordered-pair-is-reserved";
 import {
@@ -107,10 +110,14 @@ export async function createTeam(
     );
   }
 
-  // The creator is the Captain, who may tag the new Team to a Group of its sport.
+  // The creator is the Captain, who may tag the new Team to a Group of its sport
+  // that they are in.
   const tagGroup = args.groupId
     ? await requireTagGroup(database, args.groupId, args.sport)
     : null;
+  if (tagGroup) {
+    await requireCaptainInTagGroup(database, tagGroup.id, args.userId);
+  }
   const phonePlayers = phoneInputs.map((input) =>
     parseTeamPhonePlayer({ sport: args.sport }, input),
   );

@@ -50,6 +50,7 @@ async function makeGroup(
     createdBy: string;
     sport: GroupSportEnum;
     organizers?: string[];
+    members?: string[];
   },
 ) {
   const [group] = await database
@@ -63,6 +64,7 @@ async function makeGroup(
       userId,
       role: GroupMemberRoleEnum.ORGANIZER,
     })),
+    ...(args.members ?? []).map((userId) => ({ groupId: group!.id, userId })),
   ]);
   return group!.id;
 }
@@ -157,6 +159,7 @@ describe("teams.setGroupTag", () => {
         createdBy: owner,
         sport: GroupSportEnum.FOOTBALL,
         organizers: [appointed],
+        members: [captain],
       });
       const teamId = await makeTeam(db, { captain, sport: "football" });
 
@@ -192,6 +195,7 @@ describe("teams.setGroupTag", () => {
         name: "Gooz of Arad",
         createdBy: owner,
         sport: GroupSportEnum.FOOTBALL,
+        members: [captain],
       });
       const teamId = await makeTeam(db, { captain, sport: "football" });
       await database.insert(teamMembers).values({ teamId, userId: member });
@@ -204,6 +208,71 @@ describe("teams.setGroupTag", () => {
       await expect(
         setGroupTag(db, { teamId, groupId: null, userId: member }),
       ).rejects.toThrow("Only the Captain or an Organizer of the tagged Group");
+    });
+  });
+
+  it("refuses an Organizer whose Group the Captain is not in, until the Captain joins", async () => {
+    await withDb(async (database, db) => {
+      const [captain, stranger] = (await makeUsers(database, 2)) as [
+        string,
+        string,
+      ];
+      const groupId = await makeGroup(database, {
+        name: "Stranger FC",
+        createdBy: stranger,
+        sport: GroupSportEnum.FOOTBALL,
+      });
+      const teamId = await makeTeam(db, { captain, sport: "football" });
+
+      expect(
+        (await teamById(db, { teamId, userId: stranger })).groupTagOptions,
+      ).toEqual([]);
+      await expect(
+        setGroupTag(db, { teamId, groupId, userId: stranger }),
+      ).rejects.toThrow(
+        "A Team can only be tagged to a Group its Captain is in",
+      );
+      const untouched = await database.query.teams.findFirst({
+        where: eq(teams.id, teamId),
+      });
+      expect(untouched?.groupId).toBe(null);
+
+      await database.insert(groupMembers).values({ groupId, userId: captain });
+
+      expect(
+        (await teamById(db, { teamId, userId: stranger })).groupTagOptions,
+      ).toEqual([{ id: groupId, name: "Stranger FC" }]);
+      const result = await setGroupTag(db, {
+        teamId,
+        groupId,
+        userId: stranger,
+      });
+      expect(result.groupTag).toEqual({ id: groupId, name: "Stranger FC" });
+    });
+  });
+
+  it("refuses a Captain tagging their Team to a Group they are not in", async () => {
+    await withDb(async (database, db) => {
+      const [captain, owner] = (await makeUsers(database, 2)) as [
+        string,
+        string,
+      ];
+      const groupId = await makeGroup(database, {
+        name: "Gooz of Arad",
+        createdBy: owner,
+        sport: GroupSportEnum.FOOTBALL,
+      });
+      const teamId = await makeTeam(db, { captain, sport: "football" });
+
+      await expect(
+        setGroupTag(db, { teamId, groupId, userId: captain }),
+      ).rejects.toThrow(
+        "A Team can only be tagged to a Group its Captain is in",
+      );
+      const row = await database.query.teams.findFirst({
+        where: eq(teams.id, teamId),
+      });
+      expect(row?.groupId).toBe(null);
     });
   });
 
@@ -240,11 +309,13 @@ describe("teams.setGroupTag", () => {
         name: "Gooz of Arad",
         createdBy: owner,
         sport: GroupSportEnum.FOOTBALL,
+        members: [captain],
       });
       const otherGroupId = await makeGroup(database, {
         name: "Hidd United",
         createdBy: otherOwner,
         sport: GroupSportEnum.FOOTBALL,
+        members: [captain],
       });
       const teamId = await makeTeam(db, {
         captain,
@@ -277,6 +348,7 @@ describe("teams.setGroupTag", () => {
         name: "Gooz of Arad",
         createdBy: owner,
         sport: GroupSportEnum.FOOTBALL,
+        members: [captain],
       });
       const teamId = await makeTeam(db, {
         captain,
@@ -322,11 +394,13 @@ describe("groups.byId teams", () => {
         name: "Gooz of Arad",
         createdBy: owner,
         sport: GroupSportEnum.FOOTBALL,
+        members: [captain],
       });
       const otherGroupId = await makeGroup(database, {
         name: "Hidd United",
         createdBy: otherOwner,
         sport: GroupSportEnum.FOOTBALL,
+        members: [captain],
       });
       const tagged = await makeTeam(db, {
         captain,
