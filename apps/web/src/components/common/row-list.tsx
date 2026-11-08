@@ -28,6 +28,7 @@ const actionSlot = "shrink-0 pe-4";
 
 export function ListRow({
   leading,
+  eyebrow,
   title,
   subtitle,
   meta,
@@ -44,6 +45,8 @@ export function ListRow({
   ...props
 }: {
   leading?: React.ReactNode;
+  /** Short muted line above the title, such as a Group's sport. */
+  eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   meta?: React.ReactNode;
@@ -82,6 +85,11 @@ export function ListRow({
       <div className="flex min-w-0 flex-1 items-center gap-4">
         {icon ? <div className="shrink-0">{icon}</div> : null}
         <div className="min-w-0 flex-1">
+          {eyebrow ? (
+            <p className="text-meta text-muted-foreground truncate">
+              {eyebrow}
+            </p>
+          ) : null}
           <p
             // A plain-text title is one name or line of copy: it truncates in
             // its own direction, while match-parent keeps it on the page's

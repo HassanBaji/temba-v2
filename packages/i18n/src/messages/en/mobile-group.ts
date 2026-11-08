@@ -22,6 +22,7 @@ export const mobileGroup = {
     nextGame: "Next Game",
     yourFormHere: "your form here",
     filterBySport: "Filter by sport",
+    rowSportName: (sport: string, name: string) => `${sport}, ${name}`,
     rowNextGame: (name: string, meta: string, weekday: string) =>
       `${name}, ${meta}, next Game ${weekday}`,
     rowNoGame: (name: string, meta: string) =>

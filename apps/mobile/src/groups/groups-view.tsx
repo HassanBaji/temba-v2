@@ -15,7 +15,6 @@ import { Pressable, View } from "react-native";
 import type { Slot } from "../home/home-model";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceRow } from "../lib/choice-row";
-import { SportGlyph } from "../lib/sport-glyph";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
@@ -25,7 +24,6 @@ import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { useColors } from "../theme/theme-provider";
 import { MyGroupsEmpty, PublicGroupsEmpty } from "./groups-empty";
 import {
   groupRowView,
@@ -136,6 +134,11 @@ function MyGroupRow({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={row.name} uri={row.imageUri} size="lg" />
         <View style={{ flex: 1, minWidth: 0 }}>
+          {row.sportLabel ? (
+            <Text size="meta" tone="muted" numberOfLines={1}>
+              {row.sportLabel}
+            </Text>
+          ) : null}
           <Text size="lead" weight="semibold" numberOfLines={1}>
             {row.name}
           </Text>
@@ -195,7 +198,6 @@ function PublicGroupRow({
   onOpen: (groupId: string) => void;
   onJoin: (groupId: string, door: GroupJoinDoor) => void;
 }) {
-  const colors = useColors();
   const door = row.door;
   return (
     <View
@@ -208,7 +210,7 @@ function PublicGroupRow({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={[row.name, row.subtitle, row.meta, row.sportLabel]
+        accessibilityLabel={[row.sportLabel, row.name, row.subtitle, row.meta]
           .filter(Boolean)
           .join(", ")}
         onPress={() => onOpen(row.id)}
@@ -224,6 +226,11 @@ function PublicGroupRow({
       >
         <Avatar name={row.name} uri={row.imageUri} size="lg" />
         <View style={{ flex: 1, minWidth: 0 }}>
+          {row.sportLabel ? (
+            <Text size="meta" tone="muted" numberOfLines={1}>
+              {row.sportLabel}
+            </Text>
+          ) : null}
           <Text size="lead" weight="semibold" numberOfLines={1}>
             {row.name}
           </Text>
@@ -235,16 +242,6 @@ function PublicGroupRow({
           <Text size="meta" tone="muted" numberOfLines={2}>
             {row.meta}
           </Text>
-          {row.sportLabel ? (
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <SportGlyph sport={row.sport} color={colors.ink} size={14} />
-              <Text size="eyebrow" tone="muted" mono uppercase>
-                {row.sportLabel}
-              </Text>
-            </View>
-          ) : null}
         </View>
       </Pressable>
       <Button
