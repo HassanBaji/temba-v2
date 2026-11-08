@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 import { stackMissingRoot, tabBarHidden, visibleTabs } from "./tab-list";
 
 describe("visibleTabs", () => {
-  it("shows Home, Games, Book, Groups and Profile", () => {
+  it("shows Home, Games, Challenges, Groups and Profile", () => {
     expect(visibleTabs(messagesFor("en")).map((tab) => tab.title)).toEqual([
       "Home",
       "Games",
-      "Book",
+      "Challenges",
       "Groups",
       "Profile",
     ]);
@@ -18,7 +18,7 @@ describe("visibleTabs", () => {
     expect(visibleTabs(messagesFor("ar")).map((tab) => tab.title)).toEqual([
       "الرئيسية",
       "المباريات",
-      "حجز",
+      "التحديات",
       "المجموعات",
       "الملف الشخصي",
     ]);
@@ -57,6 +57,26 @@ describe("tabBarHidden", () => {
     expect(tabBarHidden(["(app)", "book", "bookings", "[bookingId]"])).toBe(
       true,
     );
+  });
+
+  it("leaves Book out of the bar, its routes reached from Home and Profile", () => {
+    expect(visibleTabs(messagesFor("en")).map((tab) => tab.slot)).not.toContain(
+      "book",
+    );
+  });
+
+  it("keeps the tab bar on the Challenges segments, Teams and Player profiles", () => {
+    expect(tabBarHidden(["(app)", "challenges"])).toBe(false);
+    expect(tabBarHidden(["(app)", "challenges", "teams", "[id]"])).toBe(false);
+    expect(tabBarHidden(["(app)", "challenges", "teams", "new"])).toBe(false);
+    expect(
+      tabBarHidden(["(app)", "challenges", "players", "[userId]", "matches"]),
+    ).toBe(false);
+  });
+
+  it("hides the tab bar on a Challenge's own screens", () => {
+    expect(tabBarHidden(["(app)", "challenges", "[id]"])).toBe(true);
+    expect(tabBarHidden(["(app)", "challenges", "new"])).toBe(true);
   });
 
   it("keeps the tab bar on the Book screen and My bookings in Profile", () => {

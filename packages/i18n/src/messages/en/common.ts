@@ -58,6 +58,7 @@ export const common = {
   signOut: "Sign out",
   home: "Home",
   games: "Games",
+  challenges: "Challenges",
   book: "Book",
   groups: "Groups",
   profile: "Profile",

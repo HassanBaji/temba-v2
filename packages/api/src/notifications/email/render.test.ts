@@ -164,7 +164,7 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(">See your Games<");
   });
 
-  it("sends a Team invite to the Teams page", () => {
+  it("sends a Team invite to Challenges, Teams", () => {
     const email = render(
       item({
         type: "team_invite_received",
@@ -173,7 +173,9 @@ describe("renderNotificationEmail", () => {
       }),
     );
     expect(email.subject).toBe("Omar Aziz invited you to Gooz FC");
-    expect(email.html).toContain(`href="${ORIGIN}/dashboard/teams"`);
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/challenges?tab=teams"`,
+    );
     expect(email.html).toContain(">Open your Teams<");
   });
 

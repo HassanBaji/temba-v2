@@ -19,6 +19,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { useColors } from "../theme/theme-provider";
+import { TEAMS_PATH } from "./teams-model";
 
 export type CreateTeamViewProps = {
   name: string;
@@ -108,7 +109,7 @@ export function CreateTeamView(props: CreateTeamViewProps) {
         <View style={{ gap: 4 }}>
           <ScreenHeader
             nav="close"
-            fallback="/profile"
+            fallback={TEAMS_PATH}
             title={m.team.createLabel}
           />
           <Text size="meta" tone="muted">

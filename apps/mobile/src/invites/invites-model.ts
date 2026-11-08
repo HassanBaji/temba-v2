@@ -15,6 +15,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { relativeDay } from "../booking/booking-model";
+import { teamPath } from "../teams/teams-model";
 
 export type InviteLinkParams = {
   kind?: string | string[];
@@ -29,7 +30,7 @@ export function inviteLandingPath(kind: InviteKind, id: string) {
     case "group":
       return `/groups/${id}`;
     case "team":
-      return `/profile/teams/${id}`;
+      return teamPath(id);
   }
 }
 

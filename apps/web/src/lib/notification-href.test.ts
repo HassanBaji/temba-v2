@@ -90,10 +90,10 @@ describe("notificationHref", () => {
     );
   });
 
-  it("opens Teams for a Team invite, where the invite is accepted", () => {
+  it("opens Challenges, Teams for a Team invite, where the invite is accepted", () => {
     assert.equal(
       notificationHref({ type: "team_invite_received", group: null }),
-      "/dashboard/teams",
+      "/dashboard/challenges?tab=teams",
     );
   });
 

@@ -20,7 +20,11 @@ export async function mine(database: DbClient, args: { userId: string }) {
   const memberships = await database.query.teamMembers.findMany({
     where: eq(teamMembers.userId, args.userId),
     with: {
-      team: true,
+      team: {
+        with: {
+          group: { columns: { id: true, name: true, deletedAt: true } },
+        },
+      },
     },
   });
 
@@ -69,6 +73,10 @@ export async function mine(database: DbClient, args: { userId: string }) {
       rosterCount: members.length,
       record: teamRecordFromMatches(teamMatches),
       rivalCount: teamRivalsFromMatches(teamMatches).rivals.length,
+      groupTag:
+        team.group && team.group.deletedAt == null
+          ? { id: team.group.id, name: team.group.name }
+          : null,
       incomplete: !teamIsComplete(members.length, team.sport),
     };
   });

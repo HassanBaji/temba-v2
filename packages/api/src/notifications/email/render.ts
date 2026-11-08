@@ -1,3 +1,4 @@
+import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 import {
   notificationCopy,
@@ -74,7 +75,10 @@ export function notificationEmailDestination(
     return { kind: "game", path: `/dashboard/games/${item.game.id}` };
   }
   if (item.type === "team_invite_received") {
-    return { kind: "teams", path: "/dashboard/teams" };
+    return {
+      kind: "teams",
+      path: `/dashboard/challenges${challengesTabQuery("teams")}`,
+    };
   }
   if (item.type === "history_linked") {
     return {

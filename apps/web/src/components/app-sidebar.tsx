@@ -11,7 +11,7 @@ import {
   Mail,
   MapPin,
   ShieldCheck,
-  UserRound,
+  Swords,
   Users,
 } from "lucide-react";
 
@@ -47,9 +47,9 @@ function navMain(m: Messages) {
       icon: Users,
     },
     {
-      title: m.common.teams,
-      url: "/dashboard/teams",
-      icon: UserRound,
+      title: m.common.challenges,
+      url: "/dashboard/challenges",
+      icon: Swords,
     },
     {
       title: m.common.invites,

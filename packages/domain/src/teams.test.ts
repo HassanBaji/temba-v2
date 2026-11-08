@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { isForbiddenError } from "./is-forbidden-error";
 import {
   groupTeamRowView,
+  teamCardView,
+  teamCreateFromGroupOptions,
   teamCreateInput,
   teamDissolveConfirm,
   teamHomeView,
@@ -420,6 +422,70 @@ describe("groupTeamRowView", () => {
         "en",
       ).meta,
     ).toBe("2–1");
+  });
+});
+
+describe("teamCardView", () => {
+  const football = {
+    id: "team-1",
+    displayName: "Hidd United",
+    sport: "football",
+    incomplete: false,
+    members: [],
+    rosterCount: 12,
+    record: { wins: 3, draws: 1, losses: 2 },
+    groupTag: { id: "group-1", name: "Gooz of Arad" },
+  };
+
+  it("names the sport, the Roster count and the Group tag on football", () => {
+    expect(teamCardView(football, "en")).toEqual({
+      id: "team-1",
+      title: "Hidd United",
+      line: "Football. 12 on the roster. Gooz of Arad's team",
+      record: { label: "W–D–L", value: "3–1–2" },
+      accessibilityLabel:
+        "Hidd United, Football. 12 on the roster. Gooz of Arad's team, Won 3, drew 1, lost 2",
+    });
+  });
+
+  it("shows wins and losses on padel and says when the pair is incomplete", () => {
+    const view = teamCardView(
+      {
+        ...football,
+        displayName: "Seef Smashers",
+        sport: "padel",
+        incomplete: true,
+        rosterCount: 1,
+        record: { wins: 0, draws: 0, losses: 0 },
+        groupTag: null,
+      },
+      "en",
+    );
+    expect(view.line).toBe("Padel. Incomplete");
+    expect(view.record).toEqual({ label: "W–L", value: "0–0" });
+  });
+
+  it("writes the card in Arabic", () => {
+    const view = teamCardView(football, "ar");
+    expect(view.record.label).toBe("ف–ت–خ");
+    expect(view.line).toContain("قائمة الفريق");
+  });
+});
+
+describe("teamCreateFromGroupOptions", () => {
+  it("offers one Create from per organized Group, untitled ones named", () => {
+    expect(
+      teamCreateFromGroupOptions(
+        [
+          { id: "g1", name: "Gooz of Arad" },
+          { id: "g2", name: null },
+        ],
+        "en",
+      ),
+    ).toEqual([
+      { groupId: "g1", label: "Create from Gooz of Arad" },
+      { groupId: "g2", label: "Create from Untitled Group" },
+    ]);
   });
 });
 

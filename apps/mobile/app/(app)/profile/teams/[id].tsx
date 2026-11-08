@@ -1,8 +1,9 @@
-import { useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { TeamHomeScreen } from "../../../../src/teams/team-home-screen";
+import { teamPath } from "../../../../src/teams/teams-model";
 
+// Kept so links into the old Profile path still land on the Team.
 export default function TeamHome() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return <TeamHomeScreen teamId={id} />;
+  return <Redirect href={teamPath(id)} />;
 }

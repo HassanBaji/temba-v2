@@ -70,6 +70,61 @@ export function teamListRowView(team: TeamListRowInput, locale: Locale) {
   };
 }
 
+export type TeamCardInput = TeamListRowInput & {
+  rosterCount: number;
+  record: HeadToHead;
+  groupTag: TeamGroupTagInput | null;
+};
+
+/** A Team in Challenges › Teams: "Football. 12 on the roster. Gooz of Arad's team" and its record. */
+export function teamCardView(team: TeamCardInput, locale: Locale) {
+  const m = messagesFor(locale);
+  const squad = team.sport === "football";
+  const line = [
+    groupHomeSportLabel(team.sport, locale),
+    squad ? m.team.onRoster(team.rosterCount) : null,
+    !squad && team.incomplete ? m.team.incompleteLabel : null,
+    team.groupTag
+      ? m.team.groupTag.line(groupName(team.groupTag, locale))
+      : null,
+  ]
+    .filter((part): part is string => part != null)
+    .join(m.challenge.teams.lineSeparator);
+  const recordSpoken = squad
+    ? m.team.recordSpokenWithDraws(
+        team.record.wins,
+        team.record.draws,
+        team.record.losses,
+      )
+    : m.team.recordSpoken(team.record.wins, team.record.losses);
+  return {
+    id: team.id,
+    title: team.displayName,
+    line,
+    record: {
+      label: squad
+        ? m.challenge.teams.recordWithDraws
+        : m.challenge.teams.record,
+      value: headToHeadLine(team.record, team.sport, locale),
+    },
+    accessibilityLabel: [team.displayName, line, recordSpoken].join(
+      m.group.metaSeparator,
+    ),
+  };
+}
+
+/** "Create from Gooz of Arad", one per Group the viewer organizes. */
+export function teamCreateFromGroupOptions(
+  groups: readonly TeamGroupTagInput[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.teams;
+  return groups.map((group) => ({
+    groupId: group.id,
+    label: m.createFromGroup(groupName(group, locale)),
+  }));
+}
+
 export function teamDissolveConfirm(displayName: string, locale: Locale) {
   const m = messagesFor(locale).team;
   return {

@@ -1,28 +1,43 @@
-import { useRouter } from "expo-router";
+import {
+  challengesTabFromQuery,
+  type ChallengesTab,
+} from "@repo/domain/challenges-tab";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
+import { newTeamPath, teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
-import { NEW_TEAM_PATH, teamPath } from "./teams-model";
-import { TeamsView } from "./teams-view";
+import { ChallengesView } from "./challenges-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
-export function TeamsScreen() {
+export function ChallengesScreen() {
   const router = useRouter();
   const toast = useToast();
   const m = useMessages();
   const utils = api.useUtils();
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const tab = challengesTabFromQuery(params.tab);
+  const setTab = (next: ChallengesTab) =>
+    router.setParams({ tab: next === "open" ? undefined : next });
   const [refreshing, setRefreshing] = useState(false);
 
+  const challenges = api.challenges.listMine.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
   const teams = api.teams.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const pending = api.teams.pendingInvites.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
   );
+  const organized = api.games.listCreateGroups.useQuery(undefined, {
+    enabled: tab === "teams",
+  });
 
   const accept = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async (result) => {
@@ -37,8 +52,9 @@ export function TeamsScreen() {
   });
 
   const refetchAll = useCallback(
-    () => Promise.all([teams.refetch(), pending.refetch()]),
-    [teams, pending],
+    () =>
+      Promise.all([challenges.refetch(), teams.refetch(), pending.refetch()]),
+    [challenges, teams, pending],
   );
 
   const onRefresh = useCallback(async () => {
@@ -52,14 +68,22 @@ export function TeamsScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <TeamsView
+      <ChallengesView
+        tab={tab}
+        onTabChange={setTab}
+        counts={{
+          open: challenges.data?.counts.open ?? null,
+          mine: challenges.data?.counts.mine ?? null,
+          teams: teams.data?.length ?? null,
+        }}
         teams={slotOf(teams)}
         invites={slotOf(pending)}
+        organizedGroups={organized.data ?? []}
         acceptingId={
           accept.isPending ? (accept.variables?.inviteId ?? null) : null
         }
-        onOpen={(teamId) => router.push(teamPath(teamId))}
-        onCreate={() => router.push(NEW_TEAM_PATH)}
+        onOpenTeam={(teamId) => router.push(teamPath(teamId))}
+        onCreate={(groupId) => router.push(newTeamPath(groupId))}
         onAccept={(inviteId) => accept.mutate({ inviteId })}
         onRetry={() => void refetchAll()}
       />

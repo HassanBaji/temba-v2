@@ -1,3 +1,4 @@
+import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
 export function notificationHref(item: {
@@ -36,7 +37,7 @@ export function notificationHref(item: {
     return `/dashboard/games/${item.game.id}`;
   }
   if (item.type === "team_invite_received") {
-    return "/dashboard/teams";
+    return `/dashboard/challenges${challengesTabQuery("teams")}`;
   }
   if (item.type === "history_linked") {
     return `/dashboard/games${gamesHubTabQuery("history")}`;
