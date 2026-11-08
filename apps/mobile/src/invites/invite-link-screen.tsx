@@ -1,20 +1,19 @@
 import {
+  inviteJoinDoor,
+  type InviteSeatPick,
+} from "@repo/domain/game-invite-join-sheet";
+import {
   gameInviteGroupGate,
   gameInviteLinkStage,
   inviteLinkAcceptToast,
-  type GameInviteGroupChoice,
   type InviteKind,
   type InviteLinkPath,
   type InviteLinkPreview,
 } from "@repo/domain/invites";
 import { groupDisplayName } from "@repo/domain/group-join";
 import { groupJoinToast } from "@repo/domain/group-join";
-import {
-  type FootballPosition,
-  type FootballRole,
-} from "@repo/domain/football-lineup";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { Slot } from "../home/home-model";
 import { Notice } from "../groups/notice";
@@ -31,11 +30,12 @@ import {
   teamPreview,
   type InviteLinkParams,
 } from "./invites-model";
+import type { InviteJoinChoice } from "./invite-join-sheet";
 import { InviteLinkView } from "./invite-link-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
-type Seat = { sideIndex: number; position: "left" | "right" };
+type SheetState = { open: boolean; picked: InviteSeatPick | null };
 
 function kindOf(link: InviteLinkPath): InviteKind {
   if (link.kind === "game-short") {
@@ -85,11 +85,10 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   const kind = kindOf(link);
   const [refreshing, setRefreshing] = useState(false);
   const [waitingForPartner, setWaitingForPartner] = useState(false);
-  const [groupSheetOpen, setGroupSheetOpen] = useState(false);
-  const [groupDecided, setGroupDecided] = useState(false);
-  const [holdSeat, setHoldSeat] = useState(false);
+  const [sheet, setSheet] = useState<SheetState>({ open: false, picked: null });
   const [justJoinedGroup, setJustJoinedGroup] = useState(false);
-  const [footballSheetOpen, setFootballSheetOpen] = useState(false);
+  // A Level request that waits for the Group join to land first.
+  const levelAfterJoin = useRef<InviteJoinChoice | null>(null);
 
   const gameCode = api.games.inviteLinkByShortCode.useQuery(
     { code: "code" in link ? link.code : "" },
@@ -231,9 +230,21 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       void game.refetch();
     },
   });
+  const closeSheet = () => setSheet((current) => ({ ...current, open: false }));
+
+  function levelRequestArgs(choice: InviteJoinChoice, gameId: string) {
+    return {
+      gameId,
+      inviteToken: token ?? "",
+      sideIndex: choice.seat?.sideIndex,
+      position: choice.seat?.position,
+      football: choice.football ?? undefined,
+    };
+  }
+
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
-      setFootballSheetOpen(false);
+      closeSheet();
       toast.show(m.level.request.sent);
       await game.refetch();
     },
@@ -241,22 +252,30 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   });
   const joinGroup = api.games.joinGroupFromInviteLink.useMutation({
     onSuccess: async (result) => {
-      setGroupSheetOpen(false);
-      setGroupDecided(false);
-      setHoldSeat(false);
       if (result.outcome === "joined") {
         toast.show(
           m.mobileInvite.link.group.joinedToast(groupName ?? m.group.untitled),
         );
         setJustJoinedGroup(true);
         await utils.groups.mine.invalidate();
-      } else if (result.outcome === "requested") {
-        toast.show(m.mobileInvite.link.group.requestedToast);
+        const pendingLevel = levelAfterJoin.current;
+        levelAfterJoin.current = null;
+        if (pendingLevel && readyGame) {
+          requestLevel.mutate(levelRequestArgs(pendingLevel, readyGame.gameId));
+        } else {
+          closeSheet();
+        }
+      } else {
+        if (result.outcome === "requested") {
+          toast.show(m.mobileInvite.link.group.requestedToast);
+        }
+        closeSheet();
       }
       await game.refetch();
     },
     onError: (e, variables) => {
-      if (!variables.football) {
+      levelAfterJoin.current = null;
+      if (!variables.football && !variables.sideIndex) {
         toast.show(e.message);
       }
       void game.refetch();
@@ -270,7 +289,8 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     onError: (e) => toast.show(e.message),
   });
 
-  function accept(seat?: Seat) {
+  /** Group and Team links, and a Game with nothing to pick: the one-tap join. */
+  function accept() {
     if (!token) {
       return;
     }
@@ -278,85 +298,64 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       acceptGroup.mutate({ token });
     } else if (kind === "team") {
       acceptTeam.mutate({ token });
-    } else if (holdSeat) {
-      joinGroup.mutate({ token, holdSeat: true, ...seat });
-    } else if (
-      readyGame &&
-      gameInviteLinkStage(readyGame, true) === "level_range"
-    ) {
-      requestLevel.mutate({
-        gameId: readyGame.gameId,
-        inviteToken: token,
-        ...seat,
-      });
     } else {
-      acceptGame.mutate({ token, ...seat });
+      acceptGame.mutate({ token });
     }
   }
 
-  function acceptFootball(role: FootballRole, position: FootballPosition) {
-    if (!token) {
-      return;
-    }
-    const football = { role, position };
-    if (holdSeat) {
-      joinGroup.mutate({ token, holdSeat: true, football });
-    } else if (
-      readyGame &&
-      gameInviteLinkStage(readyGame, true) === "level_range"
-    ) {
-      requestLevel.mutate({
-        gameId: readyGame.gameId,
-        inviteToken: token,
-        football,
-      });
-    } else {
-      acceptGame.mutate({ token, football });
-    }
-  }
-
-  function chooseGroup(choice: GameInviteGroupChoice) {
+  /** The join sheet's one button: take the seat, hold it, or ask to play. */
+  function submitJoin(choice: InviteJoinChoice) {
     if (!token || !readyGame) {
       return;
     }
-    if (choice === "group_only") {
-      joinGroup.mutate({ token });
+    const seat = choice.seat
+      ? { sideIndex: choice.seat.sideIndex, position: choice.seat.position }
+      : {};
+    const football = choice.football ?? undefined;
+    const levelBlocked = gameInviteLinkStage(readyGame, true) === "level_range";
+    const door = inviteJoinDoor({
+      gate: groupGate,
+      joinGroup: choice.joinGroup,
+      levelBlocked,
+    });
+    if (door === "hold") {
+      joinGroup.mutate({ token, holdSeat: true, ...seat, football });
       return;
     }
-    const hold = groupGate === "approval";
-    const stage = gameInviteLinkStage(readyGame, true);
-    setGroupSheetOpen(false);
-    // Outside the Level range the seat is still picked: a hold carries it to
-    // the Group approvers, and on an open Group the join lands first, then
-    // the Level request takes the seat.
-    if (stage === "level_range" && !hold) {
-      joinGroup.mutate({ token });
-      return;
-    }
-    setGroupDecided(true);
-    setHoldSeat(hold);
-    if (stage === "accept") {
-      if (hold) {
-        joinGroup.mutate({ token, holdSeat: true });
-      } else {
-        acceptGame.mutate({ token });
+    if (door === "level_request") {
+      if (groupGate === "open" && choice.joinGroup) {
+        levelAfterJoin.current = choice;
+        joinGroup.mutate({ token });
+        return;
       }
+      requestLevel.mutate(levelRequestArgs(choice, readyGame.gameId));
+      return;
     }
+    acceptGame.mutate({
+      token,
+      ...seat,
+      football,
+      joinGroup: groupGate === "none" ? undefined : choice.joinGroup,
+    });
   }
 
-  const groupChoicePending: GameInviteGroupChoice | null = joinGroup.isPending
-    ? joinGroup.variables?.holdSeat
-      ? "with_seat"
-      : "group_only"
-    : acceptGame.isPending && groupDecided && !acceptGame.variables?.football
-      ? "with_seat"
-      : null;
+  function openSheet(picked: InviteSeatPick | null) {
+    acceptGame.reset();
+    joinGroup.reset();
+    requestLevel.reset();
+    setSheet({ open: true, picked });
+  }
 
+  const groupOnlyPending =
+    joinGroup.isPending &&
+    !joinGroup.variables?.holdSeat &&
+    levelAfterJoin.current == null;
   const acceptPending =
     acceptGroup.isPending ||
     acceptTeam.isPending ||
     acceptGame.isPending ||
-    joinGroup.isPending;
+    joinGroup.isPending ||
+    requestLevel.isPending;
 
   return (
     <InviteLinkView
@@ -366,31 +365,27 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       onRefresh={() => void onRefresh()}
       acceptPending={acceptPending}
       acceptError={
-        acceptGame.error?.message ?? joinGroup.error?.message ?? null
+        acceptGame.error?.message ??
+        joinGroup.error?.message ??
+        requestLevel.error?.message ??
+        null
       }
-      requestPending={requestLevel.isPending}
       waitingForPartner={waitingForPartner}
       onAccept={accept}
-      onAcceptFootball={acceptFootball}
-      onRequestLevel={(gameId) =>
-        token && requestLevel.mutate({ gameId, inviteToken: token })
-      }
       onPickPartner={(gameId) => router.replace(`/games/${gameId}` as Href)}
       onGoHome={() => router.replace("/")}
       onRetry={() => void refetch()}
-      groupSheetOpen={groupSheetOpen}
-      groupChoicePending={groupChoicePending}
-      groupDecided={groupDecided}
+      sheetOpen={sheet.open}
+      sheetPicked={sheet.picked}
+      onOpenSheet={openSheet}
+      onCloseSheet={closeSheet}
+      onSubmitJoin={submitJoin}
+      groupOnlyPending={groupOnlyPending}
+      onJoinGroupOnly={() => token && joinGroup.mutate({ token })}
       justJoinedGroup={justJoinedGroup}
       withdrawPending={withdraw.isPending}
-      onOpenGroupSheet={() => setGroupSheetOpen(true)}
-      onCloseGroupSheet={() => setGroupSheetOpen(false)}
-      onChooseGroup={chooseGroup}
       onWithdraw={(requestId) => withdraw.mutate({ requestId })}
       onOpenGroup={(groupId) => router.push(`/groups/${groupId}` as Href)}
-      footballSheetOpen={footballSheetOpen}
-      onOpenFootballSheet={() => setFootballSheetOpen(true)}
-      onCloseFootballSheet={() => setFootballSheetOpen(false)}
     />
   );
 }

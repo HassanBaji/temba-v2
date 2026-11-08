@@ -1,9 +1,4 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
-import { footballInviteJoinSubtitle } from "@repo/domain/football-board";
-import {
-  type FootballPosition,
-  type FootballRole,
-} from "@repo/domain/football-lineup";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
 import {
   gameInviteHeroModel,
@@ -16,18 +11,20 @@ import {
 import { formatGameClock } from "@repo/domain/format-game-start";
 import { groupDisplayName } from "@repo/domain/group-join";
 import {
+  gameInviteSeatCourt,
+  type InviteSeatPick,
+} from "@repo/domain/game-invite-join-sheet";
+import {
   gameInviteGroupGate,
   gameInviteGroupJoinedCopy,
   gameInviteGroupLandingCopy,
   gameInviteGroupRequestCard,
   gameInviteLinkStage,
-  gameInviteSeatCopy,
   gameInviteSeatState,
   inviteKindLabel,
   inviteLinkJoinLabel,
   levelRangeGateAction,
   type GameInviteGroup,
-  type GameInviteGroupChoice,
   type GameInviteLinkReady,
   type InviteKind,
   type InviteLinkPreview,
@@ -41,14 +38,11 @@ import {
   formatLevelRangeGateCopy,
   formatLevelRangeLabel,
 } from "@repo/domain/level-range";
-import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { Check, Users } from "lucide-react-native";
-import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { relativeDay } from "../booking/booking-model";
 import { InfoRows } from "../football/info-rows";
-import { FootballJoinSheet } from "../football/join-sheet";
 import { useNow } from "../games/use-now";
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
@@ -63,9 +57,9 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { GroupJoinSheet } from "./group-join-sheet";
 import { InviteGameHero, type InviteHeroNote } from "./invite-game-hero";
-import { SeatChoice } from "./seat-choice";
+import { InviteJoinSheet, type InviteJoinChoice } from "./invite-join-sheet";
+import { InviteSeatCourt, InviteSitHereTile } from "./invite-seat-court";
 
 const HOLD_MARK = 36;
 const CHECK_MARK = 36;
@@ -77,28 +71,23 @@ export type InviteLinkViewProps = {
   onRefresh: () => void;
   acceptPending: boolean;
   acceptError: string | null;
-  requestPending: boolean;
   waitingForPartner: boolean;
-  onAccept: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
-  onAcceptFootball: (role: FootballRole, position: FootballPosition) => void;
-  onRequestLevel: (gameId: string) => void;
-  /** The football role sheet on the Level stage, opened from the bar. */
-  footballSheetOpen: boolean;
-  onOpenFootballSheet: () => void;
-  onCloseFootballSheet: () => void;
+  /** Group and Team links, and a Game with nothing to pick: the one-tap join. */
+  onAccept: () => void;
   onPickPartner: (gameId: string) => void;
   onGoHome: () => void;
   onRetry: () => void;
-  /** The Group question on a Game link (design "Join via link"). */
-  groupSheetOpen: boolean;
-  groupChoicePending: GameInviteGroupChoice | null;
-  /** The viewer chose the seat and the Group; the join stage shows as usual. */
-  groupDecided: boolean;
+  /** The one join sheet of a Game link (design 3d, 3f). */
+  sheetOpen: boolean;
+  sheetPicked: InviteSeatPick | null;
+  onOpenSheet: (picked: InviteSeatPick | null) => void;
+  onCloseSheet: () => void;
+  onSubmitJoin: (choice: InviteJoinChoice) => void;
+  /** "Join group" on its own, from the landing note. */
+  groupOnlyPending: boolean;
+  onJoinGroupOnly: () => void;
   justJoinedGroup: boolean;
   withdrawPending: boolean;
-  onOpenGroupSheet: () => void;
-  onCloseGroupSheet: () => void;
-  onChooseGroup: (choice: GameInviteGroupChoice) => void;
   onWithdraw: (requestId: string) => void;
   onOpenGroup: (groupId: string) => void;
 };
@@ -473,9 +462,12 @@ function SimpleReady({
   );
 }
 
-/** What the screen shows under the hero, the bar, and any sheet it opens. */
+/** What the screen shows: the head's seats, the body, the bar, and the sheet. */
 type GameLayout = {
   note: InviteHeroNote | null;
+  seats: React.ReactNode;
+  countHint: string | null;
+  afterTiles: React.ReactNode;
   body: React.ReactNode;
   bar: React.ReactNode;
 };
@@ -487,7 +479,6 @@ function useGameLayout(
 ): GameLayout {
   const m = useMessages();
   const locale = useLocale();
-  const [footballOpen, setFootballOpen] = useState(true);
   const name = gameDisplayName(game.game, locale);
   const stage = gameInviteLinkStage(game, true);
   const seatState = gameInviteSeatState({
@@ -520,20 +511,87 @@ function useGameLayout(
   });
   const sharer = gameInviteSharerName(hero);
   const openSeats = openSeatsOf(game);
-  const seatsTitle =
-    openSeats > 0 ? m.mobileInvite.link.group.seatsOpen(openSeats) : null;
+  const heroCopy = m.mobileInvite.link.hero;
+  const groupCopy = m.mobileInvite.link.group;
+  const seatsTitle = openSeats > 0 ? groupCopy.seatsOpen(openSeats) : null;
   const memberNote =
     group && props.justJoinedGroup && groupName
-      ? groupNote(m.mobileInvite.link.hero.joinedNote(groupName))
+      ? groupNote(heroCopy.joinedNote(groupName))
       : group && gate === "none" && groupName
-        ? groupNote(m.mobileInvite.link.hero.memberNote(groupName))
+        ? groupNote(heroCopy.memberNote(groupName))
         : sharer
-          ? groupNote(m.mobileInvite.link.group.sharedBy(sharer))
+          ? groupNote(groupCopy.sharedBy(sharer))
           : null;
+  const levelBlocked = stage === "level_range";
+  const levelPending =
+    levelBlocked && game.levelRangeRequest?.status === "pending";
+  const requestedGate = gate === "requested";
+  const football = game.football;
+  const seatGame = game.sides.length > 0;
+  const canSit =
+    stage !== "partner" &&
+    !seatState.joinFrozen &&
+    !requestedGate &&
+    !levelPending;
+  const court = seatGame ? gameInviteSeatCourt(game.sides, locale) : null;
+  const seats = court ? (
+    <InviteSeatCourt
+      court={court}
+      onSit={
+        canSit && !seatState.waitlistOnly
+          ? (seat) =>
+              props.onOpenSheet({
+                sideIndex: seat.sideIndex,
+                position: seat.position,
+              })
+          : null
+      }
+    />
+  ) : null;
+  const afterTiles =
+    football && openSeats > 0 ? (
+      <InviteSitHereTile
+        sub={heroCopy.sitHereFootball(groupCopy.seatsOpen(openSeats))}
+        onSit={canSit ? () => props.onOpenSheet(null) : null}
+      />
+    ) : null;
+  const sheet =
+    seatGame || football || gate !== "none" ? (
+      <InviteJoinSheet
+        visible={props.sheetOpen}
+        onClose={props.onCloseSheet}
+        input={{
+          kind: football ? "football" : "padel",
+          sides: game.sides,
+          picked: props.sheetPicked,
+          usualSide: null,
+          teamsMadeAt: null,
+          group,
+          gate,
+          gamePublic: game.isPublic ?? false,
+          levelBlocked,
+          locale,
+        }}
+        football={
+          football
+            ? { players: football.players, preferred: football.preferred }
+            : null
+        }
+        pending={props.acceptPending}
+        error={props.acceptError}
+        onSubmit={props.onSubmitJoin}
+      />
+    ) : null;
+  const head = {
+    seats,
+    countHint: court && canSit ? heroCopy.tapASeat : null,
+    afterTiles,
+  };
 
-  if (group && gate === "requested") {
+  if (group && requestedGate) {
     const copy = gameInviteGroupRequestCard(group, null, locale);
     return {
+      ...head,
       note: null,
       body: (
         <>
@@ -549,133 +607,9 @@ function useGameLayout(
     };
   }
 
-  if (group && gate !== "none" && !props.groupDecided) {
-    const copy = gameInviteGroupLandingCopy(group, openSeats, locale);
-    const busy = props.groupChoicePending != null;
-    return {
-      note: groupNote(copy.heroNote),
-      body: (
-        <>
-          {info}
-          <GroupOnlyNote
-            note={copy.note}
-            label={copy.joinGroupLabel}
-            pending={props.groupChoicePending === "group_only"}
-            disabled={busy}
-            onPress={() => props.onChooseGroup("group_only")}
-          />
-          <GroupJoinSheet
-            visible={props.groupSheetOpen}
-            group={group}
-            pending={props.groupChoicePending}
-            onChoose={props.onChooseGroup}
-            onClose={props.onCloseGroupSheet}
-          />
-        </>
-      ),
-      bar: (
-        <Bar
-          title={copy.barTitle}
-          subline={copy.barSubline}
-          action={
-            <Button
-              label={copy.joinGameLabel}
-              size="lg"
-              disabled={busy}
-              onPress={props.onOpenGroupSheet}
-            />
-          }
-        />
-      ),
-    };
-  }
-
-  if (stage === "level_range") {
-    const action = levelRangeGateAction({
-      requestStatus: game.levelRangeRequest?.status ?? null,
-      canRequest: game.canRequestLevelRange,
-      requesting: props.requestPending,
-      locale,
-    });
-    const gateCopy = formatLevelRangeGateCopy({
-      levelMinTenths: game.levelMinTenths,
-      levelMaxTenths: game.levelMaxTenths,
-      viewerLevelTenths: game.viewerLevelTenths,
-      locale,
-    });
-    const pendingNote = action.kind === "pending-note";
-    // The request carries the seat the player picks here; approval seats
-    // them there (ADR-0057). A hold on an approval Group goes the same way.
-    const picksSeat = !pendingNote && game.sides.length > 0;
-    const picksFootball = !pendingNote && game.football != null;
-    return {
-      note: memberNote,
-      body: (
-        <>
-          <Surface style={{ gap: 12 }}>
-            <Text tone="muted">{gateCopy}</Text>
-            {picksSeat ? (
-              <SeatChoice
-                sides={game.sides}
-                canPick={action.kind === "button" && !action.disabled}
-                pending={props.acceptPending || props.requestPending}
-                onPick={(sideIndex, position) =>
-                  props.onAccept({ sideIndex, position })
-                }
-              />
-            ) : null}
-          </Surface>
-          {info}
-          {picksFootball && game.football ? (
-            <FootballJoinSheet
-              visible={props.footballSheetOpen}
-              mode="join"
-              subtitle={footballInviteJoinSubtitle(game.football, locale)}
-              players={game.football.players}
-              viewer={game.football.preferred}
-              price={formatPricePerPlayerFils(
-                game.football.pricePerPlayerFils,
-                locale,
-              )}
-              teamsLine={
-                game.football.teamsSet
-                  ? m.mobileInvite.link.teamsSet
-                  : m.mobileInvite.link.teamsByOrganizer
-              }
-              pending={props.acceptPending || props.requestPending}
-              error={props.acceptError}
-              onClose={props.onCloseFootballSheet}
-              onSubmit={props.onAcceptFootball}
-            />
-          ) : null}
-        </>
-      ),
-      bar: pendingNote ? (
-        <Bar title={null} subline={action.text} />
-      ) : picksSeat ? (
-        <Bar title={seatsTitle} subline={action.label} />
-      ) : (
-        <Bar
-          title={seatsTitle}
-          subline={null}
-          action={
-            <Button
-              label={action.label}
-              size="lg"
-              disabled={action.disabled}
-              pending={props.requestPending}
-              onPress={() =>
-                picksFootball ? props.onOpenFootballSheet() : props.onAccept()
-              }
-            />
-          }
-        />
-      ),
-    };
-  }
-
   if (stage === "partner") {
     return {
+      ...head,
       note: memberNote,
       body: (
         <>
@@ -709,32 +643,75 @@ function useGameLayout(
         onOpenGroup={props.onOpenGroup}
       />
     ) : null;
-  const memberSubline =
-    group && props.justJoinedGroup ? m.mobileInvite.link.group.oneTap : null;
+  const landingNote =
+    group && gate !== "none" && !props.justJoinedGroup
+      ? gameInviteGroupLandingCopy(group, openSeats, locale)
+      : null;
+  const body = (
+    <>
+      {joinedNotice}
+      {levelBlocked ? (
+        <Surface>
+          <Text tone="muted">
+            {formatLevelRangeGateCopy({
+              levelMinTenths: game.levelMinTenths,
+              levelMaxTenths: game.levelMaxTenths,
+              viewerLevelTenths: game.viewerLevelTenths,
+              locale,
+            })}
+          </Text>
+        </Surface>
+      ) : null}
+      {info}
+      {landingNote ? (
+        <GroupOnlyNote
+          note={landingNote.note}
+          label={landingNote.joinGroupLabel}
+          pending={props.groupOnlyPending}
+          disabled={props.acceptPending}
+          onPress={props.onJoinGroupOnly}
+        />
+      ) : null}
+      {sheet}
+    </>
+  );
+  const note = landingNote ? groupNote(landingNote.heroNote) : memberNote;
 
-  if (stage === "seat_pick") {
+  if (levelPending) {
+    const action = levelRangeGateAction({
+      requestStatus: "pending",
+      canRequest: false,
+      requesting: false,
+      locale,
+    });
     return {
-      note: memberNote,
-      body: (
-        <>
-          {joinedNotice}
-          <Surface style={{ gap: 12 }}>
-            <Text size="meta" tone="muted">
-              {gameInviteSeatCopy(seatState, "link", locale)}
-            </Text>
-            <SeatChoice
-              sides={game.sides}
-              canPick={!seatState.joinFrozen && !seatState.waitlistOnly}
-              pending={props.acceptPending}
-              onPick={(sideIndex, position) =>
-                props.onAccept({ sideIndex, position })
-              }
-            />
-          </Surface>
-          {info}
-        </>
+      ...head,
+      note,
+      body,
+      bar: (
+        <Bar
+          title={null}
+          subline={action.kind === "pending-note" ? action.text : null}
+        />
       ),
-      bar: seatState.waitlistOnly ? (
+    };
+  }
+
+  if (seatState.joinFrozen) {
+    return {
+      ...head,
+      note,
+      body,
+      bar: <Bar title={null} subline={m.invite.inbox.seatCopy.frozen} />,
+    };
+  }
+
+  if (seatGame && seatState.waitlistOnly && !levelBlocked && gate === "none") {
+    return {
+      ...head,
+      note,
+      body,
+      bar: (
         <Bar
           title={null}
           subline={null}
@@ -747,77 +724,40 @@ function useGameLayout(
             />
           }
         />
-      ) : (
-        <Bar title={seatsTitle} subline={memberSubline} />
       ),
     };
   }
 
-  if (stage === "football" && game.football) {
-    const football = game.football;
-    const subtitle = footballInviteJoinSubtitle(football, locale);
-    return {
-      note: memberNote,
-      body: (
-        <>
-          {joinedNotice}
-          {info}
-          <FootballJoinSheet
-            visible={footballOpen}
-            mode="join"
-            subtitle={subtitle}
-            players={football.players}
-            viewer={football.preferred}
-            price={formatPricePerPlayerFils(
-              football.pricePerPlayerFils,
-              locale,
-            )}
-            teamsLine={
-              football.teamsSet
-                ? m.mobileInvite.link.teamsSet
-                : m.mobileInvite.link.teamsByOrganizer
-            }
-            pending={props.acceptPending}
-            error={props.acceptError}
-            onClose={() => setFootballOpen(false)}
-            onSubmit={props.onAcceptFootball}
-          />
-        </>
-      ),
-      bar: (
-        <Bar
-          title={seatsTitle}
-          subline={memberSubline}
-          action={
-            <Button
-              label={m.mobileInvite.link.chooseHowYouPlay}
-              size="lg"
-              onPress={() => setFootballOpen(true)}
-            />
-          }
-        />
-      ),
-    };
-  }
-
+  const opensSheet = sheet != null;
+  const subline =
+    group && props.justJoinedGroup
+      ? groupCopy.oneTap
+      : football
+        ? heroCopy.barSheetFootball
+        : seatGame
+          ? heroCopy.barSheetPadel
+          : gate !== "none"
+            ? groupCopy.asksFirst
+            : null;
   return {
-    note: memberNote,
-    body: (
-      <>
-        {joinedNotice}
-        {info}
-      </>
-    ),
+    ...head,
+    note,
+    body,
     bar: (
       <Bar
         title={seatsTitle}
-        subline={memberSubline}
+        subline={subline}
         action={
           <Button
-            label={m.invite.link.joinLabel(name)}
+            label={
+              opensSheet ? groupCopy.joinGame : m.invite.link.joinLabel(name)
+            }
             size="lg"
-            pending={props.acceptPending}
-            onPress={() => props.onAccept()}
+            pending={!opensSheet && props.acceptPending}
+            disabled={props.acceptPending}
+            onPress={() =>
+              opensSheet ? props.onOpenSheet(null) : props.onAccept()
+            }
           />
         }
       />
@@ -846,6 +786,9 @@ function GameReady({
         <InviteGameHero
           model={gameInviteHeroModel(hero, now, locale)}
           note={layout.note}
+          seats={layout.seats ?? undefined}
+          countHint={layout.countHint}
+          afterTiles={layout.afterTiles}
         />
       }
       footer={layout.bar}
