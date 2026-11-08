@@ -5,6 +5,7 @@ export function notificationHref(item: {
   type: string;
   group: { id: string } | null;
   game?: { id: string } | null;
+  challenge?: { id: string } | null;
 }): string | null {
   if (
     (item.type === "group_member_joined" ||
@@ -38,6 +39,14 @@ export function notificationHref(item: {
   }
   if (item.type === "team_invite_received") {
     return `/dashboard/challenges${challengesTabQuery("teams")}`;
+  }
+  if (
+    (item.type === "challenge_proposal_received" ||
+      item.type === "challenge_proposal_declined" ||
+      item.type === "challenge_proposal_expired") &&
+    item.challenge
+  ) {
+    return `/dashboard/challenges/${item.challenge.id}`;
   }
   if (item.type === "challenge_expired") {
     return `/dashboard/challenges${challengesTabQuery("mine")}`;

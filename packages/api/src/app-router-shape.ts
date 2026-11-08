@@ -50,8 +50,13 @@ type ExpectedChallenges =
   | "listOpen"
   | "byId"
   | "listPostOptions"
+  | "listProposeOptions"
   | "post"
-  | "withdraw";
+  | "withdraw"
+  | "propose"
+  | "changeProposal"
+  | "withdrawProposal"
+  | "declineProposal";
 
 type ExpectedGames =
   | "hello"

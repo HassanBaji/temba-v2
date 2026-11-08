@@ -199,6 +199,10 @@ _Avoid_: game format (that enum), team size, squad size
 A Challenge's inclusive Level band range, stored in tenths like a Game Level range; either bound may be open, and none means any level. A Team whose Team Level is outside it, or that has no Team Level, sees the Challenge greyed and cannot propose. There is no request or waiver path.
 _Avoid_: level range (bare, that is a Game's), level gate, skill filter
 
+**Proposal**:
+One Team's answer to a Challenge: a Venue, a start at least an hour ahead and within 30 days, and optionally a Court on that Venue and a price per player. Sent by someone who acts for a Team of the sport that does not share a member with the posting Team, whose Roster fields the Challenge format (padel: both players) and whose Team Level is inside the Level wanted. Pending for 48 hours; a change replaces its terms in place and starts the 48 hours again. The posting Team confirms it or asks for another time (declined); the proposing Team may withdraw it; the clock expires it; the rest are passed over when another is confirmed or the Challenge is withdrawn. At most one pending Proposal per Team per Challenge; after a decline the Team may propose again. Nothing about who will play.
+_Avoid_: accept (the button says Accept; the entity is a Proposal), bid, offer, counter
+
 **Team record**:
 Wins–losses (padel) or wins–draws–losses (football) over a Team's completed Matches on non-cancelled Games, read from the Game teams bound to the Team and derived on every read. A Match awaiting confirmation or a Walkover does not count. No stored counters.
 _Avoid_: stats, standing (that is a Season Standing), win rate

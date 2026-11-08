@@ -152,6 +152,26 @@ export const notification = {
       plain(" expired"),
     ],
     challengeExpiredUnnamed: [plain("Your Team's challenge expired")],
+    challengeProposalReceived: (team: string) => [
+      strong(team),
+      plain(" proposed a time for your challenge"),
+    ],
+    challengeProposalReceivedUnnamed: [
+      plain("A Team proposed a time for your challenge"),
+    ],
+    challengeProposalDeclined: (team: string) => [
+      strong(team),
+      plain(" asked for another time"),
+    ],
+    challengeProposalDeclinedUnnamed: [
+      plain("Your proposal was declined: another time"),
+    ],
+    challengeProposalExpired: (team: string) => [
+      plain("Your proposal to "),
+      strong(team),
+      plain(" expired"),
+    ],
+    challengeProposalExpiredUnnamed: [plain("Your Team's proposal expired")],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
@@ -162,6 +182,9 @@ export const notification = {
     takeYourSeat: "You can join the Game now.",
     acceptInTeams: "Accept or decline it in Teams.",
     postAgain: "No proposal came in. Post again from Challenges.",
+    confirmOrAnotherTime:
+      "Confirm it, or ask for another time, within 48 hours.",
+    proposeAgain: "Send a new proposal while the challenge is open.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

@@ -104,6 +104,23 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Challenge a Proposal was received, declined or expired on", () => {
+    for (const type of [
+      "challenge_proposal_received",
+      "challenge_proposal_declined",
+      "challenge_proposal_expired",
+    ]) {
+      assert.equal(
+        notificationHref({ type, group: null, challenge: { id: "c1" } }),
+        "/dashboard/challenges/c1",
+      );
+    }
+    assert.equal(
+      notificationHref({ type: "challenge_proposal_received", group: null }),
+      null,
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),

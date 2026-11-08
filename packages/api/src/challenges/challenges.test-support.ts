@@ -1,7 +1,9 @@
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import {
   challengeProposals,
+  challengeVenues,
   challenges,
   courts,
   ratings,
@@ -116,7 +118,7 @@ export async function challengeRow(database: TestDatabase, id: string) {
   return row;
 }
 
-/** A pending Proposal written straight to the table: proposing lands in a later door. */
+/** A pending Proposal written straight to the table, for clock tests. */
 export async function addPendingProposal(
   database: TestDatabase,
   args: {
@@ -139,4 +141,118 @@ export async function addPendingProposal(
     })
     .returning();
   return proposal!;
+}
+
+export async function courtOf(database: TestDatabase, venueId: string) {
+  const court = await database.query.courts.findFirst({
+    where: eq(courts.venueId, venueId),
+    columns: { id: true, name: true },
+  });
+  if (!court) {
+    throw new Error("Court missing");
+  }
+  return court;
+}
+
+export async function proposalRow(database: TestDatabase, id: string) {
+  const row = await database.query.challengeProposals.findFirst({
+    where: eq(challengeProposals.id, id),
+  });
+  if (!row) {
+    throw new Error("Proposal missing");
+  }
+  return row;
+}
+
+/** A refused door's code and message; fails the test when the door succeeds. */
+export async function refusal(promise: Promise<unknown>) {
+  try {
+    await promise;
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      return { code: error.code, message: error.message };
+    }
+    throw error;
+  }
+  throw new Error("Expected a refusal");
+}
+
+/** An open Challenge written straight to the table, seven days from `postedAt`. */
+export async function addOpenChallenge(
+  database: TestDatabase,
+  args: {
+    teamId: string;
+    postedBy: string;
+    sport: "padel" | "football";
+    postedAt: Date;
+    sideSize?: number | null;
+    levelMinTenths?: number | null;
+    levelMaxTenths?: number | null;
+    venueIds?: string[];
+  },
+) {
+  const [challenge] = await database
+    .insert(challenges)
+    .values({
+      teamId: args.teamId,
+      sport: args.sport,
+      postedBy: args.postedBy,
+      sideSize: args.sideSize ?? null,
+      levelMinTenths: args.levelMinTenths ?? null,
+      levelMaxTenths: args.levelMaxTenths ?? null,
+      durationMinutes: args.sport === "padel" ? 90 : 60,
+      expiresAt: new Date(args.postedAt.getTime() + 7 * 24 * 60 * 60 * 1000),
+      createdAt: args.postedAt,
+      updatedAt: args.postedAt,
+    })
+    .returning();
+  if (args.venueIds?.length) {
+    await database.insert(challengeVenues).values(
+      args.venueIds.map((venueId, rank) => ({
+        challengeId: challenge!.id,
+        venueId,
+        rank,
+      })),
+    );
+  }
+  return challenge!;
+}
+
+/**
+ * Seef Smashers (Ali, Omar) post a padel Challenge at Padel Central; Riffa
+ * Rackets (Rafi, Saad) may answer it.
+ */
+export async function padelMatchup(database: TestDatabase, postedAt: Date) {
+  const [ali, omar, rafi, saad] = await makeUsers(database, "Player", 4);
+  const seef = await makeTeam(database, {
+    name: "Seef Smashers",
+    sport: "padel",
+    userIds: [ali!, omar!],
+  });
+  const riffa = await makeTeam(database, {
+    name: "Riffa Rackets",
+    sport: "padel",
+    userIds: [rafi!, saad!],
+  });
+  const venue = await makeVenue(database, {
+    name: "Padel Central",
+    city: "Manama",
+    sport: "padel",
+  });
+  const challenge = await addOpenChallenge(database, {
+    teamId: seef.id,
+    postedBy: ali!,
+    sport: "padel",
+    postedAt,
+    venueIds: [venue.id],
+  });
+  return {
+    challenge,
+    seef,
+    riffa,
+    venue,
+    court: await courtOf(database, venue.id),
+    poster: { ali: ali!, omar: omar! },
+    proposer: { rafi: rafi!, saad: saad! },
+  };
 }

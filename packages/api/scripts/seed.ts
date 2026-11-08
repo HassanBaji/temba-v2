@@ -62,6 +62,7 @@ import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 import { postChallenge } from "#src/routers/challenges/post";
+import { proposeOnChallenge } from "#src/routers/challenges/propose";
 import { acceptInAppInvite } from "#src/routers/teams/acceptInAppInvite";
 import { createTeam } from "#src/routers/teams/create";
 import { createInviteLink as createTeamInviteLink } from "#src/routers/teams/createInviteLink";
@@ -913,11 +914,12 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
 
 /**
  * One open Challenge per sport. Lina & Priya want a padel opponent at
- * weekends; Gooz FC (Sam's twelve) wants a 6-a-side on Friday evenings, which
- * Sunday Seven can answer.
+ * weekends, and Smash Brothers (Sam and Omar) have a Proposal pending on it;
+ * Gooz FC (Sam's twelve) wants a 6-a-side on Friday evenings, which Sunday
+ * Seven can answer.
  */
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
-  await postChallenge(db, {
+  const padel = await postChallenge(db, {
     teamId: t.duo.id,
     levelMinTenths: 28,
     levelMaxTenths: 55,
@@ -926,6 +928,14 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
     timings: ["evening"],
     note: "Friendly pair, we book the court if you can't.",
     userId: u.lina!.id,
+  });
+  await proposeOnChallenge(db, {
+    challengeId: padel.id,
+    teamId: t.smash.id,
+    venueId: v.riverside.id,
+    startsAt: at(6, 19),
+    pricePerPlayerFils: 1500,
+    userId: u.omar!.id,
   });
   await postChallenge(db, {
     teamId: t.gooz.id,

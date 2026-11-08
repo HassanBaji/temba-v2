@@ -10,6 +10,10 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 
+import {
+  ConfirmSheet,
+  type ConfirmRequest,
+} from "../game-details/confirm-sheet";
 import { useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
@@ -38,6 +42,7 @@ export function ChallengesScreen() {
   const [filters, setFilters] = useState<ChallengeBoardFilters>(
     NO_CHALLENGE_BOARD_FILTERS,
   );
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const challenges = api.challenges.listMine.useQuery(
     undefined,
@@ -66,6 +71,19 @@ export function ChallengesScreen() {
       router.push(teamPath(result.teamId));
     },
     onError: (error) => toast.show(error.message),
+  });
+
+  const decline = api.challenges.declineProposal.useMutation({
+    onSuccess: async () => {
+      toast.show(m.challenge.proposal.declined);
+      await Promise.all([
+        utils.challenges.listMine.invalidate(),
+        utils.challenges.byId.invalidate(),
+        utils.challenges.listOpen.invalidate(),
+      ]);
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
   });
 
   const refetchAll = useCallback(
@@ -108,11 +126,24 @@ export function ChallengesScreen() {
         onCreate={(groupId) => router.push(newTeamPath(groupId))}
         onAccept={(inviteId) => accept.mutate({ inviteId })}
         onRetry={() => void refetchAll()}
-        posted={slotOf({
-          data: challenges.data?.posted,
-          error: challenges.error,
-          isLoading: challenges.isLoading,
-        })}
+        mine={{
+          items: slotOf({
+            data: challenges.data?.items,
+            error: challenges.error,
+            isLoading: challenges.isLoading,
+          }),
+          decliningId: decline.isPending
+            ? (decline.variables?.proposalId ?? null)
+            : null,
+          onDecline: (proposal) =>
+            setConfirm({
+              title: m.challenge.proposal.declineConfirm.title,
+              description: m.challenge.proposal.declineConfirm.description,
+              details: [proposal.teamName],
+              confirmLabel: m.challenge.proposal.declineConfirm.confirm,
+              onConfirm: () => decline.mutate({ proposalId: proposal.id }),
+            }),
+        }}
         open={{
           board: slotOf(board),
           filters,
@@ -123,6 +154,11 @@ export function ChallengesScreen() {
           onPost: () => router.push(NEW_CHALLENGE_PATH),
           onRetry: () => void board.refetch(),
         }}
+      />
+      <ConfirmSheet
+        request={confirm}
+        pending={decline.isPending}
+        onClose={() => setConfirm(null)}
       />
     </Screen>
   );

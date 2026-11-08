@@ -344,6 +344,30 @@ export function notificationCopy(
       subline: sub.postAgain,
     };
   }
+  if (item.type === "challenge_proposal_received") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalReceived(userName(item.team.name, locale))
+        : m.challengeProposalReceivedUnnamed,
+      subline: sub.confirmOrAnotherTime,
+    };
+  }
+  if (item.type === "challenge_proposal_declined") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalDeclined(userName(item.team.name, locale))
+        : m.challengeProposalDeclinedUnnamed,
+      subline: sub.proposeAgain,
+    };
+  }
+  if (item.type === "challenge_proposal_expired") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalExpired(userName(item.team.name, locale))
+        : m.challengeProposalExpiredUnnamed,
+      subline: sub.proposeAgain,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
     const subline = gameFinishedSubline(item.audience, item.game, locale);
     if (subline) {

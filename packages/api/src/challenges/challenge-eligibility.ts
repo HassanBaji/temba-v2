@@ -75,7 +75,8 @@ export async function loadViewerTeams(
   });
 }
 
-function ineligibleReason(
+/** Why one of the viewer's Teams of the Challenge's sport may not propose, or null when it may. */
+export function teamIneligibleReason(
   challenge: ChallengeForEligibility,
   posterMemberUserIds: ReadonlySet<string>,
   team: ViewerTeam,
@@ -118,7 +119,7 @@ export function viewerEligibility(
   const eligibleTeams: { id: string; displayName: string }[] = [];
   const reasons = new Set<ChallengeIneligibleReason>();
   for (const team of ofSport) {
-    const reason = ineligibleReason(challenge, posterMembers, team);
+    const reason = teamIneligibleReason(challenge, posterMembers, team);
     if (reason) {
       reasons.add(reason);
     } else {

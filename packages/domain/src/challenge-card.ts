@@ -1,7 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { challengeDaysLeft } from "./challenge-clock";
+import { challengeDaysLeft, proposalExpiresLine } from "./challenge-clock";
 import {
   CHALLENGE_TIMINGS,
   CHALLENGE_WEEKDAYS,
@@ -10,7 +10,7 @@ import {
   type ChallengeTiming,
   type ChallengeWeekday,
 } from "./challenge-form";
-import { formatGameStart } from "./format-game-start";
+import { formatGameDay, formatGameStart } from "./format-game-start";
 import { sideSizeLabel } from "./game-shape";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
@@ -18,6 +18,7 @@ import {
   type AssignableDisplayLevelBand,
 } from "./level-bands";
 import { parseLevelBandSelectTenths, tenthsToLevelBand } from "./level-range";
+import { formatPricePerPlayerFils } from "./price-per-player";
 import { SPORTS, sportLabel, type Sport } from "./sport";
 import { teamRosterRule } from "./team-roster";
 
@@ -391,3 +392,57 @@ export function challengeBoardFilterGroups(
 export function challengeBoardHasFilters(filters: ChallengeBoardFilters) {
   return Object.values(filters).some((value) => value != null);
 }
+
+export type ChallengeProposalInput = {
+  startsAt: Date | string;
+  venue: { name: string };
+  court: { name: string } | null;
+  pricePerPlayerFils: number | null;
+  expiresAt: Date | string;
+  sentAt: Date | string;
+  team: { displayName: string };
+};
+
+/** A Proposal's lines: "Sat 14 Nov, 7:00 PM", "Padel Central, Court 2", "1.500 BD each", "Expires in 22h". */
+export function challengeProposalView(
+  input: ChallengeProposalInput,
+  now: Date,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  const whenLine = formatGameStart(input.startsAt, locale);
+  const whereLine = input.court
+    ? m.challenge.proposal.at(input.venue.name, input.court.name)
+    : input.venue.name;
+  const priceLine =
+    input.pricePerPlayerFils == null
+      ? null
+      : input.pricePerPlayerFils === 0
+        ? formatPricePerPlayerFils(0, locale)
+        : m.challenge.proposal.price(
+            formatPricePerPlayerFils(input.pricePerPlayerFils, locale) ?? "",
+          );
+  const expiresLine = proposalExpiresLine(input.expiresAt, now, locale);
+  const sentLine = m.challenge.proposal.sent(
+    formatGameDay(input.sentAt, locale, { weekday: "short" }),
+  );
+  return {
+    title: input.team.displayName,
+    whenLine,
+    whereLine,
+    priceLine,
+    expiresLine,
+    sentLine,
+    accessibilityLabel: [
+      input.team.displayName,
+      whenLine,
+      whereLine,
+      priceLine,
+      expiresLine,
+    ]
+      .filter((part): part is string => part != null)
+      .join(m.group.metaSeparator),
+  };
+}
+
+export type ChallengeProposalView = ReturnType<typeof challengeProposalView>;

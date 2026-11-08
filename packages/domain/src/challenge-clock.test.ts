@@ -6,6 +6,8 @@ import {
   isChallengeOpen,
   isProposalPending,
   proposalExpiresAt,
+  proposalExpiresLine,
+  proposalHoursLeft,
 } from "./challenge-clock";
 
 const posted = new Date("2026-11-08T10:00:00Z");
@@ -55,5 +57,24 @@ describe("challenge clock", () => {
     expect(
       challengeDaysLeft(expiresAt, new Date(posted.getTime() + 9 * day)),
     ).toBe(0);
+  });
+
+  it("says how long a Proposal has left in hours", () => {
+    const expiresAt = proposalExpiresAt(posted);
+    const later = new Date(posted.getTime() + 26 * 60 * 60 * 1000);
+    expect(proposalHoursLeft(expiresAt, later)).toBe(22);
+    expect(proposalExpiresLine(expiresAt, later, "en")).toBe("Expires in 22h");
+    expect(
+      proposalExpiresLine(
+        expiresAt,
+        new Date(expiresAt.getTime() - 30 * 60 * 1000),
+        "en",
+      ),
+    ).toBe("Expires within the hour");
+    expect(proposalExpiresLine(expiresAt, expiresAt, "en")).toBe("Expired");
+    expect(
+      proposalHoursLeft(expiresAt, new Date(expiresAt.getTime() + 1)),
+    ).toBe(0);
+    expect(proposalExpiresLine(expiresAt, later, "ar")).toContain("22");
   });
 });

@@ -624,6 +624,13 @@
       "when": 1794151284384,
       "tag": "0088_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794154931665,
+      "tag": "0089_challenge_proposal_notifications",
+      "breakpoints": true
     }
   ]
 }

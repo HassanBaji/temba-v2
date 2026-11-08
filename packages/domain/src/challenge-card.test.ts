@@ -5,6 +5,7 @@ import {
   challengeBoardQuery,
   challengeCardView,
   challengeLevelWanted,
+  challengeProposalView,
   challengeWhenLine,
   NO_CHALLENGE_BOARD_FILTERS,
   type ChallengeCardInput,
@@ -169,5 +170,41 @@ describe("board filters", () => {
       ["Lisbon", false],
       ["Porto", true],
     ]);
+  });
+});
+
+describe("challengeProposalView", () => {
+  const proposal = {
+    startsAt: new Date("2026-11-13T16:00:00Z"),
+    venue: { name: "Padel Central" },
+    court: { name: "Court 2" },
+    pricePerPlayerFils: 1500,
+    expiresAt: new Date("2026-11-09T08:00:00Z"),
+    sentAt: new Date("2026-11-07T08:00:00Z"),
+    team: { displayName: "Riffa Rackets" },
+  };
+
+  it("reads the time, the venue and court, the price each and the hours left", () => {
+    const view = challengeProposalView(proposal, now, "en");
+    expect(view.title).toBe("Riffa Rackets");
+    expect(view.whenLine).toContain("7:00 PM");
+    expect(view.whereLine).toBe("Padel Central, Court 2");
+    expect(view.priceLine).toBe("1.500 BD each");
+    expect(view.expiresLine).toBe("Expires in 22h");
+    expect(view.sentLine).toMatch(/^Sent /);
+  });
+
+  it("drops the court and the price when the Proposal has none", () => {
+    const view = challengeProposalView(
+      { ...proposal, court: null, pricePerPlayerFils: null },
+      now,
+      "en",
+    );
+    expect(view.whereLine).toBe("Padel Central");
+    expect(view.priceLine).toBeNull();
+    expect(
+      challengeProposalView({ ...proposal, pricePerPlayerFils: 0 }, now, "en")
+        .priceLine,
+    ).toBe("Free");
   });
 });

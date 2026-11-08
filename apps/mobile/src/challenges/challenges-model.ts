@@ -22,6 +22,10 @@ export type OpenChallenge =
 export type MineChallenge =
   RouterOutputs["challenges"]["listMine"]["posted"][number];
 
+export type MineItem = RouterOutputs["challenges"]["listMine"]["items"][number];
+
+export type ChallengeDetail = RouterOutputs["challenges"]["byId"];
+
 export type PostOptions = RouterOutputs["challenges"]["listPostOptions"];
 
 export type PostableTeam = PostOptions["teams"][number];

@@ -952,3 +952,63 @@ describe("notificationCopy for an expired Challenge", () => {
     );
   });
 });
+
+describe("notificationCopy for a Proposal", () => {
+  function title(type: string, team: string | null, locale: "en" | "ar") {
+    return notificationCopy(
+      {
+        type,
+        audience: "player",
+        actor: null,
+        team: { name: team },
+        group: null,
+      },
+      locale,
+    )
+      ?.title.map((part) => part.text)
+      .join("");
+  }
+
+  it("names the other Team on a received, declined and expired Proposal", () => {
+    assert.equal(
+      title("challenge_proposal_received", "Riffa Rackets", "en"),
+      "Riffa Rackets proposed a time for your challenge",
+    );
+    assert.equal(
+      title("challenge_proposal_declined", "Seef Smashers", "en"),
+      "Seef Smashers asked for another time",
+    );
+    assert.equal(
+      title("challenge_proposal_expired", "Seef Smashers", "en"),
+      "Your proposal to Seef Smashers expired",
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "challenge_proposal_received",
+          audience: "player",
+          actor: null,
+          team: { name: "Riffa Rackets" },
+          group: null,
+        },
+        "en",
+      )?.subline,
+      "Confirm it, or ask for another time, within 48 hours.",
+    );
+  });
+
+  it("reads an unnamed Team plainly, in Arabic too", () => {
+    assert.equal(
+      title("challenge_proposal_received", null, "en"),
+      "A Team proposed a time for your challenge",
+    );
+    assert.equal(
+      title("challenge_proposal_expired", null, "ar"),
+      "انتهت مدة عرض فريقك",
+    );
+    assert.equal(
+      title("challenge_proposal_declined", "Seef Smashers", "ar"),
+      `${isolate("Seef Smashers")} طلب وقتًا آخر`,
+    );
+  });
+});

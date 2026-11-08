@@ -22,6 +22,7 @@ export type NotificationItem = {
   partner: NotificationPerson | null;
   team: { id: string; name: string | null } | null;
   group: { id: string; name: string | null } | null;
+  challenge: { id: string } | null;
   game: {
     id: string;
     name: string | null;
@@ -94,6 +95,7 @@ export async function loadNotificationItems(
       partner: { columns: { id: true, name: true, image: true } },
       team: { columns: { id: true, name: true } },
       group: { columns: { id: true, name: true } },
+      challenge: { columns: { id: true } },
       game: {
         columns: {
           id: true,

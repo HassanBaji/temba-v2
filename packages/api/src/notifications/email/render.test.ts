@@ -32,6 +32,7 @@ function item(
     partner: null,
     team: null,
     group: null,
+    challenge: null,
     game: null,
     levelSet: null,
     ...overrides,
@@ -193,6 +194,34 @@ describe("renderNotificationEmail", () => {
       `href="${ORIGIN}/dashboard/challenges?tab=mine"`,
     );
     expect(email.html).toContain(">Open Challenges<");
+  });
+
+  it("sends a Proposal received, declined or expired to the Challenge", () => {
+    const email = render(
+      item({
+        type: "challenge_proposal_received",
+        audience: "player",
+        team: { id: "t-riffa", name: "Riffa Rackets" },
+        challenge: { id: "c-1" },
+      }),
+    );
+    expect(email.subject).toBe(
+      "Riffa Rackets proposed a time for your challenge",
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/challenges/c-1"`);
+    for (const type of [
+      "challenge_proposal_declined",
+      "challenge_proposal_expired",
+    ] as const) {
+      expect(
+        notificationEmailDestination({
+          type,
+          group: null,
+          game: null,
+          challenge: { id: "c-1" },
+        }),
+      ).toEqual({ kind: "challenges", path: "/dashboard/challenges/c-1" });
+    }
   });
 
   it("renders Arabic right-to-left from the Arabic catalog", () => {

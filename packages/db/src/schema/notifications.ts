@@ -39,6 +39,9 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_level_range_declined",
   "team_invite_received",
   "challenge_expired",
+  "challenge_proposal_received",
+  "challenge_proposal_declined",
+  "challenge_proposal_expired",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

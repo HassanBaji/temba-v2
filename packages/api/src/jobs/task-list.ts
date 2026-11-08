@@ -12,6 +12,7 @@ import * as paymentCreateCharge from "./handlers/payment.create-charge";
 import * as paymentPollCharge from "./handlers/payment.poll-charge";
 import * as paymentProcessWebhook from "./handlers/payment.process-webhook";
 import * as paymentRefund from "./handlers/payment.refund";
+import * as proposalExpire from "./handlers/proposal.expire";
 import { logJobFailed, type JobHandler } from "./handler";
 
 const handlers: Record<string, JobHandler> = {
@@ -25,6 +26,7 @@ const handlers: Record<string, JobHandler> = {
   [paymentPollCharge.jobName]: paymentPollCharge,
   [paymentProcessWebhook.jobName]: paymentProcessWebhook,
   [paymentRefund.jobName]: paymentRefund,
+  [proposalExpire.jobName]: proposalExpire,
 };
 
 export const crontab = [bookingReconcile.crontabLine].join("\n");

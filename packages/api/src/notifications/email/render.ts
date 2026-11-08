@@ -19,6 +19,7 @@ export type NotificationEmailInput = Pick<
   | "partner"
   | "team"
   | "group"
+  | "challenge"
   | "game"
   | "levelSet"
 >;
@@ -42,7 +43,9 @@ const FONT =
  * holds no route strings. Keep in step with `apps/web/src/lib/notification-href.ts`.
  */
 export function notificationEmailDestination(
-  item: Pick<NotificationEmailInput, "type" | "group" | "game">,
+  item: Pick<NotificationEmailInput, "type" | "group" | "game"> & {
+    challenge?: { id: string } | null;
+  },
 ): Destination | null {
   if (
     (item.type === "group_member_joined" ||
@@ -78,6 +81,17 @@ export function notificationEmailDestination(
     return {
       kind: "teams",
       path: `/dashboard/challenges${challengesTabQuery("teams")}`,
+    };
+  }
+  if (
+    (item.type === "challenge_proposal_received" ||
+      item.type === "challenge_proposal_declined" ||
+      item.type === "challenge_proposal_expired") &&
+    item.challenge
+  ) {
+    return {
+      kind: "challenges",
+      path: `/dashboard/challenges/${item.challenge.id}`,
     };
   }
   if (item.type === "challenge_expired") {

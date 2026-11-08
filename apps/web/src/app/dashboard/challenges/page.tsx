@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ChallengeOpenSegment } from "~/components/challenges/challenge-open-segment";
 import { ChallengeMineSegment } from "~/components/challenges/challenge-mine-segment";
 import { ChallengeTeamsSegment } from "~/components/challenges/challenge-teams-segment";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -57,6 +58,21 @@ export default function ChallengesPage({
   const pending = api.teams.pendingInvites.useQuery();
   const organized = api.games.listCreateGroups.useQuery(undefined, {
     enabled: tab === "teams",
+  });
+
+  const [declining, setDeclining] = useState<{
+    id: string;
+    teamName: string;
+  } | null>(null);
+  const decline = api.challenges.declineProposal.useMutation({
+    onSuccess: async () => {
+      toast.success(m.challenge.proposal.declined);
+      await Promise.all([
+        utils.challenges.listMine.invalidate(),
+        utils.challenges.byId.invalidate(),
+        utils.challenges.listOpen.invalidate(),
+      ]);
+    },
   });
 
   const accept = api.teams.acceptInAppInvite.useMutation({
@@ -127,7 +143,8 @@ export default function ChallengesPage({
         </TabsContent>
         <TabsContent value="mine">
           <ChallengeMineSegment
-            posted={challenges.data?.posted}
+            items={challenges.data?.items}
+            onDecline={setDeclining}
             onGoToTeams={goToTeams}
           />
         </TabsContent>
@@ -152,6 +169,23 @@ export default function ChallengesPage({
           />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog
+        open={declining != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeclining(null);
+          }
+        }}
+        title={m.challenge.proposal.declineConfirm.title}
+        description={m.challenge.proposal.declineConfirm.description}
+        confirmLabel={m.challenge.proposal.declineConfirm.confirm}
+        pending={decline.isPending}
+        onConfirm={async () => {
+          if (declining) {
+            await decline.mutateAsync({ proposalId: declining.id });
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

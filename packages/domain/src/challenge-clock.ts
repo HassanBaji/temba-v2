@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 export const CHALLENGE_OPEN_DAYS = 7;
 
 export const PROPOSAL_PENDING_HOURS = 48;
@@ -45,4 +48,26 @@ export function challengeDaysLeft(expiresAt: Date | string, now: Date) {
     0,
     Math.ceil((instant(expiresAt) - now.getTime()) / MS_PER_DAY),
   );
+}
+
+/** Whole hours left on a Proposal, rounded up; zero once it is due. */
+export function proposalHoursLeft(expiresAt: Date | string, now: Date) {
+  return Math.max(
+    0,
+    Math.ceil((instant(expiresAt) - now.getTime()) / MS_PER_HOUR),
+  );
+}
+
+/** "Expires in 22h", "Expires within the hour", or "Expired". */
+export function proposalExpiresLine(
+  expiresAt: Date | string,
+  now: Date,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.proposal;
+  if (instant(expiresAt) <= now.getTime()) {
+    return m.expired;
+  }
+  const hours = proposalHoursLeft(expiresAt, now);
+  return hours <= 1 ? m.expiresWithinHour : m.expiresIn(hours);
 }

@@ -5,13 +5,19 @@ import { notFound, useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
+import { ChallengeAcceptDialog } from "~/components/challenges/challenge-accept-dialog";
 import { ChallengeSeats } from "~/components/challenges/challenge-card";
+import {
+  ProposalQueue,
+  ViewerProposals,
+} from "~/components/challenges/challenge-proposals";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import { acceptTeamToPropose } from "@repo/domain/challenge-accept";
 import {
   challengeCardView,
   challengeLevelWanted,
@@ -33,7 +39,10 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** 2a: one Challenge in its open state. */
+/**
+ * 2a: one Challenge in its open state, with Accept for a Team that may
+ * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue.
+ */
 export default function ChallengePage({
   params,
 }: {
@@ -45,6 +54,9 @@ export default function ChallengePage({
   const router = useRouter();
   const utils = api.useUtils();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [accepting, setAccepting] = useState<{ teamId: string } | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [declining, setDeclining] = useState<string | null>(null);
   const challenge = api.challenges.byId.useQuery({ id });
   const withdraw = api.challenges.withdraw.useMutation({
     onSuccess: async () => {
@@ -58,7 +70,27 @@ export default function ChallengePage({
       router.push(`/dashboard/challenges${challengesTabQuery("mine")}`);
     },
   });
+  const refreshProposals = () =>
+    Promise.all([
+      utils.challenges.byId.invalidate({ id }),
+      utils.challenges.listProposeOptions.invalidate({ challengeId: id }),
+      utils.challenges.listOpen.invalidate(),
+      utils.challenges.listMine.invalidate(),
+    ]);
+  const withdrawProposal = api.challenges.withdrawProposal.useMutation({
+    onSuccess: async () => {
+      toast.success(m.challenge.proposal.withdrawn);
+      await refreshProposals();
+    },
+  });
+  const decline = api.challenges.declineProposal.useMutation({
+    onSuccess: async () => {
+      toast.success(m.challenge.proposal.declined);
+      await refreshProposals();
+    },
+  });
   const detail = m.challenge.detail;
+  const proposalCopy = m.challenge.proposal;
 
   if (isNotFoundError(challenge.error)) {
     notFound();
@@ -90,6 +122,10 @@ export default function ChallengePage({
     { ...data, viewer: { ineligibleReason: data.viewer.ineligibleReason } },
     locale,
     new Date(),
+  );
+  const proposingTeam = acceptTeamToPropose(
+    data.viewerEligibleTeams,
+    data.viewerProposals,
   );
   const eligibleLine =
     data.viewerEligibleTeams.length > 0
@@ -158,6 +194,29 @@ export default function ChallengePage({
         {data.state === "open" && card.greyedLine ? (
           <p className="text-body font-medium">{card.greyedLine}</p>
         ) : null}
+        {data.state === "open" && proposingTeam ? (
+          <Button
+            type="button"
+            size="lg"
+            aria-label={m.challenge.accept.ctaA11y(card.title)}
+            onClick={() => setAccepting({ teamId: proposingTeam.id })}
+          >
+            {m.challenge.accept.cta}
+          </Button>
+        ) : null}
+        <ViewerProposals
+          proposals={data.viewerProposals}
+          posterTeamName={card.title}
+          focus={data.proposalQueue.length === 0}
+          onChange={(proposal) => setAccepting({ teamId: proposal.team.id })}
+          onWithdraw={(proposal) => setWithdrawing(proposal.id)}
+        />
+        {data.viewerCanDecide ? (
+          <ProposalQueue
+            proposals={data.proposalQueue}
+            onDecline={(proposal) => setDeclining(proposal.id)}
+          />
+        ) : null}
         {data.viewerCanWithdraw ? (
           <Button
             type="button"
@@ -177,6 +236,50 @@ export default function ChallengePage({
         pending={withdraw.isPending}
         onConfirm={async () => {
           await withdraw.mutateAsync({ challengeId: id });
+        }}
+      />
+      <ConfirmDialog
+        open={withdrawing != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWithdrawing(null);
+          }
+        }}
+        title={proposalCopy.withdrawConfirm.title}
+        description={proposalCopy.withdrawConfirm.description}
+        confirmLabel={proposalCopy.withdrawConfirm.confirm}
+        pending={withdrawProposal.isPending}
+        onConfirm={async () => {
+          if (withdrawing) {
+            await withdrawProposal.mutateAsync({ proposalId: withdrawing });
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={declining != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeclining(null);
+          }
+        }}
+        title={proposalCopy.declineConfirm.title}
+        description={proposalCopy.declineConfirm.description}
+        confirmLabel={proposalCopy.declineConfirm.confirm}
+        pending={decline.isPending}
+        onConfirm={async () => {
+          if (declining) {
+            await decline.mutateAsync({ proposalId: declining });
+          }
+        }}
+      />
+      <ChallengeAcceptDialog
+        challengeId={id}
+        open={accepting != null}
+        teamId={accepting?.teamId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAccepting(null);
+          }
         }}
       />
     </DashboardShell>

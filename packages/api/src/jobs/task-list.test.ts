@@ -92,6 +92,7 @@ describe("task list", () => {
       "payment.poll-charge",
       "payment.process-webhook",
       "payment.refund",
+      "proposal.expire",
     ]);
     expect(crontab).toContain("*/15 * * * * booking:reconcile");
   });

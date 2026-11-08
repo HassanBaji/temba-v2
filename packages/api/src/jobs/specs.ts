@@ -12,6 +12,7 @@ export const JOB = {
   reconcile: "booking:reconcile",
   settleMvp: "marks.settle-mvp",
   challengeExpire: "challenge.expire",
+  proposalExpire: "proposal.expire",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -25,6 +26,7 @@ export const MAX_ATTEMPTS = {
   notificationEmail: 5,
   settleMvp: 5,
   challengeExpire: 5,
+  proposalExpire: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -59,6 +61,21 @@ export function challengeExpireJob(challengeId: string): JobSpec {
     key: challengeExpireJobKey(challengeId),
     payload: { challengeId },
     maxAttempts: MAX_ATTEMPTS.challengeExpire,
+    mode: "replace",
+  };
+}
+
+export function proposalExpireJobKey(proposalId: string) {
+  return `proposal:expire:${proposalId}`;
+}
+
+/** Expires a Proposal nobody decided; enqueued at its `expires_at`, moved by a change. */
+export function proposalExpireJob(proposalId: string): JobSpec {
+  return {
+    name: JOB.proposalExpire,
+    key: proposalExpireJobKey(proposalId),
+    payload: { proposalId },
+    maxAttempts: MAX_ATTEMPTS.proposalExpire,
     mode: "replace",
   };
 }

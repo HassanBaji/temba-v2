@@ -4,11 +4,13 @@ import {
   makeTeam,
   makeUsers,
   makeVenue,
+  padelMatchup,
   withDb,
 } from "#src/challenges/challenges.test-support";
 
 import { challengeById } from "./byId";
 import { postChallenge } from "./post";
+import { proposeOnChallenge } from "./propose";
 import { withdrawChallenge } from "./withdraw";
 
 const now = new Date("2026-11-08T10:00:00Z");
@@ -79,6 +81,65 @@ describe("challenges.byId", () => {
         viewerCanWithdraw: false,
         viewerEligibleTeams: [],
       });
+    });
+  });
+
+  it("shows the proposing Team its pending Proposal and the posting Team the queue", async () => {
+    await withDb(async ({ database, db }) => {
+      const match = await padelMatchup(database, now);
+      const startsAt = new Date("2026-11-13T16:00:00Z");
+      const { id: proposalId } = await proposeOnChallenge(db, {
+        challengeId: match.challenge.id,
+        teamId: match.riffa.id,
+        venueId: match.venue.id,
+        courtId: match.court.id,
+        startsAt,
+        pricePerPlayerFils: 1500,
+        userId: match.proposer.rafi,
+        now,
+      });
+      const pending = {
+        id: proposalId,
+        status: "pending",
+        team: { id: match.riffa.id, displayName: "Riffa Rackets" },
+        proposedBy: { id: match.proposer.rafi },
+        venue: { id: match.venue.id, name: "Padel Central" },
+        court: { id: match.court.id, name: "Court 1" },
+        startsAt,
+        pricePerPlayerFils: 1500,
+        expiresAt: new Date(now.getTime() + 48 * 60 * 60 * 1000),
+        sentAt: now,
+      };
+
+      const proposer = await challengeById(db, {
+        challengeId: match.challenge.id,
+        userId: match.proposer.saad,
+        now,
+      });
+      expect(proposer).toMatchObject({
+        proposalCount: 1,
+        viewerProposals: [pending],
+        proposalQueue: [],
+        viewerCanDecide: false,
+      });
+
+      const poster = await challengeById(db, {
+        challengeId: match.challenge.id,
+        userId: match.poster.omar,
+        now,
+      });
+      expect(poster).toMatchObject({
+        viewerProposals: [],
+        proposalQueue: [pending],
+        viewerCanDecide: true,
+      });
+
+      const lapsed = await challengeById(db, {
+        challengeId: match.challenge.id,
+        userId: match.poster.omar,
+        now: new Date(now.getTime() + 49 * 60 * 60 * 1000),
+      });
+      expect(lapsed).toMatchObject({ proposalCount: 0, proposalQueue: [] });
     });
   });
 

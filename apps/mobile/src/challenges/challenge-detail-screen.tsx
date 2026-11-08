@@ -1,4 +1,5 @@
 import { spacing } from "@repo/design-tokens";
+import { acceptTeamToPropose } from "@repo/domain/challenge-accept";
 import {
   challengeCardView,
   challengeLevelWanted,
@@ -25,7 +26,9 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
+import { AcceptSheet } from "./accept-sheet";
 import { ChallengeSeats } from "./challenge-card";
+import { ProposalQueue, ViewerProposals } from "./challenge-detail-proposals";
 import {
   CHALLENGES_PATH,
   challengeCardInput,
@@ -45,7 +48,10 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** 2a: one Challenge in its open state. */
+/**
+ * 2a: one Challenge in its open state, with Accept for a Team that may
+ * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue.
+ */
 export function ChallengeDetailScreen({
   challengeId,
 }: {
@@ -58,6 +64,9 @@ export function ChallengeDetailScreen({
   const utils = api.useUtils();
   const [refreshing, setRefreshing] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const [accepting, setAccepting] = useState<{ teamId: string | null } | null>(
+    null,
+  );
   const challenge = api.challenges.byId.useQuery(
     { id: challengeId },
     REFETCH_ON_FOREGROUND,
@@ -73,6 +82,30 @@ export function ChallengeDetailScreen({
         utils.challenges.listPostOptions.invalidate(),
       ]);
       router.replace(MINE_PATH);
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
+  });
+
+  const refreshProposals = () =>
+    Promise.all([
+      utils.challenges.byId.invalidate({ id: challengeId }),
+      utils.challenges.listProposeOptions.invalidate({ challengeId }),
+      utils.challenges.listOpen.invalidate(),
+      utils.challenges.listMine.invalidate(),
+    ]);
+  const withdrawProposal = api.challenges.withdrawProposal.useMutation({
+    onSuccess: async () => {
+      toast.show(m.challenge.proposal.withdrawn);
+      await refreshProposals();
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
+  });
+  const decline = api.challenges.declineProposal.useMutation({
+    onSuccess: async () => {
+      toast.show(m.challenge.proposal.declined);
+      await refreshProposals();
     },
     onError: (error) => toast.show(error.message),
     onSettled: () => setConfirm(null),
@@ -122,6 +155,10 @@ export function ChallengeDetailScreen({
   const card = challengeCardView(challengeCardInput(data), locale, now);
   const open = data.state === "open";
   const detail = m.challenge.detail;
+  const proposingTeam = acceptTeamToPropose(
+    data.viewerEligibleTeams,
+    data.viewerProposals,
+  );
   const eligibleLine =
     data.viewerEligibleTeams.length > 0
       ? detail.proposeWith(
@@ -201,6 +238,51 @@ export function ChallengeDetailScreen({
         {open && card.greyedLine ? (
           <Text weight="medium">{card.greyedLine}</Text>
         ) : null}
+        {open && proposingTeam ? (
+          <Button
+            label={m.challenge.accept.cta}
+            accessibilityLabel={m.challenge.accept.ctaA11y(card.title)}
+            size="lg"
+            onPress={() => setAccepting({ teamId: proposingTeam.id })}
+          />
+        ) : null}
+        <ViewerProposals
+          proposals={data.viewerProposals}
+          posterTeamName={card.title}
+          focus={data.proposalQueue.length === 0}
+          withdrawingId={
+            withdrawProposal.isPending
+              ? (withdrawProposal.variables?.proposalId ?? null)
+              : null
+          }
+          onChange={(proposal) => setAccepting({ teamId: proposal.team.id })}
+          onWithdraw={(proposal) =>
+            setConfirm({
+              title: m.challenge.proposal.withdrawConfirm.title,
+              description: m.challenge.proposal.withdrawConfirm.description,
+              confirmLabel: m.challenge.proposal.withdrawConfirm.confirm,
+              onConfirm: () =>
+                withdrawProposal.mutate({ proposalId: proposal.id }),
+            })
+          }
+        />
+        {data.viewerCanDecide ? (
+          <ProposalQueue
+            proposals={data.proposalQueue}
+            decliningId={
+              decline.isPending ? (decline.variables?.proposalId ?? null) : null
+            }
+            onDecline={(proposal) =>
+              setConfirm({
+                title: m.challenge.proposal.declineConfirm.title,
+                description: m.challenge.proposal.declineConfirm.description,
+                details: [proposal.team.displayName],
+                confirmLabel: m.challenge.proposal.declineConfirm.confirm,
+                onConfirm: () => decline.mutate({ proposalId: proposal.id }),
+              })
+            }
+          />
+        ) : null}
         {data.viewerCanWithdraw ? (
           <Button
             label={detail.withdraw}
@@ -218,8 +300,16 @@ export function ChallengeDetailScreen({
       </View>
       <ConfirmSheet
         request={confirm}
-        pending={withdraw.isPending}
+        pending={
+          withdraw.isPending || withdrawProposal.isPending || decline.isPending
+        }
         onClose={() => setConfirm(null)}
+      />
+      <AcceptSheet
+        challengeId={challengeId}
+        visible={accepting != null}
+        teamId={accepting?.teamId}
+        onClose={() => setAccepting(null)}
       />
     </Screen>
   );
