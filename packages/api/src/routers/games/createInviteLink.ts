@@ -1,10 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGameOrganizer, requireGame } from "#src/games/access";
+import {
+  assertGameOrganizer,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { assertGameInviteDoorsOpen } from "#src/games/invites";
 import { mintLink } from "#src/invites/doors";
 import { gameInviteLinkUrl, gameInviteShortUrl } from "#src/invites/tokens";
@@ -13,9 +19,10 @@ type DbClient = typeof db;
 
 export async function createInviteLink(
   database: DbClient,
-  args: { gameId: string; userId: string; origin: string },
+  args: { gameId: string; userId: string; origin: string; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.userId);
   await assertGameInviteDoorsOpen(database, game);
   const minted = await mintLink(
@@ -48,5 +55,6 @@ export const createInviteLinkProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

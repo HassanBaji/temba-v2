@@ -32,6 +32,7 @@ function item(
     partner: null,
     team: null,
     group: null,
+    challenge: null,
     game: null,
     levelSet: null,
     ...overrides,
@@ -162,6 +163,81 @@ describe("renderNotificationEmail", () => {
       `href="${ORIGIN}/dashboard/games?tab=history"`,
     );
     expect(email.html).toContain(">See your Games<");
+  });
+
+  it("sends a Team invite to Challenges, Teams", () => {
+    const email = render(
+      item({
+        type: "team_invite_received",
+        audience: "player",
+        team: { id: "t-gooz", name: "Gooz FC" },
+      }),
+    );
+    expect(email.subject).toBe("Omar Aziz invited you to Gooz FC");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/challenges?tab=teams"`,
+    );
+    expect(email.html).toContain(">Open your Teams<");
+  });
+
+  it("sends an expired Challenge to Challenges, Mine", () => {
+    const email = render(
+      item({
+        type: "challenge_expired",
+        audience: "player",
+        actor: null,
+        team: { id: "t-gooz", name: "Gooz FC" },
+      }),
+    );
+    expect(email.subject).toBe("The challenge from Gooz FC expired");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/challenges?tab=mine"`,
+    );
+    expect(email.html).toContain(">Open Challenges<");
+  });
+
+  it("sends a Proposal received, declined or expired to the Challenge", () => {
+    const email = render(
+      item({
+        type: "challenge_proposal_received",
+        audience: "player",
+        team: { id: "t-riffa", name: "Riffa Rackets" },
+        challenge: { id: "c-1" },
+      }),
+    );
+    expect(email.subject).toBe(
+      "Riffa Rackets proposed a time for your challenge",
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/challenges/c-1"`);
+    for (const type of [
+      "challenge_proposal_declined",
+      "challenge_proposal_expired",
+      "challenge_proposal_passed_over",
+      "challenge_rematch_nudge",
+    ] as const) {
+      expect(
+        notificationEmailDestination({
+          type,
+          group: null,
+          game: null,
+          challenge: { id: "c-1" },
+        }),
+      ).toEqual({ kind: "challenges", path: "/dashboard/challenges/c-1" });
+    }
+    for (const type of [
+      "challenge_proposal_confirmed",
+      "challenge_squad_due",
+      "challenge_squad_named",
+    ] as const) {
+      expect(
+        notificationEmailDestination({
+          type,
+          group: null,
+          game: GAME,
+          challenge: { id: "c-1" },
+        }),
+      ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
+    }
   });
 
   it("renders Arabic right-to-left from the Arabic catalog", () => {

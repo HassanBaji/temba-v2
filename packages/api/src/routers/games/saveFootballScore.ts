@@ -8,7 +8,9 @@ import {
   matchGoals,
   matchSets,
 } from "@repo/db";
+import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   FOOTBALL_GOALS_MAX,
@@ -20,6 +22,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
+import { loadChallengeSides } from "#src/games/challenge-squad";
 import {
   FOOTBALL_SCORE_SET_NUMBER,
   assertFootballGame,
@@ -84,6 +87,13 @@ export async function saveFootballScore(
   }
   if (match.status === MatchStatusEnum.COMPLETED) {
     refuse("FORBIDDEN", "This score is confirmed; it can no longer change");
+  }
+  const challengeSides = await loadChallengeSides(database, game);
+  if (
+    challengeSides &&
+    !squadsReadyForScore(challengeSides.map((side) => side.squadState))
+  ) {
+    refuse("BAD_REQUEST", messagesFor(locale).challenge.errors.nameBothSquads);
   }
   if (!footballScoreOpen(game, now)) {
     refuse("FORBIDDEN", "The score opens at kick-off");

@@ -1,6 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
+import { useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
@@ -96,5 +97,15 @@ export function CardBand({
         </Text>
       ) : null}
     </View>
+  );
+}
+
+/** The CHALLENGE marker on a Challenge Game's card. */
+export function ChallengeMarker() {
+  const m = useMessages();
+  return (
+    <Text size="eyebrow" weight="semibold" mono uppercase>
+      {m.challenge.marker}
+    </Text>
   );
 }

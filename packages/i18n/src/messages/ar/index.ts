@@ -8,6 +8,7 @@ import { football } from "./football";
 import { group } from "./group";
 import { invite } from "./invite";
 import { team } from "./team";
+import { challenge } from "./challenge";
 import { home } from "./home";
 import { profile } from "./profile";
 import { onboarding } from "./onboarding";
@@ -34,6 +35,8 @@ import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
 import { mobileMarks } from "./mobile-marks";
+import { mobileChallenge } from "./mobile-challenge";
+import { webChallenge } from "./web-challenge";
 import { webYou } from "./web-you";
 import { webMarks } from "./web-marks";
 
@@ -52,6 +55,7 @@ export const ar: Messages = {
   group,
   invite,
   team,
+  challenge,
   home,
   profile,
   onboarding,
@@ -80,4 +84,6 @@ export const ar: Messages = {
   mobileInvite,
   mobileTeam,
   mobileMarks,
+  mobileChallenge,
+  webChallenge,
 };

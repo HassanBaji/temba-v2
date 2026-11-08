@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Users } from "lucide-react";
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { use, useRef, useState } from "react";
@@ -15,8 +15,6 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { MemberRow } from "~/components/common/member-row";
-import { RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -24,11 +22,17 @@ import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
+import { TeamFormLine } from "~/components/teams/team-form-line";
+import { TeamGamesList } from "~/components/teams/team-games-list";
+import { TeamRivalsList } from "~/components/teams/team-rivals-list";
+import { TeamAddPlayersDialog } from "~/components/teams/team-add-players-dialog";
+import { TeamRosterList } from "~/components/teams/team-roster-list";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
+import { sportOrDefault } from "@repo/domain/sport";
 import {
   teamDissolveConfirm,
   teamHomeView,
@@ -51,8 +55,20 @@ export default function TeamHomePage({
   const [dissolveOpen, setDissolveOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [removing, setRemoving] = useState<{
+    userId: string;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    toast: string;
+  } | null>(null);
 
   const team = api.teams.byId.useQuery({ id });
+  const organized = api.games.listCreateGroups.useQuery(undefined, {
+    enabled: addOpen,
+  });
+  const removeUnclaimed = api.teams.removeUnclaimedPlayer.useMutation();
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
@@ -61,6 +77,21 @@ export default function TeamHomePage({
       router.push("/dashboard/teams");
     },
   });
+
+  const setGroupTag = api.teams.setGroupTag.useMutation({
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  async function changeGroupTag(groupId: string | null, toastMessage: string) {
+    await setGroupTag.mutateAsync({ teamId: id, groupId });
+    toast.success(toastMessage);
+    await Promise.all([
+      utils.teams.byId.invalidate({ id }),
+      utils.groups.byId.invalidate(),
+    ]);
+  }
 
   const leave = api.teams.leave.useMutation({
     onSuccess: async () => {
@@ -178,6 +209,34 @@ export default function TeamHomePage({
                     : m.webDashboard.team.invitePartner}
                 </ActionMenuItem>
               ) : null}
+              {view.groupTag.options.map((option) => (
+                <ActionMenuItem
+                  key={option.groupId}
+                  disabled={setGroupTag.isPending}
+                  onSelect={() =>
+                    void changeGroupTag(option.groupId, option.toast).catch(
+                      () => undefined,
+                    )
+                  }
+                >
+                  {option.label}
+                </ActionMenuItem>
+              ))}
+              {view.groupTag.remove ? (
+                <ActionMenuItem
+                  disabled={setGroupTag.isPending}
+                  onSelect={() => {
+                    const removed = view.groupTag.remove;
+                    if (removed) {
+                      void changeGroupTag(null, removed.toast).catch(
+                        () => undefined,
+                      );
+                    }
+                  }}
+                >
+                  {view.groupTag.remove.label}
+                </ActionMenuItem>
+              ) : null}
               {view.canDissolve || view.canLeave ? (
                 <ActionMenuSeparator />
               ) : null}
@@ -201,46 +260,63 @@ export default function TeamHomePage({
           }
         />
 
+        {view.groupTag.line && data.groupTag ? (
+          <p className="text-body text-muted-foreground">
+            <Link
+              href={`/dashboard/groups/${data.groupTag.id}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {view.groupTag.line}
+            </Link>
+          </p>
+        ) : null}
+
         {view.waitingNote ? (
           <p className="text-body text-muted-foreground">{view.waitingCopy}</p>
         ) : null}
 
-        <StatStrip items={view.stats} />
+        <div className="space-y-2">
+          <StatStrip items={view.recordTiles} />
+          {view.rosterHero ? (
+            <p className="text-meta text-muted-foreground">
+              {[
+                view.rosterHero.label,
+                view.roster.status,
+                view.rosterHero.plays,
+              ]
+                .filter(Boolean)
+                .join(m.common.listSeparator)}
+            </p>
+          ) : null}
+          {view.teamLevel ? (
+            <p className="text-meta text-muted-foreground">{view.teamLevel}</p>
+          ) : null}
+        </div>
 
-        <Section
-          title={m.webDashboard.team.membersTitle}
-          description={
-            view.roster.label
-              ? [view.roster.label, view.roster.status]
-                  .filter(Boolean)
-                  .join(" · ")
-              : undefined
-          }
-        >
-          {data.members.length === 0 ? (
-            <EmptyState
-              headingLevel={3}
-              icon={Users}
-              title={m.team.noMembers.title}
-              description={m.team.noMembers.description}
-            />
-          ) : (
-            <RowList>
-              {view.members.map((member) => (
-                <MemberRow
-                  key={member.id}
-                  name={member.name}
-                  image={member.image}
-                  isViewer={member.isViewer}
-                  badge={
-                    member.creatorLabel ? (
-                      <Badge variant="outline">{member.creatorLabel}</Badge>
-                    ) : undefined
-                  }
-                />
-              ))}
-            </RowList>
-          )}
+        <Section title={m.team.form.title}>
+          <TeamFormLine form={view.form} />
+        </Section>
+
+        <Section title={m.team.rivals.title}>
+          <TeamRivalsList view={view} teamId={id} />
+        </Section>
+
+        <Section title={m.team.roster.title}>
+          <TeamRosterList
+            view={view}
+            onAddMore={() => setAddOpen(true)}
+            onRemove={(remove) =>
+              setRemoving({
+                userId: remove.userId,
+                ...remove.confirm,
+                toast: remove.toast,
+              })
+            }
+          />
+        </Section>
+
+        <Section title={m.team.games.title}>
+          <TeamGamesList view={view} />
         </Section>
       </div>
 
@@ -265,6 +341,51 @@ export default function TeamHomePage({
           await leave.mutateAsync({ teamId: id });
         }}
       />
+
+      <ConfirmDialog
+        open={removing != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRemoving(null);
+          }
+        }}
+        title={removing?.title ?? ""}
+        description={removing?.description ?? ""}
+        confirmLabel={removing?.confirmLabel ?? ""}
+        pending={removeUnclaimed.isPending}
+        onConfirm={async () => {
+          if (!removing) {
+            return;
+          }
+          await removeUnclaimed.mutateAsync({
+            teamId: id,
+            userId: removing.userId,
+          });
+          toast.success(removing.toast);
+          await utils.teams.byId.invalidate({ id });
+        }}
+      />
+
+      {data.canInvite ? (
+        <TeamAddPlayersDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          sport={data.sport}
+          spotsLeft={Math.max(0, data.roster.max - data.roster.count)}
+          groups={(organized.data ?? []).filter(
+            (group) => group.sport === sportOrDefault(data.sport),
+          )}
+          target={{
+            kind: "team",
+            teamId: id,
+            onChanged: () =>
+              Promise.all([
+                utils.teams.byId.invalidate({ id }),
+                utils.teams.listInAppInvites.invalidate({ teamId: id }),
+              ]),
+          }}
+        />
+      ) : null}
 
       {data.canInvite ? (
         <InviteDoorDialog

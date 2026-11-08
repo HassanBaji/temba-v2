@@ -343,7 +343,6 @@ export const webDashboard = {
     backToTeams: "العودة إلى الفرق",
     actionsLabel: "إجراءات الفريق",
     allTeams: "كل الفرق",
-    membersTitle: "الأعضاء",
     invitePartner: "دعوة شريك",
   },
   venue: {

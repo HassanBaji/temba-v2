@@ -1,3 +1,4 @@
+import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 import {
   notificationCopy,
@@ -18,13 +19,17 @@ export type NotificationEmailInput = Pick<
   | "partner"
   | "team"
   | "group"
+  | "challenge"
   | "game"
   | "levelSet"
 >;
 
 export type NotificationEmail = { subject: string; html: string; text: string };
 
-type Destination = { kind: "game" | "group" | "history"; path: string };
+type Destination = {
+  kind: "game" | "group" | "history" | "teams" | "challenges";
+  path: string;
+};
 
 const SETTINGS_PATH = "/dashboard/you/settings";
 
@@ -38,7 +43,9 @@ const FONT =
  * holds no route strings. Keep in step with `apps/web/src/lib/notification-href.ts`.
  */
 export function notificationEmailDestination(
-  item: Pick<NotificationEmailInput, "type" | "group" | "game">,
+  item: Pick<NotificationEmailInput, "type" | "group" | "game"> & {
+    challenge?: { id: string } | null;
+  },
 ): Destination | null {
   if (
     (item.type === "group_member_joined" ||
@@ -65,10 +72,38 @@ export function notificationEmailDestination(
       item.type === "group_join_declined" ||
       item.type === "game_level_range_requested" ||
       item.type === "game_level_range_approved" ||
-      item.type === "game_level_range_declined") &&
+      item.type === "game_level_range_declined" ||
+      item.type === "challenge_proposal_confirmed" ||
+      item.type === "challenge_squad_due" ||
+      item.type === "challenge_squad_named") &&
     item.game
   ) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}` };
+  }
+  if (item.type === "team_invite_received") {
+    return {
+      kind: "teams",
+      path: `/dashboard/challenges${challengesTabQuery("teams")}`,
+    };
+  }
+  if (
+    (item.type === "challenge_proposal_received" ||
+      item.type === "challenge_proposal_declined" ||
+      item.type === "challenge_proposal_expired" ||
+      item.type === "challenge_proposal_passed_over" ||
+      item.type === "challenge_rematch_nudge") &&
+    item.challenge
+  ) {
+    return {
+      kind: "challenges",
+      path: `/dashboard/challenges/${item.challenge.id}`,
+    };
+  }
+  if (item.type === "challenge_expired") {
+    return {
+      kind: "challenges",
+      path: `/dashboard/challenges${challengesTabQuery("mine")}`,
+    };
   }
   if (item.type === "history_linked") {
     return {

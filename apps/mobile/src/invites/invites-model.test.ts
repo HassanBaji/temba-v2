@@ -17,7 +17,7 @@ describe("inviteLandingPath", () => {
   it("lands each accepted invite on its screen", () => {
     expect(inviteLandingPath("game", "g1")).toBe("/games/g1");
     expect(inviteLandingPath("group", "gr1")).toBe("/groups/gr1");
-    expect(inviteLandingPath("team", "t1")).toBe("/profile/teams/t1");
+    expect(inviteLandingPath("team", "t1")).toBe("/challenges/teams/t1");
   });
 });
 

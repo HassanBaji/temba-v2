@@ -4,6 +4,7 @@ import type { Sport } from "@repo/domain/sport";
 const TAB_PREFIX: Record<string, string> = {
   "(home)": "",
   games: "/games",
+  challenges: "/challenges",
   groups: "/groups",
   profile: "/profile",
 };

@@ -9,6 +9,8 @@ import {
   games,
   matchSets,
   matches,
+  ratings,
+  teamMemberInvites,
   teamMembers,
   teams,
   user,
@@ -181,6 +183,16 @@ describe("teamById record", () => {
         wins: 0,
         losses: 0,
       });
+      const team = await teamById(
+        db as unknown as Parameters<typeof teamById>[0],
+        { teamId: base.teamId, userId: base.ownerId },
+      );
+      expect(team.record).toEqual({
+        gamesPlayed: 1,
+        wins: 0,
+        draws: 1,
+        losses: 0,
+      });
     } finally {
       await close();
     }
@@ -217,6 +229,147 @@ describe("teamById record", () => {
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
+      });
+    } finally {
+      await close();
+    }
+  });
+});
+
+type Db = Parameters<typeof teamById>[0];
+
+async function makeUser(database: TestDatabase, name: string) {
+  const [row] = await database
+    .insert(user)
+    .values({
+      name,
+      email: `${name.toLowerCase()}@example.com`,
+      preferredPosition: "left",
+      preferredFootballRole: "keeper",
+    })
+    .returning({ id: user.id });
+  return row!.id;
+}
+
+async function makeTeam(
+  database: TestDatabase,
+  sport: "padel" | "football",
+  creatorId: string,
+  memberIds: string[],
+) {
+  const [team] = await database
+    .insert(teams)
+    .values({ createdBy: creatorId, sport })
+    .returning({ id: teams.id });
+  await database
+    .insert(teamMembers)
+    .values(
+      [creatorId, ...memberIds].map((userId) => ({ teamId: team!.id, userId })),
+    );
+  return team!.id;
+}
+
+describe("teamById for any signed-in User", () => {
+  it("opens to a non-member with the record, form, Rivals and Roster, and nothing member-only", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const base = await setup(db);
+      const outsider = await makeUser(db, "Outsider");
+      const invitee = await makeUser(db, "Invitee");
+      await db.insert(teamMemberInvites).values({
+        teamId: base.teamId,
+        userId: invitee,
+        invitedBy: base.ownerId,
+      });
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+      });
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 6 }],
+      });
+      await db.insert(ratings).values({
+        userId: base.ownerId,
+        sport: "padel",
+        mu: 1400,
+        phi: 150,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+
+      const team = await teamById(db as unknown as Db, {
+        teamId: base.teamId,
+        userId: outsider,
+      });
+      expect(team.record).toEqual({
+        gamesPlayed: 2,
+        wins: 1,
+        draws: 0,
+        losses: 1,
+      });
+      expect(team.form).toEqual(["won", "lost"]);
+      expect(team.rivals).toMatchObject([
+        { teamId: base.rivalId, name: "Owner", played: 2, wins: 1, losses: 1 },
+      ]);
+      expect(team.closestRival).toBeNull();
+      expect(team.games).toHaveLength(2);
+      expect(team.games[0]).toMatchObject({
+        venueName: "Venue",
+        opponent: { teamId: base.rivalId, name: "Owner" },
+        sets: [{ us: 2, them: 6 }],
+        result: "lost",
+      });
+      expect(team.members).toEqual([
+        expect.objectContaining({
+          userId: base.ownerId,
+          isViewer: false,
+          level: "2.8",
+          levelBand: "C2",
+        }),
+      ]);
+      expect(team.viewerIsMember).toBe(false);
+      expect(team.viewerActsForTeam).toBe(false);
+      expect(team.captainUserId).toBe(base.ownerId);
+      expect(team.membership).toBeNull();
+      expect(team.canInvite).toBe(false);
+      expect(team.unusedInvite).toBeNull();
+      expect(team.canDissolve).toBe(false);
+      expect(team.viewerCanLeave).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets every padel member act for the Team, and only the football Captain", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const captain = await makeUser(db, "Captain");
+      const member = await makeUser(db, "Member");
+      const padel = await makeTeam(db, "padel", captain, [member]);
+      const football = await makeTeam(db, "football", captain, [member]);
+      const acts = async (teamId: string, userId: string) =>
+        (await teamById(db as unknown as Db, { teamId, userId }))
+          .viewerActsForTeam;
+
+      expect(await acts(padel, captain)).toBe(true);
+      expect(await acts(padel, member)).toBe(true);
+      expect(await acts(football, captain)).toBe(true);
+      expect(await acts(football, member)).toBe(false);
+
+      const view = await teamById(db as unknown as Db, {
+        teamId: football,
+        userId: member,
+      });
+      expect(view.viewerIsMember).toBe(true);
+      expect(view.members[1]).toMatchObject({
+        userId: member,
+        isViewer: true,
+        level: null,
+        levelBand: null,
+        preferredPosition: "left",
+        footballRole: "keeper",
+        footballPosition: null,
       });
     } finally {
       await close();

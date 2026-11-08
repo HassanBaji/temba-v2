@@ -1,122 +1,224 @@
-import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  GroupSportEnum,
   gameTeams,
-  matches,
-  MatchStatusEnum,
+  groupMembers,
+  groups,
+  ratings,
   teamMembers,
-  type GroupSportEnum,
+  teams,
 } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { matchOutcome } from "@repo/domain/match-outcome";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { type LevelBand } from "@repo/domain/level-bands";
 import {
+  formatsPlayable,
   teamIsComplete,
   teamIsFull,
   teamIsSquad,
   teamRosterRule,
 } from "@repo/domain/team-roster";
+import { mayOrganizeGroupGames } from "#src/games/access";
+import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
+import { userActsForTeam } from "#src/teams/acts-for-team";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { maskPhone } from "#src/unclaimed-players/mask-phone";
+import {
+  loadTeamMatches,
+  teamFormFromMatches,
+  teamRecordFromMatches,
+  teamRivalsFromMatches,
+} from "#src/teams/team-record";
 
 type DbClient = typeof db;
 
-type TeamRecord = {
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-};
+const RECENT_GAMES_SHOWN = 10;
 
-type TeamRecordMatch = {
-  slot1GameTeamId: string | null;
-  slot2GameTeamId: string | null;
-  sets: readonly {
-    slot1GamesWon: number | null;
-    slot2GamesWon: number | null;
-  }[];
-};
-
-/**
- * Record of one Team across its completed Matches, given the ids of the Game
- * teams the Team sat as. A draw is played, neither won nor lost.
- */
-function teamRecordFromMatches(
-  matchesOfTeam: readonly TeamRecordMatch[],
-  teamGameTeamIds: ReadonlySet<string>,
-): TeamRecord {
-  const record: TeamRecord = { gamesPlayed: 0, wins: 0, losses: 0 };
-  for (const match of matchesOfTeam) {
-    const slot = teamGameTeamIds.has(match.slot1GameTeamId ?? "")
-      ? 1
-      : teamGameTeamIds.has(match.slot2GameTeamId ?? "")
-        ? 2
-        : null;
-    if (slot === null) {
-      continue;
-    }
-    record.gamesPlayed += 1;
-    const { result } = matchOutcome(match.sets);
-    if (result === "slot1" || result === "slot2") {
-      if (result === `slot${slot}`) {
-        record.wins += 1;
-      } else {
-        record.losses += 1;
-      }
-    }
+async function loadTeamNames(database: DbClient, teamIds: readonly string[]) {
+  if (teamIds.length === 0) {
+    return new Map<string, string>();
   }
-  return record;
-}
-
-/**
- * Derived on every read from the completed Matches of the Team's non-cancelled
- * Games. A Match awaiting confirmation and a Walkover (a cancelled Match) do
- * not count. There are no stored counters.
- */
-async function loadTeamRecord(
-  database: DbClient,
-  teamId: string,
-): Promise<TeamRecord> {
-  const teamRows = await database.query.gameTeams.findMany({
-    where: eq(gameTeams.teamId, teamId),
-    columns: { id: true },
+  const rows = await database.query.teams.findMany({
+    where: inArray(teams.id, [...teamIds]),
+    columns: { id: true, name: true },
   });
-  const gameTeamIds = teamRows.map((row) => row.id);
-  if (gameTeamIds.length === 0) {
-    return { gamesPlayed: 0, wins: 0, losses: 0 };
-  }
-
-  const completed = await database.query.matches.findMany({
-    where: and(
-      eq(matches.status, MatchStatusEnum.COMPLETED),
-      or(
-        inArray(matches.slot1GameTeamId, gameTeamIds),
-        inArray(matches.slot2GameTeamId, gameTeamIds),
+  const memberRows = await database.query.teamMembers.findMany({
+    where: inArray(teamMembers.teamId, [...teamIds]),
+    columns: { teamId: true },
+    with: { user: { columns: { name: true } } },
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      teamDisplayName(
+        row.name,
+        memberRows
+          .filter((member) => member.teamId === row.id)
+          .map((member) => member.user.name),
       ),
-    ),
-    columns: { slot1GameTeamId: true, slot2GameTeamId: true },
-    with: {
-      game: { columns: { cancelledAt: true } },
-      sets: { columns: { slot1GamesWon: true, slot2GamesWon: true } },
-    },
-  });
-
-  return teamRecordFromMatches(
-    completed.filter((match) => match.game?.cancelledAt == null),
-    new Set(gameTeamIds),
+    ]),
   );
 }
 
+async function loadMemberLevels(
+  database: DbClient,
+  sport: GroupSportEnum,
+  userIds: readonly string[],
+) {
+  const levels = new Map<string, { level: string; levelBand: LevelBand }>();
+  if (userIds.length === 0) {
+    return levels;
+  }
+  const rows = await database.query.ratings.findMany({
+    where: and(eq(ratings.sport, sport), inArray(ratings.userId, [...userIds])),
+  });
+  const now = new Date();
+  for (const row of rows) {
+    const view = youRatingViewAfterIdle(row, now);
+    levels.set(row.userId, { level: view.level, levelBand: view.levelBand });
+  }
+  return levels;
+}
+
+/** Live Groups of the sport the viewer organizes, as creator or appointed. */
+async function organizedGroups(
+  database: DbClient,
+  sport: GroupSportEnum,
+  userId: string,
+) {
+  const appointedIds = await appointedOrganizerGroupIds(database, userId);
+  return database.query.groups.findMany({
+    where: and(
+      eq(groups.sport, sport),
+      isNull(groups.deletedAt),
+      appointedIds.length > 0
+        ? or(eq(groups.createdBy, userId), inArray(groups.id, appointedIds))
+        : eq(groups.createdBy, userId),
+    ),
+    columns: { id: true, name: true },
+    orderBy: (table, { asc }) => [asc(table.name)],
+  });
+}
+
+/** A Team is tagged only to a Group its Captain is in. */
+async function captainGroupIds(
+  database: DbClient,
+  captainUserId: string,
+  groupIds: string[],
+) {
+  if (groupIds.length === 0) {
+    return new Set<string>();
+  }
+  const rows = await database.query.groupMembers.findMany({
+    where: and(
+      eq(groupMembers.userId, captainUserId),
+      inArray(groupMembers.groupId, groupIds),
+    ),
+    columns: { groupId: true },
+  });
+  return new Set(rows.map((row) => row.groupId));
+}
+
+async function groupTagView(
+  database: DbClient,
+  team: { groupId: string | null; createdBy: string },
+  sport: GroupSportEnum,
+  userId: string,
+) {
+  const tagged = team.groupId
+    ? await database.query.groups.findFirst({
+        where: and(eq(groups.id, team.groupId), isNull(groups.deletedAt)),
+        columns: { id: true, name: true, createdBy: true },
+      })
+    : undefined;
+  const isCaptain = team.createdBy === userId;
+  const canClear = tagged
+    ? isCaptain || (await mayOrganizeGroupGames(database, tagged, userId))
+    : false;
+  const organized =
+    tagged && !canClear
+      ? []
+      : (await organizedGroups(database, sport, userId)).filter(
+          (group) => group.id !== tagged?.id,
+        );
+  const captainIn = await captainGroupIds(
+    database,
+    team.createdBy,
+    organized.map((group) => group.id),
+  );
+  const options = organized.filter((group) => captainIn.has(group.id));
+  return {
+    groupTag: tagged ? { id: tagged.id, name: tagged.name } : null,
+    canClearGroupTag: canClear,
+    groupTagOptions: options,
+  };
+}
+
+/**
+ * The Team's Challenge Games, latest kick-off first, so the ones still to
+ * play lead: each with the other Team and whether it was cancelled.
+ */
+async function loadChallengeGames(database: DbClient, teamId: string) {
+  const sides = await database.query.gameTeams.findMany({
+    where: eq(gameTeams.teamId, teamId),
+    columns: { gameId: true },
+    with: {
+      game: {
+        columns: {
+          id: true,
+          challengeId: true,
+          windowStart: true,
+          cancelledAt: true,
+        },
+        with: {
+          venue: { columns: { name: true } },
+          teams: { columns: { teamId: true } },
+        },
+      },
+    },
+  });
+  return sides
+    .flatMap(({ game }) =>
+      game.challengeId && game.windowStart
+        ? [
+            {
+              gameId: game.id,
+              challengeId: game.challengeId,
+              startsAt: game.windowStart,
+              venueName: game.venue.name,
+              cancelled: game.cancelledAt != null,
+              opponentTeamId:
+                game.teams.find(
+                  (side) => side.teamId != null && side.teamId !== teamId,
+                )?.teamId ?? null,
+            },
+          ]
+        : [],
+    )
+    .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
+    .slice(0, RECENT_GAMES_SHOWN);
+}
+
+/**
+ * Any signed-in User may open any Team: a Challenge shows the opposing Team's
+ * record and Roster. Invites, dissolve and leave stay with members.
+ */
 export async function teamById(
   database: DbClient,
   args: { teamId: string; userId: string },
 ) {
   const team = await requireTeam(database, args.teamId);
+  const sport = team.sport as GroupSportEnum;
 
   const membership = await database.query.teamMembers.findFirst({
     where: and(
@@ -126,13 +228,6 @@ export async function teamById(
   });
 
   const isMember = Boolean(membership);
-
-  if (!isMember) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You cannot open this Team",
-    });
-  }
 
   const memberRows = await listTeamMembers(database, team.id);
   const memberNames = memberRows.map((row) => row.user.name);
@@ -147,17 +242,80 @@ export async function teamById(
   const canDissolve =
     isMember && (isCreator || (!incomplete && !teamIsSquad(team.sport)));
   const viewerCanLeave = isMember && !isCreator && teamIsSquad(team.sport);
+  const viewerActsForTeam = await userActsForTeam(database, team, args.userId);
+  const tag = await groupTagView(database, team, sport, args.userId);
 
-  const record = await loadTeamRecord(database, team.id);
+  const teamMatches =
+    (await loadTeamMatches(database, [team.id])).get(team.id) ?? [];
+  const record = teamRecordFromMatches(teamMatches);
+  const { rivals, closest } = teamRivalsFromMatches(teamMatches);
+  const recentMatches = teamMatches.slice(-RECENT_GAMES_SHOWN).reverse();
+
+  const challengeGames = await loadChallengeGames(database, team.id);
+  const opponentNames = await loadTeamNames(database, [
+    ...new Set(
+      [
+        ...teamMatches.map((match) => match.opponentTeamId),
+        ...challengeGames.map((game) => game.opponentTeamId),
+      ].filter((id): id is string => id != null),
+    ),
+  ]);
+  const levels = await loadMemberLevels(
+    database,
+    sport,
+    memberRows.map((row) => row.user.id),
+  );
+
+  const rivalView = (rival: (typeof rivals)[number]) => ({
+    teamId: rival.teamId,
+    name: opponentNames.get(rival.teamId) ?? null,
+    played: rival.played,
+    wins: rival.wins,
+    draws: rival.draws,
+    losses: rival.losses,
+    lastResult: rival.lastResult,
+    lastPlayedAt: rival.lastPlayedAt,
+  });
 
   return {
     id: team.id,
     name: team.name,
     displayName: teamDisplayName(team.name, memberNames),
-    sport: team.sport as GroupSportEnum,
+    sport,
     gamesPlayed: record.gamesPlayed,
     wins: record.wins,
     losses: record.losses,
+    record,
+    form: teamFormFromMatches(teamMatches),
+    rivals: rivals.map(rivalView),
+    closestRival: closest ? rivalView(closest) : null,
+    games: recentMatches.map((match) => ({
+      matchId: match.matchId,
+      gameId: match.gameId,
+      playedAt: match.playedAt,
+      venueName: match.venueName,
+      opponent: {
+        teamId: match.opponentTeamId,
+        name: match.opponentTeamId
+          ? (opponentNames.get(match.opponentTeamId) ?? null)
+          : match.opponentSideName,
+      },
+      sets: match.sets,
+      result: match.result,
+    })),
+    challengeGames: challengeGames.map((game) => ({
+      gameId: game.gameId,
+      challengeId: game.challengeId,
+      startsAt: game.startsAt,
+      venueName: game.venueName,
+      cancelled: game.cancelled,
+      opponent: {
+        teamId: game.opponentTeamId,
+        name: game.opponentTeamId
+          ? (opponentNames.get(game.opponentTeamId) ?? null)
+          : null,
+      },
+    })),
     incomplete,
     waitingForPartner: incomplete,
     roster: {
@@ -167,18 +325,43 @@ export async function teamById(
       count: memberRows.length,
       complete: !incomplete,
       full,
+      formatsPlayable:
+        sport === GroupSportEnum.FOOTBALL
+          ? formatsPlayable(memberRows.length)
+          : [],
     },
+    groupTag: tag.groupTag,
+    canClearGroupTag: tag.canClearGroupTag,
+    groupTagOptions: tag.groupTagOptions,
     createdBy: team.createdBy,
+    captainUserId: team.createdBy,
     createdAt: team.createdAt,
+    viewerIsMember: isMember,
+    viewerActsForTeam,
     membership: membership ? { id: membership.id } : null,
-    members: memberRows.map((row) => ({
-      id: row.id,
-      userId: row.user.id,
-      name: row.user.name,
-      image: row.user.image,
-      isCreator: row.user.id === team.createdBy,
-      isViewer: row.user.id === args.userId,
-    })),
+    members: memberRows.map((row) => {
+      const unclaimed = isUnclaimed(row.user);
+      return {
+        id: row.id,
+        userId: row.user.id,
+        name: row.user.name,
+        image: row.user.image,
+        isCreator: row.user.id === team.createdBy,
+        isViewer: row.user.id === args.userId,
+        level: levels.get(row.user.id)?.level ?? null,
+        levelBand: levels.get(row.user.id)?.levelBand ?? null,
+        preferredPosition: row.user.preferredPosition,
+        footballRole: row.user.preferredFootballRole,
+        footballPosition: row.user.preferredFootballPosition,
+        unclaimed,
+        // Only the Captain, who added them, sees whose number it is.
+        phoneMasked:
+          unclaimed && isCreator && row.user.phoneNumber
+            ? maskPhone(row.user.phoneNumber)
+            : null,
+        removable: unclaimed && isCreator && isMember,
+      };
+    }),
     canInvite,
     canDissolve,
     viewerCanLeave,

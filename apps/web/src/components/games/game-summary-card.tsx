@@ -324,6 +324,7 @@ export function GameSummaryCard({
   courtName,
   rated = true,
   ratingScope,
+  challenge = false,
 }: {
   name: string | null;
   /** Omitted by callers that predate it, which keep showing `name` as given. */
@@ -362,6 +363,8 @@ export function GameSummaryCard({
   courtName?: string | null;
   rated?: boolean;
   ratingScope?: GameRatingScope;
+  /** A Challenge Game carries the CHALLENGE marker. */
+  challenge?: boolean;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -532,6 +535,11 @@ export function GameSummaryCard({
                 </span>
               ) : null}
             </span>
+            {challenge ? (
+              <Badge variant="outline" data-slot="game-card-challenge">
+                {m.challenge.marker}
+              </Badge>
+            ) : null}
             {ratingTag ? (
               <Badge variant="outline" data-slot="game-card-rating-scope">
                 {ratingTag}

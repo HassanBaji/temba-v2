@@ -5,7 +5,13 @@ import {
   CommonActions,
   type ParamListBase,
 } from "expo-router/react-navigation";
-import { CalendarCheck, CircleUser, House, Users } from "lucide-react-native";
+import {
+  CalendarCheck,
+  CircleUser,
+  House,
+  Swords,
+  Users,
+} from "lucide-react-native";
 import type { ComponentType } from "react";
 import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,6 +37,7 @@ type TabIcon = ComponentType<{
 const ICONS: Record<TabSlot, TabIcon> = {
   home: House,
   games: FieldIcon,
+  challenges: Swords,
   book: CalendarCheck,
   groups: Users,
   profile: CircleUser,
@@ -39,6 +46,7 @@ const ICONS: Record<TabSlot, TabIcon> = {
 const ROUTES: Record<TabSlot, string> = {
   home: "(home)",
   games: "games",
+  challenges: "challenges",
   book: "book",
   groups: "groups",
   profile: "profile",

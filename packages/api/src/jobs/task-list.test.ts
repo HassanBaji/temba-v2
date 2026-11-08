@@ -85,12 +85,15 @@ describe("task list", () => {
       "booking.confirmed",
       "booking.expire-hold",
       "booking:reconcile",
+      "challenge.expire",
+      "challenge.squad-due",
       "marks.settle-mvp",
       "notification.email",
       "payment.create-charge",
       "payment.poll-charge",
       "payment.process-webhook",
       "payment.refund",
+      "proposal.expire",
     ]);
     expect(crontab).toContain("*/15 * * * * booking:reconcile");
   });

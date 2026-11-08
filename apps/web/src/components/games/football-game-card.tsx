@@ -50,6 +50,15 @@ function SizeTag({ sideSize }: { sideSize: number | null }) {
   ) : null;
 }
 
+function ChallengeMarker() {
+  const m = useMessages();
+  return (
+    <span className="shrink-0 font-mono text-[11px] font-semibold uppercase">
+      {m.challenge.marker}
+    </span>
+  );
+}
+
 function Kickoff({ game }: { game: HubGameRow }) {
   const m = useMessages();
   const locale = useLocale();
@@ -79,7 +88,10 @@ function Kickoff({ game }: { game: HubGameRow }) {
             : day}
         </p>
       </div>
-      <SizeTag sideSize={game.football?.sideSize ?? null} />
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        {game.challenge ? <ChallengeMarker /> : null}
+        <SizeTag sideSize={game.football?.sideSize ?? null} />
+      </div>
     </div>
   );
 }

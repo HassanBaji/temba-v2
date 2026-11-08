@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { type Locale } from "@repo/i18n/locale";
+
 import { gamePlayers, gameWaitlist, games } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
@@ -14,6 +16,7 @@ import {
   registeredGameTeamCount,
   registeredUserCount,
   requireGame,
+  requireNotChallengeGame,
   type GameRow,
 } from "#src/games/access";
 import { footballSides } from "#src/games/football-lineup";
@@ -204,9 +207,11 @@ export async function updateGameCaps(
     playersAllowed?: number;
     teamsAllowed?: number;
     sideSize?: number;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.userId);
   const movedToWaitlist = await database.transaction((tx) =>
     updateGameCapsOnGame(tx, game, {
@@ -243,5 +248,6 @@ export const updateCaps = protectedProcedure
       playersAllowed: input.playersAllowed,
       teamsAllowed: input.teamsAllowed,
       sideSize: input.sideSize,
+      locale: ctx.locale,
     });
   });

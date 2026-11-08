@@ -10,6 +10,7 @@ import { type db } from "#src/db";
 import {
   assertGameOrganizer,
   requireGame,
+  requireNotChallengeGame,
   type GameRow,
 } from "#src/games/access";
 import {
@@ -17,7 +18,7 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -48,9 +49,11 @@ export async function updateGameLevelRange(
     userId: string;
     levelMinTenths: number | null;
     levelMaxTenths: number | null;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.userId);
   await database.transaction(async (tx) => {
     await updateGameLevelRangeOnGame(
@@ -107,5 +110,6 @@ export const updateLevelRange = protectedProcedure
       userId: appUser.id,
       levelMinTenths: input.levelMinTenths,
       levelMaxTenths: input.levelMaxTenths,
+      locale: ctx.locale,
     });
   });

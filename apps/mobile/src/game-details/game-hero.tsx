@@ -115,12 +115,15 @@ export function GameHero({
   model,
   place,
   figures,
+  tag,
   onShare,
   onMore,
 }: {
   model: FriendlyGameHeroModel;
   place: GameHeroPlace | null;
   figures: CourtFigure[];
+  /** "Challenge" on a Challenge Game. */
+  tag?: string;
   onShare?: () => void;
   onMore?: () => void;
 }) {
@@ -164,6 +167,11 @@ export function GameHero({
             ) : undefined
           }
         />
+        {tag ? (
+          <Text size="eyebrow" weight="semibold" mono uppercase>
+            {tag}
+          </Text>
+        ) : null}
         <HeroBody model={model} />
         {model.kind !== "final" && place && (place.name || place.line) ? (
           <PlaceRow place={place} />

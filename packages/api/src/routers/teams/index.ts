@@ -2,6 +2,7 @@ import { createTRPCRouter } from "#src/trpc";
 
 import { acceptInAppInviteProcedure as acceptInAppInvite } from "./acceptInAppInvite";
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
+import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { byId } from "./byId";
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
@@ -9,12 +10,16 @@ import { dissolveProcedure as dissolve } from "./dissolve";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { inviteInAppProcedure as inviteInApp } from "./inviteInApp";
 import { leaveProcedure as leave } from "./leave";
+import { listGroupMembersToAddProcedure as listGroupMembersToAdd } from "./listGroupMembersToAdd";
 import { listInAppInvitesProcedure as listInAppInvites } from "./listInAppInvites";
 import { mineProcedure as mine } from "./mine";
 import { pendingInvitesProcedure as pendingInvites } from "./pendingInvites";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
+import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
+import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
 import { revokeInAppInviteProcedure as revokeInAppInvite } from "./revokeInAppInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
+import { setGroupTagProcedure as setGroupTag } from "./setGroupTag";
 
 export const teamsRouter = createTRPCRouter({
   create,
@@ -32,4 +37,9 @@ export const teamsRouter = createTRPCRouter({
   acceptInviteLink,
   dissolve,
   leave,
+  setGroupTag,
+  previewPlayerByPhone,
+  addPlayerByPhone,
+  removeUnclaimedPlayer,
+  listGroupMembersToAdd,
 });

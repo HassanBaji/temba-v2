@@ -3,6 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
+  challengeProposals,
+  challenges,
   gamePlayers,
   games,
   gameTeams,
@@ -10,7 +12,10 @@ import {
   groupMembers,
   groups,
   teamMembers,
+  teams,
 } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   appointedOrganizerUserIds,
@@ -18,6 +23,11 @@ import {
 } from "#src/groups/helpers/appointed-organizers";
 import { groupApproverUserIds } from "#src/groups/helpers/is-group-approver";
 import type { RegistrationStatus } from "#src/games/utils";
+import {
+  actingUserIds,
+  type TeamForActing,
+  userActsForTeam,
+} from "#src/teams/acts-for-team";
 
 export type { RegistrationStatus };
 
@@ -96,11 +106,55 @@ export async function assertMayCreateGameOnGroup(
   });
 }
 
+type GameForOrganizer = Pick<GameRow, "createdBy" | "groupId" | "challengeId">;
+
+/** The two Teams of a Challenge Game: the poster's and the confirmed proposer's. */
+export async function challengeGameTeams(
+  database: DbOrTx,
+  challengeId: string,
+): Promise<TeamForActing[]> {
+  const challenge = await database.query.challenges.findFirst({
+    where: eq(challenges.id, challengeId),
+    columns: { teamId: true, confirmedProposalId: true },
+  });
+  if (!challenge) {
+    return [];
+  }
+  const proposal = challenge.confirmedProposalId
+    ? await database.query.challengeProposals.findFirst({
+        where: eq(challengeProposals.id, challenge.confirmedProposalId),
+        columns: { teamId: true },
+      })
+    : undefined;
+  const teamIds = [challenge.teamId, ...(proposal ? [proposal.teamId] : [])];
+  const rows = await database.query.teams.findMany({
+    where: inArray(teams.id, teamIds),
+    columns: { id: true, sport: true, createdBy: true, groupId: true },
+  });
+  return teamIds.flatMap((teamId) => {
+    const team = rows.find((row) => row.id === teamId);
+    return team ? [team] : [];
+  });
+}
+
+/**
+ * Who organizes a Game. On a Challenge Game, whoever acts for either Team;
+ * on a Group Game, the Group creator or an Appointed Organizer; otherwise its
+ * creator.
+ */
 export async function isGameOrganizer(
   database: DbOrTx,
-  game: Pick<GameRow, "createdBy" | "groupId">,
+  game: GameForOrganizer,
   userId: string,
 ) {
+  if (game.challengeId) {
+    for (const team of await challengeGameTeams(database, game.challengeId)) {
+      if (await userActsForTeam(database, team, userId)) {
+        return true;
+      }
+    }
+    return false;
+  }
   if (!game.groupId) {
     return game.createdBy === userId;
   }
@@ -117,12 +171,20 @@ export async function isGameOrganizer(
 
 /**
  * The Game admin audience: who hears about a Game, never who may act on it.
- * On a Group Game, the Group approvers plus the Appointed Organizers.
+ * On a Challenge Game, whoever acts for either Team. On a Group Game, the
+ * Group approvers plus the Appointed Organizers.
  */
 export async function gameAdminUserIds(
   database: DbOrTx,
-  game: Pick<GameRow, "createdBy" | "groupId">,
+  game: GameForOrganizer,
 ): Promise<string[]> {
+  if (game.challengeId) {
+    const ids: string[] = [];
+    for (const team of await challengeGameTeams(database, game.challengeId)) {
+      ids.push(...(await actingUserIds(database, team)));
+    }
+    return [...new Set(ids)];
+  }
   if (!game.groupId) {
     return [game.createdBy];
   }
@@ -154,6 +216,44 @@ export async function assertGameOrganizer(
     code: "FORBIDDEN",
     message: "Only an organizer can do that",
   });
+}
+
+/**
+ * A Challenge Game's sides are the two Teams and its shape is the
+ * Challenge's: no admit, Waitlist, Invite door, kick, publish or shape edit.
+ */
+export function requireNotChallengeGame(
+  game: Pick<GameRow, "challengeId">,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  if (game.challengeId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).challenge.errors.setByChallenge,
+    });
+  }
+}
+
+/** Any Roster member of either Team on a Challenge Game, named to a squad or not. */
+async function isChallengeRosterMember(
+  database: DbOrTx,
+  challengeId: string,
+  userId: string,
+) {
+  const teamIds = (await challengeGameTeams(database, challengeId)).map(
+    (team) => team.id,
+  );
+  if (teamIds.length === 0) {
+    return false;
+  }
+  const membership = await database.query.teamMembers.findFirst({
+    where: and(
+      inArray(teamMembers.teamId, teamIds),
+      eq(teamMembers.userId, userId),
+    ),
+    columns: { id: true },
+  });
+  return Boolean(membership);
 }
 
 export async function userPassesJoinGate(
@@ -195,6 +295,12 @@ export async function canViewGame(
     return true;
   }
   if (game.groupId && (await isGroupMember(database, game.groupId, userId))) {
+    return true;
+  }
+  if (
+    game.challengeId &&
+    (await isChallengeRosterMember(database, game.challengeId, userId))
+  ) {
     return true;
   }
 

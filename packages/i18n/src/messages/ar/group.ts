@@ -736,4 +736,10 @@ export const group = {
         other: "لا يتجاوز {n} حرف",
       }),
   },
+  teams: {
+    title: "الفرق",
+    createLabel: "إنشاء فريق",
+    empty: "لا فرق موسومة بهذه المجموعة بعد.",
+    openTeam: (team: string) => `فتح ${team}`,
+  },
 } satisfies typeof source;

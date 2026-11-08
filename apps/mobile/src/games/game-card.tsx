@@ -33,7 +33,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { SportTag } from "../lib/sport-tag";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
-import { CardFooter, CardShell, MetaCell } from "./card-parts";
+import { CardFooter, CardShell, ChallengeMarker, MetaCell } from "./card-parts";
 import type { HubItem } from "./games-model";
 import { FriendlyRoster } from "./seat-chips";
 import { useNow } from "./use-now";
@@ -164,6 +164,7 @@ export function GameCard({
           {dayLabel}
         </Text>
         <View style={{ flexDirection: "row", columnGap: 12 }}>
+          {plan.challenge ? <ChallengeMarker /> : null}
           {ratingTag ? (
             <Text size="meta" weight="semibold" numberOfLines={1}>
               {ratingTag}

@@ -31,12 +31,15 @@ export function FootballOrganizerCard({
   waitlist,
   playersAllowed,
   teams,
+  fixedShape = false,
   handlers,
 }: {
   organizer: NonNullable<FootballGameDetailsModel["organizer"]>;
   waitlist: FootballGameDetailsModel["waitlistRows"];
   playersAllowed: number | null;
   teams: { status: string; actionLabel: string } | null;
+  /** A Challenge Game: registration and the cap are the Challenge's. */
+  fixedShape?: boolean;
   handlers: FootballOrganizerHandlers & { onMakeTeams: () => void };
 }) {
   const m = useMessages();
@@ -77,38 +80,40 @@ export function FootballOrganizerCard({
       </Block>,
     );
   }
-  blocks.push(
-    <Block key="registration">
-      <Text weight="medium">{copy.registration}</Text>
-      <View style={{ flexDirection: "row" }}>
-        <Button
-          label={
-            organizer.registration === "close"
-              ? closeRegistrationAction(locale)
-              : reopenRegistrationAction(locale)
-          }
-          variant="outline"
-          pending={handlers.registrationPending}
-          onPress={handlers.onToggleRegistration}
-        />
-      </View>
-    </Block>,
-    <Block key="cap">
-      <View>
-        <Text weight="medium">{copy.playersAllowed}</Text>
-        <Text size="meta" tone="muted">
-          {playersAllowed ?? copy.noCap}
-        </Text>
-      </View>
-      <View style={{ flexDirection: "row" }}>
-        <Button
-          label={copy.changePlayersAllowed}
-          variant="outline"
-          onPress={handlers.onChangeCap}
-        />
-      </View>
-    </Block>,
-  );
+  if (!fixedShape) {
+    blocks.push(
+      <Block key="registration">
+        <Text weight="medium">{copy.registration}</Text>
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={
+              organizer.registration === "close"
+                ? closeRegistrationAction(locale)
+                : reopenRegistrationAction(locale)
+            }
+            variant="outline"
+            pending={handlers.registrationPending}
+            onPress={handlers.onToggleRegistration}
+          />
+        </View>
+      </Block>,
+      <Block key="cap">
+        <View>
+          <Text weight="medium">{copy.playersAllowed}</Text>
+          <Text size="meta" tone="muted">
+            {playersAllowed ?? copy.noCap}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={copy.changePlayersAllowed}
+            variant="outline"
+            onPress={handlers.onChangeCap}
+          />
+        </View>
+      </Block>,
+    );
+  }
 
   if (waitlist.length > 0) {
     blocks.push(

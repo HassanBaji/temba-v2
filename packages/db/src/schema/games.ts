@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -23,6 +24,7 @@ import { gameMemberInvites } from "./game-member-invites";
 import { gameInviteLinks } from "./game-invite-links";
 import { gameLevelRangeRequests } from "./game-level-range-requests";
 import { gameMvpVotes } from "./marks";
+import { challenges } from "./challenges";
 import {
   gameFormats,
   gameRegistrationModes,
@@ -94,6 +96,11 @@ export const games = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     cancelledAt: timestamp("cancelled_at"),
     registrationClosedAt: timestamp("registration_closed_at"),
+    /** Set on a Challenge Game: the confirmed Challenge it came from. */
+    challengeId: uuid("challenge_id").references(
+      (): AnyPgColumn => challenges.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

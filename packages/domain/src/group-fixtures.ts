@@ -290,6 +290,8 @@ export function createGroupFixtures(now = new Date()) {
     canTransferOwnership: false,
     canChangeSport: false,
     pendingJoinRequestCount: 0,
+    teams: [],
+    canCreateTeam: false,
   };
 
   const creator: GroupHomeData = {

@@ -858,3 +858,233 @@ describe("request notifications", () => {
     );
   });
 });
+
+describe("notificationCopy for a Team invite", () => {
+  it("names the inviter and the Team, and says where to accept", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "team_invite_received",
+          audience: "player",
+          actor: { name: "Hassan" },
+          team: { name: "Gooz FC" },
+          group: null,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Hassan", strong: true },
+          { text: " invited you to ", strong: false },
+          { text: "Gooz FC", strong: true },
+        ],
+        subline: "Accept or decline it in Teams.",
+      },
+    );
+  });
+
+  it("reads an unnamed Team as theirs, in English and Arabic", () => {
+    const item = {
+      type: "team_invite_received",
+      audience: "player",
+      actor: { name: "Hassan" },
+      team: { name: null },
+      group: null,
+    };
+    assert.equal(
+      notificationCopy(item, "en")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Hassan invited you to their Team",
+    );
+    assert.equal(
+      notificationCopy(item, "ar")
+        ?.title.map((part) => part.text)
+        .join(""),
+      `دعاك ${isolate("Hassan")} إلى فريقه`,
+    );
+  });
+});
+
+describe("notificationCopy for an expired Challenge", () => {
+  it("names the Team and says to post again", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "challenge_expired",
+          audience: "player",
+          actor: null,
+          team: { name: "Gooz FC" },
+          group: null,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "The challenge from ", strong: false },
+          { text: "Gooz FC", strong: true },
+          { text: " expired", strong: false },
+        ],
+        subline: "No proposal came in. Post again from Challenges.",
+      },
+    );
+  });
+
+  it("reads an unnamed Team as the recipient's, in Arabic too", () => {
+    const item = {
+      type: "challenge_expired",
+      audience: "player",
+      actor: null,
+      team: { name: null },
+      group: null,
+    };
+    assert.equal(
+      notificationCopy(item, "en")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Your Team's challenge expired",
+    );
+    assert.equal(
+      notificationCopy(item, "ar")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "انتهت مدة تحدي فريقك",
+    );
+  });
+});
+
+describe("notificationCopy for a Proposal", () => {
+  function title(type: string, team: string | null, locale: "en" | "ar") {
+    return notificationCopy(
+      {
+        type,
+        audience: "player",
+        actor: null,
+        team: { name: team },
+        group: null,
+      },
+      locale,
+    )
+      ?.title.map((part) => part.text)
+      .join("");
+  }
+
+  it("names the other Team on a received, declined and expired Proposal", () => {
+    assert.equal(
+      title("challenge_proposal_received", "Riffa Rackets", "en"),
+      "Riffa Rackets proposed a time for your challenge",
+    );
+    assert.equal(
+      title("challenge_proposal_declined", "Seef Smashers", "en"),
+      "Seef Smashers asked for another time",
+    );
+    assert.equal(
+      title("challenge_proposal_expired", "Seef Smashers", "en"),
+      "Your proposal to Seef Smashers expired",
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "challenge_proposal_received",
+          audience: "player",
+          actor: null,
+          team: { name: "Riffa Rackets" },
+          group: null,
+        },
+        "en",
+      )?.subline,
+      "Confirm it, or ask for another time, within 48 hours.",
+    );
+  });
+
+  it("reads an unnamed Team plainly, in Arabic too", () => {
+    assert.equal(
+      title("challenge_proposal_received", null, "en"),
+      "A Team proposed a time for your challenge",
+    );
+    assert.equal(
+      title("challenge_proposal_expired", null, "ar"),
+      "انتهت مدة عرض فريقك",
+    );
+    assert.equal(
+      title("challenge_proposal_declined", "Seef Smashers", "ar"),
+      `${isolate("Seef Smashers")} طلب وقتًا آخر`,
+    );
+  });
+  it("names the other Team on a confirmed, passed-over and squad-due Notification", () => {
+    assert.equal(
+      title("challenge_proposal_confirmed", "Riffa Rackets", "en"),
+      "It's a game: you play Riffa Rackets",
+    );
+    assert.equal(
+      title("challenge_proposal_passed_over", "Seef Smashers", "en"),
+      "Seef Smashers confirmed another proposal",
+    );
+    assert.equal(
+      title("challenge_squad_due", "Hidd United", "en"),
+      "Name your squad for the game against Hidd United",
+    );
+    assert.equal(
+      title("challenge_squad_due", null, "ar"),
+      "سمِّ تشكيلتك للمباراة",
+    );
+    const confirmed = (sport: string) =>
+      notificationCopy(
+        {
+          type: "challenge_proposal_confirmed",
+          audience: "player",
+          actor: null,
+          team: { name: "Hidd United" },
+          group: null,
+          game: {
+            name: null,
+            format: "friendly_game",
+            sport,
+            windowStart: null,
+          },
+        },
+        "en",
+      )?.subline;
+    assert.equal(confirmed("football"), "Name your squad from the Roster.");
+    assert.equal(confirmed("padel"), "Both pairs are seated. See the Game.");
+  });
+
+  it("tells a newly named player which Team they play", () => {
+    assert.equal(
+      title("challenge_squad_named", "Arad Athletic", "en"),
+      "You're in the squad to play Arad Athletic",
+    );
+    assert.equal(
+      title("challenge_squad_named", null, "ar"),
+      "أنت في تشكيلة تحدٍّ",
+    );
+  });
+
+  it("names the posting Team on a Rematch nudge", () => {
+    assert.equal(
+      title("challenge_rematch_nudge", "Smash Brothers", "en"),
+      "Smash Brothers challenged you to a rematch",
+    );
+    assert.equal(
+      title("challenge_rematch_nudge", null, "en"),
+      "A Team you've played challenged you to a rematch",
+    );
+    assert.equal(
+      title("challenge_rematch_nudge", null, "ar"),
+      "فريق لعبتم ضده يتحداكم في مباراة إعادة",
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "challenge_rematch_nudge",
+          audience: "player",
+          actor: null,
+          team: { name: "Smash Brothers" },
+          group: null,
+        },
+        "en",
+      )?.subline,
+      "Accept it to propose a time and a venue.",
+    );
+  });
+});

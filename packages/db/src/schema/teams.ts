@@ -7,6 +7,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./user";
+import { groups } from "./groups";
 import { groupSports, GroupSportEnum } from "./group-enums";
 import { teamInviteLinks } from "./team-invite-links";
 import { teamMemberInvites } from "./team-member-invites";
@@ -19,6 +20,9 @@ export const teams = pgTable("teams", {
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "restrict" })
     .notNull(),
+  groupId: uuid("group_id").references(() => groups.id, {
+    onDelete: "set null",
+  }),
   gamesPlayed: integer("games_played").notNull().default(0),
   wins: integer("wins").notNull().default(0),
   losses: integer("losses").notNull().default(0),
@@ -28,6 +32,7 @@ export const teams = pgTable("teams", {
 
 export const teamRelations = relations(teams, ({ one, many }) => ({
   createdBy: one(user, { fields: [teams.createdBy], references: [user.id] }),
+  group: one(groups, { fields: [teams.groupId], references: [groups.id] }),
   memberInvites: many(teamMemberInvites),
   emailInvites: many(teamEmailInvites),
   inviteLinks: many(teamInviteLinks),

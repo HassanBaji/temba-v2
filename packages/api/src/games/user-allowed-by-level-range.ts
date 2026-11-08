@@ -21,6 +21,7 @@ export type LevelRangeGame = {
   sport: string | null;
   createdBy: string;
   groupId: string | null;
+  challengeId: string | null;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
 };

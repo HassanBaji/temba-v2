@@ -8,7 +8,7 @@ type DbOrTx = DbClient | DbTx;
 type GroupForNotice = Pick<typeof groups.$inferSelect, "id" | "createdBy">;
 type GameForNotice = Pick<
   typeof games.$inferSelect,
-  "id" | "createdBy" | "groupId"
+  "id" | "createdBy" | "groupId" | "challengeId"
 >;
 
 /** Group approvers hear that someone asked to join; `gameId` names a Seat hold. */

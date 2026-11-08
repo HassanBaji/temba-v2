@@ -9,7 +9,11 @@ import { gamePlayers, gameTeamPlayers } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertUserPassesJoinGate, requireGame } from "#src/games/access";
+import {
+  assertUserPassesJoinGate,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { admit } from "#src/games/admit";
 import { throwIfAdmitRefused } from "#src/games/helpers/throw-if-admit-refused";
@@ -42,6 +46,7 @@ export async function registerSeat(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, locale);
   assertPoolDrawNotPosted(game);
   const now = new Date();
 

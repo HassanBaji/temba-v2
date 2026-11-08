@@ -41,7 +41,7 @@ export async function notifyIfGameFinished(
   database: DbOrTx,
   game: Pick<
     GameRow,
-    "id" | "format" | "cancelledAt" | "groupId" | "createdBy"
+    "id" | "format" | "cancelledAt" | "groupId" | "createdBy" | "challengeId"
   >,
 ): Promise<void> {
   const rows = await database

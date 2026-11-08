@@ -27,7 +27,7 @@ import { Button } from "../primitives/button";
 import { ScorePair } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { CardFooter, CardShell } from "./card-parts";
+import { CardFooter, CardShell, ChallengeMarker } from "./card-parts";
 import { useNow } from "./use-now";
 
 export type FootballCardActions = {
@@ -88,7 +88,10 @@ function Kickoff({ game }: { game: HubGameRow }) {
           {customName ? m.home.comingUp.parts([...place, day]) : day}
         </Text>
       </View>
-      <SizeTag sideSize={game.football?.sideSize ?? null} />
+      <View style={{ alignItems: "flex-end", gap: 2 }}>
+        {game.challenge ? <ChallengeMarker /> : null}
+        <SizeTag sideSize={game.football?.sideSize ?? null} />
+      </View>
     </View>
   );
 }

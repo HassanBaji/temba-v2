@@ -49,6 +49,11 @@
       "types": "./dist/routers/bookings/index.d.ts",
       "default": "./src/routers/bookings/index.ts"
     },
+    "#src/routers/challenges": {
+      "temba-source": "./src/routers/challenges/index.ts",
+      "types": "./dist/routers/challenges/index.d.ts",
+      "default": "./src/routers/challenges/index.ts"
+    },
     "#src/routers/communities": {
       "temba-source": "./src/routers/communities/index.ts",
       "types": "./dist/routers/communities/index.d.ts",

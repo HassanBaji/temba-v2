@@ -44,6 +44,7 @@ type NotificationLevelSet = {
 type NotificationGame = {
   name: string | null;
   format: string;
+  sport?: string | null;
   windowStart: Date | string | null;
   /** Set only while the Game's Marks window is open. */
   marksClosesAt?: Date | string | null;
@@ -325,6 +326,90 @@ export function notificationCopy(
         notificationGameName(item.game, locale),
       ),
       subline: null,
+    };
+  }
+  if (item.type === "team_invite_received" && item.audience === "player") {
+    const actor = actorName(item.actor, locale);
+    return {
+      title: item.team?.name
+        ? m.teamInviteReceived(actor, userName(item.team.name, locale))
+        : m.teamInviteReceivedUnnamed(actor),
+      subline: sub.acceptInTeams,
+    };
+  }
+  if (item.type === "challenge_expired") {
+    return {
+      title: item.team?.name
+        ? m.challengeExpired(userName(item.team.name, locale))
+        : m.challengeExpiredUnnamed,
+      subline: sub.postAgain,
+    };
+  }
+  if (item.type === "challenge_proposal_received") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalReceived(userName(item.team.name, locale))
+        : m.challengeProposalReceivedUnnamed,
+      subline: sub.confirmOrAnotherTime,
+    };
+  }
+  if (item.type === "challenge_proposal_declined") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalDeclined(userName(item.team.name, locale))
+        : m.challengeProposalDeclinedUnnamed,
+      subline: sub.proposeAgain,
+    };
+  }
+  if (item.type === "challenge_proposal_expired") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalExpired(userName(item.team.name, locale))
+        : m.challengeProposalExpiredUnnamed,
+      subline: sub.proposeAgain,
+    };
+  }
+  if (item.type === "challenge_proposal_confirmed") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalConfirmed(userName(item.team.name, locale))
+        : m.challengeProposalConfirmedUnnamed,
+      subline:
+        item.game?.sport === "football"
+          ? sub.nameYourSquad
+          : sub.bothPairsSeated,
+    };
+  }
+  if (item.type === "challenge_proposal_passed_over") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalPassedOver(userName(item.team.name, locale))
+        : m.challengeProposalPassedOverUnnamed,
+      subline: sub.findAnother,
+    };
+  }
+  if (item.type === "challenge_squad_due") {
+    return {
+      title: item.team?.name
+        ? m.challengeSquadDue(userName(item.team.name, locale))
+        : m.challengeSquadDueUnnamed,
+      subline: sub.kickOffTomorrow,
+    };
+  }
+  if (item.type === "challenge_squad_named") {
+    return {
+      title: item.team?.name
+        ? m.challengeSquadNamed(userName(item.team.name, locale))
+        : m.challengeSquadNamedUnnamed,
+      subline: sub.seeWhoIsNamed,
+    };
+  }
+  if (item.type === "challenge_rematch_nudge") {
+    return {
+      title: item.team?.name
+        ? m.challengeRematchNudge(userName(item.team.name, locale))
+        : m.challengeRematchNudgeUnnamed,
+      subline: sub.acceptRematch,
     };
   }
   if (item.type === "game_finished" && item.game) {

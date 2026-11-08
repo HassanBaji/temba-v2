@@ -25,7 +25,11 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGameOrganizer, requireGame } from "#src/games/access";
+import {
+  assertGameOrganizer,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import {
   assertFootballGame,
   assertGameNotCancelled,
@@ -109,6 +113,7 @@ export async function publishFootballTeams(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, locale);
   assertFootballGame(game);
   assertGameNotCancelled(game);
   await assertGameOrganizer(database, game, args.userId);

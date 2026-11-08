@@ -248,5 +248,13 @@ describe("hubGameCardPlan", () => {
     const plan = hubGameCardPlan({ ...row, sport: "padel" });
     assert.equal(plan.primaryAction, "join");
     assert.deepEqual(plan.rosterSides, []);
+    assert.equal(plan.challenge, false);
+  });
+
+  it("marks a Challenge Game and offers no join call", () => {
+    const plan = hubGameCardPlan({ ...row, sport: "padel", challenge: true });
+    assert.equal(plan.challenge, true);
+    assert.equal(plan.primaryAction, "view");
+    assert.equal(plan.showPartnerJoin, false);
   });
 });
