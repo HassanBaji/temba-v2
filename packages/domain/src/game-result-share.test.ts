@@ -182,6 +182,27 @@ function player(
 }
 
 describe("footballResultCard", () => {
+  it("draws two empty lineups when nobody is named on either side", () => {
+    const empty = footballResultCard(
+      {
+        windowStart: new Date("2026-10-18T17:00:00.000Z"),
+        windowEnd: new Date("2026-10-18T18:00:00.000Z"),
+        venue: { name: "Pitch Park", city: null },
+        courtName: null,
+        players: [],
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 0, slot2: 0 },
+        sideSize: 6,
+        rated: false,
+      },
+      "en",
+    );
+    assert.deepEqual(empty.lineups, { win: [], lose: [] });
+    assert.deepEqual(empty.scorers, []);
+    assert.equal(empty.you, null);
+    assert.equal(empty.draw, true);
+  });
+
   const card = footballResultCard(
     {
       windowStart: new Date("2026-10-18T17:00:00.000Z"),

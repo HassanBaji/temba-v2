@@ -160,8 +160,8 @@ A door URL any authenticated User may use while that token is live. Each copy mi
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Invite doors**:
-Lookup invite and Invite link as the two live invitation channels onto a Group, Team, or Game.
-_Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door)
+Lookup invite and Invite link as the two live invitation channels onto a Group, Team, or Game. Refused on a Challenge Game, whose sides are the two Teams.
+_Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door), inviting onto a Challenge Game (captains name the Matchday squad)
 
 **Venue link**:
 A Group’s live association with at most one Venue, stored as `groups.venue_id`. It is made when the Group creator accepts a Group link request and ended when the Group creator (`groups.unlinkFromVenue`) or a Venue manager (`venues.unlinkGroup`) unlinks the Group. A Group with a Venue link is a Club Group. Distinct from Invite link.
@@ -200,8 +200,20 @@ A Challenge's inclusive Level band range, stored in tenths like a Game Level ran
 _Avoid_: level range (bare, that is a Game's), level gate, skill filter
 
 **Proposal**:
-One Team's answer to a Challenge: a Venue, a start at least an hour ahead and within 30 days, and optionally a Court on that Venue and a price per player. Sent by someone who acts for a Team of the sport that does not share a member with the posting Team, whose Roster fields the Challenge format (padel: both players) and whose Team Level is inside the Level wanted. Pending for 48 hours; a change replaces its terms in place and starts the 48 hours again. The posting Team confirms it or asks for another time (declined); the proposing Team may withdraw it; the clock expires it; the rest are passed over when another is confirmed or the Challenge is withdrawn. At most one pending Proposal per Team per Challenge; after a decline the Team may propose again. Nothing about who will play.
+One Team's answer to a Challenge: a Venue, a start at least an hour ahead and within 30 days, and optionally a Court on that Venue and a price per player. Sent by someone who acts for a Team of the sport that does not share a member with the posting Team, whose Roster fields the Challenge format (padel: both players) and whose Team Level is inside the Level wanted. Pending for 48 hours; a change replaces its terms in place and starts the 48 hours again. The posting Team confirms it or asks for another time (declined); the proposing Team may withdraw it; the clock expires it; the rest are passed over when another is confirmed or the Challenge is withdrawn. At most one pending Proposal per Team per Challenge; after a decline the Team may propose again. Nothing about who will play. Confirming ("Confirm, make it a game") reads every propose rule again for both Teams, then creates the Challenge Game and passes the other pending Proposals over, all at once; a failed re-check names the reason and changes nothing.
 _Avoid_: accept (the button says Accept; the entity is a Proposal), bid, offer, counter
+
+**Challenge Game**:
+The Friendly game a confirmed Proposal creates (ADR-0061): no Group, the Proposal's Venue, Court, start and price, a window of the Challenge's duration, registration closed, both Game teams bound to the two Teams (the poster's is side 1). No Waitlist, no Invite doors, nobody joins, leaves or is kicked, and its shape (caps, Game Level range, Season) is the Challenge's. Padel seats both pairs at confirm, Positions from Preferred Position, and is Rated at the groupless weight. Football opens with two empty sides of `side + 3` seats in black and white, the one Match and its Score shell, and is Unrated; each Captain names a Matchday squad. Its Organizers are whoever acts for either Team; any Roster member of either Team may view it. The Challenge stays confirmed if the Game is cancelled.
+_Avoid_: challenge match, team game (that is a team-only Game), friendly (bare)
+
+**Matchday squad**:
+The players a Captain names from the Roster for one football Challenge Game: the side plus up to three Reserves (8 for 5-a-side, 9 for 6-a-side, 10 for 7-a-side). Named after the Game exists, editable until the Score is entered. A side is empty with nobody named, short below the side, and named at the side or more; a Score cannot be entered until both are named ("Name both squads first"). A day before kick-off whoever acts for a side still empty or short is reminded once. Only named players are seated and get the result, Marks, MVP and head-to-head. On padel the squad is the whole Roster, seated at confirm.
+_Avoid_: roster, line-up, Football side (the Game team row), registered players
+
+**Reserve**:
+One of the up to three seats beyond the side on a Matchday squad, labelled so an empty Reserve never reads as a missing player. No stored flag: the first `side` named players are the side and the rest are Reserves for display. A named Reserve is a seated player like any other.
+_Avoid_: substitute, bench (as an entity), extra
 
 **Team record**:
 Wins–losses (padel) or wins–draws–losses (football) over a Team's completed Matches on non-cancelled Games, read from the Game teams bound to the Team and derived on every read. A Match awaiting confirmation or a Walkover does not count. No stored counters.
@@ -320,7 +332,7 @@ A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Ga
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, which has none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group or a football Court Booking. Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game and a Challenge Game, which have none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group, a football Court Booking or a confirmed Challenge, whose Challenge Game has its two sides and Match from the start. Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Game day**:
@@ -489,8 +501,8 @@ The queue to join a Game after its cap is reached, first come first served. When
 _Avoid_: player (when you mean someone waitlisted), guest
 
 **Game admit**:
-Registered occupancy of a User, an ad-hoc pair of Users, or a complete Team on a Game. Distinct from Waitlist and from creating the Game.
-_Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window), Game Level range request (that is not occupancy)
+Registered occupancy of a User, an ad-hoc pair of Users, or a complete Team on a Game. Distinct from Waitlist and from creating the Game. Refused on a Challenge Game: its padel pairs are seated at confirm and its football sides are filled by naming the Matchday squad.
+_Avoid_: join (when you mean this), enroll, registration (when you mean the open/closed window), Game Level range request (that is not occupancy), admitting onto a Challenge Game
 
 **Allow registering alone**:
 Organizer flag on a Friendly tournament, default yes. When no, entry is Partner registration only onto a fully vacant side. Distinct from team-only registration and from Team. Not a new Game format. Not a registration mode.
@@ -505,7 +517,7 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator and its Appointed Organizers. Of a groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
+Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it, and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
@@ -589,7 +601,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, including a Group join request or a Level range request waiting on them; that a Game they played on has finished; that an Organizer seated them on a Game; that a Level setter set their Level; that a Group approver or Organizer decided their request, by name; that a Captain invited them to a Team (the Lookup invite stays the thing they accept); or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an invite; its email copy is the Notification email.
+An in-app record that tells one User that something happened on a Group or Game they run, including a Group join request or a Level range request waiting on them; that a Game they played on has finished; that an Organizer seated them on a Game; that a Level setter set their Level; that a Group approver or Organizer decided their request, by name; that a Captain invited them to a Team (the Lookup invite stays the thing they accept); that a Challenge or Proposal of a Team they act for was answered, confirmed, declined, passed over or expired, or that a squad is still to name a day before kick-off; or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an invite; its email copy is the Notification email.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notification email**:

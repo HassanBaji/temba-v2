@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  footballMatchup,
   makeTeam,
   makeUsers,
   makeVenue,
   padelMatchup,
   withDb,
 } from "#src/challenges/challenges.test-support";
+import { recordJobs } from "#src/jobs/job-sink.test-support";
 
 import { challengeById } from "./byId";
+import { confirmProposal } from "./confirmProposal";
 import { postChallenge } from "./post";
 import { proposeOnChallenge } from "./propose";
 import { withdrawChallenge } from "./withdraw";
@@ -153,6 +156,70 @@ describe("challenges.byId", () => {
           now,
         }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("confirmed", () => {
+    recordJobs();
+
+    it("shows the Challenge Game with both squads, who proposed and confirmed, the Pitch and the price", async () => {
+      await withDb(async ({ database, db }) => {
+        const HOUR = 60 * 60 * 1000;
+        const sentAt = new Date(Date.now() - HOUR);
+        const kickOff = new Date(sentAt.getTime() + 72 * HOUR);
+        const match = await footballMatchup(database, sentAt, { sideSize: 5 });
+        const { id: proposalId } = await proposeOnChallenge(db, {
+          challengeId: match.challenge.id,
+          teamId: match.arad.id,
+          venueId: match.venue.id,
+          courtId: match.court.id,
+          startsAt: kickOff,
+          pricePerPlayerFils: 1500,
+          userId: match.aradIds[0]!,
+          now: sentAt,
+        });
+        const { gameId } = await confirmProposal(db, {
+          proposalId,
+          userId: match.hiddIds[0]!,
+          now: sentAt,
+        });
+
+        const detail = await challengeById(db, {
+          challengeId: match.challenge.id,
+          userId: match.aradIds[4]!,
+          now: sentAt,
+        });
+        expect(detail.state).toBe("confirmed");
+        expect(detail.viewerCanDecide).toBe(false);
+        expect(detail.game).toEqual({
+          id: gameId,
+          sport: "football",
+          startsAt: kickOff,
+          endsAt: new Date(kickOff.getTime() + 60 * 60 * 1000),
+          cancelled: false,
+          venue: { name: "Pitch Park", city: "Hidd" },
+          court: { name: "Court 1" },
+          pricePerPlayerFils: 1500,
+          proposedBy: { name: "Arad 1", teamId: match.arad.id },
+          confirmedBy: { name: "Hidd 1" },
+          sides: [
+            {
+              teamId: match.hidd.id,
+              displayName: "Hidd United",
+              sideSize: 5,
+              namedCount: 0,
+              squadState: "empty",
+            },
+            {
+              teamId: match.arad.id,
+              displayName: "Arad Athletic",
+              sideSize: 5,
+              namedCount: 0,
+              squadState: "empty",
+            },
+          ],
+        });
+      });
     });
   });
 });

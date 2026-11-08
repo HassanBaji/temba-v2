@@ -6,6 +6,7 @@ import * as bookingConfirmed from "./handlers/booking.confirmed";
 import * as bookingExpireHold from "./handlers/booking.expire-hold";
 import * as bookingReconcile from "./handlers/booking.reconcile";
 import * as challengeExpire from "./handlers/challenge.expire";
+import * as challengeSquadDue from "./handlers/challenge.squad-due";
 import * as notificationEmail from "./handlers/notification.email";
 import * as marksSettleMvp from "./handlers/marks.settle-mvp";
 import * as paymentCreateCharge from "./handlers/payment.create-charge";
@@ -20,6 +21,7 @@ const handlers: Record<string, JobHandler> = {
   [bookingConfirmed.jobName]: bookingConfirmed,
   [bookingExpireHold.jobName]: bookingExpireHold,
   [challengeExpire.jobName]: challengeExpire,
+  [challengeSquadDue.jobName]: challengeSquadDue,
   [notificationEmail.jobName]: notificationEmail,
   [marksSettleMvp.jobName]: marksSettleMvp,
   [paymentCreateCharge.jobName]: paymentCreateCharge,

@@ -25,13 +25,18 @@ export const challenge = {
     postedTitle: "Your challenges",
     waitingTitle: "Waiting on you",
     pendingTitle: "Your proposals",
-    acceptedTitle: "Accepted",
+    acceptedTitle: "Accepted, now games",
     playedTitle: "Played",
     proposedFor: (team: string) => `Proposed to ${team}`,
     acceptedLine: (team: string, opponent: string) => `${team} v ${opponent}`,
     open: (title: string) => `Open ${title}`,
+    nameYourSquad: "Name your squad",
+    cancelled: "Game cancelled",
+    setScore: (us: number, them: number) => `${us}–${them}`,
+    scoreSeparator: ", ",
   },
   goToTeams: "See your teams",
+  marker: "Challenge",
   teams: {
     invitedTitle: "Invited to",
     invitedBy: (name: string) => `Invited by ${name}`,
@@ -221,6 +226,18 @@ export const challenge = {
       "Your Team already has a pending proposal here. Change it instead.",
     proposalNotFound: "Proposal not found",
     proposalNotPending: "This proposal is no longer pending",
+    setByChallenge: "Teams are set by the challenge; captains name the squads",
+    nameBothSquads: "Name both squads first",
+    recheck: {
+      rosterShort: (team: string, side: string) =>
+        `${team}'s Roster is short for ${side}`,
+      padelIncomplete: (team: string) => `${team} needs both players`,
+      levelOutside: (team: string) =>
+        `${team}'s Team Level is outside the level wanted`,
+      noLevel: (team: string) => `${team} has no rated player yet`,
+      sharesMember: "The two Teams share a player",
+      tooSoon: "This proposal starts within the hour. Ask for another time.",
+    },
   },
   proposal: {
     sent: (day: string) => `Sent ${day}`,
@@ -250,6 +267,15 @@ export const challenge = {
     withdrawn: "Proposal withdrawn",
     queueTitle: "Proposals",
     pendingTitle: "Your proposal",
+    confirm: "Confirm, make it a game",
+    confirmA11y: (team: string) => `Confirm ${team}'s proposal`,
+    confirmSheet: {
+      title: "Make it a game?",
+      description:
+        "The Game is created with both Teams on it. The other proposals are passed over and told.",
+      confirm: "Confirm, make it a game",
+    },
+    confirmed: "It's a game",
   },
   accept: {
     cta: "Accept",
@@ -300,7 +326,37 @@ export const challenge = {
       confirm: "Withdraw",
     },
     withdrawn: "Challenge withdrawn",
+    game: {
+      title: "The game",
+      when: "Kick-off",
+      proposedConfirmed: (proposer: string, confirmer: string) =>
+        `Proposed by ${proposer}, confirmed by ${confirmer}`,
+      pitch: "Pitch",
+      court: "Court",
+      place: (venue: string, court: string) => `${venue}, ${court}`,
+      bookYourselves: "Book it yourselves",
+      cost: "Cost",
+      costEach: (amount: string) => `${amount} each, pay at the venue`,
+      costSplit: "Split four ways, pay at the venue",
+      costAtVenue: "Pay at the venue",
+      squads: "Squads",
+      open: "Open the game",
+      cancelled: "The game was cancelled",
+    },
     notFound: "Challenge not found",
     errorTitle: "This challenge could not be loaded",
+  },
+  squad: {
+    side: "Side",
+    reserve: "Reserve",
+    counterNamed: (
+      named: number,
+      seats: number,
+      side: number,
+      reserves: number,
+    ) => `${named} of ${seats} named, ${side} + ${reserves} reserves`,
+    counterShort: (named: number, toName: number, seats: number) =>
+      `${named} + ${toName} to name, ${named} of ${seats}`,
+    counterEmpty: (seats: number) => `Nobody named yet, 0 of ${seats}`,
   },
 };

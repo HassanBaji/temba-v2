@@ -27,14 +27,19 @@ export const challenge = {
     postedTitle: "تحدياتك",
     waitingTitle: "بانتظارك",
     pendingTitle: "عروضك",
-    acceptedTitle: "مقبولة",
+    acceptedTitle: "مقبولة، صارت مباريات",
     playedTitle: "لُعبت",
     proposedFor: (team: string) => `عرض مقدَّم إلى ${isolate(team)}`,
     acceptedLine: (team: string, opponent: string) =>
       `${isolate(team)} ضد ${isolate(opponent)}`,
     open: (title: string) => `افتح ${isolate(title)}`,
+    nameYourSquad: "سمِّ تشكيلتك",
+    cancelled: "أُلغيت المباراة",
+    setScore: (us: number, them: number) => `${us}–${them}`,
+    scoreSeparator: "، ",
   },
   goToTeams: "اعرض فرقك",
+  marker: "تحدٍّ",
   teams: {
     invitedTitle: "دعوات إلى",
     invitedBy: (name: string) => `بدعوة من ${isolate(name)}`,
@@ -239,6 +244,18 @@ export const challenge = {
     alreadyProposed: "لفريقك عرض معلّق هنا. غيّره بدلًا من ذلك.",
     proposalNotFound: "العرض غير موجود",
     proposalNotPending: "هذا العرض لم يعد معلّقًا",
+    setByChallenge: "الفريقان يحددهما التحدي؛ والقادة يسمّون التشكيلات",
+    nameBothSquads: "سمِّ التشكيلتين أولًا",
+    recheck: {
+      rosterShort: (team: string, side: string) =>
+        `قائمة ${isolate(team)} لا تكفي لمباراة ${side}`,
+      padelIncomplete: (team: string) => `${isolate(team)} يحتاج إلى اللاعبَين`,
+      levelOutside: (team: string) =>
+        `مستوى ${isolate(team)} خارج المستوى المطلوب`,
+      noLevel: (team: string) => `لا لاعب مصنَّف في ${isolate(team)} بعد`,
+      sharesMember: "الفريقان يتشاركان لاعبًا",
+      tooSoon: "يبدأ هذا العرض خلال ساعة. اطلب وقتًا آخر.",
+    },
   },
   proposal: {
     sent: (day: string) => `أُرسل ${day}`,
@@ -268,6 +285,15 @@ export const challenge = {
     withdrawn: "سُحب العرض",
     queueTitle: "العروض",
     pendingTitle: "عرضك",
+    confirm: "أكّد، واجعلها مباراة",
+    confirmA11y: (team: string) => `أكّد عرض ${isolate(team)}`,
+    confirmSheet: {
+      title: "تجعلها مباراة؟",
+      description:
+        "تُنشأ المباراة والفريقان فيها. وتُتجاوز العروض الأخرى ويُبلَّغ أصحابها.",
+      confirm: "أكّد، واجعلها مباراة",
+    },
+    confirmed: "صارت مباراة",
   },
   accept: {
     cta: "اقبل",
@@ -318,7 +344,38 @@ export const challenge = {
       confirm: "اسحب",
     },
     withdrawn: "سُحب التحدي",
+    game: {
+      title: "المباراة",
+      when: "الانطلاق",
+      proposedConfirmed: (proposer: string, confirmer: string) =>
+        `اقترحها ${isolate(proposer)}، وأكّدها ${isolate(confirmer)}`,
+      pitch: "الملعب",
+      court: "الملعب الفرعي",
+      place: (venue: string, court: string) =>
+        `${isolate(venue)}، ${isolate(court)}`,
+      bookYourselves: "احجزوه بأنفسكم",
+      cost: "التكلفة",
+      costEach: (amount: string) => `${amount} للفرد، الدفع في الملعب`,
+      costSplit: "تُقسم على أربعة، الدفع في الملعب",
+      costAtVenue: "الدفع في الملعب",
+      squads: "التشكيلات",
+      open: "افتح المباراة",
+      cancelled: "أُلغيت المباراة",
+    },
     notFound: "التحدي غير موجود",
     errorTitle: "تعذّر تحميل هذا التحدي",
+  },
+  squad: {
+    side: "أساسي",
+    reserve: "احتياط",
+    counterNamed: (
+      named: number,
+      seats: number,
+      side: number,
+      reserves: number,
+    ) => `سُمّي ${named} من ${seats}، ${side} + ${reserves} احتياط`,
+    counterShort: (named: number, toName: number, seats: number) =>
+      `${named} + ${toName} للتسمية، ${named} من ${seats}`,
+    counterEmpty: (seats: number) => `لم يُسمَّ أحد بعد، 0 من ${seats}`,
   },
 } satisfies typeof source;

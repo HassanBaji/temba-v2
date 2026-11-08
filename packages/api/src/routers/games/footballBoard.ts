@@ -16,10 +16,12 @@ import {
   type FootballBib,
 } from "@repo/domain/football-lineup";
 import { type LevelBand } from "@repo/domain/level-bands";
+import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
+import { loadChallengeSides } from "#src/games/challenge-squad";
 import {
   assertFootballGame,
   footballMatch,
@@ -148,6 +150,10 @@ export async function footballBoard(
 
   const viewerSide = sideByUser.get(args.userId) ?? null;
   const published = sides.slot1 != null && sides.slot2 != null && match != null;
+  const challengeSides = await loadChallengeSides(database, game);
+  const squadsReady =
+    !challengeSides ||
+    squadsReadyForScore(challengeSides.map((side) => side.squadState));
   const completed = match?.status === MatchStatusEnum.COMPLETED;
   const live = !game.cancelledAt && !completed;
   const viewerConfirmed = confirmations.some(
@@ -210,9 +216,15 @@ export async function footballBoard(
       : null,
     viewer: {
       sideIndex: viewerSide,
-      canMakeTeams: organizer && live && score == null && userIds.length >= 2,
+      canMakeTeams:
+        !challengeSides &&
+        organizer &&
+        live &&
+        score == null &&
+        userIds.length >= 2,
       canEnterScore:
         published &&
+        squadsReady &&
         live &&
         footballScoreOpen(game, now) &&
         (organizer || viewerSide != null),

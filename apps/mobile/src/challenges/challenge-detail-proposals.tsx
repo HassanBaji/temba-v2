@@ -66,14 +66,21 @@ export function ViewerProposals({
   );
 }
 
-/** The posting Team's queue: each pending Proposal, oldest first, with Another time. */
+/**
+ * The posting Team's queue: each pending Proposal, oldest first, with
+ * "Confirm, make it a game" and Another time.
+ */
 export function ProposalQueue({
   proposals,
+  confirmingId,
   decliningId,
+  onConfirm,
   onDecline,
 }: {
   proposals: readonly Proposal[];
+  confirmingId: string | null;
   decliningId: string | null;
+  onConfirm: (proposal: Proposal) => void;
   onDecline: (proposal: Proposal) => void;
 }) {
   const m = useMessages();
@@ -95,15 +102,25 @@ export function ProposalQueue({
               style={{ gap: spacing.compact }}
             >
               <ProposalLines view={view} lead={view.sentLine} />
-              <Button
-                label={m.challenge.proposal.anotherTime}
-                accessibilityLabel={m.challenge.proposal.anotherTimeA11y(
-                  view.title,
-                )}
-                variant={focus ? "outline-inverse" : "outline"}
-                pending={decliningId === proposal.id}
-                onPress={() => onDecline(proposal)}
-              />
+              <View style={{ gap: 8 }}>
+                <Button
+                  label={m.challenge.proposal.confirm}
+                  accessibilityLabel={m.challenge.proposal.confirmA11y(
+                    view.title,
+                  )}
+                  pending={confirmingId === proposal.id}
+                  onPress={() => onConfirm(proposal)}
+                />
+                <Button
+                  label={m.challenge.proposal.anotherTime}
+                  accessibilityLabel={m.challenge.proposal.anotherTimeA11y(
+                    view.title,
+                  )}
+                  variant={focus ? "outline-inverse" : "outline"}
+                  pending={decliningId === proposal.id}
+                  onPress={() => onDecline(proposal)}
+                />
+              </View>
             </Surface>
           );
         })}

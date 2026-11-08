@@ -631,6 +631,13 @@
       "when": 1794154931665,
       "tag": "0089_challenge_proposal_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794158319583,
+      "tag": "0090_challenge_game",
+      "breakpoints": true
     }
   ]
 }

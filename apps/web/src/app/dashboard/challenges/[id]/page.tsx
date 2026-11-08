@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ChallengeAcceptDialog } from "~/components/challenges/challenge-accept-dialog";
 import { ChallengeSeats } from "~/components/challenges/challenge-card";
+import { ChallengeGameSummary } from "~/components/challenges/challenge-game-summary";
 import {
   ProposalQueue,
   ViewerProposals,
@@ -41,7 +42,8 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 /**
  * 2a: one Challenge in its open state, with Accept for a Team that may
- * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue.
+ * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue,
+ * where one is confirmed into the Challenge Game; 2d: the confirmed state.
  */
 export default function ChallengePage({
   params,
@@ -57,6 +59,7 @@ export default function ChallengePage({
   const [accepting, setAccepting] = useState<{ teamId: string } | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [declining, setDeclining] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const challenge = api.challenges.byId.useQuery({ id });
   const withdraw = api.challenges.withdraw.useMutation({
     onSuccess: async () => {
@@ -81,6 +84,13 @@ export default function ChallengePage({
     onSuccess: async () => {
       toast.success(m.challenge.proposal.withdrawn);
       await refreshProposals();
+    },
+  });
+  const confirmProposal = api.challenges.confirmProposal.useMutation({
+    onSuccess: async (result) => {
+      toast.success(m.challenge.proposal.confirmed);
+      await Promise.all([refreshProposals(), utils.games.invalidate()]);
+      router.push(`/dashboard/games/${result.gameId}`);
     },
   });
   const decline = api.challenges.declineProposal.useMutation({
@@ -139,7 +149,9 @@ export default function ChallengePage({
   return (
     <DashboardShell title={card.title} description={card.sportLine} isSubPage>
       <div className="space-y-6">
-        {data.state !== "open" ? (
+        {data.game ? (
+          <ChallengeGameSummary game={data.game} />
+        ) : data.state !== "open" ? (
           <p role="status" className="text-body font-semibold">
             {detail.closed[data.state]}
           </p>
@@ -214,6 +226,7 @@ export default function ChallengePage({
         {data.viewerCanDecide ? (
           <ProposalQueue
             proposals={data.proposalQueue}
+            onConfirm={(proposal) => setConfirming(proposal.id)}
             onDecline={(proposal) => setDeclining(proposal.id)}
           />
         ) : null}
@@ -252,6 +265,23 @@ export default function ChallengePage({
         onConfirm={async () => {
           if (withdrawing) {
             await withdrawProposal.mutateAsync({ proposalId: withdrawing });
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={confirming != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirming(null);
+          }
+        }}
+        title={proposalCopy.confirmSheet.title}
+        description={proposalCopy.confirmSheet.description}
+        confirmLabel={proposalCopy.confirmSheet.confirm}
+        pending={confirmProposal.isPending}
+        onConfirm={async () => {
+          if (confirming) {
+            await confirmProposal.mutateAsync({ proposalId: confirming });
           }
         }}
       />

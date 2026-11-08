@@ -11,7 +11,10 @@ import {
   challengeCardView,
   challengeProposalView,
 } from "@repo/domain/challenge-card";
-import { challengeMineSections } from "@repo/domain/challenge-mine";
+import {
+  challengeMineScoreLine,
+  challengeMineSections,
+} from "@repo/domain/challenge-mine";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import type { RouterOutputs } from "~/trpc/react";
 
@@ -25,16 +28,20 @@ function challengeHref(challengeId: string) {
   return `/dashboard/challenges/${challengeId}`;
 }
 
+type ProposalAction = (proposal: { id: string; teamName: string }) => void;
+
 function MineRow({
   item,
   focus,
   now,
+  onConfirm,
   onDecline,
 }: {
   item: MineItem;
   focus: boolean;
   now: Date;
-  onDecline: (proposal: { id: string; teamName: string }) => void;
+  onConfirm: ProposalAction;
+  onDecline: ProposalAction;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -74,16 +81,28 @@ function MineRow({
           <ProposalLines view={view} lead={lead} focus={focus} />
         </Link>
         {item.kind === "waiting" ? (
-          <Button
-            type="button"
-            variant={focus ? "outline-inverse" : "outline"}
-            aria-label={m.challenge.proposal.anotherTimeA11y(view.title)}
-            onClick={() =>
-              onDecline({ id: item.proposal.id, teamName: view.title })
-            }
-          >
-            {m.challenge.proposal.anotherTime}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={focus ? "inverse" : "default"}
+              aria-label={m.challenge.proposal.confirmA11y(view.title)}
+              onClick={() =>
+                onConfirm({ id: item.proposal.id, teamName: view.title })
+              }
+            >
+              {m.challenge.proposal.confirm}
+            </Button>
+            <Button
+              type="button"
+              variant={focus ? "outline-inverse" : "outline"}
+              aria-label={m.challenge.proposal.anotherTimeA11y(view.title)}
+              onClick={() =>
+                onDecline({ id: item.proposal.id, teamName: view.title })
+              }
+            >
+              {m.challenge.proposal.anotherTime}
+            </Button>
+          </div>
         ) : null}
       </Surface>
     );
@@ -92,6 +111,8 @@ function MineRow({
     item.team.displayName,
     item.opponent.displayName,
   );
+  const scoreLine =
+    item.kind === "played" ? challengeMineScoreLine(item.sets, locale) : null;
   return (
     <Link
       href={challengeHref(item.challengeId)}
@@ -102,6 +123,14 @@ function MineRow({
       <p className="text-meta text-muted-foreground">
         {formatGameStart(item.startsAt, locale)}
       </p>
+      {scoreLine ? <p className="text-body font-medium">{scoreLine}</p> : null}
+      {item.cancelled ? (
+        <p className="text-meta font-semibold">{m.challenge.mine.cancelled}</p>
+      ) : item.nameYourSquad ? (
+        <p className="text-meta font-semibold">
+          {m.challenge.mine.nameYourSquad}
+        </p>
+      ) : null}
     </Link>
   );
 }
@@ -112,11 +141,13 @@ function MineRow({
  */
 export function ChallengeMineSegment({
   items,
+  onConfirm,
   onDecline,
   onGoToTeams,
 }: {
   items: MineItem[] | undefined;
-  onDecline: (proposal: { id: string; teamName: string }) => void;
+  onConfirm: ProposalAction;
+  onDecline: ProposalAction;
   onGoToTeams: () => void;
 }) {
   const locale = useLocale();
@@ -135,6 +166,7 @@ export function ChallengeMineSegment({
                   item={item}
                   focus={focus}
                   now={now}
+                  onConfirm={onConfirm}
                   onDecline={onDecline}
                 />
               </li>

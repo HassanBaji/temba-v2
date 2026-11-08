@@ -1011,4 +1011,41 @@ describe("notificationCopy for a Proposal", () => {
       `${isolate("Seef Smashers")} طلب وقتًا آخر`,
     );
   });
+  it("names the other Team on a confirmed, passed-over and squad-due Notification", () => {
+    assert.equal(
+      title("challenge_proposal_confirmed", "Riffa Rackets", "en"),
+      "It's a game: you play Riffa Rackets",
+    );
+    assert.equal(
+      title("challenge_proposal_passed_over", "Seef Smashers", "en"),
+      "Seef Smashers confirmed another proposal",
+    );
+    assert.equal(
+      title("challenge_squad_due", "Hidd United", "en"),
+      "Name your squad for the game against Hidd United",
+    );
+    assert.equal(
+      title("challenge_squad_due", null, "ar"),
+      "سمِّ تشكيلتك للمباراة",
+    );
+    const confirmed = (sport: string) =>
+      notificationCopy(
+        {
+          type: "challenge_proposal_confirmed",
+          audience: "player",
+          actor: null,
+          team: { name: "Hidd United" },
+          group: null,
+          game: {
+            name: null,
+            format: "friendly_game",
+            sport,
+            windowStart: null,
+          },
+        },
+        "en",
+      )?.subline;
+    assert.equal(confirmed("football"), "Name your squad from the Roster.");
+    assert.equal(confirmed("padel"), "Both pairs are seated. See the Game.");
+  });
 });

@@ -3,7 +3,10 @@ import {
   challengeCardView,
   challengeProposalView,
 } from "@repo/domain/challenge-card";
-import { challengeMineSections } from "@repo/domain/challenge-mine";
+import {
+  challengeMineScoreLine,
+  challengeMineSections,
+} from "@repo/domain/challenge-mine";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { Pressable, View } from "react-native";
 
@@ -20,8 +23,10 @@ import { SegmentEmpty } from "./segment-empty";
 
 export type MineSegmentProps = {
   items: Slot<MineItem[]>;
+  confirmingId: string | null;
   decliningId: string | null;
   onOpenChallenge: (challengeId: string) => void;
+  onConfirm: (proposal: { id: string; teamName: string }) => void;
   onDecline: (proposal: { id: string; teamName: string }) => void;
   onGoToTeams: () => void;
 };
@@ -68,17 +73,27 @@ function MineRow({
           <ProposalLines view={view} lead={lead} />
         </Pressable>
         {item.kind === "waiting" ? (
-          <Button
-            label={m.challenge.proposal.anotherTime}
-            accessibilityLabel={m.challenge.proposal.anotherTimeA11y(
-              view.title,
-            )}
-            variant={focus ? "outline-inverse" : "outline"}
-            pending={props.decliningId === item.proposal.id}
-            onPress={() =>
-              props.onDecline({ id: item.proposal.id, teamName: view.title })
-            }
-          />
+          <View style={{ gap: 8 }}>
+            <Button
+              label={m.challenge.proposal.confirm}
+              accessibilityLabel={m.challenge.proposal.confirmA11y(view.title)}
+              pending={props.confirmingId === item.proposal.id}
+              onPress={() =>
+                props.onConfirm({ id: item.proposal.id, teamName: view.title })
+              }
+            />
+            <Button
+              label={m.challenge.proposal.anotherTime}
+              accessibilityLabel={m.challenge.proposal.anotherTimeA11y(
+                view.title,
+              )}
+              variant={focus ? "outline-inverse" : "outline"}
+              pending={props.decliningId === item.proposal.id}
+              onPress={() =>
+                props.onDecline({ id: item.proposal.id, teamName: view.title })
+              }
+            />
+          </View>
         ) : null}
       </Surface>
     );
@@ -87,6 +102,8 @@ function MineRow({
     item.team.displayName,
     item.opponent.displayName,
   );
+  const scoreLine =
+    item.kind === "played" ? challengeMineScoreLine(item.sets, locale) : null;
   return (
     <Pressable
       accessibilityRole="link"
@@ -98,6 +115,16 @@ function MineRow({
         <Text size="meta" tone="muted">
           {formatGameStart(item.startsAt, locale)}
         </Text>
+        {scoreLine ? <Text weight="medium">{scoreLine}</Text> : null}
+        {item.cancelled ? (
+          <Text size="meta" weight="semibold">
+            {m.challenge.mine.cancelled}
+          </Text>
+        ) : item.nameYourSquad ? (
+          <Text size="meta" weight="semibold">
+            {m.challenge.mine.nameYourSquad}
+          </Text>
+        ) : null}
       </Surface>
     </Pressable>
   );

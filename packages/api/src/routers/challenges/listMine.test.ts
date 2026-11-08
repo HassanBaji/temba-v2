@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { challengeProposals, challenges } from "@repo/db/schema";
+import {
+  challengeProposals,
+  challenges,
+  games,
+  gameTeams,
+} from "@repo/db/schema";
 
 import {
   addOpenChallenge,
@@ -25,7 +30,7 @@ async function pair(fixture: Fixture, name: string, userIds: string[]) {
   return makeTeam(fixture.database, { name, sport: "padel", userIds });
 }
 
-/** A Challenge confirmed on a Proposal starting at `startsAt`. */
+/** A Challenge confirmed on a Proposal starting at `startsAt`, with its Game. */
 async function confirmedChallenge(
   fixture: Fixture,
   args: {
@@ -59,9 +64,23 @@ async function confirmedChallenge(
       expiresAt: args.startsAt,
     })
     .returning();
+  const [game] = await fixture.database
+    .insert(games)
+    .values({
+      venueId: args.venueId,
+      createdBy: args.userId,
+      challengeId: challenge!.id,
+      windowStart: args.startsAt,
+      windowEnd: new Date(args.startsAt.getTime() + 90 * 60 * 1000),
+    })
+    .returning({ id: games.id });
+  await fixture.database.insert(gameTeams).values([
+    { gameId: game!.id, teamId: args.posterTeamId, sideIndex: 1 },
+    { gameId: game!.id, teamId: args.proposingTeamId, sideIndex: 2 },
+  ]);
   await fixture.database
     .update(challenges)
-    .set({ confirmedProposalId: proposal!.id })
+    .set({ confirmedProposalId: proposal!.id, gameId: game!.id })
     .where(eq(challenges.id, challenge!.id));
   return challenge!;
 }

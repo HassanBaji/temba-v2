@@ -130,6 +130,8 @@ export type HubListRow = {
   knockoutMatch: HubListKnockoutMatch | null;
   /** Only on football Games. */
   football?: HubListFootball | null;
+  /** A Challenge Game: sides set by the Challenge, nobody joins. */
+  challenge?: boolean;
 };
 
 export type GameCreateGroupKind = "club" | "loose" | "none";

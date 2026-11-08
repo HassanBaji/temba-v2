@@ -32,7 +32,9 @@ export function notificationHref(item: {
       item.type === "group_join_declined" ||
       item.type === "game_level_range_requested" ||
       item.type === "game_level_range_approved" ||
-      item.type === "game_level_range_declined") &&
+      item.type === "game_level_range_declined" ||
+      item.type === "challenge_proposal_confirmed" ||
+      item.type === "challenge_squad_due") &&
     item.game
   ) {
     return `/dashboard/games/${item.game.id}`;
@@ -43,7 +45,8 @@ export function notificationHref(item: {
   if (
     (item.type === "challenge_proposal_received" ||
       item.type === "challenge_proposal_declined" ||
-      item.type === "challenge_proposal_expired") &&
+      item.type === "challenge_proposal_expired" ||
+      item.type === "challenge_proposal_passed_over") &&
     item.challenge
   ) {
     return `/dashboard/challenges/${item.challenge.id}`;

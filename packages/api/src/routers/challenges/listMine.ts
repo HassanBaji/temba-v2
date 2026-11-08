@@ -1,6 +1,12 @@
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 
-import { challengeProposals, challenges } from "@repo/db";
+import {
+  challengeProposals,
+  challenges,
+  games,
+  gameTeams,
+  teamMembers,
+} from "@repo/db";
 import {
   isChallengeOpen,
   isProposalPending,
@@ -13,6 +19,7 @@ import {
   loadTeamDisplayNames,
 } from "#src/challenges/challenge-proposals";
 import { type db } from "#src/db";
+import { loadChallengeSides } from "#src/games/challenge-squad";
 import { teamsUserActsFor } from "#src/teams/acts-for-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { protectedProcedure } from "#src/trpc";
@@ -51,14 +58,134 @@ async function openBoardCount(database: DbClient, now: Date) {
 
 const PLAYED_LIMIT = 10;
 
-const MS_PER_MINUTE = 60 * 1000;
+/**
+ * The Challenge Games of every Team the viewer is on or acts for, from
+ * `games.challenge_id`, each read from the viewer's side: its squad state,
+ * whether the viewer should name that squad, and the Sets from that side.
+ * Played once the window has passed or the Match is completed.
+ */
+async function loadChallengeGames(
+  database: DbClient,
+  userId: string,
+  actingTeamIds: readonly string[],
+  now: Date,
+) {
+  const memberships = await database.query.teamMembers.findMany({
+    where: eq(teamMembers.userId, userId),
+    columns: { teamId: true },
+  });
+  const acting = new Set(actingTeamIds);
+  const roster = new Set([
+    ...actingTeamIds,
+    ...memberships.map((row) => row.teamId),
+  ]);
+  if (roster.size === 0) {
+    return [];
+  }
+  const rows = await database.query.games.findMany({
+    where: and(
+      isNotNull(games.challengeId),
+      inArray(
+        games.id,
+        database
+          .select({ id: gameTeams.gameId })
+          .from(gameTeams)
+          .where(inArray(gameTeams.teamId, [...roster])),
+      ),
+    ),
+    with: {
+      matches: {
+        columns: {
+          status: true,
+          slot1GameTeamId: true,
+          slot2GameTeamId: true,
+        },
+        with: {
+          sets: {
+            columns: {
+              setNumber: true,
+              slot1GamesWon: true,
+              slot2GamesWon: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const views = await Promise.all(
+    rows.map(async (game) => {
+      const sides = (await loadChallengeSides(database, game)) ?? [];
+      const side =
+        sides.find((candidate) => acting.has(candidate.teamId ?? "")) ??
+        sides.find((candidate) => roster.has(candidate.teamId ?? ""));
+      const other = sides.find(
+        (candidate) => candidate.gameTeamId !== side?.gameTeamId,
+      );
+      if (!game.challengeId || !game.windowStart || !side?.teamId) {
+        return null;
+      }
+      const match = game.matches.find(
+        (candidate) => candidate.status !== "cancelled",
+      );
+      const ourSlot = match?.slot2GameTeamId === side.gameTeamId ? 2 : 1;
+      const sets = [...(match?.sets ?? [])]
+        .sort((a, b) => a.setNumber - b.setNumber)
+        .map((set) =>
+          ourSlot === 1
+            ? { us: set.slot1GamesWon, them: set.slot2GamesWon }
+            : { us: set.slot2GamesWon, them: set.slot1GamesWon },
+        );
+      const cancelled = game.cancelledAt != null;
+      const shortSide =
+        side.squadState === "empty" || side.squadState === "partial";
+      return {
+        challengeId: game.challengeId,
+        gameId: game.id,
+        sport: game.sport ?? "padel",
+        startsAt: game.windowStart,
+        played:
+          match?.status === "completed" ||
+          (game.windowEnd ?? game.windowStart).getTime() <= now.getTime(),
+        cancelled,
+        teamId: side.teamId,
+        opponentTeamId: other?.teamId ?? "",
+        squadState: side.squadState,
+        nameYourSquad: acting.has(side.teamId) && shortSide && !cancelled,
+        sets,
+      };
+    }),
+  );
+  return views.filter((view) => view != null);
+}
+
+type ChallengeGameView = Awaited<ReturnType<typeof loadChallengeGames>>[number];
+
+function challengeGameItem(
+  game: ChallengeGameView & {
+    team: { id: string; displayName: string };
+    opponent: { id: string; displayName: string };
+  },
+) {
+  return {
+    challengeId: game.challengeId,
+    gameId: game.gameId,
+    sport: game.sport,
+    startsAt: game.startsAt,
+    team: game.team,
+    opponent: game.opponent,
+    cancelled: game.cancelled,
+    squadState: game.squadState,
+    nameYourSquad: game.nameYourSquad,
+    sets: game.sets,
+  };
+}
 
 /**
  * The Mine segment, in display order: Proposals waiting on the viewer's Teams
  * as poster (soonest to lapse first), then those Teams' open Challenges, then
- * the viewer's Teams' pending Proposals, then confirmed Challenges still to
- * play, then the last ten played. Read-time clocks apply, so nothing expired
- * shows. `posted` stays for clients that read the posted section alone.
+ * the viewer's Teams' pending Proposals, then the Challenge Games still to
+ * play of every Team the viewer is on, then the last ten played. Read-time
+ * clocks apply, so nothing expired shows. `posted` stays for clients that read the posted section alone.
  */
 export async function listMine(
   database: DbClient,
@@ -125,47 +252,19 @@ export async function listMine(
       ours.has(proposal.teamId) && !ours.has(proposal.challenge.teamId),
   );
 
-  const confirmed =
-    teamIds.length === 0
-      ? []
-      : await database.query.challenges.findMany({
-          where: and(
-            eq(challenges.status, "confirmed"),
-            or(
-              inArray(challenges.teamId, teamIds),
-              inArray(
-                challenges.confirmedProposalId,
-                database
-                  .select({ id: challengeProposals.id })
-                  .from(challengeProposals)
-                  .where(inArray(challengeProposals.teamId, teamIds)),
-              ),
-            ),
-          ),
-          with: {
-            game: { columns: { id: true, windowStart: true } },
-          },
-        });
-  const confirmedProposals =
-    confirmed.length === 0
-      ? []
-      : await database.query.challengeProposals.findMany({
-          where: inArray(
-            challengeProposals.id,
-            confirmed
-              .map((row) => row.confirmedProposalId)
-              .filter((id): id is string => id != null),
-          ),
-        });
-
   const [waiting, sent] = await Promise.all([
     loadProposalViews(database, waitingRows),
     loadProposalViews(database, sentRows),
   ]);
+  const challengeGames = await loadChallengeGames(
+    database,
+    args.userId,
+    teamIds,
+    now,
+  );
   const names = await loadTeamDisplayNames(database, [
     ...pendingRows.map((proposal) => proposal.challenge.teamId),
-    ...confirmed.map((row) => row.teamId),
-    ...confirmedProposals.map((proposal) => proposal.teamId),
+    ...challengeGames.flatMap((game) => [game.teamId, game.opponentTeamId]),
   ]);
   const teamName = (teamId: string) =>
     names.get(teamId) ?? teamDisplayName(null, []);
@@ -173,34 +272,19 @@ export async function listMine(
     pendingRows.find((proposal) => proposal.challengeId === challengeId)
       ?.challenge.teamId ?? "";
 
-  const games = confirmed
-    .map((row) => {
-      const proposal = confirmedProposals.find(
-        (candidate) => candidate.id === row.confirmedProposalId,
-      );
-      if (!proposal) {
-        return null;
-      }
-      const [teamId, opponentId] = ours.has(row.teamId)
-        ? [row.teamId, proposal.teamId]
-        : [proposal.teamId, row.teamId];
-      const startsAt = row.game?.windowStart ?? proposal.startsAt;
-      return {
-        endsAt: startsAt.getTime() + row.durationMinutes * MS_PER_MINUTE,
-        challengeId: row.id,
-        gameId: row.game?.id ?? null,
-        sport: row.sport,
-        startsAt,
-        team: { id: teamId, displayName: teamName(teamId) },
-        opponent: { id: opponentId, displayName: teamName(opponentId) },
-      };
-    })
-    .filter((game) => game != null);
+  const games = challengeGames.map((game) => ({
+    ...game,
+    team: { id: game.teamId, displayName: teamName(game.teamId) },
+    opponent: {
+      id: game.opponentTeamId,
+      displayName: teamName(game.opponentTeamId),
+    },
+  }));
   const accepted = games
-    .filter((game) => game.endsAt > now.getTime())
+    .filter((game) => !game.played)
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
   const played = games
-    .filter((game) => game.endsAt <= now.getTime())
+    .filter((game) => game.played)
     .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
     .slice(0, PLAYED_LIMIT);
 
@@ -234,22 +318,12 @@ export async function listMine(
     ...accepted.map((game) => ({
       kind: "accepted" as const,
       key: `accepted:${game.challengeId}`,
-      challengeId: game.challengeId,
-      gameId: game.gameId,
-      sport: game.sport,
-      startsAt: game.startsAt,
-      team: game.team,
-      opponent: game.opponent,
+      ...challengeGameItem(game),
     })),
     ...played.map((game) => ({
       kind: "played" as const,
       key: `played:${game.challengeId}`,
-      challengeId: game.challengeId,
-      gameId: game.gameId,
-      sport: game.sport,
-      startsAt: game.startsAt,
-      team: game.team,
-      opponent: game.opponent,
+      ...challengeGameItem(game),
     })),
   ];
 

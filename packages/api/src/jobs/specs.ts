@@ -13,6 +13,7 @@ export const JOB = {
   settleMvp: "marks.settle-mvp",
   challengeExpire: "challenge.expire",
   proposalExpire: "proposal.expire",
+  challengeSquadDue: "challenge.squad-due",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -27,6 +28,7 @@ export const MAX_ATTEMPTS = {
   settleMvp: 5,
   challengeExpire: 5,
   proposalExpire: 5,
+  challengeSquadDue: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -76,6 +78,21 @@ export function proposalExpireJob(proposalId: string): JobSpec {
     key: proposalExpireJobKey(proposalId),
     payload: { proposalId },
     maxAttempts: MAX_ATTEMPTS.proposalExpire,
+    mode: "replace",
+  };
+}
+
+export function challengeSquadDueJobKey(gameId: string) {
+  return `challenge:squad-due:${gameId}`;
+}
+
+/** Reminds who acts for a short side to name the squad; enqueued at kick-off minus 24 hours. */
+export function challengeSquadDueJob(gameId: string): JobSpec {
+  return {
+    name: JOB.challengeSquadDue,
+    key: challengeSquadDueJobKey(gameId),
+    payload: { gameId },
+    maxAttempts: MAX_ATTEMPTS.challengeSquadDue,
     mode: "replace",
   };
 }

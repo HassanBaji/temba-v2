@@ -21,6 +21,7 @@ import {
   assertGameOrganizer,
   type GameRow,
   requireGame,
+  requireNotChallengeGame,
 } from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
 import {
@@ -85,6 +86,7 @@ export async function addPlayerByPhone(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, locale);
   await assertGameOrganizer(database, game, args.organizerUserId);
   assertOrganizerAddFormat(game);
   if (args.football && !isFootballGame(game)) {

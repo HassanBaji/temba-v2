@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { challengeMineSections } from "./challenge-mine";
+import {
+  challengeMineScoreLine,
+  challengeMineSections,
+} from "./challenge-mine";
 
 describe("challengeMineSections", () => {
   it("keeps waiting on you first, then posted, pending, accepted and played, with one focus", () => {
@@ -19,7 +22,7 @@ describe("challengeMineSections", () => {
       "Waiting on you",
       "Your challenges",
       "Your proposals",
-      "Accepted",
+      "Accepted, now games",
       "Played",
     ]);
     expect(
@@ -42,5 +45,22 @@ describe("challengeMineSections", () => {
         (section) => section.kind,
       ),
     ).toEqual(["posted"]);
+  });
+});
+
+describe("challengeMineScoreLine", () => {
+  it("joins the scored Sets from the viewer's Team and skips empty shells", () => {
+    expect(
+      challengeMineScoreLine(
+        [
+          { us: 6, them: 4 },
+          { us: 3, them: 6 },
+          { us: null, them: null },
+        ],
+        "en",
+      ),
+    ).toBe("6–4, 3–6");
+    expect(challengeMineScoreLine([{ us: 2, them: 2 }], "ar")).toBe("2–2");
+    expect(challengeMineScoreLine([{ us: null, them: null }], "en")).toBe(null);
   });
 });

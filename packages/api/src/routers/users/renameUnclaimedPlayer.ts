@@ -54,7 +54,11 @@ async function organizesAGameTheyAreOn(
     return false;
   }
   const gameRows = await database
-    .select({ createdBy: games.createdBy, groupId: games.groupId })
+    .select({
+      createdBy: games.createdBy,
+      groupId: games.groupId,
+      challengeId: games.challengeId,
+    })
     .from(games)
     .where(inArray(games.id, gameIds));
   for (const game of gameRows) {

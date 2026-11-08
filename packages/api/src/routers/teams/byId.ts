@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   GroupSportEnum,
+  gameTeams,
   groupMembers,
   groups,
   ratings,
@@ -164,6 +165,51 @@ async function groupTagView(
 }
 
 /**
+ * The Team's Challenge Games, latest kick-off first, so the ones still to
+ * play lead: each with the other Team and whether it was cancelled.
+ */
+async function loadChallengeGames(database: DbClient, teamId: string) {
+  const sides = await database.query.gameTeams.findMany({
+    where: eq(gameTeams.teamId, teamId),
+    columns: { gameId: true },
+    with: {
+      game: {
+        columns: {
+          id: true,
+          challengeId: true,
+          windowStart: true,
+          cancelledAt: true,
+        },
+        with: {
+          venue: { columns: { name: true } },
+          teams: { columns: { teamId: true } },
+        },
+      },
+    },
+  });
+  return sides
+    .flatMap(({ game }) =>
+      game.challengeId && game.windowStart
+        ? [
+            {
+              gameId: game.id,
+              challengeId: game.challengeId,
+              startsAt: game.windowStart,
+              venueName: game.venue.name,
+              cancelled: game.cancelledAt != null,
+              opponentTeamId:
+                game.teams.find(
+                  (side) => side.teamId != null && side.teamId !== teamId,
+                )?.teamId ?? null,
+            },
+          ]
+        : [],
+    )
+    .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
+    .slice(0, RECENT_GAMES_SHOWN);
+}
+
+/**
  * Any signed-in User may open any Team: a Challenge shows the opposing Team's
  * record and Roster. Invites, dissolve and leave stay with members.
  */
@@ -205,11 +251,13 @@ export async function teamById(
   const { rivals, closest } = teamRivalsFromMatches(teamMatches);
   const recentMatches = teamMatches.slice(-RECENT_GAMES_SHOWN).reverse();
 
+  const challengeGames = await loadChallengeGames(database, team.id);
   const opponentNames = await loadTeamNames(database, [
     ...new Set(
-      teamMatches
-        .map((match) => match.opponentTeamId)
-        .filter((id): id is string => id != null),
+      [
+        ...teamMatches.map((match) => match.opponentTeamId),
+        ...challengeGames.map((game) => game.opponentTeamId),
+      ].filter((id): id is string => id != null),
     ),
   ]);
   const levels = await loadMemberLevels(
@@ -254,6 +302,19 @@ export async function teamById(
       },
       sets: match.sets,
       result: match.result,
+    })),
+    challengeGames: challengeGames.map((game) => ({
+      gameId: game.gameId,
+      challengeId: game.challengeId,
+      startsAt: game.startsAt,
+      venueName: game.venueName,
+      cancelled: game.cancelled,
+      opponent: {
+        teamId: game.opponentTeamId,
+        name: game.opponentTeamId
+          ? (opponentNames.get(game.opponentTeamId) ?? null)
+          : null,
+      },
     })),
     incomplete,
     waitingForPartner: incomplete,

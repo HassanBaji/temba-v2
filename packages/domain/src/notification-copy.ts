@@ -44,6 +44,7 @@ type NotificationLevelSet = {
 type NotificationGame = {
   name: string | null;
   format: string;
+  sport?: string | null;
   windowStart: Date | string | null;
   /** Set only while the Game's Marks window is open. */
   marksClosesAt?: Date | string | null;
@@ -366,6 +367,33 @@ export function notificationCopy(
         ? m.challengeProposalExpired(userName(item.team.name, locale))
         : m.challengeProposalExpiredUnnamed,
       subline: sub.proposeAgain,
+    };
+  }
+  if (item.type === "challenge_proposal_confirmed") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalConfirmed(userName(item.team.name, locale))
+        : m.challengeProposalConfirmedUnnamed,
+      subline:
+        item.game?.sport === "football"
+          ? sub.nameYourSquad
+          : sub.bothPairsSeated,
+    };
+  }
+  if (item.type === "challenge_proposal_passed_over") {
+    return {
+      title: item.team?.name
+        ? m.challengeProposalPassedOver(userName(item.team.name, locale))
+        : m.challengeProposalPassedOverUnnamed,
+      subline: sub.findAnother,
+    };
+  }
+  if (item.type === "challenge_squad_due") {
+    return {
+      title: item.team?.name
+        ? m.challengeSquadDue(userName(item.team.name, locale))
+        : m.challengeSquadDueUnnamed,
+      subline: sub.kickOffTomorrow,
     };
   }
   if (item.type === "game_finished" && item.game) {

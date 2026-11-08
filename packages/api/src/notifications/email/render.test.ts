@@ -212,6 +212,7 @@ describe("renderNotificationEmail", () => {
     for (const type of [
       "challenge_proposal_declined",
       "challenge_proposal_expired",
+      "challenge_proposal_passed_over",
     ] as const) {
       expect(
         notificationEmailDestination({
@@ -221,6 +222,19 @@ describe("renderNotificationEmail", () => {
           challenge: { id: "c-1" },
         }),
       ).toEqual({ kind: "challenges", path: "/dashboard/challenges/c-1" });
+    }
+    for (const type of [
+      "challenge_proposal_confirmed",
+      "challenge_squad_due",
+    ] as const) {
+      expect(
+        notificationEmailDestination({
+          type,
+          group: null,
+          game: GAME,
+          challenge: { id: "c-1" },
+        }),
+      ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
     }
   });
 

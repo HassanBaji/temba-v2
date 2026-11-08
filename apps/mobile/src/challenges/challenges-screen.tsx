@@ -18,6 +18,7 @@ import { useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
+import { gamePath } from "../games/games-model";
 import { newTeamPath, teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
 import {
@@ -71,6 +72,19 @@ export function ChallengesScreen() {
       router.push(teamPath(result.teamId));
     },
     onError: (error) => toast.show(error.message),
+  });
+
+  const confirmProposal = api.challenges.confirmProposal.useMutation({
+    onSuccess: async (result) => {
+      toast.show(m.challenge.proposal.confirmed);
+      await Promise.all([
+        utils.challenges.invalidate(),
+        utils.games.invalidate(),
+      ]);
+      router.push(gamePath(result.gameId));
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
   });
 
   const decline = api.challenges.declineProposal.useMutation({
@@ -132,9 +146,21 @@ export function ChallengesScreen() {
             error: challenges.error,
             isLoading: challenges.isLoading,
           }),
+          confirmingId: confirmProposal.isPending
+            ? (confirmProposal.variables?.proposalId ?? null)
+            : null,
           decliningId: decline.isPending
             ? (decline.variables?.proposalId ?? null)
             : null,
+          onConfirm: (proposal) =>
+            setConfirm({
+              title: m.challenge.proposal.confirmSheet.title,
+              description: m.challenge.proposal.confirmSheet.description,
+              details: [proposal.teamName],
+              confirmLabel: m.challenge.proposal.confirmSheet.confirm,
+              onConfirm: () =>
+                confirmProposal.mutate({ proposalId: proposal.id }),
+            }),
           onDecline: (proposal) =>
             setConfirm({
               title: m.challenge.proposal.declineConfirm.title,
@@ -157,7 +183,7 @@ export function ChallengesScreen() {
       />
       <ConfirmSheet
         request={confirm}
-        pending={decline.isPending}
+        pending={decline.isPending || confirmProposal.isPending}
         onClose={() => setConfirm(null)}
       />
     </Screen>

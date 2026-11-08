@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
+import { type Locale } from "@repo/i18n/locale";
+
 import {
   MatchStatusEnum,
   gamePlayers,
@@ -14,7 +16,11 @@ import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGameOrganizer, requireGame } from "#src/games/access";
+import {
+  assertGameOrganizer,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { isPoolDrawPosted } from "#src/games/assert-pool-draw-not-posted";
 import { placeKnockoutQualifiers } from "#src/games/knockout-advance";
 import { leaveRegisteredSeat } from "#src/games/leave-registered-seat";
@@ -100,9 +106,11 @@ export async function kick(
     organizerUserId: string;
     userId?: string;
     waitlistId?: string;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.organizerUserId);
   if (args.waitlistId) {
     const deleted = await database
@@ -182,5 +190,6 @@ export const kickProcedure = protectedProcedure
       organizerUserId: appUser.id,
       userId: input.userId,
       waitlistId: input.waitlistId,
+      locale: ctx.locale,
     });
   });

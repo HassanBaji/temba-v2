@@ -18,6 +18,7 @@ import {
   type AssignableDisplayLevelBand,
 } from "./level-bands";
 import { parseLevelBandSelectTenths, tenthsToLevelBand } from "./level-range";
+import { squadCounterLine, type SquadState } from "./matchday-squad";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import { SPORTS, sportLabel, type Sport } from "./sport";
 import { teamRosterRule } from "./team-roster";
@@ -446,3 +447,60 @@ export function challengeProposalView(
 }
 
 export type ChallengeProposalView = ReturnType<typeof challengeProposalView>;
+
+export type ChallengeGameInput = {
+  sport: string;
+  startsAt: Date | string;
+  cancelled: boolean;
+  venue: { name: string };
+  court: { name: string } | null;
+  pricePerPlayerFils: number | null;
+  proposedBy: { name: string | null };
+  confirmedBy: { name: string | null };
+  sides: {
+    displayName: string | null;
+    sideSize: number;
+    namedCount: number;
+    squadState: SquadState;
+  }[];
+};
+
+/**
+ * The confirmed Challenge's Game: kick-off, "Pitch" or "Court" with "Book it
+ * yourselves", the cost each ("Split four ways" on padel without a price),
+ * who proposed and confirmed, and on football each squad's counter.
+ */
+export function challengeGameView(input: ChallengeGameInput, locale: Locale) {
+  const m = messagesFor(locale).challenge.detail.game;
+  const football = input.sport === "football";
+  const place = input.court
+    ? m.place(input.venue.name, input.court.name)
+    : input.venue.name;
+  const price =
+    input.pricePerPlayerFils == null
+      ? null
+      : formatPricePerPlayerFils(input.pricePerPlayerFils, locale);
+  const costLine =
+    price != null && input.pricePerPlayerFils !== 0
+      ? m.costEach(price)
+      : (price ?? (football ? m.costAtVenue : m.costSplit));
+  const fallback = messagesFor(locale).team.memberFallback;
+  return {
+    whenLine: formatGameStart(input.startsAt, locale),
+    placeLabel: football ? m.pitch : m.court,
+    placeLine: place,
+    bookLine: m.bookYourselves,
+    costLine,
+    decidedLine: m.proposedConfirmed(
+      input.proposedBy.name ?? fallback,
+      input.confirmedBy.name ?? fallback,
+    ),
+    squads: football
+      ? input.sides.map((side) => ({
+          title: side.displayName ?? fallback,
+          counter: squadCounterLine(side.namedCount, side.sideSize, locale),
+        }))
+      : [],
+    cancelledLine: input.cancelled ? m.cancelled : null,
+  };
+}

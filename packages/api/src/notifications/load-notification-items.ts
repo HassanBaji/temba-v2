@@ -27,6 +27,7 @@ export type NotificationItem = {
     id: string;
     name: string | null;
     format: string;
+    sport: string | null;
     windowStart: Date | null;
     /** Set only while the Game's Marks window is open. */
     marksClosesAt: Date | null;
@@ -101,6 +102,7 @@ export async function loadNotificationItems(
           id: true,
           name: true,
           format: true,
+          sport: true,
           windowStart: true,
           cancelledAt: true,
         },
@@ -124,6 +126,7 @@ export async function loadNotificationItems(
               id: game.id,
               name: game.name,
               format: game.format,
+              sport: game.sport,
               windowStart: game.windowStart,
               marksClosesAt: openMarksClosesAt(game, now),
             }

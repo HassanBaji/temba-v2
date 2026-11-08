@@ -47,3 +47,15 @@ export function challengeMineSections<T extends { kind: ChallengeMineKind }>(
       })),
   })).filter((section) => section.items.length > 0);
 }
+
+/** A played Challenge Game's score from the viewer's Team: "6–4, 3–6, 7–5". Null before a Score. */
+export function challengeMineScoreLine(
+  sets: readonly { us: number | null; them: number | null }[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.mine;
+  const scored = sets.flatMap((set) =>
+    set.us == null || set.them == null ? [] : [m.setScore(set.us, set.them)],
+  );
+  return scored.length > 0 ? scored.join(m.scoreSeparator) : null;
+}

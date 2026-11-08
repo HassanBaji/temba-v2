@@ -100,12 +100,17 @@ export function ViewerProposals({
   );
 }
 
-/** The posting Team's queue: each pending Proposal, oldest first, with Another time. */
+/**
+ * The posting Team's queue: each pending Proposal, oldest first, with
+ * "Confirm, make it a game" and Another time.
+ */
 export function ProposalQueue({
   proposals,
+  onConfirm,
   onDecline,
 }: {
   proposals: readonly Proposal[];
+  onConfirm: (proposal: Proposal) => void;
   onDecline: (proposal: Proposal) => void;
 }) {
   const m = useMessages();
@@ -128,14 +133,26 @@ export function ProposalQueue({
                 className={cn("space-y-4 p-5", !ink && "border-border border")}
               >
                 <ProposalLines view={view} lead={view.sentLine} focus={ink} />
-                <Button
-                  type="button"
-                  variant={ink ? "outline-inverse" : "outline"}
-                  aria-label={m.challenge.proposal.anotherTimeA11y(view.title)}
-                  onClick={() => onDecline(proposal)}
-                >
-                  {m.challenge.proposal.anotherTime}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={ink ? "inverse" : "default"}
+                    aria-label={m.challenge.proposal.confirmA11y(view.title)}
+                    onClick={() => onConfirm(proposal)}
+                  >
+                    {m.challenge.proposal.confirm}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={ink ? "outline-inverse" : "outline"}
+                    aria-label={m.challenge.proposal.anotherTimeA11y(
+                      view.title,
+                    )}
+                    onClick={() => onDecline(proposal)}
+                  >
+                    {m.challenge.proposal.anotherTime}
+                  </Button>
+                </div>
               </Surface>
             </li>
           );

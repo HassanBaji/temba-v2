@@ -172,6 +172,23 @@ export const notification = {
       plain(" expired"),
     ],
     challengeProposalExpiredUnnamed: [plain("Your Team's proposal expired")],
+    challengeProposalConfirmed: (team: string) => [
+      plain("It's a game: you play "),
+      strong(team),
+    ],
+    challengeProposalConfirmedUnnamed: [plain("Your challenge is a game")],
+    challengeProposalPassedOver: (team: string) => [
+      strong(team),
+      plain(" confirmed another proposal"),
+    ],
+    challengeProposalPassedOverUnnamed: [
+      plain("Another proposal was confirmed"),
+    ],
+    challengeSquadDue: (team: string) => [
+      plain("Name your squad for the game against "),
+      strong(team),
+    ],
+    challengeSquadDueUnnamed: [plain("Name your squad for the game")],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
@@ -185,6 +202,10 @@ export const notification = {
     confirmOrAnotherTime:
       "Confirm it, or ask for another time, within 48 hours.",
     proposeAgain: "Send a new proposal while the challenge is open.",
+    bothPairsSeated: "Both pairs are seated. See the Game.",
+    nameYourSquad: "Name your squad from the Roster.",
+    findAnother: "Find another challenge on the open board.",
+    kickOffTomorrow: "Kick-off is in 24 hours.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

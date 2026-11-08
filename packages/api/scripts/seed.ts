@@ -61,6 +61,7 @@ import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
+import { confirmProposal } from "#src/routers/challenges/confirmProposal";
 import { postChallenge } from "#src/routers/challenges/post";
 import { proposeOnChallenge } from "#src/routers/challenges/propose";
 import { acceptInAppInvite } from "#src/routers/teams/acceptInAppInvite";
@@ -916,7 +917,9 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
  * One open Challenge per sport. Lina & Priya want a padel opponent at
  * weekends, and Smash Brothers (Sam and Omar) have a Proposal pending on it;
  * Gooz FC (Sam's twelve) wants a 6-a-side on Friday evenings, which Sunday
- * Seven can answer.
+ * Seven can answer. Two confirmed: Sunday Seven play Gooz FC at 5-a-side in
+ * four days with both squads still to name, and Smash Brothers beat Rally
+ * Kings at padel two days ago.
  */
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
   const padel = await postChallenge(db, {
@@ -949,6 +952,63 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
     note: "On time, bibs in the bag.",
     userId: u.me!.id,
   });
+
+  const fiveASide = await postChallenge(db, {
+    teamId: t.squad.id,
+    sideSize: 5,
+    venueIds: [v.pitches.id],
+    days: ["wed", "thu"],
+    timings: ["evening"],
+    userId: u.tom!.id,
+  });
+  const goozProposal = await proposeOnChallenge(db, {
+    challengeId: fiveASide.id,
+    teamId: t.gooz.id,
+    venueId: v.pitches.id,
+    startsAt: at(4, 20),
+    pricePerPlayerFils: 1500,
+    userId: u.me!.id,
+  });
+  await confirmProposal(db, {
+    proposalId: goozProposal.id,
+    userId: u.tom!.id,
+  });
+
+  const postedAt = at(-4, 10);
+  const rematch = await postChallenge(db, {
+    teamId: t.rally.id,
+    venueIds: [v.central.id],
+    userId: u.diego!.id,
+    now: postedAt,
+  });
+  const smashProposal = await proposeOnChallenge(db, {
+    challengeId: rematch.id,
+    teamId: t.smash.id,
+    venueId: v.central.id,
+    startsAt: at(-2, 19),
+    userId: u.me!.id,
+    now: postedAt,
+  });
+  const played = await confirmProposal(db, {
+    proposalId: smashProposal.id,
+    userId: u.yusuf!.id,
+    now: postedAt,
+  });
+  const playedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, played.gameId),
+    columns: { id: true },
+  });
+  // The posting Team is side 1, so Smash Brothers win on side 2.
+  await playFriendly(
+    u,
+    { id: played.gameId, matchId: playedMatch!.id },
+    "me",
+    [
+      [4, 6],
+      [3, 6],
+    ],
+    ["diego"],
+  );
 }
 
 // ---------------------------------------------------------------------------

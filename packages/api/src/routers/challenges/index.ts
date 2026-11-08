@@ -2,6 +2,7 @@ import { createTRPCRouter } from "#src/trpc";
 
 import { byIdProcedure as byId } from "./byId";
 import { changeProposalProcedure as changeProposal } from "./changeProposal";
+import { confirmProposalProcedure as confirmProposal } from "./confirmProposal";
 import { declineProposalProcedure as declineProposal } from "./declineProposal";
 import { listMineProcedure as listMine } from "./listMine";
 import { listOpenProcedure as listOpen } from "./listOpen";
@@ -24,4 +25,5 @@ export const challengesRouter = createTRPCRouter({
   changeProposal,
   withdrawProposal,
   declineProposal,
+  confirmProposal,
 });

@@ -256,3 +256,50 @@ export async function padelMatchup(database: TestDatabase, postedAt: Date) {
     proposer: { rafi: rafi!, saad: saad! },
   };
 }
+
+/**
+ * Hidd United (Captain plus `roster - 1`) post a football Challenge in a
+ * Format at Pitch Park; Arad Athletic, as large, may answer it.
+ */
+export async function footballMatchup(
+  database: TestDatabase,
+  postedAt: Date,
+  args: { sideSize?: number; roster?: number } = {},
+) {
+  const sideSize = args.sideSize ?? 6;
+  const roster = args.roster ?? sideSize + 1;
+  const hiddIds = await makeUsers(database, "Hidd", roster);
+  const aradIds = await makeUsers(database, "Arad", roster);
+  const hidd = await makeTeam(database, {
+    name: "Hidd United",
+    sport: "football",
+    userIds: hiddIds,
+  });
+  const arad = await makeTeam(database, {
+    name: "Arad Athletic",
+    sport: "football",
+    userIds: aradIds,
+  });
+  const venue = await makeVenue(database, {
+    name: "Pitch Park",
+    city: "Hidd",
+    sport: "football",
+  });
+  const challenge = await addOpenChallenge(database, {
+    teamId: hidd.id,
+    postedBy: hiddIds[0]!,
+    sport: "football",
+    sideSize,
+    postedAt,
+    venueIds: [venue.id],
+  });
+  return {
+    challenge,
+    hidd,
+    arad,
+    venue,
+    court: await courtOf(database, venue.id),
+    hiddIds,
+    aradIds,
+  };
+}

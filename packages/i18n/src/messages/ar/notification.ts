@@ -198,6 +198,21 @@ export const notification = {
       strong(team),
     ],
     challengeProposalExpiredUnnamed: [plain("انتهت مدة عرض فريقك")],
+    challengeProposalConfirmed: (team: string) => [
+      plain("صارت مباراة: تلعبون ضد "),
+      strong(team),
+    ],
+    challengeProposalConfirmedUnnamed: [plain("صار تحديك مباراة")],
+    challengeProposalPassedOver: (team: string) => [
+      strong(team),
+      plain(" أكّد عرضًا آخر"),
+    ],
+    challengeProposalPassedOverUnnamed: [plain("تأكّد عرض آخر")],
+    challengeSquadDue: (team: string) => [
+      plain("سمِّ تشكيلتك للمباراة ضد "),
+      strong(team),
+    ],
+    challengeSquadDueUnnamed: [plain("سمِّ تشكيلتك للمباراة")],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",
@@ -210,6 +225,10 @@ export const notification = {
     postAgain: "لم يصل أي عرض. انشر من جديد من التحديات.",
     confirmOrAnotherTime: "أكّده أو اطلب وقتًا آخر خلال 48 ساعة.",
     proposeAgain: "أرسل عرضًا جديدًا ما دام التحدي مفتوحًا.",
+    bothPairsSeated: "الزوجان في مقاعدهما. اطّلع على المباراة.",
+    nameYourSquad: "سمِّ تشكيلتك من قائمة الفريق.",
+    findAnother: "ابحث عن تحدٍّ آخر في لوحة التحديات المفتوحة.",
+    kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

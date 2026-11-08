@@ -1,27 +1,112 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 
-import { challengeProposals, challenges } from "@repo/db";
+import {
+  challengeProposals,
+  challenges,
+  courts,
+  games,
+  matches,
+  user,
+} from "@repo/db";
 import { isProposalPending } from "@repo/domain/challenge-clock";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { loadChallengeCards } from "#src/challenges/challenge-cards";
-import { loadProposalViews } from "#src/challenges/challenge-proposals";
+import {
+  loadProposalViews,
+  loadTeamDisplayNames,
+} from "#src/challenges/challenge-proposals";
 import { type db } from "#src/db";
+import { loadChallengeSides } from "#src/games/challenge-squad";
 import { teamsUserActsFor } from "#src/teams/acts-for-team";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
 
 /**
+ * The confirmed state: the Challenge Game with each side's squad state, who
+ * proposed and who confirmed, the Pitch or Court, and the price each.
+ */
+async function confirmedGame(
+  database: DbClient,
+  row: typeof challenges.$inferSelect,
+) {
+  if (row.status !== "confirmed" || !row.gameId) {
+    return null;
+  }
+  const game = await database.query.games.findFirst({
+    where: eq(games.id, row.gameId),
+    with: { venue: { columns: { name: true, city: true } } },
+  });
+  if (!game?.windowStart) {
+    return null;
+  }
+  const proposal = row.confirmedProposalId
+    ? await database.query.challengeProposals.findFirst({
+        where: eq(challengeProposals.id, row.confirmedProposalId),
+      })
+    : undefined;
+  const match = await database.query.matches.findFirst({
+    where: and(eq(matches.gameId, game.id), ne(matches.status, "cancelled")),
+    columns: { courtId: true },
+  });
+  const court = match?.courtId
+    ? await database.query.courts.findFirst({
+        where: eq(courts.id, match.courtId),
+        columns: { name: true },
+      })
+    : undefined;
+  const people = await database.query.user.findMany({
+    where: inArray(
+      user.id,
+      [proposal?.proposedBy, proposal?.decidedBy].filter(
+        (id): id is string => id != null,
+      ),
+    ),
+    columns: { id: true, name: true },
+  });
+  const nameOf = (id: string | null | undefined) =>
+    people.find((person) => person.id === id)?.name ?? null;
+  const sides = (await loadChallengeSides(database, game)) ?? [];
+  const names = await loadTeamDisplayNames(
+    database,
+    sides.flatMap((side) => (side.teamId ? [side.teamId] : [])),
+  );
+  return {
+    id: game.id,
+    sport: game.sport ?? row.sport,
+    startsAt: game.windowStart,
+    endsAt: game.windowEnd,
+    cancelled: game.cancelledAt != null,
+    venue: { name: game.venue.name, city: game.venue.city },
+    court: court ? { name: court.name } : null,
+    pricePerPlayerFils: game.pricePerPlayerFils,
+    proposedBy: {
+      name: nameOf(proposal?.proposedBy),
+      teamId: proposal?.teamId ?? null,
+    },
+    confirmedBy: { name: nameOf(proposal?.decidedBy) },
+    sides: sides.map((side) => ({
+      teamId: side.teamId,
+      displayName: side.teamId ? (names.get(side.teamId) ?? null) : null,
+      sideSize: side.sideSize,
+      namedCount: side.named.length,
+      squadState: side.squadState,
+    })),
+  };
+}
+
+/**
  * One Challenge for any signed-in User. In its open state: the poster Team,
  * Format, Level wanted, Venues, days and timings, note, who posted it, the
  * Proposal count, and the viewer's Teams that may propose. Pending: the
  * viewer's Teams' Proposals, to change or withdraw. Who acts for the poster
- * also gets the Proposal queue, oldest first, to decide on.
+ * also gets the Proposal queue, oldest first, to decide on. Confirmed: the
+ * Challenge Game.
  */
 export async function challengeById(
   database: DbClient,
@@ -75,6 +160,7 @@ export async function challengeById(
     ),
     proposalQueue: card.viewer.actsForPoster ? proposals : [],
     viewerCanDecide: open && card.viewer.actsForPoster,
+    game: await confirmedGame(database, row),
   };
 }
 

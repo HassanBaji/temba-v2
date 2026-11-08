@@ -104,15 +104,30 @@ describe("notificationHref", () => {
     );
   });
 
-  it("opens the Challenge a Proposal was received, declined or expired on", () => {
+  it("opens the Challenge a Proposal was received, declined, expired or passed over on, and the Game a confirm or squad reminder is about", () => {
     for (const type of [
       "challenge_proposal_received",
       "challenge_proposal_declined",
       "challenge_proposal_expired",
+      "challenge_proposal_passed_over",
     ]) {
       assert.equal(
         notificationHref({ type, group: null, challenge: { id: "c1" } }),
         "/dashboard/challenges/c1",
+      );
+    }
+    for (const type of [
+      "challenge_proposal_confirmed",
+      "challenge_squad_due",
+    ]) {
+      assert.equal(
+        notificationHref({
+          type,
+          group: null,
+          game: { id: "g1" },
+          challenge: { id: "c1" },
+        }),
+        "/dashboard/games/g1",
       );
     }
     assert.equal(

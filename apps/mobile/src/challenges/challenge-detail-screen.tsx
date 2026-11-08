@@ -24,11 +24,13 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { gamePath } from "../games/games-model";
 import { teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
 import { AcceptSheet } from "./accept-sheet";
 import { ChallengeSeats } from "./challenge-card";
 import { ProposalQueue, ViewerProposals } from "./challenge-detail-proposals";
+import { ChallengeGameSummary } from "./challenge-game-summary";
 import {
   CHALLENGES_PATH,
   challengeCardInput,
@@ -50,7 +52,8 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 /**
  * 2a: one Challenge in its open state, with Accept for a Team that may
- * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue.
+ * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue,
+ * where one is confirmed into the Challenge Game; 2d: the confirmed state.
  */
 export function ChallengeDetailScreen({
   challengeId,
@@ -98,6 +101,15 @@ export function ChallengeDetailScreen({
     onSuccess: async () => {
       toast.show(m.challenge.proposal.withdrawn);
       await refreshProposals();
+    },
+    onError: (error) => toast.show(error.message),
+    onSettled: () => setConfirm(null),
+  });
+  const confirmProposal = api.challenges.confirmProposal.useMutation({
+    onSuccess: async (result) => {
+      toast.show(m.challenge.proposal.confirmed);
+      await Promise.all([refreshProposals(), utils.games.invalidate()]);
+      router.push(gamePath(result.gameId));
     },
     onError: (error) => toast.show(error.message),
     onSettled: () => setConfirm(null),
@@ -172,7 +184,12 @@ export function ChallengeDetailScreen({
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {header}
       <View style={{ gap: spacing.section }}>
-        {data.state !== "open" ? (
+        {data.game ? (
+          <ChallengeGameSummary
+            game={data.game}
+            onOpen={() => router.push(gamePath(data.game!.id))}
+          />
+        ) : data.state !== "open" ? (
           <Surface>
             <Text weight="semibold" accessibilityRole="alert">
               {detail.closed[data.state]}
@@ -269,8 +286,23 @@ export function ChallengeDetailScreen({
         {data.viewerCanDecide ? (
           <ProposalQueue
             proposals={data.proposalQueue}
+            confirmingId={
+              confirmProposal.isPending
+                ? (confirmProposal.variables?.proposalId ?? null)
+                : null
+            }
             decliningId={
               decline.isPending ? (decline.variables?.proposalId ?? null) : null
+            }
+            onConfirm={(proposal) =>
+              setConfirm({
+                title: m.challenge.proposal.confirmSheet.title,
+                description: m.challenge.proposal.confirmSheet.description,
+                details: [proposal.team.displayName],
+                confirmLabel: m.challenge.proposal.confirmSheet.confirm,
+                onConfirm: () =>
+                  confirmProposal.mutate({ proposalId: proposal.id }),
+              })
             }
             onDecline={(proposal) =>
               setConfirm({
@@ -301,7 +333,10 @@ export function ChallengeDetailScreen({
       <ConfirmSheet
         request={confirm}
         pending={
-          withdraw.isPending || withdrawProposal.isPending || decline.isPending
+          withdraw.isPending ||
+          withdrawProposal.isPending ||
+          decline.isPending ||
+          confirmProposal.isPending
         }
         onClose={() => setConfirm(null)}
       />

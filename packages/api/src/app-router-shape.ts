@@ -56,7 +56,8 @@ type ExpectedChallenges =
   | "propose"
   | "changeProposal"
   | "withdrawProposal"
-  | "declineProposal";
+  | "declineProposal"
+  | "confirmProposal";
 
 type ExpectedGames =
   | "hello"

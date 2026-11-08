@@ -75,6 +75,21 @@ export default function ChallengesPage({
     },
   });
 
+  const [confirming, setConfirming] = useState<{
+    id: string;
+    teamName: string;
+  } | null>(null);
+  const confirmProposal = api.challenges.confirmProposal.useMutation({
+    onSuccess: async (result) => {
+      toast.success(m.challenge.proposal.confirmed);
+      await Promise.all([
+        utils.challenges.invalidate(),
+        utils.games.invalidate(),
+      ]);
+      router.push(`/dashboard/games/${result.gameId}`);
+    },
+  });
+
   const accept = api.teams.acceptInAppInvite.useMutation({
     onSuccess: async (result) => {
       toast.success(m.team.toast.joined);
@@ -144,6 +159,7 @@ export default function ChallengesPage({
         <TabsContent value="mine">
           <ChallengeMineSegment
             items={challenges.data?.items}
+            onConfirm={setConfirming}
             onDecline={setDeclining}
             onGoToTeams={goToTeams}
           />
@@ -169,6 +185,23 @@ export default function ChallengesPage({
           />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog
+        open={confirming != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirming(null);
+          }
+        }}
+        title={m.challenge.proposal.confirmSheet.title}
+        description={m.challenge.proposal.confirmSheet.description}
+        confirmLabel={m.challenge.proposal.confirmSheet.confirm}
+        pending={confirmProposal.isPending}
+        onConfirm={async () => {
+          if (confirming) {
+            await confirmProposal.mutateAsync({ proposalId: confirming.id });
+          }
+        }}
+      />
       <ConfirmDialog
         open={declining != null}
         onOpenChange={(open) => {

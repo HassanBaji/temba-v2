@@ -4,6 +4,7 @@ import {
   challengeBoardFilterGroups,
   challengeBoardQuery,
   challengeCardView,
+  challengeGameView,
   challengeLevelWanted,
   challengeProposalView,
   challengeWhenLine,
@@ -206,5 +207,80 @@ describe("challengeProposalView", () => {
       challengeProposalView({ ...proposal, pricePerPlayerFils: 0 }, now, "en")
         .priceLine,
     ).toBe("Free");
+  });
+});
+
+describe("challengeGameView", () => {
+  const base = {
+    startsAt: new Date("2026-11-13T17:00:00Z"),
+    cancelled: false,
+    venue: { name: "Pitch Park" },
+    court: { name: "Pitch 2" },
+    proposedBy: { name: "Rafi" },
+    confirmedBy: { name: "Ali" },
+  };
+
+  it("reads a football Game's pitch, cost, deciders and both squads", () => {
+    const view = challengeGameView(
+      {
+        ...base,
+        sport: "football",
+        pricePerPlayerFils: 1500,
+        sides: [
+          {
+            displayName: "Hidd United",
+            sideSize: 6,
+            namedCount: 6,
+            squadState: "named",
+          },
+          {
+            displayName: "Arad Athletic",
+            sideSize: 6,
+            namedCount: 0,
+            squadState: "empty",
+          },
+        ],
+      },
+      "en",
+    );
+    expect(view).toMatchObject({
+      placeLabel: "Pitch",
+      placeLine: "Pitch Park, Pitch 2",
+      bookLine: "Book it yourselves",
+      decidedLine: "Proposed by Rafi, confirmed by Ali",
+      cancelledLine: null,
+    });
+    expect(view.costLine).toMatch(/each, pay at the venue$/);
+    expect(view.squads).toEqual([
+      {
+        title: "Hidd United",
+        counter: "6 of 9 named, 6 + 3 reserves",
+      },
+      {
+        title: "Arad Athletic",
+        counter: "Nobody named yet, 0 of 9",
+      },
+    ]);
+  });
+
+  it("splits a padel Game four ways without a price and shows no squads", () => {
+    const view = challengeGameView(
+      {
+        ...base,
+        sport: "padel",
+        court: null,
+        cancelled: true,
+        pricePerPlayerFils: null,
+        sides: [],
+      },
+      "en",
+    );
+    expect(view).toMatchObject({
+      placeLabel: "Court",
+      placeLine: "Pitch Park",
+      costLine: "Split four ways, pay at the venue",
+      squads: [],
+      cancelledLine: "The game was cancelled",
+    });
   });
 });

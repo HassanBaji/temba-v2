@@ -15,6 +15,7 @@ import {
   assertUserPassesJoinGate,
   registeredGameTeamCount,
   requireGame,
+  requireNotChallengeGame,
 } from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { admit } from "#src/games/admit";
@@ -31,6 +32,7 @@ export async function registerTeam(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, locale);
   assertPoolDrawNotPosted(game);
   const now = new Date();
 
