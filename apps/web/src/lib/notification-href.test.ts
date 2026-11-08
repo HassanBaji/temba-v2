@@ -119,6 +119,7 @@ describe("notificationHref", () => {
     for (const type of [
       "challenge_proposal_confirmed",
       "challenge_squad_due",
+      "challenge_squad_named",
     ]) {
       assert.equal(
         notificationHref({

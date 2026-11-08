@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { challengeDaysLeft, proposalExpiresLine } from "./challenge-clock";
+import { challengeCostLine } from "./challenge-game-details";
 import {
   CHALLENGE_TIMINGS,
   CHALLENGE_WEEKDAYS,
@@ -476,14 +477,7 @@ export function challengeGameView(input: ChallengeGameInput, locale: Locale) {
   const place = input.court
     ? m.place(input.venue.name, input.court.name)
     : input.venue.name;
-  const price =
-    input.pricePerPlayerFils == null
-      ? null
-      : formatPricePerPlayerFils(input.pricePerPlayerFils, locale);
-  const costLine =
-    price != null && input.pricePerPlayerFils !== 0
-      ? m.costEach(price)
-      : (price ?? (football ? m.costAtVenue : m.costSplit));
+  const costLine = challengeCostLine(input, locale);
   const fallback = messagesFor(locale).team.memberFallback;
   return {
     whenLine: formatGameStart(input.startsAt, locale),

@@ -62,11 +62,14 @@ export function SeatBar({ seats, filled }: { seats: number; filled: number }) {
 export function FootballHero({
   tone,
   lines,
+  tag,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  /** "Challenge" on a Challenge Game. */
+  tag?: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -94,9 +97,11 @@ export function FootballHero({
             <HeroTopLine
               left={lines.status}
               right={
-                lines.sizeTag ? (
+                tag || lines.sizeTag ? (
                   <Text size="eyebrow" tone="muted" mono>
-                    {lines.sizeTag}
+                    {[tag?.toLocaleUpperCase(), lines.sizeTag]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </Text>
                 ) : null
               }

@@ -43,6 +43,7 @@ import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pending
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
+import { nameChallengeSquadProcedure as nameChallengeSquad } from "./nameChallengeSquad";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
@@ -133,6 +134,7 @@ export const gamesRouter = createTRPCRouter({
   setFootballRole,
   publishFootballTeams,
   saveFootballScore,
+  nameChallengeSquad,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,

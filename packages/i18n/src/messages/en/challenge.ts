@@ -228,6 +228,19 @@ export const challenge = {
     proposalNotPending: "This proposal is no longer pending",
     setByChallenge: "Teams are set by the challenge; captains name the squads",
     nameBothSquads: "Name both squads first",
+    squad: {
+      notFootball: "Only a football Challenge Game has squads to name",
+      padel: "Both players are the squad on padel",
+      notOnGame: "That Team is not on this Game",
+      cancelled: "This Game was cancelled",
+      locked: "The squads are locked once the score is entered",
+      duplicate: "Name each player once",
+      tooMany: (seats: number) =>
+        `Name up to ${seats}: the side plus three reserves`,
+      notOnRoster: "Everyone named must be on the Team's Roster",
+      otherSide: (name: string) =>
+        `${name} is already named for the other side`,
+    },
     recheck: {
       rosterShort: (team: string, side: string) =>
         `${team}'s Roster is short for ${side}`,
@@ -358,5 +371,56 @@ export const challenge = {
     counterShort: (named: number, toName: number, seats: number) =>
       `${named} + ${toName} to name, ${named} of ${seats}`,
     counterEmpty: (seats: number) => `Nobody named yet, 0 of ${seats}`,
+    nameYourSquad: "Name your squad",
+    editYourSquad: "Edit your squad",
+    nameSquadFor: (team: string) => `Name the squad for ${team}`,
+    editSquadFor: (team: string) => `Edit the squad for ${team}`,
+    seatEmpty: (label: string) => `${label}, not named yet`,
+    seatNamed: (label: string, name: string, role: string) =>
+      `${label}: ${name}, ${role}`,
+    squadOf: (team: string) => `${team} squad`,
+    saved: "Squad saved",
+    sheet: {
+      title: (day: string) => `Your squad for ${day}`,
+      titleUndated: "Your squad",
+      help: (format: string, side: number, reserves: number) =>
+        `${format}, so ${side} plus up to ${reserves} reserves. Name at least ${side} to confirm.`,
+      counter: (named: number, seats: number, roster: number) =>
+        `${named} of ${seats} named from ${roster} on the roster`,
+      sideCounter: (n: number) => `side, ${n}`,
+      reserveCounter: (n: number) => `reserves, up to ${n}`,
+      short: (n: number) =>
+        plural("en", n, {
+          one: "1 more to make the side. You can save and name the rest later.",
+          other:
+            "{n} more to make the side. You can save and name the rest later.",
+        }),
+      full: (seats: number) =>
+        `The squad is full at ${seats}. Remove someone to add another.`,
+      footer:
+        "Everyone you add is told they are in the squad. Nobody is told when they come off it.",
+      confirm: (n: number) => `Confirm squad, ${n} named`,
+      captain: "Captain",
+      select: (name: string) => `Name ${name}`,
+      deselect: (name: string) => `Take ${name} off the squad`,
+      rosterLoadFailed: "The Roster could not be loaded",
+    },
+  },
+  gameDetails: {
+    versus: "v",
+    tag: "Challenge",
+    teamVsTeam: (home: string, away: string) => `${home} v ${away}`,
+    firstMeeting: "First meeting",
+    headToHead: (line: string) => `Head-to-head ${line}`,
+    from: "From",
+    fromChallenge: (team: string) => `${team}'s challenge`,
+    agreed: "Agreed",
+    countsFor: "Counts for",
+    countsForLine: {
+      padel: "Both teams' records, the players named and rating",
+      football: "Both teams' records and the players named",
+    },
+    costSplitWays: (n: number) => `Split ${n} ways, pay at the venue`,
+    squadsTitle: "Squads",
   },
 };

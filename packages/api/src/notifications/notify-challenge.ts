@@ -191,3 +191,31 @@ export async function notifySquadDue(
     dedupeKey: `challenge_squad_due:${args.gameId}:${args.team.id}`,
   });
 }
+
+/**
+ * A Captain named players to a squad: each newly named User hears, with the
+ * other Team named, except whoever named them.
+ */
+export async function notifySquadNamed(
+  database: DbOrTx,
+  args: {
+    challengeId: string;
+    gameId: string;
+    namedUserIds: readonly string[];
+    namedBy: string;
+    opponentTeamId: string | null;
+  },
+) {
+  return notify(database, {
+    type: "challenge_squad_named",
+    recipients: args.namedUserIds.map((userId) => ({
+      userId,
+      audience: "player",
+    })),
+    excludeUserIds: [args.namedBy],
+    actorUserId: args.namedBy,
+    teamId: args.opponentTeamId,
+    gameId: args.gameId,
+    challengeId: args.challengeId,
+  });
+}

@@ -396,6 +396,14 @@ export function notificationCopy(
       subline: sub.kickOffTomorrow,
     };
   }
+  if (item.type === "challenge_squad_named") {
+    return {
+      title: item.team?.name
+        ? m.challengeSquadNamed(userName(item.team.name, locale))
+        : m.challengeSquadNamedUnnamed,
+      subline: sub.seeWhoIsNamed,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
     const subline = gameFinishedSubline(item.audience, item.game, locale);
     if (subline) {

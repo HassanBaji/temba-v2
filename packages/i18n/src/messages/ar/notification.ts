@@ -213,6 +213,11 @@ export const notification = {
       strong(team),
     ],
     challengeSquadDueUnnamed: [plain("سمِّ تشكيلتك للمباراة")],
+    challengeSquadNamed: (team: string) => [
+      plain("أنت في التشكيلة للعب ضد "),
+      strong(team),
+    ],
+    challengeSquadNamedUnnamed: [plain("أنت في تشكيلة تحدٍّ")],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",
@@ -229,6 +234,7 @@ export const notification = {
     nameYourSquad: "سمِّ تشكيلتك من قائمة الفريق.",
     findAnother: "ابحث عن تحدٍّ آخر في لوحة التحديات المفتوحة.",
     kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
+    seeWhoIsNamed: "اطّلع على المباراة ومن سُمّي معك.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

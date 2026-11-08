@@ -118,6 +118,7 @@ type ExpectedGames =
   | "setFootballRole"
   | "publishFootballTeams"
   | "saveFootballScore"
+  | "nameChallengeSquad"
   | "reportWrongScore"
   | "searchLookupUsers"
   | "sendLookupInvite"

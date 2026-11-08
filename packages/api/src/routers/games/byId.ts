@@ -6,6 +6,8 @@ import { z } from "zod";
 import {
   MatchStatusEnum,
   bookings,
+  challengeProposals,
+  challenges,
   courts,
   gameCourts,
   gamePlayers,
@@ -16,8 +18,16 @@ import {
   ratingEvents,
   ratings,
   teamMembers,
+  teams,
+  user,
   venues,
 } from "@repo/db";
+
+import { challengeCostLine } from "@repo/domain/challenge-game-details";
+import { isFootballGame } from "@repo/domain/game-shape";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { initials } from "@repo/domain/initials";
+import { SQUAD_RESERVE_SEATS } from "@repo/domain/matchday-squad";
 
 import { showsFriendlyRoster } from "@repo/domain/game-summary-cta";
 import { postedKnockoutRounds } from "@repo/domain/tournament-knockout-view";
@@ -91,8 +101,177 @@ import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
+import { loadChallengeSides } from "#src/games/challenge-squad";
+import { userActsForTeam } from "#src/teams/acts-for-team";
+import { loadTeamMatches, teamRecordFromMatches } from "#src/teams/team-record";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+type GameRow = Awaited<ReturnType<typeof requireGame>>;
+
+/**
+ * The Challenge variant of Game details: where the Game came from, who
+ * agreed it, both Teams with their records and head-to-head, each side's
+ * named squad, the Pitch or Court, the cost line, and the side the viewer
+ * may still name. Null on a Game that came from no Challenge.
+ */
+async function challengeGameDetails(
+  database: DbClient,
+  game: GameRow,
+  args: {
+    userId: string;
+    locale: Locale;
+    unclaimed: (userId: string) => boolean;
+    courtName: string | null;
+    venueName: string | null;
+  },
+) {
+  if (!game.challengeId) {
+    return null;
+  }
+  const challenge = await database.query.challenges.findFirst({
+    where: eq(challenges.id, game.challengeId),
+    columns: {
+      id: true,
+      teamId: true,
+      createdAt: true,
+      confirmedProposalId: true,
+    },
+  });
+  if (!challenge) {
+    return null;
+  }
+  const proposal = challenge.confirmedProposalId
+    ? await database.query.challengeProposals.findFirst({
+        where: eq(challengeProposals.id, challenge.confirmedProposalId),
+        columns: { teamId: true, proposedBy: true, decidedBy: true },
+      })
+    : undefined;
+  const peopleIds = [proposal?.proposedBy, proposal?.decidedBy].filter(
+    (id): id is string => id != null,
+  );
+  const people =
+    peopleIds.length > 0
+      ? await database.query.user.findMany({
+          where: inArray(user.id, peopleIds),
+          columns: { id: true, name: true },
+        })
+      : [];
+  const nameOf = (id: string | null | undefined) =>
+    people.find((person) => person.id === id)?.name ?? null;
+
+  const sides = (await loadChallengeSides(database, game)) ?? [];
+  const teamIds = sides.flatMap((side) => (side.teamId ? [side.teamId] : []));
+  const teamRows =
+    teamIds.length > 0
+      ? await database.query.teams.findMany({
+          where: inArray(teams.id, teamIds),
+          columns: { id: true, sport: true, createdBy: true, groupId: true },
+        })
+      : [];
+  const names = await loadTeamDisplayNames(database, teamIds);
+  const matchesByTeam = await loadTeamMatches(database, teamIds);
+
+  const namedIds = sides.flatMap((side) =>
+    side.named.map((player) => player.userId),
+  );
+  const ratingRows =
+    namedIds.length > 0
+      ? await database.query.ratings.findMany({
+          where: and(
+            inArray(ratings.userId, namedIds),
+            eq(ratings.sport, isFootballGame(game) ? "football" : "padel"),
+          ),
+        })
+      : [];
+  const now = new Date();
+  const levelBandOf = (userId: string) => {
+    const row = ratingRows.find((rating) => rating.userId === userId);
+    return row ? youRatingViewAfterIdle(row, now).levelBand : null;
+  };
+
+  const sideViews = await Promise.all(
+    sides.map(async (side) => {
+      const team = teamRows.find((row) => row.id === side.teamId);
+      const opponentTeamId =
+        sides.find((other) => other.gameTeamId !== side.gameTeamId)?.teamId ??
+        null;
+      const teamMatches = side.teamId
+        ? (matchesByTeam.get(side.teamId) ?? [])
+        : [];
+      const meetings = teamMatches.filter(
+        (match) =>
+          opponentTeamId != null && match.opponentTeamId === opponentTeamId,
+      );
+      const record = teamRecordFromMatches(teamMatches);
+      const headToHead = teamRecordFromMatches(meetings);
+      const name = side.teamId ? (names.get(side.teamId) ?? null) : null;
+      return {
+        teamId: side.teamId,
+        gameTeamId: side.gameTeamId,
+        sideIndex: side.sideIndex,
+        name,
+        initials: initials(name ?? ""),
+        record: {
+          wins: record.wins,
+          draws: record.draws,
+          losses: record.losses,
+        },
+        headToHead:
+          headToHead.gamesPlayed > 0
+            ? {
+                wins: headToHead.wins,
+                draws: headToHead.draws,
+                losses: headToHead.losses,
+              }
+            : null,
+        sideSize: side.sideSize,
+        reserveSeats: SQUAD_RESERVE_SEATS,
+        named: side.named.map((player) => ({
+          userId: player.userId,
+          name: player.name,
+          image: player.image,
+          role: player.footballRole,
+          position: player.footballPosition,
+          levelBand: levelBandOf(player.userId),
+          unclaimed: args.unclaimed(player.userId),
+        })),
+        state: side.squadState,
+        viewerActs: team
+          ? await userActsForTeam(database, team, args.userId)
+          : false,
+      };
+    }),
+  );
+  const namable =
+    isFootballGame(game) && !game.cancelledAt
+      ? sideViews.find((side) => side.viewerActs && side.state !== "locked")
+      : undefined;
+
+  return {
+    id: challenge.id,
+    postedByTeamId: challenge.teamId,
+    postedByTeamName: names.get(challenge.teamId) ?? null,
+    postedAt: challenge.createdAt,
+    proposedBy: {
+      userId: proposal?.proposedBy ?? null,
+      name: nameOf(proposal?.proposedBy),
+      teamId: proposal?.teamId ?? null,
+    },
+    confirmedBy: {
+      userId: proposal?.decidedBy ?? null,
+      name: nameOf(proposal?.decidedBy),
+    },
+    sides: sideViews,
+    pitch: { venueName: args.venueName, courtName: args.courtName },
+    costLine: challengeCostLine(
+      { sport: game.sport, pricePerPlayerFils: game.pricePerPlayerFils },
+      args.locale,
+    ),
+    viewerCanNameSide: namable?.teamId ?? null,
+  };
+}
 
 /**
  * Individual Friendly game details phase (game-details redesign, TEM-177).
@@ -634,6 +813,36 @@ export async function gameById(
       : [],
   );
 
+  const canRegister =
+    registrationStatus === "open" &&
+    passesGate &&
+    levelRange.viewerPassesLevelRange &&
+    !alreadyOnGame &&
+    !isWaitlisted;
+  const canWaitlist =
+    !partnerRequired &&
+    registrationStatus === "full" &&
+    passesGate &&
+    levelRange.viewerPassesLevelRange &&
+    !alreadyOnGame &&
+    !isWaitlisted;
+  const isChallengeGame = game.challengeId != null;
+  const challenge = await challengeGameDetails(database, game, {
+    userId: args.userId,
+    locale,
+    unclaimed: (userId) => playerMark(userId).unclaimed,
+    venueName: venue?.name ?? null,
+    courtName:
+      matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
+        ?.court?.name ??
+      recordedCourtRows[0]?.court?.name ??
+      null,
+  });
+  // Door-level flags: a Challenge Game's sides are the two Teams, so nobody
+  // joins, is invited, added or sorted into teams there. Screens keep their
+  // own state checks on top.
+  const organizesOpenGame = organizer && !game.cancelledAt && !isChallengeGame;
+
   return {
     id: game.id,
     name: game.name,
@@ -704,19 +913,8 @@ export async function gameById(
     isWaitlisted,
     waitlistPlace,
     registrationStatus,
-    canRegister:
-      registrationStatus === "open" &&
-      passesGate &&
-      levelRange.viewerPassesLevelRange &&
-      !alreadyOnGame &&
-      !isWaitlisted,
-    canWaitlist:
-      !partnerRequired &&
-      registrationStatus === "full" &&
-      passesGate &&
-      levelRange.viewerPassesLevelRange &&
-      !alreadyOnGame &&
-      !isWaitlisted,
+    canRegister,
+    canWaitlist,
     canPickSeat,
     canMove,
     canLeave: alreadyOnGame || isWaitlisted,
@@ -906,6 +1104,12 @@ export async function gameById(
         slot2SourcePoolPosition: match.slot2SourcePoolPosition,
       })),
     }),
+    isChallengeGame,
+    challenge,
+    canJoin: !isChallengeGame && (canRegister || canWaitlist),
+    canInvite: organizesOpenGame,
+    canAddPlayer: organizesOpenGame,
+    canMakeTeams: organizesOpenGame && isFootballGame(game),
   };
 }
 

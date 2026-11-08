@@ -74,7 +74,8 @@ export function notificationEmailDestination(
       item.type === "game_level_range_approved" ||
       item.type === "game_level_range_declined" ||
       item.type === "challenge_proposal_confirmed" ||
-      item.type === "challenge_squad_due") &&
+      item.type === "challenge_squad_due" ||
+      item.type === "challenge_squad_named") &&
     item.game
   ) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}` };

@@ -26,6 +26,7 @@ import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
+import { ChallengeDetailsBlock } from "~/components/games/challenge-details-block";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
@@ -1166,6 +1167,7 @@ export default function GameHomePage({
                 input={heroInput}
                 place={heroPlace}
                 figures={heroFigures}
+                tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
                 actions={heroActions}
               />
             ) : playedMatch ? null : (
@@ -1243,6 +1245,12 @@ export default function GameHomePage({
           // destructive actions live only in the hero's ⋮ menu.
           <div className="space-y-6">
             <GameLevelRangePanel game={data} />
+            {data.challenge ? (
+              <ChallengeDetailsBlock
+                challenge={data.challenge}
+                sport={data.sport}
+              />
+            ) : null}
             {data.booking ? (
               <GameBookedBlock
                 booking={data.booking}

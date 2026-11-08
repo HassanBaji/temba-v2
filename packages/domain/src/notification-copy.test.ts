@@ -1048,4 +1048,15 @@ describe("notificationCopy for a Proposal", () => {
     assert.equal(confirmed("football"), "Name your squad from the Roster.");
     assert.equal(confirmed("padel"), "Both pairs are seated. See the Game.");
   });
+
+  it("tells a newly named player which Team they play", () => {
+    assert.equal(
+      title("challenge_squad_named", "Arad Athletic", "en"),
+      "You're in the squad to play Arad Athletic",
+    );
+    assert.equal(
+      title("challenge_squad_named", null, "ar"),
+      "أنت في تشكيلة تحدٍّ",
+    );
+  });
 });

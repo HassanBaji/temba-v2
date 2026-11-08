@@ -21,11 +21,14 @@ const HERO_BLEED =
 export function FootballGameHeroCard({
   tone,
   lines,
+  tag,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  /** "Challenge" on a Challenge Game. */
+  tag?: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -46,8 +49,12 @@ export function FootballGameHeroCard({
           tone={tone}
           left={lines.status}
           right={
-            lines.sizeTag ? (
-              <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
+            tag || lines.sizeTag ? (
+              <p className="shrink-0 font-mono text-[11px]">
+                {tag ? <span className="uppercase">{tag}</span> : null}
+                {tag && lines.sizeTag ? " · " : null}
+                {lines.sizeTag}
+              </p>
             ) : null
           }
         />

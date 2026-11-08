@@ -45,6 +45,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "challenge_proposal_confirmed",
   "challenge_proposal_passed_over",
   "challenge_squad_due",
+  "challenge_squad_named",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

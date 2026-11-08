@@ -5,7 +5,7 @@ import { matchOutcome } from "@repo/domain/match-outcome";
 
 import { type db } from "#src/db";
 
-type DbClient = typeof db;
+type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type TeamResult = "won" | "lost" | "draw";
 

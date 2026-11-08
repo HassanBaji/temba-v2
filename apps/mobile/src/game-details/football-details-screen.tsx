@@ -1,4 +1,5 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -84,6 +85,10 @@ import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
 import { RequestsSection } from "./organizer-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { challengeInfoRows } from "./challenge-details-card";
+import { NameSquadSheet } from "./name-squad-sheet";
+import { SquadGrid } from "./squad-grid";
+import { TeamVsTeamRow } from "./team-vs-team-row";
 import { useGameEdit } from "./use-game-edit";
 import { useRequestDecisions } from "./use-request-decisions";
 
@@ -143,7 +148,9 @@ export function FootballGameDetails({
   const [selected, setSelected] = useState<BoardPlayer | null>(null);
   const [playedMenuOpen, setPlayedMenuOpen] = useState(false);
   const [playedSelected, setPlayedSelected] = useState<PlayedRow | null>(null);
+  const [squadTeamId, setSquadTeamId] = useState<string | null>(null);
   const autoJoined = useRef(false);
+  const challenge = game.challenge;
 
   const board = api.games.footballBoard.useQuery(
     { gameId },
@@ -339,14 +346,17 @@ export function FootballGameDetails({
     }
   }
 
-  const inviteAccess = gameInviteAccess({
-    friendlyChrome: false,
-    isOrganizer: game.isOrganizer,
-    registrationStatus: game.registrationStatus,
-    cancelledAt: game.cancelledAt,
-    registrationMode: game.registrationMode,
-    partnerRequired: false,
-  });
+  const inviteAccess = game.canInvite
+    ? gameInviteAccess({
+        friendlyChrome: false,
+        isOrganizer: game.isOrganizer,
+        registrationStatus: game.registrationStatus,
+        cancelledAt: game.cancelledAt,
+        registrationMode: game.registrationMode,
+        partnerRequired: false,
+      })
+    : { canManage: false, canSendLookup: false };
+  const canAddPlayer = game.canAddPlayer && organizerCanAddPlayer(game);
   const canOpenProfile = gamePlayersLink(game);
   const openProfile = (userId: string) =>
     router.push(playerPath(segments, userId, "football"));
@@ -369,7 +379,7 @@ export function FootballGameDetails({
     .filter(Boolean)
     .join(copy.listSeparator);
 
-  const infoRows: InfoRow[] = [
+  const gameInfoRows: InfoRow[] = [
     ...(game.groupName
       ? [{ label: copy.football.group, value: game.groupName }]
       : []),
@@ -406,11 +416,18 @@ export function FootballGameDetails({
       value: game.rated ? m.common.yes : m.common.no,
     },
   ];
+  const infoRows = challenge
+    ? challengeInfoRows(challenge, game.sport, m.group.metaSeparator, locale)
+    : gameInfoRows;
+  const squadSide = challenge?.sides.find(
+    (side) => side.teamId === squadTeamId,
+  );
 
   const showHeroActions =
-    model.cta?.kind === "registered" ||
-    model.cta?.kind === "waitlisted" ||
-    (inviteAccess.canManage && !teams);
+    !challenge &&
+    (model.cta?.kind === "registered" ||
+      model.cta?.kind === "waitlisted" ||
+      (inviteAccess.canManage && !teams));
   const heroActions = showHeroActions ? (
     <View style={{ gap: 8 }}>
       {model.cta?.kind === "registered" ? (
@@ -469,7 +486,7 @@ export function FootballGameDetails({
     </View>
   ) : null;
 
-  const heroBody =
+  const gameHeroBody =
     teams && names ? (
       <View style={{ gap: 12 }}>
         <TeamColumns
@@ -524,6 +541,11 @@ export function FootballGameDetails({
         {heroActions}
       </View>
     );
+  const heroBody = challenge ? (
+    <TeamVsTeamRow sides={challenge.sides} sport={game.sport} />
+  ) : (
+    gameHeroBody
+  );
 
   const score = board.data?.match?.score ?? null;
   const playedModel =
@@ -548,7 +570,7 @@ export function FootballGameDetails({
           locale,
         )
       : null;
-  const playedMenuItems = organizerCanAddPlayer(game)
+  const playedMenuItems = canAddPlayer
     ? [
         {
           key: "add_player",
@@ -613,6 +635,7 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
+          tag={challenge ? m.challenge.gameDetails.tag : undefined}
           actions={
             inviteAccess.canManage ? (
               <InviteIconEntry onPress={() => setInviteOpen(true)} />
@@ -663,6 +686,31 @@ export function FootballGameDetails({
             </Text>
           </View>
         ) : null}
+        {challenge
+          ? challenge.sides.map((side) => {
+              const title = side.name ?? m.team.memberFallback;
+              const button = squadButtonCopy(side.named.length, title, locale);
+              return (
+                <SquadGrid
+                  key={side.gameTeamId}
+                  title={title}
+                  named={side.named}
+                  sideSize={side.sideSize}
+                  action={
+                    side.teamId &&
+                    side.viewerActs &&
+                    side.state !== "locked" &&
+                    !game.cancelledAt
+                      ? {
+                          ...button,
+                          onPress: () => setSquadTeamId(side.teamId),
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })
+          : null}
         {teams && names ? (
           <FootballScoreCard
             bibs={teams.bibs}
@@ -690,8 +738,9 @@ export function FootballGameDetails({
             organizer={model.organizer}
             waitlist={model.waitlistRows}
             playersAllowed={game.playersAllowed}
+            fixedShape={challenge != null}
             teams={
-              board.data?.viewer.canMakeTeams
+              game.canMakeTeams && board.data?.viewer.canMakeTeams
                 ? {
                     status: teams
                       ? footballTeamsMethodLabel(teams.method, locale)
@@ -714,7 +763,7 @@ export function FootballGameDetails({
               onEdit: () => setEditOpen(true),
               onCancel: askCancel,
               onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
-              onAddPlayer: organizerCanAddPlayer(game)
+              onAddPlayer: canAddPlayer
                 ? () => setAddPlayerOpen(true)
                 : undefined,
               onMakeTeams: () => router.push(teamsPath),
@@ -726,7 +775,8 @@ export function FootballGameDetails({
   );
 
   const joinFamily =
-    model.cta?.kind === "join" || model.cta?.kind === "join_waitlist"
+    !game.isChallengeGame &&
+    (model.cta?.kind === "join" || model.cta?.kind === "join_waitlist")
       ? { kind: model.cta.kind }
       : null;
 
@@ -875,6 +925,20 @@ export function FootballGameDetails({
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
           }}
+        />
+      ) : null}
+      {squadSide?.teamId ? (
+        <NameSquadSheet
+          visible
+          onClose={() => setSquadTeamId(null)}
+          gameId={gameId}
+          teamId={squadSide.teamId}
+          sideSize={squadSide.sideSize}
+          kickoff={game.windowStart}
+          namedUserIds={squadSide.named.map((player) => player.userId)}
+          onSaved={() =>
+            Promise.all([refresh(), utils.challenges.invalidate()])
+          }
         />
       ) : null}
       <ConfirmSheet

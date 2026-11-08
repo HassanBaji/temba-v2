@@ -638,6 +638,13 @@
       "when": 1794158319583,
       "tag": "0090_challenge_game",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794162093602,
+      "tag": "0091_challenge_squad_named",
+      "breakpoints": true
     }
   ]
 }

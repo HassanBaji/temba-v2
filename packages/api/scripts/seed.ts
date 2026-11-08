@@ -62,6 +62,7 @@ import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 import { confirmProposal } from "#src/routers/challenges/confirmProposal";
+import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
 import { postChallenge } from "#src/routers/challenges/post";
 import { proposeOnChallenge } from "#src/routers/challenges/propose";
 import { acceptInAppInvite } from "#src/routers/teams/acceptInAppInvite";
@@ -918,8 +919,9 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
  * weekends, and Smash Brothers (Sam and Omar) have a Proposal pending on it;
  * Gooz FC (Sam's twelve) wants a 6-a-side on Friday evenings, which Sunday
  * Seven can answer. Two confirmed: Sunday Seven play Gooz FC at 5-a-side in
- * four days with both squads still to name, and Smash Brothers beat Rally
- * Kings at padel two days ago.
+ * four days, Gooz FC's squad named in full (five and three Reserves) and
+ * Sunday Seven's four short of the side, and Smash Brothers beat Rally Kings
+ * at padel two days ago.
  */
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
   const padel = await postChallenge(db, {
@@ -969,8 +971,29 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
     pricePerPlayerFils: 1500,
     userId: u.me!.id,
   });
-  await confirmProposal(db, {
+  const fiveASideGame = await confirmProposal(db, {
     proposalId: goozProposal.id,
+    userId: u.tom!.id,
+  });
+  await nameChallengeSquad(db, {
+    gameId: fiveASideGame.gameId,
+    teamId: t.gooz.id,
+    userIds: [
+      "me",
+      "lina",
+      "omar",
+      "maya",
+      "diego",
+      "priya",
+      "sofia",
+      "yusuf",
+    ].map((key) => u[key]!.id),
+    userId: u.me!.id,
+  });
+  await nameChallengeSquad(db, {
+    gameId: fiveASideGame.gameId,
+    teamId: t.squad.id,
+    userIds: ["tom", "emma", "jonas", "aisha"].map((key) => u[key]!.id),
     userId: u.tom!.id,
   });
 

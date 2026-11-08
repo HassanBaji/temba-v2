@@ -245,6 +245,17 @@ export const challenge = {
     proposalNotFound: "العرض غير موجود",
     proposalNotPending: "هذا العرض لم يعد معلّقًا",
     setByChallenge: "الفريقان يحددهما التحدي؛ والقادة يسمّون التشكيلات",
+    squad: {
+      notFootball: "مباراة التحدي في كرة القدم وحدها لها تشكيلات تُسمّى",
+      padel: "في البادل، اللاعبان هما التشكيلة",
+      notOnGame: "هذا الفريق ليس في هذه المباراة",
+      cancelled: "أُلغيت هذه المباراة",
+      locked: "تُقفل التشكيلات بعد تسجيل النتيجة",
+      duplicate: "سمِّ كل لاعب مرة واحدة",
+      tooMany: (seats: number) => `سمِّ حتى ${seats}: الأساسيون وثلاثة احتياط`,
+      notOnRoster: "يجب أن يكون كل من تسمّيه في قائمة الفريق",
+      otherSide: (name: string) => `${isolate(name)} مُسمّى للفريق الآخر`,
+    },
     nameBothSquads: "سمِّ التشكيلتين أولًا",
     recheck: {
       rosterShort: (team: string, side: string) =>
@@ -377,5 +388,60 @@ export const challenge = {
     counterShort: (named: number, toName: number, seats: number) =>
       `${named} + ${toName} للتسمية، ${named} من ${seats}`,
     counterEmpty: (seats: number) => `لم يُسمَّ أحد بعد، 0 من ${seats}`,
+    nameYourSquad: "سمِّ تشكيلتك",
+    editYourSquad: "عدّل تشكيلتك",
+    nameSquadFor: (team: string) => `سمِّ تشكيلة ${isolate(team)}`,
+    editSquadFor: (team: string) => `عدّل تشكيلة ${isolate(team)}`,
+    seatEmpty: (label: string) => `${label}، لم يُسمَّ بعد`,
+    seatNamed: (label: string, name: string, role: string) =>
+      `${label}: ${isolate(name)}، ${role}`,
+    squadOf: (team: string) => `تشكيلة ${isolate(team)}`,
+    saved: "حُفظت التشكيلة",
+    sheet: {
+      title: (day: string) => `تشكيلتك ليوم ${day}`,
+      titleUndated: "تشكيلتك",
+      help: (format: string, side: number, reserves: number) =>
+        `${format}، أي ${side} أساسيين وحتى ${reserves} احتياط. سمِّ ${side} على الأقل لتأكيدها.`,
+      counter: (named: number, seats: number, roster: number) =>
+        `سُمّي ${named} من ${seats} من أصل ${roster} في القائمة`,
+      sideCounter: (n: number) => `الأساسيون، ${n}`,
+      reserveCounter: (n: number) => `الاحتياط، حتى ${n}`,
+      short: (n: number) =>
+        plural("ar", n, {
+          one: "ينقص لاعب واحد لاكتمال الأساسيين. يمكنك الحفظ وتسمية الباقين لاحقًا.",
+          two: "ينقص لاعبان لاكتمال الأساسيين. يمكنك الحفظ وتسمية الباقين لاحقًا.",
+          few: "ينقص {n} لاعبين لاكتمال الأساسيين. يمكنك الحفظ وتسمية الباقين لاحقًا.",
+          many: "ينقص {n} لاعبًا لاكتمال الأساسيين. يمكنك الحفظ وتسمية الباقين لاحقًا.",
+          other:
+            "ينقص {n} لاعب لاكتمال الأساسيين. يمكنك الحفظ وتسمية الباقين لاحقًا.",
+        }),
+      full: (seats: number) =>
+        `اكتملت التشكيلة عند ${seats}. أزل لاعبًا لتضيف آخر.`,
+      footer:
+        "يُبلَّغ كل من تضيفه بأنه في التشكيلة. لا يُبلَّغ أحد عند إخراجه منها.",
+      confirm: (n: number) => `أكّد التشكيلة، ${n} مُسمّى`,
+      captain: "القائد",
+      select: (name: string) => `سمِّ ${isolate(name)}`,
+      deselect: (name: string) => `أخرج ${isolate(name)} من التشكيلة`,
+      rosterLoadFailed: "تعذّر تحميل قائمة الفريق",
+    },
+  },
+  gameDetails: {
+    versus: "ضد",
+    tag: "تحدٍّ",
+    teamVsTeam: (home: string, away: string) =>
+      `${isolate(home)} ضد ${isolate(away)}`,
+    firstMeeting: "أول لقاء",
+    headToHead: (line: string) => `المواجهات ${line}`,
+    from: "المصدر",
+    fromChallenge: (team: string) => `تحدي ${isolate(team)}`,
+    agreed: "الاتفاق",
+    countsFor: "تُحتسب في",
+    countsForLine: {
+      padel: "سجلّ الفريقين، واللاعبين المُسمّين، والتقييم",
+      football: "سجلّ الفريقين واللاعبين المُسمّين",
+    },
+    costSplitWays: (n: number) => `تُقسم على ${n}، الدفع في الملعب`,
+    squadsTitle: "التشكيلات",
   },
 } satisfies typeof source;
