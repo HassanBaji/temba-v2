@@ -41,7 +41,11 @@ import {
 import type { setsToSave } from "./details-model";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard, type OpenSeatAction } from "./lineup-card";
-import { OrganizerCard, type OrganizerHandlers } from "./organizer-card";
+import {
+  OrganizerCard,
+  RequestsSection,
+  type OrganizerHandlers,
+} from "./organizer-card";
 import { RatingImpactCard, RatingScopeCard } from "./rating-impact-card";
 import { ScoreCard } from "./score-card";
 
@@ -143,6 +147,12 @@ export function GameDetailsContent({
             {m.mobileGameDetails.cancelledTitle}
           </Text>
         </Surface>
+      ) : null}
+      {organizer?.plan.showRequests ? (
+        <RequestsSection
+          requests={organizer.plan.requests}
+          decisions={organizer.handlers}
+        />
       ) : null}
       {game.booking ? (
         <BookedCard booking={game.booking} ratingScope={ratingScopeOf(game)} />

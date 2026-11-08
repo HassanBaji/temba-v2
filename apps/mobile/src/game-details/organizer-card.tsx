@@ -261,25 +261,18 @@ export function OrganizerCard({
     );
   }
 
-  const requests = plan.showRequests ? (
-    <RequestsSection requests={plan.requests} decisions={handlers} />
-  ) : null;
-
   if (blocks.length === 0) {
-    return requests;
+    return null;
   }
 
   return (
-    <>
-      {requests}
-      <Card title={copy.title} flush>
-        {blocks.map((block, index) => (
-          <Fragment key={index}>
-            {index > 0 ? <Hairline /> : null}
-            {block}
-          </Fragment>
-        ))}
-      </Card>
-    </>
+    <Card title={copy.title} flush>
+      {blocks.map((block, index) => (
+        <Fragment key={index}>
+          {index > 0 ? <Hairline /> : null}
+          {block}
+        </Fragment>
+      ))}
+    </Card>
   );
 }

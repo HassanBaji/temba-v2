@@ -33,6 +33,7 @@ import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-ga
 import { PlayedPlayerDialog } from "~/components/games/played/played-player-dialog";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
+import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { GameBookedBlock } from "~/components/games/game-booked-block";
 import {
   GameLineupSection,
@@ -1241,6 +1242,7 @@ export default function GameHomePage({
           // explains why the viewer's Home level card changed. Editing and
           // destructive actions live only in the hero's ⋮ menu.
           <div className="space-y-6">
+            <GameLevelRangePanel game={data} />
             {data.booking ? (
               <GameBookedBlock
                 booking={data.booking}
