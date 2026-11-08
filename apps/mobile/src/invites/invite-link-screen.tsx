@@ -14,7 +14,7 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { Slot } from "../home/home-model";
 import { Notice } from "../groups/notice";
@@ -89,7 +89,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   const [groupDecided, setGroupDecided] = useState(false);
   const [holdSeat, setHoldSeat] = useState(false);
   const [justJoinedGroup, setJustJoinedGroup] = useState(false);
-  const askLevelAfterJoin = useRef(false);
+  const [footballSheetOpen, setFootballSheetOpen] = useState(false);
 
   const gameCode = api.games.inviteLinkByShortCode.useQuery(
     { code: "code" in link ? link.code : "" },
@@ -233,6 +233,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
+      setFootballSheetOpen(false);
       toast.show(m.level.request.sent);
       await game.refetch();
     },
@@ -249,10 +250,6 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
         );
         setJustJoinedGroup(true);
         await utils.groups.mine.invalidate();
-        if (askLevelAfterJoin.current && token && readyGame) {
-          askLevelAfterJoin.current = false;
-          requestLevel.mutate({ gameId: readyGame.gameId, inviteToken: token });
-        }
       } else if (result.outcome === "requested") {
         toast.show(m.mobileInvite.link.group.requestedToast);
       }
@@ -283,6 +280,15 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       acceptTeam.mutate({ token });
     } else if (holdSeat) {
       joinGroup.mutate({ token, holdSeat: true, ...seat });
+    } else if (
+      readyGame &&
+      gameInviteLinkStage(readyGame, true) === "level_range"
+    ) {
+      requestLevel.mutate({
+        gameId: readyGame.gameId,
+        inviteToken: token,
+        ...seat,
+      });
     } else {
       acceptGame.mutate({ token, ...seat });
     }
@@ -292,10 +298,20 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     if (!token) {
       return;
     }
+    const football = { role, position };
     if (holdSeat) {
-      joinGroup.mutate({ token, holdSeat: true, football: { role, position } });
+      joinGroup.mutate({ token, holdSeat: true, football });
+    } else if (
+      readyGame &&
+      gameInviteLinkStage(readyGame, true) === "level_range"
+    ) {
+      requestLevel.mutate({
+        gameId: readyGame.gameId,
+        inviteToken: token,
+        football,
+      });
     } else {
-      acceptGame.mutate({ token, football: { role, position } });
+      acceptGame.mutate({ token, football });
     }
   }
 
@@ -310,15 +326,11 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
     const hold = groupGate === "approval";
     const stage = gameInviteLinkStage(readyGame, true);
     setGroupSheetOpen(false);
-    // Outside the Level range the seat is the Organizers' to grant: a hold
-    // carries the ask to them, and an open Group gets the Level request.
-    if (stage === "level_range") {
-      if (hold) {
-        joinGroup.mutate({ token, holdSeat: true });
-      } else {
-        askLevelAfterJoin.current = true;
-        joinGroup.mutate({ token });
-      }
+    // Outside the Level range the seat is still picked: a hold carries it to
+    // the Group approvers, and on an open Group the join lands first, then
+    // the Level request takes the seat.
+    if (stage === "level_range" && !hold) {
+      joinGroup.mutate({ token });
       return;
     }
     setGroupDecided(true);
@@ -376,6 +388,9 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       onChooseGroup={chooseGroup}
       onWithdraw={(requestId) => withdraw.mutate({ requestId })}
       onOpenGroup={(groupId) => router.push(`/groups/${groupId}` as Href)}
+      footballSheetOpen={footballSheetOpen}
+      onOpenFootballSheet={() => setFootballSheetOpen(true)}
+      onCloseFootballSheet={() => setFootballSheetOpen(false)}
     />
   );
 }

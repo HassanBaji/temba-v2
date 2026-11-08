@@ -1,5 +1,5 @@
 import type { DbClient, DbTx } from "@repo/db";
-import type { SeatPosition } from "#src/games/utils";
+import type { SeatChoice, SeatPosition } from "#src/games/utils";
 
 export type InviteDb = DbClient | DbTx;
 
@@ -44,7 +44,7 @@ export type RevokeLookupResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "already_accepted" };
 
-export type AcceptSeat = { sideIndex: number; position: SeatPosition };
+export type AcceptSeat = { sideIndex: number; position: SeatChoice };
 
 export type AcceptLookupResult =
   | {

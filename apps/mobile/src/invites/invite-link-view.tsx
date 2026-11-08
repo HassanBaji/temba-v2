@@ -82,6 +82,10 @@ export type InviteLinkViewProps = {
   onAccept: (seat?: { sideIndex: number; position: "left" | "right" }) => void;
   onAcceptFootball: (role: FootballRole, position: FootballPosition) => void;
   onRequestLevel: (gameId: string) => void;
+  /** The football role sheet on the Level stage, opened from the bar. */
+  footballSheetOpen: boolean;
+  onOpenFootballSheet: () => void;
+  onCloseFootballSheet: () => void;
   onPickPartner: (gameId: string) => void;
   onGoHome: () => void;
   onRetry: () => void;
@@ -599,33 +603,74 @@ function useGameLayout(
       viewerLevelTenths: game.viewerLevelTenths,
       locale,
     });
+    const pendingNote = action.kind === "pending-note";
+    // The request carries the seat the player picks here; approval seats
+    // them there (ADR-0057). A hold on an approval Group goes the same way.
+    const picksSeat = !pendingNote && game.sides.length > 0;
+    const picksFootball = !pendingNote && game.football != null;
     return {
       note: memberNote,
       body: (
         <>
-          <Surface>
+          <Surface style={{ gap: 12 }}>
             <Text tone="muted">{gateCopy}</Text>
+            {picksSeat ? (
+              <SeatChoice
+                sides={game.sides}
+                canPick={action.kind === "button" && !action.disabled}
+                pending={props.acceptPending || props.requestPending}
+                onPick={(sideIndex, position) =>
+                  props.onAccept({ sideIndex, position })
+                }
+              />
+            ) : null}
           </Surface>
           {info}
+          {picksFootball && game.football ? (
+            <FootballJoinSheet
+              visible={props.footballSheetOpen}
+              mode="join"
+              subtitle={footballInviteJoinSubtitle(game.football, locale)}
+              players={game.football.players}
+              viewer={game.football.preferred}
+              price={formatPricePerPlayerFils(
+                game.football.pricePerPlayerFils,
+                locale,
+              )}
+              teamsLine={
+                game.football.teamsSet
+                  ? m.mobileInvite.link.teamsSet
+                  : m.mobileInvite.link.teamsByOrganizer
+              }
+              pending={props.acceptPending || props.requestPending}
+              error={props.acceptError}
+              onClose={props.onCloseFootballSheet}
+              onSubmit={props.onAcceptFootball}
+            />
+          ) : null}
         </>
       ),
-      bar:
-        action.kind === "pending-note" ? (
-          <Bar title={null} subline={action.text} />
-        ) : (
-          <Bar
-            title={seatsTitle}
-            subline={null}
-            action={
-              <Button
-                label={action.label}
-                size="lg"
-                disabled={action.disabled}
-                onPress={() => props.onRequestLevel(game.gameId)}
-              />
-            }
-          />
-        ),
+      bar: pendingNote ? (
+        <Bar title={null} subline={action.text} />
+      ) : picksSeat ? (
+        <Bar title={seatsTitle} subline={action.label} />
+      ) : (
+        <Bar
+          title={seatsTitle}
+          subline={null}
+          action={
+            <Button
+              label={action.label}
+              size="lg"
+              disabled={action.disabled}
+              pending={props.requestPending}
+              onPress={() =>
+                picksFootball ? props.onOpenFootballSheet() : props.onAccept()
+              }
+            />
+          }
+        />
+      ),
     };
   }
 

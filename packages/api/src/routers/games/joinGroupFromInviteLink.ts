@@ -45,7 +45,7 @@ export type JoinGroupFromInviteLinkArgs = {
   /** Ask the Group to keep a seat on this Game while it decides (ADR-0057). */
   holdSeat?: boolean;
   sideIndex?: number;
-  position?: "left" | "right";
+  position?: "left" | "right" | "either";
   football?: { role: FootballRole; position: FootballPosition };
   locale?: Locale;
   now?: Date;
@@ -248,7 +248,7 @@ export const joinGroupFromInviteLinkProcedure = protectedProcedure
       token: z.string().min(1).max(64),
       holdSeat: z.boolean().optional(),
       sideIndex: z.number().int().min(1).optional(),
-      position: z.enum(["left", "right"]).optional(),
+      position: z.enum(["left", "right", "either"]).optional(),
       football: z
         .object({
           role: footballRoleSchema,

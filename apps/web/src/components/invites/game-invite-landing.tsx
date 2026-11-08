@@ -12,6 +12,10 @@ import type {
   gameInviteHeroModel,
   gameInviteLevelCard,
 } from "@repo/domain/game-invite-hero";
+import type {
+  InviteSeatCourt as InviteSeatCourtModel,
+  InviteSeatTile,
+} from "@repo/domain/game-invite-join-sheet";
 import { initials } from "@repo/domain/initials";
 import { sportLabel } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
@@ -68,14 +72,139 @@ export function InviteHeroTiles({
   );
 }
 
+function SeatTile({
+  seat,
+  onSit,
+}: {
+  seat: InviteSeatTile;
+  onSit: ((seat: InviteSeatTile) => void) | null;
+}) {
+  const m = useMessages();
+  if (seat.occupant) {
+    return (
+      <div className="bg-raised flex min-h-[64px] items-center gap-2.5 rounded-[10px] px-3 py-2.5">
+        <span className="bg-on-focus text-focus text-eyebrow flex size-8 shrink-0 items-center justify-center rounded-lg font-semibold">
+          {initials(seat.occupant.name)}
+        </span>
+        <span className="min-w-0">
+          <span className="text-meta block truncate font-semibold">
+            {seat.occupant.name}
+          </span>
+          <span className="text-dim block text-[12px]">{seat.sub}</span>
+        </span>
+      </div>
+    );
+  }
+  const label = m.mobileInvite.link.hero.sitHere;
+  const body = (
+    <>
+      <Hatch tone="ink" className="absolute inset-0 rounded-[10px]" />
+      <span className="relative block">
+        <span className="text-meta block font-semibold">{label}</span>
+        <span className="text-dim block text-[12px]">{seat.sub}</span>
+      </span>
+    </>
+  );
+  if (!onSit) {
+    return (
+      <div className="border-dimrule relative min-h-[64px] overflow-hidden rounded-[10px] border border-dashed px-3 py-2.5">
+        {body}
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      aria-label={`${label}, ${seat.sub}`}
+      onClick={() => onSit(seat)}
+      className="border-dimrule hover:border-on-focus focus-visible:ring-on-focus/40 relative min-h-[64px] overflow-hidden rounded-[10px] border border-dashed px-3 py-2.5 text-start outline-none focus-visible:ring-[3px]"
+    >
+      {body}
+    </button>
+  );
+}
+
+/** Design 3a: the court on a padel link, the open seats as Sit here tiles. */
+export function InviteSeatCourt({
+  court,
+  onSit,
+}: {
+  court: InviteSeatCourtModel[];
+  onSit: ((seat: InviteSeatTile) => void) | null;
+}) {
+  return (
+    <div className="space-y-2">
+      {court.map((side, index) => (
+        <div key={side.sideIndex} className="space-y-2">
+          {index > 0 ? (
+            <div className="flex items-center gap-3">
+              <span className="bg-dimrule h-px flex-1" />
+              <span className="text-dim text-[11px] font-semibold tracking-[0.08em]">
+                VS
+              </span>
+              <span className="bg-dimrule h-px flex-1" />
+            </div>
+          ) : null}
+          <div className="grid grid-cols-2 gap-2">
+            {side.seats.map((seat) => (
+              <SeatTile key={seat.position} seat={seat} onSit={onSit} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Design 3e: one Sit here tile under the football pool; seats are not positional yet. */
+export function InviteSitHereTile({
+  sub,
+  onSit,
+}: {
+  sub: string;
+  onSit: (() => void) | null;
+}) {
+  const m = useMessages();
+  const label = m.mobileInvite.link.hero.sitHere;
+  const body = (
+    <>
+      <Hatch tone="ink" className="absolute inset-0 rounded-[10px]" />
+      <span className="relative block">
+        <span className="text-meta block font-semibold">{label}</span>
+        <span className="text-dim block text-[12px]">{sub}</span>
+      </span>
+    </>
+  );
+  return onSit ? (
+    <button
+      type="button"
+      aria-label={`${label}, ${sub}`}
+      onClick={onSit}
+      className="border-dimrule hover:border-on-focus focus-visible:ring-on-focus/40 relative mt-2 w-full overflow-hidden rounded-[10px] border border-dashed px-3 py-3 text-start outline-none focus-visible:ring-[3px]"
+    >
+      {body}
+    </button>
+  ) : (
+    <div className="border-dimrule relative mt-2 overflow-hidden rounded-[10px] border border-dashed px-3 py-3">
+      {body}
+    </div>
+  );
+}
+
 /** Design 3a: the Game itself, when and where and who is in. */
 export function GameInviteCard({
   model,
   seats,
+  countHint,
+  afterSeats,
 }: {
   model: ReturnType<typeof gameInviteHeroModel>;
   /** Replaces the roster tiles, e.g. the court to pick a seat on. */
   seats?: React.ReactNode;
+  /** `tap a seat, pick your side after`, beside the count. */
+  countHint?: string | null;
+  /** Under the roster, e.g. the football Sit here tile. */
+  afterSeats?: React.ReactNode;
 }) {
   return (
     <div className="border-dimrule rounded-xl border p-5">
@@ -104,10 +233,16 @@ export function GameInviteCard({
         <p className="text-meta text-dim">{model.detailLine}</p>
       ) : null}
       <div className="border-dimrule mt-5 border-t pt-4">
-        <p className="text-meta mb-3 font-semibold">{model.countLine}</p>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <p className="text-meta font-semibold">{model.countLine}</p>
+          {countHint ? (
+            <p className="text-dim text-[12px]">{countHint}</p>
+          ) : null}
+        </div>
         {seats ?? (
           <InviteHeroTiles tiles={model.tiles} label={model.rosterA11y} />
         )}
+        {afterSeats}
       </div>
     </div>
   );

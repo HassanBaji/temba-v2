@@ -40,7 +40,11 @@ export type GroupJoinRequestSource =
  * no seat to pick.
  */
 export type GroupJoinRequestHeldSeat =
-  | { kind: "position"; sideIndex: number; position: "left" | "right" }
+  | {
+      kind: "position";
+      sideIndex: number;
+      position: "left" | "right" | "either";
+    }
   | {
       kind: "football";
       role: "outfield" | "keeper";

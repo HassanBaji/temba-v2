@@ -7,7 +7,18 @@ import {
   gameLevelRangeRequests,
   GameLevelRangeRequestStatusEnum,
   gameMemberInvites,
+  type GroupJoinRequestHeldSeat,
 } from "@repo/db";
+
+import {
+  type FootballPosition,
+  type FootballRole,
+} from "@repo/domain/football-lineup";
+import { isFootballGame } from "@repo/domain/game-shape";
+import {
+  footballPositionSchema,
+  footballRoleSchema,
+} from "@repo/validators/football";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -89,12 +100,40 @@ function refuseIfNotOpenForRequests(
   }
 }
 
+export type RequestLevelRangeArgs = {
+  gameId: string;
+  userId: string;
+  inviteToken?: string;
+  /** The seat the requester picked; approval seats them there (ADR-0057). */
+  sideIndex?: number;
+  position?: "left" | "right" | "either";
+  football?: { role: FootballRole; position: FootballPosition };
+};
+
+function heldSeatOf(
+  game: { sport: string | null },
+  args: RequestLevelRangeArgs,
+): GroupJoinRequestHeldSeat | null {
+  if (args.football && isFootballGame(game)) {
+    return { kind: "football", ...args.football };
+  }
+  if (args.sideIndex != null && args.position) {
+    return {
+      kind: "position",
+      sideIndex: args.sideIndex,
+      position: args.position,
+    };
+  }
+  return null;
+}
+
 export async function requestLevelRange(
   database: DbClient,
-  args: { gameId: string; userId: string; inviteToken?: string },
+  args: RequestLevelRangeArgs,
 ) {
   const game = await requireGame(database, args.gameId);
   const now = new Date();
+  const heldSeat = heldSeatOf(game, args);
 
   if (
     !(await canAuthorizeLevelRangeRequest(
@@ -166,6 +205,12 @@ export async function requestLevelRange(
   }
 
   if (existing?.status === "pending") {
+    if (heldSeat) {
+      await database
+        .update(gameLevelRangeRequests)
+        .set({ heldSeat, updatedAt: now })
+        .where(eq(gameLevelRangeRequests.id, existing.id));
+    }
     return {
       id: existing.id,
       status: asRequestStatus(existing.status),
@@ -180,6 +225,7 @@ export async function requestLevelRange(
             .set({
               status: GameLevelRangeRequestStatusEnum.PENDING,
               decidedBy: null,
+              heldSeat,
               updatedAt: new Date(),
             })
             .where(eq(gameLevelRangeRequests.id, existing.id))
@@ -190,6 +236,7 @@ export async function requestLevelRange(
               gameId: game.id,
               userId: args.userId,
               status: GameLevelRangeRequestStatusEnum.PENDING,
+              heldSeat,
             })
             .returning();
     if (!request) {
@@ -214,6 +261,11 @@ export const requestLevelRangeProcedure = protectedProcedure
     z.object({
       gameId: z.string().uuid(),
       inviteToken: z.string().min(1).optional(),
+      sideIndex: z.number().int().min(1).optional(),
+      position: z.enum(["left", "right", "either"]).optional(),
+      football: z
+        .object({ role: footballRoleSchema, position: footballPositionSchema })
+        .optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -222,5 +274,8 @@ export const requestLevelRangeProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       inviteToken: input.inviteToken,
+      sideIndex: input.sideIndex,
+      position: input.position,
+      football: input.football,
     });
   });

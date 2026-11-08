@@ -5,9 +5,11 @@ import { displayLabelFromStoredBand } from "./level-bands";
 import { tenthsToLevelBand } from "./level-range";
 import { levelRangeRequestRowMeta } from "./level-range-request";
 import {
+  heldSeatLabel,
   seatHoldRemainingLabel,
   seatHoldRequestDetail,
   seatHoldRequestRowMeta,
+  type HeldSeat,
   type SeatHoldRequestRow,
 } from "./seat-hold-request";
 
@@ -35,6 +37,7 @@ export type GameRequestsInput = {
     provisional: boolean;
     createdAt: Date | string;
     user: { id: string; name: string | null; image: string | null };
+    heldSeat?: HeldSeat | null;
   }[];
   pendingSeatHolds?: SeatHoldRequestRow[];
 };
@@ -78,7 +81,11 @@ export function gameOrganizerRequests(
         image: request.user.image,
         meta: levelRangeRequestRowMeta(request, locale, now),
         level: levelBandOf(request.levelTenths),
-        detail: m.game.requests.sentence(m.game.requests.outsideRange),
+        detail: m.game.requests.sentence(
+          heldSeatLabel(request.heldSeat, locale)
+            ? `${m.game.requests.outsideRange} (${heldSeatLabel(request.heldSeat, locale)})`
+            : m.game.requests.outsideRange,
+        ),
         held: null,
       }),
     ),

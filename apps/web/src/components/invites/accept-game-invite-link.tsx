@@ -6,8 +6,6 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
-import { FootballJoinDialog } from "~/components/games/football-join-dialog";
-import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import {
   GameInviteBar,
   GameInviteCard,
@@ -16,8 +14,13 @@ import {
   GameInviteNotice,
   GameInviteRequestCard,
   GameInviteRows,
+  InviteSeatCourt,
+  InviteSitHereTile,
 } from "~/components/invites/game-invite-landing";
-import { GroupJoinDialog } from "~/components/invites/game-link-group";
+import {
+  InviteJoinSheet,
+  type InviteJoinChoice,
+} from "~/components/invites/invite-join-sheet";
 import {
   InviteOutcome,
   InvitePreviewError,
@@ -25,12 +28,6 @@ import {
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Surface } from "~/components/ui/surface";
-import { footballInviteJoinSubtitle } from "@repo/domain/football-board";
-import {
-  type FootballPosition,
-  type FootballRole,
-} from "@repo/domain/football-lineup";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
 import {
@@ -40,25 +37,27 @@ import {
   gameInviteSharerName,
   gameInviteWebRows,
 } from "@repo/domain/game-invite-hero";
+import {
+  gameInviteSeatCourt,
+  inviteJoinDoor,
+  type InviteSeatPick,
+} from "@repo/domain/game-invite-join-sheet";
 import { groupDisplayName } from "@repo/domain/group-join";
 import {
   gameInviteGroupGate,
   gameInviteGroupJoinedCopy,
-  gameInviteGroupLandingCopy,
   gameInviteGroupRequestCard,
-  gameInviteSeatCopy,
   gameInviteLinkStage,
   gameInviteSeatState,
   inviteLinkAcceptToast,
   levelRangeGateAction,
-  type GameInviteGroupChoice,
 } from "@repo/domain/invites";
-import { formatLevelRangeLabel } from "@repo/domain/level-range";
-import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { tournamentPartnerInviteLandingHref } from "@repo/domain/tournament-join";
 import { api } from "~/trpc/react";
+
+type SheetState = { open: boolean; picked: InviteSeatPick | null };
 
 export function AcceptGameInviteLink({
   token,
@@ -72,16 +71,37 @@ export function AcceptGameInviteLink({
   const router = useRouter();
   const m = useMessages();
   const locale = useLocale();
-  const [footballOpen, setFootballOpen] = React.useState(true);
-  const [groupDialogOpen, setGroupDialogOpen] = React.useState(false);
-  const [groupDecided, setGroupDecided] = React.useState(false);
-  const [holdSeat, setHoldSeat] = React.useState(false);
+  const [sheet, setSheet] = React.useState<SheetState>({
+    open: false,
+    picked: null,
+  });
   const [justJoinedGroup, setJustJoinedGroup] = React.useState(false);
-  const askLevelAfterJoin = React.useRef(false);
+  // A Level request that waits for the Group join to land first.
+  const levelAfterJoin = React.useRef<InviteJoinChoice | null>(null);
   const preview = api.games.previewInviteLink.useQuery({ token });
+
+  const ready = preview.data?.status === "ready" ? preview.data : undefined;
+  const stage = ready ? gameInviteLinkStage(ready, isSignedIn) : "accept";
+  const group = ready?.group ?? null;
+  const groupGate = gameInviteGroupGate(group);
+  const groupName = group ? groupDisplayName(group.name, locale) : null;
+
+  const closeSheet = () => setSheet((current) => ({ ...current, open: false }));
+
+  function levelRequestArgs(choice: InviteJoinChoice, gameId: string) {
+    return {
+      gameId,
+      inviteToken: token,
+      sideIndex: choice.seat?.sideIndex,
+      position: choice.seat?.position,
+      football: choice.football ?? undefined,
+    };
+  }
+
   const requestLevelRange = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
       toast.success(m.webAuth.invites.requestSent);
+      closeSheet();
       await preview.refetch();
     },
     onError: (error) => {
@@ -103,45 +123,36 @@ export function AcceptGameInviteLink({
       }
       router.replace(`/dashboard/games/${result.gameId}`);
     },
-    onError: (error, variables) => {
-      if (!variables.football) {
-        toast.error(error.message);
-      }
+    onError: () => {
       void preview.refetch();
     },
   });
-
-  const ready = preview.data?.status === "ready" ? preview.data : undefined;
-  const stage = ready ? gameInviteLinkStage(ready, isSignedIn) : "accept";
-  const group = ready?.group ?? null;
-  const groupGate = gameInviteGroupGate(group);
-  const groupName = group ? groupDisplayName(group.name, locale) : null;
   const joinGroup = api.games.joinGroupFromInviteLink.useMutation({
     onSuccess: async (result) => {
-      setGroupDialogOpen(false);
-      setGroupDecided(false);
-      setHoldSeat(false);
       if (result.outcome === "joined") {
         toast.success(
           m.mobileInvite.link.group.joinedToast(groupName ?? m.group.untitled),
         );
         setJustJoinedGroup(true);
-        if (askLevelAfterJoin.current && ready) {
-          askLevelAfterJoin.current = false;
-          requestLevelRange.mutate({
-            gameId: ready.gameId,
-            inviteToken: token,
-          });
+        const pendingLevel = levelAfterJoin.current;
+        levelAfterJoin.current = null;
+        if (pendingLevel && ready) {
+          requestLevelRange.mutate(
+            levelRequestArgs(pendingLevel, ready.gameId),
+          );
+        } else {
+          closeSheet();
         }
-      } else if (result.outcome === "requested") {
-        toast.success(m.mobileInvite.link.group.requestedToast);
+      } else {
+        if (result.outcome === "requested") {
+          toast.success(m.mobileInvite.link.group.requestedToast);
+        }
+        closeSheet();
       }
       await preview.refetch();
     },
-    onError: (error, variables) => {
-      if (!variables.football) {
-        toast.error(error.message);
-      }
+    onError: () => {
+      levelAfterJoin.current = null;
       void preview.refetch();
     },
   });
@@ -154,174 +165,94 @@ export function AcceptGameInviteLink({
       toast.error(error.message);
     },
   });
-  // The Group question stands between a signed-in non-member and the seat
-  // on every join stage, the Level gate included; the partner stage keeps
-  // its own door.
-  const groupStage =
-    stage === "level_range" ||
-    stage === "seat_pick" ||
-    stage === "football" ||
-    stage === "accept";
-  const groupAsks =
-    isSignedIn && group != null && groupStage && groupGate !== "none";
-  const groupBlocks = groupAsks && (groupGate === "requested" || !groupDecided);
-  const openSeats = ready?.football
-    ? Math.max(
-        0,
-        (ready.football.playersAllowed ?? 0) - ready.football.players.length,
-      )
-    : (ready?.vacantSeats.length ?? 0);
-  const blockedByLevelRange = stage === "level_range";
+
+  const levelBlocked = stage === "level_range";
+  const levelPending =
+    levelBlocked && ready?.levelRangeRequest?.status === "pending";
   const partnerRequiredJoin = stage === "partner";
-  const needsSeatPick = stage === "seat_pick";
-  const footballJoin = stage === "football";
   const football = ready?.football ?? null;
   const sides = ready?.sides ?? [];
-  const vacantSeats = ready?.vacantSeats ?? [];
+  const seatGame = sides.length > 0;
+  const openSeats = football
+    ? Math.max(0, (football.playersAllowed ?? 0) - football.players.length)
+    : (ready?.vacantSeats.length ?? 0);
   const seatState = gameInviteSeatState({
     registrationStatus: ready?.registrationStatus ?? "open",
-    vacantSeatCount: vacantSeats.length,
+    vacantSeatCount: ready?.vacantSeats.length ?? 0,
   });
   const joinFrozen = seatState.joinFrozen;
-  const waitlistOnly = needsSeatPick && seatState.waitlistOnly;
-  const canJoinVacant = isSignedIn && !joinFrozen && !waitlistOnly;
-  const seatRaceError =
-    needsSeatPick && accept.isError && accept.error.data?.code === "CONFLICT";
-  const footballJoinError = footballJoin && accept.isError;
-  const sideNoun = "Team";
-  const rangeLabel = formatLevelRangeLabel(
-    ready?.levelMinTenths,
-    ready?.levelMaxTenths,
-    locale,
-  );
-  const levelAction = levelRangeGateAction({
-    requestStatus: ready?.levelRangeRequest?.status ?? null,
-    canRequest: ready?.canRequestLevelRange ?? false,
-    requesting: requestLevelRange.isPending,
-    locale,
-  });
+  const waitlistOnly = seatGame && seatState.waitlistOnly;
+  const joinPending =
+    accept.isPending || joinGroup.isPending || requestLevelRange.isPending;
   const gameName = ready
     ? gameDisplayName(ready.game, locale)
     : m.invite.kind.game;
 
+  // A member inside the range on a Game with nothing to pick joins on open.
   React.useEffect(() => {
-    if (!isSignedIn) {
+    if (!isSignedIn || preview.data?.status !== "ready") {
       return;
     }
-    if (preview.data?.status !== "ready") {
-      return;
-    }
-    if (preview.data.viewerPassesLevelRange === false) {
+    if (
+      preview.data.viewerPassesLevelRange === false ||
+      preview.data.partnerRequiredJoin ||
+      preview.data.sides.length > 0 ||
+      preview.data.football ||
+      gameInviteGroupGate(preview.data.group) !== "none"
+    ) {
       return;
     }
     if (accept.isPending || accept.isSuccess || accept.isError) {
       return;
     }
-    if (
-      preview.data.partnerRequiredJoin ||
-      preview.data.needsSeatPick ||
-      preview.data.football
-    ) {
-      return;
-    }
-    if (groupBlocks || holdSeat) {
-      return;
-    }
     accept.mutate({ token });
-  }, [accept, groupBlocks, holdSeat, isSignedIn, preview.data, token]);
+  }, [accept, isSignedIn, preview.data, token]);
 
-  const joinPending = accept.isPending || joinGroup.isPending;
-
-  function onJoinSeat(sideIndex: number, position: "left" | "right") {
-    if (joinPending) {
+  function submit(choice: InviteJoinChoice) {
+    if (!ready || joinPending) {
       return;
     }
-    if (holdSeat) {
-      joinGroup.mutate({ token, holdSeat: true, sideIndex, position });
+    const seat = choice.seat
+      ? { sideIndex: choice.seat.sideIndex, position: choice.seat.position }
+      : {};
+    const footballPick = choice.football ?? undefined;
+    const door = inviteJoinDoor({
+      gate: groupGate,
+      joinGroup: choice.joinGroup,
+      levelBlocked,
+    });
+    if (door === "hold") {
+      joinGroup.mutate({
+        token,
+        holdSeat: true,
+        ...seat,
+        football: footballPick,
+      });
+      return;
+    }
+    if (door === "level_request") {
+      if (groupGate === "open" && choice.joinGroup) {
+        levelAfterJoin.current = choice;
+        joinGroup.mutate({ token });
+        return;
+      }
+      requestLevelRange.mutate(levelRequestArgs(choice, ready.gameId));
       return;
     }
     accept.mutate({
       token,
-      sideIndex,
-      position,
+      ...seat,
+      football: footballPick,
+      joinGroup: groupGate === "none" ? undefined : choice.joinGroup,
     });
   }
 
-  function onJoinFootball(role: FootballRole, position: FootballPosition) {
-    if (joinPending) {
-      return;
-    }
-    if (holdSeat) {
-      joinGroup.mutate({ token, holdSeat: true, football: { role, position } });
-      return;
-    }
-    accept.mutate({ token, football: { role, position } });
+  function openSheet(picked: InviteSeatPick | null) {
+    accept.reset();
+    joinGroup.reset();
+    requestLevelRange.reset();
+    setSheet({ open: true, picked });
   }
-
-  function onJoinWaitlist() {
-    if (joinPending) {
-      return;
-    }
-    if (holdSeat) {
-      joinGroup.mutate({ token, holdSeat: true });
-      return;
-    }
-    accept.mutate({ token });
-  }
-
-  function onChooseGroup(choice: GameInviteGroupChoice) {
-    if (joinPending) {
-      return;
-    }
-    if (choice === "group_only") {
-      joinGroup.mutate({ token });
-      return;
-    }
-    const hold = groupGate === "approval";
-    setGroupDialogOpen(false);
-    // Outside the Level range the seat is the Organizers' to grant: a hold
-    // carries the ask to them, and an open Group gets the Level request.
-    if (stage === "level_range") {
-      if (hold) {
-        joinGroup.mutate({ token, holdSeat: true });
-      } else {
-        askLevelAfterJoin.current = true;
-        joinGroup.mutate({ token });
-      }
-      return;
-    }
-    setGroupDecided(true);
-    setHoldSeat(hold);
-    setFootballOpen(true);
-    // Without a hold, the auto-join effect takes the seat once the gate lifts.
-    if (stage === "accept" && hold) {
-      joinGroup.mutate({ token, holdSeat: true });
-    }
-  }
-
-  const groupChoicePending: GameInviteGroupChoice | null = joinGroup.isPending
-    ? joinGroup.variables?.holdSeat
-      ? "with_seat"
-      : "group_only"
-    : null;
-  const joinedCopy =
-    group && justJoinedGroup
-      ? gameInviteGroupJoinedCopy(group, openSeats, locale)
-      : null;
-  const joinedNotice =
-    group && joinedCopy ? (
-      <GameInviteNotice
-        title={joinedCopy.title}
-        description={joinedCopy.description}
-        action={
-          <Button variant="outline-inverse" size="sm" asChild>
-            <Link href={`/dashboard/groups/${group.id}`}>
-              {joinedCopy.openGroupLabel}
-            </Link>
-          </Button>
-        }
-      />
-    ) : null;
 
   if (preview.isLoading || (preview.isError && preview.isFetching)) {
     return (
@@ -359,7 +290,7 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (accept.isError && !seatRaceError && !footballJoinError) {
+  if (accept.isError && !sheet.open) {
     return (
       <ErrorState
         title={m.webAuth.invites.couldNotJoin}
@@ -388,16 +319,18 @@ export function AcceptGameInviteLink({
     viewerLevelTenths: ready.viewerLevelTenths,
     viewerPassesLevelRange: ready.viewerPassesLevelRange,
   });
+  const asksAboutGroup =
+    isSignedIn && (groupGate === "open" || groupGate === "approval");
   const levelCard = gameInviteLevelCard({
     levelMinTenths: ready.levelMinTenths,
     levelMaxTenths: ready.levelMaxTenths,
     viewerLevelTenths: ready.viewerLevelTenths,
     fit,
-    asksAboutGroup: groupBlocks && groupGate !== "requested",
+    asksAboutGroup,
     locale,
   });
   const barOpenSeats =
-    ready.football || ready.vacantSeats.length > 0
+    football || ready.vacantSeats.length > 0
       ? openSeats
       : (heroModel.openSeats ?? 0);
   const seatsTitle =
@@ -409,17 +342,21 @@ export function AcceptGameInviteLink({
       : group && groupGate === "none" && groupName
         ? heroCopy.memberNote(groupName)
         : heroCopy.notMemberYet(sharer);
+  const groupOnlyPending =
+    joinGroup.isPending &&
+    !joinGroup.variables?.holdSeat &&
+    levelAfterJoin.current == null;
   const groupAction = !isSignedIn ? (
     <Button variant="outline-inverse" size="sm" asChild>
       <Link href={signInHref}>{groupCopy.joinGroup}</Link>
     </Button>
-  ) : group && groupBlocks && groupGate !== "requested" ? (
+  ) : asksAboutGroup ? (
     <Button
       variant="outline-inverse"
       size="sm"
-      disabled={groupChoicePending != null}
-      pending={groupChoicePending === "group_only"}
-      onClick={() => onChooseGroup("group_only")}
+      disabled={joinPending}
+      pending={groupOnlyPending}
+      onClick={() => joinGroup.mutate({ token })}
     >
       {groupCopy.joinGroup}
     </Button>
@@ -436,14 +373,93 @@ export function AcceptGameInviteLink({
     />
   );
 
-  function page(args: {
-    content?: React.ReactNode;
-    seats?: React.ReactNode;
-    bar: React.ReactNode;
-  }) {
+  const requestedGate = isSignedIn && groupGate === "requested";
+  const canSit =
+    !partnerRequiredJoin && !joinFrozen && !requestedGate && !levelPending;
+  const onSit = !canSit
+    ? null
+    : isSignedIn
+      ? (picked: InviteSeatPick | null) => openSheet(picked)
+      : () => router.push(signInHref);
+  const court = seatGame ? gameInviteSeatCourt(sides, locale) : null;
+  const seats = court ? (
+    <InviteSeatCourt
+      court={court}
+      onSit={
+        onSit && !waitlistOnly
+          ? (seat) =>
+              onSit({ sideIndex: seat.sideIndex, position: seat.position })
+          : null
+      }
+    />
+  ) : undefined;
+  const footballTile =
+    football && openSeats > 0 ? (
+      <InviteSitHereTile
+        sub={heroCopy.sitHereFootball(groupCopy.seatsOpen(openSeats))}
+        onSit={onSit ? () => onSit(null) : null}
+      />
+    ) : null;
+  const joinedCopy =
+    group && justJoinedGroup
+      ? gameInviteGroupJoinedCopy(group, openSeats, locale)
+      : null;
+  const joinedNotice =
+    group && joinedCopy ? (
+      <GameInviteNotice
+        title={joinedCopy.title}
+        description={joinedCopy.description}
+        action={
+          <Button variant="outline-inverse" size="sm" asChild>
+            <Link href={`/dashboard/groups/${group.id}`}>
+              {joinedCopy.openGroupLabel}
+            </Link>
+          </Button>
+        }
+      />
+    ) : null;
+  const joinSheet =
+    isSignedIn && (seatGame || football || groupGate !== "none") ? (
+      <InviteJoinSheet
+        open={sheet.open}
+        onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
+        input={{
+          kind: football ? "football" : "padel",
+          sides,
+          picked: sheet.picked,
+          usualSide: null,
+          teamsMadeAt: null,
+          group,
+          gate: groupGate,
+          gamePublic: ready.isPublic ?? false,
+          levelBlocked,
+          locale,
+        }}
+        football={
+          football
+            ? { players: football.players, preferred: football.preferred }
+            : null
+        }
+        pending={joinPending}
+        error={
+          accept.error?.message ??
+          joinGroup.error?.message ??
+          requestLevelRange.error?.message ??
+          null
+        }
+        onSubmit={submit}
+      />
+    ) : null;
+
+  function page(args: { content?: React.ReactNode; bar: React.ReactNode }) {
     return (
       <div className="flex flex-1 flex-col gap-3">
-        <GameInviteCard model={heroModel} seats={args.seats} />
+        <GameInviteCard
+          model={heroModel}
+          seats={seats}
+          countHint={court && canSit ? heroCopy.tapASeat : null}
+          afterSeats={footballTile}
+        />
         {args.content}
         {levelCard ? <GameInviteLevelCard card={levelCard} /> : null}
         {hero.groupCard ? (
@@ -455,11 +471,16 @@ export function AcceptGameInviteLink({
         ) : null}
         <GameInviteRows rows={gameInviteWebRows(hero, locale)} />
         {args.bar}
+        {joinSheet}
       </div>
     );
   }
 
-  if (group && groupAsks && groupGate === "requested") {
+  if (!isSignedIn) {
+    return page({ bar: signInBar });
+  }
+
+  if (requestedGate && group) {
     const request = group.pendingRequest;
     const heldLabel = request?.seatHeldUntil
       ? formatGameStart(request.seatHeldUntil, locale)
@@ -493,74 +514,14 @@ export function AcceptGameInviteLink({
     });
   }
 
-  if (group && groupBlocks) {
-    const copy = gameInviteGroupLandingCopy(group, openSeats, locale);
-    return page({
-      content: (
-        <GroupJoinDialog
-          open={groupDialogOpen}
-          group={group}
-          pending={groupChoicePending}
-          onChoose={onChooseGroup}
-          onOpenChange={setGroupDialogOpen}
-        />
-      ),
-      bar: (
-        <GameInviteBar
-          title={copy.barTitle}
-          subline={copy.barSubline}
-          action={
-            <Button
-              variant="inverse"
-              size="lg"
-              disabled={groupChoicePending != null}
-              onClick={() => setGroupDialogOpen(true)}
-            >
-              {copy.joinGameLabel}
-            </Button>
-          }
-        />
-      ),
-    });
-  }
-
-  if (blockedByLevelRange && !accept.isSuccess) {
-    return page({
-      bar:
-        levelAction.kind === "pending-note" ? (
-          <GameInviteBar title={null} subline={levelAction.text} />
-        ) : (
-          <GameInviteBar
-            title={rangeLabel}
-            subline={null}
-            action={
-              <Button
-                variant="inverse"
-                size="lg"
-                disabled={levelAction.disabled}
-                onClick={() =>
-                  requestLevelRange.mutate({
-                    gameId: ready.gameId,
-                    inviteToken: token,
-                  })
-                }
-              >
-                {levelAction.label}
-              </Button>
-            }
-          />
-        ),
-    });
-  }
-
-  if (partnerRequiredJoin && !accept.isSuccess) {
+  if (partnerRequiredJoin) {
     return page({
       content: (
         <p className="text-body text-dim">
           {m.tournament.join.partnerInviteLanding}
         </p>
       ),
-      bar: isSignedIn ? (
+      bar: (
         <GameInviteBar
           title={seatsTitle}
           subline={null}
@@ -572,50 +533,32 @@ export function AcceptGameInviteLink({
             </Button>
           }
         />
-      ) : (
-        signInBar
       ),
     });
   }
 
-  const memberSubline = group && justJoinedGroup ? groupCopy.oneTap : null;
-
-  if (needsSeatPick && !accept.isSuccess) {
+  if (levelPending) {
+    const action = levelRangeGateAction({
+      requestStatus: "pending",
+      canRequest: false,
+      requesting: false,
+      locale,
+    });
     return page({
-      content: (
-        <>
-          {joinedNotice}
-          <p className="text-meta text-dim">
-            {gameInviteSeatCopy(
-              { joinFrozen, waitlistOnly },
-              isSignedIn ? "link" : "link-signed-out",
-              locale,
-            )}
-          </p>
-        </>
+      content: joinedNotice,
+      bar: (
+        <GameInviteBar
+          title={null}
+          subline={action.kind === "pending-note" ? action.text : null}
+        />
       ),
-      seats: (
-        <Surface tone="paper" radius="lg" className="p-3">
-          <GameSeatGrid
-            sides={sides}
-            canJoinVacant={canJoinVacant}
-            joinLabel={m.invite.inbox.sitHereLabel}
-            joining={joinPending}
-            canMove={false}
-            moving={false}
-            isOrganizer={false}
-            cancelled={joinFrozen}
-            kickPending={false}
-            onJoin={onJoinSeat}
-            onMove={() => undefined}
-            onKick={() => undefined}
-            sideNoun={sideNoun}
-          />
-        </Surface>
-      ),
-      bar: !isSignedIn ? (
-        signInBar
-      ) : waitlistOnly ? (
+    });
+  }
+
+  if (waitlistOnly && !levelBlocked && groupGate === "none") {
+    return page({
+      content: joinedNotice,
+      bar: (
         <GameInviteBar
           title={null}
           subline={null}
@@ -624,7 +567,7 @@ export function AcceptGameInviteLink({
               variant="inverse"
               size="lg"
               className="w-full"
-              onClick={onJoinWaitlist}
+              onClick={() => accept.mutate({ token })}
               disabled={joinPending}
             >
               {joinPending
@@ -633,51 +576,33 @@ export function AcceptGameInviteLink({
             </Button>
           }
         />
-      ) : (
-        <GameInviteBar title={seatsTitle} subline={memberSubline} />
       ),
     });
   }
 
-  if (footballJoin && football && !accept.isSuccess) {
-    const subtitle = footballInviteJoinSubtitle(football, locale);
+  const opensSheet = seatGame || football != null || groupGate !== "none";
+  const sheetSubline = football
+    ? heroCopy.barSheetFootball
+    : seatGame
+      ? heroCopy.barSheetPadel
+      : groupGate !== "none"
+        ? groupCopy.asksFirst
+        : null;
+  if (opensSheet && !joinFrozen) {
     return page({
-      content: (
-        <>
-          {joinedNotice}
-          <FootballJoinDialog
-            open={footballOpen}
-            onOpenChange={setFootballOpen}
-            mode="join"
-            subtitle={subtitle}
-            players={football.players}
-            viewer={football.preferred}
-            price={formatPricePerPlayerFils(
-              football.pricePerPlayerFils,
-              locale,
-            )}
-            teamsLine={
-              football.teamsSet
-                ? m.webAuth.invites.football.teamsSet
-                : m.webAuth.invites.football.teamsByOrganizer
-            }
-            pending={joinPending}
-            error={accept.error?.message ?? joinGroup.error?.message ?? null}
-            onSubmit={onJoinFootball}
-          />
-        </>
-      ),
+      content: joinedNotice,
       bar: (
         <GameInviteBar
           title={seatsTitle}
-          subline={memberSubline ?? m.webAuth.invites.football.pickRole}
+          subline={group && justJoinedGroup ? groupCopy.oneTap : sheetSubline}
           action={
             <Button
               variant="inverse"
               size="lg"
-              onClick={() => setFootballOpen(true)}
+              disabled={joinPending}
+              onClick={() => openSheet(null)}
             >
-              {m.webAuth.invites.football.chooseHowYouPlay}
+              {groupCopy.joinGame}
             </Button>
           }
         />
@@ -685,8 +610,12 @@ export function AcceptGameInviteLink({
     });
   }
 
-  if (!isSignedIn) {
-    return page({ bar: signInBar });
+  if (joinFrozen) {
+    return page({
+      bar: (
+        <GameInviteBar title={null} subline={m.invite.inbox.seatCopy.frozen} />
+      ),
+    });
   }
 
   return page({
