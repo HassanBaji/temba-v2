@@ -74,7 +74,7 @@ async function playMatch(
       name: "Team game",
       format: GameFormatEnum.FRIENDLY_GAME,
       registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
-      sport: football ? GameSportEnum.FOOTBALL : GameSportEnum.PADEL,
+      sport: football ? GameSportEnum.Football : GameSportEnum.PADEL,
       sideSize: football ? 5 : null,
       venueId: base.venueId,
       createdBy: base.ownerId,

@@ -98,7 +98,7 @@ async function playMatch(
       name: "Team game",
       format: GameFormatEnum.FRIENDLY_GAME,
       registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
-      sport: GameSportEnum.FOOTBALL,
+      sport: GameSportEnum.Football,
       sideSize: 5,
       venueId: venue!.id,
       createdBy: args.createdBy,
