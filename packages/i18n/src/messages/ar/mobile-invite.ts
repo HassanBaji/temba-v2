@@ -180,6 +180,8 @@ export const mobileInvite = {
       withdrawnToast: "سُحب الطلب",
       waitingTitle: "بانتظار المنظّمين",
       waitingSubline: "تبقى المباراة ظاهرة لك في الأثناء",
+      approvalRequired:
+        "منظّمو هذه المجموعة يوافقون على الأعضاء الجدد. أرسل طلب انضمام أولًا.",
     },
   },
   inbox: {
