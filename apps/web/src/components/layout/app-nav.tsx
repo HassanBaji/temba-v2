@@ -1,9 +1,9 @@
-import { CircleUser, House, Users } from "lucide-react";
+import { CircleUser, House, Swords, Users } from "lucide-react";
 
 import type { Messages } from "@repo/i18n/messages";
 import { Field } from "../ui/icons/field";
 
-export type AppNavSlot = "home" | "games" | "groups" | "you";
+export type AppNavSlot = "home" | "games" | "groups" | "challenges" | "you";
 
 export type AppNavItem = {
   title: string;
@@ -42,6 +42,13 @@ export function appNavItems(m: Messages): AppNavItem[] {
       icon: <Users className="size-[21px]" aria-hidden="true" />,
       match: "prefix",
       slot: "groups",
+    },
+    {
+      title: m.common.challenges,
+      href: "/dashboard/challenges",
+      icon: <Swords className="size-[21px]" aria-hidden="true" />,
+      match: "prefix",
+      slot: "challenges",
     },
     {
       title: m.common.profile,
