@@ -17,6 +17,7 @@ import {
 
 import { listGameSides } from "#src/games/seats";
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
+import { approveLevelRangeRequest } from "#src/routers/games/approveLevelRangeRequest";
 import { gameById } from "#src/routers/games/byId";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
@@ -25,6 +26,7 @@ import { createInviteLink } from "#src/routers/games/createInviteLink";
 import { joinGroupFromInviteLink } from "#src/routers/games/joinGroupFromInviteLink";
 import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { requestLevelRange } from "#src/routers/games/requestLevelRange";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const ORIGIN = "https://temba.test";
@@ -730,6 +732,88 @@ describe("Game Invite link: the Group behind it", () => {
       expect(await seatOf(db, ranged, joiner)).toEqual({
         sideIndex: 1,
         position: "left",
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("carries the picked seat on a Level range request and seats it on approval", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Level Creator");
+      const member = await insertUser(db, "Level Member");
+      const groupId = await approvalGroup(db, creator);
+      await db.insert(groupMembers).values({ groupId, userId: member });
+      const game = await insertGame(db, { createdBy: creator, groupId });
+      await db
+        .update(games)
+        .set({ levelMinTenths: 40, levelMaxTenths: 60 })
+        .where(eq(games.id, game.id));
+      const ranged = { ...game, levelMinTenths: 40, levelMaxTenths: 60 };
+      const token = await mintToken(db, game.id, creator);
+
+      const preview = await previewInviteLink(db, { token, userId: member });
+      expect(preview.status === "ready" && preview.sides.length).toBe(2);
+      expect(preview.status === "ready" && preview.isPublic).toBe(false);
+
+      const request = await requestLevelRange(db, {
+        gameId: game.id,
+        userId: member,
+        inviteToken: token,
+        sideIndex: 2,
+        position: "either",
+      });
+      expect(request.status).toBe("pending");
+      const queue = await gameById(db, { gameId: game.id, userId: creator });
+      expect(queue.pendingLevelRangeRequests[0]?.heldSeat).toEqual({
+        kind: "position",
+        sideIndex: 2,
+        position: "either",
+      });
+
+      const approved = await approveLevelRangeRequest(db, {
+        requestId: request.id,
+        userId: creator,
+      });
+      expect(approved).toEqual({ ok: true, seated: "registered" });
+      expect(await seatOf(db, ranged, member)).toEqual({
+        sideIndex: 2,
+        position: "left",
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("seats a guest on a public Game without the Group when asked", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Guest Creator");
+      const guest = await insertUser(db, "Guest Joiner");
+      const groupId = await insertPrivateGroup(db, creator);
+      const game = await insertGame(db, {
+        createdBy: creator,
+        groupId,
+        isPublic: true,
+      });
+      const token = await mintToken(db, game.id, creator);
+
+      const result = await acceptInviteLink(db, {
+        token,
+        userId: guest,
+        sideIndex: 1,
+        position: "right",
+        joinGroup: false,
+      });
+      expect(result).toMatchObject({
+        outcome: "registered",
+        joinedGroup: false,
+      });
+      expect(await isMember(db, groupId, guest)).toBe(false);
+      expect(await seatOf(db, game, guest)).toEqual({
+        sideIndex: 1,
+        position: "right",
       });
     } finally {
       await close();

@@ -1,8 +1,16 @@
-import { pgTable, uuid, timestamp, pgEnum, unique } from "drizzle-orm/pg-core";
+import {
+  jsonb,
+  pgTable,
+  uuid,
+  timestamp,
+  pgEnum,
+  unique,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 import { user } from "./user";
 import { games } from "./games";
+import type { GroupJoinRequestHeldSeat } from "./group-join-requests";
 
 export const gameLevelRangeRequestStatuses = pgEnum(
   "game_level_range_request_status",
@@ -31,6 +39,8 @@ export const gameLevelRangeRequests = pgTable(
     decidedBy: uuid("decided_by").references(() => user.id, {
       onDelete: "set null",
     }),
+    // The seat the requester picked while asking; approval seats them there (ADR-0057).
+    heldSeat: jsonb("held_seat").$type<GroupJoinRequestHeldSeat>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

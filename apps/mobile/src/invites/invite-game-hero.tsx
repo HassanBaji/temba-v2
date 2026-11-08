@@ -168,9 +168,18 @@ function NoteCard({ note }: { note: InviteHeroNote }) {
 export function InviteGameHero({
   model,
   note,
+  seats,
+  countHint,
+  afterTiles,
 }: {
   model: ReturnType<typeof gameInviteHeroModel>;
   note: InviteHeroNote | null;
+  /** Replaces the roster tiles, e.g. the court to pick a seat on. */
+  seats?: React.ReactNode;
+  /** `tap a seat, pick your side after`, beside the count. */
+  countHint?: string | null;
+  /** Under the roster, e.g. the football Sit here tile. */
+  afterTiles?: React.ReactNode;
 }) {
   const palette = useTonePalette();
   return (
@@ -243,13 +252,18 @@ export function InviteGameHero({
             <Text size="meta" weight="semibold">
               {model.countLine}
             </Text>
-            {model.sport ? (
+            {countHint ? (
+              <Text size="eyebrow" tone="muted" style={{ flexShrink: 1 }}>
+                {countHint}
+              </Text>
+            ) : model.sport ? (
               <Text size="meta" tone="muted">
                 {model.sport}
               </Text>
             ) : null}
           </View>
-          <TileGrid tiles={model.tiles} label={model.rosterA11y} />
+          {seats ?? <TileGrid tiles={model.tiles} label={model.rosterA11y} />}
+          {afterTiles}
           {note ? <NoteCard note={note} /> : null}
         </View>
       </View>

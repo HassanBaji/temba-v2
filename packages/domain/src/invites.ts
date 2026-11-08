@@ -286,6 +286,8 @@ export type GameInviteLinkReady = {
   group?: GameInviteGroup | null;
   /** When, where and who is in, for the head of the link screen. */
   hero?: GameInviteHero | null;
+  /** A public Game seats a non-member as a guest, without the Group. */
+  isPublic?: boolean;
 };
 
 export type GameInviteGroupJoinMode =

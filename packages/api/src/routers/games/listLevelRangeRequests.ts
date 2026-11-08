@@ -62,6 +62,7 @@ export async function listLevelRangeRequests(
         },
         levelTenths: tenths,
         provisional: rating ? isProvisional(rating.phi) : false,
+        heldSeat: row.heldSeat,
       };
     }),
   );

@@ -31,7 +31,7 @@ import {
   assertGameHasSeats,
   isIndividualSeatGame,
   listGameSides,
-  type SeatPosition,
+  type SeatChoice,
   vacantPositionsFromSides,
 } from "#src/games/seats";
 import { type Locale } from "@repo/i18n/locale";
@@ -82,8 +82,13 @@ export async function admitInviteeToGroup(
   game: GameRow,
   userId: string,
   locale: Locale,
+  options: { joinGroup?: boolean } = {},
 ): Promise<{ joined: boolean }> {
   if (!game.groupId) {
+    return { joined: false };
+  }
+  // A guest seat: only a public Game admits a non-member without the Group.
+  if (options.joinGroup === false && game.isPublic) {
     return { joined: false };
   }
   if (await isGroupMember(database, game.groupId, userId)) {
@@ -211,7 +216,7 @@ export async function admitIndividualUser(
   userId: string,
   locale: Locale,
   now = new Date(),
-  seat?: { sideIndex: number; position: SeatPosition },
+  seat?: { sideIndex: number; position: SeatChoice },
 ): Promise<{ waitlisted: boolean }> {
   if (seat) {
     assertGameHasSeats(game, locale);

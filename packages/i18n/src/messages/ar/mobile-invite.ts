@@ -89,6 +89,59 @@ export const mobileInvite = {
       playingTitle: "أنت في هذه المباراة",
       share: "مشاركة",
       openGameTitle: "فتح المباراة",
+      tapASeat: "اضغط مقعدًا، واختر جهتك بعدها",
+      sitHere: "اجلس هنا",
+      openSeat: {
+        leftOrEither: (side: string) => `${side} أو أي جهة`,
+        anySide: (team: string) => `${team}، أي جهة`,
+      },
+      sitHereFootball: (seats: string) => `${seats}. اختر دورك ومركزك بعدها`,
+      barSheetPadel: "الفريق والجهة والمجموعة في ورقة واحدة",
+      barSheetFootball: "الدور والمركز والمجموعة في ورقة واحدة",
+    },
+    joinSheet: {
+      title: "اجلس هنا",
+      leadPadel: "كما في التطبيق. اختر فريقًا، وجهة إن شئت.",
+      leadPadelFrom: (seat: string) => `كما في التطبيق. ${seat}، من حيث ضغطت.`,
+      leadFootball: (when: string) =>
+        `كما في التطبيق. تُكوَّن الفرق ${when}، لذا تختار دورًا ومركزًا مفضّلًا لا فريقًا.`,
+      leadFootballNoTeams:
+        "كما في التطبيق. اختر دورًا ومركزًا مفضّلًا؛ الفرق تأتي لاحقًا.",
+      team: "الفريق",
+      teamWith: (names: string, seats: string) => `مع ${names}، ${seats}`,
+      teamEmpty: (seats: string) => `فارغ، ${seats}`,
+      teamFull: "ممتلئ",
+      seats: (n: number) =>
+        plural("ar", n, {
+          one: "مقعد واحد",
+          two: "مقعدان",
+          few: "{n} مقاعد",
+          many: "{n} مقعدًا",
+          other: "{n} مقعد",
+        }),
+      side: "الجهة",
+      sideOptional: "اختياري",
+      sideUsual: (side: string) => `اختياري، المعتاد لديك ${side}`,
+      either: "أي جهة",
+      sideHint: (team: string, other: string) =>
+        `من ينضم إلى ${team} بعدك يأخذ ${other}، أو لا يختار فيلعب ${other} تلقائيًا.`,
+      alsoJoin: (group: string) => `الانضمام إلى ${group} أيضًا`,
+      openPolicy: (members: string) =>
+        `كل من لديه الرابط يمكنه الانضمام. ${members}.`,
+      approvalPolicy:
+        "يوافق المنظّمون على الأعضاء الجدد. يُحجز مقعدك 24 ساعة ريثما يقرّرون.",
+      offNote:
+        "عند الإيقاف تجلس ضيفًا في هذه المباراة فقط. يراك الأعضاء في التشكيلة في الحالتين.",
+      membersOnlyNote: (group: string) =>
+        `هذه المباراة لأعضاء ${group}، فأخذ المقعد يضمّك إلى المجموعة أيضًا.`,
+      levelNote:
+        "أنت خارج نطاق المستوى، لذا يُسأل المنظّم. عند الموافقة تُجلس حيث اخترت.",
+      seatLabel: (team: string, side: string) => `${team}، ${side}`,
+      ctaSit: (seat: string) => `اجلس في ${seat}`,
+      ctaSitPlain: "خذ المقعد",
+      ctaRequest: (seat: string) => `اطلب المقعد، ${seat}`,
+      ctaRequestPlain: "اطلب المقعد",
+      ctaJoin: "الانضمام إلى المباراة",
     },
     group: {
       sharedBy: (name: string) => `شاركها ${name}.`,

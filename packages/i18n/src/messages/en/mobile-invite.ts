@@ -82,6 +82,56 @@ export const mobileInvite = {
       playingTitle: "You're in this game",
       share: "Share",
       openGameTitle: "Open the game",
+      tapASeat: "tap a seat, pick your side after",
+      sitHere: "Sit here",
+      openSeat: {
+        leftOrEither: (side: string) => `${side}, or either`,
+        anySide: (team: string) => `${team}, any side`,
+      },
+      sitHereFootball: (seats: string) =>
+        `${seats}. Pick your role and position next`,
+      barSheetPadel: "Team, side and the group, in one sheet",
+      barSheetFootball: "Role, position and the group, in one sheet",
+    },
+    joinSheet: {
+      title: "Sit here",
+      leadPadel:
+        "Same as joining in the app. Pick a team, and a side if you like.",
+      leadPadelFrom: (seat: string) =>
+        `Same as joining in the app. ${seat}, from where you tapped.`,
+      leadFootball: (when: string) =>
+        `Same as joining in the app. Teams are made ${when}, so you pick a role and a preferred position, not a team.`,
+      leadFootballNoTeams:
+        "Same as joining in the app. Pick a role and a preferred position; teams come later.",
+      team: "Team",
+      teamWith: (names: string, seats: string) => `with ${names}, ${seats}`,
+      teamEmpty: (seats: string) => `empty, ${seats}`,
+      teamFull: "full",
+      seats: (n: number) =>
+        plural("en", n, { one: "1 seat", other: "{n} seats" }),
+      side: "Side",
+      sideOptional: "optional",
+      sideUsual: (side: string) => `optional, your usual is ${side}`,
+      either: "Either",
+      sideHint: (team: string, other: string) =>
+        `Whoever joins ${team} next takes ${other}, or picks nothing and plays ${other} by default.`,
+      alsoJoin: (group: string) => `Also join ${group}`,
+      openPolicy: (members: string) =>
+        `Anyone with the link can join. ${members}.`,
+      approvalPolicy:
+        "Organizers approve new members. Your seat is held 24 hours while they decide.",
+      offNote:
+        "Off means you sit as a guest for this game only. Members see you in the line-up either way.",
+      membersOnlyNote: (group: string) =>
+        `This game is for members of ${group}, so taking the seat joins the group too.`,
+      levelNote:
+        "You're outside the level range, so this asks the organizer. Approval seats you where you chose.",
+      seatLabel: (team: string, side: string) => `${team}, ${side}`,
+      ctaSit: (seat: string) => `Sit in ${seat}`,
+      ctaSitPlain: "Take the seat",
+      ctaRequest: (seat: string) => `Request the seat, ${seat}`,
+      ctaRequestPlain: "Request the seat",
+      ctaJoin: "Join the game",
     },
     group: {
       sharedBy: (name: string) => `Shared by ${name}.`,
