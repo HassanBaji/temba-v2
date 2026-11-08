@@ -17,8 +17,10 @@ import { isSeatHoldLive } from "@repo/domain/invites";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isRegistrationOpen } from "#src/games/access";
+import { isGameOrganizer, isRegistrationOpen } from "#src/games/access";
 import { admitIndividualUser } from "#src/games/invites";
+import { upsertApprovedLevelRangeWaiver } from "#src/games/level-range-requests";
+import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
   listGameSides,
@@ -38,6 +40,8 @@ export type HeldSeatOutcome = "registered" | "waitlisted" | "lapsed" | null;
  * Seats the approved requester on the Game their Seat hold names. The hold
  * is best effort: a seat that went meanwhile falls back to any vacant one,
  * a full Game to its Waitlist, and a refusal leaves the approval standing.
+ * An approver who also organizes the Game waives its Level range for the
+ * requester: approving the hold is that decision.
  */
 async function seatHeldGame(
   tx: Tx,
@@ -47,10 +51,11 @@ async function seatHeldGame(
     seatHeldUntil: Date | null;
     heldSeat: GroupJoinRequestHeldSeat | null;
   },
+  approverUserId: string,
   locale: Locale,
   now: Date,
 ): Promise<HeldSeatOutcome> {
-  if (!request.heldGameId) {
+  if (!request.heldGameId || !request.seatHeldUntil) {
     return null;
   }
   if (!isSeatHoldLive(request.seatHeldUntil, now)) {
@@ -65,6 +70,16 @@ async function seatHeldGame(
     game.registrationMode === "team_only"
   ) {
     return "lapsed";
+  }
+  if (
+    !(await userAllowedByLevelRange(tx, game, request.userId)) &&
+    (await isGameOrganizer(tx, game, approverUserId))
+  ) {
+    await upsertApprovedLevelRangeWaiver(tx, {
+      gameId: game.id,
+      userId: request.userId,
+      decidedBy: approverUserId,
+    });
   }
   const held = request.heldSeat;
   let seat: { sideIndex: number; position: "left" | "right" } | undefined;
@@ -179,7 +194,7 @@ export async function approveJoinRequest(
         decidedByUserId: args.userId,
       });
     }
-    const heldSeat = await seatHeldGame(tx, request, locale, now);
+    const heldSeat = await seatHeldGame(tx, request, args.userId, locale, now);
     await notifyGroupJoinDecided(tx, {
       group,
       requesterUserId: request.userId,

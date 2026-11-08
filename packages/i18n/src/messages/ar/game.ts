@@ -260,6 +260,7 @@ export const game = {
       }),
     none: "لا طلبات بالانتظار.",
     seatAndGroup: (group: string) => `يريد المكان والانضمام إلى ${group}`,
+    groupOnly: (group: string) => `يريد الانضمام إلى ${group} دون مكان`,
     viaLinkFrom: (name: string) => `جاء عبر رابط ${name}`,
     viaLink: "جاء عبر رابط",
     heldHours: (n: number) => `محجوز ${n} س`,

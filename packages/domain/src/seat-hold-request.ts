@@ -40,6 +40,16 @@ export function seatHoldRemainingLabel(
     : m.heldHours(Math.floor(minutes / 60));
 }
 
+/** `Wants the seat and to join Gooz of Arad`, or `Wants to join Gooz of Arad, no seat`. */
+function askOf(
+  request: Pick<SeatHoldRequestRow, "groupName" | "seatHeldUntil">,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.requests;
+  const group = groupDisplayName(request.groupName, locale);
+  return request.seatHeldUntil ? m.seatAndGroup(group) : m.groupOnly(group);
+}
+
 /** `C− · Wants the seat and to join Gooz of Arad · Came through Yousif's link · held 21h · Requested today`. */
 export function seatHoldRequestRowMeta(
   request: SeatHoldRequestRow,
@@ -53,7 +63,7 @@ export function seatHoldRequestRowMeta(
     [
       formatLevelTenths(request.levelTenths) ?? m.level.request.noLevel,
       request.provisional ? m.level.request.provisional : null,
-      m.game.requests.seatAndGroup(groupDisplayName(request.groupName, locale)),
+      askOf(request, locale),
       request.invitedBy?.name
         ? m.game.requests.viaLinkFrom(request.invitedBy.name)
         : m.game.requests.viaLink,
@@ -65,12 +75,15 @@ export function seatHoldRequestRowMeta(
 
 /** `Wants the seat and to join Gooz of Arad. Came through Yousif's link.` */
 export function seatHoldRequestDetail(
-  request: Pick<SeatHoldRequestRow, "groupName" | "invitedBy">,
+  request: Pick<
+    SeatHoldRequestRow,
+    "groupName" | "invitedBy" | "seatHeldUntil"
+  >,
   locale: Locale,
 ) {
   const m = messagesFor(locale).game.requests;
   return [
-    m.seatAndGroup(groupDisplayName(request.groupName, locale)),
+    askOf(request, locale),
     request.invitedBy?.name ? m.viaLinkFrom(request.invitedBy.name) : m.viaLink,
   ]
     .map((sentence) => m.sentence(sentence))

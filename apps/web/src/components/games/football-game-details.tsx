@@ -31,6 +31,7 @@ import {
 } from "~/components/games/football-info-rows";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
+import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
 import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
@@ -724,6 +725,8 @@ export function FootballGameDetails({
             />
           </div>
         ) : null}
+
+        {game.cancelledAt ? null : <GameLevelRangePanel game={game} />}
 
         {board.error ? (
           <p role="alert" className="text-destructive text-meta">

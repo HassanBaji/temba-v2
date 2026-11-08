@@ -26,7 +26,19 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 
-type GameDetail = TournamentDetails;
+/** The Game fields the player's Level card and the Organizer's Requests queue read. */
+type GameDetail = Pick<
+  TournamentDetails,
+  | "id"
+  | "isOrganizer"
+  | "levelMinTenths"
+  | "levelMaxTenths"
+  | "viewerLevelTenths"
+  | "canRequestLevelRange"
+  | "levelRangeRequest"
+  | "pendingLevelRangeRequests"
+  | "pendingSeatHolds"
+>;
 
 /** Design "Join via link" 2a: who asks, what for, and the decision on the row. */
 function GameRequestRow({

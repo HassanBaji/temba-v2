@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
-import { messagesFor } from "@repo/i18n/messages";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -17,7 +16,7 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
-import { seatHoldExpiry } from "@repo/domain/invites";
+import { isSeatHoldLive, seatHoldExpiry } from "@repo/domain/invites";
 import {
   footballPositionSchema,
   footballRoleSchema,
@@ -33,7 +32,6 @@ import {
   loadGameInviteLinkGroup,
 } from "#src/games/invite-link-group";
 import { assertGameInviteDoorsOpen } from "#src/games/invites";
-import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { markPendingGroupJoinRequestApproved } from "#src/groups/helpers/mark-pending-group-join-request-approved";
 import { previewLink } from "#src/invites/doors";
 import { notifyGroupJoined } from "#src/notifications/notify-group-joined";
@@ -70,19 +68,16 @@ function heldSeatOf(
   return null;
 }
 
+/**
+ * A hold asks for a seat the Group approvers grant; the Level range is theirs
+ * to waive at that moment, so it does not refuse the request here.
+ */
 async function assertSeatHoldAllowed(
   database: DbClient,
   game: GameRow,
   args: JoinGroupFromInviteLinkArgs,
-  locale: Locale,
 ) {
   await assertGameInviteDoorsOpen(database, game);
-  if (!(await userAllowedByLevelRange(database, game, args.userId))) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: messagesFor(locale).level.rangeOutside,
-    });
-  }
   if (args.football?.role === "keeper") {
     await assertKeeperSeatOpen(database, game.id);
   }
@@ -91,13 +86,13 @@ async function assertSeatHoldAllowed(
 /**
  * The Group half of a Game Invite link on its own: join the Group without
  * taking the seat, or, where the Group's Organizers decide, send the join
- * request with or without a Seat hold.
+ * request with or without a Seat hold. Either request names the Game it came
+ * through, so it waits in that Game's Requests queue.
  */
 export async function joinGroupFromInviteLink(
   database: DbClient,
   args: JoinGroupFromInviteLinkArgs,
 ) {
-  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const previewed = await previewLink(database, "game", args.token);
   const link = await database.query.gameInviteLinks.findFirst({
@@ -158,23 +153,21 @@ export async function joinGroupFromInviteLink(
     return { outcome: "joined" as const, groupId: group.id };
   }
 
-  const hold = args.holdSeat
-    ? {
-        heldGameId: game.id,
-        seatHeldUntil: seatHoldExpiry(now),
-        heldSeat: heldSeatOf(game, args),
-      }
-    : { heldGameId: null, seatHeldUntil: null, heldSeat: null };
+  const hold = {
+    heldGameId: game.id,
+    seatHeldUntil: args.holdSeat ? seatHoldExpiry(now) : null,
+    heldSeat: args.holdSeat ? heldSeatOf(game, args) : null,
+  };
   if (args.holdSeat) {
-    await assertSeatHoldAllowed(database, game, args, locale);
+    await assertSeatHoldAllowed(database, game, args);
   }
 
   if (mode === "requested" && pending) {
-    const keepsHold =
-      !args.holdSeat &&
-      pending.heldGameId != null &&
-      pending.heldGameId !== game.id;
-    const newHold = args.holdSeat && pending.heldGameId !== game.id;
+    const holdsThisSeat =
+      pending.heldGameId === game.id &&
+      isSeatHoldLive(pending.seatHeldUntil, now);
+    const keepsHold = !args.holdSeat && holdsThisSeat;
+    const newHold = args.holdSeat && !holdsThisSeat;
     const updated = await database.transaction(async (tx) => {
       const [row] = await tx
         .update(groupJoinRequests)

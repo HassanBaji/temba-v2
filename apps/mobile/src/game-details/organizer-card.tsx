@@ -1,9 +1,10 @@
 import { radii, spacing } from "@repo/design-tokens";
 import { kickAction } from "@repo/domain/game-copy";
-import type {
-  FriendlyGameOrganizerPlan,
-  OrganizerRequest,
-} from "@repo/domain/friendly-game-organizer";
+import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
+import {
+  requestsQueueCounts,
+  type OrganizerRequest,
+} from "@repo/domain/game-requests";
 import { requestsQueueHeading } from "@repo/domain/seat-hold-request";
 import { Fragment } from "react";
 import { View } from "react-native";
@@ -16,6 +17,7 @@ import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
+import type { RequestDecisions } from "./use-request-decisions";
 
 export type OrganizerHandlers = {
   registrationPending: boolean;
@@ -83,7 +85,7 @@ function RequestRow({
 }: {
   request: OrganizerRequest;
   deciding: boolean;
-  handlers: OrganizerHandlers;
+  handlers: Pick<RequestDecisions, "onApprove" | "onReject">;
 }) {
   const m = useMessages();
   const copy = m.mobileGameDetails.organizer;
@@ -146,20 +148,18 @@ function RequestRow({
   );
 }
 
-/** Design "Join via link" 2a: Seat holds, then Level range requests, decided on the row. */
-function RequestsSection({
-  plan,
-  handlers,
+/** Design "Join via link" 2a: link requests, then Level range requests, decided on the row. */
+export function RequestsSection({
+  requests,
+  decisions,
 }: {
-  plan: FriendlyGameOrganizerPlan;
-  handlers: OrganizerHandlers;
+  requests: readonly OrganizerRequest[];
+  decisions: RequestDecisions;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const colors = useColors();
-  const seatHolds = plan.requests.filter(
-    (request) => request.kind === "seat_hold",
-  ).length;
+  const counts = requestsQueueCounts(requests);
   return (
     <View style={{ gap: 10 }}>
       <View
@@ -174,31 +174,28 @@ function RequestsSection({
           {m.game.requests.title}
         </Text>
         <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
-          {requestsQueueHeading(
-            { levelRange: plan.requests.length - seatHolds, seatHolds },
-            locale,
-          )}
+          {requestsQueueHeading(counts, locale)}
         </Text>
       </View>
-      {plan.requests.length > 0 ? (
+      {requests.length > 0 ? (
         <Surface
           padded={false}
           radius="card"
           style={{ overflow: "hidden", borderColor: colors.ink }}
         >
-          {plan.requests.map((request, index) => (
+          {requests.map((request, index) => (
             <Fragment key={request.id}>
               {index > 0 ? <Hairline /> : null}
               <RequestRow
                 request={request}
-                deciding={handlers.decidingRequestId === request.id}
-                handlers={handlers}
+                deciding={decisions.decidingRequestId === request.id}
+                handlers={decisions}
               />
             </Fragment>
           ))}
         </Surface>
       ) : null}
-      {seatHolds > 0 ? (
+      {counts.seatHolds > 0 ? (
         <Text size="meta" tone="muted">
           {m.game.requests.note}
         </Text>
@@ -265,7 +262,7 @@ export function OrganizerCard({
   }
 
   const requests = plan.showRequests ? (
-    <RequestsSection plan={plan} handlers={handlers} />
+    <RequestsSection requests={plan.requests} decisions={handlers} />
   ) : null;
 
   if (blocks.length === 0) {

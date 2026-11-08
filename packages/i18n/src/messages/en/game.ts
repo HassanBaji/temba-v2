@@ -212,6 +212,7 @@ export const game = {
       }),
     none: "No requests waiting.",
     seatAndGroup: (group: string) => `Wants the seat and to join ${group}`,
+    groupOnly: (group: string) => `Wants to join ${group}, no seat`,
     viaLinkFrom: (name: string) => `Came through ${name}'s link`,
     viaLink: "Came through a link",
     heldHours: (n: number) => `held ${n}h`,

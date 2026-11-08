@@ -77,6 +77,7 @@ export function AcceptGameInviteLink({
   const [groupDecided, setGroupDecided] = React.useState(false);
   const [holdSeat, setHoldSeat] = React.useState(false);
   const [justJoinedGroup, setJustJoinedGroup] = React.useState(false);
+  const askLevelAfterJoin = React.useRef(false);
   const preview = api.games.previewInviteLink.useQuery({ token });
   const requestLevelRange = api.games.requestLevelRange.useMutation({
     onSuccess: async () => {
@@ -125,6 +126,13 @@ export function AcceptGameInviteLink({
           m.mobileInvite.link.group.joinedToast(groupName ?? m.group.untitled),
         );
         setJustJoinedGroup(true);
+        if (askLevelAfterJoin.current && ready) {
+          askLevelAfterJoin.current = false;
+          requestLevelRange.mutate({
+            gameId: ready.gameId,
+            inviteToken: token,
+          });
+        }
       } else if (result.outcome === "requested") {
         toast.success(m.mobileInvite.link.group.requestedToast);
       }
@@ -147,9 +155,13 @@ export function AcceptGameInviteLink({
     },
   });
   // The Group question stands between a signed-in non-member and the seat
-  // on every join stage; Level range and partner stages keep their own gate.
+  // on every join stage, the Level gate included; the partner stage keeps
+  // its own door.
   const groupStage =
-    stage === "seat_pick" || stage === "football" || stage === "accept";
+    stage === "level_range" ||
+    stage === "seat_pick" ||
+    stage === "football" ||
+    stage === "accept";
   const groupAsks =
     isSignedIn && group != null && groupStage && groupGate !== "none";
   const groupBlocks = groupAsks && (groupGate === "requested" || !groupDecided);
@@ -267,6 +279,17 @@ export function AcceptGameInviteLink({
     }
     const hold = groupGate === "approval";
     setGroupDialogOpen(false);
+    // Outside the Level range the seat is the Organizers' to grant: a hold
+    // carries the ask to them, and an open Group gets the Level request.
+    if (stage === "level_range") {
+      if (hold) {
+        joinGroup.mutate({ token, holdSeat: true });
+      } else {
+        askLevelAfterJoin.current = true;
+        joinGroup.mutate({ token });
+      }
+      return;
+    }
     setGroupDecided(true);
     setHoldSeat(hold);
     setFootballOpen(true);
@@ -436,60 +459,6 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (blockedByLevelRange && !accept.isSuccess) {
-    return page({
-      bar:
-        levelAction.kind === "pending-note" ? (
-          <GameInviteBar title={null} subline={levelAction.text} />
-        ) : (
-          <GameInviteBar
-            title={rangeLabel}
-            subline={null}
-            action={
-              <Button
-                variant="inverse"
-                size="lg"
-                disabled={levelAction.disabled}
-                onClick={() =>
-                  requestLevelRange.mutate({
-                    gameId: ready.gameId,
-                    inviteToken: token,
-                  })
-                }
-              >
-                {levelAction.label}
-              </Button>
-            }
-          />
-        ),
-    });
-  }
-
-  if (partnerRequiredJoin && !accept.isSuccess) {
-    return page({
-      content: (
-        <p className="text-body text-dim">
-          {m.tournament.join.partnerInviteLanding}
-        </p>
-      ),
-      bar: isSignedIn ? (
-        <GameInviteBar
-          title={seatsTitle}
-          subline={null}
-          action={
-            <Button variant="inverse" size="lg" asChild>
-              <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
-                {m.tournament.join.pickAPartner}
-              </Link>
-            </Button>
-          }
-        />
-      ) : (
-        signInBar
-      ),
-    });
-  }
-
   if (group && groupAsks && groupGate === "requested") {
     const request = group.pendingRequest;
     const heldLabel = request?.seatHeldUntil
@@ -551,6 +520,60 @@ export function AcceptGameInviteLink({
             </Button>
           }
         />
+      ),
+    });
+  }
+
+  if (blockedByLevelRange && !accept.isSuccess) {
+    return page({
+      bar:
+        levelAction.kind === "pending-note" ? (
+          <GameInviteBar title={null} subline={levelAction.text} />
+        ) : (
+          <GameInviteBar
+            title={rangeLabel}
+            subline={null}
+            action={
+              <Button
+                variant="inverse"
+                size="lg"
+                disabled={levelAction.disabled}
+                onClick={() =>
+                  requestLevelRange.mutate({
+                    gameId: ready.gameId,
+                    inviteToken: token,
+                  })
+                }
+              >
+                {levelAction.label}
+              </Button>
+            }
+          />
+        ),
+    });
+  }
+
+  if (partnerRequiredJoin && !accept.isSuccess) {
+    return page({
+      content: (
+        <p className="text-body text-dim">
+          {m.tournament.join.partnerInviteLanding}
+        </p>
+      ),
+      bar: isSignedIn ? (
+        <GameInviteBar
+          title={seatsTitle}
+          subline={null}
+          action={
+            <Button variant="inverse" size="lg" asChild>
+              <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
+                {m.tournament.join.pickAPartner}
+              </Link>
+            </Button>
+          }
+        />
+      ) : (
+        signInBar
       ),
     });
   }

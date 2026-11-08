@@ -17,6 +17,7 @@ import {
 
 import { listGameSides } from "#src/games/seats";
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
+import { gameById } from "#src/routers/games/byId";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
 import { withdrawJoinRequest } from "#src/routers/groups/withdrawJoinRequest";
@@ -351,7 +352,8 @@ describe("Game Invite link: the Group behind it", () => {
         status: "pending",
         source: "invite_link",
         invitedBy: creator,
-        heldGameId: null,
+        heldGameId: game.id,
+        seatHeldUntil: null,
       });
       expect(await isMember(db, groupId, joiner)).toBe(false);
 
@@ -651,6 +653,84 @@ describe("Game Invite link: the Group behind it", () => {
         joinedGroup: true,
       });
       expect(await isMember(db, group.id, joiner)).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("queues a Group-only link request on the Game, and approval seats nobody", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Queue Creator");
+      const joiner = await insertUser(db, "Queue Joiner");
+      const groupId = await approvalGroup(db, creator);
+      const game = await insertGame(db, { createdBy: creator, groupId });
+      const token = await mintToken(db, game.id, creator);
+
+      const sent = await joinGroupFromInviteLink(db, { token, userId: joiner });
+      if (sent.outcome !== "requested") {
+        throw new Error("Expected a request");
+      }
+      const forCreator = await gameById(db, {
+        gameId: game.id,
+        userId: creator,
+      });
+      expect(forCreator.pendingSeatHolds).toMatchObject([
+        { id: sent.requestId, seatHeldUntil: null, user: { id: joiner } },
+      ]);
+
+      const approved = await approveJoinRequest(db, {
+        requestId: sent.requestId,
+        userId: creator,
+      });
+      expect(approved).toEqual({ ok: true, heldSeat: null });
+      expect(await isMember(db, groupId, joiner)).toBe(true);
+      expect(await seatOf(db, game, joiner)).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("takes a hold from a player outside the Level range and waives it on approval", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "Range Creator");
+      const joiner = await insertUser(db, "Range Joiner");
+      const groupId = await approvalGroup(db, creator);
+      const game = await insertGame(db, { createdBy: creator, groupId });
+      await db
+        .update(games)
+        .set({ levelMinTenths: 40, levelMaxTenths: 60 })
+        .where(eq(games.id, game.id));
+      const ranged = { ...game, levelMinTenths: 40, levelMaxTenths: 60 };
+      const token = await mintToken(db, game.id, creator);
+
+      const before = await previewInviteLink(db, { token, userId: joiner });
+      expect(before.status === "ready" && before.viewerPassesLevelRange).toBe(
+        false,
+      );
+
+      const sent = await joinGroupFromInviteLink(db, {
+        token,
+        userId: joiner,
+        holdSeat: true,
+        sideIndex: 1,
+        position: "left",
+      });
+      if (sent.outcome !== "requested") {
+        throw new Error("Expected a request");
+      }
+      expect(sent.seatHeldUntil).not.toBeNull();
+
+      const approved = await approveJoinRequest(db, {
+        requestId: sent.requestId,
+        userId: creator,
+      });
+      expect(approved).toEqual({ ok: true, heldSeat: "registered" });
+      expect(await seatOf(db, ranged, joiner)).toEqual({
+        sideIndex: 1,
+        position: "left",
+      });
     } finally {
       await close();
     }

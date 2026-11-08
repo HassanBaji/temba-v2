@@ -527,6 +527,65 @@ function useGameLayout(
           ? groupNote(m.mobileInvite.link.group.sharedBy(sharer))
           : null;
 
+  if (group && gate === "requested") {
+    const copy = gameInviteGroupRequestCard(group, null, locale);
+    return {
+      note: null,
+      body: (
+        <>
+          <RequestCard
+            group={group}
+            pending={props.withdrawPending}
+            onWithdraw={props.onWithdraw}
+          />
+          {info}
+        </>
+      ),
+      bar: <Bar title={copy.barTitle} subline={copy.barSubline} />,
+    };
+  }
+
+  if (group && gate !== "none" && !props.groupDecided) {
+    const copy = gameInviteGroupLandingCopy(group, openSeats, locale);
+    const busy = props.groupChoicePending != null;
+    return {
+      note: groupNote(copy.heroNote),
+      body: (
+        <>
+          {info}
+          <GroupOnlyNote
+            note={copy.note}
+            label={copy.joinGroupLabel}
+            pending={props.groupChoicePending === "group_only"}
+            disabled={busy}
+            onPress={() => props.onChooseGroup("group_only")}
+          />
+          <GroupJoinSheet
+            visible={props.groupSheetOpen}
+            group={group}
+            pending={props.groupChoicePending}
+            onChoose={props.onChooseGroup}
+            onClose={props.onCloseGroupSheet}
+          />
+        </>
+      ),
+      bar: (
+        <Bar
+          title={copy.barTitle}
+          subline={copy.barSubline}
+          action={
+            <Button
+              label={copy.joinGameLabel}
+              size="lg"
+              disabled={busy}
+              onPress={props.onOpenGroupSheet}
+            />
+          }
+        />
+      ),
+    };
+  }
+
   if (stage === "level_range") {
     const action = levelRangeGateAction({
       requestStatus: game.levelRangeRequest?.status ?? null,
@@ -590,65 +649,6 @@ function useGameLayout(
               label={m.tournament.join.pickAPartner}
               size="lg"
               onPress={() => props.onPickPartner(game.gameId)}
-            />
-          }
-        />
-      ),
-    };
-  }
-
-  if (group && gate === "requested") {
-    const copy = gameInviteGroupRequestCard(group, null, locale);
-    return {
-      note: null,
-      body: (
-        <>
-          <RequestCard
-            group={group}
-            pending={props.withdrawPending}
-            onWithdraw={props.onWithdraw}
-          />
-          {info}
-        </>
-      ),
-      bar: <Bar title={copy.barTitle} subline={copy.barSubline} />,
-    };
-  }
-
-  if (group && gate !== "none" && !props.groupDecided) {
-    const copy = gameInviteGroupLandingCopy(group, openSeats, locale);
-    const busy = props.groupChoicePending != null;
-    return {
-      note: groupNote(copy.heroNote),
-      body: (
-        <>
-          {info}
-          <GroupOnlyNote
-            note={copy.note}
-            label={copy.joinGroupLabel}
-            pending={props.groupChoicePending === "group_only"}
-            disabled={busy}
-            onPress={() => props.onChooseGroup("group_only")}
-          />
-          <GroupJoinSheet
-            visible={props.groupSheetOpen}
-            group={group}
-            pending={props.groupChoicePending}
-            onChoose={props.onChooseGroup}
-            onClose={props.onCloseGroupSheet}
-          />
-        </>
-      ),
-      bar: (
-        <Bar
-          title={copy.barTitle}
-          subline={copy.barSubline}
-          action={
-            <Button
-              label={copy.joinGameLabel}
-              size="lg"
-              disabled={busy}
-              onPress={props.onOpenGroupSheet}
             />
           }
         />

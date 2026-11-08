@@ -2,6 +2,10 @@ import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
+  gameOrganizerRequests,
+  gameRequestsVisible,
+} from "@repo/domain/game-requests";
+import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
@@ -78,8 +82,10 @@ import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
+import { RequestsSection } from "./organizer-card";
 import { GameEditSheet } from "./game-edit-sheet";
 import { useGameEdit } from "./use-game-edit";
+import { useRequestDecisions } from "./use-request-decisions";
 
 type FootballGame = RouterOutputs["games"]["byId"];
 
@@ -198,6 +204,11 @@ export function FootballGameDetails({
     },
     onSettled: refresh,
   });
+  const decisions = useRequestDecisions({ refresh });
+  const requests =
+    gameRequestsVisible(game) && !game.cancelledAt
+      ? gameOrganizerRequests(game, locale, now)
+      : null;
   const setRole = api.games.setFootballRole.useMutation({
     onSuccess: () => {
       setJoinMode(null);
@@ -669,6 +680,9 @@ export function FootballGameDetails({
               }
             }}
           />
+        ) : null}
+        {requests ? (
+          <RequestsSection requests={requests} decisions={decisions} />
         ) : null}
         <InfoRows rows={infoRows} />
         {model.organizer ? (

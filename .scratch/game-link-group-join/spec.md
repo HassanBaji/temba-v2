@@ -19,6 +19,8 @@ On approval, `groups.approveJoinRequest` seats a live hold's requester on the Ga
 
 **The organizer (design 2a to 2e, in part).** `games.byId` returns `pendingSeatHolds` to a viewer who is a Group approver. Both Apps show one Requests queue on the Game (the former Level range requests block): Seat holds first, then Level range requests, each row with Approve and Decline. Seat holds go through `groups.approveJoinRequest` and `groups.rejectJoinRequest`; declining drops the hold.
 
+**Order of gates.** The Group question (requested card, then the landing) comes before the Level range stage on both Apps. On the Level stage, "with the seat" sends a Seat hold on an approval Group, or joins an open Group and then sends the Level range request. A Group-only request from a Game link records the Game it came through (`heldGameId` without `seatHeldUntil`) and waits in that Game's queue as "Wants to join {Group}, no seat". Approving a live hold waives the Game's Level range when the approver organizes the Game.
+
 **Notifications.** Group approvers hear `group_join_requested` (from the Group page, a Group link, or a Game link, naming the Game when a seat is held); Game admins hear `game_level_range_requested`. The requester hears the decision with the decider's name: `group_join_approved`, `group_join_declined`, `game_level_range_approved`, `game_level_range_declined`. Copy in `@repo/domain/notification-copy`; the web list and the Notification email link to the Game when one is named, else the Group.
 
 On the web the sheet is a `ResponsiveDialog` and the auto-join on open waits until the Group question is answered. Rules, copy and the gate live in `@repo/domain/invites` (`gameInviteGroupGate`, `gameInviteGroupSheetCopy`, `seatHoldExpiry`). Copy keys are under `mobileInvite.link.group`.
@@ -35,7 +37,6 @@ The Invite link screens now follow the "Join via link" design closely on both Ap
 ## Out of scope
 
 - Decline reasons, an offered seat in another Game, the undo window, the approve sheet's seat and membership toggles, and "don't ask next time" (designs 2b to 2g).
-- A Requests block on the football Game details screens.
 - Landing a non-member on the Game details screen (the mockup's chrome). A private Group Game is not viewable by a non-member; the Invite link screen carries the flow, now drawn with the Game details hero.
 - The design's "Plays" row (when the Group plays) and "Their next games" list (1d): the Group has no schedule to read them from yet.
 - The padel court picture on the web landing (3a): a padel Game still shows the seat grid to pick from, or the roster tiles.

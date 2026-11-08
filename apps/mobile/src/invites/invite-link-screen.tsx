@@ -14,7 +14,7 @@ import {
   type FootballRole,
 } from "@repo/domain/football-lineup";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { Slot } from "../home/home-model";
 import { Notice } from "../groups/notice";
@@ -89,6 +89,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
   const [groupDecided, setGroupDecided] = useState(false);
   const [holdSeat, setHoldSeat] = useState(false);
   const [justJoinedGroup, setJustJoinedGroup] = useState(false);
+  const askLevelAfterJoin = useRef(false);
 
   const gameCode = api.games.inviteLinkByShortCode.useQuery(
     { code: "code" in link ? link.code : "" },
@@ -248,6 +249,10 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
         );
         setJustJoinedGroup(true);
         await utils.groups.mine.invalidate();
+        if (askLevelAfterJoin.current && token && readyGame) {
+          askLevelAfterJoin.current = false;
+          requestLevel.mutate({ gameId: readyGame.gameId, inviteToken: token });
+        }
       } else if (result.outcome === "requested") {
         toast.show(m.mobileInvite.link.group.requestedToast);
       }
@@ -303,10 +308,22 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       return;
     }
     const hold = groupGate === "approval";
+    const stage = gameInviteLinkStage(readyGame, true);
     setGroupSheetOpen(false);
+    // Outside the Level range the seat is the Organizers' to grant: a hold
+    // carries the ask to them, and an open Group gets the Level request.
+    if (stage === "level_range") {
+      if (hold) {
+        joinGroup.mutate({ token, holdSeat: true });
+      } else {
+        askLevelAfterJoin.current = true;
+        joinGroup.mutate({ token });
+      }
+      return;
+    }
     setGroupDecided(true);
     setHoldSeat(hold);
-    if (gameInviteLinkStage(readyGame, true) === "accept") {
+    if (stage === "accept") {
       if (hold) {
         joinGroup.mutate({ token, holdSeat: true });
       } else {
