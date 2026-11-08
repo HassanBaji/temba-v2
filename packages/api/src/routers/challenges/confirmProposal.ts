@@ -37,13 +37,9 @@ import {
 import { FOOTBALL_SCORE_SET_NUMBER } from "#src/games/football-lineup";
 import { occupySeat, otherPosition } from "#src/games/seats";
 import type { SeatChoice } from "#src/games/utils";
-import { squadDueAt } from "#src/jobs/handlers/challenge.squad-due";
-import { enqueueAt, removeJob } from "#src/jobs/enqueue";
-import {
-  challengeExpireJobKey,
-  challengeSquadDueJob,
-  proposalExpireJobKey,
-} from "#src/jobs/specs";
+import { removeJob } from "#src/jobs/enqueue";
+import { scheduleSquadDue } from "#src/jobs/handlers/challenge.squad-due";
+import { challengeExpireJobKey, proposalExpireJobKey } from "#src/jobs/specs";
 import {
   notifyProposalConfirmed,
   notifyProposalPassedOver,
@@ -417,12 +413,7 @@ export async function confirmProposal(
     }
     await removeJob(tx, challengeExpireJobKey(challenge.id));
     if (challenge.sport === "football") {
-      const dueAt = squadDueAt(windowStart);
-      await enqueueAt(
-        tx,
-        challengeSquadDueJob(game.id),
-        dueAt.getTime() > now.getTime() ? dueAt : now,
-      );
+      await scheduleSquadDue(tx, game.id, windowStart, now);
     }
 
     await notifyProposalConfirmed(tx, {

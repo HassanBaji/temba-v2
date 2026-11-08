@@ -14,6 +14,7 @@ import {
   type GameRow,
 } from "#src/games/access";
 import { resolveGameSeasonLink } from "#src/games/season-link";
+import { scheduleSquadDue } from "#src/jobs/handlers/challenge.squad-due";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -25,6 +26,7 @@ async function updateGameWindowOnGame(
   name: string,
   seasonId: string | null,
   locale: Locale,
+  now: Date,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -39,7 +41,6 @@ async function updateGameWindowOnGame(
     });
   }
 
-  const now = new Date();
   const linked = game.groupId
     ? await resolveGameSeasonLink(database, {
         game,
@@ -75,6 +76,10 @@ async function updateGameWindowOnGame(
       })
       .where(eq(matches.gameId, game.id));
   }
+
+  if (game.challengeId && game.sport === "football") {
+    await scheduleSquadDue(database, game.id, windowStart, now);
+  }
 }
 
 export async function updateGameWindow(
@@ -88,6 +93,7 @@ export async function updateGameWindow(
     /** Omitted keeps the Game's Season; `null` unlinks it. */
     seasonId?: string | null;
     locale?: Locale;
+    now?: Date;
   },
 ) {
   const game = await requireGame(database, args.gameId);
@@ -101,6 +107,7 @@ export async function updateGameWindow(
       args.name,
       args.seasonId === undefined ? game.seasonId : args.seasonId,
       args.locale ?? DEFAULT_LOCALE,
+      args.now ?? new Date(),
     );
   });
   return { ok: true as const };
