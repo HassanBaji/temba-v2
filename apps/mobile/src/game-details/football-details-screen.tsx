@@ -631,6 +631,9 @@ export function FootballGameDetails({
             </Text>
           </Surface>
         ) : null}
+        {requests ? (
+          <RequestsSection requests={requests} decisions={decisions} />
+        ) : null}
         {board.error ? (
           <Surface accessibilityRole="alert" style={{ gap: 8 }}>
             <Text weight="semibold">{copy.football.lineupLoadFailed}</Text>
@@ -680,9 +683,6 @@ export function FootballGameDetails({
               }
             }}
           />
-        ) : null}
-        {requests ? (
-          <RequestsSection requests={requests} decisions={decisions} />
         ) : null}
         <InfoRows rows={infoRows} />
         {model.organizer ? (
