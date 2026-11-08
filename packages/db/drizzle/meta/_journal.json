@@ -610,6 +610,13 @@
       "when": 1794143372228,
       "tag": "0086_team_group_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794146183397,
+      "tag": "0087_team_invite_notification",
+      "breakpoints": true
     }
   ]
 }

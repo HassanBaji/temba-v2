@@ -327,6 +327,15 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (item.type === "team_invite_received" && item.audience === "player") {
+    const actor = actorName(item.actor, locale);
+    return {
+      title: item.team?.name
+        ? m.teamInviteReceived(actor, userName(item.team.name, locale))
+        : m.teamInviteReceivedUnnamed(actor),
+      subline: sub.acceptInTeams,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
     const subline = gameFinishedSubline(item.audience, item.game, locale);
     if (subline) {

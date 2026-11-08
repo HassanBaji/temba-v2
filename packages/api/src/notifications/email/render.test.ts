@@ -164,6 +164,19 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(">See your Games<");
   });
 
+  it("sends a Team invite to the Teams page", () => {
+    const email = render(
+      item({
+        type: "team_invite_received",
+        audience: "player",
+        team: { id: "t-gooz", name: "Gooz FC" },
+      }),
+    );
+    expect(email.subject).toBe("Omar Aziz invited you to Gooz FC");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/teams"`);
+    expect(email.html).toContain(">Open your Teams<");
+  });
+
   it("renders Arabic right-to-left from the Arabic catalog", () => {
     const email = render(
       item({ type: "group_member_joined", group: GROUP }),

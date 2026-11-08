@@ -1,7 +1,7 @@
 "use client";
 
 import { type TeamHomeView } from "@repo/domain/teams";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, X } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyState } from "~/components/common/empty-state";
@@ -9,13 +9,18 @@ import { MemberRow } from "~/components/common/member-row";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { useMessages } from "~/components/locale-provider";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+
+type MemberRemove = NonNullable<TeamHomeView["members"][number]["remove"]>;
 
 export function TeamRosterList({
   view,
   onAddMore,
+  onRemove,
 }: {
   view: TeamHomeView;
   onAddMore: () => void;
+  onRemove: (remove: MemberRemove) => void;
 }) {
   const m = useMessages();
   const [expanded, setExpanded] = useState(false);
@@ -43,14 +48,32 @@ export function TeamRosterList({
           name={member.name}
           image={member.image}
           isViewer={member.isViewer}
+          unclaimed={member.addedLabel != null}
           meta={
-            [member.seatLabel, member.levelLabel]
+            [member.phoneMasked, member.seatLabel, member.levelLabel]
               .filter(Boolean)
               .join(m.common.listSeparator) || undefined
           }
           badge={
             member.captainLabel ? (
               <Badge variant="outline">{member.captainLabel}</Badge>
+            ) : undefined
+          }
+          action={
+            member.remove ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={member.remove.label}
+                onClick={() => {
+                  if (member.remove) {
+                    onRemove(member.remove);
+                  }
+                }}
+              >
+                <X aria-hidden="true" className="size-4" />
+              </Button>
             ) : undefined
           }
         />

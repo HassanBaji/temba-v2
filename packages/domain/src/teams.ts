@@ -147,6 +147,12 @@ export type TeamHomeMemberInput = {
   preferredPosition: string | null;
   footballRole: string | null;
   footballPosition: string | null;
+  userId?: string;
+  /** Added by phone and not on Temba yet. */
+  unclaimed?: boolean;
+  /** Set for the Captain only. */
+  phoneMasked?: string | null;
+  removable?: boolean;
 };
 
 export type TeamHomeGameInput = {
@@ -385,6 +391,26 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
       captainLabel: member.isCreator ? m.team.captainLabel : null,
       seatLabel: memberSeatLabel(member, data.sport, locale),
       levelLabel: memberLevelLabel(member, locale),
+      userId: member.userId ?? null,
+      addedLabel: member.unclaimed ? m.team.draft.added : null,
+      phoneMasked: member.phoneMasked ?? null,
+      remove:
+        member.removable && member.userId
+          ? {
+              userId: member.userId,
+              label: m.team.draft.remove(member.name ?? m.team.memberFallback),
+              confirm: {
+                title: m.team.addPlayers.removeConfirm.title(
+                  member.name ?? m.team.memberFallback,
+                ),
+                description: m.team.addPlayers.removeConfirm.description,
+                confirmLabel: m.team.addPlayers.removeConfirm.confirm,
+              },
+              toast: m.group.addPlayer.removedToast(
+                member.name ?? m.team.memberFallback,
+              ),
+            }
+          : null,
     })),
     canInvite: data.canInvite,
     canDissolve: data.canDissolve,

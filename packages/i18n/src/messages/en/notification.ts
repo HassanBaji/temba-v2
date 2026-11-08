@@ -137,6 +137,15 @@ export const notification = {
       plain(" declined your request to play "),
       strong(game),
     ],
+    teamInviteReceived: (actor: string, team: string) => [
+      strong(actor),
+      plain(" invited you to "),
+      strong(team),
+    ],
+    teamInviteReceivedUnnamed: (actor: string) => [
+      strong(actor),
+      plain(" invited you to their Team"),
+    ],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
@@ -145,6 +154,7 @@ export const notification = {
     decideOnGame: "Approve or decline on the Game.",
     decideOnGroup: "Approve or decline on the Group.",
     takeYourSeat: "You can join the Game now.",
+    acceptInTeams: "Accept or decline it in Teams.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

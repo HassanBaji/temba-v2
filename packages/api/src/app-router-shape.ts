@@ -208,7 +208,11 @@ type ExpectedTeams =
   | "acceptInviteLink"
   | "dissolve"
   | "leave"
-  | "setGroupTag";
+  | "setGroupTag"
+  | "previewPlayerByPhone"
+  | "addPlayerByPhone"
+  | "removeUnclaimedPlayer"
+  | "listGroupMembersToAdd";
 
 type ExpectedUsers =
   | "home"

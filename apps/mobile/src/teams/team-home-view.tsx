@@ -1,7 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { sportGlyph } from "@repo/domain/sport";
 import { type TeamHomeView as TeamHomeViewData } from "@repo/domain/teams";
-import { Plus } from "lucide-react-native";
+import { Plus, X } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -17,6 +17,7 @@ import { FormSlot } from "../primitives/form-slot";
 import { ResultMark } from "../primitives/result-mark";
 import { SportGlyph } from "../lib/sport-glyph";
 import { Hairline } from "../primitives/hairline";
+import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Section } from "../primitives/section";
 import { Surface } from "../primitives/surface";
@@ -32,6 +33,10 @@ export type TeamHomeViewProps = {
   confirmPending: boolean;
   actionError: string | null;
   onInvite: () => void;
+  onAddMore: () => void;
+  onRemoveMember: (
+    remove: NonNullable<TeamHomeViewData["members"][number]["remove"]>,
+  ) => void;
   onOpenTeam: (teamId: string) => void;
   onOpenGroup: (() => void) | null;
   tagPending: boolean;
@@ -84,22 +89,15 @@ function Stats({ stats }: { stats: TeamHomeViewData["recordTiles"] }) {
 
 function MemberRow({
   member,
+  onRemove,
 }: {
   member: TeamHomeViewData["members"][number];
+  onRemove: () => void;
 }) {
   const m = useMessages();
+  const colors = useColors();
   return (
     <View
-      accessible
-      accessibilityLabel={[
-        member.name,
-        member.isViewer ? m.common.you : null,
-        member.captainLabel,
-        member.seatLabel,
-        member.levelLabel,
-      ]
-        .filter(Boolean)
-        .join(m.group.metaSeparator)}
       style={{
         minHeight: 56,
         flexDirection: "row",
@@ -109,7 +107,21 @@ function MemberRow({
       }}
     >
       <Avatar name={member.name} uri={member.image} size="lg" />
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <View
+        accessible
+        accessibilityLabel={[
+          member.name,
+          member.isViewer ? m.common.you : null,
+          member.captainLabel,
+          member.addedLabel,
+          member.phoneMasked,
+          member.seatLabel,
+          member.levelLabel,
+        ]
+          .filter(Boolean)
+          .join(m.group.metaSeparator)}
+        style={{ flex: 1, minWidth: 0 }}
+      >
         <Text weight="semibold" numberOfLines={1}>
           {member.name}
         </Text>
@@ -124,11 +136,31 @@ function MemberRow({
               .join(m.common.listSeparator)}
           </Text>
         ) : null}
+        {member.addedLabel ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <NotOnTembaMark />
+            {member.phoneMasked ? (
+              <Text size="meta" tone="muted" ltr>
+                {member.phoneMasked}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
       {member.captainLabel ? (
         <Text size="eyebrow" tone="muted" mono uppercase>
           {member.captainLabel}
         </Text>
+      ) : null}
+      {member.remove ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={member.remove.label}
+          onPress={onRemove}
+          hitSlop={12}
+        >
+          <X size={20} color={colors.muted} />
+        </Pressable>
       ) : null}
     </View>
   );
@@ -137,9 +169,11 @@ function MemberRow({
 function Roster({
   view,
   onAddMore,
+  onRemoveMember,
 }: {
   view: TeamHomeViewData;
   onAddMore: () => void;
+  onRemoveMember: TeamHomeViewProps["onRemoveMember"];
 }) {
   const m = useMessages();
   const colors = useColors();
@@ -161,7 +195,14 @@ function Roster({
       {shown.map((member, index) => (
         <View key={member.id}>
           {index > 0 ? <Hairline /> : null}
-          <MemberRow member={member} />
+          <MemberRow
+            member={member}
+            onRemove={() => {
+              if (member.remove) {
+                onRemoveMember(member.remove);
+              }
+            }}
+          />
         </View>
       ))}
       {more ? (
@@ -441,7 +482,11 @@ export function TeamHomeView(props: TeamHomeViewProps) {
       </Section>
 
       <Section title={m.team.roster.title}>
-        <Roster view={view} onAddMore={props.onInvite} />
+        <Roster
+          view={view}
+          onAddMore={props.onAddMore}
+          onRemoveMember={props.onRemoveMember}
+        />
       </Section>
 
       <Section title={m.team.games.title}>

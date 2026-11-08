@@ -27,8 +27,7 @@ export const team = {
   },
   forbidden: {
     title: "You cannot open this Team",
-    description:
-      "Only Team members or a pending invitee can open a Team home.",
+    description: "Only Team members or a pending invitee can open a Team home.",
   },
   lookupNote: "Pick one person. Invites don't expire.",
   squadLookupNote: "Pick the people to invite. Invites don't expire.",
@@ -88,6 +87,70 @@ export const team = {
     draws: "Draws",
   },
   captainLabel: "Captain",
+  sportChoice: {
+    padel: { name: "Padel", detail: "2 players" },
+    football: {
+      name: "Football",
+      detail: (max: number) => `Roster up to ${max}`,
+    },
+  },
+  rosterHelper: (max: number) =>
+    `5 needed for 5-a-side, 7 for 7-a-side, ${max} max`,
+  draft: {
+    countLine: (count: number, max: number) =>
+      `${count} of ${max}, you included`,
+    invited: "Invited, waiting",
+    added: "Added, not on Temba",
+    remove: (name: string) => `Remove ${name}`,
+    footer:
+      "Six is enough to post a 6-a-side challenge; the matchday squad is named per game, after it's confirmed.",
+    full: (max: number) => `The Roster is full at ${max}.`,
+  },
+  addPlayers: {
+    title: "Add players",
+    description:
+      "Add by phone, find someone on Temba, or pick from a Group you organize. People on Temba get an invite to accept.",
+    tabs: {
+      label: "How to add",
+      phone: "By phone",
+      temba: "On Temba",
+      group: "From a group",
+    },
+    spotsLeft: (n: number) =>
+      plural("en", n, { one: "1 spot left", other: "{n} spots left" }),
+    full: "The Roster is full.",
+    addToRoster: "Add to roster",
+    searchLabel: "Search by name, username, email or phone",
+    searchEmpty: "No one on Temba matches.",
+    invite: "Invite",
+    invitedMark: "Invited",
+    preview: {
+      alreadyOnTeam: (name: string) => `${name} is already on the Roster`,
+      alreadyInvited: (name: string) => `${name} already has an invite`,
+      alreadyListed: (name: string) => `${name} is already on the list`,
+    },
+    groupLabel: "Group",
+    noGroups: "Groups you organize show here.",
+    groupEmpty: "Everyone in this Group is already on the Roster.",
+    memberUnclaimed: "Not on Temba yet. Add them by phone.",
+    addCount: (n: number) =>
+      plural("en", n, { one: "Add 1 player", other: "Add {n} players" }),
+    select: "Select players",
+    invitesSent: (n: number) =>
+      plural("en", n, { one: "1 invite sent", other: "{n} invites sent" }),
+    listed: (name: string) => `${name} is on the list`,
+    listedCount: (n: number) =>
+      plural("en", n, {
+        one: "1 player on the list",
+        other: "{n} players on the list",
+      }),
+    removeConfirm: {
+      title: (name: string) => `Remove ${name}?`,
+      description:
+        "They are not on Temba yet, so they come off the Roster. Their Games stay in history.",
+      confirm: "Remove",
+    },
+  },
   groupTag: {
     line: (group: string) => `${group}'s team`,
     tagAs: (group: string) => `Tag as ${group}'s team`,

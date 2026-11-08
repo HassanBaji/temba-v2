@@ -25,12 +25,14 @@ import { Section } from "~/components/layout/section";
 import { TeamFormLine } from "~/components/teams/team-form-line";
 import { TeamGamesList } from "~/components/teams/team-games-list";
 import { TeamRivalsList } from "~/components/teams/team-rivals-list";
+import { TeamAddPlayersDialog } from "~/components/teams/team-add-players-dialog";
 import { TeamRosterList } from "~/components/teams/team-roster-list";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
+import { sportOrDefault } from "@repo/domain/sport";
 import {
   teamDissolveConfirm,
   teamHomeView,
@@ -53,8 +55,20 @@ export default function TeamHomePage({
   const [dissolveOpen, setDissolveOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [removing, setRemoving] = useState<{
+    userId: string;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    toast: string;
+  } | null>(null);
 
   const team = api.teams.byId.useQuery({ id });
+  const organized = api.games.listCreateGroups.useQuery(undefined, {
+    enabled: addOpen,
+  });
+  const removeUnclaimed = api.teams.removeUnclaimedPlayer.useMutation();
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
@@ -288,7 +302,17 @@ export default function TeamHomePage({
         </Section>
 
         <Section title={m.team.roster.title}>
-          <TeamRosterList view={view} onAddMore={() => setInviteOpen(true)} />
+          <TeamRosterList
+            view={view}
+            onAddMore={() => setAddOpen(true)}
+            onRemove={(remove) =>
+              setRemoving({
+                userId: remove.userId,
+                ...remove.confirm,
+                toast: remove.toast,
+              })
+            }
+          />
         </Section>
 
         <Section title={m.team.games.title}>
@@ -317,6 +341,51 @@ export default function TeamHomePage({
           await leave.mutateAsync({ teamId: id });
         }}
       />
+
+      <ConfirmDialog
+        open={removing != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRemoving(null);
+          }
+        }}
+        title={removing?.title ?? ""}
+        description={removing?.description ?? ""}
+        confirmLabel={removing?.confirmLabel ?? ""}
+        pending={removeUnclaimed.isPending}
+        onConfirm={async () => {
+          if (!removing) {
+            return;
+          }
+          await removeUnclaimed.mutateAsync({
+            teamId: id,
+            userId: removing.userId,
+          });
+          toast.success(removing.toast);
+          await utils.teams.byId.invalidate({ id });
+        }}
+      />
+
+      {data.canInvite ? (
+        <TeamAddPlayersDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          sport={data.sport}
+          spotsLeft={Math.max(0, data.roster.max - data.roster.count)}
+          groups={(organized.data ?? []).filter(
+            (group) => group.sport === sportOrDefault(data.sport),
+          )}
+          target={{
+            kind: "team",
+            teamId: id,
+            onChanged: () =>
+              Promise.all([
+                utils.teams.byId.invalidate({ id }),
+                utils.teams.listInAppInvites.invalidate({ teamId: id }),
+              ]),
+          }}
+        />
+      ) : null}
 
       {data.canInvite ? (
         <InviteDoorDialog

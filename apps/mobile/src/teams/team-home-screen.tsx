@@ -1,5 +1,6 @@
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { sportOrDefault } from "@repo/domain/sport";
 import {
   teamDissolveConfirm,
   teamHomeView,
@@ -19,6 +20,7 @@ import { useToast } from "../primitives/toast";
 import { groupPath } from "../groups/groups-model";
 import { api } from "../trpc/react";
 import { TEAMS_PATH, teamPath } from "./teams-model";
+import { TeamAddPlayersSheet } from "./team-add-players-sheet";
 import { TeamHomeView } from "./team-home-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -31,11 +33,23 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
   const utils = api.useUtils();
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const team = api.teams.byId.useQuery({ id: teamId }, REFETCH_ON_FOREGROUND);
   const data = team.data;
+  const organized = api.games.listCreateGroups.useQuery(undefined, {
+    enabled: addOpen,
+  });
+
+  const removeUnclaimed = api.teams.removeUnclaimedPlayer.useMutation({
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+    onSettled: () => setConfirm(null),
+  });
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
@@ -145,9 +159,28 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         view={view}
         sport={data.sport}
         confirm={confirm}
-        confirmPending={dissolve.isPending || leave.isPending}
+        confirmPending={
+          dissolve.isPending || leave.isPending || removeUnclaimed.isPending
+        }
         actionError={actionError}
         onInvite={() => setInviteOpen(true)}
+        onAddMore={() => setAddOpen(true)}
+        onRemoveMember={(remove) => {
+          setActionError(null);
+          setConfirm({
+            ...remove.confirm,
+            onConfirm: () =>
+              removeUnclaimed.mutate(
+                { teamId, userId: remove.userId },
+                {
+                  onSuccess: () => {
+                    toast.show(remove.toast);
+                    void utils.teams.byId.invalidate({ id: teamId });
+                  },
+                },
+              ),
+          });
+        }}
         onOpenTeam={(id) => router.push(teamPath(id))}
         onOpenGroup={
           data.groupTag
@@ -177,6 +210,26 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         }}
         onCloseConfirm={() => setConfirm(null)}
       />
+      {data.canInvite ? (
+        <TeamAddPlayersSheet
+          visible={addOpen}
+          onClose={() => setAddOpen(false)}
+          sport={data.sport}
+          spotsLeft={Math.max(0, data.roster.max - data.roster.count)}
+          groups={(organized.data ?? []).filter(
+            (group) => group.sport === sportOrDefault(data.sport),
+          )}
+          target={{
+            kind: "team",
+            teamId,
+            onChanged: () =>
+              Promise.all([
+                utils.teams.byId.invalidate({ id: teamId }),
+                utils.teams.listInAppInvites.invalidate({ teamId }),
+              ]),
+          }}
+        />
+      ) : null}
       {data.canInvite ? (
         <InviteDoorSheet
           visible={inviteOpen}

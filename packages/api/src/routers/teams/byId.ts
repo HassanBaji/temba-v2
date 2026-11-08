@@ -22,6 +22,8 @@ import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import {
   loadTeamMatches,
   teamFormFromMatches,
@@ -244,19 +246,29 @@ export async function teamById(
     viewerIsMember: isMember,
     viewerActsForTeam,
     membership: membership ? { id: membership.id } : null,
-    members: memberRows.map((row) => ({
-      id: row.id,
-      userId: row.user.id,
-      name: row.user.name,
-      image: row.user.image,
-      isCreator: row.user.id === team.createdBy,
-      isViewer: row.user.id === args.userId,
-      level: levels.get(row.user.id)?.level ?? null,
-      levelBand: levels.get(row.user.id)?.levelBand ?? null,
-      preferredPosition: row.user.preferredPosition,
-      footballRole: row.user.preferredFootballRole,
-      footballPosition: row.user.preferredFootballPosition,
-    })),
+    members: memberRows.map((row) => {
+      const unclaimed = isUnclaimed(row.user);
+      return {
+        id: row.id,
+        userId: row.user.id,
+        name: row.user.name,
+        image: row.user.image,
+        isCreator: row.user.id === team.createdBy,
+        isViewer: row.user.id === args.userId,
+        level: levels.get(row.user.id)?.level ?? null,
+        levelBand: levels.get(row.user.id)?.levelBand ?? null,
+        preferredPosition: row.user.preferredPosition,
+        footballRole: row.user.preferredFootballRole,
+        footballPosition: row.user.preferredFootballPosition,
+        unclaimed,
+        // Only the Captain, who added them, sees whose number it is.
+        phoneMasked:
+          unclaimed && isCreator && row.user.phoneNumber
+            ? maskPhone(row.user.phoneNumber)
+            : null,
+        removable: unclaimed && isCreator && isMember,
+      };
+    }),
     canInvite,
     canDissolve,
     viewerCanLeave,

@@ -35,6 +35,9 @@ export function notificationHref(item: {
   ) {
     return `/dashboard/games/${item.game.id}`;
   }
+  if (item.type === "team_invite_received") {
+    return "/dashboard/teams";
+  }
   if (item.type === "history_linked") {
     return `/dashboard/games${gamesHubTabQuery("history")}`;
   }

@@ -858,3 +858,50 @@ describe("request notifications", () => {
     );
   });
 });
+
+describe("notificationCopy for a Team invite", () => {
+  it("names the inviter and the Team, and says where to accept", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "team_invite_received",
+          audience: "player",
+          actor: { name: "Hassan" },
+          team: { name: "Gooz FC" },
+          group: null,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Hassan", strong: true },
+          { text: " invited you to ", strong: false },
+          { text: "Gooz FC", strong: true },
+        ],
+        subline: "Accept or decline it in Teams.",
+      },
+    );
+  });
+
+  it("reads an unnamed Team as theirs, in English and Arabic", () => {
+    const item = {
+      type: "team_invite_received",
+      audience: "player",
+      actor: { name: "Hassan" },
+      team: { name: null },
+      group: null,
+    };
+    assert.equal(
+      notificationCopy(item, "en")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Hassan invited you to their Team",
+    );
+    assert.equal(
+      notificationCopy(item, "ar")
+        ?.title.map((part) => part.text)
+        .join(""),
+      `دعاك ${isolate("Hassan")} إلى فريقه`,
+    );
+  });
+});

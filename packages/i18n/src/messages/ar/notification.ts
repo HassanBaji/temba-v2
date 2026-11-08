@@ -167,6 +167,17 @@ export const notification = {
       plain(" طلبك للعب في "),
       strong(game),
     ],
+    teamInviteReceived: (actor: string, team: string) => [
+      plain("دعاك "),
+      strong(actor),
+      plain(" إلى "),
+      strong(team),
+    ],
+    teamInviteReceivedUnnamed: (actor: string) => [
+      plain("دعاك "),
+      strong(actor),
+      plain(" إلى فريقه"),
+    ],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",
@@ -175,6 +186,7 @@ export const notification = {
     decideOnGame: "وافق أو ارفض من صفحة المباراة.",
     decideOnGroup: "وافق أو ارفض من صفحة المجموعة.",
     takeYourSeat: "يمكنك الانضمام إلى المباراة الآن.",
+    acceptInTeams: "اقبلها أو ارفضها من صفحة الفرق.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

@@ -24,7 +24,10 @@ export type NotificationEmailInput = Pick<
 
 export type NotificationEmail = { subject: string; html: string; text: string };
 
-type Destination = { kind: "game" | "group" | "history"; path: string };
+type Destination = {
+  kind: "game" | "group" | "history" | "teams";
+  path: string;
+};
 
 const SETTINGS_PATH = "/dashboard/you/settings";
 
@@ -69,6 +72,9 @@ export function notificationEmailDestination(
     item.game
   ) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}` };
+  }
+  if (item.type === "team_invite_received") {
+    return { kind: "teams", path: "/dashboard/teams" };
   }
   if (item.type === "history_linked") {
     return {

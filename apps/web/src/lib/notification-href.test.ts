@@ -90,6 +90,13 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens Teams for a Team invite, where the invite is accepted", () => {
+    assert.equal(
+      notificationHref({ type: "team_invite_received", group: null }),
+      "/dashboard/teams",
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),

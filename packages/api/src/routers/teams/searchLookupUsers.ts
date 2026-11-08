@@ -9,10 +9,17 @@ import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-fo
 
 type DbClient = typeof db;
 
+/** Without a Team it serves the New team screen, where only the viewer is on the Roster. */
 export async function searchLookupUsers(
   database: DbClient,
-  args: { teamId: string; userId: string; query: string },
+  args: { teamId?: string; userId: string; query: string },
 ) {
+  if (!args.teamId) {
+    return searchLookupUsersDoor(database, {
+      query: args.query,
+      excludeUserIds: [args.userId],
+    });
+  }
   const { team, memberRows } = await requireIncompleteTeamCreator(
     database,
     args.teamId,
@@ -33,7 +40,7 @@ export async function searchLookupUsers(
 export const searchLookupUsersProcedure = protectedProcedure
   .input(
     z.object({
-      teamId: z.string().uuid(),
+      teamId: z.string().uuid().optional(),
       query: z.string().trim().max(255),
     }),
   )

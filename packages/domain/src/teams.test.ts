@@ -28,9 +28,7 @@ describe("teamListRowView", () => {
     const row = teamListRowView(fixtures.list.mixed[1]!, "en");
     expect(row.openSeats).toBe(1);
     expect(row.incompleteLabel).toBe("Incomplete");
-    expect(row.accessibilityLabel).toBe(
-      "Sunday Smashers, Padel, Incomplete",
-    );
+    expect(row.accessibilityLabel).toBe("Sunday Smashers, Padel, Incomplete");
   });
 
   it("has no open seat on a full Team", () => {
@@ -311,6 +309,39 @@ describe("teamHomeView football Roster", () => {
       teamHomeView(fixtures.home.footballCreatorComplete, "en").addMore?.detail,
     ).toBe("By phone or on Temba. Up to 20");
     expect(teamHomeView(fixtures.home.incomplete, "en").addMore).toBe(null);
+  });
+
+  it("marks a player added by phone, with the masked phone and remove for the Captain", () => {
+    const base = fixtures.home.footballTagged;
+    const [captain, ...rest] = base.members;
+    const view = teamHomeView(
+      {
+        ...base,
+        members: [
+          captain!,
+          {
+            ...rest[0]!,
+            name: "Hamad",
+            userId: "u-hamad",
+            unclaimed: true,
+            phoneMasked: "+973 •••• 4408",
+            removable: true,
+          },
+        ],
+      },
+      "en",
+    );
+    expect(view.members[0]).toMatchObject({ addedLabel: null, remove: null });
+    expect(view.members[1]).toMatchObject({
+      addedLabel: "Added, not on Temba",
+      phoneMasked: "+973 •••• 4408",
+      remove: {
+        userId: "u-hamad",
+        label: "Remove Hamad",
+        confirm: { title: "Remove Hamad?", confirmLabel: "Remove" },
+        toast: "Hamad removed",
+      },
+    });
   });
 
   it("shows a legacy Roster of 22 as 22 of 20, full", () => {
