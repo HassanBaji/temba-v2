@@ -1,5 +1,5 @@
 import type { DbClient, DbTx } from "@repo/db";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNull, or } from "drizzle-orm";
 
 import {
   groupJoinRequests,
@@ -17,8 +17,9 @@ import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
 type DbOrTx = DbClient | DbTx;
 
 /**
- * The live Seat holds on a Game, for a viewer who may decide them: Group join
- * requests from this Game's Invite link that asked for a seat (ADR-0057).
+ * The requests waiting on a Game, for a viewer who may decide them: Group join
+ * requests from this Game's Invite link, with a live Seat hold or none
+ * (ADR-0057). A lapsed hold drops out of the queue.
  */
 export async function listGameSeatHolds(
   database: DbOrTx,
@@ -40,7 +41,10 @@ export async function listGameSeatHolds(
     where: and(
       eq(groupJoinRequests.heldGameId, game.id),
       eq(groupJoinRequests.status, GroupJoinRequestStatusEnum.PENDING),
-      gt(groupJoinRequests.seatHeldUntil, now),
+      or(
+        isNull(groupJoinRequests.seatHeldUntil),
+        gt(groupJoinRequests.seatHeldUntil, now),
+      ),
     ),
     with: {
       user: { columns: { id: true, name: true, image: true } },
