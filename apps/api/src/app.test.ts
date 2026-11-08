@@ -40,7 +40,7 @@ afterAll(async () => {
 
 function appFor(userId: string | null) {
   return createApp({
-    db: testDb.db as unknown as Parameters<typeof createApp>[0]["db"],
+    db: testDb.db,
     authenticate: async () => ({
       userId,
       getPublicMetadata: async () => undefined,

@@ -57,7 +57,7 @@ async function seed(database: TestDatabase) {
 function upload(
   database: TestDatabase,
   venueId: string,
-  actor: Awaited<ReturnType<typeof seed>>["manager"],
+  actor: Parameters<typeof uploadPhoto>[1]["actor"],
 ) {
   return uploadPhoto(database, {
     venueId,
@@ -230,13 +230,11 @@ describe("Venue photo doors", () => {
     const { db, close } = await createPgliteDb();
     try {
       const s = await seed(db);
-      await db
-        .insert(venuePhotos)
-        .values(
-          Array.from({ length: VENUE_PHOTO_LIMIT }, () => ({
-            venueId: s.mine,
-          })),
-        );
+      await db.insert(venuePhotos).values(
+        Array.from({ length: VENUE_PHOTO_LIMIT }, () => ({
+          venueId: s.mine,
+        })),
+      );
       await expect(upload(db, s.mine, s.manager)).rejects.toMatchObject({
         code: "BAD_REQUEST",
       });

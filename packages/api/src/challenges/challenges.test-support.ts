@@ -30,7 +30,7 @@ export type Fixture = { database: TestDatabase; db: typeof db };
 export async function withDb(run: (fixture: Fixture) => Promise<void>) {
   const { db: database, close } = await createPgliteDb();
   try {
-    await run({ database, db: database as unknown as typeof db });
+    await run({ database, db: database });
   } finally {
     await close();
   }

@@ -5,5 +5,5 @@
     "customConditions": ["temba-source"]
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }

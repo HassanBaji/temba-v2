@@ -33,7 +33,7 @@ const HOUR = 60 * 60 * 1000;
 
 /** The doors type their client as Postgres; PGlite runs the same queries. */
 function asDb(database: TestDatabase): typeof db {
-  return database as unknown as typeof db;
+  return database;
 }
 
 type Person = { id: string };

@@ -122,7 +122,7 @@ export async function setUpMatch(
   if (!set) {
     throw new Error("Expected a Set shell");
   }
-  await scoreSet(database as unknown as Parameters<typeof scoreSet>[0], {
+  await scoreSet(database, {
     gameId: created.game.id,
     matchId: created.matchId,
     setId: set.id,

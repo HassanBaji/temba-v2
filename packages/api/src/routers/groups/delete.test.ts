@@ -91,7 +91,7 @@ async function insertGame(
     startTime: args.start,
     status: args.completed
       ? MatchStatusEnum.COMPLETED
-      : MatchStatusEnum.SCHEDULED,
+      : MatchStatusEnum.PENDING,
   });
   return game;
 }

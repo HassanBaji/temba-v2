@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { groups, user } from "@repo/db/schema";
 
-import { createPgliteDb } from "@repo/db/testing";
+import { createPgliteDb, pgliteRows } from "@repo/db/testing";
 
 describe("PGLite Workspace harness", () => {
   it("applies DB Package migrations and answers a Drizzle query", async () => {
@@ -16,7 +16,9 @@ describe("PGLite Workspace harness", () => {
           and tablename in ('user', 'groups', 'venues', 'games')
       `);
 
-      const names = tables.rows.map((row) => String(row.tablename)).sort();
+      const names = pgliteRows(tables)
+        .map((row) => String(row.tablename))
+        .sort();
 
       expect(names).toEqual(["games", "groups", "user", "venues"]);
 

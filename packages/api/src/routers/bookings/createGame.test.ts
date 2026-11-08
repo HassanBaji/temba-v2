@@ -49,7 +49,7 @@ describe("bookings.createGame", () => {
         mvpMode: "vote",
       });
       const match = await db.query.matches.findFirst({
-        where: eq(matches.id, created.matchId),
+        where: eq(matches.id, created.matchId!),
       });
       expect(match).toMatchObject({
         gameId: created.gameId,

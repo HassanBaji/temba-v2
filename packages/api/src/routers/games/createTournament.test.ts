@@ -102,7 +102,6 @@ function tournamentFields() {
     teamCount: 12,
     poolCount: 3,
     venueId: crypto.randomUUID(),
-    matchMinutes: 45,
     ...windowTimes(),
   };
 }

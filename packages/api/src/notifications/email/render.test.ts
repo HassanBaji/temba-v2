@@ -15,7 +15,9 @@ const GAME = {
   id: "22222222-2222-4222-8222-222222222222",
   name: "Thursday Padel",
   format: "friendly_game",
+  sport: "padel",
   windowStart: new Date("2026-10-08T17:00:00.000Z"),
+  marksClosesAt: null,
 };
 const OMAR = { id: "u-omar", name: "Omar Aziz", image: null };
 const SARA = { id: "u-sara", name: "Sara Khalil", image: null };

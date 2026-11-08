@@ -231,7 +231,7 @@ export function jobNames(sink: RecordingJobSink) {
   return sink.added.map((job) => job.name);
 }
 
-export const asDb = (database: TestDatabase) => database as unknown as Db;
+export const asDb = (database: TestDatabase) => database;
 
 /** A pending_payment Booking whose charge the create-charge job has opened. */
 export async function chargedBooking(

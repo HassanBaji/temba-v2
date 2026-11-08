@@ -20,7 +20,7 @@ function helpers(attempts: number, maxAttempts: number): JobHelpers {
   } as unknown as JobHelpers;
 }
 
-function failedLogs(spy: ReturnType<typeof vi.spyOn>) {
+function failedLogs(spy: { mock: { calls: unknown[][] } }) {
   return spy.mock.calls
     .map(([line]) => JSON.parse(String(line)) as Record<string, unknown>)
     .filter((entry) => entry.event === "job_failed");

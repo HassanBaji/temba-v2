@@ -2,6 +2,7 @@ import { asc, desc, eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { bookingPayments, bookings, venueClosures, venues } from "@repo/db";
+import { pgliteRows } from "@repo/db/testing";
 
 import {
   NOW,
@@ -352,7 +353,7 @@ describe("bookings.create", () => {
         const locks = await tx.execute(
           sql`select count(*)::int as held from pg_locks where locktype = 'advisory'`,
         );
-        expect(locks.rows[0]).toMatchObject({ held: 1 });
+        expect(pgliteRows(locks)[0]).toMatchObject({ held: 1 });
         await rejects(
           reserveBooking(tx, { values, now: NOW }),
           "That slot was just taken",

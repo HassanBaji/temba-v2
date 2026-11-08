@@ -754,7 +754,7 @@ describe("rows carry sport", () => {
       expect(
         isHomeCarouselNeedsResults(
           {
-            ...(row as never),
+            ...(row as object),
             matches: [],
             cancelledAt: null,
           } as never,

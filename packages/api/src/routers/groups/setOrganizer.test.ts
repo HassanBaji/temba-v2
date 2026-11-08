@@ -121,7 +121,11 @@ describe("groups.setOrganizer", () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedLoose(db);
-      const groupGame = { createdBy: f.creator, groupId: f.groupId };
+      const groupGame = {
+        createdBy: f.creator,
+        groupId: f.groupId,
+        challengeId: null,
+      };
       expect(await isGameOrganizer(db, groupGame, f.member)).toBe(false);
 
       await expect(
@@ -279,7 +283,11 @@ describe("groups.setOrganizer", () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seedClub(db);
-      const groupGame = { createdBy: f.creator, groupId: f.groupId };
+      const groupGame = {
+        createdBy: f.creator,
+        groupId: f.groupId,
+        challengeId: null,
+      };
 
       const asManager = await rejection(
         setOrganizer(db, {

@@ -805,7 +805,7 @@ describe("Finished Game Notifications on a Groups only tournament", () => {
       expect(await audiences(db)).toEqual(
         expected(
           club.admins,
-          stillRegistered.map((row) => row.userId),
+          stillRegistered.flatMap((row) => (row.userId ? [row.userId] : [])),
         ),
       );
       expect(Object.keys(await audiences(db))).not.toContain(kicked);

@@ -876,7 +876,7 @@ describe("games.addPlayerByPhone on an Americano", () => {
         }),
       ).resolves.toMatchObject({ kind: "account", alreadyOnGame: false });
 
-      const added = [];
+      const added: Awaited<ReturnType<typeof addPlayerByPhone>>[] = [];
       for (const [index, phone] of [
         "36124401",
         "36124402",
