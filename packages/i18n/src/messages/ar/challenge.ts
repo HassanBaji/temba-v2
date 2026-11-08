@@ -1,4 +1,5 @@
 import { isolate } from "../../bidi";
+import { plural } from "../../plural";
 import type { challenge as source } from "../en/challenge";
 
 export const challenge = {
@@ -14,12 +15,16 @@ export const challenge = {
     emptyCopy:
       "تنشر الفرق تحديًا هنا عندما تبحث عن منافس: المستوى المطلوب، وأين ومتى تحب أن تلعب.",
     untilThen: "حتى ذلك الحين، جهّز فريقك.",
+    filteredEmptyTitle: "لا تحديات مطابقة",
+    filteredEmptyCopy: "جرّب رياضة أو مستوى أو منطقة أو يومًا آخر.",
+    errorTitle: "تعذّر تحميل التحديات",
   },
   mine: {
     emptyTitle: "لا شيء بانتظارك",
     emptyCopy:
       "تظهر هنا تحديات فرقك، والعروض التي ترسلها، ومباريات التحدي الخاصة بك.",
     untilThen: "حتى ذلك الحين، أنشئ فريقًا أو أكمل قائمة فريقك.",
+    postedTitle: "تحدياتك",
   },
   goToTeams: "اعرض فرقك",
   teams: {
@@ -35,5 +40,213 @@ export const challenge = {
     lineSeparator: ". ",
     record: "ف–خ",
     recordWithDraws: "ف–ت–خ",
+  },
+  weekdays: {
+    mon: "الإثنين",
+    tue: "الثلاثاء",
+    wed: "الأربعاء",
+    thu: "الخميس",
+    fri: "الجمعة",
+    sat: "السبت",
+    sun: "الأحد",
+  },
+  weekdayNames: {
+    mon: "الإثنين",
+    tue: "الثلاثاء",
+    wed: "الأربعاء",
+    thu: "الخميس",
+    fri: "الجمعة",
+    sat: "السبت",
+    sun: "الأحد",
+  },
+  timings: {
+    morning: "الصباح",
+    afternoon: "بعد الظهر",
+    evening: "المساء",
+  },
+  timingHints: {
+    morning: "قبل الظهر",
+    afternoon: "من الظهر حتى 6 مساءً",
+    evening: "بعد 6 مساءً",
+  },
+  when: {
+    anyDay: "أي يوم",
+    anyTime: "أي وقت",
+    weekdays: "أيام الأسبوع",
+    weekends: "عطلة نهاية الأسبوع",
+    listSeparator: "، ",
+    line: (days: string, timings: string) => `${days} · ${timings}`,
+    slots: (list: string) => `أو ${list}`,
+  },
+  card: {
+    partSeparator: "، ",
+    avg: (level: string) => `بمعدل ${isolate(level)}`,
+    sportLine: (parts: string, wants: string) => `${parts}. ${wants}`,
+    wants: (min: string, max: string) =>
+      `يريد من ${isolate(min)} إلى ${isolate(max)}`,
+    wantsOnly: (band: string) => `يريد ${isolate(band)}`,
+    wantsAndUp: (band: string) => `يريد ${isolate(band)} فما فوق`,
+    wantsAndUnder: (band: string) => `يريد ${isolate(band)} فما دون`,
+    anyLevel: "مفتوح لأي مستوى",
+    anyVenue: "أي ملعب",
+    proposals: (n: number) =>
+      n === 0
+        ? "لا عروض بعد"
+        : plural("ar", n, {
+            one: "عرض واحد",
+            two: "عرضان",
+            few: "{n} عروض",
+            many: "{n} عرضًا",
+            other: "{n} عرض",
+          }),
+    daysLeft: (n: number) =>
+      n === 0
+        ? "اليوم الأخير"
+        : plural("ar", n, {
+            one: "يبقى يوم واحد",
+            two: "يبقى يومان",
+            few: "تبقى {n} أيام",
+            many: "يبقى {n} يومًا",
+            other: "يبقى {n} يوم",
+          }),
+    proposalsLine: (proposals: string, days: string) => `${proposals}، ${days}`,
+    opponentSeats: "مطلوب منافس",
+    open: (team: string) => `افتح تحدي ${isolate(team)}`,
+  },
+  ineligible: {
+    noTeam: {
+      padel: "تحتاج إلى فريق بادل لتقدّم عرضًا",
+      football: "تحتاج إلى فريق كرة قدم لتقدّم عرضًا",
+    },
+    rosterShort: (side: string) => `قائمة فريقك لا تكفي لمباراة ${side}`,
+    padelIncomplete: "فريق البادل يحتاج إلى اللاعبَين",
+    levelOutside: "مستوى فريقك خارج المستوى المطلوب",
+    noLevel: "لا يوجد لاعب مصنّف في فريقك بعد",
+    sharesMember: "فريقك يشترك في لاعب مع هذا الفريق",
+    own: "تحدي فريقك",
+  },
+  filters: {
+    label: "تصفية التحديات",
+    sport: "الرياضة",
+    level: "المستوى",
+    area: "المنطقة",
+    day: "اليوم",
+    any: "الكل",
+    clear: "مسح التصفية",
+    chip: (name: string, value: string) => `${name}: ${value}`,
+  },
+  post: {
+    cta: "انشر تحديًا",
+    title: "انشر تحديًا",
+    description: "أخبر الفرق الأخرى بما تريد: يقترحون وقتًا وملعبًا.",
+    noTeamsTitle: "لا يمكن لأي من فرقك النشر الآن",
+    noTeamsCopy:
+      "فريق البادل يحتاج إلى اللاعبَين، وفريق كرة القدم إلى خمسة في القائمة، ولكل فريق تحدٍّ مفتوح واحد في كل مرة.",
+    team: "الفريق",
+    format: "الصيغة",
+    formatHelp:
+      "حجم المباراة التي تريدها. تُختار التشكيلات بعد التأكيد: الأساسيون وحتى ثلاثة احتياطيين.",
+    formatNeeds: (side: string, n: number) =>
+      plural("ar", n, {
+        one: `${side} تحتاج إلى لاعب واحد في القائمة`,
+        two: `${side} تحتاج إلى لاعبَين في القائمة`,
+        few: `${side} تحتاج إلى {n} لاعبين في القائمة`,
+        many: `${side} تحتاج إلى {n} لاعبًا في القائمة`,
+        other: `${side} تحتاج إلى {n} لاعب في القائمة`,
+      }),
+    venues: "الملاعب",
+    venuesHint: (max: number) =>
+      `حتى ${max} ملاعب تحب اللعب فيها. اتركها فارغة لأي ملعب.`,
+    days: "الأيام",
+    daysHint: "اتركها فارغة لأي يوم.",
+    timings: "الأوقات",
+    timingsHint: "اتركها فارغة لأي وقت.",
+    timingLine: (timing: string, hint: string) => `${timing}: ${hint}`,
+    slots: "أو مواعيد محددة",
+    slotsHint: (max: number) => `حتى ${max} مواعيد بدء تناسبك من الآن.`,
+    slotDay: "اليوم",
+    slotTime: "البدء",
+    addSlot: "أضف موعدًا",
+    removeSlot: (slot: string) => `إزالة ${isolate(slot)}`,
+    level: "المستوى المطلوب",
+    levelHint: "الفرق خارج هذا المستوى ترى تحديك باهتًا.",
+    levelMin: "من",
+    levelMax: "إلى",
+    levelMinA11y: (band: string) => `من ${isolate(band)}`,
+    levelMaxA11y: (band: string) => `إلى ${isolate(band)}`,
+    note: "سطر عنكم",
+    notePlaceholder: "ودّيون، في الموعد، ونحضر الصدريات",
+    noteCount: (n: number, max: number) => `${n} من ${max}`,
+    review: "مراجعة",
+    back: "رجوع",
+    submit: "انشر التحدي",
+    posted: "نُشر التحدي",
+    errorTitle: "تعذّر تحميل فرقك",
+  },
+  review: {
+    title: "راجع تحديك",
+    cardTitle: "كيف سيظهر",
+    team: (team: string) => `الفريق ${isolate(team)}`,
+    teamWithRoster: (team: string, n: number) =>
+      `الفريق ${isolate(team)}، ${n} في القائمة`,
+    format: (side: string, squad: number) =>
+      `الصيغة ${side}. تشكيلات حتى ${squad} لاعبين تُختار بعد التأكيد`,
+    visibility: {
+      padel: "يراه كل فريق بادل على Temba",
+      football: "يراه كل فريق كرة قدم على Temba",
+    },
+    openFor: (days: number) => `مفتوح لمدة ${days} أيام`,
+    proposals: "العروض: تؤكد واحدًا، ويُبلَّغ الباقون",
+  },
+  errors: {
+    pickTeam: "اختر فريقًا",
+    formatRequired: "اختر صيغة: 5 أو 6 أو 7 ضد مثلها",
+    formatOnPadel: "تحديات البادل بلا صيغة",
+    formatUnknown: "الصيغة 5 أو 6 أو 7 ضد مثلها",
+    formatRoster: (side: string, count: number) =>
+      plural("ar", count, {
+        one: `${side} تحتاج إلى هذا العدد في القائمة. في قائمتك لاعب واحد.`,
+        two: `${side} تحتاج إلى هذا العدد في القائمة. في قائمتك لاعبان.`,
+        few: `${side} تحتاج إلى هذا العدد في القائمة. في قائمتك {n} لاعبين.`,
+        many: `${side} تحتاج إلى هذا العدد في القائمة. في قائمتك {n} لاعبًا.`,
+        other: `${side} تحتاج إلى هذا العدد في القائمة. في قائمتك {n} لاعب.`,
+      }),
+    padelRoster: "فريق البادل يحتاج إلى اللاعبَين لينشر",
+    noteTooLong: (max: number) => `اجعل السطر ${max} حرفًا كحد أقصى`,
+    venueSport: {
+      padel: "اختر ملاعب فيها ملعب بادل",
+      football: "اختر ملاعب فيها ملعب كرة قدم",
+    },
+    tooManyVenues: (max: number) => `اختر حتى ${max} ملاعب`,
+    tooManySlots: (max: number) => `أضف حتى ${max} مواعيد`,
+    slotPast: "يجب أن تكون المواعيد المحددة في المستقبل",
+    alreadyOpen: "لهذا الفريق تحدٍّ مفتوح. اسحبه لتنشر غيره.",
+    notActing: "هذا متاح فقط لمن يتصرف باسم الفريق",
+    notOpen: "هذا التحدي لم يعد مفتوحًا",
+  },
+  detail: {
+    title: "التحدي",
+    record: "السجل",
+    when: "متى",
+    where: "أين",
+    level: "المستوى المطلوب",
+    note: "من الفريق",
+    postedBy: (name: string, day: string) => `نشره ${isolate(name)}، ${day}`,
+    proposeWith: (teams: string) => `يمكنك تقديم عرض مع ${isolate(teams)}`,
+    closed: {
+      expired: "انتهت مدة هذا التحدي",
+      withdrawn: "سُحب هذا التحدي",
+      confirmed: "تأكد هذا التحدي",
+    },
+    withdraw: "اسحب التحدي",
+    withdrawConfirm: {
+      title: "تسحب هذا التحدي؟",
+      description:
+        "سيغادر لوحة التحديات المفتوحة. يمكنك نشر تحدٍّ جديد في أي وقت.",
+      confirm: "اسحب",
+    },
+    withdrawn: "سُحب التحدي",
+    notFound: "التحدي غير موجود",
+    errorTitle: "تعذّر تحميل هذا التحدي",
   },
 } satisfies typeof source;

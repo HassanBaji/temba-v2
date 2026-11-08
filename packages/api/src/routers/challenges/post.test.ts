@@ -1,0 +1,327 @@
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { describe, expect, it } from "vitest";
+
+import { challengeVenues } from "@repo/db/schema";
+
+import {
+  challengeRow,
+  makeTeam,
+  makeUsers,
+  makeVenue,
+  withDb,
+} from "#src/challenges/challenges.test-support";
+import { recordJobs } from "#src/jobs/job-sink.test-support";
+import { challengeExpireJobKey } from "#src/jobs/specs";
+
+import { postChallenge } from "./post";
+import { withdrawChallenge } from "./withdraw";
+
+const now = new Date("2026-11-08T10:00:00Z");
+
+async function refusal(promise: Promise<unknown>) {
+  try {
+    await promise;
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      return { code: error.code, message: error.message };
+    }
+    throw error;
+  }
+  throw new Error("Expected a refusal");
+}
+
+describe("challenges.post", () => {
+  const jobs = recordJobs();
+
+  it("writes the Challenge, its Venues in order, and the expiry Job at seven days", async () => {
+    await withDb(async ({ database, db }) => {
+      const users = await makeUsers(database, "Gooz", 12);
+      const gooz = await makeTeam(database, {
+        name: "Gooz FC",
+        sport: "football",
+        userIds: users,
+      });
+      const pitches = await makeVenue(database, {
+        name: "Matchday Pitches",
+        city: "Manama",
+        sport: "football",
+      });
+      const arena = await makeVenue(database, {
+        name: "Arad Arena",
+        city: "Muharraq",
+        sport: "football",
+      });
+      const slot = new Date("2026-11-13T16:00:00Z");
+
+      const { id } = await postChallenge(db, {
+        teamId: gooz.id,
+        sideSize: 6,
+        levelMinTenths: 28,
+        levelMaxTenths: 48,
+        venueIds: [arena.id, pitches.id],
+        days: ["fri", "sat"],
+        timings: ["evening"],
+        exactSlots: [slot],
+        note: "  Friendly, on time  ",
+        userId: users[0]!,
+        now,
+      });
+
+      expect(await challengeRow(database, id)).toMatchObject({
+        teamId: gooz.id,
+        sport: "football",
+        status: "open",
+        postedBy: users[0],
+        sideSize: 6,
+        levelMinTenths: 28,
+        levelMaxTenths: 48,
+        days: ["fri", "sat"],
+        timings: ["evening"],
+        exactSlots: [slot],
+        durationMinutes: 60,
+        note: "Friendly, on time",
+        expiresAt: new Date("2026-11-15T10:00:00Z"),
+      });
+      const venues = await database.query.challengeVenues.findMany({
+        where: eq(challengeVenues.challengeId, id),
+        orderBy: (table, { asc }) => [asc(table.rank)],
+      });
+      expect(venues.map((venue) => venue.venueId)).toEqual([
+        arena.id,
+        pitches.id,
+      ]);
+      expect(jobs.added).toEqual([
+        expect.objectContaining({
+          name: "challenge.expire",
+          key: challengeExpireJobKey(id),
+          payload: { challengeId: id },
+          mode: "replace",
+          runAt: new Date("2026-11-15T10:00:00Z"),
+        }),
+      ]);
+    });
+  });
+
+  it("defaults padel to a 90-minute Game and needs both players", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar, solo] = await makeUsers(database, "Seef", 3);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const { id } = await postChallenge(db, {
+        teamId: seef.id,
+        userId: omar!,
+        now,
+      });
+      expect((await challengeRow(database, id)).durationMinutes).toBe(90);
+
+      const waiting = await makeTeam(database, {
+        name: "Waiting",
+        sport: "padel",
+        userIds: [solo!],
+      });
+      expect(
+        await refusal(
+          postChallenge(db, { teamId: waiting.id, userId: solo!, now }),
+        ),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "A padel Team needs both players to post",
+      });
+    });
+  });
+
+  it("allows one open Challenge per Team; withdraw then post succeeds", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar] = await makeUsers(database, "Seef", 2);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const first = await postChallenge(db, {
+        teamId: seef.id,
+        userId: ali!,
+        now,
+      });
+      expect(
+        await refusal(
+          postChallenge(db, { teamId: seef.id, userId: omar!, now }),
+        ),
+      ).toEqual({
+        code: "CONFLICT",
+        message:
+          "This Team already has an open challenge. Withdraw it to post another.",
+      });
+
+      await withdrawChallenge(db, {
+        challengeId: first.id,
+        userId: omar!,
+        now,
+      });
+      const second = await postChallenge(db, {
+        teamId: seef.id,
+        userId: ali!,
+        now,
+      });
+      expect(second.id).not.toBe(first.id);
+      expect((await challengeRow(database, first.id)).status).toBe("withdrawn");
+      expect(jobs.removed).toEqual([challengeExpireJobKey(first.id)]);
+    });
+  });
+
+  it("gates the Format on the Roster and refuses a Format on padel", async () => {
+    await withDb(async ({ database, db }) => {
+      const five = await makeUsers(database, "Five", 5);
+      const fiveTeam = await makeTeam(database, {
+        name: "Five FC",
+        sport: "football",
+        userIds: five,
+      });
+      const formatMessage =
+        "6-a-side needs that many on the Roster. Yours has 5.";
+      expect(
+        await refusal(
+          postChallenge(db, {
+            teamId: fiveTeam.id,
+            sideSize: 6,
+            userId: five[0]!,
+            now,
+          }),
+        ),
+      ).toEqual({ code: "BAD_REQUEST", message: formatMessage });
+      await expect(
+        postChallenge(db, {
+          teamId: fiveTeam.id,
+          sideSize: 5,
+          userId: five[0]!,
+          now,
+        }),
+      ).resolves.toEqual({ id: expect.any(String) });
+
+      const six = await makeUsers(database, "Six", 6);
+      const sixTeam = await makeTeam(database, {
+        name: "Six FC",
+        sport: "football",
+        userIds: six,
+      });
+      expect(
+        await refusal(
+          postChallenge(db, {
+            teamId: sixTeam.id,
+            sideSize: 7,
+            userId: six[0]!,
+            now,
+          }),
+        ),
+      ).toMatchObject({ code: "BAD_REQUEST" });
+      expect(
+        await refusal(
+          postChallenge(db, { teamId: sixTeam.id, userId: six[0]!, now }),
+        ),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Pick a Format: 5, 6 or 7-a-side",
+      });
+      const sixOnSix = await postChallenge(db, {
+        teamId: sixTeam.id,
+        sideSize: 6,
+        userId: six[0]!,
+        now,
+      });
+      await withdrawChallenge(db, {
+        challengeId: sixOnSix.id,
+        userId: six[0]!,
+        now,
+      });
+      await expect(
+        postChallenge(db, {
+          teamId: sixTeam.id,
+          sideSize: 5,
+          userId: six[0]!,
+          now,
+        }),
+      ).resolves.toEqual({ id: expect.any(String) });
+
+      const [ali, omar] = await makeUsers(database, "Seef", 2);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      expect(
+        await refusal(
+          postChallenge(db, {
+            teamId: seef.id,
+            sideSize: 5,
+            userId: ali!,
+            now,
+          }),
+        ),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Padel challenges have no Format",
+      });
+    });
+  });
+
+  it("refuses an outsider, an inverted range, a long line, a past slot and a Venue without the sport", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar, outsider] = await makeUsers(database, "Seef", 3);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const pitch = await makeVenue(database, {
+        name: "Pitch Only",
+        city: "Manama",
+        sport: "football",
+      });
+      const base = { teamId: seef.id, userId: ali!, now };
+
+      expect(
+        await refusal(postChallenge(db, { ...base, userId: outsider! })),
+      ).toMatchObject({ code: "FORBIDDEN" });
+      expect(
+        await refusal(
+          postChallenge(db, {
+            ...base,
+            levelMinTenths: 49,
+            levelMaxTenths: 28,
+          }),
+        ),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Minimum Level cannot be greater than Maximum Level",
+      });
+      expect(
+        await refusal(postChallenge(db, { ...base, note: "x".repeat(141) })),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Keep the line to 140 characters",
+      });
+      expect(
+        await refusal(
+          postChallenge(db, {
+            ...base,
+            exactSlots: [new Date(now.getTime() - 60_000)],
+          }),
+        ),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Exact slots must be in the future",
+      });
+      expect(
+        await refusal(postChallenge(db, { ...base, venueIds: [pitch.id] })),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message: "Pick venues with a padel court",
+      });
+      expect(await database.query.challenges.findMany()).toEqual([]);
+    });
+  });
+});

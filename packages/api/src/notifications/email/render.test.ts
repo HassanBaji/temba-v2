@@ -179,6 +179,22 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(">Open your Teams<");
   });
 
+  it("sends an expired Challenge to Challenges, Mine", () => {
+    const email = render(
+      item({
+        type: "challenge_expired",
+        audience: "player",
+        actor: null,
+        team: { id: "t-gooz", name: "Gooz FC" },
+      }),
+    );
+    expect(email.subject).toBe("The challenge from Gooz FC expired");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/challenges?tab=mine"`,
+    );
+    expect(email.html).toContain(">Open Challenges<");
+  });
+
   it("renders Arabic right-to-left from the Arabic catalog", () => {
     const email = render(
       item({ type: "group_member_joined", group: GROUP }),

@@ -45,7 +45,13 @@ type ExpectedBookings =
   | "settlePayment"
   | "recordRefund";
 
-type ExpectedChallenges = "listMine";
+type ExpectedChallenges =
+  | "listMine"
+  | "listOpen"
+  | "byId"
+  | "listPostOptions"
+  | "post"
+  | "withdraw";
 
 type ExpectedGames =
   | "hello"

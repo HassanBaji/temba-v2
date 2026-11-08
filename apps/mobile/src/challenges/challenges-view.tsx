@@ -11,13 +11,18 @@ import { hairline } from "../primitives/hairline-width";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { SegmentEmpty } from "./segment-empty";
+import type { Slot } from "../home/home-model";
+import type { MineChallenge } from "./challenges-model";
+import { MineSegment } from "./mine-segment";
+import { OpenSegment, type OpenSegmentProps } from "./open-segment";
 import { TeamsSegment, type TeamsSegmentProps } from "./teams-segment";
 
 export type ChallengesViewProps = TeamsSegmentProps & {
   tab: ChallengesTab;
   onTabChange: (tab: ChallengesTab) => void;
   counts: ChallengesCounts;
+  open: Omit<OpenSegmentProps, "onGoToTeams">;
+  posted: Slot<MineChallenge[]>;
 };
 
 function segmentBarStyle(colors: Palette) {
@@ -92,9 +97,15 @@ export function ChallengesView(props: ChallengesViewProps) {
       />
       {props.tab === "teams" ? (
         <TeamsSegment {...props} />
+      ) : props.tab === "open" ? (
+        <OpenSegment
+          {...props.open}
+          onGoToTeams={() => props.onTabChange("teams")}
+        />
       ) : (
-        <SegmentEmpty
-          segment={props.tab}
+        <MineSegment
+          posted={props.posted}
+          onOpenChallenge={props.open.onOpenChallenge}
           onGoToTeams={() => props.onTabChange("teams")}
         />
       )}

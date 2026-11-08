@@ -187,9 +187,17 @@ _Avoid_: squad (that is the Matchday squad), line-up, members (bare, in product 
 An optional reference from a Team to one Group of the same sport (`teams.group_id`). The Group does not own the Team: the record and Rivals belong to the Team. The tag shows on the Team's detail ("Gooz of Arad's team"), lists the Team on the Group page, and lets the Group's Organizers act for a football Team on its Challenge doors, not its Roster doors. Set at create or later by the Captain or an Organizer of the target Group, and only to a Group the Captain is a member of; cleared by the Captain or an Organizer of the tagged Group, and when the Group is deleted.
 _Avoid_: Group team, Club Team (retired), owned by, parent
 
+**Challenge**:
+A Team's open request for an opponent: sport (the Team's), for football a Challenge format, Level wanted, preferred Venues, days and timings or exact slots, and a line from the Team of up to 140 characters. Posted by someone who acts for the Team; a Team has at most one open Challenge. Open for seven days after posting, longer only while a Proposal is pending; then it expires quietly and the Users who act for the Team are told. It may be withdrawn while open. Any signed-in User sees it on the Open board; a viewer whose Teams cannot propose sees it greyed with the reason. A request, never a Game (ADR-0061).
+_Avoid_: match request, open game, fixture, invitation
+
 **Challenge format**:
-The football Side size a Challenge asks for: 5, 6 or 7-a-side. Product copy says Format. Not the Game format enum (`friendly_game`, `americano`, …).
+The football Side size a Challenge asks for: 5, 6 or 7-a-side. Product copy says Format. Stored as `challenges.side_size`; required on football, absent on padel, and only a Format the Roster can field may be posted. Not the Game format enum (`friendly_game`, `americano`, …).
 _Avoid_: game format (that enum), team size, squad size
+
+**Level wanted**:
+A Challenge's inclusive Level band range, stored in tenths like a Game Level range; either bound may be open, and none means any level. A Team whose Team Level is outside it, or that has no Team Level, sees the Challenge greyed and cannot propose. There is no request or waiver path.
+_Avoid_: level range (bare, that is a Game's), level gate, skill filter
 
 **Team record**:
 Wins–losses (padel) or wins–draws–losses (football) over a Team's completed Matches on non-cancelled Games, read from the Game teams bound to the Team and derived on every read. A Match awaiting confirmation or a Walkover does not count. No stored counters.
@@ -204,7 +212,7 @@ The wins–losses (wins–draws–losses in football) between a Team and one Riv
 _Avoid_: H2H (in product copy), series, rivalry score
 
 **Team Level**:
-The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A Team with no rated member has no Team Level. Never a Rating.
+The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A Team with no rated member has no Team Level. Used by the Challenge Level wanted gate. Never a Rating.
 _Avoid_: team rating, average rank, squad level
 
 **Team roster rule**:

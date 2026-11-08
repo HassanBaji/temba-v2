@@ -1,14 +1,20 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { use } from "react";
+import { use, useState } from "react";
 import { toast } from "sonner";
 
-import { ChallengeSegmentEmpty } from "~/components/challenges/challenge-segment-empty";
+import { ChallengeOpenSegment } from "~/components/challenges/challenge-open-segment";
+import { ChallengeMineSegment } from "~/components/challenges/challenge-mine-segment";
 import { ChallengeTeamsSegment } from "~/components/challenges/challenge-teams-segment";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import {
+  challengeBoardQuery,
+  NO_CHALLENGE_BOARD_FILTERS,
+  type ChallengeBoardFilters,
+} from "@repo/domain/challenge-card";
 import {
   challengesSegments,
   challengesTabFromQuery,
@@ -40,7 +46,13 @@ export default function ChallengesPage({
     });
   }
 
+  const [filters, setFilters] = useState<ChallengeBoardFilters>(
+    NO_CHALLENGE_BOARD_FILTERS,
+  );
   const challenges = api.challenges.listMine.useQuery();
+  const board = api.challenges.listOpen.useQuery(challengeBoardQuery(filters), {
+    enabled: tab === "open",
+  });
   const teams = api.teams.mine.useQuery();
   const pending = api.teams.pendingInvites.useQuery();
   const organized = api.games.listCreateGroups.useQuery(undefined, {
@@ -95,10 +107,29 @@ export default function ChallengesPage({
           ))}
         </TabsList>
         <TabsContent value="open">
-          <ChallengeSegmentEmpty segment="open" onGoToTeams={goToTeams} />
+          <ChallengeOpenSegment
+            board={board.data}
+            loading={board.isLoading}
+            error={board.error}
+            filters={filters}
+            onFilter={(key, value) =>
+              setFilters((current) => ({
+                ...current,
+                [key]: current[key] === value ? null : value,
+              }))
+            }
+            onClearFilters={() => setFilters(NO_CHALLENGE_BOARD_FILTERS)}
+            onRetry={() => {
+              void board.refetch();
+            }}
+            onGoToTeams={goToTeams}
+          />
         </TabsContent>
         <TabsContent value="mine">
-          <ChallengeSegmentEmpty segment="mine" onGoToTeams={goToTeams} />
+          <ChallengeMineSegment
+            posted={challenges.data?.posted}
+            onGoToTeams={goToTeams}
+          />
         </TabsContent>
         <TabsContent value="teams">
           <ChallengeTeamsSegment

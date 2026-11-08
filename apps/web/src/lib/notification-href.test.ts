@@ -97,6 +97,13 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens Challenges, Mine for an expired Challenge", () => {
+    assert.equal(
+      notificationHref({ type: "challenge_expired", group: null }),
+      "/dashboard/challenges?tab=mine",
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),

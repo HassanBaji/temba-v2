@@ -336,6 +336,14 @@ export function notificationCopy(
       subline: sub.acceptInTeams,
     };
   }
+  if (item.type === "challenge_expired") {
+    return {
+      title: item.team?.name
+        ? m.challengeExpired(userName(item.team.name, locale))
+        : m.challengeExpiredUnnamed,
+      subline: sub.postAgain,
+    };
+  }
   if (item.type === "game_finished" && item.game) {
     const subline = gameFinishedSubline(item.audience, item.game, locale);
     if (subline) {

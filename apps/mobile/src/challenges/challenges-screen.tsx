@@ -1,4 +1,9 @@
 import {
+  challengeBoardQuery,
+  NO_CHALLENGE_BOARD_FILTERS,
+  type ChallengeBoardFilters,
+} from "@repo/domain/challenge-card";
+import {
   challengesTabFromQuery,
   type ChallengesTab,
 } from "@repo/domain/challenges-tab";
@@ -11,6 +16,11 @@ import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
 import { newTeamPath, teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
+import {
+  challengePath,
+  NEW_CHALLENGE_PATH,
+  setBoardFilter,
+} from "./challenges-model";
 import { ChallengesView } from "./challenges-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -25,11 +35,18 @@ export function ChallengesScreen() {
   const setTab = (next: ChallengesTab) =>
     router.setParams({ tab: next === "open" ? undefined : next });
   const [refreshing, setRefreshing] = useState(false);
+  const [filters, setFilters] = useState<ChallengeBoardFilters>(
+    NO_CHALLENGE_BOARD_FILTERS,
+  );
 
   const challenges = api.challenges.listMine.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
   );
+  const board = api.challenges.listOpen.useQuery(challengeBoardQuery(filters), {
+    ...REFETCH_ON_FOREGROUND,
+    enabled: tab === "open",
+  });
   const teams = api.teams.mine.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const pending = api.teams.pendingInvites.useQuery(
     undefined,
@@ -53,8 +70,13 @@ export function ChallengesScreen() {
 
   const refetchAll = useCallback(
     () =>
-      Promise.all([challenges.refetch(), teams.refetch(), pending.refetch()]),
-    [challenges, teams, pending],
+      Promise.all([
+        challenges.refetch(),
+        teams.refetch(),
+        pending.refetch(),
+        ...(tab === "open" ? [board.refetch()] : []),
+      ]),
+    [challenges, teams, pending, board, tab],
   );
 
   const onRefresh = useCallback(async () => {
@@ -86,6 +108,21 @@ export function ChallengesScreen() {
         onCreate={(groupId) => router.push(newTeamPath(groupId))}
         onAccept={(inviteId) => accept.mutate({ inviteId })}
         onRetry={() => void refetchAll()}
+        posted={slotOf({
+          data: challenges.data?.posted,
+          error: challenges.error,
+          isLoading: challenges.isLoading,
+        })}
+        open={{
+          board: slotOf(board),
+          filters,
+          onFilter: (key, value) =>
+            setFilters((current) => setBoardFilter(current, key, value)),
+          onClearFilters: () => setFilters(NO_CHALLENGE_BOARD_FILTERS),
+          onOpenChallenge: (id) => router.push(challengePath(id)),
+          onPost: () => router.push(NEW_CHALLENGE_PATH),
+          onRetry: () => void board.refetch(),
+        }}
       />
     </Screen>
   );

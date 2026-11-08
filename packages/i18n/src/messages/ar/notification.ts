@@ -178,6 +178,11 @@ export const notification = {
       strong(actor),
       plain(" إلى فريقه"),
     ],
+    challengeExpired: (team: string) => [
+      plain("انتهت مدة تحدي "),
+      strong(team),
+    ],
+    challengeExpiredUnnamed: [plain("انتهت مدة تحدي فريقك")],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",
@@ -187,6 +192,7 @@ export const notification = {
     decideOnGroup: "وافق أو ارفض من صفحة المجموعة.",
     takeYourSeat: "يمكنك الانضمام إلى المباراة الآن.",
     acceptInTeams: "اقبلها أو ارفضها من صفحة الفرق.",
+    postAgain: "لم يصل أي عرض. انشر من جديد من التحديات.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

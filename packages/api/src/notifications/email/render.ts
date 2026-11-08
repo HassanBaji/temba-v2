@@ -26,7 +26,7 @@ export type NotificationEmailInput = Pick<
 export type NotificationEmail = { subject: string; html: string; text: string };
 
 type Destination = {
-  kind: "game" | "group" | "history" | "teams";
+  kind: "game" | "group" | "history" | "teams" | "challenges";
   path: string;
 };
 
@@ -78,6 +78,12 @@ export function notificationEmailDestination(
     return {
       kind: "teams",
       path: `/dashboard/challenges${challengesTabQuery("teams")}`,
+    };
+  }
+  if (item.type === "challenge_expired") {
+    return {
+      kind: "challenges",
+      path: `/dashboard/challenges${challengesTabQuery("mine")}`,
     };
   }
   if (item.type === "history_linked") {

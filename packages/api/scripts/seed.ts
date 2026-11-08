@@ -61,6 +61,7 @@ import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
+import { postChallenge } from "#src/routers/challenges/post";
 import { acceptInAppInvite } from "#src/routers/teams/acceptInAppInvite";
 import { createTeam } from "#src/routers/teams/create";
 import { createInviteLink as createTeamInviteLink } from "#src/routers/teams/createInviteLink";
@@ -879,7 +880,65 @@ async function seedTeams(u: Users) {
     });
   }
 
-  return { smash, netRunners, lobs, duo, rally, squad };
+  // A football Roster of twelve: it plays 5, 6 and 7-a-side.
+  const gooz = await make("me", "Gooz FC", "football");
+  for (const memberKey of [
+    "lina",
+    "omar",
+    "maya",
+    "diego",
+    "priya",
+    "sofia",
+    "yusuf",
+    "leo",
+    "zara",
+    "ben",
+    "newbie",
+  ]) {
+    const goozInvite = await invite(gooz.id, "me", memberKey);
+    await acceptInAppInvite(db, {
+      inviteId: goozInvite.id,
+      userId: u[memberKey]!.id,
+    });
+  }
+
+  return { smash, netRunners, lobs, duo, rally, squad, gooz };
+}
+
+// ---------------------------------------------------------------------------
+// Challenges
+// ---------------------------------------------------------------------------
+
+type Teams = Awaited<ReturnType<typeof seedTeams>>;
+
+/**
+ * One open Challenge per sport. Lina & Priya want a padel opponent at
+ * weekends; Gooz FC (Sam's twelve) wants a 6-a-side on Friday evenings, which
+ * Sunday Seven can answer.
+ */
+async function seedChallenges(u: Users, v: Venues, t: Teams) {
+  await postChallenge(db, {
+    teamId: t.duo.id,
+    levelMinTenths: 28,
+    levelMaxTenths: 55,
+    venueIds: [v.riverside.id, v.central.id],
+    days: ["sat", "sun"],
+    timings: ["evening"],
+    note: "Friendly pair, we book the court if you can't.",
+    userId: u.lina!.id,
+  });
+  await postChallenge(db, {
+    teamId: t.gooz.id,
+    sideSize: 6,
+    levelMinTenths: 21,
+    levelMaxTenths: 48,
+    venueIds: [v.pitches.id],
+    days: ["fri"],
+    timings: ["evening"],
+    exactSlots: [at(5, 20)],
+    note: "On time, bibs in the bag.",
+    userId: u.me!.id,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1739,9 +1798,10 @@ async function main() {
   const u = await step("users", seedUsers);
   const v = await step("venues", seedVenues);
   const g = await step("groups", () => seedGroups(u, v));
-  await step("teams", () => seedTeams(u));
+  const t = await step("teams", () => seedTeams(u));
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
+  await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));
 

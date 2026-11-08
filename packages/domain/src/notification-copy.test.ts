@@ -905,3 +905,50 @@ describe("notificationCopy for a Team invite", () => {
     );
   });
 });
+
+describe("notificationCopy for an expired Challenge", () => {
+  it("names the Team and says to post again", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "challenge_expired",
+          audience: "player",
+          actor: null,
+          team: { name: "Gooz FC" },
+          group: null,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "The challenge from ", strong: false },
+          { text: "Gooz FC", strong: true },
+          { text: " expired", strong: false },
+        ],
+        subline: "No proposal came in. Post again from Challenges.",
+      },
+    );
+  });
+
+  it("reads an unnamed Team as the recipient's, in Arabic too", () => {
+    const item = {
+      type: "challenge_expired",
+      audience: "player",
+      actor: null,
+      team: { name: null },
+      group: null,
+    };
+    assert.equal(
+      notificationCopy(item, "en")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Your Team's challenge expired",
+    );
+    assert.equal(
+      notificationCopy(item, "ar")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "انتهت مدة تحدي فريقك",
+    );
+  });
+});

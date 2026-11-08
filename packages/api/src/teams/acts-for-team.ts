@@ -1,11 +1,14 @@
 import type { DbClient, DbTx } from "@repo/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
-import { groups, teamMembers, type teams } from "@repo/db";
+import { groups, teamMembers, teams } from "@repo/db";
 import { teamIsSquad } from "@repo/domain/team-roster";
 
 import { mayOrganizeGroupGames } from "#src/games/access";
-import { appointedOrganizerUserIds } from "#src/groups/helpers/appointed-organizers";
+import {
+  appointedOrganizerGroupIds,
+  appointedOrganizerUserIds,
+} from "#src/groups/helpers/appointed-organizers";
 
 type DbOrTx = DbClient | DbTx;
 
@@ -75,4 +78,47 @@ export async function actingUserIds(
       ...(await appointedOrganizerUserIds(database, group)),
     ]),
   ];
+}
+
+/**
+ * Every Team the User acts for, oldest first: padel Teams they are on, and
+ * football Teams they captain or whose tagged Group they organize.
+ */
+export async function teamsUserActsFor(database: DbOrTx, userId: string) {
+  const memberships = await database.query.teamMembers.findMany({
+    where: eq(teamMembers.userId, userId),
+    columns: { teamId: true },
+  });
+  const memberTeamIds = new Set(memberships.map((row) => row.teamId));
+  const appointedIds = await appointedOrganizerGroupIds(database, userId);
+  const organized = await database.query.groups.findMany({
+    where: and(
+      isNull(groups.deletedAt),
+      appointedIds.length > 0
+        ? or(eq(groups.createdBy, userId), inArray(groups.id, appointedIds))
+        : eq(groups.createdBy, userId),
+    ),
+    columns: { id: true },
+  });
+  const organizedIds = new Set(organized.map((group) => group.id));
+  if (memberTeamIds.size === 0 && organizedIds.size === 0) {
+    return [];
+  }
+  const candidates = await database.query.teams.findMany({
+    where: or(
+      memberTeamIds.size > 0
+        ? inArray(teams.id, [...memberTeamIds])
+        : undefined,
+      organizedIds.size > 0
+        ? inArray(teams.groupId, [...organizedIds])
+        : undefined,
+    ),
+    orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+  });
+  return candidates.filter((team) =>
+    teamIsSquad(team.sport)
+      ? team.createdBy === userId ||
+        (team.groupId != null && organizedIds.has(team.groupId))
+      : memberTeamIds.has(team.id),
+  );
 }

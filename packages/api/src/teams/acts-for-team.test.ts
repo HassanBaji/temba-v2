@@ -11,7 +11,11 @@ import {
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
-import { actingUserIds, userActsForTeam } from "./acts-for-team";
+import {
+  actingUserIds,
+  teamsUserActsFor,
+  userActsForTeam,
+} from "./acts-for-team";
 
 type Db = Parameters<typeof userActsForTeam>[0];
 
@@ -141,6 +145,49 @@ describe("userActsForTeam and actingUserIds", () => {
       expect((await actingUserIds(db, team)).sort()).toEqual(
         [captain, groupOwner, appointed].sort(),
       );
+    });
+  });
+
+  it("lists the Teams a User acts for: padel member, football Captain, tagged Group Organizer", async () => {
+    await withDb(async (database, db) => {
+      const [viewer, partner, captain, member] = (await makeUsers(
+        database,
+        4,
+      )) as [string, string, string, string];
+      const [group] = await database
+        .insert(groups)
+        .values({
+          name: "Gooz of Arad",
+          createdBy: viewer,
+          sport: GroupSportEnum.FOOTBALL,
+        })
+        .returning({ id: groups.id });
+      const padel = await makeTeam(database, {
+        sport: "padel",
+        captain: partner,
+        members: [viewer],
+      });
+      const captained = await makeTeam(database, {
+        sport: "football",
+        captain: viewer,
+        members: [member],
+      });
+      const tagged = await makeTeam(database, {
+        sport: "football",
+        captain,
+        members: [],
+        groupId: group!.id,
+      });
+      await makeTeam(database, {
+        sport: "football",
+        captain,
+        members: [viewer],
+      });
+
+      expect(
+        (await teamsUserActsFor(db, viewer)).map((team) => team.id),
+      ).toEqual([padel.id, captained.id, tagged.id]);
+      expect(await teamsUserActsFor(db, member)).toEqual([]);
     });
   });
 });

@@ -85,6 +85,7 @@ describe("task list", () => {
       "booking.confirmed",
       "booking.expire-hold",
       "booking:reconcile",
+      "challenge.expire",
       "marks.settle-mvp",
       "notification.email",
       "payment.create-charge",

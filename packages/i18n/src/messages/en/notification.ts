@@ -146,6 +146,12 @@ export const notification = {
       strong(actor),
       plain(" invited you to their Team"),
     ],
+    challengeExpired: (team: string) => [
+      plain("The challenge from "),
+      strong(team),
+      plain(" expired"),
+    ],
+    challengeExpiredUnnamed: [plain("Your Team's challenge expired")],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
@@ -155,6 +161,7 @@ export const notification = {
     decideOnGroup: "Approve or decline on the Group.",
     takeYourSeat: "You can join the Game now.",
     acceptInTeams: "Accept or decline it in Teams.",
+    postAgain: "No proposal came in. Post again from Challenges.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

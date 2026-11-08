@@ -39,6 +39,9 @@ export function notificationHref(item: {
   if (item.type === "team_invite_received") {
     return `/dashboard/challenges${challengesTabQuery("teams")}`;
   }
+  if (item.type === "challenge_expired") {
+    return `/dashboard/challenges${challengesTabQuery("mine")}`;
+  }
   if (item.type === "history_linked") {
     return `/dashboard/games${gamesHubTabQuery("history")}`;
   }
