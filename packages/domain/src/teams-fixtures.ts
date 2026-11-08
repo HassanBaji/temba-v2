@@ -7,13 +7,18 @@ function member(
   id: string,
   person: { name: string; image: string | null },
   flags: { isCreator?: boolean; isViewer?: boolean } = {},
-) {
+): TeamHomeInput["members"][number] {
   return {
     id,
     name: person.name,
     image: person.image,
     isCreator: flags.isCreator ?? false,
     isViewer: flags.isViewer ?? false,
+    level: null,
+    levelBand: null,
+    preferredPosition: null,
+    footballRole: null,
+    footballPosition: null,
   };
 }
 
@@ -42,14 +47,30 @@ const BASE_HOME: TeamHomeInput = {
   displayName: "Ada Lindqvist & Kim Holm",
   sport: "padel",
   waitingForPartner: false,
-  gamesPlayed: 0,
-  wins: 0,
-  losses: 0,
+  record: { gamesPlayed: 0, wins: 0, draws: 0, losses: 0 },
+  form: [],
+  rivals: [],
+  closestRival: null,
+  games: [],
   members: COMPLETE_MEMBERS,
   canInvite: false,
   canDissolve: true,
   roster: roster("padel", 2),
   viewerCanLeave: false,
+  viewerActsForTeam: true,
+};
+
+const PLAYED_AT = new Date("2026-09-04T17:00:00.000Z");
+
+const SEEF_SMASHERS = {
+  teamId: "team-rival",
+  name: "Seef Smashers",
+  played: 3,
+  wins: 2,
+  draws: 0,
+  losses: 1,
+  lastResult: "won" as const,
+  lastPlayedAt: PLAYED_AT,
 };
 
 function footballMembers(count: number) {
@@ -93,6 +114,9 @@ export function createTeamsFixtures() {
   const home: Record<
     | "complete"
     | "record"
+    | "rivals"
+    | "closest"
+    | "footballRecord"
     | "incomplete"
     | "waiting"
     | "footballCreatorBuilding"
@@ -102,7 +126,74 @@ export function createTeamsFixtures() {
     TeamHomeInput
   > = {
     complete: BASE_HOME,
-    record: { ...BASE_HOME, gamesPlayed: 12, wins: 8, losses: 3 },
+    record: {
+      ...BASE_HOME,
+      record: { gamesPlayed: 12, wins: 8, draws: 1, losses: 3 },
+      form: ["won", "won", "lost"],
+      members: [
+        {
+          ...COMPLETE_MEMBERS[0]!,
+          level: "2.8",
+          levelBand: "C2",
+          preferredPosition: "left",
+        },
+        {
+          ...COMPLETE_MEMBERS[1]!,
+          level: "3.4",
+          levelBand: "C2",
+          preferredPosition: "either",
+        },
+      ],
+      games: [
+        {
+          matchId: "match-1",
+          gameId: "game-1",
+          playedAt: PLAYED_AT,
+          venueName: "Seef Courts",
+          opponent: { teamId: "team-rival", name: "Seef Smashers" },
+          sets: [
+            { us: 6, them: 3 },
+            { us: 6, them: 4 },
+          ],
+          result: "won",
+        },
+      ],
+    },
+    rivals: {
+      ...BASE_HOME,
+      record: { gamesPlayed: 3, wins: 2, draws: 0, losses: 1 },
+      rivals: [SEEF_SMASHERS],
+      closestRival: { ...SEEF_SMASHERS, teamId: "team-once", name: "Hidd" },
+    },
+    closest: {
+      ...BASE_HOME,
+      record: { gamesPlayed: 1, wins: 0, draws: 0, losses: 1 },
+      closestRival: {
+        ...SEEF_SMASHERS,
+        played: 1,
+        wins: 0,
+        losses: 1,
+        lastResult: "lost",
+      },
+    },
+    footballRecord: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      record: { gamesPlayed: 4, wins: 2, draws: 1, losses: 1 },
+      rivals: [{ ...SEEF_SMASHERS, wins: 1, draws: 1, losses: 1 }],
+      members: [
+        { ...footballMembers(1)[0]!, footballRole: "keeper" },
+        {
+          ...member("f2", KIM),
+          footballRole: "outfield",
+          footballPosition: "fwd",
+        },
+        { ...member("f3", KIM), footballRole: "outfield" },
+      ],
+      roster: roster("football", 3),
+      viewerActsForTeam: false,
+    },
     incomplete: {
       ...BASE_HOME,
       displayName: "Sunday Smashers",

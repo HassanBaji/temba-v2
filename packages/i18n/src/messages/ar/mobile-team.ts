@@ -4,7 +4,6 @@ export const mobileTeam = {
   home: {
     statA11y: (label: string, value: string) => `${label} ${value}`,
     actionsTitle: "إجراءات الفريق",
-    membersTitle: "الأعضاء",
   },
   list: {
     invitedBy: (name: string) => `بدعوة من ${name}`,

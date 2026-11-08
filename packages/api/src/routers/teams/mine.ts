@@ -8,6 +8,11 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
+import {
+  loadTeamMatches,
+  teamRecordFromMatches,
+  teamRivalsFromMatches,
+} from "#src/teams/team-record";
 
 type DbClient = typeof db;
 
@@ -43,10 +48,13 @@ export async function mine(database: DbClient, args: { userId: string }) {
     membersByTeam.set(row.teamId, list);
   }
 
+  const matchesByTeam = await loadTeamMatches(database, teamIds);
+
   return memberships.map((membership) => {
     const team = membership.team;
     const members = membersByTeam.get(team.id) ?? [];
     const memberNames = members.map((member) => member.user.name);
+    const teamMatches = matchesByTeam.get(team.id) ?? [];
 
     return {
       id: team.id,
@@ -58,6 +66,9 @@ export async function mine(database: DbClient, args: { userId: string }) {
         image: member.user.image,
       })),
       memberCount: members.length,
+      rosterCount: members.length,
+      record: teamRecordFromMatches(teamMatches),
+      rivalCount: teamRivalsFromMatches(teamMatches).rivals.length,
       incomplete: !teamIsComplete(members.length, team.sport),
     };
   });

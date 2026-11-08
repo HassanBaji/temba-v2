@@ -56,6 +56,7 @@ export const team = {
     description: "لا يمكنك العودة إلا إذا دُعيت مجددًا.",
   },
   roster: {
+    title: "قائمة الفريق",
     count: (count: number, max: number) => `${count} من ${max}`,
     full: "ممتلئ",
     complete: "مكتمل",
@@ -70,7 +71,53 @@ export const team = {
   },
   stats: {
     gamesPlayed: "المباريات الملعوبة",
-    winRate: "نسبة الفوز",
+    draws: "التعادلات",
   },
-  creatorLabel: "المنشئ",
+  captainLabel: "القائد",
+  level: {
+    member: (band: string, level: string) => `${band}، ${level}`,
+    team: (band: string, level: string) => `${band}، المعدل ${level}`,
+  },
+  seat: {
+    left: "يلعب يسارًا",
+    right: "يلعب يمينًا",
+    either: "أي جهة",
+    keeper: "حارس مرمى",
+    outfield: "لاعب ميدان",
+  },
+  form: {
+    title: "آخر النتائج",
+    empty: "لا نتائج بعد. تظهر هنا آخر عشر نتائج.",
+    older: "الأقدم",
+    latest: "الأحدث",
+  },
+  rivals: {
+    title: "المنافسون",
+    headToHead: (wins: number, losses: number) => `${wins}–${losses}`,
+    headToHeadWithDraws: (wins: number, draws: number, losses: number) =>
+      `${wins}–${draws}–${losses}`,
+    headToHeadSpoken: (wins: number, losses: number) =>
+      `المواجهات المباشرة: فاز ${wins}، خسر ${losses}`,
+    headToHeadSpokenWithDraws: (wins: number, draws: number, losses: number) =>
+      `المواجهات المباشرة: فاز ${wins}، تعادل ${draws}، خسر ${losses}`,
+    played: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات",
+        one: "مباراة واحدة",
+        two: "مباراتان",
+        few: "{n} مباريات",
+        many: "{n} مباراة",
+        other: "{n} مباراة",
+      }),
+    last: (result: string, day: string) => `الأخيرة: ${result}، ${day}`,
+    closest: (name: string) =>
+      `الأقرب: ${name}، لعبتم مرة واحدة. مباراة أخرى تجعله منافسًا.`,
+    empty: "العب ضد الفريق نفسه مرتين ليصبح منافسًا.",
+    rematch: "مباراة إعادة",
+    opponentFallback: "المنافس",
+  },
+  games: {
+    title: "المباريات",
+    empty: "لا مباريات ملعوبة بعد.",
+  },
 } satisfies typeof source;

@@ -1,7 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { sportGlyph } from "@repo/domain/sport";
 import { type TeamHomeView as TeamHomeViewData } from "@repo/domain/teams";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import {
   ConfirmSheet,
@@ -11,6 +11,8 @@ import { Notice } from "../groups/notice";
 import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { FormSlot } from "../primitives/form-slot";
+import { ResultMark } from "../primitives/result-mark";
 import { SportGlyph } from "../lib/sport-glyph";
 import { Hairline } from "../primitives/hairline";
 import { ScreenHeader } from "../primitives/screen-header";
@@ -28,18 +30,19 @@ export type TeamHomeViewProps = {
   confirmPending: boolean;
   actionError: string | null;
   onInvite: () => void;
+  onOpenTeam: (teamId: string) => void;
   onDissolve: () => void;
   onLeave: () => void;
   onCloseConfirm: () => void;
 };
 
-function Stats({ stats }: { stats: TeamHomeViewData["stats"] }) {
+function Stats({ stats }: { stats: TeamHomeViewData["recordTiles"] }) {
   const m = useMessages();
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View style={{ flexDirection: "row" }}>
         {stats.map((stat) => (
-          <View key={stat.label} style={{ flex: 1, flexDirection: "row" }}>
+          <View key={stat.key} style={{ flex: 1, flexDirection: "row" }}>
             <View
               accessible
               accessibilityLabel={m.mobileTeam.home.statA11y(
@@ -93,7 +96,9 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
             accessibilityLabel={[
               member.name,
               member.isViewer ? m.common.you : null,
-              member.creatorLabel,
+              member.captainLabel,
+              member.seatLabel,
+              member.levelLabel,
             ]
               .filter(Boolean)
               .join(m.group.metaSeparator)}
@@ -110,17 +115,160 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
               <Text weight="semibold" numberOfLines={1}>
                 {member.name}
               </Text>
-              {member.isViewer ? (
-                <Text size="meta" tone="muted">
-                  {m.common.you}
+              {member.isViewer || member.seatLabel || member.levelLabel ? (
+                <Text size="meta" tone="muted" numberOfLines={1}>
+                  {[
+                    member.isViewer ? m.common.you : null,
+                    member.seatLabel,
+                    member.levelLabel,
+                  ]
+                    .filter(Boolean)
+                    .join(m.common.listSeparator)}
                 </Text>
               ) : null}
             </View>
-            {member.creatorLabel ? (
+            {member.captainLabel ? (
               <Text size="eyebrow" tone="muted" mono uppercase>
-                {member.creatorLabel}
+                {member.captainLabel}
               </Text>
             ) : null}
+          </View>
+        </View>
+      ))}
+    </Surface>
+  );
+}
+
+function FormLine({ form }: { form: TeamHomeViewData["form"] }) {
+  const m = useMessages();
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: 4 }}>
+        {form.slots.map((slot) => (
+          <FormSlot key={slot.key} variant={slot.variant} compact />
+        ))}
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <Text size="eyebrow" tone="muted">
+          {m.team.form.older}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {m.team.form.latest}
+        </Text>
+      </View>
+      {form.emptyCopy ? (
+        <Text size="meta" tone="muted">
+          {form.emptyCopy}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function Rivals({
+  view,
+  onOpenTeam,
+}: {
+  view: TeamHomeViewData;
+  onOpenTeam: (teamId: string) => void;
+}) {
+  const m = useMessages();
+  if (view.rivals.length === 0) {
+    return (
+      <Text size="meta" tone="muted">
+        {view.closestLine ?? view.rivalsEmptyCopy}
+      </Text>
+    );
+  }
+  return (
+    <Surface padded={false} style={{ overflow: "hidden" }}>
+      {view.rivals.map((rival, index) => (
+        <View key={rival.teamId}>
+          {index > 0 ? <Hairline /> : null}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: spacing.surface,
+            }}
+          >
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={rival.accessibilityLabel}
+              onPress={() => onOpenTeam(rival.teamId)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text weight="semibold" numberOfLines={1}>
+                  {rival.name}
+                </Text>
+                <Text size="meta" tone="muted" numberOfLines={1}>
+                  {[rival.played, rival.last].join(m.common.listSeparator)}
+                </Text>
+              </View>
+              <Text size="title" weight="bold">
+                {rival.headToHead}
+              </Text>
+            </Pressable>
+            {view.rematch ? (
+              <Button
+                label={view.rematch.label}
+                variant="outline"
+                size="sm"
+                disabled={view.rematch.disabled}
+              />
+            ) : null}
+          </View>
+        </View>
+      ))}
+    </Surface>
+  );
+}
+
+function Games({ view }: { view: TeamHomeViewData }) {
+  const m = useMessages();
+  if (view.games.length === 0) {
+    return (
+      <Text size="meta" tone="muted">
+        {view.gamesEmptyCopy}
+      </Text>
+    );
+  }
+  return (
+    <Surface padded={false} style={{ overflow: "hidden" }}>
+      {view.games.map((game, index) => (
+        <View key={game.key}>
+          {index > 0 ? <Hairline /> : null}
+          <View
+            accessible
+            accessibilityLabel={[game.opponentName, game.meta, game.scoreLine]
+              .filter(Boolean)
+              .join(m.group.metaSeparator)}
+            style={{
+              minHeight: 56,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              padding: spacing.surface,
+            }}
+          >
+            <ResultMark variant={game.result} decorative />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text weight="semibold" numberOfLines={1}>
+                {game.opponentName}
+              </Text>
+              <Text size="meta" tone="muted" numberOfLines={1}>
+                {game.meta}
+              </Text>
+            </View>
+            <Text weight="semibold">{game.scoreLine}</Text>
           </View>
         </View>
       ))}
@@ -176,9 +324,24 @@ export function TeamHomeView(props: TeamHomeViewProps) {
         </Text>
       ) : null}
 
-      <Stats stats={view.stats} />
+      <View style={{ gap: 8 }}>
+        <Stats stats={view.recordTiles} />
+        {view.teamLevel ? (
+          <Text size="meta" tone="muted">
+            {view.teamLevel}
+          </Text>
+        ) : null}
+      </View>
 
-      <Section title={m.mobileTeam.home.membersTitle}>
+      <Section title={m.team.form.title}>
+        <FormLine form={view.form} />
+      </Section>
+
+      <Section title={m.team.rivals.title}>
+        <Rivals view={view} onOpenTeam={props.onOpenTeam} />
+      </Section>
+
+      <Section title={m.team.roster.title}>
         {view.roster.label ? (
           <Text size="eyebrow" tone="muted" mono uppercase>
             {[view.roster.label, view.roster.status]
@@ -187,6 +350,10 @@ export function TeamHomeView(props: TeamHomeViewProps) {
           </Text>
         ) : null}
         <Members members={view.members} />
+      </Section>
+
+      <Section title={m.team.games.title}>
+        <Games view={view} />
       </Section>
 
       {view.canInvite || view.canLeave || view.canDissolve ? (

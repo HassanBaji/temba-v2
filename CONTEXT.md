@@ -172,8 +172,28 @@ A Venue manager’s request that a Loose Group Public link to that Venue. The Gr
 _Avoid_: Group join request, Venue link (that is the result), invite (when you mean this request), Group transfer, Venue link request (retired, ADR-0055)
 
 **Team**:
-A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. A Team stands on its own: it belongs to no Group and links to no Venue. A football Team has a creator and no captain: other members may leave, the creator dissolves.
-_Avoid_: Group, Game team, pair, doubles (when you mean this entity), captain, Club Team, Loose Team (retired, ADR-0055)
+A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. A Team stands on its own: it belongs to no Group and links to no Venue. Its creator is its Captain (ADR-0059): on a football Team the Captain acts for the Team, other members may leave, the Captain dissolves; on a padel Team both members act for the Team. Any signed-in User may open a Team's detail (record, form, Rivals, Roster); invites, leave and dissolve stay with members.
+_Avoid_: Group, Game team, pair, doubles (when you mean this entity), Club Team, Loose Team (retired, ADR-0055)
+
+**Captain**:
+The product name for a Team's creator (`teams.created_by`); there is no captain column and no transfer. On a football Team the Captain acts for the Team; on a padel Team both members do.
+_Avoid_: owner, admin, creator (in product copy), organizer (when you mean this)
+
+**Team record**:
+Wins–losses (padel) or wins–draws–losses (football) over a Team's completed Matches on non-cancelled Games, read from the Game teams bound to the Team and derived on every read. A Match awaiting confirmation or a Walkover does not count. No stored counters.
+_Avoid_: stats, standing (that is a Season Standing), win rate
+
+**Rival**:
+Another Team this Team has completed two or more Matches against, shown with its head-to-head and last result. A Team played once is the closest candidate, shown when there is no Rival yet.
+_Avoid_: opponent (any Team on the other side of one Match), nemesis, rivalry (as an entity)
+
+**Head-to-head**:
+The wins–losses (wins–draws–losses in football) between a Team and one Rival, from this Team's side, derived from the same Matches as the Team record.
+_Avoid_: H2H (in product copy), series, rivalry score
+
+**Team Level**:
+The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A Team with no rated member has no Team Level. Never a Rating.
+_Avoid_: team rating, average rank, squad level
 
 **Team roster rule**:
 The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.

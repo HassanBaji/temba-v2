@@ -58,6 +58,7 @@ export const team = {
     description: "You can only rejoin if you are invited again.",
   },
   roster: {
+    title: "Roster",
     count: (count: number, max: number) => `${count} of ${max}`,
     full: "Full",
     complete: "Complete",
@@ -69,7 +70,49 @@ export const team = {
   },
   stats: {
     gamesPlayed: "Games played",
-    winRate: "Win rate",
+    draws: "Draws",
   },
-  creatorLabel: "Creator",
+  captainLabel: "Captain",
+  level: {
+    member: (band: string, level: string) => `${band}, ${level}`,
+    team: (band: string, level: string) => `${band}, avg ${level}`,
+  },
+  seat: {
+    left: "Plays left",
+    right: "Plays right",
+    either: "Either side",
+    keeper: "Keeper",
+    outfield: "Outfield",
+  },
+  form: {
+    title: "Form",
+    empty: "No results yet. The last ten show here.",
+    older: "Older",
+    latest: "Latest",
+  },
+  rivals: {
+    title: "Rivals",
+    headToHead: (wins: number, losses: number) => `${wins}–${losses}`,
+    headToHeadWithDraws: (wins: number, draws: number, losses: number) =>
+      `${wins}–${draws}–${losses}`,
+    headToHeadSpoken: (wins: number, losses: number) =>
+      `Head-to-head: won ${wins}, lost ${losses}`,
+    headToHeadSpokenWithDraws: (wins: number, draws: number, losses: number) =>
+      `Head-to-head: won ${wins}, drew ${draws}, lost ${losses}`,
+    played: (n: number) =>
+      plural("en", n, {
+        one: "1 Match",
+        other: "{n} Matches",
+      }),
+    last: (result: string, day: string) => `Last: ${result}, ${day}`,
+    closest: (name: string) =>
+      `Closest: ${name}, played once. One more Match makes them a Rival.`,
+    empty: "Play the same Team twice and they become a Rival.",
+    rematch: "Rematch",
+    opponentFallback: "Opponent",
+  },
+  games: {
+    title: "Games",
+    empty: "No games played yet.",
+  },
 };

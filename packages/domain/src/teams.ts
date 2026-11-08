@@ -1,10 +1,27 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { isFootballPosition } from "./football-lineup";
+import { formatGameDay } from "./format-game-start";
 import { groupHomeSportLabel } from "./group-home-chrome";
+import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+import { historyScoreLine } from "./match-history-card";
+import { isPreferredPosition } from "./preferred-position";
+import {
+  resultMarkVariant,
+  type MatchOutcome,
+  type ResultMarkVariant,
+} from "./result-mark";
 import type { Sport } from "./sport";
 import { teamAvatarPeople } from "./team-avatar-people";
-import { formatWinRate } from "./win-rate";
+import { teamLevelLabel } from "./team-level";
+import {
+  closestRivalLine,
+  opponentName,
+  teamRivalRow,
+  type HeadToHead,
+  type TeamRivalInput,
+} from "./team-rivals";
 
 export function teamCreateInput(form: { name: string; sport: Sport }) {
   return { name: teamNameInput(form.name), sport: form.sport };
@@ -109,25 +126,124 @@ export function teamInviteDescription(squad: boolean, locale: Locale) {
   return squad ? m.squadInviteDescription : m.inviteDescription;
 }
 
+export type TeamHomeMemberInput = {
+  id: string;
+  name: string | null;
+  image: string | null;
+  isCreator: boolean;
+  isViewer: boolean;
+  level: string | null;
+  levelBand: LevelBand | null;
+  preferredPosition: string | null;
+  footballRole: string | null;
+  footballPosition: string | null;
+};
+
+export type TeamHomeGameInput = {
+  matchId: string;
+  gameId: string;
+  playedAt: Date | string;
+  venueName: string | null;
+  opponent: { teamId: string | null; name: string | null };
+  sets: { us: number | null; them: number | null }[];
+  result: MatchOutcome | null;
+};
+
 export type TeamHomeInput = {
   displayName: string | null;
   sport: string;
   waitingForPartner: boolean;
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-  members: {
-    id: string;
-    name: string | null;
-    image: string | null;
-    isCreator: boolean;
-    isViewer: boolean;
-  }[];
+  record: HeadToHead & { gamesPlayed: number };
+  form: MatchOutcome[];
+  rivals: TeamRivalInput[];
+  closestRival: TeamRivalInput | null;
+  games: TeamHomeGameInput[];
+  members: TeamHomeMemberInput[];
   roster: TeamRosterInput;
   canInvite: boolean;
   canDissolve: boolean;
   viewerCanLeave: boolean;
+  viewerActsForTeam: boolean;
 };
+
+export const TEAM_FORM_SLOTS = 10;
+
+function recordTiles(data: TeamHomeInput, locale: Locale) {
+  const m = messagesFor(locale);
+  const { record } = data;
+  return [
+    { key: "wins", label: m.common.wins, value: String(record.wins) },
+    data.sport === "football"
+      ? { key: "draws", label: m.team.stats.draws, value: String(record.draws) }
+      : null,
+    { key: "losses", label: m.common.losses, value: String(record.losses) },
+    {
+      key: "games",
+      label: m.team.stats.gamesPlayed,
+      value: String(record.gamesPlayed),
+    },
+  ].filter((tile) => tile != null);
+}
+
+/** Ten slots, oldest first, hatched on the older side until ten are played. */
+function formSlots(form: readonly MatchOutcome[]) {
+  const shown = form.slice(-TEAM_FORM_SLOTS);
+  const variants: ResultMarkVariant[] = [
+    ...Array.from(
+      { length: TEAM_FORM_SLOTS - shown.length },
+      () => "not-played" as const,
+    ),
+    ...shown,
+  ];
+  return variants.map((variant, index) => ({ key: `form-${index}`, variant }));
+}
+
+function memberSeatLabel(
+  member: TeamHomeMemberInput,
+  sport: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  if (sport === "football") {
+    if (member.footballRole === "keeper") {
+      return m.team.seat.keeper;
+    }
+    if (isFootballPosition(member.footballPosition)) {
+      return m.football.lineup.positions[member.footballPosition];
+    }
+    return member.footballRole === "outfield" ? m.team.seat.outfield : null;
+  }
+  return isPreferredPosition(member.preferredPosition)
+    ? m.team.seat[member.preferredPosition]
+    : null;
+}
+
+function memberLevelLabel(member: TeamHomeMemberInput, locale: Locale) {
+  return member.levelBand && member.level
+    ? messagesFor(locale).team.level.member(
+        displayLabelFromStoredBand(member.levelBand),
+        member.level,
+      )
+    : null;
+}
+
+function gameRow(game: TeamHomeGameInput, locale: Locale) {
+  const m = messagesFor(locale);
+  const scored = game.sets.flatMap((set) =>
+    set.us != null && set.them != null ? [{ us: set.us, them: set.them }] : [],
+  );
+  const day = formatGameDay(game.playedAt, locale);
+  return {
+    key: game.matchId,
+    gameId: game.gameId,
+    opponentName: opponentName(game.opponent.name, locale),
+    meta: [day, game.venueName]
+      .filter((part): part is string => Boolean(part))
+      .join(m.common.listSeparator),
+    scoreLine: historyScoreLine(scored, locale),
+    result: resultMarkVariant(game.result),
+  };
+}
 
 export function teamHomeView(data: TeamHomeInput, locale: Locale) {
   const m = messagesFor(locale);
@@ -141,10 +257,21 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     groupHomeSportLabel(data.sport, locale),
     data.waitingForPartner ? m.team.incompleteLabel : null,
   ].filter((badge): badge is string => badge != null);
+  const rivals = data.rivals.map((rival) =>
+    teamRivalRow(rival, data.sport, locale),
+  );
+  const closestLine =
+    rivals.length === 0 && data.closestRival
+      ? closestRivalLine(data.closestRival, locale)
+      : null;
 
   return {
     title,
     badges,
+    teamLevel: teamLevelLabel(
+      data.members.map((member) => member.level),
+      locale,
+    ),
     people: data.members.map((member) => ({
       name: member.name ?? m.team.memberFallback,
       image: member.image,
@@ -158,21 +285,30 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     waitingCopy: squad
       ? m.team.roster.waitingSquad(seatsToComplete)
       : m.team.waitingCopy,
-    stats: [
-      { label: m.team.stats.gamesPlayed, value: String(data.gamesPlayed) },
-      { label: m.common.wins, value: String(data.wins) },
-      { label: m.common.losses, value: String(data.losses) },
-      {
-        label: m.team.stats.winRate,
-        value: formatWinRate(data.wins, data.gamesPlayed),
-      },
-    ],
+    recordTiles: recordTiles(data, locale),
+    form: {
+      slots: formSlots(data.form),
+      emptyCopy: data.form.length === 0 ? m.team.form.empty : null,
+    },
+    rivals,
+    closestLine,
+    rivalsEmptyCopy:
+      rivals.length === 0 && closestLine == null ? m.team.rivals.empty : null,
+    /** Disabled until Rematch ships with Challenges. */
+    rematch:
+      data.viewerActsForTeam && rivals.length > 0
+        ? { label: m.team.rivals.rematch, disabled: true }
+        : null,
+    games: data.games.map((game) => gameRow(game, locale)),
+    gamesEmptyCopy: data.games.length === 0 ? m.team.games.empty : null,
     members: data.members.map((member) => ({
       id: member.id,
       name: member.name ?? m.team.memberFallback,
       image: member.image,
       isViewer: member.isViewer,
-      creatorLabel: member.isCreator ? m.team.creatorLabel : null,
+      captainLabel: member.isCreator ? m.team.captainLabel : null,
+      seatLabel: memberSeatLabel(member, data.sport, locale),
+      levelLabel: memberLevelLabel(member, locale),
     })),
     canInvite: data.canInvite,
     canDissolve: data.canDissolve,

@@ -17,7 +17,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import { TEAMS_PATH } from "./teams-model";
+import { TEAMS_PATH, teamPath } from "./teams-model";
 import { TeamHomeView } from "./team-home-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -126,6 +126,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         confirmPending={dissolve.isPending || leave.isPending}
         actionError={actionError}
         onInvite={() => setInviteOpen(true)}
+        onOpenTeam={(id) => router.push(teamPath(id))}
         onDissolve={() => {
           setActionError(null);
           setConfirm({

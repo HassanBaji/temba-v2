@@ -24,6 +24,9 @@ import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
+import { TeamFormLine } from "~/components/teams/team-form-line";
+import { TeamGamesList } from "~/components/teams/team-games-list";
+import { TeamRivalsList } from "~/components/teams/team-rivals-list";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -205,10 +208,23 @@ export default function TeamHomePage({
           <p className="text-body text-muted-foreground">{view.waitingCopy}</p>
         ) : null}
 
-        <StatStrip items={view.stats} />
+        <div className="space-y-2">
+          <StatStrip items={view.recordTiles} />
+          {view.teamLevel ? (
+            <p className="text-meta text-muted-foreground">{view.teamLevel}</p>
+          ) : null}
+        </div>
+
+        <Section title={m.team.form.title}>
+          <TeamFormLine form={view.form} />
+        </Section>
+
+        <Section title={m.team.rivals.title}>
+          <TeamRivalsList view={view} />
+        </Section>
 
         <Section
-          title={m.webDashboard.team.membersTitle}
+          title={m.team.roster.title}
           description={
             view.roster.label
               ? [view.roster.label, view.roster.status]
@@ -232,15 +248,24 @@ export default function TeamHomePage({
                   name={member.name}
                   image={member.image}
                   isViewer={member.isViewer}
+                  meta={
+                    [member.seatLabel, member.levelLabel]
+                      .filter(Boolean)
+                      .join(m.common.listSeparator) || undefined
+                  }
                   badge={
-                    member.creatorLabel ? (
-                      <Badge variant="outline">{member.creatorLabel}</Badge>
+                    member.captainLabel ? (
+                      <Badge variant="outline">{member.captainLabel}</Badge>
                     ) : undefined
                   }
                 />
               ))}
             </RowList>
           )}
+        </Section>
+
+        <Section title={m.team.games.title}>
+          <TeamGamesList view={view} />
         </Section>
       </div>
 

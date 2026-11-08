@@ -1,19 +1,13 @@
-import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  gameTeams,
-  matches,
-  MatchStatusEnum,
-  teamMembers,
-  type GroupSportEnum,
-} from "@repo/db";
+import { ratings, teamMembers, teams, type GroupSportEnum } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { matchOutcome } from "@repo/domain/match-outcome";
+import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { type LevelBand } from "@repo/domain/level-bands";
 import {
   teamIsComplete,
   teamIsFull,
@@ -24,99 +18,74 @@ import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
+import {
+  loadTeamMatches,
+  teamFormFromMatches,
+  teamRecordFromMatches,
+  teamRivalsFromMatches,
+} from "#src/teams/team-record";
 
 type DbClient = typeof db;
 
-type TeamRecord = {
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-};
+const RECENT_GAMES_SHOWN = 10;
 
-type TeamRecordMatch = {
-  slot1GameTeamId: string | null;
-  slot2GameTeamId: string | null;
-  sets: readonly {
-    slot1GamesWon: number | null;
-    slot2GamesWon: number | null;
-  }[];
-};
-
-/**
- * Record of one Team across its completed Matches, given the ids of the Game
- * teams the Team sat as. A draw is played, neither won nor lost.
- */
-function teamRecordFromMatches(
-  matchesOfTeam: readonly TeamRecordMatch[],
-  teamGameTeamIds: ReadonlySet<string>,
-): TeamRecord {
-  const record: TeamRecord = { gamesPlayed: 0, wins: 0, losses: 0 };
-  for (const match of matchesOfTeam) {
-    const slot = teamGameTeamIds.has(match.slot1GameTeamId ?? "")
-      ? 1
-      : teamGameTeamIds.has(match.slot2GameTeamId ?? "")
-        ? 2
-        : null;
-    if (slot === null) {
-      continue;
-    }
-    record.gamesPlayed += 1;
-    const { result } = matchOutcome(match.sets);
-    if (result === "slot1" || result === "slot2") {
-      if (result === `slot${slot}`) {
-        record.wins += 1;
-      } else {
-        record.losses += 1;
-      }
-    }
+async function loadTeamNames(database: DbClient, teamIds: readonly string[]) {
+  if (teamIds.length === 0) {
+    return new Map<string, string>();
   }
-  return record;
-}
-
-/**
- * Derived on every read from the completed Matches of the Team's non-cancelled
- * Games. A Match awaiting confirmation and a Walkover (a cancelled Match) do
- * not count. There are no stored counters.
- */
-async function loadTeamRecord(
-  database: DbClient,
-  teamId: string,
-): Promise<TeamRecord> {
-  const teamRows = await database.query.gameTeams.findMany({
-    where: eq(gameTeams.teamId, teamId),
-    columns: { id: true },
+  const rows = await database.query.teams.findMany({
+    where: inArray(teams.id, [...teamIds]),
+    columns: { id: true, name: true },
   });
-  const gameTeamIds = teamRows.map((row) => row.id);
-  if (gameTeamIds.length === 0) {
-    return { gamesPlayed: 0, wins: 0, losses: 0 };
-  }
-
-  const completed = await database.query.matches.findMany({
-    where: and(
-      eq(matches.status, MatchStatusEnum.COMPLETED),
-      or(
-        inArray(matches.slot1GameTeamId, gameTeamIds),
-        inArray(matches.slot2GameTeamId, gameTeamIds),
+  const memberRows = await database.query.teamMembers.findMany({
+    where: inArray(teamMembers.teamId, [...teamIds]),
+    columns: { teamId: true },
+    with: { user: { columns: { name: true } } },
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      teamDisplayName(
+        row.name,
+        memberRows
+          .filter((member) => member.teamId === row.id)
+          .map((member) => member.user.name),
       ),
-    ),
-    columns: { slot1GameTeamId: true, slot2GameTeamId: true },
-    with: {
-      game: { columns: { cancelledAt: true } },
-      sets: { columns: { slot1GamesWon: true, slot2GamesWon: true } },
-    },
-  });
-
-  return teamRecordFromMatches(
-    completed.filter((match) => match.game?.cancelledAt == null),
-    new Set(gameTeamIds),
+    ]),
   );
 }
 
+async function loadMemberLevels(
+  database: DbClient,
+  sport: GroupSportEnum,
+  userIds: readonly string[],
+) {
+  const levels = new Map<string, { level: string; levelBand: LevelBand }>();
+  if (userIds.length === 0) {
+    return levels;
+  }
+  const rows = await database.query.ratings.findMany({
+    where: and(eq(ratings.sport, sport), inArray(ratings.userId, [...userIds])),
+  });
+  const now = new Date();
+  for (const row of rows) {
+    const view = youRatingViewAfterIdle(row, now);
+    levels.set(row.userId, { level: view.level, levelBand: view.levelBand });
+  }
+  return levels;
+}
+
+/**
+ * Any signed-in User may open any Team: a Challenge shows the opposing Team's
+ * record and Roster. Invites, dissolve and leave stay with members.
+ */
 export async function teamById(
   database: DbClient,
   args: { teamId: string; userId: string },
 ) {
   const team = await requireTeam(database, args.teamId);
+  const sport = team.sport as GroupSportEnum;
 
   const membership = await database.query.teamMembers.findFirst({
     where: and(
@@ -126,13 +95,6 @@ export async function teamById(
   });
 
   const isMember = Boolean(membership);
-
-  if (!isMember) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You cannot open this Team",
-    });
-  }
 
   const memberRows = await listTeamMembers(database, team.id);
   const memberNames = memberRows.map((row) => row.user.name);
@@ -147,17 +109,64 @@ export async function teamById(
   const canDissolve =
     isMember && (isCreator || (!incomplete && !teamIsSquad(team.sport)));
   const viewerCanLeave = isMember && !isCreator && teamIsSquad(team.sport);
+  const viewerActsForTeam = teamIsSquad(team.sport) ? isCreator : isMember;
 
-  const record = await loadTeamRecord(database, team.id);
+  const teamMatches =
+    (await loadTeamMatches(database, [team.id])).get(team.id) ?? [];
+  const record = teamRecordFromMatches(teamMatches);
+  const { rivals, closest } = teamRivalsFromMatches(teamMatches);
+  const recentMatches = teamMatches.slice(-RECENT_GAMES_SHOWN).reverse();
+
+  const opponentNames = await loadTeamNames(database, [
+    ...new Set(
+      teamMatches
+        .map((match) => match.opponentTeamId)
+        .filter((id): id is string => id != null),
+    ),
+  ]);
+  const levels = await loadMemberLevels(
+    database,
+    sport,
+    memberRows.map((row) => row.user.id),
+  );
+
+  const rivalView = (rival: (typeof rivals)[number]) => ({
+    teamId: rival.teamId,
+    name: opponentNames.get(rival.teamId) ?? null,
+    played: rival.played,
+    wins: rival.wins,
+    draws: rival.draws,
+    losses: rival.losses,
+    lastResult: rival.lastResult,
+    lastPlayedAt: rival.lastPlayedAt,
+  });
 
   return {
     id: team.id,
     name: team.name,
     displayName: teamDisplayName(team.name, memberNames),
-    sport: team.sport as GroupSportEnum,
+    sport,
     gamesPlayed: record.gamesPlayed,
     wins: record.wins,
     losses: record.losses,
+    record,
+    form: teamFormFromMatches(teamMatches),
+    rivals: rivals.map(rivalView),
+    closestRival: closest ? rivalView(closest) : null,
+    games: recentMatches.map((match) => ({
+      matchId: match.matchId,
+      gameId: match.gameId,
+      playedAt: match.playedAt,
+      venueName: match.venueName,
+      opponent: {
+        teamId: match.opponentTeamId,
+        name: match.opponentTeamId
+          ? (opponentNames.get(match.opponentTeamId) ?? null)
+          : match.opponentSideName,
+      },
+      sets: match.sets,
+      result: match.result,
+    })),
     incomplete,
     waitingForPartner: incomplete,
     roster: {
@@ -169,7 +178,10 @@ export async function teamById(
       full,
     },
     createdBy: team.createdBy,
+    captainUserId: team.createdBy,
     createdAt: team.createdAt,
+    viewerIsMember: isMember,
+    viewerActsForTeam,
     membership: membership ? { id: membership.id } : null,
     members: memberRows.map((row) => ({
       id: row.id,
@@ -178,6 +190,11 @@ export async function teamById(
       image: row.user.image,
       isCreator: row.user.id === team.createdBy,
       isViewer: row.user.id === args.userId,
+      level: levels.get(row.user.id)?.level ?? null,
+      levelBand: levels.get(row.user.id)?.levelBand ?? null,
+      preferredPosition: row.user.preferredPosition,
+      footballRole: row.user.preferredFootballRole,
+      footballPosition: row.user.preferredFootballPosition,
     })),
     canInvite,
     canDissolve,
