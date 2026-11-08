@@ -23,7 +23,7 @@ import {
   teamIsSquad,
   teamRosterRule,
 } from "@repo/domain/team-roster";
-import { mayOrganizeGroupGames } from "#src/games/access";
+import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import { userActsForTeam } from "#src/teams/acts-for-team";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { games, teams, type Db } from "@repo/db";
+import { games, teams, type Db, type DbClient } from "@repo/db";
 
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { enqueueAt } from "#src/jobs/enqueue";
@@ -17,6 +17,24 @@ export const SQUAD_DUE_BEFORE_KICK_OFF_MS = 24 * 60 * 60 * 1000;
 /** When the reminder for a Challenge Game kicking off at `windowStart` runs. */
 export function squadDueAt(windowStart: Date) {
   return new Date(windowStart.getTime() - SQUAD_DUE_BEFORE_KICK_OFF_MS);
+}
+
+/**
+ * Puts the reminder at kick-off minus 24 hours, replacing any earlier one for
+ * the Game; when that time has already passed it runs now.
+ */
+export function scheduleSquadDue(
+  tx: DbClient,
+  gameId: string,
+  windowStart: Date,
+  now: Date,
+) {
+  const dueAt = squadDueAt(windowStart);
+  return enqueueAt(
+    tx,
+    challengeSquadDueJob(gameId),
+    dueAt.getTime() > now.getTime() ? dueAt : now,
+  );
 }
 
 /**

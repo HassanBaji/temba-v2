@@ -11,6 +11,8 @@ import type { TestDatabase } from "@repo/db/testing";
 
 import {
   footballMatchup,
+  padelMatchup,
+  playTeams,
   withDb,
   type Fixture,
 } from "#src/challenges/challenges.test-support";
@@ -18,6 +20,7 @@ import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { challengeSquadDueJobKey } from "#src/jobs/specs";
 import { confirmProposal } from "#src/routers/challenges/confirmProposal";
 import { proposeOnChallenge } from "#src/routers/challenges/propose";
+import { updateGameWindow } from "#src/routers/games/updateWindow";
 
 import { handle } from "./challenge.squad-due";
 
@@ -143,6 +146,110 @@ describe("challenge.squad-due", () => {
           runAt: new Date(later.getTime() - 24 * HOUR),
         }),
       ]);
+    });
+  });
+
+  it("moves the reminder with kick-off when the window moves earlier or later", async () => {
+    await withDb(async (fixture) => {
+      const { match, gameId } = await sixASideGame(fixture);
+      const move = (windowStart: Date) =>
+        updateGameWindow(fixture.db, {
+          gameId,
+          userId: match.hiddIds[0]!,
+          windowStart,
+          windowEnd: new Date(windowStart.getTime() + HOUR),
+          name: "Hidd United v Arad Athletic",
+          now: sentAt,
+        });
+      jobs.clear();
+
+      const earlier = new Date(kickOff.getTime() - 12 * HOUR);
+      await move(earlier);
+      const later = new Date(kickOff.getTime() + 24 * HOUR);
+      await move(later);
+
+      expect(jobs.added).toEqual([
+        expect.objectContaining({
+          key: challengeSquadDueJobKey(gameId),
+          payload: { gameId },
+          mode: "replace",
+          runAt: new Date(earlier.getTime() - 24 * HOUR),
+        }),
+        expect.objectContaining({
+          key: challengeSquadDueJobKey(gameId),
+          mode: "replace",
+          runAt: new Date(later.getTime() - 24 * HOUR),
+        }),
+      ]);
+    });
+  });
+
+  it("runs the reminder now when the new kick-off is less than a day away", async () => {
+    await withDb(async (fixture) => {
+      const { match, gameId } = await sixASideGame(fixture);
+      jobs.clear();
+      const soon = new Date(sentAt.getTime() + 6 * HOUR);
+
+      await updateGameWindow(fixture.db, {
+        gameId,
+        userId: match.aradIds[0]!,
+        windowStart: soon,
+        windowEnd: new Date(soon.getTime() + HOUR),
+        name: "Hidd United v Arad Athletic",
+        now: sentAt,
+      });
+
+      expect(jobs.added).toEqual([
+        expect.objectContaining({
+          key: challengeSquadDueJobKey(gameId),
+          runAt: sentAt,
+        }),
+      ]);
+    });
+  });
+
+  it("schedules nothing for a padel Challenge Game or an ordinary football Game", async () => {
+    await withDb(async (fixture) => {
+      const { database, db } = fixture;
+      const padel = await padelMatchup(database, sentAt);
+      const { id: proposalId } = await proposeOnChallenge(db, {
+        challengeId: padel.challenge.id,
+        teamId: padel.riffa.id,
+        venueId: padel.venue.id,
+        startsAt: kickOff,
+        userId: padel.proposer.rafi,
+        now: sentAt,
+      });
+      const { gameId: padelGameId } = await confirmProposal(db, {
+        proposalId,
+        userId: padel.poster.ali,
+        now: sentAt,
+      });
+      const football = await footballMatchup(database, sentAt);
+      const { gameId: plainGameId } = await playTeams(database, {
+        teamIds: [football.hidd.id, football.arad.id],
+        createdBy: football.hiddIds[0]!,
+        venueId: football.venue.id,
+        sport: "football",
+        playedAt: kickOff,
+      });
+      jobs.clear();
+
+      for (const [gameId, userId] of [
+        [padelGameId, padel.poster.ali],
+        [plainGameId, football.hiddIds[0]!],
+      ] as const) {
+        await updateGameWindow(db, {
+          gameId,
+          userId,
+          windowStart: new Date(kickOff.getTime() - 12 * HOUR),
+          windowEnd: kickOff,
+          name: "Moved",
+          now: sentAt,
+        });
+      }
+
+      expect(jobs.added).toEqual([]);
     });
   });
 });

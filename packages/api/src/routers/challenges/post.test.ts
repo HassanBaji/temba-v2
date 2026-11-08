@@ -2,10 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
+import { type Db } from "@repo/db";
 import { challengeVenues, notifications } from "@repo/db/schema";
 import type { TestDatabase } from "@repo/db/testing";
 
 import {
+  addPendingProposal,
   challengeRow,
   makeTeam,
   makeUsers,
@@ -13,6 +15,7 @@ import {
   playTeams,
   withDb,
 } from "#src/challenges/challenges.test-support";
+import { handle as expireChallenge } from "#src/jobs/handlers/challenge.expire";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { challengeExpireJobKey } from "#src/jobs/specs";
 
@@ -172,6 +175,100 @@ describe("challenges.post", () => {
       expect(second.id).not.toBe(first.id);
       expect((await challengeRow(database, first.id)).status).toBe("withdrawn");
       expect(jobs.removed).toEqual([challengeExpireJobKey(first.id)]);
+    });
+  });
+
+  it("expires an unstamped Challenge past its seven days, tells the Team once, then posts", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar] = await makeUsers(database, "Seef", 2);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const stale = await postChallenge(db, {
+        teamId: seef.id,
+        userId: ali!,
+        now,
+      });
+      const dayEight = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
+
+      const fresh = await postChallenge(db, {
+        teamId: seef.id,
+        userId: omar!,
+        now: dayEight,
+      });
+
+      expect(await challengeRow(database, stale.id)).toMatchObject({
+        status: "expired",
+        expiredAt: dayEight,
+      });
+      expect((await challengeRow(database, fresh.id)).status).toBe("open");
+      const told = async () =>
+        (
+          await database.query.notifications.findMany({
+            where: eq(notifications.type, "challenge_expired"),
+          })
+        ).map((row) => row.recipientUserId);
+      expect((await told()).sort()).toEqual([ali!, omar!].sort());
+
+      await expireChallenge(
+        db as unknown as Db,
+        { challengeId: stale.id },
+        undefined,
+        dayEight,
+      );
+      expect(await told()).toHaveLength(2);
+    });
+  });
+
+  it("still refuses while a pending Proposal keeps the old Challenge open", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar, rafi, saad] = await makeUsers(database, "Player", 4);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const riffa = await makeTeam(database, {
+        name: "Riffa Rackets",
+        sport: "padel",
+        userIds: [rafi!, saad!],
+      });
+      const venue = await makeVenue(database, {
+        name: "Padel Central",
+        city: "Manama",
+        sport: "padel",
+      });
+      const old = await postChallenge(db, {
+        teamId: seef.id,
+        userId: ali!,
+        now,
+      });
+      const dayEight = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
+      await addPendingProposal(database, {
+        challengeId: old.id,
+        teamId: riffa.id,
+        proposedBy: rafi!,
+        venueId: venue.id,
+        expiresAt: new Date(dayEight.getTime() + 60 * 60 * 1000),
+      });
+
+      expect(
+        await refusal(
+          postChallenge(db, { teamId: seef.id, userId: omar!, now: dayEight }),
+        ),
+      ).toEqual({
+        code: "CONFLICT",
+        message:
+          "This Team already has an open challenge. Withdraw it to post another.",
+      });
+      expect((await challengeRow(database, old.id)).status).toBe("open");
+      expect(
+        await database.query.notifications.findMany({
+          where: eq(notifications.type, "challenge_expired"),
+        }),
+      ).toEqual([]);
     });
   });
 
