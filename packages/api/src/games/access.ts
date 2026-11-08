@@ -17,11 +17,9 @@ import {
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import {
-  appointedOrganizerUserIds,
-  isAppointedOrganizer,
-} from "#src/groups/helpers/appointed-organizers";
+import { appointedOrganizerUserIds } from "#src/groups/helpers/appointed-organizers";
 import { groupApproverUserIds } from "#src/groups/helpers/is-group-approver";
+import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import type { RegistrationStatus } from "#src/games/utils";
 import {
   actingUserIds,
@@ -71,18 +69,6 @@ type GroupForOrganize = {
   createdBy: string;
 };
 
-/** The Group creator or an Appointed Organizer. */
-export async function mayOrganizeGroupGames(
-  database: DbOrTx,
-  group: GroupForOrganize,
-  userId: string,
-) {
-  if (group.createdBy === userId) {
-    return true;
-  }
-  return isAppointedOrganizer(database, group, userId);
-}
-
 export async function mayCreateGameOnGroup(
   database: DbOrTx,
   group: GroupForOrganize,
@@ -102,7 +88,8 @@ export async function assertMayCreateGameOnGroup(
 
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Only the Group creator or an Organizer can create a Game on this Group",
+    message:
+      "Only the Group creator or an Organizer can create a Game on this Group",
   });
 }
 

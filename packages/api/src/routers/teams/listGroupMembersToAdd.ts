@@ -13,7 +13,7 @@ import { sportOrDefault } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { mayOrganizeGroupGames } from "#src/games/access";
+import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";

@@ -4,11 +4,11 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { groups, teamMembers, teams } from "@repo/db";
 import { teamIsSquad } from "@repo/domain/team-roster";
 
-import { mayOrganizeGroupGames } from "#src/games/access";
 import {
   appointedOrganizerGroupIds,
   appointedOrganizerUserIds,
 } from "#src/groups/helpers/appointed-organizers";
+import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 
 type DbOrTx = DbClient | DbTx;
 
