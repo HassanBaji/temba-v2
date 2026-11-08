@@ -64,7 +64,6 @@ describe("publicGroupRowView", () => {
 
   it("carries the sport word for the row", () => {
     expect(publicGroupRowView(open!, null, ORIGIN, "en")).toMatchObject({
-      sport: "padel",
       sportLabel: "Padel",
     });
     expect(publicGroupRowView(requested!, null, ORIGIN, "en").sportLabel).toBe(

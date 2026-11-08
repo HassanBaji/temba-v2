@@ -80,7 +80,6 @@ export type PublicGroupRowView = {
   joinDisabled: boolean;
   joinOutlined: boolean;
   door: GroupJoinDoor | null;
-  sport: string | null;
   sportLabel: string | null;
 };
 
@@ -105,7 +104,6 @@ export function publicGroupRowView(
     joinDisabled: groupJoinDisabled(row.joinMode, pending),
     joinOutlined: row.joinMode !== "join",
     door: publicGroupJoinDoor(row),
-    sport: row.sport,
     sportLabel: sportLabel(row.sport, locale),
   };
 }
