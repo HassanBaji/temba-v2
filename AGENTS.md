@@ -42,3 +42,13 @@ Cloud Agents use `.cursor/environment.json` (`install` → `.cursor/install.sh`,
 - Local `.env` files under `apps/web`, `apps/api` and `packages/db` are created from the checked-in examples during install; `DATABASE_URL` defaults to `postgresql://postgres:password@localhost:5432/temba`.
 - Useful checks after boot: `pnpm exec turbo run typecheck`, `pnpm exec turbo run build --filter web`, curl `http://localhost:3000/login`.
 
+
+## Claude Code on the web specific instructions
+
+Cloud sessions at claude.ai/code are set up in two parts.
+
+- **Environment setup script.** Paste `scripts/cloud/claude-environment-setup.sh` into the environment's Setup script field. It runs as root before Claude starts and is snapshotted, so it only provisions the VM: pnpm 10.13.1, and PostgreSQL 16 if the image lacks it.
+- **SessionStart hook.** `.claude/settings.json` runs `.claude/hooks/session-start.sh` on startup and resume, only when `CLAUDE_CODE_REMOTE=true`. It runs `pnpm install` (skipped when `pnpm-lock.yaml` is unchanged), writes the `.env` files through `scripts/cloud/sync-env.sh` (shared with Cursor Cloud), starts PostgreSQL with `service postgresql start`, and applies migrations. Its log is `$TMPDIR/temba-session-start.log` (or `/tmp/temba-session-start.log`).
+- **Environment variables.** Set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` from the Clerk **development** instance, plus the `AWS_*` keys for live uploads. Without Clerk keys the hook sets `SKIP_ENV_VALIDATION=1` so `pnpm exec turbo run typecheck lint test` still passes, but `/login` and the dev servers' auth do not work.
+- **Network access.** The default Trusted level covers npm and apt but not Clerk. To sign in from the dev servers, choose Custom, add the Clerk development instance's Frontend API host (`*.clerk.accounts.dev`) and `api.clerk.com`, and keep the default package manager list.
+- Tests run on PGlite and need none of this. Start the dev servers with `pnpm dev:web` (web on 3000, API on 4000).
