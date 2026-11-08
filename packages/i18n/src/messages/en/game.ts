@@ -217,6 +217,7 @@ export const game = {
     heldHours: (n: number) => `held ${n}h`,
     heldMinutes: (n: number) => `held ${n} min`,
     outsideRange: "Outside the Level range, asked anyway",
+    sentence: (text: string) => `${text}.`,
     decline: "Decline",
     approveSeatAndMembership: "Approve seat and membership",
     note: "Any organizer of the Group can decide. A held seat frees itself when the hold runs out or when you decline.",

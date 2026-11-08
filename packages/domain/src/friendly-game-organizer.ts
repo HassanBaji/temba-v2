@@ -8,11 +8,15 @@ import type {
   FriendlyGameDetailsMatch,
 } from "./friendly-game-details";
 import { friendlyGameCanKickPlayer } from "./friendly-game-players";
+import { displayLabelFromStoredBand } from "./level-bands";
+import { tenthsToLevelBand } from "./level-range";
 import {
   levelRangeQueueVisible,
   levelRangeRequestRowMeta,
 } from "./level-range-request";
 import {
+  seatHoldRemainingLabel,
+  seatHoldRequestDetail,
   seatHoldRequestRowMeta,
   type SeatHoldRequestRow,
 } from "./seat-hold-request";
@@ -48,7 +52,19 @@ export type OrganizerRequest = {
   name: string;
   image: string | null;
   meta: string;
+  /** The requester's band beside their name, `C−`. */
+  level: string | null;
+  /** What they asked for, in a sentence or two. */
+  detail: string;
+  /** `held 21h` while a Seat hold runs. */
+  held: string | null;
 };
+
+function levelBandOf(tenths: number | null) {
+  return tenths == null
+    ? null
+    : displayLabelFromStoredBand(tenthsToLevelBand(tenths));
+}
 
 export type FriendlyGameOrganizerPlan = {
   registration: "close" | "reopen";
@@ -107,6 +123,9 @@ export function friendlyGameOrganizerPlan(
             messagesFor(locale).game.organizer.userFallback,
           image: request.user.image,
           meta: seatHoldRequestRowMeta(request, locale, now),
+          level: levelBandOf(request.levelTenths),
+          detail: seatHoldRequestDetail(request, locale),
+          held: seatHoldRemainingLabel(request.seatHeldUntil, locale, now),
         }),
       ),
       ...game.pendingLevelRangeRequests.map(
@@ -118,6 +137,11 @@ export function friendlyGameOrganizerPlan(
             messagesFor(locale).game.organizer.userFallback,
           image: request.user.image,
           meta: levelRangeRequestRowMeta(request, locale, now),
+          level: levelBandOf(request.levelTenths),
+          detail: messagesFor(locale).game.requests.sentence(
+            messagesFor(locale).game.requests.outsideRange,
+          ),
+          held: null,
         }),
       ),
     ],

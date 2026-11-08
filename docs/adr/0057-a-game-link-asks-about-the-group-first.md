@@ -22,4 +22,5 @@ A Game Invite link on a Group Game used to do one thing: register the holder and
 - `groups.approveJoinRequest` returns `heldSeat`: `registered`, `waitlisted`, `lapsed` or null.
 - The Group's own Join requests list does not yet show that a request holds a seat; the Game's Requests block does.
 - Not built from the mockup: decline reasons and an offered seat in another Game, the undo window after a decision, the approve sheet's separate seat and membership toggles, and "don't ask next time" for Level range. Each is additive on top of these doors.
+- `games.previewInviteLink` also returns `hero`, what the link shows before anyone joins, to signed-out holders too. It names the seated players and the Organizer; the link was already the capability to join, so it carries no more than the Game details a joiner sees next.
 - The football Game details screens have no Requests block yet on either App; a Seat hold on a football Game is decided from the Group's Join requests list until they do.

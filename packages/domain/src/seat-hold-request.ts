@@ -63,6 +63,20 @@ export function seatHoldRequestRowMeta(
   );
 }
 
+/** `Wants the seat and to join Gooz of Arad. Came through Yousif's link.` */
+export function seatHoldRequestDetail(
+  request: Pick<SeatHoldRequestRow, "groupName" | "invitedBy">,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.requests;
+  return [
+    m.seatAndGroup(groupDisplayName(request.groupName, locale)),
+    request.invitedBy?.name ? m.viaLinkFrom(request.invitedBy.name) : m.viaLink,
+  ]
+    .map((sentence) => m.sentence(sentence))
+    .join(" ");
+}
+
 /** `2 waiting, seats held`, `1 waiting`, or the empty line. */
 export function requestsQueueHeading(
   counts: { levelRange: number; seatHolds: number },

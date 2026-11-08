@@ -52,6 +52,7 @@ function IconBox({ Icon }: { Icon: LucideIcon }) {
         borderRadius: radii.sm,
         borderWidth: hairline,
         borderColor: palette.rule,
+        backgroundColor: palette.wash,
       }}
     >
       <Icon size={sizes.iconAction} color={palette.foreground} />

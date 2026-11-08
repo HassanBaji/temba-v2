@@ -9,11 +9,15 @@ import { ErrorState } from "~/components/common/error-state";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { GameSeatGrid } from "~/components/games/game-seat-grid";
 import {
-  GameLinkGroupJoined,
-  GameLinkGroupLanding,
-  GameLinkGroupRequested,
-} from "~/components/invites/game-link-group";
-import { InviteAuthButtons } from "~/components/invites/invite-auth-buttons";
+  GameInviteBar,
+  GameInviteCard,
+  GameInviteGroupCard,
+  GameInviteLevelCard,
+  GameInviteNotice,
+  GameInviteRequestCard,
+  GameInviteRows,
+} from "~/components/invites/game-invite-landing";
+import { GroupJoinDialog } from "~/components/invites/game-link-group";
 import {
   InviteOutcome,
   InvitePreviewError,
@@ -21,15 +25,27 @@ import {
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { Surface } from "~/components/ui/surface";
 import { footballInviteJoinSubtitle } from "@repo/domain/football-board";
 import {
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
+import { formatGameStart } from "@repo/domain/format-game-start";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
+import {
+  gameInviteHeroModel,
+  gameInviteLevelCard,
+  gameInviteLevelFit,
+  gameInviteSharerName,
+  gameInviteWebRows,
+} from "@repo/domain/game-invite-hero";
 import { groupDisplayName } from "@repo/domain/group-join";
 import {
   gameInviteGroupGate,
+  gameInviteGroupJoinedCopy,
+  gameInviteGroupLandingCopy,
+  gameInviteGroupRequestCard,
   gameInviteSeatCopy,
   gameInviteLinkStage,
   gameInviteSeatState,
@@ -37,11 +53,9 @@ import {
   levelRangeGateAction,
   type GameInviteGroupChoice,
 } from "@repo/domain/invites";
-import {
-  formatLevelRangeGateCopy,
-  formatLevelRangeLabel,
-} from "@repo/domain/level-range";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { tournamentPartnerInviteLandingHref } from "@repo/domain/tournament-join";
 import { api } from "~/trpc/react";
@@ -267,12 +281,22 @@ export function AcceptGameInviteLink({
       ? "with_seat"
       : "group_only"
     : null;
+  const joinedCopy =
+    group && justJoinedGroup
+      ? gameInviteGroupJoinedCopy(group, openSeats, locale)
+      : null;
   const joinedNotice =
-    group && justJoinedGroup ? (
-      <GameLinkGroupJoined
-        group={group}
-        openSeats={openSeats}
-        groupHref={`/dashboard/groups/${group.id}`}
+    group && joinedCopy ? (
+      <GameInviteNotice
+        title={joinedCopy.title}
+        description={joinedCopy.description}
+        action={
+          <Button variant="outline-inverse" size="sm" asChild>
+            <Link href={`/dashboard/groups/${group.id}`}>
+              {joinedCopy.openGroupLabel}
+            </Link>
+          </Button>
+        }
       />
     ) : null;
 
@@ -323,140 +347,260 @@ export function AcceptGameInviteLink({
     );
   }
 
-  if (blockedByLevelRange && ready && !accept.isSuccess) {
+  if (!ready) {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            {m.invite.link.joinLabel(gameName)}
-          </h1>
-          {rangeLabel ? (
-            <p className="text-body text-muted-foreground">{rangeLabel}</p>
-          ) : null}
-          <p className="text-body text-muted-foreground">
-            {formatLevelRangeGateCopy({
-              levelMinTenths: ready.levelMinTenths,
-              levelMaxTenths: ready.levelMaxTenths,
-              viewerLevelTenths: ready.viewerLevelTenths,
-              locale,
-            })}
-          </p>
-        </div>
-        {levelAction.kind === "pending-note" ? (
-          <p className="text-body text-muted-foreground">{levelAction.text}</p>
-        ) : (
-          <Button
-            className="min-h-11"
-            disabled={levelAction.disabled}
-            onClick={() =>
-              requestLevelRange.mutate({
-                gameId: ready.gameId,
-                inviteToken: token,
-              })
-            }
-          >
-            {levelAction.label}
-          </Button>
-        )}
+      <div aria-busy="true" className="space-y-3">
+        <Skeleton className="h-80 w-full rounded-xl" />
       </div>
     );
   }
 
-  if (partnerRequiredJoin && ready && !accept.isSuccess) {
+  const hero = ready.hero;
+  const heroModel = gameInviteHeroModel(hero, new Date(), locale);
+  const sharer = gameInviteSharerName(hero);
+  const heroCopy = m.mobileInvite.link.hero;
+  const groupCopy = m.mobileInvite.link.group;
+  const fit = gameInviteLevelFit({
+    isSignedIn,
+    viewerLevelTenths: ready.viewerLevelTenths,
+    viewerPassesLevelRange: ready.viewerPassesLevelRange,
+  });
+  const levelCard = gameInviteLevelCard({
+    levelMinTenths: ready.levelMinTenths,
+    levelMaxTenths: ready.levelMaxTenths,
+    viewerLevelTenths: ready.viewerLevelTenths,
+    fit,
+    asksAboutGroup: groupBlocks && groupGate !== "requested",
+    locale,
+  });
+  const barOpenSeats =
+    ready.football || ready.vacantSeats.length > 0
+      ? openSeats
+      : (heroModel.openSeats ?? 0);
+  const seatsTitle =
+    barOpenSeats > 0 ? groupCopy.seatsOpen(barOpenSeats) : null;
+  const signInHref = authCrossLinkUrl("/login", returnPath);
+  const groupLine =
+    group && justJoinedGroup && groupName
+      ? heroCopy.joinedNote(groupName)
+      : group && groupGate === "none" && groupName
+        ? heroCopy.memberNote(groupName)
+        : heroCopy.notMemberYet(sharer);
+  const groupAction = !isSignedIn ? (
+    <Button variant="outline-inverse" size="sm" asChild>
+      <Link href={signInHref}>{groupCopy.joinGroup}</Link>
+    </Button>
+  ) : group && groupBlocks && groupGate !== "requested" ? (
+    <Button
+      variant="outline-inverse"
+      size="sm"
+      disabled={groupChoicePending != null}
+      pending={groupChoicePending === "group_only"}
+      onClick={() => onChooseGroup("group_only")}
+    >
+      {groupCopy.joinGroup}
+    </Button>
+  ) : null;
+  const signInBar = (
+    <GameInviteBar
+      title={seatsTitle}
+      subline={heroCopy.signInSubline}
+      action={
+        <Button variant="inverse" size="lg" asChild>
+          <Link href={signInHref}>{heroCopy.signInToJoin}</Link>
+        </Button>
+      }
+    />
+  );
+
+  function page(args: {
+    content?: React.ReactNode;
+    seats?: React.ReactNode;
+    bar: React.ReactNode;
+  }) {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            {m.invite.link.joinLabel(gameName)}
-          </h1>
-          {rangeLabel ? (
-            <p className="text-body text-muted-foreground">{rangeLabel}</p>
-          ) : null}
-          <p className="text-body text-muted-foreground">
-            {m.tournament.join.partnerInviteLanding}
-          </p>
-        </div>
-        {isSignedIn ? (
-          <Button className="min-h-11" asChild>
-            <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
-              {m.tournament.join.pickAPartner}
-            </Link>
-          </Button>
-        ) : (
-          <InviteAuthButtons
-            returnPath={returnPath}
-            className="flex flex-wrap gap-2"
+      <div className="flex flex-1 flex-col gap-3">
+        <GameInviteCard model={heroModel} seats={args.seats} />
+        {args.content}
+        {levelCard ? <GameInviteLevelCard card={levelCard} /> : null}
+        {hero.groupCard ? (
+          <GameInviteGroupCard
+            group={hero.groupCard}
+            line={groupLine}
+            action={groupAction}
           />
-        )}
+        ) : null}
+        <GameInviteRows rows={gameInviteWebRows(hero, locale)} />
+        {args.bar}
       </div>
     );
+  }
+
+  if (blockedByLevelRange && !accept.isSuccess) {
+    return page({
+      bar:
+        levelAction.kind === "pending-note" ? (
+          <GameInviteBar title={null} subline={levelAction.text} />
+        ) : (
+          <GameInviteBar
+            title={rangeLabel}
+            subline={null}
+            action={
+              <Button
+                variant="inverse"
+                size="lg"
+                disabled={levelAction.disabled}
+                onClick={() =>
+                  requestLevelRange.mutate({
+                    gameId: ready.gameId,
+                    inviteToken: token,
+                  })
+                }
+              >
+                {levelAction.label}
+              </Button>
+            }
+          />
+        ),
+    });
+  }
+
+  if (partnerRequiredJoin && !accept.isSuccess) {
+    return page({
+      content: (
+        <p className="text-body text-dim">
+          {m.tournament.join.partnerInviteLanding}
+        </p>
+      ),
+      bar: isSignedIn ? (
+        <GameInviteBar
+          title={seatsTitle}
+          subline={null}
+          action={
+            <Button variant="inverse" size="lg" asChild>
+              <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
+                {m.tournament.join.pickAPartner}
+              </Link>
+            </Button>
+          }
+        />
+      ) : (
+        signInBar
+      ),
+    });
   }
 
   if (group && groupAsks && groupGate === "requested") {
-    return (
-      <GameLinkGroupRequested
-        group={group}
-        gameName={gameName}
-        rangeLabel={rangeLabel}
-        withdrawPending={withdraw.isPending}
-        onWithdraw={(requestId) => withdraw.mutate({ requestId })}
-      />
-    );
+    const request = group.pendingRequest;
+    const heldLabel = request?.seatHeldUntil
+      ? formatGameStart(request.seatHeldUntil, locale)
+      : null;
+    const copy = gameInviteGroupRequestCard(group, heldLabel, locale);
+    return page({
+      content: (
+        <GameInviteRequestCard
+          title={copy.title}
+          description={copy.description}
+          sharedBy={
+            copy.sharedByValue
+              ? { label: copy.sharedByLabel, value: copy.sharedByValue }
+              : null
+          }
+          withdraw={
+            request ? (
+              <button
+                type="button"
+                className="text-meta text-dim hover:text-on-focus min-h-11 w-full py-3 disabled:opacity-60"
+                disabled={withdraw.isPending}
+                onClick={() => withdraw.mutate({ requestId: request.id })}
+              >
+                {copy.withdrawLabel}
+              </button>
+            ) : null
+          }
+        />
+      ),
+      bar: <GameInviteBar title={copy.barTitle} subline={copy.barSubline} />,
+    });
   }
 
   if (group && groupBlocks) {
-    return (
-      <GameLinkGroupLanding
-        group={group}
-        gameName={gameName}
-        rangeLabel={rangeLabel}
-        openSeats={openSeats}
-        pending={groupChoicePending}
-        dialogOpen={groupDialogOpen}
-        onDialogOpenChange={setGroupDialogOpen}
-        onChoose={onChooseGroup}
-      />
-    );
+    const copy = gameInviteGroupLandingCopy(group, openSeats, locale);
+    return page({
+      content: (
+        <GroupJoinDialog
+          open={groupDialogOpen}
+          group={group}
+          pending={groupChoicePending}
+          onChoose={onChooseGroup}
+          onOpenChange={setGroupDialogOpen}
+        />
+      ),
+      bar: (
+        <GameInviteBar
+          title={copy.barTitle}
+          subline={copy.barSubline}
+          action={
+            <Button
+              variant="inverse"
+              size="lg"
+              disabled={groupChoicePending != null}
+              onClick={() => setGroupDialogOpen(true)}
+            >
+              {copy.joinGameLabel}
+            </Button>
+          }
+        />
+      ),
+    });
   }
 
+  const memberSubline = group && justJoinedGroup ? groupCopy.oneTap : null;
+
   if (needsSeatPick && !accept.isSuccess) {
-    return (
-      <div className="space-y-4">
-        {joinedNotice}
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            {m.invite.link.joinLabel(gameName)}
-          </h1>
-          {rangeLabel ? (
-            <p className="text-body text-muted-foreground">{rangeLabel}</p>
-          ) : null}
-          <p className="text-body text-muted-foreground">
+    return page({
+      content: (
+        <>
+          {joinedNotice}
+          <p className="text-meta text-dim">
             {gameInviteSeatCopy(
               { joinFrozen, waitlistOnly },
               isSignedIn ? "link" : "link-signed-out",
               locale,
             )}
           </p>
-        </div>
-        <GameSeatGrid
-          sides={sides}
-          canJoinVacant={canJoinVacant}
-          joinLabel={m.invite.inbox.sitHereLabel}
-          joining={joinPending}
-          canMove={false}
-          moving={false}
-          isOrganizer={false}
-          cancelled={joinFrozen}
-          kickPending={false}
-          onJoin={onJoinSeat}
-          onMove={() => undefined}
-          onKick={() => undefined}
-          sideNoun={sideNoun}
-        />
-        {isSignedIn ? (
-          waitlistOnly ? (
+        </>
+      ),
+      seats: (
+        <Surface tone="paper" radius="lg" className="p-3">
+          <GameSeatGrid
+            sides={sides}
+            canJoinVacant={canJoinVacant}
+            joinLabel={m.invite.inbox.sitHereLabel}
+            joining={joinPending}
+            canMove={false}
+            moving={false}
+            isOrganizer={false}
+            cancelled={joinFrozen}
+            kickPending={false}
+            onJoin={onJoinSeat}
+            onMove={() => undefined}
+            onKick={() => undefined}
+            sideNoun={sideNoun}
+          />
+        </Surface>
+      ),
+      bar: !isSignedIn ? (
+        signInBar
+      ) : waitlistOnly ? (
+        <GameInviteBar
+          title={null}
+          subline={null}
+          action={
             <Button
-              className="min-h-11"
+              variant="inverse"
+              size="lg"
+              className="w-full"
               onClick={onJoinWaitlist}
               disabled={joinPending}
             >
@@ -464,86 +608,76 @@ export function AcceptGameInviteLink({
                 ? m.webAuth.invites.joiningShort
                 : m.invite.inbox.joinWaitlistLabel}
             </Button>
-          ) : null
-        ) : (
-          <InviteAuthButtons
-            returnPath={returnPath}
-            className="flex flex-wrap gap-2"
-          />
-        )}
-      </div>
-    );
+          }
+        />
+      ) : (
+        <GameInviteBar title={seatsTitle} subline={memberSubline} />
+      ),
+    });
   }
 
   if (footballJoin && football && !accept.isSuccess) {
     const subtitle = footballInviteJoinSubtitle(football, locale);
-    return (
-      <div className="space-y-4">
-        {joinedNotice}
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            {m.invite.link.joinLabel(gameName)}
-          </h1>
-          <p className="text-body text-muted-foreground">{subtitle}</p>
-          <p className="text-body text-muted-foreground">
-            {m.webAuth.invites.football.pickRole}
-          </p>
-        </div>
-        <Button className="min-h-11" onClick={() => setFootballOpen(true)}>
-          {m.webAuth.invites.football.chooseHowYouPlay}
-        </Button>
-        <FootballJoinDialog
-          open={footballOpen}
-          onOpenChange={setFootballOpen}
-          mode="join"
-          subtitle={subtitle}
-          players={football.players}
-          viewer={football.preferred}
-          price={formatPricePerPlayerFils(football.pricePerPlayerFils, locale)}
-          teamsLine={
-            football.teamsSet
-              ? m.webAuth.invites.football.teamsSet
-              : m.webAuth.invites.football.teamsByOrganizer
+    return page({
+      content: (
+        <>
+          {joinedNotice}
+          <FootballJoinDialog
+            open={footballOpen}
+            onOpenChange={setFootballOpen}
+            mode="join"
+            subtitle={subtitle}
+            players={football.players}
+            viewer={football.preferred}
+            price={formatPricePerPlayerFils(
+              football.pricePerPlayerFils,
+              locale,
+            )}
+            teamsLine={
+              football.teamsSet
+                ? m.webAuth.invites.football.teamsSet
+                : m.webAuth.invites.football.teamsByOrganizer
+            }
+            pending={joinPending}
+            error={accept.error?.message ?? joinGroup.error?.message ?? null}
+            onSubmit={onJoinFootball}
+          />
+        </>
+      ),
+      bar: (
+        <GameInviteBar
+          title={seatsTitle}
+          subline={memberSubline ?? m.webAuth.invites.football.pickRole}
+          action={
+            <Button
+              variant="inverse"
+              size="lg"
+              onClick={() => setFootballOpen(true)}
+            >
+              {m.webAuth.invites.football.chooseHowYouPlay}
+            </Button>
           }
-          pending={joinPending}
-          error={accept.error?.message ?? joinGroup.error?.message ?? null}
-          onSubmit={onJoinFootball}
         />
-      </div>
-    );
+      ),
+    });
   }
 
   if (!isSignedIn) {
-    return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-title font-semibold">
-            {m.invite.link.joinLabel(gameName)}
-          </h1>
-          {rangeLabel ? (
-            <p className="text-body text-muted-foreground">{rangeLabel}</p>
-          ) : null}
-          <p className="text-body text-muted-foreground">
-            {m.webAuth.invites.signInToJoin(gameName)}
-          </p>
-        </div>
-        <InviteAuthButtons
-          returnPath={returnPath}
-          className="flex flex-wrap gap-2"
-        />
-      </div>
-    );
+    return page({ bar: signInBar });
   }
 
-  return (
-    <div aria-busy="true" className="space-y-3">
-      {joinedNotice}
-      <h1 className="text-title font-semibold">
-        {m.webAuth.invites.joining(gameName)}
-      </h1>
-      {rangeLabel ? (
-        <p className="text-body text-muted-foreground">{rangeLabel}</p>
-      ) : null}
-    </div>
-  );
+  return page({
+    content: joinedNotice,
+    bar: (
+      <GameInviteBar
+        title={seatsTitle}
+        subline={null}
+        action={
+          <Button variant="inverse" size="lg" disabled pending>
+            {m.webAuth.invites.joining(gameName)}
+          </Button>
+        }
+      />
+    ),
+  });
 }
