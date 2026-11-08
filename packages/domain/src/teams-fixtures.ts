@@ -63,6 +63,7 @@ const BASE_HOME: TeamHomeInput = {
   groupTagOptions: [],
   viewerCanLeave: false,
   viewerActsForTeam: true,
+  challengePost: { canPost: true, blockedBy: null },
 };
 
 const GOOZ = { id: "group-gooz", name: "Gooz of Arad" };

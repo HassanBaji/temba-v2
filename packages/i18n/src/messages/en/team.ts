@@ -202,6 +202,16 @@ export const team = {
     empty: "Play the same Team twice and they become a Rival.",
     rematch: "Rematch",
     rematchA11y: (team: string) => `Rematch ${team}`,
+    rematchBlocked: {
+      open_challenge:
+        "This Team already has an open challenge. Withdraw it to send a rematch.",
+      padel_incomplete: "A rematch needs both players on the Team.",
+      roster_short: (n: number) =>
+        plural("en", n, {
+          one: "A rematch needs 1 on the roster.",
+          other: "A rematch needs {n} on the roster.",
+        }),
+    },
     opponentFallback: "Opponent",
   },
   games: {

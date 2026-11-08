@@ -344,6 +344,7 @@ function Rivals({
                 }
                 variant="outline"
                 size="sm"
+                disabled={view.rematch.disabled}
                 onPress={() => onRematch(rival.teamId)}
               />
             ) : null}
@@ -489,6 +490,11 @@ export function TeamHomeView(props: TeamHomeViewProps) {
           onOpenTeam={props.onOpenTeam}
           onRematch={props.onRematch}
         />
+        {view.rematch?.reason ? (
+          <Text size="meta" tone="muted">
+            {view.rematch.reason}
+          </Text>
+        ) : null}
       </Section>
 
       <Section title={m.team.roster.title}>

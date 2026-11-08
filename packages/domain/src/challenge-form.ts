@@ -46,6 +46,19 @@ export const CHALLENGE_TIMINGS = ["morning", "afternoon", "evening"] as const;
 
 export type ChallengeTiming = (typeof CHALLENGE_TIMINGS)[number];
 
+/**
+ * Why a Team cannot post a Challenge right now: it has one open, a padel
+ * Team is missing its partner, or a football Roster is below the smallest
+ * Format.
+ */
+export const CHALLENGE_POST_BLOCKS = [
+  "open_challenge",
+  "padel_incomplete",
+  "roster_short",
+] as const;
+
+export type ChallengePostBlock = (typeof CHALLENGE_POST_BLOCKS)[number];
+
 export const CHALLENGE_NOTE_MAX = 140;
 export const CHALLENGE_MAX_VENUES = 3;
 export const CHALLENGE_MAX_SLOTS = 3;

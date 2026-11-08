@@ -1,12 +1,13 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
-import { challenges, teamMembers, teams } from "@repo/db";
+import { teamMembers, teams } from "@repo/db";
 import { CHALLENGE_CARD_TILES } from "@repo/domain/challenge-card";
 import { CHALLENGE_DEFAULT_DURATION_MINUTES } from "@repo/domain/challenge-form";
-import { formatsPlayable, teamRosterRule } from "@repo/domain/team-roster";
+import { formatsPlayable } from "@repo/domain/team-roster";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
+import { challengePostBlocks } from "#src/challenges/challenge-post-block";
 import { liveVenuesOfferingSport } from "#src/challenges/venues-for-sport";
 import { type db } from "#src/db";
 import { teamsUserActsFor } from "#src/teams/acts-for-team";
@@ -37,10 +38,11 @@ function lastMatchByOpponent(teamMatches: readonly TeamMatch[]) {
 /**
  * For the post form: the viewer's Teams that may post now (padel with both
  * players, football with a Roster of five or more, listing the Formats it can
- * field, neither with an open Challenge), the Venues offering each sport, and
- * the default Game length. Each Team carries what its review card shows, and
- * the Teams it has played, which a Rematch is sent to and pre-filled from:
- * the last Game's Side size and Venue, and the opponent's Team Level.
+ * field, neither with a Challenge still open by the clock), the Venues
+ * offering each sport, and the default Game length. Each Team carries what
+ * its review card shows, and the Teams it has played, which a Rematch is sent
+ * to and pre-filled from: the last Game's Side size and Venue, and the
+ * opponent's Team Level.
  */
 export async function listPostOptions(
   database: DbClient,
@@ -49,31 +51,27 @@ export async function listPostOptions(
   const now = args.now ?? new Date();
   const acting = await teamsUserActsFor(database, args.userId);
   const teamIds = acting.map((team) => team.id);
-  const [members, openRows] =
+  const members =
     teamIds.length === 0
-      ? [[], []]
-      : await Promise.all([
-          database.query.teamMembers.findMany({
-            where: inArray(teamMembers.teamId, teamIds),
-            columns: { teamId: true },
-            with: { user: { columns: { id: true, name: true, image: true } } },
-            orderBy: (table, { asc }) => [asc(table.createdAt)],
-          }),
-          database.query.challenges.findMany({
-            where: and(
-              inArray(challenges.teamId, teamIds),
-              eq(challenges.status, "open"),
-            ),
-            columns: { teamId: true },
-          }),
-        ]);
-  const withOpen = new Set(openRows.map((row) => row.teamId));
-  const postable = acting.filter((team) => {
-    const count = members.filter((member) => member.teamId === team.id).length;
-    return (
-      !withOpen.has(team.id) && count >= teamRosterRule(team.sport).completeAt
-    );
-  });
+      ? []
+      : await database.query.teamMembers.findMany({
+          where: inArray(teamMembers.teamId, teamIds),
+          columns: { teamId: true },
+          with: { user: { columns: { id: true, name: true, image: true } } },
+          orderBy: (table, { asc }) => [asc(table.createdAt)],
+        });
+  const blocks = await challengePostBlocks(
+    database,
+    acting,
+    new Map(
+      acting.map((team) => [
+        team.id,
+        members.filter((member) => member.teamId === team.id).length,
+      ]),
+    ),
+    now,
+  );
+  const postable = acting.filter((team) => blocks.get(team.id) == null);
   const [levels, matches, padelVenues, footballVenues] = await Promise.all([
     loadTeamLevels(database, postable, now),
     loadTeamMatches(

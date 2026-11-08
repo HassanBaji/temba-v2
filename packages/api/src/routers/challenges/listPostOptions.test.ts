@@ -85,6 +85,27 @@ describe("challenges.listPostOptions", () => {
     });
   });
 
+  it("lists a Team whose open Challenge is past its seven days with no pending Proposal", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar] = await makeUsers(database, "Seef", 2);
+      const seef = await makeTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      await postChallenge(db, { teamId: seef.id, userId: ali!, now });
+
+      const listed = async (at: Date) =>
+        (await listPostOptions(db, { userId: ali!, now: at })).teams.map(
+          (team) => team.id,
+        );
+      expect(await listed(now)).toEqual([]);
+      expect(
+        await listed(new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000)),
+      ).toEqual([seef.id]);
+    });
+  });
+
   it("lists the Teams each has played, newest first, with the last Game's Format and Venue and the opponent's Team Level", async () => {
     await withDb(async ({ database, db }) => {
       const roster = await makeUsers(database, "Gooz", 7);

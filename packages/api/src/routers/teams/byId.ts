@@ -13,6 +13,7 @@ import {
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { challengePostBlocks } from "#src/challenges/challenge-post-block";
 import { type db } from "#src/db";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { type LevelBand } from "@repo/domain/level-bands";
@@ -215,8 +216,9 @@ async function loadChallengeGames(database: DbClient, teamId: string) {
  */
 export async function teamById(
   database: DbClient,
-  args: { teamId: string; userId: string },
+  args: { teamId: string; userId: string; now?: Date },
 ) {
+  const now = args.now ?? new Date();
   const team = await requireTeam(database, args.teamId);
   const sport = team.sport as GroupSportEnum;
 
@@ -244,6 +246,15 @@ export async function teamById(
   const viewerCanLeave = isMember && !isCreator && teamIsSquad(team.sport);
   const viewerActsForTeam = await userActsForTeam(database, team, args.userId);
   const tag = await groupTagView(database, team, sport, args.userId);
+  const postBlock =
+    (
+      await challengePostBlocks(
+        database,
+        [team],
+        new Map([[team.id, memberRows.length]]),
+        now,
+      )
+    ).get(team.id) ?? null;
 
   const teamMatches =
     (await loadTeamMatches(database, [team.id])).get(team.id) ?? [];
@@ -338,6 +349,7 @@ export async function teamById(
     createdAt: team.createdAt,
     viewerIsMember: isMember,
     viewerActsForTeam,
+    challengePost: { canPost: postBlock == null, blockedBy: postBlock },
     membership: membership ? { id: membership.id } : null,
     members: memberRows.map((row) => {
       const unclaimed = isUnclaimed(row.user);

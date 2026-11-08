@@ -92,11 +92,52 @@ describe("teamHomeView", () => {
     expect(view.rematch).toEqual({
       label: "Rematch",
       accessibilityLabels: { "team-rival": "Rematch Seef Smashers" },
+      disabled: false,
+      reason: null,
     });
 
     const football = teamHomeView(fixtures.home.footballRecord, "en");
     expect(football.rivals[0]?.headToHead).toBe("1–1–1");
     expect(football.rematch).toBeNull();
+  });
+
+  it("disables Rematch with the reason when the Team cannot post now", () => {
+    const blocked = (
+      blockedBy: "open_challenge" | "padel_incomplete" | "roster_short",
+      locale: "en" | "ar" = "en",
+    ) =>
+      teamHomeView(
+        {
+          ...fixtures.home.rivals,
+          challengePost: { canPost: false, blockedBy },
+        },
+        locale,
+      ).rematch;
+    expect(blocked("open_challenge")).toMatchObject({
+      label: "Rematch",
+      disabled: true,
+      reason:
+        "This Team already has an open challenge. Withdraw it to send a rematch.",
+    });
+    expect(blocked("padel_incomplete")?.reason).toBe(
+      "A rematch needs both players on the Team.",
+    );
+    const football = teamHomeView(
+      {
+        ...fixtures.home.footballRecord,
+        viewerActsForTeam: true,
+        challengePost: { canPost: false, blockedBy: "roster_short" },
+      },
+      "en",
+    ).rematch;
+    expect(football).toMatchObject({
+      disabled: true,
+      reason: "A rematch needs 5 on the roster.",
+    });
+    expect(blocked("open_challenge", "ar")).toMatchObject({
+      disabled: true,
+      reason: "لهذا الفريق تحدٍّ مفتوح. اسحبه لترسل مباراة إعادة.",
+    });
   });
 
   it("names the closest Team when there is no Rival yet", () => {

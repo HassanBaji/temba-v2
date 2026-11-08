@@ -17,6 +17,14 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import {
+  addOpenChallenge,
+  addPendingProposal,
+  makeTeam as makeRosterTeam,
+  makeUsers,
+  makeVenue,
+  withDb,
+} from "#src/challenges/challenges.test-support";
 import { teamById } from "#src/routers/teams/byId";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -374,5 +382,104 @@ describe("teamById for any signed-in User", () => {
     } finally {
       await close();
     }
+  });
+});
+
+describe("teams.byId challengePost", () => {
+  const posted = new Date("2026-11-01T10:00:00.000Z");
+  const DAY = 24 * 60 * 60 * 1000;
+  const dayThree = new Date(posted.getTime() + 3 * DAY);
+  const dayEight = new Date(posted.getTime() + 8 * DAY);
+
+  it("says why a Team cannot post: a short padel pair, a football Roster below five, an open Challenge", async () => {
+    await withDb(async ({ database, db }) => {
+      const [solo, ...five] = await makeUsers(database, "Player", 6);
+      const waiting = await makeRosterTeam(database, {
+        name: "Waiting",
+        sport: "padel",
+        userIds: [solo!],
+      });
+      const fourFc = await makeRosterTeam(database, {
+        name: "Four FC",
+        sport: "football",
+        userIds: five.slice(0, 4),
+      });
+      const fiveFc = await makeRosterTeam(database, {
+        name: "Five FC",
+        sport: "football",
+        userIds: five,
+      });
+      const view = async (teamId: string, now: Date) =>
+        (await teamById(db, { teamId, userId: five[0]!, now })).challengePost;
+
+      expect(await view(waiting.id, dayThree)).toEqual({
+        canPost: false,
+        blockedBy: "padel_incomplete",
+      });
+      expect(await view(fourFc.id, dayThree)).toEqual({
+        canPost: false,
+        blockedBy: "roster_short",
+      });
+      expect(await view(fiveFc.id, dayThree)).toEqual({
+        canPost: true,
+        blockedBy: null,
+      });
+
+      await addOpenChallenge(database, {
+        teamId: fiveFc.id,
+        postedBy: five[0]!,
+        sport: "football",
+        sideSize: 5,
+        postedAt: posted,
+      });
+      expect(await view(fiveFc.id, dayThree)).toEqual({
+        canPost: false,
+        blockedBy: "open_challenge",
+      });
+    });
+  });
+
+  it("reads a Challenge past its seven days as gone unless a pending Proposal keeps it open", async () => {
+    await withDb(async ({ database, db }) => {
+      const [ali, omar, rafi, saad] = await makeUsers(database, "Player", 4);
+      const seef = await makeRosterTeam(database, {
+        name: "Seef Smashers",
+        sport: "padel",
+        userIds: [ali!, omar!],
+      });
+      const riffa = await makeRosterTeam(database, {
+        name: "Riffa Rackets",
+        sport: "padel",
+        userIds: [rafi!, saad!],
+      });
+      const venue = await makeVenue(database, {
+        name: "Padel Central",
+        city: "Manama",
+        sport: "padel",
+      });
+      const challenge = await addOpenChallenge(database, {
+        teamId: seef.id,
+        postedBy: ali!,
+        sport: "padel",
+        postedAt: posted,
+      });
+      const view = async () =>
+        (await teamById(db, { teamId: seef.id, userId: ali!, now: dayEight }))
+          .challengePost;
+
+      expect(await view()).toEqual({ canPost: true, blockedBy: null });
+
+      await addPendingProposal(database, {
+        challengeId: challenge.id,
+        teamId: riffa.id,
+        proposedBy: rafi!,
+        venueId: venue.id,
+        expiresAt: new Date(dayEight.getTime() + DAY),
+      });
+      expect(await view()).toEqual({
+        canPost: false,
+        blockedBy: "open_challenge",
+      });
+    });
   });
 });

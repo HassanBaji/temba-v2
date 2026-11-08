@@ -299,6 +299,11 @@ export default function TeamHomePage({
 
         <Section title={m.team.rivals.title}>
           <TeamRivalsList view={view} teamId={id} />
+          {view.rematch?.reason ? (
+            <p className="text-meta text-muted-foreground">
+              {view.rematch.reason}
+            </p>
+          ) : null}
         </Section>
 
         <Section title={m.team.roster.title}>

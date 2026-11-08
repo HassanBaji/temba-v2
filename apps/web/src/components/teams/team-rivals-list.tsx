@@ -52,7 +52,16 @@ export function TeamRivalsList({
           }
           stackTrailing
           action={
-            view.rematch ? (
+            view.rematch?.disabled ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                aria-label={view.rematch.accessibilityLabels[rival.teamId]}
+              >
+                {view.rematch.label}
+              </Button>
+            ) : view.rematch ? (
               <Button variant="outline" size="sm" asChild>
                 <Link
                   href={rematchHref(teamId, rival.teamId)}

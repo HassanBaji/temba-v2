@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import type { ChallengePostBlock } from "./challenge-form";
 import { isFootballPosition } from "./football-lineup";
 import { formatGameDay } from "./format-game-start";
 import type { GroupTeamData } from "./group-data";
@@ -240,6 +241,7 @@ export type TeamHomeInput = {
   canDissolve: boolean;
   viewerCanLeave: boolean;
   viewerActsForTeam: boolean;
+  challengePost: { canPost: boolean; blockedBy: ChallengePostBlock | null };
 };
 
 export const TEAM_FORM_SLOTS = 10;
@@ -293,6 +295,21 @@ function groupTagView(data: TeamHomeInput, locale: Locale) {
       ? { label: m.remove, toast: m.removed }
       : null,
   };
+}
+
+/** Why Rematch is disabled: the reason the Team cannot post a Challenge now. */
+function rematchBlockedLine(data: TeamHomeInput, locale: Locale) {
+  const m = messagesFor(locale).team.rivals.rematchBlocked;
+  switch (data.challengePost.blockedBy) {
+    case null:
+      return null;
+    case "open_challenge":
+      return m.open_challenge;
+    case "padel_incomplete":
+      return m.padel_incomplete;
+    case "roster_short":
+      return m.roster_short(data.roster.completeAt);
+  }
 }
 
 function recordTiles(data: TeamHomeInput, locale: Locale) {
@@ -441,6 +458,8 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
                 m.team.rivals.rematchA11y(rival.name),
               ]),
             ),
+            disabled: !data.challengePost.canPost,
+            reason: rematchBlockedLine(data, locale),
           }
         : null,
     games: data.games.map((game) => gameRow(game, locale)),
