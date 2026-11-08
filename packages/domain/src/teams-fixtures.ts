@@ -1,3 +1,4 @@
+import { formatsPlayable } from "./team-roster";
 import type { TeamHomeInput, TeamListRowInput } from "./teams";
 
 const ADA = { name: "Ada Lindqvist", image: null };
@@ -34,12 +35,13 @@ function roster(
   const rule =
     sport === "padel"
       ? { min: 2, max: 2, completeAt: 2 }
-      : { min: 2, max: 25, completeAt: 5 };
+      : { min: 2, max: 20, completeAt: 5 };
   return {
     ...rule,
     count,
     complete: count >= rule.completeAt,
     full: count >= rule.max,
+    formatsPlayable: sport === "football" ? formatsPlayable(count) : [],
   };
 }
 
@@ -56,9 +58,14 @@ const BASE_HOME: TeamHomeInput = {
   canInvite: false,
   canDissolve: true,
   roster: roster("padel", 2),
+  groupTag: null,
+  canClearGroupTag: false,
+  groupTagOptions: [],
   viewerCanLeave: false,
   viewerActsForTeam: true,
 };
+
+const GOOZ = { id: "group-gooz", name: "Gooz of Arad" };
 
 const PLAYED_AT = new Date("2026-09-04T17:00:00.000Z");
 
@@ -122,6 +129,9 @@ export function createTeamsFixtures() {
     | "footballCreatorBuilding"
     | "footballCreatorComplete"
     | "footballCreatorFull"
+    | "footballLegacy"
+    | "footballTagged"
+    | "footballOrganizer"
     | "footballMember",
     TeamHomeInput
   > = {
@@ -231,9 +241,36 @@ export function createTeamsFixtures() {
       ...BASE_HOME,
       sport: "football",
       displayName: "Sunday Five",
-      members: footballMembers(25),
+      members: footballMembers(20),
       canInvite: false,
-      roster: roster("football", 25),
+      roster: roster("football", 20),
+    },
+    footballLegacy: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      members: footballMembers(22),
+      canInvite: false,
+      roster: roster("football", 22),
+    },
+    footballTagged: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Arad Lions",
+      members: footballMembers(12),
+      canInvite: true,
+      roster: roster("football", 12),
+      groupTag: GOOZ,
+      canClearGroupTag: true,
+    },
+    footballOrganizer: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Arad Lions",
+      members: footballMembers(6),
+      canDissolve: false,
+      roster: roster("football", 6),
+      groupTagOptions: [GOOZ],
     },
     footballMember: {
       ...BASE_HOME,

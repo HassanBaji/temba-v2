@@ -16,6 +16,7 @@ import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
+import { groupPath } from "../groups/groups-model";
 import { api } from "../trpc/react";
 import { TEAMS_PATH, teamPath } from "./teams-model";
 import { TeamHomeView } from "./team-home-view";
@@ -61,6 +62,27 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     },
     onSettled: () => setConfirm(null),
   });
+
+  const setGroupTag = api.teams.setGroupTag.useMutation({
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+  });
+
+  function changeGroupTag(groupId: string | null, message: string) {
+    setActionError(null);
+    setGroupTag.mutate(
+      { teamId, groupId },
+      {
+        onSuccess: () => {
+          toast.show(message);
+          void utils.teams.byId.invalidate({ id: teamId });
+          void utils.groups.byId.invalidate();
+        },
+      },
+    );
+  }
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -127,6 +149,18 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         actionError={actionError}
         onInvite={() => setInviteOpen(true)}
         onOpenTeam={(id) => router.push(teamPath(id))}
+        onOpenGroup={
+          data.groupTag
+            ? () => {
+                if (data.groupTag) {
+                  router.push(groupPath(data.groupTag.id));
+                }
+              }
+            : null
+        }
+        tagPending={setGroupTag.isPending}
+        onTag={(groupId, message) => changeGroupTag(groupId, message)}
+        onRemoveTag={(message) => changeGroupTag(null, message)}
         onDissolve={() => {
           setActionError(null);
           setConfirm({

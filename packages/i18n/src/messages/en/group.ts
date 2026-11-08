@@ -592,4 +592,10 @@ export const group = {
     lastRequired: "Enter your last name",
     tooLong: (max: number) => `Keep it under ${max} characters`,
   },
+  teams: {
+    title: "Teams",
+    createLabel: "Create team",
+    empty: "No Teams are tagged to this Group yet.",
+    openTeam: (team: string) => `Open ${team}`,
+  },
 };

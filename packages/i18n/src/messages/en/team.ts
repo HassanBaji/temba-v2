@@ -60,6 +60,21 @@ export const team = {
   roster: {
     title: "Roster",
     count: (count: number, max: number) => `${count} of ${max}`,
+    hero: (count: number, max: number) => `Roster ${count} of ${max}`,
+    plays: (sideSizes: readonly number[]) => {
+      const sizes = sideSizes.map(String);
+      const last = sizes.pop();
+      const list = sizes.length > 0 ? `${sizes.join(", ")} and ${last}` : last;
+      return `Plays ${list}-a-side`;
+    },
+    more: (n: number) =>
+      plural("en", n, { one: "and 1 more", other: "and {n} more" }),
+    addMore: {
+      title: "Add more",
+      detail: (max: number) => `By phone or on Temba. Up to ${max}`,
+      detailWithGroup: (group: string, max: number) =>
+        `By phone, on Temba, or from ${group}. Up to ${max}`,
+    },
     full: "Full",
     complete: "Complete",
     waitingSquad: (n: number) =>
@@ -73,6 +88,20 @@ export const team = {
     draws: "Draws",
   },
   captainLabel: "Captain",
+  groupTag: {
+    line: (group: string) => `${group}'s team`,
+    tagAs: (group: string) => `Tag as ${group}'s team`,
+    remove: "Remove tag",
+    tagged: (group: string) => `Tagged as ${group}'s team`,
+    removed: "Tag removed",
+    createNote: (group: string) =>
+      `This Team will be tagged as ${group}'s team.`,
+  },
+  recordSpoken: (wins: number, losses: number) => `Won ${wins}, lost ${losses}`,
+  recordSpokenWithDraws: (wins: number, draws: number, losses: number) =>
+    `Won ${wins}, drew ${draws}, lost ${losses}`,
+  onRoster: (n: number) =>
+    plural("en", n, { one: "1 on the roster", other: "{n} on the roster" }),
   level: {
     member: (band: string, level: string) => `${band}, ${level}`,
     team: (band: string, level: string) => `${band}, avg ${level}`,

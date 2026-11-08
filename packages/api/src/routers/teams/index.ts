@@ -15,6 +15,7 @@ import { pendingInvitesProcedure as pendingInvites } from "./pendingInvites";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { revokeInAppInviteProcedure as revokeInAppInvite } from "./revokeInAppInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
+import { setGroupTagProcedure as setGroupTag } from "./setGroupTag";
 
 export const teamsRouter = createTRPCRouter({
   create,
@@ -32,4 +33,5 @@ export const teamsRouter = createTRPCRouter({
   acceptInviteLink,
   dissolve,
   leave,
+  setGroupTag,
 });

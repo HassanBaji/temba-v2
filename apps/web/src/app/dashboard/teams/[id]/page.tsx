@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Users } from "lucide-react";
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { use, useRef, useState } from "react";
@@ -15,8 +15,6 @@ import { AvatarStack } from "~/components/common/avatar-stack";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { MemberRow } from "~/components/common/member-row";
-import { RowList } from "~/components/common/row-list";
 import { StatStrip } from "~/components/common/stat-strip";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -27,6 +25,7 @@ import { Section } from "~/components/layout/section";
 import { TeamFormLine } from "~/components/teams/team-form-line";
 import { TeamGamesList } from "~/components/teams/team-games-list";
 import { TeamRivalsList } from "~/components/teams/team-rivals-list";
+import { TeamRosterList } from "~/components/teams/team-roster-list";
 import { SportBadge } from "~/components/temba/sport-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -64,6 +63,21 @@ export default function TeamHomePage({
       router.push("/dashboard/teams");
     },
   });
+
+  const setGroupTag = api.teams.setGroupTag.useMutation({
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  async function changeGroupTag(groupId: string | null, toastMessage: string) {
+    await setGroupTag.mutateAsync({ teamId: id, groupId });
+    toast.success(toastMessage);
+    await Promise.all([
+      utils.teams.byId.invalidate({ id }),
+      utils.groups.byId.invalidate(),
+    ]);
+  }
 
   const leave = api.teams.leave.useMutation({
     onSuccess: async () => {
@@ -181,6 +195,34 @@ export default function TeamHomePage({
                     : m.webDashboard.team.invitePartner}
                 </ActionMenuItem>
               ) : null}
+              {view.groupTag.options.map((option) => (
+                <ActionMenuItem
+                  key={option.groupId}
+                  disabled={setGroupTag.isPending}
+                  onSelect={() =>
+                    void changeGroupTag(option.groupId, option.toast).catch(
+                      () => undefined,
+                    )
+                  }
+                >
+                  {option.label}
+                </ActionMenuItem>
+              ))}
+              {view.groupTag.remove ? (
+                <ActionMenuItem
+                  disabled={setGroupTag.isPending}
+                  onSelect={() => {
+                    const removed = view.groupTag.remove;
+                    if (removed) {
+                      void changeGroupTag(null, removed.toast).catch(
+                        () => undefined,
+                      );
+                    }
+                  }}
+                >
+                  {view.groupTag.remove.label}
+                </ActionMenuItem>
+              ) : null}
               {view.canDissolve || view.canLeave ? (
                 <ActionMenuSeparator />
               ) : null}
@@ -204,12 +246,34 @@ export default function TeamHomePage({
           }
         />
 
+        {view.groupTag.line && data.groupTag ? (
+          <p className="text-body text-muted-foreground">
+            <Link
+              href={`/dashboard/groups/${data.groupTag.id}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {view.groupTag.line}
+            </Link>
+          </p>
+        ) : null}
+
         {view.waitingNote ? (
           <p className="text-body text-muted-foreground">{view.waitingCopy}</p>
         ) : null}
 
         <div className="space-y-2">
           <StatStrip items={view.recordTiles} />
+          {view.rosterHero ? (
+            <p className="text-meta text-muted-foreground">
+              {[
+                view.rosterHero.label,
+                view.roster.status,
+                view.rosterHero.plays,
+              ]
+                .filter(Boolean)
+                .join(m.common.listSeparator)}
+            </p>
+          ) : null}
           {view.teamLevel ? (
             <p className="text-meta text-muted-foreground">{view.teamLevel}</p>
           ) : null}
@@ -223,45 +287,8 @@ export default function TeamHomePage({
           <TeamRivalsList view={view} />
         </Section>
 
-        <Section
-          title={m.team.roster.title}
-          description={
-            view.roster.label
-              ? [view.roster.label, view.roster.status]
-                  .filter(Boolean)
-                  .join(" · ")
-              : undefined
-          }
-        >
-          {data.members.length === 0 ? (
-            <EmptyState
-              headingLevel={3}
-              icon={Users}
-              title={m.team.noMembers.title}
-              description={m.team.noMembers.description}
-            />
-          ) : (
-            <RowList>
-              {view.members.map((member) => (
-                <MemberRow
-                  key={member.id}
-                  name={member.name}
-                  image={member.image}
-                  isViewer={member.isViewer}
-                  meta={
-                    [member.seatLabel, member.levelLabel]
-                      .filter(Boolean)
-                      .join(m.common.listSeparator) || undefined
-                  }
-                  badge={
-                    member.captainLabel ? (
-                      <Badge variant="outline">{member.captainLabel}</Badge>
-                    ) : undefined
-                  }
-                />
-              ))}
-            </RowList>
-          )}
+        <Section title={m.team.roster.title}>
+          <TeamRosterList view={view} onAddMore={() => setInviteOpen(true)} />
         </Section>
 
         <Section title={m.team.games.title}>

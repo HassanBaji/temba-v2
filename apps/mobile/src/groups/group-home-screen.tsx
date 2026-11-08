@@ -67,6 +67,7 @@ import {
   setLevelPath,
   type SavedLevelParams,
 } from "./set-level-model";
+import { NEW_TEAM_PATH, teamPath } from "../teams/teams-model";
 import { useGroupAdmin } from "./use-group-admin";
 import { useGroupInviteLink } from "./use-group-invite-link";
 import { useGroupJoin } from "./use-group-join";
@@ -348,6 +349,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     <Screen refreshing={refreshing} onRefresh={onRefresh} scrollRef={scrollRef}>
       <GroupHomeView
         onScrollTo={scrollTo}
+        onOpenTeam={(teamId) => router.push(teamPath(teamId))}
+        onCreateTeam={() =>
+          router.push(`${NEW_TEAM_PATH}?groupId=${encodeURIComponent(groupId)}`)
+        }
         data={data}
         apiOrigin={apiOrigin}
         tab={tab}

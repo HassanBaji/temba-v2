@@ -1,7 +1,7 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { ratings, teamMembers, teams, type GroupSportEnum } from "@repo/db";
+import { GroupSportEnum, groups, ratings, teamMembers, teams } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -9,11 +9,15 @@ import { type db } from "#src/db";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { type LevelBand } from "@repo/domain/level-bands";
 import {
+  formatsPlayable,
   teamIsComplete,
   teamIsFull,
   teamIsSquad,
   teamRosterRule,
 } from "@repo/domain/team-roster";
+import { mayOrganizeGroupGames } from "#src/games/access";
+import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
+import { userActsForTeam } from "#src/teams/acts-for-team";
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
@@ -76,6 +80,55 @@ async function loadMemberLevels(
   return levels;
 }
 
+/** Live Groups of the sport the viewer organizes, as creator or appointed. */
+async function organizedGroups(
+  database: DbClient,
+  sport: GroupSportEnum,
+  userId: string,
+) {
+  const appointedIds = await appointedOrganizerGroupIds(database, userId);
+  return database.query.groups.findMany({
+    where: and(
+      eq(groups.sport, sport),
+      isNull(groups.deletedAt),
+      appointedIds.length > 0
+        ? or(eq(groups.createdBy, userId), inArray(groups.id, appointedIds))
+        : eq(groups.createdBy, userId),
+    ),
+    columns: { id: true, name: true },
+    orderBy: (table, { asc }) => [asc(table.name)],
+  });
+}
+
+async function groupTagView(
+  database: DbClient,
+  team: { groupId: string | null; createdBy: string },
+  sport: GroupSportEnum,
+  userId: string,
+) {
+  const tagged = team.groupId
+    ? await database.query.groups.findFirst({
+        where: and(eq(groups.id, team.groupId), isNull(groups.deletedAt)),
+        columns: { id: true, name: true, createdBy: true },
+      })
+    : undefined;
+  const isCaptain = team.createdBy === userId;
+  const canClear = tagged
+    ? isCaptain || (await mayOrganizeGroupGames(database, tagged, userId))
+    : false;
+  const options =
+    tagged && !canClear
+      ? []
+      : (await organizedGroups(database, sport, userId)).filter(
+          (group) => group.id !== tagged?.id,
+        );
+  return {
+    groupTag: tagged ? { id: tagged.id, name: tagged.name } : null,
+    canClearGroupTag: canClear,
+    groupTagOptions: options,
+  };
+}
+
 /**
  * Any signed-in User may open any Team: a Challenge shows the opposing Team's
  * record and Roster. Invites, dissolve and leave stay with members.
@@ -109,7 +162,8 @@ export async function teamById(
   const canDissolve =
     isMember && (isCreator || (!incomplete && !teamIsSquad(team.sport)));
   const viewerCanLeave = isMember && !isCreator && teamIsSquad(team.sport);
-  const viewerActsForTeam = teamIsSquad(team.sport) ? isCreator : isMember;
+  const viewerActsForTeam = await userActsForTeam(database, team, args.userId);
+  const tag = await groupTagView(database, team, sport, args.userId);
 
   const teamMatches =
     (await loadTeamMatches(database, [team.id])).get(team.id) ?? [];
@@ -176,7 +230,14 @@ export async function teamById(
       count: memberRows.length,
       complete: !incomplete,
       full,
+      formatsPlayable:
+        sport === GroupSportEnum.FOOTBALL
+          ? formatsPlayable(memberRows.length)
+          : [],
     },
+    groupTag: tag.groupTag,
+    canClearGroupTag: tag.canClearGroupTag,
+    groupTagOptions: tag.groupTagOptions,
     createdBy: team.createdBy,
     captainUserId: team.createdBy,
     createdAt: team.createdAt,

@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { team as source } from "../en/team";
 
@@ -58,6 +59,27 @@ export const team = {
   roster: {
     title: "قائمة الفريق",
     count: (count: number, max: number) => `${count} من ${max}`,
+    hero: (count: number, max: number) => `قائمة الفريق ${count} من ${max}`,
+    plays: (sideSizes: readonly number[]) => {
+      const sizes = sideSizes.map((size) => `${size} ضد ${size}`);
+      const last = sizes.pop();
+      const list = sizes.length > 0 ? `${sizes.join("، ")} و${last}` : last;
+      return `يلعب ${list}`;
+    },
+    more: (n: number) =>
+      plural("ar", n, {
+        one: "وواحد آخر",
+        two: "واثنان آخران",
+        few: "و{n} آخرون",
+        many: "و{n} آخرين",
+        other: "و{n} آخرين",
+      }),
+    addMore: {
+      title: "أضف المزيد",
+      detail: (max: number) => `برقم الهاتف أو على Temba. حتى ${max}`,
+      detailWithGroup: (group: string, max: number) =>
+        `برقم الهاتف، أو على Temba، أو من ${isolate(group)}. حتى ${max}`,
+    },
     full: "ممتلئ",
     complete: "مكتمل",
     waitingSquad: (n: number) =>
@@ -74,6 +96,26 @@ export const team = {
     draws: "التعادلات",
   },
   captainLabel: "القائد",
+  groupTag: {
+    line: (group: string) => `فريق ${isolate(group)}`,
+    tagAs: (group: string) => `وسم كفريق ${isolate(group)}`,
+    remove: "إزالة الوسم",
+    tagged: (group: string) => `أصبح فريق ${isolate(group)}`,
+    removed: "أزيل الوسم",
+    createNote: (group: string) => `سيُوسم هذا الفريق كفريق ${isolate(group)}.`,
+  },
+  recordSpoken: (wins: number, losses: number) => `فاز ${wins}، خسر ${losses}`,
+  recordSpokenWithDraws: (wins: number, draws: number, losses: number) =>
+    `فاز ${wins}، تعادل ${draws}، خسر ${losses}`,
+  onRoster: (n: number) =>
+    plural("ar", n, {
+      zero: "لا أحد في قائمة الفريق",
+      one: "لاعب واحد في قائمة الفريق",
+      two: "لاعبان في قائمة الفريق",
+      few: "{n} لاعبين في قائمة الفريق",
+      many: "{n} لاعبًا في قائمة الفريق",
+      other: "{n} لاعب في قائمة الفريق",
+    }),
   level: {
     member: (band: string, level: string) => `${band}، ${level}`,
     team: (band: string, level: string) => `${band}، المعدل ${level}`,

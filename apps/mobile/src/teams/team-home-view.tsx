@@ -1,6 +1,8 @@
 import { spacing } from "@repo/design-tokens";
 import { sportGlyph } from "@repo/domain/sport";
 import { type TeamHomeView as TeamHomeViewData } from "@repo/domain/teams";
+import { Plus } from "lucide-react-native";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import {
@@ -31,6 +33,10 @@ export type TeamHomeViewProps = {
   actionError: string | null;
   onInvite: () => void;
   onOpenTeam: (teamId: string) => void;
+  onOpenGroup: (() => void) | null;
+  tagPending: boolean;
+  onTag: (groupId: string, toast: string) => void;
+  onRemoveTag: (toast: string) => void;
   onDissolve: () => void;
   onLeave: () => void;
   onCloseConfirm: () => void;
@@ -76,9 +82,69 @@ function Stats({ stats }: { stats: TeamHomeViewData["recordTiles"] }) {
   );
 }
 
-function Members({ members }: { members: TeamHomeViewData["members"] }) {
+function MemberRow({
+  member,
+}: {
+  member: TeamHomeViewData["members"][number];
+}) {
   const m = useMessages();
-  if (members.length === 0) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={[
+        member.name,
+        member.isViewer ? m.common.you : null,
+        member.captainLabel,
+        member.seatLabel,
+        member.levelLabel,
+      ]
+        .filter(Boolean)
+        .join(m.group.metaSeparator)}
+      style={{
+        minHeight: 56,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: spacing.surface,
+      }}
+    >
+      <Avatar name={member.name} uri={member.image} size="lg" />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text weight="semibold" numberOfLines={1}>
+          {member.name}
+        </Text>
+        {member.isViewer || member.seatLabel || member.levelLabel ? (
+          <Text size="meta" tone="muted" numberOfLines={1}>
+            {[
+              member.isViewer ? m.common.you : null,
+              member.seatLabel,
+              member.levelLabel,
+            ]
+              .filter(Boolean)
+              .join(m.common.listSeparator)}
+          </Text>
+        ) : null}
+      </View>
+      {member.captainLabel ? (
+        <Text size="eyebrow" tone="muted" mono uppercase>
+          {member.captainLabel}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function Roster({
+  view,
+  onAddMore,
+}: {
+  view: TeamHomeViewData;
+  onAddMore: () => void;
+}) {
+  const m = useMessages();
+  const colors = useColors();
+  const [expanded, setExpanded] = useState(false);
+  if (view.members.length === 0) {
     return (
       <Notice
         title={m.team.noMembers.title}
@@ -86,22 +152,46 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
       />
     );
   }
+  const shown = expanded
+    ? view.members
+    : view.members.slice(0, view.rosterPreview);
+  const more = expanded ? null : view.rosterMore;
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
-      {members.map((member, index) => (
+      {shown.map((member, index) => (
         <View key={member.id}>
           {index > 0 ? <Hairline /> : null}
-          <View
-            accessible
-            accessibilityLabel={[
-              member.name,
-              member.isViewer ? m.common.you : null,
-              member.captainLabel,
-              member.seatLabel,
-              member.levelLabel,
-            ]
-              .filter(Boolean)
-              .join(m.group.metaSeparator)}
+          <MemberRow member={member} />
+        </View>
+      ))}
+      {more ? (
+        <>
+          <Hairline />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={more}
+            onPress={() => setExpanded(true)}
+            style={{
+              minHeight: 48,
+              justifyContent: "center",
+              padding: spacing.surface,
+            }}
+          >
+            <Text size="meta" weight="semibold">
+              {more}
+            </Text>
+          </Pressable>
+        </>
+      ) : null}
+      {view.addMore ? (
+        <>
+          <Hairline />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={[view.addMore.title, view.addMore.detail].join(
+              m.group.metaSeparator,
+            )}
+            onPress={onAddMore}
             style={{
               minHeight: 56,
               flexDirection: "row",
@@ -110,31 +200,16 @@ function Members({ members }: { members: TeamHomeViewData["members"] }) {
               padding: spacing.surface,
             }}
           >
-            <Avatar name={member.name} uri={member.image} size="lg" />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text weight="semibold" numberOfLines={1}>
-                {member.name}
+            <Plus size={20} color={colors.ink} />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <Text weight="semibold">{view.addMore.title}</Text>
+              <Text size="meta" tone="muted">
+                {view.addMore.detail}
               </Text>
-              {member.isViewer || member.seatLabel || member.levelLabel ? (
-                <Text size="meta" tone="muted" numberOfLines={1}>
-                  {[
-                    member.isViewer ? m.common.you : null,
-                    member.seatLabel,
-                    member.levelLabel,
-                  ]
-                    .filter(Boolean)
-                    .join(m.common.listSeparator)}
-                </Text>
-              ) : null}
             </View>
-            {member.captainLabel ? (
-              <Text size="eyebrow" tone="muted" mono uppercase>
-                {member.captainLabel}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-      ))}
+          </Pressable>
+        </>
+      ) : null}
     </Surface>
   );
 }
@@ -306,6 +381,23 @@ export function TeamHomeView(props: TeamHomeViewProps) {
             {view.badges.join(" · ")}
           </Text>
         </View>
+        {view.groupTag.line ? (
+          props.onOpenGroup ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={view.groupTag.line}
+              onPress={props.onOpenGroup}
+            >
+              <Text size="meta" weight="medium">
+                {view.groupTag.line}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text size="meta" weight="medium">
+              {view.groupTag.line}
+            </Text>
+          )
+        ) : null}
         {props.actionError ? (
           <Text size="meta" weight="medium" accessibilityRole="alert">
             {props.actionError}
@@ -326,6 +418,13 @@ export function TeamHomeView(props: TeamHomeViewProps) {
 
       <View style={{ gap: 8 }}>
         <Stats stats={view.recordTiles} />
+        {view.rosterHero ? (
+          <Text size="meta" tone="muted">
+            {[view.rosterHero.label, view.roster.status, view.rosterHero.plays]
+              .filter(Boolean)
+              .join(m.common.listSeparator)}
+          </Text>
+        ) : null}
         {view.teamLevel ? (
           <Text size="meta" tone="muted">
             {view.teamLevel}
@@ -342,24 +441,45 @@ export function TeamHomeView(props: TeamHomeViewProps) {
       </Section>
 
       <Section title={m.team.roster.title}>
-        {view.roster.label ? (
-          <Text size="eyebrow" tone="muted" mono uppercase>
-            {[view.roster.label, view.roster.status]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
-        ) : null}
-        <Members members={view.members} />
+        <Roster view={view} onAddMore={props.onInvite} />
       </Section>
 
       <Section title={m.team.games.title}>
         <Games view={view} />
       </Section>
 
-      {view.canInvite || view.canLeave || view.canDissolve ? (
+      {view.canInvite ||
+      view.canLeave ||
+      view.canDissolve ||
+      view.groupTag.options.length > 0 ||
+      view.groupTag.remove ? (
         <Section title={m.mobileTeam.home.actionsTitle}>
           <View style={{ gap: 8 }}>
-            {view.canInvite && !view.primaryInvite ? (
+            {view.groupTag.options.map((option) => (
+              <View key={option.groupId} style={{ flexDirection: "row" }}>
+                <Button
+                  label={option.label}
+                  variant="outline"
+                  disabled={props.tagPending}
+                  onPress={() => props.onTag(option.groupId, option.toast)}
+                />
+              </View>
+            ))}
+            {view.groupTag.remove ? (
+              <View style={{ flexDirection: "row" }}>
+                <Button
+                  label={view.groupTag.remove.label}
+                  variant="outline"
+                  disabled={props.tagPending}
+                  onPress={() => {
+                    if (view.groupTag.remove) {
+                      props.onRemoveTag(view.groupTag.remove.toast);
+                    }
+                  }}
+                />
+              </View>
+            ) : null}
+            {view.canInvite && !view.primaryInvite && !view.addMore ? (
               <View style={{ flexDirection: "row" }}>
                 <Button
                   label={view.inviteLabel}

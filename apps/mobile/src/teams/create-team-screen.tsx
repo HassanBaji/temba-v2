@@ -1,4 +1,4 @@
-import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+import { DEFAULT_SPORT, isSport, type Sport } from "@repo/domain/sport";
 import { teamCreateInput } from "@repo/domain/teams";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -11,13 +11,27 @@ import { api } from "../trpc/react";
 import { CreateTeamView } from "./create-team-view";
 import { teamPath } from "./teams-model";
 
-export function CreateTeamScreen() {
+export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
   const router = useRouter();
   const toast = useToast();
   const m = useMessages();
   const utils = api.useUtils();
   const [name, setName] = useState("");
-  const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
+  const [pickedSport, setSport] = useState<Sport>(DEFAULT_SPORT);
+
+  const tagGroup = api.groups.byId.useQuery(
+    { id: groupId ?? "" },
+    { enabled: groupId != null },
+  );
+  const tag =
+    groupId && tagGroup.data?.canCreateTeam && isSport(tagGroup.data.sport)
+      ? {
+          id: tagGroup.data.id,
+          name: tagGroup.data.name ?? m.group.untitled,
+          sport: tagGroup.data.sport,
+        }
+      : null;
+  const sport = tag?.sport ?? pickedSport;
   const [nameError, setNameError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -25,6 +39,9 @@ export function CreateTeamScreen() {
     onSuccess: async (team) => {
       toast.show(m.team.toast.created);
       await utils.teams.mine.invalidate();
+      if (team.groupTag) {
+        await utils.groups.byId.invalidate({ id: team.groupTag.id });
+      }
       router.replace(teamPath(team.id));
     },
     onError: (error) => {
@@ -45,7 +62,7 @@ export function CreateTeamScreen() {
     }
     setNameError(null);
     setFormError(null);
-    create.mutate(teamCreateInput({ name, sport }));
+    create.mutate(teamCreateInput({ name, sport, groupId: tag?.id }));
   }
 
   return (
@@ -54,10 +71,11 @@ export function CreateTeamScreen() {
         name={name}
         sport={sport}
         onSportChange={setSport}
+        tagNote={tag ? m.team.groupTag.createNote(tag.name) : null}
         onNameChange={setName}
         nameError={nameError}
         formError={formError}
-        pending={create.isPending}
+        pending={create.isPending || (groupId != null && tagGroup.isLoading)}
         onSubmit={submit}
         onCancel={() => router.back()}
       />

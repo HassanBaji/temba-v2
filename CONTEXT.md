@@ -172,12 +172,24 @@ A Venue manager’s request that a Loose Group Public link to that Venue. The Gr
 _Avoid_: Group join request, Venue link (that is the result), invite (when you mean this request), Group transfer, Venue link request (retired, ADR-0055)
 
 **Team**:
-A persistent roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty-five and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. A Team stands on its own: it belongs to no Group and links to no Venue. Its creator is its Captain (ADR-0059): on a football Team the Captain acts for the Team, other members may leave, the Captain dissolves; on a padel Team both members act for the Team. Any signed-in User may open a Team's detail (record, form, Rivals, Roster); invites, leave and dissolve stay with members.
+A persistent Roster of Users for one sport, sized by its Team roster rule: a padel Team is exactly two Users; a football Team is two to twenty, flat, and complete at five. Distinct from Group. A Team may be below complete (a padel Team with one member and a pending Lookup invite or live Invite link for the second seat; a football Team under five). A Team is full at its maximum. A Team stands on its own: no Group owns it and it links to no Venue, though it may carry a Group tag. Its creator is its Captain (ADR-0059): on a football Team the Captain acts for the Team, together with the Organizers of its tagged Group, other members may leave, the Captain dissolves; on a padel Team both members act for the Team. Any signed-in User may open a Team's detail (record, form, Rivals, Roster); invites, leave and dissolve stay with members.
 _Avoid_: Group, Game team, pair, doubles (when you mean this entity), Club Team, Loose Team (retired, ADR-0055)
 
 **Captain**:
-The product name for a Team's creator (`teams.created_by`); there is no captain column and no transfer. On a football Team the Captain acts for the Team; on a padel Team both members do.
+The product name for a Team's creator (`teams.created_by`); there is no captain column and no transfer. On a football Team the Captain acts for the Team, and so do the Organizers of the Group the Team is tagged to; on a padel Team both members do. The Roster stays the Captain's.
 _Avoid_: owner, admin, creator (in product copy), organizer (when you mean this)
+
+**Roster**:
+The members of a Team: who is on the Team. Padel exactly two; football two to twenty, flat, whatever Format the Team plays. A football Team may post a Challenge in a Format once its Roster holds at least that Format's side ("Plays 5, 6 and 7-a-side" lists the Formats it can post). A legacy Roster above twenty keeps its members and reads "22 of 20"; no door adds to it. The Roster is not who plays a given Game.
+_Avoid_: squad (that is the Matchday squad), line-up, members (bare, in product copy)
+
+**Group tag**:
+An optional reference from a Team to one Group of the same sport (`teams.group_id`). The Group does not own the Team: the record and Rivals belong to the Team. The tag shows on the Team's detail ("Gooz of Arad's team"), lists the Team on the Group page, and lets the Group's Organizers act for a football Team on its Challenge doors, not its Roster doors. Set at create or later by the Captain or an Organizer of the target Group; cleared by the Captain or an Organizer of the tagged Group, and when the Group is deleted.
+_Avoid_: Group team, Club Team (retired), owned by, parent
+
+**Challenge format**:
+The football Side size a Challenge asks for: 5, 6 or 7-a-side. Product copy says Format. Not the Game format enum (`friendly_game`, `americano`, …).
+_Avoid_: game format (that enum), team size, squad size
 
 **Team record**:
 Wins–losses (padel) or wins–draws–losses (football) over a Team's completed Matches on non-cancelled Games, read from the Game teams bound to the Team and derived on every read. A Match awaiting confirmation or a Walkover does not count. No stored counters.
@@ -196,7 +208,7 @@ The mean displayed Level, in tenths, of a Team's Roster members who hold a Ratin
 _Avoid_: team rating, average rank, squad level
 
 **Team roster rule**:
-The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty-five, complete at five, pairs not unique.
+The size rule a Team follows for its sport: minimum and maximum members, the count at which it is complete, and whether its member pair is unique across Temba. Padel: exactly two, complete at two, pair unique. Football: two to twenty, complete at five (the smallest Challenge format), pairs not unique. Join, invite and add doors refuse at the maximum; nothing shrinks a Roster already above it.
 _Avoid_: team size (bare), squad size, captain rule
 
 **Game team**:

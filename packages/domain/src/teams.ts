@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { isFootballPosition } from "./football-lineup";
 import { formatGameDay } from "./format-game-start";
+import type { GroupTeamData } from "./group-data";
 import { groupHomeSportLabel } from "./group-home-chrome";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { historyScoreLine } from "./match-history-card";
@@ -17,14 +18,23 @@ import { teamAvatarPeople } from "./team-avatar-people";
 import { teamLevelLabel } from "./team-level";
 import {
   closestRivalLine,
+  headToHeadLine,
   opponentName,
   teamRivalRow,
   type HeadToHead,
   type TeamRivalInput,
 } from "./team-rivals";
 
-export function teamCreateInput(form: { name: string; sport: Sport }) {
-  return { name: teamNameInput(form.name), sport: form.sport };
+export function teamCreateInput(form: {
+  name: string;
+  sport: Sport;
+  groupId?: string | null;
+}) {
+  return {
+    name: teamNameInput(form.name),
+    sport: form.sport,
+    ...(form.groupId ? { groupId: form.groupId } : {}),
+  };
 }
 
 export function teamNameInput(name: string) {
@@ -149,6 +159,8 @@ export type TeamHomeGameInput = {
   result: MatchOutcome | null;
 };
 
+export type TeamGroupTagInput = { id: string; name: string | null };
+
 export type TeamHomeInput = {
   displayName: string | null;
   sport: string;
@@ -159,7 +171,10 @@ export type TeamHomeInput = {
   closestRival: TeamRivalInput | null;
   games: TeamHomeGameInput[];
   members: TeamHomeMemberInput[];
-  roster: TeamRosterInput;
+  roster: TeamRosterInput & { formatsPlayable: readonly number[] };
+  groupTag: TeamGroupTagInput | null;
+  canClearGroupTag: boolean;
+  groupTagOptions: TeamGroupTagInput[];
   canInvite: boolean;
   canDissolve: boolean;
   viewerCanLeave: boolean;
@@ -167,6 +182,57 @@ export type TeamHomeInput = {
 };
 
 export const TEAM_FORM_SLOTS = 10;
+
+/** The Roster section lists this many members before "and N more". */
+export const TEAM_ROSTER_PREVIEW = 6;
+
+function groupName(group: TeamGroupTagInput, locale: Locale) {
+  const name = group.name?.trim();
+  return name && name.length > 0 ? name : messagesFor(locale).group.untitled;
+}
+
+/** Football only: "Roster 12 of 20" and the Formats the Roster can post. */
+function rosterHero(data: TeamHomeInput, locale: Locale) {
+  if (!isSquadRoster(data.roster)) {
+    return null;
+  }
+  const m = messagesFor(locale).team.roster;
+  return {
+    label: m.hero(data.roster.count, data.roster.max),
+    plays:
+      data.roster.formatsPlayable.length > 0
+        ? m.plays(data.roster.formatsPlayable)
+        : null,
+  };
+}
+
+function addMoreRow(data: TeamHomeInput, locale: Locale) {
+  if (!isSquadRoster(data.roster) || !data.canInvite) {
+    return null;
+  }
+  const m = messagesFor(locale).team.roster.addMore;
+  return {
+    title: m.title,
+    detail: data.groupTag
+      ? m.detailWithGroup(groupName(data.groupTag, locale), data.roster.max)
+      : m.detail(data.roster.max),
+  };
+}
+
+function groupTagView(data: TeamHomeInput, locale: Locale) {
+  const m = messagesFor(locale).team.groupTag;
+  return {
+    line: data.groupTag ? m.line(groupName(data.groupTag, locale)) : null,
+    options: data.groupTagOptions.map((group) => ({
+      groupId: group.id,
+      label: m.tagAs(groupName(group, locale)),
+      toast: m.tagged(groupName(group, locale)),
+    })),
+    remove: data.canClearGroupTag
+      ? { label: m.remove, toast: m.removed }
+      : null,
+  };
+}
 
 function recordTiles(data: TeamHomeInput, locale: Locale) {
   const m = messagesFor(locale);
@@ -279,6 +345,16 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     openSeats: seatsToComplete,
     squad,
     roster: teamRosterView(data.roster, locale),
+    rosterHero: rosterHero(data, locale),
+    groupTag: groupTagView(data, locale),
+    rosterPreview: TEAM_ROSTER_PREVIEW,
+    rosterMore:
+      data.members.length > TEAM_ROSTER_PREVIEW
+        ? messagesFor(locale).team.roster.more(
+            data.members.length - TEAM_ROSTER_PREVIEW,
+          )
+        : null,
+    addMore: addMoreRow(data, locale),
     inviteLabel: teamInviteLabel(squad, locale),
     primaryInvite: data.waitingForPartner && data.canInvite,
     waitingNote: data.waitingForPartner && !data.canInvite,
@@ -317,3 +393,32 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
 }
 
 export type TeamHomeView = ReturnType<typeof teamHomeView>;
+
+/** One Team on its Group's page: name, Roster count on football, record. */
+export function groupTeamRowView(team: GroupTeamData, locale: Locale) {
+  const m = messagesFor(locale);
+  const squad = team.sport === "football";
+  const record = headToHeadLine(team.record, team.sport, locale);
+  const spoken = squad
+    ? m.team.recordSpokenWithDraws(
+        team.record.wins,
+        team.record.draws,
+        team.record.losses,
+      )
+    : m.team.recordSpoken(team.record.wins, team.record.losses);
+  const roster = squad ? m.team.onRoster(team.rosterCount) : null;
+  return {
+    id: team.id,
+    title: team.displayName ?? m.team.fallbackName,
+    meta: [roster, record]
+      .filter((part): part is string => part != null)
+      .join(m.group.metaSeparator),
+    accessibilityLabel: [
+      m.group.teams.openTeam(team.displayName ?? m.team.fallbackName),
+      roster,
+      spoken,
+    ]
+      .filter((part): part is string => part != null)
+      .join(m.group.metaSeparator),
+  };
+}

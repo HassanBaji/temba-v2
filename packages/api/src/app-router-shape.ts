@@ -207,7 +207,8 @@ type ExpectedTeams =
   | "previewInviteLink"
   | "acceptInviteLink"
   | "dissolve"
-  | "leave";
+  | "leave"
+  | "setGroupTag";
 
 type ExpectedUsers =
   | "home"

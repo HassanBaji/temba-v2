@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { isForbiddenError } from "./is-forbidden-error";
 import {
+  groupTeamRowView,
   teamCreateInput,
   teamDissolveConfirm,
   teamHomeView,
@@ -199,6 +200,12 @@ describe("teamCreateInput", () => {
       sport: "padel",
     });
   });
+
+  it("carries the Group tag when the Team is created from a Group", () => {
+    expect(
+      teamCreateInput({ name: "", sport: "football", groupId: "group-gooz" }),
+    ).toEqual({ name: undefined, sport: "football", groupId: "group-gooz" });
+  });
 });
 
 describe("teamHomeView roster", () => {
@@ -223,19 +230,19 @@ describe("teamHomeView roster", () => {
     expect(
       teamHomeView(fixtures.home.footballCreatorBuilding, "en").roster,
     ).toEqual({
-      label: "2 of 25",
+      label: "2 of 20",
       status: null,
     });
     expect(
       teamHomeView(fixtures.home.footballCreatorComplete, "en").roster,
     ).toEqual({
-      label: "7 of 25",
+      label: "7 of 20",
       status: "Complete",
     });
     expect(
       teamHomeView(fixtures.home.footballCreatorFull, "en").roster,
     ).toEqual({
-      label: "25 of 25",
+      label: "20 of 20",
       status: "Full",
     });
   });
@@ -273,11 +280,128 @@ describe("teamHomeView roster", () => {
   });
 });
 
+describe("teamHomeView football Roster", () => {
+  it("shows the Roster hero and the Formats it plays", () => {
+    const view = teamHomeView(fixtures.home.footballTagged, "en");
+    expect(view.rosterHero).toEqual({
+      label: "Roster 12 of 20",
+      plays: "Plays 5, 6 and 7-a-side",
+    });
+    expect(
+      teamHomeView(fixtures.home.footballOrganizer, "en").rosterHero?.plays,
+    ).toBe("Plays 5 and 6-a-side");
+    expect(teamHomeView(fixtures.home.footballMember, "en").rosterHero).toEqual(
+      { label: "Roster 3 of 20", plays: null },
+    );
+    expect(teamHomeView(fixtures.home.complete, "en").rosterHero).toBe(null);
+  });
+
+  it("lists six then and N more, and ends with Add more", () => {
+    const view = teamHomeView(fixtures.home.footballTagged, "en");
+    expect(view.rosterPreview).toBe(6);
+    expect(view.rosterMore).toBe("and 6 more");
+    expect(view.addMore).toEqual({
+      title: "Add more",
+      detail: "By phone, on Temba, or from Gooz of Arad. Up to 20",
+    });
+    const organizer = teamHomeView(fixtures.home.footballOrganizer, "en");
+    expect(organizer.rosterMore).toBe(null);
+    expect(organizer.addMore).toBe(null);
+    expect(
+      teamHomeView(fixtures.home.footballCreatorComplete, "en").addMore?.detail,
+    ).toBe("By phone or on Temba. Up to 20");
+    expect(teamHomeView(fixtures.home.incomplete, "en").addMore).toBe(null);
+  });
+
+  it("shows a legacy Roster of 22 as 22 of 20, full", () => {
+    const view = teamHomeView(fixtures.home.footballLegacy, "en");
+    expect(view.roster).toEqual({ label: "22 of 20", status: "Full" });
+    expect(view.rosterHero?.label).toBe("Roster 22 of 20");
+    expect(view.rosterMore).toBe("and 16 more");
+  });
+});
+
+describe("teamHomeView Group tag", () => {
+  it("shows the tag line and lets the Captain or an Organizer remove it", () => {
+    const view = teamHomeView(fixtures.home.footballTagged, "en");
+    expect(view.groupTag.line).toBe("Gooz of Arad's team");
+    expect(view.groupTag.remove).toEqual({
+      label: "Remove tag",
+      toast: "Tag removed",
+    });
+    expect(view.groupTag.options).toEqual([]);
+  });
+
+  it("offers an Organizer the Groups they may tag the Team to", () => {
+    const view = teamHomeView(fixtures.home.footballOrganizer, "en");
+    expect(view.groupTag).toEqual({
+      line: null,
+      options: [
+        {
+          groupId: "group-gooz",
+          label: "Tag as Gooz of Arad's team",
+          toast: "Tagged as Gooz of Arad's team",
+        },
+      ],
+      remove: null,
+    });
+  });
+
+  it("writes the tag copy in Arabic", () => {
+    const view = teamHomeView(fixtures.home.footballTagged, "ar");
+    expect(view.groupTag.line).toContain("Gooz of Arad");
+    expect(view.rosterHero?.label).toBe("قائمة الفريق 12 من 20");
+  });
+});
+
+describe("groupTeamRowView", () => {
+  it("shows the Roster count and record on football", () => {
+    expect(
+      groupTeamRowView(
+        {
+          id: "team-1",
+          displayName: "Arad Lions",
+          sport: "football",
+          rosterCount: 12,
+          record: { gamesPlayed: 6, wins: 3, draws: 1, losses: 2 },
+        },
+        "en",
+      ),
+    ).toEqual({
+      id: "team-1",
+      title: "Arad Lions",
+      meta: "12 on the roster, 3–1–2",
+      accessibilityLabel:
+        "Open Arad Lions, 12 on the roster, Won 3, drew 1, lost 2",
+    });
+  });
+
+  it("shows only the record on padel", () => {
+    expect(
+      groupTeamRowView(
+        {
+          id: "team-2",
+          displayName: "Ada & Kim",
+          sport: "padel",
+          rosterCount: 2,
+          record: { gamesPlayed: 3, wins: 2, draws: 0, losses: 1 },
+        },
+        "en",
+      ).meta,
+    ).toBe("2–1");
+  });
+});
+
 describe("teamInviteSeatsLeft", () => {
+  it("leaves a legacy Roster above twenty no seat", () => {
+    const { roster } = fixtures.home.footballLegacy;
+    expect(teamInviteSeatsLeft(roster, 0)).toBe(0);
+  });
+
   it("counts pending invites against the squad limit", () => {
     const { roster } = fixtures.home.footballCreatorComplete;
-    expect(teamInviteSeatsLeft(roster, 0)).toBe(18);
-    expect(teamInviteSeatsLeft(roster, 18)).toBe(0);
+    expect(teamInviteSeatsLeft(roster, 0)).toBe(13);
+    expect(teamInviteSeatsLeft(roster, 13)).toBe(0);
     expect(teamInviteSeatsLeft(roster, 30)).toBe(0);
   });
 

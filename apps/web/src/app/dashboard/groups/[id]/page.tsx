@@ -45,6 +45,7 @@ import {
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
+import { GroupTeamsRow } from "~/components/groups/group-teams-row";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
@@ -663,6 +664,13 @@ export default function GroupHomePage({
               {groupPartOfVenueLine(data.venue.name, locale)}
             </p>
           ) : null}
+
+          <GroupTeamsRow
+            groupId={id}
+            teams={data.teams}
+            isMember={data.membership != null}
+            canCreateTeam={data.canCreateTeam}
+          />
 
           {ctaFamily.kind === "join_group" ? (
             <Button

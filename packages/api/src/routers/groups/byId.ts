@@ -26,6 +26,8 @@ import {
   MatchStatusEnum,
   ratingEvents,
   ratings,
+  teamMembers,
+  teams,
   user,
   venues,
   type GroupSportEnum,
@@ -90,6 +92,8 @@ import { canManageSeasons } from "#src/groups/helpers/season-access";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
+import { teamDisplayName } from "#src/teams/helpers/team-display-name";
+import { loadTeamMatches, teamRecordFromMatches } from "#src/teams/team-record";
 
 type DbClient = typeof db;
 
@@ -285,6 +289,38 @@ function toGroupPlayedGame(
     viewerSlot,
     outcome,
   };
+}
+
+/** Teams tagged to the Group, with their record. The Group does not own them. */
+async function loadTaggedTeams(database: DbClient, groupId: string) {
+  const teamRows = await database.query.teams.findMany({
+    where: eq(teams.groupId, groupId),
+    columns: { id: true, name: true, sport: true },
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+  if (teamRows.length === 0) {
+    return [];
+  }
+  const teamIds = teamRows.map((team) => team.id);
+  const memberRows = await database.query.teamMembers.findMany({
+    where: inArray(teamMembers.teamId, teamIds),
+    columns: { teamId: true },
+    with: { user: { columns: { name: true } } },
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+  const matchesByTeam = await loadTeamMatches(database, teamIds);
+  return teamRows.map((team) => {
+    const memberNames = memberRows
+      .filter((member) => member.teamId === team.id)
+      .map((member) => member.user.name);
+    return {
+      id: team.id,
+      displayName: teamDisplayName(team.name, memberNames),
+      sport: team.sport as GroupSportEnum,
+      rosterCount: memberNames.length,
+      record: teamRecordFromMatches(matchesByTeam.get(team.id) ?? []),
+    };
+  });
 }
 
 export async function groupById(
@@ -822,6 +858,8 @@ export async function groupById(
     viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,
+    teams: await loadTaggedTeams(database, group.id),
+    canCreateTeam: canCreateGame && group.sport !== null,
   };
 }
 

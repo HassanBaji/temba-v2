@@ -13,6 +13,8 @@ export type CreateTeamViewProps = {
   name: string;
   sport: Sport;
   onSportChange: (sport: Sport) => void;
+  /** Set when the Team is created from a Group: the sport is the Group's. */
+  tagNote: string | null;
   onNameChange: (name: string) => void;
   nameError: string | null;
   formError: string | null;
@@ -40,12 +42,16 @@ export function CreateTeamView(props: CreateTeamViewProps) {
           {props.formError}
         </Text>
       ) : null}
-      <SportChoiceRow
-        sports={SPORTS}
-        value={props.sport}
-        onSelect={props.onSportChange}
-        disabled={props.pending}
-      />
+      {props.tagNote ? (
+        <Text size="meta">{props.tagNote}</Text>
+      ) : (
+        <SportChoiceRow
+          sports={SPORTS}
+          value={props.sport}
+          onSelect={props.onSportChange}
+          disabled={props.pending}
+        />
+      )}
       <View style={{ gap: 6 }}>
         <TextField
           label={m.team.nameLabel}
