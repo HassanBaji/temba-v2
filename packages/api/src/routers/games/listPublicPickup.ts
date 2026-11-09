@@ -13,6 +13,7 @@ import {
   viewerHubContext,
   type HubQueryRow,
 } from "#src/games/helpers/hub-list";
+import { hubGameMayBeLive } from "#src/games/helpers/hub-may-be-live";
 import type { HubListRow } from "#src/games/utils";
 import { filterAndSortPublicHubGames } from "#src/home/upcoming-games";
 
@@ -25,7 +26,11 @@ export async function listPublicHubRows(
   const viewer = await viewerHubContext(database, userId, locale);
   const rows = await queryHubGames(
     database,
-    and(eq(games.isPublic, true), isNull(games.cancelledAt)),
+    and(
+      eq(games.isPublic, true),
+      isNull(games.cancelledAt),
+      hubGameMayBeLive(database, now),
+    ),
   );
   const filtered = filterAndSortPublicHubGames(
     rows as HubQueryRow[],

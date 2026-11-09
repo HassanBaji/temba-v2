@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { MatchStatusEnum, matches } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -12,7 +13,10 @@ import {
   requireGame,
   type GameRow,
 } from "#src/games/access";
-import { cancelGameRecord } from "#src/games/helpers/cancel-game-record";
+import {
+  assertGameCancellable,
+  cancelGameRecord,
+} from "#src/games/helpers/cancel-game-record";
 import {
   awardKnockoutWalkover,
   isKnockoutMatch,
@@ -32,6 +36,7 @@ async function cancelMatchOnGame(
   game: GameRow,
   matchId: string,
   advancingGameTeamId: string | undefined,
+  locale: Locale,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
@@ -65,6 +70,7 @@ async function cancelMatchOnGame(
   }
 
   if (game.format === "friendly_game") {
+    await assertGameCancellable(database, game, locale);
     await cancelGameRecord(database, game);
     return { cancelledGame: true as const };
   }
@@ -104,12 +110,19 @@ export async function cancelMatch(
     userId: string;
     matchId: string;
     advancingGameTeamId?: string;
+    locale?: Locale;
   },
 ) {
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.userId);
   return database.transaction(async (tx) => {
-    return cancelMatchOnGame(tx, game, args.matchId, args.advancingGameTeamId);
+    return cancelMatchOnGame(
+      tx,
+      game,
+      args.matchId,
+      args.advancingGameTeamId,
+      args.locale ?? DEFAULT_LOCALE,
+    );
   });
 }
 
@@ -128,5 +141,6 @@ export const cancelMatchProcedure = protectedProcedure
       userId: appUser.id,
       matchId: input.matchId,
       advancingGameTeamId: input.advancingGameTeamId,
+      locale: ctx.locale,
     });
   });

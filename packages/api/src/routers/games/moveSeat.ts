@@ -6,6 +6,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
+  assertGameNotFrozen,
   assertRegistrationOpen,
   getRegistrationStatus,
   requireGame,
@@ -54,6 +55,7 @@ export async function moveSeat(
   }
 
   assertRegistrationOpen(game, now);
+  await assertGameNotFrozen(database, game, now, args.locale);
   const status = await getRegistrationStatus(database, game, now);
   if (status === "full") {
     throw new TRPCError({

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { games } from "@repo/db";
+import { type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -10,6 +11,7 @@ import { type db } from "#src/db";
 import {
   assertGameOrganizer,
   requireGame,
+  requireNotChallengeGame,
   type GameRow,
 } from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
@@ -38,9 +40,10 @@ async function reopenRegistrationOnGame(database: DbClient, game: GameRow) {
 
 export async function reopenRegistration(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.userId);
   assertPoolDrawNotPosted(game);
   await reopenRegistrationOnGame(database, game);
@@ -54,5 +57,6 @@ export const reopenRegistrationProcedure = protectedProcedure
     return reopenRegistration(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

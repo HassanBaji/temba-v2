@@ -21,6 +21,7 @@ import {
   assertRegistrationOpen,
   getRegistrationStatus,
   isGroupMember,
+  lockGameForAdmit,
   userPassesJoinGate,
 } from "#src/games/access";
 import { admit, type AdmitResult } from "#src/games/admit";
@@ -212,12 +213,13 @@ function throwIfInviteAdmitRefused(
 
 export async function admitIndividualUser(
   database: Tx,
-  game: GameRow,
+  gameToAdmit: GameRow,
   userId: string,
   locale: Locale,
   now = new Date(),
   seat?: { sideIndex: number; position: SeatChoice },
 ): Promise<{ waitlisted: boolean }> {
+  const game = await lockGameForAdmit(database, gameToAdmit.id);
   if (seat) {
     assertGameHasSeats(game, locale);
   }

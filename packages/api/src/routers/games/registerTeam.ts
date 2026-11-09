@@ -11,8 +11,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
   FRIENDLY_TEAMS_ALLOWED,
+  assertGameNotFrozen,
   assertRegistrationOpen,
   assertUserPassesJoinGate,
+  lockGameForAdmit,
   registeredGameTeamCount,
   requireGame,
   requireNotChallengeGame,
@@ -53,6 +55,7 @@ export async function registerTeam(
   }
 
   assertRegistrationOpen(game, now);
+  await assertGameNotFrozen(database, game, now, locale);
 
   const team = await database.query.teams.findFirst({
     where: eq(teams.id, args.teamId),
@@ -129,16 +132,16 @@ export async function registerTeam(
     }
   }
 
-  const teamCount = await registeredGameTeamCount(database, game.id);
-  if (teamCount >= (game.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
-    await enqueueWaitlistTeam(database, game.id, team.id);
-    return { ok: true as const, waitlisted: true as const };
-  }
-
-  await database.transaction(async (tx) => {
+  return database.transaction(async (tx) => {
+    const locked = await lockGameForAdmit(tx, game.id);
+    const teamCount = await registeredGameTeamCount(tx, locked.id);
+    if (teamCount >= (locked.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
+      await enqueueWaitlistTeam(tx, locked.id, team.id);
+      return { ok: true as const, waitlisted: true as const };
+    }
     throwIfAdmitRefused(
       await admit(tx, {
-        game,
+        game: locked,
         door: "register",
         party: { kind: "team", teamId: team.id },
         now,
@@ -146,9 +149,8 @@ export async function registerTeam(
       locale,
       "team",
     );
+    return { ok: true as const, waitlisted: false as const };
   });
-
-  return { ok: true as const, waitlisted: false as const };
 }
 
 export const registerTeamProcedure = protectedProcedure

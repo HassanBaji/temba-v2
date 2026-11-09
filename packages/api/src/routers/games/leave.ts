@@ -1,17 +1,16 @@
-import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { type Locale } from "@repo/i18n/locale";
 
 import { gamePlayers, gameTeamPlayers } from "@repo/db";
-import { gameIsPlayed } from "@repo/domain/played-game";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
+  assertGameNotFrozen,
   gameAdminUserIds,
   type GameRow,
   requireGame,
@@ -78,22 +77,6 @@ async function notifyGameLeft(
 export const GAME_PLAYED_LEAVE_MESSAGE =
   "This Game has been played. Ask the organizer to remove you.";
 
-/**
- * Once a Friendly game is played its roster is the record of who played:
- * only the Organizer changes it, through kick and add.
- */
-function assertFriendlyGameNotPlayed(game: GameRow, now: Date) {
-  if (game.format !== "friendly_game") {
-    return;
-  }
-  if (gameIsPlayed(game, now)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: GAME_PLAYED_LEAVE_MESSAGE,
-    });
-  }
-}
-
 export async function leaveGame(
   database: DbClient,
   args: { gameId: string; userId: string; now?: Date; locale?: Locale },
@@ -101,7 +84,15 @@ export async function leaveGame(
   const game = await requireGame(database, args.gameId);
   requireNotChallengeGame(game, args.locale);
   assertPoolDrawNotPosted(game);
-  assertFriendlyGameNotPlayed(game, args.now ?? new Date());
+  // Once played, the roster is the record of who played: only the Organizer
+  // changes it, through kick and add.
+  await assertGameNotFrozen(
+    database,
+    game,
+    args.now ?? new Date(),
+    args.locale,
+    GAME_PLAYED_LEAVE_MESSAGE,
+  );
   await database.transaction(async (tx) => {
     const partnerUserId = await partnerRemovedWithLeaver(tx, game, args.userId);
     await leaveRegisteredSeat(tx, game, args.userId);

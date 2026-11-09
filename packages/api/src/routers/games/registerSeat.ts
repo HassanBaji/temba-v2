@@ -10,7 +10,10 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
+  assertGameNotFrozen,
+  assertRegistrationOpen,
   assertUserPassesJoinGate,
+  lockGameForAdmit,
   requireGame,
   requireNotChallengeGame,
 } from "#src/games/access";
@@ -49,6 +52,8 @@ export async function registerSeat(
   requireNotChallengeGame(game, locale);
   assertPoolDrawNotPosted(game);
   const now = new Date();
+  assertRegistrationOpen(game, now);
+  await assertGameNotFrozen(database, game, now, locale);
 
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
@@ -95,7 +100,7 @@ export async function registerSeat(
     await database.transaction(async (tx) => {
       await occupySeat(
         tx,
-        game,
+        await lockGameForAdmit(tx, game.id),
         args.userId,
         leftoverSideIndex,
         leftoverPosition,
@@ -112,42 +117,40 @@ export async function registerSeat(
     });
   }
 
-  if ((await remainingCapacity(database, game)) <= 0) {
-    if (!(await userAllowedByLevelRange(database, game, args.userId))) {
+  return database.transaction(async (tx) => {
+    const locked = await lockGameForAdmit(tx, game.id);
+    if ((await remainingCapacity(tx, locked)) <= 0) {
+      if (!(await userAllowedByLevelRange(tx, locked, args.userId))) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: messagesFor(locale).level.rangeOutside,
+        });
+      }
+      await enqueueWaitlistUser(tx, locked.id, args.userId);
+      return { ok: true as const, waitlisted: true as const };
+    }
+
+    if (args.sideIndex == null || args.position == null) {
       throw new TRPCError({
-        code: "FORBIDDEN",
-        message: messagesFor(locale).level.rangeOutside,
+        code: "BAD_REQUEST",
+        message: "Pick a vacant Position",
       });
     }
-    await enqueueWaitlistUser(database, game.id, args.userId);
-    return { ok: true as const, waitlisted: true as const };
-  }
-
-  if (args.sideIndex == null || args.position == null) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Pick a vacant Position",
-    });
-  }
-  const sideIndex = args.sideIndex;
-  const position = args.position;
-
-  await database.transaction(async (tx) => {
     throwIfAdmitRefused(
       await admit(tx, {
-        game,
+        game: locked,
         door: "register",
         party: {
           kind: "user",
           userId: args.userId,
-          seat: { sideIndex, position },
+          seat: { sideIndex: args.sideIndex, position: args.position },
         },
         now,
       }),
       locale,
     );
+    return { ok: true as const, waitlisted: false as const };
   });
-  return { ok: true as const, waitlisted: false as const };
 }
 
 export const registerSeatProcedure = protectedProcedure

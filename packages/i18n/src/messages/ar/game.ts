@@ -599,4 +599,12 @@ export const game = {
       `${weekday}، ${start} – ${finish}`,
     fallbackTitle: "مباراة",
   },
+  errors: {
+    cancelled: "هذه المباراة ملغاة",
+    played: "لُعبت هذه المباراة",
+    partnerWaitlist:
+      "اكتمل العدد في هذه المباراة. انضم إلى قائمة الانتظار بمفردك، ويمكن لشريكك الانضمام إليها أيضًا.",
+    cancelPlayed: "نتيجة هذه المباراة مسجّلة، لذا لا يمكن إلغاؤها",
+    startInPast: "مضى وقت البدء. اختر وقتًا لاحقًا.",
+  },
 } satisfies typeof source;
