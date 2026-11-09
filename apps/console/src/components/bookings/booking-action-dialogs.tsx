@@ -24,13 +24,15 @@ import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { managerDurationOptions } from "@repo/domain/booking-slots";
 import {
   formatDayMonth,
   formatGameClock,
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   editDraftFrom,
@@ -68,11 +70,13 @@ export function BookingActionDialogs({
   onActionChange: (action: BookingAction | null) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const m = useMessages().consoleBookings;
+  const locale = useLocale();
   const refresh = useBookingRefresh(booking.id);
   const noShow = api.bookings.markNoShow.useMutation({
     onSuccess: async () => {
       await refresh();
-      toast.success("Marked no-show");
+      toast.success(m.noShow.toast);
     },
   });
 
@@ -95,9 +99,11 @@ export function BookingActionDialogs({
       <ConfirmDialog
         open={action === "noShow"}
         onOpenChange={(next) => onActionChange(next ? "noShow" : null)}
-        title="Mark as no-show?"
-        description={`${holderName(booking.manager!.holder)} did not turn up. There is no refund and the payment stays as it is. This cannot be undone.`}
-        confirmLabel="Mark no-show"
+        title={m.noShow.title}
+        description={m.noShow.description(
+          holderName(booking.manager!.holder, locale),
+        )}
+        confirmLabel={m.actions.noShow}
         pending={noShow.isPending}
         restoreFocusRef={restoreFocusRef}
         onConfirm={async () => {
@@ -117,6 +123,9 @@ function EditBookingDialog({
   onClose: () => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const m = useMessages().consoleBookings;
+  const common = useMessages().common;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const editable = {
     courtId: booking.court.id,
@@ -134,7 +143,7 @@ function EditBookingDialog({
   const update = api.bookings.update.useMutation({
     onSuccess: async () => {
       await refresh();
-      toast.success("Booking updated");
+      toast.success(m.edit.toast);
       onClose();
     },
     onError: (error) => setProblem(mutationErrorMessage(error)),
@@ -162,7 +171,7 @@ function EditBookingDialog({
     if (update.isPending) {
       return;
     }
-    const result = editToInput(booking.id, editable, draft, quote);
+    const result = editToInput(booking.id, editable, draft, quote, locale);
     if (!result.ok) {
       setProblem(result.message);
       return;
@@ -189,16 +198,17 @@ function EditBookingDialog({
       >
         <form onSubmit={submit} className="flex flex-col gap-[18px]">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Edit booking</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{m.edit.title}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {holderName(booking.manager!.holder)}. A move is priced from the
-              rates unless you type a price.
+              {m.edit.description(holderName(booking.manager!.holder, locale))}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field>
-              <FieldLabel htmlFor="edit-booking-court">Court</FieldLabel>
+              <FieldLabel htmlFor="edit-booking-court">
+                {m.edit.court}
+              </FieldLabel>
               <FilterSelect
                 id="edit-booking-court"
                 value={draft.courtId}
@@ -211,7 +221,7 @@ function EditBookingDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="edit-booking-day">Day</FieldLabel>
+              <FieldLabel htmlFor="edit-booking-day">{m.edit.day}</FieldLabel>
               <Input
                 id="edit-booking-day"
                 type="date"
@@ -226,20 +236,24 @@ function EditBookingDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="edit-booking-start">Start</FieldLabel>
+              <FieldLabel htmlFor="edit-booking-start">
+                {m.edit.start}
+              </FieldLabel>
               <FilterSelect
                 id="edit-booking-start"
                 value={String(draft.startMinute)}
                 onChange={(value) => change({ startMinute: Number(value) })}
                 options={starts.map((minute) => ({
                   value: String(minute),
-                  label: formatAxisClock(minute, "meridiem"),
+                  label: formatAxisClock(minute, "meridiem", locale),
                 }))}
                 className="w-full"
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="edit-booking-duration">Duration</FieldLabel>
+              <FieldLabel htmlFor="edit-booking-duration">
+                {m.edit.duration}
+              </FieldLabel>
               <FilterSelect
                 id="edit-booking-duration"
                 value={String(draft.durationMinutes)}
@@ -247,14 +261,16 @@ function EditBookingDialog({
                 options={managerDurationOptions(venue.slotMinutes).map(
                   (minutes) => ({
                     value: String(minutes),
-                    label: `${minutes} min`,
+                    label: m.minutes(minutes),
                   }),
                 )}
                 className="w-full"
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="edit-booking-price">Price (BD)</FieldLabel>
+              <FieldLabel htmlFor="edit-booking-price">
+                {m.edit.price}
+              </FieldLabel>
               <Input
                 id="edit-booking-price"
                 inputMode="decimal"
@@ -265,13 +281,13 @@ function EditBookingDialog({
               />
               {locked ? (
                 <p className="text-muted-foreground text-xs">
-                  The payment is settled, so the price stays.
+                  {m.edit.priceLocked}
                 </p>
               ) : null}
             </Field>
             <Field>
               <FieldLabel htmlFor="edit-booking-notes">
-                Notes, optional
+                {m.edit.notes}
               </FieldLabel>
               <Input
                 id="edit-booking-notes"
@@ -297,15 +313,15 @@ function EditBookingDialog({
               disabled={update.isPending}
               onClick={onClose}
             >
-              Cancel
+              {common.cancel}
             </Button>
             <Button
               type="submit"
               className={controlClass}
               pending={update.isPending}
-              pendingLabel="Saving…"
+              pendingLabel={common.saving}
             >
-              Save
+              {common.save}
             </Button>
           </ResponsiveDialogFooter>
         </form>
@@ -314,15 +330,20 @@ function EditBookingDialog({
   );
 }
 
-function refundLine(fils: number, cancelledBy: "venue" | "customer") {
+function refundLine(
+  fils: number,
+  cancelledBy: "venue" | "customer",
+  locale: Locale,
+) {
+  const m = messagesFor(locale).consoleBookings.cancel;
   if (cancelledBy === "venue") {
     return fils > 0
-      ? `Full refund, ${formatBookingPriceFils(fils, CONSOLE_LOCALE)}`
-      : "Nothing was paid, so nothing is refunded";
+      ? m.venueFullRefund(formatBookingPriceFils(fils, locale))
+      : m.venueNothingPaid;
   }
   return fils > 0
-    ? `Policy applies: ${formatBookingPriceFils(fils, CONSOLE_LOCALE)} refunded`
-    : "Policy applies: no refund";
+    ? m.policyRefund(formatBookingPriceFils(fils, locale))
+    : m.policyNoRefund;
 }
 
 function CancelBookingDialog({
@@ -334,6 +355,8 @@ function CancelBookingDialog({
   onClose: () => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const { cancel: m, actions } = useMessages().consoleBookings;
+  const locale = useLocale();
   const manager = booking.manager!;
   const [cancelledBy, setCancelledBy] = React.useState<"venue" | "customer">(
     "venue",
@@ -344,7 +367,7 @@ function CancelBookingDialog({
   const cancel = api.bookings.cancelForVenue.useMutation({
     onSuccess: async () => {
       await refresh();
-      toast.success("Booking cancelled");
+      toast.success(m.toast);
       onClose();
     },
     onError: (error) => setProblem(mutationErrorMessage(error)),
@@ -357,8 +380,13 @@ function CancelBookingDialog({
       (payment.status === "paid" || payment.status === "partially_refunded"),
   );
   const context = [
-    `${holderName(manager.holder)}, ${booking.court.name}, ${formatDayMonth(booking.startsAt, CONSOLE_LOCALE, { weekday: "short" })} ${formatGameClock(booking.startsAt, CONSOLE_LOCALE)}.`,
-    booking.game ? "The Game on this Booking is cancelled too." : null,
+    m.context(
+      holderName(manager.holder, locale),
+      booking.court.name,
+      formatDayMonth(booking.startsAt, locale, { weekday: "short" }),
+      formatGameClock(booking.startsAt, locale),
+    ),
+    booking.game ? m.gameCancelledToo : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -391,13 +419,13 @@ function CancelBookingDialog({
           }}
         >
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Cancel this booking?</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{m.title}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>{context}</ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
           <div
             role="radiogroup"
-            aria-label="Who is cancelling"
+            aria-label={m.whoLabel}
             className="flex flex-col gap-2"
           >
             {(["venue", "customer"] as const).map((option) => {
@@ -410,7 +438,7 @@ function CancelBookingDialog({
                   aria-checked={selected}
                   onClick={() => setCancelledBy(option)}
                   className={cn(
-                    "rounded-control flex items-center gap-3 border px-3.5 py-3 text-left text-[13px] transition-colors",
+                    "rounded-control flex items-center gap-3 border px-3.5 py-3 text-start text-[13px] transition-colors",
                     selected ? "border-ink" : "border-border hover:bg-wash",
                   )}
                 >
@@ -424,10 +452,14 @@ function CancelBookingDialog({
                   </span>
                   <span className="min-w-0">
                     <span className="block font-semibold">
-                      {option === "venue" ? "Venue cancels" : "Customer asked"}
+                      {option === "venue" ? m.venueCancels : m.customerAsked}
                     </span>
                     <span className="text-muted-foreground block">
-                      {refundLine(manager.refundIfCancelled[option], option)}
+                      {refundLine(
+                        manager.refundIfCancelled[option],
+                        option,
+                        locale,
+                      )}
                     </span>
                   </span>
                 </button>
@@ -436,16 +468,11 @@ function CancelBookingDialog({
           </div>
 
           {refundFils > 0 && paidByHand ? (
-            <p className="text-muted-foreground text-[13px]">
-              The payment was taken at the Venue. Pay it back, then record the
-              refund on the Booking.
-            </p>
+            <p className="text-muted-foreground text-[13px]">{m.paidByHand}</p>
           ) : null}
 
           <Field>
-            <FieldLabel htmlFor="cancel-booking-reason">
-              Note to customer, optional
-            </FieldLabel>
+            <FieldLabel htmlFor="cancel-booking-reason">{m.reason}</FieldLabel>
             <Input
               id="cancel-booking-reason"
               value={reason}
@@ -469,16 +496,16 @@ function CancelBookingDialog({
               disabled={cancel.isPending}
               onClick={onClose}
             >
-              Keep booking
+              {m.keep}
             </Button>
             <Button
               type="submit"
               variant="destructive"
               className={controlClass}
               pending={cancel.isPending}
-              pendingLabel="Cancelling…"
+              pendingLabel={m.cancelling}
             >
-              {refundFils > 0 ? "Cancel and refund" : "Cancel booking"}
+              {refundFils > 0 ? m.cancelAndRefund : actions.cancel}
             </Button>
           </ResponsiveDialogFooter>
         </form>

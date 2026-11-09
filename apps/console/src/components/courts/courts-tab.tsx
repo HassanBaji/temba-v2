@@ -28,7 +28,7 @@ import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
 import { SPORTS, sportLabel, type Sport } from "@repo/domain/sport";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import {
   controlClass,
@@ -52,16 +52,18 @@ function AvailabilityBadge({
   availability: CourtAvailability;
   now: Date;
 }) {
+  const m = useMessages().consoleCourts.availability;
+  const locale = useLocale();
   if (availability.kind === "closed") {
     return (
       <span className="bg-ink text-paper rounded-xs px-2 py-[3px] text-[11px]">
-        {closedUntilLabel(availability.until, now)}
+        {closedUntilLabel(availability.until, now, locale)}
       </span>
     );
   }
   return (
     <span className="border-border text-muted-foreground rounded-xs border px-[7px] py-0.5 text-[11px]">
-      {availability.kind === "bookable" ? "Bookable" : "Not bookable"}
+      {availability.kind === "bookable" ? m.bookable : m.notBookable}
     </span>
   );
 }
@@ -89,6 +91,8 @@ function CourtNameDialog({
   error: string | null;
   onSubmit: (name: string, sport: Sport) => void;
 }) {
+  const { consoleCourts: m, common } = useMessages();
+  const locale = useLocale();
   const [name, setName] = React.useState(initialName);
   const [sport, setSport] = React.useState<Sport>("padel");
 
@@ -125,7 +129,7 @@ function CourtNameDialog({
           </DialogHeader>
           <div className="flex flex-col gap-2">
             <Label htmlFor="court-name" className="text-meta">
-              Court name
+              {m.courtName}
             </Label>
             <Input
               id="court-name"
@@ -151,7 +155,7 @@ function CourtNameDialog({
           {withSport ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="court-sport" className="text-meta">
-                Sport
+                {m.sport}
               </Label>
               <NativeSelect
                 id="court-sport"
@@ -160,7 +164,7 @@ function CourtNameDialog({
               >
                 {SPORTS.map((value) => (
                   <option key={value} value={value}>
-                    {sportLabel(value, CONSOLE_LOCALE)}
+                    {sportLabel(value, locale)}
                   </option>
                 ))}
               </NativeSelect>
@@ -174,7 +178,7 @@ function CourtNameDialog({
               disabled={pending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {common.cancel}
             </Button>
             <Button
               type="submit"
@@ -199,11 +203,12 @@ export function AddCourtDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const m = useMessages().consoleCourts;
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const addCourt = api.venues.addCourt.useMutation({
     onSuccess: async () => {
-      toast.success("Court added");
+      toast.success(m.addedToast);
       onOpenChange(false);
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
@@ -218,11 +223,11 @@ export function AddCourtDialog({
         }
         onOpenChange(next);
       }}
-      title="Add court"
-      description="Players see this name when they pick a Court."
+      title={m.addCourt}
+      description={m.addDescription}
       initialName=""
       withSport
-      confirmLabel="Add court"
+      confirmLabel={m.addCourt}
       pending={addCourt.isPending}
       error={addCourt.error ? mutationErrorMessage(addCourt.error) : null}
       onSubmit={(name, sport) =>
@@ -241,6 +246,7 @@ function CourtMenu({
   onRename: () => void;
   onDelete: () => void;
 }) {
+  const m = useMessages().consoleCourts;
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -248,7 +254,7 @@ function CourtMenu({
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={`${courtName} actions`}
+          aria-label={m.actions(courtName)}
           className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block"
         >
           <MoreHorizontal aria-hidden="true" className="size-4" />
@@ -262,14 +268,14 @@ function CourtMenu({
           className="text-meta cursor-pointer"
           onSelect={onRename}
         >
-          Rename
+          {m.rename}
         </DropdownMenuItem>
         <DropdownMenuItem
           variant="destructive"
           className="text-meta cursor-pointer"
           onSelect={onDelete}
         >
-          Delete
+          {m.delete}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -277,6 +283,8 @@ function CourtMenu({
 }
 
 export function CourtCards() {
+  const m = useMessages().consoleCourts;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [renameId, setRenameId] = React.useState<string | null>(null);
@@ -288,7 +296,7 @@ export function CourtCards() {
 
   const renameCourt = api.venues.renameCourt.useMutation({
     onSuccess: async () => {
-      toast.success("Court renamed");
+      toast.success(m.renamedToast);
       setRenameId(null);
       await refresh();
     },
@@ -296,7 +304,7 @@ export function CourtCards() {
 
   const setCourtSport = api.venues.setCourtSport.useMutation({
     onSuccess: async () => {
-      toast.success("Sport updated");
+      toast.success(m.sportToast);
       await refresh();
     },
     onError: (error) => toast.error(mutationErrorMessage(error)),
@@ -304,7 +312,7 @@ export function CourtCards() {
 
   const deleteCourt = api.venues.deleteCourt.useMutation({
     onSuccess: async () => {
-      toast.success("Court deleted");
+      toast.success(m.deletedToast);
       await refresh();
     },
   });
@@ -316,10 +324,8 @@ export function CourtCards() {
     return (
       <div className="border-border rounded-card flex flex-col items-center gap-2 border px-6 py-10 text-center">
         <Hatch className="rounded-control block h-[84px] w-full max-w-[220px]" />
-        <p className="mt-2 text-base font-semibold">No Courts yet</p>
-        <p className="text-muted-foreground text-meta">
-          Add a Court to start taking Bookings.
-        </p>
+        <p className="mt-2 text-base font-semibold">{m.emptyTitle}</p>
+        <p className="text-muted-foreground text-meta">{m.emptyDescription}</p>
       </div>
     );
   }
@@ -359,7 +365,7 @@ export function CourtCards() {
                 />
               </div>
               <NativeSelect
-                aria-label={`${court.name} sport`}
+                aria-label={m.sportOf(court.name)}
                 value={court.sport}
                 disabled={setCourtSport.isPending}
                 onChange={(event) =>
@@ -371,7 +377,7 @@ export function CourtCards() {
               >
                 {SPORTS.map((value) => (
                   <option key={value} value={value}>
-                    {sportLabel(value, CONSOLE_LOCALE)}
+                    {sportLabel(value, locale)}
                   </option>
                 ))}
               </NativeSelect>
@@ -387,10 +393,10 @@ export function CourtCards() {
             setRenameId(null);
           }
         }}
-        title={`Rename ${renaming?.name ?? "Court"}`}
-        description="The new name shows on every upcoming Booking."
+        title={m.renameTitle(renaming?.name ?? m.court)}
+        description={m.renameDescription}
         initialName={renaming?.name ?? ""}
-        confirmLabel="Rename"
+        confirmLabel={m.rename}
         pending={renameCourt.isPending}
         error={
           renameCourt.error ? mutationErrorMessage(renameCourt.error) : null
@@ -409,9 +415,9 @@ export function CourtCards() {
             setDeleteId(null);
           }
         }}
-        title={`Delete ${deleting?.name ?? "Court"}?`}
-        description="A Court with Bookings cannot be deleted. This cannot be undone."
-        confirmLabel="Delete court"
+        title={m.deleteTitle(deleting?.name ?? m.court)}
+        description={m.deleteDescription}
+        confirmLabel={m.deleteConfirm}
         pending={deleteCourt.isPending}
         onConfirm={async () => {
           if (deleting) {

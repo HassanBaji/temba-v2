@@ -40,6 +40,12 @@ import { mobileChallenge } from "./mobile-challenge";
 import { webChallenge } from "./web-challenge";
 import { webYou } from "./web-you";
 import { webMarks } from "./web-marks";
+import { consoleShell } from "./console-shell";
+import { consoleBookings } from "./console-bookings";
+import { consoleSchedule } from "./console-schedule";
+import { consoleCourts } from "./console-courts";
+import { consoleHours } from "./console-hours";
+import { consoleVenue } from "./console-venue";
 
 export const en = {
   common,
@@ -84,4 +90,10 @@ export const en = {
   mobileMarks,
   mobileChallenge,
   webChallenge,
+  consoleShell,
+  consoleBookings,
+  consoleSchedule,
+  consoleCourts,
+  consoleHours,
+  consoleVenue,
 };

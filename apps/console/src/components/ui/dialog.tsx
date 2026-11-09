@@ -5,6 +5,7 @@ import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { buttonVariants } from "~/components/ui/button";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 function Dialog({
@@ -56,6 +57,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const closeLabel = useMessages().consoleShell.close;
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -75,11 +77,11 @@ function DialogContent({
             data-slot="dialog-close"
             className={cn(
               buttonVariants({ variant: "ghost", size: "icon" }),
-              "absolute right-2 top-2",
+              "absolute end-2 top-2",
             )}
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{closeLabel}</span>
           </DialogPrimitive.Close>
         ) : null}
       </DialogPrimitive.Content>
@@ -91,7 +93,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-2 text-center sm:text-start", className)}
       {...props}
     />
   );

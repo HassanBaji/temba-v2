@@ -11,6 +11,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 export function ConfirmDialog({
@@ -19,7 +20,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
-  cancelLabel = "Cancel",
+  cancelLabel,
   variant = "destructive",
   pending = false,
   onConfirm,
@@ -36,6 +37,7 @@ export function ConfirmDialog({
   onConfirm: () => void | Promise<void>;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const { consoleShell, common } = useMessages();
   const [submitting, setSubmitting] = React.useState(false);
   const busy = pending || submitting;
 
@@ -49,7 +51,7 @@ export function ConfirmDialog({
       onOpenChange(false);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Something went wrong.";
+        error instanceof Error ? error.message : common.somethingWentWrong;
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -86,7 +88,7 @@ export function ConfirmDialog({
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
-            {cancelLabel}
+            {cancelLabel ?? common.cancel}
           </Button>
           <Button
             type="button"
@@ -98,7 +100,7 @@ export function ConfirmDialog({
               void handleConfirm();
             }}
           >
-            {busy ? `${confirmLabel}…` : confirmLabel}
+            {busy ? consoleShell.confirm.pending(confirmLabel) : confirmLabel}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

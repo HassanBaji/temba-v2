@@ -7,7 +7,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 
 import { controlClass } from "./details-styles";
@@ -22,6 +22,8 @@ export function VenueLogoField({
   venueId: string;
   logoImageUrl: string | null;
 }) {
+  const m = useMessages().consoleVenue.logo;
+  const locale = useLocale();
   const utils = api.useUtils();
   const [logoError, setLogoError] = React.useState<string | null>(null);
   const [clearLogoOpen, setClearLogoOpen] = React.useState(false);
@@ -32,7 +34,7 @@ export function VenueLogoField({
 
   const uploadLogo = api.venues.uploadLogo.useMutation({
     onSuccess: async () => {
-      toast.success("Logo saved");
+      toast.success(m.savedToast);
       setLogoError(null);
       await refresh();
     },
@@ -44,7 +46,7 @@ export function VenueLogoField({
 
   const clearLogo = api.venues.clearLogo.useMutation({
     onSuccess: async () => {
-      toast.success("Logo cleared");
+      toast.success(m.clearedToast);
       await refresh();
     },
   });
@@ -53,12 +55,10 @@ export function VenueLogoField({
     if (!file) {
       return;
     }
-    void entityImageUploadInput(file, CONSOLE_LOCALE, "Logo")
+    void entityImageUploadInput(file, locale, "Logo")
       .then((input) => uploadLogo.mutate({ venueId, ...input }))
       .catch((error: unknown) => {
-        setLogoError(
-          error instanceof Error ? error.message : "Logo could not be read",
-        );
+        setLogoError(error instanceof Error ? error.message : m.unreadable);
       });
   }
 
@@ -66,7 +66,7 @@ export function VenueLogoField({
     <>
       <EntityImageField
         id="venue-logo"
-        label="Logo"
+        label={m.label}
         noun="Logo"
         currentImageUrl={logoImageUrl}
         error={logoError}
@@ -83,15 +83,15 @@ export function VenueLogoField({
           disabled={clearLogo.isPending || uploadLogo.isPending}
           onClick={() => setClearLogoOpen(true)}
         >
-          Clear logo
+          {m.clear}
         </Button>
       ) : null}
       <ConfirmDialog
         open={clearLogoOpen}
         onOpenChange={setClearLogoOpen}
-        title="Clear logo?"
-        description="The current logo will be removed."
-        confirmLabel="Clear logo"
+        title={m.clearTitle}
+        description={m.clearDescription}
+        confirmLabel={m.clear}
         pending={clearLogo.isPending}
         onConfirm={async () => {
           await clearLogo.mutateAsync({ venueId });

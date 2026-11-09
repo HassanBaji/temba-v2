@@ -17,16 +17,16 @@ import {
 
 describe("pricing model", () => {
   it("parses hourly rates into fils", () => {
-    expect(parseHourlyRate("12.5")).toEqual({ ok: true, fils: 12_500 });
-    expect(parseHourlyRate("")).toMatchObject({ ok: false });
-    expect(parseHourlyRate("-1")).toMatchObject({ ok: false });
-    expect(parseHourlyRate("1.2345")).toMatchObject({ ok: false });
+    expect(parseHourlyRate("12.5", "en")).toEqual({ ok: true, fils: 12_500 });
+    expect(parseHourlyRate("", "en")).toMatchObject({ ok: false });
+    expect(parseHourlyRate("-1", "en")).toMatchObject({ ok: false });
+    expect(parseHourlyRate("1.2345", "en")).toMatchObject({ ok: false });
   });
 
   it("builds the base rate as one all-week all-day rule", () => {
-    const draft = baseRateDraft("10");
+    const draft = baseRateDraft("10", "Base rate");
     expect(isBaseRate(draft)).toBe(true);
-    expect(draftsToInput([draft])).toEqual({
+    expect(draftsToInput([draft], "en")).toEqual({
       ok: true,
       rules: [
         {
@@ -62,33 +62,34 @@ describe("pricing model", () => {
         label: "VIP",
       },
     ]);
-    const next = withBaseRate(drafts, "9");
+    const next = withBaseRate(drafts, "9", "Base rate");
     expect(next.map((draft) => draft.courtId)).toEqual([null, "court-1"]);
     expect(isBaseRate(next[0]!)).toBe(true);
     expect(next[1]!.id).toBe("b");
   });
 
   it("reports problems per draft", () => {
-    const draft = baseRateDraft("");
-    expect(draftProblem(draft)).toMatch(/hourly rate/);
-    expect(draftProblem({ ...baseRateDraft("5"), weekdays: [] })).toMatch(
-      /weekday/,
-    );
-    expect(draftsToInput([draft])).toMatchObject({ ok: false });
+    const draft = baseRateDraft("", "Base rate");
+    expect(draftProblem(draft, "en")).toMatch(/hourly rate/);
+    expect(
+      draftProblem({ ...baseRateDraft("5", "Base rate"), weekdays: [] }, "en"),
+    ).toMatch(/weekday/);
+    expect(draftsToInput([draft], "en")).toMatchObject({ ok: false });
   });
 });
 
 describe("rate card display", () => {
   it("formats clock times on a 12-hour clock, wrapping past midnight", () => {
-    expect(formatClock(0)).toBe("12:00 AM");
-    expect(formatClock(7 * 60)).toBe("7:00 AM");
-    expect(formatClock(16 * 60 + 30)).toBe("4:30 PM");
-    expect(formatClock(1500)).toBe("1:00 AM");
-    expect(formatTimeWindow(23 * 60, 1500)).toBe("11:00 PM to 1:00 AM");
+    expect(formatClock(0, "en")).toBe("12:00 AM");
+    expect(formatClock(7 * 60, "en")).toBe("7:00 AM");
+    expect(formatClock(16 * 60 + 30, "en")).toBe("4:30 PM");
+    expect(formatClock(1500, "en")).toBe("1:00 AM");
+    expect(formatTimeWindow(23 * 60, 1500, "en")).toBe("11:00 PM to 1:00 AM");
+    expect(formatTimeWindow(23 * 60, 1500, "ar")).toBe("من 11:00 م إلى 1:00 ص");
   });
 
   it("lists the rate grid up to 06:00 the next day", () => {
-    const options = rateTimeOptions(30);
+    const options = rateTimeOptions(30, "en");
     expect(options[0]).toEqual({ value: 0, label: "12:00 AM" });
     expect(options[options.length - 1]).toEqual({
       value: 1800,
@@ -97,13 +98,14 @@ describe("rate card display", () => {
   });
 
   it("describes weekdays the way the design's DAYS column does", () => {
-    expect(describeWeekdays([0, 1, 2, 3, 4, 5, 6])).toBe("All days");
-    expect(describeWeekdays([0, 1, 2, 3, 4])).toBe("Sun to Thu");
-    expect(describeWeekdays([5, 6, 0])).toBe("Fri to Sun");
-    expect(describeWeekdays([4, 5])).toBe("Thu, Fri");
-    expect(describeWeekdays([6, 0])).toBe("Sat, Sun");
-    expect(describeWeekdays([0, 3, 5])).toBe("Sun, Wed, Fri");
-    expect(describeWeekdays([])).toBe("No days");
+    expect(describeWeekdays([0, 1, 2, 3, 4, 5, 6], "en")).toBe("All days");
+    expect(describeWeekdays([0, 1, 2, 3, 4], "en")).toBe("Sun to Thu");
+    expect(describeWeekdays([5, 6, 0], "en")).toBe("Fri to Sun");
+    expect(describeWeekdays([4, 5], "en")).toBe("Thu, Fri");
+    expect(describeWeekdays([6, 0], "en")).toBe("Sat, Sun");
+    expect(describeWeekdays([0, 3, 5], "en")).toBe("Sun, Wed, Fri");
+    expect(describeWeekdays([], "en")).toBe("No days");
+    expect(describeWeekdays([0, 1, 2, 3, 4], "ar")).toBe("من الأحد إلى الخميس");
   });
 
   it("compares drafts by content", () => {

@@ -8,12 +8,14 @@ import {
 } from "~/components/console/console-card";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   formatDayMonth,
   formatGameClock,
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   refundDisplay,
@@ -24,17 +26,15 @@ import {
 import type { BookingView, LedgerRow } from "./booking-types";
 import { PaymentBadge } from "./payment-badge";
 import { MarkPaidDialog, RefundDialog } from "./payment-dialogs";
-import { MANUAL_METHODS, usePaymentMutations } from "./payment-mutations";
-
-const PROVIDER_LABELS = {
-  manual: "At the Venue",
-  tap: "Online (Tap)",
-} as const;
+import { isManualMethod, usePaymentMutations } from "./payment-mutations";
 
 const controlClass = "h-10 min-h-10 shadow-none";
 
-function when(value: Date) {
-  return `${formatDayMonth(value, CONSOLE_LOCALE)}, ${formatGameClock(value, CONSOLE_LOCALE)}`;
+function when(value: Date, locale: Locale) {
+  return messagesFor(locale).consoleBookings.ledger.when(
+    formatDayMonth(value, locale),
+    formatGameClock(value, locale),
+  );
 }
 
 const ONLINE_METHOD_LABELS = {
@@ -42,14 +42,18 @@ const ONLINE_METHOD_LABELS = {
   apple_pay: "Apple Pay",
 } as const;
 
-function methodLabel(method: LedgerRow["method"]) {
+function methodLabel(method: LedgerRow["method"], locale: Locale) {
   if (method === "benefitpay" || method === "apple_pay") {
     return ONLINE_METHOD_LABELS[method];
   }
-  return MANUAL_METHODS.find((entry) => entry.value === method)?.label ?? null;
+  return isManualMethod(method)
+    ? messagesFor(locale).consoleBookings.methods[method]
+    : null;
 }
 
 export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
+  const m = useMessages().consoleBookings;
+  const locale = useLocale();
   const utils = api.useUtils();
   const manager = booking.manager;
   const [dialog, setDialog] = React.useState<"paid" | "refund" | null>(null);
@@ -93,7 +97,7 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
   return (
     <ConsoleCard>
       <ConsoleCardHeader
-        title="Payment"
+        title={m.ledger.title}
         action={
           <PaymentBadge
             status={booking.paymentStatus}
@@ -103,7 +107,7 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
       />
       {payments.length === 0 ? (
         <p className="text-muted-foreground px-5 py-4 text-[13px]">
-          No Payment has been recorded yet.
+          {m.ledger.none}
         </p>
       ) : (
         <ul className="divide-border divide-y">
@@ -128,7 +132,7 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
               disabled={settle.isPending}
               onClick={() => setDialog("paid")}
             >
-              Mark as paid
+              {m.actions.markPaid}
             </Button>
           ) : null}
           {actions.waive ? (
@@ -138,7 +142,7 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
               disabled={settle.isPending}
               onClick={() => onSettle("waived")}
             >
-              Waive
+              {m.actions.waive}
             </Button>
           ) : null}
           {actions.fail ? (
@@ -148,7 +152,7 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
               disabled={settle.isPending}
               onClick={() => onSettle("failed")}
             >
-              Mark failed
+              {m.actions.markFailed}
             </Button>
           ) : null}
           {refundable > 0 ? (
@@ -159,10 +163,12 @@ export function PaymentLedgerSection({ booking }: { booking: BookingView }) {
                 disabled={inProgress}
                 onClick={() => setDialog("refund")}
               >
-                Record refund
+                {m.actions.recordRefund}
               </Button>
               <span className="text-muted-foreground text-[13px]">
-                Refundable {formatBookingPriceFils(refundable, CONSOLE_LOCALE)}
+                {m.ledger.refundable(
+                  formatBookingPriceFils(refundable, locale),
+                )}
               </span>
             </>
           ) : null}
@@ -199,51 +205,60 @@ function LedgerItem({
   refundState: RefundDisplay;
   onRetry: () => void;
 }) {
-  const method = methodLabel(payment.method);
+  const m = useMessages().consoleBookings;
+  const ledger = m.ledger;
+  const locale = useLocale();
+  const method = methodLabel(payment.method, locale);
   return (
     <li className="space-y-1.5 px-5 py-4 text-[13px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold tabular-nums">
-          {formatBookingPriceFils(payment.amountFils, CONSOLE_LOCALE)}
+          {formatBookingPriceFils(payment.amountFils, locale)}
           <span className="text-muted-foreground font-normal">
-            {" "}
-            · {PROVIDER_LABELS[payment.provider]}
-            {method ? ` · ${method}` : ""}
+            {ledger.separator}
+            {ledger.providers[payment.provider]}
+            {method ? `${ledger.separator}${method}` : ""}
           </span>
         </span>
         <PaymentBadge status={payment.status} />
       </div>
       <dl className="text-muted-foreground space-y-0.5">
         {payment.providerReference ? (
-          <div>Reference {payment.providerReference}</div>
+          <div>{ledger.reference(payment.providerReference)}</div>
         ) : null}
         {payment.settledAt ? (
           <div>
-            {payment.status === "paid" ? "Settled" : "Recorded"}{" "}
-            {when(payment.settledAt)}
-            {payment.settledByName ? ` by ${payment.settledByName}` : ""}
+            {payment.status === "paid"
+              ? ledger.settledAt(when(payment.settledAt, locale))
+              : ledger.recordedAt(when(payment.settledAt, locale))}
+            {payment.settledByName ? ledger.byName(payment.settledByName) : ""}
           </div>
         ) : null}
         {payment.status === "failed" && payment.failureReason ? (
-          <div>Failed: {payment.failureReason}</div>
+          <div>{ledger.failedReason(payment.failureReason)}</div>
         ) : null}
         {payment.refundedFils > 0 ? (
           <div>
-            Refunded{" "}
-            {formatBookingPriceFils(payment.refundedFils, CONSOLE_LOCALE)}
-            {payment.refundedAt ? ` ${when(payment.refundedAt)}` : ""}
-            {payment.refundedByName ? ` by ${payment.refundedByName}` : ""}
-            {payment.refundReference ? ` · ${payment.refundReference}` : ""}
+            {ledger.refunded(
+              formatBookingPriceFils(payment.refundedFils, locale),
+            )}
+            {payment.refundedAt ? ` ${when(payment.refundedAt, locale)}` : ""}
+            {payment.refundedByName
+              ? ledger.byName(payment.refundedByName)
+              : ""}
+            {payment.refundReference
+              ? `${ledger.separator}${payment.refundReference}`
+              : ""}
           </div>
         ) : null}
       </dl>
       {refundState === "in_progress" ? (
-        <p className="font-semibold">Refund in progress</p>
+        <p className="font-semibold">{ledger.refundInProgress}</p>
       ) : null}
       {refundState === "failed" ? (
         <div className="flex flex-wrap items-center gap-2">
           <p role="alert" className="font-semibold">
-            Refund failed: {payment.refundFailureReason}
+            {ledger.refundFailed(payment.refundFailureReason ?? "")}
           </p>
           <Button
             size="sm"
@@ -251,7 +266,7 @@ function LedgerItem({
             className="shadow-none"
             onClick={onRetry}
           >
-            Retry
+            {m.actions.retry}
           </Button>
         </div>
       ) : null}

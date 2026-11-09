@@ -13,26 +13,28 @@ import { useDebouncedValue } from "~/hooks/use-debounced-value";
 import { cn } from "~/lib/utils";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import {
   customerCountLabel,
   customerSubtitle,
   isCustomerSort,
   lastBookingLabel,
-  SORT_OPTIONS,
+  sortOptions,
   type CustomerSort,
 } from "./customer-list-model";
 
 type VenueCustomer =
   RouterOutputs["bookings"]["listCustomers"]["customers"][number];
 
-const COLUMNS = ["Customer", "Bookings", "No-shows"];
-const AMOUNT_COLUMNS = ["Owed", "Spent"];
+const COLUMNS = ["customer", "bookings", "noShows"] as const;
+const AMOUNT_COLUMNS = ["owed", "spent"] as const;
 
 const cellClass = "px-[18px] py-3.5 align-middle";
 
 export function CustomersList({ venueId }: { venueId: string }) {
+  const m = useMessages().consoleVenue.customers;
+  const locale = useLocale();
   const now = React.useMemo(() => new Date(), []);
   const [search, setSearch] = React.useState("");
   const [sort, setSort] = React.useState<CustomerSort>("lastVisit");
@@ -56,26 +58,26 @@ export function CustomersList({ venueId }: { venueId: string }) {
           <Search aria-hidden="true" className="size-[15px] shrink-0" />
           <input
             type="search"
-            aria-label="Search Customers"
-            placeholder="Name or phone"
+            aria-label={m.searchLabel}
+            placeholder={m.searchPlaceholder}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="text-foreground placeholder:text-muted-foreground h-full w-full min-w-0 bg-transparent text-[13px] outline-none"
           />
         </label>
         <FilterSelect
-          label="Sort Customers"
+          label={m.sortLabel}
           value={sort}
           onChange={(value) => {
             if (isCustomerSort(value)) {
               setSort(value);
             }
           }}
-          options={SORT_OPTIONS}
+          options={sortOptions(locale)}
         />
         {total != null ? (
-          <span className="text-muted-foreground ml-auto text-[13px]">
-            {customerCountLabel(total, query.length > 0)}
+          <span className="text-muted-foreground ms-auto text-[13px]">
+            {customerCountLabel(total, query.length > 0, locale)}
           </span>
         ) : null}
       </div>
@@ -88,7 +90,7 @@ export function CustomersList({ venueId }: { venueId: string }) {
         </TableFrame>
       ) : list.error ? (
         <ErrorState
-          title="Customers could not be loaded"
+          title={m.loadError}
           message={list.error.message}
           onRetry={() => {
             void list.refetch();
@@ -97,12 +99,8 @@ export function CustomersList({ venueId }: { venueId: string }) {
       ) : customers.length === 0 ? (
         <EmptyState
           icon={Users}
-          title={query ? "No Customers match" : "No Customers yet"}
-          description={
-            query
-              ? "Try another name or phone."
-              : "Anyone who books here, in the app or at the desk, appears in this list."
-          }
+          title={query ? m.noMatchTitle : m.emptyTitle}
+          description={query ? m.noMatchDescription : m.emptyDescription}
         />
       ) : (
         <>
@@ -124,7 +122,7 @@ export function CustomersList({ venueId }: { venueId: string }) {
                 void list.fetchNextPage();
               }}
             >
-              {list.isFetchingNextPage ? "Loading…" : "Show more"}
+              {list.isFetchingNextPage ? m.loading : m.showMore}
             </Button>
           ) : null}
         </>
@@ -134,6 +132,7 @@ export function CustomersList({ venueId }: { venueId: string }) {
 }
 
 function TableFrame({ children }: { children: React.ReactNode }) {
+  const m = useMessages().consoleVenue.customers;
   return (
     <div className="border-border rounded-card overflow-hidden border">
       <table className="w-full table-fixed border-collapse text-[13px]">
@@ -151,25 +150,25 @@ function TableFrame({ children }: { children: React.ReactNode }) {
               <th
                 key={column}
                 scope="col"
-                className="eyebrow-mono px-[18px] py-3 text-left font-normal"
+                className="eyebrow-mono px-[18px] py-3 text-start font-normal"
               >
-                {column}
+                {m.columns[column]}
               </th>
             ))}
             {AMOUNT_COLUMNS.map((column) => (
               <th
                 key={column}
                 scope="col"
-                className="eyebrow-mono px-[18px] py-3 text-right font-normal"
+                className="eyebrow-mono px-[18px] py-3 text-end font-normal"
               >
-                {column}
+                {m.columns[column]}
               </th>
             ))}
             <th
               scope="col"
-              className="eyebrow-mono px-[18px] py-3 text-left font-normal"
+              className="eyebrow-mono px-[18px] py-3 text-start font-normal"
             >
-              Last booking
+              {m.columns.lastBooking}
             </th>
           </tr>
         </thead>
@@ -186,6 +185,8 @@ function CustomerRow({
   customer: VenueCustomer;
   now: Date;
 }) {
+  const m = useMessages().consoleVenue.customers;
+  const locale = useLocale();
   const holder =
     customer.kind === "user"
       ? { kind: "user" as const, name: customer.name, image: customer.image }
@@ -201,10 +202,10 @@ function CustomerRow({
           <BookingMonogram holder={holder} />
           <span className="min-w-0">
             <span className="block truncate">
-              {customer.name || (customer.phone ?? "Customer")}
+              {customer.name || (customer.phone ?? m.fallbackName)}
             </span>
             <span className="text-muted-foreground block truncate">
-              {customerSubtitle(customer)}
+              {customerSubtitle(customer, locale)}
             </span>
           </span>
         </span>
@@ -222,20 +223,20 @@ function CustomerRow({
       <td
         className={cn(
           cellClass,
-          "text-right tabular-nums",
+          "text-end tabular-nums",
           customer.owedFils === 0 ? "text-muted-foreground" : "font-semibold",
         )}
       >
-        {formatBookingPriceFils(customer.owedFils, CONSOLE_LOCALE)}
+        {formatBookingPriceFils(customer.owedFils, locale)}
       </td>
-      <td className={cn(cellClass, "text-right tabular-nums")}>
+      <td className={cn(cellClass, "text-end tabular-nums")}>
         {formatBookingPriceFils(
           customer.paidFils - customer.refundedFils,
-          CONSOLE_LOCALE,
+          locale,
         )}
       </td>
       <td className={cellClass}>
-        {lastBookingLabel(customer.lastBookingAt, now)}
+        {lastBookingLabel(customer.lastBookingAt, now, locale)}
       </td>
     </tr>
   );
@@ -260,10 +261,10 @@ function SkeletonRow() {
         <Skeleton className="h-4 w-8" />
       </td>
       <td className={cellClass}>
-        <Skeleton className="ml-auto h-4 w-16" />
+        <Skeleton className="ms-auto h-4 w-16" />
       </td>
       <td className={cellClass}>
-        <Skeleton className="ml-auto h-4 w-16" />
+        <Skeleton className="ms-auto h-4 w-16" />
       </td>
       <td className={cellClass}>
         <Skeleton className="h-4 w-14" />
