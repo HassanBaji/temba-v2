@@ -7,7 +7,9 @@ import {
   FRIENDLY_TEAMS_ALLOWED,
   type GameRow,
   gameAdminUserIds,
+  gameFrozenReason,
   isRegistrationOpen,
+  lockGameForAdmit,
   registeredGameTeamCount,
   registeredUserCount,
 } from "#src/games/access";
@@ -93,6 +95,12 @@ async function refuseRegisterDoors(
   if (door === "register" && !isRegistrationOpen(game, now)) {
     return { ok: false, reason: "registration_closed" };
   }
+  if (
+    door !== "organizer_add" &&
+    (await gameFrozenReason(database, game, now))
+  ) {
+    return { ok: false, reason: "join_frozen" };
+  }
   return null;
 }
 
@@ -108,7 +116,8 @@ export async function admit(
   },
 ): Promise<AdmitResult> {
   const now = args.now ?? new Date();
-  const closed = await refuseRegisterDoors(database, args.game, args.door, now);
+  const game = await lockGameForAdmit(database, args.game.id);
+  const closed = await refuseRegisterDoors(database, game, args.door, now);
   if (closed) {
     return closed;
   }
@@ -117,7 +126,7 @@ export async function admit(
     const userIds = await partyUserIdsForAdmit(database, args.party);
     if (userIds) {
       for (const userId of userIds) {
-        if (!(await userAllowedByLevelRange(database, args.game, userId))) {
+        if (!(await userAllowedByLevelRange(database, game, userId))) {
           return { ok: false, reason: "level_range" };
         }
       }
@@ -125,18 +134,12 @@ export async function admit(
   }
 
   if (args.party.kind === "user") {
-    return admitUser(
-      database,
-      args.game,
-      args.door,
-      args.party,
-      args.addedByUserId,
-    );
+    return admitUser(database, game, args.door, args.party, args.addedByUserId);
   }
   if (args.party.kind === "pair") {
-    return admitPair(database, args.game, args.door, args.party);
+    return admitPair(database, game, args.door, args.party);
   }
-  return admitTeam(database, args.game, args.door, args.party);
+  return admitTeam(database, game, args.door, args.party);
 }
 
 async function admitUser(

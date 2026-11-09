@@ -12,7 +12,7 @@ import { isFootballGame } from "@repo/domain/game-shape";
 
 import { type db } from "#src/db";
 import { admit } from "#src/games/admit";
-import type { GameRow } from "#src/games/access";
+import { type GameRow, lockGameForAdmit } from "#src/games/access";
 import { assertKeeperSeatOpen } from "#src/games/football-lineup";
 import { throwIfAdmitRefused } from "#src/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
@@ -111,7 +111,8 @@ export async function organizerAddPlayer(
     locale: Locale;
   },
 ) {
-  const { game, player } = args;
+  const { player } = args;
+  const game = await lockGameForAdmit(tx, args.game.id);
   if (await userAlreadyOnGame(tx, game.id, player.id)) {
     throw new TRPCError({
       code: "CONFLICT",

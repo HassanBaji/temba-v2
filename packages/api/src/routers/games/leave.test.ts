@@ -7,9 +7,11 @@ import {
   gameTeams,
   games,
   groups,
+  matches,
   user,
   venues,
 } from "@repo/db/schema";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { gameById } from "#src/routers/games/byId";
 import { GAME_PLAYED_LEAVE_MESSAGE, leaveGame } from "#src/routers/games/leave";
@@ -190,6 +192,63 @@ describe("leaveGame", () => {
         where: eq(gamePlayers.gameId, game.id),
       });
       expect(players.map((row) => row.userId)).toEqual([caller.id]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses once the Match is completed, even inside the window, and nobody takes the freed seat", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const venue = await insertVenue(db);
+      const players = [
+        await insertUser(db, "a@example.com", "A"),
+        await insertUser(db, "b@example.com", "B"),
+        await insertUser(db, "c@example.com", "C"),
+        await insertUser(db, "d@example.com", "D"),
+      ];
+      const game = await insertPublicFriendly(db, {
+        createdBy: players[0]!.id,
+        venueId: venue.id,
+      });
+      const seats = [
+        [1, "left"],
+        [1, "right"],
+        [2, "left"],
+        [2, "right"],
+      ] as const;
+      for (const [index, [sideIndex, position]] of seats.entries()) {
+        await registerSeat(db, {
+          gameId: game.id,
+          userId: players[index]!.id,
+          sideIndex,
+          position,
+        });
+      }
+      await db
+        .update(matches)
+        .set({ status: "completed" })
+        .where(eq(matches.gameId, game.id));
+
+      await expect(
+        leaveGame(db, { gameId: game.id, userId: players[3]!.id }),
+      ).rejects.toThrow(GAME_PLAYED_LEAVE_MESSAGE);
+
+      const stranger = await insertUser(db, "e@example.com", "E");
+      await expect(
+        registerSeat(db, { gameId: game.id, userId: stranger.id }),
+      ).rejects.toThrow(messagesFor("en").game.errors.played);
+
+      const roster = await db.query.gamePlayers.findMany({
+        where: eq(gamePlayers.gameId, game.id),
+      });
+      expect(roster.map((row) => row.userId).sort()).toEqual(
+        players.map((row) => row.id).sort(),
+      );
+      const waitlist = await db.query.gameWaitlist.findMany({
+        where: (table, { eq: equals }) => equals(table.gameId, game.id),
+      });
+      expect(waitlist).toEqual([]);
     } finally {
       await close();
     }

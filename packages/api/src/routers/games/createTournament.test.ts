@@ -689,16 +689,21 @@ describe("createTournament", () => {
       const owner = await insertUser(db, "tournament-legacy@example.com");
       const venue = await insertVenue(db);
       const group = await insertGroup(db, { createdBy: owner.id });
-      const created = await createGame(db, {
-        createdBy: owner.id,
-        groupId: group.id,
-        isPublic: false,
-        format: "friendly_tournament",
-        registrationMode: "individual",
-        playersAllowed: 8,
-        venueId: venue.id,
-        ...windowTimes(),
-      });
+      const window = windowTimes();
+      const created = await createGame(
+        db,
+        {
+          createdBy: owner.id,
+          groupId: group.id,
+          isPublic: false,
+          format: "friendly_tournament",
+          registrationMode: "individual",
+          playersAllowed: 8,
+          venueId: venue.id,
+          ...window,
+        },
+        { now: window.windowStart },
+      );
       const row = await db.query.games.findFirst({
         where: eq(games.id, created.id),
       });

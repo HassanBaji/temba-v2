@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -10,6 +11,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
   assertGameOrganizer,
+  gameFrozenReason,
   requireGame,
   type GameRow,
 } from "#src/games/access";
@@ -32,6 +34,12 @@ async function updateGameWindowOnGame(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Cannot edit a cancelled Game",
+    });
+  }
+  if ((await gameFrozenReason(database, game, now)) === "played") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).game.errors.played,
     });
   }
   if (windowEnd.getTime() < windowStart.getTime()) {

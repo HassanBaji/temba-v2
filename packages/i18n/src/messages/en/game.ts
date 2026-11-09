@@ -508,4 +508,12 @@ export const game = {
       `${weekday} ${start} - ${finish}`,
     fallbackTitle: "Game",
   },
+  errors: {
+    cancelled: "This Game is cancelled",
+    played: "This Game has been played",
+    partnerWaitlist:
+      "This Game is full. Join the Waitlist on your own; your partner can join it too.",
+    cancelPlayed: "This Game has a completed Match, so it can't be cancelled",
+    startInPast: "The start time has passed. Pick a later time.",
+  },
 };

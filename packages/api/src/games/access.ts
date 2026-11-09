@@ -11,9 +11,12 @@ import {
   gameWaitlist,
   groupMembers,
   groups,
+  MatchStatusEnum,
+  matches,
   teamMembers,
   teams,
 } from "@repo/db";
+import { gameIsPlayed } from "@repo/domain/played-game";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -47,6 +50,73 @@ export async function requireGame(database: DbOrTx, gameId: string) {
     });
   }
   return game;
+}
+
+/**
+ * Locks the Game row until the transaction ends, so concurrent admits count
+ * and fill its capacity one after another. Returns the row as locked.
+ */
+export async function lockGameForAdmit(database: DbOrTx, gameId: string) {
+  const [game] = await database
+    .select()
+    .from(games)
+    .where(eq(games.id, gameId))
+    .for("update");
+  if (!game) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Game not found",
+    });
+  }
+  return game;
+}
+
+export type GameFrozenReason = "cancelled" | "played";
+
+/**
+ * A cancelled or Played game is frozen: nobody joins, leaves, moves seat or
+ * moves its window. Played means a Match is completed or the window ended.
+ */
+export async function gameFrozenReason(
+  database: DbOrTx,
+  game: Pick<GameRow, "id" | "cancelledAt" | "windowEnd">,
+  now: Date,
+): Promise<GameFrozenReason | null> {
+  if (game.cancelledAt) {
+    return "cancelled";
+  }
+  const completed = await database.query.matches.findMany({
+    where: and(
+      eq(matches.gameId, game.id),
+      eq(matches.status, MatchStatusEnum.COMPLETED),
+    ),
+    columns: { status: true },
+    limit: 1,
+  });
+  return gameIsPlayed({ windowEnd: game.windowEnd, matches: completed }, now)
+    ? "played"
+    : null;
+}
+
+export async function assertGameNotFrozen(
+  database: DbOrTx,
+  game: Pick<GameRow, "id" | "cancelledAt" | "windowEnd">,
+  now: Date,
+  locale: Locale = DEFAULT_LOCALE,
+  playedMessage?: string,
+) {
+  const reason = await gameFrozenReason(database, game, now);
+  if (!reason) {
+    return;
+  }
+  const errors = messagesFor(locale).game.errors;
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message:
+      reason === "cancelled"
+        ? errors.cancelled
+        : (playedMessage ?? errors.played),
+  });
 }
 
 export async function isGroupMember(

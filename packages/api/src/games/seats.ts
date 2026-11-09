@@ -39,15 +39,6 @@ export type {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505"
-  );
-}
-
 export function vacantPositionsFromSides(sides: GameSide[]) {
   const vacant: { sideIndex: number; position: SeatPosition }[] = [];
   for (const side of sides) {
@@ -164,26 +155,23 @@ export async function assertFullyVacantSide(
   }
 }
 
-async function requirePlayerUser(
-  database: DbClient,
-  gamePlayerId: string,
-  side: { eitherSide: boolean; sideSetBy: string | null },
-): Promise<SeatOccupant | null> {
-  const player = await database.query.gamePlayers.findFirst({
-    where: eq(gamePlayers.id, gamePlayerId),
-    with: {
-      user: { columns: { id: true, name: true, image: true } },
-    },
-  });
-  if (!player?.user) {
+function seatOccupant(link: {
+  eitherSide: boolean;
+  sideSetBy: string | null;
+  gamePlayer: {
+    user: { id: string; name: string; image: string | null } | null;
+  } | null;
+}): SeatOccupant | null {
+  const occupant = link.gamePlayer?.user;
+  if (!occupant) {
     return null;
   }
   return {
-    userId: player.user.id,
-    name: player.user.name,
-    image: player.user.image,
-    eitherSide: side.eitherSide,
-    sideSetByUserId: side.sideSetBy,
+    userId: occupant.id,
+    name: occupant.name,
+    image: occupant.image,
+    eitherSide: link.eitherSide,
+    sideSetByUserId: link.sideSetBy,
   };
 }
 
@@ -202,6 +190,14 @@ export async function listGameSides(
           eitherSide: true,
           sideSetBy: true,
         },
+        with: {
+          gamePlayer: {
+            columns: { id: true },
+            with: {
+              user: { columns: { id: true, name: true, image: true } },
+            },
+          },
+        },
       },
     },
   });
@@ -219,11 +215,7 @@ export async function listGameSides(
     let right: SeatOccupant | null = null;
     if (team) {
       for (const link of team.players) {
-        const occupant = await requirePlayerUser(
-          database,
-          link.gamePlayerId,
-          link,
-        );
+        const occupant = seatOccupant(link);
         if (!occupant) {
           continue;
         }
@@ -419,36 +411,28 @@ export async function occupySeat(
   });
 
   if (!team) {
-    try {
-      const [created] = await database
-        .insert(gameTeams)
-        .values({
-          gameId: game.id,
-          sideIndex,
-        })
-        .returning();
-      if (!created) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to register on this Game",
-        });
-      }
-      team = created;
-    } catch (error) {
-      if (!isUniqueViolation(error)) {
-        throw error;
-      }
-      const existing = await database.query.gameTeams.findFirst({
+    // DO NOTHING rather than catching the unique violation: a failed statement
+    // aborts the transaction, so nothing could read the winner's row after it.
+    const [created] = await database
+      .insert(gameTeams)
+      .values({
+        gameId: game.id,
+        sideIndex,
+      })
+      .onConflictDoNothing()
+      .returning();
+    const existing =
+      created ??
+      (await database.query.gameTeams.findFirst({
         where: and(
           eq(gameTeams.gameId, game.id),
           eq(gameTeams.sideIndex, sideIndex),
         ),
-      });
-      if (!existing) {
-        throwPositionOccupied();
-      }
-      team = existing;
+      }));
+    if (!existing) {
+      throwPositionOccupied();
     }
+    team = existing;
     if (game.format === "friendly_game") {
       await setFriendlyMatchSlotForSide(database, game.id, sideIndex, team.id);
     }
@@ -471,17 +455,17 @@ export async function occupySeat(
     playerId = player.id;
   }
 
-  try {
-    await database.insert(gameTeamPlayers).values({
+  const [seated] = await database
+    .insert(gameTeamPlayers)
+    .values({
       gameTeamId: team.id,
       gamePlayerId: playerId,
       position: seat.position,
       eitherSide: seat.eitherSide,
-    });
-  } catch (error) {
-    if (!isUniqueViolation(error)) {
-      throw error;
-    }
+    })
+    .onConflictDoNothing()
+    .returning({ id: gameTeamPlayers.id });
+  if (!seated) {
     throwPositionOccupied();
   }
 

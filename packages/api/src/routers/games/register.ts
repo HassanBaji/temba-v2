@@ -21,7 +21,9 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
+  assertGameNotFrozen,
   assertUserPassesJoinGate,
+  lockGameForAdmit,
   requireGame,
   requireNotChallengeGame,
 } from "#src/games/access";
@@ -68,6 +70,7 @@ export async function register(
     });
   }
 
+  await assertGameNotFrozen(database, game, now, locale);
   await assertUserPassesJoinGate(database, game, args.userId);
 
   if (await userAlreadyOnGame(database, game.id, args.userId)) {
@@ -83,13 +86,13 @@ export async function register(
     });
   }
 
-  if (args.football?.role === "keeper") {
-    await assertKeeperSeatOpen(database, game.id);
-  }
-
   return database.transaction(async (tx) => {
+    const locked = await lockGameForAdmit(tx, game.id);
+    if (args.football?.role === "keeper") {
+      await assertKeeperSeatOpen(tx, locked.id);
+    }
     const admitted = await admit(tx, {
-      game,
+      game: locked,
       door: "register",
       party: { kind: "user", userId: args.userId },
       now,

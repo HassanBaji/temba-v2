@@ -30,7 +30,8 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
@@ -221,7 +222,22 @@ async function createFootballGameOnGroup(
   return { id: created.game.id, matchId: null as string | null };
 }
 
-export async function createGame(database: DbClient, input: CreateGameInput) {
+/** A Game may start a little before it is saved, never earlier. */
+const WINDOW_START_GRACE_MS = 15 * 60 * 1000;
+
+export async function createGame(
+  database: DbClient,
+  input: CreateGameInput,
+  options: { now?: Date; locale?: Locale } = {},
+) {
+  const now = options.now ?? new Date();
+  if (input.windowStart.getTime() < now.getTime() - WINDOW_START_GRACE_MS) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(options.locale ?? DEFAULT_LOCALE).game.errors
+        .startInPast,
+    });
+  }
   const created = await createGameOnGroup(database, input);
   await linkNewGameToSeason(database, {
     id: created.id,
@@ -337,8 +353,9 @@ export const create = protectedProcedure
   .input(createGameInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return createGame(ctx.db, {
-      ...input,
-      createdBy: appUser.id,
-    });
+    return createGame(
+      ctx.db,
+      { ...input, createdBy: appUser.id },
+      { locale: ctx.locale },
+    );
   });

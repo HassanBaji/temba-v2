@@ -1,12 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { gameIsPlayed } from "@repo/domain/played-game";
-
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { requireGame } from "#src/games/access";
+import { gameFrozenReason, requireGame } from "#src/games/access";
 import { changeOwnSide, type SeatChoice } from "#src/games/seats";
 import { notify } from "#src/notifications/notify";
 
@@ -24,7 +22,7 @@ export async function setSeatSide(
       message: "Sides are picked on a padel Friendly game",
     });
   }
-  if (game.cancelledAt || gameIsPlayed(game, args.now ?? new Date())) {
+  if (await gameFrozenReason(database, game, args.now ?? new Date())) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Sides can be changed until the Game starts",

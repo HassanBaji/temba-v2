@@ -2,6 +2,7 @@ import { type Locale } from "@repo/i18n/locale";
 import { TRPCError } from "@trpc/server";
 
 import {
+  assertGameNotFrozen,
   assertRegistrationOpen,
   assertUserPassesJoinGate,
   type GameRow,
@@ -38,6 +39,7 @@ export async function assertCanRegisterWithPartner(
   }
 
   assertRegistrationOpen(game, now);
+  await assertGameNotFrozen(database, game, now, locale);
   await assertUserPassesJoinGate(database, game, userId);
 
   if (await userAlreadyOnGame(database, game.id, userId)) {

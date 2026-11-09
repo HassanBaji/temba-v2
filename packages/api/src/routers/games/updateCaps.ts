@@ -13,6 +13,7 @@ import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
   assertGameOrganizer,
+  lockGameForAdmit,
   registeredGameTeamCount,
   registeredUserCount,
   requireGame,
@@ -20,14 +21,20 @@ import {
   type GameRow,
 } from "#src/games/access";
 import { footballSides } from "#src/games/football-lineup";
-import { highestOccupiedSideIndex } from "#src/games/seats";
+import { promoteWaitlist } from "#src/games/promote-waitlist";
+import {
+  firstVacantPosition,
+  highestOccupiedSideIndex,
+  isIndividualSeatGame,
+} from "#src/games/seats";
 import {
   footballPlayersAllowedBounds,
   isFootballGame,
   isFootballSideSize,
 } from "@repo/domain/game-shape";
 
-type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbClient = typeof db | Tx;
 
 export const SIDES_SET_MESSAGE =
   "The sides are set, so the shape of the Game can't change";
@@ -109,6 +116,32 @@ async function updateFootballShape(
     .set({ playersAllowed, sideSize, updatedAt: new Date() })
     .where(eq(games.id, game.id));
   return movedToWaitlist;
+}
+
+/** A raised cap fills its new places from the Waitlist, in queue order. */
+async function promoteIntoRaisedCap(database: Tx, before: GameRow) {
+  const game = await requireGame(database, before.id);
+  const raised =
+    (game.playersAllowed ?? 0) > (before.playersAllowed ?? 0) ||
+    (game.teamsAllowed ?? 0) > (before.teamsAllowed ?? 0);
+  if (!raised) {
+    return;
+  }
+  if (!isIndividualSeatGame(game)) {
+    await promoteWaitlist(database, game);
+    return;
+  }
+  for (;;) {
+    const vacant = await firstVacantPosition(database, game);
+    if (!vacant) {
+      return;
+    }
+    const seated = await registeredUserCount(database, game.id);
+    await promoteWaitlist(database, game, vacant);
+    if ((await registeredUserCount(database, game.id)) === seated) {
+      return;
+    }
+  }
 }
 
 async function updateGameCapsOnGame(
@@ -213,13 +246,16 @@ export async function updateGameCaps(
   const game = await requireGame(database, args.gameId);
   requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.userId);
-  const movedToWaitlist = await database.transaction((tx) =>
-    updateGameCapsOnGame(tx, game, {
+  const movedToWaitlist = await database.transaction(async (tx) => {
+    const locked = await lockGameForAdmit(tx, game.id);
+    const moved = await updateGameCapsOnGame(tx, locked, {
       playersAllowed: args.playersAllowed,
       teamsAllowed: args.teamsAllowed,
       sideSize: args.sideSize,
-    }),
-  );
+    });
+    await promoteIntoRaisedCap(tx, locked);
+    return moved;
+  });
   return { ok: true as const, movedToWaitlist };
 }
 
