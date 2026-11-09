@@ -5,11 +5,17 @@ export type PaymentBegin =
   | { kind: "redirect"; reference: string; redirectUrl: string }
   | { kind: "failed"; reason: string };
 
+export const PAYMENT_CURRENCY = "BHD";
+
 export type ChargeState = {
   status: "pending" | "paid" | "failed";
   providerStatus: string;
   method?: OnlinePaymentMethod;
   reason?: string;
+  /** What the provider says it took; a paid state that disagrees with the Payment is not applied. */
+  charged?: { amountFils: number; currency: string };
+  /** When the provider took the money, if it says. */
+  capturedAt?: Date;
 };
 
 export type RefundResult =

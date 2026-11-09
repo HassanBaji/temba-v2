@@ -31,6 +31,20 @@ export const booking = {
     `This Booking can no longer be cancelled in the app. Call the Venue on ${venuePhone}`,
   cancelWindowClosedContact:
     "This Booking can no longer be cancelled in the app. Contact the Venue",
+  customerLimit: {
+    liveHolds: (count: number) =>
+      plural("en", count, {
+        one: "You already have a Booking waiting for payment at this Venue. Finish paying or wait for it to lapse",
+        other:
+          "You already have {n} Bookings waiting for payment at this Venue. Finish paying or wait for one to lapse",
+      }),
+    unpaidAtVenue: (count: number) =>
+      plural("en", count, {
+        one: "You already have an upcoming Booking to pay at this Venue. Cancel it to book another",
+        other:
+          "You already have {n} upcoming Bookings to pay at this Venue. Cancel one to book another",
+      }),
+  },
   refund: {
     full: "Full refund",
     none: "No refund",

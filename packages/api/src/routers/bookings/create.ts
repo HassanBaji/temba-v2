@@ -2,7 +2,9 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { bookings, user } from "@repo/db";
+import type { DbTx } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import {
   ONLINE_PAYMENT_METHODS,
   paymentHoldExpiresAt,
@@ -10,7 +12,7 @@ import {
 } from "@repo/domain/booking-payment";
 import { slotRefusalMessage } from "@repo/domain/booking-copy";
 import { evaluateSlot } from "@repo/domain/booking-slots";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -31,6 +33,77 @@ import { protectedProcedure } from "#src/trpc";
 type DbClient = typeof db;
 
 const MS_PER_MINUTE = 60_000;
+
+/**
+ * Per Customer and Venue, so one account cannot hold every Court. A hold is
+ * a Booking waiting for an online payment; an unpaid pay-at-the-Venue
+ * Booking is confirmed with no money taken, so it is capped as well.
+ */
+export const CUSTOMER_BOOKING_LIMITS = {
+  liveHolds: 2,
+  unpaidAtVenue: 3,
+} as const;
+
+async function requireRoomForCustomer(
+  tx: DbTx,
+  args: {
+    userId: string;
+    venueId: string;
+    atVenue: boolean;
+    now: Date;
+    locale: Locale;
+  },
+) {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`booking-limit:${args.userId}:${args.venueId}`}))`,
+  );
+  const mine = and(
+    eq(bookings.userId, args.userId),
+    eq(bookings.venueId, args.venueId),
+  );
+  const m = messagesFor(args.locale).booking.customerLimit;
+
+  if (args.atVenue) {
+    const [unpaid] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(bookings)
+      .where(
+        and(
+          mine,
+          eq(bookings.source, "app"),
+          eq(bookings.status, "confirmed"),
+          eq(bookings.paymentStatus, "pending"),
+          gt(bookings.endsAt, args.now),
+        ),
+      );
+    const count = unpaid?.count ?? 0;
+    if (count >= CUSTOMER_BOOKING_LIMITS.unpaidAtVenue) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: m.unpaidAtVenue(count),
+      });
+    }
+    return;
+  }
+
+  const [held] = await tx
+    .select({ count: sql<number>`count(*)::int` })
+    .from(bookings)
+    .where(
+      and(
+        mine,
+        eq(bookings.status, "pending_payment"),
+        gt(bookings.holdExpiresAt, args.now),
+      ),
+    );
+  const count = held?.count ?? 0;
+  if (count >= CUSTOMER_BOOKING_LIMITS.liveHolds) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: m.liveHolds(count),
+    });
+  }
+}
 
 export async function createBooking(
   database: DbClient,
@@ -75,6 +148,14 @@ export async function createBooking(
       });
     }
     const provider = method === "at_venue" ? manualProvider : onlineProvider;
+
+    await requireRoomForCustomer(tx, {
+      userId: args.userId,
+      venueId: args.venueId,
+      atVenue: provider.id === "manual",
+      now,
+      locale: args.locale ?? DEFAULT_LOCALE,
+    });
 
     const check = evaluateSlot(context.input, {
       courtId: args.courtId,

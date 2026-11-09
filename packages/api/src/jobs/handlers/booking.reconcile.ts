@@ -20,10 +20,12 @@ export const payloadSchema = z.object({}).passthrough();
 export const maxAttempts = 1;
 
 const MS_PER_MINUTE = 60_000;
-const MS_PER_DAY = 24 * 60 * MS_PER_MINUTE;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
 const STALE_HOLD_MINUTES = 2;
 const DELIVERY_RETENTION_DAYS = 90;
 const LATE_CAPTURE_WINDOW_DAYS = 7;
+const FAILED_RECHECK_HOURS = 24;
 
 export async function handle(
   db: Db,
@@ -68,7 +70,23 @@ export async function handle(
         inArray(bookings.status, ["expired", "cancelled"]),
       ),
     );
-  for (const payment of unsettled) {
+  // Tap can capture a charge it first reported as failed; polling recent
+  // ones lets applyChargeState record the money and refund it.
+  const failed = await db
+    .select({ id: bookingPayments.id })
+    .from(bookingPayments)
+    .where(
+      and(
+        eq(bookingPayments.provider, "tap"),
+        eq(bookingPayments.status, "failed"),
+        isNotNull(bookingPayments.providerReference),
+        gt(
+          bookingPayments.createdAt,
+          new Date(now.getTime() - FAILED_RECHECK_HOURS * MS_PER_HOUR),
+        ),
+      ),
+    );
+  for (const payment of [...unsettled, ...failed]) {
     await db.transaction((tx) => enqueue(tx, pollChargeJob(payment.id, 0)));
   }
 
@@ -87,6 +105,7 @@ export async function handle(
       event: "booking_reconcile",
       expiredHolds: staleHolds.length,
       repolledCharges: unsettled.length,
+      repolledFailedCharges: failed.length,
       prunedDeliveries: pruned.length,
     }),
   );
