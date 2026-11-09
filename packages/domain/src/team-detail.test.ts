@@ -184,9 +184,20 @@ function football(overrides: Partial<TeamDetailInput> = {}): TeamDetailInput {
 }
 
 describe("teamDetailView hero", () => {
+  it("carries the Team image for the crest", () => {
+    const view = teamDetailView(
+      padel({ imageUrl: "https://media.example/team.jpg" }),
+      NOW,
+      "en",
+    );
+    expect(view.hero.imageUrl).toBe("https://media.example/team.jpg");
+    expect(view.hero.initials).toBe("SS");
+  });
+
   it("reads a padel Team as its sport, Team Level and month made, with the two members", () => {
     const view = teamDetailView(padel(), NOW, "en");
     expect(view.hero.initials).toBe("SS");
+    expect(view.hero.imageUrl).toBeNull();
     expect(view.hero.subtitle).toBe("Padel, C. Since Sep 2026");
     expect(view.hero.record).toMatchObject({
       label: "Record",

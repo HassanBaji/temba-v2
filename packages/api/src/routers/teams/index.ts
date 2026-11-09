@@ -4,6 +4,7 @@ import { acceptInAppInviteProcedure as acceptInAppInvite } from "./acceptInAppIn
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
 import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { byId } from "./byId";
+import { clearImageProcedure as clearImage } from "./clearImage";
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { dissolveProcedure as dissolve } from "./dissolve";
@@ -20,6 +21,7 @@ import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./remov
 import { revokeInAppInviteProcedure as revokeInAppInvite } from "./revokeInAppInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { setGroupTagProcedure as setGroupTag } from "./setGroupTag";
+import { uploadImageProcedure as uploadImage } from "./uploadImage";
 
 export const teamsRouter = createTRPCRouter({
   create,
@@ -42,4 +44,6 @@ export const teamsRouter = createTRPCRouter({
   addPlayerByPhone,
   removeUnclaimedPlayer,
   listGroupMembersToAdd,
+  uploadImage,
+  clearImage,
 });

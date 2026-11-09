@@ -9,7 +9,8 @@ import {
 
 /** Rows store `/api/media/<key>?v=<unixMs>`; the path names the bucket object (ADR-0034). */
 const STORED_MEDIA_PREFIX = "/api/media/";
-const MEDIA_KEY = /^(group-images|venue-logos|venue-photos)\/[^/]+\/[^/]+$/;
+const MEDIA_KEY =
+  /^(group-images|team-images|venue-logos|venue-photos)\/[^/]+\/[^/]+$/;
 
 /**
  * Every URL signed inside one window carries the same signing date, so a client

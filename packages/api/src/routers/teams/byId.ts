@@ -288,6 +288,8 @@ export async function teamById(
     id: team.id,
     name: team.name,
     displayName: teamDisplayName(team.name, memberNames),
+    imageUrl: team.imageUrl,
+    canManageImage: isCreator,
     sport,
     gamesPlayed: record.gamesPlayed,
     wins: record.wins,

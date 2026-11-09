@@ -2,10 +2,12 @@
 
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { type TeamDetailView } from "@repo/domain/team-detail";
-import { Share } from "lucide-react";
+import { Loader2Icon, Share } from "lucide-react";
 import Link from "next/link";
 
+import { useMessages } from "~/components/locale-provider";
 import { PLAYER_HERO_BLEED } from "~/components/players/player-profile-hero";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { cn } from "~/lib/utils";
@@ -53,6 +55,43 @@ function RecordSeats({ seats }: { seats: TeamDetailView["hero"]["seats"] }) {
   );
 }
 
+/** The Team image when it has one, its initials until it loads or if it fails. */
+function TeamCrest({
+  initials,
+  imageUrl,
+  pending,
+}: {
+  initials: string;
+  imageUrl: string | null;
+  pending: boolean;
+}) {
+  const m = useMessages();
+  return (
+    <div className="relative shrink-0" aria-busy={pending || undefined}>
+      <TeamTile tone="inverse" size="crest" className="overflow-hidden">
+        {imageUrl ? (
+          <Avatar className="size-full rounded-[inherit]">
+            <AvatarImage alt="" src={imageUrl} className="object-cover" />
+            <AvatarFallback className="rounded-[inherit] bg-transparent text-[length:inherit] text-inherit">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          initials
+        )}
+      </TeamTile>
+      {pending ? (
+        <span className="bg-focus/70 text-on-focus absolute inset-0 grid place-items-center rounded-[17px]">
+          <Loader2Icon aria-hidden="true" className="size-4 animate-spin" />
+        </span>
+      ) : null}
+      <span role="status" className="sr-only">
+        {pending ? m.team.image.uploading : ""}
+      </span>
+    </div>
+  );
+}
+
 /** 4a and 4b: the black hero with the crest, the record and its seats. */
 export function TeamDetailHero({
   hero,
@@ -60,12 +99,14 @@ export function TeamDetailHero({
   onInvite,
   onShare,
   menu,
+  imagePending = false,
 }: {
   hero: TeamDetailView["hero"];
   postHref: string;
   onInvite: () => void;
   onShare: () => void;
   menu: React.ReactNode;
+  imagePending?: boolean;
 }) {
   return (
     <header
@@ -85,7 +126,11 @@ export function TeamDetailHero({
       </div>
 
       <div className="mt-5 flex items-center gap-4">
-        <TeamTile text={hero.initials} tone="inverse" size="crest" />
+        <TeamCrest
+          initials={hero.initials}
+          imageUrl={hero.imageUrl}
+          pending={imagePending}
+        />
         <div className="min-w-0 flex-1">
           <h1 className="break-words text-[28px] font-bold leading-[1.1] tracking-[-0.01em]">
             {hero.title}

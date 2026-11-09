@@ -64,6 +64,7 @@ export async function mine(database: DbClient, args: { userId: string }) {
       id: team.id,
       name: team.name,
       displayName: teamDisplayName(team.name, memberNames),
+      imageUrl: team.imageUrl,
       sport: team.sport as GroupSportEnum,
       members: members.map((member) => ({
         name: member.user.name,

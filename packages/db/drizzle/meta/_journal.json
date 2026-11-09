@@ -659,6 +659,13 @@
       "when": 1794209500736,
       "tag": "0093_tournament_rounds",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1794224310186,
+      "tag": "0094_team_image",
+      "breakpoints": true
     }
   ]
 }

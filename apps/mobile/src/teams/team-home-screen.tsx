@@ -2,7 +2,11 @@ import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { sportOrDefault } from "@repo/domain/sport";
 import { teamDetailView } from "@repo/domain/team-detail";
-import { teamDissolveConfirm, teamLeaveConfirm } from "@repo/domain/teams";
+import {
+  teamDissolveConfirm,
+  teamLeaveConfirm,
+  teamRemoveImageConfirm,
+} from "@repo/domain/teams";
 import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
 import { Share } from "react-native";
@@ -10,6 +14,7 @@ import { Share } from "react-native";
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { gamePath } from "../games/games-model";
 import { Notice } from "../groups/notice";
+import { pickGroupImage } from "../groups/pick-group-image";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { playerPath } from "../player-profile/player-path";
@@ -102,6 +107,55 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     );
   }
 
+  const refreshTeamImage = () =>
+    Promise.all([
+      utils.teams.byId.invalidate({ id: teamId }),
+      utils.teams.mine.invalidate(),
+    ]);
+
+  const uploadImage = api.teams.uploadImage.useMutation({
+    onSuccess: async () => {
+      toast.show(m.team.image.savedToast);
+      await refreshTeamImage();
+    },
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+  });
+
+  const clearImage = api.teams.clearImage.useMutation({
+    onSuccess: async () => {
+      toast.show(m.team.image.removedToast);
+      await refreshTeamImage();
+    },
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+    onSettled: () => setConfirm(null),
+  });
+
+  async function changeImage() {
+    if (uploadImage.isPending) {
+      return;
+    }
+    setActionError(null);
+    const picked = await pickGroupImage(locale);
+    if (!picked) {
+      return;
+    }
+    if (!picked.image.ok) {
+      toast.show(picked.image.error);
+      return;
+    }
+    uploadImage.mutate({
+      teamId,
+      contentType: picked.image.contentType,
+      dataBase64: picked.image.dataBase64,
+    });
+  }
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -174,6 +228,28 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
           onPress: () => setInviteOpen(true),
         }
       : null,
+    data.canManageImage
+      ? {
+          key: "image",
+          label: m.team.image.change,
+          disabled: uploadImage.isPending || clearImage.isPending,
+          onPress: () => void changeImage(),
+        }
+      : null,
+    data.canManageImage && data.imageUrl
+      ? {
+          key: "image-remove",
+          label: m.team.image.remove,
+          disabled: uploadImage.isPending || clearImage.isPending,
+          onPress: () => {
+            setActionError(null);
+            setConfirm({
+              ...teamRemoveImageConfirm(view.title, locale),
+              onConfirm: () => clearImage.mutate({ teamId }),
+            });
+          },
+        }
+      : null,
     ...view.groupTag.options.map((option) => ({
       key: `tag-${option.groupId}`,
       label: option.label,
@@ -233,6 +309,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
       header={
         <TeamHero
           hero={detail.hero}
+          imagePending={uploadImage.isPending}
           onMenu={menuItems.length > 0 ? () => setMenuOpen(true) : null}
           onPost={() => router.push(postChallengePath(teamId))}
           onInvite={() => setInviteOpen(true)}
@@ -252,7 +329,10 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
         actionError={actionError}
         confirm={confirm}
         confirmPending={
-          dissolve.isPending || leave.isPending || removeUnclaimed.isPending
+          dissolve.isPending ||
+          leave.isPending ||
+          removeUnclaimed.isPending ||
+          clearImage.isPending
         }
         menu={{
           visible: menuOpen,

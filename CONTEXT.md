@@ -176,7 +176,7 @@ A persistent Roster of Users for one sport, sized by its Team roster rule: a pad
 _Avoid_: Group, Game team, pair, doubles (when you mean this entity), Club Team, Loose Team (retired, ADR-0055)
 
 **Captain**:
-The product name for a Team's creator (`teams.created_by`); there is no captain column and no transfer. On a football Team the Captain acts for the Team, and so do the Organizers of the Group the Team is tagged to; on a padel Team both members do. The Roster stays the Captain's.
+The product name for a Team's creator (`teams.created_by`); there is no captain column and no transfer. On a football Team the Captain acts for the Team, and so do the Organizers of the Group the Team is tagged to; on a padel Team both members do. The Roster stays the Captain's, and so does the Team image: only the Captain changes or removes it.
 _Avoid_: owner, admin, creator (in product copy), organizer (when you mean this)
 
 **Roster**:
