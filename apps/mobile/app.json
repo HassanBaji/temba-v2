@@ -16,8 +16,7 @@
           "en",
           "ar"
         ]
-      },
-      "usesAppleSignIn": true
+      }
     },
     "android": {
       "package": "app.temba.mobile"
@@ -26,7 +25,6 @@
       "expo-router",
       "expo-localization",
       "expo-secure-store",
-      "expo-apple-authentication",
       "expo-web-browser",
       [
         "expo-image-picker",
@@ -37,7 +35,7 @@
       [
         "@clerk/expo",
         {
-          "appleSignIn": true
+          "appleSignIn": false
         }
       ],
       [

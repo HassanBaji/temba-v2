@@ -27,7 +27,6 @@ export const mobileHome = {
   oauth: {
     or: "أو",
     continueWithGoogle: "المتابعة باستخدام Google",
-    continueWithApple: "المتابعة باستخدام Apple",
   },
   terms: {
     title: "الشروط والأحكام",

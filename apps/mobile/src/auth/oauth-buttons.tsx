@@ -1,26 +1,17 @@
-import { useSignInWithApple } from "@clerk/expo/apple";
 import { useSignIn, useSignUp } from "@clerk/expo/legacy";
-import { radii } from "@repo/design-tokens";
 import { clerkGlobalErrorMessage } from "@repo/domain/clerk-auth-error";
 import { withGoogleLocale } from "@repo/domain/google-locale";
-import * as AppleAuthentication from "expo-apple-authentication";
 import * as AuthSession from "expo-auth-session";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button, type ButtonVariant } from "../primitives/button";
-import { buttonGeometry } from "../primitives/button-target";
 import { Hairline } from "../primitives/hairline";
-import { useSurfaceTone } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { useColorSchemeName } from "../theme/theme-provider";
-import { appleButtonStyle } from "./apple-button-style";
 import { FormErrorSummary } from "./form-error-summary";
-
-type Provider = "google" | "apple";
 
 type OAuthOutcome = {
   createdSessionId: string | null;
@@ -42,8 +33,7 @@ export function OauthButtons({
   const locale = useLocale();
   const { signIn, setActive, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
-  const { startAppleAuthenticationFlow } = useSignInWithApple();
-  const [pending, setPending] = useState<Provider | null>(null);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Clerk's useSSO gives no way to set Google's page language, so this is its
@@ -79,23 +69,12 @@ export function OauthButtons({
     };
   }
 
-  async function continueWithApple(): Promise<OAuthOutcome> {
-    const result = await startAppleAuthenticationFlow();
-    return {
-      createdSessionId: result.createdSessionId,
-      setActive: result.setActive,
-      signUp: result.signUp,
-      cancelled:
-        result.createdSessionId == null && result.signUp?.status == null,
-    };
-  }
-
-  async function run(provider: Provider, start: () => Promise<OAuthOutcome>) {
+  async function run(start: () => Promise<OAuthOutcome>) {
     if (pending) {
       return;
     }
     setError(null);
-    setPending(provider);
+    setPending(true);
     try {
       const outcome = await start();
       if (outcome.createdSessionId && outcome.setActive) {
@@ -112,7 +91,7 @@ export function OauthButtons({
     } catch (err) {
       setError(clerkGlobalErrorMessage(err, locale));
     } finally {
-      setPending(null);
+      setPending(false);
     }
   }
 
@@ -132,58 +111,15 @@ export function OauthButtons({
         </View>
       ) : null}
       <FormErrorSummary message={error} />
-      {Platform.OS === "ios" ? (
-        <AppleButton
-          pending={pending === "apple"}
-          disabled={pending !== null || disabled}
-          onPress={() => {
-            void run("apple", continueWithApple);
-          }}
-        />
-      ) : null}
       <Button
         label={m.mobileHome.oauth.continueWithGoogle}
         size="lg"
         variant={variant}
-        pending={pending === "google"}
-        disabled={pending !== null || disabled}
+        pending={pending}
+        disabled={pending || disabled}
         onPress={() => {
-          void run("google", continueWithGoogle);
+          void run(continueWithGoogle);
         }}
-      />
-    </View>
-  );
-}
-
-function AppleButton({
-  pending,
-  disabled,
-  onPress,
-}: {
-  pending: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const m = useMessages();
-  const style = appleButtonStyle(useSurfaceTone(), useColorSchemeName());
-  const inactive = pending || disabled;
-  return (
-    <View
-      pointerEvents={inactive ? "none" : "auto"}
-      accessibilityState={{ disabled: inactive, busy: pending }}
-      style={{ opacity: inactive ? 0.5 : 1 }}
-    >
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-        buttonStyle={
-          style === "white"
-            ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-            : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-        }
-        cornerRadius={radii.lg}
-        accessibilityLabel={m.mobileHome.oauth.continueWithApple}
-        style={{ height: buttonGeometry("lg").height, width: "100%" }}
-        onPress={onPress}
       />
     </View>
   );
