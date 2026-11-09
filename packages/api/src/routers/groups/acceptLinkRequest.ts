@@ -6,7 +6,6 @@ import {
   groupLinkRequests,
   GroupLinkRequestStatusEnum,
   groups,
-  GroupTypeEnum,
   venues,
 } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -84,7 +83,7 @@ export async function acceptLinkRequest(
         message: "Only a Loose Group can be linked to a Venue",
       });
     }
-    if (group.type !== GroupTypeEnum.PUBLIC) {
+    if (group.type !== "public") {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: messagesFor(args.locale ?? DEFAULT_LOCALE).group.linkRequest

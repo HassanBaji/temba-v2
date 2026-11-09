@@ -34,7 +34,7 @@ export const groups = pgTable("groups", {
   name: varchar("name", { length: 255 }),
   description: varchar("description", { length: 255 }),
   totalGamesPlayed: integer("total_games_played").notNull().default(0),
-  type: groupTypes().default(GroupTypeEnum.PRIVATE),
+  type: groupTypes().notNull().default(GroupTypeEnum.PRIVATE),
   sport: groupSports().default(GroupSportEnum.PADEL),
   venueId: uuid("venue_id").references(() => venues.id, {
     onDelete: "restrict",
@@ -42,7 +42,7 @@ export const groups = pgTable("groups", {
   requiresApproval: boolean("requires_approval").notNull().default(false),
   imageUrl: varchar("image_url", { length: 255 }),
   createdBy: uuid("created_by")
-    .references(() => user.id, { onDelete: "cascade" })
+    .references(() => user.id, { onDelete: "restrict" })
     .notNull(),
   verifiedAt: timestamp("verified_at"),
   verifiedBy: uuid("verified_by").references(() => user.id, {

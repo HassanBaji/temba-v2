@@ -89,6 +89,7 @@ export const groupRatingEvents = pgTable(
     userGroupCreatedAt: index(
       "group_rating_events_user_id_group_id_created_at_idx",
     ).on(table.userId, table.groupId, table.createdAt),
+    matchIdx: index("group_rating_events_match_id_idx").on(table.matchId),
   }),
 );
 
@@ -118,7 +119,7 @@ export const groupLevelOverrides = pgTable(
       .references(() => groups.id, { onDelete: "cascade" })
       .notNull(),
     setByUserId: uuid("set_by_user_id")
-      .references(() => user.id, { onDelete: "cascade" })
+      .references(() => user.id, { onDelete: "restrict" })
       .notNull(),
     muBefore: doublePrecision("mu_before").notNull(),
     phiBefore: doublePrecision("phi_before").notNull(),

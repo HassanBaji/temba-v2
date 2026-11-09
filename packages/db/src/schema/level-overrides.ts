@@ -35,7 +35,7 @@ export const levelOverrides = pgTable(
       .notNull(),
     sport: groupSports().notNull(),
     setByUserId: uuid("set_by_user_id")
-      .references(() => user.id, { onDelete: "cascade" })
+      .references(() => user.id, { onDelete: "restrict" })
       .notNull(),
     groupId: uuid("group_id").references(() => groups.id, {
       onDelete: "set null",

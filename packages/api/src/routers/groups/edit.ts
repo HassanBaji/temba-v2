@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groups, GroupTypeEnum } from "@repo/db";
+import { groups } from "@repo/db";
 import { GROUP_NAME_MAX_LENGTH } from "@repo/domain/group-settings";
 import { sportSchema } from "@repo/validators/sport";
 
@@ -53,13 +53,13 @@ export async function editGroup(
     patch.sport = args.sport;
   }
 
-  const nextType = args.type ?? group.type ?? GroupTypeEnum.PRIVATE;
+  const nextType = args.type ?? group.type;
   if (args.type !== undefined && args.type !== group.type) {
     patch.type = args.type;
   }
 
   const nextRequiresApproval =
-    nextType === GroupTypeEnum.PUBLIC
+    nextType === "public"
       ? (args.requiresApproval ?? group.requiresApproval)
       : false;
   if (nextRequiresApproval !== group.requiresApproval) {

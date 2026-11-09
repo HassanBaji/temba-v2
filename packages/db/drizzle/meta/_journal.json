@@ -694,6 +694,13 @@
       "when": 1794241917876,
       "tag": "0098_rating_event_band_before",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794242063334,
+      "tag": "0099_audit_indexes_constraints",
+      "breakpoints": true
     }
   ]
 }

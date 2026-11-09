@@ -5,7 +5,6 @@ import { and, eq, isNull } from "drizzle-orm";
 import {
   groupMemberInvites,
   groupMembers,
-  GroupTypeEnum,
   venueManagers,
   type groups,
 } from "@repo/db";
@@ -64,7 +63,7 @@ async function canViewGroup(
   userId: string,
   getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>,
 ) {
-  if (group.type === GroupTypeEnum.PUBLIC || group.createdBy === userId) {
+  if (group.type === "public" || group.createdBy === userId) {
     return true;
   }
   if (await isMember(database, group.id, userId)) {

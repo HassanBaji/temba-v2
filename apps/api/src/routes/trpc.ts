@@ -113,7 +113,9 @@ export function trpcRoute(
         const entry = {
           path: path ?? null,
           code: error.code,
-          userId: ctx?.userId ?? null,
+          userId:
+            (ctx as Awaited<ReturnType<typeof createContext>> | undefined)
+              ?.userId ?? null,
         };
         if (error.code === "INTERNAL_SERVER_ERROR") {
           console.error("[tRPC] error", entry, error.cause ?? error);

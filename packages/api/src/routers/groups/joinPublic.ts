@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers, GroupTypeEnum } from "@repo/db";
+import { groupMembers } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -19,7 +19,7 @@ export async function joinPublic(
 ) {
   const group = await requireGroup(database, args.groupId);
 
-  if (group.type !== GroupTypeEnum.PUBLIC) {
+  if (group.type !== "public") {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Private Groups cannot be joined via the Group URL",

@@ -1,4 +1,11 @@
-import { pgTable, uuid, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { groups } from "./groups";
 import { GroupMemberRoleEnum, groupMemberRoles } from "./group-enums";
@@ -26,6 +33,7 @@ export const groupMembers = pgTable(
       table.groupId,
       table.userId,
     ),
+    userIdx: index("group_members_user_id_idx").on(table.userId),
   }),
 );
 

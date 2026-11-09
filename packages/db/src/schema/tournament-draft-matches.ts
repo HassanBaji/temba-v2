@@ -1,4 +1,11 @@
-import { integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 import { games } from "./games";
@@ -30,6 +37,12 @@ export const tournamentDraftMatches = pgTable(
     uniqueRoundPosition: unique(
       "tournament_draft_matches_game_round_position_unique",
     ).on(table.gameId, table.roundNumber, table.position),
+    slot1Idx: index("tournament_draft_matches_slot_1_game_team_id_idx").on(
+      table.slot1GameTeamId,
+    ),
+    slot2Idx: index("tournament_draft_matches_slot_2_game_team_id_idx").on(
+      table.slot2GameTeamId,
+    ),
   }),
 );
 
