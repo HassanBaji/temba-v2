@@ -99,7 +99,7 @@ function TeamRow({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <InitialsTile name={view.title} size="xl" />
+        <InitialsTile name={view.title} uri={view.imageUrl} size="xl" />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold" numberOfLines={2}>
