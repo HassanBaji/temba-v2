@@ -18,6 +18,7 @@ import {
 import { managerBookingActions } from "@repo/domain/booking-manager-actions";
 import { isOccupyingBooking } from "@repo/domain/booking-slots";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -53,7 +54,10 @@ export async function bookingById(
     where: eq(bookings.id, args.bookingId),
   });
   if (!booking) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).booking.errors.notFound,
+    });
   }
 
   const isHolder = booking.userId === args.actor.userId;
@@ -62,13 +66,14 @@ export async function bookingById(
     await requireVenueManager(database, {
       venueId: booking.venueId,
       ...args.actor,
+      locale,
     });
     isManager = true;
   } catch {
     if (!isHolder) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "You can't view this Booking",
+        message: messagesFor(locale).booking.errors.viewForbidden,
       });
     }
   }

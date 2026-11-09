@@ -30,9 +30,14 @@ import type { FootballMatchInput } from "@repo/domain/player-profile-football";
 import { LAST_TEN_SIZE } from "@repo/domain/player-profile-matches";
 import type { MatchOutcome } from "@repo/domain/result-mark";
 import { sportsPlayed } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
-const notFound = () =>
-  new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
+const notFound = (locale: Locale) =>
+  new TRPCError({
+    code: "NOT_FOUND",
+    message: messagesFor(locale).profile.errors.playerNotFound,
+  });
 
 // A completed Match with no scored Score has no winner, so it reads as a draw.
 function ownerOutcome(match: CountedMatch): MatchOutcome {
@@ -89,10 +94,11 @@ function overallFrom(
 
 export async function loadFootballProfile(
   database: DbClient,
-  args: { viewerId: string; playerId: string; now?: Date },
+  args: { viewerId: string; playerId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!(await mayViewPlayer(database, args))) {
-    throw notFound();
+    throw notFound(locale);
   }
   const player = await database.query.user.findFirst({
     where: eq(user.id, args.playerId),
@@ -107,7 +113,7 @@ export async function loadFootballProfile(
     },
   });
   if (!player) {
-    throw notFound();
+    throw notFound(locale);
   }
 
   const now = args.now ?? new Date();
@@ -197,5 +203,6 @@ export const footballProfile = protectedProcedure
     return loadFootballProfile(ctx.db, {
       viewerId: appUser.id,
       playerId: input.userId,
+      locale: ctx.locale,
     });
   });

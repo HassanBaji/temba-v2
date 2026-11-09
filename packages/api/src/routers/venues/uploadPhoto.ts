@@ -5,6 +5,8 @@ import { z } from "zod";
 import { venuePhotos, venues } from "@repo/db";
 import type { DbTx } from "@repo/db";
 import { VENUE_PHOTO_LIMIT } from "@repo/domain/venue-photos";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -28,7 +30,11 @@ type Actor = {
   publicMetadata: Record<string, unknown> | undefined;
 };
 
-async function requirePhotoRoom(database: DbClient | DbTx, venueId: string) {
+async function requirePhotoRoom(
+  database: DbClient | DbTx,
+  venueId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const [existing] = await database
     .select({ count: sql<number>`count(*)::int` })
     .from(venuePhotos)
@@ -36,7 +42,7 @@ async function requirePhotoRoom(database: DbClient | DbTx, venueId: string) {
   if ((existing?.count ?? 0) >= VENUE_PHOTO_LIMIT) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `A Venue can have at most ${VENUE_PHOTO_LIMIT} photos`,
+      message: messagesFor(locale).venue.errors.photoLimit(VENUE_PHOTO_LIMIT),
     });
   }
 }
@@ -49,18 +55,21 @@ export async function uploadPhoto(
     contentType: VenuePhotoContentType;
     dataBase64: string;
     actor: Actor;
+    locale?: Locale;
   },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
-  await requirePhotoRoom(database, args.venueId);
+  await requirePhotoRoom(database, args.venueId, locale);
 
-  const bytes = decodeVenuePhotoBase64(args.dataBase64);
-  const contentType = assertVenuePhotoType(bytes, args.contentType);
+  const bytes = decodeVenuePhotoBase64(args.dataBase64, locale);
+  const contentType = assertVenuePhotoType(bytes, args.contentType, locale);
   const photoId = crypto.randomUUID();
   await uploadVenuePhotoObject({
     venueId: args.venueId,
@@ -76,7 +85,7 @@ export async function uploadPhoto(
         .from(venues)
         .where(eq(venues.id, args.venueId))
         .for("update");
-      await requirePhotoRoom(tx, args.venueId);
+      await requirePhotoRoom(tx, args.venueId, locale);
       const [inserted] = await tx
         .insert(venuePhotos)
         .values({ id: photoId, venueId: args.venueId })
@@ -130,5 +139,6 @@ export const uploadPhotoProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

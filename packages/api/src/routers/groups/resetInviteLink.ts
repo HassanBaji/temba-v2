@@ -21,7 +21,8 @@ export async function resetInviteLink(
   database: DbClient,
   args: { groupId: string; userId: string; origin: string; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   assertGroupOwner(
     group,
     args.userId,

@@ -192,33 +192,38 @@ function friendlyGameNameFields(
 async function createFootballGameOnGroup(
   database: DbClient,
   input: CreateGameInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (input.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Games are Friendly games",
+      message: messagesFor(locale).football.errors.friendlyOnly,
     });
   }
   if (input.levelMinTenths != null || input.levelMaxTenths != null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Games have no Level range",
+      message: messagesFor(locale).football.errors.noLevelRange,
     });
   }
   const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
-  const created = await createFootballGame(database, {
-    createdBy: input.createdBy,
-    ...friendlyGameNameFields(input),
-    groupId: input.groupId,
-    venueId: input.venueId,
-    courtId: input.courtId,
-    windowStart: input.windowStart,
-    windowEnd: input.windowEnd,
-    pricePerPlayerFils: input.pricePerPlayerFils ?? null,
-    sideSize,
-    playersAllowed: input.playersAllowed ?? 2 * sideSize,
-    mvpMode: input.mvpMode,
-  });
+  const created = await createFootballGame(
+    database,
+    {
+      createdBy: input.createdBy,
+      ...friendlyGameNameFields(input),
+      groupId: input.groupId,
+      venueId: input.venueId,
+      courtId: input.courtId,
+      windowStart: input.windowStart,
+      windowEnd: input.windowEnd,
+      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+      sideSize,
+      playersAllowed: input.playersAllowed ?? 2 * sideSize,
+      mvpMode: input.mvpMode,
+    },
+    locale,
+  );
   return { id: created.game.id, matchId: null as string | null };
 }
 
@@ -230,6 +235,7 @@ export async function createGame(
   input: CreateGameInput,
   options: { now?: Date; locale?: Locale } = {},
 ) {
+  const locale = options.locale ?? DEFAULT_LOCALE;
   const now = options.now ?? new Date();
   if (input.windowStart.getTime() < now.getTime() - WINDOW_START_GRACE_MS) {
     throw new TRPCError({
@@ -238,7 +244,7 @@ export async function createGame(
         .startInPast,
     });
   }
-  const created = await createGameOnGroup(database, input);
+  const created = await createGameOnGroup(database, input, locale);
   await linkNewGameToSeason(database, {
     id: created.id,
     groupId: input.groupId,
@@ -247,9 +253,13 @@ export async function createGame(
   return created;
 }
 
-async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
-  const group = await requireGroup(database, input.groupId);
-  await assertMayCreateGameOnGroup(database, group, input.createdBy);
+async function createGameOnGroup(
+  database: DbClient,
+  input: CreateGameInput,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  const group = await requireGroup(database, input.groupId, locale);
+  await assertMayCreateGameOnGroup(database, group, input.createdBy, locale);
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
@@ -261,25 +271,29 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
   });
 
   if (sportOrDefault(group.sport) === "football") {
-    return createFootballGameOnGroup(database, input);
+    return createFootballGameOnGroup(database, input, locale);
   }
 
   if (!isAmericano && !isTournament) {
-    const created = await createFriendlyGame(database, {
-      createdBy: input.createdBy,
-      ...friendlyGameNameFields(input),
-      groupId: input.groupId,
-      venueId: input.venueId,
-      courtId: input.courtId,
-      windowStart: input.windowStart,
-      windowEnd: input.windowEnd,
-      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
-      levelMinTenths: input.levelMinTenths ?? null,
-      levelMaxTenths: input.levelMaxTenths ?? null,
-      rated,
-      groupRated,
-      mvpMode: input.mvpMode,
-    });
+    const created = await createFriendlyGame(
+      database,
+      {
+        createdBy: input.createdBy,
+        ...friendlyGameNameFields(input),
+        groupId: input.groupId,
+        venueId: input.venueId,
+        courtId: input.courtId,
+        windowStart: input.windowStart,
+        windowEnd: input.windowEnd,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
+        rated,
+        groupRated,
+        mvpMode: input.mvpMode,
+      },
+      locale,
+    );
     return {
       id: created.game.id,
       matchId: created.matchId,
@@ -291,6 +305,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
     venueId: input.venueId,
     courtId: input.courtId,
     courtIds: input.courtIds,
+    locale,
   });
 
   const windowStart = input.windowStart;

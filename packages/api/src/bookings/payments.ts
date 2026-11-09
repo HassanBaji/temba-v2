@@ -8,6 +8,8 @@ import {
   type OnlinePaymentMethod,
   type PaymentProviderId,
 } from "@repo/domain/booking-payment";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { enqueue } from "#src/jobs/enqueue";
 import {
@@ -220,6 +222,7 @@ async function courtStillFree(
   database: DbOrTx,
   booking: { id: string; courtId: string; startsAt: Date; endsAt: Date },
   now: Date,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   try {
     await requireFreeCourt(database, {
@@ -228,6 +231,7 @@ async function courtStillFree(
       endsAt: booking.endsAt,
       now,
       excludeBookingId: booking.id,
+      locale,
     });
     return true;
   } catch (error) {
@@ -247,8 +251,9 @@ async function courtStillFree(
  */
 export async function applyChargeState(
   database: DbOrTx,
-  args: { paymentId: string; state: ChargeState; now: Date },
+  args: { paymentId: string; state: ChargeState; now: Date; locale?: Locale },
 ): Promise<ChargeOutcome> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { state, now } = args;
   const [payment] = await database
     .select()
@@ -330,7 +335,7 @@ export async function applyChargeState(
     booking &&
     heldAtCapture &&
     latest?.id === payment.id &&
-    (holdLiveNow || (await courtStillFree(database, booking, now)))
+    (holdLiveNow || (await courtStillFree(database, booking, now, locale)))
   ) {
     await confirmHeldBooking(database, { bookingId: payment.bookingId, now });
     outcome = "confirmed";
@@ -369,8 +374,10 @@ export async function settlePayment(
     actorUserId: string;
     amountFils: number;
     now: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { now } = args;
   const payment =
     (await latestPayment(database, args.bookingId)) ??
@@ -392,14 +399,14 @@ export async function settlePayment(
       code: "BAD_REQUEST",
       message:
         payment.provider === "tap"
-          ? "A Payment taken online cannot be settled by hand"
-          : "There is no pending Payment to settle",
+          ? messagesFor(locale).booking.errors.onlineNotSettled
+          : messagesFor(locale).booking.errors.noPendingPayment,
     });
   }
   if (args.outcome === "paid" && !args.method) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Choose how the Payment was made",
+      message: messagesFor(locale).booking.errors.choosePaymentMethod,
     });
   }
 
@@ -426,26 +433,31 @@ export async function recordRefund(
     reference: string | null;
     actorUserId: string | null;
     now: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const [payment] = await database
     .select()
     .from(bookingPayments)
     .where(eq(bookingPayments.id, args.paymentId))
     .for("update");
   if (!payment) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Payment not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).booking.errors.paymentNotFound,
+    });
   }
   if (payment.status !== "paid" && payment.status !== "partially_refunded") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a paid Payment can be refunded",
+      message: messagesFor(locale).booking.errors.refundPaidOnly,
     });
   }
   if (args.amountFils <= 0 || args.amountFils > refundableFils(payment)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That is more than can still be refunded",
+      message: messagesFor(locale).booking.errors.refundTooMuch,
     });
   }
 
@@ -496,13 +508,20 @@ export async function enqueueRefundRecorded(
 }
 
 /** The Booking and every Payment attempt, as the manager doors return them. */
-export async function bookingWithLedger(database: DbOrTx, bookingId: string) {
+export async function bookingWithLedger(
+  database: DbOrTx,
+  bookingId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const [booking] = await database
     .select(customerBookingColumns)
     .from(bookings)
     .where(eq(bookings.id, bookingId));
   if (!booking) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).booking.errors.notFound,
+    });
   }
   return { ...booking, payments: await listPayments(database, bookingId) };
 }

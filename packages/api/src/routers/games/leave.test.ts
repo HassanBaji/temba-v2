@@ -14,7 +14,7 @@ import {
 import { messagesFor } from "@repo/i18n/messages";
 
 import { gameById } from "#src/routers/games/byId";
-import { GAME_PLAYED_LEAVE_MESSAGE, leaveGame } from "#src/routers/games/leave";
+import { leaveGame } from "#src/routers/games/leave";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { createFriendlyGame } from "#src/games/create-friendly";
@@ -186,7 +186,9 @@ describe("leaveGame", () => {
           userId: caller.id,
           now: afterTheGame,
         }),
-      ).rejects.toThrow(GAME_PLAYED_LEAVE_MESSAGE);
+      ).rejects.toThrow(
+        "This Game has been played. Ask the organizer to remove you.",
+      );
 
       const players = await db.query.gamePlayers.findMany({
         where: eq(gamePlayers.gameId, game.id),
@@ -232,7 +234,9 @@ describe("leaveGame", () => {
 
       await expect(
         leaveGame(db, { gameId: game.id, userId: players[3]!.id }),
-      ).rejects.toThrow(GAME_PLAYED_LEAVE_MESSAGE);
+      ).rejects.toThrow(
+        "This Game has been played. Ask the organizer to remove you.",
+      );
 
       const stranger = await insertUser(db, "e@example.com", "E");
       await expect(

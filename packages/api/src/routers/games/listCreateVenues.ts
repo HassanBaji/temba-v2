@@ -6,6 +6,8 @@ import { z } from "zod";
 import { gamePlayers, games, venues } from "@repo/db";
 
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { assertMayCreateGameOnGroup } from "#src/games/access";
@@ -28,12 +30,13 @@ async function listVenuesForGameCreate(
   database: DbOrTx,
   groupId: string | undefined,
   sport: Sport | null,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<{
   locked: boolean;
   groupKind: GameCreateGroupKind;
   venues: GameCreateVenueOption[];
 }> {
-  const context = await loadGameCreateVenueContext(database, groupId);
+  const context = await loadGameCreateVenueContext(database, groupId, locale);
   const ofSport = (court: { sport: Sport }) =>
     sport == null || court.sport === sport;
   const offersFootball = (venue: { courts: { sport: Sport }[] }) =>
@@ -59,7 +62,7 @@ async function listVenuesForGameCreate(
     if (!venue) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Venue not found",
+        message: messagesFor(locale).venue.errors.notFound,
       });
     }
 
@@ -174,16 +177,17 @@ export async function listRecentCourtIds(
 
 export async function listCreateVenuesForUser(
   database: DbOrTx,
-  args: { userId: string; groupId?: string },
+  args: { userId: string; groupId?: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   let sport: Sport | null = null;
   if (args.groupId) {
-    const group = await requireGroup(database, args.groupId);
-    await assertMayCreateGameOnGroup(database, group, args.userId);
+    const group = await requireGroup(database, args.groupId, locale);
+    await assertMayCreateGameOnGroup(database, group, args.userId, locale);
     sport = sportOrDefault(group.sport);
   }
   const [catalog, recentCourtIds] = await Promise.all([
-    listVenuesForGameCreate(database, args.groupId, sport),
+    listVenuesForGameCreate(database, args.groupId, sport, locale),
     listRecentCourtIds(database, args.userId),
   ]);
   return { ...catalog, recentCourtIds };
@@ -196,5 +200,6 @@ export const listCreateVenues = protectedProcedure
     return listCreateVenuesForUser(ctx.db, {
       userId: appUser.id,
       groupId: input.groupId,
+      locale: ctx.locale,
     });
   });

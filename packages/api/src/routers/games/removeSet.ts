@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { matchSets } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -22,14 +24,21 @@ export async function removeSet(
     matchId: string;
     setId: string;
     userId: string;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   const organizer = await isGameOrganizer(database, game, args.userId);
   await database.transaction(async (tx) => {
-    const locked = await lockMatch(tx, match.id);
-    await assertMayWriteSets(tx, game, locked, args.userId, organizer);
+    const locked = await lockMatch(tx, match.id, locale);
+    await assertMayWriteSets(tx, game, locked, args.userId, organizer, locale);
     const deleted = await tx
       .delete(matchSets)
       .where(
@@ -43,7 +52,7 @@ export async function removeSet(
     if (!removed) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Set not found",
+        message: messagesFor(locale).game.errors.setNotFound,
       });
     }
     if (removed.slot1GamesWon != null || removed.slot2GamesWon != null) {
@@ -73,5 +82,6 @@ export const removeSetProcedure = protectedProcedure
       matchId: input.matchId,
       setId: input.setId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

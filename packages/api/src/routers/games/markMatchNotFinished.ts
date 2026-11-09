@@ -5,6 +5,8 @@ import { z } from "zod";
 import { MatchStatusEnum, matches, matchSets } from "@repo/db";
 
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -25,16 +27,22 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  */
 export async function markMatchNotFinished(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string },
+  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a tournament Match can be marked not finished",
+      message: messagesFor(locale).tournament.errors.notFinishedTournamentOnly,
     });
   }
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   const [organizer, seated] = await Promise.all([
     isGameOrganizer(database, game, args.userId),
     userIsOnMatchSlots(database, match, args.userId),
@@ -42,16 +50,16 @@ export async function markMatchNotFinished(
   if (!organizer && !seated) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the two teams or an organizer can do that",
+      message: messagesFor(locale).tournament.errors.teamsOrOrganizer,
     });
   }
   const now = new Date();
   await database.transaction(async (tx) => {
-    const locked = await lockMatch(tx, match.id);
+    const locked = await lockMatch(tx, match.id, locale);
     if (locked.status !== MatchStatusEnum.PENDING) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only a Match still being played can be marked not finished",
+        message: messagesFor(locale).tournament.errors.notFinishedInPlay,
       });
     }
     await tx.delete(matchSets).where(eq(matchSets.matchId, match.id));
@@ -73,5 +81,6 @@ export const markMatchNotFinishedProcedure = protectedProcedure
       gameId: input.gameId,
       matchId: input.matchId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

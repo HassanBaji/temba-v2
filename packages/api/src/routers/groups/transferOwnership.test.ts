@@ -11,16 +11,8 @@ import {
 
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
-import {
-  leaveGroup,
-  OWNER_CANNOT_LEAVE_MESSAGE,
-} from "#src/routers/groups/leave";
-import {
-  ALREADY_OWNER_MESSAGE,
-  NOT_A_MEMBER_MESSAGE,
-  transferOwnership,
-  UNCLAIMED_OWNER_MESSAGE,
-} from "#src/routers/groups/transferOwnership";
+import { leaveGroup } from "#src/routers/groups/leave";
+import { transferOwnership } from "#src/routers/groups/transferOwnership";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
@@ -142,7 +134,7 @@ describe("transferOwnership", () => {
             }),
           )
         ).message,
-      ).toBe(NOT_A_MEMBER_MESSAGE);
+      ).toBe("This player is not in the Group");
       expect(
         (
           await rejection(
@@ -153,7 +145,7 @@ describe("transferOwnership", () => {
             }),
           )
         ).message,
-      ).toBe(UNCLAIMED_OWNER_MESSAGE);
+      ).toBe("Players not on Temba yet cannot own a Group");
       expect(
         (
           await rejection(
@@ -164,7 +156,7 @@ describe("transferOwnership", () => {
             }),
           )
         ).message,
-      ).toBe(ALREADY_OWNER_MESSAGE);
+      ).toBe("They already own this Group");
     } finally {
       await close();
     }
@@ -227,7 +219,9 @@ describe("leaveGroup for the owner", () => {
       const error = await rejection(
         leaveGroup(db, { groupId: f.group.id, userId: f.owner }),
       );
-      expect(error.message).toBe(OWNER_CANNOT_LEAVE_MESSAGE);
+      expect(error.message).toBe(
+        "Transfer ownership to another member before leaving, or delete the Group",
+      );
 
       await transferOwnership(db, {
         groupId: f.group.id,

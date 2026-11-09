@@ -41,12 +41,17 @@ import {
 import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import { sportsPlayed } from "@repo/domain/sport";
 import { bestWinStreak, currentWinStreak } from "@repo/domain/win-streak";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 const VENUE_WINDOW = 10;
 const VENUE_MIN_MATCHES = 2;
 
-const notFound = () =>
-  new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
+const notFound = (locale: Locale) =>
+  new TRPCError({
+    code: "NOT_FOUND",
+    message: messagesFor(locale).profile.errors.playerNotFound,
+  });
 
 /**
  * A viewer may see a Player profile when they are that User, or share a
@@ -782,10 +787,11 @@ export async function sportRating(
 
 export async function loadPlayerProfile(
   database: DbClient,
-  args: { viewerId: string; playerId: string; now?: Date },
+  args: { viewerId: string; playerId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!(await mayViewPlayer(database, args))) {
-    throw notFound();
+    throw notFound(locale);
   }
   const player = await database.query.user.findFirst({
     where: eq(user.id, args.playerId),
@@ -799,7 +805,7 @@ export async function loadPlayerProfile(
     },
   });
   if (!player) {
-    throw notFound();
+    throw notFound(locale);
   }
 
   const now = args.now ?? new Date();
@@ -868,5 +874,6 @@ export const playerProfile = protectedProcedure
     return loadPlayerProfile(ctx.db, {
       viewerId: appUser.id,
       playerId: input.userId,
+      locale: ctx.locale,
     });
   });

@@ -21,6 +21,8 @@ import {
 } from "@repo/domain/level";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import { sportOrDefault } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -36,26 +38,28 @@ export async function setGroupLevelForMember(
     setterUserId: string;
     targetUserId: string;
     levelTenths: number;
+    locale?: Locale;
   },
 ) {
-  assertLevelTenths(args.levelTenths);
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  assertLevelTenths(args.levelTenths, locale);
+  const group = await requireGroup(database, args.groupId, locale);
   if (!(await mayOrganizeGroupGames(database, group, args.setterUserId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only an Organizer of this Group can set a Group Level",
+      message: messagesFor(locale).level.errors.groupOrganizerSets,
     });
   }
   if (args.targetUserId === args.setterUserId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot set your own Group Level",
+      message: messagesFor(locale).level.errors.ownGroupLevel,
     });
   }
   if (!(await isGroupMember(database, group.id, args.targetUserId))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That User is not a member of this Group",
+      message: messagesFor(locale).level.errors.notGroupMember,
     });
   }
   const level = args.levelTenths / 10;
@@ -140,5 +144,6 @@ export const setGroupLevel = protectedProcedure
       setterUserId: appUser.id,
       targetUserId: input.userId,
       levelTenths: input.levelTenths,
+      locale: ctx.locale,
     });
   });

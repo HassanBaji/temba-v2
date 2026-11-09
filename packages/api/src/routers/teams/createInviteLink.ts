@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -12,12 +14,14 @@ type DbClient = typeof db;
 
 export async function createInviteLink(
   database: DbClient,
-  args: { teamId: string; userId: string; origin: string },
+  args: { teamId: string; userId: string; origin: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { team } = await requireIncompleteTeamCreator(
     database,
     args.teamId,
     args.userId,
+    locale,
   );
 
   const minted = await mintLink(
@@ -48,5 +52,6 @@ export const createInviteLinkProcedure = protectedProcedure
       teamId: input.teamId,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

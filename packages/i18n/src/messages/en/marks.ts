@@ -149,4 +149,9 @@ export const marks = {
       closed: "The MVP is no longer open.",
     },
   },
+  errors: {
+    mvpFriendlyOnly: "Only a Friendly game has an MVP",
+    mvpModeFixed: "The MVP mode is fixed once the score is confirmed",
+    markNotFound: "Mark not found",
+  },
 };

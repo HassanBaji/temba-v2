@@ -8,6 +8,7 @@ import { teamInviteLinks, teams } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
 import { acceptLink } from "#src/invites/doors";
@@ -23,6 +24,7 @@ export async function acceptInviteLink(
   database: DbClient,
   args: { token: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const link = await database.query.teamInviteLinks.findFirst({
     where: eq(teamInviteLinks.token, args.token),
   });
@@ -30,11 +32,11 @@ export async function acceptInviteLink(
   if (!link || !isInviteLinkLive(link.expiresAt)) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Invite link is not available",
+      message: messagesFor(locale).invite.errors.linkUnavailable,
     });
   }
 
-  const team = await requireTeam(database, link.teamId);
+  const team = await requireTeam(database, link.teamId, locale);
 
   await database.transaction(async (tx) => {
     await tx
@@ -47,14 +49,14 @@ export async function acceptInviteLink(
     if (existing) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "You are already a member of this Team",
+        message: messagesFor(locale).team.errors.alreadyMember,
       });
     }
 
     if (teamIsFull(memberRows.length, team.sport)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Team is full",
+        message: messagesFor(locale).team.errors.full,
       });
     }
 
@@ -65,7 +67,7 @@ export async function acceptInviteLink(
     ) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "This pair already has a Team or a pending invite",
+        message: messagesFor(locale).team.errors.pairTaken,
       });
     }
 
@@ -78,12 +80,12 @@ export async function acceptInviteLink(
       if (accepted.reason === "already_member") {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "You are already a member of this Team",
+          message: messagesFor(locale).team.errors.alreadyMember,
         });
       }
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Invite link is not available",
+        message: messagesFor(locale).invite.errors.linkUnavailable,
       });
     }
 

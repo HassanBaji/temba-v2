@@ -8,7 +8,7 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
@@ -23,6 +23,7 @@ import {
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
+import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
@@ -78,8 +79,13 @@ type CreateBookingGameInput = z.infer<typeof createBookingGameInputSchema>;
  */
 export async function createBookingGame(
   database: DbClient,
-  args: CreateBookingGameInput & { userId: string; now?: Date },
+  args: CreateBookingGameInput & {
+    userId: string;
+    now?: Date;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -89,24 +95,27 @@ export async function createBookingGame(
       .where(eq(bookings.id, args.bookingId))
       .for("update");
     if (!booking) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).booking.errors.notFound,
+      });
     }
     if (booking.userId !== args.userId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the holder can create a Game for this Booking",
+        message: messagesFor(locale).booking.errors.holderCreatesGame,
       });
     }
     if (booking.status !== "confirmed") {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Only a confirmed Booking can have a Game",
+        message: messagesFor(locale).booking.errors.confirmedHasGame,
       });
     }
     if (booking.endsAt.getTime() <= now.getTime()) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Booking has already ended",
+        message: messagesFor(locale).booking.errors.ended,
       });
     }
     const court = await tx.query.courts.findFirst({
@@ -117,14 +126,14 @@ export async function createBookingGame(
     const groupId = args.groupId ?? null;
     let groupVerified = false;
     if (groupId) {
-      const group = await requireGroup(tx, groupId);
-      await assertMayCreateGameOnGroup(tx, group, args.userId);
+      const group = await requireGroup(tx, groupId, locale);
+      await assertMayCreateGameOnGroup(tx, group, args.userId, locale);
       if (sportOrDefault(group.sport) !== sportOrDefault(court?.sport)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: football
-            ? "Pick a football Group for this pitch"
-            : "Pick a padel Group for this Court",
+            ? messagesFor(locale).booking.errors.footballGroup
+            : messagesFor(locale).booking.errors.padelGroup,
         });
       }
       groupVerified = groupIsVerified(group);
@@ -135,7 +144,7 @@ export async function createBookingGame(
     ) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Football Games have no Level range",
+        message: messagesFor(locale).football.errors.noLevelRange,
       });
     }
     if (booking.gameId) {
@@ -146,25 +155,29 @@ export async function createBookingGame(
       if (linked && !linked.cancelledAt) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "This Booking already has a Game",
+          message: messagesFor(locale).booking.errors.hasGame,
         });
       }
     }
 
     if (football) {
       const sideSize = args.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
-      const { game } = await createFootballGame(tx, {
-        createdBy: args.userId,
-        name: args.name,
-        groupId,
-        venueId: booking.venueId,
-        courtId: booking.courtId,
-        windowStart: booking.startsAt,
-        windowEnd: booking.endsAt,
-        pricePerPlayerFils: args.pricePerPlayerFils ?? null,
-        sideSize,
-        playersAllowed: args.playersAllowed ?? 2 * sideSize,
-      });
+      const { game } = await createFootballGame(
+        tx,
+        {
+          createdBy: args.userId,
+          name: args.name,
+          groupId,
+          venueId: booking.venueId,
+          courtId: booking.courtId,
+          windowStart: booking.startsAt,
+          windowEnd: booking.endsAt,
+          pricePerPlayerFils: args.pricePerPlayerFils ?? null,
+          sideSize,
+          playersAllowed: args.playersAllowed ?? 2 * sideSize,
+        },
+        locale,
+      );
       await tx
         .update(bookings)
         .set({ gameId: game.id, updatedAt: now })
@@ -172,24 +185,28 @@ export async function createBookingGame(
       return { gameId: game.id, matchId: null as string | null };
     }
 
-    const created = await createFriendlyGame(tx, {
-      createdBy: args.userId,
-      name: args.name,
-      groupId,
-      ...ratingFlagsAtCreate({
-        hasGroup: groupId !== null,
-        groupVerified,
-        sport: "padel",
-        rated: args.rated ?? true,
-      }),
-      venueId: booking.venueId,
-      courtId: booking.courtId,
-      windowStart: booking.startsAt,
-      windowEnd: booking.endsAt,
-      pricePerPlayerFils: args.pricePerPlayerFils ?? null,
-      levelMinTenths: args.levelMinTenths ?? null,
-      levelMaxTenths: args.levelMaxTenths ?? null,
-    });
+    const created = await createFriendlyGame(
+      tx,
+      {
+        createdBy: args.userId,
+        name: args.name,
+        groupId,
+        ...ratingFlagsAtCreate({
+          hasGroup: groupId !== null,
+          groupVerified,
+          sport: "padel",
+          rated: args.rated ?? true,
+        }),
+        venueId: booking.venueId,
+        courtId: booking.courtId,
+        windowStart: booking.startsAt,
+        windowEnd: booking.endsAt,
+        pricePerPlayerFils: args.pricePerPlayerFils ?? null,
+        levelMinTenths: args.levelMinTenths ?? null,
+        levelMaxTenths: args.levelMaxTenths ?? null,
+      },
+      locale,
+    );
 
     await tx
       .update(bookings)
@@ -204,5 +221,9 @@ export const createGameProcedure = protectedProcedure
   .input(createBookingGameInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return createBookingGame(ctx.db, { ...input, userId: appUser.id });
+    return createBookingGame(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

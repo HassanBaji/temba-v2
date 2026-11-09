@@ -10,7 +10,7 @@ import {
 } from "@repo/db";
 
 import { isRosterRegistrationGame } from "@repo/domain/game-shape";
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
@@ -132,12 +132,13 @@ export async function assertFullyVacantSide(
   database: DbClient,
   game: GameRow,
   sideIndex: number,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const n = sideCount(game);
   if (sideIndex < 1 || sideIndex > n) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That side is not on this Game",
+      message: messagesFor(locale).game.errors.sideNotOnGame,
     });
   }
   const team = await database.query.gameTeams.findFirst({
@@ -150,7 +151,7 @@ export async function assertFullyVacantSide(
   if (team) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That side already has a User",
+      message: messagesFor(locale).game.errors.sideHasUser,
     });
   }
 }
@@ -300,10 +301,10 @@ async function teamSeatLinks(
   });
 }
 
-function throwPositionOccupied(): never {
+function throwPositionOccupied(locale: Locale = DEFAULT_LOCALE): never {
   throw new TRPCError({
     code: "CONFLICT",
-    message: "That Position is occupied",
+    message: messagesFor(locale).game.errors.positionOccupied,
   });
 }
 
@@ -359,18 +360,19 @@ async function claimTeamSeat(
   database: Tx,
   gameTeamId: string,
   choice: SeatChoice,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const links = await teamSeatLinks(database, gameTeamId);
   if (links.length >= 2) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That side already has two Users",
+      message: messagesFor(locale).game.errors.sideHasTwoUsers,
     });
   }
   const partner = links[0] ?? null;
   const seat = resolveTeamSeat(partner, choice);
   if (!seat.ok) {
-    throwPositionOccupied();
+    throwPositionOccupied(locale);
   }
   if (partner && seat.movePartnerTo) {
     await database
@@ -388,18 +390,19 @@ export async function occupySeat(
   sideIndex: number,
   choice: SeatChoice,
   existingPlayerId?: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const n = sideCount(game);
   if (sideIndex < 1 || sideIndex > n) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That side is not on this Game",
+      message: messagesFor(locale).game.errors.sideNotOnGame,
     });
   }
   if (choice === "either" && game.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick a Position on a tournament",
+      message: messagesFor(locale).game.errors.tournamentPosition,
     });
   }
 
@@ -430,7 +433,7 @@ export async function occupySeat(
         ),
       }));
     if (!existing) {
-      throwPositionOccupied();
+      throwPositionOccupied(locale);
     }
     team = existing;
     if (game.format === "friendly_game") {
@@ -438,7 +441,7 @@ export async function occupySeat(
     }
   }
 
-  const seat = await claimTeamSeat(database, team.id, choice);
+  const seat = await claimTeamSeat(database, team.id, choice, locale);
 
   let playerId = existingPlayerId;
   if (!playerId) {
@@ -466,7 +469,7 @@ export async function occupySeat(
     .onConflictDoNothing()
     .returning({ id: gameTeamPlayers.id });
   if (!seated) {
-    throwPositionOccupied();
+    throwPositionOccupied(locale);
   }
 
   return Object.assign(team, { position: seat.position });
@@ -478,18 +481,35 @@ export async function insertIndividualPairOnVacantSide(
   userIds: [string, string],
   sideIndex: number,
   callerPosition: SeatPosition,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  await assertFullyVacantSide(database, game, sideIndex);
+  await assertFullyVacantSide(database, game, sideIndex, locale);
   const partnerPosition = otherPosition(callerPosition);
-  await occupySeat(database, game, userIds[0], sideIndex, callerPosition);
-  await occupySeat(database, game, userIds[1], sideIndex, partnerPosition);
+  await occupySeat(
+    database,
+    game,
+    userIds[0],
+    sideIndex,
+    callerPosition,
+    undefined,
+    locale,
+  );
+  await occupySeat(
+    database,
+    game,
+    userIds[1],
+    sideIndex,
+    partnerPosition,
+    undefined,
+    locale,
+  );
 }
 
 export async function vacateSeat(
   database: Tx,
   game: GameRow,
   userId: string,
-  notRegisteredMessage = "You are not registered on this Game",
+  notRegisteredMessage: string,
 ): Promise<VacatedSeat | null> {
   const player = await database.query.gamePlayers.findFirst({
     where: and(eq(gamePlayers.gameId, game.id), eq(gamePlayers.userId, userId)),
@@ -562,12 +582,13 @@ export async function moveToSeat(
   userId: string,
   sideIndex: number,
   position: SeatPosition,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const n = sideCount(game);
   if (sideIndex < 1 || sideIndex > n) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That side is not on this Game",
+      message: messagesFor(locale).game.errors.sideNotOnGame,
     });
   }
 
@@ -577,7 +598,7 @@ export async function moveToSeat(
   if (!player) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not seated on this Game",
+      message: messagesFor(locale).game.errors.notSeated,
     });
   }
   const link = await database.query.gameTeamPlayers.findFirst({
@@ -586,7 +607,7 @@ export async function moveToSeat(
   if (!link) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not seated on this Game",
+      message: messagesFor(locale).game.errors.notSeated,
     });
   }
 
@@ -597,14 +618,14 @@ export async function moveToSeat(
   if (team?.sideIndex === sideIndex && link.position === position) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are already in that Position",
+      message: messagesFor(locale).game.errors.alreadyInPosition,
     });
   }
 
   if (await sitsOnCompletedMatch(database, game.id, link.gameTeamId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You cannot move after sitting on a completed Match",
+      message: messagesFor(locale).game.errors.moveAfterCompleted,
     });
   }
 
@@ -623,7 +644,7 @@ export async function moveToSeat(
       others.length >= 2 ||
       !resolveTeamSeat(others[0] ?? null, position).ok
     ) {
-      throwPositionOccupied();
+      throwPositionOccupied(locale);
     }
   }
 
@@ -634,10 +655,23 @@ export async function moveToSeat(
     await database.delete(gameTeams).where(eq(gameTeams.id, link.gameTeamId));
   }
 
-  await occupySeat(database, game, userId, sideIndex, position, player.id);
+  await occupySeat(
+    database,
+    game,
+    userId,
+    sideIndex,
+    position,
+    player.id,
+    locale,
+  );
 }
 
-async function requireOwnSeatLink(database: Tx, game: GameRow, userId: string) {
+async function requireOwnSeatLink(
+  database: Tx,
+  game: GameRow,
+  userId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const player = await database.query.gamePlayers.findFirst({
     where: and(eq(gamePlayers.gameId, game.id), eq(gamePlayers.userId, userId)),
     columns: { id: true },
@@ -651,7 +685,7 @@ async function requireOwnSeatLink(database: Tx, game: GameRow, userId: string) {
   if (!link) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not seated on this Game",
+      message: messagesFor(locale).game.errors.notSeated,
     });
   }
   return link;
@@ -710,14 +744,15 @@ export async function changeOwnSide(
   game: GameRow,
   userId: string,
   choice: SeatChoice,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<{ movedPartnerUserId: string | null }> {
-  const own = await requireOwnSeatLink(database, game, userId);
+  const own = await requireOwnSeatLink(database, game, userId, locale);
   const partner = await teamPartnerLink(database, own.gameTeamId, own.id);
   const seat = resolveTeamSeat(partner, choice);
   if (!seat.ok) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "Your partner picked that side",
+      message: messagesFor(locale).game.errors.partnerPickedSide,
     });
   }
   const rows: Parameters<typeof placeLinks>[1] = [
@@ -751,8 +786,14 @@ export async function changeOwnSide(
 export async function setTeamSides(
   database: Tx,
   game: GameRow,
-  args: { sideIndex: number; leftUserId: string; organizerUserId: string },
+  args: {
+    sideIndex: number;
+    leftUserId: string;
+    organizerUserId: string;
+    locale?: Locale;
+  },
 ): Promise<{ userIds: string[] }> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const team = await database.query.gameTeams.findFirst({
     where: and(
       eq(gameTeams.gameId, game.id),
@@ -769,7 +810,7 @@ export async function setTeamSides(
   if (team?.players.length !== 2) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Sides are set on a full Game team",
+      message: messagesFor(locale).game.errors.sidesOnFullTeam,
     });
   }
   if (
@@ -777,13 +818,13 @@ export async function setTeamSides(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That User is not on this Game team",
+      message: messagesFor(locale).game.errors.userNotOnGameTeam,
     });
   }
   if (await sitsOnCompletedMatch(database, game.id, team.id)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "The Match is already completed",
+      message: messagesFor(locale).game.errors.theMatchCompleted,
     });
   }
   await placeLinks(

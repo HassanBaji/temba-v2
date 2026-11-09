@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { teamMembers } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,14 +16,15 @@ type DbClient = typeof db;
 
 export async function listInAppInvites(
   database: DbClient,
-  args: { teamId: string; userId: string },
+  args: { teamId: string; userId: string; locale?: Locale },
 ) {
-  const team = await requireTeam(database, args.teamId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const team = await requireTeam(database, args.teamId, locale);
 
   if (team.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator can list Team invites",
+      message: messagesFor(locale).team.errors.creatorListsInvites,
     });
   }
 
@@ -35,7 +38,7 @@ export async function listInAppInvites(
   if (!membership) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator can list Team invites",
+      message: messagesFor(locale).team.errors.creatorListsInvites,
     });
   }
 
@@ -49,5 +52,6 @@ export const listInAppInvitesProcedure = protectedProcedure
     return listInAppInvites(ctx.db, {
       teamId: input.teamId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

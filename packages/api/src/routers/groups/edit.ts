@@ -5,6 +5,8 @@ import { z } from "zod";
 import { groups } from "@repo/db";
 import { GROUP_NAME_MAX_LENGTH } from "@repo/domain/group-settings";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,9 +16,6 @@ import { assertGroupOwner } from "#src/groups/helpers/group-owner";
 import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
-
-export const SPORT_LOCKED_MESSAGE =
-  "The sport is locked once the Group has a Game";
 
 /**
  * Edit Group: name, sport, visibility and Require approval in one save. Only
@@ -32,10 +31,16 @@ export async function editGroup(
     sport?: "padel" | "football";
     type?: "public" | "private";
     requiresApproval?: boolean;
+    locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  assertGroupOwner(group, args.userId, "Only the Group owner can edit this Group");
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  assertGroupOwner(
+    group,
+    args.userId,
+    messagesFor(locale).group.errors.editOwnerOnly,
+  );
 
   const patch: Partial<typeof groups.$inferInsert> = {};
 
@@ -47,7 +52,7 @@ export async function editGroup(
     if (await groupHasGames(database, group.id)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: SPORT_LOCKED_MESSAGE,
+        message: messagesFor(locale).group.errors.sportLocked,
       });
     }
     patch.sport = args.sport;
@@ -117,5 +122,6 @@ export const editProcedure = protectedProcedure
       sport: input.sport,
       type: input.type,
       requiresApproval: input.requiresApproval,
+      locale: ctx.locale,
     });
   });

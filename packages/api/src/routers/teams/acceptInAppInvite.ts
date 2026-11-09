@@ -8,6 +8,7 @@ import { teamMemberInvites, teams } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
 import { acceptLookup } from "#src/invites/doors";
@@ -22,6 +23,7 @@ export async function acceptInAppInvite(
   database: DbClient,
   args: { inviteId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await database.query.teamMemberInvites.findFirst({
     where: eq(teamMemberInvites.id, args.inviteId),
   });
@@ -29,18 +31,18 @@ export async function acceptInAppInvite(
   if (!invite || invite.acceptedAt || invite.revokedAt) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team invite is not available",
+      message: messagesFor(locale).team.errors.inviteUnavailable,
     });
   }
 
   if (invite.userId !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This invite is for a different User",
+      message: messagesFor(locale).invite.errors.differentUser,
     });
   }
 
-  const team = await requireTeam(database, invite.teamId);
+  const team = await requireTeam(database, invite.teamId, locale);
 
   return database.transaction(async (tx) => {
     await tx
@@ -76,7 +78,7 @@ export async function acceptInAppInvite(
     if (teamIsFull(memberRows.length, team.sport)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Team is full",
+        message: messagesFor(locale).team.errors.full,
       });
     }
 
@@ -87,7 +89,7 @@ export async function acceptInAppInvite(
     ) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "This pair already has a Team or a pending invite",
+        message: messagesFor(locale).team.errors.pairTaken,
       });
     }
 
@@ -103,7 +105,7 @@ export async function acceptInAppInvite(
     if (!accepted.ok) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "Team invite is not available",
+        message: messagesFor(locale).team.errors.inviteUnavailable,
       });
     }
 

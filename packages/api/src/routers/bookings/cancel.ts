@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { cancelWindowClosedMessage } from "@repo/domain/booking-copy";
 import { customerMayCancelAt } from "@repo/domain/booking-refund";
 import { isOccupyingBooking } from "@repo/domain/booking-slots";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -20,6 +21,7 @@ export async function cancelMyBooking(
   database: DbClient,
   args: { bookingId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -29,18 +31,21 @@ export async function cancelMyBooking(
       .where(eq(bookings.id, args.bookingId))
       .for("update");
     if (!booking) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).booking.errors.notFound,
+      });
     }
     if (booking.userId !== args.userId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the holder can cancel this Booking",
+        message: messagesFor(locale).booking.errors.holderCancels,
       });
     }
     if (!isOccupyingBooking(booking, now)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Booking can no longer be cancelled",
+        message: messagesFor(locale).booking.errors.cannotCancel,
       });
     }
     if (
@@ -64,6 +69,7 @@ export async function cancelMyBooking(
       cancelledBy: "customer",
       actorUserId: args.userId,
       now,
+      locale,
     });
 
     const [cancelled] = await tx

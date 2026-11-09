@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 
 import { bookings, user } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -114,9 +115,15 @@ export async function searchVenueCustomers(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
-  await requireVenueManager(database, { venueId: args.venueId, ...args.actor });
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenueManager(database, {
+    venueId: args.venueId,
+    ...args.actor,
+    locale,
+  });
 
   const bookingCounts = await database
     .select({ userId: bookings.userId, bookingCount: count() })
@@ -198,5 +205,6 @@ export const searchCustomersProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

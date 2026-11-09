@@ -371,4 +371,19 @@ export const profile = {
         other: "الإعدادات، {n} دعوة معلّقة",
       }),
   },
+  errors: {
+    userNotFound: "المستخدم غير موجود",
+    playerNotFound: "اللاعب غير موجود",
+    enterYourName: "أدخل اسمك",
+    enterTheirName: "أدخل اسمه",
+    choosePosition: "اختر مركزك المفضّل أولًا",
+    declareLevel: "حدّد مستواك أولًا",
+    chooseFootballLineup: "اختر أولًا كيف تصطف في كرة القدم",
+    declareFootballLevel: "حدّد مستواك في كرة القدم أولًا",
+    renameNotAllowed:
+      "لا يعدّل اسمه إلا منظّم أو من يوافق على الأعضاء في المجموعة التي أُضيف إليها",
+    onlyUnclaimedRenamable: "لا يُعدَّل إلا اسم اللاعب الذي ليس على Temba بعد",
+    unknownCountry: "اختر رمز دولة مدعومًا",
+    malformedPhone: "أدخل رقم الهاتف كاملًا",
+  },
 } satisfies typeof source;

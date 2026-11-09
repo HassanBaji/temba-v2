@@ -43,8 +43,9 @@ export async function createSeason(
     locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  assertCanManageSeasons(group, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  assertCanManageSeasons(group, args.userId, locale);
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {

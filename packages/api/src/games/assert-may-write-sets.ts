@@ -4,6 +4,8 @@ import { MatchStatusEnum } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type GameRow } from "#src/games/access";
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
@@ -28,34 +30,38 @@ export function scoredWithOwnDoor(
   );
 }
 
-function assertMatchAllowsSets(game: GameRow, match: MatchRow) {
+function assertMatchAllowsSets(
+  game: GameRow,
+  match: MatchRow,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (game.format === "americano") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Americano has no Sets this slice",
+      message: messagesFor(locale).game.errors.americanoNoSets,
     });
   }
   if (scoredWithOwnDoor(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: isFootballGame(game)
-        ? "Enter a football Score with saveFootballScore"
-        : "Enter a tournament score with enterTournamentScore",
+        ? messagesFor(locale).game.errors.footballScoreDoor
+        : messagesFor(locale).game.errors.tournamentScoreDoor,
     });
   }
   if (match.status === MatchStatusEnum.CANCELLED) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Cannot change Sets on a cancelled Match",
+      message: messagesFor(locale).game.errors.setsCancelledMatch,
     });
   }
   if (match.status === MatchStatusEnum.COMPLETED) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Match is completed; Sets are frozen",
+      message: messagesFor(locale).game.errors.setsFrozen,
     });
   }
-  assertKnockoutMatchHasBothSides(match);
+  assertKnockoutMatchHasBothSides(match, locale);
 }
 
 export async function assertMayWriteSets(
@@ -64,22 +70,22 @@ export async function assertMayWriteSets(
   match: MatchRow,
   userId: string,
   organizer: boolean,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  assertMatchAllowsSets(game, match);
+  assertMatchAllowsSets(game, match, locale);
   if (organizer) {
     return;
   }
   if (!bothSlotsFilled(match)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only an organizer can add a Set shell while slots are empty",
+      message: messagesFor(locale).game.errors.setShellOrganizer,
     });
   }
   if (!(await userIsOnMatchSlots(database, match, userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "Only the organizer or Users on this Match’s Game teams can do that",
+      message: messagesFor(locale).game.errors.setsOrganizerOrPlayers,
     });
   }
 }

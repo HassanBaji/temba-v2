@@ -2,6 +2,8 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { games, groups, MatchStatusEnum, teams } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -21,10 +23,15 @@ type DbClient = typeof db;
  */
 export async function deleteGroup(
   database: DbClient,
-  args: { groupId: string; userId: string; now?: Date },
+  args: { groupId: string; userId: string; now?: Date; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  assertGroupOwner(group, args.userId, "Only the Group owner can delete this Group");
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  assertGroupOwner(
+    group,
+    args.userId,
+    messagesFor(locale).group.errors.deleteOwnerOnly,
+  );
 
   const now = args.now ?? new Date();
 
@@ -57,7 +64,7 @@ export async function deleteGroup(
         ),
     );
     for (const game of upcoming) {
-      await cancelGameRecord(tx, game);
+      await cancelGameRecord(tx, game, locale);
     }
     await tx
       .update(groups)
@@ -84,5 +91,6 @@ export const deleteProcedure = protectedProcedure
     return deleteGroup(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

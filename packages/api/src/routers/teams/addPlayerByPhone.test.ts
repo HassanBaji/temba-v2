@@ -21,10 +21,7 @@ import { teamById } from "./byId";
 import { createTeam } from "./create";
 import { inviteInApp } from "./inviteInApp";
 import { previewPlayerByPhone } from "./previewPlayerByPhone";
-import {
-  ONLY_UNCLAIMED_REMOVABLE_MESSAGE,
-  removeUnclaimedPlayer,
-} from "./removeUnclaimedPlayer";
+import { removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
 
 type Db = Parameters<typeof createTeam>[0];
 
@@ -457,7 +454,9 @@ describe("teams phone door", () => {
           userId: holder,
         }),
       );
-      expect(account.message).toBe(ONLY_UNCLAIMED_REMOVABLE_MESSAGE);
+      expect(account.message).toBe(
+        "Only players not on Temba yet can be removed",
+      );
 
       await removeUnclaimedPlayer(db, {
         teamId,

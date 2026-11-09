@@ -19,7 +19,8 @@ export async function searchPartnerUsers(
   database: DbClient,
   args: { gameId: string; userId: string; query: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   const now = new Date();
   await assertCanRegisterWithPartner(
     database,

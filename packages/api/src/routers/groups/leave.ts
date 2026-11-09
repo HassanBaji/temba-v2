@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMembers, groups } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -11,15 +13,12 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
-/** A Group needs its owner. */
-export const OWNER_CANNOT_LEAVE_MESSAGE =
-  "Transfer ownership to another member before leaving, or delete the Group";
-
 export async function leaveGroup(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
 
   const membership = await database.query.groupMembers.findFirst({
     where: and(
@@ -31,14 +30,14 @@ export async function leaveGroup(
   if (!membership) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not a member of this Group",
+      message: messagesFor(locale).group.errors.notMember,
     });
   }
 
   if (group.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: OWNER_CANNOT_LEAVE_MESSAGE,
+      message: messagesFor(locale).group.errors.ownerCannotLeave,
     });
   }
 
@@ -51,7 +50,7 @@ export async function leaveGroup(
     if (locked?.createdBy === args.userId) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: OWNER_CANNOT_LEAVE_MESSAGE,
+        message: messagesFor(locale).group.errors.ownerCannotLeave,
       });
     }
     await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
@@ -70,5 +69,6 @@ export const leave = protectedProcedure
     return leaveGroup(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

@@ -47,9 +47,9 @@ export async function registerWithPartner(
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
   const now = new Date();
   await assertCanRegisterWithPartner(database, game, args.userId, now, locale);
 
@@ -60,27 +60,27 @@ export async function registerWithPartner(
   if (!partner) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "User not found",
+      message: messagesFor(locale).profile.errors.userNotFound,
     });
   }
   if (partner.id === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot register with yourself",
+      message: messagesFor(locale).game.errors.registerWithSelf,
     });
   }
-  await assertUserPassesJoinGate(database, game, partner.id);
+  await assertUserPassesJoinGate(database, game, partner.id, locale);
 
   if (await userAlreadyOnGame(database, game.id, partner.id)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That User is already registered on this Game",
+      message: messagesFor(locale).game.errors.userAlreadyRegistered,
     });
   }
   if (await userAlreadyWaitlisted(database, game.id, partner.id)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That User is already on the waitlist",
+      message: messagesFor(locale).game.errors.userWaitlisted,
     });
   }
 
@@ -98,7 +98,7 @@ export async function registerWithPartner(
   }
 
   await database.transaction(async (tx) => {
-    const locked = await lockGameForAdmit(tx, game.id);
+    const locked = await lockGameForAdmit(tx, game.id, locale);
     const remaining = await remainingCapacity(tx, locked);
     // A pair is never waitlisted: the partner did not ask to wait, and
     // promotion would seat them one at a time.
@@ -113,7 +113,7 @@ export async function registerWithPartner(
     if (remaining < 2) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Not enough seats; pick a seat",
+        message: messagesFor(locale).game.errors.notEnoughSeats,
       });
     }
 
@@ -121,17 +121,17 @@ export async function registerWithPartner(
     if (vacantSide == null) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "No fully vacant side; pick a seat",
+        message: messagesFor(locale).game.errors.noVacantSide,
       });
     }
     if (args.sideIndex == null || args.position == null) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Pick a vacant side and your Position",
+        message: messagesFor(locale).game.errors.pickVacantSideAndPosition,
       });
     }
     const sideIndex = args.sideIndex;
-    await assertFullyVacantSide(tx, locked, sideIndex);
+    await assertFullyVacantSide(tx, locked, sideIndex, locale);
 
     throwIfAdmitRefused(
       await admit(tx, {
@@ -144,6 +144,7 @@ export async function registerWithPartner(
           callerPosition: args.position,
         },
         now,
+        locale,
       }),
       locale,
       "pair",

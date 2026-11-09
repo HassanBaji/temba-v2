@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { MatchStatusEnum, matches, matchSets } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type GameRow } from "#src/games/access";
 import { applyMatchSides } from "#src/games/helpers/apply-match-sides";
@@ -14,12 +16,6 @@ import {
 import { type db } from "#src/db";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-export const KNOCKOUT_MATCH_SIDES_MESSAGE =
-  "The sides of a Knockout Match come from the draw";
-
-export const SCORED_MATCH_SIDES_MESSAGE =
-  "A Match with a score keeps its teams";
 
 // `null` is a value the organizer sent (clear it); only `undefined` keeps
 // the current one.
@@ -37,6 +33,7 @@ function matchSides(
   match: MatchRow,
   input: MatchUpdateInput,
   hasSets: boolean,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const sides = {
     slot1GameTeamId: given(input.slot1GameTeamId, match.slot1GameTeamId),
@@ -51,7 +48,7 @@ function matchSides(
   if (match.knockoutRound != null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: KNOCKOUT_MATCH_SIDES_MESSAGE,
+      message: messagesFor(locale).tournament.errors.knockoutSidesFromDraw,
     });
   }
   if (
@@ -61,7 +58,7 @@ function matchSides(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: SCORED_MATCH_SIDES_MESSAGE,
+      message: messagesFor(locale).tournament.errors.scoredMatchKeepsTeams,
     });
   }
   return sides;
@@ -88,17 +85,18 @@ export async function updateTournamentMatch(
   game: GameRow,
   matchId: string,
   update: MatchUpdateInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a Match on a cancelled Game",
+      message: messagesFor(locale).game.errors.matchOnCancelledGame,
     });
   }
   if (game.format !== "friendly_tournament") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Edit Matches on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.editMatchesFriendly,
     });
   }
   const [match] = await database
@@ -109,13 +107,13 @@ export async function updateTournamentMatch(
   if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Match not found",
+      message: messagesFor(locale).game.errors.matchNotFound,
     });
   }
   if (match.status === MatchStatusEnum.CANCELLED) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Match",
+      message: messagesFor(locale).game.errors.matchCancelledEdit,
     });
   }
   const set = await database.query.matchSets.findFirst({
@@ -124,9 +122,9 @@ export async function updateTournamentMatch(
   });
   const input: TournamentMatchInput = {
     ...patchedTimes(match, update),
-    ...matchSides(match, update, set != null),
+    ...matchSides(match, update, set != null, locale),
   };
-  await applyMatchSides(database, game.id, input);
+  await applyMatchSides(database, game.id, input, locale);
   const values = matchTimes(input);
   await database
     .update(matches)

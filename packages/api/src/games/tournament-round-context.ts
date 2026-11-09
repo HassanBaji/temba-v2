@@ -27,6 +27,8 @@ import {
   resolveRoundCount,
   suggestedRoundCount,
 } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import { type GameRow } from "#src/games/access";
@@ -53,26 +55,29 @@ export type TournamentRoundContext = {
  * Refuses unless the Game is a drawn Pool tournament whose draw is posted and
  * not cancelled: the only state in which Rounds are made.
  */
-export function assertMakesPoolRounds(game: GameRow) {
+export function assertMakesPoolRounds(
+  game: GameRow,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (
     !isDrawnTournament(game.format, game.poolCount, game.tournamentShape) ||
     !hasPools(game.format, game.poolCount)
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Rounds are made on a Pool tournament",
+      message: messagesFor(locale).tournament.errors.roundsPoolOnly,
     });
   }
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This tournament is cancelled",
+      message: messagesFor(locale).tournament.errors.cancelled,
     });
   }
   if (game.drawPostedAt == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Post the draw before making Rounds",
+      message: messagesFor(locale).tournament.errors.postDrawFirst,
     });
   }
 }
@@ -254,11 +259,14 @@ export function otherRounds(
 export function assertRoundInRange(
   context: TournamentRoundContext,
   roundNumber: number,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (roundNumber < 1 || roundNumber > context.roundCount) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `This tournament has Rounds 1 to ${context.roundCount}`,
+      message: messagesFor(locale).tournament.errors.roundsRange(
+        context.roundCount,
+      ),
     });
   }
 }
@@ -266,11 +274,12 @@ export function assertRoundInRange(
 export function assertRoundNotPosted(
   context: TournamentRoundContext,
   roundNumber: number,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if ((context.posted.get(roundNumber)?.length ?? 0) > 0) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: `Round ${roundNumber} is posted`,
+      message: messagesFor(locale).tournament.errors.roundPosted(roundNumber),
     });
   }
 }

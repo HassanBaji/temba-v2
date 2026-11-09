@@ -9,11 +9,10 @@ import {
   matches,
 } from "@repo/db";
 
-import {
-  KEEPER_SEATS_TAKEN_MESSAGE,
-  KEEPERS_PER_GAME,
-} from "@repo/domain/football-lineup";
+import { KEEPERS_PER_GAME } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type GameRow } from "#src/games/access";
 import { type db } from "#src/db";
 
@@ -21,20 +20,26 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export const FOOTBALL_SCORE_SET_NUMBER = 1;
 
-export function assertFootballGame(game: GameRow) {
+export function assertFootballGame(
+  game: GameRow,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (!isFootballGame(game) || game.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a football Game has teams and a Score",
+      message: messagesFor(locale).football.errors.notFootball,
     });
   }
 }
 
-export function assertGameNotCancelled(game: GameRow) {
+export function assertGameNotCancelled(
+  game: GameRow,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is cancelled",
+      message: messagesFor(locale).game.errors.cancelled,
     });
   }
 }
@@ -43,6 +48,7 @@ export async function assertKeeperSeatOpen(
   database: DbClient,
   gameId: string,
   exceptUserId?: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const keepers = await database.query.gamePlayers.findMany({
     where: and(
@@ -55,7 +61,7 @@ export async function assertKeeperSeatOpen(
   if (others.length >= KEEPERS_PER_GAME) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: KEEPER_SEATS_TAKEN_MESSAGE,
+      message: messagesFor(locale).football.errors.keeperSeatsTaken,
     });
   }
 }

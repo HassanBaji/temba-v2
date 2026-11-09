@@ -3,6 +3,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { gameMemberInvites } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -40,15 +42,16 @@ async function gameLookupHideUserIds(
 
 export async function searchLookupUsers(
   database: DbClient,
-  args: { gameId: string; userId: string; query: string },
+  args: { gameId: string; userId: string; query: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
-  await assertGameInviteDoorsOpen(database, game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
+  await assertGameInviteDoorsOpen(database, game, undefined, locale);
   if (game.registrationMode === "team_only") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Team-only Games do not use Lookup invites",
+      message: messagesFor(locale).invite.errors.teamOnlyNoLookup,
     });
   }
 
@@ -78,5 +81,6 @@ export const searchLookupUsersProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       query: input.query,
+      locale: ctx.locale,
     });
   });

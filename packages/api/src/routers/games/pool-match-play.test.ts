@@ -23,7 +23,6 @@ import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { tournamentRounds } from "#src/routers/games/tournamentRounds";
 import { updateMatch } from "#src/routers/games/updateMatch";
-import { SCORED_MATCH_SIDES_MESSAGE } from "#src/games/update-tournament-match";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const NOW = new Date("2026-09-20T16:00:00.000Z");
@@ -526,7 +525,7 @@ describe("Pool Match play", () => {
           matchId: scored!.id,
           slot1GameTeamId: other!.slot1GameTeamId,
         }),
-      ).rejects.toThrow(SCORED_MATCH_SIDES_MESSAGE);
+      ).rejects.toThrow("A Match with a score keeps its teams");
       const after = await db.query.matches.findFirst({
         where: eq(matches.id, scored!.id),
       });

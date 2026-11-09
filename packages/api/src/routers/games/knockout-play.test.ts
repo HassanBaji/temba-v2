@@ -26,10 +26,7 @@ import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { requireGame } from "#src/games/access";
-import {
-  KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE,
-  knockoutLevelMessage,
-} from "#src/games/knockout-advance";
+import { knockoutLevelMessage } from "#src/games/knockout-advance";
 import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
 import { knockoutChampion } from "@repo/domain/tournament-knockout-view";
 import { messagesFor } from "@repo/i18n/messages";
@@ -587,7 +584,7 @@ describe("a wrong-score report on a Knockout Match", () => {
             userId: seeded.owner.id,
           }),
         "CONFLICT",
-        KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE,
+        "The Match this result feeds has started, so this result can no longer be reversed",
       );
       expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
         MatchStatusEnum.COMPLETED,

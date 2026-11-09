@@ -30,10 +30,7 @@ import {
 import type { SeatChoice } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
-import {
-  isPartnerRequiredGame,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "@repo/domain/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -48,17 +45,17 @@ export async function registerSeat(
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
   const now = new Date();
-  assertRegistrationOpen(game, now);
+  assertRegistrationOpen(game, now, locale);
   await assertGameNotFrozen(database, game, now, locale);
 
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: messagesFor(locale).tournament.errors.partnerRequired,
     });
   }
 
@@ -66,11 +63,11 @@ export async function registerSeat(
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick a seat on an individual Friendly game or tournament",
+      message: messagesFor(locale).game.errors.pickSeatIndividual,
     });
   }
 
-  await assertUserPassesJoinGate(database, game, args.userId);
+  await assertUserPassesJoinGate(database, game, args.userId, locale);
 
   const existingPlayer = await database.query.gamePlayers.findFirst({
     where: and(
@@ -86,13 +83,13 @@ export async function registerSeat(
     if (seated) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "You are already registered on this Game",
+        message: messagesFor(locale).game.errors.alreadyRegistered,
       });
     }
     if (args.sideIndex == null || args.position == null) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Pick a vacant Position",
+        message: messagesFor(locale).game.errors.pickVacantPosition,
       });
     }
     const leftoverSideIndex = args.sideIndex;
@@ -100,11 +97,12 @@ export async function registerSeat(
     await database.transaction(async (tx) => {
       await occupySeat(
         tx,
-        await lockGameForAdmit(tx, game.id),
+        await lockGameForAdmit(tx, game.id, locale),
         args.userId,
         leftoverSideIndex,
         leftoverPosition,
         existingPlayer.id,
+        locale,
       );
     });
     return { ok: true as const, waitlisted: false as const };
@@ -113,12 +111,12 @@ export async function registerSeat(
   if (await userAlreadyWaitlisted(database, game.id, args.userId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already on the waitlist",
+      message: messagesFor(locale).game.errors.alreadyWaitlisted,
     });
   }
 
   return database.transaction(async (tx) => {
-    const locked = await lockGameForAdmit(tx, game.id);
+    const locked = await lockGameForAdmit(tx, game.id, locale);
     if ((await remainingCapacity(tx, locked)) <= 0) {
       if (!(await userAllowedByLevelRange(tx, locked, args.userId))) {
         throw new TRPCError({
@@ -133,7 +131,7 @@ export async function registerSeat(
     if (args.sideIndex == null || args.position == null) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Pick a vacant Position",
+        message: messagesFor(locale).game.errors.pickVacantPosition,
       });
     }
     throwIfAdmitRefused(
@@ -146,6 +144,7 @@ export async function registerSeat(
           seat: { sideIndex: args.sideIndex, position: args.position },
         },
         now,
+        locale,
       }),
       locale,
     );

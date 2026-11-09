@@ -20,10 +20,7 @@ import { addPlayerByPhone } from "#src/routers/groups/addPlayerByPhone";
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import { previewPlayerByPhone } from "#src/routers/groups/previewPlayerByPhone";
-import {
-  ONLY_UNCLAIMED_REMOVABLE_MESSAGE,
-  removeUnclaimedPlayer,
-} from "#src/routers/groups/removeUnclaimedPlayer";
+import { removeUnclaimedPlayer } from "#src/routers/groups/removeUnclaimedPlayer";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -498,7 +495,9 @@ describe("groups.removeUnclaimedPlayer", () => {
           userId: f.member,
         }),
       );
-      expect(refusedAccount.message).toBe(ONLY_UNCLAIMED_REMOVABLE_MESSAGE);
+      expect(refusedAccount.message).toBe(
+        "Only players not on Temba yet can be removed",
+      );
       expect(await membershipOf(db, f.groupId, f.member)).toBeTruthy();
 
       const notApprover = await rejection(

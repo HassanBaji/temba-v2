@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -30,12 +33,13 @@ export async function updateGameMatch(
   game: GameRow,
   matchId: string,
   input: MatchUpdateInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.format === "friendly_game") {
     if (hasTimesOrSlots(input)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Cannot change times or slots on a Friendly game",
+        message: messagesFor(locale).game.errors.friendlyNoTimes,
       });
     }
     await updateFriendlyGameMatchCourt(
@@ -43,11 +47,12 @@ export async function updateGameMatch(
       game,
       matchId,
       input.courtId ?? null,
+      locale,
     );
     return;
   }
 
-  await updateTournamentMatch(database, game, matchId, input);
+  await updateTournamentMatch(database, game, matchId, input, locale);
 }
 
 export async function updateMatch(
@@ -62,19 +67,27 @@ export async function updateMatch(
     courtId?: string | null;
     slot1GameTeamId?: string | null;
     slot2GameTeamId?: string | null;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   await database.transaction(async (tx) => {
-    await updateGameMatch(tx, game, args.matchId, {
-      startTime: args.startTime,
-      endTime: args.endTime,
-      durationInMinutes: args.durationInMinutes,
-      courtId: args.courtId,
-      slot1GameTeamId: args.slot1GameTeamId,
-      slot2GameTeamId: args.slot2GameTeamId,
-    });
+    await updateGameMatch(
+      tx,
+      game,
+      args.matchId,
+      {
+        startTime: args.startTime,
+        endTime: args.endTime,
+        durationInMinutes: args.durationInMinutes,
+        courtId: args.courtId,
+        slot1GameTeamId: args.slot1GameTeamId,
+        slot2GameTeamId: args.slot2GameTeamId,
+      },
+      locale,
+    );
   });
   return { ok: true as const };
 }
@@ -104,5 +117,6 @@ export const updateMatchProcedure = protectedProcedure
       courtId: input.courtId,
       slot1GameTeamId: input.slot1GameTeamId,
       slot2GameTeamId: input.slot2GameTeamId,
+      locale: ctx.locale,
     });
   });

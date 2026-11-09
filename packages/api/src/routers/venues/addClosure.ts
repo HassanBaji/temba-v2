@@ -3,6 +3,8 @@ import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings, courts, venueClosures } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -26,18 +28,21 @@ export async function addClosure(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   if (args.endsAt.getTime() <= args.startsAt.getTime()) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "A Closure must end after it starts",
+      message: messagesFor(locale).venue.errors.closureEndAfterStart,
     });
   }
 
@@ -50,7 +55,7 @@ export async function addClosure(
     if (!court) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "That Court does not belong to this Venue",
+        message: messagesFor(locale).booking.errors.courtNotAtVenue,
       });
     }
   }
@@ -123,5 +128,6 @@ export const addClosureProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

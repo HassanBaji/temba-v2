@@ -29,6 +29,8 @@ import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { removeJob } from "#src/jobs/enqueue";
 import { scoreStandsJobKey } from "#src/jobs/specs";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -47,8 +49,10 @@ export async function enterTournamentScore(
     userId: string;
     slot1GamesWon: number;
     slot2GamesWon: number;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   for (const gamesWon of [args.slot1GamesWon, args.slot2GamesWon]) {
     if (
       !Number.isInteger(gamesWon) ||
@@ -57,18 +61,26 @@ export async function enterTournamentScore(
     ) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `Games won must be between ${FRIENDLY_SET_GAMES_MIN} and ${FRIENDLY_SET_GAMES_MAX}`,
+        message: messagesFor(locale).tournament.errors.scoreGamesBetween(
+          FRIENDLY_SET_GAMES_MIN,
+          FRIENDLY_SET_GAMES_MAX,
+        ),
       });
     }
   }
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Enter a tournament score on a tournament Match",
+      message: messagesFor(locale).tournament.errors.scoreOnTournamentMatch,
     });
   }
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   const [organizer, sides] = await Promise.all([
     isGameOrganizer(database, game, args.userId),
     matchSideSeats(database, match),
@@ -77,7 +89,7 @@ export async function enterTournamentScore(
   if (!organizer && slot == null) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the two teams or an organizer can enter this score",
+      message: messagesFor(locale).tournament.errors.scoreTeamsOrOrganizer,
     });
   }
   const final = organizer && slot == null;
@@ -87,23 +99,23 @@ export async function enterTournamentScore(
   // score leaves a confirmed one, its ratings and its Knockout winner as
   // they were.
   await database.transaction(async (tx) => {
-    const locked = await lockMatch(tx, match.id);
+    const locked = await lockMatch(tx, match.id, locale);
     if (locked.status === MatchStatusEnum.CANCELLED) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "This Match is cancelled",
+        message: messagesFor(locale).game.errors.matchCancelled,
       });
     }
     if (locked.status === MatchStatusEnum.COMPLETED && !final) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "This score is confirmed; ask the organizer to change it",
+        message: messagesFor(locale).tournament.errors.scoreConfirmed,
       });
     }
     if (!(await bothSlottedTeamsComplete(tx, locked))) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Both teams need two players before a score",
+        message: messagesFor(locale).tournament.errors.scoreNeedsTwoPlayers,
       });
     }
     if (
@@ -119,7 +131,7 @@ export async function enterTournamentScore(
     ) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "A knockout Match needs a winner",
+        message: messagesFor(locale).tournament.errors.knockoutNeedsWinner,
       });
     }
     if (locked.status === MatchStatusEnum.COMPLETED) {
@@ -127,6 +139,7 @@ export async function enterTournamentScore(
         gameId: game.id,
         matchId: locked.id,
         userId: args.userId,
+        locale,
       });
     }
 
@@ -201,5 +214,6 @@ export const enterTournamentScoreProcedure = protectedProcedure
       userId: appUser.id,
       slot1GamesWon: input.slot1GamesWon,
       slot2GamesWon: input.slot2GamesWon,
+      locale: ctx.locale,
     });
   });

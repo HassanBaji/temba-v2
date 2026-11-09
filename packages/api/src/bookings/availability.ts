@@ -12,6 +12,8 @@ import {
 import type { DbClient, DbTx } from "@repo/db";
 import type { SlotInput } from "@repo/domain/booking-slots";
 import type { Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { occupyingBookings } from "#src/bookings/occupying";
 
@@ -142,26 +144,30 @@ export function isBookableVenue(context: VenueSlotContext): boolean {
 
 export function requireBookableVenue(
   context: VenueSlotContext | null,
+  locale: Locale = DEFAULT_LOCALE,
 ): VenueSlotContext {
   if (!context) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
   if (context.venue.archivedAt !== null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Venue is archived",
+      message: messagesFor(locale).booking.errors.venueArchived,
     });
   }
   if (!context.venue.acceptingBookings) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Venue is not accepting bookings",
+      message: messagesFor(locale).booking.errors.notAccepting,
     });
   }
   if (context.courts.length === 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Venue has no Courts to book",
+      message: messagesFor(locale).booking.errors.noCourts,
     });
   }
   return context;

@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -29,8 +31,10 @@ export async function settleBookingPayment(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -40,16 +44,20 @@ export async function settleBookingPayment(
       .where(eq(bookings.id, args.bookingId))
       .for("update");
     if (!booking) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).booking.errors.notFound,
+      });
     }
     await requireVenueManager(tx, {
       venueId: booking.venueId,
       ...args.actor,
+      locale,
     });
     if (booking.status === "expired" || booking.status === "pending_payment") {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Booking is not awaiting settlement",
+        message: messagesFor(locale).booking.errors.notAwaitingSettlement,
       });
     }
 
@@ -61,8 +69,9 @@ export async function settleBookingPayment(
       actorUserId: args.actor.userId,
       amountFils: booking.priceFils,
       now,
+      locale,
     });
-    return bookingWithLedger(tx, booking.id);
+    return bookingWithLedger(tx, booking.id, locale);
   });
 }
 
@@ -83,5 +92,6 @@ export const settlePaymentProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

@@ -33,9 +33,9 @@ export async function registerTeam(
   args: { gameId: string; userId: string; teamId: string; locale?: Locale },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
   const now = new Date();
 
   if (
@@ -44,17 +44,17 @@ export async function registerTeam(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Register a Team on a Friendly game or tournament",
+      message: messagesFor(locale).game.errors.registerTeamFriendly,
     });
   }
   if (game.registrationMode !== "team_only") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game is individual",
+      message: messagesFor(locale).game.errors.individual,
     });
   }
 
-  assertRegistrationOpen(game, now);
+  assertRegistrationOpen(game, now, locale);
   await assertGameNotFrozen(database, game, now, locale);
 
   const team = await database.query.teams.findFirst({
@@ -63,7 +63,7 @@ export async function registerTeam(
   if (!team) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team not found",
+      message: messagesFor(locale).team.notFound.title,
     });
   }
 
@@ -75,18 +75,18 @@ export async function registerTeam(
   if (members.length !== 2) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Incomplete Teams cannot register",
+      message: messagesFor(locale).game.errors.incompleteTeams,
     });
   }
   if (!members.some((member) => member.userId === args.userId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You must be a member of that Team",
+      message: messagesFor(locale).game.errors.teamMemberRequired,
     });
   }
 
   for (const member of members) {
-    await assertUserPassesJoinGate(database, game, member.userId);
+    await assertUserPassesJoinGate(database, game, member.userId, locale);
   }
 
   const existing = await database.query.gameTeams.findFirst({
@@ -96,7 +96,7 @@ export async function registerTeam(
   if (existing) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That Team is already registered on this Game",
+      message: messagesFor(locale).game.errors.teamAlreadyRegistered,
     });
   }
 
@@ -110,7 +110,7 @@ export async function registerTeam(
   if (alreadyWaitlistedTeam) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That Team is already on the waitlist",
+      message: messagesFor(locale).game.errors.teamWaitlisted,
     });
   }
 
@@ -118,7 +118,7 @@ export async function registerTeam(
     if (await userAlreadyOnGame(database, game.id, member.userId)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "A Team partner is already registered on this Game",
+        message: messagesFor(locale).game.errors.partnerAlreadyRegistered,
       });
     }
   }
@@ -133,7 +133,7 @@ export async function registerTeam(
   }
 
   return database.transaction(async (tx) => {
-    const locked = await lockGameForAdmit(tx, game.id);
+    const locked = await lockGameForAdmit(tx, game.id, locale);
     const teamCount = await registeredGameTeamCount(tx, locked.id);
     if (teamCount >= (locked.teamsAllowed ?? FRIENDLY_TEAMS_ALLOWED)) {
       await enqueueWaitlistTeam(tx, locked.id, team.id);
@@ -145,6 +145,7 @@ export async function registerTeam(
         door: "register",
         party: { kind: "team", teamId: team.id },
         now,
+        locale,
       }),
       locale,
       "team",

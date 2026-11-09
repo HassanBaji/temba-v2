@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { venues } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -20,12 +21,14 @@ type Actor = {
 
 export async function clearLogo(
   database: DbClient,
-  args: { venueId: string; actor: Actor },
+  args: { venueId: string; actor: Actor; locale?: Locale },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
   await removeVenueLogoObject(args.venueId);
 
@@ -61,5 +64,6 @@ export const clearLogoProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

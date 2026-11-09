@@ -21,10 +21,7 @@ import {
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
-import {
-  closeSeason,
-  SEASON_NOT_ACTIVE_MESSAGE,
-} from "#src/routers/groups/closeSeason";
+import { closeSeason } from "#src/routers/groups/closeSeason";
 import { createSeason } from "#src/routers/groups/createSeason";
 import { listSeasons } from "#src/routers/groups/listSeasons";
 import { mine } from "#src/routers/groups/mine";
@@ -360,7 +357,7 @@ describe("Seasons", () => {
       const again = await rejection(
         closeSeason(db, { seasonId: season.id, userId: owner.id, now: NOW }),
       );
-      expect(again.message).toBe(SEASON_NOT_ACTIVE_MESSAGE);
+      expect(again.message).toBe("Only an active season can be closed");
 
       const next = await createSeason(db, {
         groupId: group.id,

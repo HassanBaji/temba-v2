@@ -105,6 +105,7 @@ import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-uncl
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { userActsForTeam } from "#src/teams/acts-for-team";
@@ -365,12 +366,12 @@ export async function gameById(
   args: { gameId: string; userId: string; locale?: Locale },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
 
   if (!(await canViewGame(database, game, args.userId))) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Game not found",
+      message: messagesFor(locale).game.errors.notFound,
     });
   }
 
@@ -659,6 +660,7 @@ export async function gameById(
     ? await listLevelRangeRequests(database, {
         gameId: game.id,
         userId: args.userId,
+        locale,
       })
     : [];
   const pendingSeatHolds = organizer
@@ -832,6 +834,7 @@ export async function gameById(
         canReportWrongScore = await wrongScoreReversalEligibility(
           database,
           friendlyMatch.id,
+          locale,
         );
       }
     }

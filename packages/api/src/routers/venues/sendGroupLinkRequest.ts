@@ -7,6 +7,8 @@ import {
   GroupLinkRequestStatusEnum,
   groups,
 } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -26,16 +28,19 @@ export async function sendGroupLinkRequest(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
-  const venue = await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const venue = await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: venue.id,
     ...args.actor,
+    locale,
   });
   refuseIfFrozen(consult({ archivedAt: venue.archivedAt }), "host", {
-    frozenMessage: "Cannot link a Group to a Soft-archived Venue",
-    notFoundMessage: "Venue not found",
+    frozenMessage: messagesFor(locale).group.errors.linkArchivedVenue,
+    notFoundMessage: messagesFor(locale).venue.errors.notFound,
   });
 
   const group = await database.query.groups.findFirst({
@@ -43,12 +48,15 @@ export async function sendGroupLinkRequest(
     columns: { id: true, venueId: true },
   });
   if (!group) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.notFound,
+    });
   }
   if (group.venueId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a Loose Group can be linked to a Venue",
+      message: messagesFor(locale).group.errors.looseOnlyLink,
     });
   }
 
@@ -63,7 +71,7 @@ export async function sendGroupLinkRequest(
   if (pending) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This Group already has a pending link request from this Venue",
+      message: messagesFor(locale).group.errors.pendingLinkRequest,
     });
   }
 
@@ -97,8 +105,7 @@ export async function sendGroupLinkRequest(
     ) {
       throw new TRPCError({
         code: "CONFLICT",
-        message:
-          "This Group already has a pending link request from this Venue",
+        message: messagesFor(locale).group.errors.pendingLinkRequest,
       });
     }
     throw error;
@@ -120,5 +127,6 @@ export const sendGroupLinkRequestProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

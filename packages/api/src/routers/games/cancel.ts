@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,11 +15,12 @@ export async function cancelGame(
   database: typeof db,
   args: { gameId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   await database.transaction(async (tx) => {
     await assertGameCancellable(tx, game, args.locale);
-    await cancelGameRecord(tx, game);
+    await cancelGameRecord(tx, game, locale);
   });
   return { ok: true as const };
 }

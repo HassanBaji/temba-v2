@@ -44,11 +44,12 @@ export async function assertGameCancellable(
 export async function cancelGameRecord(
   database: DbClient | DbTx,
   game: GameRow,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game is already cancelled",
+      message: messagesFor(locale).game.errors.alreadyCancelled,
     });
   }
   const now = new Date();

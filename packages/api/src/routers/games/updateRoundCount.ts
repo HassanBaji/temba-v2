@@ -9,6 +9,8 @@ import {
   sizeFriendlyTournament,
   validateRoundCount,
 } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -17,29 +19,32 @@ import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted"
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE =
-  "Change Rounds on a Friendly tournament";
-
 export async function updateGameRoundCount(
   database: DbClient,
-  args: { gameId: string; userId: string; roundCount: number | null },
+  args: {
+    gameId: string;
+    userId: string;
+    roundCount: number | null;
+    locale?: Locale;
+  },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
 
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
     });
   }
   if (!hasPools(game.format, game.poolCount) || game.poolCount == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE,
+      message: messagesFor(locale).tournament.errors.roundCountFriendly,
     });
   }
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
 
   const sized = sizeFriendlyTournament(game.teamsAllowed ?? 0, game.poolCount);
   if (!sized.ok) {
@@ -77,5 +82,6 @@ export const updateRoundCount = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       roundCount: input.roundCount,
+      locale: ctx.locale,
     });
   });

@@ -15,10 +15,15 @@ import {
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
 import type { Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export function assertLevelTenths(levelTenths: number) {
+export function assertLevelTenths(
+  levelTenths: number,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (
     !Number.isInteger(levelTenths) ||
     levelTenths < LEVEL_TENTHS_MIN ||
@@ -26,7 +31,7 @@ export function assertLevelTenths(levelTenths: number) {
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Level must be between 0.0 and 7.0",
+      message: messagesFor(locale).level.between,
     });
   }
 }
@@ -47,9 +52,11 @@ export async function applyLevelOverride(
     groupId: string | null;
     levelTenths: number;
     reason?: LevelOverrideReason | null;
+    locale?: Locale;
   },
 ) {
-  assertLevelTenths(args.levelTenths);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  assertLevelTenths(args.levelTenths, locale);
   const level = args.levelTenths / 10;
   const sport =
     args.sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;

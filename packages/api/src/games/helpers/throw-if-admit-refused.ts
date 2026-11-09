@@ -31,47 +31,47 @@ export function throwIfAdmitRefused(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is not open for registration",
+      message: messagesFor(locale).game.errors.notOpen,
     });
   }
   if (result.reason === "team_already_on_game") {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That Team is already registered on this Game",
+      message: messagesFor(locale).game.errors.teamAlreadyRegistered,
     });
   }
   if (result.reason === "already_on_game") {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already registered on this Game",
+      message: messagesFor(locale).game.errors.alreadyRegistered,
     });
   }
   if (result.reason === "seat_required") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick a vacant Position",
+      message: messagesFor(locale).game.errors.pickVacantPosition,
     });
   }
   if (result.reason === "no_vacant_side") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "No fully vacant side; pick a seat",
+      message: messagesFor(locale).game.errors.noVacantSide,
     });
   }
   if (result.reason === "cancelled") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is cancelled",
+      message: messagesFor(locale).game.errors.cancelled,
     });
   }
   if (result.reason === "team_not_found") {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team not found",
+      message: messagesFor(locale).team.notFound.title,
     });
   }
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Incomplete Teams cannot register",
+    message: messagesFor(locale).game.errors.incompleteTeams,
   });
 }

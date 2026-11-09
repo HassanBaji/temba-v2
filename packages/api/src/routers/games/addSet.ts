@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { matchSets } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,15 +17,21 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function addSet(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string },
+  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   const organizer = await isGameOrganizer(database, game, args.userId);
   // The Match row lock serialises two adds, so both cannot take one number.
   const created = await database.transaction(async (tx) => {
-    const locked = await lockMatch(tx, match.id);
-    await assertMayWriteSets(tx, game, locked, args.userId, organizer);
+    const locked = await lockMatch(tx, match.id, locale);
+    await assertMayWriteSets(tx, game, locked, args.userId, organizer, locale);
     const setNumber = await nextMatchSetNumber(tx, locked.id);
     const [row] = await tx
       .insert(matchSets)
@@ -54,5 +61,6 @@ export const addSetProcedure = protectedProcedure
       gameId: input.gameId,
       matchId: input.matchId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

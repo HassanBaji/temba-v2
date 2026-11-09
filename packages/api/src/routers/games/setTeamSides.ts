@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -18,27 +21,30 @@ export async function setTeamSides(
     organizerUserId: string;
     sideIndex: number;
     leftUserId: string;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (game.format !== "friendly_game" || game.sport === "football") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Sides are set on a padel Friendly game",
+      message: messagesFor(locale).game.errors.sidesSetPadelFriendly,
     });
   }
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is cancelled",
+      message: messagesFor(locale).game.errors.cancelled,
     });
   }
-  await assertGameOrganizer(database, game, args.organizerUserId);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
   await database.transaction(async (tx) => {
     const { userIds } = await writeTeamSides(tx, game, {
       sideIndex: args.sideIndex,
       leftUserId: args.leftUserId,
       organizerUserId: args.organizerUserId,
+      locale,
     });
     await notify(tx, {
       type: "game_side_changed",
@@ -67,5 +73,6 @@ export const setTeamSidesProcedure = protectedProcedure
       organizerUserId: appUser.id,
       sideIndex: input.sideIndex,
       leftUserId: input.leftUserId,
+      locale: ctx.locale,
     });
   });

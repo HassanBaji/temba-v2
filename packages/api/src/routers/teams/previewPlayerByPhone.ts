@@ -9,6 +9,7 @@ import type {
 import type { LevelBand } from "@repo/domain/level-bands";
 import { type Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -108,13 +109,21 @@ export async function previewPlayerByPhone(
     nationalNumber: string;
     /** The sport picked on New team, when there is no Team yet. */
     sport?: Sport;
+    locale?: Locale;
   },
 ): Promise<TeamPhonePlayerPreview> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const team = args.teamId
-    ? (await requireIncompleteTeamCreator(database, args.teamId, args.userId))
-        .team
+    ? (
+        await requireIncompleteTeamCreator(
+          database,
+          args.teamId,
+          args.userId,
+          locale,
+        )
+      ).team
     : null;
-  const phoneNumber = requireE164(args.countryIso, args.nationalNumber);
+  const phoneNumber = requireE164(args.countryIso, args.nationalNumber, locale);
 
   const resolved = await resolvePhonePlayer(database, phoneNumber);
   if (resolved.kind === "new") {
@@ -199,5 +208,6 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
       countryIso: input.countryIso,
       nationalNumber: input.nationalNumber,
       sport: input.sport,
+      locale: ctx.locale,
     });
   });

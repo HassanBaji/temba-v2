@@ -4,6 +4,7 @@ import { z } from "zod";
 import { groupMembers, groupSeasons } from "@repo/db";
 
 import { sortSeasonsNewestFirst } from "@repo/domain/group-season";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -27,14 +28,17 @@ export async function listSeasons(
     userId: string;
     now?: Date;
     getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>;
+    locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   await assertCanViewGroup(
     database,
     group,
     args.userId,
     args.getPublicMetadata,
+    locale,
   );
   const now = args.now ?? new Date();
 
@@ -68,5 +72,6 @@ export const listSeasonsProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       getPublicMetadata: ctx.getPublicMetadata,
+      locale: ctx.locale,
     });
   });

@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { gameMemberInvites, user } from "@repo/db";
 
@@ -26,10 +26,8 @@ import {
 } from "#src/games/invites";
 import { upsertApprovedLevelRangeWaiver } from "#src/games/level-range-requests";
 import { mintLookup } from "#src/invites/doors";
-import {
-  isPartnerRequiredGame,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "@repo/domain/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
 
 type DbClient = typeof db;
 
@@ -42,20 +40,21 @@ export async function sendLookupInvite(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.userId);
-  await assertGameInviteDoorsOpen(database, game);
+  await assertGameOrganizer(database, game, args.userId, locale);
+  await assertGameInviteDoorsOpen(database, game, undefined, locale);
   if (game.registrationMode === "team_only") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Team-only Games do not use Lookup invites",
+      message: messagesFor(locale).invite.errors.teamOnlyNoLookup,
     });
   }
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: messagesFor(locale).tournament.errors.partnerRequired,
     });
   }
 
@@ -80,27 +79,30 @@ export async function sendLookupInvite(
   for (const userId of uniqueIds) {
     const target = targetsById.get(userId);
     if (!target) {
-      refused.push({ name: "Unknown User", message: "User not found" });
+      refused.push({
+        name: messagesFor(locale).invite.errors.unknownUser,
+        message: messagesFor(locale).profile.errors.userNotFound,
+      });
       continue;
     }
 
     if (target.id === args.userId) {
       refused.push({
         name: target.name,
-        message: "You cannot Lookup-invite yourself",
+        message: messagesFor(locale).invite.errors.lookupSelf,
       });
       continue;
     }
 
     try {
-      await assertInviteeAllowedOnGame(database, game, target.id);
+      await assertInviteeAllowedOnGame(database, game, target.id, locale);
     } catch (error) {
       refused.push({
         name: target.name,
         message:
           error instanceof TRPCError
             ? error.message
-            : "Only Group members can use invites on this Game",
+            : messagesFor(locale).game.errors.groupMembersInvites,
       });
       continue;
     }
@@ -108,7 +110,7 @@ export async function sendLookupInvite(
     if (await userAlreadyOnGame(database, game.id, target.id)) {
       refused.push({
         name: target.name,
-        message: "That User is already registered on this Game",
+        message: messagesFor(locale).game.errors.userAlreadyRegistered,
       });
       continue;
     }
@@ -116,7 +118,7 @@ export async function sendLookupInvite(
     if (await userAlreadyWaitlisted(database, game.id, target.id)) {
       refused.push({
         name: target.name,
-        message: "That User is already on the waitlist",
+        message: messagesFor(locale).game.errors.userWaitlisted,
       });
       continue;
     }
@@ -132,7 +134,7 @@ export async function sendLookupInvite(
     if (existing) {
       refused.push({
         name: target.name,
-        message: "An unused Lookup invite already exists for this User",
+        message: messagesFor(locale).invite.errors.lookupExists,
       });
       continue;
     }
@@ -148,7 +150,7 @@ export async function sendLookupInvite(
           name: target.name,
           message:
             minted.reason === "unused_exists"
-              ? "An unused Lookup invite already exists for this User"
+              ? messagesFor(locale).invite.errors.lookupExists
               : "Failed to create Lookup invite",
         });
         continue;
@@ -167,7 +169,7 @@ export async function sendLookupInvite(
     } catch {
       refused.push({
         name: target.name,
-        message: "An unused Lookup invite already exists for this User",
+        message: messagesFor(locale).invite.errors.lookupExists,
       });
     }
   }

@@ -6,6 +6,7 @@ import {
   gameLevelRangeRequests,
   GameLevelRangeRequestStatusEnum,
 } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -18,15 +19,17 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function rejectLevelRangeRequest(
   database: DbClient,
-  args: { requestId: string; userId: string },
+  args: { requestId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const request = await requirePendingLevelRangeRequest(
     database,
     args.requestId,
     args.userId,
     "reject",
+    locale,
   );
-  const game = await requireGame(database, request.gameId);
+  const game = await requireGame(database, request.gameId, locale);
   await database.transaction(async (tx) => {
     const [updated] = await tx
       .update(gameLevelRangeRequests)
@@ -60,5 +63,6 @@ export const rejectLevelRangeRequestProcedure = protectedProcedure
     return rejectLevelRangeRequest(ctx.db, {
       requestId: input.requestId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

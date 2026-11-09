@@ -112,8 +112,9 @@ export async function dissolve(
   database: DbClient,
   args: { teamId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const team = await requireTeam(database, args.teamId);
+  const team = await requireTeam(database, args.teamId, locale);
 
   const membership = await database.query.teamMembers.findFirst({
     where: and(
@@ -125,7 +126,7 @@ export async function dissolve(
   if (!membership) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only a Team member can dissolve this Team",
+      message: messagesFor(locale).team.errors.memberDissolves,
     });
   }
 
@@ -136,13 +137,13 @@ export async function dissolve(
     if (teamIsSquad(team.sport)) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the creator can dissolve this Team",
+        message: messagesFor(locale).team.errors.creatorDissolves,
       });
     }
     if (incomplete) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the creator can dissolve an incomplete Team",
+        message: messagesFor(locale).team.errors.creatorDissolvesIncomplete,
       });
     }
   }

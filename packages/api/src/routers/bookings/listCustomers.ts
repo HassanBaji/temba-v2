@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 
 import { bookingPayments, bookings, user } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -53,12 +54,18 @@ export async function listVenueCustomers(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const offset = args.cursor ?? 0;
   const limit = args.limit ?? CUSTOMER_PAGE_SIZE;
-  await requireVenueManager(database, { venueId: args.venueId, ...args.actor });
+  await requireVenueManager(database, {
+    venueId: args.venueId,
+    ...args.actor,
+    locale,
+  });
 
   const paymentTotals = database
     .select({
@@ -242,5 +249,6 @@ export const listCustomersProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });
