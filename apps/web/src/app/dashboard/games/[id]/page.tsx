@@ -116,7 +116,10 @@ import {
   organizerCanAddPlayer,
 } from "@repo/domain/add-player-by-phone";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
-import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
+import {
+  friendlyGameDetailsPlan,
+  seatedPlayerCanRename,
+} from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
 import {
@@ -1568,7 +1571,11 @@ export default function GameHomePage({
               isViewer: selectedPlayer.userId === data.viewerUserId,
             })
           }
-          canRename={data.isOrganizer}
+          canRename={
+            data.isOrganizer &&
+            selectedPlayer != null &&
+            seatedPlayerCanRename(data.sides, selectedPlayer.userId)
+          }
           onOpenChange={(open) => {
             if (!open) {
               setSelectedPlayer(null);

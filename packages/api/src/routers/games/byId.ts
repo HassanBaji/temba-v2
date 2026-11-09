@@ -65,6 +65,7 @@ import {
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
+import { viewerMayConfirmEnteredScore } from "#src/games/tournament-score";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
@@ -100,6 +101,7 @@ import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
+import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
@@ -441,6 +443,7 @@ export async function gameById(
           image: true,
           clerkId: true,
           addedAt: true,
+          addedByUserId: true,
           phoneNumber: true,
         },
       },
@@ -448,20 +451,38 @@ export async function gameById(
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
   });
   const playerMarkByUserId = new Map(
-    playerRows.flatMap((row) => {
-      if (!row.user) {
-        return [];
-      }
-      const unclaimed = isUnclaimed(row.user);
-      const phoneMasked =
-        organizer && unclaimed && row.user.phoneNumber
-          ? maskPhone(row.user.phoneNumber)
-          : null;
-      return [[row.user.id, { unclaimed, phoneMasked }] as const];
-    }),
+    await Promise.all(
+      playerRows.flatMap((row) => {
+        const player = row.user;
+        if (!player) {
+          return [];
+        }
+        const unclaimed = isUnclaimed(player);
+        const phoneMasked =
+          organizer && unclaimed && player.phoneNumber
+            ? maskPhone(player.phoneNumber)
+            : null;
+        return [
+          (async () => {
+            const canRename =
+              unclaimed &&
+              (await mayRenameUnclaimedPlayer(database, {
+                playerId: player.id,
+                adderId: player.addedByUserId,
+                callerId: args.userId,
+              }));
+            return [player.id, { unclaimed, phoneMasked, canRename }] as const;
+          })(),
+        ];
+      }),
+    ),
   );
   const playerMark = (userId: string) =>
-    playerMarkByUserId.get(userId) ?? { unclaimed: false, phoneMasked: null };
+    playerMarkByUserId.get(userId) ?? {
+      unclaimed: false,
+      phoneMasked: null,
+      canRename: false,
+    };
 
   const group = game.groupId
     ? await database.query.groups.findFirst({
@@ -595,9 +616,13 @@ export async function gameById(
         ]
       : [],
   );
+  const drawnTournament = isDrawnTournament(
+    game.format,
+    game.poolCount,
+    game.tournamentShape,
+  );
   const sides =
-    isIndividualSeatGame(game) ||
-    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
+    isIndividualSeatGame(game) || drawnTournament
       ? await listGameSides(database, game)
       : [];
   const canPickSeat =
@@ -978,6 +1003,13 @@ export async function gameById(
           canAddSet:
             canWriteSets && (organizer || onSides) && !scoredWithOwnDoor(game),
           canScoreSets: canWriteSets && sidesComplete && (organizer || onSides),
+          canConfirmScore:
+            drawnTournament &&
+            (await viewerMayConfirmEnteredScore(database, match, {
+              userId: args.userId,
+              organizer,
+              now,
+            })),
           canComplete:
             !frozen &&
             game.format !== "americano" &&

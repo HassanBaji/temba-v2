@@ -20,7 +20,9 @@ export type TournamentScore = { slot1GamesWon: number; slot2GamesWon: number };
 
 export type ScoreHandlers = {
   scorePending: boolean;
+  confirmPending: boolean;
   onSave: (matchId: string, score: TournamentScore) => void;
+  onConfirm: (matchId: string) => void;
 };
 
 type GamesDraft = { slot1: string; slot2: string };
@@ -46,6 +48,7 @@ function scoreOf(draft: GamesDraft): TournamentScore | null {
 /**
  * A tournament score is the games each team won, as one Set (ADR-0062), saved
  * through `games.enterTournamentScore`, which asks the other team to confirm.
+ * That team confirms it through `games.confirmMatchResult`, or corrects it.
  */
 function MatchScore({
   match,
@@ -66,6 +69,8 @@ function MatchScore({
     (text) => text !== "" && !friendlySetGamesInRange(Number(text)),
   );
   const name = setLabel(0, locale);
+  const busy = handlers.scorePending || handlers.confirmPending;
+  const editable = match.canEnter && !busy;
 
   return (
     <View style={{ gap: 12, padding: spacing.surface }}>
@@ -92,7 +97,7 @@ function MatchScore({
             keyboardType="number-pad"
             maxLength={2}
             value={draft.slot1}
-            editable={!handlers.scorePending}
+            editable={editable}
             textAlign="center"
             onChangeText={(text) =>
               setDraft((current) => ({ ...current, slot1: digitsOnly(text) }))
@@ -105,7 +110,7 @@ function MatchScore({
             keyboardType="number-pad"
             maxLength={2}
             value={draft.slot2}
-            editable={!handlers.scorePending}
+            editable={editable}
             textAlign="center"
             onChangeText={(text) =>
               setDraft((current) => ({ ...current, slot2: digitsOnly(text) }))
@@ -122,18 +127,30 @@ function MatchScore({
           {match.note}
         </Text>
       ) : null}
-      <View style={{ flexDirection: "row" }}>
-        <Button
-          label={m.saveScore}
-          size="sm"
-          pending={handlers.scorePending}
-          disabled={score == null || outOfRange}
-          onPress={() => {
-            if (score) {
-              handlers.onSave(match.id, score);
-            }
-          }}
-        />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+        {match.scoreToConfirm ? (
+          <Button
+            label={m.confirmScore(match.scoreToConfirm)}
+            size="sm"
+            pending={handlers.confirmPending}
+            disabled={handlers.scorePending}
+            onPress={() => handlers.onConfirm(match.id)}
+          />
+        ) : null}
+        {match.canEnter ? (
+          <Button
+            label={m.saveScore}
+            size="sm"
+            variant={match.scoreToConfirm ? "outline" : undefined}
+            pending={handlers.scorePending}
+            disabled={score == null || outOfRange || handlers.confirmPending}
+            onPress={() => {
+              if (score) {
+                handlers.onSave(match.id, score);
+              }
+            }}
+          />
+        ) : null}
       </View>
     </View>
   );

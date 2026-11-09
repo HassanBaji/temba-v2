@@ -86,6 +86,7 @@ export const mobileTournament = {
     completeFailed: "تعذّر إنهاء المباراة",
     box: (team: string, set: string) => `${team}، ${set}`,
     saveScore: "حفظ النتيجة",
+    confirmScore: (score: string) => `أكّد ${score}`,
   },
   organizer: {
     roundsSaved: "تم حفظ الجولات",

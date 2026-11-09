@@ -70,6 +70,7 @@ export const mobileTournament = {
     completeFailed: "Could not complete the Match",
     box: (team: string, set: string) => `${team}, ${set}`,
     saveScore: "Save score",
+    confirmScore: (score: string) => `Confirm ${score}`,
   },
   organizer: {
     roundsSaved: "Rounds saved",

@@ -19,6 +19,8 @@ export type FriendlyGameDetailsSeat = {
   levelBand: LevelBand | null;
   unclaimed?: boolean;
   phoneMasked?: string | null;
+  /** The viewer may fix this Unclaimed player's name here. */
+  canRename?: boolean;
   /** Joined without picking a Position. */
   eitherSide?: boolean;
 };
@@ -143,6 +145,18 @@ export type FriendlyGameDetailsPlan<
   overflowItems: FriendlyGameOverflowItem[];
   canLeaveGame: boolean;
 };
+
+/** Whether the viewer may fix the name of the Unclaimed player in this seat. */
+export function seatedPlayerCanRename(
+  sides: readonly FriendlyGameDetailsSide[],
+  userId: string,
+) {
+  return sides.some((side) =>
+    [side.left, side.right].some(
+      (seat) => seat?.userId === userId && seat.canRename === true,
+    ),
+  );
+}
 
 export function friendlyGameDetailsPlan<Game extends FriendlyGameDetails>(
   game: Game,

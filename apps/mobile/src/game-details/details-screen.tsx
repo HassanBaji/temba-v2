@@ -8,6 +8,7 @@ import {
 } from "@repo/domain/friendly-game-cta";
 import {
   friendlyGameDetailsPlan,
+  seatedPlayerCanRename,
   type FriendlyGameDetails,
 } from "@repo/domain/friendly-game-details";
 import {
@@ -590,6 +591,8 @@ export function GameDetailsScreen({
               scorePending: enterTournamentScore.isPending,
               onSave: (matchId, score) =>
                 enterTournamentScore.mutate({ gameId, matchId, ...score }),
+              confirmPending: confirmResult.isPending,
+              onConfirm: (matchId) => confirmResult.mutate({ gameId, matchId }),
               onOpenPlayer,
             }}
           />
@@ -817,7 +820,9 @@ export function GameDetailsScreen({
               )
             }
             canRename={
-              details.isOrganizer && Boolean(selectedPlayer?.unclaimed)
+              details.isOrganizer &&
+              selectedPlayer != null &&
+              seatedPlayerCanRename(details.sides, selectedPlayer.userId)
             }
             onClose={() => setSelectedPlayer(null)}
             onOpenProfile={(userId) => {

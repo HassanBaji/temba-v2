@@ -356,7 +356,7 @@ export function MembersTab({
       entry.userId === selectedUserId &&
       !entry.isViewer &&
       (canSetLevel ||
-        (canAddPlayers && entry.unclaimed) ||
+        (canAddPlayers && entry.canRename === true) ||
         memberIsRemovable(entry, canRemovePlayers) ||
         memberOrganizerAction(entry, canAppointOrganizers) != null),
   );
@@ -566,7 +566,10 @@ export function MembersTab({
             : undefined
         }
         onRename={
-          selected && onRenameUnclaimed && canAddPlayers && selected.unclaimed
+          selected &&
+          onRenameUnclaimed &&
+          canAddPlayers &&
+          selected.canRename === true
             ? () => {
                 setSelectedUserId(null);
                 onRenameUnclaimed({

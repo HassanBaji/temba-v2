@@ -767,6 +767,7 @@ export default function GroupHomePage({
                   groupLevel: entry.groupLevel,
                   unclaimed: entry.unclaimed,
                   phoneMasked: entry.phoneMasked,
+                  canRename: entry.canRename,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}

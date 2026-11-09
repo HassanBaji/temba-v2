@@ -92,6 +92,7 @@ import { canManageSeasons } from "#src/groups/helpers/season-access";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
+import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { loadTeamMatches, teamRecordFromMatches } from "#src/teams/team-record";
 
@@ -445,6 +446,7 @@ export async function groupById(
           image: true,
           clerkId: true,
           addedAt: true,
+          addedByUserId: true,
           phoneNumber: true,
         },
       },
@@ -453,14 +455,23 @@ export async function groupById(
 
   const memberUserIds = memberRows.map((row) => row.userId);
   const memberMarkByUserId = new Map(
-    memberRows.map((row) => {
-      const unclaimed = isUnclaimed(row.user);
-      const phoneMasked =
-        isApprover && unclaimed && row.user.phoneNumber
-          ? maskPhone(row.user.phoneNumber)
-          : null;
-      return [row.userId, { unclaimed, phoneMasked }] as const;
-    }),
+    await Promise.all(
+      memberRows.map(async (row) => {
+        const unclaimed = isUnclaimed(row.user);
+        const phoneMasked =
+          isApprover && unclaimed && row.user.phoneNumber
+            ? maskPhone(row.user.phoneNumber)
+            : null;
+        const canRename =
+          unclaimed &&
+          (await mayRenameUnclaimedPlayer(database, {
+            playerId: row.userId,
+            adderId: row.user.addedByUserId,
+            callerId: args.userId,
+          }));
+        return [row.userId, { unclaimed, phoneMasked, canRename }] as const;
+      }),
+    ),
   );
 
   const now = args.now ?? new Date();
@@ -783,6 +794,7 @@ export async function groupById(
         appointedUserIds.has(entry.userId) && entry.userId !== group.createdBy,
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
+      canRename: memberMarkByUserId.get(entry.userId)?.canRename ?? false,
     };
   });
 

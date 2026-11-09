@@ -13,6 +13,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { gameById } from "#src/routers/games/byId";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -20,6 +21,7 @@ import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { tournamentRounds } from "#src/routers/games/tournamentRounds";
 import { updateMatch } from "#src/routers/games/updateMatch";
 import { SCORED_MATCH_SIDES_MESSAGE } from "#src/games/update-tournament-match";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -301,6 +303,67 @@ describe("Pool Match play", () => {
 
       const history = await listMyMatchHistoryRows(db, viewer.id, NOW);
       expect(history.map((item) => item.matchId)).toContain(match.id);
+    } finally {
+      await close();
+    }
+  });
+
+  it("offers the other team, and an Organizer off court, the pending score to confirm", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "confirmable");
+      const viewer = seeded.players[0];
+      if (!viewer) {
+        throw new Error("Expected a seated viewer");
+      }
+      const match = await viewerRound1Match(db, seeded.gameId, viewer.id);
+      const teams = occupants(match);
+      const [ownTeam, otherTeam] = teams.slot1.includes(viewer.id)
+        ? [teams.slot1, teams.slot2]
+        : [teams.slot2, teams.slot1];
+      const teammate = ownTeam.find((id) => id !== viewer.id);
+      const opponent = otherTeam[0];
+      if (!teammate || !opponent) {
+        throw new Error("Expected a teammate and an opponent");
+      }
+      async function canConfirm(userId: string) {
+        const game = await gameById(db, { gameId: seeded.gameId, userId });
+        const fromDetails = game.matches.find(
+          (row) => row.id === match.id,
+        )?.canConfirmScore;
+        const rounds = await tournamentRounds(db, {
+          gameId: seeded.gameId,
+          userId,
+        });
+        const fromRounds = rounds.rounds
+          .flatMap((round) => round.matches)
+          .find((row) => row.matchId === match.id)?.canConfirm;
+        expect(fromDetails).toBe(fromRounds);
+        return fromDetails;
+      }
+
+      expect(await canConfirm(opponent)).toBe(false);
+
+      await enterTournamentScore(db, {
+        gameId: seeded.gameId,
+        matchId: match.id,
+        userId: viewer.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+
+      expect(await canConfirm(viewer.id)).toBe(false);
+      expect(await canConfirm(teammate)).toBe(false);
+      expect(await canConfirm(opponent)).toBe(true);
+      expect(await canConfirm(seeded.owner.id)).toBe(true);
+
+      await confirmMatchResult(db, {
+        gameId: seeded.gameId,
+        matchId: match.id,
+        userId: opponent,
+      });
+
+      expect(await canConfirm(opponent)).toBe(false);
     } finally {
       await close();
     }
