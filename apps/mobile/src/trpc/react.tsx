@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
+import { shouldRetryQuery } from "@repo/domain/query-retry";
 import { messagesFor } from "@repo/i18n/messages";
 import { useLocale } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
@@ -50,7 +51,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
-        defaultOptions: { queries: { staleTime: 30 * 1000 } },
+        defaultOptions: {
+          queries: { staleTime: 30 * 1000, retry: shouldRetryQuery },
+        },
       }),
   );
   const { getToken, userId } = useAuth();

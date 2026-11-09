@@ -5,6 +5,8 @@ import {
 } from "@tanstack/react-query";
 import SuperJSON from "superjson";
 
+import { shouldRetryQuery } from "@repo/domain/query-retry";
+
 /**
  * A mutation that shows its own failure (an inline error, or a caught
  * `mutateAsync`) sets this meta so the fallback toast stays quiet.
@@ -28,6 +30,7 @@ export const createQueryClient = (
         // With SSR, we usually want to set some default staleTime
         // above 0 to avoid refetching immediately on the client
         staleTime: 30 * 1000,
+        retry: shouldRetryQuery,
       },
       dehydrate: {
         serializeData: SuperJSON.serialize,
