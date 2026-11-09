@@ -19,6 +19,8 @@ import { matchOutcome } from "@repo/domain/match-outcome";
 import { outcomeForSlot } from "@repo/domain/match-slots";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -49,8 +51,8 @@ export type KindDetailRow = {
   canOpenGame: boolean;
 };
 
-const notFound = (what: string) =>
-  new TRPCError({ code: "NOT_FOUND", message: `${what} not found` });
+const notFound = (message: string) =>
+  new TRPCError({ code: "NOT_FOUND", message });
 
 type MatchSides = {
   sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
@@ -135,17 +137,24 @@ function ownerScore(sets: MatchSides["sets"], slot: MatchSlot) {
  */
 export async function kindDetail(
   database: DbClient,
-  args: { viewerId: string; playerId: string; kind: CoinKind; sport: Sport },
+  args: {
+    viewerId: string;
+    playerId: string;
+    kind: CoinKind;
+    sport: Sport;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!(await mayViewPlayer(database, args))) {
-    throw notFound("Player");
+    throw notFound(messagesFor(locale).profile.errors.playerNotFound);
   }
   const owner = await database.query.user.findFirst({
     where: eq(user.id, args.playerId),
     columns: { id: true, hideRoasts: true, matchHistoryVisibility: true },
   });
   if (!owner) {
-    throw notFound("Player");
+    throw notFound(messagesFor(locale).profile.errors.playerNotFound);
   }
   const isOwner = owner.id === args.viewerId;
   const hiddenRoast = owner.hideRoasts && isRoast(args.kind);
@@ -158,7 +167,7 @@ export async function kindDetail(
       visibility: owner.matchHistoryVisibility,
     }))
   ) {
-    throw notFound("Mark");
+    throw notFound(messagesFor(locale).marks.errors.markNotFound);
   }
 
   const coins = (
@@ -223,5 +232,6 @@ export const kindDetailProcedure = protectedProcedure
       playerId: input.userId,
       kind: input.kind,
       sport: input.sport,
+      locale: ctx.locale,
     });
   });
