@@ -13,11 +13,6 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
 
-export const ALWAYS_ORGANIZER_MESSAGE =
-  "The Group creator is always an Organizer";
-export const UNCLAIMED_ORGANIZER_MESSAGE =
-  "Players not on Temba yet cannot be Organizers";
-
 export async function setOrganizer(
   database: DbClient,
   args: {
@@ -48,13 +43,13 @@ export async function setOrganizer(
   if (group.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ALWAYS_ORGANIZER_MESSAGE,
+      message: "The Group creator is always an Organizer",
     });
   }
   if (args.organizer && isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: UNCLAIMED_ORGANIZER_MESSAGE,
+      message: "Players not on Temba yet cannot be Organizers",
     });
   }
 

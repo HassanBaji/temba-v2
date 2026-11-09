@@ -17,9 +17,6 @@ import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted"
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE =
-  "Change Rounds on a Friendly tournament";
-
 export async function updateGameRoundCount(
   database: DbClient,
   args: { gameId: string; userId: string; roundCount: number | null },
@@ -36,7 +33,7 @@ export async function updateGameRoundCount(
   if (!hasPools(game.format, game.poolCount) || game.poolCount == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE,
+      message: "Change Rounds on a Friendly tournament",
     });
   }
   assertPoolDrawNotPosted(game);

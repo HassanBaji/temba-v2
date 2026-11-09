@@ -30,10 +30,7 @@ import {
 import type { SeatChoice } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
-import {
-  isPartnerRequiredGame,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "@repo/domain/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -58,7 +55,7 @@ export async function registerSeat(
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: "This tournament does not allow registering alone",
     });
   }
 

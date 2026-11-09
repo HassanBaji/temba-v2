@@ -15,12 +15,6 @@ import { type db } from "#src/db";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const KNOCKOUT_MATCH_SIDES_MESSAGE =
-  "The sides of a Knockout Match come from the draw";
-
-export const SCORED_MATCH_SIDES_MESSAGE =
-  "A Match with a score keeps its teams";
-
 // `null` is a value the organizer sent (clear it); only `undefined` keeps
 // the current one.
 function given<T>(requested: T | undefined, current: T): T {
@@ -51,7 +45,7 @@ function matchSides(
   if (match.knockoutRound != null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: KNOCKOUT_MATCH_SIDES_MESSAGE,
+      message: "The sides of a Knockout Match come from the draw",
     });
   }
   if (
@@ -61,7 +55,7 @@ function matchSides(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: SCORED_MATCH_SIDES_MESSAGE,
+      message: "A Match with a score keeps its teams",
     });
   }
   return sides;

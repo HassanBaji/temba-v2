@@ -11,10 +11,6 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
-/** A Group needs its owner. */
-export const OWNER_CANNOT_LEAVE_MESSAGE =
-  "Transfer ownership to another member before leaving, or delete the Group";
-
 export async function leaveGroup(
   database: DbClient,
   args: { groupId: string; userId: string },
@@ -38,7 +34,8 @@ export async function leaveGroup(
   if (group.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: OWNER_CANNOT_LEAVE_MESSAGE,
+      message:
+        "Transfer ownership to another member before leaving, or delete the Group",
     });
   }
 
@@ -51,7 +48,8 @@ export async function leaveGroup(
     if (locked?.createdBy === args.userId) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: OWNER_CANNOT_LEAVE_MESSAGE,
+        message:
+          "Transfer ownership to another member before leaving, or delete the Group",
       });
     }
     await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));

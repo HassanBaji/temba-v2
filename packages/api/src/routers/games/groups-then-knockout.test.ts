@@ -33,7 +33,6 @@ import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
-import { POOL_CORRECTION_REFUSED_MESSAGE } from "#src/games/knockout-advance";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 beforeAll(() => {
@@ -799,7 +798,7 @@ describe("Pool score correction after placement", () => {
             userId: seeded.owner.id,
           }),
         "CONFLICT",
-        POOL_CORRECTION_REFUSED_MESSAGE,
+        "A Knockout Match has started, so this group result can no longer be reversed",
       );
       const unchanged = await db.query.matches.findFirst({
         where: eq(matches.id, last.id),

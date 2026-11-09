@@ -15,9 +15,6 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
-export const SPORT_LOCKED_MESSAGE =
-  "The sport is locked once the Group has a Game";
-
 /**
  * Edit Group: name, sport, visibility and Require approval in one save. Only
  * the fields given change. Sport locks after the first Game, since the
@@ -35,7 +32,11 @@ export async function editGroup(
   },
 ) {
   const group = await requireGroup(database, args.groupId);
-  assertGroupOwner(group, args.userId, "Only the Group owner can edit this Group");
+  assertGroupOwner(
+    group,
+    args.userId,
+    "Only the Group owner can edit this Group",
+  );
 
   const patch: Partial<typeof groups.$inferInsert> = {};
 
@@ -47,7 +48,7 @@ export async function editGroup(
     if (await groupHasGames(database, group.id)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: SPORT_LOCKED_MESSAGE,
+        message: "The sport is locked once the Group has a Game",
       });
     }
     patch.sport = args.sport;

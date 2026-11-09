@@ -12,10 +12,6 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
-export const CANNOT_REMOVE_CREATOR_MESSAGE =
-  "The Group creator cannot be removed";
-export const CANNOT_REMOVE_SELF_MESSAGE = "Leave the Group instead";
-
 /**
  * A Group approver removing any player. The creator stays. The player's Games
  * stay in history.
@@ -30,13 +26,13 @@ export async function removePlayer(
   if (args.userId === args.approverUserId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: CANNOT_REMOVE_SELF_MESSAGE,
+      message: "Leave the Group instead",
     });
   }
   if (args.userId === group.createdBy) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: CANNOT_REMOVE_CREATOR_MESSAGE,
+      message: "The Group creator cannot be removed",
     });
   }
 

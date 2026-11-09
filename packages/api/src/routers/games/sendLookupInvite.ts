@@ -26,10 +26,7 @@ import {
 } from "#src/games/invites";
 import { upsertApprovedLevelRangeWaiver } from "#src/games/level-range-requests";
 import { mintLookup } from "#src/invites/doors";
-import {
-  isPartnerRequiredGame,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "@repo/domain/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db;
 
@@ -55,7 +52,7 @@ export async function sendLookupInvite(
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: "This tournament does not allow registering alone",
     });
   }
 

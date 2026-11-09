@@ -18,9 +18,6 @@ import { type TournamentMatchInput } from "#src/games/utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const KNOCKOUT_MATCH_BY_HAND_MESSAGE =
-  "Knockout Matches come from the draw";
-
 export async function addTournamentMatch(
   database: Tx,
   game: GameRow,
@@ -41,7 +38,7 @@ export async function addTournamentMatch(
   if (hasKnockout(game.format, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: KNOCKOUT_MATCH_BY_HAND_MESSAGE,
+      message: "Knockout Matches come from the draw",
     });
   }
   await applyMatchSides(database, game.id, input);

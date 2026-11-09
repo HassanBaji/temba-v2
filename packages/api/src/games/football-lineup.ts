@@ -9,10 +9,7 @@ import {
   matches,
 } from "@repo/db";
 
-import {
-  KEEPER_SEATS_TAKEN_MESSAGE,
-  KEEPERS_PER_GAME,
-} from "@repo/domain/football-lineup";
+import { KEEPERS_PER_GAME } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { type GameRow } from "#src/games/access";
 import { type db } from "#src/db";
@@ -55,7 +52,7 @@ export async function assertKeeperSeatOpen(
   if (others.length >= KEEPERS_PER_GAME) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: KEEPER_SEATS_TAKEN_MESSAGE,
+      message: "Both keeper seats are taken",
     });
   }
 }

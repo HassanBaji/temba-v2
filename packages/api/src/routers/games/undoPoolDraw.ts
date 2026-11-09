@@ -16,11 +16,6 @@ import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const UNDO_AFTER_SET_MESSAGE =
-  "Cannot undo the group draw after a Set has been played";
-export const UNDO_KNOCKOUT_AFTER_SET_MESSAGE =
-  "Cannot undo the draw after a Set has been played";
-
 function drawNoun(game: { format: string; tournamentShape: string | null }) {
   return isKnockoutOnly(game.format, game.tournamentShape)
     ? "draw"
@@ -85,8 +80,8 @@ export async function undoPoolDraw(
       throw new TRPCError({
         code: "FORBIDDEN",
         message: isKnockoutOnly(game.format, game.tournamentShape)
-          ? UNDO_KNOCKOUT_AFTER_SET_MESSAGE
-          : UNDO_AFTER_SET_MESSAGE,
+          ? "Cannot undo the draw after a Set has been played"
+          : "Cannot undo the group draw after a Set has been played",
       });
     }
 

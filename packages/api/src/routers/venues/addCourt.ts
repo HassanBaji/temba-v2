@@ -9,10 +9,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
-import {
-  courtNameTaken,
-  duplicateCourtMessage,
-} from "#src/venues/helpers/court-name-taken";
+import { courtNameTaken } from "#src/venues/helpers/court-name-taken";
 import { requireVenue } from "#src/venues/helpers/require-venue";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
@@ -36,7 +33,7 @@ export async function addCourt(
   if (await courtNameTaken(database, args.venueId, args.name)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: duplicateCourtMessage,
+      message: "A Court with this name already exists on this Venue",
     });
   }
 
@@ -69,7 +66,7 @@ export async function addCourt(
     if (isUniqueViolation(error)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: duplicateCourtMessage,
+        message: "A Court with this name already exists on this Venue",
       });
     }
     throw error;

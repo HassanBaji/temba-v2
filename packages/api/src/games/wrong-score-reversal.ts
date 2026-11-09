@@ -46,7 +46,11 @@ export async function wrongScoreReversalEligibility(
       .orderBy(desc(ratingEvents.createdAt), desc(ratingEvents.id))
       .limit(1);
     if (latest && latest.id !== event.id) {
-      return { eligible: false, reason: LATER_RATED_MATCH };
+      return {
+        eligible: false,
+        reason:
+          "At least one player seated on this Match has a later rated Match — this needs manual support to correct",
+      };
     }
   }
 
@@ -64,12 +68,13 @@ export async function wrongScoreReversalEligibility(
       .orderBy(desc(groupRatingEvents.createdAt), desc(groupRatingEvents.id))
       .limit(1);
     if (latest && latest.id !== event.id) {
-      return { eligible: false, reason: LATER_RATED_MATCH };
+      return {
+        eligible: false,
+        reason:
+          "At least one player seated on this Match has a later rated Match — this needs manual support to correct",
+      };
     }
   }
 
   return { eligible: true };
 }
-
-const LATER_RATED_MATCH =
-  "At least one player seated on this Match has a later rated Match — this needs manual support to correct";

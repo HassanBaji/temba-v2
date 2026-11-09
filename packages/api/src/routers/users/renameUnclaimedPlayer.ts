@@ -17,12 +17,6 @@ import {
 
 type DbClient = typeof db;
 
-export const RENAME_NOT_ALLOWED_MESSAGE =
-  "Only an Organizer or Group approver where they were added can edit their name";
-
-export const ONLY_UNCLAIMED_RENAMABLE_MESSAGE =
-  "Only players not on Temba yet can have their name edited";
-
 export const renameUnclaimedPlayerInput = z.object({
   userId: z.string().uuid(),
   name: z
@@ -126,7 +120,7 @@ export async function renameUnclaimedPlayer(
   if (!isUnclaimed(player) || player.claimedAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: ONLY_UNCLAIMED_RENAMABLE_MESSAGE,
+      message: "Only players not on Temba yet can have their name edited",
     });
   }
 
@@ -148,7 +142,8 @@ export async function renameUnclaimedPlayer(
   if (!allowed) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: RENAME_NOT_ALLOWED_MESSAGE,
+      message:
+        "Only an Organizer or Group approver where they were added can edit their name",
     });
   }
 
@@ -160,7 +155,7 @@ export async function renameUnclaimedPlayer(
   if (!updated) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: ONLY_UNCLAIMED_RENAMABLE_MESSAGE,
+      message: "Only players not on Temba yet can have their name edited",
     });
   }
 

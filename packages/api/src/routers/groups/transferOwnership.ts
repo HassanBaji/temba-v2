@@ -13,11 +13,6 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
 
-export const ALREADY_OWNER_MESSAGE = "They already own this Group";
-export const NOT_A_MEMBER_MESSAGE = "This player is not in the Group";
-export const UNCLAIMED_OWNER_MESSAGE =
-  "Players not on Temba yet cannot own a Group";
-
 /**
  * Hand the Group to another member. The new owner becomes the creator for
  * every door that reads `createdBy`; the previous owner stays a member and is
@@ -37,7 +32,7 @@ export async function transferOwnership(
   if (args.newOwnerUserId === group.createdBy) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ALREADY_OWNER_MESSAGE,
+      message: "They already own this Group",
     });
   }
 
@@ -50,12 +45,15 @@ export async function transferOwnership(
     with: { user: { columns: { clerkId: true, addedAt: true } } },
   });
   if (!membership) {
-    throw new TRPCError({ code: "NOT_FOUND", message: NOT_A_MEMBER_MESSAGE });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "This player is not in the Group",
+    });
   }
   if (isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: UNCLAIMED_OWNER_MESSAGE,
+      message: "Players not on Temba yet cannot own a Group",
     });
   }
 
@@ -79,7 +77,10 @@ export async function transferOwnership(
       .where(eq(groupMembers.id, membership.id))
       .for("update");
     if (!stillMember) {
-      throw new TRPCError({ code: "NOT_FOUND", message: NOT_A_MEMBER_MESSAGE });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "This player is not in the Group",
+      });
     }
     await tx
       .update(groups)

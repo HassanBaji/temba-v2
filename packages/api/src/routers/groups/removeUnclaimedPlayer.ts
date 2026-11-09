@@ -13,9 +13,6 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
 
-export const ONLY_UNCLAIMED_REMOVABLE_MESSAGE =
-  "Only players not on Temba yet can be removed";
-
 export async function removeUnclaimedPlayer(
   database: DbClient,
   args: { groupId: string; approverUserId: string; userId: string },
@@ -40,7 +37,7 @@ export async function removeUnclaimedPlayer(
   if (!isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: ONLY_UNCLAIMED_REMOVABLE_MESSAGE,
+      message: "Only players not on Temba yet can be removed",
     });
   }
 

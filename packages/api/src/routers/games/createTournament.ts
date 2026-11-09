@@ -38,18 +38,12 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-const ONE_DAY_WINDOW_MESSAGE =
-  "Finish time must be within 24 hours of the start";
-
 function windowWithinOneDay(windowStart: Date, windowEnd: Date) {
   return windowEnd.getTime() - windowStart.getTime() <= ONE_DAY_MS;
 }
 
 type RoundCountIssue = { path: "roundCount"; message: string };
 type QualifiersIssue = { path: "qualifiersPerPool"; message: string };
-
-const QUALIFIERS_SHAPE_MESSAGE =
-  "Through from each group applies to Groups, then knockout only";
 
 type ShapeSizing =
   | {
@@ -77,7 +71,11 @@ function sizeTournamentShape(value: {
   if (!groupsThenKnockout && value.qualifiersPerPool != null) {
     return {
       ok: false,
-      issue: { path: "qualifiersPerPool", message: QUALIFIERS_SHAPE_MESSAGE },
+      issue: {
+        path: "qualifiersPerPool",
+        message:
+          "Through from each group applies to Groups, then knockout only",
+      },
     };
   }
   if (value.tournamentShape === "knockout_only") {
@@ -184,7 +182,7 @@ export const createTournamentInputSchema = z
     path: ["windowEnd"],
   })
   .refine((value) => windowWithinOneDay(value.windowStart, value.windowEnd), {
-    message: ONE_DAY_WINDOW_MESSAGE,
+    message: "Finish time must be within 24 hours of the start",
     path: ["windowEnd"],
   })
   .superRefine((value, ctx) => {
@@ -238,7 +236,7 @@ export async function createTournament(
   if (!windowWithinOneDay(input.windowStart, input.windowEnd)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ONE_DAY_WINDOW_MESSAGE,
+      message: "Finish time must be within 24 hours of the start",
     });
   }
 

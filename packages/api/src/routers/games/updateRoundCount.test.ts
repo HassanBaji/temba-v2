@@ -9,11 +9,7 @@ import { drawPools } from "#src/routers/games/drawPools";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
-import {
-  ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE,
-  updateGameRoundCount,
-} from "#src/routers/games/updateRoundCount";
-import { POOL_DRAW_POSTED_MESSAGE } from "#src/games/assert-pool-draw-not-posted";
+import { updateGameRoundCount } from "#src/routers/games/updateRoundCount";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 // Fixture windows sit on fixed dates, so registration must still read as open.
@@ -402,7 +398,7 @@ describe("updateRoundCount", () => {
             roundCount: 2,
           }),
         "BAD_REQUEST",
-        ROUND_COUNT_NOT_POOL_TOURNAMENT_MESSAGE,
+        "Change Rounds on a Friendly tournament",
       );
       expect(await storedRoundCount(db, friendly.id)).toBeNull();
     } finally {
@@ -443,7 +439,7 @@ describe("updateRoundCount", () => {
             roundCount: 5,
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
       expect(await storedRoundCount(db, gameId)).toBe(2);
 

@@ -36,9 +36,6 @@ import {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
 
-export const SIDES_SET_MESSAGE =
-  "The sides are set, so the shape of the Game can't change";
-
 /**
  * Dropping players allowed under the joined count moves the latest joiners
  * to the Waitlist, latest first. Each keeps the moment they joined as their
@@ -104,7 +101,10 @@ async function updateFootballShape(
     (sidesSet.slot1 || sidesSet.slot2) &&
     (sideSize !== game.sideSize || playersAllowed < userCount)
   ) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: SIDES_SET_MESSAGE });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "The sides are set, so the shape of the Game can't change",
+    });
   }
   const movedToWaitlist = await moveLatestJoinersToWaitlist(
     database,

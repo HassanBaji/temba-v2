@@ -74,9 +74,6 @@ async function notifyGameLeft(
   });
 }
 
-export const GAME_PLAYED_LEAVE_MESSAGE =
-  "This Game has been played. Ask the organizer to remove you.";
-
 export async function leaveGame(
   database: DbClient,
   args: { gameId: string; userId: string; now?: Date; locale?: Locale },
@@ -91,7 +88,7 @@ export async function leaveGame(
     game,
     args.now ?? new Date(),
     args.locale,
-    GAME_PLAYED_LEAVE_MESSAGE,
+    "This Game has been played. Ask the organizer to remove you.",
   );
   await database.transaction(async (tx) => {
     const partnerUserId = await partnerRemovedWithLeaver(tx, game, args.userId);

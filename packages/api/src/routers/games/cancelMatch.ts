@@ -26,11 +26,6 @@ import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const POOL_MATCH_NOT_AWARDED_MESSAGE =
-  "A Pool Match is voided, not awarded, so no team goes through";
-export const KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE =
-  "This Knockout Match is already completed";
-
 async function cancelMatchOnGame(
   database: Tx,
   game: GameRow,
@@ -79,7 +74,7 @@ async function cancelMatchOnGame(
     if (match.status === MatchStatusEnum.COMPLETED) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE,
+        message: "This Knockout Match is already completed",
       });
     }
     await awardKnockoutWalkover(database, match, advancingGameTeamId);
@@ -89,7 +84,7 @@ async function cancelMatchOnGame(
   if (advancingGameTeamId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: POOL_MATCH_NOT_AWARDED_MESSAGE,
+      message: "A Pool Match is voided, not awarded, so no team goes through",
     });
   }
 

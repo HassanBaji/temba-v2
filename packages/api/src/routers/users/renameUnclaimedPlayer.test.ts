@@ -25,8 +25,6 @@ import { addPlayerByPhone as addPlayerToGroup } from "#src/routers/groups/addPla
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import {
-  ONLY_UNCLAIMED_RENAMABLE_MESSAGE,
-  RENAME_NOT_ALLOWED_MESSAGE,
   renameUnclaimedPlayer,
   renameUnclaimedPlayerInput,
 } from "#src/routers/users/renameUnclaimedPlayer";
@@ -168,7 +166,9 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(refused.code).toBe("FORBIDDEN");
-      expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+      expect(refused.message).toBe(
+        "Only an Organizer or Group approver where they were added can edit their name",
+      );
       expect(await nameOf(db, ali)).toBe("Ally");
 
       await renameUnclaimedPlayer(db, {
@@ -261,7 +261,9 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(refused.code).toBe("FORBIDDEN");
-      expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+      expect(refused.message).toBe(
+        "Only an Organizer or Group approver where they were added can edit their name",
+      );
 
       await renameUnclaimedPlayer(asDb(database), {
         callerUserId: fixture.customer,
@@ -383,7 +385,9 @@ describe("users.renameUnclaimedPlayer", () => {
           }),
         );
         expect(refused.code).toBe("FORBIDDEN");
-        expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+        expect(refused.message).toBe(
+          "Only an Organizer or Group approver where they were added can edit their name",
+        );
       }
       expect(await nameOf(db, ali)).toBe("Ally");
     } finally {
@@ -418,7 +422,9 @@ describe("users.renameUnclaimedPlayer", () => {
           name: "Ali Hassan",
         }),
       );
-      expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+      expect(refused.message).toBe(
+        "Only an Organizer or Group approver where they were added can edit their name",
+      );
     } finally {
       await close();
     }
@@ -447,7 +453,9 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(refused.code).toBe("FORBIDDEN");
-      expect(refused.message).toBe(ONLY_UNCLAIMED_RENAMABLE_MESSAGE);
+      expect(refused.message).toBe(
+        "Only players not on Temba yet can have their name edited",
+      );
       expect(await nameOf(db, ahmed)).toBe("Ahmed Ali");
     } finally {
       await close();
@@ -471,7 +479,9 @@ describe("users.renameUnclaimedPlayer", () => {
           name: "Ali Hassan",
         }),
       );
-      expect(refused.message).toBe(ONLY_UNCLAIMED_RENAMABLE_MESSAGE);
+      expect(refused.message).toBe(
+        "Only players not on Temba yet can have their name edited",
+      );
       expect(await nameOf(db, ali)).toBe("Ally");
     } finally {
       await close();

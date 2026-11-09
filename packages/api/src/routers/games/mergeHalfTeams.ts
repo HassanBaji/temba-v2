@@ -7,7 +7,6 @@ import { gamePlayers, gameTeamPlayers, gameTeams } from "@repo/db";
 import {
   isPartnerRequiredGame,
   isDrawnTournament,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
 } from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -19,9 +18,6 @@ import type { SeatPosition } from "#src/games/utils";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-const SAME_POSITION_MESSAGE = "Both Users would play the same Position";
-const NOT_HALF_TEAM_MESSAGE = "Both Game teams must be Half teams";
 
 async function requireHalfTeam(
   database: DbClient,
@@ -45,14 +41,14 @@ async function requireHalfTeam(
   if (team.players.length !== 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: "Both Game teams must be Half teams",
     });
   }
   const link = team.players[0];
   if (!link || (link.position !== "left" && link.position !== "right")) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: "Both Game teams must be Half teams",
     });
   }
   const player = await database.query.gamePlayers.findFirst({
@@ -62,7 +58,7 @@ async function requireHalfTeam(
   if (!player?.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: "Both Game teams must be Half teams",
     });
   }
   return {
@@ -107,7 +103,7 @@ export async function mergeHalfTeams(
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: "This tournament does not allow registering alone",
     });
   }
   assertPoolDrawNotPosted(game);
@@ -121,7 +117,7 @@ export async function mergeHalfTeams(
   if (args.firstPosition === args.secondPosition) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: SAME_POSITION_MESSAGE,
+      message: "Both Users would play the same Position",
     });
   }
 
@@ -134,7 +130,7 @@ export async function mergeHalfTeams(
   if (first.player.userId === second.player.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: "Both Game teams must be Half teams",
     });
   }
 

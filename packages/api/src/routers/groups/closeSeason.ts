@@ -17,8 +17,6 @@ import { toSeasonRow } from "#src/standing/load-group-standing";
 
 type DbClient = typeof db;
 
-export const SEASON_NOT_ACTIVE_MESSAGE = "Only an active season can be closed";
-
 /**
  * Closes the active Season today (design "Seasons" 1l): its last day becomes
  * today and the closing instant is stamped, so the Standing stops reading
@@ -42,7 +40,7 @@ export async function closeSeason(
   if (groupSeasonStatus(season, now) !== "active") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: SEASON_NOT_ACTIVE_MESSAGE,
+      message: "Only an active season can be closed",
     });
   }
 

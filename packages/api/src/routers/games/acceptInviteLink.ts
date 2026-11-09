@@ -29,10 +29,7 @@ import {
 } from "#src/games/invites";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import { acceptLink, throwInviteFrozen } from "#src/invites/doors";
-import {
-  isPartnerRequiredGame,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "@repo/domain/tournament-rounds";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 
 type DbClient = typeof db;
 
@@ -89,7 +86,7 @@ export async function acceptInviteLink(
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: "This tournament does not allow registering alone",
     });
   }
 

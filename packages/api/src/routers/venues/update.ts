@@ -8,10 +8,7 @@ import { operatorProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { coordToDecimal } from "#src/venues/helpers/coord-to-decimal";
-import {
-  duplicateVenueMessage,
-  venueIdentityTaken,
-} from "#src/venues/helpers/venue-identity-taken";
+import { venueIdentityTaken } from "#src/venues/helpers/venue-identity-taken";
 
 type DbClient = typeof db;
 
@@ -46,7 +43,7 @@ export async function updateVenue(
   ) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: duplicateVenueMessage,
+      message: "A Venue with this name, city, and country already exists",
     });
   }
 
@@ -85,7 +82,7 @@ export async function updateVenue(
     if (isUniqueViolation(error)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: duplicateVenueMessage,
+        message: "A Venue with this name, city, and country already exists",
       });
     }
     throw error;
