@@ -504,6 +504,31 @@ describe("team phone lookup card", () => {
     assert.equal(bare.kind === "found" ? bare.line : null, "On Temba");
   });
 
+  it("names a stranger's number by its mask, not by who it is", () => {
+    assert.deepEqual(
+      teamPhoneLookupCard(
+        {
+          kind: "account",
+          name: null,
+          alreadyOnTeam: false,
+          alreadyInvited: false,
+          phoneMasked: "+973 •••• 6610",
+        },
+        { listed: false, sport: "padel" },
+        "en",
+      ),
+      {
+        kind: "found",
+        name: "+973 •••• 6610",
+        initials: "?",
+        line: "On Temba",
+        note: "+973 •••• 6610 gets the invite in the app. The seat shows as waiting until they accept; you can post challenges meanwhile.",
+        action: "Invite",
+        actionA11y: "Invite +973 •••• 6610",
+      },
+    );
+  });
+
   it("offers a name for a number not on Temba, and blocks one already listed", () => {
     assert.deepEqual(
       teamPhoneLookupCard(

@@ -92,6 +92,12 @@ describe("invite sheet copy", () => {
     );
   });
 
+  it("asks for more than one letter before it searches", () => {
+    const hint = "Type a name, or someone's full email or phone number.";
+    expect(noPlayersMatchCopy("", true, "en")).toBe(hint);
+    expect(noPlayersMatchCopy(" z ", false, "en")).toBe(hint);
+  });
+
   it("labels the text invite by readiness", () => {
     expect(phoneInviteLabel(false, false, "en")).toBe("Enter a number");
     expect(phoneInviteLabel(true, false, "en")).toBe("Send invite by text");

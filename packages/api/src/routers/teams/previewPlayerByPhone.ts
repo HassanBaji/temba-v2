@@ -13,6 +13,11 @@ import { sportSchema } from "@repo/validators/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
+import { peopleTheViewerPlaysWith } from "#src/teams/helpers/people-the-viewer-plays-with";
 import { requireIncompleteTeamCreator } from "#src/teams/helpers/require-incomplete-team-creator";
 import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
@@ -90,7 +95,9 @@ async function playerDetails(
 
 /**
  * Who a number belongs to, for the Captain's By phone tab. Without a Team it
- * serves the New team screen, where nothing is on the Roster yet but the viewer.
+ * serves the New team screen, where nothing is on the Roster yet but the
+ * viewer: there it names only someone the viewer already plays with, and
+ * answers anyone else's number with whether it is on Temba and its mask.
  */
 export async function previewPlayerByPhone(
   database: DbClient,
@@ -120,6 +127,20 @@ export async function previewPlayerByPhone(
   }
 
   const player = resolved.user;
+  if (
+    !team &&
+    player.id !== args.userId &&
+    !(await peopleTheViewerPlaysWith(database, args.userId)).includes(player.id)
+  ) {
+    return {
+      kind: resolved.kind,
+      name: null,
+      alreadyOnTeam: false,
+      alreadyInvited: false,
+      phoneMasked: maskPhone(phoneNumber),
+    };
+  }
+
   const membership = team
     ? await database.query.teamMembers.findFirst({
         where: and(
@@ -170,6 +191,7 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.phonePreview, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return previewPlayerByPhone(ctx.db, {
       teamId: input.teamId,

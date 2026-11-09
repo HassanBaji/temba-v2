@@ -4,12 +4,21 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { searchLookupUsers as searchLookupUsersDoor } from "#src/invites/search-lookup-users";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
+import { peopleTheViewerPlaysWith } from "#src/teams/helpers/people-the-viewer-plays-with";
 import { requireIncompleteTeamCreator } from "#src/teams/helpers/require-incomplete-team-creator";
 import { unusedLookupInvitesForTeam } from "#src/teams/helpers/unused-invites-for-team";
 
 type DbClient = typeof db;
 
-/** Without a Team it serves the New team screen, where only the viewer is on the Roster. */
+/**
+ * Without a Team it serves the New team screen. There is no Roster to invite
+ * into yet, so a name finds only people the viewer already plays with; anyone
+ * else is found by their full email or phone number.
+ */
 export async function searchLookupUsers(
   database: DbClient,
   args: { teamId?: string; userId: string; query: string },
@@ -18,6 +27,7 @@ export async function searchLookupUsers(
     return searchLookupUsersDoor(database, {
       query: args.query,
       excludeUserIds: [args.userId],
+      nameScopeUserIds: await peopleTheViewerPlaysWith(database, args.userId),
     });
   }
   const { team, memberRows } = await requireIncompleteTeamCreator(
@@ -45,6 +55,7 @@ export const searchLookupUsersProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.lookupSearch, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return searchLookupUsers(ctx.db, {
       teamId: input.teamId,

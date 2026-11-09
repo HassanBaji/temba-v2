@@ -62,3 +62,45 @@ describe("pendingLookupInvites imageUrl", () => {
     }
   });
 });
+
+describe("pendingLookupInvites privacy", () => {
+  it("leaves out invites to deleted Groups and never carries the inviter's email", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "invite-owner@example.com");
+      const invitee = await insertUser(db, "invite-guest@example.com");
+      const kept = await createLoosePublic(db, {
+        name: "Kept",
+        sport: "padel",
+        userId: creator.id,
+      });
+      const deleted = await createLoosePublic(db, {
+        name: "Deleted",
+        sport: "padel",
+        userId: creator.id,
+      });
+      for (const group of [kept, deleted]) {
+        await sendLookupInvite(db, {
+          groupId: group.id,
+          userId: creator.id,
+          userIds: [invitee.id],
+        });
+      }
+      await db
+        .update(groups)
+        .set({ deletedAt: new Date() })
+        .where(eq(groups.id, deleted.id));
+
+      const rows = await pendingLookupInvites(db, { userId: invitee.id });
+      expect(rows.map((row) => row.groupId)).toEqual([kept.id]);
+      expect(rows[0]?.invitedBy).toEqual({
+        id: creator.id,
+        name: creator.name,
+        image: null,
+      });
+      expect(JSON.stringify(rows)).not.toContain("invite-owner@example.com");
+    } finally {
+      await close();
+    }
+  });
+});

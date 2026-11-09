@@ -5,6 +5,10 @@ import { groupMembers } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { requireGroupPhoneAdder } from "#src/groups/helpers/require-group-phone-adder";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
@@ -68,6 +72,7 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.phonePreview, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return previewPlayerByPhone(ctx.db, {
       groupId: input.groupId,

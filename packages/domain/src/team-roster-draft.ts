@@ -451,8 +451,14 @@ export function teamPhoneLookupCard(
   if (preview.kind === "new") {
     return { kind: "new", title: m.newTitle, line: m.newLine };
   }
-  const name = preview.name ?? all.group.addPlayer.preview.thisPlayer;
-  const tile = initials(name);
+  // A number the Captain has no tie to comes back without a name: the card
+  // shows the masked number instead of telling them whose it is.
+  const name =
+    preview.name ??
+    preview.phoneMasked ??
+    all.group.addPlayer.preview.thisPlayer;
+  const tile = initials(preview.name ?? "");
+  const shortName = preview.name ? firstWord(preview.name) : name;
   if (preview.alreadyOnTeam || preview.alreadyInvited || input.listed) {
     return {
       kind: "blocked",
@@ -495,7 +501,7 @@ export function teamPhoneLookupCard(
     name,
     initials: tile,
     line: m.found(sportTag, preview.gamesWithYou ?? 0),
-    note: m.inviteNote(firstWord(name)),
+    note: m.inviteNote(shortName),
     action: m.invite,
     actionA11y: m.inviteA11y(name),
   };

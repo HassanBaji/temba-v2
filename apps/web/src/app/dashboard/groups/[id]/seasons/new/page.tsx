@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
@@ -46,6 +46,7 @@ import { groupSeasonsHref } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type SeasonList = RouterOutputs["groups"]["listSeasons"];
@@ -305,6 +306,10 @@ export default function NewSeasonPage({
         </div>
       </NewSeasonFrame>
     );
+  }
+
+  if (isNotFoundError(seasons.error)) {
+    notFound();
   }
 
   if (!seasons.data) {

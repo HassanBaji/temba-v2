@@ -2,6 +2,7 @@ import { plural } from "../../plural";
 import type { invite as source } from "../en/invite";
 
 export const invite = {
+  rateLimited: "محاولات كثيرة جدًا. انتظر بضع دقائق ثم حاول مجددًا.",
   kind: {
     group: "المجموعة",
     team: "الفريق",
@@ -16,6 +17,7 @@ export const invite = {
     invitePlayers: "دعوة لاعبين",
     resultsHeading: "النتائج",
     suggestedHeading: "مقترحون",
+    searchHint: "اكتب اسمًا، أو البريد الإلكتروني أو رقم الهاتف كاملًا.",
     noMatch: (query: string) => `لا أحد على Temba يطابق «${query}».`,
     noMatchTryOtherWays: (query: string) =>
       `لا أحد على Temba يطابق «${query}».\nجرّب رقم هاتفه أو أرسل له الرابط.`,

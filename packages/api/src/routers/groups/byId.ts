@@ -67,6 +67,7 @@ import {
   appointedOrganizerUserIds,
   isAppointedOrganizer,
 } from "#src/groups/helpers/appointed-organizers";
+import { assertCanViewGroup } from "#src/groups/helpers/assert-can-view-group";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
 import { isGroupOwner } from "#src/groups/helpers/group-owner";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -335,6 +336,12 @@ export async function groupById(
   },
 ) {
   const group = await requireGroup(database, args.groupId);
+  await assertCanViewGroup(
+    database,
+    group,
+    args.userId,
+    args.getPublicMetadata,
+  );
 
   const membership = await database.query.groupMembers.findFirst({
     where: and(
