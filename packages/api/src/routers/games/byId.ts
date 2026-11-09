@@ -48,6 +48,8 @@ import {
   requireGame,
   userPassesJoinGate,
 } from "#src/games/access";
+import { scoredWithOwnDoor } from "#src/games/assert-may-write-sets";
+import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   homeCarouselPhase,
   type HomeCarouselCandidate,
@@ -372,6 +374,8 @@ export async function gameById(
 
   const now = new Date();
   const organizer = await isGameOrganizer(database, game, args.userId);
+  const viewerConfirmsAsOrganizer =
+    organizer && (await confirmsAsOrganizer(database, game, args.userId));
   const passesGate = await userPassesJoinGate(database, game, args.userId);
   const alreadyOnGame = await userAlreadyOnGame(database, game.id, args.userId);
   const userCount = await registeredUserCount(database, game.id);
@@ -717,6 +721,9 @@ export async function gameById(
     // A final Match that not every required player confirmed was confirmed
     // by an Organizer (ADR-0044).
     confirmedByOrganizer: boolean;
+    // Whether the viewer's confirmation is final. A padel Challenge Game's
+    // players organize it but confirm as players.
+    viewerConfirmsAsOrganizer: boolean;
   } | null = null;
 
   let ratingImpact: {
@@ -756,6 +763,7 @@ export async function gameById(
       confirmedAt,
       organizerSides,
       confirmedByOrganizer,
+      viewerConfirmsAsOrganizer,
     };
 
     if (phase === "final") {
@@ -967,12 +975,13 @@ export async function gameById(
           walkoverGameTeamId: match.walkoverGameTeamId,
           bothSlotsFilled: bothSlotsFilled(match),
           bothSidesComplete: sidesComplete,
-          canAddSet: canWriteSets && (organizer || onSides),
+          canAddSet:
+            canWriteSets && (organizer || onSides) && !scoredWithOwnDoor(game),
           canScoreSets: canWriteSets && sidesComplete && (organizer || onSides),
           canComplete:
             !frozen &&
             game.format !== "americano" &&
-            (organizer || onSides) &&
+            viewerConfirmsAsOrganizer &&
             sidesComplete &&
             match.sets.length > 0 &&
             outcome.result !== "none" &&

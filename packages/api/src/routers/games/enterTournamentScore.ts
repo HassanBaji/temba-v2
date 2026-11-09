@@ -16,6 +16,7 @@ import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
 import { knockoutMatchIsLevel } from "#src/games/knockout-advance";
+import { lockMatch } from "#src/games/lock-rows";
 import {
   clearMatchResultConfirmations,
   matchSideSeats,
@@ -67,7 +68,7 @@ export async function enterTournamentScore(
       message: "Enter a tournament score on a tournament Match",
     });
   }
-  let match = await requireMatchOnGame(database, game.id, args.matchId);
+  const match = await requireMatchOnGame(database, game.id, args.matchId);
   const [organizer, sides] = await Promise.all([
     isGameOrganizer(database, game, args.userId),
     matchSideSeats(database, match),
@@ -79,52 +80,56 @@ export async function enterTournamentScore(
       message: "Only the two teams or an organizer can enter this score",
     });
   }
-  if (match.status === MatchStatusEnum.CANCELLED) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "This Match is cancelled",
-    });
-  }
   const final = organizer && slot == null;
-  if (match.status === MatchStatusEnum.COMPLETED) {
-    if (!final) {
+
+  const now = new Date();
+  // Checked under the Match lock and before any reopening, so a refused
+  // score leaves a confirmed one, its ratings and its Knockout winner as
+  // they were.
+  await database.transaction(async (tx) => {
+    const locked = await lockMatch(tx, match.id);
+    if (locked.status === MatchStatusEnum.CANCELLED) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "This Match is cancelled",
+      });
+    }
+    if (locked.status === MatchStatusEnum.COMPLETED && !final) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "This score is confirmed; ask the organizer to change it",
       });
     }
-    await reportWrongScore(database, {
-      gameId: game.id,
-      matchId: match.id,
-      userId: args.userId,
-    });
-    match = await requireMatchOnGame(database, game.id, args.matchId);
-  }
-  if (!(await bothSlottedTeamsComplete(database, match))) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Both teams need two players before a score",
-    });
-  }
-  if (
-    knockoutMatchIsLevel(
-      match,
-      matchOutcome([
-        {
-          slot1GamesWon: args.slot1GamesWon,
-          slot2GamesWon: args.slot2GamesWon,
-        },
-      ]).result,
-    )
-  ) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "A knockout Match needs a winner",
-    });
-  }
+    if (!(await bothSlottedTeamsComplete(tx, locked))) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Both teams need two players before a score",
+      });
+    }
+    if (
+      knockoutMatchIsLevel(
+        locked,
+        matchOutcome([
+          {
+            slot1GamesWon: args.slot1GamesWon,
+            slot2GamesWon: args.slot2GamesWon,
+          },
+        ]).result,
+      )
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "A knockout Match needs a winner",
+      });
+    }
+    if (locked.status === MatchStatusEnum.COMPLETED) {
+      await reportWrongScore(tx, {
+        gameId: game.id,
+        matchId: locked.id,
+        userId: args.userId,
+      });
+    }
 
-  const now = new Date();
-  await database.transaction(async (tx) => {
     await tx
       .delete(matchSets)
       .where(and(eq(matchSets.matchId, match.id), gt(matchSets.setNumber, 1)));
@@ -152,11 +157,13 @@ export async function enterTournamentScore(
     if (slot != null) {
       await recordMatchResultConfirmation(tx, match.id, args.userId);
     }
+    if (final) {
+      await removeJob(tx, scoreStandsJobKey(match.id));
+      await runMatchCompletionEffect(tx, game, match.id);
+    }
   });
 
   if (final) {
-    await removeJob(database, scoreStandsJobKey(match.id));
-    await runMatchCompletionEffect(database, game, match.id);
     return { ok: true as const, final: true };
   }
   await askOtherTeamToConfirm(database, {

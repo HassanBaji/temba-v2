@@ -14,8 +14,11 @@ import {
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
   scoreShowsConfirmations,
+  scoreShownSets,
   scoreTeamNamesLabel,
 } from "./friendly-game-score";
+import { scoreGamesRangeNote } from "./friendly-game-court";
+import { friendlySetGamesInRange } from "./friendly-game-results";
 
 const sides = [
   {
@@ -302,5 +305,33 @@ describe("Organizer confirmation for a side with no account holder", () => {
       }),
       false,
     );
+  });
+});
+
+describe("scoreShownSets", () => {
+  const sets = [
+    { slot1GamesWon: 6, slot2GamesWon: 6 },
+    { slot1GamesWon: 7, slot2GamesWon: 0 },
+    { slot1GamesWon: null, slot2GamesWon: null },
+  ];
+
+  it("shows every Set while the score is entered", () => {
+    assert.equal(scoreShownSets("needs_results", sets).length, 3);
+  });
+
+  it("leaves a never-played Set shell out of a final score", () => {
+    assert.deepEqual(scoreShownSets("final", sets), sets.slice(0, 2));
+  });
+});
+
+describe("games won range", () => {
+  it("accepts 0 to 7 and names the range when an entry is out of it", () => {
+    assert.equal(friendlySetGamesInRange(7), true);
+    assert.equal(friendlySetGamesInRange(9), false);
+    assert.equal(
+      scoreGamesRangeNote("en"),
+      "Games won in a Set go from 0 to 7.",
+    );
+    assert.ok(scoreGamesRangeNote("ar").length > 0);
   });
 });

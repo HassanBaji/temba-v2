@@ -46,6 +46,12 @@ export async function setGroupLevelForMember(
       message: "Only an Organizer of this Group can set a Group Level",
     });
   }
+  if (args.targetUserId === args.setterUserId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "You cannot set your own Group Level",
+    });
+  }
   if (!(await isGroupMember(database, group.id, args.targetUserId))) {
     throw new TRPCError({
       code: "BAD_REQUEST",

@@ -354,6 +354,8 @@ async function applyTembaRatedMatch(
           muAfter: after.mu,
           phiAfter: after.phi,
           sigmaAfter: after.sigma,
+          levelBandBefore: playerInput(player.userId).state.levelBand,
+          lastRatedAtBefore: rowByUser.get(player.userId)?.lastRatedAt ?? null,
           createdAt: now,
         })
         .onConflictDoNothing({

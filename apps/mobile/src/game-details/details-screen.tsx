@@ -16,8 +16,6 @@ import {
   partnerVacantSideRaceRecovery,
 } from "@repo/domain/friendly-game-partner";
 import {
-  completeMatchAction,
-  completeMatchConsequence,
   gameJoinToast,
   gameToast,
   leaveGameAction,
@@ -293,11 +291,14 @@ export function GameDetailsScreen({
     onError: failure,
     onSettled: refresh,
   });
-  const addSet = api.games.addSet.useMutation({
+  const enterTournamentScore = api.games.enterTournamentScore.useMutation({
+    onSuccess: () => toast.show(copy.toast.setSaved),
     onError: failure,
-    onSettled: refresh,
+    onSettled: async () => {
+      await refresh();
+      await utils.ratings.me.invalidate();
+    },
   });
-  const completeMatch = api.games.completeMatch.useMutation();
 
   const firstMatchId = data?.matches[0]?.id;
 
@@ -406,66 +407,6 @@ export function GameDetailsScreen({
     });
   }
 
-  async function saveTournamentSets(
-    matchId: string,
-    payloads: {
-      setId: string;
-      slot1GamesWon: number;
-      slot2GamesWon: number;
-    }[],
-  ) {
-    for (const payload of payloads) {
-      await scoreSet.mutateAsync({ gameId, matchId, ...payload });
-    }
-  }
-
-  async function saveScore(
-    matchId: string,
-    payloads: Parameters<typeof saveTournamentSets>[1],
-  ) {
-    if (payloads.length === 0) {
-      toast.show(scoreIncompleteMessage(locale));
-      return;
-    }
-    try {
-      await saveTournamentSets(matchId, payloads);
-      toast.show(copy.toast.setSaved);
-    } catch (error) {
-      toast.show(
-        error instanceof Error ? error.message : copy.toast.couldNotSave,
-      );
-    } finally {
-      await refresh();
-    }
-  }
-
-  function askCompleteMatch(
-    matchId: string,
-    payloads: Parameters<typeof saveTournamentSets>[1],
-  ) {
-    async function run() {
-      try {
-        await saveTournamentSets(matchId, payloads);
-        await completeMatch.mutateAsync({ gameId, matchId });
-        toast.show(copy.toast.matchCompleted);
-      } catch (error) {
-        toast.show(
-          error instanceof Error ? error.message : copy.toast.completeFailed,
-        );
-      } finally {
-        setConfirm(null);
-        await refresh();
-        await utils.ratings.me.invalidate();
-      }
-    }
-    setConfirm({
-      title: copy.confirm.completeMatchTitle,
-      description: completeMatchConsequence(locale),
-      confirmLabel: completeMatchAction(locale),
-      onConfirm: () => void run(),
-    });
-  }
-
   const inviteAccess = data
     ? gameInviteAccess({
         friendlyChrome: friendly,
@@ -565,7 +506,6 @@ export function GameDetailsScreen({
           pending={
             leaveGame.isPending ||
             leaveWaitlist.isPending ||
-            completeMatch.isPending ||
             organizer.confirmPending ||
             tournamentOrganizer.confirmPending
           }
@@ -645,12 +585,9 @@ export function GameDetailsScreen({
                 registerTeam.mutate({ gameId, teamId: id }),
               onRequestLevel: () => requestLevel.mutate({ gameId }),
               onLeave: askLeaveGame,
-              scorePending: scoreSet.isPending,
-              addSetPending: addSet.isPending,
-              completePending: completeMatch.isPending,
-              onSave: (matchId, payloads) => void saveScore(matchId, payloads),
-              onAddSet: (matchId) => addSet.mutate({ gameId, matchId }),
-              onComplete: askCompleteMatch,
+              scorePending: enterTournamentScore.isPending,
+              onSave: (matchId, score) =>
+                enterTournamentScore.mutate({ gameId, matchId, ...score }),
               onOpenPlayer,
             }}
           />

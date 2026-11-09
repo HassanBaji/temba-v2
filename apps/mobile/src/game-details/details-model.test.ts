@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   UNTOUCHED_SELECTION,
   digitsOnly,
+  draftsOutOfRange,
   draftsFromSets,
   gameTitle,
   isFriendlyGameDetails,
@@ -129,6 +130,13 @@ describe("score drafts", () => {
     assert.deepEqual(setsToSave(sets, drafts), [
       { setId: "s1", slot1GamesWon: 6, slot2GamesWon: 8 },
     ]);
+  });
+
+  it("flags a box above 7 so the card can say why it will not save", () => {
+    const fine = withDraftChange(draftsFromSets(sets), sets[0]!, 2, "7");
+    assert.equal(draftsOutOfRange(fine), false);
+    const tooMany = withDraftChange(fine, sets[1]!, 1, "9");
+    assert.equal(draftsOutOfRange(tooMany), true);
   });
 
   it("skips Sets that still lack a side, and saves complete ones", () => {

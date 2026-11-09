@@ -16,7 +16,7 @@ import {
 
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { acceptLookupInvite } from "#src/routers/games/acceptLookupInvite";
-import { addSet } from "#src/routers/games/addSet";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { gameById } from "#src/routers/games/byId";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -1065,10 +1065,12 @@ describe("undoPoolDraw", () => {
       if (!match) {
         throw new Error("Expected a Pool Match");
       }
-      await addSet(db, {
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: match.id,
         userId: seeded.owner.id,
+        slot1GamesWon: 3,
+        slot2GamesWon: 2,
       });
       await expectRefused(
         () =>

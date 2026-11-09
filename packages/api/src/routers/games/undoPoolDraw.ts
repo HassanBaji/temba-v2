@@ -12,6 +12,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
+import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -52,28 +53,43 @@ export async function undoPoolDraw(
     });
   }
 
-  const matchRows = await database.query.matches.findMany({
-    where: eq(matches.gameId, game.id),
-    with: { sets: { columns: { id: true } } },
-  });
-  if (
-    matchRows.some(
-      (match) =>
-        match.sets.length > 0 ||
-        match.status === "completed" ||
-        match.notFinishedAt != null,
-    )
-  ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: isKnockoutOnly(game.format, game.tournamentShape)
-        ? UNDO_KNOCKOUT_AFTER_SET_MESSAGE
-        : UNDO_AFTER_SET_MESSAGE,
-    });
-  }
-
   const now = new Date();
   await database.transaction(async (tx) => {
+    // The Game lock serialises this with a post of the draw or a Round; the
+    // Match locks wait out a score being written, so the check sees it.
+    const locked = await lockGame(tx, game.id);
+    if (locked.drawPostedAt == null) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `The ${drawNoun(game)} has not been posted`,
+      });
+    }
+    await tx
+      .select({ id: matches.id })
+      .from(matches)
+      .where(eq(matches.gameId, game.id))
+      .orderBy(matches.id)
+      .for("update");
+    const matchRows = await tx.query.matches.findMany({
+      where: eq(matches.gameId, game.id),
+      with: { sets: { columns: { id: true } } },
+    });
+    if (
+      matchRows.some(
+        (match) =>
+          match.sets.length > 0 ||
+          match.status === "completed" ||
+          match.notFinishedAt != null,
+      )
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: isKnockoutOnly(game.format, game.tournamentShape)
+          ? UNDO_KNOCKOUT_AFTER_SET_MESSAGE
+          : UNDO_AFTER_SET_MESSAGE,
+      });
+    }
+
     await tx.delete(matches).where(eq(matches.gameId, game.id));
     await tx
       .delete(tournamentDraftMatches)

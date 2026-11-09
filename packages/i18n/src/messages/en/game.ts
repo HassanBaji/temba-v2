@@ -432,6 +432,8 @@ export const game = {
     bestOfSets: (n: number) => `Best of ${n} sets`,
     decider: (set: number, score: string) =>
       `Set ${set} only if it's ${score}.`,
+    gamesRange: (min: number, max: number) =>
+      `Games won in a Set go from ${min} to ${max}.`,
     levelAt: (tally: string) => `Level at ${tally}`,
     yourTeam: "Your team",
     leads: (team: string, tally: string) => `${team} leads ${tally}`,

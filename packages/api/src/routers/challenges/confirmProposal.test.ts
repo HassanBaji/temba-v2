@@ -226,11 +226,25 @@ describe("challenges.confirmProposal", () => {
           slot2GamesWon: 3,
         });
       }
+      // Every player acts for their Team, so none of them settles the score
+      // alone: it rates once all four agree.
       await confirmMatchResult(db, {
         gameId,
         matchId: gameMatch!.id,
         userId: match.proposer.rafi,
       });
+      expect(
+        await database.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, gameMatch!.id),
+        }),
+      ).toHaveLength(0);
+      for (const userId of [match.poster.omar, match.proposer.saad]) {
+        await confirmMatchResult(db, {
+          gameId,
+          matchId: gameMatch!.id,
+          userId,
+        });
+      }
 
       const events = await database.query.ratingEvents.findMany({
         where: eq(ratingEvents.matchId, gameMatch!.id),

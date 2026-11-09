@@ -8,9 +8,9 @@ import { MatchStatusEnum, matchSets, matches } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isGameOrganizer, requireGame } from "#src/games/access";
-import { bothSlotsFilled } from "#src/games/both-slots-filled";
+import { requireGame } from "#src/games/access";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
+import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   advanceKnockoutWinner,
   knockoutLevelMessage,
@@ -21,7 +21,6 @@ import { matchOutcome } from "@repo/domain/match-outcome";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { scheduleMvpSettle } from "#src/marks/settle-mvp";
 import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
-import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -32,7 +31,12 @@ export async function completeMatch(
 ) {
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);
-  const organizer = await isGameOrganizer(database, game, args.userId);
+  if (!(await confirmsAsOrganizer(database, game, args.userId))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only an organizer can complete this Match",
+    });
+  }
 
   if (game.format === "americano") {
     throw new TRPCError({
@@ -58,21 +62,6 @@ export async function completeMatch(
       message:
         "Both Match slots need complete Game teams before completing the Match",
     });
-  }
-  if (!organizer) {
-    if (!bothSlotsFilled(match)) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Only an organizer can complete this Match",
-      });
-    }
-    if (!(await userIsOnMatchSlots(database, match, args.userId))) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message:
-          "Only the organizer or Users on this Match’s Game teams can complete it",
-      });
-    }
   }
   await database.transaction(async (tx) => {
     const [locked] = await tx

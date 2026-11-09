@@ -184,7 +184,9 @@ export function GameDetailsContent({
           viewerUserId={game.viewerUserId}
           winningGameTeamId={plan.winningGameTeamId}
           confirmation={game.matchResultConfirmation}
-          isOrganizer={game.isOrganizer}
+          isOrganizer={
+            game.matchResultConfirmation?.viewerConfirmsAsOrganizer ?? false
+          }
           courtFull={vacantSeatCount === 0}
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}

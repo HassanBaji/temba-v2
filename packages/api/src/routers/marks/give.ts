@@ -16,6 +16,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, requireGame } from "#src/games/access";
+import { markReceivedDedupeKey } from "#src/marks/mark-received-notification";
 import {
   loadMatchParticipants,
   marksMatch,
@@ -107,7 +108,7 @@ export async function give(
       groupId: game.groupId,
       gameId: game.id,
       markKind: args.kind,
-      dedupeKey: `mark_received:${inserted.id}`,
+      dedupeKey: markReceivedDedupeKey(locked.id, args.userId),
     });
 
     return { markId: inserted.id };
