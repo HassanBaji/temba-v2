@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { courts } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -20,20 +22,25 @@ type Actor = {
 
 export async function renameCourt(
   database: DbClient,
-  args: { courtId: string; name: string; actor: Actor },
+  args: { courtId: string; name: string; actor: Actor; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const existing = await database.query.courts.findFirst({
     where: eq(courts.id, args.courtId),
     columns: { id: true, venueId: true },
   });
 
   if (!existing) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Court not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.courtNotFound,
+    });
   }
 
   await requireVenueManager(database, {
     venueId: existing.venueId,
     ...args.actor,
+    locale,
   });
 
   if (
@@ -41,7 +48,7 @@ export async function renameCourt(
   ) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "A Court with this name already exists on this Venue",
+      message: messagesFor(locale).venue.errors.duplicateCourt,
     });
   }
 
@@ -73,7 +80,7 @@ export async function renameCourt(
     if (isUniqueViolation(error)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "A Court with this name already exists on this Venue",
+        message: messagesFor(locale).venue.errors.duplicateCourt,
       });
     }
     throw error;
@@ -96,5 +103,6 @@ export const renameCourtProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

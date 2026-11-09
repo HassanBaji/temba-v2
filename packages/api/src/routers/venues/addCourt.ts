@@ -4,6 +4,8 @@ import { z } from "zod";
 import { courts } from "@repo/db";
 import { sportSchema } from "@repo/validators/sport";
 import { type Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -22,18 +24,26 @@ type Actor = {
 
 export async function addCourt(
   database: DbClient,
-  args: { venueId: string; name: string; sport?: Sport; actor: Actor },
+  args: {
+    venueId: string;
+    name: string;
+    sport?: Sport;
+    actor: Actor;
+    locale?: Locale;
+  },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   if (await courtNameTaken(database, args.venueId, args.name)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "A Court with this name already exists on this Venue",
+      message: messagesFor(locale).venue.errors.duplicateCourt,
     });
   }
 
@@ -66,7 +76,7 @@ export async function addCourt(
     if (isUniqueViolation(error)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "A Court with this name already exists on this Venue",
+        message: messagesFor(locale).venue.errors.duplicateCourt,
       });
     }
     throw error;
@@ -91,5 +101,6 @@ export const addCourtProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

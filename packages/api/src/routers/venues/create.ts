@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { venues } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { operatorProcedure } from "#src/trpc";
 import { type db } from "#src/db";
@@ -19,12 +21,14 @@ export async function createVenue(
     country: string;
     latitude?: number | null;
     longitude?: number | null;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (await venueIdentityTaken(database, args.name, args.city, args.country)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "A Venue with this name, city, and country already exists",
+      message: messagesFor(locale).venue.errors.duplicateVenue,
     });
   }
 
@@ -61,7 +65,7 @@ export async function createVenue(
     if (isUniqueViolation(error)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "A Venue with this name, city, and country already exists",
+        message: messagesFor(locale).venue.errors.duplicateVenue,
       });
     }
     throw error;
@@ -85,5 +89,6 @@ export const create = operatorProcedure
       country: input.country,
       latitude: input.latitude,
       longitude: input.longitude,
+      locale: ctx.locale,
     });
   });
