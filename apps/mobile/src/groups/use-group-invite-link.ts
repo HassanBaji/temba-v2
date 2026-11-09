@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
+import { useErrorMessage } from "../lib/use-error-message";
 
 /**
  * The Group's live Invite link for a minter: read it, copy it (minting one
@@ -12,6 +13,7 @@ import { api } from "../trpc/react";
 export function useGroupInviteLink(groupId: string, enabled: boolean) {
   const m = useMessages();
   const toast = useToast();
+  const errorText = useErrorMessage();
   const utils = api.useUtils();
   const link = api.groups.getInviteLink.useQuery({ groupId }, { enabled });
   const create = api.groups.createInviteLink.useMutation({
@@ -36,10 +38,10 @@ export function useGroupInviteLink(groupId: string, enabled: boolean) {
       toast.show(m.group.settings.linkCopiedToast);
     } catch (error) {
       toast.show(
-        (error as { message?: string }).message ?? m.mobileGroup.copyFailed,
+        error instanceof Error ? errorText(error) : m.mobileGroup.copyFailed,
       );
     }
-  }, [link.data, utils, groupId, create, toast, m]);
+  }, [link.data, utils, groupId, create, toast, m, errorText]);
 
   return {
     url: link.data ? (link.data.shortUrl ?? link.data.inviteUrl) : null,

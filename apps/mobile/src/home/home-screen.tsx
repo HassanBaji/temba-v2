@@ -69,6 +69,10 @@ export function HomeScreen() {
     undefined,
     REFETCH_ON_FOREGROUND,
   );
+  const unread = api.notifications.unreadCount.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
 
   const nothingNext =
     home.data?.carouselGames.length === 0 && bookings.data?.items.length === 0;
@@ -94,6 +98,7 @@ export function HomeScreen() {
     name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
     imageUri: user?.imageUrl ?? null,
     pendingInviteCount: home.data?.pendingInviteCount ?? 0,
+    unreadNotificationCount: unread.data?.count ?? 0,
     checklist: homeChecklist(
       checklistFrom(user, onboarding.data, locale),
       skipped,
@@ -124,9 +129,10 @@ export function HomeScreen() {
         history.refetch(),
         createGroups.refetch(),
         onboarding.refetch(),
+        unread.refetch(),
         user?.reload(),
       ]),
-    [home, bookings, rating, history, createGroups, onboarding, user],
+    [home, bookings, rating, history, createGroups, onboarding, unread, user],
   );
 
   const onRefresh = useCallback(async () => {

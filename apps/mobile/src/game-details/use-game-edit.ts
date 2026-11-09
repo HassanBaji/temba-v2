@@ -17,6 +17,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { gameEditMvp, gameEditMvpChanged } from "./game-edit-mvp";
+import { useErrorMessage } from "../lib/use-error-message";
 
 export type GameEditField = GameEditStep["kind"] | "mvp";
 
@@ -52,6 +53,7 @@ export function useGameEdit({
   const m = useMessages();
   const locale = useLocale();
   const toast = useToast();
+  const errorText = useErrorMessage();
   const utils = api.useUtils();
   const [now] = useState(() => new Date());
   const saved = useMemo(() => gameEditDraftFrom(game), [game]);
@@ -164,7 +166,7 @@ export function useGameEdit({
       } catch (caught) {
         const message =
           caught instanceof Error
-            ? caught.message
+            ? errorText(caught)
             : m.common.somethingWentWrong;
         failed = { field: step.kind, message };
         break;
@@ -178,7 +180,7 @@ export function useGameEdit({
           field: "mvp",
           message:
             caught instanceof Error
-              ? caught.message
+              ? errorText(caught)
               : m.common.somethingWentWrong,
         };
       }

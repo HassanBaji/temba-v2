@@ -50,6 +50,7 @@ import {
   standingStats,
   type StandingRowView,
 } from "./group-home-model";
+import { groupSeasonsPath } from "./groups-model";
 import { Notice } from "./notice";
 
 type Season = GroupSeasonData & { status: GroupSeasonStatus };
@@ -909,6 +910,17 @@ export function StandingTab({
   if (state.kind === "not-member") {
     return <Notice {...m.mobileGroup.standing.notMember} />;
   }
+  const manageSeasons = data.canManageSeasons ? (
+    <Button
+      label={
+        seasons.length > 0
+          ? m.mobileGroup.seasons.manage
+          : m.mobileGroup.seasons.setUp
+      }
+      variant="outline"
+      onPress={() => router.push(groupSeasonsPath(data.id))}
+    />
+  ) : null;
   if (seasons.length === 0 && state.showNoResultsNotice && state.showTable) {
     const firstGameHref = state.showCreateFirstGame
       ? createGameHref
@@ -944,6 +956,7 @@ export function StandingTab({
           </View>
         ) : null}
         <StatPair data={data} muted />
+        {manageSeasons}
       </View>
     );
   }
@@ -991,6 +1004,7 @@ export function StandingTab({
       ) : null}
       {table}
       {seasons.length === 0 ? <StatPair data={data} /> : null}
+      {manageSeasons}
     </View>
   );
 }

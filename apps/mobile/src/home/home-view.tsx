@@ -45,7 +45,8 @@ export function HomeView({
         name={model.name}
         imageUri={model.imageUri}
         pendingInviteCount={model.pendingInviteCount}
-        onInvites={() => onNavigate({ kind: "invites" })}
+        unreadNotificationCount={model.unreadNotificationCount}
+        onNotifications={() => onNavigate({ kind: "notifications" })}
       />
       {model.checklist ? (
         <ProfileChecklistCard

@@ -28,6 +28,14 @@ export function groupPath(groupId: string) {
   return `/groups/${groupId}`;
 }
 
+export function groupSeasonsPath(groupId: string) {
+  return { pathname: "/groups/seasons", params: { groupId } } as const;
+}
+
+export function groupNewSeasonPath(groupId: string) {
+  return { pathname: "/groups/new-season", params: { groupId } } as const;
+}
+
 export type GroupRowView = {
   id: string;
   name: string;

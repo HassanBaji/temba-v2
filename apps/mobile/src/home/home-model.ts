@@ -30,6 +30,7 @@ export type HomeModel = {
   name: string;
   imageUri: string | null;
   pendingInviteCount: number;
+  unreadNotificationCount: number;
   checklist: HomeChecklist | null;
   upNext: Slot<UpNextItem[]>;
   noGamesAction: HomeNoGamesCreateAction;

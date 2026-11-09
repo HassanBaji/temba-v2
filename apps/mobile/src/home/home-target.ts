@@ -20,6 +20,7 @@ export type HomeNavTarget =
   | { kind: "booking-game"; bookingId: string }
   | { kind: "book"; sport: Sport }
   | { kind: "invites" }
+  | { kind: "notifications" }
   | { kind: "profile-task"; task: ProfileTaskId }
   | { kind: "complete-profile" };
 
@@ -49,6 +50,8 @@ export function homePath(target: HomeNavTarget): string {
     }
     case "invites":
       return "/profile/invites";
+    case "notifications":
+      return "/notifications";
     case "profile-task":
       return profileTaskPath(target.task);
     case "complete-profile":

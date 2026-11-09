@@ -23,6 +23,7 @@ import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
+import { useRowWindow, windowedRows } from "../lib/row-window";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -346,6 +347,10 @@ export function MembersTab({
     { ...lens, showLevel, canManage, now: new Date() },
     canSetGroupLevel,
   );
+  const rowWindow = useRowWindow(
+    [query, lens.sort, lens.filter].join("\u0000"),
+  );
+  const rows = windowedRows(list.rows, rowWindow.count);
   const selected = leaderboard.find(
     (entry) =>
       entry.userId === selectedUserId &&
@@ -443,7 +448,7 @@ export function MembersTab({
             </View>
           </>
         ) : (
-          list.rows.map((row) => (
+          rows.shown.map((row) => (
             <View key={row.key}>
               <Hairline />
               <MemberRow
@@ -458,6 +463,18 @@ export function MembersTab({
             </View>
           ))
         )}
+        {rows.hidden > 0 ? (
+          <>
+            <Hairline />
+            <View style={{ padding: 12, alignItems: "center" }}>
+              <Button
+                label={m.common.showMore}
+                variant="outline"
+                onPress={rowWindow.showMore}
+              />
+            </View>
+          </>
+        ) : null}
         {legend ? (
           <>
             <Hairline />
