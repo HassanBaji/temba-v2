@@ -249,7 +249,7 @@ describe("drawn tournament hub lists", () => {
     }
   });
 
-  it("expands My Games and the Home carousel into the viewer's Pool Matches", async () => {
+  it("expands My Games into the viewer's Pool Matches and keeps the Home carousel on the Game", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const seeded = await seedFewWeeksTournament(db, "expand");
@@ -298,11 +298,12 @@ describe("drawn tournament hub lists", () => {
       const carousel = (await listHomeCarouselGames(db, viewer.id, NOW)).filter(
         (row) => row.id === seeded.gameId,
       );
-      expect(carousel).toHaveLength(3);
-      expect(carousel.map((row) => row.roundNumber)).toEqual([1, 2, 3]);
-      expect(carousel.map((row) => row.matchId)).toEqual(
-        mine.map((row) => row.matchId),
-      );
+      expect(carousel).toHaveLength(1);
+      expect(carousel[0]).toMatchObject({
+        matchId: null,
+        roundNumber: null,
+        phase: "upcoming",
+      });
     } finally {
       await close();
     }
@@ -692,8 +693,8 @@ describe("Knockout Matches on hub lists", () => {
       ).filter((row) => row.id === seeded.gameId);
       expect(carousel).toHaveLength(1);
       expect(carousel[0]).toMatchObject({
-        matchId: q2.id,
-        knockoutMatch: { round: 1, roundCount: 3 },
+        matchId: null,
+        knockoutMatch: null,
         roundNumber: null,
         phase: "upcoming",
       });
