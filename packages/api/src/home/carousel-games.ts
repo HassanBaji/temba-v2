@@ -5,6 +5,8 @@ import type { DbClient } from "@repo/db";
  * Games with a Match that can still be scored stay until every remaining
  * Match is completed (Americano is not retained). Dedicated to Home — not
  * the Games hub My Groups filter. Hub lists and `isGameLive` stay unchanged.
+ * One row per Game: a drawn Friendly tournament is never split into the
+ * viewer's Matches here, unlike the Games hub.
  */
 
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
@@ -18,7 +20,6 @@ import {
 } from "#src/games/access";
 import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import {
-  expandDrawnTournamentHubRows,
   queryHubGames,
   toHubListRow,
   viewerHubContext,
@@ -136,53 +137,6 @@ function compareHomeCarouselCandidates(
     return orderA - orderB;
   }
   return gameListTime(a).getTime() - gameListTime(b).getTime();
-}
-
-function compareHomeCarouselGames(
-  a: {
-    phase: HomeCarouselPhase;
-    startTime: Date;
-    matchId: string | null;
-    id: string;
-  },
-  b: {
-    phase: HomeCarouselPhase;
-    startTime: Date;
-    matchId: string | null;
-    id: string;
-  },
-): number {
-  const orderA = PHASE_ORDER[a.phase];
-  const orderB = PHASE_ORDER[b.phase];
-  if (orderA !== orderB) {
-    return orderA - orderB;
-  }
-  const byTime = a.startTime.getTime() - b.startTime.getTime();
-  if (byTime !== 0) {
-    return byTime;
-  }
-  return (a.matchId ?? a.id).localeCompare(b.matchId ?? b.id);
-}
-
-export function homeCarouselPhaseForPoolMatch(
-  game: HomeCarouselCandidate,
-  match: { startTime: Date | null; status: string | null },
-  now: Date,
-): HomeCarouselPhase | null {
-  if (!matchIsOpenForSets(match.status)) {
-    return null;
-  }
-  if (isHomeCarouselNeedsResults(game, now)) {
-    return "needs_results";
-  }
-  if (!isGameLive(game, now)) {
-    return null;
-  }
-  const start = match.startTime ?? gameListTime(game);
-  if (start.getTime() > now.getTime()) {
-    return "upcoming";
-  }
-  return "ongoing";
 }
 
 export function filterAndSortHomeCarouselGames<T extends HomeCarouselCandidate>(
@@ -318,28 +272,14 @@ export async function listHomeCarouselGames(
     viewerIsOrganizer: viewerIsOrganizerOnRow(row, userId, organizerGroupIds),
     ...occupancyFromRow(row),
   }));
-  const filtered = filterAndSortHomeCarouselGames(candidates, now);
-  const expanded: HomeCarouselGame[] = [];
-  for (const row of filtered) {
-    const hubRow = toHubListRow(row, viewer, now);
-    const hubRows = expandDrawnTournamentHubRows(row, hubRow, viewer);
-    for (const item of hubRows) {
-      const match = item.matchId
-        ? row.matches.find((candidate) => candidate.id === item.matchId)
-        : null;
-      const phase = match
-        ? (homeCarouselPhaseForPoolMatch(row, match, now) ?? "upcoming")
-        : (homeCarouselPhase(row, now) ?? "upcoming");
-      expanded.push({
-        ...item,
-        phase,
-        canAddResults:
-          phase === "needs_results" &&
-          (match
-            ? viewerCanScoreMatch(row, match, userId, row.viewerIsOrganizer)
-            : viewerCanAddResults(row, userId, row.viewerIsOrganizer)),
-      });
-    }
-  }
-  return expanded.sort(compareHomeCarouselGames);
+  return filterAndSortHomeCarouselGames(candidates, now).map((row) => {
+    const phase = homeCarouselPhase(row, now) ?? "upcoming";
+    return {
+      ...toHubListRow(row, viewer, now),
+      phase,
+      canAddResults:
+        phase === "needs_results" &&
+        viewerCanAddResults(row, userId, row.viewerIsOrganizer),
+    };
+  });
 }

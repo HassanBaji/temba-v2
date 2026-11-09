@@ -6,7 +6,6 @@ export const home = {
   comingUp: {
     tournamentFallback: "بطولة",
     gameFallback: "مباراة",
-    versus: (opponent: string) => `ضد ${opponent}`,
     allSeatsFilled: "جميع الأماكن ممتلئة",
     openSeats: (n: number) =>
       plural("ar", n, {

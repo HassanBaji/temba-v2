@@ -74,7 +74,7 @@ export function upNextItems(
     ...games.map(
       (game): UpNextItem => ({
         kind: "game",
-        key: `game:${game.matchId ?? game.id}`,
+        key: `game:${game.id}`,
         startsAt: new Date(game.startTime),
         sport: sportOrDefault(game.sport),
         game,
@@ -136,18 +136,6 @@ function gameRow(
   const { game } = item;
   const [row] = homeComingUpRows([game], locale);
 
-  if (row?.kind === "tournament_match") {
-    return {
-      ...shared,
-      title: row.title,
-      detail: row.opponentLine,
-      trailing: row.roundTag ? { kind: "tag", label: row.roundTag } : null,
-      spoken: spokenParts(
-        [row.title, shared.day, shared.time, row.opponentLine],
-        locale,
-      ),
-    };
-  }
   if (row?.kind === "tournament") {
     return {
       ...shared,

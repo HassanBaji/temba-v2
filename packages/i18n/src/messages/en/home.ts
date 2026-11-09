@@ -27,7 +27,6 @@ export const home = {
   comingUp: {
     tournamentFallback: "Tournament",
     gameFallback: "Game",
-    versus: (opponent: string) => `vs ${opponent}`,
     allSeatsFilled: "All seats filled",
     openSeats: (n: number) =>
       plural("en", n, { one: "Open seat", other: "{n} open seats" }),

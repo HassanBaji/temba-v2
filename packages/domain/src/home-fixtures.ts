@@ -2,7 +2,6 @@ import type { Sport } from "./sport";
 
 import type {
   HomeComingUpGameRow,
-  HomeComingUpTournamentMatchRow,
   HomeComingUpTournamentRow,
 } from "./home-coming-up";
 import type { LevelBand } from "./level-bands";
@@ -30,7 +29,6 @@ type WithStartsAtString<T> = Omit<T, "startsAt"> & { startsAt: string };
 
 export type HomeComingUpGame =
   | WithStartsAtString<HomeComingUpGameRow>
-  | WithStartsAtString<HomeComingUpTournamentMatchRow>
   | WithStartsAtString<HomeComingUpTournamentRow>;
 
 export type HomeLevel = {
@@ -125,16 +123,6 @@ export function createHomeFixtures(now = new Date()): {
       startsAt: laterStart,
       seatsTaken: 3,
       seatsTotal: 4,
-    },
-    {
-      kind: "tournament_match",
-      id: "game-cup",
-      rated: true,
-      rowKey: "match-cup-r2",
-      title: "Friday Cup",
-      startsAt: laterStart,
-      roundTag: "R2 of 3",
-      opponentLine: "vs Maja S and Oskar T",
     },
     {
       kind: "tournament",
