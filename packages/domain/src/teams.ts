@@ -133,6 +133,15 @@ export function teamDissolveConfirm(displayName: string, locale: Locale) {
   };
 }
 
+export function teamRemoveImageConfirm(displayName: string, locale: Locale) {
+  const m = messagesFor(locale).team.image.removeConfirm;
+  return {
+    title: m.title(displayName),
+    description: m.description,
+    confirmLabel: m.confirmLabel,
+  };
+}
+
 export function teamLeaveConfirm(displayName: string, locale: Locale) {
   const m = messagesFor(locale).team;
   return {

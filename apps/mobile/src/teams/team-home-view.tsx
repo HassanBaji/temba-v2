@@ -8,7 +8,7 @@ import {
   X,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import {
@@ -17,6 +17,7 @@ import {
 } from "../game-details/confirm-sheet";
 import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
+import { CachedImage } from "../primitives/cached-image";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -97,8 +98,57 @@ function RecordSeats({ seats }: { seats: TeamDetailView["hero"]["seats"] }) {
   );
 }
 
+const CREST_SIDE = 64;
+
+/** The Team image when it has one; its initials if there is none or it fails to load. */
+function TeamCrest({
+  initials,
+  imageUrl,
+  pending,
+}: {
+  initials: string;
+  imageUrl: string | null;
+  pending: boolean;
+}) {
+  const m = useMessages();
+  const palette = useTonePalette();
+  const [failed, setFailed] = useState<string | null>(null);
+  const showImage = imageUrl != null && failed !== imageUrl;
+  return (
+    <View
+      accessible={pending}
+      accessibilityLabel={pending ? m.team.image.uploading : undefined}
+      accessibilityState={{ busy: pending }}
+    >
+      <TeamTile initials={initials} tone="solid" size="crest">
+        {showImage ? (
+          <CachedImage
+            uri={imageUrl}
+            style={{ width: CREST_SIDE, height: CREST_SIDE }}
+            contentFit="cover"
+            onError={() => setFailed(imageUrl)}
+          />
+        ) : undefined}
+      </TeamTile>
+      {pending ? (
+        <View
+          style={{
+            position: "absolute",
+            inset: 0,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator color={palette.onControl} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export type TeamHeroProps = {
   hero: TeamDetailView["hero"];
+  imagePending?: boolean;
   onMenu: (() => void) | null;
   onPost: () => void;
   onInvite: () => void;
@@ -108,6 +158,7 @@ export type TeamHeroProps = {
 /** 4a and 4b: the black hero with the crest, the record and its seats. */
 export function TeamHero({
   hero,
+  imagePending = false,
   onMenu,
   onPost,
   onInvite,
@@ -141,7 +192,11 @@ export function TeamHero({
         }
       />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <TeamTile initials={hero.initials} tone="solid" size="crest" />
+        <TeamCrest
+          initials={hero.initials}
+          imageUrl={hero.imageUrl}
+          pending={imagePending}
+        />
         <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
           <Text size="h1" weight="bold" accessibilityRole="header">
             {hero.title}

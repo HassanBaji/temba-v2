@@ -3,7 +3,7 @@
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
-import { use, useRef, useState } from "react";
+import { use, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 
 import {
@@ -29,7 +29,13 @@ import {
 import { TeamRosterList } from "~/components/teams/team-roster-list";
 import { Button } from "~/components/ui/button";
 import { YouSection } from "~/components/you/you-section";
+import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { shareLinkWithFeedback } from "~/lib/share-link";
+import {
+  ENTITY_IMAGE_ACCEPT,
+  entityImageFileError,
+  entityImageUploadInput,
+} from "@repo/domain/entity-image-file";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { sportOrDefault } from "@repo/domain/sport";
@@ -38,6 +44,7 @@ import {
   teamDissolveConfirm,
   teamLeaveConfirm,
   teamLookupNote,
+  teamRemoveImageConfirm,
 } from "@repo/domain/teams";
 import { api } from "~/trpc/react";
 
@@ -55,9 +62,11 @@ export default function TeamHomePage({
   const router = useRouter();
   const utils = api.useUtils();
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [now] = useState(() => new Date());
   const [dissolveOpen, setDissolveOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [removeImageOpen, setRemoveImageOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<{
@@ -95,6 +104,53 @@ export default function TeamHomePage({
       utils.teams.byId.invalidate({ id }),
       utils.groups.byId.invalidate(),
     ]);
+  }
+
+  async function refreshTeamImage() {
+    await Promise.all([
+      utils.teams.byId.invalidate({ id }),
+      utils.teams.mine.invalidate(),
+    ]);
+  }
+
+  const uploadImage = api.teams.uploadImage.useMutation({
+    onSuccess: async () => {
+      toast.success(m.team.image.savedToast);
+      await refreshTeamImage();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const clearImage = api.teams.clearImage.useMutation({
+    onSuccess: async () => {
+      toast.success(m.team.image.removedToast);
+      await refreshTeamImage();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  function onChangeImageFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || uploadImage.isPending) {
+      return;
+    }
+    const pickedError = entityImageFileError(file, locale);
+    if (pickedError) {
+      toast.error(pickedError);
+      return;
+    }
+    void entityImageUploadInput(file, locale)
+      .then((input) =>
+        uploadImage.mutateAsync({
+          teamId: id,
+          contentType: input.contentType,
+          dataBase64: input.dataBase64,
+        }),
+      )
+      .catch(() => undefined);
   }
 
   const leave = api.teams.leave.useMutation({
@@ -152,6 +208,7 @@ export default function TeamHomePage({
   const detail = teamDetailView(data, now, locale);
   const view = detail.home;
   const displayName = view.title;
+  const imagePending = uploadImage.isPending || clearImage.isPending;
 
   const menu = (
     <ActionMenu
@@ -174,6 +231,22 @@ export default function TeamHomePage({
           {view.squad
             ? m.team.squadInviteLabel
             : m.webDashboard.team.invitePartner}
+        </ActionMenuItem>
+      ) : null}
+      {data.canManageImage ? (
+        <ActionMenuItem
+          disabled={imagePending}
+          onSelect={() => imageInputRef.current?.click()}
+        >
+          {m.team.image.change}
+        </ActionMenuItem>
+      ) : null}
+      {data.canManageImage && data.imageUrl ? (
+        <ActionMenuItem
+          disabled={imagePending}
+          onSelect={() => setRemoveImageOpen(true)}
+        >
+          {m.team.image.remove}
         </ActionMenuItem>
       ) : null}
       {view.groupTag.options.map((option) => (
@@ -248,6 +321,7 @@ export default function TeamHomePage({
                 }
               }}
               menu={menu}
+              imagePending={uploadImage.isPending}
             />
             {view.waitingNote ? (
               <p className="text-meta text-muted-foreground">
@@ -306,6 +380,29 @@ export default function TeamHomePage({
           await dissolve.mutateAsync({ teamId: id });
         }}
       />
+
+      <ConfirmDialog
+        open={removeImageOpen}
+        onOpenChange={setRemoveImageOpen}
+        {...teamRemoveImageConfirm(displayName, locale)}
+        pending={clearImage.isPending}
+        restoreFocusRef={menuTriggerRef}
+        onConfirm={async () => {
+          await clearImage.mutateAsync({ teamId: id });
+        }}
+      />
+
+      {data.canManageImage ? (
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept={ENTITY_IMAGE_ACCEPT}
+          className="hidden"
+          tabIndex={-1}
+          disabled={imagePending}
+          onChange={onChangeImageFile}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={leaveOpen}

@@ -35,6 +35,18 @@ export const team = {
   invitePartnerLabel: "Invite your partner",
   leaveLabel: "Leave Team",
   dissolveLabel: "Dissolve Team",
+  image: {
+    change: "Change image",
+    remove: "Remove image",
+    savedToast: "Image saved",
+    removedToast: "Image removed",
+    uploading: "Uploading image…",
+    removeConfirm: {
+      title: (name: string) => `Remove image for ${name}?`,
+      description: "The Team goes back to its initials.",
+      confirmLabel: "Remove image",
+    },
+  },
   waitingCopy:
     "Waiting for a partner. This Team is incomplete until a second member joins.",
   noMembers: {

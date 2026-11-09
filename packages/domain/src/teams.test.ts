@@ -9,6 +9,7 @@ import {
   teamHomeView,
   teamInviteSeatsLeft,
   teamLeaveConfirm,
+  teamRemoveImageConfirm,
   teamListRowView,
   teamNameInput,
 } from "./teams";
@@ -479,6 +480,14 @@ describe("confirm copy", () => {
       title: "Leave Sunday Five?",
       description: "You can only rejoin if you are invited again.",
       confirmLabel: "Leave Team",
+    });
+  });
+
+  it("names the Team on removing its image", () => {
+    expect(teamRemoveImageConfirm("Smashers", "en")).toEqual({
+      title: "Remove image for Smashers?",
+      description: "The Team goes back to its initials.",
+      confirmLabel: "Remove image",
     });
   });
 

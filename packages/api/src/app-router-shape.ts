@@ -235,7 +235,9 @@ type ExpectedTeams =
   | "previewPlayerByPhone"
   | "addPlayerByPhone"
   | "removeUnclaimedPlayer"
-  | "listGroupMembersToAdd";
+  | "listGroupMembersToAdd"
+  | "uploadImage"
+  | "clearImage";
 
 type ExpectedUsers =
   | "home"

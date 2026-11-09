@@ -16,6 +16,7 @@ import { teamEmailInvites } from "./team-email-invites";
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }),
+  imageUrl: varchar("image_url", { length: 255 }),
   sport: groupSports().notNull().default(GroupSportEnum.PADEL),
   createdBy: uuid("created_by")
     .references(() => user.id, { onDelete: "restrict" })
