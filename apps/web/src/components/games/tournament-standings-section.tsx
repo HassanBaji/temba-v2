@@ -155,6 +155,7 @@ export function TournamentStandingsHeader({
   heading,
   lead,
   championLine = null,
+  actions,
 }: {
   name: string;
   roundsPlayed: string | null;
@@ -163,14 +164,20 @@ export function TournamentStandingsHeader({
   heading?: string;
   lead?: string;
   championLine?: string | null;
+  actions?: React.ReactNode;
 }) {
   const m = useMessages();
   return (
     <header className={cn("border-rule border-b py-[22px]", pageBleed)}>
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" href={backHref} />
-        {roundsPlayed ? (
-          <p className="text-muted-foreground text-meta">{roundsPlayed}</p>
+        {roundsPlayed || actions ? (
+          <div className="flex items-center gap-3">
+            {roundsPlayed ? (
+              <p className="text-muted-foreground text-meta">{roundsPlayed}</p>
+            ) : null}
+            {actions}
+          </div>
         ) : (
           <span className="size-11 shrink-0" aria-hidden="true" />
         )}
