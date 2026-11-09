@@ -36,7 +36,7 @@ To scrub through the scene in a browser, serve this folder (`python3 -m http.ser
 
 ## Decisions to review
 
-- **Stopwatch and hook.** The hook says «خلّها 40 ثانية.», but the brief also says the stopwatch stops at about 00:52, so the two numbers disagree. The stopwatch starts at sign-up and runs about 1.28× real time so it reads 00:52 exactly on the tenth seat. To make it agree with the hook, change `stopwatch.stopValue` in `timeline.json` to `40` and rebuild.
+- **Stopwatch and hook.** The stopwatch starts at sign-up and stops at 00:40 on the tenth seat, which matches the hook «خلّها 40 ثانية.». The brief asked for about 00:52, but that disagreed with the hook. It runs at about real time (0.98×). To change the stop value, edit `stopwatch.stopValue` in `timeline.json` and rebuild.
 - **Copy outside the brief.** A few UI labels were needed and are not in the brief. Where the app catalogs (`packages/i18n/src/messages/ar`) already have one, it is used: «مبتدئ / هاوٍ / تنافسي / محترف», «أسود / أبيض», «آخر 10», «7 فوز، 3 خسارة», «ماكينة أهداف». New labels: «أضف برقم الجوال», «بادل», «سباعي», «ملعب النخيل», «الجمعة، 8:00 م», «الأعضاء», and the badge lines «حمّله من آب ستور» and «احصل عليه من جوجل بلاي».
 - **Store badges.** These are drawn placeholders. Apple and Google require their official badge artwork. Swap in the official Arabic badges before paid distribution.
 - **Soundtrack.** The track is synthesized for timing and mood. For a polished release, a composer or a licensed track can replace it. The beat grid in `timeline.json` is the brief to hand over.

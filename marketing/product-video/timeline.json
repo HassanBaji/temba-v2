@@ -14,7 +14,7 @@
     "end": [114, 124]
   },
   "hook": { "words": [0.25, 1.1, 1.95, 2.6, 3.45, 4.3], "cut": 6 },
-  "stopwatch": { "show": 6, "start": 8, "stop": 92, "stopValue": 52 },
+  "stopwatch": { "show": 6, "start": 8, "stop": 92, "stopValue": 40 },
   "signup": {
     "fields": [9, 12.5, 16, 19.5, 23, 26.5],
     "doneAfter": 2.5,
