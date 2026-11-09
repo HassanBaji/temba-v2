@@ -46,6 +46,7 @@ import { consoleSchedule } from "./console-schedule";
 import { consoleCourts } from "./console-courts";
 import { consoleHours } from "./console-hours";
 import { consoleVenue } from "./console-venue";
+import { venue } from "./venue";
 
 export const en = {
   common,
@@ -96,4 +97,5 @@ export const en = {
   consoleCourts,
   consoleHours,
   consoleVenue,
+  venue,
 };

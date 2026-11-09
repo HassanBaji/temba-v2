@@ -74,8 +74,7 @@ export const invite = {
     },
     empty: {
       title: "Nothing waiting",
-      description:
-        "Invites to Games, Groups and Teams show up here.",
+      description: "Invites to Games, Groups and Teams show up here.",
     },
     errorTitle: "Invites could not be loaded",
     acceptLabel: "Accept",
@@ -125,5 +124,25 @@ export const invite = {
     invitationLineSport: (name: string, sport: string) =>
       `You are invited to join "${name}" for "${sport}"`,
     joinLine: (url: string) => `Join: ${url}`,
+  },
+  errors: {
+    linkInvalid: "Invite link is invalid or expired",
+    linkUnavailable: "Invite link is not available",
+    lookupUnavailable: "Lookup invite is not available",
+    lookupNotFound: "Lookup invite not found",
+    differentUser: "This invite is for a different User",
+    lookupAcceptedNoRevoke: "Accepted Lookup invites cannot be revoked",
+    teamOnlyNoLookup: "Team-only Games do not use Lookup invites",
+    lookupSelf: "You cannot Lookup-invite yourself",
+    lookupExists: "An unused Lookup invite already exists for this User",
+    unknownUser: "Unknown User",
+    frozenMint: {
+      group: "This Group is not accepting invites right now",
+      team: "This Team is not accepting invites right now",
+    },
+    frozenAccept: {
+      group: "This Group is not accepting new members right now",
+      team: "This Team is not accepting new members right now",
+    },
   },
 };

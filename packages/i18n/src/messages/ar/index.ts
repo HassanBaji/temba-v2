@@ -46,6 +46,7 @@ import { consoleSchedule } from "./console-schedule";
 import { consoleCourts } from "./console-courts";
 import { consoleHours } from "./console-hours";
 import { consoleVenue } from "./console-venue";
+import { venue } from "./venue";
 
 import type { en } from "../en/index";
 
@@ -100,4 +101,5 @@ export const ar: Messages = {
   consoleCourts,
   consoleHours,
   consoleVenue,
+  venue,
 };

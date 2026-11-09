@@ -34,4 +34,8 @@ export const auth = {
       many: "إعادة إرسال الرمز، متاحة بعد {n} ثانية",
       other: "إعادة إرسال الرمز، متاحة بعد {n} ثانية",
     }),
+  errors: {
+    levelSetterOnly: "لا يحدد المستوى إلا المخوّلون بتحديده",
+    operatorOnly: "هذا للمشغّلين فقط",
+  },
 } satisfies typeof source;

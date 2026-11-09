@@ -390,4 +390,47 @@ export const team = {
       sets: (sets: readonly string[]) => sets.join(", "),
     },
   },
+  errors: {
+    full: "This Team is full",
+    inviteUnavailable: "Team invite is not available",
+    inviteNotFound: "Team invite not found",
+    pairTaken: "This pair already has a Team or a pending invite",
+    alreadyMember: "You are already a member of this Team",
+    userAlreadyMember: "User is already a member of this Team",
+    captainImage: "Only the Captain can change the Team image",
+    memberDissolves: "Only a Team member can dissolve this Team",
+    creatorDissolves: "Only the creator can dissolve this Team",
+    creatorDissolvesIncomplete:
+      "Only the creator can dissolve an incomplete Team",
+    inviteSelf: "You cannot invite yourself",
+    revokeUnusedFirst: "Revoke the unused invite before sending a new one",
+    memberLeaves: "Only a Team member can leave this Team",
+    dissolveInstead: "Dissolve the Team instead",
+    creatorCannotLeave: "The creator cannot leave; dissolve the Team instead",
+    groupOrganizersAdd: "Only the Group's Organizers can add its members",
+    captainAdds: "Only the Captain can add players",
+    groupSport: "Pick a Group of the Team's sport",
+    creatorListsInvites: "Only the creator can list Team invites",
+    captainRemoves: "Only the Captain can remove players",
+    notOnRoster: "This player is not on the Roster",
+    creatorRevokesInvites: "Only the creator can revoke Team invites",
+    acceptedNoRevoke: "Accepted invites cannot be revoked",
+    tagRemover:
+      "Only the Captain or an Organizer of the tagged Group can remove the tag",
+    tagSport: "A Team can only be tagged to a Group of its sport",
+    tagCaptainGroup: "A Team can only be tagged to a Group its Captain is in",
+    playerAlreadyOnRoster: (name: string) => `${name} is already on the Roster`,
+    creatorInvitesPartner:
+      "Only the creator can invite a partner while the Team is incomplete",
+    creatorInvites: "Only the creator can invite into this Team",
+    listedTwice: "Someone is on the list twice",
+    numberListedTwice: "A number is on the list twice",
+    rosterLimit: (max: number) =>
+      plural("en", max, {
+        one: "A Team holds up to 1 player, you included. Remove someone first",
+        other:
+          "A Team holds up to {n} players, you included. Remove someone first",
+      }),
+    roleOnFootballTeam: "Only a football Team takes a role and position",
+  },
 };

@@ -33,4 +33,8 @@ export const auth = {
       one: "Resend code, available in 1 second",
       other: "Resend code, available in {n} seconds",
     }),
+  errors: {
+    levelSetterOnly: "Only Level setters can set a Level",
+    operatorOnly: "Only Operators can do this",
+  },
 };
