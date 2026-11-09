@@ -2,6 +2,7 @@
 
 import {
   Ban,
+  RotateCcwIcon,
   LockIcon,
   LockOpenIcon,
   PencilIcon,
@@ -10,8 +11,9 @@ import {
   UserPlusIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import {
   ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_PAPER_BOXED_TRIGGER,
@@ -22,6 +24,7 @@ import {
 } from "~/components/games/game-actions-sheet";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
+import { TournamentDrawnHome } from "~/components/games/tournament-drawn-home";
 import {
   TournamentDrawDrawer,
   TournamentDrawEntry,
@@ -112,6 +115,7 @@ export function TournamentHome({
   onUndo,
   onCancelKnockoutMatch,
   linkToPlayers = false,
+  roundsPreview,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -156,11 +160,13 @@ export function TournamentHome({
   onUndo: () => void | Promise<void>;
   onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
   linkToPlayers?: boolean;
+  roundsPreview?: ComponentProps<typeof TournamentDrawnHome>["preview"];
 }) {
   const m = useMessages();
   const locale = useLocale();
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const [undoOpen, setUndoOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const view = tournamentHomeView(data, locale);
   const { partnerRequired, joinKind, drawn, schedule } = view;
@@ -175,6 +181,7 @@ export function TournamentHome({
   const showDrawEntry = organizer.showDrawEntry;
   const showUndo = organizer.showUndo;
 
+  const roundsAsYouGo = drawn && !view.knockoutOnly;
   const canJoin = view.canJoin && Boolean(onJoin);
   const canJoinWaitlist = view.canWaitlist && Boolean(onJoinWaitlist);
   const showJoinBar = canJoin || canJoinWaitlist;
@@ -200,6 +207,15 @@ export function TournamentHome({
         onKick={onKick}
         onKickWaitlist={onKickWaitlist}
         onAddPlayer={onAddPlayer}
+        undoDraw={
+          roundsAsYouGo
+            ? {
+                locked: !data.canUndoDraw,
+                pending: undoPending,
+                onSelect: () => setUndoOpen(true),
+              }
+            : undefined
+        }
       />
     ) : null;
 
@@ -211,7 +227,41 @@ export function TournamentHome({
         canJoin && canJoinWaitlist && "max-lg:pb-36",
       )}
     >
-      {drawn ? (
+      {roundsAsYouGo ? (
+        <>
+          <TournamentDrawnHome
+            data={data}
+            standings={tournamentStandingsView(data, locale)}
+            backHref={backHref}
+            actions={actionsMenu(true)}
+            gameTeams={linkToPlayers ? data.gameTeams : undefined}
+            onCancelMatch={
+              isOrganizerActive ? onCancelKnockoutMatch : undefined
+            }
+            preview={roundsPreview}
+          />
+          <ConfirmDialog
+            open={undoOpen}
+            onOpenChange={setUndoOpen}
+            title={m.tournament.poolDraw.undoConfirmTitle}
+            description={m.tournament.poolDraw.undoConfirmCopy}
+            confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
+            pending={undoPending}
+            onConfirm={async () => {
+              try {
+                await onUndo();
+              } catch {
+                // The page shows the failure as a toast.
+              }
+            }}
+          />
+          {undoError ? (
+            <p role="alert" className="text-destructive text-meta">
+              {undoError.message}
+            </p>
+          ) : null}
+        </>
+      ) : drawn ? (
         <TournamentStandingsTree
           standings={tournamentStandingsView(data, locale)}
           poolTables={data.poolTables}
@@ -757,6 +807,7 @@ function TournamentActionsMenu({
   onKick,
   onKickWaitlist,
   onAddPlayer,
+  undoDraw,
 }: {
   title: string;
   description: string | null;
@@ -776,6 +827,7 @@ function TournamentActionsMenu({
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
+  undoDraw?: { locked: boolean; pending: boolean; onSelect: () => void };
 }) {
   const m = useMessages();
 
@@ -844,6 +896,21 @@ function TournamentActionsMenu({
       ]
     : [];
 
+  const undo: GameActionsSheetRow[] = undoDraw
+    ? [
+        {
+          key: "undo_draw",
+          label: undoDraw.locked
+            ? m.tournamentRounds.undo.locked
+            : m.tournamentRounds.undo.action,
+          icon: RotateCcwIcon,
+          tone: "danger",
+          disabled: undoDraw.locked || undoDraw.pending,
+          onSelect: undoDraw.onSelect,
+        },
+      ]
+    : [];
+
   const cancel: GameActionsSheetRow[] = onCancelGame
     ? [
         {
@@ -863,7 +930,7 @@ function TournamentActionsMenu({
       triggerClassName={
         ink ? ACTION_MENU_INK_BOXED_TRIGGER : ACTION_MENU_PAPER_BOXED_TRIGGER
       }
-      groups={[tools, kicks, cancel]}
+      groups={[tools, kicks, undo, cancel]}
     />
   );
 }

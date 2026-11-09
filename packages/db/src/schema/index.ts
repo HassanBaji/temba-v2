@@ -23,6 +23,7 @@ export * from "./game-enums";
 export * from "./games";
 export * from "./game-courts";
 export * from "./matches";
+export * from "./tournament-draft-matches";
 export * from "./match-result-confirmations";
 export * from "./game-players";
 export * from "./game-teams";

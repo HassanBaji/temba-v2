@@ -14,6 +14,7 @@ export const JOB = {
   challengeExpire: "challenge.expire",
   proposalExpire: "proposal.expire",
   challengeSquadDue: "challenge.squad-due",
+  scoreStands: "match.score-stands",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -29,6 +30,7 @@ export const MAX_ATTEMPTS = {
   challengeExpire: 5,
   proposalExpire: 5,
   challengeSquadDue: 5,
+  scoreStands: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -202,5 +204,20 @@ export function notificationEmailJob(notificationId: string): JobSpec {
     payload: { notificationId },
     maxAttempts: MAX_ATTEMPTS.notificationEmail,
     mode: "unsafe_dedupe",
+  };
+}
+
+export function scoreStandsJobKey(matchId: string) {
+  return `match:score-stands:${matchId}`;
+}
+
+/** Completes a tournament Match whose entered score nobody answered; enqueued at entry plus ten minutes. */
+export function scoreStandsJob(matchId: string): JobSpec {
+  return {
+    name: JOB.scoreStands,
+    key: scoreStandsJobKey(matchId),
+    payload: { matchId },
+    maxAttempts: MAX_ATTEMPTS.scoreStands,
+    mode: "replace",
   };
 }

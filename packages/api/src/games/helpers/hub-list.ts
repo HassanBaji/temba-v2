@@ -755,6 +755,7 @@ function viewerPoolMatch(
     poolCount: row.poolCount,
     viewerUserId,
     locale,
+    storedRoundCount: row.roundCount,
     gameTeams: row.teams.map((team) => ({
       id: team.id,
       name: null,

@@ -6,16 +6,23 @@ import { scoredSetLabel } from "./tournament-knockout";
 import { poolLabel } from "./tournament-pool-draw";
 import { hasPools } from "./tournament-rounds";
 import { matchOutcome } from "./match-outcome";
+import { allPoolRoundsPosted, poolPoints } from "./tournament-round-state";
+import { resolveRoundCount } from "./tournament-sizing";
 
 export type PoolRecordOrderInput = {
   gameTeamId: string;
   played: number;
   won: number;
+  drawn?: number;
   setDifference: number;
   gamesDifference: number;
   poolOrder: number;
   headToHead: Readonly<Record<string, number>>;
 };
+
+function recordPoints(record: PoolRecordOrderInput) {
+  return poolPoints({ won: record.won, drawn: record.drawn ?? 0 });
+}
 
 export function comparePoolRecords(
   a: PoolRecordOrderInput,
@@ -30,8 +37,10 @@ export function comparePoolRecords(
   if (a.played === 0 && b.played === 0) {
     return a.poolOrder - b.poolOrder;
   }
-  if (b.won !== a.won) {
-    return b.won - a.won;
+  const pointsA = recordPoints(a);
+  const pointsB = recordPoints(b);
+  if (pointsB !== pointsA) {
+    return pointsB - pointsA;
   }
   const headToHeadA = a.headToHead[b.gameTeamId];
   const headToHeadB = b.headToHead[a.gameTeamId];
@@ -88,6 +97,8 @@ export type PoolTableRow = {
   won: number | null;
   drawn: number | null;
   lost: number | null;
+  points: number | null;
+  gamesDifference: number | null;
   isWinner: boolean;
 };
 
@@ -180,8 +191,13 @@ function addHeadToHeadPoints(
   headToHead[opponentId] = (headToHead[opponentId] ?? 0) + points;
 }
 
-function isSettledMatch(status: string | null) {
-  return status === MATCH_STATUS.COMPLETED || status === MATCH_STATUS.CANCELLED;
+// A Match that did not finish is not settled: the Pool waits for a score
+// or for the Organizer to cancel it.
+function isSettledMatch(match: PoolTableMatchInput) {
+  return (
+    match.status === MATCH_STATUS.COMPLETED ||
+    match.status === MATCH_STATUS.CANCELLED
+  );
 }
 
 function comparePoolMatches(
@@ -208,6 +224,8 @@ export function computePoolTables(args: {
   matches: readonly PoolTableMatchInput[];
   viewerUserId: string;
   locale: Locale;
+  /** `games.round_count`. Omitted means every Pool Round is already posted. */
+  storedRoundCount?: number | null;
 }): ComputedPoolTables | null {
   if (!hasPools(args.format, args.poolCount)) {
     return null;
@@ -251,6 +269,16 @@ export function computePoolTables(args: {
     matchesByPool.set(poolIndex, list);
   }
 
+  const roundsPosted =
+    args.storedRoundCount === undefined ||
+    allPoolRoundsPosted(
+      args.matches,
+      resolveRoundCount(
+        [...byPool.values()].map((teams) => teams.length),
+        args.storedRoundCount,
+      ),
+    );
+
   const pools = [...byPool.entries()]
     .sort(([left], [right]) => left - right)
     .map(([poolIndex, teams]) => {
@@ -258,8 +286,9 @@ export function computePoolTables(args: {
         comparePoolMatches,
       );
       const finished =
+        roundsPosted &&
         poolMatches.length > 0 &&
-        poolMatches.every((match) => isSettledMatch(match.status));
+        poolMatches.every(isSettledMatch);
 
       type Accumulator = {
         team: PoolTableTeamInput;
@@ -360,6 +389,10 @@ export function computePoolTables(args: {
           won: unplayed ? null : row.won,
           drawn: unplayed ? null : row.drawn,
           lost: unplayed ? null : row.lost,
+          points: unplayed
+            ? null
+            : poolPoints({ won: row.won, drawn: row.drawn }),
+          gamesDifference: unplayed ? null : row.gamesDifference,
           isWinner: row.gameTeamId === winnerGameTeamId,
         };
       });

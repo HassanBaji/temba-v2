@@ -41,6 +41,12 @@ import { messagesFor } from "@repo/i18n/messages";
 import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import { cn } from "~/lib/utils";
 
+import {
+  previewRoundsActions,
+  roundsPreviewData,
+  type RoundsPreviewVariant,
+} from "./rounds-preview";
+
 const FIELD_LABEL = "text-muted-foreground text-meta font-normal";
 
 const PREVIEW = messagesFor("en");
@@ -83,12 +89,38 @@ export function TournamentPreviewStates({
     preDrawSeatedHalfOpen: TournamentFixture;
     organizerTwoHalfTeams: TournamentFixture;
     organizerDraftedDraw: TournamentFixture;
+    organizerPosted: TournamentFixture;
     postedMid: TournamentFixture;
     finished: TournamentFixture;
   };
 }) {
   return (
     <div className="space-y-10">
+      <section className="space-y-4">
+        <h2 className="text-title font-semibold">Rounds</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <PreviewColumn
+            title="Organizer, nothing made"
+            data={fixtures.organizerPosted}
+            rounds="empty"
+          />
+          <PreviewColumn
+            title="Organizer, every Round drafted"
+            data={fixtures.organizerPosted}
+            rounds="drafted"
+          />
+          <PreviewColumn
+            title="Organizer, Round 2 on court"
+            data={fixtures.organizerPosted}
+            rounds="live"
+          />
+          <PreviewColumn
+            title="Player, Round 2 on court"
+            data={fixtures.postedMid}
+            rounds="live"
+          />
+        </div>
+      </section>
       <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-3">
         <PreviewColumn
           title="Pre-draw, no seat"
@@ -204,14 +236,16 @@ export function TournamentPreviewStates({
 function PreviewColumn({
   title,
   data,
+  rounds = "live",
 }: {
   title: string;
   data: TournamentFixture;
+  rounds?: RoundsPreviewVariant;
 }) {
   return (
-    <div className="max-w-column mx-auto flex w-full flex-col gap-4">
+    <div className="max-w-column mx-auto flex w-full min-w-0 flex-col gap-4">
       <h2 className="text-title font-semibold">{title}</h2>
-      <TournamentHomePreview data={data} />
+      <TournamentHomePreview data={data} rounds={rounds} />
     </div>
   );
 }
@@ -282,10 +316,24 @@ function HomeMatchCardPreviewColumn({
   );
 }
 
-function TournamentHomePreview({ data }: { data: TournamentFixture }) {
+function TournamentHomePreview({
+  data,
+  rounds,
+}: {
+  data: TournamentFixture;
+  rounds: RoundsPreviewVariant;
+}) {
   return (
     <TournamentHome
       data={data}
+      roundsPreview={
+        data.drawPostedAt
+          ? {
+              rounds: roundsPreviewData(data, rounds),
+              actions: previewRoundsActions,
+            }
+          : undefined
+      }
       sharePending={false}
       joinPending={false}
       leavePending={false}

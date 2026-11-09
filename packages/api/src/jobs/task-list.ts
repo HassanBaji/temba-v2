@@ -9,6 +9,7 @@ import * as challengeExpire from "./handlers/challenge.expire";
 import * as challengeSquadDue from "./handlers/challenge.squad-due";
 import * as notificationEmail from "./handlers/notification.email";
 import * as marksSettleMvp from "./handlers/marks.settle-mvp";
+import * as matchScoreStands from "./handlers/match.score-stands";
 import * as paymentCreateCharge from "./handlers/payment.create-charge";
 import * as paymentPollCharge from "./handlers/payment.poll-charge";
 import * as paymentProcessWebhook from "./handlers/payment.process-webhook";
@@ -24,6 +25,7 @@ const handlers: Record<string, JobHandler> = {
   [challengeSquadDue.jobName]: challengeSquadDue,
   [notificationEmail.jobName]: notificationEmail,
   [marksSettleMvp.jobName]: marksSettleMvp,
+  [matchScoreStands.jobName]: matchScoreStands,
   [paymentCreateCharge.jobName]: paymentCreateCharge,
   [paymentPollCharge.jobName]: paymentPollCharge,
   [paymentProcessWebhook.jobName]: paymentProcessWebhook,

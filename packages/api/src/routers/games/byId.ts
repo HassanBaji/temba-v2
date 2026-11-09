@@ -900,7 +900,10 @@ export async function gameById(
     canUndoDraw:
       game.drawPostedAt != null &&
       !matchRows.some(
-        (match) => match.sets.length > 0 || match.status === "completed",
+        (match) =>
+          match.sets.length > 0 ||
+          match.status === "completed" ||
+          match.notFinishedAt != null,
       ),
     sport: game.sport,
     cancelledAt: game.cancelledAt,
@@ -1040,6 +1043,7 @@ export async function gameById(
       poolCount: game.poolCount,
       viewerUserId: args.userId,
       locale,
+      storedRoundCount: game.roundCount,
       gameTeams: teamRows.map((row) => ({
         id: row.id,
         name: row.name,

@@ -323,3 +323,46 @@ export function schedulePoolMatches(input: {
     slot2GameTeamId: scheduled.item.slot2GameTeamId,
   }));
 }
+
+export type RoundSlot = {
+  courtId: string;
+  startTime: Date;
+  endTime: Date;
+};
+
+/**
+ * The Court and time of every Match position in every Pool Round, laid out
+ * the way a posted draw lays them out. Position k of Round r is the k-th
+ * Match posted in that Round, whoever is paired in it.
+ */
+export function poolRoundSlots(input: {
+  poolSizes: readonly number[];
+  roundCount: number;
+  courtIds: readonly string[];
+  windowStart: Date;
+  windowEnd: Date;
+  matchMinutes: number | null;
+}): Map<number, RoundSlot[]> {
+  const sizing = sizeTournamentRounds(input.poolSizes, input.roundCount);
+  const rounds = sizing.roundMatches.map((count, index) => ({
+    roundNumber: index + 1,
+    items: Array.from({ length: count }, (_, position) => position),
+  }));
+  const slots = new Map<number, RoundSlot[]>();
+  for (const scheduled of scheduleRoundSlots({
+    rounds,
+    courtIds: input.courtIds,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    matchMinutes: input.matchMinutes,
+  })) {
+    const list = slots.get(scheduled.roundNumber) ?? [];
+    list[scheduled.item] = {
+      courtId: scheduled.courtId,
+      startTime: scheduled.startTime,
+      endTime: scheduled.endTime,
+    };
+    slots.set(scheduled.roundNumber, list);
+  }
+  return slots;
+}

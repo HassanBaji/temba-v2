@@ -71,6 +71,13 @@ export const notification = {
       plain(" جهتك في "),
       strong(game),
     ],
+    matchScoreToConfirm: (actor: string, game: string) => [
+      plain("أدخل "),
+      strong(actor),
+      plain(" نتيجتك في "),
+      strong(game),
+      plain(". أكّدها أو صحّحها"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("ربطنا "),
       strong(
