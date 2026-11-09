@@ -25,7 +25,10 @@ import {
   teamPoints,
   type PostedPoolMatch,
 } from "#src/games/tournament-round-context";
-import { enteredScore } from "#src/games/tournament-score";
+import {
+  enteredScore,
+  mayConfirmEnteredScore,
+} from "#src/games/tournament-score";
 import { matchSideSeats } from "#src/games/match-result-confirmations";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -192,10 +195,12 @@ export async function tournamentRounds(
       canEnterScore:
         (organizer && (live || state === "confirmed")) ||
         (viewerSlot != null && live),
-      canConfirm:
-        state === "awaiting_confirmation" &&
-        ((viewerSlot != null && entered?.slot !== viewerSlot) ||
-          (organizer && viewerSlot == null)),
+      canConfirm: mayConfirmEnteredScore({
+        state,
+        viewerSlot,
+        enteredSlot: entered?.slot ?? null,
+        organizer,
+      }),
       canMarkNotFinished:
         (organizer || viewerSlot != null) &&
         (state === "on_court" || state === "awaiting_confirmation"),

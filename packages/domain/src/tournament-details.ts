@@ -87,6 +87,8 @@ export type TournamentDetailsMatch = {
   bothSidesComplete: boolean;
   canAddSet: boolean;
   canScoreSets: boolean;
+  /** The viewer may confirm the other team's pending score (ADR-0062). */
+  canConfirmScore: boolean;
   canComplete: boolean;
   outcome: {
     slot1SetWins: number;

@@ -2,9 +2,10 @@
 
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
-import type {
-  FriendlyGameDetails,
-  FriendlyGameDetailsMatch,
+import {
+  seatedPlayerCanRename,
+  type FriendlyGameDetails,
+  type FriendlyGameDetailsMatch,
 } from "@repo/domain/friendly-game-details";
 import { friendlyGameCanKickPlayer } from "@repo/domain/friendly-game-players";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
@@ -158,7 +159,11 @@ export function PlayedFriendlyGame({
         player={selected}
         canOpenProfile={linkToPlayers}
         canKick={selected != null && canKick(selected.userId)}
-        canRename={Boolean(onRename) && game.isOrganizer}
+        canRename={
+          selected != null &&
+          Boolean(onRename) &&
+          seatedPlayerCanRename(game.sides, selected.userId)
+        }
         onOpenChange={(open) => {
           if (!open) {
             setSelected(null);

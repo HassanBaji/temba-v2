@@ -30,6 +30,7 @@ import {
   renameUnclaimedPlayer,
   renameUnclaimedPlayerInput,
 } from "#src/routers/users/renameUnclaimedPlayer";
+import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const HOUR = 60 * 60 * 1000;
@@ -501,6 +502,128 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(unknown.code).toBe("NOT_FOUND");
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("canRename on the rows the rename sheets open from", () => {
+  it("is true on Game details only for an Organizer the door would let fix the name", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const first = await groupGame(db, "Organizer");
+      const ali = await seatAli(db, first);
+      const second = await groupGame(db, "Second organizer");
+      const again = await addPlayerToGame(db, {
+        gameId: second.gameId,
+        organizerUserId: second.organizer,
+        ...bahrain("36124408"),
+        seat: { sideIndex: 2, position: "left" },
+      });
+      expect(again.userId).toBe(ali);
+
+      async function flags(gameId: string, userId: string) {
+        const details = await gameById(db, { gameId, userId });
+        return {
+          seat: details.sides[1]?.left?.canRename,
+          roster: details.registeredPlayers.find((row) => row.id === ali)
+            ?.canRename,
+          door: await mayRenameUnclaimedPlayer(db, {
+            playerId: ali,
+            adderId: first.organizer,
+            callerId: userId,
+          }),
+        };
+      }
+
+      expect(await flags(first.gameId, first.organizer)).toEqual({
+        seat: true,
+        roster: true,
+        door: true,
+      });
+      expect(await flags(first.gameId, first.member)).toEqual({
+        seat: false,
+        roster: false,
+        door: false,
+      });
+      expect(await flags(second.gameId, second.organizer)).toEqual({
+        seat: false,
+        roster: false,
+        door: false,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("is true on Group home only for a Group approver the door would let fix the name", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, { name: "Creator" });
+      const coOrganizer = await insertUser(db, { name: "Co organizer" });
+      const stranger = await insertUser(db, { name: "Stranger" });
+      const first = await createLoosePrivate(db, {
+        name: "Thursday padel",
+        sport: "padel",
+        userId: creator,
+      });
+      await db.insert(groupMembers).values({
+        groupId: first.id,
+        userId: coOrganizer,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+      const added = await addPlayerToGroup(db, {
+        groupId: first.id,
+        approverUserId: creator,
+        ...bahrain("36124408"),
+        name: "Ally",
+      });
+      const second = await createLoosePrivate(db, {
+        name: "Stranger padel",
+        sport: "padel",
+        userId: stranger,
+      });
+      await addPlayerToGroup(db, {
+        groupId: second.id,
+        approverUserId: stranger,
+        ...bahrain("36124408"),
+      });
+
+      async function canRename(groupId: string, userId: string) {
+        const home = await groupById(db, { groupId, userId });
+        return home.standing.leaderboard.find(
+          (row) => row.userId === added.userId,
+        )?.canRename;
+      }
+
+      expect(await canRename(first.id, creator)).toBe(true);
+      expect(await canRename(first.id, coOrganizer)).toBe(true);
+      expect(await canRename(second.id, stranger)).toBe(false);
+      expect(
+        await mayRenameUnclaimedPlayer(db, {
+          playerId: added.userId,
+          adderId: creator,
+          callerId: stranger,
+        }),
+      ).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a player with no adder", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const game = await groupGame(db, "Organizer");
+      const ali = await seatAli(db, game);
+      expect(
+        await mayRenameUnclaimedPlayer(db, {
+          playerId: ali,
+          adderId: null,
+          callerId: game.organizer,
+        }),
+      ).toBe(false);
     } finally {
       await close();
     }

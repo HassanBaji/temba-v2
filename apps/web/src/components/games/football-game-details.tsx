@@ -989,6 +989,12 @@ export function FootballGameDetails({
           setSelected(null);
           requestKick({ userId });
         }}
+        canRename={
+          selected != null &&
+          game.registeredPlayers.some(
+            (player) => player.id === selected.userId && player.canRename,
+          )
+        }
         onRename={(player) => {
           setSelected(null);
           setRenaming(player);

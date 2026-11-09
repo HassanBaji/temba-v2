@@ -78,6 +78,7 @@ type GroupMember = {
   groupLevel?: { level: string } | null;
   unclaimed: boolean;
   phoneMasked: string | null;
+  canRename?: boolean;
 };
 
 type SavedLevel = {
@@ -590,7 +591,7 @@ export function GroupMembersTab({
             })
         : undefined;
     const onRename =
-      canAddPlayers && member.unclaimed && onRenameUnclaimed
+      canAddPlayers && member.canRename === true && onRenameUnclaimed
         ? () => onRenameUnclaimed(target)
         : undefined;
     const onRemove =
