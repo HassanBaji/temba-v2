@@ -21,6 +21,7 @@ import {
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react";
 import Link from "next/link";
@@ -356,9 +357,19 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
-  const board = api.games.footballBoard.useQuery({ gameId });
+  const isFootball = game.data ? isFootballRosterGame(game.data) : null;
+  const board = api.games.footballBoard.useQuery(
+    { gameId },
+    { enabled: isFootball === true },
+  );
   const [draft, setDraft] = React.useState<TeamsDraft | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
+
+  React.useEffect(() => {
+    if (isFootball === false) {
+      router.replace(gameHref);
+    }
+  }, [isFootball, router, gameHref]);
 
   React.useEffect(() => {
     if (board.data && draft == null) {
