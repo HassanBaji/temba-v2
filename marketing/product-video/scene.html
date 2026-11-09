@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Temba product video</title>
+    <style>
+      @font-face {
+        font-family: "Plex";
+        font-weight: 400;
+        src: url(fonts/PlexArabic-400-arabic.woff2) format("woff2");
+        unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+      }
+      @font-face {
+        font-family: "Plex";
+        font-weight: 400;
+        src: url(fonts/PlexArabic-400-latin.woff2) format("woff2");
+        unicode-range: U+0000-00FF, U+2000-206F, U+2212;
+      }
+      @font-face {
+        font-family: "Plex";
+        font-weight: 700;
+        src: url(fonts/PlexArabic-700-arabic.woff2) format("woff2");
+        unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+      }
+      @font-face {
+        font-family: "Plex";
+        font-weight: 700;
+        src: url(fonts/PlexArabic-700-latin.woff2) format("woff2");
+        unicode-range: U+0000-00FF, U+2000-206F, U+2212;
+      }
+      /* Western digits and their separators always come from Archivo Expanded. */
+      @font-face {
+        font-family: "Num";
+        src: url(fonts/ArchivoExpanded-Bold.ttf) format("truetype");
+        unicode-range: U+0030-0039, U+002B, U+002F, U+003A, U+2013;
+      }
+      @font-face {
+        font-family: "Sora";
+        font-weight: 700;
+        src: url(fonts/Sora-700-latin.woff2) format("woff2");
+      }
+
+      :root {
+        --ink: #000000;
+        --paper: #ffffff;
+        --muted: #6e6e6e;
+        --rule: #e6e6e6;
+        --wash: #f4f4f4;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      body {
+        font-family: "Num", "Plex", sans-serif;
+        font-weight: 400;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
+      }
+      #stage {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      .abs {
+        position: absolute;
+      }
+      .b {
+        font-weight: 700;
+      }
+      .num {
+        font-family: "Num", "Plex", sans-serif;
+        letter-spacing: -0.03em;
+      }
+      .ltr {
+        direction: ltr;
+        unicode-bidi: isolate;
+        display: inline-block;
+      }
+      .hatch {
+        background-color: var(--paper);
+        background-image: repeating-linear-gradient(
+          45deg,
+          var(--muted) 0 1.5px,
+          transparent 1.5px 13px
+        );
+      }
+      .hatch-ink {
+        background-color: var(--ink);
+        background-image: repeating-linear-gradient(
+          45deg,
+          var(--muted) 0 1.5px,
+          transparent 1.5px 13px
+        );
+      }
+
+      /* Chrome around the panel */
+      #watch {
+        left: 60px;
+        top: 112px;
+        direction: ltr;
+        font-family: "Num";
+        font-size: 176px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+      #headline {
+        right: 64px;
+        top: 344px;
+        font-size: 92px;
+        line-height: 1.1;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      #panel {
+        left: 64px;
+        top: 500px;
+        width: 952px;
+        height: 1090px;
+        border: 2px solid var(--rule);
+        border-radius: 40px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      #progress {
+        left: 64px;
+        top: 1630px;
+        width: 952px;
+        height: 16px;
+        display: flex;
+        gap: 14px;
+      }
+      .seg {
+        position: relative;
+        flex: 1;
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1.5px solid var(--rule);
+      }
+      .solidfill {
+        position: absolute;
+        inset: 0;
+        background: var(--ink);
+      }
+
+      /* Panel content */
+      .screen {
+        position: absolute;
+        inset: 0;
+        padding: 52px 48px;
+      }
+      .eyebrow {
+        font-size: 30px;
+        color: var(--muted);
+        line-height: 40px;
+      }
+      .field {
+        margin-bottom: 18px;
+      }
+      .flabel {
+        font-size: 29px;
+        line-height: 36px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .fbox {
+        position: relative;
+        height: 92px;
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 0 28px;
+        font-size: 40px;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .layer.tight {
+        padding: 0 14px;
+        gap: 12px;
+      }
+      .layer.idle {
+        border: 2px solid var(--rule);
+      }
+      .layer.active {
+        background: var(--paper);
+        border: 3px solid var(--ink);
+      }
+      .layer.solid {
+        background: var(--ink);
+        color: var(--paper);
+        border: 3px solid var(--ink);
+      }
+      .caret {
+        display: inline-block;
+        width: 4px;
+        height: 50px;
+        background: var(--ink);
+        vertical-align: middle;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .slot {
+        width: 68px;
+        height: 66px;
+        border-radius: 14px;
+        border: 2px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Num";
+        font-size: 40px;
+      }
+      .solid .slot {
+        border-color: #3a3a3a;
+      }
+      .seg-opt {
+        position: relative;
+        flex: 1;
+        height: 64px;
+        border-radius: 14px;
+        border: 2px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 33px;
+      }
+      .seg-opt.on {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+      }
+      .solid .seg-opt {
+        border-color: #3a3a3a;
+        color: var(--muted);
+      }
+      .solid .seg-opt.on {
+        background: var(--paper);
+        color: var(--ink);
+        border-color: var(--paper);
+      }
+      .avatar {
+        position: relative;
+        flex: none;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+      }
+      .ring {
+        position: absolute;
+        border: 4px solid var(--ink);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      .btn {
+        position: relative;
+        height: 104px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        font-size: 36px;
+        font-weight: 700;
+      }
+      .btn.primary {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .btn.outline {
+        border: 3px solid var(--ink);
+      }
+      .placeholder {
+        height: 112px;
+        border-radius: 20px;
+        border: 2px solid var(--rule);
+        margin-top: 22px;
+      }
+      .row {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 108px;
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        border-bottom: 2px solid var(--rule);
+        overflow: hidden;
+      }
+      .card3d {
+        position: absolute;
+        perspective: 2400px;
+      }
+      .card-inner {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+      }
+      .face {
+        position: absolute;
+        inset: 0;
+        border-radius: 32px;
+        backface-visibility: hidden;
+        padding: 40px 40px;
+        overflow: hidden;
+      }
+      .face.front {
+        background: var(--paper);
+        border: 2px solid var(--rule);
+      }
+      .face.back {
+        background: var(--ink);
+        color: var(--paper);
+        transform: rotateY(180deg);
+      }
+      .seat {
+        position: relative;
+        width: 118px;
+        height: 118px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 2px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 50px;
+        font-weight: 700;
+      }
+      .back .seat {
+        border-color: var(--paper);
+      }
+      .seatname {
+        width: 118px;
+        text-align: center;
+        font-size: 25px;
+        line-height: 34px;
+        margin-top: 8px;
+        height: 34px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .back .seatname {
+        color: #9a9a9a;
+      }
+      .formslot {
+        position: relative;
+        width: 66px;
+        height: 66px;
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .badge {
+        width: 392px;
+        height: 128px;
+        border-radius: 22px;
+        background: var(--ink);
+        color: var(--paper);
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 0 32px;
+      }
+      #scrub {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script src="scene.js"></script>
+  </body>
+</html>
