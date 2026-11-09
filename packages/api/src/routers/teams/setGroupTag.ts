@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groups, teams } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -29,14 +31,19 @@ async function currentTagGroup(database: DbClient, groupId: string | null) {
 }
 
 /**
- * Tag a Team as a Group's team, or clear the tag. The Captain or an Organizer
- * of the target Group may set it, and only to a Group the Captain is in; the
- * Captain or an Organizer of the tagged Group may clear it. Moving the tag to
- * another Group needs both rights.
+ * Tag a Team as a Group's team, or clear the tag. A tag lets that Group's
+ * Organizers act for the Team, so only the Captain sets or moves it, and only
+ * to a Group the Captain is in; the Captain or an Organizer of the tagged
+ * Group may clear it.
  */
 export async function setGroupTag(
   database: DbClient,
-  args: { teamId: string; groupId: string | null; userId: string },
+  args: {
+    teamId: string;
+    groupId: string | null;
+    userId: string;
+    locale?: Locale;
+  },
 ) {
   const team = await requireTeam(database, args.teamId);
   const isCaptain = team.createdBy === args.userId;
@@ -57,14 +64,11 @@ export async function setGroupTag(
     }
   } else {
     const target = await requireTagGroup(database, args.groupId, team.sport);
-    const maySetTarget =
-      isCaptain || (await mayOrganizeGroupGames(database, target, args.userId));
-    const moving = current != null && current.id !== target.id;
-    if (!maySetTarget || (moving && !mayClearCurrent)) {
+    if (!isCaptain) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message:
-          "Only the Captain or an Organizer of that Group can tag this Team",
+        message: messagesFor(args.locale ?? DEFAULT_LOCALE).team.groupTag
+          .captainOnly,
       });
     }
     await requireCaptainInTagGroup(database, target.id, team.createdBy);
@@ -102,5 +106,6 @@ export const setGroupTagProcedure = protectedProcedure
       teamId: input.teamId,
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

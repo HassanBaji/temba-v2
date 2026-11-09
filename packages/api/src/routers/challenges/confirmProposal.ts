@@ -28,6 +28,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { teamIneligibleReason } from "#src/challenges/challenge-eligibility";
+import { lockProposalWithChallenge } from "#src/challenges/lock-proposal";
 import { checkProposalTerms } from "#src/challenges/proposal-terms";
 import { type db } from "#src/db";
 import {
@@ -279,22 +280,14 @@ export async function confirmProposal(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const m = messagesFor(locale).challenge;
   return database.transaction(async (tx) => {
-    const [proposal] = await tx
-      .select()
-      .from(challengeProposals)
-      .where(eq(challengeProposals.id, args.proposalId))
-      .for("update");
-    if (!proposal) {
+    const locked = await lockProposalWithChallenge(tx, args.proposalId);
+    if (!locked) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: m.errors.proposalNotFound,
       });
     }
-    const [challenge] = await tx
-      .select()
-      .from(challenges)
-      .where(eq(challenges.id, proposal.challengeId))
-      .for("update");
+    const { proposal, challenge } = locked;
     if (!challenge) {
       throw new TRPCError({ code: "NOT_FOUND", message: m.detail.notFound });
     }
@@ -304,6 +297,15 @@ export async function confirmProposal(
     ]);
     if (!posterTeam || !(await userActsForTeam(tx, posterTeam, args.userId))) {
       throw new TRPCError({ code: "FORBIDDEN", message: m.errors.notActing });
+    }
+    if (
+      proposingTeam &&
+      (await userActsForTeam(tx, proposingTeam, args.userId))
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: m.errors.confirmOwnProposal,
+      });
     }
     const pendingRows = await tx.query.challengeProposals.findMany({
       where: and(

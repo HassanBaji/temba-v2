@@ -59,6 +59,12 @@ export const team = {
     title: (name: string) => `حل ${name}؟`,
     description: "لا يمكن التراجع عن هذا.",
   },
+  dissolveBlocked: {
+    openChallenge: "اسحب التحدي المفتوح لهذا الفريق قبل حلّه",
+    pendingProposal: "اسحب العروض المعلّقة لهذا الفريق قبل حلّه",
+    challengeGame:
+      "لهذا الفريق مباراة تحدٍّ لم تُلعب بعد. ألغها أو أكملها قبل حلّ الفريق.",
+  },
   leaveConfirm: {
     title: (name: string) => `مغادرة ${name}؟`,
     description: "لا يمكنك العودة إلا إذا دُعيت مجددًا.",
@@ -300,6 +306,7 @@ export const team = {
     remove: "إزالة الوسم",
     tagged: (group: string) => `أصبح فريق ${isolate(group)}`,
     removed: "أزيل الوسم",
+    captainOnly: "القائد وحده يستطيع وسم هذا الفريق بمجموعة",
   },
   recordSpoken: (wins: number, losses: number) => `فاز ${wins}، خسر ${losses}`,
   recordSpokenWithDraws: (wins: number, draws: number, losses: number) =>
