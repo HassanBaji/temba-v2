@@ -32,14 +32,18 @@ export async function rejectJoinRequest(
 
   await assertGroupApprover(database, group, args.userId);
 
-  if (request.status !== "pending") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Join request is not pending",
-    });
-  }
-
   await database.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ status: groupJoinRequests.status })
+      .from(groupJoinRequests)
+      .where(eq(groupJoinRequests.id, request.id))
+      .for("update");
+    if (locked?.status !== "pending") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Join request is not pending",
+      });
+    }
     const [updated] = await tx
       .update(groupJoinRequests)
       .set({

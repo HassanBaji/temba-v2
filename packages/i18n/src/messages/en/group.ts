@@ -215,6 +215,7 @@ export const group = {
   },
   linkRequest: {
     venueRequestsTitle: "Venue requests",
+    publicOnly: "Only a Public Group can be linked to a Venue by request",
     rowMeta: "Only you can decide, as the Group creator.",
     acceptLabel: "Accept",
     declineLabel: "Decline",
@@ -435,6 +436,7 @@ export const group = {
     },
     linkCopiedToast: "Group link copied",
     linkResetToast: "Link reset. Old links stop working.",
+    linkResetOwnerOnly: "Only the Group owner can reset the Invite link",
     ownerLeave: {
       title: (name: string) => `Hand ${name} to someone first`,
       description:

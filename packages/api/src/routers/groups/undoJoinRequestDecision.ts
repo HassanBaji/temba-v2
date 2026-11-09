@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  gamePlayers,
+  games,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
@@ -16,12 +18,30 @@ import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
+type Tx = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
 
 const UNDOABLE_STATUSES: string[] = [
   GroupJoinRequestStatusEnum.APPROVED,
   GroupJoinRequestStatusEnum.REJECTED,
   GroupJoinRequestStatusEnum.BLOCKED,
 ];
+
+/** A seat on any Game of the Group that was not cancelled, played or still to play. */
+async function hasGroupGameSeat(tx: Tx, groupId: string, userId: string) {
+  const [seat] = await tx
+    .select({ id: gamePlayers.id })
+    .from(gamePlayers)
+    .innerJoin(games, eq(games.id, gamePlayers.gameId))
+    .where(
+      and(
+        eq(games.groupId, groupId),
+        isNull(games.cancelledAt),
+        eq(gamePlayers.userId, userId),
+      ),
+    )
+    .limit(1);
+  return seat != null;
+}
 
 export async function undoJoinRequestDecision(
   database: DbClient,
@@ -56,10 +76,10 @@ export async function undoJoinRequestDecision(
           eq(groupMembers.groupId, group.id),
           eq(groupMembers.userId, request.userId),
         ),
-        columns: { id: true, totalGamesPlayed: true },
+        columns: { id: true },
       });
       if (membership) {
-        if (membership.totalGamesPlayed > 0) {
+        if (await hasGroupGameSeat(tx, group.id, request.userId)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "They have already played in this Group",

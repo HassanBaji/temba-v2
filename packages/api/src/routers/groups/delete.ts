@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { games, groups, MatchStatusEnum, teams } from "@repo/db";
@@ -27,19 +27,35 @@ export async function deleteGroup(
   assertGroupOwner(group, args.userId, "Only the Group owner can delete this Group");
 
   const now = args.now ?? new Date();
-  const liveGames = await database.query.games.findMany({
-    where: and(eq(games.groupId, group.id), isNull(games.cancelledAt)),
-    with: {
-      matches: { columns: { status: true, startTime: true } },
-    },
-  });
-  const upcoming = liveGames.filter(
-    (game) =>
-      gameListTime(game).getTime() > now.getTime() &&
-      !game.matches.some((match) => match.status === MatchStatusEnum.COMPLETED),
-  );
 
-  await database.transaction(async (tx) => {
+  const cancelled = await database.transaction(async (tx) => {
+    const locked = await tx
+      .select({ id: games.id })
+      .from(games)
+      .where(and(eq(games.groupId, group.id), isNull(games.cancelledAt)))
+      .for("update");
+    const liveGames =
+      locked.length === 0
+        ? []
+        : await tx.query.games.findMany({
+            where: and(
+              inArray(
+                games.id,
+                locked.map((row) => row.id),
+              ),
+              isNull(games.cancelledAt),
+            ),
+            with: {
+              matches: { columns: { status: true, startTime: true } },
+            },
+          });
+    const upcoming = liveGames.filter(
+      (game) =>
+        gameListTime(game).getTime() > now.getTime() &&
+        !game.matches.some(
+          (match) => match.status === MatchStatusEnum.COMPLETED,
+        ),
+    );
     for (const game of upcoming) {
       await cancelGameRecord(tx, game);
     }
@@ -51,12 +67,13 @@ export async function deleteGroup(
       .update(teams)
       .set({ groupId: null, updatedAt: now })
       .where(eq(teams.groupId, group.id));
+    return upcoming.length;
   });
 
   return {
     ok: true as const,
     groupId: group.id,
-    cancelledGameCount: upcoming.length,
+    cancelledGameCount: cancelled,
   };
 }
 

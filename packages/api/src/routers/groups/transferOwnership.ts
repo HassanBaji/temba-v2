@@ -62,6 +62,25 @@ export async function transferOwnership(
   const now = new Date();
   const previousOwnerId = group.createdBy;
   await database.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ createdBy: groups.createdBy })
+      .from(groups)
+      .where(eq(groups.id, group.id))
+      .for("update");
+    if (locked?.createdBy !== args.userId) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only the Group owner can transfer ownership",
+      });
+    }
+    const [stillMember] = await tx
+      .select({ id: groupMembers.id })
+      .from(groupMembers)
+      .where(eq(groupMembers.id, membership.id))
+      .for("update");
+    if (!stillMember) {
+      throw new TRPCError({ code: "NOT_FOUND", message: NOT_A_MEMBER_MESSAGE });
+    }
     await tx
       .update(groups)
       .set({ createdBy: args.newOwnerUserId, updatedAt: now })
