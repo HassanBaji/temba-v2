@@ -170,6 +170,37 @@ describe("transferOwnership", () => {
     }
   });
 
+  it("never leaves the Group owned by someone who left while it was handed to them", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seed(db);
+
+      const results = await Promise.allSettled([
+        transferOwnership(db, {
+          groupId: f.group.id,
+          userId: f.owner,
+          newOwnerUserId: f.member,
+        }),
+        leaveGroup(db, { groupId: f.group.id, userId: f.member }),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+
+      const group = await db.query.groups.findFirst({
+        where: eq(groups.id, f.group.id),
+        columns: { createdBy: true },
+      });
+      const ownerMembership = await db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, f.group.id),
+          eq(groupMembers.userId, group!.createdBy),
+        ),
+      });
+      expect(ownerMembership).toBeTruthy();
+    } finally {
+      await close();
+    }
+  });
+
   it("only the owner may transfer", async () => {
     const { db, close } = await createPgliteDb();
     try {

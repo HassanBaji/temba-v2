@@ -151,12 +151,11 @@ async function groupTagView(
   const canClear = tagged
     ? isCaptain || (await mayOrganizeGroupGames(database, tagged, userId))
     : false;
-  const organized =
-    tagged && !canClear
-      ? []
-      : (await organizedGroups(database, sport, userId)).filter(
-          (group) => group.id !== tagged?.id,
-        );
+  const organized = isCaptain
+    ? (await organizedGroups(database, sport, userId)).filter(
+        (group) => group.id !== tagged?.id,
+      )
+    : [];
   const captainIn = await captainGroupIds(
     database,
     team.createdBy,

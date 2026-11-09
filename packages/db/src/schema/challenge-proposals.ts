@@ -41,6 +41,8 @@ export const challengeProposals = pgTable(
     pricePerPlayerFils: integer("price_per_player_fils"),
     /** Sent, or last changed, plus 48 hours. */
     expiresAt: timestamp("expires_at").notNull(),
+    /** How many times the proposing Team changed it; capped by the change door. */
+    changeCount: integer("change_count").notNull().default(0),
     decidedBy: uuid("decided_by").references(() => user.id, {
       onDelete: "set null",
     }),

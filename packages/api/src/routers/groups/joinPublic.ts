@@ -61,12 +61,15 @@ export async function joinPublic(
         groupId: group.id,
         userId: args.userId,
       })
+      .onConflictDoNothing({
+        target: [groupMembers.groupId, groupMembers.userId],
+      })
       .returning();
 
     if (!created) {
       throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to join Group",
+        code: "CONFLICT",
+        message: "You are already a member of this Group",
       });
     }
 

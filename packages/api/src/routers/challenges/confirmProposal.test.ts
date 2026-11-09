@@ -7,13 +7,16 @@ import {
   games,
   gameTeamPlayers,
   gameTeams,
+  groups,
   matches,
   matchSets,
   notifications,
   ratingEvents,
   teamMembers,
+  teams,
   user,
 } from "@repo/db/schema";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   addPendingProposal,
@@ -538,6 +541,46 @@ describe("challenges.confirmProposal", () => {
           where: eq(matchSets.setNumber, 1),
         }),
       ).toHaveLength(1);
+    });
+  });
+
+  it("refuses an Organizer who acts for both tagged Teams, and lets the poster's Captain confirm", async () => {
+    await withDb(async ({ db, database }) => {
+      const match = await footballMatchup(database, sentAt, { sideSize: 5 });
+      const [organizer] = await makeUsers(database, "Organizer", 1);
+      const [group] = await database
+        .insert(groups)
+        .values({ name: "Gooz", sport: "football", createdBy: organizer! })
+        .returning({ id: groups.id });
+      await database
+        .update(teams)
+        .set({ groupId: group!.id })
+        .where(inArray(teams.id, [match.hidd.id, match.arad.id]));
+      const { id: proposalId } = await proposeOnChallenge(db, {
+        challengeId: match.challenge.id,
+        teamId: match.arad.id,
+        venueId: match.venue.id,
+        startsAt: kickOff,
+        userId: organizer!,
+        now: sentAt,
+      });
+
+      expect(
+        await refusal(
+          confirmProposal(db, { proposalId, userId: organizer!, now: sentAt }),
+        ),
+      ).toEqual({
+        code: "FORBIDDEN",
+        message: messagesFor("en").challenge.errors.confirmOwnProposal,
+      });
+      expect(await database.query.games.findMany()).toHaveLength(0);
+
+      await confirmProposal(db, {
+        proposalId,
+        userId: match.hiddIds[0]!,
+        now: sentAt,
+      });
+      expect(await database.query.games.findMany()).toHaveLength(1);
     });
   });
 });

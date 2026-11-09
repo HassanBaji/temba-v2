@@ -3,7 +3,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { teamInviteLinks } from "@repo/db";
+import { teamInviteLinks, teams } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -36,34 +36,39 @@ export async function acceptInviteLink(
 
   const team = await requireTeam(database, link.teamId);
 
-  const memberRows = await listTeamMembers(database, team.id);
-  const existing = memberRows.find((row) => row.userId === args.userId);
-  if (existing) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "You are already a member of this Team",
-    });
-  }
-
-  if (teamIsFull(memberRows.length, team.sport)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "This Team is full",
-    });
-  }
-
-  const creatorId = memberRows[0]?.userId ?? team.createdBy;
-  if (
-    teamRosterRule(team.sport).pairIsUnique &&
-    (await unorderedPairIsReserved(database, creatorId, args.userId))
-  ) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "This pair already has a Team or a pending invite",
-    });
-  }
-
   await database.transaction(async (tx) => {
+    await tx
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.id, team.id))
+      .for("update");
+    const memberRows = await listTeamMembers(tx, team.id);
+    const existing = memberRows.find((row) => row.userId === args.userId);
+    if (existing) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "You are already a member of this Team",
+      });
+    }
+
+    if (teamIsFull(memberRows.length, team.sport)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "This Team is full",
+      });
+    }
+
+    const creatorId = memberRows[0]?.userId ?? team.createdBy;
+    if (
+      teamRosterRule(team.sport).pairIsUnique &&
+      (await unorderedPairIsReserved(tx, creatorId, args.userId))
+    ) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "This pair already has a Team or a pending invite",
+      });
+    }
+
     const accepted = await acceptLink(tx, "team", {
       token: args.token,
       userId: args.userId,

@@ -18,7 +18,7 @@ import {
 type DbClient = typeof db;
 
 export const RENAME_NOT_ALLOWED_MESSAGE =
-  "Only an Organizer or Group approver where they play can edit their name";
+  "Only an Organizer or Group approver where they were added can edit their name";
 
 export const ONLY_UNCLAIMED_RENAMABLE_MESSAGE =
   "Only players not on Temba yet can have their name edited";
@@ -32,10 +32,16 @@ export const renameUnclaimedPlayerInput = z.object({
     .max(UNCLAIMED_PLAYER_NAME_MAX_LENGTH),
 });
 
+/**
+ * An existing Unclaimed player can be added to any Group or Game by phone, so
+ * a name is fixed only where the person who added them also runs things: a
+ * Game or Group the player is on that both the caller and the adder organize.
+ */
 async function organizesAGameTheyAreOn(
   database: DbClient,
   playerId: string,
   callerId: string,
+  adderId: string,
 ) {
   const [seated, waitlisted] = await Promise.all([
     database
@@ -62,7 +68,10 @@ async function organizesAGameTheyAreOn(
     .from(games)
     .where(inArray(games.id, gameIds));
   for (const game of gameRows) {
-    if (await isGameOrganizer(database, game, callerId)) {
+    if (
+      (await isGameOrganizer(database, game, callerId)) &&
+      (await isGameOrganizer(database, game, adderId))
+    ) {
       return true;
     }
   }
@@ -73,6 +82,7 @@ async function approvesAGroupTheyAreIn(
   database: DbClient,
   playerId: string,
   callerId: string,
+  adderId: string,
 ) {
   const memberships = await database.query.groupMembers.findMany({
     where: eq(groupMembers.userId, playerId),
@@ -80,7 +90,10 @@ async function approvesAGroupTheyAreIn(
     with: { group: true },
   });
   for (const { group } of memberships) {
-    if (await isGroupApprover(database, group, callerId)) {
+    if (
+      (await isGroupApprover(database, group, callerId)) &&
+      (await isGroupApprover(database, group, adderId))
+    ) {
       return true;
     }
   }
@@ -98,26 +111,44 @@ export async function renameUnclaimedPlayer(
 
   const player = await database.query.user.findFirst({
     where: eq(user.id, args.userId),
-    columns: { id: true, clerkId: true, addedAt: true, claimedAt: true },
+    columns: {
+      id: true,
+      clerkId: true,
+      addedAt: true,
+      addedByUserId: true,
+      claimedAt: true,
+    },
   });
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
-  }
-
-  const allowed =
-    (await organizesAGameTheyAreOn(database, player.id, args.callerUserId)) ||
-    (await approvesAGroupTheyAreIn(database, player.id, args.callerUserId));
-  if (!allowed) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: RENAME_NOT_ALLOWED_MESSAGE,
-    });
   }
 
   if (!isUnclaimed(player) || player.claimedAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: ONLY_UNCLAIMED_RENAMABLE_MESSAGE,
+    });
+  }
+
+  const adderId = player.addedByUserId;
+  const allowed =
+    adderId != null &&
+    ((await organizesAGameTheyAreOn(
+      database,
+      player.id,
+      args.callerUserId,
+      adderId,
+    )) ||
+      (await approvesAGroupTheyAreIn(
+        database,
+        player.id,
+        args.callerUserId,
+        adderId,
+      )));
+  if (!allowed) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: RENAME_NOT_ALLOWED_MESSAGE,
     });
   }
 

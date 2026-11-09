@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -11,6 +12,7 @@ import {
   gameTeams,
   games,
   groupMembers,
+  groupSeasons,
   groups,
   matchSets,
   matches,
@@ -376,6 +378,97 @@ describe("Seasons", () => {
       });
       expect(detail.standing.seasonId).toBe(next.id);
       expect(detail.canManageSeasons).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("opens only one of two overlapping Seasons created at once", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "owner-overlap@example.com");
+      const group = await insertGroup(db, owner.id, []);
+      const create = (name: string) =>
+        createSeason(db, {
+          groupId: group.id,
+          name,
+          startsOn: "2026-11-01",
+          endsOn: "2027-01-31",
+          userId: owner.id,
+          now: NOW,
+        });
+
+      const results = await Promise.allSettled([
+        create("Season A"),
+        create("Season B"),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      expect(
+        await db.query.groupSeasons.findMany({
+          where: eq(groupSeasons.groupId, group.id),
+        }),
+      ).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("re-homes the Games later on the closing day, and keeps the ones already started", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "owner-close-day@example.com");
+      const group = await insertGroup(db, owner.id, []);
+      const [venue] = await db
+        .insert(venues)
+        .values({ name: "Club", city: "Manama", country: "BH" })
+        .returning({ id: venues.id });
+      const season = await createSeason(db, {
+        groupId: group.id,
+        name: "Season 1",
+        startsOn: "2026-11-01",
+        endsOn: "2027-01-31",
+        userId: owner.id,
+        now: NOW,
+      });
+      const gameAt = async (windowStart: Date) => {
+        const [game] = await db
+          .insert(games)
+          .values({
+            name: "Session",
+            format: GameFormatEnum.FRIENDLY_GAME,
+            registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
+            venueId: venue!.id,
+            createdBy: owner.id,
+            groupId: group.id,
+            seasonId: season.id,
+            playersAllowed: 4,
+            teamsAllowed: 2,
+            windowStart,
+            windowEnd: new Date(windowStart.getTime() + 90 * 60 * 1000),
+          })
+          .returning({ id: games.id });
+        return game!.id;
+      };
+      const earlier = await gameAt(
+        new Date(NOW.getTime() - 2 * 60 * 60 * 1000),
+      );
+      const later = await gameAt(new Date(NOW.getTime() + 4 * 60 * 60 * 1000));
+
+      await closeSeason(db, {
+        seasonId: season.id,
+        userId: owner.id,
+        now: NOW,
+      });
+
+      const seasonOf = async (gameId: string) =>
+        (
+          await db.query.games.findFirst({
+            where: eq(games.id, gameId),
+            columns: { seasonId: true },
+          })
+        )?.seasonId;
+      expect(await seasonOf(earlier)).toBe(season.id);
+      expect(await seasonOf(later)).toBeNull();
     } finally {
       await close();
     }

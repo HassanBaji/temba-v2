@@ -92,8 +92,9 @@ export async function linkUnlinkedGamesToSeason(
 }
 
 /**
- * Closing a Season early leaves its later Games without a window: each moves
- * to the Season that now holds its day, or becomes a friendly.
+ * Closing a Season early leaves the Games that start after the close without
+ * a window, later the same day included: each moves to the Season that now
+ * holds its day, or becomes a friendly.
  */
 export async function relinkGamesAfterSeasonClose(
   database: DbClient,
@@ -106,7 +107,7 @@ export async function relinkGamesAfterSeasonClose(
   });
   const later = rows.filter(
     (row) =>
-      row.windowStart != null && gameDayKey(row.windowStart) > season.endsOn,
+      row.windowStart != null && row.windowStart.getTime() > now.getTime(),
   );
   if (later.length === 0) {
     return;

@@ -60,6 +60,13 @@ export const team = {
     title: (name: string) => `Dissolve ${name}?`,
     description: "This cannot be undone.",
   },
+  dissolveBlocked: {
+    openChallenge: "Withdraw this Team's open challenge before dissolving it",
+    pendingProposal:
+      "Withdraw this Team's pending proposals before dissolving it",
+    challengeGame:
+      "This Team has a challenge game to play. Cancel or finish it before dissolving the Team.",
+  },
   leaveConfirm: {
     title: (name: string) => `Leave ${name}?`,
     description: "You can only rejoin if you are invited again.",
@@ -270,6 +277,7 @@ export const team = {
     remove: "Remove tag",
     tagged: (group: string) => `Tagged as ${group}'s team`,
     removed: "Tag removed",
+    captainOnly: "Only the Captain can tag this Team to a Group",
   },
   recordSpoken: (wins: number, losses: number) => `Won ${wins}, lost ${losses}`,
   recordSpokenWithDraws: (wins: number, draws: number, losses: number) =>

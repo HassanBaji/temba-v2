@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { notifications } from "@repo/db/schema";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   courtOf,
@@ -14,7 +15,7 @@ import {
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { proposalExpireJobKey } from "#src/jobs/specs";
 
-import { changeProposal } from "./changeProposal";
+import { changeProposal, PROPOSAL_MAX_CHANGES } from "./changeProposal";
 import { proposeOnChallenge } from "./propose";
 import { withdrawProposal } from "./withdrawProposal";
 
@@ -124,6 +125,48 @@ describe("challenges.changeProposal", () => {
       expect(await refusal(change(match.proposer.rafi, sentAt))).toMatchObject({
         code: "BAD_REQUEST",
       });
+    });
+  });
+
+  it("stops renewing the 48 hours after the last allowed change", async () => {
+    await withDb(async ({ database, db }) => {
+      const match = await padelMatchup(database, sentAt);
+      const { id } = await proposeOnChallenge(db, {
+        challengeId: match.challenge.id,
+        teamId: match.riffa.id,
+        venueId: match.venue.id,
+        startsAt: new Date(sentAt.getTime() + 48 * HOUR),
+        userId: match.proposer.rafi,
+        now: sentAt,
+      });
+      const change = (now: Date) =>
+        changeProposal(db, {
+          proposalId: id,
+          venueId: match.venue.id,
+          startsAt: new Date(now.getTime() + 24 * HOUR),
+          userId: match.proposer.rafi,
+          now,
+        });
+
+      let now = sentAt;
+      for (let index = 0; index < PROPOSAL_MAX_CHANGES; index += 1) {
+        now = new Date(now.getTime() + 40 * HOUR);
+        await change(now);
+      }
+      const lastExpiry = new Date(now.getTime() + 48 * HOUR);
+      expect(await proposalRow(database, id)).toMatchObject({
+        changeCount: PROPOSAL_MAX_CHANGES,
+        expiresAt: lastExpiry,
+      });
+
+      expect(
+        await refusal(change(new Date(now.getTime() + 40 * HOUR))),
+      ).toEqual({
+        code: "BAD_REQUEST",
+        message:
+          messagesFor("en").challenge.errors.changeLimit(PROPOSAL_MAX_CHANGES),
+      });
+      expect((await proposalRow(database, id)).expiresAt).toEqual(lastExpiry);
     });
   });
 });

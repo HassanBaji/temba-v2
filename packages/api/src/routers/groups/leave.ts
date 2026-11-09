@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers } from "@repo/db";
+import { groupMembers, groups } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -42,7 +42,20 @@ export async function leaveGroup(
     });
   }
 
-  await database.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+  await database.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ createdBy: groups.createdBy })
+      .from(groups)
+      .where(eq(groups.id, group.id))
+      .for("share");
+    if (locked?.createdBy === args.userId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: OWNER_CANNOT_LEAVE_MESSAGE,
+      });
+    }
+    await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+  });
 
   return {
     ok: true as const,

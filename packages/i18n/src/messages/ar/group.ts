@@ -271,6 +271,7 @@ export const group = {
   },
   linkRequest: {
     venueRequestsTitle: "طلبات النوادي",
+    publicOnly: "لا تُربط بنادٍ عبر طلب إلا مجموعة عامة",
     rowMeta: "أنت وحدك من يقرر، بصفتك منشئ المجموعة.",
     acceptLabel: "قبول",
     declineLabel: "رفض",
@@ -538,6 +539,7 @@ export const group = {
     },
     linkCopiedToast: "تم نسخ رابط المجموعة",
     linkResetToast: "أُعيد تعيين الرابط. الروابط القديمة لم تعد تعمل.",
+    linkResetOwnerOnly: "مالك المجموعة وحده يستطيع إعادة تعيين رابط الدعوة",
     ownerLeave: {
       title: (name: string) => `سلّم ${name} لشخص آخر أولًا`,
       description:

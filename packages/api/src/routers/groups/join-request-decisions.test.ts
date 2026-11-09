@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  gamePlayers,
+  games,
   groupInviteLinks,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
@@ -16,6 +18,7 @@ import {
 } from "@repo/db/schema";
 
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { createFriendlyGame } from "#src/games/create-friendly";
 import { acceptInviteLink } from "#src/routers/groups/acceptInviteLink";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
 import { groupById } from "#src/routers/groups/byId";
@@ -294,7 +297,7 @@ describe("group join request decisions", () => {
     }
   });
 
-  it("refuses to undo an approval once the member has played or organizes", async () => {
+  it("refuses to undo an approval while the member has a seat on a live Group Game, or organizes", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const creator = await insertUser(db, "played-creator@example.com");
@@ -311,15 +314,33 @@ describe("group join request decisions", () => {
         requestId: playerRequest.id,
         userId: creator.id,
       });
+      const venue = await insertVenue(db);
+      const windowStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const cancelled = await createFriendlyGame(db, {
+        createdBy: creator.id,
+        groupId: group.id,
+        venueId: venue.id,
+        windowStart,
+        windowEnd: new Date(windowStart.getTime() + 60 * 60 * 1000),
+      });
       await db
-        .update(groupMembers)
-        .set({ totalGamesPlayed: 1 })
-        .where(
-          and(
-            eq(groupMembers.groupId, group.id),
-            eq(groupMembers.userId, player.id),
-          ),
-        );
+        .update(games)
+        .set({ cancelledAt: new Date() })
+        .where(eq(games.id, cancelled.game.id));
+      await db
+        .insert(gamePlayers)
+        .values({ gameId: cancelled.game.id, userId: player.id });
+      const played = await createFriendlyGame(db, {
+        createdBy: creator.id,
+        groupId: group.id,
+        venueId: venue.id,
+        windowStart,
+        windowEnd: new Date(windowStart.getTime() + 60 * 60 * 1000),
+      });
+      const [seat] = await db
+        .insert(gamePlayers)
+        .values({ gameId: played.game.id, userId: player.id })
+        .returning({ id: gamePlayers.id });
 
       await expect(
         undoJoinRequestDecision(db, {
@@ -339,6 +360,17 @@ describe("group join request decisions", () => {
       expect((await findRequest(db, playerRequest.id))?.status).toBe(
         GroupJoinRequestStatusEnum.APPROVED,
       );
+
+      await db.delete(gamePlayers).where(eq(gamePlayers.id, seat!.id));
+      await undoJoinRequestDecision(db, {
+        requestId: playerRequest.id,
+        userId: creator.id,
+      });
+      expect(await findMembership(db, group.id, player.id)).toBeFalsy();
+      await approveJoinRequest(db, {
+        requestId: playerRequest.id,
+        userId: creator.id,
+      });
 
       const organizerRequest = await requestJoin(db, {
         groupId: group.id,
@@ -605,6 +637,71 @@ describe("group join request decisions", () => {
         now,
       });
       expect(memberView.joinRequestsApprovedToday).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("group join races", () => {
+  it("answers a second concurrent joinPublic with CONFLICT, not a server error", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "race-join-creator@example.com");
+      const joiner = await insertUser(db, "race-join-joiner@example.com");
+      const group = await createLoosePublic(db, {
+        name: "Open Crew",
+        sport: "padel",
+        userId: creator.id,
+      });
+
+      const results = await Promise.allSettled([
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
+        joinPublic(db, { groupId: group.id, userId: joiner.id }),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const failed = results.find((r) => r.status === "rejected");
+      expect(failed?.status === "rejected" && failed.reason).toSatisfy(
+        expectTrpc("CONFLICT", "You are already a member of this Group"),
+      );
+      expect(
+        await db.query.groupMembers.findMany({
+          where: and(
+            eq(groupMembers.groupId, group.id),
+            eq(groupMembers.userId, joiner.id),
+          ),
+        }),
+      ).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets only one of a concurrent approve and reject decide a request", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "race-decide-creator@example.com");
+      const requester = await insertUser(db, "race-decide-joiner@example.com");
+      const group = await gatedGroup(db, creator.id);
+      const request = await requestJoin(db, {
+        groupId: group.id,
+        userId: requester.id,
+      });
+
+      const results = await Promise.allSettled([
+        approveJoinRequest(db, { requestId: request.id, userId: creator.id }),
+        rejectJoinRequest(db, { requestId: request.id, userId: creator.id }),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const failed = results.find((r) => r.status === "rejected");
+      expect(failed?.status === "rejected" && failed.reason).toSatisfy(
+        expectTrpc("BAD_REQUEST", "Join request is not pending"),
+      );
+      const decided = await findRequest(db, request.id);
+      const member = await findMembership(db, group.id, requester.id);
+      expect(Boolean(member)).toBe(
+        decided?.status === GroupJoinRequestStatusEnum.APPROVED,
+      );
     } finally {
       await close();
     }
