@@ -35,6 +35,18 @@ export const team = {
   invitePartnerLabel: "ادعُ شريكك",
   leaveLabel: "مغادرة الفريق",
   dissolveLabel: "حل الفريق",
+  image: {
+    change: "تغيير الصورة",
+    remove: "إزالة الصورة",
+    savedToast: "تم حفظ الصورة",
+    removedToast: "تمت إزالة الصورة",
+    uploading: "جارٍ رفع الصورة…",
+    removeConfirm: {
+      title: (name: string) => `إزالة صورة ${isolate(name)}؟`,
+      description: "سيعود الفريق إلى أحرفه الأولى.",
+      confirmLabel: "إزالة الصورة",
+    },
+  },
   waitingCopy: "بانتظار شريك. هذا الفريق غير مكتمل حتى ينضم عضو ثانٍ.",
   noMembers: {
     title: "لا أعضاء",

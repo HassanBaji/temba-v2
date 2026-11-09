@@ -43,6 +43,7 @@ export type TeamDetailInput = Omit<TeamHomeInput, "rivals" | "closestRival"> & {
     opponent: { teamId: string | null };
   }[];
   shareUrl?: string | null;
+  imageUrl?: string | null;
 };
 
 /** A day this close reads as its weekday: "Friday makes it two". */
@@ -466,6 +467,7 @@ export function teamDetailView(
     hero: {
       title,
       initials: initials(title),
+      imageUrl: data.imageUrl ?? null,
       subtitle: heroSubtitle(data, locale),
       record: heroRecord(data, locale),
       seats: heroSeats(data, locale),
