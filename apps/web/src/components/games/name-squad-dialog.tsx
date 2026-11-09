@@ -29,6 +29,7 @@ import { CloseButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 function CheckMark({ selected }: { selected: boolean }) {
   return (
@@ -134,6 +135,7 @@ export function NameSquadDialog({
   }, [open, seeded, team.data, namedUserIds]);
 
   const save = api.games.nameChallengeSquad.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.challenge.squad.saved);
       await onSaved();

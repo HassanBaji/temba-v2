@@ -39,7 +39,7 @@ export function PendingInvitesSection({
           headingLevel={3}
           className="py-6"
           title={copy.invitationsFailed}
-          message={error.message}
+          error={error}
           onRetry={onRetry}
         />
       </Section>

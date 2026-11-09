@@ -39,6 +39,7 @@ import {
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 type ChallengeDetail = RouterOutputs["challenges"]["byId"];
 
@@ -152,6 +153,7 @@ export default function ChallengePage({
   const openedFromLink = useRef(false);
   const challenge = api.challenges.byId.useQuery({ id });
   const withdraw = api.challenges.withdraw.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.challenge.detail.withdrawn);
       await Promise.all([
@@ -171,12 +173,14 @@ export default function ChallengePage({
       utils.challenges.listMine.invalidate(),
     ]);
   const withdrawProposal = api.challenges.withdrawProposal.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.challenge.proposal.withdrawn);
       await refreshProposals();
     },
   });
   const confirmProposal = api.challenges.confirmProposal.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(m.challenge.proposal.confirmed);
       await Promise.all([refreshProposals(), utils.games.invalidate()]);
@@ -184,6 +188,7 @@ export default function ChallengePage({
     },
   });
   const decline = api.challenges.declineProposal.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.challenge.proposal.declined);
       await refreshProposals();
@@ -217,7 +222,7 @@ export default function ChallengePage({
         <ErrorState
           headingLevel={2}
           title={detail.errorTitle}
-          message={challenge.error.message}
+          error={challenge.error}
           onRetry={() => {
             void challenge.refetch();
           }}

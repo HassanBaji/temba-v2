@@ -468,6 +468,7 @@ export default function GamesHubPage({
     await Promise.all([
       utils.games.listMyGames.invalidate(),
       utils.games.listMyMatchHistory.invalidate(),
+      utils.games.listPublicPickup.invalidate(),
       utils.users.home.invalidate(),
       utils.games.byId.invalidate(),
     ]);
@@ -503,6 +504,13 @@ export default function GamesHubPage({
     onError: toastGlobalFormError,
   });
   const [sportFilter, setSportFilter] = React.useState<SportFilter>("all");
+  const noUpcoming =
+    myGames.data != null &&
+    filterBySport(myGames.data, sportFilter).length === 0;
+  const publicGames = api.games.listPublicPickup.useQuery(undefined, {
+    enabled: noUpcoming,
+  });
+  const openPublicGames = filterBySport(publicGames.data ?? [], sportFilter);
 
   const pendingGameId =
     (registerSeat.isPending ? registerSeat.variables?.gameId : null) ??
@@ -580,7 +588,45 @@ export default function GamesHubPage({
               void myGames.refetch();
             }}
             games={myGames.data}
-            emptyState={<GamesHubUpcomingEmpty sportFilter={sportFilter} />}
+            emptyState={
+              <div className="flex flex-col gap-6">
+                {openPublicGames.length > 0 ? (
+                  <section
+                    aria-labelledby="games-hub-open-games"
+                    className="space-y-3"
+                  >
+                    <h2
+                      id="games-hub-open-games"
+                      className="flex flex-col gap-0.5"
+                    >
+                      <span className="text-title font-semibold tracking-[-0.01em]">
+                        {m.webGame.hubEmpty.openGamesTitle}
+                      </span>
+                      <span className="text-muted-foreground text-meta">
+                        {m.webGame.hubEmpty.openGamesLine}
+                      </span>
+                    </h2>
+                    <GamesHubTabPanel
+                      isLoading={false}
+                      onRetry={() => {
+                        void publicGames.refetch();
+                      }}
+                      games={openPublicGames}
+                      emptyState={null}
+                      onJoinSeat={onJoinSeat}
+                      onJoinWaitlist={onJoinWaitlist}
+                      onRegister={onRegister}
+                      onConfirmScore={(gameId, matchId) =>
+                        confirmScore.mutate({ gameId, matchId })
+                      }
+                      sportFilter={sportFilter}
+                      pendingGameId={pendingGameId}
+                    />
+                  </section>
+                ) : null}
+                <GamesHubUpcomingEmpty sportFilter={sportFilter} />
+              </div>
+            }
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}

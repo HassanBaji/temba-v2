@@ -36,6 +36,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
 import { BibRow } from "./football-team-columns";
@@ -366,6 +367,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   }, [board.data, draft]);
 
   const publish = api.games.publishFootballTeams.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(t.publishedToast);
       await Promise.all([
@@ -390,7 +392,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     body = (
       <ErrorState
         title={t.poolLoadFailed}
-        message={board.error.message}
+        error={board.error}
         onRetry={() => void board.refetch()}
       />
     );

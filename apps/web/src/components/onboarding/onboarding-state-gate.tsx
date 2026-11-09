@@ -72,7 +72,7 @@ export function OnboardingStateGate({
         <ErrorState
           headingLevel={1}
           title={copy.loadFailed}
-          message={state.error.message}
+          error={state.error}
           onRetry={() => {
             void state.refetch();
           }}

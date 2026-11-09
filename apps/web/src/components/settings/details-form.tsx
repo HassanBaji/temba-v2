@@ -36,6 +36,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { profileTaskHref } from "~/lib/onboarding-step";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import { productDayKey } from "@repo/domain/product-timezone";
 import {
@@ -119,6 +120,7 @@ function Form({
   const [savingClerk, setSavingClerk] = React.useState(false);
 
   const save = api.users.setProfileDetails.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(copy.saved);
       await utils.users.invalidate();

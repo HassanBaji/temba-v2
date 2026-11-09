@@ -6,7 +6,6 @@ import {
   footballLevelLabel,
   goalBars,
   recordShares,
-  winRatePercent,
 } from "./you-football-model";
 import type { GroupLevelRow } from "./you-hero-model";
 
@@ -68,13 +67,6 @@ describe("recordShares", () => {
       drawn: 0,
       lost: 0,
     });
-  });
-});
-
-describe("winRatePercent", () => {
-  it("rounds the share of wins", () => {
-    expect(winRatePercent(overall)).toBe(55);
-    expect(winRatePercent({ ...overall, played: 0 })).toBeNull();
   });
 });
 

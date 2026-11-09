@@ -24,6 +24,7 @@ import {
   challengesTabQuery,
 } from "@repo/domain/challenges-tab";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 export default function ChallengesPage({
   searchParams,
@@ -71,6 +72,7 @@ export default function ChallengesPage({
     teamName: string;
   } | null>(null);
   const decline = api.challenges.declineProposal.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.challenge.proposal.declined);
       await Promise.all([
@@ -86,6 +88,7 @@ export default function ChallengesPage({
     teamName: string;
   } | null>(null);
   const confirmProposal = api.challenges.confirmProposal.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(m.challenge.proposal.confirmed);
       await Promise.all([

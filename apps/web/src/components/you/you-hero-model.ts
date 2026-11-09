@@ -1,6 +1,7 @@
 import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
 import { bandFromLevel } from "@repo/domain/level";
 import { zonedParts } from "@repo/domain/product-timezone";
+import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -11,9 +12,6 @@ import { arrowLevel, bandInText, displayBand, monthYear } from "./you-format";
 export type MyProfile = RouterOutputs["users"]["myProfile"];
 export type ScopeLevel = NonNullable<MyProfile["level"]>;
 export type GroupLevelRow = RouterOutputs["ratings"]["myGroupLevels"][number];
-
-/** Win rate shows once a scope has this many Matches, as `users.myProfile` reads it. */
-export const WIN_RATE_AFTER = 5;
 
 const BAND_WIDTH = 0.7;
 
@@ -139,7 +137,7 @@ export function heroStats(
   const { stats, group } = args;
   const winRate: HeroStat =
     stats.winRatePercent === null
-      ? { value: none, label: m.winRateAfter(WIN_RATE_AFTER) }
+      ? { value: none, label: m.winRateAfter(WIN_RATE_MIN_MATCHES) }
       : { value: `${stats.winRatePercent}%`, label: m.winRate };
   const matches: HeroStat = { value: String(stats.played), label: m.matches };
 

@@ -312,7 +312,7 @@ export default function NewSeasonPage({
       <NewSeasonFrame groupId={id} groupName={null}>
         <ErrorState
           title={m.webDashboard.seasons.errorTitle}
-          message={seasons.error?.message}
+          error={seasons.error}
           onRetry={() => {
             void seasons.refetch();
           }}
@@ -325,7 +325,10 @@ export default function NewSeasonPage({
     return (
       <NewSeasonFrame groupId={id} groupName={seasons.data.groupName}>
         <ErrorState
+          refusal="forbidden"
           title={m.webDashboard.seasons.new.ownerOnly}
+          backHref={`/dashboard/groups/${id}`}
+          backLabel={m.webDashboard.backToGroup}
           onRetry={() => {
             void seasons.refetch();
           }}

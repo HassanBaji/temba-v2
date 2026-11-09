@@ -47,6 +47,7 @@ import {
   teamRemoveImageConfirm,
 } from "@repo/domain/teams";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 const MENU_ON_INK =
   "border-dimrule text-on-focus hover:bg-raised hover:text-on-focus size-10 min-h-10 min-w-10 rounded-[10px] border bg-transparent";
@@ -81,9 +82,12 @@ export default function TeamHomePage({
   const organized = api.games.listCreateGroups.useQuery(undefined, {
     enabled: addOpen,
   });
-  const removeUnclaimed = api.teams.removeUnclaimedPlayer.useMutation();
+  const removeUnclaimed = api.teams.removeUnclaimedPlayer.useMutation({
+    meta: OWN_ERROR_UI,
+  });
 
   const dissolve = api.teams.dissolve.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.team.toast.dissolved);
       await utils.teams.mine.invalidate();
@@ -154,6 +158,7 @@ export default function TeamHomePage({
   }
 
   const leave = api.teams.leave.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.team.toast.left);
       await utils.teams.mine.invalidate();
@@ -195,7 +200,7 @@ export default function TeamHomePage({
       <DashboardShell title={m.team.fallbackName} isSubPage>
         <ErrorState
           title={m.team.teamErrorTitle}
-          message={team.error?.message}
+          error={team.error}
           onRetry={() => {
             void team.refetch();
           }}

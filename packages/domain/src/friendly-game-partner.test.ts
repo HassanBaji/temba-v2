@@ -6,7 +6,7 @@ import { displayLabelFromStoredBand } from "./level-bands";
 
 import {
   firstFullyVacantSideIndex,
-  friendlyGameHomeHref,
+  friendlyGameHomeTarget,
   hasFullyVacantSide,
   isPartnerVacantSideRace,
   offersPartnerJoin,
@@ -325,9 +325,9 @@ describe("viewerSidePartnerName", () => {
   });
 });
 
-describe("friendlyGameHomeHref", () => {
+describe("friendlyGameHomeTarget", () => {
   it("is that Game's home", () => {
-    assert.equal(friendlyGameHomeHref("game-1"), "/dashboard/games/game-1");
+    assert.deepEqual(friendlyGameHomeTarget("game-1"), { gameId: "game-1" });
   });
 });
 

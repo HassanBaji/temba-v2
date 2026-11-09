@@ -254,7 +254,7 @@ export default function GroupSeasonsPage({
       <SeasonsFrame groupId={id} groupName={null}>
         <ErrorState
           title={m.webDashboard.seasons.errorTitle}
-          message={seasons.error?.message}
+          error={seasons.error}
           onRetry={() => {
             void seasons.refetch();
           }}

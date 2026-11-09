@@ -24,6 +24,7 @@ import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { CONSOLE_LOCALE } from "~/lib/locale";
 import { managerDurationOptions } from "@repo/domain/booking-slots";
 import {
@@ -70,6 +71,7 @@ export function BookingActionDialogs({
 }) {
   const refresh = useBookingRefresh(booking.id);
   const noShow = api.bookings.markNoShow.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       await refresh();
       toast.success("Marked no-show");
