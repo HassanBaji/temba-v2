@@ -4,6 +4,7 @@ import {
   challengeBoardFilterGroups,
   challengeBoardQuery,
   challengeCardView,
+  challengeDaysLine,
   challengeGameView,
   challengeLevelWanted,
   challengeProposalView,
@@ -31,7 +32,7 @@ function card(overrides: Partial<ChallengeCardInput> = {}): ChallengeCardInput {
     team: {
       displayName: "Gooz FC",
       rosterCount: 12,
-      teamLevel: { level: "2.8" },
+      teamLevel: { level: "2.8", band: "C" },
       members: Array.from({ length: 12 }, (_, index) => ({
         name: `Player ${index}`,
       })),
@@ -45,15 +46,32 @@ describe("challengeCardView", () => {
   it("reads the football card lines", () => {
     const view = challengeCardView(card(), "en", now);
     expect(view.title).toBe("Gooz FC");
-    expect(view.sportLine).toBe(
-      "Football, 6-a-side, avg 2.8, 12 on the roster. Wants C to B-",
-    );
+    expect(view.levelBand).toBe("C");
+    expect(view.sportLine).toBe("Football, 6-a-side, avg 2.8. Wants C to B-");
     expect(view.whenLine).toBe("Weekends · Evenings");
+    expect(view.daysLine).toBe("Weekend evenings");
     expect(view.venuesLine).toBe("Matchday Pitches");
     expect(view.proposalsLine).toBe("2 proposals, 5 days left");
+    expect(view.footerLine).toBe("2 proposals, 5 days left");
     expect(view.tiles).toHaveLength(6);
     expect(view.opponentSeats).toBe(6);
     expect(view.greyed).toBe(false);
+    expect(view.canAccept).toBe(true);
+  });
+
+  it("previews the poster's own card: the Roster count, the days it stays open, Accept inert", () => {
+    const view = challengeCardView(
+      card({ expiresAt: new Date("2026-11-15T10:00:00Z") }),
+      "en",
+      now,
+      { preview: true },
+    );
+    expect(view.sportLine).toBe(
+      "Football, 6-a-side, avg 2.8, 12 on the roster. Wants C to B-",
+    );
+    expect(view.footerLine).toBe("Open for 7 days");
+    expect(view.preview).toBe(true);
+    expect(view.canAccept).toBe(false);
   });
 
   it("reads a padel card without a Team Level or Level wanted", () => {
@@ -77,8 +95,10 @@ describe("challengeCardView", () => {
       "en",
       now,
     );
+    expect(view.levelBand).toBeNull();
     expect(view.sportLine).toBe("Padel. Open to any level");
     expect(view.whenLine).toBe("Any day · Any time");
+    expect(view.daysLine).toBe("Any day · Any time");
     expect(view.venuesLine).toBe("Any venue");
     expect(view.proposalsLine).toBe("No proposals yet, 5 days left");
     expect(view.opponentSeats).toBe(2);
@@ -91,13 +111,22 @@ describe("challengeCardView", () => {
       now,
     );
     expect(short.greyed).toBe(true);
+    expect(short.canAccept).toBe(false);
     expect(short.greyedLine).toBe("Your Roster is short for 6-a-side");
+    expect(
+      challengeCardView(
+        card({ viewer: { ineligibleReason: "no_team" } }),
+        "en",
+        now,
+      ).canAccept,
+    ).toBe(true);
     const own = challengeCardView(
       card({ viewer: { ineligibleReason: "own" } }),
       "en",
       now,
     );
     expect(own.greyed).toBe(false);
+    expect(own.canAccept).toBe(false);
     expect(own.greyedLine).toBe("Your Team's challenge");
   });
 
@@ -154,6 +183,24 @@ describe("challengeLevelWanted and challengeWhenLine", () => {
   });
 });
 
+describe("challengeDaysLine", () => {
+  it("joins picked days with the timings, or reads one side alone", () => {
+    expect(challengeDaysLine(["thu", "tue"], ["evening"], "en")).toBe(
+      "Tue, Thu evenings",
+    );
+    expect(
+      challengeDaysLine(["mon", "tue", "wed", "thu", "fri"], ["morning"], "en"),
+    ).toBe("Weekday mornings");
+    expect(challengeDaysLine(["fri", "sat"], [], "en")).toBe("Fri, Sat");
+    expect(challengeDaysLine([], ["morning", "evening"], "en")).toBe(
+      "Mornings, Evenings",
+    );
+    expect(challengeDaysLine([], [], "ar")).toBe(
+      challengeWhenLine([], [], "ar"),
+    );
+  });
+});
+
 describe("board filters", () => {
   it("asks for nothing without filters", () => {
     expect(challengeBoardQuery(NO_CHALLENGE_BOARD_FILTERS)).toEqual({});
@@ -187,6 +234,12 @@ describe("board filters", () => {
       "Level",
       "Area",
       "Day",
+    ]);
+    expect(groups.map((group) => group.summary)).toEqual([
+      "All",
+      "Any",
+      "Porto",
+      "Any",
     ]);
     const area = groups[2]!;
     expect(area.summary).toBe("Porto");

@@ -4,63 +4,90 @@ import {
   challengeTeamVsTeamView,
   type ChallengeTeamSide,
 } from "@repo/domain/challenge-game-details";
+import type { SurfaceTone } from "@repo/domain/surface-tone";
 
-import { EntityMonogram } from "~/components/common/entity-monogram";
-import { useLocale, useMessages } from "~/components/locale-provider";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 type TeamView = ReturnType<typeof challengeTeamVsTeamView>["home"];
 
-function TeamColumn({
+function TeamSide({
   team,
   end,
-  muted,
+  tone,
 }: {
   team: TeamView;
   end: boolean;
-  muted: string;
+  tone: SurfaceTone;
 }) {
+  const ink = tone === "ink";
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-1 flex-col gap-1.5",
-        end ? "items-end text-end" : "items-start",
+        "flex min-w-0 items-center gap-2.5",
+        end && "flex-row-reverse text-end",
       )}
     >
-      <EntityMonogram name={team.name} size="lg" />
-      <p className="line-clamp-2 font-semibold">{team.name}</p>
-      <p className={cn("text-meta font-mono tabular-nums", muted)}>
-        {`${team.recordLabel} ${team.recordValue}`}
-      </p>
+      <span
+        className={cn(
+          "font-expanded flex size-9 shrink-0 items-center justify-center rounded-md text-[12px] tracking-[-0.02em]",
+          ink
+            ? "bg-focus-control text-on-focus-control"
+            : "bg-control text-on-control",
+        )}
+      >
+        {team.initials}
+      </span>
+      <div className="min-w-0">
+        <p className="line-clamp-2 text-[14px] font-semibold leading-tight">
+          {team.name}
+        </p>
+        <p
+          className={cn(
+            "text-[11px] tabular-nums leading-snug",
+            ink ? "text-dim" : "text-muted-foreground",
+          )}
+        >
+          {team.recordLine}
+        </p>
+      </div>
     </div>
   );
 }
 
-/** Both Teams of a Challenge Game: crest, name and record, then head-to-head or "First meeting". */
+/**
+ * Both Teams of a Challenge Game on one row: crest, name and record (with
+ * "you captain" on the viewer's own Team), head-to-head or "first meeting"
+ * between them, the second Team mirrored.
+ */
 export function ChallengeTeamVsTeam({
   sides,
   sport,
-  muted = "text-muted-foreground",
+  tone = "paper",
 }: {
   sides: readonly ChallengeTeamSide[];
   sport: string | null;
-  muted?: string;
+  tone?: SurfaceTone;
 }) {
-  const m = useMessages();
   const locale = useLocale();
   const view = challengeTeamVsTeamView(sides, sport, locale);
   return (
-    <section aria-label={view.accessibilityLabel} className="space-y-2.5">
-      <div aria-hidden="true" className="flex items-center gap-3">
-        <TeamColumn team={view.home} end={false} muted={muted} />
-        <span className={cn("text-title", muted)}>
-          {m.challenge.gameDetails.versus}
-        </span>
-        <TeamColumn team={view.away} end muted={muted} />
+    <section
+      aria-label={view.accessibilityLabel}
+      className="flex items-center justify-between gap-3"
+    >
+      <div aria-hidden="true" className="contents">
+        <TeamSide team={view.home} end={false} tone={tone} />
+        <p
+          className={cn(
+            "shrink-0 text-[12px]",
+            tone === "ink" ? "text-dim" : "text-muted-foreground",
+          )}
+        >
+          {view.middleLine}
+        </p>
+        <TeamSide team={view.away} end tone={tone} />
       </div>
-      <p aria-hidden="true" className={cn("text-meta text-center", muted)}>
-        {view.headToHeadLine}
-      </p>
     </section>
   );
 }

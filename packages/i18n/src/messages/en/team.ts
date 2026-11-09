@@ -9,11 +9,7 @@ export const team = {
     description: "A Team is a lasting partnership with one other player.",
   },
   createLabel: "Create Team",
-  createDescription:
-    "Start a Team. You become the first member and can invite others later.",
   sportLabel: "Sport",
-  nameLabel: "Name (optional)",
-  nameHint: "If you leave this blank, the Team home uses member names.",
   toast: {
     created: "Team created",
     joined: "Joined Team",
@@ -87,23 +83,11 @@ export const team = {
     draws: "Draws",
   },
   captainLabel: "Captain",
-  sportChoice: {
-    padel: { name: "Padel", detail: "2 players" },
-    football: {
-      name: "Football",
-      detail: (max: number) => `Roster up to ${max}`,
-    },
-  },
-  rosterHelper: (max: number) =>
-    `5 needed for 5-a-side, 7 for 7-a-side, ${max} max`,
   draft: {
     countLine: (count: number, max: number) =>
       `${count} of ${max}, you included`,
-    invited: "Invited, waiting",
     added: "Added, not on Temba",
     remove: (name: string) => `Remove ${name}`,
-    footer:
-      "Six is enough to post a 6-a-side challenge; the matchday squad is named per game, after it's confirmed.",
     full: (max: number) => `The Roster is full at ${max}.`,
   },
   addPlayers: {
@@ -139,16 +123,133 @@ export const team = {
     invitesSent: (n: number) =>
       plural("en", n, { one: "1 invite sent", other: "{n} invites sent" }),
     listed: (name: string) => `${name} is on the list`,
-    listedCount: (n: number) =>
-      plural("en", n, {
-        one: "1 player on the list",
-        other: "{n} players on the list",
-      }),
     removeConfirm: {
       title: (name: string) => `Remove ${name}?`,
       description:
         "They are not on Temba yet, so they come off the Roster. Their Games stay in history.",
       confirm: "Remove",
+    },
+  },
+  create: {
+    title: "New team",
+    fromGroupTitle: "Team from a group",
+    nameTitle: "Name",
+    nameLabel: "Team name",
+    namePlaceholder: "Gooz FC",
+    sportTitle: "Sport",
+    sportHint: "sets the team size",
+    sport: {
+      padel: { name: "Padel", detail: "2 players" },
+      football: {
+        name: "Football",
+        detail: (max: number) => `roster up to ${max}`,
+      },
+    },
+    rosterTitle: "Roster",
+    stripHelper: "5 needed for 5-a-side, 7 for 7-a-side",
+    stripMax: (max: number) => `${max} max`,
+    stripSpoken: (taken: number, waiting: number, max: number) =>
+      `${taken} of ${max} seats, ${waiting} not confirmed yet`,
+    legendIn: "in",
+    legendPending: "invited or added, not confirmed yet",
+    sources: {
+      label: "How to add",
+      phone: "By phone",
+      temba: "On Temba",
+      group: "From a group",
+    },
+    phoneLabel: "Phone number",
+    lookingUp: "Looking up…",
+    lookup: {
+      found: (tag: string | null, games: number) =>
+        [
+          "On Temba",
+          tag,
+          games > 0
+            ? plural("en", games, {
+                one: "1 game with you",
+                other: "{n} games with you",
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(". "),
+      sportLevel: (sport: string, level: string | null) =>
+        level ? `${sport} ${level}` : sport,
+      invite: "Invite",
+      inviteA11y: (name: string) => `Invite ${name}`,
+      inviteNote: (name: string) =>
+        `${name} gets the invite in the app. The seat shows as waiting until they accept; you can post challenges meanwhile.`,
+      newTitle: "Not on Temba yet",
+      newLine: "Add them anyway. They don't need the app to be on the team.",
+      unclaimedLine: "Not on Temba yet. Already added by phone elsewhere",
+      add: "Add",
+      addA11y: (name: string) => `Add ${name}`,
+      nameLabel: "Name",
+      roleLabel: "Position",
+      roles: {
+        gk: "keeper",
+        def: "defence",
+        mid: "midfield",
+        fwd: "attack",
+      },
+      addNamed: (name: string) => `Add ${name} to the team`,
+      addUnnamed: "Add to the team",
+    },
+    row: {
+      captain: "captain",
+      invited: "Invited",
+      waiting: "waiting",
+      addedByYou: "Added by you",
+      notOnTemba: "not on Temba",
+      sentence: (parts: readonly string[]) => parts.join(". "),
+      invitedByPhone: "Invited by phone",
+      invitedOnTemba: "Invited on Temba",
+      invitedFromGroup: (group: string) => `Invited from ${group}`,
+      remove: (name: string) => `Remove ${name}`,
+    },
+    addMore: "Add more. By phone, on Temba, or from a group",
+    enough: (count: number, side: number) => {
+      const words = ["Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+      const lead = words[count - 5] ?? String(count);
+      return `${lead} is enough to post a ${side}-a-side challenge; the matchday squad is named per game, after it's confirmed.`;
+    },
+    addedNote:
+      "Added players count for the roster and show in challenges by name. If they join Temba with that number later, the seat becomes theirs: history, record and marks included.",
+    submit: "Create team",
+    submitNamed: (name: string) => `Create ${name}`,
+    group: {
+      title: "Group",
+      organize: (n: number) => `you organize ${n}`,
+      meta: (sport: string, members: number, teams: number) =>
+        `${sport}, ${plural("en", members, {
+          one: "1 member",
+          other: "{n} members",
+        })}. ${
+          teams === 0
+            ? "No team yet"
+            : plural("en", teams, {
+                one: "Has 1 team already",
+                other: "Has {n} teams already",
+              })
+        }`,
+      empty: "Groups you organize show here.",
+      squadTitle: "Pick the squad",
+      squadCount: (picked: number, max: number, sport: string) =>
+        `${picked} of ${max}, ${sport}`,
+      sportLower: { padel: "padel", football: "football" },
+      youCaptain: "You, captain",
+      more: (n: number) =>
+        plural("en", n, {
+          one: "and 1 more member",
+          other: "and {n} more members",
+        }),
+      tag: (group: string) => ({
+        before: "Tag as ",
+        strong: `${group}'s team`,
+        after:
+          ". Shows on the group page; organizers can post challenges for it.",
+      }),
     },
   },
   groupTag: {
@@ -157,8 +258,6 @@ export const team = {
     remove: "Remove tag",
     tagged: (group: string) => `Tagged as ${group}'s team`,
     removed: "Tag removed",
-    createNote: (group: string) =>
-      `This Team will be tagged as ${group}'s team.`,
   },
   recordSpoken: (wins: number, losses: number) => `Won ${wins}, lost ${losses}`,
   recordSpokenWithDraws: (wins: number, draws: number, losses: number) =>
@@ -207,5 +306,68 @@ export const team = {
   games: {
     title: "Games",
     empty: "No games played yet.",
+  },
+  detail: {
+    sportLevel: (sport: string, band: string) => `${sport}, ${band}`,
+    since: (month: string, year: number) => `Since ${month} ${year}`,
+    sentences: (parts: readonly string[]) => parts.join(". "),
+    record: {
+      label: "Record",
+      games: (n: number) =>
+        plural("en", n, { one: "1 game", other: "{n} games" }),
+      wonDrawnLost: "won, drawn, lost",
+    },
+    membersSpoken: (names: string) => `Members: ${names}`,
+    postChallenge: "Post a challenge",
+    share: "Share",
+    shareText: (team: string, url: string) => `${team} on Temba: ${url}`,
+    shareCopied: "Team link copied",
+    openGroup: (group: string) => `Open ${group}`,
+    form: {
+      allTime: "All time",
+    },
+    rivals: {
+      subtitle: "played 2 or more times",
+      none: "none yet",
+      result: { won: "won", lost: "lost", draw: "drew" },
+      last: (result: string, score: string, day: string) =>
+        `Last: ${result} ${score} on ${day}`,
+      lastNoScore: (day: string) => `Last: played on ${day}, no score`,
+      next: (last: string, day: string) => `${last}. Next ${day}`,
+      footnote:
+        "Rematch pre-fills a challenge to that team and sends it straight to them.",
+      emptyTitle: "No rivals yet",
+      emptyBody:
+        "Play the same team twice and they show up here with the head-to-head.",
+      versus: "vs",
+      closest: (name: string) => `Closest: ${name}, played once.`,
+      closestNext: (name: string, day: string) =>
+        `Closest: ${name}, played once. ${day} makes it two.`,
+    },
+    members: {
+      title: "Members",
+      you: "You",
+      captain: "Captain",
+      youCaptain: "You, captain",
+      line: (who: string, seat: string) => `${who}. ${seat}`,
+      level: (band: string, level: string) => `${band} ${level}`,
+      side: {
+        left: "Left side",
+        right: "Right side",
+        either: "Either side",
+      },
+    },
+    roster: {
+      openSeat: "Open seat",
+      invite: "Invite",
+      partnerDetail: "Find your partner on Temba, or share a link",
+      footnote:
+        "The roster is who’s on the team. Who plays a given game is the matchday squad, named per game: the side plus up to three reserves. Only they get the result.",
+    },
+    games: {
+      subtitle: "all from challenges",
+      versus: (name: string) => `vs ${name}`,
+      sets: (sets: readonly string[]) => sets.join(", "),
+    },
   },
 };

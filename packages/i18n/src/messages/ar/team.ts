@@ -11,10 +11,7 @@ export const team = {
     description: "الفريق شراكة دائمة مع لاعب آخر.",
   },
   createLabel: "إنشاء فريق",
-  createDescription: "ابدأ فريقًا. تصبح أول عضو ويمكنك دعوة الآخرين لاحقًا.",
   sportLabel: "الرياضة",
-  nameLabel: "الاسم (اختياري)",
-  nameHint: "إن تركته فارغًا، تستخدم صفحة الفريق أسماء الأعضاء.",
   toast: {
     created: "تم إنشاء الفريق",
     joined: "انضممت إلى الفريق",
@@ -94,22 +91,10 @@ export const team = {
     draws: "التعادلات",
   },
   captainLabel: "القائد",
-  sportChoice: {
-    padel: { name: "بادل", detail: "لاعبان" },
-    football: {
-      name: "كرة القدم",
-      detail: (max: number) => `قائمة حتى ${max}`,
-    },
-  },
-  rosterHelper: (max: number) =>
-    `5 لمباراة 5 ضد 5، و7 لمباراة 7 ضد 7، و${max} كحد أقصى`,
   draft: {
     countLine: (count: number, max: number) => `${count} من ${max}، معك أنت`,
-    invited: "مدعو، بانتظار القبول",
     added: "مضاف، ليس على Temba",
     remove: (name: string) => `إزالة ${isolate(name)}`,
-    footer:
-      "ستة لاعبين تكفي لنشر تحدٍّ 6 ضد 6؛ وتُختار تشكيلة المباراة لكل مباراة بعد تأكيدها.",
     full: (max: number) => `القائمة ممتلئة عند ${max}.`,
   },
   addPlayers: {
@@ -163,19 +148,138 @@ export const team = {
         other: "أُرسلت {n} دعوة",
       }),
     listed: (name: string) => `${isolate(name)} في القائمة`,
-    listedCount: (n: number) =>
-      plural("ar", n, {
-        one: "لاعب واحد في القائمة",
-        two: "لاعبان في القائمة",
-        few: "{n} لاعبين في القائمة",
-        many: "{n} لاعبًا في القائمة",
-        other: "{n} لاعب في القائمة",
-      }),
     removeConfirm: {
       title: (name: string) => `إزالة ${isolate(name)}؟`,
       description:
         "ليس على Temba بعد، لذا يُزال من القائمة. تبقى مبارياته في السجل.",
       confirm: "إزالة",
+    },
+  },
+  create: {
+    title: "فريق جديد",
+    fromGroupTitle: "فريق من مجموعة",
+    nameTitle: "الاسم",
+    nameLabel: "اسم الفريق",
+    namePlaceholder: "Gooz FC",
+    sportTitle: "الرياضة",
+    sportHint: "تحدد حجم الفريق",
+    sport: {
+      padel: { name: "بادل", detail: "لاعبان" },
+      football: {
+        name: "كرة القدم",
+        detail: (max: number) => `قائمة حتى ${max}`,
+      },
+    },
+    rosterTitle: "القائمة",
+    stripHelper: "5 لمباراة 5 ضد 5، و7 لمباراة 7 ضد 7",
+    stripMax: (max: number) => `${max} كحد أقصى`,
+    stripSpoken: (taken: number, waiting: number, max: number) =>
+      `${taken} من ${max} مقاعد، ${waiting} لم يؤكَّدوا بعد`,
+    legendIn: "في الفريق",
+    legendPending: "مدعو أو مضاف، لم يؤكَّد بعد",
+    sources: {
+      label: "طريقة الإضافة",
+      phone: "برقم الهاتف",
+      temba: "على Temba",
+      group: "من مجموعة",
+    },
+    phoneLabel: "رقم الهاتف",
+    lookingUp: "جارٍ البحث…",
+    lookup: {
+      found: (tag: string | null, games: number) =>
+        [
+          "على Temba",
+          tag,
+          games > 0
+            ? plural("ar", games, {
+                one: "مباراة واحدة معك",
+                two: "مباراتان معك",
+                few: "{n} مباريات معك",
+                other: "{n} مباراة معك",
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(". "),
+      sportLevel: (sport: string, level: string | null) =>
+        level ? `${sport} ${level}` : sport,
+      invite: "دعوة",
+      inviteA11y: (name: string) => `دعوة ${isolate(name)}`,
+      inviteNote: (name: string) =>
+        `تصل الدعوة إلى ${isolate(name)} في التطبيق. يظهر المقعد بانتظار القبول حتى يقبل؛ ويمكنك نشر التحديات في الأثناء.`,
+      newTitle: "ليس على Temba بعد",
+      newLine: "أضفه على أي حال. لا يحتاج إلى التطبيق ليكون في الفريق.",
+      unclaimedLine: "ليس على Temba بعد. سبقت إضافته برقم الهاتف",
+      add: "إضافة",
+      addA11y: (name: string) => `إضافة ${isolate(name)}`,
+      nameLabel: "الاسم",
+      roleLabel: "المركز",
+      roles: {
+        gk: "حارس",
+        def: "دفاع",
+        mid: "وسط",
+        fwd: "هجوم",
+      },
+      addNamed: (name: string) => `أضف ${isolate(name)} إلى الفريق`,
+      addUnnamed: "أضف إلى الفريق",
+    },
+    row: {
+      captain: "القائد",
+      invited: "مدعو",
+      waiting: "بانتظار القبول",
+      addedByYou: "أضفته أنت",
+      notOnTemba: "ليس على Temba",
+      sentence: (parts: readonly string[]) => parts.join(". "),
+      invitedByPhone: "دُعي برقم الهاتف",
+      invitedOnTemba: "دُعي على Temba",
+      invitedFromGroup: (group: string) => `دُعي من ${isolate(group)}`,
+      remove: (name: string) => `إزالة ${isolate(name)}`,
+    },
+    addMore: "أضف المزيد. برقم الهاتف، أو على Temba، أو من مجموعة",
+    enough: (count: number, side: number) =>
+      `${count} لاعبين يكفون لنشر تحدٍّ ${side} ضد ${side}؛ وتُختار تشكيلة المباراة لكل مباراة بعد تأكيدها.`,
+    addedNote:
+      "اللاعبون المضافون يُحسبون في القائمة ويظهرون في التحديات بأسمائهم. وإن انضموا إلى Temba بالرقم نفسه لاحقًا، يصبح المقعد لهم: بالسجل والنتائج والعلامات.",
+    submit: "أنشئ الفريق",
+    submitNamed: (name: string) => `أنشئ ${isolate(name)}`,
+    group: {
+      title: "المجموعة",
+      organize: (n: number) => `تنظّم ${n}`,
+      meta: (sport: string, members: number, teams: number) =>
+        `${sport}، ${plural("ar", members, {
+          zero: "لا أعضاء",
+          one: "عضو واحد",
+          two: "عضوان",
+          few: "{n} أعضاء",
+          other: "{n} عضوًا",
+        })}. ${
+          teams === 0
+            ? "لا فريق بعد"
+            : plural("ar", teams, {
+                one: "لها فريق واحد",
+                two: "لها فريقان",
+                few: "لها {n} فرق",
+                other: "لها {n} فريقًا",
+              })
+        }`,
+      empty: "تظهر هنا المجموعات التي تنظّمها.",
+      squadTitle: "اختر التشكيلة",
+      squadCount: (picked: number, max: number, sport: string) =>
+        `${picked} من ${max}، ${sport}`,
+      sportLower: { padel: "بادل", football: "كرة القدم" },
+      youCaptain: "أنت، القائد",
+      more: (n: number) =>
+        plural("ar", n, {
+          one: "وعضو آخر",
+          two: "وعضوان آخران",
+          few: "و{n} أعضاء آخرين",
+          other: "و{n} عضوًا آخر",
+        }),
+      tag: (group: string) => ({
+        before: "وسم كفريق ",
+        strong: isolate(group),
+        after: ". يظهر في صفحة المجموعة؛ ويمكن للمنظمين نشر تحديات باسمه.",
+      }),
     },
   },
   groupTag: {
@@ -184,7 +288,6 @@ export const team = {
     remove: "إزالة الوسم",
     tagged: (group: string) => `أصبح فريق ${isolate(group)}`,
     removed: "أزيل الوسم",
-    createNote: (group: string) => `سيُوسم هذا الفريق كفريق ${isolate(group)}.`,
   },
   recordSpoken: (wins: number, losses: number) => `فاز ${wins}، خسر ${losses}`,
   recordSpokenWithDraws: (wins: number, draws: number, losses: number) =>
@@ -244,5 +347,76 @@ export const team = {
   games: {
     title: "المباريات",
     empty: "لا مباريات ملعوبة بعد.",
+  },
+  detail: {
+    sportLevel: (sport: string, band: string) => `${sport}، ${band}`,
+    since: (month: string, year: number) => `منذ ${month} ${year}`,
+    sentences: (parts: readonly string[]) => parts.join(". "),
+    record: {
+      label: "السجل",
+      games: (n: number) =>
+        plural("ar", n, {
+          zero: "لا مباريات",
+          one: "مباراة واحدة",
+          two: "مباراتان",
+          few: "{n} مباريات",
+          many: "{n} مباراة",
+          other: "{n} مباراة",
+        }),
+      wonDrawnLost: "فوز، تعادل، خسارة",
+    },
+    membersSpoken: (names: string) => `الأعضاء: ${names}`,
+    postChallenge: "انشر تحديًا",
+    share: "مشاركة",
+    shareText: (team: string, url: string) =>
+      `${isolate(team)} على Temba: ${url}`,
+    shareCopied: "نُسخ رابط الفريق",
+    openGroup: (group: string) => `افتح ${isolate(group)}`,
+    form: {
+      allTime: "كل الأوقات",
+    },
+    rivals: {
+      subtitle: "لعبتم ضدهم مرتين أو أكثر",
+      none: "لا أحد بعد",
+      result: { won: "فوز", lost: "خسارة", draw: "تعادل" },
+      last: (result: string, score: string, day: string) =>
+        `الأخيرة: ${result} ${score} في ${day}`,
+      lastNoScore: (day: string) => `الأخيرة: لُعبت في ${day}، بلا نتيجة`,
+      next: (last: string, day: string) => `${last}. القادمة ${day}`,
+      footnote:
+        "مباراة الإعادة تملأ تحديًا لذلك الفريق مسبقًا وترسله إليه مباشرة.",
+      emptyTitle: "لا منافسين بعد",
+      emptyBody:
+        "العب ضد الفريق نفسه مرتين ليظهر هنا مع نتائج المواجهات المباشرة.",
+      versus: "ضد",
+      closest: (name: string) => `الأقرب: ${isolate(name)}، لعبتم مرة واحدة.`,
+      closestNext: (name: string, day: string) =>
+        `الأقرب: ${isolate(name)}، لعبتم مرة واحدة. ${day} تجعلها مرتين.`,
+    },
+    members: {
+      title: "الأعضاء",
+      you: "أنت",
+      captain: "القائد",
+      youCaptain: "أنت، القائد",
+      line: (who: string, seat: string) => `${who}. ${seat}`,
+      level: (band: string, level: string) => `${band} ${level}`,
+      side: {
+        left: "الجهة اليسرى",
+        right: "الجهة اليمنى",
+        either: "أي جهة",
+      },
+    },
+    roster: {
+      openSeat: "مقعد شاغر",
+      invite: "دعوة",
+      partnerDetail: "ابحث عن شريكك على Temba، أو شارك رابطًا",
+      footnote:
+        "القائمة هي من في الفريق. ومن يلعب مباراة بعينها هو تشكيلة يوم المباراة، تُسمّى لكل مباراة: الأساسيون وحتى ثلاثة احتياط. وهم وحدهم من تُحتسب لهم النتيجة.",
+    },
+    games: {
+      subtitle: "كلها من التحديات",
+      versus: (name: string) => `ضد ${isolate(name)}`,
+      sets: (sets: readonly string[]) => sets.join(", "),
+    },
   },
 } satisfies typeof source;

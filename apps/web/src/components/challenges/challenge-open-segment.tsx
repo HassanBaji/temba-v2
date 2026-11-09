@@ -1,18 +1,16 @@
 "use client";
 
-import Link from "next/link";
-
 import { ErrorState } from "~/components/common/error-state";
 import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import {
   challengeBoardFilterGroups,
   challengeBoardHasFilters,
@@ -20,6 +18,8 @@ import {
   type ChallengeBoardFilterKey,
   type ChallengeBoardFilters,
 } from "@repo/domain/challenge-card";
+import { pageBleed } from "~/lib/page-layout";
+import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
 
 import { ChallengeCard } from "./challenge-card";
@@ -29,7 +29,8 @@ type Board = RouterOutputs["challenges"]["listOpen"];
 
 const ANY = "any";
 
-function FilterBar({
+/** Sport, Level, Area and Day as labelled boxes in one scrolling row. */
+function FilterRow({
   filters,
   areas,
   onFilter,
@@ -47,36 +48,51 @@ function FilterBar({
     <div
       role="group"
       aria-label={m.challenge.filters.label}
-      className="flex flex-wrap items-center gap-2"
+      className={cn(
+        pageBleed,
+        "flex gap-1.5 overflow-x-auto [scrollbar-width:none]",
+      )}
     >
       {groups.map((group) => (
-        <Select
-          key={group.key}
-          value={filters[group.key] ?? ANY}
-          onValueChange={(value) =>
-            onFilter(group.key, value === ANY ? null : value)
-          }
-        >
-          <SelectTrigger
-            size="sm"
-            aria-label={group.label}
-            className="min-w-32"
+        <DropdownMenu key={group.key}>
+          <DropdownMenuTrigger
+            aria-label={m.challenge.filters.chip(group.label, group.summary)}
+            className="border-rule hover:bg-muted/40 focus-visible:ring-ring/50 min-w-18 data-[state=open]:border-ink flex h-10 shrink-0 flex-col justify-center gap-px rounded-md border px-3 text-start outline-none focus-visible:ring-[3px]"
           >
-            <SelectValue>
-              {m.challenge.filters.chip(group.label, group.summary)}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {group.options.map((option) => (
-              <SelectItem key={option.value ?? ANY} value={option.value ?? ANY}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <span className="text-eyebrow text-muted-foreground leading-none">
+              {group.label}
+            </span>
+            <span className="text-meta font-semibold leading-tight">
+              {group.summary}
+            </span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-80">
+            <DropdownMenuRadioGroup
+              value={filters[group.key] ?? ANY}
+              onValueChange={(value) =>
+                onFilter(group.key, value === ANY ? null : value)
+              }
+            >
+              {group.options.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.value ?? ANY}
+                  value={option.value ?? ANY}
+                >
+                  {option.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ))}
       {challengeBoardHasFilters(filters) ? (
-        <Button type="button" size="sm" variant="ghost" onClick={onClear}>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-10 shrink-0"
+          onClick={onClear}
+        >
           {m.challenge.filters.clear}
         </Button>
       ) : null}
@@ -84,7 +100,7 @@ function FilterBar({
   );
 }
 
-/** 1a: the Open board, filters, and Post a challenge. */
+/** 1a: the Open feed under its filters, with the footnote on hatched seats. */
 export function ChallengeOpenSegment({
   board,
   loading,
@@ -106,11 +122,6 @@ export function ChallengeOpenSegment({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const post = (
-    <Button asChild>
-      <Link href="/dashboard/challenges/new">{m.challenge.post.cta}</Link>
-    </Button>
-  );
   if (error) {
     return (
       <ErrorState
@@ -126,25 +137,19 @@ export function ChallengeOpenSegment({
   }
   const filtered = challengeBoardHasFilters(filters);
   if (board.challenges.length === 0 && !filtered) {
-    return (
-      <div className="space-y-4">
-        {post}
-        <ChallengeSegmentEmpty segment="open" onGoToTeams={onGoToTeams} />
-      </div>
-    );
+    return <ChallengeSegmentEmpty segment="open" onGoToTeams={onGoToTeams} />;
   }
   const now = new Date();
   return (
     <div className="space-y-4">
-      {post}
-      <FilterBar
+      <FilterRow
         filters={filters}
         areas={board.areas}
         onFilter={onFilter}
         onClear={onClearFilters}
       />
       {board.challenges.length === 0 ? (
-        <div className="space-y-1">
+        <div className="border-rule p-4.5 space-y-1 rounded-xl border">
           <p className="text-body font-semibold">
             {m.challenge.open.filteredEmptyTitle}
           </p>
@@ -153,24 +158,29 @@ export function ChallengeOpenSegment({
           </p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {board.challenges.map((challenge) => (
-            <li key={challenge.id}>
-              <ChallengeCard
-                card={challengeCardView(
-                  {
-                    ...challenge,
-                    viewer: {
-                      ineligibleReason: challenge.viewer.ineligibleReason,
+        <div>
+          <ul className="border-rule divide-rule bg-paper divide-y overflow-hidden rounded-xl border">
+            {board.challenges.map((challenge) => (
+              <li key={challenge.id}>
+                <ChallengeCard
+                  card={challengeCardView(
+                    {
+                      ...challenge,
+                      viewer: {
+                        ineligibleReason: challenge.viewer.ineligibleReason,
+                      },
                     },
-                  },
-                  locale,
-                  now,
-                )}
-              />
-            </li>
-          ))}
-        </ul>
+                    locale,
+                    now,
+                  )}
+                />
+              </li>
+            ))}
+          </ul>
+          <p className="text-eyebrow text-muted-foreground mt-2.5 leading-normal">
+            {m.challenge.tab.openFootnote}
+          </p>
+        </div>
       )}
     </div>
   );

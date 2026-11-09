@@ -4,6 +4,7 @@ import {
   NEW_TEAM_PATH,
   TEAMS_PATH,
   newTeamPath,
+  postChallengePath,
   teamPath,
 } from "./teams-model";
 
@@ -12,6 +13,10 @@ describe("team paths", () => {
     expect(TEAMS_PATH).toBe("/challenges?tab=teams");
     expect(NEW_TEAM_PATH).toBe("/challenges/teams/new");
     expect(teamPath("t1")).toBe("/challenges/teams/t1");
+  });
+
+  it("opens the post form with the Team chosen", () => {
+    expect(postChallengePath("t1")).toBe("/challenges/new?team=t1");
   });
 
   it("tags a new Team to a Group when one is given", () => {

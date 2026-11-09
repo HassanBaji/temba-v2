@@ -21,6 +21,7 @@ import {
   loadTeamRecord,
   loadTeamRivals,
   teamFormFromMatches,
+  teamFormGamesFromMatches,
   teamRivalsFromMatches,
 } from "./team-record";
 
@@ -160,9 +161,13 @@ describe("team record, Rivals and head-to-head", () => {
           losses: 1,
           lastResult: "won",
           lastPlayedAt: new Date(FIRST.getTime() + 2 * DAY),
+          lastSets: [{ us: 6, them: 2 }],
         },
       ]);
       expect(oursRivals.closest).toBeNull();
+      expect(theirsLastSets(await loadTeamRivals(db, theirs))).toEqual([
+        { us: 2, them: 6 },
+      ]);
 
       const theirsRivals = await loadTeamRivals(db, theirs);
       expect(theirsRivals.rivals).toMatchObject([
@@ -302,6 +307,25 @@ describe("team record, Rivals and head-to-head", () => {
       ]);
       expect(byTeam.get(idle)).toEqual([]);
     });
+  });
+});
+
+function theirsLastSets(view: Awaited<ReturnType<typeof loadTeamRivals>>) {
+  return view.rivals[0]?.lastSets;
+}
+
+describe("teamFormGamesFromMatches", () => {
+  it("dates the same last ten scored results", () => {
+    const at = (day: number) => new Date(FIRST.getTime() + day * DAY);
+    const games = teamFormGamesFromMatches([
+      { result: "won", playedAt: at(0) },
+      { result: null, playedAt: at(1) },
+      { result: "draw", playedAt: at(2) },
+    ]);
+    expect(games).toEqual([
+      { result: "won", playedAt: at(0) },
+      { result: "draw", playedAt: at(2) },
+    ]);
   });
 });
 

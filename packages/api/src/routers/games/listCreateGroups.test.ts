@@ -4,6 +4,7 @@ import {
   groupMembers,
   GroupMemberRoleEnum,
   groups,
+  teams,
   user,
   venues,
 } from "@repo/db/schema";
@@ -123,6 +124,8 @@ describe("listCreateGroups", () => {
           venueName: "Live Club",
           sport: "padel",
           verified: true,
+          memberCount: 0,
+          teamCount: 0,
         },
       ]);
     } finally {
@@ -174,6 +177,52 @@ describe("listCreateGroups", () => {
 
       const memberRows = await listCreateGroups(db, { userId: member.id });
       expect(memberRows).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("counts each Group's members and the Teams tagged to it", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "list-create-counts@example.com");
+      const member = await insertUser(db, "list-create-counted@example.com");
+      const crew = await insertGroup(db, {
+        createdBy: owner.id,
+        name: "Counted crew",
+        sport: "football",
+      });
+      const empty = await insertGroup(db, {
+        createdBy: owner.id,
+        name: "Empty crew",
+      });
+      await db.insert(groupMembers).values([
+        { groupId: crew.id, userId: owner.id },
+        { groupId: crew.id, userId: member.id },
+      ]);
+      await db.insert(teams).values([
+        {
+          name: "One",
+          sport: "football",
+          createdBy: owner.id,
+          groupId: crew.id,
+        },
+        {
+          name: "Two",
+          sport: "football",
+          createdBy: owner.id,
+          groupId: crew.id,
+        },
+        { name: "Loose", sport: "football", createdBy: owner.id },
+      ]);
+
+      const rows = await listCreateGroups(db, { userId: owner.id });
+      expect(
+        rows.map((row) => [row.id, row.memberCount, row.teamCount]),
+      ).toEqual([
+        [crew.id, 2, 2],
+        [empty.id, 0, 0],
+      ]);
     } finally {
       await close();
     }

@@ -74,6 +74,15 @@ describe("challenges.listPostOptions", () => {
         ["Seef Smashers", 2, []],
       ]);
       expect(options.teams.map((team) => team.id)).toEqual([gooz.id, seef.id]);
+      expect(
+        options.teams[1]?.members.map((member) => [
+          member.userId,
+          member.isViewer,
+        ]),
+      ).toEqual([
+        [captain, true],
+        [partner, false],
+      ]);
       expect(options.venues).toEqual({
         padel: [{ id: court.id, name: "Padel Central", city: "Manama" }],
         football: [{ id: pitch.id, name: "Matchday Pitches", city: "Manama" }],

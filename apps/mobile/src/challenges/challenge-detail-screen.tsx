@@ -1,15 +1,19 @@
 import { spacing } from "@repo/design-tokens";
 import { acceptTeamToPropose } from "@repo/domain/challenge-accept";
+import { challengeCardView } from "@repo/domain/challenge-card";
 import {
-  challengeCardView,
-  challengeLevelWanted,
-} from "@repo/domain/challenge-card";
-import { formatGameDay } from "@repo/domain/format-game-start";
-import { headToHeadLine } from "@repo/domain/team-rivals";
+  challengeConfirmedView,
+  challengeDetailFooter,
+  challengeDetailRows,
+  challengeDetailStatusLine,
+  challengeTeamFaceView,
+  type ChallengeTeamFace,
+} from "@repo/domain/challenge-detail";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { View } from "react-native";
 
+import { useLightStatusBar } from "../create-game/step-shell";
 import {
   ConfirmSheet,
   type ConfirmRequest,
@@ -25,40 +29,67 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { gamePath } from "../games/games-model";
-import { teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
 import { AcceptSheet } from "./accept-sheet";
-import { ChallengeSeats } from "./challenge-card";
+import {
+  ChallengeFootnote,
+  ChallengeHeaderRow,
+  ChallengeInfoRows,
+  ChallengeNote,
+  ChallengeTeamVsTeam,
+} from "./challenge-detail-parts";
 import { ProposalQueue, ViewerProposals } from "./challenge-detail-proposals";
-import { ChallengeGameSummary } from "./challenge-game-summary";
 import {
   CHALLENGES_PATH,
   challengeCardInput,
   MINE_PATH,
+  type ChallengeDetail,
 } from "./challenges-model";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
+const HERO_PADDING_BOTTOM = 22;
+const STATUS_GAP = 14;
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function faceFor(
+  data: ChallengeDetail,
+  teamId: string | null | undefined,
+): ChallengeTeamFace | null {
+  return data.teamFaces.find((face) => face.id === teamId) ?? null;
+}
+
+function posterFace(data: ChallengeDetail): ChallengeTeamFace {
   return (
-    <View style={{ gap: 2, paddingVertical: 10 }}>
-      <Text size="eyebrow" tone="muted" mono uppercase>
-        {label}
-      </Text>
-      <Text>{value}</Text>
-    </View>
+    faceFor(data, data.team.id) ?? {
+      id: data.team.id,
+      displayName: data.team.displayName,
+      sport: data.sport,
+      rosterCount: data.team.rosterCount,
+      teamLevel: data.team.teamLevel,
+      members: data.team.members.map((member) => ({
+        name: member.name,
+        isViewer: false,
+      })),
+    }
   );
+}
+
+function LightStatusBar() {
+  useLightStatusBar();
+  return null;
 }
 
 /**
  * 2a: one Challenge in its open state, with Accept for a Team that may
  * propose; 2c: the viewer's pending Proposal; the poster's Proposal queue,
- * where one is confirmed into the Challenge Game; 2d: the confirmed state.
+ * where one is confirmed into the Challenge Game; 2d: the confirmed state,
+ * on ink. `openAccept` opens the Accept sheet once the Challenge loads.
  */
 export function ChallengeDetailScreen({
   challengeId,
+  openAccept = false,
 }: {
   challengeId: string;
+  openAccept?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -70,6 +101,7 @@ export function ChallengeDetailScreen({
   const [accepting, setAccepting] = useState<{ teamId: string | null } | null>(
     null,
   );
+  const openedFromLink = useRef(false);
   const challenge = api.challenges.byId.useQuery(
     { id: challengeId },
     REFETCH_ON_FOREGROUND,
@@ -132,6 +164,19 @@ export function ChallengeDetailScreen({
     }
   }, [challenge]);
 
+  const data = challenge.data;
+  const proposingTeam = data
+    ? acceptTeamToPropose(data.viewerEligibleTeams, data.viewerProposals)
+    : null;
+  const proposingTeamId = data?.state === "open" ? proposingTeam?.id : null;
+
+  useEffect(() => {
+    if (openAccept && !openedFromLink.current && proposingTeamId) {
+      openedFromLink.current = true;
+      setAccepting({ teamId: proposingTeamId });
+    }
+  }, [openAccept, proposingTeamId]);
+
   const header = (
     <ScreenHeader
       nav="back"
@@ -148,7 +193,7 @@ export function ChallengeDetailScreen({
       </Screen>
     );
   }
-  if (challenge.error || !challenge.data) {
+  if (challenge.error || !data) {
     return (
       <Screen>
         {header}
@@ -162,114 +207,214 @@ export function ChallengeDetailScreen({
     );
   }
 
-  const data = challenge.data;
   const now = new Date();
   const card = challengeCardView(challengeCardInput(data), locale, now);
   const open = data.state === "open";
   const detail = m.challenge.detail;
-  const proposingTeam = acceptTeamToPropose(
-    data.viewerEligibleTeams,
-    data.viewerProposals,
+  const screen = m.challenge.detailScreen;
+  const poster = challengeTeamFaceView(posterFace(data), locale);
+  const viewerProposal = data.viewerProposals[0] ?? null;
+  const proposerFace = viewerProposal
+    ? faceFor(data, viewerProposal.team.id)
+    : null;
+  const actsForPoster = data.viewer.actsForPoster;
+  const missing = {
+    name: actsForPoster ? m.challenge.card.opponentSeats : screen.opponentName,
+    line: screen.opponentLine,
+  };
+  const showAcceptBar =
+    open && !actsForPoster && data.viewerProposals.length === 0;
+  const footer = challengeDetailFooter(data.proposalCount, locale);
+
+  const sheets = (
+    <>
+      <ConfirmSheet
+        request={confirm}
+        pending={
+          withdraw.isPending ||
+          withdrawProposal.isPending ||
+          decline.isPending ||
+          confirmProposal.isPending
+        }
+        onClose={() => setConfirm(null)}
+      />
+      <AcceptSheet
+        challengeId={challengeId}
+        visible={accepting != null}
+        teamId={accepting?.teamId}
+        onClose={() => setAccepting(null)}
+      />
+    </>
   );
-  const eligibleLine =
-    data.viewerEligibleTeams.length > 0
-      ? detail.proposeWith(
-          data.viewerEligibleTeams
-            .map((team) => team.displayName)
-            .join(m.challenge.when.listSeparator),
-        )
+
+  const game = data.game;
+  if (game) {
+    const otherSide =
+      game.sides.find(
+        (side) => side.teamId != null && side.teamId !== data.team.id,
+      ) ?? null;
+    const opponent =
+      faceFor(data, game.proposedBy.teamId) ?? faceFor(data, otherSide?.teamId);
+    const opponentView = opponent
+      ? challengeTeamFaceView(opponent, locale)
       : null;
+    const viewerOnPoster = posterFace(data).members.some(
+      (member) => member.isViewer,
+    );
+    const [left, right] =
+      opponentView && !viewerOnPoster
+        ? [opponentView, poster]
+        : [poster, opponentView];
+    const confirmed = challengeConfirmedView(
+      { ...game, sport: game.sport ?? data.sport },
+      {
+        proposer:
+          opponent?.displayName ?? otherSide?.displayName ?? missing.name,
+        poster: data.team.displayName,
+      },
+      now,
+      locale,
+    );
+    const tone =
+      !game.cancelled &&
+      new Date(game.endsAt ?? game.startsAt).getTime() > now.getTime()
+        ? "ink"
+        : "paper";
+    return (
+      <Screen
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        statusBarTone={tone}
+        header={
+          <Surface
+            tone={tone}
+            style={{
+              paddingTop: spacing.compact,
+              paddingBottom: HERO_PADDING_BOTTOM,
+              borderRadius: 0,
+              borderWidth: 0,
+            }}
+          >
+            {tone === "ink" ? <LightStatusBar /> : null}
+            <ChallengeHeaderRow fallback={MINE_PATH} />
+            <Text size="meta" tone="muted" style={{ marginTop: 28 }}>
+              {confirmed.statusLine}
+            </Text>
+            <View
+              accessible
+              accessibilityRole="header"
+              style={{
+                flexDirection: "row",
+                alignItems: "baseline",
+                gap: 8,
+                marginTop: 10,
+              }}
+            >
+              <Text size="heroTime" weight="bold" width="expanded">
+                {confirmed.time}
+              </Text>
+              {confirmed.meridiem ? (
+                <Text size="figure" weight="medium" tone="muted">
+                  {confirmed.meridiem}
+                </Text>
+              ) : null}
+            </View>
+            <Text size="lead" style={{ marginTop: 8 }}>
+              {confirmed.dayLine}
+            </Text>
+            {confirmed.placeLine ? (
+              <Text size="meta" tone="muted">
+                {confirmed.placeLine}
+              </Text>
+            ) : null}
+            <View style={{ marginTop: 22, marginBottom: 18 }}>
+              <Hairline />
+            </View>
+            <ChallengeTeamVsTeam
+              left={left}
+              right={right}
+              missing={missing}
+              boxed={false}
+            />
+            <View style={{ marginTop: 20 }}>
+              <Button
+                label={screen.confirmed.viewGame}
+                size="lg"
+                onPress={() => router.push(gamePath(game.id))}
+              />
+            </View>
+          </Surface>
+        }
+      >
+        <View>
+          <ChallengeInfoRows rows={confirmed.rows} />
+          <ChallengeFootnote>{confirmed.closedNote}</ChallengeFootnote>
+        </View>
+        {sheets}
+      </Screen>
+    );
+  }
+
+  const status = challengeDetailStatusLine(
+    {
+      state: data.state,
+      expiresAt: data.expiresAt,
+      posterName: data.team.displayName,
+      hasViewerProposal: viewerProposal != null,
+      gameCancelled: false,
+    },
+    now,
+    locale,
+  );
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      {header}
-      <View style={{ gap: spacing.section }}>
-        {data.game ? (
-          <ChallengeGameSummary
-            game={data.game}
-            onOpen={() => router.push(gamePath(data.game!.id))}
-          />
-        ) : data.state !== "open" ? (
-          <Surface>
-            <Text weight="semibold" accessibilityRole="alert">
-              {detail.closed[data.state]}
-            </Text>
-          </Surface>
-        ) : null}
-        <Surface style={{ gap: spacing.compact }}>
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push(teamPath(data.team.id))}
-          >
-            <Text size="title" weight="semibold">
-              {card.title}
-            </Text>
-          </Pressable>
-          <Text size="meta">{card.sportLine}</Text>
-          <ChallengeSeats card={card} />
-          {open ? (
+    <Screen
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      footer={
+        showAcceptBar ? (
+          <>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text weight="semibold">{footer.title}</Text>
+              <Text size="meta" tone="muted">
+                {proposingTeam ? footer.hint : (card.greyedLine ?? footer.hint)}
+              </Text>
+            </View>
+            <Button
+              label={m.challenge.accept.cta}
+              accessibilityLabel={m.challenge.accept.ctaA11y(card.title)}
+              size="lg"
+              disabled={!proposingTeam}
+              onPress={() =>
+                proposingTeam
+                  ? setAccepting({ teamId: proposingTeam.id })
+                  : undefined
+              }
+            />
+          </>
+        ) : undefined
+      }
+    >
+      <View style={{ gap: spacing.surface }}>
+        <View style={{ gap: 18 }}>
+          <View style={{ gap: STATUS_GAP }}>
+            <ChallengeHeaderRow fallback={CHALLENGES_PATH} />
             <Text size="meta" tone="muted">
-              {card.proposalsLine}
+              {status}
             </Text>
-          ) : null}
-        </Surface>
-        <Surface padded={false} style={{ paddingHorizontal: spacing.surface }}>
-          <DetailRow
-            label={detail.record}
-            value={headToHeadLine(data.team.record, data.sport, locale)}
+          </View>
+          <ChallengeTeamVsTeam
+            left={poster}
+            right={
+              proposerFace ? challengeTeamFaceView(proposerFace, locale) : null
+            }
+            missing={missing}
           />
-          <Hairline />
-          <DetailRow
-            label={detail.when}
-            value={[card.whenLine, card.slotsLine]
-              .filter((line): line is string => line != null)
-              .join(m.group.metaSeparator)}
-          />
-          <Hairline />
-          <DetailRow label={detail.where} value={card.venuesLine} />
-          <Hairline />
-          <DetailRow
-            label={detail.level}
-            value={challengeLevelWanted(
-              data.levelMinTenths,
-              data.levelMaxTenths,
-              locale,
-            )}
-          />
-          {data.note ? (
-            <>
-              <Hairline />
-              <DetailRow label={detail.note} value={data.note} />
-            </>
-          ) : null}
-        </Surface>
-        <Text size="meta" tone="muted">
-          {detail.postedBy(
-            data.postedBy.name ?? m.team.memberFallback,
-            formatGameDay(data.createdAt, locale, { weekday: "short" }),
-          )}
-        </Text>
-        {open && card.nudgeLine ? (
-          <Text weight="medium">{card.nudgeLine}</Text>
-        ) : null}
-        {open && eligibleLine ? (
-          <Text weight="medium">{eligibleLine}</Text>
-        ) : null}
-        {open && card.greyedLine ? (
-          <Text weight="medium">{card.greyedLine}</Text>
-        ) : null}
-        {open && proposingTeam ? (
-          <Button
-            label={m.challenge.accept.cta}
-            accessibilityLabel={m.challenge.accept.ctaA11y(card.title)}
-            size="lg"
-            onPress={() => setAccepting({ teamId: proposingTeam.id })}
-          />
-        ) : null}
+        </View>
         <ViewerProposals
           proposals={data.viewerProposals}
-          posterTeamName={card.title}
-          focus={data.proposalQueue.length === 0}
+          posterTeamName={data.team.displayName}
+          sport={data.sport}
           withdrawingId={
             withdrawProposal.isPending
               ? (withdrawProposal.variables?.proposalId ?? null)
@@ -289,6 +434,7 @@ export function ChallengeDetailScreen({
         {data.viewerCanDecide ? (
           <ProposalQueue
             proposals={data.proposalQueue}
+            posterTeamName={data.team.displayName}
             confirmingId={
               confirmProposal.isPending
                 ? (confirmProposal.variables?.proposalId ?? null)
@@ -318,6 +464,11 @@ export function ChallengeDetailScreen({
             }
           />
         ) : null}
+        {open && card.nudgeLine ? (
+          <Text weight="medium">{card.nudgeLine}</Text>
+        ) : null}
+        <ChallengeInfoRows rows={challengeDetailRows(data, locale)} />
+        {data.note ? <ChallengeNote note={data.note} /> : null}
         {data.viewerCanWithdraw ? (
           <Button
             label={detail.withdraw}
@@ -333,22 +484,7 @@ export function ChallengeDetailScreen({
           />
         ) : null}
       </View>
-      <ConfirmSheet
-        request={confirm}
-        pending={
-          withdraw.isPending ||
-          withdrawProposal.isPending ||
-          decline.isPending ||
-          confirmProposal.isPending
-        }
-        onClose={() => setConfirm(null)}
-      />
-      <AcceptSheet
-        challengeId={challengeId}
-        visible={accepting != null}
-        teamId={accepting?.teamId}
-        onClose={() => setAccepting(null)}
-      />
+      {sheets}
     </Screen>
   );
 }

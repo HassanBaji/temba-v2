@@ -125,6 +125,27 @@ describe("challenges.byId", () => {
         proposalQueue: [],
         viewerCanDecide: false,
       });
+      const faceOf = (teamId: string) =>
+        proposer.teamFaces.find((face) => face.id === teamId);
+      expect(faceOf(match.seef.id)).toMatchObject({
+        displayName: "Seef Smashers",
+        sport: "padel",
+        rosterCount: 2,
+        teamLevel: null,
+        viewerOnRoster: false,
+        members: expect.arrayContaining([
+          { name: "Player 1", isViewer: false },
+          { name: "Player 2", isViewer: false },
+        ]),
+      });
+      expect(faceOf(match.riffa.id)).toMatchObject({
+        displayName: "Riffa Rackets",
+        viewerOnRoster: true,
+        members: expect.arrayContaining([
+          { name: "Player 3", isViewer: false },
+          { name: "Player 4", isViewer: true },
+        ]),
+      });
 
       const poster = await challengeById(db, {
         challengeId: match.challenge.id,
@@ -200,8 +221,13 @@ describe("challenges.byId", () => {
           venue: { name: "Pitch Park", city: "Hidd" },
           court: { name: "Court 1" },
           pricePerPlayerFils: 1500,
-          proposedBy: { name: "Arad 1", teamId: match.arad.id },
+          proposedBy: {
+            name: "Arad 1",
+            teamId: match.arad.id,
+            isViewer: false,
+          },
           confirmedBy: { name: "Hidd 1" },
+          confirmedAt: sentAt,
           sides: [
             {
               teamId: match.hidd.id,
@@ -219,6 +245,9 @@ describe("challenges.byId", () => {
             },
           ],
         });
+        expect(detail.teamFaces.map((face) => face.id).sort()).toEqual(
+          [match.hidd.id, match.arad.id].sort(),
+        );
       });
     });
   });

@@ -1,4 +1,4 @@
-import { spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import {
   challengeBoardFilterGroups,
   challengeBoardHasFilters,
@@ -7,19 +7,25 @@ import {
   type ChallengeBoardFilters,
 } from "@repo/domain/challenge-card";
 import { useState } from "react";
-import { View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { ChipGrid, ChoiceChip } from "../create-game/chips";
 import { Notice } from "../groups/notice";
 import type { Slot } from "../home/home-model";
 import { useLocale, useMessages } from "../i18n/locale-provider";
-import { Button } from "../primitives/button";
+import { Hairline } from "../primitives/hairline";
+import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
+import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
 import { ChallengeCard } from "./challenge-card";
 import { challengeCardInput, type OpenChallenge } from "./challenges-model";
 import { SegmentEmpty } from "./segment-empty";
+
+const FILTER_HEIGHT = 40;
+const FILTER_MIN_WIDTH = 72;
 
 export type OpenSegmentProps = {
   board: Slot<{ challenges: OpenChallenge[]; areas: string[] }>;
@@ -27,12 +33,57 @@ export type OpenSegmentProps = {
   onFilter: (key: ChallengeBoardFilterKey, value: string | null) => void;
   onClearFilters: () => void;
   onOpenChallenge: (challengeId: string) => void;
+  onAcceptChallenge: (challengeId: string) => void;
   onPost: () => void;
   onGoToTeams: () => void;
   onRetry: () => void;
 };
 
-function FilterBar({
+/** A labelled box: "Sport" over "All". */
+function FilterBox({
+  label,
+  value,
+  accessibilityLabel,
+  active,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  accessibilityLabel: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      hitSlop={2}
+      style={({ pressed }) => ({
+        height: FILTER_HEIGHT,
+        minWidth: FILTER_MIN_WIDTH,
+        paddingHorizontal: 12,
+        justifyContent: "center",
+        gap: 1,
+        borderRadius: radii.md,
+        borderWidth: hairline,
+        borderColor: active ? colors.ink : colors.rule,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text size="eyebrow" tone="muted" style={{ lineHeight: 13 }}>
+        {label}
+      </Text>
+      <Text size="meta" weight="semibold" numberOfLines={1}>
+        {value}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Sport, Level, Area and Day in one scrolling row; each opens a sheet of choices. */
+function FilterRow({
   filters,
   areas,
   onFilter,
@@ -46,26 +97,38 @@ function FilterBar({
   const groups = challengeBoardFilterGroups(filters, areas, locale);
   const open = groups.find((group) => group.key === openKey) ?? null;
   return (
-    <View
-      accessibilityLabel={m.challenge.filters.label}
-      style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
-    >
-      {groups.map((group) => (
-        <ChoiceChip
-          key={group.key}
-          label={m.challenge.filters.chip(group.label, group.summary)}
-          selected={filters[group.key] != null}
-          selection="soft"
-          onPress={() => setOpenKey(group.key)}
-        />
-      ))}
-      {challengeBoardHasFilters(filters) ? (
-        <ChoiceChip
-          label={m.challenge.filters.clear}
-          dashed
-          onPress={onClearFilters}
-        />
-      ) : null}
+    <>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityLabel={m.challenge.filters.label}
+        style={{ marginHorizontal: -spacing.surface }}
+        contentContainerStyle={{
+          gap: 6,
+          paddingHorizontal: spacing.surface,
+        }}
+      >
+        {groups.map((group) => (
+          <FilterBox
+            key={group.key}
+            label={group.label}
+            value={group.summary}
+            accessibilityLabel={m.challenge.filters.chip(
+              group.label,
+              group.summary,
+            )}
+            active={filters[group.key] != null}
+            onPress={() => setOpenKey(group.key)}
+          />
+        ))}
+        {challengeBoardHasFilters(filters) ? (
+          <ChoiceChip
+            label={m.challenge.filters.clear}
+            dashed
+            onPress={onClearFilters}
+          />
+        ) : null}
+      </ScrollView>
       <Sheet
         visible={open != null}
         onClose={() => setOpenKey(null)}
@@ -89,11 +152,11 @@ function FilterBar({
           />
         ) : null}
       </Sheet>
-    </View>
+    </>
   );
 }
 
-/** 1a: the Open board, filter chips, and Post a challenge. */
+/** 1a: the Open feed under its filters, with the footnote on hatched seats. */
 export function OpenSegment(props: OpenSegmentProps) {
   const m = useMessages();
   const locale = useLocale();
@@ -103,7 +166,7 @@ export function OpenSegment(props: OpenSegmentProps) {
     return (
       <View style={{ gap: 12 }}>
         {[0, 1].map((key) => (
-          <Skeleton key={key} height={180} radius={16} />
+          <Skeleton key={key} height={220} radius={radii.surface} />
         ))}
       </View>
     );
@@ -120,37 +183,45 @@ export function OpenSegment(props: OpenSegmentProps) {
   }
   const filtered = challengeBoardHasFilters(props.filters);
   if (board.value.challenges.length === 0 && !filtered) {
-    return (
-      <View style={{ gap: spacing.compact }}>
-        <Button label={m.challenge.post.cta} size="lg" onPress={props.onPost} />
-        <SegmentEmpty segment="open" onGoToTeams={props.onGoToTeams} />
-      </View>
-    );
+    return <SegmentEmpty segment="open" onGoToTeams={props.onGoToTeams} />;
   }
   return (
-    <View style={{ gap: spacing.compact }}>
-      <Button label={m.challenge.post.cta} size="lg" onPress={props.onPost} />
-      <FilterBar
+    <View style={{ gap: 16 }}>
+      <FilterRow
         filters={props.filters}
         areas={board.value.areas}
         onFilter={props.onFilter}
         onClearFilters={props.onClearFilters}
       />
       {board.value.challenges.length === 0 ? (
-        <View style={{ gap: 4 }}>
+        <Surface style={{ gap: 4, padding: spacing.compact }}>
           <Text weight="semibold">{m.challenge.open.filteredEmptyTitle}</Text>
           <Text size="meta" tone="muted">
             {m.challenge.open.filteredEmptyCopy}
           </Text>
-        </View>
+        </Surface>
       ) : (
-        board.value.challenges.map((challenge) => (
-          <ChallengeCard
-            key={challenge.id}
-            card={challengeCardView(challengeCardInput(challenge), locale, now)}
-            onOpen={props.onOpenChallenge}
-          />
-        ))
+        <View style={{ gap: 10 }}>
+          <Surface padded={false} style={{ overflow: "hidden" }}>
+            {board.value.challenges.map((challenge, index) => (
+              <View key={challenge.id}>
+                {index > 0 ? <Hairline /> : null}
+                <ChallengeCard
+                  card={challengeCardView(
+                    challengeCardInput(challenge),
+                    locale,
+                    now,
+                  )}
+                  onOpen={props.onOpenChallenge}
+                  onAccept={props.onAcceptChallenge}
+                />
+              </View>
+            ))}
+          </Surface>
+          <Text size="eyebrow" tone="muted">
+            {m.challenge.tab.openFootnote}
+          </Text>
+        </View>
       )}
     </View>
   );

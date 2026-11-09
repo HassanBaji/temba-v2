@@ -22,6 +22,7 @@ import { gamePath } from "../games/games-model";
 import { newTeamPath, teamPath } from "../teams/teams-model";
 import { api } from "../trpc/react";
 import {
+  challengeAcceptPath,
   challengePath,
   NEW_CHALLENGE_PATH,
   setBoardFilter,
@@ -60,6 +61,9 @@ export function ChallengesScreen() {
   );
   const organized = api.games.listCreateGroups.useQuery(undefined, {
     enabled: tab === "teams",
+  });
+  const viewer = api.users.profileDetails.useQuery(undefined, {
+    enabled: tab === "teams" && teams.data?.length === 0,
   });
 
   const accept = api.teams.acceptInAppInvite.useMutation({
@@ -133,6 +137,7 @@ export function ChallengesScreen() {
         teams={slotOf(teams)}
         invites={slotOf(pending)}
         organizedGroups={organized.data ?? []}
+        viewerName={viewer.data?.name ?? null}
         acceptingId={
           accept.isPending ? (accept.variables?.inviteId ?? null) : null
         }
@@ -152,6 +157,7 @@ export function ChallengesScreen() {
           decliningId: decline.isPending
             ? (decline.variables?.proposalId ?? null)
             : null,
+          onOpenGame: (gameId) => router.push(gamePath(gameId)),
           onConfirm: (proposal) =>
             setConfirm({
               title: m.challenge.proposal.confirmSheet.title,
@@ -177,6 +183,7 @@ export function ChallengesScreen() {
             setFilters((current) => setBoardFilter(current, key, value)),
           onClearFilters: () => setFilters(NO_CHALLENGE_BOARD_FILTERS),
           onOpenChallenge: (id) => router.push(challengePath(id)),
+          onAcceptChallenge: (id) => router.push(challengeAcceptPath(id)),
           onPost: () => router.push(NEW_CHALLENGE_PATH),
           onRetry: () => void board.refetch(),
         }}

@@ -1,28 +1,26 @@
-import { radii, spacing } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
 import {
-  squadCounterLine,
+  squadCounterParts,
   squadSeatViews,
   type SquadPlayer,
 } from "@repo/domain/matchday-squad";
 import { View } from "react-native";
 
-import { useLocale } from "../i18n/locale-provider";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
-import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
-import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
 const COLUMNS = 3;
-const SEAT_HEIGHT = 60;
+const SEAT_HEIGHT = 54;
 const SEAT_GAP = 6;
+const SQUAD_GAP = 12;
 
 type SeatView = ReturnType<typeof squadSeatViews>[number];
 
 function Seat({ seat }: { seat: SeatView }) {
   const palette = useTonePalette();
-  const reserve = seat.kind === "reserve";
   return (
     <View
       accessible
@@ -32,38 +30,30 @@ function Seat({ seat }: { seat: SeatView }) {
         minWidth: 0,
         height: SEAT_HEIGHT,
         borderRadius: radii.md,
-        borderWidth: seat.player ? hairline : 0,
-        borderColor: palette.rule,
-        paddingHorizontal: 8,
+        backgroundColor: seat.player ? palette.wash : "transparent",
+        alignItems: "center",
         justifyContent: "center",
         gap: 2,
+        paddingHorizontal: 4,
       }}
     >
       {seat.player ? (
         <>
-          <Text size="meta" weight="semibold" numberOfLines={1}>
-            {seat.player.name}
+          <Text size="eyebrow" weight="semibold" numberOfLines={1}>
+            {seat.player.initials}
           </Text>
-          <Text size="eyebrow" tone="muted" numberOfLines={1}>
-            {[reserve ? seat.label : null, seat.player.meta || null]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
+          {seat.player.code ? (
+            <Text size="eyebrow" tone="muted" mono numberOfLines={1}>
+              {seat.player.code}
+            </Text>
+          ) : null}
         </>
       ) : (
         <>
           <Hatch radius={radii.md} />
-          {reserve ? (
-            <Text
-              size="eyebrow"
-              tone="muted"
-              mono
-              uppercase
-              style={{ textAlign: "center" }}
-            >
-              {seat.label}
-            </Text>
-          ) : null}
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {seat.emptyLabel}
+          </Text>
         </>
       )}
     </View>
@@ -92,43 +82,99 @@ function SeatRows({ seats }: { seats: SeatView[] }) {
 }
 
 /**
- * One side's Matchday squad: `side + 3` seats in naming order, named tiles
- * with their role, empty seats hatched, the last three labelled Reserve, the
- * counter line, and the squad button for whoever acts for this side.
+ * One side's Matchday squad: the counter, then `side + 3` seats three to a
+ * row in naming order, named tiles with initials and role, empty seats
+ * hatched "Open", the last three "Reserve". The second side mirrors its
+ * counter.
  */
 export function SquadGrid({
   title,
   named,
   sideSize,
-  action,
+  end,
 }: {
   title: string;
   named: readonly SquadPlayer[];
   sideSize: number;
-  action?: { label: string; accessibilityLabel: string; onPress: () => void };
+  end: boolean;
 }) {
   const locale = useLocale();
+  const m = useMessages();
   const seats = squadSeatViews(named, sideSize, locale);
+  const counter = squadCounterParts(named.length, sideSize, locale);
   return (
-    <Surface style={{ gap: spacing.compact }}>
-      <View style={{ gap: 2 }}>
-        <Text size="title" weight="semibold" accessibilityRole="header">
-          {title}
+    <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+      <View
+        accessible
+        accessibilityRole="header"
+        accessibilityLabel={`${m.challenge.squad.squadOf(title)}${m.group.metaSeparator}${counter.strong}${m.group.metaSeparator}${counter.muted}`}
+        style={{
+          flexDirection: end ? "row-reverse" : "row",
+          justifyContent: "space-between",
+          gap: 4,
+        }}
+      >
+        <Text size="eyebrow" weight="semibold" numberOfLines={1}>
+          {counter.strong}
         </Text>
-        <Text size="meta" tone="muted">
-          {squadCounterLine(named.length, sideSize, locale)}
+        <Text
+          size="eyebrow"
+          tone="muted"
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {counter.muted}
         </Text>
       </View>
-      <SeatRows seats={seats.filter((seat) => seat.kind === "side")} />
-      <SeatRows seats={seats.filter((seat) => seat.kind === "reserve")} />
+      <SeatRows seats={seats} />
+    </View>
+  );
+}
+
+type SquadSide = {
+  gameTeamId: string;
+  name: string | null;
+  named: readonly SquadPlayer[];
+  sideSize: number;
+};
+
+/**
+ * Both squads of a football Challenge Game side by side under the
+ * team-vs-team row, the squad button for the side the viewer names, and the
+ * note on who names them.
+ */
+export function ChallengeSquads({
+  sides,
+  action,
+}: {
+  sides: readonly SquadSide[];
+  action?: { label: string; accessibilityLabel: string; onPress: () => void };
+}) {
+  const m = useMessages();
+  return (
+    <View style={{ gap: 16 }}>
+      <View style={{ flexDirection: "row", gap: SQUAD_GAP }}>
+        {sides.slice(0, 2).map((side, index) => (
+          <SquadGrid
+            key={side.gameTeamId}
+            title={side.name ?? m.team.memberFallback}
+            named={side.named}
+            sideSize={side.sideSize}
+            end={index === 1}
+          />
+        ))}
+      </View>
       {action ? (
         <Button
           label={action.label}
           accessibilityLabel={action.accessibilityLabel}
-          variant="outline"
+          size="lg"
           onPress={action.onPress}
         />
       ) : null}
-    </Surface>
+      <Text size="eyebrow" tone="muted" style={{ marginTop: -4 }}>
+        {m.challenge.squad.note}
+      </Text>
+    </View>
   );
 }

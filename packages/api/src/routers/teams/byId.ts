@@ -35,11 +35,17 @@ import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import {
   loadTeamMatches,
   teamFormFromMatches,
+  teamFormGamesFromMatches,
   teamRecordFromMatches,
   teamRivalsFromMatches,
 } from "#src/teams/team-record";
 
 type DbClient = typeof db;
+
+/** The web Team home: any signed-in User can open it. */
+function teamShareUrl(origin: string, teamId: string) {
+  return new URL(`/dashboard/teams/${teamId}`, origin).toString();
+}
 
 const RECENT_GAMES_SHOWN = 10;
 
@@ -215,7 +221,7 @@ async function loadChallengeGames(database: DbClient, teamId: string) {
  */
 export async function teamById(
   database: DbClient,
-  args: { teamId: string; userId: string },
+  args: { teamId: string; userId: string; origin?: string },
 ) {
   const team = await requireTeam(database, args.teamId);
   const sport = team.sport as GroupSportEnum;
@@ -275,6 +281,7 @@ export async function teamById(
     losses: rival.losses,
     lastResult: rival.lastResult,
     lastPlayedAt: rival.lastPlayedAt,
+    lastSets: rival.lastSets,
   });
 
   return {
@@ -287,6 +294,7 @@ export async function teamById(
     losses: record.losses,
     record,
     form: teamFormFromMatches(teamMatches),
+    formGames: teamFormGamesFromMatches(teamMatches),
     rivals: rivals.map(rivalView),
     closestRival: closest ? rivalView(closest) : null,
     games: recentMatches.map((match) => ({
@@ -336,6 +344,7 @@ export async function teamById(
     createdBy: team.createdBy,
     captainUserId: team.createdBy,
     createdAt: team.createdAt,
+    shareUrl: args.origin ? teamShareUrl(args.origin, team.id) : null,
     viewerIsMember: isMember,
     viewerActsForTeam,
     membership: membership ? { id: membership.id } : null,
@@ -380,5 +389,9 @@ export const byId = protectedProcedure
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return teamById(ctx.db, { teamId: input.id, userId: appUser.id });
+    return teamById(ctx.db, {
+      teamId: input.id,
+      userId: appUser.id,
+      origin: ctx.webOrigin,
+    });
   });

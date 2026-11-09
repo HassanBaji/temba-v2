@@ -1,9 +1,10 @@
-import { radii, sizes, spacing, type Palette } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import {
   challengesSegments,
   type ChallengesCounts,
   type ChallengesTab,
 } from "@repo/domain/challenges-tab";
+import { Plus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -15,6 +16,10 @@ import { MineSegment, type MineSegmentProps } from "./mine-segment";
 import { OpenSegment, type OpenSegmentProps } from "./open-segment";
 import { TeamsSegment, type TeamsSegmentProps } from "./teams-segment";
 
+const SEGMENT_GAP = 24;
+const UNDERLINE = 2;
+const HEADER_GAP = 16;
+
 export type ChallengesViewProps = TeamsSegmentProps & {
   tab: ChallengesTab;
   onTabChange: (tab: ChallengesTab) => void;
@@ -23,16 +28,31 @@ export type ChallengesViewProps = TeamsSegmentProps & {
   mine: Omit<MineSegmentProps, "onGoToTeams" | "onOpenChallenge">;
 };
 
-function segmentBarStyle(colors: Palette) {
-  return {
-    flexDirection: "row",
-    borderRadius: radii.lg,
-    borderWidth: hairline,
-    borderColor: colors.rule,
-    overflow: "hidden",
-  } as const;
+/** The black square that posts a challenge. */
+function PostButton({ onPress }: { onPress: () => void }) {
+  const m = useMessages();
+  const colors = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={m.challenge.post.cta}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: sizes.touchTarget,
+        height: sizes.touchTarget,
+        borderRadius: radii.lg,
+        backgroundColor: colors.control,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Plus size={sizes.iconAction} color={colors.onControl} />
+    </Pressable>
+  );
 }
 
+/** Open, Mine and Teams with their counts, underlined when picked. */
 function SegmentBar({
   tab,
   counts,
@@ -45,11 +65,15 @@ function SegmentBar({
     <View
       accessibilityRole="tablist"
       accessibilityLabel={m.challenge.segments.label}
-      style={segmentBarStyle(colors)}
+      style={{
+        flexDirection: "row",
+        gap: SEGMENT_GAP,
+        borderBottomWidth: hairline,
+        borderBottomColor: colors.rule,
+      }}
     >
-      {challengesSegments(counts, locale).map((segment, index) => {
+      {challengesSegments(counts, locale).map((segment) => {
         const selected = segment.key === tab;
-        const color = selected ? colors.onControl : colors.muted;
         return (
           <Pressable
             key={segment.key}
@@ -58,23 +82,25 @@ function SegmentBar({
             accessibilityState={{ selected }}
             onPress={() => onTabChange(segment.key)}
             style={({ pressed }) => ({
-              flex: 1,
               minHeight: sizes.touchTarget,
               flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems: "baseline",
               gap: 6,
-              backgroundColor: selected ? colors.control : colors.paper,
-              borderStartWidth: index === 0 ? 0 : hairline,
-              borderStartColor: colors.rule,
-              opacity: pressed ? 0.85 : 1,
+              paddingVertical: 12,
+              marginBottom: -hairline,
+              borderBottomWidth: UNDERLINE,
+              borderBottomColor: selected ? colors.ink : "transparent",
+              opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Text weight={selected ? "semibold" : "regular"} style={{ color }}>
+            <Text
+              weight={selected ? "semibold" : "regular"}
+              tone={selected ? "default" : "muted"}
+            >
               {segment.label}
             </Text>
             {segment.count != null ? (
-              <Text style={{ color }}>{segment.count}</Text>
+              <Text tone="muted">{segment.count}</Text>
             ) : null}
           </Pressable>
         );
@@ -86,8 +112,11 @@ function SegmentBar({
 export function ChallengesView(props: ChallengesViewProps) {
   const m = useMessages();
   return (
-    <View style={{ gap: spacing.compact }}>
-      <ScreenHeader title={m.common.challenges} />
+    <View style={{ gap: HEADER_GAP }}>
+      <ScreenHeader
+        title={m.common.challenges}
+        actions={<PostButton onPress={props.open.onPost} />}
+      />
       <SegmentBar
         tab={props.tab}
         counts={props.counts}

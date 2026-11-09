@@ -27,6 +27,7 @@ import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { ChallengeDetailsBlock } from "~/components/games/challenge-details-block";
+import { ChallengeTag } from "~/components/games/challenge-tag";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
@@ -837,6 +838,9 @@ export default function GameHomePage({
   });
   const heroActions = (
     <>
+      {data.challenge ? (
+        <ChallengeTag label={m.challenge.gameDetails.tag} tone="ink" />
+      ) : null}
       {shareLink ? (
         <Button
           type="button"
@@ -1167,7 +1171,6 @@ export default function GameHomePage({
                 input={heroInput}
                 place={heroPlace}
                 figures={heroFigures}
-                tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
                 actions={heroActions}
               />
             ) : playedMatch ? null : (

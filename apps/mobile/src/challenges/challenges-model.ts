@@ -3,11 +3,6 @@ import type {
   ChallengeBoardFilters,
   ChallengeCardInput,
 } from "@repo/domain/challenge-card";
-import {
-  rematchChallengeDraft,
-  type ChallengeDraft,
-  type ChallengeDraftTeam,
-} from "@repo/domain/challenge-form";
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 
 import type { RouterOutputs } from "../trpc/react";
@@ -18,6 +13,11 @@ export const MINE_PATH = `/challenges${challengesTabQuery("mine")}`;
 
 export function challengePath(challengeId: string) {
   return `/challenges/${challengeId}`;
+}
+
+/** The detail with the Accept sheet already up. */
+export function challengeAcceptPath(challengeId: string) {
+  return `${challengePath(challengeId)}?accept=1`;
 }
 
 /** Rematch: the post form for this Team, pre-filled from the Team it played. */
@@ -79,69 +79,6 @@ export function challengeCardInput(
     nudgedTeam: challenge.nudgedTeam,
     viewerTeamIsNudged: challenge.viewerTeamIsNudged,
   };
-}
-
-/** The review card: the Team's own Challenge, as other Teams will see it. */
-export function previewCardInput(
-  team: PostableTeam,
-  draft: {
-    sideSize: number | null;
-    levelMinTenths: number | null;
-    levelMaxTenths: number | null;
-    days: string[];
-    timings: string[];
-    exactSlots: Date[];
-    venues: { name: string }[];
-    note: string | null;
-  },
-  expiresAt: Date,
-): ChallengeCardInput {
-  return {
-    id: "preview",
-    sport: team.sport,
-    ...draft,
-    proposalCount: 0,
-    expiresAt,
-    team: {
-      displayName: team.displayName,
-      rosterCount: team.rosterCount,
-      teamLevel: team.teamLevel,
-      members: team.members,
-    },
-    viewer: { ineligibleReason: null },
-  };
-}
-
-export function draftTeam(team: PostableTeam): ChallengeDraftTeam {
-  return {
-    id: team.id,
-    displayName: team.displayName,
-    sport: team.sport,
-    rosterCount: team.rosterCount,
-  };
-}
-
-/**
- * The post form a Rematch opens on, or null when that Team cannot post now
- * or has not played the other one.
- */
-export function rematchDraft(
-  options: PostOptions,
-  teamId: string,
-  opponentTeamId: string,
-): ChallengeDraft | null {
-  const team = options.teams.find((candidate) => candidate.id === teamId);
-  const opponent = team?.playedTeams.find(
-    (candidate) => candidate.id === opponentTeamId,
-  );
-  if (!team || !opponent) {
-    return null;
-  }
-  return rematchChallengeDraft(
-    draftTeam(team),
-    opponent,
-    options.venues[team.sport].map((venue) => venue.id),
-  );
 }
 
 /** Picking the selected value again clears the filter. */

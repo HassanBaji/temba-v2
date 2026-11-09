@@ -8,6 +8,11 @@ export function teamPath(teamId: string) {
   return `/challenges/teams/${teamId}`;
 }
 
+/** The post form with this Team chosen. */
+export function postChallengePath(teamId: string) {
+  return `/challenges/new?${new URLSearchParams({ team: teamId }).toString()}`;
+}
+
 /** Create team, tagged to `groupId` when given. */
 export function newTeamPath(groupId?: string | null) {
   return groupId

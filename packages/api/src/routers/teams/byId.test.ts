@@ -60,8 +60,10 @@ async function playMatch(
     sets: { slot1GamesWon: number; slot2GamesWon: number }[];
     ourSlot?: 1 | 2;
     cancelledGame?: boolean;
+    at?: Date;
   },
 ) {
+  const startsAt = args.at ?? START;
   const [game] = await database
     .insert(games)
     .values({
@@ -73,8 +75,8 @@ async function playMatch(
       isPublic: false,
       playersAllowed: 4,
       teamsAllowed: 2,
-      windowStart: START,
-      windowEnd: END,
+      windowStart: startsAt,
+      windowEnd: args.at ? new Date(startsAt.getTime() + 7_200_000) : END,
       cancelledAt: args.cancelledGame ? new Date() : null,
     })
     .returning({ id: games.id });
@@ -91,7 +93,7 @@ async function playMatch(
     .insert(matches)
     .values({
       gameId: game!.id,
-      startTime: START,
+      startTime: startsAt,
       status: args.status,
       slot1GameTeamId: ourSlot === 1 ? ours!.id : theirs!.id,
       slot2GameTeamId: ourSlot === 1 ? theirs!.id : ours!.id,
@@ -336,6 +338,55 @@ describe("teamById for any signed-in User", () => {
       expect(team.unusedInvite).toBeNull();
       expect(team.canDissolve).toBe(false);
       expect(team.viewerCanLeave).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("dates the form, scores each Rival's latest Match and links the web Team home", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const base = await setup(db);
+      const first = new Date("2026-10-20T18:00:00.000Z");
+      const latest = new Date("2026-10-30T18:00:00.000Z");
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [{ slot1GamesWon: 3, slot2GamesWon: 6 }],
+        at: first,
+      });
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [
+          { slot1GamesWon: 6, slot2GamesWon: 3 },
+          { slot1GamesWon: 4, slot2GamesWon: 6 },
+          { slot1GamesWon: 6, slot2GamesWon: 2 },
+        ],
+        at: latest,
+      });
+
+      const team = await teamById(db as unknown as Db, {
+        teamId: base.teamId,
+        userId: base.ownerId,
+        origin: "https://temba.example",
+      });
+      expect(team.formGames).toEqual([
+        { result: "lost", playedAt: first },
+        { result: "won", playedAt: latest },
+      ]);
+      expect(team.rivals).toMatchObject([
+        {
+          teamId: base.rivalId,
+          lastResult: "won",
+          lastSets: [
+            { us: 6, them: 3 },
+            { us: 4, them: 6 },
+            { us: 6, them: 2 },
+          ],
+        },
+      ]);
+      expect(team.shareUrl).toBe(
+        `https://temba.example/dashboard/teams/${base.teamId}`,
+      );
     } finally {
       await close();
     }

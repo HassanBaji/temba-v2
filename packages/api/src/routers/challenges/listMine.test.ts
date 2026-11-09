@@ -227,16 +227,19 @@ describe("challenges.listMine", () => {
       expect(list.items[0]).toMatchObject({
         kind: "waiting",
         challengeId: posted.id,
+        sport: "padel",
         posterTeam: { id: mine.id, displayName: "Me and Mate" },
         proposal: { team: { displayName: "X Pair" }, startsAt: inTwoDays },
       });
       expect(list.items[2]).toMatchObject({
         kind: "pending",
+        sport: "padel",
         posterTeam: { id: yTeam.id, displayName: "Y Pair" },
         proposal: { team: { id: second.id } },
       });
       expect(list.items[3]).toMatchObject({
         kind: "accepted",
+        venue: { name: "Padel Central" },
         team: { id: second.id },
         opponent: { id: zTeam.id, displayName: "Z Pair" },
       });

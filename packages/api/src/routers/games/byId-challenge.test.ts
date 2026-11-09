@@ -297,8 +297,13 @@ describe("games.byId on a Challenge Game", () => {
           userId: match.aradIds[0],
           name: "Arad 1",
           teamId: match.arad.id,
+          teamName: "Arad Athletic",
         },
-        confirmedBy: { userId: match.hiddIds[0], name: "Hidd 1" },
+        confirmedBy: {
+          userId: match.hiddIds[0],
+          name: "Hidd 1",
+          isViewer: true,
+        },
         pitch: { venueName: "Pitch Park", courtName: "Court 1" },
         costLine: "1.500 BD each, pay at the venue",
         viewerCanNameSide: match.hidd.id,
@@ -314,10 +319,33 @@ describe("games.byId on a Challenge Game", () => {
           side.state,
           side.headToHead,
           side.viewerActs,
+          side.viewerIsCaptain,
         ]),
       ).toEqual([
-        [match.hidd.id, "Hidd United", "HU", 6, 3, 7, "named", null, true],
-        [match.arad.id, "Arad Athletic", "AA", 6, 3, 0, "empty", null, false],
+        [
+          match.hidd.id,
+          "Hidd United",
+          "HU",
+          6,
+          3,
+          7,
+          "named",
+          null,
+          true,
+          true,
+        ],
+        [
+          match.arad.id,
+          "Arad Athletic",
+          "AA",
+          6,
+          3,
+          0,
+          "empty",
+          null,
+          false,
+          false,
+        ],
       ]);
       expect(challenge.sides[0]?.named[0]).toEqual({
         userId: match.hiddIds[0],
@@ -334,6 +362,10 @@ describe("games.byId on a Challenge Game", () => {
         userId: match.hiddIds[3]!,
       });
       expect(playerView.challenge?.viewerCanNameSide).toBeNull();
+      expect(playerView.challenge?.confirmedBy.isViewer).toBe(false);
+      expect(
+        playerView.challenge?.sides.map((side) => side.viewerIsCaptain),
+      ).toEqual([false, false]);
       const opponentView = await gameById(fixture.db, {
         gameId,
         userId: match.aradIds[0]!,

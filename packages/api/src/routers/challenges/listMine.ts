@@ -94,6 +94,7 @@ async function loadChallengeGames(
       ),
     ),
     with: {
+      venue: { columns: { name: true } },
       matches: {
         columns: {
           status: true,
@@ -147,6 +148,7 @@ async function loadChallengeGames(
           match?.status === "completed" ||
           (game.windowEnd ?? game.windowStart).getTime() <= now.getTime(),
         cancelled,
+        venue: game.venue ? { name: game.venue.name } : null,
         teamId: side.teamId,
         opponentTeamId: other?.teamId ?? "",
         squadState: side.squadState,
@@ -173,6 +175,7 @@ function challengeGameItem(
     startsAt: game.startsAt,
     team: game.team,
     opponent: game.opponent,
+    venue: game.venue,
     cancelled: game.cancelled,
     squadState: game.squadState,
     nameYourSquad: game.nameYourSquad,
@@ -232,7 +235,11 @@ export async function listMine(
                 ),
               ),
             ),
-            with: { challenge: { columns: { status: true, teamId: true } } },
+            with: {
+              challenge: {
+                columns: { status: true, teamId: true, sport: true },
+              },
+            },
             orderBy: [
               asc(challengeProposals.expiresAt),
               asc(challengeProposals.id),
@@ -268,9 +275,13 @@ export async function listMine(
   ]);
   const teamName = (teamId: string) =>
     names.get(teamId) ?? teamDisplayName(null, []);
-  const posterOf = (challengeId: string) =>
+  const challengeOf = (challengeId: string) =>
     pendingRows.find((proposal) => proposal.challengeId === challengeId)
-      ?.challenge.teamId ?? "";
+      ?.challenge;
+  const posterOf = (challengeId: string) =>
+    challengeOf(challengeId)?.teamId ?? "";
+  const sportOf = (challengeId: string) =>
+    challengeOf(challengeId)?.sport ?? null;
 
   const games = challengeGames.map((game) => ({
     ...game,
@@ -293,6 +304,7 @@ export async function listMine(
       kind: "waiting" as const,
       key: `waiting:${proposal.id}`,
       challengeId: proposal.challengeId,
+      sport: sportOf(proposal.challengeId),
       posterTeam: {
         id: posterOf(proposal.challengeId),
         displayName: teamName(posterOf(proposal.challengeId)),
@@ -309,6 +321,7 @@ export async function listMine(
       kind: "pending" as const,
       key: `pending:${proposal.id}`,
       challengeId: proposal.challengeId,
+      sport: sportOf(proposal.challengeId),
       posterTeam: {
         id: posterOf(proposal.challengeId),
         displayName: teamName(posterOf(proposal.challengeId)),

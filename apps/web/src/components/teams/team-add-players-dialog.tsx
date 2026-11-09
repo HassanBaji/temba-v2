@@ -52,8 +52,6 @@ import {
   teamPhoneCanSubmit,
   teamPhonePreviewLine,
   toggleTeamGroupPick,
-  type TeamRosterDraftInvite,
-  type TeamRosterDraftPhone,
 } from "@repo/domain/team-roster-draft";
 import { api } from "~/trpc/react";
 
@@ -66,19 +64,12 @@ const TRIGGER_CLASS =
 const BODY_CLASS =
   "max-h-[70vh] space-y-6 overflow-y-auto px-4 pb-4 md:max-h-none md:overflow-visible md:px-0 md:pb-0";
 
-/**
- * Before the Team exists the dialog only fills the New team draft; on a Team
- * it adds through the Team's own doors.
- */
-export type TeamAddPlayersTarget =
-  | {
-      kind: "draft";
-      listedUserIds: readonly string[];
-      listedPhones: readonly string[];
-      onAddPhone: (phone: TeamRosterDraftPhone) => void;
-      onAddInvites: (invites: TeamRosterDraftInvite[]) => void;
-    }
-  | { kind: "team"; teamId: string; onChanged: () => Promise<unknown> };
+/** Adds to an existing Team through its own doors. */
+export type TeamAddPlayersTarget = {
+  kind: "team";
+  teamId: string;
+  onChanged: () => Promise<unknown>;
+};
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -104,7 +95,7 @@ export function TeamAddPlayersDialog({
   const locale = useLocale();
   const utils = api.useUtils();
   const isFootball = sport === "football";
-  const teamId = target.kind === "team" ? target.teamId : undefined;
+  const teamId = target.teamId;
 
   const [tab, setTab] = React.useState<AddTab>("phone");
   const [countryIso, setCountryIso] = React.useState(
@@ -141,7 +132,6 @@ export function TeamAddPlayersDialog({
   }, [open]);
 
   const activeGroupId = groupId ?? groups[0]?.id ?? null;
-  const listedUserIds = target.kind === "draft" ? target.listedUserIds : [];
 
   function resetPhone() {
     setNational("");
@@ -158,10 +148,6 @@ export function TeamAddPlayersDialog({
     { enabled: open && completePhone != null, retry: false },
   );
   const previewData = completePhone ? (preview.data ?? null) : null;
-  const listedPhone =
-    target.kind === "draft" && completePhone != null
-      ? target.listedPhones.includes(completePhone)
-      : false;
   const isNew = previewData?.kind === "new";
 
   const addByPhone = api.teams.addPlayerByPhone.useMutation({
@@ -170,7 +156,7 @@ export function TeamAddPlayersDialog({
       resetPhone();
       await Promise.all([
         utils.teams.previewPlayerByPhone.invalidate(),
-        target.kind === "team" ? target.onChanged() : null,
+        target.onChanged(),
       ]);
     },
   });
@@ -193,7 +179,7 @@ export function TeamAddPlayersDialog({
   const canSubmitPhone =
     !pending &&
     spotsLeft > 0 &&
-    teamPhoneCanSubmit({ preview: previewData, listed: listedPhone, name });
+    teamPhoneCanSubmit({ preview: previewData, listed: false, name });
 
   function submitPhone(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -207,22 +193,6 @@ export function TeamAddPlayersDialog({
         ? footballLevel
         : level
       : undefined;
-    if (target.kind === "draft") {
-      const listedName = isNew ? name.trim() : (previewData.name ?? "");
-      target.onAddPhone({
-        e164: completePhone,
-        countryIso,
-        nationalNumber: national,
-        name: listedName,
-        kind: previewData.kind,
-        phoneMasked: previewData.phoneMasked,
-        level: pickedLevel,
-        football,
-      });
-      toast.success(m.team.addPlayers.listed(listedName));
-      resetPhone();
-      return;
-    }
     addByPhone.mutate({
       teamId: target.teamId,
       countryIso,
@@ -234,11 +204,6 @@ export function TeamAddPlayersDialog({
   }
 
   async function invite(user: { id: string; name: string }) {
-    if (target.kind === "draft") {
-      target.onAddInvites([{ userId: user.id, name: user.name }]);
-      toast.success(m.team.addPlayers.listed(user.name));
-      return;
-    }
     try {
       await inviteInApp.mutateAsync({ teamId: target.teamId, userId: user.id });
       toast.success(m.group.addPlayer.inviteSentToast(user.name));
@@ -253,7 +218,7 @@ export function TeamAddPlayersDialog({
 
   const members = groupMembers.data?.members ?? [];
   const rows = teamGroupMemberRows(
-    { members, query: groupQuery, picked, listedUserIds, spotsLeft, sport },
+    { members, query: groupQuery, picked, listedUserIds: [], spotsLeft, sport },
     locale,
   );
 
@@ -264,14 +229,6 @@ export function TeamAddPlayersDialog({
       return;
     }
     setGroupError(null);
-    if (target.kind === "draft") {
-      target.onAddInvites(
-        chosen.map((member) => ({ userId: member.userId, name: member.name })),
-      );
-      toast.success(m.team.addPlayers.listedCount(chosen.length));
-      setPicked([]);
-      return;
-    }
     setGroupPending(true);
     let sent = 0;
     try {
@@ -352,7 +309,7 @@ export function TeamAddPlayersDialog({
                   ? {
                       line: teamPhonePreviewLine(
                         previewData,
-                        { listed: listedPhone },
+                        { listed: false },
                         locale,
                       ),
                       kind: previewData.kind,
@@ -448,22 +405,16 @@ export function TeamAddPlayersDialog({
                       </p>
                     ) : null}
                   </div>
-                  {listedUserIds.includes(row.id) ? (
-                    <span className="text-eyebrow text-muted-foreground">
-                      {m.team.addPlayers.invitedMark}
-                    </span>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      aria-label={`${m.team.addPlayers.invite}${m.group.metaSeparator}${row.name}`}
-                      disabled={pending || spotsLeft === 0}
-                      onClick={() => void invite(row)}
-                    >
-                      {m.team.addPlayers.invite}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={`${m.team.addPlayers.invite}${m.group.metaSeparator}${row.name}`}
+                    disabled={pending || spotsLeft === 0}
+                    onClick={() => void invite(row)}
+                  >
+                    {m.team.addPlayers.invite}
+                  </Button>
                 </li>
               ))}
             </ul>

@@ -241,6 +241,7 @@ async function challengeGameDetails(
         viewerActs: team
           ? await userActsForTeam(database, team, args.userId)
           : false,
+        viewerIsCaptain: team?.createdBy === args.userId,
       };
     }),
   );
@@ -258,10 +259,13 @@ async function challengeGameDetails(
       userId: proposal?.proposedBy ?? null,
       name: nameOf(proposal?.proposedBy),
       teamId: proposal?.teamId ?? null,
+      teamName: proposal?.teamId ? (names.get(proposal.teamId) ?? null) : null,
     },
     confirmedBy: {
       userId: proposal?.decidedBy ?? null,
       name: nameOf(proposal?.decidedBy),
+      isViewer:
+        proposal?.decidedBy != null && proposal.decidedBy === args.userId,
     },
     sides: sideViews,
     pitch: { venueName: args.venueName, courtName: args.courtName },

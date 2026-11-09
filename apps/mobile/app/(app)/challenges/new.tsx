@@ -9,9 +9,8 @@ export default function NewChallenge() {
   }>();
   return (
     <PostChallengeScreen
-      rematch={
-        team && rematch ? { teamId: team, opponentTeamId: rematch } : null
-      }
+      teamId={team ?? null}
+      opponentTeamId={rematch ?? null}
     />
   );
 }

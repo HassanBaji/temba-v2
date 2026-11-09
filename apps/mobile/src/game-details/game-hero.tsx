@@ -14,6 +14,7 @@ import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
+import { ChallengeTag } from "./challenge-tag";
 import { FigurePair } from "./figure-pair";
 import { HeroTopLine } from "./hero-top-line";
 
@@ -122,7 +123,7 @@ export function GameHero({
   model: FriendlyGameHeroModel;
   place: GameHeroPlace | null;
   figures: CourtFigure[];
-  /** "Challenge" on a Challenge Game. */
+  /** "Challenge" on a Challenge Game, beside share. */
   tag?: string;
   onShare?: () => void;
   onMore?: () => void;
@@ -145,8 +146,9 @@ export function GameHero({
           nav="back"
           fallback={GAMES_FALLBACK}
           actions={
-            onShare || onMore ? (
+            tag || onShare || onMore ? (
               <>
+                {tag ? <ChallengeTag label={tag} /> : null}
                 {onShare ? (
                   <HeaderIconButton
                     framed
@@ -167,11 +169,6 @@ export function GameHero({
             ) : undefined
           }
         />
-        {tag ? (
-          <Text size="eyebrow" weight="semibold" mono uppercase>
-            {tag}
-          </Text>
-        ) : null}
         <HeroBody model={model} />
         {model.kind !== "final" && place && (place.name || place.line) ? (
           <PlaceRow place={place} />

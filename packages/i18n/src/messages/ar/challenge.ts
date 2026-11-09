@@ -10,6 +10,111 @@ export const challenge = {
     teams: "الفرق",
     withCount: (segment: string, n: number) => `${segment}، ${n}`,
   },
+  tab: {
+    vs: "ضد",
+    filterAll: "الكل",
+    openFootnote:
+      "المقاعد المظلّلة هي المنافس الذي لم يُعثر عليه بعد. القبول يقترح وقتًا وملعبًا، والفريق الناشر يؤكّد.",
+    openFor: (n: number) =>
+      plural("ar", n, {
+        one: "مفتوح ليوم واحد",
+        two: "مفتوح ليومين",
+        few: "مفتوح لمدة {n} أيام",
+        many: "مفتوح لمدة {n} يومًا",
+        other: "مفتوح لمدة {n} يوم",
+      }),
+    days: {
+      weekdays: "أيام الأسبوع",
+      weekends: "عطلة نهاية الأسبوع",
+      line: (days: string, timings: string) => `${days} ${timings}`,
+      timings: {
+        morning: "صباحًا",
+        afternoon: "بعد الظهر",
+        evening: "مساءً",
+      },
+    },
+    sports: {
+      padel: "بادل",
+      football: "كرة قدم",
+    },
+    mine: {
+      waiting: "بانتظارك",
+      expiresIn: (hours: number) => `ينتهي العرض خلال ${hours} س`,
+      expiresWithinHour: "ينتهي العرض خلال ساعة",
+      accepted: (team: string) => `${isolate(team)} قبل تحديك`,
+      teamSport: (team: string, sport: string) => `${isolate(team)}، ${sport}`,
+      proposed: "المقترح",
+      venue: "الملعب",
+      postedTitle: "منشورة",
+      postedHint: "بانتظار فريق",
+      pendingTitle: "مقترحة",
+      pendingHint: "بانتظارهم",
+      acceptedTitle: "مقبولة",
+      acceptedHint: "صارت مباريات",
+      postedLine: (when: string, venues: string, wants: string) =>
+        `${when}، ${venues}. ${wants}`,
+      proposalCount: (n: number) =>
+        plural("ar", n, {
+          zero: "لا عروض",
+          one: "عرض واحد",
+          two: "عرضان",
+          few: "{n} عروض",
+          many: "{n} عرضًا",
+          other: "{n} عرض",
+        }),
+      versus: (team: string, opponent: string) =>
+        `${isolate(team)} ضد ${isolate(opponent)}`,
+      gameLine: (when: string, venue: string) => `${when}، ${isolate(venue)}`,
+      viewGame: "عرض المباراة",
+      viewGameA11y: (title: string) => `عرض المباراة، ${title}`,
+      played: (day: string) => `لُعبت ${day}`,
+      playedWith: (day: string, result: string) => `لُعبت ${day}، ${result}`,
+      won: (score: string) => `فوز ${score}`,
+      lost: (score: string) => `خسارة ${score}`,
+      drew: (score: string) => `تعادل ${score}`,
+    },
+    teams: {
+      record: "السجل",
+      you: "أنت",
+      pair: (first: string, second: string) =>
+        `${isolate(first)} و${isolate(second)}`,
+      rivals: (n: number) =>
+        plural("ar", n, {
+          one: "خصم واحد",
+          two: "خصمان",
+          few: "{n} خصوم",
+          many: "{n} خصمًا",
+          other: "{n} خصم",
+        }),
+      invitedYou: (name: string) => `دعاك ${isolate(name)}`,
+      seatsOpen: (n: number) =>
+        plural("ar", n, {
+          one: "مقعد واحد شاغر",
+          two: "مقعدان شاغران",
+          few: "{n} مقاعد شاغرة",
+          many: "{n} مقعدًا شاغرًا",
+          other: "{n} مقعد شاغر",
+        }),
+      invitedLine: (invited: string, seats: string) => `${invited}، ${seats}`,
+      pending: (n: number) =>
+        plural("ar", n, {
+          one: "دعوة واحدة معلّقة",
+          two: "دعوتان معلّقتان",
+          few: "{n} دعوات معلّقة",
+          many: "{n} دعوة معلّقة",
+          other: "{n} دعوة معلّقة",
+        }),
+      footnote:
+        "الفرق لك، لا للمجموعة. يمكن أن يكون للمجموعة فريق، لكن الفريق يحتفظ بسجله وخصومه.",
+      emptyTitle: "ليس لديك فريق بعد",
+      emptyCopy:
+        "الفريق ينشر التحديات ويقبلها، ويحتفظ بسجل، ويجمع الخصوم. فرق البادل لاعبان؛ وفرق كرة القدم من خمسة إلى سبعة.",
+      untilThen: "حتى ذلك الحين",
+      browse:
+        "يمكنك تصفّح التحديات المفتوحة. قبول أحدها يطلب منك إنشاء فريق أولًا.",
+      invites: "تظهر هنا الدعوات من فرق اللاعبين الآخرين.",
+    },
+  },
   open: {
     emptyTitle: "لا تحديات مفتوحة بعد",
     emptyCopy:
@@ -152,15 +257,19 @@ export const challenge = {
   },
   post: {
     cta: "انشر تحديًا",
-    title: "انشر تحديًا",
-    description: "أخبر الفرق الأخرى بما تريد: يقترحون وقتًا وملعبًا.",
+    title: "تحدٍّ جديد",
     noTeamsTitle: "لا يمكن لأي من فرقك النشر الآن",
     noTeamsCopy:
       "فريق البادل يحتاج إلى اللاعبَين، وفريق كرة القدم إلى خمسة في القائمة، ولكل فريق تحدٍّ مفتوح واحد في كل مرة.",
     team: "الفريق",
+    teamHint: "الرياضة تأتي من الفريق",
+    you: "أنت",
+    teamPair: (first: string, second: string) =>
+      `${isolate(first)} و${isolate(second)}`,
+    teamFootball: (sportAndLevel: string, roster: string) =>
+      `${sportAndLevel}. ${roster}`,
     format: "الصيغة",
-    formatHelp:
-      "حجم المباراة التي تريدها. تُختار التشكيلات بعد التأكيد: الأساسيون وحتى ثلاثة احتياطيين.",
+    rosterOf: (n: number, max: number) => `القائمة ${n} من ${max}`,
     formatNeeds: (side: string, n: number) =>
       plural("ar", n, {
         one: `${side} تحتاج إلى لاعب واحد في القائمة`,
@@ -169,54 +278,95 @@ export const challenge = {
         many: `${side} تحتاج إلى {n} لاعبًا في القائمة`,
         other: `${side} تحتاج إلى {n} لاعب في القائمة`,
       }),
-    venues: "الملاعب",
-    venuesHint: (max: number) =>
-      `حتى ${max} ملاعب تحب اللعب فيها. اتركها فارغة لأي ملعب.`,
+    formatList: (sideSizes: readonly number[]) => {
+      const sizes = sideSizes.map((size) => `${size} ضد ${size}`);
+      const last = sizes.pop();
+      return sizes.length > 0 ? `${sizes.join("، ")} و${last}` : (last ?? "");
+    },
+    formatRosterAll: (team: string, roster: string) =>
+      `لدى ${isolate(team)} ${roster}، وهذا يكفي لأي صيغة.`,
+    formatRosterSome: (team: string, roster: string, formats: string) =>
+      `لدى ${isolate(team)} ${roster}، وهذا يكفي لـ${formats}.`,
+    formatSquad: (side: number, reserves: number) =>
+      `يختار القائدان تشكيلتين من ${side} لاعبين وحتى ${reserves} احتياطيين بعد تأكيد التحدي.`,
+    formatSquadAny: (reserves: number) =>
+      `يختار القائدان تشكيلتين بحجم الصيغة وحتى ${reserves} احتياطيين بعد تأكيد التحدي.`,
+    venues: "الملاعب المفضلة",
+    venuesPicked: (n: number) =>
+      plural("ar", n, {
+        one: "ملعب واحد مختار",
+        two: "ملعبان مختاران",
+        few: "{n} ملاعب مختارة",
+        many: "{n} ملعبًا مختارًا",
+        other: "{n} ملعب مختار",
+      }),
+    venuesUpTo: (max: number) => `حتى ${max}`,
+    anywhere: "أي مكان",
+    anywhereIn: (area: string) => `أي مكان في ${isolate(area)}`,
     days: "الأيام",
-    daysHint: "اتركها فارغة لأي يوم.",
     timings: "الأوقات",
-    timingsHint: "اتركها فارغة لأي وقت.",
-    timingLine: (timing: string, hint: string) => `${timing}: ${hint}`,
-    slots: "أو مواعيد محددة",
-    slotsHint: (max: number) => `حتى ${max} مواعيد بدء تناسبك من الآن.`,
+    timingsHint: "أو أضف مواعيد محددة",
+    timingChips: {
+      morning: "صباحًا",
+      afternoon: "ظهرًا",
+      evening: "مساءً",
+    },
+    slotLabel: (day: string, time: string) => `${day} ${time}`,
+    slotTitle: "أضف موعدًا",
     slotDay: "اليوم",
     slotTime: "البدء",
     addSlot: "أضف موعدًا",
     removeSlot: (slot: string) => `إزالة ${isolate(slot)}`,
     level: "المستوى المطلوب",
-    levelHint: "الفرق خارج هذا المستوى ترى تحديك باهتًا.",
-    levelMin: "من",
-    levelMax: "إلى",
-    levelMinA11y: (band: string) => `من ${isolate(band)}`,
-    levelMaxA11y: (band: string) => `إلى ${isolate(band)}`,
+    levelRange: (min: string, max: string) =>
+      `${isolate(min)} إلى ${isolate(max)}`,
+    levelAndUp: (band: string) => `${isolate(band)} فما فوق`,
+    levelAndUnder: (band: string) => `${isolate(band)} فما دون`,
+    anyLevel: "أي مستوى",
     note: "سطر عنكم",
-    notePlaceholder: "ودّيون، في الموعد، ونحضر الصدريات",
-    noteCount: (n: number, max: number) => `${n} من ${max}`,
+    noteShown: "يظهر على البطاقة",
+    noteCount: (n: number, max: number) => `${n} / ${max}`,
     review: "مراجعة",
-    back: "رجوع",
+    edit: "تعديل",
     submit: "انشر التحدي",
     posted: "نُشر التحدي",
     errorTitle: "تعذّر تحميل فرقك",
   },
   review: {
-    title: "راجع تحديك",
-    cardTitle: "كيف سيظهر",
-    team: (team: string) => `الفريق ${isolate(team)}`,
-    teamWithRoster: (team: string, n: number) =>
-      `الفريق ${isolate(team)}، ${n} في القائمة`,
-    format: (side: string, squad: number) =>
-      `الصيغة ${side}. تشكيلات حتى ${squad} لاعبين تُختار بعد التأكيد`,
-    visibility: {
-      padel: "يراه كل فريق بادل على Temba",
-      football: "يراه كل فريق كرة قدم على Temba",
+    title: "مراجعة",
+    cardTitle: "كيف يظهر على اللوحة",
+    rows: {
+      team: "الفريق",
+      format: "الصيغة",
+      visibleTo: "يراه",
+      openFor: "مفتوح لمدة",
+      proposals: "العروض",
     },
-    openFor: (days: number) => `مفتوح لمدة ${days} أيام`,
-    proposals: "العروض: تؤكد واحدًا، ويُبلَّغ الباقون",
+    team: (team: string, roster: string) => `${isolate(team)}، ${roster}`,
+    format: (side: string, squad: number) =>
+      `${side}. تشكيلات حتى ${squad} لاعبين تُختار بعد التأكيد`,
+    visibleTeams: {
+      padel: "فرق البادل",
+      football: "فرق كرة القدم",
+    },
+    visibleEvery: {
+      padel: "كل فريق بادل على Temba",
+      football: "كل فريق كرة قدم على Temba",
+    },
+    inArea: (area: string) => `في ${isolate(area)}`,
+    openFor: (days: number) =>
+      plural("ar", days, {
+        one: "يوم واحد، ثم ينتهي",
+        two: "يومان، ثم ينتهي",
+        few: "{n} أيام، ثم ينتهي",
+        many: "{n} يومًا، ثم ينتهي",
+        other: "{n} يوم، ثم ينتهي",
+      }),
+    proposals: "تؤكد واحدًا، ويُبلَّغ الباقون",
     nudge: "هل ترسله أيضًا مباشرة إلى فريق لعبتم ضده؟",
-    nudgeHint:
-      "يُبلَّغ الآن من يتصرف باسم ذلك الفريق. ويبقى التحدي على اللوحة المفتوحة للجميع.",
+    nudgeBefore: "هل ترسله أيضًا مباشرة إلى فريق لعبتم ضده؟ يصل تنبيه إلى ",
+    nudgeAfter: " ويبقى التحدي على اللوحة المفتوحة.",
     nudgeTeams: "فرق لعبتم ضدها",
-    nudgeLine: (team: string) => `أُرسل مباشرة إلى ${isolate(team)} أيضًا`,
   },
   errors: {
     pickTeam: "اختر فريقًا",
@@ -428,13 +578,38 @@ export const challenge = {
       full: (seats: number) =>
         `اكتملت التشكيلة عند ${seats}. أزل لاعبًا لتضيف آخر.`,
       footer:
-        "يُبلَّغ كل من تضيفه بأنه في التشكيلة. لا يُبلَّغ أحد عند إخراجه منها.",
+        "يُبلَّغ اللاعبون المُسمّون ويرون المباراة في تبويب المباريات. بقية القائمة تراها لكنها لا تلعب. يمكنك تغيير ذلك حتى تُدخَل النتيجة.",
       confirm: (n: number) => `أكّد التشكيلة، ${n} مُسمّى`,
       captain: "القائد",
       select: (name: string) => `سمِّ ${isolate(name)}`,
       deselect: (name: string) => `أخرج ${isolate(name)} من التشكيلة`,
       rosterLoadFailed: "تعذّر تحميل قائمة الفريق",
+      namedOf: (named: number, seats: number) => `سُمّي ${named} من ${seats}`,
+      fromRoster: (roster: number) => `من أصل ${roster} في القائمة`,
+      you: "أنت",
+      youCaptain: "أنت، القائد",
+      addedByYou: "أضفته أنت، ليس على تمبا",
+      addedByCaptain: "أضافه القائد، ليس على تمبا",
+      moreOnRoster: (n: number) =>
+        plural("ar", n, {
+          one: "ولاعب آخر في القائمة",
+          two: "ولاعبان آخران في القائمة",
+          few: "و{n} لاعبين آخرين في القائمة",
+          many: "و{n} لاعبًا آخر في القائمة",
+          other: "و{n} لاعب آخر في القائمة",
+        }),
+      metaJoin: "، ",
+      sentenceJoin: ". ",
+      close: "إغلاق",
     },
+    open: "شاغر",
+    namedOf: (named: number, seats: number) => `سُمّي ${named} من ${seats}`,
+    sideReserves: (side: number, reserves: number) =>
+      `${side} + ${reserves} احتياط`,
+    toName: (named: number, toName: number) => `${named} + ${toName} للتسمية`,
+    ofSeats: (named: number, seats: number) => `${named} من ${seats}`,
+    nobodyNamed: "لم يُسمَّ أحد بعد",
+    note: "يسمّي القائدان التشكيلتين بعد التأكيد، من القائمة، حتى عدد الأساسيين زائد ثلاثة. يمكن التعديل حتى تُدخَل النتيجة. وحدهم اللاعبون المُسمّون يحصلون على النتيجة والتقييمات والمواجهات.",
   },
   gameDetails: {
     versus: "ضد",
@@ -443,9 +618,19 @@ export const challenge = {
       `${isolate(home)} ضد ${isolate(away)}`,
     firstMeeting: "أول لقاء",
     headToHead: (line: string) => `المواجهات ${line}`,
-    from: "المصدر",
-    fromChallenge: (team: string) => `تحدي ${isolate(team)}`,
-    agreed: "الاتفاق",
+    firstMeetingShort: "أول لقاء",
+    headToHeadShort: (line: string) => `المواجهات ${line}`,
+    recordYouCaptain: (record: string) => `${record}، أنت القائد`,
+    fromChallenge: "من التحدي",
+    postedBy: (team: string) => `نشره ${isolate(team)}`,
+    postedByOn: (team: string, day: string) => `نشره ${isolate(team)}، ${day}`,
+    proposedBy: "اقترحه",
+    proposedConfirmed: (team: string, confirmer: string) =>
+      `${isolate(team)}، وأكّده ${isolate(confirmer)}`,
+    you: "أنت",
+    placeBook: (place: string, hint: string) => `${place}. ${hint}`,
+    confirmedByBoth: "أكّده الفريقان",
+    subLineConfirmed: (line: string) => `${line}. أكّده الفريقان`,
     countsFor: "تُحتسب في",
     countsForLine: {
       padel: "سجلّ الفريقين، واللاعبين المُسمّين، والتقييم",
@@ -453,5 +638,173 @@ export const challenge = {
     },
     costSplitWays: (n: number) => `تُقسم على ${n}، الدفع في الملعب`,
     squadsTitle: "التشكيلات",
+  },
+  detailScreen: {
+    status: {
+      open: (daysLeft: number) =>
+        daysLeft === 0
+          ? "تحدٍّ مفتوح، آخر يوم"
+          : plural("ar", daysLeft, {
+              one: "تحدٍّ مفتوح، بقي يوم واحد",
+              two: "تحدٍّ مفتوح، بقي يومان",
+              few: "تحدٍّ مفتوح، بقيت {n} أيام",
+              many: "تحدٍّ مفتوح، بقي {n} يومًا",
+              other: "تحدٍّ مفتوح، بقي {n} يوم",
+            }),
+      proposalSent: (team: string) => `أُرسل العرض، بانتظار ${isolate(team)}`,
+      confirmed: "تأكّد، وصار مباراة",
+    },
+    versus: "ضد",
+    opponentName: "فريقك؟",
+    opponentLine: "ليس بعد",
+    teamLine: (level: string, rest: string) => `${isolate(level)}، ${rest}`,
+    footballLine: (level: string, roster: string) =>
+      `${isolate(level)}. ${roster}`,
+    withSport: (sport: string, line: string) => `${sport}، ${line}`,
+    twoNames: (first: string, second: string) =>
+      `${isolate(first)} و${isolate(second)}`,
+    nameSeparator: "، ",
+    you: "أنت",
+    rows: {
+      level: "المستوى المطلوب",
+      venues: "الملاعب المفضّلة",
+      days: "الأيام",
+      timings: "الأوقات",
+      exactTimes: "مواعيد محددة",
+      record: "السجل",
+      posted: "نُشر",
+    },
+    level: {
+      range: (min: string, max: string) =>
+        `من ${isolate(min)} إلى ${isolate(max)}`,
+      andUp: (band: string) => `${isolate(band)} فما فوق`,
+      andUnder: (band: string) => `${isolate(band)} فما دون`,
+      any: "أي مستوى",
+    },
+    timingRanges: {
+      morning: "قبل الظهر",
+      afternoon: "من الظهر إلى 6 مساءً",
+      evening: "بعد 6 مساءً",
+    },
+    timingWithRange: (timing: string, range: string) => `${timing}، ${range}`,
+    recordValue: (team: string, record: string) =>
+      `${isolate(team)} ${isolate(record)}`,
+    postedValue: (day: string, name: string) => `${day}، نشره ${isolate(name)}`,
+    note: "من الفريق",
+    footer: {
+      proposals: (n: number) =>
+        n === 0
+          ? "لا عروض بعد"
+          : plural("ar", n, {
+              one: "عرض واحد حتى الآن",
+              two: "عرضان حتى الآن",
+              few: "{n} عروض حتى الآن",
+              many: "{n} عرضًا حتى الآن",
+              other: "{n} عرض حتى الآن",
+            }),
+      hint: "يختارون واحدًا ويؤكّدونه",
+    },
+    ago: {
+      justNow: "الآن",
+      minutes: (n: number) => `قبل ${n} د`,
+      hours: (n: number) => `قبل ${n} س`,
+      days: (n: number) =>
+        plural("ar", n, {
+          one: "قبل يوم",
+          two: "قبل يومين",
+          few: "قبل {n} أيام",
+          many: "قبل {n} يومًا",
+          other: "قبل {n} يوم",
+        }),
+    },
+    proposal: {
+      waiting: (team: string) => `عرضك، بانتظار ${isolate(team)}`,
+      sent: (ago: string) => `أُرسل ${ago}.`,
+      theyHave: (hours: number) =>
+        hours <= 1
+          ? "أمامهم أقل من ساعة للتأكيد."
+          : plural("ar", hours, {
+              one: "أمامهم ساعة واحدة للتأكيد.",
+              two: "أمامهم ساعتان للتأكيد.",
+              few: "أمامهم {n} ساعات للتأكيد.",
+              many: "أمامهم {n} ساعة للتأكيد.",
+              other: "أمامهم {n} ساعة للتأكيد.",
+            }),
+      youHave: (hours: number) =>
+        hours <= 1
+          ? "أمامك أقل من ساعة للتأكيد."
+          : plural("ar", hours, {
+              one: "أمامك ساعة واحدة للتأكيد.",
+              two: "أمامك ساعتان للتأكيد.",
+              few: "أمامك {n} ساعات للتأكيد.",
+              many: "أمامك {n} ساعة للتأكيد.",
+              other: "أمامك {n} ساعة للتأكيد.",
+            }),
+      lines: (sent: string, clock: string) => `${sent} ${clock}`,
+      time: "الوقت",
+      venue: "الملعب",
+      price: "السعر",
+      change: "غيّر العرض",
+      withdraw: "اسحب",
+      footnote: {
+        padel:
+          "لم يُحجز شيء بعد. حجز الملعب عليكما بعد أن يؤكّدوا؛ تمبا لا يحجزه.",
+        football:
+          "لم يُحجز شيء بعد. حجز الملعب عليكما بعد أن يؤكّدوا؛ تمبا لا يحجزه.",
+      },
+    },
+    queue: {
+      title: "العروض",
+      empty: "لا عروض بعد. الفرق المناسبة تراه في لوحة التحديات المفتوحة.",
+      hint: "اختر واحدًا وأكّده. ويُبلَّغ الآخرون.",
+      confirm: "أكّد",
+      another: "وقت آخر",
+    },
+    confirmed: {
+      dayAt: (day: string, venue: string) => `${day}، ${isolate(venue)}`,
+      placeFor: (place: string, duration: string) => `${place}، ${duration}`,
+      duration: (minutes: number) => `${minutes} دقيقة`,
+      viewGame: "اعرض المباراة",
+      proposedBy: "اقترحه",
+      confirmedBy: "أكّده",
+      you: "أنت",
+      byTeam: (name: string, team: string) =>
+        `${isolate(name)}، ${isolate(team)}`,
+      byTeamAgo: (name: string, team: string, ago: string) =>
+        `${isolate(name)}، ${isolate(team)}، ${ago}`,
+      bookIt: (place: string) => `احجزه: ${place}`,
+      closedNote:
+        "أُغلق هذا التحدي. كل شيء آخر يجري في المباراة: التشكيلة والنتيجة والشارات وبطاقة النتيجة.",
+    },
+    accept: {
+      subtitle: (team: string) =>
+        `اقترح وقتًا وملعبًا. يؤكّد ${isolate(team)}، فتصبح مباراة.`,
+      toldOne: (name: string) =>
+        `يُبلَّغ ${isolate(name)} حين تقدّم العرض، ومرة أخرى إن أكّدوا.`,
+      toldRoster: "تُبلَّغ قائمة فريقك حين تقدّم العرض، ومرة أخرى إن أكّدوا.",
+      venueHint: "المفضّلة لديهم أولًا",
+      theirFirst: "خيارهم الأول",
+      theirSecond: "خيارهم الثاني",
+      theirPick: "من خياراتهم",
+      youSuggest: "اقتراحك",
+      somewhereElse: "مكان آخر",
+      orSeparator: " أو ",
+      daysTimings: (days: string, timings: string) => `${days} ${timings}`,
+      timingsAfterDays: {
+        morning: "صباحًا",
+        afternoon: "ظهرًا",
+        evening: "مساءً",
+      },
+      anyTime: "أي يوم، أي وقت",
+      slotDay: (weekday: string, day: string) => `${weekday} ${day}`,
+      moreTimes: "مواعيد أخرى",
+      extras: "أضف ملعبًا فرعيًا أو سعرًا",
+      propose: (when: string, venue: string) =>
+        `اقترح ${when} في ${isolate(venue)}`,
+      change: (when: string, venue: string) =>
+        `غيّره إلى ${when} في ${isolate(venue)}`,
+      proposeIncomplete: "اقترح",
+      changeIncomplete: "غيّر العرض",
+    },
   },
 } satisfies typeof source;

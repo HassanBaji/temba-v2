@@ -41,6 +41,8 @@ export type TeamRival = {
   losses: number;
   lastResult: TeamResult | null;
   lastPlayedAt: Date;
+  /** The set scores of the latest Match, from this Team's side. */
+  lastSets: TeamMatch["sets"];
 };
 
 /** A Rival is an opponent of two or more completed Matches. */
@@ -115,16 +117,30 @@ export function teamFormFromMatches(
     .slice(-TEAM_FORM_LENGTH);
 }
 
+/** The same last ten results, each with the day it was played. */
+export function teamFormGamesFromMatches(
+  teamMatches: readonly Pick<TeamMatch, "result" | "playedAt">[],
+): { result: TeamResult; playedAt: Date }[] {
+  return teamMatches
+    .flatMap((match) =>
+      match.result == null
+        ? []
+        : [{ result: match.result, playedAt: match.playedAt }],
+    )
+    .slice(-TEAM_FORM_LENGTH);
+}
+
 /**
  * Opponent Teams by completed Matches, head-to-head from this Team's side.
  * Rivals are played twice or more, most played first. The closest is the
  * most recent opponent played once.
  */
 export function teamRivalsFromMatches(
-  teamMatches: readonly Pick<
+  teamMatches: readonly (Pick<
     TeamMatch,
     "opponentTeamId" | "playedAt" | "result"
-  >[],
+  > &
+    Partial<Pick<TeamMatch, "sets">>)[],
 ): { rivals: TeamRival[]; closest: TeamRival | null } {
   const byOpponent = new Map<string, TeamRival>();
   for (const match of teamMatches) {
@@ -139,6 +155,7 @@ export function teamRivalsFromMatches(
       losses: 0,
       lastResult: null,
       lastPlayedAt: match.playedAt,
+      lastSets: [],
     };
     entry.played += 1;
     if (match.result === "won") {
@@ -151,6 +168,7 @@ export function teamRivalsFromMatches(
     if (match.playedAt.getTime() >= entry.lastPlayedAt.getTime()) {
       entry.lastPlayedAt = match.playedAt;
       entry.lastResult = match.result;
+      entry.lastSets = match.sets ?? [];
     }
     byOpponent.set(match.opponentTeamId, entry);
   }

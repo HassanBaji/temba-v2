@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { PlusIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
@@ -59,6 +61,10 @@ export default function ChallengesPage({
   const organized = api.games.listCreateGroups.useQuery(undefined, {
     enabled: tab === "teams",
   });
+  const noTeams = teams.data?.length === 0;
+  const viewer = api.users.profileDetails.useQuery(undefined, {
+    enabled: tab === "teams" && noTeams,
+  });
 
   const [declining, setDeclining] = useState<{
     id: string;
@@ -117,20 +123,31 @@ export default function ChallengesPage({
   return (
     <DashboardShell
       title={m.common.challenges}
-      description={m.webChallenge.description}
+      action={
+        <Link
+          href="/dashboard/challenges/new"
+          aria-label={m.challenge.post.cta}
+          className="bg-control text-on-control focus-visible:ring-ring/50 hover:bg-control/90 flex size-11 items-center justify-center rounded-lg outline-none focus-visible:ring-[3px]"
+        >
+          <PlusIcon aria-hidden="true" className="size-5" />
+        </Link>
+      }
     >
-      <Tabs value={tab} onValueChange={setTab} className="mt-4 gap-4">
-        <TabsList variant="segmented" aria-label={m.challenge.segments.label}>
+      <Tabs value={tab} onValueChange={setTab} className="mt-2 gap-4 lg:mt-0">
+        <TabsList
+          aria-label={m.challenge.segments.label}
+          className="border-rule h-auto w-full justify-start gap-6 rounded-none border-b bg-transparent p-0"
+        >
           {segments.map((segment) => (
             <TabsTrigger
               key={segment.key}
               value={segment.key}
               aria-label={segment.accessibilityLabel}
-              className="group/tab"
+              className="text-body text-muted-foreground hover:text-foreground data-[state=active]:border-ink data-[state=active]:text-foreground -mb-px h-auto min-h-11 flex-none items-baseline gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 py-3 font-normal shadow-none data-[state=active]:border-b-2 data-[state=active]:border-solid data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:shadow-none"
             >
               {segment.label}
               {segment.count != null ? (
-                <span className="text-muted-foreground group-data-[state=active]/tab:text-dim">
+                <span className="text-muted-foreground font-normal">
                   {segment.count}
                 </span>
               ) : null}
@@ -159,6 +176,7 @@ export default function ChallengesPage({
         <TabsContent value="mine">
           <ChallengeMineSegment
             items={challenges.data?.items}
+            loading={challenges.isLoading}
             onConfirm={setConfirming}
             onDecline={setDeclining}
             onGoToTeams={goToTeams}
@@ -172,6 +190,7 @@ export default function ChallengesPage({
             invites={pending.data}
             invitesError={pending.error}
             organizedGroups={organized.data ?? []}
+            viewerName={viewer.data?.name ?? null}
             acceptingId={
               accept.isPending ? (accept.variables?.inviteId ?? null) : null
             }

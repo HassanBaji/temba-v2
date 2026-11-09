@@ -2,7 +2,6 @@
 
 import { ChallengePostForm } from "~/components/challenges/challenge-post-form";
 import { DashboardShell } from "~/components/dashboard-shell";
-import { useMessages } from "~/components/locale-provider";
 import { use } from "react";
 
 function first(value: string | string[] | undefined) {
@@ -18,16 +17,11 @@ export default function NewChallengePage({
   }>;
 }) {
   const query = use(searchParams);
-  const teamId = first(query.team);
-  const opponentTeamId = first(query.rematch);
-  const m = useMessages();
   return (
-    <DashboardShell
-      title={m.challenge.post.title}
-      description={m.challenge.post.description}
-    >
+    <DashboardShell width="content" hidePageHeader hideMobileTopBar>
       <ChallengePostForm
-        rematch={teamId && opponentTeamId ? { teamId, opponentTeamId } : null}
+        teamId={first(query.team) ?? null}
+        opponentTeamId={first(query.rematch) ?? null}
       />
     </DashboardShell>
   );

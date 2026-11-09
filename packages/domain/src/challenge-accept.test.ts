@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import {
   acceptCtaLabel,
+  acceptDraftHasExtras,
   acceptPickCourt,
+  acceptPickSlot,
+  acceptProposeLabel,
+  acceptSlotCells,
+  acceptTeamCards,
+  acceptTimeHint,
+  acceptToldLine,
+  acceptVenueIsElsewhere,
+  acceptVenueRows,
   acceptPickDay,
   acceptPickVenue,
   acceptSlotDays,
@@ -132,5 +141,81 @@ describe("the Accept sheet", () => {
         { team: { id: "b" } },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("the Accept sheet as designed", () => {
+  const thursday = new Date("2026-11-12T17:00:00Z");
+  const designed = options({
+    days: ["tue", "thu"],
+    timings: ["evening"],
+    slots: [saturday, thursday, friday],
+    teams: [
+      {
+        id: "riffa",
+        displayName: "Seef Smashers",
+        face: {
+          id: "riffa",
+          displayName: "Seef Smashers",
+          sport: "padel",
+          rosterCount: 2,
+          teamLevel: { band: "C+" },
+          members: [
+            { name: "Sara Khalifa", isViewer: true },
+            { name: "Ali Mansoor", isViewer: false },
+          ],
+        },
+        pendingProposal: null,
+      },
+    ],
+  });
+
+  it("draws each Team card with its sport, Team Level and players", () => {
+    expect(acceptTeamCards(designed, "en")).toEqual([
+      expect.objectContaining({
+        title: "Seef Smashers",
+        initials: "SS",
+        line: "Padel, C+, you and Ali M",
+      }),
+    ]);
+    expect(acceptToldLine(designed, "riffa", "en")).toBe(
+      "Ali M is told when you propose, and again if they confirm.",
+    );
+  });
+
+  it("lists preferred Venues first and the rest behind Somewhere else", () => {
+    const venues = acceptVenueRows(designed, "en");
+    expect(venues.hint).toBe("their preferred first");
+    expect(venues.rows).toEqual([
+      { value: "central", label: "Padel Central", hint: "their first" },
+    ]);
+    expect(venues.elsewhere).toMatchObject({
+      label: "Somewhere else",
+      hint: "you suggest",
+      venues: [{ value: "atlas", label: "Atlas Padel" }],
+    });
+    expect(acceptVenueIsElsewhere(designed, "atlas")).toBe(true);
+    expect(acceptVenueIsElsewhere(designed, "central")).toBe(false);
+  });
+
+  it("hints the Challenge's days and timings, and lays slots out soonest first", () => {
+    expect(acceptTimeHint(designed, "en")).toBe("Tue or Thu evenings");
+    expect(acceptTimeHint(options(), "en")).toBe("Any day, any time");
+    expect(acceptSlotCells(designed, "en")[0]).toMatchObject({
+      time: "8:00 PM",
+      day: "Thu 12",
+    });
+  });
+
+  it("names the time and Venue on the send button once both are picked", () => {
+    const draft = initialAcceptDraft(designed);
+    expect(acceptProposeLabel(draft, designed, "en")).toBe("Propose");
+    const picked = acceptPickSlot(draft, designed, thursday);
+    expect(picked.dayKey).not.toBeNull();
+    expect(acceptProposeLabel(picked, designed, "en")).toBe(
+      "Propose Thu 12, 8:00 PM at Padel Central",
+    );
+    expect(acceptDraftHasExtras(picked)).toBe(false);
+    expect(acceptDraftHasExtras(acceptPickCourt(picked, "c1"))).toBe(true);
   });
 });

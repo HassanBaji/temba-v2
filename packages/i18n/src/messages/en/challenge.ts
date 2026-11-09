@@ -8,6 +8,78 @@ export const challenge = {
     teams: "Teams",
     withCount: (segment: string, n: number) => `${segment}, ${n}`,
   },
+  tab: {
+    vs: "vs",
+    filterAll: "All",
+    openFootnote:
+      "The hatched seats are the opponent that hasn’t been found yet. Accepting proposes a time and venue; the posting team confirms.",
+    openFor: (n: number) =>
+      plural("en", n, { one: "Open for 1 day", other: "Open for {n} days" }),
+    days: {
+      weekdays: "Weekday",
+      weekends: "Weekend",
+      line: (days: string, timings: string) => `${days} ${timings}`,
+      timings: {
+        morning: "mornings",
+        afternoon: "afternoons",
+        evening: "evenings",
+      },
+    },
+    sports: {
+      padel: "padel",
+      football: "football",
+    },
+    mine: {
+      waiting: "Waiting on you",
+      expiresIn: (hours: number) => `proposal expires in ${hours}h`,
+      expiresWithinHour: "proposal expires within the hour",
+      accepted: (team: string) => `${team} accepted your challenge`,
+      teamSport: (team: string, sport: string) => `${team}, ${sport}`,
+      proposed: "Proposed",
+      venue: "Venue",
+      postedTitle: "Posted",
+      postedHint: "waiting for a team",
+      pendingTitle: "Proposed",
+      pendingHint: "waiting on them",
+      acceptedTitle: "Accepted",
+      acceptedHint: "now games",
+      postedLine: (when: string, venues: string, wants: string) =>
+        `${when}, ${venues}. ${wants}`,
+      proposalCount: (n: number) =>
+        plural("en", n, { one: "1 proposal", other: "{n} proposals" }),
+      versus: (team: string, opponent: string) => `${team} vs ${opponent}`,
+      gameLine: (when: string, venue: string) => `${when}, ${venue}`,
+      viewGame: "View game",
+      viewGameA11y: (title: string) => `View game, ${title}`,
+      played: (day: string) => `Played ${day}`,
+      playedWith: (day: string, result: string) => `Played ${day}, ${result}`,
+      won: (score: string) => `won ${score}`,
+      lost: (score: string) => `lost ${score}`,
+      drew: (score: string) => `drew ${score}`,
+    },
+    teams: {
+      record: "record",
+      you: "You",
+      pair: (first: string, second: string) => `${first} and ${second}`,
+      rivals: (n: number) =>
+        plural("en", n, { one: "1 rival", other: "{n} rivals" }),
+      invitedYou: (name: string) => `${name} invited you`,
+      seatsOpen: (n: number) =>
+        plural("en", n, { one: "1 seat open", other: "{n} seats open" }),
+      invitedLine: (invited: string, seats: string) => `${invited}, ${seats}`,
+      pending: (n: number) =>
+        plural("en", n, { one: "1 pending", other: "{n} pending" }),
+      footnote:
+        "Teams are yours, not a group’s. A group can have a team, but the team keeps its own record and rivals.",
+      emptyTitle: "You don’t have a team yet",
+      emptyCopy:
+        "A team posts and accepts challenges, keeps a record, and collects rivals. Padel teams are two players; football teams are five to seven.",
+      untilThen: "Until then",
+      browse:
+        "You can browse open challenges. Accepting one asks you to make a team first.",
+      invites: "Invites from other players’ teams show up here.",
+    },
+  },
   open: {
     emptyTitle: "No open challenges yet",
     emptyCopy:
@@ -137,69 +209,103 @@ export const challenge = {
   },
   post: {
     cta: "Post a challenge",
-    title: "Post a challenge",
-    description:
-      "Tell other Teams what you want: they propose a time and a venue.",
+    title: "New challenge",
     noTeamsTitle: "None of your Teams can post right now",
     noTeamsCopy:
       "A padel Team needs both players, a football Team five on the Roster, and a Team can have one open challenge at a time.",
     team: "Team",
+    teamHint: "sport comes from the team",
+    you: "you",
+    teamPair: (first: string, second: string) => `${first} and ${second}`,
+    teamFootball: (sportAndLevel: string, roster: string) =>
+      `${sportAndLevel}. ${roster}`,
     format: "Format",
-    formatHelp:
-      "The size of the game you want. Squads are named after confirmation: the side plus up to three reserves.",
+    rosterOf: (n: number, max: number) => `roster ${n} of ${max}`,
     formatNeeds: (side: string, n: number) =>
       plural("en", n, {
         one: `${side} needs 1 on the Roster`,
         other: `${side} needs {n} on the Roster`,
       }),
-    venues: "Venues",
-    venuesHint: (max: number) =>
-      `Up to ${max} you'd like to play at. Leave empty for any venue.`,
+    formatList: (sideSizes: readonly number[]) => {
+      const sizes = sideSizes.map(String);
+      const last = sizes.pop();
+      const list = sizes.length > 0 ? `${sizes.join(", ")} and ${last}` : last;
+      return `${list}-a-side`;
+    },
+    formatRosterAll: (team: string, roster: string) =>
+      `${team} has ${roster}, enough for any format.`,
+    formatRosterSome: (team: string, roster: string, formats: string) =>
+      `${team} has ${roster}, enough for ${formats}.`,
+    formatSquad: (side: number, reserves: number) =>
+      `Squads of ${side} plus up to ${reserves} reserves are named by both captains after the challenge is confirmed.`,
+    formatSquadAny: (reserves: number) =>
+      `Squads of the format plus up to ${reserves} reserves are named by both captains after the challenge is confirmed.`,
+    venues: "Preferred venues",
+    venuesPicked: (n: number) =>
+      plural("en", n, { one: "1 picked", other: "{n} picked" }),
+    venuesUpTo: (max: number) => `up to ${max}`,
+    anywhere: "Anywhere",
+    anywhereIn: (area: string) => `Anywhere in ${area}`,
     days: "Days",
-    daysHint: "Leave empty for any day.",
     timings: "Timings",
-    timingsHint: "Leave empty for any time.",
-    timingLine: (timing: string, hint: string) => `${timing}: ${hint}`,
-    slots: "Or exact slots",
-    slotsHint: (max: number) => `Up to ${max} start times you can already do.`,
+    timingsHint: "or add exact slots",
+    timingChips: {
+      morning: "Morning",
+      afternoon: "Afternoon",
+      evening: "Evening",
+    },
+    slotLabel: (day: string, time: string) => `${day} ${time}`,
+    slotTitle: "Add a slot",
     slotDay: "Day",
     slotTime: "Start",
     addSlot: "Add slot",
     removeSlot: (slot: string) => `Remove ${slot}`,
     level: "Level wanted",
-    levelHint: "Teams outside it see your challenge greyed.",
-    levelMin: "From",
-    levelMax: "To",
-    levelMinA11y: (band: string) => `From ${band}`,
-    levelMaxA11y: (band: string) => `To ${band}`,
+    levelRange: (min: string, max: string) => `${min} to ${max}`,
+    levelAndUp: (band: string) => `${band} and up`,
+    levelAndUnder: (band: string) => `${band} and under`,
+    anyLevel: "Any level",
     note: "A line about you",
-    notePlaceholder: "Friendly, on time, we bring the bibs",
-    noteCount: (n: number, max: number) => `${n} of ${max}`,
+    noteShown: "Shown on the card",
+    noteCount: (n: number, max: number) => `${n} / ${max}`,
     review: "Review",
-    back: "Back",
+    edit: "Edit",
     submit: "Post challenge",
     posted: "Challenge posted",
     errorTitle: "Your Teams could not be loaded",
   },
   review: {
-    title: "Review your challenge",
-    cardTitle: "How it will appear",
-    team: (team: string) => `Team ${team}`,
-    teamWithRoster: (team: string, n: number) =>
-      `Team ${team}, ${n} on the roster`,
-    format: (side: string, squad: number) =>
-      `Format ${side}. Squads of up to ${squad} named after confirmation`,
-    visibility: {
-      padel: "Visible to every padel Team on Temba",
-      football: "Visible to every football Team on Temba",
+    title: "Review",
+    cardTitle: "How it looks on the board",
+    rows: {
+      team: "Team",
+      format: "Format",
+      visibleTo: "Visible to",
+      openFor: "Open for",
+      proposals: "Proposals",
     },
-    openFor: (days: number) => `Open for ${days} days`,
-    proposals: "Proposals: You confirm one; the rest are told",
+    team: (team: string, roster: string) => `${team}, ${roster}`,
+    format: (side: string, squad: number) =>
+      `${side}. Squads of up to ${squad} named after confirmation`,
+    visibleTeams: {
+      padel: "Padel teams",
+      football: "Football teams",
+    },
+    visibleEvery: {
+      padel: "Every padel team on Temba",
+      football: "Every football team on Temba",
+    },
+    inArea: (area: string) => `in ${area}`,
+    openFor: (days: number) =>
+      plural("en", days, {
+        one: "1 day, then it expires",
+        other: "{n} days, then it expires",
+      }),
+    proposals: "You confirm one; the rest are told",
     nudge: "Also send it straight to a team you've played?",
-    nudgeHint:
-      "Who acts for that team hears now. It still sits on the open board for everyone.",
+    nudgeBefore: "Also send it straight to a team you've played? ",
+    nudgeAfter: " get a nudge and it stays on the open board.",
     nudgeTeams: "Teams you've played",
-    nudgeLine: (team: string) => `Sent straight to ${team} too`,
   },
   errors: {
     pickTeam: "Pick a Team",
@@ -408,13 +514,35 @@ export const challenge = {
       full: (seats: number) =>
         `The squad is full at ${seats}. Remove someone to add another.`,
       footer:
-        "Everyone you add is told they are in the squad. Nobody is told when they come off it.",
+        "Named players are told and see the game in their Games tab. The rest of the roster sees it but isn't playing. You can change this until the score goes in.",
       confirm: (n: number) => `Confirm squad, ${n} named`,
       captain: "Captain",
       select: (name: string) => `Name ${name}`,
       deselect: (name: string) => `Take ${name} off the squad`,
       rosterLoadFailed: "The Roster could not be loaded",
+      namedOf: (named: number, seats: number) => `${named} of ${seats} named`,
+      fromRoster: (roster: number) => `from ${roster} on the roster`,
+      you: "You",
+      youCaptain: "You, captain",
+      addedByYou: "Added by you, not on Temba",
+      addedByCaptain: "Added by the captain, not on Temba",
+      moreOnRoster: (n: number) =>
+        plural("en", n, {
+          one: "and 1 more on the roster",
+          other: "and {n} more on the roster",
+        }),
+      metaJoin: ", ",
+      sentenceJoin: ". ",
+      close: "Close",
     },
+    open: "Open",
+    namedOf: (named: number, seats: number) => `${named} of ${seats} named`,
+    sideReserves: (side: number, reserves: number) =>
+      `${side} + ${reserves} reserves`,
+    toName: (named: number, toName: number) => `${named} + ${toName} to name`,
+    ofSeats: (named: number, seats: number) => `${named} of ${seats}`,
+    nobodyNamed: "Nobody named yet",
+    note: "Squads are named by the captains after confirmation, from the roster, up to the side plus three. Editable until the score goes in. Only named players get the result, marks and head-to-head.",
   },
   gameDetails: {
     versus: "v",
@@ -422,9 +550,19 @@ export const challenge = {
     teamVsTeam: (home: string, away: string) => `${home} v ${away}`,
     firstMeeting: "First meeting",
     headToHead: (line: string) => `Head-to-head ${line}`,
-    from: "From",
-    fromChallenge: (team: string) => `${team}'s challenge`,
-    agreed: "Agreed",
+    firstMeetingShort: "first meeting",
+    headToHeadShort: (line: string) => `head-to-head ${line}`,
+    recordYouCaptain: (record: string) => `${record}, you captain`,
+    fromChallenge: "From challenge",
+    postedBy: (team: string) => `Posted by ${team}`,
+    postedByOn: (team: string, day: string) => `Posted by ${team}, ${day}`,
+    proposedBy: "Proposed by",
+    proposedConfirmed: (team: string, confirmer: string) =>
+      `${team}, confirmed by ${confirmer}`,
+    you: "you",
+    placeBook: (place: string, hint: string) => `${place}. ${hint}`,
+    confirmedByBoth: "Confirmed by both teams",
+    subLineConfirmed: (line: string) => `${line}. Confirmed by both teams`,
     countsFor: "Counts for",
     countsForLine: {
       padel: "Both teams' records, the players named and rating",
@@ -432,5 +570,143 @@ export const challenge = {
     },
     costSplitWays: (n: number) => `Split ${n} ways, pay at the venue`,
     squadsTitle: "Squads",
+  },
+  detailScreen: {
+    status: {
+      open: (daysLeft: number) =>
+        daysLeft === 0
+          ? "Open challenge, last day"
+          : plural("en", daysLeft, {
+              one: "Open challenge, 1 day left",
+              other: "Open challenge, {n} days left",
+            }),
+      proposalSent: (team: string) => `Proposal sent, waiting for ${team}`,
+      confirmed: "Confirmed, now a game",
+    },
+    versus: "vs",
+    opponentName: "Your team?",
+    opponentLine: "not yet",
+    teamLine: (level: string, rest: string) => `${level}, ${rest}`,
+    footballLine: (level: string, roster: string) => `${level}. ${roster}`,
+    withSport: (sport: string, line: string) => `${sport}, ${line}`,
+    twoNames: (first: string, second: string) => `${first} and ${second}`,
+    nameSeparator: ", ",
+    you: "you",
+    rows: {
+      level: "Level wanted",
+      venues: "Preferred venues",
+      days: "Days",
+      timings: "Timings",
+      exactTimes: "Exact times",
+      record: "Record",
+      posted: "Posted",
+    },
+    level: {
+      range: (min: string, max: string) => `${min} to ${max}`,
+      andUp: (band: string) => `${band} and up`,
+      andUnder: (band: string) => `${band} and under`,
+      any: "Any level",
+    },
+    timingRanges: {
+      morning: "before noon",
+      afternoon: "noon to 6 PM",
+      evening: "after 6 PM",
+    },
+    timingWithRange: (timing: string, range: string) => `${timing}, ${range}`,
+    recordValue: (team: string, record: string) => `${team} ${record}`,
+    postedValue: (day: string, name: string) => `${day}, by ${name}`,
+    note: "From the team",
+    footer: {
+      proposals: (n: number) =>
+        n === 0
+          ? "No proposals yet"
+          : plural("en", n, {
+              one: "1 proposal so far",
+              other: "{n} proposals so far",
+            }),
+      hint: "They pick one and confirm",
+    },
+    ago: {
+      justNow: "just now",
+      minutes: (n: number) => `${n}m ago`,
+      hours: (n: number) => `${n}h ago`,
+      days: (n: number) =>
+        plural("en", n, { one: "1 day ago", other: "{n} days ago" }),
+    },
+    proposal: {
+      waiting: (team: string) => `Your proposal, waiting for ${team}`,
+      sent: (ago: string) => `Sent ${ago}.`,
+      theyHave: (hours: number) =>
+        hours <= 1
+          ? "They have under an hour to confirm."
+          : `They have ${hours} hours to confirm.`,
+      youHave: (hours: number) =>
+        hours <= 1
+          ? "You have under an hour to confirm."
+          : `You have ${hours} hours to confirm.`,
+      lines: (sent: string, clock: string) => `${sent} ${clock}`,
+      time: "Time",
+      venue: "Venue",
+      price: "Price",
+      change: "Change proposal",
+      withdraw: "Withdraw",
+      footnote: {
+        padel:
+          "Nothing is booked yet. The court is on you two once they confirm; Temba doesn’t hold it.",
+        football:
+          "Nothing is booked yet. The pitch is on you two once they confirm; Temba doesn’t hold it.",
+      },
+    },
+    queue: {
+      title: "Proposals",
+      empty: "No proposals yet. Teams that fit see it on the open board.",
+      hint: "Pick one and confirm. The others are told.",
+      confirm: "Confirm",
+      another: "Another time",
+    },
+    confirmed: {
+      dayAt: (day: string, venue: string) => `${day}, ${venue}`,
+      placeFor: (place: string, duration: string) => `${place}, ${duration}`,
+      duration: (minutes: number) => `${minutes} min`,
+      viewGame: "View game",
+      proposedBy: "Proposed by",
+      confirmedBy: "Confirmed by",
+      you: "You",
+      byTeam: (name: string, team: string) => `${name}, ${team}`,
+      byTeamAgo: (name: string, team: string, ago: string) =>
+        `${name}, ${team}, ${ago}`,
+      bookIt: (place: string) => `Book it: ${place}`,
+      closedNote:
+        "This challenge is closed. Everything else happens on the game: line-up, score, marks and the result card.",
+    },
+    accept: {
+      subtitle: (team: string) =>
+        `Propose a time and venue. ${team} confirm, and it becomes a game.`,
+      toldOne: (name: string) =>
+        `${name} is told when you propose, and again if they confirm.`,
+      toldRoster:
+        "Your roster is told when you propose, and again if they confirm.",
+      venueHint: "their preferred first",
+      theirFirst: "their first",
+      theirSecond: "their second",
+      theirPick: "their pick",
+      youSuggest: "you suggest",
+      somewhereElse: "Somewhere else",
+      orSeparator: " or ",
+      daysTimings: (days: string, timings: string) => `${days} ${timings}`,
+      timingsAfterDays: {
+        morning: "mornings",
+        afternoon: "afternoons",
+        evening: "evenings",
+      },
+      anyTime: "Any day, any time",
+      slotDay: (weekday: string, day: string) => `${weekday} ${day}`,
+      moreTimes: "More times",
+      extras: "Add a court or price",
+      propose: (when: string, venue: string) => `Propose ${when} at ${venue}`,
+      change: (when: string, venue: string) => `Change to ${when} at ${venue}`,
+      proposeIncomplete: "Propose",
+      changeIncomplete: "Change proposal",
+    },
   },
 };

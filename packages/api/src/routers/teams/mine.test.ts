@@ -151,6 +151,12 @@ describe("teams.mine", () => {
         groupTag: { id: group!.id, name: "Gooz of Arad" },
       });
 
+      expect(
+        row!.members
+          .filter((member) => member.you)
+          .map((member) => member.name),
+      ).toEqual(["Player 0"]);
+
       const [untagged] = await mine(db, { userId: rivalCaptain });
       expect(untagged!.groupTag).toBeNull();
     });

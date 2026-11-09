@@ -1,5 +1,6 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
+import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -40,6 +41,7 @@ import {
 } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments, type Href } from "expo-router";
+import { Share } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 
@@ -72,7 +74,9 @@ import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
+import { Hairline } from "../primitives/hairline";
 import { Screen } from "../primitives/screen";
+import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
@@ -87,7 +91,8 @@ import { RequestsSection } from "./organizer-card";
 import { GameEditSheet } from "./game-edit-sheet";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
-import { SquadGrid } from "./squad-grid";
+import { ChallengeSquads } from "./squad-grid";
+import { useShareGame } from "./use-share-game";
 import { TeamVsTeamRow } from "./team-vs-team-row";
 import { useGameEdit } from "./use-game-edit";
 import { useRequestDecisions } from "./use-request-decisions";
@@ -174,7 +179,7 @@ export function FootballGameDetails({
   );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
-  const lines = footballHeroLines(
+  const baseLines = footballHeroLines(
     {
       windowStart: game.windowStart,
       windowEnd: game.windowEnd,
@@ -182,12 +187,27 @@ export function FootballGameDetails({
       sideSize: game.sideSize,
       venueName: game.venue?.name ?? null,
       pitchName: game.recordedCourts[0]?.name ?? null,
-      teamsSet: teams != null,
+      teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
     },
     now,
     locale,
   );
+  const lines = challenge
+    ? {
+        ...baseLines,
+        subLine: challengeHeroSubLine(
+          {
+            pitchName: game.recordedCourts[0]?.name ?? null,
+            sideSize: game.sideSize,
+            windowStart: game.windowStart,
+            windowEnd: game.windowEnd,
+          },
+          locale,
+        ),
+      }
+    : baseLines;
+  const shareGame = useShareGame(gameId);
 
   const refresh = () =>
     Promise.all([
@@ -417,11 +437,16 @@ export function FootballGameDetails({
     },
   ];
   const infoRows = challenge
-    ? challengeInfoRows(challenge, game.sport, m.group.metaSeparator, locale)
+    ? challengeInfoRows(challenge, game.sport, locale)
     : gameInfoRows;
   const squadSide = challenge?.sides.find(
     (side) => side.teamId === squadTeamId,
   );
+  const namableSide = challenge?.viewerCanNameSide
+    ? challenge.sides.find(
+        (side) => side.teamId === challenge.viewerCanNameSide,
+      )
+    : undefined;
 
   const showHeroActions =
     !challenge &&
@@ -542,7 +567,25 @@ export function FootballGameDetails({
       </View>
     );
   const heroBody = challenge ? (
-    <TeamVsTeamRow sides={challenge.sides} sport={game.sport} />
+    <View style={{ gap: 16 }}>
+      <Hairline />
+      <TeamVsTeamRow sides={challenge.sides} sport={game.sport} />
+      <ChallengeSquads
+        sides={challenge.sides}
+        action={
+          namableSide?.teamId
+            ? {
+                ...squadButtonCopy(
+                  namableSide.named.length,
+                  namableSide.name ?? m.team.memberFallback,
+                  locale,
+                ),
+                onPress: () => setSquadTeamId(namableSide.teamId),
+              }
+            : undefined
+        }
+      />
+    </View>
   ) : (
     gameHeroBody
   );
@@ -637,7 +680,29 @@ export function FootballGameDetails({
           lines={lines}
           tag={challenge ? m.challenge.gameDetails.tag : undefined}
           actions={
-            inviteAccess.canManage ? (
+            challenge && !game.cancelledAt ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.mobileGameDetails.hero.shareGame}
+                onPress={() =>
+                  void shareGame(
+                    {
+                      customName: gameCustomName(game),
+                      format: game.format,
+                      sport: game.sport,
+                      registrationMode: game.registrationMode,
+                      venueName: game.venue?.name ?? null,
+                      courtName: game.recordedCourts[0]?.name ?? null,
+                      windowStart: game.windowStart,
+                      windowEnd: game.windowEnd,
+                      sides: [],
+                    },
+                    "game_page",
+                  )
+                }
+              />
+            ) : inviteAccess.canManage ? (
               <InviteIconEntry onPress={() => setInviteOpen(true)} />
             ) : null
           }
@@ -686,31 +751,6 @@ export function FootballGameDetails({
             </Text>
           </View>
         ) : null}
-        {challenge
-          ? challenge.sides.map((side) => {
-              const title = side.name ?? m.team.memberFallback;
-              const button = squadButtonCopy(side.named.length, title, locale);
-              return (
-                <SquadGrid
-                  key={side.gameTeamId}
-                  title={title}
-                  named={side.named}
-                  sideSize={side.sideSize}
-                  action={
-                    side.teamId &&
-                    side.viewerActs &&
-                    side.state !== "locked" &&
-                    !game.cancelledAt
-                      ? {
-                          ...button,
-                          onPress: () => setSquadTeamId(side.teamId),
-                        }
-                      : undefined
-                  }
-                />
-              );
-            })
-          : null}
         {teams && names ? (
           <FootballScoreCard
             bibs={teams.bibs}

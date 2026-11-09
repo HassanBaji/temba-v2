@@ -8,6 +8,7 @@ import {
 } from "./football-lineup";
 import { formatWeekday } from "./format-game-start";
 import { sideSizeLabel } from "./game-shape";
+import { initials } from "./initials";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 /** Seats beyond the side on a Matchday squad. */
@@ -92,6 +93,105 @@ export function squadCounterLine(
 }
 
 /**
+ * The counter over a side's grid, split so the count reads strong and the
+ * rest muted: "6 of 9 named" / "6 + 3 reserves", "4 of 9" / "4 + 5 to name".
+ */
+export function squadCounterParts(
+  namedCount: number,
+  sideSize: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.squad;
+  const seats = squadSeatCount(sideSize);
+  if (namedCount <= 0) {
+    return { strong: m.ofSeats(0, seats), muted: m.nobodyNamed };
+  }
+  if (namedCount < sideSize) {
+    return {
+      strong: m.ofSeats(namedCount, seats),
+      muted: m.toName(namedCount, seats - namedCount),
+    };
+  }
+  return {
+    strong: m.namedOf(namedCount, seats),
+    muted: m.sideReserves(sideSize, SQUAD_RESERVE_SEATS),
+  };
+}
+
+/** The sheet's bar: one segment per seat, filled up to the selection, the last three Reserves. */
+export function squadProgressSegments(selectedCount: number, sideSize: number) {
+  return Array.from({ length: squadSeatCount(sideSize) }, (_, index) => ({
+    kind: index < sideSize ? ("side" as const) : ("reserve" as const),
+    filled: index < selectedCount,
+  }));
+}
+
+/**
+ * The sheet's Roster order, fixed when it opens so rows never jump under a
+ * tap: the Captain, then whoever is named in naming order, then the rest as
+ * the Roster lists them.
+ */
+export function squadRosterOrder(
+  rosterUserIds: readonly string[],
+  captainUserId: string | null,
+  namedUserIds: readonly string[],
+): string[] {
+  const onRoster = new Set(rosterUserIds);
+  const lead = [
+    ...(captainUserId && onRoster.has(captainUserId) ? [captainUserId] : []),
+    ...namedUserIds.filter((id) => onRoster.has(id)),
+  ];
+  const ordered = [...new Set(lead)];
+  return [...ordered, ...rosterUserIds.filter((id) => !ordered.includes(id))];
+}
+
+/** The rows shown before "and N more on the roster": one per seat, never hiding a selected row. */
+export function squadRosterPreview<T>(
+  rows: readonly T[],
+  sideSize: number,
+  selectedCount: number,
+  expanded: boolean,
+) {
+  const limit = Math.max(squadSeatCount(sideSize), selectedCount);
+  const visible = expanded ? [...rows] : rows.slice(0, limit);
+  return { visible, hiddenCount: rows.length - visible.length };
+}
+
+/**
+ * A Roster row's line: "You, captain. DEF", "MID, C+", "GK. Added by you,
+ * not on Temba". Only the Captain adds players who are not on Temba.
+ */
+export function squadRosterRowMeta(
+  member: SquadPlayer & { isViewer: boolean; isCaptain: boolean },
+  viewerIsCaptain: boolean,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.squad.sheet;
+  const who =
+    member.isViewer && member.isCaptain
+      ? m.youCaptain
+      : member.isViewer
+        ? m.you
+        : member.isCaptain
+          ? m.captain
+          : null;
+  const play = [
+    footballSlotCode(member.role, member.position, locale),
+    member.levelBand ? displayLabelFromStoredBand(member.levelBand) : null,
+  ]
+    .filter((part): part is string => part != null)
+    .join(m.metaJoin);
+  const added = member.unclaimed
+    ? viewerIsCaptain
+      ? m.addedByYou
+      : m.addedByCaptain
+    : null;
+  return [who, play || null, added]
+    .filter((part): part is string => part != null)
+    .join(m.sentenceJoin);
+}
+
+/**
  * The Name your squad sheet: who is selected, in naming order. A side nobody
  * has named yet starts with the Captain, when the Captain is on the Roster.
  */
@@ -168,6 +268,8 @@ export function squadSheetCopy(
       SQUAD_RESERVE_SEATS,
     ),
     counter: m.counter(input.selectedCount, seats, input.rosterCount),
+    namedLine: m.namedOf(input.selectedCount, seats),
+    rosterLine: m.fromRoster(input.rosterCount),
     sideCounter: m.sideCounter(input.sideSize),
     reserveCounter: m.reserveCounter(SQUAD_RESERVE_SEATS),
     stateLine:
@@ -216,10 +318,17 @@ export function squadSeatViews(
     key: seat.player ? seat.player.userId : `seat-${seat.index}`,
     kind: seat.kind,
     label: seat.label,
+    emptyLabel: seat.kind === "side" ? m.open : m.reserve,
     player: seat.player
       ? {
           userId: seat.player.userId,
           name: seat.player.name,
+          initials: initials(seat.player.name),
+          code: footballSlotCode(
+            seat.player.role,
+            seat.player.position,
+            locale,
+          ),
           meta: squadPlayerMeta(seat.player, locale),
           unclaimed: seat.player.unclaimed ?? false,
         }

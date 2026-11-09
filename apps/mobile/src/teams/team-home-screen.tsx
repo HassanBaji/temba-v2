@@ -1,18 +1,18 @@
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { sportOrDefault } from "@repo/domain/sport";
-import {
-  teamDissolveConfirm,
-  teamHomeView,
-  teamLeaveConfirm,
-} from "@repo/domain/teams";
-import { useRouter } from "expo-router";
+import { teamDetailView } from "@repo/domain/team-detail";
+import { teamDissolveConfirm, teamLeaveConfirm } from "@repo/domain/teams";
+import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
+import { Share } from "react-native";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
+import { gamePath } from "../games/games-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
+import { playerPath } from "../player-profile/player-path";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
@@ -20,21 +20,24 @@ import { useToast } from "../primitives/toast";
 import { rematchPath } from "../challenges/challenges-model";
 import { groupPath } from "../groups/groups-model";
 import { api } from "../trpc/react";
-import { TEAMS_PATH, teamPath } from "./teams-model";
+import { TEAMS_PATH, postChallengePath, teamPath } from "./teams-model";
 import { TeamAddPlayersSheet } from "./team-add-players-sheet";
-import { TeamHomeView } from "./team-home-view";
+import { TeamDetailBody, TeamHero, type TeamMenuItem } from "./team-home-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function TeamHomeScreen({ teamId }: { teamId: string }) {
   const router = useRouter();
+  const segments = useSegments();
   const toast = useToast();
   const m = useMessages();
   const locale = useLocale();
   const utils = api.useUtils();
+  const [now] = useState(() => new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
@@ -108,7 +111,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     }
   }, [team]);
 
-  const view = data ? teamHomeView(data, locale) : null;
+  const detail = data ? teamDetailView(data, now, locale) : null;
   const header = <ScreenHeader nav="back" fallback={TEAMS_PATH} />;
 
   if (isNotFoundError(team.error)) {
@@ -143,7 +146,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     );
   }
 
-  if (!data || !view) {
+  if (!data || !detail) {
     return (
       <Screen>
         {header}
@@ -154,18 +157,121 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     );
   }
 
+  const view = detail.home;
+  const groupTag = data.groupTag;
+  const menuCandidates: (TeamMenuItem | null)[] = [
+    groupTag && detail.openGroupLabel
+      ? {
+          key: "group",
+          label: detail.openGroupLabel,
+          onPress: () => router.push(groupPath(groupTag.id)),
+        }
+      : null,
+    view.canInvite
+      ? {
+          key: "invite",
+          label: view.inviteLabel,
+          onPress: () => setInviteOpen(true),
+        }
+      : null,
+    ...view.groupTag.options.map((option) => ({
+      key: `tag-${option.groupId}`,
+      label: option.label,
+      disabled: setGroupTag.isPending,
+      onPress: () => changeGroupTag(option.groupId, option.toast),
+    })),
+    view.groupTag.remove
+      ? {
+          key: "untag",
+          label: view.groupTag.remove.label,
+          disabled: setGroupTag.isPending,
+          onPress: () => {
+            if (view.groupTag.remove) {
+              changeGroupTag(null, view.groupTag.remove.toast);
+            }
+          },
+        }
+      : null,
+    view.canLeave
+      ? {
+          key: "leave",
+          label: m.team.leaveLabel,
+          tone: "danger" as const,
+          onPress: () => {
+            setActionError(null);
+            setConfirm({
+              ...teamLeaveConfirm(view.title, locale),
+              onConfirm: () => leave.mutate({ teamId }),
+            });
+          },
+        }
+      : null,
+    view.canDissolve
+      ? {
+          key: "dissolve",
+          label: m.team.dissolveLabel,
+          tone: "danger" as const,
+          onPress: () => {
+            setActionError(null);
+            setConfirm({
+              ...teamDissolveConfirm(view.title, locale),
+              onConfirm: () => dissolve.mutate({ teamId }),
+            });
+          },
+        }
+      : null,
+  ];
+  const menuItems = menuCandidates.filter(
+    (item): item is TeamMenuItem => item != null,
+  );
+
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <TeamHomeView
-        view={view}
-        sport={data.sport}
+    <Screen
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      statusBarTone="ink"
+      header={
+        <TeamHero
+          hero={detail.hero}
+          onMenu={menuItems.length > 0 ? () => setMenuOpen(true) : null}
+          onPost={() => router.push(postChallengePath(teamId))}
+          onInvite={() => setInviteOpen(true)}
+          onShare={() => {
+            if (detail.hero.share) {
+              void Share.share({ message: detail.hero.share.text });
+            }
+          }}
+        />
+      }
+    >
+      <TeamDetailBody
+        detail={detail}
+        formTitle={m.team.form.title}
+        rivalsTitle={m.team.rivals.title}
+        gamesTitle={m.team.games.title}
+        actionError={actionError}
         confirm={confirm}
         confirmPending={
           dissolve.isPending || leave.isPending || removeUnclaimed.isPending
         }
-        actionError={actionError}
-        onInvite={() => setInviteOpen(true)}
-        onAddMore={() => setAddOpen(true)}
+        menu={{
+          visible: menuOpen,
+          items: menuItems,
+          onClose: () => setMenuOpen(false),
+        }}
+        onOpenTeam={(id) => router.push(teamPath(id))}
+        onRematch={(opponentTeamId) =>
+          router.push(rematchPath(teamId, opponentTeamId))
+        }
+        onOpenPlayer={(userId) => router.push(playerPath(segments, userId))}
+        onOpenGame={(gameId) => router.push(gamePath(gameId))}
+        onOpenSeat={() => {
+          if (detail.members.openSeat?.action === "add") {
+            setAddOpen(true);
+          } else {
+            setInviteOpen(true);
+          }
+        }}
         onRemoveMember={(remove) => {
           setActionError(null);
           setConfirm({
@@ -180,36 +286,6 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
                   },
                 },
               ),
-          });
-        }}
-        onOpenTeam={(id) => router.push(teamPath(id))}
-        onRematch={(opponentTeamId) =>
-          router.push(rematchPath(teamId, opponentTeamId))
-        }
-        onOpenGroup={
-          data.groupTag
-            ? () => {
-                if (data.groupTag) {
-                  router.push(groupPath(data.groupTag.id));
-                }
-              }
-            : null
-        }
-        tagPending={setGroupTag.isPending}
-        onTag={(groupId, message) => changeGroupTag(groupId, message)}
-        onRemoveTag={(message) => changeGroupTag(null, message)}
-        onDissolve={() => {
-          setActionError(null);
-          setConfirm({
-            ...teamDissolveConfirm(view.title, locale),
-            onConfirm: () => dissolve.mutate({ teamId }),
-          });
-        }}
-        onLeave={() => {
-          setActionError(null);
-          setConfirm({
-            ...teamLeaveConfirm(view.title, locale),
-            onConfirm: () => leave.mutate({ teamId }),
           });
         }}
         onCloseConfirm={() => setConfirm(null)}

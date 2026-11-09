@@ -1,7 +1,25 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import {
+  challengeTeamFaceLine,
+  type ChallengeTeamFace,
+} from "./challenge-detail";
+import {
+  CHALLENGE_TIMINGS,
+  CHALLENGE_WEEKDAYS,
+  isChallengeTiming,
+  isChallengeWeekday,
+} from "./challenge-form";
 import { challengeSlotDays, type ChallengeSlotDay } from "./challenge-slots";
+import {
+  formatGameClock,
+  formatGameStart,
+  formatWeekday,
+} from "./format-game-start";
+import { initials } from "./initials";
+import { shortPlayerName } from "./player-name";
+import { zonedParts } from "./product-timezone";
 import {
   filsToMajorInput,
   parseOptionalPricePerPlayerFils,
@@ -20,9 +38,13 @@ export type AcceptPendingProposal = {
 /** What the Accept sheet reads from `challenges.listProposeOptions`. */
 export type AcceptOptions = {
   posterTeam: { displayName: string };
+  sport?: string;
+  days?: readonly string[];
+  timings?: readonly string[];
   teams: readonly {
     id: string;
     displayName: string;
+    face?: ChallengeTeamFace | null;
     pendingProposal: AcceptPendingProposal | null;
   }[];
   venues: readonly {
@@ -234,4 +256,215 @@ export function acceptTeamToPropose<T extends { id: string }>(
         !viewerProposals.some((proposal) => proposal.team.id === team.id),
     ) ?? null
   );
+}
+
+/** The "Your team" cards: crest initials, name and "Padel, C+, you and Ali M". */
+export function acceptTeamCards(options: AcceptOptions, locale: Locale) {
+  return options.teams.map((team) => {
+    const line = team.face
+      ? challengeTeamFaceLine(team.face, locale, { withSport: true })
+      : null;
+    return {
+      value: team.id,
+      title: team.displayName,
+      initials: initials(team.displayName),
+      line,
+      accessibilityLabel: line
+        ? `${team.displayName}, ${line}`
+        : team.displayName,
+    };
+  });
+}
+
+/** "Ali M is told when you propose, and again if they confirm." */
+export function acceptToldLine(
+  options: AcceptOptions,
+  teamId: string | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  const copy = m.challenge.detailScreen.accept;
+  const face = options.teams.find((team) => team.id === teamId)?.face;
+  if (!face) {
+    return null;
+  }
+  const others = face.members.filter((member) => !member.isViewer);
+  if (others.length === 0) {
+    return null;
+  }
+  if (others.length === 1 && face.rosterCount <= face.members.length) {
+    return copy.toldOne(
+      shortPlayerName(others[0]!.name ?? m.team.memberFallback),
+    );
+  }
+  return copy.toldRoster;
+}
+
+export type AcceptVenueRow = {
+  value: string;
+  label: string;
+  hint: string | null;
+};
+
+/**
+ * The Venue list: the Challenge's preferred Venues as "their first", "their
+ * second"; every other Venue sits behind "Somewhere else". With no preferred
+ * Venue every Venue is a row.
+ */
+export function acceptVenueRows(
+  options: AcceptOptions,
+  locale: Locale,
+): {
+  hint: string | null;
+  rows: AcceptVenueRow[];
+  elsewhere: {
+    label: string;
+    hint: string;
+    venues: { value: string; label: string }[];
+  } | null;
+} {
+  const m = messagesFor(locale).challenge.detailScreen.accept;
+  const preferred = options.venues.filter((venue) => venue.preferred);
+  const others = options.venues.filter((venue) => !venue.preferred);
+  if (preferred.length === 0) {
+    return {
+      hint: null,
+      rows: others.map((venue) => ({
+        value: venue.id,
+        label: venue.name,
+        hint: null,
+      })),
+      elsewhere: null,
+    };
+  }
+  const hints = [m.theirFirst, m.theirSecond];
+  return {
+    hint: m.venueHint,
+    rows: preferred.map((venue, index) => ({
+      value: venue.id,
+      label: venue.name,
+      hint: hints[index] ?? m.theirPick,
+    })),
+    elsewhere:
+      others.length === 0
+        ? null
+        : {
+            label: m.somewhereElse,
+            hint: m.youSuggest,
+            venues: others.map((venue) => ({
+              value: venue.id,
+              label: venue.name,
+            })),
+          },
+  };
+}
+
+/** Whether the picked Venue is one of "Somewhere else". */
+export function acceptVenueIsElsewhere(
+  options: AcceptOptions,
+  venueId: string | null,
+) {
+  const venue = options.venues.find((candidate) => candidate.id === venueId);
+  return (
+    venue != null &&
+    !venue.preferred &&
+    options.venues.some((candidate) => candidate.preferred)
+  );
+}
+
+/** "Tue or Thu evenings", "Evenings", "Tue or Thu", "Any day, any time". */
+export function acceptTimeHint(options: AcceptOptions, locale: Locale) {
+  const m = messagesFor(locale).challenge;
+  const copy = m.detailScreen.accept;
+  const days = CHALLENGE_WEEKDAYS.filter((day) =>
+    (options.days ?? []).filter(isChallengeWeekday).includes(day),
+  );
+  const timings = CHALLENGE_TIMINGS.filter((timing) =>
+    (options.timings ?? []).filter(isChallengeTiming).includes(timing),
+  );
+  const someDays =
+    days.length > 0 && days.length < CHALLENGE_WEEKDAYS.length ? days : [];
+  const someTimings =
+    timings.length > 0 && timings.length < CHALLENGE_TIMINGS.length
+      ? timings
+      : [];
+  const dayText = someDays.map((day) => m.weekdays[day]).join(copy.orSeparator);
+  if (someDays.length > 0 && someTimings.length > 0) {
+    return copy.daysTimings(
+      dayText,
+      someTimings
+        .map((timing) => copy.timingsAfterDays[timing])
+        .join(copy.orSeparator),
+    );
+  }
+  if (someDays.length > 0) {
+    return dayText;
+  }
+  if (someTimings.length > 0) {
+    return someTimings
+      .map((timing) => m.timings[timing])
+      .join(copy.orSeparator);
+  }
+  return copy.anyTime;
+}
+
+function slotDayLabel(slot: Date, locale: Locale) {
+  return messagesFor(locale).challenge.detailScreen.accept.slotDay(
+    formatWeekday(slot, "short", locale),
+    String(zonedParts(slot).day),
+  );
+}
+
+/** The time grid: every suggested slot as "8:00 PM" over "Thu 12", soonest first. */
+export function acceptSlotCells(options: AcceptOptions, locale: Locale) {
+  return [...options.slots]
+    .map(instant)
+    .sort((a, b) => a.getTime() - b.getTime())
+    .map((slot) => ({
+      value: slot.getTime(),
+      startsAt: slot,
+      time: formatGameClock(slot, locale),
+      day: slotDayLabel(slot, locale),
+      accessibilityLabel: formatGameStart(slot, locale),
+    }));
+}
+
+/** The grid shows two rows until "More times", or until the picked slot sits further down. */
+export const ACCEPT_SLOT_PREVIEW = 6;
+
+export function acceptPickSlot(
+  draft: AcceptDraft,
+  options: AcceptOptions,
+  startsAt: Date,
+): AcceptDraft {
+  return { ...draft, startsAt, dayKey: dayKeyOf(options, startsAt) };
+}
+
+/** "Propose Thu 12, 8:00 PM at Padel Point Riffa", or "Propose" until both are picked. */
+export function acceptProposeLabel(
+  draft: AcceptDraft,
+  options: AcceptOptions,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  const copy = m.challenge.detailScreen.accept;
+  const changing = acceptPendingProposal(options, draft.teamId) != null;
+  const venue = options.venues.find(
+    (candidate) => candidate.id === draft.venueId,
+  );
+  if (!draft.startsAt || !venue) {
+    return changing ? copy.changeIncomplete : copy.proposeIncomplete;
+  }
+  const when = m.dates.gameStart(
+    slotDayLabel(draft.startsAt, locale),
+    formatGameClock(draft.startsAt, locale),
+  );
+  return changing
+    ? copy.change(when, venue.name)
+    : copy.propose(when, venue.name);
+}
+
+/** A Court or a price already on the draft opens the optional extras. */
+export function acceptDraftHasExtras(draft: AcceptDraft) {
+  return draft.courtId != null || draft.price.trim().length > 0;
 }

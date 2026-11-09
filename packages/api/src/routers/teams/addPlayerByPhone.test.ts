@@ -3,10 +3,16 @@ import { and, eq, isNull } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  GameFormatEnum,
+  GameRegistrationModeEnum,
+  gamePlayers,
+  games,
   notifications,
+  ratings,
   teamMemberInvites,
   teamMembers,
   user,
+  venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -102,6 +108,10 @@ describe("teams phone door", () => {
         name: "Ahmed Ali",
         alreadyOnTeam: false,
         alreadyInvited: false,
+        levelBand: null,
+        footballRole: null,
+        footballPosition: null,
+        gamesWithYou: 0,
       });
 
       await expect(
@@ -186,6 +196,10 @@ describe("teams phone door", () => {
         alreadyOnTeam: true,
         alreadyInvited: false,
         phoneMasked: "+973 •••• 4408",
+        levelBand: "D3",
+        footballRole: null,
+        footballPosition: null,
+        gamesWithYou: 0,
       });
       const forbidden = await rejection(
         previewPlayerByPhone(db, {
@@ -208,6 +222,83 @@ describe("teams phone door", () => {
       expect(
         asOutsider.members.find((member) => member.userId === first.userId),
       ).toMatchObject({ unclaimed: true, phoneMasked: null, removable: false });
+    });
+  });
+
+  it("describes a number on Temba for New team: Level, position and games played together", async () => {
+    await withDb(async (database, db) => {
+      const captain = await insertUser(database, { name: "Captain" });
+      const holder = await insertUser(database, {
+        name: "Ali Mansoor",
+        phoneNumber: "+97333456610",
+      });
+      await database
+        .update(user)
+        .set({
+          preferredFootballRole: "outfield",
+          preferredFootballPosition: "fwd",
+        })
+        .where(eq(user.id, holder));
+      await database.insert(ratings).values({
+        userId: holder,
+        sport: "football",
+        mu: 1400,
+        phi: 150,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+      const [venue] = await database
+        .insert(venues)
+        .values({ name: "Venue", city: "Manama", country: "BH" })
+        .returning({ id: venues.id });
+      const past = new Date(Date.now() - 86_400_000);
+      for (const cancelledAt of [null, null, new Date()]) {
+        const [game] = await database
+          .insert(games)
+          .values({
+            name: "Five",
+            format: GameFormatEnum.FRIENDLY_GAME,
+            registrationMode: GameRegistrationModeEnum.TEAM_ONLY,
+            venueId: venue!.id,
+            createdBy: captain,
+            windowStart: past,
+            windowEnd: past,
+            cancelledAt,
+          })
+          .returning({ id: games.id });
+        await database.insert(gamePlayers).values([
+          { gameId: game!.id, userId: captain },
+          { gameId: game!.id, userId: holder },
+        ]);
+      }
+
+      await expect(
+        previewPlayerByPhone(db, {
+          userId: captain,
+          ...bahrain("3345 6610"),
+          sport: "football",
+        }),
+      ).resolves.toEqual({
+        kind: "account",
+        name: "Ali Mansoor",
+        alreadyOnTeam: false,
+        alreadyInvited: false,
+        levelBand: "C2",
+        footballRole: "outfield",
+        footballPosition: "fwd",
+        gamesWithYou: 2,
+      });
+      await expect(
+        previewPlayerByPhone(db, {
+          userId: captain,
+          ...bahrain("3345 6610"),
+          sport: "padel",
+        }),
+      ).resolves.toMatchObject({
+        levelBand: null,
+        footballRole: null,
+        footballPosition: null,
+      });
     });
   });
 
