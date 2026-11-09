@@ -29,8 +29,9 @@ export async function approveLevelRangeRequest(
     args.requestId,
     args.userId,
     "approve",
+    locale,
   );
-  const game = await requireGame(database, request.gameId);
+  const game = await requireGame(database, request.gameId, locale);
   const seated = await database.transaction(async (tx) => {
     const [updated] = await tx
       .update(gameLevelRangeRequests)

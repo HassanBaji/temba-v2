@@ -53,17 +53,17 @@ export async function acceptInviteLink(
   if (!link) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Invite link is invalid or expired",
+      message: messagesFor(locale).invite.errors.linkInvalid,
     });
   }
-  const game = await requireGame(database, link.gameId);
-  assertPoolDrawNotPosted(game);
-  await assertGameInviteDoorsOpen(database, game);
+  const game = await requireGame(database, link.gameId, locale);
+  assertPoolDrawNotPosted(game, locale);
+  await assertGameInviteDoorsOpen(database, game, undefined, locale);
 
   if (args.football && !isFootballGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a football Game takes a role and position",
+      message: messagesFor(locale).football.errors.roleOnFootball,
     });
   }
 
@@ -86,12 +86,12 @@ export async function acceptInviteLink(
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This tournament does not allow registering alone",
+      message: messagesFor(locale).tournament.errors.partnerRequired,
     });
   }
 
   if (args.football?.role === "keeper") {
-    await assertKeeperSeatOpen(database, game.id);
+    await assertKeeperSeatOpen(database, game.id, undefined, locale);
   }
 
   const { accepted, joinedGroup } = await database.transaction(async (tx) => {
@@ -111,15 +111,20 @@ export async function acceptInviteLink(
       if (accepted.reason === "seat_required") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Pick a vacant Position",
+          message: messagesFor(locale).game.errors.pickVacantPosition,
         });
       }
       if (accepted.reason === "frozen") {
-        throwInviteFrozen({ kind: "game", id: game.id }, "accept", "frozen");
+        throwInviteFrozen(
+          { kind: "game", id: game.id },
+          "accept",
+          "frozen",
+          locale,
+        );
       }
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Invite link is invalid or expired",
+        message: messagesFor(locale).invite.errors.linkInvalid,
       });
     }
     if (args.football && !accepted.waitingForPartner && !accepted.waitlisted) {

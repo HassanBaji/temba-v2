@@ -19,6 +19,7 @@ import {
 } from "#src/games/seats";
 import type { SeatPosition } from "#src/games/utils";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -32,14 +33,15 @@ export async function moveSeat(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  assertPoolDrawNotPosted(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  assertPoolDrawNotPosted(game, locale);
   const now = new Date();
 
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This tournament does not allow registering alone",
+      message: messagesFor(locale).tournament.errors.partnerRequired,
     });
   }
 
@@ -47,22 +49,29 @@ export async function moveSeat(
   if (!isIndividualSeatGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Move a seat on an individual Friendly game or tournament",
+      message: messagesFor(locale).game.errors.moveSeatIndividual,
     });
   }
 
-  assertRegistrationOpen(game, now);
+  assertRegistrationOpen(game, now, locale);
   await assertGameNotFrozen(database, game, now, args.locale);
   const status = await getRegistrationStatus(database, game, now);
   if (status === "full") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "No vacant Position",
+      message: messagesFor(locale).game.errors.noVacantPosition,
     });
   }
 
   await database.transaction(async (tx) => {
-    await moveToSeat(tx, game, args.userId, args.sideIndex, args.position);
+    await moveToSeat(
+      tx,
+      game,
+      args.userId,
+      args.sideIndex,
+      args.position,
+      locale,
+    );
   });
   return { ok: true as const };
 }

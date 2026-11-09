@@ -14,6 +14,8 @@ import {
   type TournamentRoundState,
 } from "@repo/domain/tournament-round-state";
 import { tournamentMatchMinutes } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -74,14 +76,18 @@ export type TournamentRound = {
  */
 export async function tournamentRounds(
   database: DbClient,
-  args: { gameId: string; userId: string; now?: Date },
+  args: { gameId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
-  assertMakesPoolRounds(game);
+  assertMakesPoolRounds(game, locale);
   const organizer = await isGameOrganizer(database, game, args.userId);
   const context = await loadTournamentRoundContext(database, game);
 
@@ -288,5 +294,6 @@ export const tournamentRoundsProcedure = protectedProcedure
     return tournamentRounds(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

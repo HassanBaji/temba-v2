@@ -19,6 +19,7 @@ import {
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -27,11 +28,12 @@ async function updateGameLevelRangeOnGame(
   game: GameRow,
   levelMinTenths: number | null,
   levelMaxTenths: number | null,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
     });
   }
 
@@ -52,15 +54,17 @@ export async function updateGameLevelRange(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.userId);
+  await assertGameOrganizer(database, game, args.userId, locale);
   await database.transaction(async (tx) => {
     await updateGameLevelRangeOnGame(
       tx,
       game,
       args.levelMinTenths,
       args.levelMaxTenths,
+      locale,
     );
   });
   return { ok: true as const };

@@ -75,15 +75,18 @@ async function checkAndWriteScore(
   now: Date,
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  assertFootballGame(game);
-  assertGameNotCancelled(game);
+  assertFootballGame(game, locale);
+  assertGameNotCancelled(game, locale);
   const match = await footballMatch(database, game.id);
   const sides = await footballSides(database, game.id);
   if (!match || !sides.slot1 || !sides.slot2) {
-    refuse("BAD_REQUEST", "Publish the teams before entering a score");
+    refuse(
+      "BAD_REQUEST",
+      messagesFor(locale).football.errors.publishTeamsFirst,
+    );
   }
   if (match.status === MatchStatusEnum.COMPLETED) {
-    refuse("FORBIDDEN", "This score is confirmed; it can no longer change");
+    refuse("FORBIDDEN", messagesFor(locale).football.errors.scoreLocked);
   }
   const challengeSides = await loadChallengeSides(database, game);
   if (
@@ -93,7 +96,10 @@ async function checkAndWriteScore(
     refuse("BAD_REQUEST", messagesFor(locale).challenge.errors.nameBothSquads);
   }
   if (!footballScoreOpen(game, now)) {
-    refuse("FORBIDDEN", "The score opens at kick-off");
+    refuse(
+      "FORBIDDEN",
+      messagesFor(locale).football.errors.scoreOpensAtKickOff,
+    );
   }
 
   const [slot1Users, slot2Users] = await Promise.all([
@@ -104,13 +110,13 @@ async function checkAndWriteScore(
   if (!onSide && !(await isGameOrganizer(database, game, args.userId))) {
     refuse(
       "FORBIDDEN",
-      "Only the organizer or players on the teams can enter the score",
+      messagesFor(locale).football.errors.scoreOrganizerOrPlayers,
     );
   }
 
   const scorerIds = args.scorers.map((scorer) => scorer.userId);
   if (new Set(scorerIds).size !== scorerIds.length) {
-    refuse("BAD_REQUEST", "Name each scorer once");
+    refuse("BAD_REQUEST", messagesFor(locale).football.errors.scorerOnce);
   }
   const named = { slot1: 0, slot2: 0 };
   for (const scorer of args.scorers) {
@@ -119,7 +125,7 @@ async function checkAndWriteScore(
     } else if (slot2Users.has(scorer.userId)) {
       named.slot2 += scorer.goals;
     } else {
-      refuse("BAD_REQUEST", "Scorers must be on one of the teams");
+      refuse("BAD_REQUEST", messagesFor(locale).football.errors.scorersOnTeams);
     }
   }
   const scorersProblem = footballScorersProblem(
@@ -191,8 +197,9 @@ export async function saveFootballScore(
   database: DbClient,
   args: ScoreArgs,
   now: Date = new Date(),
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   const match = game.challengeId
     ? await database.transaction(async (tx) => {
         const [locked] = await tx
@@ -236,9 +243,14 @@ export const saveFootballScoreProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return saveFootballScore(ctx.db, {
-      ...input,
-      userId: appUser.id,
-      locale: ctx.locale,
-    });
+    return saveFootballScore(
+      ctx.db,
+      {
+        ...input,
+        userId: appUser.id,
+        locale: ctx.locale,
+      },
+      undefined,
+      ctx.locale,
+    );
   });

@@ -33,7 +33,7 @@ async function updateGameWindowOnGame(
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
     });
   }
   if ((await gameFrozenReason(database, game, now)) === "played") {
@@ -45,7 +45,7 @@ async function updateGameWindowOnGame(
   if (windowEnd.getTime() < windowStart.getTime()) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Finish time must be at or after start time",
+      message: messagesFor(locale).createGame.validation.finishAfterStart,
     });
   }
 
@@ -104,8 +104,9 @@ export async function updateGameWindow(
     now?: Date;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   await database.transaction(async (tx) => {
     await updateGameWindowOnGame(
       tx,

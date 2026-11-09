@@ -15,7 +15,7 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
 import {
@@ -33,6 +33,7 @@ import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-ven
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
+import { messagesFor } from "@repo/i18n/messages";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -60,21 +61,23 @@ type ShapeSizing =
       issue: TournamentSizingIssue | RoundCountIssue | QualifiersIssue;
     };
 
-function sizeTournamentShape(value: {
-  tournamentShape?: "groups_only" | "groups_then_knockout" | "knockout_only";
-  teamCount: number;
-  poolCount?: number;
-  roundCount?: number | null;
-  qualifiersPerPool?: number | null;
-}): ShapeSizing {
+function sizeTournamentShape(
+  value: {
+    tournamentShape?: "groups_only" | "groups_then_knockout" | "knockout_only";
+    teamCount: number;
+    poolCount?: number;
+    roundCount?: number | null;
+    qualifiersPerPool?: number | null;
+  },
+  locale: Locale = DEFAULT_LOCALE,
+): ShapeSizing {
   const groupsThenKnockout = value.tournamentShape === "groups_then_knockout";
   if (!groupsThenKnockout && value.qualifiersPerPool != null) {
     return {
       ok: false,
       issue: {
         path: "qualifiersPerPool",
-        message:
-          "Through from each group applies to Groups, then knockout only",
+        message: messagesFor(locale).tournament.errors.qualifiersShape,
       },
     };
   }
@@ -120,7 +123,10 @@ function sizeTournamentShape(value: {
   };
 }
 
-function assertMatchMinutes(matchMinutes: number) {
+function assertMatchMinutes(
+  matchMinutes: number,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (
     !Number.isInteger(matchMinutes) ||
     matchMinutes < 10 ||
@@ -129,7 +135,7 @@ function assertMatchMinutes(matchMinutes: number) {
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Match length must be from 10 to 120 minutes, in steps of 5",
+      message: messagesFor(locale).createGame.matchMinutes,
     });
   }
 }
@@ -231,16 +237,17 @@ export type CreateTournamentInput = z.input<
 export async function createTournament(
   database: DbClient,
   input: CreateTournamentInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  assertMatchMinutes(input.matchMinutes);
+  assertMatchMinutes(input.matchMinutes, locale);
   if (!windowWithinOneDay(input.windowStart, input.windowEnd)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Finish time must be within 24 hours of the start",
+      message: messagesFor(locale).tournament.errors.oneDayWindow,
     });
   }
 
-  const sized = sizeTournamentShape(input);
+  const sized = sizeTournamentShape(input, locale);
   if (!sized.ok) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -248,19 +255,19 @@ export async function createTournament(
     });
   }
 
-  const group = await requireGroup(database, input.groupId);
+  const group = await requireGroup(database, input.groupId, locale);
   if (sportOrDefault(group.sport) === "football") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Games are Friendly games",
+      message: messagesFor(locale).football.errors.friendlyOnly,
     });
   }
-  await assertMayCreateGameOnGroup(database, group, input.createdBy);
+  await assertMayCreateGameOnGroup(database, group, input.createdBy, locale);
   const groupVerified = groupIsVerified(group);
   if (input.isPublic && !groupVerified) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only a Verified Group can open a Game to anyone with the link",
+      message: messagesFor(locale).game.errors.verifiedGroupOpen,
     });
   }
   await assertGameCreateVenueAndCourt(database, {
@@ -268,6 +275,7 @@ export async function createTournament(
     venueId: input.venueId,
     courtId: undefined,
     courtIds: input.courtIds,
+    locale,
   });
 
   const created = await database.transaction(async (tx) => {
@@ -330,8 +338,12 @@ export const createTournamentProcedure = protectedProcedure
   .input(createTournamentInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return createTournament(ctx.db, {
-      ...input,
-      createdBy: appUser.id,
-    });
+    return createTournament(
+      ctx.db,
+      {
+        ...input,
+        createdBy: appUser.id,
+      },
+      ctx.locale,
+    );
   });

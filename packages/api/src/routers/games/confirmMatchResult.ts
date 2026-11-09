@@ -15,6 +15,7 @@ import {
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { messagesFor } from "@repo/i18n/messages";
 import {
   confirmsBySide,
   keepMatchResultConfirmation,
@@ -76,13 +77,19 @@ export async function confirmMatchResult(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
 
   if (match.status === MatchStatusEnum.CANCELLED) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Cannot confirm the result of a cancelled Match",
+      message: messagesFor(locale).game.errors.confirmCancelledMatch,
     });
   }
   const [seated, organizer] = await Promise.all([
@@ -96,21 +103,20 @@ export async function confirmMatchResult(
     }
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Match is already completed",
+      message: messagesFor(locale).game.errors.matchCompleted,
     });
   }
   if (!organizer) {
     if (args.slot !== undefined) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only an organizer can confirm for a side",
+        message: messagesFor(locale).game.errors.confirmForSideOrganizer,
       });
     }
     if (!seated) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message:
-          "Only Users seated on this Match’s Game teams or an organizer can confirm its result",
+        message: messagesFor(locale).game.errors.confirmSeatedOrOrganizer,
       });
     }
   }
@@ -123,7 +129,7 @@ export async function confirmMatchResult(
   if (outcome.result === "none") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Match has no result yet to confirm",
+      message: messagesFor(locale).game.errors.noResultToConfirm,
     });
   }
   if (knockoutMatchIsLevel(match, outcome.result)) {

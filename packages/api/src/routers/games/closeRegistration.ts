@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { games } from "@repo/db";
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -17,17 +18,21 @@ import {
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-async function closeRegistrationOnGame(database: DbClient, game: GameRow) {
+async function closeRegistrationOnGame(
+  database: DbClient,
+  game: GameRow,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot close a cancelled Game",
+      message: messagesFor(locale).game.errors.closeCancelled,
     });
   }
   if (game.registrationClosedAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Registration is already closed",
+      message: messagesFor(locale).game.errors.registrationClosed,
     });
   }
   const now = new Date();
@@ -41,10 +46,11 @@ export async function closeRegistration(
   database: DbClient,
   args: { gameId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.userId);
-  await closeRegistrationOnGame(database, game);
+  await assertGameOrganizer(database, game, args.userId, locale);
+  await closeRegistrationOnGame(database, game, locale);
   return { ok: true as const };
 }
 

@@ -18,6 +18,7 @@ import {
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import { messagesFor } from "@repo/i18n/messages";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { scheduleMvpSettle } from "#src/marks/settle-mvp";
 import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
@@ -29,38 +30,43 @@ export async function completeMatch(
   database: DbClient,
   args: { gameId: string; matchId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   if (!(await confirmsAsOrganizer(database, game, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only an organizer can complete this Match",
+      message: messagesFor(locale).game.errors.completeOrganizerOnly,
     });
   }
 
   if (game.format === "americano") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Americano has no Matches to complete this slice",
+      message: messagesFor(locale).game.errors.americanoNoMatchesToComplete,
     });
   }
   if (match.status === MatchStatusEnum.CANCELLED) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Cannot complete a cancelled Match",
+      message: messagesFor(locale).game.errors.completeCancelledMatch,
     });
   }
   if (match.status === MatchStatusEnum.COMPLETED) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Match is already completed",
+      message: messagesFor(locale).game.errors.matchCompleted,
     });
   }
   if (!(await bothSlottedTeamsComplete(database, match))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "Both Match slots need complete Game teams before completing the Match",
+      message: messagesFor(locale).game.errors.completeNeedsTeams,
     });
   }
   await database.transaction(async (tx) => {
@@ -72,19 +78,19 @@ export async function completeMatch(
     if (!locked) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Match not found",
+        message: messagesFor(locale).game.errors.matchNotFound,
       });
     }
     if (locked.status === MatchStatusEnum.CANCELLED) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Cannot complete a cancelled Match",
+        message: messagesFor(locale).game.errors.completeCancelledMatch,
       });
     }
     if (locked.status === MatchStatusEnum.COMPLETED) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Match is already completed",
+        message: messagesFor(locale).game.errors.matchCompleted,
       });
     }
 
@@ -95,14 +101,14 @@ export async function completeMatch(
     if (sets.length === 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Add at least one Set before completing the Match",
+        message: messagesFor(locale).game.errors.addSetFirst,
       });
     }
     const outcome = matchOutcome(sets);
     if (outcome.result === "none") {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Score at least one Set before completing the Match",
+        message: messagesFor(locale).game.errors.scoreSetFirst,
       });
     }
     if (knockoutMatchIsLevel(locked, outcome.result)) {

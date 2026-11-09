@@ -15,6 +15,7 @@ import type {
 } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -47,11 +48,12 @@ export type ListGroupMembersToAddResult = {
 /** The Game's Group members, for the Organizer's Add player sheet. Null without a Group. */
 export async function listGroupMembersToAdd(
   database: DbClient,
-  args: { gameId: string; organizerUserId: string },
+  args: { gameId: string; organizerUserId: string; locale?: Locale },
 ): Promise<ListGroupMembersToAddResult> {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertOrganizerAddFormat(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertOrganizerAddFormat(game, locale);
   if (!game.groupId) {
     return null;
   }
@@ -143,5 +145,6 @@ export const listGroupMembersToAddProcedure = protectedProcedure
     return listGroupMembersToAdd(ctx.db, {
       gameId: input.gameId,
       organizerUserId: appUser.id,
+      locale: ctx.locale,
     });
   });

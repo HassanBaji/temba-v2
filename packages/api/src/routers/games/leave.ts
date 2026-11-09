@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { gamePlayers, gameTeamPlayers } from "@repo/db";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -78,9 +79,10 @@ export async function leaveGame(
   database: DbClient,
   args: { gameId: string; userId: string; now?: Date; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
   // Once played, the roster is the record of who played: only the Organizer
   // changes it, through kick and add.
   await assertGameNotFrozen(
@@ -88,11 +90,11 @@ export async function leaveGame(
     game,
     args.now ?? new Date(),
     args.locale,
-    "This Game has been played. Ask the organizer to remove you.",
+    messagesFor(locale).game.errors.playedLeave,
   );
   await database.transaction(async (tx) => {
     const partnerUserId = await partnerRemovedWithLeaver(tx, game, args.userId);
-    await leaveRegisteredSeat(tx, game, args.userId);
+    await leaveRegisteredSeat(tx, game, args.userId, undefined, locale);
     await notifyGameLeft(tx, game, args.userId, partnerUserId);
   });
   return { ok: true as const };

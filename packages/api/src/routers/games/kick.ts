@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import {
   MatchStatusEnum,
@@ -13,6 +13,7 @@ import {
 } from "@repo/db";
 
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -109,9 +110,10 @@ export async function kick(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.organizerUserId);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
   if (args.waitlistId) {
     const deleted = await database
       .delete(gameWaitlist)
@@ -125,7 +127,7 @@ export async function kick(
     if (deleted.length === 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Waitlist entry not found",
+        message: messagesFor(locale).game.errors.waitlistEntryNotFound,
       });
     }
     return { ok: true as const };
@@ -133,7 +135,7 @@ export async function kick(
   if (!args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Kick a registered User or a waitlist entry",
+      message: messagesFor(locale).game.errors.kickTarget,
     });
   }
   const userId = args.userId;
@@ -159,7 +161,8 @@ export async function kick(
       tx,
       game,
       userId,
-      "That User is not registered on this Game",
+      messagesFor(locale).game.errors.userNotRegistered,
+      locale,
     );
     if (removesDrawnTeam) {
       await placeKnockoutQualifiers(tx, game, { knockoutRound: null });

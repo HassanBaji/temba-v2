@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { gameMemberInvites, games } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,8 +17,9 @@ type DbClient = typeof db;
 
 export async function pendingLookupInvites(
   database: DbClient,
-  args: { userId: string },
+  args: { userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const rows = await database.query.gameMemberInvites.findMany({
     where: and(
       eq(gameMemberInvites.userId, args.userId),
@@ -43,7 +45,7 @@ export async function pendingLookupInvites(
   });
   const mapped = [];
   for (const row of rows) {
-    const game = await requireGame(database, row.gameId);
+    const game = await requireGame(database, row.gameId, locale);
     const needsSeatPick = isIndividualSeatGame(game);
     const sides = needsSeatPick ? await listGameSides(database, game) : [];
     mapped.push({
@@ -80,6 +82,9 @@ export async function pendingLookupInvites(
 export const pendingLookupInvitesProcedure = protectedProcedure.query(
   async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return pendingLookupInvites(ctx.db, { userId: appUser.id });
+    return pendingLookupInvites(ctx.db, {
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   },
 );

@@ -8,6 +8,8 @@ import {
   FRIENDLY_SET_GAMES_MAX,
   FRIENDLY_SET_GAMES_MIN,
 } from "@repo/domain/friendly-game-results";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -29,8 +31,10 @@ export async function scoreSet(
     userId: string;
     slot1GamesWon: number;
     slot2GamesWon: number;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   for (const gamesWon of [args.slot1GamesWon, args.slot2GamesWon]) {
     if (
       gamesWon < FRIENDLY_SET_GAMES_MIN ||
@@ -38,21 +42,28 @@ export async function scoreSet(
     ) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `Games won in a Set must be between ${FRIENDLY_SET_GAMES_MIN} and ${FRIENDLY_SET_GAMES_MAX}`,
+        message: messagesFor(locale).game.errors.gamesInSetBetween(
+          FRIENDLY_SET_GAMES_MIN,
+          FRIENDLY_SET_GAMES_MAX,
+        ),
       });
     }
   }
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   const organizer = await isGameOrganizer(database, game, args.userId);
   await database.transaction(async (tx) => {
-    const locked = await lockMatch(tx, match.id);
-    await assertMayWriteSets(tx, game, locked, args.userId, organizer);
+    const locked = await lockMatch(tx, match.id, locale);
+    await assertMayWriteSets(tx, game, locked, args.userId, organizer, locale);
     if (!(await bothSlottedTeamsComplete(tx, locked))) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message:
-          "Both Match slots need complete Game teams before entering games won",
+        message: messagesFor(locale).game.errors.scoreNeedsTeams,
       });
     }
     const set = await tx.query.matchSets.findFirst({
@@ -61,7 +72,7 @@ export async function scoreSet(
     if (set?.matchId !== locked.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Set not found",
+        message: messagesFor(locale).game.errors.setNotFound,
       });
     }
     const [updated] = await tx
@@ -119,5 +130,6 @@ export const scoreSetProcedure = protectedProcedure
       userId: appUser.id,
       slot1GamesWon: input.slot1GamesWon,
       slot2GamesWon: input.slot2GamesWon,
+      locale: ctx.locale,
     });
   });
