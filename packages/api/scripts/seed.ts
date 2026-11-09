@@ -45,6 +45,7 @@ import { createGame } from "#src/routers/games/create";
 import { createInviteLink as createGameInviteLink } from "#src/routers/games/createInviteLink";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
@@ -1038,7 +1039,7 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
       [4, 6],
       [3, 6],
     ],
-    ["diego"],
+    ["omar", "diego", "yusuf"],
   );
 
   const rematchPostedAt = at(-2, 22);
@@ -1075,7 +1076,7 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
       [3, 6],
       [4, 6],
     ],
-    ["me"],
+    ["yusuf", "me", "omar"],
   );
 
   await postChallenge(db, {
@@ -1687,25 +1688,11 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     await step(`score tournament match ${index + 1}`, async () => {
       const players = await seatedUserIds(match);
       const scorer = players[0]!;
-      let set = await db.query.matchSets.findFirst({
-        where: eq(matchSets.matchId, match.id),
-      });
-      if (!set) {
-        await addSet(db, {
-          gameId: liveTournament.id,
-          matchId: match.id,
-          userId: u.me!.id,
-        });
-        set = await db.query.matchSets.findFirst({
-          where: eq(matchSets.matchId, match.id),
-        });
-      }
       const others = players.filter((id) => id !== u.me!.id);
       const enteredBy = confirm ? scorer : others[0]!;
-      await scoreSet(db, {
+      await enterTournamentScore(db, {
         gameId: liveTournament.id,
         matchId: match.id,
-        setId: set!.id,
         userId: enteredBy,
         slot1GamesWon: score[0],
         slot2GamesWon: score[1],
