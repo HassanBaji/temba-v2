@@ -280,6 +280,8 @@ type ExpectedVenues =
   | "sendGroupLinkRequest"
   | "cancelGroupLinkRequest"
   | "unlinkGroup"
+  | "searchGroupsToLink"
+  | "linkGroup"
   | "listManaged"
   | "managedById"
   | "addManager"

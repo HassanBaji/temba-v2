@@ -375,6 +375,47 @@ export const webDashboard = {
       description:
         "مجموعات النادي التي لديها ارتباط نشط بهذا النادي. تُقام مبارياتها الموثّقة هنا.",
       empty: "لا توجد مجموعات مرتبطة بهذا النادي.",
+      loadError: "تعذّر تحميل المجموعات",
+      meta: (sport: string | null, members: number, isPrivate: boolean) =>
+        [
+          sport,
+          plural("ar", members, {
+            zero: "لا أعضاء",
+            one: "عضو واحد",
+            two: "عضوان",
+            few: "{n} أعضاء",
+            other: "{n} عضوًا",
+          }),
+          isPrivate ? "خاصة" : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      searchLabel: "ربط مجموعة",
+      searchPlaceholder: "ابحث عن المجموعات الحرة بالاسم",
+      searchHint:
+        "اكتب حرفين أو أكثر. تُربط المجموعة فورًا، دون طلب إلى منشئها.",
+      searching: "جارٍ البحث…",
+      noResults:
+        "لا توجد مجموعات حرة مطابقة. يجب فك ارتباط المجموعة المرتبطة بنادٍ آخر أولًا.",
+      archivedNote: "ألغِ أرشفة هذا النادي لربط المجموعات.",
+      link: "ربط",
+      linkNamed: (group: string) => `ربط ${group}`,
+      linkConfirm: {
+        title: (group: string, venue: string) => `ربط ${group} بـ ${venue}؟`,
+        description: (group: string) =>
+          `تصبح ${group} مجموعة نادٍ لهذا النادي الآن، دون سؤال منشئها. تصبح مجموعة موثّقة وتُقام مبارياتها الجديدة هنا. تسقط طلبات الربط المعلّقة الأخرى لها.`,
+        confirmLabel: "ربط المجموعة",
+      },
+      linkedToast: (group: string) => `تم ربط ${group}`,
+      unlink: "فك الارتباط",
+      unlinkNamed: (group: string) => `فك ارتباط ${group}`,
+      unlinkConfirm: {
+        title: (group: string) => `فك ارتباط ${group}؟`,
+        description: (group: string) =>
+          `تعود ${group} مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
+        confirmLabel: "فك ارتباط المجموعة",
+      },
+      unlinkedToast: (group: string) => `تم فك ارتباط ${group}`,
     },
     details: {
       title: "التفاصيل",
@@ -415,8 +456,7 @@ export const webDashboard = {
     },
   },
   venues: {
-    description:
-      "كل النوادي، بما فيها المؤرشفة.",
+    description: "كل النوادي، بما فيها المؤرشفة.",
     errorTitle: "تعذّر تحميل النوادي",
     liveCount: (n: number) =>
       plural("ar", n, {

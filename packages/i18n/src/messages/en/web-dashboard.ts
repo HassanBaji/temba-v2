@@ -344,6 +344,44 @@ export const webDashboard = {
       description:
         "Club Groups with a live Venue link to this Venue. They hold Verified Games here.",
       empty: "No Groups are linked to this Venue.",
+      loadError: "Groups could not be loaded",
+      meta: (sport: string | null, members: number, isPrivate: boolean) =>
+        [
+          sport,
+          plural("en", members, {
+            one: "1 member",
+            other: "{n} members",
+          }),
+          isPrivate ? "Private" : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      searchLabel: "Link a Group",
+      searchPlaceholder: "Search Loose Groups by name",
+      searchHint:
+        "Type two or more letters. The Group links at once, without a request to its creator.",
+      searching: "Searching…",
+      noResults:
+        "No Loose Groups match. A Group linked to another Venue must be unlinked first.",
+      archivedNote: "Unarchive this Venue to link Groups.",
+      link: "Link",
+      linkNamed: (group: string) => `Link ${group}`,
+      linkConfirm: {
+        title: (group: string, venue: string) => `Link ${group} to ${venue}?`,
+        description: (group: string) =>
+          `${group} becomes a Club Group of this Venue now, without asking its creator. It becomes a Verified Group and its new Games are held here. Its other pending link requests lapse.`,
+        confirmLabel: "Link Group",
+      },
+      linkedToast: (group: string) => `${group} linked`,
+      unlink: "Unlink",
+      unlinkNamed: (group: string) => `Unlink ${group}`,
+      unlinkConfirm: {
+        title: (group: string) => `Unlink ${group}?`,
+        description: (group: string) =>
+          `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+        confirmLabel: "Unlink Group",
+      },
+      unlinkedToast: (group: string) => `${group} unlinked`,
     },
     details: {
       title: "Details",
@@ -384,8 +422,7 @@ export const webDashboard = {
     },
   },
   venues: {
-    description:
-      "Every Venue, including Soft-archived ones.",
+    description: "Every Venue, including Soft-archived ones.",
     errorTitle: "Venues could not be loaded",
     liveCount: (n: number) =>
       plural("en", n, { one: "1 venue", other: "{n} venues" }),

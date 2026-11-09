@@ -88,11 +88,11 @@ A Group that may host Rated Games and public Games: one an Operator verified, on
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
-A Group with a Venue link (`groups.venue_id`). A Loose Group becomes a Club Group when its Group link request is accepted, and becomes Loose again when it is unlinked from its Venue. It is a Verified Group and its new Games are held at the linked Venue. Its doors are the Loose Group doors: the Group creator and Appointed Organizers run it (ADR-0055).
+A Group with a Venue link (`groups.venue_id`). A Loose Group becomes a Club Group when its Group link request is accepted or an Operator links it to a Venue directly (ADR-0063), and becomes Loose again when it is unlinked from its Venue. It is a Verified Group and its new Games are held at the linked Venue. Its doors are the Loose Group doors: the Group creator and Appointed Organizers run it (ADR-0055).
 _Avoid_: subgroup, channel, nested group, Community group, Venue group
 
 **Loose Group**:
-A Group with no Venue link. It stops being Loose when its Group link request is accepted, and is Loose again once it is unlinked from that Venue.
+A Group with no Venue link. It stops being Loose when its Group link request is accepted or an Operator links it, and is Loose again once it is unlinked from that Venue.
 _Avoid_: orphan, standalone group, free group
 
 **Public Groups list**:
@@ -164,7 +164,7 @@ Lookup invite and Invite link as the two live invitation channels onto a Group, 
 _Avoid_: Email invite, invitation (when you mean a specific channel), Venue link (that is a different door), inviting onto a Challenge Game (captains name the Matchday squad)
 
 **Venue link**:
-A Group’s live association with at most one Venue, stored as `groups.venue_id`. It is made when the Group creator accepts a Group link request and ended when the Group creator (`groups.unlinkFromVenue`) or a Venue manager (`venues.unlinkGroup`) unlinks the Group. A Group with a Venue link is a Club Group. Distinct from Invite link.
+A Group’s live association with at most one Venue, stored as `groups.venue_id`. It is made when the Group creator accepts a Group link request, or at once when an Operator links the Group from the Operator Venue page (`venues.linkGroup`, ADR-0063), and ended when the Group creator (`groups.unlinkFromVenue`) or a Venue manager (`venues.unlinkGroup`) unlinks the Group. A Group with a Venue link is a Club Group. Distinct from Invite link.
 _Avoid_: Invite link, membership, join, Community link, Venue Community (retired, ADR-0055)
 
 **Group link request**:
@@ -256,7 +256,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, and may set any other User's Level in either sport (ADR-0046).
+A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
@@ -332,7 +332,7 @@ A User whose Clerk `publicMetadata.levelSetter` is `true`. A Level setter may se
 _Avoid_: admin, rating admin, rating editor, Operator (when you mean this)
 
 **Soft-archive**:
-A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Game create and from the console’s Group search; refuses new Group link requests and their acceptance; refuses new Court assign on Games whose Venue is that site (skip/clear still allowed); Venue links stay, so a Club Group whose Venue is Soft-archived may still create a Game there with skip Court and cannot pick another Venue. Not a delete and not unlinking a Group. Groups, Teams and Games are never Soft-archived.
+A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Game create and from the console’s Group search; refuses new Group link requests, their acceptance and an Operator's direct link; refuses new Court assign on Games whose Venue is that site (skip/clear still allowed); Venue links stay, so a Club Group whose Venue is Soft-archived may still create a Game there with skip Court and cannot pick another Venue. Not a delete and not unlinking a Group. Groups, Teams and Games are never Soft-archived.
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
