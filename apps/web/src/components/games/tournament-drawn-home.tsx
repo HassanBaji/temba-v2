@@ -7,6 +7,10 @@ import {
   type TournamentDetails,
   type TournamentStandingsView,
 } from "@repo/domain/tournament-details";
+import {
+  buildPoolKnockoutTree,
+  groupsThenKnockoutReviewValue,
+} from "@repo/domain/tournament-knockout";
 import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
@@ -124,7 +128,28 @@ export function TournamentDrawnHome({
       ),
     [rounds?.pools, locale],
   );
+  const choosingWay =
+    rounds?.isOrganizer === true &&
+    rounds.rounds.every((round) => round.matches.length === 0);
   const showBracket = standings.groupsThenKnockout && data.knockout != null;
+  const afterGroup = React.useMemo(() => {
+    const { poolCount, qualifiersPerPool } = data;
+    if (!standings.groupsThenKnockout || !poolCount || !qualifiersPerPool) {
+      return null;
+    }
+    const tree = buildPoolKnockoutTree({ poolCount, qualifiersPerPool });
+    return tree
+      ? {
+          label: m.ways.afterGroup(poolCount),
+          value: groupsThenKnockoutReviewValue({
+            tree,
+            poolCount,
+            qualifiersPerPool,
+            locale,
+          }),
+        }
+      : null;
+  }, [data, standings.groupsThenKnockout, m, locale]);
   const viewerPool = data.poolTables?.viewerPoolIndex;
   const chip = data.isOrganizer
     ? m.organizerChip
@@ -201,7 +226,8 @@ export function TournamentDrawnHome({
           ) : null}
         </TabsList>
 
-        {rounds && (tab === "rounds" || tab === "standings") ? (
+        {rounds &&
+        (tab === "standings" || (tab === "rounds" && !choosingWay)) ? (
           <div className="pt-[18px]">
             <RoundProgressStrip
               rounds={rounds.rounds}
@@ -235,6 +261,7 @@ export function TournamentDrawnHome({
               viewerUserId={data.viewerUserId}
               actions={roundsActions}
               details={details}
+              afterGroup={afterGroup}
               onEnterScore={setScoreTarget}
               onSwap={setSwapTarget}
               onPair={setPairRound}
