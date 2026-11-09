@@ -7,6 +7,7 @@ import {
   formatGameInviteShareMessage,
   gameInviteClipboardText,
 } from "./game-invite-share-message";
+import { formatLevelRangeLabel } from "./level-range";
 
 const shortUrl = "https://app.example/g/A3F8K2PQ";
 
@@ -103,6 +104,70 @@ describe("formatGameInviteShareMessage", () => {
       locale: "en",
     });
     expect(message.startsWith("📍 Padel Club\n")).toBe(true);
+  });
+});
+
+describe("Level range and waiting list", () => {
+  it("adds the Level range under the time and lists the waiting list before the join link", () => {
+    const windowStart = bahrainDayFromToday(0, 19);
+    const message = formatGameInviteShareMessage({
+      venueName: "Padel Club",
+      courtName: null,
+      windowStart,
+      windowEnd: windowStart,
+      sides: [],
+      shortUrl,
+      levelMinTenths: 21,
+      levelMaxTenths: 34,
+      waitlist: [{ name: "Noor" }, { name: " " }, { name: "Omar" }],
+      locale: "en",
+    });
+    const lines = message.split("\n");
+    expect(lines[3]).toBe(
+      `📊 Level: ${formatLevelRangeLabel(21, 34, "en") ?? ""}`,
+    );
+    expect(message).toContain(
+      "- Right: Open\n\n⏳ Waiting list\n1- Noor\n2- Omar\n\n🔗 Join:",
+    );
+  });
+
+  it("leaves out the Level and waiting list when the Game has neither", () => {
+    const message = formatGameInviteShareMessage({
+      venueName: "Padel Club",
+      courtName: null,
+      windowStart: new Date(),
+      windowEnd: new Date(),
+      sides: [],
+      shortUrl,
+      waitlist: [],
+      locale: "en",
+    });
+    expect(message).not.toContain("📊");
+    expect(message).not.toContain("⏳");
+  });
+
+  it("lists the waiting list after the keepers for a football Friendly game", () => {
+    const message = formatFootballInviteShareMessage(
+      {
+        venueName: "Pitch Club",
+        courtName: null,
+        windowStart: new Date(),
+        windowEnd: new Date(),
+        sides: [],
+        shortUrl,
+        levelMinTenths: 28,
+        levelMaxTenths: null,
+        waitlist: [{ name: "Zed" }],
+        locale: "ar",
+      },
+      { sideSize: null, playersAllowed: null, players: [] },
+    );
+    expect(message).toContain(
+      `📊 المستوى: ${formatLevelRangeLabel(28, null, "ar") ?? ""}`,
+    );
+    expect(message).toContain(
+      "🧤 حراس المرمى\n1-\n2-\n\n⏳ قائمة الانتظار\n1- Zed\n\n🔗 انضم:",
+    );
   });
 });
 
