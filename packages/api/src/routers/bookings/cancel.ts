@@ -23,9 +23,11 @@ export async function cancelMyBooking(
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
-    const booking = await tx.query.bookings.findFirst({
-      where: eq(bookings.id, args.bookingId),
-    });
+    const [booking] = await tx
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, args.bookingId))
+      .for("update");
     if (!booking) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
     }
