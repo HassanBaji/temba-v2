@@ -30,7 +30,18 @@ export async function loadGameInviteOpenGraph(
   rawCode: string,
   locale: Locale,
 ) {
-  const link = await findGameInviteLinkByShortCode(database, rawCode);
+  return gameInviteLinkOpenGraph(
+    database,
+    await findGameInviteLinkByShortCode(database, rawCode),
+    locale,
+  );
+}
+
+export async function gameInviteLinkOpenGraph(
+  database: InviteDb,
+  link: { token: string; gameId: string } | undefined,
+  locale: Locale,
+) {
   if (!link) {
     return genericOpenGraph(locale);
   }

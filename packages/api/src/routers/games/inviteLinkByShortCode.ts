@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { publicProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { findGameInviteLinkByShortCode } from "#src/invites/doors";
-import { loadGameInviteOpenGraph } from "#src/invites/game-invite-open-graph";
+import { gameInviteLinkOpenGraph } from "#src/invites/game-invite-open-graph";
 
 type DbClient = typeof db;
 
@@ -14,9 +14,9 @@ export async function inviteLinkByShortCode(
   args: { code: string; locale?: Locale },
 ) {
   const link = await findGameInviteLinkByShortCode(database, args.code);
-  const openGraph = await loadGameInviteOpenGraph(
+  const openGraph = await gameInviteLinkOpenGraph(
     database,
-    args.code,
+    link,
     args.locale ?? DEFAULT_LOCALE,
   );
   return {
