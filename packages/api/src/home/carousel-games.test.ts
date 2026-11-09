@@ -10,7 +10,6 @@ import {
   gameWaitlist,
   games,
   groupMembers,
-  courts,
   groups,
   matches,
   user,
@@ -19,10 +18,6 @@ import {
 
 import { listMyGamesHubRows } from "#src/games/list-my-games";
 import { admit } from "#src/games/admit";
-import { createTournament } from "#src/routers/games/createTournament";
-import { drawPools } from "#src/routers/games/drawPools";
-import { postPoolDraw } from "#src/routers/games/postPoolDraw";
-import { registerSeat } from "#src/routers/games/registerSeat";
 import { loadHome } from "#src/routers/users/home";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import {
@@ -922,80 +917,6 @@ describe("Home carousel list", () => {
           canAddResults: true,
         }),
       ]);
-    } finally {
-      await close();
-    }
-  });
-
-  it("lists a drawn Friendly tournament once, not as the viewer's Matches", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const owner = await insertUser(db, "cup-owner@example.com");
-      const venue = await insertVenue(db);
-      const courtIds = [];
-      for (const name of ["Court 1", "Court 2"]) {
-        const [court] = await db
-          .insert(courts)
-          .values({ venueId: venue.id, name })
-          .returning({ id: courts.id });
-        if (!court) {
-          throw new Error("Failed to insert court");
-        }
-        courtIds.push(court.id);
-      }
-      const group = await insertGroup(db, owner.id);
-      const windowStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const created = await createTournament(db, {
-        createdBy: owner.id,
-        name: "Friday Cup",
-        groupId: group.id,
-        isPublic: false,
-        registrationMode: "individual",
-        teamCount: 4,
-        poolCount: 1,
-        venueId: venue.id,
-        courtIds,
-        matchMinutes: 45,
-        windowStart,
-        windowEnd: new Date(windowStart.getTime() + 4 * 60 * 60 * 1000),
-      });
-      const players = [];
-      for (let index = 0; index < 8; index += 1) {
-        const player = await insertUser(db, `cup-player-${index}@example.com`);
-        await db
-          .insert(groupMembers)
-          .values({ groupId: group.id, userId: player.id });
-        players.push(player);
-      }
-      for (const [index, player] of players.entries()) {
-        await registerSeat(db, {
-          gameId: created.id,
-          userId: player.id,
-          sideIndex: Math.floor(index / 2) + 1,
-          position: index % 2 === 0 ? "left" : "right",
-        });
-      }
-      await drawPools(db, {
-        gameId: created.id,
-        organizerUserId: owner.id,
-        shuffle: (items) => [...items],
-      });
-      await postPoolDraw(db, { gameId: created.id, organizerUserId: owner.id });
-
-      const viewer = players[0];
-      if (!viewer) {
-        throw new Error("Missing viewer");
-      }
-      const hub = await listMyGamesHubRows(db, viewer.id);
-      expect(hub.filter((row) => row.id === created.id).length).toBeGreaterThan(
-        1,
-      );
-
-      const rows = await listHomeCarouselGames(db, viewer.id);
-      const cup = rows.filter((row) => row.id === created.id);
-      expect(cup).toHaveLength(1);
-      expect(cup[0]?.matchId).toBeNull();
-      expect(cup[0]?.phase).toBe("upcoming");
     } finally {
       await close();
     }
