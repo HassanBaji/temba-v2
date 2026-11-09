@@ -19,8 +19,6 @@ import { createTournamentProcedure as createTournament } from "./createTournamen
 import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { footballBoardProcedure as footballBoard } from "./footballBoard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
-import { getSecretMessage } from "./getSecretMessage";
-import { hello } from "./hello";
 import { joinGroupFromInviteLinkProcedure as joinGroupFromInviteLink } from "./joinGroupFromInviteLink";
 import { kickProcedure as kick } from "./kick";
 import { leave } from "./leave";
@@ -82,7 +80,6 @@ import { updateSeason } from "./updateSeason";
 import { updateWindow } from "./updateWindow";
 
 export const gamesRouter = createTRPCRouter({
-  hello,
   listMyGames,
   listMyMatchHistory,
   listPublicPickup,
@@ -161,5 +158,4 @@ export const gamesRouter = createTRPCRouter({
   previewInviteLink,
   acceptInviteLink,
   joinGroupFromInviteLink,
-  getSecretMessage,
 });

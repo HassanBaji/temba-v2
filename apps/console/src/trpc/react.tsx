@@ -57,6 +57,8 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         httpBatchStreamLink({
           transformer: SuperJSON,
           url: getBaseUrl() + "/api/trpc",
+          // The API rejects a batch of more than 20 calls.
+          maxItems: 20,
           headers: async () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
