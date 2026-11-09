@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { bookings } from "@repo/db";
 import { managerBookingActions } from "@repo/domain/booking-manager-actions";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -23,8 +25,10 @@ export async function markBookingNoShow(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -34,8 +38,8 @@ export async function markBookingNoShow(
         code: "BAD_REQUEST",
         message:
           booking.status === "confirmed"
-            ? "A Booking can be marked no-show once it has started"
-            : "Only a confirmed Booking can be marked no-show",
+            ? messagesFor(locale).booking.errors.noShowAfterStart
+            : messagesFor(locale).booking.errors.noShowConfirmedOnly,
       });
     }
 
@@ -43,7 +47,7 @@ export async function markBookingNoShow(
       .update(bookings)
       .set({ status: "no_show", noShowAt: now, updatedAt: now })
       .where(eq(bookings.id, booking.id));
-    return bookingWithLedger(tx, booking.id);
+    return bookingWithLedger(tx, booking.id, locale);
   });
 }
 
@@ -57,5 +61,6 @@ export const markNoShowProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

@@ -118,18 +118,20 @@ export async function createBooking(
     locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const onlineProvider = paymentProvider();
 
   return database.transaction(async (tx) => {
     const context = requireBookableVenue(
       await loadVenueSlotContext(tx, args.venueId, now),
+      locale,
     );
 
     if (!context.courts.some((court) => court.id === args.courtId)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "That Court does not belong to this Venue",
+        message: messagesFor(locale).booking.errors.courtNotAtVenue,
       });
     }
 
@@ -143,8 +145,8 @@ export async function createBooking(
         code: "BAD_REQUEST",
         message:
           method === "at_venue"
-            ? "This Venue takes payment online only"
-            : "That way to pay is not available",
+            ? messagesFor(locale).booking.errors.onlineOnly
+            : messagesFor(locale).booking.errors.payMethodUnavailable,
       });
     }
     const provider = method === "at_venue" ? manualProvider : onlineProvider;
@@ -191,6 +193,7 @@ export async function createBooking(
         paymentStatus: "pending",
         createdByUserId: args.userId,
       },
+      locale,
     });
 
     const payment = await openPayment(tx, {
