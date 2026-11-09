@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -21,8 +23,9 @@ type DbClient = typeof db;
  */
 export async function searchLookupUsers(
   database: DbClient,
-  args: { teamId?: string; userId: string; query: string },
+  args: { teamId?: string; userId: string; query: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!args.teamId) {
     return searchLookupUsersDoor(database, {
       query: args.query,
@@ -34,6 +37,7 @@ export async function searchLookupUsers(
     database,
     args.teamId,
     args.userId,
+    locale,
   );
   const unusedLookups = await unusedLookupInvitesForTeam(database, team.id);
 
@@ -61,5 +65,6 @@ export const searchLookupUsersProcedure = protectedProcedure
       teamId: input.teamId,
       userId: appUser.id,
       query: input.query,
+      locale: ctx.locale,
     });
   });

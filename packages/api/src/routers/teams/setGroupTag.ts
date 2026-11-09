@@ -45,7 +45,8 @@ export async function setGroupTag(
     locale?: Locale;
   },
 ) {
-  const team = await requireTeam(database, args.teamId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const team = await requireTeam(database, args.teamId, locale);
   const isCaptain = team.createdBy === args.userId;
   const current = await currentTagGroup(database, team.groupId);
 
@@ -58,12 +59,16 @@ export async function setGroupTag(
     if (!mayClearCurrent) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message:
-          "Only the Captain or an Organizer of the tagged Group can remove the tag",
+        message: messagesFor(locale).team.errors.tagRemover,
       });
     }
   } else {
-    const target = await requireTagGroup(database, args.groupId, team.sport);
+    const target = await requireTagGroup(
+      database,
+      args.groupId,
+      team.sport,
+      locale,
+    );
     if (!isCaptain) {
       throw new TRPCError({
         code: "FORBIDDEN",
@@ -71,7 +76,7 @@ export async function setGroupTag(
           .captainOnly,
       });
     }
-    await requireCaptainInTagGroup(database, target.id, team.createdBy);
+    await requireCaptainInTagGroup(database, target.id, team.createdBy, locale);
   }
 
   const [updated] = await database

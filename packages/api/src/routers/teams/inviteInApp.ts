@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { user } from "@repo/db";
 import { teamRosterRule } from "@repo/domain/team-roster";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -22,12 +24,19 @@ type DbClient = typeof db;
 
 export async function inviteInApp(
   database: DbClient,
-  args: { teamId: string; userId: string; inviteeUserId: string },
+  args: {
+    teamId: string;
+    userId: string;
+    inviteeUserId: string;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { team, memberRows } = await requireIncompleteTeamCreator(
     database,
     args.teamId,
     args.userId,
+    locale,
   );
 
   const invitee = await database.query.user.findFirst({
@@ -41,14 +50,14 @@ export async function inviteInApp(
   if (!invitee) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "User not found",
+      message: messagesFor(locale).profile.errors.userNotFound,
     });
   }
 
   if (invitee.id === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot invite yourself",
+      message: messagesFor(locale).team.errors.inviteSelf,
     });
   }
 
@@ -56,7 +65,7 @@ export async function inviteInApp(
   if (alreadyMember) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "User is already a member of this Team",
+      message: messagesFor(locale).team.errors.userAlreadyMember,
     });
   }
 
@@ -68,13 +77,13 @@ export async function inviteInApp(
   if (lookupInvites.some((invite) => invite.userId === invitee.id)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "An unused Lookup invite already exists for this User",
+      message: messagesFor(locale).invite.errors.lookupExists,
     });
   }
   if (budget === 0) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "Revoke the unused invite before sending a new one",
+      message: messagesFor(locale).team.errors.revokeUnusedFirst,
     });
   }
 
@@ -84,7 +93,7 @@ export async function inviteInApp(
   ) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This pair already has a Team or a pending invite",
+      message: messagesFor(locale).team.errors.pairTaken,
     });
   }
 
@@ -130,5 +139,6 @@ export const inviteInAppProcedure = protectedProcedure
       teamId: input.teamId,
       userId: appUser.id,
       inviteeUserId: input.userId,
+      locale: ctx.locale,
     });
   });

@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { teamMembers } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,13 +17,19 @@ type DbClient = typeof db;
 /** For a mistake on the Roster; account holders leave the Team themselves. */
 export async function removeUnclaimedPlayer(
   database: DbClient,
-  args: { teamId: string; captainUserId: string; userId: string },
+  args: {
+    teamId: string;
+    captainUserId: string;
+    userId: string;
+    locale?: Locale;
+  },
 ) {
-  const team = await requireTeam(database, args.teamId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const team = await requireTeam(database, args.teamId, locale);
   if (team.createdBy !== args.captainUserId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Captain can remove players",
+      message: messagesFor(locale).team.errors.captainRemoves,
     });
   }
 
@@ -36,13 +44,13 @@ export async function removeUnclaimedPlayer(
   if (!membership) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "This player is not on the Roster",
+      message: messagesFor(locale).team.errors.notOnRoster,
     });
   }
   if (!isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only players not on Temba yet can be removed",
+      message: messagesFor(locale).group.errors.onlyUnclaimedRemovable,
     });
   }
 
@@ -64,5 +72,6 @@ export const removeUnclaimedPlayerProcedure = protectedProcedure
       teamId: input.teamId,
       captainUserId: appUser.id,
       userId: input.userId,
+      locale: ctx.locale,
     });
   });
