@@ -16,7 +16,8 @@ import {
   refundJob,
 } from "#src/jobs/specs";
 import { customerBookingColumns } from "#src/bookings/customer-columns";
-import type { ChargeState } from "#src/payments/provider";
+import { requireFreeCourt } from "#src/bookings/reserve";
+import { PAYMENT_CURRENCY, type ChargeState } from "#src/payments/provider";
 
 type DbOrTx = DbClient | DbTx;
 
@@ -81,8 +82,9 @@ export async function refundablePayment(database: DbOrTx, bookingId: string) {
   return row ?? null;
 }
 
+/** What can still be refunded, less any refund a job is sending to the provider now. */
 export function refundableFils(payment: PaymentRow) {
-  return payment.amountFils - payment.refundedFils;
+  return payment.amountFils - payment.refundedFils - payment.refundPendingFils;
 }
 
 export async function openPayment(
@@ -166,12 +168,82 @@ export type ChargeOutcome =
   | "refund_queued"
   | "failed"
   | "pending"
+  | "mismatch"
   | "noop";
+
+/** Allows for the provider's clock running a little ahead of ours. */
+const CAPTURE_GRACE_MS = 60_000;
+
+function chargeMismatch(payment: PaymentRow, state: ChargeState) {
+  return (
+    state.charged !== undefined &&
+    (state.charged.amountFils !== payment.amountFils ||
+      state.charged.currency !== PAYMENT_CURRENCY)
+  );
+}
+
+/** Logs a capture for the wrong amount or currency and leaves it for a person to review. */
+async function holdMismatchedCharge(
+  database: DbOrTx,
+  args: { payment: PaymentRow; state: ChargeState; now: Date },
+) {
+  const { payment, state, now } = args;
+  const chargedFils = state.charged?.amountFils ?? null;
+  const chargedCurrency = state.charged?.currency ?? null;
+  console.error(
+    JSON.stringify({
+      event: "payment_charge_mismatch",
+      paymentId: payment.id,
+      bookingId: payment.bookingId,
+      providerReference: payment.providerReference,
+      expectedFils: payment.amountFils,
+      expectedCurrency: PAYMENT_CURRENCY,
+      chargedFils,
+      chargedCurrency,
+      providerStatus: state.providerStatus,
+    }),
+  );
+  if (payment.status !== "pending") {
+    return;
+  }
+  await database
+    .update(bookingPayments)
+    .set({
+      providerStatus: "AMOUNT_MISMATCH",
+      failureReason: `Charged ${chargedFils} fils ${chargedCurrency}, expected ${payment.amountFils} fils ${PAYMENT_CURRENCY}`,
+      updatedAt: now,
+    })
+    .where(eq(bookingPayments.id, payment.id));
+}
+
+async function courtStillFree(
+  database: DbOrTx,
+  booking: { id: string; courtId: string; startsAt: Date; endsAt: Date },
+  now: Date,
+) {
+  try {
+    await requireFreeCourt(database, {
+      courtId: booking.courtId,
+      startsAt: booking.startsAt,
+      endsAt: booking.endsAt,
+      now,
+      excludeBookingId: booking.id,
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof TRPCError && error.code === "CONFLICT") {
+      return false;
+    }
+    throw error;
+  }
+}
 
 /**
  * The one transition from a provider's charge state into the ledger. Webhook,
- * poll and `confirmPayment` all end here; it only moves a `pending` Payment,
- * so the second and later callers are no-ops.
+ * poll and `confirmPayment` all end here; it moves a `pending` Payment, so
+ * the second and later callers are no-ops. A capture that lands on a
+ * `failed` Payment is recorded too, so the money is either kept for the
+ * Booking or refunded.
  */
 export async function applyChargeState(
   database: DbOrTx,
@@ -183,7 +255,11 @@ export async function applyChargeState(
     .from(bookingPayments)
     .where(eq(bookingPayments.id, args.paymentId))
     .for("update");
-  if (payment?.status !== "pending") {
+  if (!payment) {
+    return "noop";
+  }
+  const lateCapture = state.status === "paid" && payment.status === "failed";
+  if (payment.status !== "pending" && !lateCapture) {
     return "noop";
   }
 
@@ -205,6 +281,11 @@ export async function applyChargeState(
     return "failed";
   }
 
+  if (chargeMismatch(payment, state)) {
+    await holdMismatchedCharge(database, { payment, state, now });
+    return "mismatch";
+  }
+
   await database
     .update(bookingPayments)
     .set({
@@ -218,6 +299,10 @@ export async function applyChargeState(
 
   const [booking] = await database
     .select({
+      id: bookings.id,
+      courtId: bookings.courtId,
+      startsAt: bookings.startsAt,
+      endsAt: bookings.endsAt,
       status: bookings.status,
       holdExpiresAt: bookings.holdExpiresAt,
     })
@@ -225,18 +310,32 @@ export async function applyChargeState(
     .where(eq(bookings.id, payment.bookingId))
     .for("update");
 
+  // The hold is judged at the capture, not when this job happens to run. A
+  // hold that has lapsed since no longer occupies the Court, so someone else
+  // may have booked it in the meantime.
+  const capturedAt =
+    state.capturedAt && state.capturedAt < now ? state.capturedAt : now;
+  const holdLiveNow =
+    booking?.holdExpiresAt != null && booking.holdExpiresAt > now;
+  const heldAtCapture =
+    booking?.status === "pending_payment" &&
+    booking.holdExpiresAt !== null &&
+    booking.holdExpiresAt.getTime() + CAPTURE_GRACE_MS > capturedAt.getTime();
+  const latest = await latestPayment(database, payment.bookingId);
+
   let outcome: ChargeOutcome = "noop";
-  if (booking?.status === "confirmed") {
+  if (booking?.status === "confirmed" && !lateCapture) {
     outcome = "confirmed";
   } else if (
-    booking?.status === "pending_payment" &&
-    booking.holdExpiresAt &&
-    booking.holdExpiresAt > now
+    booking &&
+    heldAtCapture &&
+    latest?.id === payment.id &&
+    (holdLiveNow || (await courtStillFree(database, booking, now)))
   ) {
     await confirmHeldBooking(database, { bookingId: payment.bookingId, now });
     outcome = "confirmed";
   } else {
-    if (booking?.status === "pending_payment") {
+    if (booking?.status === "pending_payment" && !holdLiveNow) {
       await database
         .update(bookings)
         .set({ status: "expired", holdExpiresAt: null, updatedAt: now })
@@ -247,7 +346,9 @@ export async function applyChargeState(
       refundJob({
         paymentId: payment.id,
         amountFils: payment.amountFils,
-        reason: "expired_after_capture",
+        reason: lateCapture
+          ? "captured_after_failure"
+          : "expired_after_capture",
         refundKey: expiredAfterCaptureRefundKey(payment.id),
       }),
     );

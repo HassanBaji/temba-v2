@@ -146,7 +146,8 @@ export type RefundReason =
   | "customer_cancel"
   | "venue_cancel"
   | "manager"
-  | "expired_after_capture";
+  | "expired_after_capture"
+  | "captured_after_failure";
 
 export type RefundPayload = {
   paymentId: string;

@@ -154,4 +154,25 @@ describe("payment.create-charge", () => {
       });
     });
   });
+
+  it("opens no charge once the hold has lapsed", async () => {
+    await withBookableVenue(async (db, f) => {
+      const { booking } = await createHeldBooking(db, f);
+      const [payment] = await db.select().from(bookingPayments);
+      jobs.clear();
+      await handle(
+        asDb(db),
+        { paymentId: payment!.id },
+        undefined,
+        new Date(NOW.getTime() + 11 * 60_000),
+      );
+      expect(provider.fake.beginCalls).toEqual([]);
+      expect(await db.query.bookingPayments.findFirst()).toMatchObject({
+        status: "failed",
+        providerReference: null,
+      });
+      expect(jobs.added).toEqual([]);
+      await expectLedgerConsistent(db, booking.id);
+    });
+  });
 });
