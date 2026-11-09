@@ -326,6 +326,9 @@ export function FootballGameDetails({
           playersAllowed: game.playersAllowed,
           players,
         },
+        levelMinTenths: game.levelMinTenths,
+        levelMaxTenths: game.levelMaxTenths,
+        waitlist: game.waitlist,
         locale,
       },
     });

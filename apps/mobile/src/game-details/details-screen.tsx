@@ -486,6 +486,9 @@ export function GameDetailsScreen({
         windowStart: data.windowStart,
         windowEnd: data.windowEnd,
         sides: data.sides,
+        levelMinTenths: data.levelMinTenths,
+        levelMaxTenths: data.levelMaxTenths,
+        waitlist: data.waitlist,
       }
     : null;
   const shareLink = data

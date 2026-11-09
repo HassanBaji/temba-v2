@@ -539,6 +539,9 @@ export default function GameHomePage({
             windowEnd: row.windowEnd,
             sides: row.sides,
             shortUrl: url,
+            levelMinTenths: row.levelMinTenths,
+            levelMaxTenths: row.levelMaxTenths,
+            waitlist: row.waitlist,
             locale,
           }
         : null,

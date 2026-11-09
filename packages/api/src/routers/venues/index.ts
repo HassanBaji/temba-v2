@@ -9,6 +9,7 @@ import { clearLogoProcedure as clearLogo } from "./clearLogo";
 import { create } from "./create";
 import { deleteCourtProcedure as deleteCourt } from "./deleteCourt";
 import { deletePhotoProcedure as deletePhoto } from "./deletePhoto";
+import { linkGroupProcedure as linkGroup } from "./linkGroup";
 import { list } from "./list";
 import { listLinkedGroupsProcedure as listLinkedGroups } from "./listLinkedGroups";
 import { listManagedProcedure as listManaged } from "./listManaged";
@@ -16,6 +17,7 @@ import { managedById } from "./managedById";
 import { removeManagerProcedure as removeManager } from "./removeManager";
 import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
+import { searchGroupsToLinkProcedure as searchGroupsToLink } from "./searchGroupsToLink";
 import { searchLinkableGroupsProcedure as searchLinkableGroups } from "./searchLinkableGroups";
 import { searchManagerUsersProcedure as searchManagerUsers } from "./searchManagerUsers";
 import { setCourtSportProcedure as setCourtSport } from "./setCourtSport";
@@ -66,4 +68,6 @@ export const venuesRouter = createTRPCRouter({
   sendGroupLinkRequest,
   cancelGroupLinkRequest,
   unlinkGroup,
+  searchGroupsToLink,
+  linkGroup,
 });

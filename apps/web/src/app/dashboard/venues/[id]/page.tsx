@@ -10,12 +10,13 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EntityImageField } from "~/components/common/entity-image-field";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
-import { ListRow, RowList } from "~/components/common/row-list";
+import { RowList } from "~/components/common/row-list";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
+import { VenueLinkedGroupsSection } from "~/components/venues/venue-linked-groups-section";
 import { VenueManagersSection } from "~/components/venues/venue-managers-section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
 import { Button } from "~/components/ui/button";
@@ -333,26 +334,7 @@ export default function VenueHomePage({
           </SoftArchiveBanner>
         ) : null}
 
-        <Section
-          title={v.linkedGroups.title}
-          description={v.linkedGroups.description}
-        >
-          {data.linkedGroups.length === 0 ? (
-            <p className="text-body text-muted-foreground">
-              {v.linkedGroups.empty}
-            </p>
-          ) : (
-            <RowList>
-              {data.linkedGroups.map((group) => (
-                <ListRow
-                  key={group.id}
-                  title={group.name}
-                  meta={sportLabel(group.sport, locale)}
-                />
-              ))}
-            </RowList>
-          )}
-        </Section>
+        <VenueLinkedGroupsSection venueId={id} venueName={venueName} />
 
         <Section title={v.details.title} description={v.details.description}>
           <form onSubmit={onSubmit} className="space-y-6">

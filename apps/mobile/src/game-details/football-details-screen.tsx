@@ -899,6 +899,9 @@ export function FootballGameDetails({
               windowStart: game.windowStart,
               windowEnd: game.windowEnd,
               sides: [],
+              levelMinTenths: game.levelMinTenths,
+              levelMaxTenths: game.levelMaxTenths,
+              waitlist: game.waitlist,
               football: {
                 sideSize: game.sideSize,
                 playersAllowed: game.playersAllowed,

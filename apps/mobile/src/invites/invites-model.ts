@@ -94,6 +94,9 @@ export type GameShareContext = {
     right: { name: string } | null;
   }[];
   football?: GameInviteShareFootball;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
+  waitlist?: readonly { name: string }[];
 };
 
 export function gameShareMessage(
@@ -117,6 +120,9 @@ export function gameShareMessage(
       sides: game.sides,
       shortUrl: url,
       football: game.football,
+      levelMinTenths: game.levelMinTenths,
+      levelMaxTenths: game.levelMaxTenths,
+      waitlist: game.waitlist,
       locale,
     },
   });

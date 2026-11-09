@@ -8,6 +8,7 @@ import {
   isRosterRegistrationGame,
   sideSizeLabel,
 } from "./game-shape";
+import { formatLevelRangeLabel } from "./level-range";
 import { showsFriendlyRoster } from "./game-summary-cta";
 
 export type GameInviteShareOccupant = {
@@ -29,6 +30,9 @@ export type GameInviteShareMessageInput = {
   sides: readonly GameInviteShareSide[];
   shortUrl: string;
   football?: GameInviteShareFootball;
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
+  waitlist?: readonly { name: string }[];
   locale: Locale;
 };
 
@@ -76,7 +80,32 @@ function whereAndWhenLines(
   lines.push(
     `🕗 ${formatGameTimeWindow(input.windowStart, input.windowEnd, start, input.locale)}`,
   );
+  const levelRange = formatLevelRangeLabel(
+    input.levelMinTenths,
+    input.levelMaxTenths,
+    input.locale,
+  );
+  if (levelRange) {
+    lines.push(messagesFor(input.locale).createGame.share.level(levelRange));
+  }
   return lines;
+}
+
+function waitlistLines(input: GameInviteShareMessageInput) {
+  const names = (input.waitlist ?? [])
+    .map((entry) => entry.name.trim())
+    .filter(Boolean);
+  if (names.length === 0) {
+    return [];
+  }
+  return [
+    ...numberedSlots(
+      messagesFor(input.locale).createGame.share.waitlist,
+      names,
+      null,
+    ),
+    "",
+  ];
 }
 
 export function formatGameInviteShareMessage(
@@ -95,6 +124,7 @@ export function formatGameInviteShareMessage(
   lines.push(m.left(team2.left));
   lines.push(m.right(team2.right));
   lines.push("");
+  lines.push(...waitlistLines(input));
   lines.push(m.join);
   lines.push(input.shortUrl);
   return lines.join("\n");
@@ -146,6 +176,7 @@ export function formatFootballInviteShareMessage(
   lines.push("");
   lines.push(...numberedSlots(m.keepers, keepers, KEEPERS_PER_GAME));
   lines.push("");
+  lines.push(...waitlistLines(input));
   lines.push(m.join);
   lines.push(input.shortUrl);
   return lines.join("\n");
