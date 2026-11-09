@@ -26,11 +26,12 @@ import {
 import { admit, type AdmitResult } from "#src/games/admit";
 import { enqueueWaitlistTeam } from "#src/games/enqueue-waitlist-team";
 import { enqueueWaitlistUser } from "#src/games/enqueue-waitlist-user";
+import { groupDecidesJoins } from "#src/games/invite-link-group";
 import {
   assertGameHasSeats,
   isIndividualSeatGame,
   listGameSides,
-  type SeatPosition,
+  type SeatChoice,
   vacantPositionsFromSides,
 } from "#src/games/seats";
 import { type Locale } from "@repo/i18n/locale";
@@ -70,16 +71,24 @@ export async function assertInviteeAllowedOnGame(
 
 /**
  * A Game Invite link is an Organizer's invitation, so on a Group Game it also
- * opens the Group door: a non-member joins the Group as they register. A
- * blocked User is refused on a private Game and registers without joining on
- * a public one.
+ * opens the Group door: a non-member joins the Group as they register. Where
+ * the Group's Organizers approve, the link only opens their request queue
+ * (ADR-0057), through `games.joinGroupFromInviteLink`. A blocked User, or a
+ * non-member of an approval Group, is refused on a private Game and registers
+ * without joining on a public one, since a public Game admits non-members.
  */
 export async function admitInviteeToGroup(
   database: Tx,
   game: GameRow,
   userId: string,
+  locale: Locale,
+  options: { joinGroup?: boolean } = {},
 ): Promise<{ joined: boolean }> {
   if (!game.groupId) {
+    return { joined: false };
+  }
+  // A guest seat: only a public Game admits a non-member without the Group.
+  if (options.joinGroup === false && game.isPublic) {
     return { joined: false };
   }
   if (await isGroupMember(database, game.groupId, userId)) {
@@ -96,10 +105,24 @@ export async function admitInviteeToGroup(
   }
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { id: true, createdBy: true },
+    columns: {
+      id: true,
+      createdBy: true,
+      type: true,
+      requiresApproval: true,
+    },
   });
   if (!group) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+  }
+  if (groupDecidesJoins(group)) {
+    if (game.isPublic) {
+      return { joined: false };
+    }
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: messagesFor(locale).mobileInvite.link.group.approvalRequired,
+    });
   }
   await database.insert(groupMembers).values({ groupId: group.id, userId });
   await notifyGroupJoined(database, { group, joinerUserId: userId });
@@ -193,7 +216,7 @@ export async function admitIndividualUser(
   userId: string,
   locale: Locale,
   now = new Date(),
-  seat?: { sideIndex: number; position: SeatPosition },
+  seat?: { sideIndex: number; position: SeatChoice },
 ): Promise<{ waitlisted: boolean }> {
   if (seat) {
     assertGameHasSeats(game, locale);

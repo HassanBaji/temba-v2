@@ -1,7 +1,7 @@
 import type { DbClient } from "@repo/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { teamMemberInvites, type GroupSportEnum } from "@repo/db";
+import { teamMemberInvites, teamMembers, type GroupSportEnum } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -31,11 +31,22 @@ export async function pendingInvites(
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
 
+  const teamIds = [...new Set(rows.map((row) => row.team.id))];
+  const memberRows =
+    teamIds.length === 0
+      ? []
+      : await database.query.teamMembers.findMany({
+          where: inArray(teamMembers.teamId, teamIds),
+          columns: { teamId: true },
+        });
+
   return rows.map((row) => ({
     id: row.id,
     teamId: row.team.id,
     displayName: teamDisplayName(row.team.name, [row.invitedBy.name]),
     sport: row.team.sport as GroupSportEnum,
+    rosterCount: memberRows.filter((member) => member.teamId === row.team.id)
+      .length,
     invitedBy: {
       id: row.invitedBy.id,
       name: row.invitedBy.name,

@@ -1,6 +1,7 @@
 "use client";
 
-import { ListRow, RowList } from "~/components/common/row-list";
+import { initials } from "@repo/domain/initials";
+
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -80,18 +81,37 @@ export function TournamentPoolDrawPanel({
                     <p className="text-muted-foreground text-meta">{meta}</p>
                   ) : null}
                 </div>
-                <RowList
+                <ol
                   aria-label={pool.label}
-                  className="border-rule divide-rule rounded-card"
+                  className="border-rule divide-rule rounded-card divide-y overflow-hidden border"
                 >
-                  {pool.teams.map((team) => (
-                    <ListRow
-                      key={team.id}
-                      className="min-h-11"
-                      title={team.name}
-                    />
-                  ))}
-                </RowList>
+                  {pool.teams.map((team, index) => {
+                    const names = team.name.split(" / ");
+                    return (
+                      <li
+                        key={team.id}
+                        className="flex min-h-14 items-center gap-3 px-4 py-3"
+                      >
+                        <span className="text-muted-foreground text-meta w-5 tabular-nums">
+                          {index + 1}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="border-rule text-eyebrow inline-flex size-9 shrink-0 items-center justify-center rounded-md border font-semibold"
+                        >
+                          {initials(names[0] ?? "")}
+                        </span>
+                        <span className="text-meta flex min-w-0 flex-1 flex-col font-semibold leading-tight">
+                          {names.map((name) => (
+                            <span key={name} dir="auto" className="truncate">
+                              {name}
+                            </span>
+                          ))}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
               </section>
             );
           })
@@ -121,7 +141,7 @@ export function TournamentPoolDrawPanel({
             >
               {postPending
                 ? m.webTournament.draw.posting
-                : m.tournament.poolDraw.post}
+                : m.tournamentRounds.draw.post}
             </Button>
             <Button
               type="button"
@@ -139,7 +159,7 @@ export function TournamentPoolDrawPanel({
                 : m.tournament.poolDraw.drawAgain}
             </Button>
             <p className="text-muted-foreground text-meta text-center leading-relaxed">
-              {m.tournament.poolDraw.postFooter}
+              {m.tournamentRounds.draw.footer}
             </p>
           </>
         ) : (

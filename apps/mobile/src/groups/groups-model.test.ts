@@ -15,8 +15,18 @@ describe("groupRowView", () => {
       "https://api.example.com/api/media/group-images/group-bromma/image?v=1",
     );
     expect(row.accessibilityLabel).toBe(
-      "Bromma Tuesday, 14 members, you are rank 3, next Game Thu",
+      "Padel, Bromma Tuesday, 14 members, you are rank 3, next Game Thu",
     );
+  });
+
+  it("names the Group's sport above its name", () => {
+    expect(groupRowView(fixtures.mine[0]!, ORIGIN, "en").sportLabel).toBe(
+      "Padel",
+    );
+    expect(groupRowView(fixtures.mine[1]!, ORIGIN, "ar").sportLabel).toBe(
+      "كرة القدم",
+    );
+    expect(groupRowView(fixtures.mine[2]!, ORIGIN, "en").sportLabel).toBeNull();
   });
 
   it("leaves rank and next Game out before the Group has either", () => {
@@ -54,7 +64,6 @@ describe("publicGroupRowView", () => {
 
   it("carries the sport word for the row", () => {
     expect(publicGroupRowView(open!, null, ORIGIN, "en")).toMatchObject({
-      sport: "padel",
       sportLabel: "Padel",
     });
     expect(publicGroupRowView(requested!, null, ORIGIN, "en").sportLabel).toBe(

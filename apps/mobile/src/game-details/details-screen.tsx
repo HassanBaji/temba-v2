@@ -77,6 +77,7 @@ import {
 } from "./details-content";
 import { FootballGameDetails } from "./football-details-screen";
 import { GameHero } from "./game-hero";
+import { ChallengeDetailsCard } from "./challenge-details-card";
 import { gameMenuItems } from "./game-menu";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
@@ -485,6 +486,9 @@ export function GameDetailsScreen({
         windowStart: data.windowStart,
         windowEnd: data.windowEnd,
         sides: data.sides,
+        levelMinTenths: data.levelMinTenths,
+        levelMaxTenths: data.levelMaxTenths,
+        waitlist: data.waitlist,
       }
     : null;
   const shareLink = data
@@ -795,6 +799,7 @@ export function GameDetailsScreen({
                   model={hero}
                   place={heroPlace}
                   figures={heroFigures}
+                  tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
                   onShare={
                     shareLink && shareContext
                       ? () => void shareGame(shareContext, shareLink)
@@ -807,6 +812,12 @@ export function GameDetailsScreen({
               ) : undefined
             }
           >
+            {data.challenge ? (
+              <ChallengeDetailsCard
+                challenge={data.challenge}
+                sport={data.sport}
+              />
+            ) : null}
             <GameDetailsContent
               game={details}
               handlers={handlers}

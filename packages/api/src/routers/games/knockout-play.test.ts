@@ -247,7 +247,7 @@ describe("Knockout advance on completion", () => {
       expect(q2.slot1GameTeamId).toBe(seeded.team(4));
       expect(q2.slot2GameTeamId).toBe(seeded.team(5));
       const [side4Left, side4Right] = seeded.players(4);
-      const [side5Left, side5Right] = seeded.players(5);
+      const [side5Left] = seeded.players(5);
 
       await scoreNewSet(db, {
         gameId: seeded.gameId,
@@ -256,7 +256,7 @@ describe("Knockout advance on completion", () => {
         slot1GamesWon: 3,
         slot2GamesWon: 6,
       });
-      for (const userId of [side4Right!, side5Left!, side5Right!]) {
+      for (const userId of [side4Right!, side5Left!]) {
         await confirmMatchResult(db, {
           gameId: seeded.gameId,
           matchId: q2.id,
@@ -314,7 +314,7 @@ describe("Knockout advance on completion", () => {
         slot1GamesWon: 6,
         slot2GamesWon: 1,
       });
-      for (const userId of [side4Right!, side5Left!, side5Right!]) {
+      for (const userId of [side4Right!, side5Left!]) {
         await confirmMatchResult(db, {
           gameId: seeded.gameId,
           matchId: q2.id,
@@ -471,7 +471,7 @@ describe("a level Knockout Match", () => {
     try {
       const { seeded, q2 } = await seedLevel(db, "level-decider");
       const [side4Left, side4Right] = seeded.players(4);
-      const [side5Left, side5Right] = seeded.players(5);
+      const [side5Left] = seeded.players(5);
       await scoreNewSet(db, {
         gameId: seeded.gameId,
         matchId: q2.id,
@@ -479,7 +479,7 @@ describe("a level Knockout Match", () => {
         slot1GamesWon: 7,
         slot2GamesWon: 5,
       });
-      for (const userId of [side4Right!, side5Left!, side5Right!]) {
+      for (const userId of [side4Right!, side5Left!]) {
         await confirmMatchResult(db, {
           gameId: seeded.gameId,
           matchId: q2.id,

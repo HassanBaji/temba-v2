@@ -1,3 +1,4 @@
+import { formatsPlayable } from "./team-roster";
 import type { TeamHomeInput, TeamListRowInput } from "./teams";
 
 const ADA = { name: "Ada Lindqvist", image: null };
@@ -7,13 +8,18 @@ function member(
   id: string,
   person: { name: string; image: string | null },
   flags: { isCreator?: boolean; isViewer?: boolean } = {},
-) {
+): TeamHomeInput["members"][number] {
   return {
     id,
     name: person.name,
     image: person.image,
     isCreator: flags.isCreator ?? false,
     isViewer: flags.isViewer ?? false,
+    level: null,
+    levelBand: null,
+    preferredPosition: null,
+    footballRole: null,
+    footballPosition: null,
   };
 }
 
@@ -29,12 +35,13 @@ function roster(
   const rule =
     sport === "padel"
       ? { min: 2, max: 2, completeAt: 2 }
-      : { min: 2, max: 25, completeAt: 5 };
+      : { min: 2, max: 20, completeAt: 5 };
   return {
     ...rule,
     count,
     complete: count >= rule.completeAt,
     full: count >= rule.max,
+    formatsPlayable: sport === "football" ? formatsPlayable(count) : [],
   };
 }
 
@@ -42,14 +49,35 @@ const BASE_HOME: TeamHomeInput = {
   displayName: "Ada Lindqvist & Kim Holm",
   sport: "padel",
   waitingForPartner: false,
-  gamesPlayed: 0,
-  wins: 0,
-  losses: 0,
+  record: { gamesPlayed: 0, wins: 0, draws: 0, losses: 0 },
+  form: [],
+  rivals: [],
+  closestRival: null,
+  games: [],
   members: COMPLETE_MEMBERS,
   canInvite: false,
   canDissolve: true,
   roster: roster("padel", 2),
+  groupTag: null,
+  canClearGroupTag: false,
+  groupTagOptions: [],
   viewerCanLeave: false,
+  viewerActsForTeam: true,
+};
+
+const GOOZ = { id: "group-gooz", name: "Gooz of Arad" };
+
+const PLAYED_AT = new Date("2026-09-04T17:00:00.000Z");
+
+const SEEF_SMASHERS = {
+  teamId: "team-rival",
+  name: "Seef Smashers",
+  played: 3,
+  wins: 2,
+  draws: 0,
+  losses: 1,
+  lastResult: "won" as const,
+  lastPlayedAt: PLAYED_AT,
 };
 
 function footballMembers(count: number) {
@@ -93,16 +121,89 @@ export function createTeamsFixtures() {
   const home: Record<
     | "complete"
     | "record"
+    | "rivals"
+    | "closest"
+    | "footballRecord"
     | "incomplete"
     | "waiting"
     | "footballCreatorBuilding"
     | "footballCreatorComplete"
     | "footballCreatorFull"
+    | "footballLegacy"
+    | "footballTagged"
+    | "footballOrganizer"
     | "footballMember",
     TeamHomeInput
   > = {
     complete: BASE_HOME,
-    record: { ...BASE_HOME, gamesPlayed: 12, wins: 8, losses: 3 },
+    record: {
+      ...BASE_HOME,
+      record: { gamesPlayed: 12, wins: 8, draws: 1, losses: 3 },
+      form: ["won", "won", "lost"],
+      members: [
+        {
+          ...COMPLETE_MEMBERS[0]!,
+          level: "2.8",
+          levelBand: "C2",
+          preferredPosition: "left",
+        },
+        {
+          ...COMPLETE_MEMBERS[1]!,
+          level: "3.4",
+          levelBand: "C2",
+          preferredPosition: "either",
+        },
+      ],
+      games: [
+        {
+          matchId: "match-1",
+          gameId: "game-1",
+          playedAt: PLAYED_AT,
+          venueName: "Seef Courts",
+          opponent: { teamId: "team-rival", name: "Seef Smashers" },
+          sets: [
+            { us: 6, them: 3 },
+            { us: 6, them: 4 },
+          ],
+          result: "won",
+        },
+      ],
+    },
+    rivals: {
+      ...BASE_HOME,
+      record: { gamesPlayed: 3, wins: 2, draws: 0, losses: 1 },
+      rivals: [SEEF_SMASHERS],
+      closestRival: { ...SEEF_SMASHERS, teamId: "team-once", name: "Hidd" },
+    },
+    closest: {
+      ...BASE_HOME,
+      record: { gamesPlayed: 1, wins: 0, draws: 0, losses: 1 },
+      closestRival: {
+        ...SEEF_SMASHERS,
+        played: 1,
+        wins: 0,
+        losses: 1,
+        lastResult: "lost",
+      },
+    },
+    footballRecord: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      record: { gamesPlayed: 4, wins: 2, draws: 1, losses: 1 },
+      rivals: [{ ...SEEF_SMASHERS, wins: 1, draws: 1, losses: 1 }],
+      members: [
+        { ...footballMembers(1)[0]!, footballRole: "keeper" },
+        {
+          ...member("f2", KIM),
+          footballRole: "outfield",
+          footballPosition: "fwd",
+        },
+        { ...member("f3", KIM), footballRole: "outfield" },
+      ],
+      roster: roster("football", 3),
+      viewerActsForTeam: false,
+    },
     incomplete: {
       ...BASE_HOME,
       displayName: "Sunday Smashers",
@@ -140,9 +241,36 @@ export function createTeamsFixtures() {
       ...BASE_HOME,
       sport: "football",
       displayName: "Sunday Five",
-      members: footballMembers(25),
+      members: footballMembers(20),
       canInvite: false,
-      roster: roster("football", 25),
+      roster: roster("football", 20),
+    },
+    footballLegacy: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Sunday Five",
+      members: footballMembers(22),
+      canInvite: false,
+      roster: roster("football", 22),
+    },
+    footballTagged: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Arad Lions",
+      members: footballMembers(12),
+      canInvite: true,
+      roster: roster("football", 12),
+      groupTag: GOOZ,
+      canClearGroupTag: true,
+    },
+    footballOrganizer: {
+      ...BASE_HOME,
+      sport: "football",
+      displayName: "Arad Lions",
+      members: footballMembers(6),
+      canDissolve: false,
+      roster: roster("football", 6),
+      groupTagOptions: [GOOZ],
     },
     footballMember: {
       ...BASE_HOME,

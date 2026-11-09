@@ -38,6 +38,7 @@ import { Text } from "../primitives/text";
 import { GamesTab, type GamesTabProps } from "./games-tab";
 import { JoinRequestsBanner, JoinRequestsCard } from "./group-approver-view";
 import { GroupMenuSheet } from "./group-menu-sheet";
+import { GroupTeamsRow } from "./group-teams-row";
 import { RejectRequestSheet, WhoCanJoinSheet } from "./join-request-sheets";
 import type { GroupApproverHandlers } from "./use-group-admin";
 import { groupHomeHeader, groupJoinCta } from "./group-home-model";
@@ -118,6 +119,8 @@ export type GroupHomeViewProps = {
   onDeclineVenueRequest: (request: GroupLinkRequestRow) => void;
   /** Scrolls the screen so `target` is in view. */
   onScrollTo: (target: View | null) => void;
+  onOpenTeam: (teamId: string) => void;
+  onCreateTeam: () => void;
 };
 
 const TABS: GroupHomeTab[] = ["standing", "games", "members"];
@@ -184,6 +187,14 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           {groupPartOfVenueLine(data.venue.name, locale)}
         </Text>
       ) : null}
+
+      <GroupTeamsRow
+        teams={data.teams}
+        isMember={data.membership != null}
+        canCreateTeam={data.canCreateTeam}
+        onOpenTeam={props.onOpenTeam}
+        onCreateTeam={props.onCreateTeam}
+      />
 
       {data.canUnlinkFromVenue && data.venue ? (
         <View style={{ flexDirection: "row" }}>

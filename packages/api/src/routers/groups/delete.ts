@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { games, groups, MatchStatusEnum } from "@repo/db";
+import { games, groups, MatchStatusEnum, teams } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,7 +16,8 @@ type DbClient = typeof db;
 /**
  * Soft-delete a Group: the owner hides it for everyone. Memberships, the standing and the Games are kept, so a played
  * Game stays in each player's history. Games that have not started yet are
- * cancelled; nobody is notified.
+ * cancelled; nobody is notified. Teams tagged to the Group lose the tag and
+ * keep their record.
  */
 export async function deleteGroup(
   database: DbClient,
@@ -46,6 +47,10 @@ export async function deleteGroup(
       .update(groups)
       .set({ deletedAt: now, deletedBy: args.userId, updatedAt: now })
       .where(eq(groups.id, group.id));
+    await tx
+      .update(teams)
+      .set({ groupId: null, updatedAt: now })
+      .where(eq(teams.groupId, group.id));
   });
 
   return {

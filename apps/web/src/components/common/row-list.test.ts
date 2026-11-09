@@ -30,3 +30,13 @@ describe("ListRow title", () => {
     expect(tag).not.toContain("truncate");
   });
 });
+
+describe("ListRow eyebrow", () => {
+  it("puts the eyebrow above the title", () => {
+    const html = renderToStaticMarkup(
+      createElement(ListRow, { eyebrow: "Padel", title: "Tuesday Crew" }),
+    );
+
+    expect(html.indexOf("Padel")).toBeLessThan(html.indexOf("Tuesday Crew"));
+  });
+});

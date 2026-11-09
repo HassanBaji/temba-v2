@@ -5,10 +5,13 @@ import { z } from "zod";
 import {
   MatchStatusEnum,
   gameTeamPlayers,
+  games,
   matchGoals,
   matchSets,
 } from "@repo/db";
+import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   FOOTBALL_GOALS_MAX,
@@ -19,7 +22,8 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isGameOrganizer, requireGame } from "#src/games/access";
+import { isGameOrganizer, requireGame, type GameRow } from "#src/games/access";
+import { loadChallengeSides } from "#src/games/challenge-squad";
 import {
   FOOTBALL_SCORE_SET_NUMBER,
   assertFootballGame,
@@ -55,26 +59,22 @@ async function sideUserIds(database: DbClient, gameTeamId: string) {
   );
 }
 
-/**
- * Saves a football Match's Score (stored as its one Set, goals as games won)
- * and, optionally, who scored. A player on either side or an Organizer may
- * enter it once the Game has kicked off. The player who enters a Score
- * confirms it for their side; a changed Score asks the other side again.
- */
-export async function saveFootballScore(
+type ScoreArgs = {
+  gameId: string;
+  userId: string;
+  slot1Goals: number;
+  slot2Goals: number;
+  scorers: { userId: string; goals: number }[];
+  locale?: Locale;
+};
+
+async function checkAndWriteScore(
   database: DbClient,
-  args: {
-    gameId: string;
-    userId: string;
-    slot1Goals: number;
-    slot2Goals: number;
-    scorers: { userId: string; goals: number }[];
-    locale?: Locale;
-  },
-  now: Date = new Date(),
+  game: GameRow,
+  args: ScoreArgs,
+  now: Date,
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
   assertFootballGame(game);
   assertGameNotCancelled(game);
   const match = await footballMatch(database, game.id);
@@ -84,6 +84,13 @@ export async function saveFootballScore(
   }
   if (match.status === MatchStatusEnum.COMPLETED) {
     refuse("FORBIDDEN", "This score is confirmed; it can no longer change");
+  }
+  const challengeSides = await loadChallengeSides(database, game);
+  if (
+    challengeSides &&
+    !squadsReadyForScore(challengeSides.map((side) => side.squadState))
+  ) {
+    refuse("BAD_REQUEST", messagesFor(locale).challenge.errors.nameBothSquads);
   }
   if (!footballScoreOpen(game, now)) {
     refuse("FORBIDDEN", "The score opens at kick-off");
@@ -169,6 +176,33 @@ export async function saveFootballScore(
       await recordMatchResultConfirmation(tx, match.id, args.userId);
     }
   });
+  return match;
+}
+
+/**
+ * Saves a football Match's Score (stored as its one Set, goals as games won)
+ * and, optionally, who scored. A player on either side or an Organizer may
+ * enter it once the Game has kicked off. The player who enters a Score
+ * confirms it for their side; a changed Score asks the other side again.
+ * On a Challenge Game the Game row is locked first, as `nameChallengeSquad`
+ * locks it, so a squad save and a first Score cannot both pass their checks.
+ */
+export async function saveFootballScore(
+  database: DbClient,
+  args: ScoreArgs,
+  now: Date = new Date(),
+) {
+  const game = await requireGame(database, args.gameId);
+  const match = game.challengeId
+    ? await database.transaction(async (tx) => {
+        const [locked] = await tx
+          .select()
+          .from(games)
+          .where(eq(games.id, game.id))
+          .for("update");
+        return checkAndWriteScore(tx, locked ?? game, args, now);
+      })
+    : await checkAndWriteScore(database, game, args, now);
 
   if (await matchResultFullyConfirmed(database, match)) {
     await runMatchCompletionEffect(database, game, match.id);

@@ -31,7 +31,8 @@ import {
 
 const CHOICE_HEIGHT = 52;
 
-function Choice({
+/** A pill-sized radio choice with a title and a note; shared with the Invite link join sheet. */
+export function Choice({
   title,
   note,
   selected,
@@ -80,7 +81,7 @@ function Choice({
   );
 }
 
-function Label({ left, right }: { left: string; right?: string }) {
+export function Label({ left, right }: { left: string; right?: string }) {
   return (
     <View
       style={{

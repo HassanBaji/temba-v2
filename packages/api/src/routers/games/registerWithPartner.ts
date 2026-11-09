@@ -9,7 +9,11 @@ import { user } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertUserPassesJoinGate, requireGame } from "#src/games/access";
+import {
+  assertUserPassesJoinGate,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { admit } from "#src/games/admit";
 import { assertCanRegisterWithPartner } from "#src/games/helpers/assert-can-register-with-partner";
@@ -44,6 +48,7 @@ export async function registerWithPartner(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, locale);
   assertPoolDrawNotPosted(game);
   const now = new Date();
   await assertCanRegisterWithPartner(database, game, args.userId, now, locale);

@@ -108,6 +108,8 @@ export type HubGameRow = {
   } | null;
   knockoutMatch: { round: number; roundCount: number } | null;
   football?: HubGameFootball | null;
+  /** A Challenge Game: both sides are set by the Challenge and nobody joins. */
+  challenge?: boolean;
 };
 
 export type HubHistoryMember = {

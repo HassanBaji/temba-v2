@@ -22,10 +22,12 @@ export type NotificationItem = {
   partner: NotificationPerson | null;
   team: { id: string; name: string | null } | null;
   group: { id: string; name: string | null } | null;
+  challenge: { id: string } | null;
   game: {
     id: string;
     name: string | null;
     format: string;
+    sport: string | null;
     windowStart: Date | null;
     /** Set only while the Game's Marks window is open. */
     marksClosesAt: Date | null;
@@ -94,11 +96,13 @@ export async function loadNotificationItems(
       partner: { columns: { id: true, name: true, image: true } },
       team: { columns: { id: true, name: true } },
       group: { columns: { id: true, name: true } },
+      challenge: { columns: { id: true } },
       game: {
         columns: {
           id: true,
           name: true,
           format: true,
+          sport: true,
           windowStart: true,
           cancelledAt: true,
         },
@@ -122,6 +126,7 @@ export async function loadNotificationItems(
               id: game.id,
               name: game.name,
               format: game.format,
+              sport: game.sport,
               windowStart: game.windowStart,
               marksClosesAt: openMarksClosesAt(game, now),
             }

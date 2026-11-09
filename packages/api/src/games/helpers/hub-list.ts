@@ -83,6 +83,7 @@ export const hubListColumns = {
   allowSoloRegister: true,
   drawPostedAt: true,
   sideSize: true,
+  challengeId: true,
 } as const;
 
 export const hubListWith = {
@@ -208,6 +209,7 @@ export type HubQueryRow = {
   allowSoloRegister: boolean;
   drawPostedAt: Date | null;
   sideSize: number | null;
+  challengeId: string | null;
   group: {
     id: string;
     /** Nullable on `groups`; hub rows carry `groupName: null` for an unnamed Group. */
@@ -703,6 +705,7 @@ export function toHubListRow(
     poolMatch: null,
     knockoutMatch: null,
     football: footballFromRow(row, viewer.userId),
+    challenge: row.challengeId != null,
   };
 }
 
@@ -752,6 +755,7 @@ function viewerPoolMatch(
     poolCount: row.poolCount,
     viewerUserId,
     locale,
+    storedRoundCount: row.roundCount,
     gameTeams: row.teams.map((team) => ({
       id: team.id,
       name: null,
@@ -912,6 +916,7 @@ export async function applyViewerLevelRangeToHubRows(
     sport: string | null;
     createdBy: string;
     groupId: string | null;
+    challengeId: string | null;
     levelMinTenths: number | null;
     levelMaxTenths: number | null;
   }>,

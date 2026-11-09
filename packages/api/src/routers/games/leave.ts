@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { type Locale } from "@repo/i18n/locale";
+
 import { gamePlayers, gameTeamPlayers } from "@repo/db";
 import { gameIsPlayed } from "@repo/domain/played-game";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
@@ -9,7 +11,12 @@ import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { gameAdminUserIds, type GameRow, requireGame } from "#src/games/access";
+import {
+  gameAdminUserIds,
+  type GameRow,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { leaveRegisteredSeat } from "#src/games/leave-registered-seat";
 import { notify } from "#src/notifications/notify";
@@ -89,9 +96,10 @@ function assertFriendlyGameNotPlayed(game: GameRow, now: Date) {
 
 export async function leaveGame(
   database: DbClient,
-  args: { gameId: string; userId: string; now?: Date },
+  args: { gameId: string; userId: string; now?: Date; locale?: Locale },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   assertPoolDrawNotPosted(game);
   assertFriendlyGameNotPlayed(game, args.now ?? new Date());
   await database.transaction(async (tx) => {
@@ -106,5 +114,9 @@ export const leave = protectedProcedure
   .input(z.object({ gameId: z.string().uuid() }))
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return leaveGame(ctx.db, { gameId: input.gameId, userId: appUser.id });
+    return leaveGame(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

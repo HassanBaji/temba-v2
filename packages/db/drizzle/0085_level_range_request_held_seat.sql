@@ -1,0 +1,1 @@
+ALTER TABLE "game_level_range_requests" ADD COLUMN "held_seat" jsonb;

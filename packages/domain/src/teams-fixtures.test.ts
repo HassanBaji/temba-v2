@@ -11,7 +11,9 @@ describe("createTeamsFixtures", () => {
       teamHomeView(fixtures.home[key], "en");
     expect(view("incomplete").primaryInvite).toBe(true);
     expect(view("waiting").waitingNote).toBe(true);
-    expect(view("record").stats[3]?.value).toBe("67%");
+    expect(view("record").recordTiles[0]?.value).toBe("8");
+    expect(view("rivals").rivals).toHaveLength(1);
+    expect(view("closest").closestLine).not.toBeNull();
   });
 
   it("lists a full and an incomplete Team", () => {

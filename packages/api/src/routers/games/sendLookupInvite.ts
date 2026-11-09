@@ -2,12 +2,18 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
+import { type Locale } from "@repo/i18n/locale";
+
 import { gameMemberInvites, user } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGameOrganizer, requireGame } from "#src/games/access";
+import {
+  assertGameOrganizer,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { userAlreadyWaitlisted } from "#src/games/helpers/user-already-waitlisted";
 import {
@@ -25,9 +31,15 @@ type DbClient = typeof db;
 
 export async function sendLookupInvite(
   database: DbClient,
-  args: { gameId: string; userId: string; userIds: string[] },
+  args: {
+    gameId: string;
+    userId: string;
+    userIds: string[];
+    locale?: Locale;
+  },
 ) {
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, args.locale);
   await assertGameOrganizer(database, game, args.userId);
   await assertGameInviteDoorsOpen(database, game);
   if (game.registrationMode === "team_only") {
@@ -172,5 +184,6 @@ export const sendLookupInviteProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       userIds: input.userIds,
+      locale: ctx.locale,
     });
   });

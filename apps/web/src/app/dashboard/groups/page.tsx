@@ -21,7 +21,6 @@ import {
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { ChoiceChip } from "~/components/temba/choice-chip";
 import { FormStrip } from "~/components/temba/form-strip";
-import { SportBadge } from "~/components/temba/sport-badge";
 import { Button } from "~/components/ui/button";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -45,6 +44,7 @@ import {
   PUBLIC_GROUP_SPORT_FILTERS,
   publicGroupSportFilterInput,
   publicGroupSportFilterLabel,
+  sportLabel,
   type PublicGroupSportFilter,
 } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
@@ -117,6 +117,7 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
             leading={
               <EntityMonogram name={name} image={group.imageUrl} size="lg" />
             }
+            eyebrow={sportLabel(group.sport, locale)}
             title={name}
             meta={groupRowMetaLine({
               memberCount: group.memberCount,
@@ -205,6 +206,7 @@ function PublicGroupRows({
             leading={
               <EntityMonogram name={name} image={group.imageUrl} size="lg" />
             }
+            eyebrow={sportLabel(group.sport, locale)}
             title={
               <Link
                 href={`/dashboard/groups/${group.id}`}
@@ -215,9 +217,6 @@ function PublicGroupRows({
             }
             subtitle={group.venueName ?? undefined}
             meta={meta}
-            footer={
-              group.sport ? <SportBadge sport={group.sport} /> : undefined
-            }
             trailing={
               <Button
                 type="button"

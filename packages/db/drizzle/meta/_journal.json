@@ -596,6 +596,69 @@
       "when": 1794076360248,
       "tag": "0084_request_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1794125791208,
+      "tag": "0085_level_range_request_held_seat",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794143372228,
+      "tag": "0086_team_group_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794146183397,
+      "tag": "0087_team_invite_notification",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794151284384,
+      "tag": "0088_challenges",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794154931665,
+      "tag": "0089_challenge_proposal_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794158319583,
+      "tag": "0090_challenge_game",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794162093602,
+      "tag": "0091_challenge_squad_named",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1794164550348,
+      "tag": "0092_challenge_rematch_nudge",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1794209500736,
+      "tag": "0093_tournament_rounds",
+      "breakpoints": true
     }
   ]
 }

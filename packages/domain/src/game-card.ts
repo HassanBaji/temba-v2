@@ -147,23 +147,31 @@ export function gameCardFormatCell(meta: {
 type HubCardGame = GameSummaryCtaInput & {
   sides: readonly CardSide[];
   matchId: string | null;
+  challenge?: boolean;
 };
 
-/** What a My Games card offers: the primary action, the roster it shows and whether it offers Join with a partner. */
+/**
+ * What a My Games card offers: the primary action, the roster it shows,
+ * whether it offers Join with a partner, and whether it carries the CHALLENGE
+ * marker. A Challenge Game only opens: nobody joins it from a card.
+ */
 export function hubGameCardPlan<T extends HubCardGame>(
   game: T,
 ): {
   primaryAction: GameSummaryCta;
   rosterSides: T["sides"] | undefined;
   showPartnerJoin: boolean;
+  challenge: boolean;
 } {
-  const primaryAction = gameSummaryPrimaryAction(game);
+  const challenge = game.challenge === true;
+  const primaryAction = challenge ? "view" : gameSummaryPrimaryAction(game);
   const rosterSides =
     !isFootballGame(game) &&
     (showsFriendlyRoster(game.format, game.registrationMode) || game.matchId)
       ? game.sides
       : undefined;
   const showPartnerJoin =
+    !challenge &&
     showsGameCardPartnerFooter(primaryAction, rosterSides) &&
     offersPartnerJoin({
       canRegister: game.canRegister,
@@ -171,7 +179,7 @@ export function hubGameCardPlan<T extends HubCardGame>(
       registrationMode: game.registrationMode,
       sides: game.sides,
     });
-  return { primaryAction, rosterSides, showPartnerJoin };
+  return { primaryAction, rosterSides, showPartnerJoin, challenge };
 }
 
 export type HubWaitlistJoinCall = "register" | "registerSeat";

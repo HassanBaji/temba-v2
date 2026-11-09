@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { gameTeams, games, matches } from "@repo/db";
+import { gameTeams, games, matches, tournamentDraftMatches } from "@repo/db";
 
 import {
   isDrawnTournament,
@@ -58,7 +58,10 @@ export async function undoPoolDraw(
   });
   if (
     matchRows.some(
-      (match) => match.sets.length > 0 || match.status === "completed",
+      (match) =>
+        match.sets.length > 0 ||
+        match.status === "completed" ||
+        match.notFinishedAt != null,
     )
   ) {
     throw new TRPCError({
@@ -72,6 +75,9 @@ export async function undoPoolDraw(
   const now = new Date();
   await database.transaction(async (tx) => {
     await tx.delete(matches).where(eq(matches.gameId, game.id));
+    await tx
+      .delete(tournamentDraftMatches)
+      .where(eq(tournamentDraftMatches.gameId, game.id));
     await tx
       .update(gameTeams)
       .set({ poolIndex: null, knockoutSeed: null, updatedAt: now })

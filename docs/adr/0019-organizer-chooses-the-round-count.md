@@ -1,6 +1,6 @@
 # Organizer chooses the Round count
 
-**Status:** amends [ADR-0017](./0017-friendly-tournament-is-a-pool-round-robin.md).
+**Status:** amends [ADR-0017](./0017-friendly-tournament-is-a-pool-round-robin.md). Amended by [ADR-0062](./0062-tournament-rounds-are-drafts-and-the-other-team-confirms.md): a drawn tournament makes its Pool Rounds as drafts and one player from each side agrees a score, which stands after ten minutes.
 
 ADR-0017 shipped "one shape — a pure Pool round robin", and the App derived the
 Round count from the field: one full round robin in the biggest Pool. **The shape stays a Pool round

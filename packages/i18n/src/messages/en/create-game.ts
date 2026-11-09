@@ -137,6 +137,8 @@ export const createGame = {
     join: "🔗 Join:",
     players: "👕 Players",
     keepers: "🧤 Keepers",
+    level: (range: string) => `📊 Level: ${range}`,
+    waitlist: "⏳ Waiting list",
   },
   openGraph: {
     genericTitle: "Temba - the future of competitive sports",

@@ -7,6 +7,7 @@ import { friendlyGameCanMintInvite } from "./friendly-game-cta";
 import { sportLabel } from "./sport";
 import { gameDisplayName, type GameDisplayNameInput } from "./game-custom-name";
 import { gameJoinToast } from "./game-copy";
+import type { GameInviteHero } from "./game-invite-hero";
 import type { InviteHostLabel } from "./invite-outcome-copy";
 
 export type InviteKind = "group" | "team" | "game";
@@ -283,6 +284,10 @@ export type GameInviteLinkReady = {
   football: GameInviteFootball | null;
   /** The Game's Group as the signed-in viewer stands to it; null off a Group. */
   group?: GameInviteGroup | null;
+  /** When, where and who is in, for the head of the link screen. */
+  hero?: GameInviteHero | null;
+  /** A public Game seats a non-member as a guest, without the Group. */
+  isPublic?: boolean;
 };
 
 export type GameInviteGroupJoinMode =

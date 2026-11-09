@@ -42,7 +42,15 @@ import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
+import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
+import { generateRoundsProcedure as generateRounds } from "./generateRounds";
+import { markMatchNotFinishedProcedure as markMatchNotFinished } from "./markMatchNotFinished";
+import { postRoundsProcedure as postRounds } from "./postRounds";
+import { saveRoundPairingsProcedure as saveRoundPairings } from "./saveRoundPairings";
+import { swapRoundPairingProcedure as swapRoundPairing } from "./swapRoundPairing";
+import { tournamentRoundsProcedure as tournamentRounds } from "./tournamentRounds";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
+import { nameChallengeSquadProcedure as nameChallengeSquad } from "./nameChallengeSquad";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
@@ -85,6 +93,13 @@ export const gamesRouter = createTRPCRouter({
   drawPools,
   postPoolDraw,
   undoPoolDraw,
+  tournamentRounds,
+  generateRounds,
+  saveRoundPairings,
+  swapRoundPairing,
+  postRounds,
+  enterTournamentScore,
+  markMatchNotFinished,
   byId,
   poolTables,
   register,
@@ -133,6 +148,7 @@ export const gamesRouter = createTRPCRouter({
   setFootballRole,
   publishFootballTeams,
   saveFootballScore,
+  nameChallengeSquad,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,

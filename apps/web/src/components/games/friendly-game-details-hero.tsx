@@ -166,11 +166,14 @@ export function FriendlyGameDetailsHero({
   input,
   place,
   figures,
+  tag,
   actions,
 }: {
   input: FriendlyGameHeroInput;
   place: FriendlyGameHeroPlace | null;
   figures: CourtFigure[];
+  /** "Challenge" on a Challenge Game. */
+  tag?: string;
   /** Share and the Game's menu, top right across from back. */
   actions?: React.ReactNode;
 }) {
@@ -198,6 +201,11 @@ export function FriendlyGameDetailsHero({
   return (
     <Surface as="article" tone="ink" className={HERO_BLEED}>
       <HeroNavRow tone="ink" actions={actions} />
+      {tag ? (
+        <p className="text-eyebrow mt-4 font-mono font-semibold uppercase">
+          {tag}
+        </p>
+      ) : null}
       {model.kind === "time_unset" ? (
         <p className="text-dim text-meta mt-4">{m.webGame.hero.timeUnset}</p>
       ) : (

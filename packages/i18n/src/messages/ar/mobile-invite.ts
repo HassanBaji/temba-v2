@@ -41,6 +41,108 @@ export const mobileInvite = {
     teamsSet: "محدّدة",
     teamsByOrganizer: "يحدّدها المنظّم",
     fromALink: "من رابط",
+    hero: {
+      countIn: (inCount: number, seats: number | null) =>
+        seats == null ? `${inCount} انضموا` : `${inCount} من ${seats} انضموا`,
+      priceEach: (price: string) => `${price} لكل لاعب`,
+      openSeatA11y: "مكان شاغر",
+      rosterA11y: (inCount: number, seats: number | null) =>
+        seats == null
+          ? plural("ar", inCount, {
+              zero: "لا لاعبين بعد",
+              one: "لاعب واحد انضم",
+              two: "لاعبان انضمّا",
+              few: "{n} لاعبين انضموا",
+              many: "{n} لاعبًا انضموا",
+              other: "{n} لاعب انضموا",
+            })
+          : `${inCount} من ${seats} أماكن محجوزة`,
+      organizerRow: "المنظّم",
+      levelFits: (range: string) => `${range}، مستواك مناسب`,
+      levelOutside: (range: string) => `${range}، خارج مستواك`,
+      memberNote: (group: string) => `${group}. أنت عضو.`,
+      joinedNote: (group: string) => `${group}. انضممت اليوم.`,
+      levelCard: {
+        fits: (range: string, yours: string) =>
+          `هذه المباراة لمستوى ${range}. مستواك ${yours}، فأنت مناسب.`,
+        outside: (range: string, yours: string) =>
+          `هذه المباراة لمستوى ${range}. مستواك ${yours}، فالانضمام يسأل المنظّم.`,
+        noLevel: (range: string) =>
+          `هذه المباراة لمستوى ${range}. حدّد مستواك لترى إن كنت مناسبًا.`,
+        signedOut: (range: string) =>
+          `هذه المباراة لمستوى ${range}. سجّل الدخول لترى إن كنت مناسبًا، أو أنشئ حسابًا في دقيقة. المكان ينتظرك.`,
+        asksFirst: "الانضمام يسأل عن المجموعة أولًا.",
+      },
+      notMemberYet: (sharer: string | null) =>
+        sharer ? `شاركها ${sharer}. لست عضوًا بعد.` : "لست عضوًا بعد.",
+      formatRow: "الصيغة",
+      rated: "تُحتسب للتصنيف",
+      unrated: "لا تُحتسب للتصنيف",
+      courtRow: "الملعب",
+      payAtVenue: (court: string | null) =>
+        court ? `${court}، الدفع في الملعب` : "الدفع في الملعب",
+      linkRow: "الرابط",
+      linkUntil: (when: string) => `يعمل حتى ${when} أو حتى تمتلئ المقاعد`,
+      linkOpen: "يعمل حتى تمتلئ المقاعد",
+      signInToJoin: "سجّل الدخول للانضمام",
+      signInSubline: "رقم هاتفك ودقيقة واحدة",
+      playingTitle: "أنت في هذه المباراة",
+      share: "مشاركة",
+      openGameTitle: "فتح المباراة",
+      tapASeat: "اضغط مقعدًا، واختر جهتك بعدها",
+      sitHere: "اجلس هنا",
+      openSeat: {
+        leftOrEither: (side: string) => `${side} أو أي جهة`,
+        anySide: (team: string) => `${team}، أي جهة`,
+      },
+      sitHereFootball: (seats: string) => `${seats}. اختر دورك ومركزك بعدها`,
+      barSheetPadel: "الفريق والجهة والمجموعة في ورقة واحدة",
+      barSheetFootball: "الدور والمركز والمجموعة في ورقة واحدة",
+    },
+    joinSheet: {
+      title: "اجلس هنا",
+      leadPadel: "كما في التطبيق. اختر فريقًا، وجهة إن شئت.",
+      leadPadelFrom: (seat: string) => `كما في التطبيق. ${seat}، من حيث ضغطت.`,
+      leadFootball: (when: string) =>
+        `كما في التطبيق. تُكوَّن الفرق ${when}، لذا تختار دورًا ومركزًا مفضّلًا لا فريقًا.`,
+      leadFootballNoTeams:
+        "كما في التطبيق. اختر دورًا ومركزًا مفضّلًا؛ الفرق تأتي لاحقًا.",
+      team: "الفريق",
+      teamWith: (names: string, seats: string) => `مع ${names}، ${seats}`,
+      teamEmpty: (seats: string) => `فارغ، ${seats}`,
+      teamFull: "ممتلئ",
+      seats: (n: number) =>
+        plural("ar", n, {
+          one: "مقعد واحد",
+          two: "مقعدان",
+          few: "{n} مقاعد",
+          many: "{n} مقعدًا",
+          other: "{n} مقعد",
+        }),
+      side: "الجهة",
+      sideOptional: "اختياري",
+      sideUsual: (side: string) => `اختياري، المعتاد لديك ${side}`,
+      either: "أي جهة",
+      sideHint: (team: string, other: string) =>
+        `من ينضم إلى ${team} بعدك يأخذ ${other}، أو لا يختار فيلعب ${other} تلقائيًا.`,
+      alsoJoin: (group: string) => `الانضمام إلى ${group} أيضًا`,
+      openPolicy: (members: string) =>
+        `كل من لديه الرابط يمكنه الانضمام. ${members}.`,
+      approvalPolicy:
+        "يوافق المنظّمون على الأعضاء الجدد. يُحجز مقعدك 24 ساعة ريثما يقرّرون.",
+      offNote:
+        "عند الإيقاف تجلس ضيفًا في هذه المباراة فقط. يراك الأعضاء في التشكيلة في الحالتين.",
+      membersOnlyNote: (group: string) =>
+        `هذه المباراة لأعضاء ${group}، فأخذ المقعد يضمّك إلى المجموعة أيضًا.`,
+      levelNote:
+        "أنت خارج نطاق المستوى، لذا يُسأل المنظّم. عند الموافقة تُجلس حيث اخترت.",
+      seatLabel: (team: string, side: string) => `${team}، ${side}`,
+      ctaSit: (seat: string) => `اجلس في ${seat}`,
+      ctaSitPlain: "خذ المقعد",
+      ctaRequest: (seat: string) => `اطلب المقعد، ${seat}`,
+      ctaRequestPlain: "اطلب المقعد",
+      ctaJoin: "الانضمام إلى المباراة",
+    },
     group: {
       sharedBy: (name: string) => `شاركها ${name}.`,
       notInYet: (group: string) => `لست عضوًا في ${group} بعد.`,
@@ -131,6 +233,8 @@ export const mobileInvite = {
       withdrawnToast: "سُحب الطلب",
       waitingTitle: "بانتظار المنظّمين",
       waitingSubline: "تبقى المباراة ظاهرة لك في الأثناء",
+      approvalRequired:
+        "منظّمو هذه المجموعة يوافقون على الأعضاء الجدد. أرسل طلب انضمام أولًا.",
     },
   },
   inbox: {

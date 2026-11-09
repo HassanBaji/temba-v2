@@ -3,6 +3,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { gameTeamPlayers, games, matchResultConfirmations } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
+import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 import { type db } from "#src/db";
 import { type MatchRow } from "#src/games/utils";
@@ -230,10 +231,27 @@ export async function matchSlotsConfirmed(
 }
 
 /**
+ * One player from each side agrees a football Match and a drawn tournament's
+ * Match (ADR-0062): the team that entered the score, then one tap from the
+ * other team.
+ */
+export function confirmsBySide(game: {
+  sport: string | null;
+  format: string;
+  poolCount: number | null;
+  tournamentShape: string | null;
+}) {
+  return (
+    isFootballGame(game) ||
+    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
+  );
+}
+
+/**
  * Whether the Match's result is agreed: every seated User with an account on
  * a padel Match's two Game teams, or one player from each side of a football
- * Match. A side with no account holder is agreed by an Organizer's
- * confirmation.
+ * or drawn tournament Match. A side with no account holder is agreed by an
+ * Organizer's confirmation.
  */
 export async function matchResultFullyConfirmed(
   database: DbClient,
@@ -241,9 +259,14 @@ export async function matchResultFullyConfirmed(
 ): Promise<boolean> {
   const game = await database.query.games.findFirst({
     where: eq(games.id, match.gameId),
-    columns: { sport: true },
+    columns: {
+      sport: true,
+      format: true,
+      poolCount: true,
+      tournamentShape: true,
+    },
   });
-  if (game && isFootballGame(game)) {
+  if (game && confirmsBySide(game)) {
     const sides = await matchSlotsConfirmed(database, match);
     return sides.slot1 && sides.slot2;
   }

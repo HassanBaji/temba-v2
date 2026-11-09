@@ -1,40 +1,59 @@
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import {
-  teamDissolveConfirm,
-  teamHomeView,
-  teamLeaveConfirm,
-} from "@repo/domain/teams";
-import { useRouter } from "expo-router";
+import { sportOrDefault } from "@repo/domain/sport";
+import { teamDetailView } from "@repo/domain/team-detail";
+import { teamDissolveConfirm, teamLeaveConfirm } from "@repo/domain/teams";
+import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
+import { Share } from "react-native";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
+import { gamePath } from "../games/games-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
+import { playerPath } from "../player-profile/player-path";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { useToast } from "../primitives/toast";
+import { rematchPath } from "../challenges/challenges-model";
+import { groupPath } from "../groups/groups-model";
 import { api } from "../trpc/react";
-import { TEAMS_PATH } from "./teams-model";
-import { TeamHomeView } from "./team-home-view";
+import { TEAMS_PATH, postChallengePath, teamPath } from "./teams-model";
+import { TeamAddPlayersSheet } from "./team-add-players-sheet";
+import { TeamDetailBody, TeamHero, type TeamMenuItem } from "./team-home-view";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function TeamHomeScreen({ teamId }: { teamId: string }) {
   const router = useRouter();
+  const segments = useSegments();
   const toast = useToast();
   const m = useMessages();
   const locale = useLocale();
   const utils = api.useUtils();
+  const [now] = useState(() => new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const team = api.teams.byId.useQuery({ id: teamId }, REFETCH_ON_FOREGROUND);
   const data = team.data;
+  const organized = api.games.listCreateGroups.useQuery(undefined, {
+    enabled: addOpen,
+  });
+
+  const removeUnclaimed = api.teams.removeUnclaimedPlayer.useMutation({
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+    onSettled: () => setConfirm(null),
+  });
 
   const dissolve = api.teams.dissolve.useMutation({
     onSuccess: async () => {
@@ -62,6 +81,27 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     onSettled: () => setConfirm(null),
   });
 
+  const setGroupTag = api.teams.setGroupTag.useMutation({
+    onError: (error) => {
+      setActionError(error.message);
+      toast.show(error.message);
+    },
+  });
+
+  function changeGroupTag(groupId: string | null, message: string) {
+    setActionError(null);
+    setGroupTag.mutate(
+      { teamId, groupId },
+      {
+        onSuccess: () => {
+          toast.show(message);
+          void utils.teams.byId.invalidate({ id: teamId });
+          void utils.groups.byId.invalidate();
+        },
+      },
+    );
+  }
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -71,7 +111,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     }
   }, [team]);
 
-  const view = data ? teamHomeView(data, locale) : null;
+  const detail = data ? teamDetailView(data, now, locale) : null;
   const header = <ScreenHeader nav="back" fallback={TEAMS_PATH} />;
 
   if (isNotFoundError(team.error)) {
@@ -106,7 +146,7 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     );
   }
 
-  if (!data || !view) {
+  if (!data || !detail) {
     return (
       <Screen>
         {header}
@@ -117,31 +157,159 @@ export function TeamHomeScreen({ teamId }: { teamId: string }) {
     );
   }
 
+  const view = detail.home;
+  const groupTag = data.groupTag;
+  const menuCandidates: (TeamMenuItem | null)[] = [
+    groupTag && detail.openGroupLabel
+      ? {
+          key: "group",
+          label: detail.openGroupLabel,
+          onPress: () => router.push(groupPath(groupTag.id)),
+        }
+      : null,
+    view.canInvite
+      ? {
+          key: "invite",
+          label: view.inviteLabel,
+          onPress: () => setInviteOpen(true),
+        }
+      : null,
+    ...view.groupTag.options.map((option) => ({
+      key: `tag-${option.groupId}`,
+      label: option.label,
+      disabled: setGroupTag.isPending,
+      onPress: () => changeGroupTag(option.groupId, option.toast),
+    })),
+    view.groupTag.remove
+      ? {
+          key: "untag",
+          label: view.groupTag.remove.label,
+          disabled: setGroupTag.isPending,
+          onPress: () => {
+            if (view.groupTag.remove) {
+              changeGroupTag(null, view.groupTag.remove.toast);
+            }
+          },
+        }
+      : null,
+    view.canLeave
+      ? {
+          key: "leave",
+          label: m.team.leaveLabel,
+          tone: "danger" as const,
+          onPress: () => {
+            setActionError(null);
+            setConfirm({
+              ...teamLeaveConfirm(view.title, locale),
+              onConfirm: () => leave.mutate({ teamId }),
+            });
+          },
+        }
+      : null,
+    view.canDissolve
+      ? {
+          key: "dissolve",
+          label: m.team.dissolveLabel,
+          tone: "danger" as const,
+          onPress: () => {
+            setActionError(null);
+            setConfirm({
+              ...teamDissolveConfirm(view.title, locale),
+              onConfirm: () => dissolve.mutate({ teamId }),
+            });
+          },
+        }
+      : null,
+  ];
+  const menuItems = menuCandidates.filter(
+    (item): item is TeamMenuItem => item != null,
+  );
+
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh}>
-      <TeamHomeView
-        view={view}
-        sport={data.sport}
-        confirm={confirm}
-        confirmPending={dissolve.isPending || leave.isPending}
+    <Screen
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      statusBarTone="ink"
+      header={
+        <TeamHero
+          hero={detail.hero}
+          onMenu={menuItems.length > 0 ? () => setMenuOpen(true) : null}
+          onPost={() => router.push(postChallengePath(teamId))}
+          onInvite={() => setInviteOpen(true)}
+          onShare={() => {
+            if (detail.hero.share) {
+              void Share.share({ message: detail.hero.share.text });
+            }
+          }}
+        />
+      }
+    >
+      <TeamDetailBody
+        detail={detail}
+        formTitle={m.team.form.title}
+        rivalsTitle={m.team.rivals.title}
+        gamesTitle={m.team.games.title}
         actionError={actionError}
-        onInvite={() => setInviteOpen(true)}
-        onDissolve={() => {
-          setActionError(null);
-          setConfirm({
-            ...teamDissolveConfirm(view.title, locale),
-            onConfirm: () => dissolve.mutate({ teamId }),
-          });
+        confirm={confirm}
+        confirmPending={
+          dissolve.isPending || leave.isPending || removeUnclaimed.isPending
+        }
+        menu={{
+          visible: menuOpen,
+          items: menuItems,
+          onClose: () => setMenuOpen(false),
         }}
-        onLeave={() => {
+        onOpenTeam={(id) => router.push(teamPath(id))}
+        onRematch={(opponentTeamId) =>
+          router.push(rematchPath(teamId, opponentTeamId))
+        }
+        onOpenPlayer={(userId) => router.push(playerPath(segments, userId))}
+        onOpenGame={(gameId) => router.push(gamePath(gameId))}
+        onOpenSeat={() => {
+          if (detail.members.openSeat?.action === "add") {
+            setAddOpen(true);
+          } else {
+            setInviteOpen(true);
+          }
+        }}
+        onRemoveMember={(remove) => {
           setActionError(null);
           setConfirm({
-            ...teamLeaveConfirm(view.title, locale),
-            onConfirm: () => leave.mutate({ teamId }),
+            ...remove.confirm,
+            onConfirm: () =>
+              removeUnclaimed.mutate(
+                { teamId, userId: remove.userId },
+                {
+                  onSuccess: () => {
+                    toast.show(remove.toast);
+                    void utils.teams.byId.invalidate({ id: teamId });
+                  },
+                },
+              ),
           });
         }}
         onCloseConfirm={() => setConfirm(null)}
       />
+      {data.canInvite ? (
+        <TeamAddPlayersSheet
+          visible={addOpen}
+          onClose={() => setAddOpen(false)}
+          sport={data.sport}
+          spotsLeft={Math.max(0, data.roster.max - data.roster.count)}
+          groups={(organized.data ?? []).filter(
+            (group) => group.sport === sportOrDefault(data.sport),
+          )}
+          target={{
+            kind: "team",
+            teamId,
+            onChanged: () =>
+              Promise.all([
+                utils.teams.byId.invalidate({ id: teamId }),
+                utils.teams.listInAppInvites.invalidate({ teamId }),
+              ]),
+          }}
+        />
+      ) : null}
       {data.canInvite ? (
         <InviteDoorSheet
           visible={inviteOpen}

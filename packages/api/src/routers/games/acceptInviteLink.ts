@@ -42,8 +42,10 @@ export async function acceptInviteLink(
     token: string;
     userId: string;
     sideIndex?: number;
-    position?: "left" | "right";
+    position?: "left" | "right" | "either";
     football?: { role: FootballRole; position: FootballPosition };
+    /** False sits as a guest on a public Game without joining its Group. */
+    joinGroup?: boolean;
     locale?: Locale;
   },
 ) {
@@ -96,7 +98,9 @@ export async function acceptInviteLink(
   }
 
   const { accepted, joinedGroup } = await database.transaction(async (tx) => {
-    const group = await admitInviteeToGroup(tx, game, args.userId);
+    const group = await admitInviteeToGroup(tx, game, args.userId, locale, {
+      joinGroup: args.joinGroup,
+    });
     const accepted = await acceptLink(tx, "game", {
       token: args.token,
       userId: args.userId,
@@ -161,13 +165,14 @@ export const acceptInviteLinkProcedure = protectedProcedure
     z.object({
       token: z.string().min(1).max(64),
       sideIndex: z.number().int().min(1).optional(),
-      position: z.enum(["left", "right"]).optional(),
+      position: z.enum(["left", "right", "either"]).optional(),
       football: z
         .object({
           role: footballRoleSchema,
           position: footballPositionSchema,
         })
         .optional(),
+      joinGroup: z.boolean().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -178,6 +183,7 @@ export const acceptInviteLinkProcedure = protectedProcedure
       sideIndex: input.sideIndex,
       position: input.position,
       football: input.football,
+      joinGroup: input.joinGroup,
       locale: ctx.locale,
     });
   });

@@ -35,6 +35,104 @@ export const mobileInvite = {
     teamsSet: "Set",
     teamsByOrganizer: "Made by the organizer",
     fromALink: "From a link",
+    hero: {
+      countIn: (inCount: number, seats: number | null) =>
+        seats == null ? `${inCount} in` : `${inCount} of ${seats} in`,
+      priceEach: (price: string) => `${price} each`,
+      openSeatA11y: "Open seat",
+      rosterA11y: (inCount: number, seats: number | null) =>
+        seats == null
+          ? plural("en", inCount, {
+              one: "1 player in",
+              other: "{n} players in",
+            })
+          : `${inCount} of ${seats} seats taken`,
+      organizerRow: "Organizer",
+      levelFits: (range: string) => `${range}, yours fits`,
+      levelOutside: (range: string) => `${range}, outside yours`,
+      memberNote: (group: string) => `${group}. You're a member.`,
+      joinedNote: (group: string) => `${group}. You joined today.`,
+      levelCard: {
+        fits: (range: string, yours: string) =>
+          `This game is ${range}. You're ${yours}, so you fit.`,
+        outside: (range: string, yours: string) =>
+          `This game is ${range}. You're ${yours}, so joining asks the organizer.`,
+        noLevel: (range: string) =>
+          `This game is ${range}. Set your level to see if you fit.`,
+        signedOut: (range: string) =>
+          `This game is ${range}. Sign in to see if you fit, or create an account in a minute. The seat waits.`,
+        asksFirst: "Joining asks about the group first.",
+      },
+      notMemberYet: (sharer: string | null) =>
+        sharer
+          ? `Shared by ${sharer}. You're not a member yet.`
+          : "You're not a member yet.",
+      formatRow: "Format",
+      rated: "Counts for rating",
+      unrated: "Doesn't count for rating",
+      courtRow: "Court",
+      payAtVenue: (court: string | null) =>
+        court ? `${court}, pay at the venue` : "Pay at the venue",
+      linkRow: "Link",
+      linkUntil: (when: string) =>
+        `Works until ${when} or until the seats fill`,
+      linkOpen: "Works until the seats fill",
+      signInToJoin: "Sign in to join",
+      signInSubline: "Your phone number and a minute",
+      playingTitle: "You're in this game",
+      share: "Share",
+      openGameTitle: "Open the game",
+      tapASeat: "tap a seat, pick your side after",
+      sitHere: "Sit here",
+      openSeat: {
+        leftOrEither: (side: string) => `${side}, or either`,
+        anySide: (team: string) => `${team}, any side`,
+      },
+      sitHereFootball: (seats: string) =>
+        `${seats}. Pick your role and position next`,
+      barSheetPadel: "Team, side and the group, in one sheet",
+      barSheetFootball: "Role, position and the group, in one sheet",
+    },
+    joinSheet: {
+      title: "Sit here",
+      leadPadel:
+        "Same as joining in the app. Pick a team, and a side if you like.",
+      leadPadelFrom: (seat: string) =>
+        `Same as joining in the app. ${seat}, from where you tapped.`,
+      leadFootball: (when: string) =>
+        `Same as joining in the app. Teams are made ${when}, so you pick a role and a preferred position, not a team.`,
+      leadFootballNoTeams:
+        "Same as joining in the app. Pick a role and a preferred position; teams come later.",
+      team: "Team",
+      teamWith: (names: string, seats: string) => `with ${names}, ${seats}`,
+      teamEmpty: (seats: string) => `empty, ${seats}`,
+      teamFull: "full",
+      seats: (n: number) =>
+        plural("en", n, { one: "1 seat", other: "{n} seats" }),
+      side: "Side",
+      sideOptional: "optional",
+      sideUsual: (side: string) => `optional, your usual is ${side}`,
+      either: "Either",
+      sideHint: (team: string, other: string) =>
+        `Whoever joins ${team} next takes ${other}, or picks nothing and plays ${other} by default.`,
+      alsoJoin: (group: string) => `Also join ${group}`,
+      openPolicy: (members: string) =>
+        `Anyone with the link can join. ${members}.`,
+      approvalPolicy:
+        "Organizers approve new members. Your seat is held 24 hours while they decide.",
+      offNote:
+        "Off means you sit as a guest for this game only. Members see you in the line-up either way.",
+      membersOnlyNote: (group: string) =>
+        `This game is for members of ${group}, so taking the seat joins the group too.`,
+      levelNote:
+        "You're outside the level range, so this asks the organizer. Approval seats you where you chose.",
+      seatLabel: (team: string, side: string) => `${team}, ${side}`,
+      ctaSit: (seat: string) => `Sit in ${seat}`,
+      ctaSitPlain: "Take the seat",
+      ctaRequest: (seat: string) => `Request the seat, ${seat}`,
+      ctaRequestPlain: "Request the seat",
+      ctaJoin: "Join the game",
+    },
     group: {
       sharedBy: (name: string) => `Shared by ${name}.`,
       notInYet: (group: string) => `You're not in ${group} yet.`,
@@ -110,6 +208,8 @@ export const mobileInvite = {
       withdrawnToast: "Request withdrawn",
       waitingTitle: "Waiting on the organizers",
       waitingSubline: "The game stays visible to you meanwhile",
+      approvalRequired:
+        "This group's organizers approve new members. Send a request to join first.",
     },
   },
   inbox: {

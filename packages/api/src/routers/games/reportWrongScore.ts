@@ -9,10 +9,14 @@ import {
   levelOverrides,
   MatchStatusEnum,
   matches,
+  matchGoals,
   matchResultConfirmations,
+  matchSets,
   ratingEvents,
   ratings,
 } from "@repo/db";
+
+import { isFootballGame } from "@repo/domain/game-shape";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -119,6 +123,9 @@ export async function reportWrongScore(
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);
   await assertGameOrganizer(database, game, args.userId);
+  // A football Challenge Game is Unrated, so nothing needs reversing: the
+  // report clears its Score, which reopens both squads (ADR-0060).
+  const clearsScore = game.challengeId != null && isFootballGame(game);
 
   if (match.status !== MatchStatusEnum.COMPLETED) {
     throw new TRPCError({
@@ -151,8 +158,10 @@ export async function reportWrongScore(
       });
     }
 
-    const eligibility = await wrongScoreReversalEligibility(tx, locked.id);
-    if (!eligibility.eligible) {
+    const eligibility = clearsScore
+      ? null
+      : await wrongScoreReversalEligibility(tx, locked.id);
+    if (eligibility && !eligibility.eligible) {
       throw new TRPCError({
         code: "CONFLICT",
         message: eligibility.reason,
@@ -216,6 +225,13 @@ export async function reportWrongScore(
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));
+    if (clearsScore) {
+      await tx
+        .update(matchSets)
+        .set({ slot1GamesWon: null, slot2GamesWon: null, updatedAt: now })
+        .where(eq(matchSets.matchId, locked.id));
+      await tx.delete(matchGoals).where(eq(matchGoals.matchId, locked.id));
+    }
     await tx
       .update(matches)
       .set({

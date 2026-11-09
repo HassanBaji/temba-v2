@@ -1,9 +1,50 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import {
+  footballPositionCode,
+  type FootballPosition,
+  type FootballRole,
+} from "./football-lineup";
+import { formatGameSideLabel } from "./game-side-label";
 import { groupDisplayName } from "./group-join";
 import { formatLevelTenths } from "./level-range";
 import { requestRowMeta } from "./request-meta";
+
+/** The seat a requester asked for: a padel Position, or a football role and position. */
+export type HeldSeat =
+  | {
+      kind: "position";
+      sideIndex: number;
+      position: "left" | "right" | "either";
+    }
+  | { kind: "football"; role: FootballRole; position: FootballPosition };
+
+/** `Team B, Left`, `Team A, Either`, `Keeper`, `DEF`; null when no seat was picked. */
+export function heldSeatLabel(
+  seat: HeldSeat | null | undefined,
+  locale: Locale,
+) {
+  if (!seat) {
+    return null;
+  }
+  const m = messagesFor(locale);
+  if (seat.kind === "football") {
+    return seat.role === "keeper"
+      ? m.group.addPlayer.footballRole.keeper.name
+      : footballPositionCode(seat.position, locale);
+  }
+  const side =
+    seat.position === "either"
+      ? m.mobileInvite.link.joinSheet.either
+      : seat.position === "left"
+        ? m.game.court.left
+        : m.game.court.right;
+  return m.mobileInvite.link.joinSheet.seatLabel(
+    formatGameSideLabel("friendly_game", seat.sideIndex, locale),
+    side,
+  );
+}
 
 /** A pending Group join request that holds a seat on this Game (ADR-0057). */
 export type SeatHoldRequestRow = {
@@ -15,6 +56,7 @@ export type SeatHoldRequestRow = {
   groupName: string | null;
   levelTenths: number | null;
   provisional: boolean;
+  heldSeat?: HeldSeat | null;
 };
 
 const MS_PER_MINUTE = 60 * 1000;
@@ -40,6 +82,16 @@ export function seatHoldRemainingLabel(
     : m.heldHours(Math.floor(minutes / 60));
 }
 
+/** `Wants the seat and to join Gooz of Arad`, or `Wants to join Gooz of Arad, no seat`. */
+function askOf(
+  request: Pick<SeatHoldRequestRow, "groupName" | "seatHeldUntil">,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.requests;
+  const group = groupDisplayName(request.groupName, locale);
+  return request.seatHeldUntil ? m.seatAndGroup(group) : m.groupOnly(group);
+}
+
 /** `C− · Wants the seat and to join Gooz of Arad · Came through Yousif's link · held 21h · Requested today`. */
 export function seatHoldRequestRowMeta(
   request: SeatHoldRequestRow,
@@ -53,7 +105,7 @@ export function seatHoldRequestRowMeta(
     [
       formatLevelTenths(request.levelTenths) ?? m.level.request.noLevel,
       request.provisional ? m.level.request.provisional : null,
-      m.game.requests.seatAndGroup(groupDisplayName(request.groupName, locale)),
+      askOf(request, locale),
       request.invitedBy?.name
         ? m.game.requests.viaLinkFrom(request.invitedBy.name)
         : m.game.requests.viaLink,
@@ -61,6 +113,26 @@ export function seatHoldRequestRowMeta(
     ],
     now,
   );
+}
+
+/** `Wants the seat and to join Gooz of Arad. Came through Yousif's link.` */
+export function seatHoldRequestDetail(
+  request: Pick<
+    SeatHoldRequestRow,
+    "groupName" | "invitedBy" | "seatHeldUntil" | "heldSeat"
+  >,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.requests;
+  const seat = request.seatHeldUntil
+    ? heldSeatLabel(request.heldSeat, locale)
+    : null;
+  return [
+    seat ? `${askOf(request, locale)} (${seat})` : askOf(request, locale),
+    request.invitedBy?.name ? m.viaLinkFrom(request.invitedBy.name) : m.viaLink,
+  ]
+    .map((sentence) => m.sentence(sentence))
+    .join(" ");
 }
 
 /** `2 waiting, seats held`, `1 waiting`, or the empty line. */

@@ -59,6 +59,12 @@ export const notification = {
       plain(" changed your side on "),
       strong(game),
     ],
+    matchScoreToConfirm: (actor: string, game: string) => [
+      strong(actor),
+      plain(" entered your score in "),
+      strong(game),
+      plain(". Confirm it or correct it"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("We linked "),
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),
@@ -137,6 +143,70 @@ export const notification = {
       plain(" declined your request to play "),
       strong(game),
     ],
+    teamInviteReceived: (actor: string, team: string) => [
+      strong(actor),
+      plain(" invited you to "),
+      strong(team),
+    ],
+    teamInviteReceivedUnnamed: (actor: string) => [
+      strong(actor),
+      plain(" invited you to their Team"),
+    ],
+    challengeExpired: (team: string) => [
+      plain("The challenge from "),
+      strong(team),
+      plain(" expired"),
+    ],
+    challengeExpiredUnnamed: [plain("Your Team's challenge expired")],
+    challengeProposalReceived: (team: string) => [
+      strong(team),
+      plain(" proposed a time for your challenge"),
+    ],
+    challengeProposalReceivedUnnamed: [
+      plain("A Team proposed a time for your challenge"),
+    ],
+    challengeProposalDeclined: (team: string) => [
+      strong(team),
+      plain(" asked for another time"),
+    ],
+    challengeProposalDeclinedUnnamed: [
+      plain("Your proposal was declined: another time"),
+    ],
+    challengeProposalExpired: (team: string) => [
+      plain("Your proposal to "),
+      strong(team),
+      plain(" expired"),
+    ],
+    challengeProposalExpiredUnnamed: [plain("Your Team's proposal expired")],
+    challengeProposalConfirmed: (team: string) => [
+      plain("It's a game: you play "),
+      strong(team),
+    ],
+    challengeProposalConfirmedUnnamed: [plain("Your challenge is a game")],
+    challengeProposalPassedOver: (team: string) => [
+      strong(team),
+      plain(" confirmed another proposal"),
+    ],
+    challengeProposalPassedOverUnnamed: [
+      plain("Another proposal was confirmed"),
+    ],
+    challengeSquadDue: (team: string) => [
+      plain("Name your squad for the game against "),
+      strong(team),
+    ],
+    challengeSquadDueUnnamed: [plain("Name your squad for the game")],
+    challengeSquadNamed: (team: string) => [
+      plain("You're in the squad to play "),
+      strong(team),
+    ],
+    challengeSquadNamedUnnamed: [plain("You're in the squad for a challenge")],
+    challengeRematchNudge: (team: string) => [
+      strong(team),
+      plain(" challenged you to a rematch"),
+    ],
+    challengeRematchNudgeUnnamed: [
+      plain("A Team you've played challenged you to a rematch"),
+    ],
   },
   subline: {
     everyMatchIn: "Every Match is in.",
@@ -145,6 +215,17 @@ export const notification = {
     decideOnGame: "Approve or decline on the Game.",
     decideOnGroup: "Approve or decline on the Group.",
     takeYourSeat: "You can join the Game now.",
+    acceptInTeams: "Accept or decline it in Teams.",
+    postAgain: "No proposal came in. Post again from Challenges.",
+    confirmOrAnotherTime:
+      "Confirm it, or ask for another time, within 48 hours.",
+    proposeAgain: "Send a new proposal while the challenge is open.",
+    bothPairsSeated: "Both pairs are seated. See the Game.",
+    nameYourSquad: "Name your squad from the Roster.",
+    findAnother: "Find another challenge on the open board.",
+    kickOffTomorrow: "Kick-off is in 24 hours.",
+    seeWhoIsNamed: "See the Game and who else is named.",
+    acceptRematch: "Accept it to propose a time and a venue.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

@@ -100,6 +100,7 @@ export function createGroupFixtures(now = new Date()) {
       id: "group-bromma",
       name: "Bromma Tuesday",
       imageUrl: "/api/media/group-images/group-bromma/image?v=1",
+      sport: "padel",
       memberCount: 14,
       standingPosition: 3,
       nextGameStartTime: new Date(now.getTime() + 2 * DAY_MS),
@@ -109,6 +110,7 @@ export function createGroupFixtures(now = new Date()) {
       id: "group-new",
       name: "Sunday Smash",
       imageUrl: null,
+      sport: "football",
       memberCount: 1,
       standingPosition: null,
       nextGameStartTime: null,
@@ -118,6 +120,7 @@ export function createGroupFixtures(now = new Date()) {
       id: "group-unnamed",
       name: null,
       imageUrl: null,
+      sport: null,
       memberCount: 6,
       standingPosition: 5,
       nextGameStartTime: null,
@@ -287,6 +290,8 @@ export function createGroupFixtures(now = new Date()) {
     canTransferOwnership: false,
     canChangeSport: false,
     pendingJoinRequestCount: 0,
+    teams: [],
+    canCreateTeam: false,
   };
 
   const creator: GroupHomeData = {

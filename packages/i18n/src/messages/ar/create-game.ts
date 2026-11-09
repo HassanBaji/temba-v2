@@ -170,6 +170,8 @@ export const createGame = {
     join: "🔗 انضم:",
     players: "👕 اللاعبون",
     keepers: "🧤 حراس المرمى",
+    level: (range: string) => `📊 المستوى: ${range}`,
+    waitlist: "⏳ قائمة الانتظار",
   },
   openGraph: {
     genericTitle: "Temba - مستقبل الرياضات التنافسية",

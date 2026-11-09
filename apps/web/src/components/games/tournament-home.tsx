@@ -1,20 +1,30 @@
 "use client";
 
 import {
+  Ban,
+  RotateCcwIcon,
   LockIcon,
   LockOpenIcon,
+  PencilIcon,
   Share2Icon,
   UserMinusIcon,
   UserPlusIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
-import { ACTION_MENU_PAPER_BOXED_TRIGGER } from "~/components/common/action-menu";
-import { FooterAction } from "~/components/games/footer-action";
-import { GameActionsSheet } from "~/components/games/game-actions-sheet";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import {
+  ACTION_MENU_INK_BOXED_TRIGGER,
+  ACTION_MENU_PAPER_BOXED_TRIGGER,
+} from "~/components/common/action-menu";
+import {
+  GameActionsSheet,
+  type GameActionsSheetRow,
+} from "~/components/games/game-actions-sheet";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
+import { TournamentDrawnHome } from "~/components/games/tournament-drawn-home";
 import {
   TournamentDrawDrawer,
   TournamentDrawEntry,
@@ -105,6 +115,7 @@ export function TournamentHome({
   onUndo,
   onCancelKnockoutMatch,
   linkToPlayers = false,
+  roundsPreview,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -149,11 +160,13 @@ export function TournamentHome({
   onUndo: () => void | Promise<void>;
   onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
   linkToPlayers?: boolean;
+  roundsPreview?: ComponentProps<typeof TournamentDrawnHome>["preview"];
 }) {
   const m = useMessages();
   const locale = useLocale();
   const [mergeOpen, setMergeOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const [undoOpen, setUndoOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const view = tournamentHomeView(data, locale);
   const { partnerRequired, joinKind, drawn, schedule } = view;
@@ -168,9 +181,43 @@ export function TournamentHome({
   const showDrawEntry = organizer.showDrawEntry;
   const showUndo = organizer.showUndo;
 
+  const roundsAsYouGo = drawn && !view.knockoutOnly;
   const canJoin = view.canJoin && Boolean(onJoin);
   const canJoinWaitlist = view.canWaitlist && Boolean(onJoinWaitlist);
   const showJoinBar = canJoin || canJoinWaitlist;
+
+  const actionsMenu = (ink: boolean) =>
+    isOrganizerActive ? (
+      <TournamentActionsMenu
+        title={view.hero.name}
+        description={view.hero.startLine}
+        ink={ink}
+        registrationClosed={Boolean(data.registrationClosedAt)}
+        closePending={closePending}
+        reopenPending={reopenPending}
+        kickPending={kickPending}
+        sharePending={sharePending}
+        kickableOccupants={kickableTournamentOccupants(data)}
+        waitlist={data.waitlist}
+        onShare={drawn ? onShare : undefined}
+        onEdit={onEdit}
+        onCloseRegistration={onCloseRegistration}
+        onReopenRegistration={onReopenRegistration}
+        onCancelGame={onCancelGame}
+        onKick={onKick}
+        onKickWaitlist={onKickWaitlist}
+        onAddPlayer={onAddPlayer}
+        undoDraw={
+          roundsAsYouGo
+            ? {
+                locked: !data.canUndoDraw,
+                pending: undoPending,
+                onSelect: () => setUndoOpen(true),
+              }
+            : undefined
+        }
+      />
+    ) : null;
 
   return (
     <div
@@ -180,7 +227,41 @@ export function TournamentHome({
         canJoin && canJoinWaitlist && "max-lg:pb-36",
       )}
     >
-      {drawn ? (
+      {roundsAsYouGo ? (
+        <>
+          <TournamentDrawnHome
+            data={data}
+            standings={tournamentStandingsView(data, locale)}
+            backHref={backHref}
+            actions={actionsMenu(true)}
+            gameTeams={linkToPlayers ? data.gameTeams : undefined}
+            onCancelMatch={
+              isOrganizerActive ? onCancelKnockoutMatch : undefined
+            }
+            preview={roundsPreview}
+          />
+          <ConfirmDialog
+            open={undoOpen}
+            onOpenChange={setUndoOpen}
+            title={m.tournament.poolDraw.undoConfirmTitle}
+            description={m.tournament.poolDraw.undoConfirmCopy}
+            confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
+            pending={undoPending}
+            onConfirm={async () => {
+              try {
+                await onUndo();
+              } catch {
+                // The page shows the failure as a toast.
+              }
+            }}
+          />
+          {undoError ? (
+            <p role="alert" className="text-destructive text-meta">
+              {undoError.message}
+            </p>
+          ) : null}
+        </>
+      ) : drawn ? (
         <TournamentStandingsTree
           standings={tournamentStandingsView(data, locale)}
           poolTables={data.poolTables}
@@ -192,6 +273,7 @@ export function TournamentHome({
           undoError={undoError}
           onUndo={onUndo}
           onCancelMatch={isOrganizerActive ? onCancelKnockoutMatch : undefined}
+          actions={actionsMenu(false)}
         />
       ) : (
         <>
@@ -209,6 +291,7 @@ export function TournamentHome({
             onShare={onShare}
             sharePending={sharePending}
             onInvite={onInvite}
+            actions={actionsMenu(true)}
           />
           <TournamentPredrawTree
             sides={data.sides}
@@ -274,34 +357,16 @@ export function TournamentHome({
       </p>
 
       <TournamentHomeActions
-        title={view.hero.name}
-        description={view.hero.startLine}
         joinKind={joinKind}
         isWaitlisted={data.isWaitlisted}
-        isOrganizerActive={isOrganizerActive}
-        onInvite={drawn ? onInvite : undefined}
-        onShare={drawn ? onShare : undefined}
-        sharePending={sharePending}
-        registrationClosed={Boolean(data.registrationClosedAt)}
+        onInvite={isOrganizerActive && drawn ? onInvite : undefined}
         leavePending={leavePending}
-        closePending={closePending}
-        reopenPending={reopenPending}
-        kickPending={kickPending}
-        kickableOccupants={kickableTournamentOccupants(data)}
-        waitlist={data.waitlist}
         eligibleTeams={data.eligibleTeams}
         teamId={teamId}
         onTeamIdChange={onTeamIdChange}
         onRegisterTeam={onRegisterTeam}
         registerTeamPending={registerTeamPending}
         onLeaveWaitlist={onLeaveWaitlist}
-        onEdit={onEdit}
-        onCloseRegistration={onCloseRegistration}
-        onReopenRegistration={onReopenRegistration}
-        onCancelGame={onCancelGame}
-        onKick={onKick}
-        onKickWaitlist={onKickWaitlist}
-        onAddPlayer={onAddPlayer}
       />
 
       <GameLevelRangePanel game={data} />
@@ -488,6 +553,7 @@ function TournamentStandingsTree({
   undoError,
   onUndo,
   onCancelMatch,
+  actions,
 }: {
   standings: TournamentStandingsView;
   poolTables: GameDetail["poolTables"];
@@ -499,12 +565,14 @@ function TournamentStandingsTree({
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  actions?: ReactNode;
 }) {
   const m = useMessages();
   return (
     <div className="space-y-6">
       <div>
         <TournamentStandingsHeader
+          actions={actions}
           name={standings.name}
           roundsPlayed={standings.roundsPlayed}
           finished={standings.finished}
@@ -613,67 +681,29 @@ function TournamentJoinBar({
 }
 
 function TournamentHomeActions({
-  title,
-  description,
   joinKind,
   isWaitlisted,
-  isOrganizerActive,
-  registrationClosed,
   leavePending,
-  closePending,
-  reopenPending,
-  kickPending,
-  sharePending,
-  kickableOccupants: kickable,
-  waitlist,
   eligibleTeams,
   teamId,
   onTeamIdChange,
   onRegisterTeam,
   registerTeamPending,
   onLeaveWaitlist,
-  onEdit,
-  onCloseRegistration,
-  onReopenRegistration,
-  onCancelGame,
-  onKick,
-  onKickWaitlist,
-  onAddPlayer,
   onInvite,
-  onShare,
 }: {
-  title: string;
-  description: string | null;
   joinKind: TournamentHomeJoinKind | null;
   isWaitlisted: boolean;
-  isOrganizerActive: boolean;
-  registrationClosed: boolean;
   leavePending: boolean;
-  closePending: boolean;
-  reopenPending: boolean;
-  kickPending: boolean;
-  sharePending?: boolean;
-  kickableOccupants: { userId: string; name: string }[];
-  waitlist: GameDetail["waitlist"];
   eligibleTeams: GameDetail["eligibleTeams"];
   teamId: string;
   onTeamIdChange: (teamId: string) => void;
   onRegisterTeam: (teamId: string) => void;
   registerTeamPending: boolean;
   onLeaveWaitlist?: () => void;
-  onEdit?: () => void;
-  onCloseRegistration?: () => void;
-  onReopenRegistration?: () => void;
-  onCancelGame?: () => void;
-  onKick?: (userId: string) => void;
-  onKickWaitlist?: (waitlistId: string) => void;
-  onAddPlayer?: () => void;
   onInvite?: () => void;
-  onShare?: () => void;
 }) {
   const m = useMessages();
-  const showKick =
-    isOrganizerActive && (kickable.length > 0 || waitlist.length > 0) && onKick;
 
   return (
     <div className="flex flex-col gap-2">
@@ -740,105 +770,167 @@ function TournamentHomeActions({
           {m.game.action.leaveWaitlist}
         </Button>
       ) : null}
-      {isOrganizerActive ? (
-        <>
-          <div className="flex items-center gap-2">
-            {onInvite ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 flex-1"
-                onClick={onInvite}
-              >
-                {m.tournament.home.inviteAction}
-              </Button>
-            ) : null}
-            <div className="ms-auto">
-              <GameActionsSheet
-                title={title}
-                description={description}
-                triggerClassName={ACTION_MENU_PAPER_BOXED_TRIGGER}
-                groups={[
-                  [
-                    ...(onAddPlayer
-                      ? [
-                          {
-                            key: "add_player",
-                            label: m.group.addPlayer.action,
-                            icon: UserPlusIcon,
-                            onSelect: onAddPlayer,
-                          },
-                        ]
-                      : []),
-                    ...(onShare
-                      ? [
-                          {
-                            key: "share",
-                            label: m.common.share,
-                            icon: Share2Icon,
-                            disabled: sharePending,
-                            onSelect: onShare,
-                          },
-                        ]
-                      : []),
-                    registrationClosed
-                      ? {
-                          key: "reopen_registration",
-                          label: m.game.action.reopenRegistration,
-                          icon: LockOpenIcon,
-                          disabled: reopenPending,
-                          onSelect: onReopenRegistration,
-                        }
-                      : {
-                          key: "close_registration",
-                          label: m.game.action.closeRegistration,
-                          icon: LockIcon,
-                          disabled: closePending,
-                          onSelect: onCloseRegistration,
-                        },
-                  ],
-                  showKick
-                    ? [
-                        ...kickable.map((occupant) => ({
-                          key: `kick-${occupant.userId}`,
-                          label: m.webTournament.kickName(occupant.name),
-                          icon: UserMinusIcon,
-                          tone: "danger" as const,
-                          disabled: kickPending,
-                          onSelect: () => onKick?.(occupant.userId),
-                        })),
-                        ...waitlist.map((entry) => ({
-                          key: `kick-waitlist-${entry.id}`,
-                          label: m.webTournament.kickFromWaitlist(entry.name),
-                          icon: UserMinusIcon,
-                          tone: "danger" as const,
-                          disabled: kickPending,
-                          onSelect: () => onKickWaitlist?.(entry.id),
-                        })),
-                      ]
-                    : [],
-                ]}
-              />
-            </div>
-          </div>
-          {onEdit || onCancelGame ? (
-            <div
-              data-slot="tournament-actions-footer"
-              className="border-rule divide-rule divide-y border-t"
-            >
-              {onEdit ? (
-                <FooterAction label={m.game.action.editGame} onClick={onEdit} />
-              ) : null}
-              {onCancelGame ? (
-                <FooterAction
-                  label={m.game.action.cancelGame}
-                  onClick={onCancelGame}
-                />
-              ) : null}
-            </div>
-          ) : null}
-        </>
+      {onInvite ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 w-full"
+          onClick={onInvite}
+        >
+          {m.tournament.home.inviteAction}
+        </Button>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Everything behind the ⋮ at the top of a Tournament: the Organizer's tools,
+ * then kicks, then cancelling the Game.
+ */
+function TournamentActionsMenu({
+  title,
+  description,
+  ink,
+  registrationClosed,
+  closePending,
+  reopenPending,
+  kickPending,
+  sharePending,
+  kickableOccupants: kickable,
+  waitlist,
+  onShare,
+  onEdit,
+  onCloseRegistration,
+  onReopenRegistration,
+  onCancelGame,
+  onKick,
+  onKickWaitlist,
+  onAddPlayer,
+  undoDraw,
+}: {
+  title: string;
+  description: string | null;
+  ink: boolean;
+  registrationClosed: boolean;
+  closePending: boolean;
+  reopenPending: boolean;
+  kickPending: boolean;
+  sharePending: boolean;
+  kickableOccupants: { userId: string; name: string }[];
+  waitlist: GameDetail["waitlist"];
+  onShare?: () => void;
+  onEdit?: () => void;
+  onCloseRegistration?: () => void;
+  onReopenRegistration?: () => void;
+  onCancelGame?: () => void;
+  onKick?: (userId: string) => void;
+  onKickWaitlist?: (waitlistId: string) => void;
+  onAddPlayer?: () => void;
+  undoDraw?: { locked: boolean; pending: boolean; onSelect: () => void };
+}) {
+  const m = useMessages();
+
+  const tools: GameActionsSheetRow[] = [];
+  if (onAddPlayer) {
+    tools.push({
+      key: "add_player",
+      label: m.group.addPlayer.action,
+      icon: UserPlusIcon,
+      onSelect: onAddPlayer,
+    });
+  }
+  if (onShare) {
+    tools.push({
+      key: "share",
+      label: m.common.share,
+      icon: Share2Icon,
+      disabled: sharePending,
+      onSelect: onShare,
+    });
+  }
+  tools.push(
+    registrationClosed
+      ? {
+          key: "reopen_registration",
+          label: m.game.action.reopenRegistration,
+          icon: LockOpenIcon,
+          disabled: reopenPending,
+          onSelect: onReopenRegistration,
+        }
+      : {
+          key: "close_registration",
+          label: m.game.action.closeRegistration,
+          icon: LockIcon,
+          disabled: closePending,
+          onSelect: onCloseRegistration,
+        },
+  );
+  if (onEdit) {
+    tools.push({
+      key: "edit",
+      label: m.game.action.editGame,
+      icon: PencilIcon,
+      onSelect: onEdit,
+    });
+  }
+
+  const kicks: GameActionsSheetRow[] = onKick
+    ? [
+        ...kickable.map((occupant) => ({
+          key: `kick-${occupant.userId}`,
+          label: m.webTournament.kickName(occupant.name),
+          icon: UserMinusIcon,
+          tone: "danger" as const,
+          disabled: kickPending,
+          onSelect: () => onKick(occupant.userId),
+        })),
+        ...waitlist.map((entry) => ({
+          key: `kick-waitlist-${entry.id}`,
+          label: m.webTournament.kickFromWaitlist(entry.name),
+          icon: UserMinusIcon,
+          tone: "danger" as const,
+          disabled: kickPending,
+          onSelect: () => onKickWaitlist?.(entry.id),
+        })),
+      ]
+    : [];
+
+  const undo: GameActionsSheetRow[] = undoDraw
+    ? [
+        {
+          key: "undo_draw",
+          label: undoDraw.locked
+            ? m.tournamentRounds.undo.locked
+            : m.tournamentRounds.undo.action,
+          icon: RotateCcwIcon,
+          tone: "danger",
+          disabled: undoDraw.locked || undoDraw.pending,
+          onSelect: undoDraw.onSelect,
+        },
+      ]
+    : [];
+
+  const cancel: GameActionsSheetRow[] = onCancelGame
+    ? [
+        {
+          key: "cancel_game",
+          label: m.game.action.cancelGame,
+          icon: Ban,
+          tone: "danger",
+          onSelect: onCancelGame,
+        },
+      ]
+    : [];
+
+  return (
+    <GameActionsSheet
+      title={title}
+      description={description}
+      triggerClassName={
+        ink ? ACTION_MENU_INK_BOXED_TRIGGER : ACTION_MENU_PAPER_BOXED_TRIGGER
+      }
+      groups={[tools, kicks, undo, cancel]}
+    />
   );
 }

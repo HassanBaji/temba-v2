@@ -218,7 +218,7 @@ export async function takeBackKnockoutWinner(
 
 type PlacementGame = Pick<
   GameRow,
-  "id" | "format" | "poolCount" | "tournamentShape"
+  "id" | "format" | "poolCount" | "tournamentShape" | "roundCount"
 >;
 
 function placesQualifiers(
@@ -295,6 +295,7 @@ export async function placeKnockoutQualifiers(
     poolCount: game.poolCount,
     viewerUserId: "",
     locale: DEFAULT_LOCALE,
+    storedRoundCount: game.roundCount,
     gameTeams: teamRows.map((team) => ({
       id: team.id,
       name: team.name,
@@ -313,7 +314,7 @@ export async function placeKnockoutQualifiers(
       sets: row.sets,
     })),
   });
-  if (!tables) {
+  if (!tables?.finished) {
     return;
   }
 

@@ -253,7 +253,7 @@ function occupants(match: {
 }
 
 describe("Pool Match play", () => {
-  it("lets a User enter Sets and the other Game team confirm, rating the Match", async () => {
+  it("lets a User enter Sets and one player of the other Game team confirm, rating the Match", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const seeded = await seedPostedTournament(db, "score");
@@ -286,23 +286,15 @@ describe("Pool Match play", () => {
       });
       expect(row?.status).not.toBe(MatchStatusEnum.COMPLETED);
 
-      for (const userId of otherTeam) {
-        await confirmMatchResult(db, {
-          gameId: seeded.gameId,
-          matchId: match.id,
-          userId,
-        });
+      const confirmer = otherTeam[0];
+      if (!confirmer) {
+        throw new Error("Expected an opponent");
       }
-      const partner = teams.slot1.includes(viewer.id)
-        ? teams.slot1.find((id) => id !== viewer.id)
-        : teams.slot2.find((id) => id !== viewer.id);
-      if (partner) {
-        await confirmMatchResult(db, {
-          gameId: seeded.gameId,
-          matchId: match.id,
-          userId: partner,
-        });
-      }
+      await confirmMatchResult(db, {
+        gameId: seeded.gameId,
+        matchId: match.id,
+        userId: confirmer,
+      });
 
       row = await db.query.matches.findFirst({
         where: eq(matches.id, match.id),
@@ -359,13 +351,17 @@ describe("Pool Match play", () => {
         slot2GamesWon: 6,
       });
 
-      for (const userId of everyone.filter((id) => id !== viewer.id)) {
-        await confirmMatchResult(db, {
-          gameId: seeded.gameId,
-          matchId: match.id,
-          userId,
-        });
+      const opponent = everyone.find(
+        (id) => teams.slot1.includes(viewer.id) !== teams.slot1.includes(id),
+      );
+      if (!opponent) {
+        throw new Error("Expected an opponent");
       }
+      await confirmMatchResult(db, {
+        gameId: seeded.gameId,
+        matchId: match.id,
+        userId: opponent,
+      });
 
       const row = await db.query.matches.findFirst({
         where: eq(matches.id, match.id),

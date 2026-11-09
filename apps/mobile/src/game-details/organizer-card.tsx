@@ -1,9 +1,10 @@
-import { spacing } from "@repo/design-tokens";
+import { radii, spacing } from "@repo/design-tokens";
 import { kickAction } from "@repo/domain/game-copy";
-import type {
-  FriendlyGameOrganizerPlan,
-  OrganizerRequest,
-} from "@repo/domain/friendly-game-organizer";
+import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
+import {
+  requestsQueueCounts,
+  type OrganizerRequest,
+} from "@repo/domain/game-requests";
 import { requestsQueueHeading } from "@repo/domain/seat-hold-request";
 import { Fragment } from "react";
 import { View } from "react-native";
@@ -13,7 +14,10 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
+import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { useColors } from "../theme/theme-provider";
+import type { RequestDecisions } from "./use-request-decisions";
 
 export type OrganizerHandlers = {
   registrationPending: boolean;
@@ -74,6 +78,132 @@ export function PersonRow({
   );
 }
 
+function RequestRow({
+  request,
+  deciding,
+  handlers,
+}: {
+  request: OrganizerRequest;
+  deciding: boolean;
+  handlers: Pick<RequestDecisions, "onApprove" | "onReject">;
+}) {
+  const m = useMessages();
+  const copy = m.mobileGameDetails.organizer;
+  return (
+    <View style={{ gap: 12, padding: spacing.surface }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+        <Avatar
+          name={request.name}
+          uri={request.image}
+          size="lg"
+          radius={radii.md}
+        />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "baseline",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <Text weight="semibold" numberOfLines={1}>
+              {request.name}
+            </Text>
+            {request.level ? (
+              <Text weight="bold" width="expanded">
+                {request.level}
+              </Text>
+            ) : null}
+          </View>
+          <Text size="meta" tone="muted">
+            {request.detail}
+          </Text>
+        </View>
+        {request.held ? (
+          <Text size="meta" tone="muted">
+            {request.held}
+          </Text>
+        ) : null}
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={copy.approve}
+            accessibilityLabel={copy.approveName(request.name)}
+            disabled={deciding}
+            pending={deciding}
+            onPress={() => handlers.onApprove(request)}
+          />
+        </View>
+        <Button
+          label={m.game.requests.decline}
+          accessibilityLabel={copy.rejectName(request.name)}
+          variant="outline"
+          disabled={deciding}
+          onPress={() => handlers.onReject(request)}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** Design "Join via link" 2a: link requests, then Level range requests, decided on the row. */
+export function RequestsSection({
+  requests,
+  decisions,
+}: {
+  requests: readonly OrganizerRequest[];
+  decisions: RequestDecisions;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const colors = useColors();
+  const counts = requestsQueueCounts(requests);
+  return (
+    <View style={{ gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text size="h2" weight="bold" accessibilityRole="header">
+          {m.game.requests.title}
+        </Text>
+        <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
+          {requestsQueueHeading(counts, locale)}
+        </Text>
+      </View>
+      {requests.length > 0 ? (
+        <Surface
+          padded={false}
+          radius="card"
+          style={{ overflow: "hidden", borderColor: colors.ink }}
+        >
+          {requests.map((request, index) => (
+            <Fragment key={request.id}>
+              {index > 0 ? <Hairline /> : null}
+              <RequestRow
+                request={request}
+                deciding={decisions.decidingRequestId === request.id}
+                handlers={decisions}
+              />
+            </Fragment>
+          ))}
+        </Surface>
+      ) : null}
+      {counts.seatHolds > 0 ? (
+        <Text size="meta" tone="muted">
+          {m.game.requests.note}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 /** The Organizer's queues: Level range requests, the waitlist, anyone not seated. */
 export function OrganizerCard({
   plan,
@@ -86,62 +216,6 @@ export function OrganizerCard({
   const locale = useLocale();
   const copy = m.mobileGameDetails.organizer;
   const blocks: React.ReactNode[] = [];
-
-  if (plan.showRequests) {
-    const seatHolds = plan.requests.filter(
-      (request) => request.kind === "seat_hold",
-    ).length;
-    blocks.push(
-      <Block key="requests">
-        <View>
-          <Text weight="medium" accessibilityRole="header">
-            {m.game.requests.title}
-          </Text>
-          <Text size="meta" tone="muted">
-            {requestsQueueHeading(
-              {
-                levelRange: plan.requests.length - seatHolds,
-                seatHolds,
-              },
-              locale,
-            )}
-          </Text>
-        </View>
-        {plan.requests.map((request) => {
-          const deciding = handlers.decidingRequestId === request.id;
-          return (
-            <PersonRow
-              key={request.id}
-              name={request.name}
-              image={request.image}
-              meta={request.meta}
-            >
-              <Button
-                label={copy.approve}
-                accessibilityLabel={copy.approveName(request.name)}
-                size="sm"
-                disabled={deciding}
-                onPress={() => handlers.onApprove(request)}
-              />
-              <Button
-                label={m.game.requests.decline}
-                accessibilityLabel={copy.rejectName(request.name)}
-                size="sm"
-                variant="outline"
-                disabled={deciding}
-                onPress={() => handlers.onReject(request)}
-              />
-            </PersonRow>
-          );
-        })}
-        {seatHolds > 0 ? (
-          <Text size="eyebrow" tone="muted">
-            {m.game.requests.note}
-          </Text>
-        ) : null}
-      </Block>,
-    );
-  }
 
   if (plan.waitlist.length > 0) {
     blocks.push(

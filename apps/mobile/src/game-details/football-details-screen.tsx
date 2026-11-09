@@ -1,6 +1,12 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { squadButtonCopy } from "@repo/domain/matchday-squad";
+import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
+import {
+  gameOrganizerRequests,
+  gameRequestsVisible,
+} from "@repo/domain/game-requests";
 import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
@@ -35,6 +41,7 @@ import {
 } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { useRouter, useSegments, type Href } from "expo-router";
+import { Share } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 
@@ -67,7 +74,9 @@ import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
+import { Hairline } from "../primitives/hairline";
 import { Screen } from "../primitives/screen";
+import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
@@ -78,8 +87,15 @@ import { ConfirmSheet, type ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
+import { RequestsSection } from "./organizer-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { challengeInfoRows } from "./challenge-details-card";
+import { NameSquadSheet } from "./name-squad-sheet";
+import { ChallengeSquads } from "./squad-grid";
+import { useShareGame } from "./use-share-game";
+import { TeamVsTeamRow } from "./team-vs-team-row";
 import { useGameEdit } from "./use-game-edit";
+import { useRequestDecisions } from "./use-request-decisions";
 
 type FootballGame = RouterOutputs["games"]["byId"];
 
@@ -137,7 +153,9 @@ export function FootballGameDetails({
   const [selected, setSelected] = useState<BoardPlayer | null>(null);
   const [playedMenuOpen, setPlayedMenuOpen] = useState(false);
   const [playedSelected, setPlayedSelected] = useState<PlayedRow | null>(null);
+  const [squadTeamId, setSquadTeamId] = useState<string | null>(null);
   const autoJoined = useRef(false);
+  const challenge = game.challenge;
 
   const board = api.games.footballBoard.useQuery(
     { gameId },
@@ -161,7 +179,7 @@ export function FootballGameDetails({
   );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
-  const lines = footballHeroLines(
+  const baseLines = footballHeroLines(
     {
       windowStart: game.windowStart,
       windowEnd: game.windowEnd,
@@ -169,12 +187,27 @@ export function FootballGameDetails({
       sideSize: game.sideSize,
       venueName: game.venue?.name ?? null,
       pitchName: game.recordedCourts[0]?.name ?? null,
-      teamsSet: teams != null,
+      teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
     },
     now,
     locale,
   );
+  const lines = challenge
+    ? {
+        ...baseLines,
+        subLine: challengeHeroSubLine(
+          {
+            pitchName: game.recordedCourts[0]?.name ?? null,
+            sideSize: game.sideSize,
+            windowStart: game.windowStart,
+            windowEnd: game.windowEnd,
+          },
+          locale,
+        ),
+      }
+    : baseLines;
+  const shareGame = useShareGame(gameId);
 
   const refresh = () =>
     Promise.all([
@@ -198,6 +231,11 @@ export function FootballGameDetails({
     },
     onSettled: refresh,
   });
+  const decisions = useRequestDecisions({ refresh });
+  const requests =
+    gameRequestsVisible(game) && !game.cancelledAt
+      ? gameOrganizerRequests(game, locale, now)
+      : null;
   const setRole = api.games.setFootballRole.useMutation({
     onSuccess: () => {
       setJoinMode(null);
@@ -328,14 +366,17 @@ export function FootballGameDetails({
     }
   }
 
-  const inviteAccess = gameInviteAccess({
-    friendlyChrome: false,
-    isOrganizer: game.isOrganizer,
-    registrationStatus: game.registrationStatus,
-    cancelledAt: game.cancelledAt,
-    registrationMode: game.registrationMode,
-    partnerRequired: false,
-  });
+  const inviteAccess = game.canInvite
+    ? gameInviteAccess({
+        friendlyChrome: false,
+        isOrganizer: game.isOrganizer,
+        registrationStatus: game.registrationStatus,
+        cancelledAt: game.cancelledAt,
+        registrationMode: game.registrationMode,
+        partnerRequired: false,
+      })
+    : { canManage: false, canSendLookup: false };
+  const canAddPlayer = game.canAddPlayer && organizerCanAddPlayer(game);
   const canOpenProfile = gamePlayersLink(game);
   const openProfile = (userId: string) =>
     router.push(playerPath(segments, userId, "football"));
@@ -358,7 +399,7 @@ export function FootballGameDetails({
     .filter(Boolean)
     .join(copy.listSeparator);
 
-  const infoRows: InfoRow[] = [
+  const gameInfoRows: InfoRow[] = [
     ...(game.groupName
       ? [{ label: copy.football.group, value: game.groupName }]
       : []),
@@ -395,11 +436,23 @@ export function FootballGameDetails({
       value: game.rated ? m.common.yes : m.common.no,
     },
   ];
+  const infoRows = challenge
+    ? challengeInfoRows(challenge, game.sport, locale)
+    : gameInfoRows;
+  const squadSide = challenge?.sides.find(
+    (side) => side.teamId === squadTeamId,
+  );
+  const namableSide = challenge?.viewerCanNameSide
+    ? challenge.sides.find(
+        (side) => side.teamId === challenge.viewerCanNameSide,
+      )
+    : undefined;
 
   const showHeroActions =
-    model.cta?.kind === "registered" ||
-    model.cta?.kind === "waitlisted" ||
-    (inviteAccess.canManage && !teams);
+    !challenge &&
+    (model.cta?.kind === "registered" ||
+      model.cta?.kind === "waitlisted" ||
+      (inviteAccess.canManage && !teams));
   const heroActions = showHeroActions ? (
     <View style={{ gap: 8 }}>
       {model.cta?.kind === "registered" ? (
@@ -458,7 +511,7 @@ export function FootballGameDetails({
     </View>
   ) : null;
 
-  const heroBody =
+  const gameHeroBody =
     teams && names ? (
       <View style={{ gap: 12 }}>
         <TeamColumns
@@ -513,6 +566,29 @@ export function FootballGameDetails({
         {heroActions}
       </View>
     );
+  const heroBody = challenge ? (
+    <View style={{ gap: 16 }}>
+      <Hairline />
+      <TeamVsTeamRow sides={challenge.sides} sport={game.sport} />
+      <ChallengeSquads
+        sides={challenge.sides}
+        action={
+          namableSide?.teamId
+            ? {
+                ...squadButtonCopy(
+                  namableSide.named.length,
+                  namableSide.name ?? m.team.memberFallback,
+                  locale,
+                ),
+                onPress: () => setSquadTeamId(namableSide.teamId),
+              }
+            : undefined
+        }
+      />
+    </View>
+  ) : (
+    gameHeroBody
+  );
 
   const score = board.data?.match?.score ?? null;
   const playedModel =
@@ -537,7 +613,7 @@ export function FootballGameDetails({
           locale,
         )
       : null;
-  const playedMenuItems = organizerCanAddPlayer(game)
+  const playedMenuItems = canAddPlayer
     ? [
         {
           key: "add_player",
@@ -602,8 +678,31 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
+          tag={challenge ? m.challenge.gameDetails.tag : undefined}
           actions={
-            inviteAccess.canManage ? (
+            challenge && !game.cancelledAt ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.mobileGameDetails.hero.shareGame}
+                onPress={() =>
+                  void shareGame(
+                    {
+                      customName: gameCustomName(game),
+                      format: game.format,
+                      sport: game.sport,
+                      registrationMode: game.registrationMode,
+                      venueName: game.venue?.name ?? null,
+                      courtName: game.recordedCourts[0]?.name ?? null,
+                      windowStart: game.windowStart,
+                      windowEnd: game.windowEnd,
+                      sides: [],
+                    },
+                    "game_page",
+                  )
+                }
+              />
+            ) : inviteAccess.canManage ? (
               <InviteIconEntry onPress={() => setInviteOpen(true)} />
             ) : null
           }
@@ -619,6 +718,9 @@ export function FootballGameDetails({
               {copy.cancelledTitle}
             </Text>
           </Surface>
+        ) : null}
+        {requests ? (
+          <RequestsSection requests={requests} decisions={decisions} />
         ) : null}
         {board.error ? (
           <Surface accessibilityRole="alert" style={{ gap: 8 }}>
@@ -676,8 +778,9 @@ export function FootballGameDetails({
             organizer={model.organizer}
             waitlist={model.waitlistRows}
             playersAllowed={game.playersAllowed}
+            fixedShape={challenge != null}
             teams={
-              board.data?.viewer.canMakeTeams
+              game.canMakeTeams && board.data?.viewer.canMakeTeams
                 ? {
                     status: teams
                       ? footballTeamsMethodLabel(teams.method, locale)
@@ -700,7 +803,7 @@ export function FootballGameDetails({
               onEdit: () => setEditOpen(true),
               onCancel: askCancel,
               onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
-              onAddPlayer: organizerCanAddPlayer(game)
+              onAddPlayer: canAddPlayer
                 ? () => setAddPlayerOpen(true)
                 : undefined,
               onMakeTeams: () => router.push(teamsPath),
@@ -712,7 +815,8 @@ export function FootballGameDetails({
   );
 
   const joinFamily =
-    model.cta?.kind === "join" || model.cta?.kind === "join_waitlist"
+    !game.isChallengeGame &&
+    (model.cta?.kind === "join" || model.cta?.kind === "join_waitlist")
       ? { kind: model.cta.kind }
       : null;
 
@@ -795,6 +899,9 @@ export function FootballGameDetails({
               windowStart: game.windowStart,
               windowEnd: game.windowEnd,
               sides: [],
+              levelMinTenths: game.levelMinTenths,
+              levelMaxTenths: game.levelMaxTenths,
+              waitlist: game.waitlist,
               football: {
                 sideSize: game.sideSize,
                 playersAllowed: game.playersAllowed,
@@ -861,6 +968,20 @@ export function FootballGameDetails({
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
           }}
+        />
+      ) : null}
+      {squadSide?.teamId ? (
+        <NameSquadSheet
+          visible
+          onClose={() => setSquadTeamId(null)}
+          gameId={gameId}
+          teamId={squadSide.teamId}
+          sideSize={squadSide.sideSize}
+          kickoff={game.windowStart}
+          namedUserIds={squadSide.named.map((player) => player.userId)}
+          onSaved={() =>
+            Promise.all([refresh(), utils.challenges.invalidate()])
+          }
         />
       ) : null}
       <ConfirmSheet

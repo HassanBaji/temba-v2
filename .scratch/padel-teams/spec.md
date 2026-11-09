@@ -66,7 +66,7 @@ Approving this spec approves the Test seams in Testing Decisions.
 
 24. As an authenticated User, I want a personal My Teams list of Teams I sit on (linked or unattached), so that I can open my partnerships.
 
-25. As a User who is not a Community Member and not a member of an unattached Team, I want opening that Team’s home to be refused (except invite-accept flows), so that Loose Team stats are not public.
+25. As a User who is not a Community Member and not a member of an unattached Team, I want opening that Team’s home to be refused (except invite-accept flows), so that Loose Team stats are not public. *Superseded by challenges D5: a Team's detail is readable by any signed-in User (`.scratch/challenges/decisions.md`).*
 
 26. As an Owner or Admin, I want Soft-archive to refuse new Team link requests and approve/reject of pending link requests for that Community, so that archived clubs do not gain new Club Teams.
 

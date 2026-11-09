@@ -9,6 +9,8 @@ import {
   games,
   matchSets,
   matches,
+  ratings,
+  teamMemberInvites,
   teamMembers,
   teams,
   user,
@@ -58,8 +60,10 @@ async function playMatch(
     sets: { slot1GamesWon: number; slot2GamesWon: number }[];
     ourSlot?: 1 | 2;
     cancelledGame?: boolean;
+    at?: Date;
   },
 ) {
+  const startsAt = args.at ?? START;
   const [game] = await database
     .insert(games)
     .values({
@@ -71,8 +75,8 @@ async function playMatch(
       isPublic: false,
       playersAllowed: 4,
       teamsAllowed: 2,
-      windowStart: START,
-      windowEnd: END,
+      windowStart: startsAt,
+      windowEnd: args.at ? new Date(startsAt.getTime() + 7_200_000) : END,
       cancelledAt: args.cancelledGame ? new Date() : null,
     })
     .returning({ id: games.id });
@@ -89,7 +93,7 @@ async function playMatch(
     .insert(matches)
     .values({
       gameId: game!.id,
-      startTime: START,
+      startTime: startsAt,
       status: args.status,
       slot1GameTeamId: ourSlot === 1 ? ours!.id : theirs!.id,
       slot2GameTeamId: ourSlot === 1 ? theirs!.id : ours!.id,
@@ -181,6 +185,16 @@ describe("teamById record", () => {
         wins: 0,
         losses: 0,
       });
+      const team = await teamById(
+        db as unknown as Parameters<typeof teamById>[0],
+        { teamId: base.teamId, userId: base.ownerId },
+      );
+      expect(team.record).toEqual({
+        gamesPlayed: 1,
+        wins: 0,
+        draws: 1,
+        losses: 0,
+      });
     } finally {
       await close();
     }
@@ -217,6 +231,196 @@ describe("teamById record", () => {
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
+      });
+    } finally {
+      await close();
+    }
+  });
+});
+
+type Db = Parameters<typeof teamById>[0];
+
+async function makeUser(database: TestDatabase, name: string) {
+  const [row] = await database
+    .insert(user)
+    .values({
+      name,
+      email: `${name.toLowerCase()}@example.com`,
+      preferredPosition: "left",
+      preferredFootballRole: "keeper",
+    })
+    .returning({ id: user.id });
+  return row!.id;
+}
+
+async function makeTeam(
+  database: TestDatabase,
+  sport: "padel" | "football",
+  creatorId: string,
+  memberIds: string[],
+) {
+  const [team] = await database
+    .insert(teams)
+    .values({ createdBy: creatorId, sport })
+    .returning({ id: teams.id });
+  await database
+    .insert(teamMembers)
+    .values(
+      [creatorId, ...memberIds].map((userId) => ({ teamId: team!.id, userId })),
+    );
+  return team!.id;
+}
+
+describe("teamById for any signed-in User", () => {
+  it("opens to a non-member with the record, form, Rivals and Roster, and nothing member-only", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const base = await setup(db);
+      const outsider = await makeUser(db, "Outsider");
+      const invitee = await makeUser(db, "Invitee");
+      await db.insert(teamMemberInvites).values({
+        teamId: base.teamId,
+        userId: invitee,
+        invitedBy: base.ownerId,
+      });
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [{ slot1GamesWon: 6, slot2GamesWon: 2 }],
+      });
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 6 }],
+      });
+      await db.insert(ratings).values({
+        userId: base.ownerId,
+        sport: "padel",
+        mu: 1400,
+        phi: 150,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+
+      const team = await teamById(db as unknown as Db, {
+        teamId: base.teamId,
+        userId: outsider,
+      });
+      expect(team.record).toEqual({
+        gamesPlayed: 2,
+        wins: 1,
+        draws: 0,
+        losses: 1,
+      });
+      expect(team.form).toEqual(["won", "lost"]);
+      expect(team.rivals).toMatchObject([
+        { teamId: base.rivalId, name: "Owner", played: 2, wins: 1, losses: 1 },
+      ]);
+      expect(team.closestRival).toBeNull();
+      expect(team.games).toHaveLength(2);
+      expect(team.games[0]).toMatchObject({
+        venueName: "Venue",
+        opponent: { teamId: base.rivalId, name: "Owner" },
+        sets: [{ us: 2, them: 6 }],
+        result: "lost",
+      });
+      expect(team.members).toEqual([
+        expect.objectContaining({
+          userId: base.ownerId,
+          isViewer: false,
+          level: "2.8",
+          levelBand: "C2",
+        }),
+      ]);
+      expect(team.viewerIsMember).toBe(false);
+      expect(team.viewerActsForTeam).toBe(false);
+      expect(team.captainUserId).toBe(base.ownerId);
+      expect(team.membership).toBeNull();
+      expect(team.canInvite).toBe(false);
+      expect(team.unusedInvite).toBeNull();
+      expect(team.canDissolve).toBe(false);
+      expect(team.viewerCanLeave).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("dates the form, scores each Rival's latest Match and links the web Team home", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const base = await setup(db);
+      const first = new Date("2026-10-20T18:00:00.000Z");
+      const latest = new Date("2026-10-30T18:00:00.000Z");
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [{ slot1GamesWon: 3, slot2GamesWon: 6 }],
+        at: first,
+      });
+      await playMatch(db, base, {
+        status: MatchStatusEnum.COMPLETED,
+        sets: [
+          { slot1GamesWon: 6, slot2GamesWon: 3 },
+          { slot1GamesWon: 4, slot2GamesWon: 6 },
+          { slot1GamesWon: 6, slot2GamesWon: 2 },
+        ],
+        at: latest,
+      });
+
+      const team = await teamById(db as unknown as Db, {
+        teamId: base.teamId,
+        userId: base.ownerId,
+        origin: "https://temba.example",
+      });
+      expect(team.formGames).toEqual([
+        { result: "lost", playedAt: first },
+        { result: "won", playedAt: latest },
+      ]);
+      expect(team.rivals).toMatchObject([
+        {
+          teamId: base.rivalId,
+          lastResult: "won",
+          lastSets: [
+            { us: 6, them: 3 },
+            { us: 4, them: 6 },
+            { us: 6, them: 2 },
+          ],
+        },
+      ]);
+      expect(team.shareUrl).toBe(
+        `https://temba.example/dashboard/teams/${base.teamId}`,
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets every padel member act for the Team, and only the football Captain", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const captain = await makeUser(db, "Captain");
+      const member = await makeUser(db, "Member");
+      const padel = await makeTeam(db, "padel", captain, [member]);
+      const football = await makeTeam(db, "football", captain, [member]);
+      const acts = async (teamId: string, userId: string) =>
+        (await teamById(db as unknown as Db, { teamId, userId }))
+          .viewerActsForTeam;
+
+      expect(await acts(padel, captain)).toBe(true);
+      expect(await acts(padel, member)).toBe(true);
+      expect(await acts(football, captain)).toBe(true);
+      expect(await acts(football, member)).toBe(false);
+
+      const view = await teamById(db as unknown as Db, {
+        teamId: football,
+        userId: member,
+      });
+      expect(view.viewerIsMember).toBe(true);
+      expect(view.members[1]).toMatchObject({
+        userId: member,
+        isViewer: true,
+        level: null,
+        levelBand: null,
+        preferredPosition: "left",
+        footballRole: "keeper",
+        footballPosition: null,
       });
     } finally {
       await close();

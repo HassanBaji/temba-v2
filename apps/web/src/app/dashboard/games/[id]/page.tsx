@@ -26,6 +26,8 @@ import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
+import { ChallengeDetailsBlock } from "~/components/games/challenge-details-block";
+import { ChallengeTag } from "~/components/games/challenge-tag";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
 import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
@@ -33,6 +35,7 @@ import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-ga
 import { PlayedPlayerDialog } from "~/components/games/played/played-player-dialog";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
+import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { GameBookedBlock } from "~/components/games/game-booked-block";
 import {
   GameLineupSection,
@@ -536,6 +539,9 @@ export default function GameHomePage({
             windowEnd: row.windowEnd,
             sides: row.sides,
             shortUrl: url,
+            levelMinTenths: row.levelMinTenths,
+            levelMaxTenths: row.levelMaxTenths,
+            waitlist: row.waitlist,
             locale,
           }
         : null,
@@ -835,6 +841,9 @@ export default function GameHomePage({
   });
   const heroActions = (
     <>
+      {data.challenge ? (
+        <ChallengeTag label={m.challenge.gameDetails.tag} tone="ink" />
+      ) : null}
       {shareLink ? (
         <Button
           type="button"
@@ -1114,7 +1123,10 @@ export default function GameHomePage({
               postPending={postPoolDraw.isPending}
               postError={postPoolDraw.error}
               onPost={async () => {
-                await postPoolDraw.mutateAsync({ gameId: id });
+                await postPoolDraw.mutateAsync({
+                  gameId: id,
+                  rounds: knockoutOnlyDraw() ? "all" : "later",
+                });
               }}
               undoPending={undoPoolDraw.isPending}
               undoError={undoPoolDraw.error}
@@ -1241,6 +1253,13 @@ export default function GameHomePage({
           // explains why the viewer's Home level card changed. Editing and
           // destructive actions live only in the hero's ⋮ menu.
           <div className="space-y-6">
+            <GameLevelRangePanel game={data} />
+            {data.challenge ? (
+              <ChallengeDetailsBlock
+                challenge={data.challenge}
+                sport={data.sport}
+              />
+            ) : null}
             {data.booking ? (
               <GameBookedBlock
                 booking={data.booking}

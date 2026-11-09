@@ -1,8 +1,15 @@
 import type {
+  CHALLENGE_TIMING_VALUES,
   MARK_KIND_VALUES,
   MatchStatusEnum,
   RATING_LEVEL_BAND_VALUES,
+  WEEKDAY_VALUES,
 } from "@repo/db/schema";
+
+import type {
+  CHALLENGE_TIMINGS,
+  CHALLENGE_WEEKDAYS,
+} from "@repo/domain/challenge-form";
 
 import type { LEVEL_BANDS } from "@repo/domain/level-bands";
 import type { MARK_KINDS } from "@repo/domain/marks";
@@ -25,5 +32,14 @@ export type DomainEnumParity = [
   AssertTrue<Equal<`${MatchStatusEnum}`, MatchStatus>>,
   AssertTrue<
     Equal<(typeof MARK_KINDS)[number], (typeof MARK_KIND_VALUES)[number]>
+  >,
+  AssertTrue<
+    Equal<(typeof CHALLENGE_WEEKDAYS)[number], (typeof WEEKDAY_VALUES)[number]>
+  >,
+  AssertTrue<
+    Equal<
+      (typeof CHALLENGE_TIMINGS)[number],
+      (typeof CHALLENGE_TIMING_VALUES)[number]
+    >
   >,
 ];

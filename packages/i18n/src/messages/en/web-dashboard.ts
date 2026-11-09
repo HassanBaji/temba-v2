@@ -312,7 +312,6 @@ export const webDashboard = {
     backToTeams: "Back to Teams",
     actionsLabel: "Team actions",
     allTeams: "All Teams",
-    membersTitle: "Members",
     invitePartner: "Invite partner",
   },
   venue: {

@@ -26,6 +26,12 @@ describe("playerPath", () => {
     expect(playerPath(["(app)", "(home)"], USER)).toBe(`/players/${USER}`);
   });
 
+  it("stays in the Challenges tab from a Team", () => {
+    expect(playerPath(["(app)", "challenges", "teams", "[id]"], USER)).toBe(
+      `/challenges/players/${USER}`,
+    );
+  });
+
   it("pushes from one Player profile to another in the same tab", () => {
     expect(playerPath(["(app)", "groups", "players", "[userId]"], USER)).toBe(
       `/groups/players/${USER}`,

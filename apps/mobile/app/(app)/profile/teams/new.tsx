@@ -1,5 +1,8 @@
-import { CreateTeamScreen } from "../../../../src/teams/create-team-screen";
+import { Redirect, useLocalSearchParams } from "expo-router";
+
+import { newTeamPath } from "../../../../src/teams/teams-model";
 
 export default function NewTeam() {
-  return <CreateTeamScreen />;
+  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
+  return <Redirect href={newTeamPath(groupId)} />;
 }

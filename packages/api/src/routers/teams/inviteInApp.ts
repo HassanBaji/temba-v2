@@ -9,6 +9,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { mintLookup } from "#src/invites/doors";
+import { notifyTeamInvite } from "#src/notifications/notify-team-invite";
 import { requireIncompleteTeamCreator } from "#src/teams/helpers/require-incomplete-team-creator";
 import { unorderedPairIsReserved } from "#src/teams/helpers/unordered-pair-is-reserved";
 import { teamInviteBudget } from "#src/teams/helpers/unused-invites-for-team";
@@ -83,17 +84,25 @@ export async function inviteInApp(
     });
   }
 
-  const minted = await mintLookup(
-    database,
-    { kind: "team", id: team.id },
-    { userId: invitee.id, invitedBy: args.userId },
-  );
-  if (!minted.ok) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create Team invite",
+  const minted = await database.transaction(async (tx) => {
+    const result = await mintLookup(
+      tx,
+      { kind: "team", id: team.id },
+      { userId: invitee.id, invitedBy: args.userId },
+    );
+    if (!result.ok) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create Team invite",
+      });
+    }
+    await notifyTeamInvite(tx, {
+      teamId: team.id,
+      inviterUserId: args.userId,
+      inviteeUserIds: [invitee.id],
     });
-  }
+    return result;
+  });
 
   return {
     id: minted.invite.id,

@@ -50,6 +50,7 @@ import {
   profileTaskPath,
   settingsChecklist,
 } from "../profile-tasks/profile-tasks-model";
+import { TEAMS_PATH } from "../teams/teams-model";
 import { useAppearance, useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import {
@@ -497,7 +498,7 @@ function SettingsBody({ details }: { details: Details }) {
               </Text>
             ) : undefined
           }
-          onPress={() => open("/profile/teams")}
+          onPress={() => open(TEAMS_PATH)}
         />
         <SettingsRow
           icon={MailOpen}

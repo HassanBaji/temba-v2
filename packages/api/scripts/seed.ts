@@ -61,6 +61,10 @@ import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
+import { confirmProposal } from "#src/routers/challenges/confirmProposal";
+import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
+import { postChallenge } from "#src/routers/challenges/post";
+import { proposeOnChallenge } from "#src/routers/challenges/propose";
 import { acceptInAppInvite } from "#src/routers/teams/acceptInAppInvite";
 import { createTeam } from "#src/routers/teams/create";
 import { createInviteLink as createTeamInviteLink } from "#src/routers/teams/createInviteLink";
@@ -879,7 +883,204 @@ async function seedTeams(u: Users) {
     });
   }
 
-  return { smash, netRunners, lobs, duo, rally, squad };
+  // A football Roster of twelve: it plays 5, 6 and 7-a-side.
+  const gooz = await make("me", "Gooz FC", "football");
+  for (const memberKey of [
+    "lina",
+    "omar",
+    "maya",
+    "diego",
+    "priya",
+    "sofia",
+    "yusuf",
+    "leo",
+    "zara",
+    "ben",
+    "newbie",
+  ]) {
+    const goozInvite = await invite(gooz.id, "me", memberKey);
+    await acceptInAppInvite(db, {
+      inviteId: goozInvite.id,
+      userId: u[memberKey]!.id,
+    });
+  }
+
+  return { smash, netRunners, lobs, duo, rally, squad, gooz };
+}
+
+// ---------------------------------------------------------------------------
+// Challenges
+// ---------------------------------------------------------------------------
+
+type Teams = Awaited<ReturnType<typeof seedTeams>>;
+
+/**
+ * One open Challenge per sport. Lina & Priya want a padel opponent at
+ * weekends, and Smash Brothers (Sam and Omar) have a Proposal pending on it;
+ * Gooz FC (Sam's twelve) wants a 6-a-side on Friday evenings, which Sunday
+ * Seven can answer. Two confirmed: Sunday Seven play Gooz FC at 5-a-side in
+ * four days, Gooz FC's squad named in full (five and three Reserves) and
+ * Sunday Seven's four short of the side, and Smash Brothers beat Rally Kings
+ * at padel two days ago. Smash Brothers then sent a Rematch straight to Rally
+ * Kings, who won it yesterday, so the two are Rivals at one each; Rally Kings
+ * have an open Rematch nudging Smash Brothers for the decider.
+ */
+async function seedChallenges(u: Users, v: Venues, t: Teams) {
+  const padel = await postChallenge(db, {
+    teamId: t.duo.id,
+    levelMinTenths: 28,
+    levelMaxTenths: 55,
+    venueIds: [v.riverside.id, v.central.id],
+    days: ["sat", "sun"],
+    timings: ["evening"],
+    note: "Friendly pair, we book the court if you can't.",
+    userId: u.lina!.id,
+  });
+  await proposeOnChallenge(db, {
+    challengeId: padel.id,
+    teamId: t.smash.id,
+    venueId: v.riverside.id,
+    startsAt: at(6, 19),
+    pricePerPlayerFils: 1500,
+    userId: u.omar!.id,
+  });
+  await postChallenge(db, {
+    teamId: t.gooz.id,
+    sideSize: 6,
+    levelMinTenths: 21,
+    levelMaxTenths: 48,
+    venueIds: [v.pitches.id],
+    days: ["fri"],
+    timings: ["evening"],
+    exactSlots: [at(5, 20)],
+    note: "On time, bibs in the bag.",
+    userId: u.me!.id,
+  });
+
+  const fiveASide = await postChallenge(db, {
+    teamId: t.squad.id,
+    sideSize: 5,
+    venueIds: [v.pitches.id],
+    days: ["wed", "thu"],
+    timings: ["evening"],
+    userId: u.tom!.id,
+  });
+  const goozProposal = await proposeOnChallenge(db, {
+    challengeId: fiveASide.id,
+    teamId: t.gooz.id,
+    venueId: v.pitches.id,
+    startsAt: at(4, 20),
+    pricePerPlayerFils: 1500,
+    userId: u.me!.id,
+  });
+  const fiveASideGame = await confirmProposal(db, {
+    proposalId: goozProposal.id,
+    userId: u.tom!.id,
+  });
+  await nameChallengeSquad(db, {
+    gameId: fiveASideGame.gameId,
+    teamId: t.gooz.id,
+    userIds: [
+      "me",
+      "lina",
+      "omar",
+      "maya",
+      "diego",
+      "priya",
+      "sofia",
+      "yusuf",
+    ].map((key) => u[key]!.id),
+    userId: u.me!.id,
+  });
+  await nameChallengeSquad(db, {
+    gameId: fiveASideGame.gameId,
+    teamId: t.squad.id,
+    userIds: ["tom", "emma", "jonas", "aisha"].map((key) => u[key]!.id),
+    userId: u.tom!.id,
+  });
+
+  const postedAt = at(-4, 10);
+  const rematch = await postChallenge(db, {
+    teamId: t.rally.id,
+    venueIds: [v.central.id],
+    userId: u.diego!.id,
+    now: postedAt,
+  });
+  const smashProposal = await proposeOnChallenge(db, {
+    challengeId: rematch.id,
+    teamId: t.smash.id,
+    venueId: v.central.id,
+    startsAt: at(-2, 19),
+    userId: u.me!.id,
+    now: postedAt,
+  });
+  const played = await confirmProposal(db, {
+    proposalId: smashProposal.id,
+    userId: u.yusuf!.id,
+    now: postedAt,
+  });
+  const playedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, played.gameId),
+    columns: { id: true },
+  });
+  // The posting Team is side 1, so Smash Brothers win on side 2.
+  await playFriendly(
+    u,
+    { id: played.gameId, matchId: playedMatch!.id },
+    "me",
+    [
+      [4, 6],
+      [3, 6],
+    ],
+    ["diego"],
+  );
+
+  const rematchPostedAt = at(-2, 22);
+  const sentStraight = await postChallenge(db, {
+    teamId: t.smash.id,
+    venueIds: [v.central.id],
+    nudgeTeamId: t.rally.id,
+    userId: u.me!.id,
+    now: rematchPostedAt,
+  });
+  const rallyProposal = await proposeOnChallenge(db, {
+    challengeId: sentStraight.id,
+    teamId: t.rally.id,
+    venueId: v.central.id,
+    startsAt: at(-1, 19),
+    userId: u.diego!.id,
+    now: rematchPostedAt,
+  });
+  const replayed = await confirmProposal(db, {
+    proposalId: rallyProposal.id,
+    userId: u.omar!.id,
+    now: rematchPostedAt,
+  });
+  const replayedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, replayed.gameId),
+    columns: { id: true },
+  });
+  // Smash Brothers posted, so Rally Kings win this one on side 2.
+  await playFriendly(
+    u,
+    { id: replayed.gameId, matchId: replayedMatch!.id },
+    "diego",
+    [
+      [3, 6],
+      [4, 6],
+    ],
+    ["me"],
+  );
+
+  await postChallenge(db, {
+    teamId: t.rally.id,
+    venueIds: [v.central.id],
+    days: ["fri", "sat"],
+    timings: ["evening"],
+    nudgeTeamId: t.smash.id,
+    note: "One each. Decider?",
+    userId: u.diego!.id,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1739,9 +1940,10 @@ async function main() {
   const u = await step("users", seedUsers);
   const v = await step("venues", seedVenues);
   const g = await step("groups", () => seedGroups(u, v));
-  await step("teams", () => seedTeams(u));
+  const t = await step("teams", () => seedTeams(u));
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
+  await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));
 

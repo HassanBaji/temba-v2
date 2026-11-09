@@ -1,7 +1,7 @@
 import type { DbClient, DbTx } from "@repo/db";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
-import { groups } from "@repo/db";
+import { groupMembers, groups, teams } from "@repo/db";
 
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import { protectedProcedure } from "#src/trpc";
@@ -18,9 +18,44 @@ export type CreateGroupOption = {
   venueName: string | null;
   sport: Sport;
   verified: boolean;
+  memberCount: number;
+  /** Teams tagged to the Group, for "Has 2 teams already" on New team. */
+  teamCount: number;
 };
 
 const groupWith = { venue: { columns: { name: true } } } as const;
+
+function totalsById(rows: { groupId: string | null; total: number }[]) {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    if (row.groupId) {
+      totals.set(row.groupId, Number(row.total));
+    }
+  }
+  return totals;
+}
+
+async function countsByGroup(database: DbOrTx, groupIds: string[]) {
+  if (groupIds.length === 0) {
+    return { memberCounts: totalsById([]), teamCounts: totalsById([]) };
+  }
+  const [memberRows, teamRows] = await Promise.all([
+    database
+      .select({ groupId: groupMembers.groupId, total: count() })
+      .from(groupMembers)
+      .where(inArray(groupMembers.groupId, groupIds))
+      .groupBy(groupMembers.groupId),
+    database
+      .select({ groupId: teams.groupId, total: count() })
+      .from(teams)
+      .where(inArray(teams.groupId, groupIds))
+      .groupBy(teams.groupId),
+  ]);
+  return {
+    memberCounts: totalsById(memberRows),
+    teamCounts: totalsById(teamRows),
+  };
+}
 
 export async function listCreateGroups(
   database: DbOrTx,
@@ -51,19 +86,26 @@ export async function listCreateGroups(
     byId.set(row.id, row);
   }
 
-  const eligible: CreateGroupOption[] = [];
+  const allowed: (typeof createdRows)[number][] = [];
   for (const row of byId.values()) {
-    if (!(await mayCreateGameOnGroup(database, row, args.userId))) {
-      continue;
+    if (await mayCreateGameOnGroup(database, row, args.userId)) {
+      allowed.push(row);
     }
-    eligible.push({
-      id: row.id,
-      name: row.name,
-      venueName: row.venue?.name ?? null,
-      sport: sportOrDefault(row.sport),
-      verified: groupIsVerified(row),
-    });
   }
+  const { memberCounts, teamCounts } = await countsByGroup(
+    database,
+    allowed.map((row) => row.id),
+  );
+
+  const eligible: CreateGroupOption[] = allowed.map((row) => ({
+    id: row.id,
+    name: row.name,
+    venueName: row.venue?.name ?? null,
+    sport: sportOrDefault(row.sport),
+    verified: groupIsVerified(row),
+    memberCount: memberCounts.get(row.id) ?? 0,
+    teamCount: teamCounts.get(row.id) ?? 0,
+  }));
 
   eligible.sort((a, b) => {
     const nameCmp = (a.name ?? "").localeCompare(b.name ?? "");

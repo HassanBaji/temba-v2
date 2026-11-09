@@ -8,6 +8,11 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
+import {
+  loadTeamMatches,
+  teamRecordFromMatches,
+  teamRivalsFromMatches,
+} from "#src/teams/team-record";
 
 type DbClient = typeof db;
 
@@ -15,7 +20,11 @@ export async function mine(database: DbClient, args: { userId: string }) {
   const memberships = await database.query.teamMembers.findMany({
     where: eq(teamMembers.userId, args.userId),
     with: {
-      team: true,
+      team: {
+        with: {
+          group: { columns: { id: true, name: true, deletedAt: true } },
+        },
+      },
     },
   });
 
@@ -43,10 +52,13 @@ export async function mine(database: DbClient, args: { userId: string }) {
     membersByTeam.set(row.teamId, list);
   }
 
+  const matchesByTeam = await loadTeamMatches(database, teamIds);
+
   return memberships.map((membership) => {
     const team = membership.team;
     const members = membersByTeam.get(team.id) ?? [];
     const memberNames = members.map((member) => member.user.name);
+    const teamMatches = matchesByTeam.get(team.id) ?? [];
 
     return {
       id: team.id,
@@ -56,8 +68,16 @@ export async function mine(database: DbClient, args: { userId: string }) {
       members: members.map((member) => ({
         name: member.user.name,
         image: member.user.image,
+        you: member.user.id === args.userId,
       })),
       memberCount: members.length,
+      rosterCount: members.length,
+      record: teamRecordFromMatches(teamMatches),
+      rivalCount: teamRivalsFromMatches(teamMatches).rivals.length,
+      groupTag:
+        team.group && team.group.deletedAt == null
+          ? { id: team.group.id, name: team.group.name }
+          : null,
       incomplete: !teamIsComplete(members.length, team.sport),
     };
   });

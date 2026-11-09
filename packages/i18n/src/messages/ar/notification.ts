@@ -71,6 +71,13 @@ export const notification = {
       plain(" جهتك في "),
       strong(game),
     ],
+    matchScoreToConfirm: (actor: string, game: string) => [
+      plain("أدخل "),
+      strong(actor),
+      plain(" نتيجتك في "),
+      strong(game),
+      plain(". أكّدها أو صحّحها"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("ربطنا "),
       strong(
@@ -167,6 +174,64 @@ export const notification = {
       plain(" طلبك للعب في "),
       strong(game),
     ],
+    teamInviteReceived: (actor: string, team: string) => [
+      plain("دعاك "),
+      strong(actor),
+      plain(" إلى "),
+      strong(team),
+    ],
+    teamInviteReceivedUnnamed: (actor: string) => [
+      plain("دعاك "),
+      strong(actor),
+      plain(" إلى فريقه"),
+    ],
+    challengeExpired: (team: string) => [
+      plain("انتهت مدة تحدي "),
+      strong(team),
+    ],
+    challengeExpiredUnnamed: [plain("انتهت مدة تحدي فريقك")],
+    challengeProposalReceived: (team: string) => [
+      strong(team),
+      plain(" اقترح وقتًا لتحديك"),
+    ],
+    challengeProposalReceivedUnnamed: [plain("اقترح فريق وقتًا لتحديك")],
+    challengeProposalDeclined: (team: string) => [
+      strong(team),
+      plain(" طلب وقتًا آخر"),
+    ],
+    challengeProposalDeclinedUnnamed: [plain("رُفض عرضك: وقت آخر")],
+    challengeProposalExpired: (team: string) => [
+      plain("انتهت مدة عرضك إلى "),
+      strong(team),
+    ],
+    challengeProposalExpiredUnnamed: [plain("انتهت مدة عرض فريقك")],
+    challengeProposalConfirmed: (team: string) => [
+      plain("صارت مباراة: تلعبون ضد "),
+      strong(team),
+    ],
+    challengeProposalConfirmedUnnamed: [plain("صار تحديك مباراة")],
+    challengeProposalPassedOver: (team: string) => [
+      strong(team),
+      plain(" أكّد عرضًا آخر"),
+    ],
+    challengeProposalPassedOverUnnamed: [plain("تأكّد عرض آخر")],
+    challengeSquadDue: (team: string) => [
+      plain("سمِّ تشكيلتك للمباراة ضد "),
+      strong(team),
+    ],
+    challengeSquadDueUnnamed: [plain("سمِّ تشكيلتك للمباراة")],
+    challengeSquadNamed: (team: string) => [
+      plain("أنت في التشكيلة للعب ضد "),
+      strong(team),
+    ],
+    challengeSquadNamedUnnamed: [plain("أنت في تشكيلة تحدٍّ")],
+    challengeRematchNudge: (team: string) => [
+      strong(team),
+      plain(" يتحداكم في مباراة إعادة"),
+    ],
+    challengeRematchNudgeUnnamed: [
+      plain("فريق لعبتم ضده يتحداكم في مباراة إعادة"),
+    ],
   },
   subline: {
     everyMatchIn: "كل المباريات مسجّلة.",
@@ -175,6 +240,16 @@ export const notification = {
     decideOnGame: "وافق أو ارفض من صفحة المباراة.",
     decideOnGroup: "وافق أو ارفض من صفحة المجموعة.",
     takeYourSeat: "يمكنك الانضمام إلى المباراة الآن.",
+    acceptInTeams: "اقبلها أو ارفضها من صفحة الفرق.",
+    postAgain: "لم يصل أي عرض. انشر من جديد من التحديات.",
+    confirmOrAnotherTime: "أكّده أو اطلب وقتًا آخر خلال 48 ساعة.",
+    proposeAgain: "أرسل عرضًا جديدًا ما دام التحدي مفتوحًا.",
+    bothPairsSeated: "الزوجان في مقاعدهما. اطّلع على المباراة.",
+    nameYourSquad: "سمِّ تشكيلتك من قائمة الفريق.",
+    findAnother: "ابحث عن تحدٍّ آخر في لوحة التحديات المفتوحة.",
+    kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
+    seeWhoIsNamed: "اطّلع على المباراة ومن سُمّي معك.",
+    acceptRematch: "اقبله لتقترح وقتًا وملعبًا.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

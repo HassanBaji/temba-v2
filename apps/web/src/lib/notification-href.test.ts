@@ -90,6 +90,54 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens Challenges, Teams for a Team invite, where the invite is accepted", () => {
+    assert.equal(
+      notificationHref({ type: "team_invite_received", group: null }),
+      "/dashboard/challenges?tab=teams",
+    );
+  });
+
+  it("opens Challenges, Mine for an expired Challenge", () => {
+    assert.equal(
+      notificationHref({ type: "challenge_expired", group: null }),
+      "/dashboard/challenges?tab=mine",
+    );
+  });
+
+  it("opens the Challenge a Proposal was received, declined, expired or passed over on, or a Rematch nudged, and the Game a confirm or squad reminder is about", () => {
+    for (const type of [
+      "challenge_proposal_received",
+      "challenge_proposal_declined",
+      "challenge_proposal_expired",
+      "challenge_proposal_passed_over",
+      "challenge_rematch_nudge",
+    ]) {
+      assert.equal(
+        notificationHref({ type, group: null, challenge: { id: "c1" } }),
+        "/dashboard/challenges/c1",
+      );
+    }
+    for (const type of [
+      "challenge_proposal_confirmed",
+      "challenge_squad_due",
+      "challenge_squad_named",
+    ]) {
+      assert.equal(
+        notificationHref({
+          type,
+          group: null,
+          game: { id: "g1" },
+          challenge: { id: "c1" },
+        }),
+        "/dashboard/games/g1",
+      );
+    }
+    assert.equal(
+      notificationHref({ type: "challenge_proposal_received", group: null }),
+      null,
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),

@@ -17,6 +17,7 @@ import {
 import { footballSides } from "#src/games/football-lineup";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { gameInviteLinkGroup } from "#src/games/invite-link-group";
+import { gameInviteLinkHero } from "#src/games/invite-link-hero";
 import { viewerLevelRangeFields } from "#src/games/level-range-requests";
 import {
   isIndividualSeatGame,
@@ -108,9 +109,14 @@ export async function previewInviteLink(
     blockedByLevelRange,
     partnerRequired: partnerRequiredJoin,
   });
-  const sides = needsSeatPick ? await listGameSides(database, gameRow) : [];
+  // The seat choices and the roster are shown behind the Level gate too, so a
+  // request can carry the seat the player picked (ADR-0057).
+  const sides =
+    isIndividualSeatGame(gameRow) && !partnerRequiredJoin
+      ? await listGameSides(database, gameRow)
+      : [];
   const football =
-    args.userId && isFootballGame(gameRow) && !blockedByLevelRange
+    args.userId && isFootballGame(gameRow)
       ? await footballJoinPreview(database, gameRow, args.userId)
       : null;
   const group = args.userId
@@ -120,6 +126,12 @@ export async function previewInviteLink(
         sharedByUserId: link.createdBy,
       })
     : null;
+  const hero = await gameInviteLinkHero(database, {
+    game: gameRow,
+    sharedByUserId: link.createdBy,
+    linkExpiresAt: link.expiresAt,
+    viewerUserId: args.userId,
+  });
   return {
     status: "ready" as const,
     gameId: gameRow.id,
@@ -132,6 +144,7 @@ export async function previewInviteLink(
       windowEnd: gameRow.windowEnd,
     },
     format: gameRow.format,
+    isPublic: gameRow.isPublic,
     registrationStatus: await getRegistrationStatus(
       database,
       gameRow,
@@ -149,6 +162,7 @@ export async function previewInviteLink(
     canRequestLevelRange: levelFields?.canRequestLevelRange ?? false,
     football,
     group,
+    hero,
   };
 }
 

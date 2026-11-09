@@ -11,6 +11,7 @@ export type GroupMineRowData = {
   id: string;
   name: string | null;
   imageUrl: string | null;
+  sport: string | null;
   memberCount: number;
   standingPosition: number | null;
   nextGameStartTime: Date | string | null;
@@ -115,6 +116,15 @@ export type GroupPlayedGameData = {
   outcome: "won" | "lost" | "draw" | null;
 };
 
+/** A Team tagged to the Group. The Group does not own it. */
+export type GroupTeamData = {
+  id: string;
+  displayName: string | null;
+  sport: string;
+  rosterCount: number;
+  record: { gamesPlayed: number; wins: number; draws: number; losses: number };
+};
+
 export type GroupHomeData = {
   id: string;
   name: string | null;
@@ -165,6 +175,9 @@ export type GroupHomeData = {
   /** Sport is locked once the Group has a Game. */
   canChangeSport: boolean;
   pendingJoinRequestCount: number;
+  teams: GroupTeamData[];
+  /** An Organizer of a Group with a sport may create a Team tagged to it. */
+  canCreateTeam: boolean;
 };
 
 export type GroupJoinRequestSource = "invite_link" | "group_page";

@@ -62,6 +62,7 @@ export async function listPoolTables(
     poolCount: game.poolCount,
     viewerUserId: args.userId,
     locale: args.locale ?? DEFAULT_LOCALE,
+    storedRoundCount: game.roundCount,
     gameTeams: teamRows.map((row) => ({
       id: row.id,
       name: row.name,

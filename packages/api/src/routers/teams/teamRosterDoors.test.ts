@@ -65,7 +65,7 @@ async function withDb(run: (database: TestDatabase, db: Db) => Promise<void>) {
 describe("football Team invites", () => {
   it("holds several unused invites at once and refuses past the budget", async () => {
     await withDb(async (database, db) => {
-      const ids = await makeUsers(database, 26);
+      const ids = await makeUsers(database, 21);
       const [creator, ...others] = ids as [string, ...string[]];
       const teamId = await makeTeam(database, { id: creator }, "football");
 
@@ -80,12 +80,12 @@ describe("football Team invites", () => {
       });
       expect(live).toHaveLength(5);
 
-      await addMembers(database, teamId, others.slice(5, 24));
+      await addMembers(database, teamId, others.slice(5, 19));
       await expect(
         inviteInApp(db, {
           teamId,
           userId: creator,
-          inviteeUserId: others[24]!,
+          inviteeUserId: others[19]!,
         }),
       ).rejects.toThrow("Revoke the unused invite before sending a new one");
 
@@ -96,7 +96,7 @@ describe("football Team invites", () => {
       await inviteInApp(db, {
         teamId,
         userId: creator,
-        inviteeUserId: others[24]!,
+        inviteeUserId: others[19]!,
       });
     });
   });
@@ -153,9 +153,9 @@ describe("football Team invites", () => {
     });
   });
 
-  it("refuses an accept when the Team is full", async () => {
+  it("refuses an accept when the Team is full at twenty", async () => {
     await withDb(async (database, db) => {
-      const ids = await makeUsers(database, 26);
+      const ids = await makeUsers(database, 21);
       const [creator, ...others] = ids as [string, ...string[]];
       const teamId = await makeTeam(database, { id: creator }, "football");
       const link = await createInviteLink(db, {
@@ -166,29 +166,66 @@ describe("football Team invites", () => {
       await inviteInApp(db, {
         teamId,
         userId: creator,
-        inviteeUserId: others[24]!,
+        inviteeUserId: others[19]!,
       });
-      await addMembers(database, teamId, others.slice(0, 24));
+      await addMembers(database, teamId, others.slice(0, 19));
 
       const invite = await database.query.teamMemberInvites.findFirst({
-        where: eq(teamMemberInvites.userId, others[24]!),
+        where: eq(teamMemberInvites.userId, others[19]!),
       });
       const full = await teamById(db, { teamId, userId: creator });
-      expect(full.roster).toMatchObject({ count: 25, full: true });
+      expect(full.roster).toMatchObject({
+        count: 20,
+        max: 20,
+        full: true,
+        formatsPlayable: [5, 6, 7],
+      });
+      expect(full.canInvite).toBe(false);
       await expect(
-        acceptInAppInvite(db, { inviteId: invite!.id, userId: others[24]! }),
+        acceptInAppInvite(db, { inviteId: invite!.id, userId: others[19]! }),
       ).rejects.toThrow("This Team is full");
       await expect(
         acceptInviteLink(db, {
           token: link.inviteUrl.split("/").pop()!,
-          userId: others[24]!,
+          userId: others[19]!,
         }),
       ).rejects.toThrow("This Team is full");
       await expect(
         inviteInApp(db, {
           teamId,
           userId: creator,
-          inviteeUserId: others[24]!,
+          inviteeUserId: others[19]!,
+        }),
+      ).rejects.toThrow("This Team is full");
+    });
+  });
+
+  it("keeps a legacy Roster of 22 and refuses a 23rd", async () => {
+    await withDb(async (database, db) => {
+      const ids = await makeUsers(database, 23);
+      const [creator, ...others] = ids as [string, ...string[]];
+      const teamId = await makeTeam(database, { id: creator }, "football");
+      const link = await createInviteLink(db, {
+        teamId,
+        userId: creator,
+        origin: "https://temba.test",
+      });
+      await addMembers(database, teamId, others.slice(0, 21));
+
+      const legacy = await teamById(db, { teamId, userId: creator });
+      expect(legacy.roster).toMatchObject({ count: 22, max: 20, full: true });
+      expect(legacy.members).toHaveLength(22);
+      await expect(
+        acceptInviteLink(db, {
+          token: link.inviteUrl.split("/").pop()!,
+          userId: others[21]!,
+        }),
+      ).rejects.toThrow("This Team is full");
+      await expect(
+        inviteInApp(db, {
+          teamId,
+          userId: creator,
+          inviteeUserId: others[21]!,
         }),
       ).rejects.toThrow("This Team is full");
     });
@@ -269,6 +306,7 @@ describe("padel Team invites", () => {
         count: 2,
         complete: true,
         full: true,
+        formatsPlayable: [],
       });
       expect(view.viewerCanLeave).toBe(false);
     });

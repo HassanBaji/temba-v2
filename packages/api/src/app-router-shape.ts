@@ -13,6 +13,7 @@ type AssertTrue<T extends true> = T;
 
 type ExpectedTopLevel =
   | "bookings"
+  | "challenges"
   | "games"
   | "groups"
   | "marks"
@@ -44,6 +45,20 @@ type ExpectedBookings =
   | "settlePayment"
   | "recordRefund";
 
+type ExpectedChallenges =
+  | "listMine"
+  | "listOpen"
+  | "byId"
+  | "listPostOptions"
+  | "listProposeOptions"
+  | "post"
+  | "withdraw"
+  | "propose"
+  | "changeProposal"
+  | "withdrawProposal"
+  | "declineProposal"
+  | "confirmProposal";
+
 type ExpectedGames =
   | "hello"
   | "listMyGames"
@@ -56,6 +71,13 @@ type ExpectedGames =
   | "drawPools"
   | "postPoolDraw"
   | "undoPoolDraw"
+  | "tournamentRounds"
+  | "generateRounds"
+  | "saveRoundPairings"
+  | "swapRoundPairing"
+  | "postRounds"
+  | "enterTournamentScore"
+  | "markMatchNotFinished"
   | "byId"
   | "poolTables"
   | "register"
@@ -103,6 +125,7 @@ type ExpectedGames =
   | "setFootballRole"
   | "publishFootballTeams"
   | "saveFootballScore"
+  | "nameChallengeSquad"
   | "reportWrongScore"
   | "searchLookupUsers"
   | "sendLookupInvite"
@@ -207,7 +230,12 @@ type ExpectedTeams =
   | "previewInviteLink"
   | "acceptInviteLink"
   | "dissolve"
-  | "leave";
+  | "leave"
+  | "setGroupTag"
+  | "previewPlayerByPhone"
+  | "addPlayerByPhone"
+  | "removeUnclaimedPlayer"
+  | "listGroupMembersToAdd";
 
 type ExpectedUsers =
   | "home"
@@ -268,6 +296,9 @@ type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
 type _Bookings = AssertTrue<
   Equal<keyof RouterInputs["bookings"], ExpectedBookings>
 >;
+type _Challenges = AssertTrue<
+  Equal<keyof RouterInputs["challenges"], ExpectedChallenges>
+>;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
 type _Marks = AssertTrue<Equal<keyof RouterInputs["marks"], ExpectedMarks>>;
@@ -284,6 +315,7 @@ type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
 export type AppRouterShapeChecks = [
   _Bookings,
   _TopLevel,
+  _Challenges,
   _Games,
   _Groups,
   _Marks,

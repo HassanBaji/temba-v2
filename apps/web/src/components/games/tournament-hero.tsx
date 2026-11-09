@@ -2,6 +2,7 @@
 
 import { Surface } from "~/components/ui/surface";
 import { ShareIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { PageTitle } from "~/components/layout/page-title";
@@ -85,6 +86,7 @@ export function TournamentHero({
   onShare,
   sharePending,
   onInvite,
+  actions,
 }: {
   name: string;
   eyebrow: string;
@@ -99,6 +101,7 @@ export function TournamentHero({
   onShare?: () => void;
   sharePending?: boolean;
   onInvite?: () => void;
+  actions?: ReactNode;
 }) {
   const m = useMessages();
   return (
@@ -109,16 +112,21 @@ export function TournamentHero({
     >
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" surface="ink" href={backHref} />
-        {onShare ? (
-          <button
-            type="button"
-            aria-label={m.common.share}
-            disabled={sharePending}
-            onClick={onShare}
-            className={cn(ACTION_BOX_DARK, "disabled:opacity-50")}
-          >
-            <ShareIcon aria-hidden="true" className="size-[18px]" />
-          </button>
+        {onShare || actions ? (
+          <div className="flex items-center gap-2">
+            {onShare ? (
+              <button
+                type="button"
+                aria-label={m.common.share}
+                disabled={sharePending}
+                onClick={onShare}
+                className={cn(ACTION_BOX_DARK, "disabled:opacity-50")}
+              >
+                <ShareIcon aria-hidden="true" className="size-[18px]" />
+              </button>
+            ) : null}
+            {actions}
+          </div>
         ) : (
           <span className="size-11 shrink-0" aria-hidden="true" />
         )}

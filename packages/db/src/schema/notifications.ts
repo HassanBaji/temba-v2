@@ -17,6 +17,7 @@ import { groups } from "./groups";
 import { games } from "./games";
 import { levelOverrides } from "./level-overrides";
 import { markKinds } from "./marks";
+import { challenges } from "./challenges";
 
 export const NOTIFICATION_TYPE_VALUES = [
   "group_member_joined",
@@ -36,6 +37,17 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_level_range_requested",
   "game_level_range_approved",
   "game_level_range_declined",
+  "team_invite_received",
+  "challenge_expired",
+  "challenge_proposal_received",
+  "challenge_proposal_declined",
+  "challenge_proposal_expired",
+  "challenge_proposal_confirmed",
+  "challenge_proposal_passed_over",
+  "challenge_squad_due",
+  "challenge_squad_named",
+  "challenge_rematch_nudge",
+  "match_score_to_confirm",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];
@@ -83,6 +95,9 @@ export const notifications = pgTable(
       () => levelOverrides.id,
       { onDelete: "cascade" },
     ),
+    challengeId: uuid("challenge_id").references(() => challenges.id, {
+      onDelete: "cascade",
+    }),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
     gameCount: integer("game_count"),
     markKind: markKinds("mark_kind"),
@@ -140,5 +155,9 @@ export const notificationRelations = relations(notifications, ({ one }) => ({
   levelOverride: one(levelOverrides, {
     fields: [notifications.levelOverrideId],
     references: [levelOverrides.id],
+  }),
+  challenge: one(challenges, {
+    fields: [notifications.challengeId],
+    references: [challenges.id],
   }),
 }));

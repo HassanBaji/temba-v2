@@ -237,7 +237,7 @@ function GamesHubTabPanel({
             />
           );
         }
-        const { primaryAction, rosterSides, showPartnerJoin } =
+        const { primaryAction, rosterSides, showPartnerJoin, challenge } =
           hubGameCardPlan(game);
         return (
           <GameSummaryCard
@@ -274,6 +274,7 @@ function GamesHubTabPanel({
             courtName={game.courtName}
             rated={game.rated}
             ratingScope={game.ratingScope}
+            challenge={challenge}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}

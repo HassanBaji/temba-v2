@@ -271,10 +271,20 @@ function knockoutDrawMatches(args: {
   });
 }
 
+/**
+ * `rounds: "all"` posts every Pool Round with the draw, as the draw always
+ * has. `"later"` posts only the draw (and an empty Knockout tree): the
+ * Organizer then makes the Pool Rounds one way or another.
+ */
 export async function postPoolDraw(
   database: DbClient,
-  args: { gameId: string; organizerUserId: string },
+  args: {
+    gameId: string;
+    organizerUserId: string;
+    rounds?: "all" | "later";
+  },
 ) {
+  const roundsLater = args.rounds === "later";
   const game = await requireGame(database, args.gameId);
   await assertGameOrganizer(database, game, args.organizerUserId);
 
@@ -401,6 +411,10 @@ export async function postPoolDraw(
         windowEnd: game.windowEnd,
         matchMinutes: game.matchMinutes,
       });
+  const toInsert =
+    roundsLater && !knockoutOnly
+      ? scheduled.filter((match) => match.knockoutRound != null)
+      : scheduled;
   if (scheduled.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -412,7 +426,7 @@ export async function postPoolDraw(
   await database.transaction(async (tx) => {
     const locked = await requireGame(tx, game.id);
     assertPoolDrawNotPosted(locked);
-    for (const match of scheduled) {
+    for (const match of toInsert) {
       const values = matchTimes({
         startTime: match.startTime,
         endTime: match.endTime,
@@ -444,11 +458,12 @@ export async function postPoolDraw(
     await tx.delete(gameWaitlist).where(eq(gameWaitlist.gameId, game.id));
   });
 
-  return { ok: true as const, matchCount: scheduled.length };
+  return { ok: true as const, matchCount: toInsert.length };
 }
 
 export const postPoolDrawInputSchema = z.object({
   gameId: z.string().uuid(),
+  rounds: z.enum(["all", "later"]).optional(),
 });
 
 export const postPoolDrawProcedure = protectedProcedure
@@ -458,5 +473,6 @@ export const postPoolDrawProcedure = protectedProcedure
     return postPoolDraw(ctx.db, {
       gameId: input.gameId,
       organizerUserId: appUser.id,
+      rounds: input.rounds,
     });
   });

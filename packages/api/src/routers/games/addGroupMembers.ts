@@ -13,7 +13,11 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { assertGameOrganizer, requireGame } from "#src/games/access";
+import {
+  assertGameOrganizer,
+  requireGame,
+  requireNotChallengeGame,
+} from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
 import {
   type FootballPlacement,
@@ -46,6 +50,7 @@ export async function addGroupMembers(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId);
+  requireNotChallengeGame(game, locale);
   await assertGameOrganizer(database, game, args.organizerUserId);
   assertOrganizerAddFormat(game);
   if (!game.groupId) {

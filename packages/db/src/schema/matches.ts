@@ -41,6 +41,8 @@ export const matches = pgTable("matches", {
   ),
   /** Set with `status = completed`, cleared when a wrong score reopens the Match. Anchors the Marks window. */
   completedAt: timestamp("completed_at"),
+  /** A Match its players stopped before a result. No result, out of the table until a score replaces it. */
+  notFinishedAt: timestamp("not_finished_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

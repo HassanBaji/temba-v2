@@ -1,5 +1,7 @@
-import { TeamsScreen } from "../../../../src/teams/teams-screen";
+import { Redirect } from "expo-router";
+
+import { TEAMS_PATH } from "../../../../src/teams/teams-model";
 
 export default function Teams() {
-  return <TeamsScreen />;
+  return <Redirect href={TEAMS_PATH} />;
 }

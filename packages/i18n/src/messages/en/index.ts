@@ -8,6 +8,7 @@ import { football } from "./football";
 import { group } from "./group";
 import { invite } from "./invite";
 import { team } from "./team";
+import { challenge } from "./challenge";
 import { home } from "./home";
 import { profile } from "./profile";
 import { onboarding } from "./onboarding";
@@ -18,6 +19,7 @@ import { marks } from "./marks";
 import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
+import { tournamentRounds } from "./tournament-rounds";
 import { webDashboard } from "./web-dashboard";
 import { webGroup } from "./web-group";
 import { webUi } from "./web-ui";
@@ -34,6 +36,8 @@ import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
 import { mobileMarks } from "./mobile-marks";
+import { mobileChallenge } from "./mobile-challenge";
+import { webChallenge } from "./web-challenge";
 import { webYou } from "./web-you";
 import { webMarks } from "./web-marks";
 
@@ -48,6 +52,7 @@ export const en = {
   group,
   invite,
   team,
+  challenge,
   home,
   profile,
   onboarding,
@@ -58,6 +63,7 @@ export const en = {
   auth,
   webGame,
   webTournament,
+  tournamentRounds,
   webDashboard,
   webGroup,
   webUi,
@@ -76,4 +82,6 @@ export const en = {
   mobileInvite,
   mobileTeam,
   mobileMarks,
+  mobileChallenge,
+  webChallenge,
 };

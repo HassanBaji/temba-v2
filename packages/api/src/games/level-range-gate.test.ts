@@ -486,7 +486,7 @@ describe("Game Level range gate and requests", () => {
           requestId: requested.id,
           userId: owner.id,
         }),
-      ).resolves.toEqual({ ok: true });
+      ).resolves.toEqual({ ok: true, seated: null });
     } finally {
       await close();
     }

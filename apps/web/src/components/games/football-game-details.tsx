@@ -24,6 +24,11 @@ import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
+import { challengeInfoRows } from "~/components/games/challenge-details-block";
+import { ChallengeShareButton } from "~/components/games/challenge-share-button";
+import { ChallengeSquads } from "~/components/games/challenge-squad-grid";
+import { ChallengeTeamVsTeam } from "~/components/games/challenge-team-vs-team";
+import { NameSquadDialog } from "~/components/games/name-squad-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
 import {
   FootballInfoRows,
@@ -31,6 +36,7 @@ import {
 } from "~/components/games/football-info-rows";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
+import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
 import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
@@ -53,6 +59,7 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { gamePlayersLink } from "~/lib/game-player-links";
+import { shareLinkWithFeedback } from "~/lib/share-link";
 import { cn } from "~/lib/utils";
 import {
   bibNames,
@@ -87,6 +94,8 @@ import {
   reopenRegistrationAction,
 } from "@repo/domain/game-copy";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { squadButtonCopy } from "@repo/domain/matchday-squad";
+import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
@@ -135,7 +144,9 @@ export function FootballGameDetails({
     userId: string;
     name: string;
   } | null>(null);
+  const [squadTeamId, setSquadTeamId] = React.useState<string | null>(null);
   const autoJoined = React.useRef(false);
+  const challenge = game.challenge;
 
   const board = api.games.footballBoard.useQuery({ gameId });
   const players = board.data?.players ?? [];
@@ -155,7 +166,7 @@ export function FootballGameDetails({
   );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
-  const lines = footballHeroLines(
+  const baseLines = footballHeroLines(
     {
       windowStart: game.windowStart,
       windowEnd: game.windowEnd,
@@ -163,12 +174,26 @@ export function FootballGameDetails({
       sideSize: game.sideSize,
       venueName: game.venue?.name ?? null,
       pitchName: game.recordedCourts[0]?.name ?? null,
-      teamsSet: teams != null,
+      teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
     },
     now,
     locale,
   );
+  const lines = challenge
+    ? {
+        ...baseLines,
+        subLine: challengeHeroSubLine(
+          {
+            pitchName: game.recordedCourts[0]?.name ?? null,
+            sideSize: game.sideSize,
+            windowStart: game.windowStart,
+            windowEnd: game.windowEnd,
+          },
+          locale,
+        ),
+      }
+    : baseLines;
 
   const savedCustomName = gameCustomName(game);
 
@@ -261,14 +286,27 @@ export function FootballGameDetails({
     onClose: () => setEditOpen(false),
   });
 
-  const inviteAccess = gameInviteAccess({
-    friendlyChrome: false,
-    isOrganizer: game.isOrganizer,
-    registrationStatus: game.registrationStatus,
-    cancelledAt: game.cancelledAt,
-    registrationMode: game.registrationMode,
-    partnerRequired: false,
-  });
+  const inviteAccess = game.canInvite
+    ? gameInviteAccess({
+        friendlyChrome: false,
+        isOrganizer: game.isOrganizer,
+        registrationStatus: game.registrationStatus,
+        cancelledAt: game.cancelledAt,
+        registrationMode: game.registrationMode,
+        partnerRequired: false,
+      })
+    : { canManage: false, canSendLookup: false };
+  function shareGamePage() {
+    const text = utils.games.resultLink
+      .fetch({ gameId })
+      .then((result) => ({ text: inviteShareText(result.url) }))
+      .catch(() => null);
+    void shareLinkWithFeedback(
+      text,
+      m.webDashboard.game.toast.linkCopied,
+      locale,
+    );
+  }
   function inviteShareText(url: string) {
     return gameInviteClipboardText({
       format: game.format,
@@ -288,6 +326,9 @@ export function FootballGameDetails({
           playersAllowed: game.playersAllowed,
           players,
         },
+        levelMinTenths: game.levelMinTenths,
+        levelMaxTenths: game.levelMaxTenths,
+        waitlist: game.waitlist,
         locale,
       },
     });
@@ -348,7 +389,8 @@ export function FootballGameDetails({
   const pressPlayer = organizer || canOpenProfiles ? onPressPlayer : undefined;
   const teamsHref = `/dashboard/games/${gameId}/teams`;
   const scoreHref = `/dashboard/games/${gameId}/score`;
-  const canMakeTeams = board.data?.viewer.canMakeTeams ?? false;
+  const canMakeTeams =
+    game.canMakeTeams && (board.data?.viewer.canMakeTeams ?? false);
   const viewerCode = viewer ? slotCode(viewer, locale) : null;
   const heroMuted =
     model.hero.tone === "ink" ? "text-dim" : "text-muted-foreground";
@@ -359,7 +401,7 @@ export function FootballGameDetails({
   ]
     .filter(Boolean)
     .join(", ");
-  const infoRows: FootballInfoRow[] = [
+  const gameInfoRows: FootballInfoRow[] = [
     ...(game.groupName
       ? [{ label: m.game.played.group, value: game.groupName }]
       : []),
@@ -394,16 +436,29 @@ export function FootballGameDetails({
       value: game.rated ? m.common.yes : m.common.no,
     },
   ];
+  const infoRows: FootballInfoRow[] = challenge
+    ? challengeInfoRows(challenge, game.sport, locale)
+    : gameInfoRows;
+  const squadSide = challenge?.sides.find(
+    (side) => side.teamId === squadTeamId,
+  );
+  const namableSide = challenge?.viewerCanNameSide
+    ? challenge.sides.find(
+        (side) => side.teamId === challenge.viewerCanNameSide,
+      )
+    : undefined;
   const onInk = model.hero.tone === "ink";
   const joinFamily =
-    cta?.kind === "join" || cta?.kind === "join_waitlist"
+    !game.isChallengeGame &&
+    (cta?.kind === "join" || cta?.kind === "join_waitlist")
       ? { kind: cta.kind }
       : null;
 
   const showHeroActions =
-    cta?.kind === "registered" ||
-    cta?.kind === "waitlisted" ||
-    (inviteAccess.canManage && !teams);
+    !challenge &&
+    (cta?.kind === "registered" ||
+      cta?.kind === "waitlisted" ||
+      (inviteAccess.canManage && !teams));
   const heroActions = showHeroActions ? (
     <div className="mt-4 space-y-2">
       {cta?.kind === "registered" ? (
@@ -463,7 +518,7 @@ export function FootballGameDetails({
     </div>
   ) : null;
 
-  const heroBody =
+  const gameHeroBody =
     teams && names ? (
       <>
         <TeamColumns
@@ -519,6 +574,36 @@ export function FootballGameDetails({
       </>
     );
 
+  const heroBody = challenge ? (
+    <div
+      className={`border-t pt-[18px] ${onInk ? "border-dimrule" : "border-rule"}`}
+    >
+      <ChallengeTeamVsTeam
+        sides={challenge.sides}
+        sport={game.sport}
+        tone={model.hero.tone}
+      />
+      <ChallengeSquads
+        sides={challenge.sides}
+        tone={model.hero.tone}
+        action={
+          namableSide?.teamId
+            ? {
+                ...squadButtonCopy(
+                  namableSide.named.length,
+                  namableSide.name ?? m.team.memberFallback,
+                  locale,
+                ),
+                onClick: () => setSquadTeamId(namableSide.teamId),
+              }
+            : undefined
+        }
+      />
+    </div>
+  ) : (
+    gameHeroBody
+  );
+
   const score = board.data?.match?.score ?? null;
   const playedModel =
     teams && names && score && board.data?.match?.status === "completed"
@@ -542,7 +627,7 @@ export function FootballGameDetails({
           locale,
         )
       : null;
-  const canAddPlayer = organizerCanAddPlayer(game);
+  const canAddPlayer = game.canAddPlayer && organizerCanAddPlayer(game);
   const menu = organizer ? (
     <GameActionsSheet
       title={savedCustomName ?? m.football.details.fallbackTitle}
@@ -572,21 +657,25 @@ export function FootballGameDetails({
                 },
               ]
             : []),
-          organizer.registration === "reopen"
-            ? {
-                key: "reopen_registration",
-                label: reopenRegistrationAction(locale),
-                icon: LockOpenIcon,
-                disabled: reopenRegistration.isPending,
-                onSelect: () => reopenRegistration.mutate({ gameId }),
-              }
-            : {
-                key: "close_registration",
-                label: closeRegistrationAction(locale),
-                icon: LockIcon,
-                disabled: closeRegistration.isPending,
-                onSelect: () => closeRegistration.mutate({ gameId }),
-              },
+          ...(challenge
+            ? []
+            : [
+                organizer.registration === "reopen"
+                  ? {
+                      key: "reopen_registration",
+                      label: reopenRegistrationAction(locale),
+                      icon: LockOpenIcon,
+                      disabled: reopenRegistration.isPending,
+                      onSelect: () => reopenRegistration.mutate({ gameId }),
+                    }
+                  : {
+                      key: "close_registration",
+                      label: closeRegistrationAction(locale),
+                      icon: LockIcon,
+                      disabled: closeRegistration.isPending,
+                      onSelect: () => closeRegistration.mutate({ gameId }),
+                    },
+              ]),
           ...(inviteAccess.canManage
             ? [
                 {
@@ -691,7 +780,20 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
-            actions={menu}
+            tag={challenge ? m.challenge.gameDetails.tag : undefined}
+            actions={
+              challenge && !game.cancelledAt ? (
+                <>
+                  <ChallengeShareButton
+                    onShare={shareGamePage}
+                    tone={model.hero.tone}
+                  />
+                  {menu}
+                </>
+              ) : (
+                menu
+              )
+            }
           >
             {heroBody}
           </FootballGameHeroCard>
@@ -724,6 +826,8 @@ export function FootballGameDetails({
             />
           </div>
         ) : null}
+
+        {game.cancelledAt ? null : <GameLevelRangePanel game={game} />}
 
         {board.error ? (
           <p role="alert" className="text-destructive text-meta">
@@ -927,6 +1031,25 @@ export function FootballGameDetails({
           }}
           open={invitesOpen}
           onOpenChange={setInvitesOpen}
+        />
+      ) : null}
+
+      {squadSide?.teamId ? (
+        <NameSquadDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              setSquadTeamId(null);
+            }
+          }}
+          gameId={gameId}
+          teamId={squadSide.teamId}
+          sideSize={squadSide.sideSize}
+          kickoff={game.windowStart}
+          namedUserIds={squadSide.named.map((player) => player.userId)}
+          onSaved={() =>
+            Promise.all([refreshGame(), utils.challenges.invalidate()])
+          }
         />
       ) : null}
 

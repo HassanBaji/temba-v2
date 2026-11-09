@@ -1,3 +1,4 @@
+import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { isCoinKind, type CoinKind } from "@repo/domain/marks";
 import type { Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
@@ -102,6 +103,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   if (pathname.startsWith("/dashboard/teams")) {
     return titles.myTeams;
   }
+  if (pathname.startsWith("/dashboard/challenges")) {
+    return m.common.challenges;
+  }
   if (pathname.startsWith("/dashboard/venues")) {
     return m.webUi.nav.venues;
   }
@@ -149,7 +153,7 @@ export function detailBackHref(pathname: string | null): string | undefined {
     return "/dashboard/groups";
   }
   if (/^\/dashboard\/teams\/(?!new$)[^/]+/.test(pathname)) {
-    return "/dashboard/teams";
+    return `/dashboard/challenges${challengesTabQuery("teams")}`;
   }
   if (/^\/dashboard\/venues\/(?!new$)[^/]+/.test(pathname)) {
     return "/dashboard/venues";
