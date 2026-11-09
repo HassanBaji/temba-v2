@@ -35,7 +35,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             className={cn(
               "px-3.5 text-[13px] transition-colors",
-              index > 0 && "border-border border-l",
+              index > 0 && "border-border border-s",
               active
                 ? "bg-ink text-paper font-semibold"
                 : "bg-paper hover:bg-wash",

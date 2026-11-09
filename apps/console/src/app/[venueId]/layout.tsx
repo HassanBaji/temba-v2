@@ -9,6 +9,7 @@ import { ConsolePage } from "~/components/console/console-page";
 import { ConsoleShell } from "~/components/console/console-shell";
 import { ManagedVenueProvider } from "~/components/console/managed-venue-context";
 import { NoManagedVenues } from "~/components/console/no-managed-venues";
+import { useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 
@@ -21,6 +22,7 @@ export default function VenueLayout({
   children: ReactNode;
   params: Promise<{ venueId: string }>;
 }) {
+  const m = useMessages().consoleShell;
   const { venueId } = use(params);
   const venue = api.venues.managedById.useQuery({ venueId });
 
@@ -53,7 +55,7 @@ export default function VenueLayout({
       <ConsoleShell webOrigin={webOrigin}>
         <ConsolePage>
           <ErrorState
-            title="Venue could not be loaded"
+            title={m.venueLoadError}
             message={venue.error?.message}
             onRetry={() => {
               void venue.refetch();

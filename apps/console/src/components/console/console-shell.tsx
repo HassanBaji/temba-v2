@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { StoredLocaleSync } from "~/components/stored-locale-sync";
 import { TembaWordmark } from "~/components/ui/temba-wordmark";
 
 import { ConsoleNav } from "./console-nav";
@@ -23,6 +24,7 @@ export function ConsoleShell({
 }) {
   return (
     <div className="bg-paper flex h-dvh min-w-[960px]">
+      <StoredLocaleSync />
       <aside className="bg-ink text-paper surface-ink flex w-[var(--console-rail-width)] shrink-0 flex-col px-3.5 py-[22px]">
         <div className="px-2.5">
           <TembaWordmark

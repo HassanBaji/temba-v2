@@ -5,13 +5,13 @@ import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { httpBatchStreamLink, loggerLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
 import { messagesFor } from "@repo/i18n/messages";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale } from "~/components/locale-provider";
 import { createQueryClient } from "./query-client";
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
@@ -43,12 +43,22 @@ export type RouterInputs = inferRouterInputs<AppRouter>;
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
+  const locale = useLocale();
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
   const queryClient = getQueryClient(() => {
-    toast.error(messagesFor(CONSOLE_LOCALE).webUi.errorState.fallback);
+    toast.error(messagesFor(localeRef.current).webUi.errorState.fallback);
   });
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
+  const lastLocale = useRef(locale);
+  useEffect(() => {
+    if (lastLocale.current !== locale) {
+      lastLocale.current = locale;
+      queryClient.clear();
+    }
+  }, [locale, queryClient]);
 
   const [trpcClient] = useState(() =>
     api.createClient({
@@ -66,7 +76,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           headers: async () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
-            headers.set("accept-language", CONSOLE_LOCALE);
+            headers.set("accept-language", localeRef.current);
             const token = await getTokenRef.current();
             if (token) headers.set("authorization", `Bearer ${token}`);
             return headers;

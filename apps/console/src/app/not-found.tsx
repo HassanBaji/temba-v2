@@ -2,16 +2,18 @@ import Link from "next/link";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { Button } from "~/components/ui/button";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const m = (await getRequestMessages()).consoleShell.notFound;
   return (
     <main className="flex min-h-dvh items-center justify-center p-6">
       <EmptyState
-        title="Not found"
-        description="That Venue or page does not exist, or you do not manage it."
+        title={m.title}
+        description={m.description}
         action={
           <Button asChild variant="outline">
-            <Link href="/">Your Venues</Link>
+            <Link href="/">{m.yourVenues}</Link>
           </Button>
         }
       />

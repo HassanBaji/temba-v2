@@ -3,18 +3,17 @@ import { BarChart3 } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { ConsolePage } from "~/components/console/console-page";
 import { PageHeader } from "~/components/console/page-header";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export default function Page() {
+export default async function Page() {
+  const m = (await getRequestMessages()).consoleShell.reports;
   return (
     <ConsolePage>
-      <PageHeader
-        title="Reports"
-        description="Occupancy and revenue, with the Temba effect broken out: how many hours came from open and group games."
-      />
+      <PageHeader title={m.title} description={m.description} />
       <EmptyState
         icon={BarChart3}
-        title="No reports yet"
-        description="Reports arrive with the Venue reports ticket (TEM-369)."
+        title={m.emptyTitle}
+        description={m.emptyDescription}
       />
     </ConsolePage>
   );

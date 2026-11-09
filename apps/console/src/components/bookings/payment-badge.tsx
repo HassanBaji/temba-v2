@@ -2,6 +2,7 @@ import { Check, CircleDashed, X } from "lucide-react";
 
 import type { PaymentStatus } from "@repo/domain/booking-payment";
 import { cn } from "~/lib/utils";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { paymentWord } from "./booking-list-model";
 
@@ -15,9 +16,11 @@ export function PaymentBadge({
   refundInProgress?: boolean;
   className?: string;
 }) {
+  const m = useMessages().consoleBookings;
+  const locale = useLocale();
   const { mark, word } = refundInProgress
-    ? { mark: "open" as const, word: "Refund in progress" }
-    : paymentWord(status);
+    ? { mark: "open" as const, word: m.payment.refundInProgress }
+    : paymentWord(status, locale);
   const Icon = mark === "paid" ? Check : mark === "failed" ? X : CircleDashed;
   return (
     <span

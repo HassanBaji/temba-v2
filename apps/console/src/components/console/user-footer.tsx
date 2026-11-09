@@ -3,26 +3,33 @@
 import { useClerk, useUser } from "@clerk/nextjs";
 import { ChevronsUpDown } from "lucide-react";
 
+import { useLocaleSwitch, useMessages } from "~/components/locale-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { initials } from "@repo/domain/initials";
+import { isLocale, LOCALE_LABELS, LOCALES } from "@repo/i18n/locale";
 
 export function UserFooter({ webOrigin }: { webOrigin?: string }) {
+  const m = useMessages().consoleShell.account;
+  const { locale, setLocale, switching } = useLocaleSwitch();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const name = user?.fullName ?? user?.username ?? "You";
-  const role = user?.publicMetadata.operator === true ? "Operator" : "Manager";
+  const name = user?.fullName ?? user?.username ?? m.fallbackName;
+  const role = user?.publicMetadata.operator === true ? m.operator : m.manager;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="surface-ink hover:bg-raised focus-visible:ring-ring/50 rounded-block mt-auto flex w-full items-center gap-2.5 p-2.5 text-left outline-none focus-visible:ring-[3px]"
-        aria-label="Account"
+        className="surface-ink hover:bg-raised focus-visible:ring-ring/50 rounded-block mt-auto flex w-full items-center gap-2.5 p-2.5 text-start outline-none focus-visible:ring-[3px]"
+        aria-label={m.label}
       >
         <span className="border-dimrule rounded-block flex size-[30px] shrink-0 items-center justify-center border text-xs font-semibold">
           {initials(name)}
@@ -40,15 +47,36 @@ export function UserFooter({ webOrigin }: { webOrigin?: string }) {
         {webOrigin ? (
           <>
             <DropdownMenuItem asChild>
-              <a href={webOrigin}>Back to Temba</a>
+              <a href={webOrigin}>{m.backToTemba}</a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         ) : null}
+        <DropdownMenuLabel>{m.language}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={locale}
+          onValueChange={(next) => {
+            if (isLocale(next) && next !== locale) {
+              setLocale(next);
+            }
+          }}
+        >
+          {LOCALES.map((option) => (
+            <DropdownMenuRadioItem
+              key={option}
+              value={option}
+              lang={option}
+              disabled={switching}
+            >
+              {LOCALE_LABELS[option]}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => void signOut({ redirectUrl: "/login" })}
         >
-          Sign out
+          {m.signOut}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

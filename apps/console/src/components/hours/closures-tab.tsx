@@ -24,6 +24,7 @@ import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { cn } from "~/lib/utils";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 
 import { controlClass, linkButtonClass, outlineButtonClass } from "./classes";
@@ -39,6 +40,9 @@ import { productDateTimeInputToInstant } from "./opening-hours-model";
 const FORM_ID = "new-closure-form";
 
 export function ClosuresCard() {
+  const { consoleHours, consoleCourts } = useMessages();
+  const m = consoleHours.closures;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [courtId, setCourtId] = React.useState("");
@@ -51,7 +55,7 @@ export function ClosuresCard() {
 
   const addClosure = api.venues.addClosure.useMutation({
     onSuccess: async (created) => {
-      toast.success("Closure added");
+      toast.success(m.addedToast);
       setReason("");
       setStartsAt("");
       setEndsAt("");
@@ -68,7 +72,7 @@ export function ClosuresCard() {
   const removeClosure = api.venues.removeClosure.useMutation({
     meta: OWN_ERROR_UI,
     onSuccess: async () => {
-      toast.success("Closure removed");
+      toast.success(m.removedToast);
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
   });
@@ -81,8 +85,8 @@ export function ClosuresCard() {
   function scopeLabel(closureCourtId: string | null) {
     return closureCourtId
       ? (venue.courts.find((court) => court.id === closureCourtId)?.name ??
-          "Court")
-      : "All courts";
+          consoleCourts.court)
+      : consoleCourts.allCourts;
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -96,7 +100,7 @@ export function ClosuresCard() {
     );
     const end = productDateTimeInputToInstant(endsAt, zonedDateTimeToInstant);
     if (!start || !end) {
-      toast.error("Choose when the Closure starts and ends");
+      toast.error(m.chooseTimes);
       return;
     }
     addClosure.mutate({
@@ -111,7 +115,7 @@ export function ClosuresCard() {
   return (
     <ConsoleCard className="flex flex-col overflow-hidden">
       <ConsoleCardHeader
-        title="Closures"
+        title={m.title}
         action={
           <Button
             type="submit"
@@ -122,17 +126,17 @@ export function ClosuresCard() {
               "rounded-block h-[34px] min-h-[34px] gap-1.5 px-3",
             )}
             pending={addClosure.isPending}
-            pendingLabel="Adding…"
+            pendingLabel={m.adding}
           >
             <Plus aria-hidden="true" className="size-[13px]" />
-            Add closure
+            {m.add}
           </Button>
         }
       />
 
       {closures.length === 0 ? (
         <p className="border-border text-muted-foreground text-meta border-b px-5 py-4">
-          No Closures in the next 90 days.
+          {m.none}
         </p>
       ) : (
         <ul className="divide-border divide-y">
@@ -140,6 +144,7 @@ export function ClosuresCard() {
             const title = closureTitle(
               scopeLabel(closure.courtId),
               closure.reason,
+              locale,
             );
             const status = closureStatus(closure.startsAt, now);
             return (
@@ -155,16 +160,17 @@ export function ClosuresCard() {
                       closure.startsAt,
                       closure.endsAt,
                       now,
+                      locale,
                     )}
                   </span>
                 </span>
                 {status === "active" ? (
                   <span className="bg-ink text-paper rounded-xs px-2 py-[3px] text-[11px]">
-                    Active
+                    {m.active}
                   </span>
                 ) : (
                   <span className="border-border text-muted-foreground rounded-xs border px-[7px] py-0.5 text-[11px]">
-                    Scheduled
+                    {m.scheduled}
                   </span>
                 )}
                 <DropdownMenu modal={false}>
@@ -173,8 +179,8 @@ export function ClosuresCard() {
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`${title} actions`}
-                      className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block -mr-2"
+                      aria-label={m.actions(title)}
+                      className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block -me-2"
                     >
                       <MoreHorizontal aria-hidden="true" className="size-4" />
                     </Button>
@@ -188,7 +194,7 @@ export function ClosuresCard() {
                       className="text-meta cursor-pointer"
                       onSelect={() => setRemoveId(closure.id)}
                     >
-                      Remove closure
+                      {m.remove}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -204,11 +210,10 @@ export function ClosuresCard() {
           className="border-border flex flex-col gap-2 border-t px-5 py-4"
         >
           <p className="text-meta font-semibold">
-            {conflicts.length} Booking{conflicts.length === 1 ? "" : "s"} fall
-            inside this Closure
+            {m.conflicts(conflicts.length)}
           </p>
           <p className="text-muted-foreground text-eyebrow">
-            They stay confirmed until you cancel them from the Bookings page.
+            {m.conflictsHelp}
           </p>
           <ul className="text-meta flex flex-col gap-1">
             {conflicts.map((id) => (
@@ -217,7 +222,7 @@ export function ClosuresCard() {
                   href={bookingPath(venue.id, id)}
                   className="underline underline-offset-2"
                 >
-                  Booking {id.slice(0, 8)}
+                  {m.bookingRef(id.slice(0, 8))}
                 </Link>
               </li>
             ))}
@@ -227,7 +232,7 @@ export function ClosuresCard() {
             className={cn(linkButtonClass, "self-start")}
             onClick={() => setConflicts(null)}
           >
-            Dismiss
+            {m.dismiss}
           </button>
         </div>
       ) : null}
@@ -237,15 +242,15 @@ export function ClosuresCard() {
         onSubmit={onSubmit}
         className="border-border flex flex-col gap-2.5 border-t px-5 py-[18px]"
       >
-        <p className="text-muted-foreground text-eyebrow">New closure</p>
+        <p className="text-muted-foreground text-eyebrow">{m.newClosure}</p>
         <div className="grid grid-cols-2 gap-2">
           <NativeSelect
-            aria-label="Closure applies to"
+            aria-label={m.appliesTo}
             className="h-[38px]"
             value={courtId}
             onChange={(event) => setCourtId(event.target.value)}
           >
-            <option value="">All courts</option>
+            <option value="">{consoleCourts.allCourts}</option>
             {venue.courts.map((court) => (
               <option key={court.id} value={court.id}>
                 {court.name}
@@ -253,8 +258,8 @@ export function ClosuresCard() {
             ))}
           </NativeSelect>
           <Input
-            aria-label="Reason"
-            placeholder="Reason"
+            aria-label={m.reason}
+            placeholder={m.reason}
             className={cn(controlClass, "h-[38px] min-h-[38px]")}
             value={reason}
             maxLength={255}
@@ -263,7 +268,7 @@ export function ClosuresCard() {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Input
-            aria-label="From"
+            aria-label={m.from}
             type="datetime-local"
             required
             className={cn(controlClass, "h-[38px] min-h-[38px]")}
@@ -271,7 +276,7 @@ export function ClosuresCard() {
             onChange={(event) => setStartsAt(event.target.value)}
           />
           <Input
-            aria-label="To"
+            aria-label={m.to}
             type="datetime-local"
             required
             min={startsAt || undefined}
@@ -281,9 +286,7 @@ export function ClosuresCard() {
           />
         </div>
         <p className="text-muted-foreground text-eyebrow leading-normal">
-          Times are in Bahrain time. Existing bookings inside the window are
-          listed once the closure is added; they stay confirmed until you cancel
-          them from the Bookings page.
+          {m.timezoneNote}
         </p>
       </form>
 
@@ -294,13 +297,25 @@ export function ClosuresCard() {
             setRemoveId(null);
           }
         }}
-        title="Remove this closure?"
+        title={m.removeTitle}
         description={
           removing
-            ? `${closureTitle(scopeLabel(removing.courtId), removing.reason)}, ${describeClosureWindow(removing.startsAt, removing.endsAt, now)}. The time becomes bookable again.`
+            ? m.removeDescription(
+                closureTitle(
+                  scopeLabel(removing.courtId),
+                  removing.reason,
+                  locale,
+                ),
+                describeClosureWindow(
+                  removing.startsAt,
+                  removing.endsAt,
+                  now,
+                  locale,
+                ),
+              )
             : undefined
         }
-        confirmLabel="Remove closure"
+        confirmLabel={m.remove}
         pending={removeClosure.isPending}
         onConfirm={async () => {
           if (removing) {

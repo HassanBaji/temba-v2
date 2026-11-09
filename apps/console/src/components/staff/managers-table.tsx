@@ -14,6 +14,7 @@ import {
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { PersonMonogram } from "./person-monogram";
 import { managerSubtitle } from "./staff-model";
@@ -38,13 +39,15 @@ export function ManagersTable({
   managers: readonly Manager[];
   canRemove: boolean;
 }) {
+  const m = useMessages().consoleVenue.staff;
+  const locale = useLocale();
   const utils = api.useUtils();
   const [removeUserId, setRemoveUserId] = React.useState<string | null>(null);
 
   const removeManager = api.venues.removeManager.useMutation({
     meta: OWN_ERROR_UI,
     onSuccess: async () => {
-      toast.success("Venue manager removed");
+      toast.success(m.removedToast);
       await utils.venues.managedById.invalidate({ venueId });
       await utils.venues.listManaged.invalidate();
     },
@@ -52,32 +55,30 @@ export function ManagersTable({
 
   const removeName =
     managers.find((manager) => manager.userId === removeUserId)?.name ??
-    "this User";
+    m.thisUser;
 
   return (
     <>
       <section
-        aria-label="Venue managers"
+        aria-label={m.tableLabel}
         className="border-border rounded-card overflow-hidden border text-[13px]"
       >
         <div
           aria-hidden="true"
           className={cn(rowGrid, "border-border border-b px-[18px] py-3")}
         >
-          <span className="eyebrow-mono">Person</span>
-          <span className="eyebrow-mono">Role</span>
+          <span className="eyebrow-mono">{m.person}</span>
+          <span className="eyebrow-mono">{m.role}</span>
           <span />
         </div>
 
         {managers.length === 0 ? (
-          <p className="text-muted-foreground px-[18px] py-[13px]">
-            No Venue managers yet.
-          </p>
+          <p className="text-muted-foreground px-[18px] py-[13px]">{m.none}</p>
         ) : null}
 
         <ul className="divide-border divide-y">
           {managers.map((manager) => {
-            const subtitle = managerSubtitle(manager);
+            const subtitle = managerSubtitle(manager, locale);
             return (
               <li
                 key={manager.id}
@@ -96,14 +97,14 @@ export function ManagersTable({
                 </span>
                 <span>
                   <span className="border-ink inline-flex rounded-[6px] border px-[7px] py-0.5 text-[11px] leading-4">
-                    Manager
+                    {m.manager}
                   </span>
                 </span>
                 <span className="flex justify-end">
                   {canRemove ? (
                     <DropdownMenu modal={false}>
                       <DropdownMenuTrigger
-                        aria-label={`Actions for ${manager.name}`}
+                        aria-label={m.actionsFor(manager.name)}
                         className="text-muted-foreground hover:bg-wash focus-visible:ring-ring/50 rounded-block flex size-8 items-center justify-center outline-none focus-visible:ring-[3px]"
                       >
                         <MoreHorizontal aria-hidden="true" className="size-4" />
@@ -116,7 +117,7 @@ export function ManagersTable({
                           variant="destructive"
                           onSelect={() => setRemoveUserId(manager.userId)}
                         >
-                          Remove
+                          {m.remove}
                         </ActionMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -135,9 +136,9 @@ export function ManagersTable({
             setRemoveUserId(null);
           }
         }}
-        title={`Remove ${removeName}?`}
-        description="They lose access to this Venue's console."
-        confirmLabel="Remove Venue manager"
+        title={m.removeTitle(removeName)}
+        description={m.removeDescription}
+        confirmLabel={m.removeConfirm}
         pending={removeManager.isPending}
         onConfirm={async () => {
           if (!removeUserId) {

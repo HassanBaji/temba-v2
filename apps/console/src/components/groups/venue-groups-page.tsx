@@ -5,7 +5,6 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { venueUnlinkGroupConfirm } from "@repo/domain/group-link-request";
-import { messagesFor } from "@repo/i18n/messages";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { EntityMonogram } from "~/components/common/entity-monogram";
@@ -22,16 +21,15 @@ import { PageHeader } from "~/components/console/page-header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { LinkGroupSheet } from "./link-group-sheet";
 
-function memberLabel(count: number) {
-  return count === 1 ? "1 member" : `${count} members`;
-}
-
 export function VenueGroupsPage() {
-  const m = messagesFor(CONSOLE_LOCALE).group.linkRequest;
+  const messages = useMessages();
+  const m = messages.group.linkRequest;
+  const g = messages.consoleVenue.groups;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [linkOpen, setLinkOpen] = React.useState(false);
@@ -43,7 +41,7 @@ export function VenueGroupsPage() {
 
   const cancel = api.venues.cancelGroupLinkRequest.useMutation({
     onSuccess: async () => {
-      toast.success("Request cancelled");
+      toast.success(g.cancelledToast);
       await utils.venues.listLinkedGroups.invalidate({ venueId: venue.id });
       await utils.venues.searchLinkableGroups.invalidate();
     },
@@ -65,7 +63,7 @@ export function VenueGroupsPage() {
   });
 
   const unlinkConfirm = unlinkTarget
-    ? venueUnlinkGroupConfirm(unlinkTarget.name, CONSOLE_LOCALE)
+    ? venueUnlinkGroupConfirm(unlinkTarget.name, locale)
     : null;
 
   const archived = data.data?.venue.archived ?? false;
@@ -73,8 +71,8 @@ export function VenueGroupsPage() {
   return (
     <ConsolePage>
       <PageHeader
-        title="Groups"
-        description="Link a Group to this Venue. Linked Groups are Club Groups: they host Rated Games and play at this Venue."
+        title={g.title}
+        description={g.description}
         action={
           <Button
             type="button"
@@ -83,7 +81,7 @@ export function VenueGroupsPage() {
             onClick={() => setLinkOpen(true)}
           >
             <Plus aria-hidden="true" className="size-[15px]" />
-            Link a Group
+            {g.link}
           </Button>
         }
       />
@@ -92,7 +90,7 @@ export function VenueGroupsPage() {
 
       {data.error ? (
         <ErrorState
-          title="Groups could not be loaded"
+          title={g.loadError}
           message={data.error.message}
           onRetry={() => {
             void data.refetch();
@@ -104,10 +102,10 @@ export function VenueGroupsPage() {
         <div className="space-y-[22px]">
           <ConsoleCard>
             <ConsoleCardHeader
-              title="Linked Groups"
+              title={g.linked}
               action={
                 archived ? (
-                  <Badge variant="secondary">Venue Soft-archived</Badge>
+                  <Badge variant="secondary">{g.softArchived}</Badge>
                 ) : undefined
               }
             />
@@ -118,21 +116,21 @@ export function VenueGroupsPage() {
                     key={group.id}
                     leading={
                       <EntityMonogram
-                        name={group.name ?? "Untitled Group"}
+                        name={group.name ?? g.untitled}
                         size="lg"
                       />
                     }
-                    title={group.name ?? "Untitled Group"}
-                    meta={memberLabel(group.memberCount)}
+                    title={group.name ?? g.untitled}
+                    meta={g.members(group.memberCount)}
                     trailing={
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary">Verified</Badge>
+                        <Badge variant="secondary">{g.verified}</Badge>
                         {group.canUnlink ? (
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            aria-label={`Unlink ${group.name ?? "Untitled Group"}`}
+                            aria-label={g.unlinkNamed(group.name ?? g.untitled)}
                             onClick={() =>
                               setUnlinkTarget({
                                 id: group.id,
@@ -152,41 +150,41 @@ export function VenueGroupsPage() {
               <EmptyState
                 icon={Users}
                 headingLevel={3}
-                title="No Groups yet"
-                description="Groups that accept your request appear here."
+                title={g.emptyTitle}
+                description={g.emptyDescription}
               />
             )}
           </ConsoleCard>
 
           {data.data.pendingRequests.length > 0 ? (
             <ConsoleCard>
-              <ConsoleCardHeader title="Waiting for a reply" />
+              <ConsoleCardHeader title={g.waiting} />
               <RowList>
                 {data.data.pendingRequests.map((request) => {
-                  const name = request.group.name ?? "Untitled Group";
+                  const name = request.group.name ?? g.untitled;
                   return (
                     <ListRow
                       key={request.id}
                       leading={<EntityMonogram name={name} size="lg" />}
                       title={name}
-                      meta="Waiting for the Group creator"
+                      meta={g.waitingForCreator}
                       trailing={
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          aria-label={`Cancel the request to ${name}`}
+                          aria-label={g.cancelRequest(name)}
                           pending={
                             cancel.isPending &&
                             cancel.variables?.requestId === request.id
                           }
-                          pendingLabel="Cancelling…"
+                          pendingLabel={g.cancelling}
                           disabled={cancel.isPending}
                           onClick={() =>
                             cancel.mutate({ requestId: request.id })
                           }
                         >
-                          Cancel
+                          {g.cancel}
                         </Button>
                       }
                     />
@@ -198,17 +196,17 @@ export function VenueGroupsPage() {
 
           {data.data.declinedRequests.length > 0 ? (
             <ConsoleCard>
-              <ConsoleCardHeader title="Declined" />
+              <ConsoleCardHeader title={g.declined} />
               <RowList>
                 {data.data.declinedRequests.map((request) => {
-                  const name = request.group.name ?? "Untitled Group";
+                  const name = request.group.name ?? g.untitled;
                   return (
                     <ListRow
                       key={request.id}
                       leading={<EntityMonogram name={name} size="lg" />}
                       title={name}
-                      meta="The Group creator declined. You can send a new request."
-                      trailing={<Badge variant="outline">Declined</Badge>}
+                      meta={g.declinedMeta}
+                      trailing={<Badge variant="outline">{g.declined}</Badge>}
                     />
                   );
                 })}
