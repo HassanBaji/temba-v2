@@ -217,22 +217,14 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
   const href = gameHref({ kind: "game", gameId: game.id });
   const [row] = homeComingUpRows([game], locale);
 
-  if (row && row.kind !== "game") {
-    const subline =
-      row.kind === "tournament" ? row.teamsLine : row.opponentLine;
-    const label =
-      row.kind === "tournament" && row.actionLabel
-        ? row.actionLabel
-        : m.home.nextGame.viewGame;
+  if (row?.kind === "tournament") {
+    const label = row.actionLabel ?? m.home.nextGame.viewGame;
     return (
       <HeroFrame
         href={href}
         sport={sport}
         kind={m.webAuth.home.kind.tournament}
-        when={{
-          day,
-          emphasis: row.kind === "tournament_match" ? row.roundTag : null,
-        }}
+        when={{ day, emphasis: null }}
         spoken={m.webAuth.home.nextUpSpoken(
           row.title,
           day,
@@ -241,7 +233,7 @@ export function UpNextHero({ item }: { item: UpNextItem }) {
         actions={<CardAction primary href={href} label={label} />}
       >
         <Kickoff startsAt={startsAt} endsAt={null} />
-        <Headline title={row.title} detail={subline} />
+        <Headline title={row.title} detail={row.teamsLine} />
       </HeroFrame>
     );
   }

@@ -7,8 +7,8 @@ import {
   HandIcon,
   LayersIcon,
   ShuffleIcon,
-  SkipForwardIcon,
   SparklesIcon,
+  StepForwardIcon,
 } from "lucide-react";
 import * as React from "react";
 
@@ -18,6 +18,7 @@ import { ScoreText } from "~/components/temba/score-text";
 import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 import {
@@ -34,6 +35,9 @@ import {
 import { type ScoreSheetTarget } from "./tournament-score-drawer";
 import { type SwapTarget } from "./tournament-swap-drawer";
 import { type TournamentRoundsActions } from "./use-tournament-rounds";
+
+type Way = "all" | "next" | "byHand";
+const WAYS: readonly Way[] = ["all", "next", "byHand"];
 
 const SMALL_ACTION =
   "border-rule focus-visible:ring-ring/50 text-meta inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md border px-2.5 font-semibold outline-none focus-visible:ring-[3px]";
@@ -315,48 +319,65 @@ function WayCard({
   icon,
   title,
   body,
-  primary = false,
+  value,
+  selected,
   disabled,
   onSelect,
 }: {
   icon: React.ReactNode;
   title: string;
   body: string;
-  primary?: boolean;
+  value: Way;
+  selected: boolean;
   disabled: boolean;
-  onSelect: () => void;
+  onSelect: (way: Way) => void;
 }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onSelect}
+    <label
       className={cn(
-        "rounded-card focus-visible:ring-ring/50 flex w-full items-start gap-4 border p-5 text-start outline-none focus-visible:ring-[3px] disabled:opacity-60",
-        primary ? "bg-ink text-paper border-ink" : "border-rule bg-paper",
+        "rounded-card has-focus-visible:ring-ring/50 has-focus-visible:ring-[3px] has-disabled:opacity-60 flex w-full cursor-pointer items-center gap-4 border p-5 text-start",
+        selected ? "bg-ink text-paper border-ink" : "border-rule bg-paper",
       )}
     >
+      <input
+        type="radio"
+        name="tournament-rounds-way"
+        value={value}
+        checked={selected}
+        disabled={disabled}
+        onChange={() => onSelect(value)}
+        className="sr-only"
+      />
       <span
         aria-hidden="true"
         className={cn(
-          "inline-flex size-10 shrink-0 items-center justify-center rounded-md",
-          primary ? "bg-raised" : "border-rule border",
+          "inline-flex size-10 shrink-0 items-center justify-center self-start rounded-md",
+          selected ? "bg-raised" : "border-rule border",
         )}
       >
         {icon}
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="text-title block font-semibold">{title}</span>
         <span
           className={cn(
             "text-meta mt-1 block leading-relaxed",
-            primary ? "text-dim" : "text-muted-foreground",
+            selected ? "text-dim" : "text-muted-foreground",
           )}
         >
           {body}
         </span>
       </span>
-    </button>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "inline-flex size-6 shrink-0 items-center justify-center rounded-full border",
+          selected ? "bg-paper border-paper" : "border-rule",
+        )}
+      >
+        {selected ? <span className="bg-ink size-2.5 rounded-full" /> : null}
+      </span>
+    </label>
   );
 }
 
@@ -480,6 +501,7 @@ export function TournamentRoundsTab({
   viewerUserId,
   actions,
   details,
+  afterGroup,
   onEnterScore,
   onSwap,
   onPair,
@@ -490,6 +512,7 @@ export function TournamentRoundsTab({
   viewerUserId: string;
   actions: TournamentRoundsActions;
   details?: React.ReactNode;
+  afterGroup?: { label: string; value: string } | null;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
   onPair: (roundNumber: number) => void;
@@ -503,6 +526,8 @@ export function TournamentRoundsTab({
   const notMade = data.rounds.filter((round) => round.state === "not_made");
   const drafts = data.rounds.filter((round) => round.state === "draft");
   const generating = actions.generate.isPending;
+  const [way, setWay] = React.useState<Way>("all");
+  const wayPromptId = React.useId();
 
   function toggle(roundNumber: number) {
     setOpen((current) => {
@@ -569,30 +594,61 @@ export function TournamentRoundsTab({
 
   if (made.length === 0) {
     const firstSlot = data.rounds[0]?.slots[0];
+    const ways: Record<
+      Way,
+      { icon: React.ReactNode; title: string; body: string; next: string }
+    > = {
+      all: {
+        icon: <LayersIcon className="size-5" />,
+        title: m.ways.generateAllTitle(data.roundCount),
+        body: m.ways.generateAllBody,
+        next: m.ways.generateAllNext,
+      },
+      next: {
+        icon: <StepForwardIcon className="size-5" />,
+        title: m.ways.oneAtATimeTitle,
+        body: m.ways.oneAtATimeBody,
+        next: m.ways.oneAtATimeNext,
+      },
+      byHand: {
+        icon: <HandIcon className="size-5" />,
+        title: m.ways.byHandTitle,
+        body: m.ways.byHandBody,
+        next: m.ways.byHandNext,
+      },
+    };
+
+    function continueWithWay() {
+      if (way === "byHand") {
+        onPair(1);
+        return;
+      }
+      void generate(way);
+    }
+
     return (
       <div className="space-y-3">
-        <WayCard
-          primary
-          icon={<LayersIcon className="size-5" />}
-          title={m.ways.generateAllTitle(data.roundCount)}
-          body={m.ways.generateAllBody}
-          disabled={generating}
-          onSelect={() => void generate("all")}
-        />
-        <WayCard
-          icon={<SkipForwardIcon className="size-5" />}
-          title={m.ways.oneAtATimeTitle}
-          body={m.ways.oneAtATimeBody}
-          disabled={generating}
-          onSelect={() => void generate("next")}
-        />
-        <WayCard
-          icon={<HandIcon className="size-5" />}
-          title={m.ways.byHandTitle}
-          body={m.ways.byHandBody}
-          disabled={generating}
-          onSelect={() => onPair(1)}
-        />
+        <p id={wayPromptId} className="text-muted-foreground text-body">
+          {m.ways.prompt}
+        </p>
+        <div
+          role="radiogroup"
+          aria-labelledby={wayPromptId}
+          className="space-y-3"
+        >
+          {WAYS.map((value) => (
+            <WayCard
+              key={value}
+              value={value}
+              icon={ways[value].icon}
+              title={ways[value].title}
+              body={ways[value].body}
+              selected={way === value}
+              disabled={generating}
+              onSelect={setWay}
+            />
+          ))}
+        </div>
         <div className="pt-3">
           <SummaryRows
             rows={[
@@ -612,12 +668,38 @@ export function TournamentRoundsTab({
                   ]
                 : []),
               { label: m.ways.points, value: m.ways.pointsValue },
+              ...(afterGroup ? [afterGroup] : []),
             ]}
           />
         </div>
         <p className="text-muted-foreground text-meta leading-relaxed">
           {m.ways.footer}
         </p>
+        <div
+          className={cn(
+            "border-rule bg-background sticky bottom-0 z-10 mt-3 flex items-center gap-4 border-t pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3.5",
+            pageBleed,
+          )}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-body truncate font-semibold">
+              {ways[way].title}
+            </p>
+            <p className="text-muted-foreground text-meta truncate">
+              {ways[way].next}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="lg"
+            className="shrink-0 px-8 font-semibold"
+            disabled={generating}
+            aria-busy={generating}
+            onClick={continueWithWay}
+          >
+            {generating ? m.ways.continuing : m.ways.continue}
+          </Button>
+        </div>
       </div>
     );
   }

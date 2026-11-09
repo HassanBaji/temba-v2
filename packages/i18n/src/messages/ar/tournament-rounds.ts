@@ -49,7 +49,7 @@ export const tournamentRounds = {
   lead: {
     teams: "كل فرق القرعة، حسب المجموعة.",
     roundsEmpty: (roundCount: number, gamesPerRound: number) =>
-      `يلعب الجميع ${rounds(roundCount)} في كل منها ${games(gamesPerRound)}. اصنعها كلها دفعة واحدة، أو جولة بجولة، أو بيدك.`,
+      `يلعب الجميع ${rounds(roundCount)} في كل منها ${games(gamesPerRound)}.`,
     roundsDrafted: (count: number) =>
       `${rounds(count)} في المسودة. بدّل أي مواجهة وتبقى البقية صحيحة. لم يُنشر شيء بعد.`,
     roundsOrganizer:
@@ -67,31 +67,34 @@ export const tournamentRounds = {
       `لُعبت ${played} من ${total} جولات`,
   },
   ways: {
+    prompt: "كيف تريد أن تصنع الجولات؟",
     generateAllTitle: (count: number) =>
       count === 1 ? "اصنع الجولة" : `اصنع كل الجولات (${count})`,
-    generateAllBody: "دوري كامل دفعة واحدة. يمكنك تبديل أي مواجهة قبل النشر.",
+    generateAllBody:
+      "دوري كامل دفعة واحدة. بدّل أي مواجهة أو ملعب أو وقت قبل النشر.",
+    generateAllNext: "مسودات أولًا، لم يُنشر شيء بعد",
     oneAtATimeTitle: "جولة بجولة",
     oneAtATimeBody:
-      "اصنع الجولة 1 الآن، والجولة 2 حين تصل النتائج. مناسب حين تنسحب فرق أو تتأخر.",
+      "الجولة 1 الآن، والجولة 2 حين تصل النتائج. مناسب حين تنسحب فرق أو تتأخر.",
+    oneAtATimeNext: "الجولة 1 كمسودة، لم يُنشر شيء بعد",
     byHandTitle: "رتّبها بنفسك",
     byHandBody:
       "جولة 1 فارغة. اضغط فريقين لتصنع مباراة، ويتذكّر Temba من لعب مع من.",
+    byHandNext: "جولة 1 فارغة، لم يُنشر شيء بعد",
     courts: "الملاعب",
     courtsValue: (count: number) =>
-      plural("ar", count, {
-        one: "ملعب واحد",
-        two: "ملعبان معًا",
-        few: "{n} ملاعب معًا",
-        many: "{n} ملعبًا معًا",
-        other: "{n} ملعب معًا",
-      }),
-    slot: "كل مباراة",
+      count === 1 ? "ملعب واحد" : `من 1 إلى ${count}، كلها معًا`,
+    slot: "الفترة",
     slotValue: (minutes: number, time: string) =>
       `${minutes} دقيقة، من ${time}`,
     points: "النقاط",
     pointsValue: "الفوز 3، التعادل 1، الخسارة 0",
+    afterGroup: (poolCount: number): string =>
+      poolCount === 1 ? "بعد المجموعة" : "بعد المجموعات",
     footer:
-      "أيًا كان اختيارك، يمكن تعديل كل جولة حتى تبدأ مبارياتها. لا يرى اللاعبون الجولة إلا بعد نشرها.",
+      "أيًا كان اختيارك، يمكن تعديل كل جولة حتى تبدأ مبارياتها، ويمكنك تغيير الطريقة لاحقًا. لا يرى اللاعبون الجولة إلا بعد نشرها.",
+    continue: "متابعة",
+    continuing: "جارٍ العمل…",
   },
   round: {
     code: (round: number) => `ج${round}`,
