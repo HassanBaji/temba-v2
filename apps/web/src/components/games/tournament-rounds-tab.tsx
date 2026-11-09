@@ -501,6 +501,7 @@ export function TournamentRoundsTab({
   viewerUserId,
   actions,
   details,
+  afterGroup,
   onEnterScore,
   onSwap,
   onPair,
@@ -511,6 +512,7 @@ export function TournamentRoundsTab({
   viewerUserId: string;
   actions: TournamentRoundsActions;
   details?: React.ReactNode;
+  afterGroup?: { label: string; value: string } | null;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
   onPair: (roundNumber: number) => void;
@@ -666,6 +668,7 @@ export function TournamentRoundsTab({
                   ]
                 : []),
               { label: m.ways.points, value: m.ways.pointsValue },
+              ...(afterGroup ? [afterGroup] : []),
             ]}
           />
         </div>

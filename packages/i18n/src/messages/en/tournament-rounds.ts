@@ -65,6 +65,8 @@ export const tournamentRounds = {
       `${minutes} minutes, from ${time}`,
     points: "Points",
     pointsValue: "Win 3, draw 1, loss 0",
+    afterGroup: (poolCount: number): string =>
+      poolCount === 1 ? "After the group" : "After the groups",
     footer:
       "Whatever you pick, every Round can be edited until its games start, and you can switch ways later. Players see a Round only once you post it.",
     continue: "Continue",

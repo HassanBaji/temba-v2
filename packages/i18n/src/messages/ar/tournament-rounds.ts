@@ -89,6 +89,8 @@ export const tournamentRounds = {
       `${minutes} دقيقة، من ${time}`,
     points: "النقاط",
     pointsValue: "الفوز 3، التعادل 1، الخسارة 0",
+    afterGroup: (poolCount: number): string =>
+      poolCount === 1 ? "بعد المجموعة" : "بعد المجموعات",
     footer:
       "أيًا كان اختيارك، يمكن تعديل كل جولة حتى تبدأ مبارياتها، ويمكنك تغيير الطريقة لاحقًا. لا يرى اللاعبون الجولة إلا بعد نشرها.",
     continue: "متابعة",
