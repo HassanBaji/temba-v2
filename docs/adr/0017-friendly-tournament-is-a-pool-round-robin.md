@@ -3,7 +3,7 @@
 **Status:** amended by [ADR-0019](./0019-organizer-chooses-the-round-count.md): the organizer sets
 how many Rounds of the round robin are played. Amended by
 [ADR-0020](./0020-tournament-shape-adds-a-knockout.md): the deferred knockout, format picker and
-overall champion are built as a Tournament shape, and a Knockout Match can be awarded as a Walkover.
+overall champion are built as a Tournament shape, and a Knockout Match can be awarded as a Walkover. Amended by [ADR-0062](./0062-tournament-rounds-are-drafts-and-the-other-team-confirms.md): a drawn tournament makes its Pool Rounds as drafts and one player from each side agrees a score, which stands after ten minutes.
 
 Friendly tournament shipped as a thin thing: a Game with `playersAllowed / 2` flat sides, and an
 organizer who added every Match by hand through `games.addMatch`. The glossary said "multiple

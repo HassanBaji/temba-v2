@@ -896,7 +896,10 @@ export async function gameById(
     canUndoDraw:
       game.drawPostedAt != null &&
       !matchRows.some(
-        (match) => match.sets.length > 0 || match.status === "completed",
+        (match) =>
+          match.sets.length > 0 ||
+          match.status === "completed" ||
+          match.notFinishedAt != null,
       ),
     sport: game.sport,
     cancelledAt: game.cancelledAt,

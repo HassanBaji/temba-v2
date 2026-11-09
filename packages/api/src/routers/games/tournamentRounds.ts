@@ -63,6 +63,7 @@ export type TournamentRound = {
   state: TournamentRoundState;
   startTime: Date | null;
   expectedMatchCount: number;
+  slots: { courtName: string | null; startTime: Date }[];
   matches: TournamentRoundMatch[];
 };
 
@@ -254,6 +255,10 @@ export async function tournamentRounds(
         roundNumber,
         context.suggested,
       ),
+      slots: slots.map((slot) => ({
+        courtName: courtName.get(slot.courtId) ?? null,
+        startTime: slot.startTime,
+      })),
       matches,
     });
   }

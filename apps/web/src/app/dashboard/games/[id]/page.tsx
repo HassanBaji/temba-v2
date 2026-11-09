@@ -1116,7 +1116,10 @@ export default function GameHomePage({
               postPending={postPoolDraw.isPending}
               postError={postPoolDraw.error}
               onPost={async () => {
-                await postPoolDraw.mutateAsync({ gameId: id });
+                await postPoolDraw.mutateAsync({
+                  gameId: id,
+                  rounds: knockoutOnlyDraw() ? "all" : "later",
+                });
               }}
               undoPending={undoPoolDraw.isPending}
               undoError={undoPoolDraw.error}

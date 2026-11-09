@@ -469,12 +469,20 @@ The Game team that wins the Final. Only a Friendly tournament with a Knockout ha
 _Avoid_: winner (bare — a Pool has a winner too), overall winner
 
 **Pool draw**:
-The random assignment of a Friendly tournament's Game teams to its Pools. Drafted and re-rollable first, then posted, which generates every Pool Match and freezes the seats. Never a Match result.
+The random assignment of a Friendly tournament's Game teams to its Pools. Drafted and re-rollable first, then posted, which freezes the seats. Posting either generates every Pool Match at once or leaves the Pool Rounds to be made as Round drafts (ADR-0062). Never a Match result.
 _Avoid_: draw (bare — that is a tied Match result), seeding (nobody is seeded), allocation, sorting
 
 **Round**:
 One slice of a Friendly tournament's schedule: the Matches sharing a date. Numbered from 1, Pool Rounds first, then one Round per Knockout round. The Round count is the number of Pool Rounds only.
 _Avoid_: Match, Set, leg, fixture, week, stage
+
+**Round draft**:
+A Pool Round's pairings before it is posted: seen and edited by Organizers only, made by generating every Round, one Round at a time, or by hand. Posting a Round draft creates its Matches on the Round's Courts and times.
+_Avoid_: unposted Match, provisional Round, Round plan
+
+**Score stands**:
+A drawn tournament Match completes on its own ten minutes after one team enters a score the other team has not confirmed or corrected (ADR-0062).
+_Avoid_: auto-confirm, timeout, default result
 
 **Half team**:
 A Game team on a Friendly tournament with one Position taken and the other vacant, before the Pool draw. An organizer may merge two Half teams into one Game team. Distinct from an incomplete Team, which is the persistent partnership with one seat.

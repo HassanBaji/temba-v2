@@ -19,6 +19,7 @@ import { marks } from "./marks";
 import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
+import { tournamentRounds } from "./tournament-rounds";
 import { webDashboard } from "./web-dashboard";
 import { webGroup } from "./web-group";
 import { webUi } from "./web-ui";
@@ -66,6 +67,7 @@ export const ar: Messages = {
   auth,
   webGame,
   webTournament,
+  tournamentRounds,
   webDashboard,
   webGroup,
   webUi,
