@@ -66,21 +66,6 @@ function tournament(
   });
 }
 
-function poolMatch(
-  overrides: Partial<HomeComingUpSource> = {},
-): HomeComingUpSource {
-  return tournament({
-    matchId: "match-2",
-    roundNumber: 2,
-    roundCount: 3,
-    sides: [
-      { left: YOU, right: SOFIA },
-      { left: MAJA, right: OSKAR },
-    ],
-    ...overrides,
-  });
-}
-
 describe("homeComingUpRows", () => {
   it("keeps a Friendly game as a seat row", () => {
     const [row] = homeComingUpRows([friendly()], "en");
@@ -119,72 +104,32 @@ describe("homeComingUpRows", () => {
 
   it("carries the rated flag onto every row kind", () => {
     const rows = homeComingUpRows(
-      [
-        friendly({ rated: false }),
-        poolMatch({ rated: false }),
-        tournament({ rated: false }),
-      ],
+      [friendly({ rated: false }), tournament({ rated: false })],
       "en",
     );
     assert.deepEqual(
       rows.map((row) => row.rated),
-      [false, false, false],
+      [false, false],
     );
   });
 
-  it("shows a Pool Match behind the hero as a tournament Match row", () => {
-    const rows = homeComingUpRows([friendly(), poolMatch()], "en");
-    assert.deepEqual(rows[1], {
-      kind: "tournament_match",
-      id: "cup-1",
-      rated: true,
-      rowKey: "match-2",
-      title: "Friday Cup",
-      startsAt: STARTS,
-      roundTag: "R2 of 3",
-      opponentLine: "vs Maja S and Oskar T",
-    });
-  });
-
-  it("tags a Knockout Match with its Knockout round, not a Round count", () => {
+  it("shows a drawn tournament as one tournament row, not a Match row", () => {
     const [row] = homeComingUpRows(
       [
-        poolMatch({
-          matchId: "match-sf",
-          poolCount: null,
-          tournamentShape: "knockout_only",
-          roundNumber: null,
-          roundCount: null,
-          knockoutMatch: { round: 2, roundCount: 3 },
+        tournament({
+          tournament: {
+            drawPosted: true,
+            teams: [
+              { isViewerTeam: true, poolIndex: 0, left: YOU, right: SOFIA },
+              { isViewerTeam: false, poolIndex: 1, left: MAJA, right: OSKAR },
+            ],
+          },
         }),
       ],
       "en",
     );
-    assert.deepEqual(row, {
-      kind: "tournament_match",
-      id: "cup-1",
-      rated: true,
-      rowKey: "match-sf",
-      title: "Friday Cup",
-      startsAt: STARTS,
-      roundTag: "Semi-final",
-      opponentLine: "vs Maja S and Oskar T",
-    });
-  });
-
-  it("keeps each Round of the same tournament as its own row", () => {
-    const rows = homeComingUpRows(
-      [poolMatch(), poolMatch({ matchId: "match-3", roundNumber: 3 })],
-      "en",
-    );
-    assert.deepEqual(
-      rows.map((row) => row.rowKey),
-      ["match-2", "match-3"],
-    );
-    assert.equal(
-      rows.every((row) => row.kind === "tournament_match"),
-      true,
-    );
+    assert.equal(row?.kind, "tournament");
+    assert.equal(row?.rowKey, "cup-1");
   });
 
   it("shows a tournament before the draw with its teams and no action once the viewer is in", () => {

@@ -56,7 +56,7 @@ export function upNextItems(games: readonly UpNextGame[]): UpNextItem[] {
   return games
     .map(
       (game): UpNextItem => ({
-        key: `game:${game.matchId ?? game.id}`,
+        key: `game:${game.id}`,
         startsAt: new Date(game.startTime),
         sport: sportOrDefault(game.sport),
         game,
@@ -159,19 +159,6 @@ export function upNextRowView(
   };
   const [row] = homeComingUpRows([game], locale);
 
-  if (row?.kind === "tournament_match") {
-    return {
-      ...shared,
-      title: row.title,
-      detail: row.opponentLine,
-      trailing: row.roundTag ? { kind: "tag", label: row.roundTag } : null,
-      spoken: join(
-        [row.title, shared.day, shared.time, row.opponentLine].filter(
-          (part): part is string => Boolean(part),
-        ),
-      ),
-    };
-  }
   if (row?.kind === "tournament") {
     return {
       ...shared,

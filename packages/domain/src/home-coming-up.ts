@@ -3,16 +3,11 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { gameCardRosterOccupancy } from "./game-card";
 import {
-  isTournamentMatchRow,
   isDrawnTournamentSummaryRow,
   tournamentCardAction,
   tournamentCardActionLabel,
-  tournamentMatchRoundLabel,
-  tournamentMatchup,
-  tournamentMatchupName,
   tournamentTeamsLine,
   type TournamentCardInput,
-  type TournamentKnockoutMatch,
 } from "./tournament-card";
 
 type Occupant = { name: string; isViewer: boolean } | null;
@@ -30,9 +25,6 @@ export type HomeComingUpSource = TournamentCardInput & {
   registeredUserCount: number;
   playersAllowed: number | null;
   sides: readonly { left: Occupant; right: Occupant }[];
-  roundNumber: number | null;
-  roundCount: number | null;
-  knockoutMatch?: TournamentKnockoutMatch | null;
 };
 
 export type HomeComingUpGameRow = {
@@ -49,17 +41,6 @@ export type HomeComingUpGameRow = {
   occupancyLabel?: string | null;
 };
 
-export type HomeComingUpTournamentMatchRow = {
-  kind: "tournament_match";
-  id: string;
-  rated: boolean;
-  rowKey: string;
-  title: string;
-  startsAt: Date;
-  roundTag: string | null;
-  opponentLine: string | null;
-};
-
 export type HomeComingUpTournamentRow = {
   kind: "tournament";
   id: string;
@@ -72,10 +53,7 @@ export type HomeComingUpTournamentRow = {
   actionLabel: string | null;
 };
 
-export type HomeComingUpRow =
-  | HomeComingUpGameRow
-  | HomeComingUpTournamentMatchRow
-  | HomeComingUpTournamentRow;
+export type HomeComingUpRow = HomeComingUpGameRow | HomeComingUpTournamentRow;
 
 function tournamentTitle(game: HomeComingUpSource, locale: Locale) {
   return (
@@ -88,22 +66,6 @@ function tournamentTitle(game: HomeComingUpSource, locale: Locale) {
 function toRow(game: HomeComingUpSource, locale: Locale): HomeComingUpRow {
   const m = messagesFor(locale).home.comingUp;
   const startsAt = new Date(game.startTime);
-  if (game.matchId != null && isTournamentMatchRow(game)) {
-    const opponent = tournamentMatchupName(
-      tournamentMatchup(game.sides).opponent,
-      locale,
-    );
-    return {
-      kind: "tournament_match",
-      id: game.id,
-      rated: game.rated,
-      rowKey: game.matchId,
-      title: tournamentTitle(game, locale),
-      startsAt,
-      roundTag: tournamentMatchRoundLabel(game, locale),
-      opponentLine: opponent ? m.versus(opponent) : null,
-    };
-  }
   if (isDrawnTournamentSummaryRow(game)) {
     const action = tournamentCardAction(game);
     return {
@@ -132,7 +94,7 @@ function toRow(game: HomeComingUpSource, locale: Locale): HomeComingUpRow {
   };
 }
 
-/** Drawn tournaments behind the hero keep their tournament identity in Coming up. */
+/** A drawn tournament is one row for the whole tournament, never one per Match. */
 export function homeComingUpRows(
   games: readonly HomeComingUpSource[],
   locale: Locale,
