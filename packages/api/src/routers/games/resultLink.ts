@@ -1,13 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { gameResultPath } from "@repo/domain/game-result-share";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, requireGame } from "#src/games/access";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** The web page a shared result opens on. */
+function gameResultPath(gameId: string) {
+  return `/dashboard/games/${gameId}`;
+}
 
 /** The web link a player shares for a Game's result. */
 export async function resultLink(
