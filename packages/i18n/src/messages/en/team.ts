@@ -36,11 +36,13 @@ export const team = {
   leaveLabel: "Leave Team",
   dissolveLabel: "Dissolve Team",
   image: {
+    add: "Add image",
     change: "Change image",
     remove: "Remove image",
     savedToast: "Image saved",
     removedToast: "Image removed",
     uploading: "Uploading image…",
+    createdWithoutImage: "Team created without an image",
     removeConfirm: {
       title: (name: string) => `Remove image for ${name}?`,
       description: "The Team goes back to its initials.",

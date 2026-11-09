@@ -5,12 +5,13 @@ import {
   teamSportChoices,
   type TeamRosterDraftView,
 } from "@repo/domain/team-roster-draft";
-import { Phone, Plus, Search, Users, X } from "lucide-react-native";
+import { Camera, Phone, Plus, Search, Users, X } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { isLayoutRtl } from "../i18n/rtl";
+import { CachedImage } from "../primitives/cached-image";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -32,6 +33,10 @@ export type CreateTeamViewProps = {
   name: string;
   onNameChange: (name: string) => void;
   nameError: string | null;
+  imageUri: string | null;
+  imageError: string | null;
+  onPickImage: () => void;
+  onClearImage: () => void;
   sport: Sport;
   onSportChange: (sport: Sport) => void;
   roster: TeamRosterDraftView;
@@ -46,23 +51,34 @@ export type CreateTeamViewProps = {
 
 const CREST = 52;
 
-function NameField(props: {
+const CAMERA_BADGE = 22;
+
+/** The crest picks the Team image: the picked image, else the initials, else a hatched "not yet". */
+function CrestPicker(props: {
   name: string;
-  onNameChange: (name: string) => void;
-  error: string | null;
+  imageUri: string | null;
+  onPick: () => void;
+  onClear: () => void;
   pending: boolean;
 }) {
-  const m = useMessages().team.create;
+  const all = useMessages();
+  const m = all.team.image;
   const colors = useColors();
-  const [focused, setFocused] = useState(false);
   const crest = props.name.trim() ? initials(props.name) : null;
+  const filled = Boolean(props.imageUri) || crest != null;
   return (
-    <View style={{ gap: 6 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <SurfaceToneContext.Provider value={crest ? "ink" : "paper"}>
+    <View style={{ alignItems: "center", gap: 6 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={props.imageUri ? m.change : m.add}
+        disabled={props.pending}
+        onPress={props.onPick}
+        style={({ pressed }) => ({
+          opacity: props.pending ? 0.5 : pressed ? 0.7 : 1,
+        })}
+      >
+        <SurfaceToneContext.Provider value={filled ? "ink" : "paper"}>
           <View
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
             style={{
               width: CREST,
               height: CREST,
@@ -70,10 +86,16 @@ function NameField(props: {
               overflow: "hidden",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: crest ? colors.control : colors.paper,
+              backgroundColor: filled ? colors.control : colors.paper,
             }}
           >
-            {crest ? (
+            {props.imageUri ? (
+              <CachedImage
+                uri={props.imageUri}
+                style={{ width: CREST, height: CREST }}
+                contentFit="cover"
+              />
+            ) : crest ? (
               <Text
                 size="lead"
                 weight="bold"
@@ -87,6 +109,67 @@ function NameField(props: {
             )}
           </View>
         </SurfaceToneContext.Provider>
+        {props.imageUri ? null : (
+          <View
+            style={{
+              position: "absolute",
+              end: -6,
+              bottom: -6,
+              width: CAMERA_BADGE,
+              height: CAMERA_BADGE,
+              borderRadius: CAMERA_BADGE / 2,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.paper,
+              borderWidth: hairline,
+              borderColor: colors.rule,
+            }}
+          >
+            <Camera size={12} color={colors.ink} />
+          </View>
+        )}
+      </Pressable>
+      {props.imageUri ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={m.remove}
+          disabled={props.pending}
+          onPress={props.onClear}
+          hitSlop={8}
+        >
+          <Text size="eyebrow" tone="muted">
+            {all.common.remove}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function NameField(props: {
+  name: string;
+  onNameChange: (name: string) => void;
+  error: string | null;
+  imageUri: string | null;
+  imageError: string | null;
+  onPickImage: () => void;
+  onClearImage: () => void;
+  pending: boolean;
+}) {
+  const m = useMessages().team.create;
+  const colors = useColors();
+  const [focused, setFocused] = useState(false);
+  const message = props.error ?? props.imageError;
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+        <CrestPicker
+          name={props.name}
+          imageUri={props.imageUri}
+          onPick={props.onPickImage}
+          onClear={props.onClearImage}
+          pending={props.pending}
+        />
         <TextInput
           accessibilityLabel={m.nameLabel}
           value={props.name}
@@ -112,9 +195,9 @@ function NameField(props: {
           }}
         />
       </View>
-      {props.error ? (
+      {message ? (
         <Text size="meta" weight="medium" accessibilityLiveRegion="polite">
-          {props.error}
+          {message}
         </Text>
       ) : null}
     </View>
@@ -313,6 +396,10 @@ export function CreateTeamView(props: CreateTeamViewProps) {
           name={props.name}
           onNameChange={props.onNameChange}
           error={props.nameError}
+          imageUri={props.imageUri}
+          imageError={props.imageError}
+          onPickImage={props.onPickImage}
+          onClearImage={props.onClearImage}
           pending={props.pending}
         />
       </CreateTeamSection>

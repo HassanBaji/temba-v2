@@ -36,11 +36,13 @@ export const team = {
   leaveLabel: "مغادرة الفريق",
   dissolveLabel: "حل الفريق",
   image: {
+    add: "إضافة صورة",
     change: "تغيير الصورة",
     remove: "إزالة الصورة",
     savedToast: "تم حفظ الصورة",
     removedToast: "تمت إزالة الصورة",
     uploading: "جارٍ رفع الصورة…",
+    createdWithoutImage: "أُنشئ الفريق بدون صورة",
     removeConfirm: {
       title: (name: string) => `إزالة صورة ${isolate(name)}؟`,
       description: "سيعود الفريق إلى أحرفه الأولى.",
