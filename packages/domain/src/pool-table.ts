@@ -77,7 +77,6 @@ export type PoolTableTeamInput = {
 export type PoolTableMatchInput = {
   id: string;
   status: string | null;
-  notFinishedAt?: Date | string | null;
   roundNumber: number | null;
   knockoutRound: number | null;
   startTime: Date | null;
@@ -192,11 +191,12 @@ function addHeadToHeadPoints(
   headToHead[opponentId] = (headToHead[opponentId] ?? 0) + points;
 }
 
+// A Match that did not finish is not settled: the Pool waits for a score
+// or for the Organizer to cancel it.
 function isSettledMatch(match: PoolTableMatchInput) {
   return (
     match.status === MATCH_STATUS.COMPLETED ||
-    match.status === MATCH_STATUS.CANCELLED ||
-    Boolean(match.notFinishedAt)
+    match.status === MATCH_STATUS.CANCELLED
   );
 }
 

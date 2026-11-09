@@ -59,6 +59,12 @@ export const notification = {
       plain(" changed your side on "),
       strong(game),
     ],
+    matchScoreToConfirm: (actor: string, game: string) => [
+      strong(actor),
+      plain(" entered your score in "),
+      strong(game),
+      plain(". Confirm it or correct it"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("We linked "),
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),

@@ -1036,6 +1036,7 @@ export async function gameById(
       poolCount: game.poolCount,
       viewerUserId: args.userId,
       locale,
+      storedRoundCount: game.roundCount,
       gameTeams: teamRows.map((row) => ({
         id: row.id,
         name: row.name,

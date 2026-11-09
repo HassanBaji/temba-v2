@@ -169,6 +169,15 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (item.type === "match_score_to_confirm" && item.game) {
+    return {
+      title: m.matchScoreToConfirm(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
   if (
     item.type === "game_side_changed" &&
     item.audience === "player" &&

@@ -88,6 +88,7 @@ describe("task list", () => {
       "challenge.expire",
       "challenge.squad-due",
       "marks.settle-mvp",
+      "match.score-stands",
       "notification.email",
       "payment.create-charge",
       "payment.poll-charge",

@@ -391,6 +391,16 @@ export function swapPairing(
   });
 }
 
+/** The seed a swap's repair runs on, shared by the client preview and the server. */
+export function swapRepairSeed(args: {
+  gameId: string;
+  roundNumber: number;
+  gameTeamId: string;
+  opponentGameTeamId: string;
+}) {
+  return `${args.gameId}:${args.roundNumber}:${args.gameTeamId}:${args.opponentGameTeamId}`;
+}
+
 export type RoundSlotState = {
   roundNumber: number;
   draft: boolean;
