@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marks launch video</title>
+    <style>
+      @font-face {
+        font-family: "Archivo";
+        src: url("fonts/archivo-latin-wdth-normal.woff2") format("woff2");
+        font-weight: 100 900;
+        font-stretch: 62% 125%;
+      }
+      @font-face {
+        font-family: "Sora";
+        src: url("fonts/sora-latin-300-normal.woff2") format("woff2");
+        font-weight: 300;
+      }
+      @font-face {
+        font-family: "Noto Sans Arabic";
+        src: url("fonts/noto-sans-arabic-arabic-wdth-normal.woff2")
+          format("woff2");
+        font-weight: 100 900;
+        font-stretch: 62.5% 100%;
+      }
+
+      :root {
+        --black: #000000;
+        --white: #ffffff;
+        --grey: #6e6e6e;
+        --light: #e6e6e6;
+        --gutter: 90px;
+        --hairline: 2px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        background: #111;
+        overflow: hidden;
+      }
+
+      #frame {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+      }
+
+      #stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--black);
+        color: var(--white);
+        font-family: "Archivo", "Noto Sans Arabic", sans-serif;
+        font-variant-numeric: tabular-nums;
+        transform-origin: 0 0;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        visibility: hidden;
+        overflow: hidden;
+      }
+      .on-black {
+        background: var(--black);
+        color: var(--white);
+      }
+      .on-white {
+        background: var(--white);
+        color: var(--black);
+      }
+
+      .display {
+        font-weight: 700;
+        font-stretch: 115%;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+      [lang="ar"] .display {
+        letter-spacing: 0;
+        line-height: 1.25;
+      }
+      .muted {
+        color: var(--grey);
+      }
+
+      /* Scene 1 */
+      #intro {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+      }
+      #intro p {
+        font-size: 104px;
+      }
+      #intro .word {
+        visibility: hidden;
+      }
+      /* The full stop drawn as a disc: it is the seed of the iris. */
+      #intro .dot {
+        display: inline-block;
+        width: 0.2em;
+        height: 0.2em;
+        margin-inline-start: 0.04em;
+        border-radius: 50%;
+        background: currentColor;
+        vertical-align: baseline;
+      }
+
+      /* Scene 2 */
+      #s2-inner {
+        position: absolute;
+        inset: 0;
+        background: var(--white);
+      }
+      #s2-head {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 250px;
+      }
+      #headline {
+        font-size: 128px;
+      }
+      #headline .line {
+        display: block;
+        overflow: hidden;
+        padding-bottom: 0.08em;
+      }
+      #headline .line span {
+        display: inline-block;
+      }
+      #subline {
+        margin-top: 28px;
+        font-size: 38px;
+        line-height: 1.3;
+        max-width: 820px;
+      }
+      #card {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 740px;
+        height: 860px;
+        padding: 52px 56px;
+      }
+      #card-border {
+        position: absolute;
+        inset: 0;
+        overflow: visible;
+      }
+      .card-part {
+        position: relative;
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 30px;
+      }
+      .card-sets {
+        margin-top: 34px;
+        font-size: 168px;
+        white-space: pre;
+      }
+      .card-venue {
+        margin-top: 20px;
+        font-size: 30px;
+      }
+      .card-rule {
+        position: relative;
+        height: var(--hairline);
+        background: var(--light);
+        margin: 44px 0 40px;
+        transform-origin: 0 50%;
+      }
+      [dir="rtl"] .card-rule {
+        transform-origin: 100% 50%;
+      }
+      .card-sides {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 40px;
+      }
+      .side-head {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 30px;
+        font-weight: 600;
+        margin-bottom: 30px;
+      }
+      .side-head svg {
+        width: 34px;
+        height: 34px;
+      }
+      .seat {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-bottom: 30px;
+      }
+      .avatar {
+        flex: none;
+        width: 104px;
+        height: 104px;
+        border-radius: 50%;
+        border: var(--hairline) solid var(--light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 600;
+      }
+      .seat-name {
+        font-size: 34px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .seat-role {
+        font-size: 27px;
+        line-height: 1.3;
+      }
+      .seat-role.is-mvp {
+        color: var(--black);
+        font-weight: 600;
+      }
+      #stamp-ring {
+        position: absolute;
+        left: 0;
+        top: 0;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      /* Coins */
+      .coin {
+        position: absolute;
+        left: 0;
+        top: 0;
+        perspective: 2400px;
+        will-change: transform;
+      }
+      .coin-body {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+      }
+      .coin-slice {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+      }
+      .coin-band {
+        position: absolute;
+      }
+      .coin-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        backface-visibility: hidden;
+      }
+      .coin-face img,
+      .coin-face svg {
+        position: absolute;
+        display: block;
+      }
+
+      /* Scene 3 */
+      .mark {
+        position: absolute;
+        inset: 0;
+        visibility: hidden;
+      }
+      .mark-text {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 1150px;
+      }
+      .mark-group {
+        font-size: 32px;
+        margin-bottom: 26px;
+      }
+      .mark-name {
+        font-size: 120px;
+        transform-origin: 0 100%;
+      }
+      [dir="rtl"] .mark-name {
+        transform-origin: 100% 100%;
+      }
+      .mark-desc {
+        margin-top: 30px;
+        font-size: 40px;
+        line-height: 1.3;
+        max-width: 860px;
+      }
+      .on-black .mark-desc {
+        color: var(--light);
+      }
+      .on-black .mark-group {
+        color: var(--grey);
+      }
+
+      /* Scene 4 */
+      #cab-head {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 250px;
+      }
+      .cab-player {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      .cab-avatar {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        background: var(--black);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 600;
+      }
+      .cab-player-name {
+        font-size: 40px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .cab-player-sport {
+        font-size: 28px;
+      }
+      .cab-title-row {
+        margin-top: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      #cab-title {
+        font-size: 112px;
+      }
+      #cab-received {
+        font-size: 36px;
+      }
+      #cab-grid {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 610px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 252px;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .slot {
+        width: 160px;
+        height: 160px;
+      }
+      .cell-name {
+        margin-top: 16px;
+        font-size: 29px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .cell-count {
+        font-size: 27px;
+        line-height: 1.3;
+      }
+
+      /* Scene 5 */
+      #outro {
+        position: absolute;
+        inset-inline: var(--gutter);
+        top: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+      }
+      #outro .line {
+        font-size: 150px;
+        padding-bottom: 0.06em;
+      }
+
+      /* Scene 6 */
+      #end {
+        position: absolute;
+        inset: 0;
+      }
+      #end-logo {
+        position: absolute;
+        left: 50%;
+        top: 640px;
+        width: 240px;
+        height: 240px;
+        margin-left: -120px;
+      }
+      #end-wordmark {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 960px;
+        text-align: center;
+        font-family: "Sora", sans-serif;
+        font-weight: 300;
+        font-size: 120px;
+        line-height: 1.2;
+        letter-spacing: 0.18em;
+        text-indent: 0.18em;
+        white-space: nowrap;
+      }
+      #end-tagline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 1135px;
+        text-align: center;
+        font-size: 34px;
+        font-weight: 500;
+        letter-spacing: 0.32em;
+        text-indent: 0.32em;
+        color: var(--grey);
+      }
+      #end-download {
+        position: absolute;
+        left: var(--gutter);
+        right: var(--gutter);
+        top: 1440px;
+        text-align: center;
+        font-size: 38px;
+        line-height: 1.35;
+        color: var(--light);
+      }
+
+      /* Preview controls, never in the render */
+      #controls {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 16px;
+        background: #111;
+        color: #e6e6e6;
+        font:
+          14px/1 "Archivo",
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      #controls button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 1px solid #6e6e6e;
+        border-radius: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      #controls input[type="range"] {
+        flex: 1;
+      }
+      body.render #controls {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <pattern
+          id="hatch"
+          width="13"
+          height="13"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <line
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="13"
+            stroke="#E6E6E6"
+            stroke-width="5"
+          />
+        </pattern>
+      </defs>
+    </svg>
+
+    <div id="frame">
+      <div id="stage">
+        <section id="s1" class="scene on-black">
+          <div id="intro"><p class="display"></p></div>
+        </section>
+
+        <section id="s3" class="scene"></section>
+
+        <section id="s2" class="scene on-white">
+          <div id="s2-inner">
+            <header id="s2-head">
+              <h1 id="headline" class="display"></h1>
+              <p id="subline" class="muted"></p>
+            </header>
+            <div id="card">
+              <svg id="card-border"><rect /></svg>
+              <div class="card-part card-top muted">
+                <span id="card-played"></span><span id="card-format"></span>
+              </div>
+              <div id="card-sets" class="card-part card-sets display"></div>
+              <div id="card-venue" class="card-part card-venue muted"></div>
+              <div class="card-rule"></div>
+              <div id="card-sides" class="card-part card-sides"></div>
+            </div>
+            <svg id="stamp-ring"><circle fill="none" stroke="#000" /></svg>
+          </div>
+        </section>
+
+        <section id="s4" class="scene on-white">
+          <header id="cab-head">
+            <div class="cab-player">
+              <div id="cab-avatar" class="cab-avatar"></div>
+              <div>
+                <div id="cab-player-name" class="cab-player-name"></div>
+                <div id="cab-player-sport" class="cab-player-sport muted"></div>
+              </div>
+            </div>
+            <div class="cab-title-row">
+              <h2 id="cab-title" class="display"></h2>
+              <span id="cab-received" class="muted"></span>
+            </div>
+          </header>
+          <div id="cab-grid"></div>
+          <div id="cab-coins"></div>
+        </section>
+
+        <section id="s5" class="scene on-black">
+          <div id="outro"></div>
+        </section>
+
+        <section id="s6" class="scene on-black">
+          <div id="end">
+            <svg id="end-logo" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="44" fill="#FFFFFF" />
+              <path
+                d="M6,50 C18,16 82,16 94,50"
+                fill="none"
+                stroke="#000000"
+                stroke-width="6"
+              />
+            </svg>
+            <div id="end-wordmark"></div>
+            <div id="end-tagline"></div>
+            <div id="end-download"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="controls">
+      <button id="play" type="button">Play</button>
+      <input id="scrub" type="range" min="0" max="599" value="0" />
+      <span id="clock">0.00s · f0</span>
+      <button id="lang" type="button"></button>
+    </div>
+    <audio id="music" src="music/music.wav" preload="auto"></audio>
+
+    <script src="timing.js"></script>
+    <script src="copy.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
