@@ -22,6 +22,7 @@ import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { ENTITY_IMAGE_ACCEPT } from "@repo/domain/entity-image-file";
 import { VENUE_PHOTO_LIMIT } from "@repo/domain/venue-photos";
 
@@ -175,8 +176,11 @@ export function PhotosScreen() {
 
   const refresh = () => utils.venues.managedById.invalidate({ venueId });
 
-  const uploadPhoto = api.venues.uploadPhoto.useMutation();
+  const uploadPhoto = api.venues.uploadPhoto.useMutation({
+    meta: OWN_ERROR_UI,
+  });
   const deletePhoto = api.venues.deletePhoto.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Photo deleted");
       await refresh();

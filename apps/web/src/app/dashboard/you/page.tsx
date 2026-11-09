@@ -57,7 +57,7 @@ export default function YouPage() {
           <ErrorState
             variant="inline"
             className="rounded-card px-5"
-            message={details.error.message}
+            error={details.error}
             onRetry={() => {
               void details.refetch();
             }}

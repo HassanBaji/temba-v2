@@ -7,6 +7,7 @@ import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { CONSOLE_LOCALE } from "~/lib/locale";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 
@@ -43,6 +44,7 @@ export function VenueLogoField({
   });
 
   const clearLogo = api.venues.clearLogo.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Logo cleared");
       await refresh();

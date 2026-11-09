@@ -108,6 +108,7 @@ import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 type FootballGame = RouterOutputs["games"]["byId"];
 
@@ -207,6 +208,7 @@ export function FootballGameDetails({
 
   const onError = toastGlobalFormError;
   const register = api.games.register.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       setJoinMode(null);
       toast.success(gameJoinToast(result.waitlisted, locale));
@@ -214,6 +216,7 @@ export function FootballGameDetails({
     },
   });
   const setRole = api.games.setFootballRole.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       setJoinMode(null);
       toast.success(m.common.saved);
@@ -815,12 +818,17 @@ export function FootballGameDetails({
                   : null
               }
               joinPending={register.isPending && joinMode == null}
-              waitlistPending={false}
+              waitlistPending={register.isPending && joinMode == null}
               onJoin={() => {
                 register.reset();
                 setJoinMode("join");
               }}
-              onJoinWaitlist={() => register.mutate({ gameId })}
+              onJoinWaitlist={() => {
+                if (register.isPending) {
+                  return;
+                }
+                register.mutate({ gameId }, { onError });
+              }}
               onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
               onAddResult={() => undefined}
             />

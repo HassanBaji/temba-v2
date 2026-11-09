@@ -54,7 +54,8 @@ import {
 } from "@repo/domain/invites";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { tournamentPartnerInviteLandingHref } from "@repo/domain/tournament-join";
+import { tournamentPartnerInviteLandingTarget } from "@repo/domain/tournament-join";
+import { gameHomeTargetHref } from "~/lib/game-home-tab";
 import { api } from "~/trpc/react";
 
 type SheetState = { open: boolean; picked: InviteSeatPick | null };
@@ -294,7 +295,7 @@ export function AcceptGameInviteLink({
     return (
       <ErrorState
         title={m.webAuth.invites.couldNotJoin}
-        message={accept.error.message}
+        error={accept.error}
         onRetry={() => accept.mutate(accept.variables ?? { token })}
         headingLevel={1}
       />
@@ -527,7 +528,11 @@ export function AcceptGameInviteLink({
           subline={null}
           action={
             <Button variant="inverse" size="lg" asChild>
-              <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
+              <Link
+                href={gameHomeTargetHref(
+                  tournamentPartnerInviteLandingTarget(ready.gameId),
+                )}
+              >
                 {m.tournament.join.pickAPartner}
               </Link>
             </Button>

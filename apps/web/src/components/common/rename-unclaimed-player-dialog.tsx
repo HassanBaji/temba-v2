@@ -20,6 +20,7 @@ import {
   renameUnclaimedPlayerToast,
 } from "@repo/domain/add-player-by-phone";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 const NAME_ID = "rename-unclaimed-player-name";
 
@@ -37,6 +38,7 @@ function RenameForm({
   const [name, setName] = React.useState(player.name);
   const utils = api.useUtils();
   const rename = api.users.renameUnclaimedPlayer.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(renameUnclaimedPlayerToast(result.name, locale));
       await Promise.all([

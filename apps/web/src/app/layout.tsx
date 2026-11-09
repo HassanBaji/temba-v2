@@ -10,24 +10,27 @@ import { LocaleProvider } from "~/components/locale-provider";
 import { NavigationTrail } from "~/components/navigation-trail";
 import { ThemeProvider } from "~/components/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
-import { getRequestLocale } from "~/lib/request-locale";
+import { getRequestLocale, getRequestMessages } from "~/lib/request-locale";
 import { TRPCReactProvider } from "~/trpc/react";
 import { localeDirection } from "@repo/i18n/locale";
 
 import { arabic, display, mono, sans } from "./fonts";
 
-export const metadata: Metadata = {
-  title: {
-    template: "%s · Temba",
-    default: "Temba",
-  },
-  description: "Temba - the future of competitive sport",
-  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = await getRequestMessages();
+  return {
+    title: {
+      template: "%s · Temba",
+      default: "Temba",
+    },
+    description: m.createGame.openGraph.genericDescription,
+    icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
+  };
+}
 
 /**
- * Theme for remaining Clerk drop-ins (`UserButton` on `/dashboard/you` via
- * `app-sidebar`, and any other Clerk UI chrome). Custom `/login` and `/signup`
+ * Theme for any Clerk UI chrome that still renders (no Clerk drop-in
+ * component is mounted today). Custom `/login` and `/signup`
  * screens do not use this. Keep `@clerk/ui/themes` and the matching
  * `shadcn.css` import in `globals.css`.
  */

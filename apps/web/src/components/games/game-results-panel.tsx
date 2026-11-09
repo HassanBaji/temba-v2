@@ -158,6 +158,7 @@ export function GameResultsPanel({
   scorePending,
   completePending,
   cancelPending,
+  updatePending,
   onScoreSet,
   onComplete,
   onUpdateCourt,
@@ -173,6 +174,7 @@ export function GameResultsPanel({
   scorePending: boolean;
   completePending: boolean;
   cancelPending: boolean;
+  updatePending: boolean;
   onScoreSet: (input: {
     matchId: string;
     setId: string;
@@ -488,6 +490,7 @@ export function GameResultsPanel({
                   </FieldLabel>
                   <Select
                     value={match.courtId ?? "none"}
+                    disabled={updatePending}
                     onValueChange={(value) => {
                       const courtId = optionalSelectId(value);
                       if (format === "friendly_game") {
@@ -531,6 +534,7 @@ export function GameResultsPanel({
                       </FieldLabel>
                       <Select
                         value={match.slot1GameTeamId ?? "none"}
+                        disabled={updatePending}
                         onValueChange={(value) =>
                           onUpdateSlots({
                             matchId: match.id,
@@ -564,6 +568,7 @@ export function GameResultsPanel({
                       </FieldLabel>
                       <Select
                         value={match.slot2GameTeamId ?? "none"}
+                        disabled={updatePending}
                         onValueChange={(value) =>
                           onUpdateSlots({
                             matchId: match.id,

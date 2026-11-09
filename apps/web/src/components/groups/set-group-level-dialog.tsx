@@ -17,6 +17,7 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import {
   clampLevelTenths,
@@ -56,6 +57,7 @@ function SetGroupLevelForm({
   });
   const utils = api.useUtils();
   const setGroupLevel = api.ratings.setGroupLevel.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.you.setGroupLevel.saved);
       await utils.groups.byId.invalidate({ id: groupId });

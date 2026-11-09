@@ -717,7 +717,7 @@ export default function GameHomePage({
       <DashboardShell title={g.title}>
         <ErrorState
           title={g.errorTitle}
-          message={game.error.message}
+          error={game.error}
           onRetry={() => {
             void game.refetch();
           }}
@@ -1427,6 +1427,7 @@ export default function GameHomePage({
                 scorePending={scoreSet.isPending}
                 completePending={completeMatch.isPending}
                 cancelPending={cancelMatch.isPending}
+                updatePending={updateMatch.isPending}
                 onScoreSet={(input) =>
                   scoreSet.mutate({
                     gameId: id,

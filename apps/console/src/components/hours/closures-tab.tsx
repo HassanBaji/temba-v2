@@ -22,6 +22,7 @@ import { Hatch } from "~/components/ui/hatch";
 import { Input } from "~/components/ui/input";
 import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { cn } from "~/lib/utils";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 
@@ -65,6 +66,7 @@ export function ClosuresCard() {
   });
 
   const removeClosure = api.venues.removeClosure.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Closure removed");
       await utils.venues.managedById.invalidate({ venueId: venue.id });

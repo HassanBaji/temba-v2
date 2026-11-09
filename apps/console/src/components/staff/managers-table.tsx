@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { PersonMonogram } from "./person-monogram";
 import { managerSubtitle } from "./staff-model";
@@ -41,6 +42,7 @@ export function ManagersTable({
   const [removeUserId, setRemoveUserId] = React.useState<string | null>(null);
 
   const removeManager = api.venues.removeManager.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Venue manager removed");
       await utils.venues.managedById.invalidate({ venueId });

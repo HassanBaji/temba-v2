@@ -176,6 +176,8 @@ export const webGame = {
     findAGroup: "ابحث عن مجموعة",
     recentForm: "الأداء الأخير",
     noResultsYet: "لا نتائج بعد",
+    openGamesTitle: "مباريات مفتوحة",
+    openGamesLine: "مباريات عامة فيها مقاعد يمكنك الانضمام إليها.",
   },
   history: {
     linkLabel: (outcome: string, score: string, meta: string) =>

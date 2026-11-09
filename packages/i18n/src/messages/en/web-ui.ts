@@ -40,6 +40,10 @@ export const webUi = {
   errorState: {
     title: "Something went wrong",
     fallback: "Something went wrong. Try again.",
+    forbiddenTitle: "You can't open this",
+    forbiddenFallback: "You don't have access to this.",
+    notFoundTitle: "Not found",
+    notFoundFallback: "This doesn't exist or was removed.",
   },
   entityImage: {
     addImage: "Add image",
@@ -159,6 +163,9 @@ export const webUi = {
     yourPhoto: "Your photo",
     copyLink: "Copy link",
     message: "Message",
+    storySets: "SETS",
+    storyScorers: "SCORERS",
+    storyYou: "YOU",
     goalsTag: (n: number) => `${n} GOALS`,
   },
   operatorGate: {

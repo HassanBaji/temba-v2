@@ -82,12 +82,6 @@ export function recordShares(overall: FootballProfile["overall"]) {
   };
 }
 
-export function winRatePercent(overall: FootballProfile["overall"]) {
-  return overall.played === 0
-    ? null
-    : Math.round((overall.won / overall.played) * 100);
-}
-
 export type FootballGroupRowView = {
   groupId: string;
   initials: string;

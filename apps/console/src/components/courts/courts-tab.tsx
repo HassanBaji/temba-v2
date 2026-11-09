@@ -25,6 +25,7 @@ import { Hatch } from "~/components/ui/hatch";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { cn } from "~/lib/utils";
 import { courtRenameIsDirty } from "@repo/domain/court-rename";
 import { SPORTS, sportLabel, type Sport } from "@repo/domain/sport";
@@ -202,6 +203,7 @@ export function AddCourtDialog({
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const addCourt = api.venues.addCourt.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Court added");
       onOpenChange(false);
@@ -287,6 +289,7 @@ export function CourtCards() {
     utils.venues.managedById.invalidate({ venueId: venue.id });
 
   const renameCourt = api.venues.renameCourt.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Court renamed");
       setRenameId(null);
@@ -303,6 +306,7 @@ export function CourtCards() {
   });
 
   const deleteCourt = api.venues.deleteCourt.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success("Court deleted");
       await refresh();
