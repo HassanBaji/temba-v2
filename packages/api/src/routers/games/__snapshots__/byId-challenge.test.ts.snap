@@ -91,6 +91,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "<id 11>",
       "<id 12>",
     ],
+    "viewerConfirmsAsOrganizer": true,
     "viewerHasConfirmed": false,
   },
   "matches": [
@@ -342,6 +343,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "<id 12>",
       "<id 13>",
     ],
+    "viewerConfirmsAsOrganizer": false,
     "viewerHasConfirmed": false,
   },
   "matches": [
