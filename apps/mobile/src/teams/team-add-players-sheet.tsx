@@ -44,6 +44,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { useColors } from "../theme/theme-provider";
+import { useErrorMessage } from "../lib/use-error-message";
 
 type AddTab = "phone" | "temba" | "group";
 
@@ -132,6 +133,7 @@ export function TeamAddPlayersSheet({
   const m = useMessages();
   const locale = useLocale();
   const toast = useToast();
+  const errorText = useErrorMessage();
   const utils = api.useUtils();
   const isFootball = sport === "football";
   const teamId = target.teamId;
@@ -247,7 +249,7 @@ export function TeamAddPlayersSheet({
         target.onChanged(),
       ]);
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : String(error));
+      toast.show(errorText(error));
     }
   }
 
@@ -281,7 +283,7 @@ export function TeamAddPlayersSheet({
         sent += 1;
       }
     } catch (error) {
-      setGroupError(error instanceof Error ? error.message : String(error));
+      setGroupError(errorText(error));
     } finally {
       setGroupPending(false);
       setPicked([]);

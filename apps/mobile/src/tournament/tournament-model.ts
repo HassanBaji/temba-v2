@@ -95,5 +95,3 @@ export function scorableMatches(
       };
     });
 }
-
-export const COMPLETE_FAILED_FALLBACK = "Could not complete the Match";

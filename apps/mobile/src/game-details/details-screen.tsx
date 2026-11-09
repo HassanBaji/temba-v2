@@ -88,6 +88,7 @@ import {
   unsupportedFormatCopy,
 } from "./details-model";
 import { JoinSheet } from "./join-sheet";
+import { useErrorMessage } from "../lib/use-error-message";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -151,6 +152,7 @@ export function GameDetailsScreen({
   const router = useRouter();
   const segments = useSegments();
   const toast = useToast();
+  const errorText = useErrorMessage();
   const utils = api.useUtils();
   const now = useNow();
   const [refreshing, setRefreshing] = useState(false);
@@ -342,7 +344,7 @@ export function GameDetailsScreen({
         toast.show(copy.toast.setSaved);
       } catch (error) {
         toast.show(
-          error instanceof Error ? error.message : copy.toast.couldNotSave,
+          error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
         );
       } finally {
         await refresh();
@@ -432,7 +434,7 @@ export function GameDetailsScreen({
       toast.show(copy.toast.setSaved);
     } catch (error) {
       toast.show(
-        error instanceof Error ? error.message : copy.toast.couldNotSave,
+        error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
       );
     } finally {
       await refresh();
@@ -450,7 +452,7 @@ export function GameDetailsScreen({
         toast.show(copy.toast.matchCompleted);
       } catch (error) {
         toast.show(
-          error instanceof Error ? error.message : copy.toast.completeFailed,
+          error instanceof Error ? errorText(error) : copy.toast.completeFailed,
         );
       } finally {
         setConfirm(null);

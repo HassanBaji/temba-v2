@@ -152,7 +152,7 @@ function DayCell({
   );
 }
 
-function DateSheet({
+export function DateSheet({
   visible,
   grid,
   day,
