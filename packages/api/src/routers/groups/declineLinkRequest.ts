@@ -7,6 +7,8 @@ import {
   GroupLinkRequestStatusEnum,
   groups,
 } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -16,8 +18,9 @@ type DbClient = typeof db;
 
 export async function declineLinkRequest(
   database: DbClient,
-  args: { requestId: string; userId: string },
+  args: { requestId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const request = await database.query.groupLinkRequests.findFirst({
     where: eq(groupLinkRequests.id, args.requestId),
     columns: { id: true, groupId: true },
@@ -25,7 +28,7 @@ export async function declineLinkRequest(
   if (!request) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Group link request not found",
+      message: messagesFor(locale).group.errors.linkRequestNotFound,
     });
   }
 
@@ -36,7 +39,7 @@ export async function declineLinkRequest(
   if (group?.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Group creator can decide this request",
+      message: messagesFor(locale).group.errors.creatorDecides,
     });
   }
 
@@ -57,7 +60,7 @@ export async function declineLinkRequest(
   if (!declined) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "Group link request is no longer pending",
+      message: messagesFor(locale).group.errors.linkRequestNotPending,
     });
   }
 
@@ -71,5 +74,6 @@ export const declineLinkRequestProcedure = protectedProcedure
     return declineLinkRequest(ctx.db, {
       requestId: input.requestId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

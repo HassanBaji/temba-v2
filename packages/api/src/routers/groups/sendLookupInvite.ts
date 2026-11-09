@@ -2,6 +2,8 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMemberInvites, groupMembers, user } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -17,12 +19,14 @@ type DbClient = typeof db;
 
 export async function sendLookupInvite(
   database: DbClient,
-  args: { groupId: string; userId: string; userIds: string[] },
+  args: { groupId: string; userId: string; userIds: string[]; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroupLookupSender(
     database,
     args.groupId,
     args.userId,
+    locale,
   );
 
   const uniqueIds = [...new Set(args.userIds)];
@@ -46,7 +50,10 @@ export async function sendLookupInvite(
   for (const userId of uniqueIds) {
     const target = targetsById.get(userId);
     if (!target) {
-      refused.push({ name: "Unknown User", message: "User not found" });
+      refused.push({
+        name: messagesFor(locale).invite.errors.unknownUser,
+        message: messagesFor(locale).profile.errors.userNotFound,
+      });
       continue;
     }
 
@@ -60,7 +67,7 @@ export async function sendLookupInvite(
     if (existingMember) {
       refused.push({
         name: target.name,
-        message: "User is already a member of this Group",
+        message: messagesFor(locale).group.errors.userAlreadyMember,
       });
       continue;
     }
@@ -77,7 +84,7 @@ export async function sendLookupInvite(
     if (existingInvite) {
       refused.push({
         name: target.name,
-        message: "An unused Lookup invite already exists for this User",
+        message: messagesFor(locale).invite.errors.lookupExists,
       });
       continue;
     }
@@ -93,7 +100,7 @@ export async function sendLookupInvite(
           name: target.name,
           message:
             minted.reason === "unused_exists"
-              ? "An unused Lookup invite already exists for this User"
+              ? messagesFor(locale).invite.errors.lookupExists
               : "Failed to create Lookup invite",
         });
         continue;
@@ -108,7 +115,7 @@ export async function sendLookupInvite(
     } catch {
       refused.push({
         name: target.name,
-        message: "An unused Lookup invite already exists for this User",
+        message: messagesFor(locale).invite.errors.lookupExists,
       });
     }
   }
@@ -130,5 +137,6 @@ export const sendLookupInviteProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       userIds: input.userIds,
+      locale: ctx.locale,
     });
   });

@@ -334,12 +334,14 @@ export async function groupById(
     locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   await assertCanViewGroup(
     database,
     group,
     args.userId,
     args.getPublicMetadata,
+    locale,
   );
 
   const membership = await database.query.groupMembers.findFirst({
@@ -399,8 +401,7 @@ export async function groupById(
     args.userId,
   );
   const isApprover = await isGroupApprover(database, group, args.userId);
-  const canSetRequiresApproval =
-    isApprover && group.type === "public";
+  const canSetRequiresApproval = isApprover && group.type === "public";
   const canDecideJoinRequests = canSetRequiresApproval;
   const pendingJoinRequestCount = canDecideJoinRequests
     ? ((
@@ -526,7 +527,12 @@ export async function groupById(
 
   const groupLevelByUserId = new Map<
     string,
-    { level: string; rating: number; levelBand: LevelBand; provisional: boolean }
+    {
+      level: string;
+      rating: number;
+      levelBand: LevelBand;
+      provisional: boolean;
+    }
   >();
   if (memberUserIds.length > 0) {
     const groupRatingRows = await database.query.groupRatings.findMany({

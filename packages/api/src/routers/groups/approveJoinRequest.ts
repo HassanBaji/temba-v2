@@ -11,6 +11,7 @@ import {
 } from "@repo/db";
 
 import { isSeatHoldLive } from "@repo/domain/invites";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -70,13 +71,13 @@ export async function approveJoinRequest(
   if (!request) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Join request not found",
+      message: messagesFor(locale).group.errors.joinRequestNotFound,
     });
   }
 
-  const group = await requireGroup(database, request.groupId);
+  const group = await requireGroup(database, request.groupId, locale);
 
-  await assertGroupApprover(database, group, args.userId);
+  await assertGroupApprover(database, group, args.userId, locale);
 
   const heldSeat = await database.transaction(async (tx) => {
     const [locked] = await tx
@@ -87,7 +88,7 @@ export async function approveJoinRequest(
     if (locked?.status !== "pending") {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Join request is not pending",
+        message: messagesFor(locale).group.errors.joinRequestNotPending,
       });
     }
     const [updated] = await tx

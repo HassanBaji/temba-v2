@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMemberInvites, groupMembers } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -17,12 +18,14 @@ type DbClient = typeof db;
 
 export async function searchLookupUsers(
   database: DbClient,
-  args: { groupId: string; userId: string; query: string },
+  args: { groupId: string; userId: string; query: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroupLookupSender(
     database,
     args.groupId,
     args.userId,
+    locale,
   );
 
   const members = await database.query.groupMembers.findMany({
@@ -64,5 +67,6 @@ export const searchLookupUsersProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       query: input.query,
+      locale: ctx.locale,
     });
   });

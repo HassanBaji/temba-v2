@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMembers } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -31,14 +32,17 @@ export async function previewPlayerByPhone(
     approverUserId: string;
     countryIso: string;
     nationalNumber: string;
+    locale?: Locale;
   },
 ): Promise<GroupPhonePlayerPreview> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroupPhoneAdder(
     database,
     args.groupId,
     args.approverUserId,
+    locale,
   );
-  const phoneNumber = requireE164(args.countryIso, args.nationalNumber);
+  const phoneNumber = requireE164(args.countryIso, args.nationalNumber, locale);
 
   const resolved = await resolvePhonePlayer(database, phoneNumber);
   if (resolved.kind === "new") {
@@ -79,5 +83,6 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
       approverUserId: appUser.id,
       countryIso: input.countryIso,
       nationalNumber: input.nationalNumber,
+      locale: ctx.locale,
     });
   });

@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMembers, GroupMemberRoleEnum, groups } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -20,19 +22,25 @@ type DbClient = typeof db;
  */
 export async function transferOwnership(
   database: DbClient,
-  args: { groupId: string; userId: string; newOwnerUserId: string },
+  args: {
+    groupId: string;
+    userId: string;
+    newOwnerUserId: string;
+    locale?: Locale;
+  },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   assertGroupOwner(
     group,
     args.userId,
-    "Only the Group owner can transfer ownership",
+    messagesFor(locale).group.errors.transferOwnerOnly,
   );
 
   if (args.newOwnerUserId === group.createdBy) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "They already own this Group",
+      message: messagesFor(locale).group.errors.alreadyOwner,
     });
   }
 
@@ -47,13 +55,13 @@ export async function transferOwnership(
   if (!membership) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "This player is not in the Group",
+      message: messagesFor(locale).group.errors.playerNotInGroup,
     });
   }
   if (isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Players not on Temba yet cannot own a Group",
+      message: messagesFor(locale).group.errors.unclaimedOwner,
     });
   }
 
@@ -68,7 +76,7 @@ export async function transferOwnership(
     if (locked?.createdBy !== args.userId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the Group owner can transfer ownership",
+        message: messagesFor(locale).group.errors.transferOwnerOnly,
       });
     }
     const [stillMember] = await tx
@@ -79,7 +87,7 @@ export async function transferOwnership(
     if (!stillMember) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "This player is not in the Group",
+        message: messagesFor(locale).group.errors.playerNotInGroup,
       });
     }
     await tx
@@ -118,5 +126,6 @@ export const transferOwnershipProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       newOwnerUserId: input.userId,
+      locale: ctx.locale,
     });
   });

@@ -6,6 +6,8 @@ import { groupSeasons } from "@repo/db";
 
 import { groupSeasonStatus } from "@repo/domain/group-season";
 import { productDayKey } from "@repo/domain/product-timezone";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -25,22 +27,26 @@ type DbClient = typeof db;
  */
 export async function closeSeason(
   database: DbClient,
-  args: { seasonId: string; userId: string; now?: Date },
+  args: { seasonId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const season = await database.query.groupSeasons.findFirst({
     where: eq(groupSeasons.id, args.seasonId),
   });
   if (!season) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.seasonNotFound,
+    });
   }
-  const group = await requireGroup(database, season.groupId);
-  assertCanManageSeasons(group, args.userId);
+  const group = await requireGroup(database, season.groupId, locale);
+  assertCanManageSeasons(group, args.userId, locale);
 
   if (groupSeasonStatus(season, now) !== "active") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only an active season can be closed",
+      message: messagesFor(locale).group.errors.seasonNotActive,
     });
   }
 
@@ -71,5 +77,6 @@ export const closeSeasonProcedure = protectedProcedure
     return closeSeason(ctx.db, {
       seasonId: input.seasonId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

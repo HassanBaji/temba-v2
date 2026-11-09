@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groups } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,18 +16,24 @@ type DbClient = typeof db;
 
 export async function setRequiresApproval(
   database: DbClient,
-  args: { groupId: string; requiresApproval: boolean; userId: string },
+  args: {
+    groupId: string;
+    requiresApproval: boolean;
+    userId: string;
+    locale?: Locale;
+  },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
 
   if (group.type !== "public") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Require approval only applies to Public Groups",
+      message: messagesFor(locale).group.errors.approvalPublicOnly,
     });
   }
 
-  await assertGroupApprover(database, group, args.userId);
+  await assertGroupApprover(database, group, args.userId, locale);
 
   const [updated] = await database
     .update(groups)
@@ -62,5 +70,6 @@ export const setRequiresApprovalProcedure = protectedProcedure
       groupId: input.groupId,
       requiresApproval: input.requiresApproval,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

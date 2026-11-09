@@ -11,6 +11,8 @@ import {
 } from "@repo/domain/football-self-placement";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import type { PadelLevelChoice } from "@repo/domain/onboarding-answers";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import {
@@ -45,10 +47,11 @@ function refuse(message: string): never {
 function startingLevelFor(
   group: typeof groups.$inferSelect,
   level: AddPlayerLevel | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ): UnclaimedPlayerStartingLevel {
   if (group.sport === "football") {
     if (level !== undefined && !isFootballPlacement(level)) {
-      refuse("Pick a football Level");
+      refuse(messagesFor(locale).level.errors.pickFootball);
     }
     return {
       sport: "football",
@@ -56,7 +59,7 @@ function startingLevelFor(
     };
   }
   if (level !== undefined && isFootballPlacement(level)) {
-    refuse("Pick a padel Level");
+    refuse(messagesFor(locale).level.errors.pickPadel);
   }
   return { sport: "padel", level: level ?? "not_sure" };
 }
@@ -70,15 +73,18 @@ export async function addPlayerByPhone(
     nationalNumber: string;
     name?: string;
     level?: AddPlayerLevel;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroupPhoneAdder(
     database,
     args.groupId,
     args.approverUserId,
+    locale,
   );
-  const startingLevel = startingLevelFor(group, args.level);
-  const phoneNumber = requireE164(args.countryIso, args.nationalNumber);
+  const startingLevel = startingLevelFor(group, args.level, locale);
+  const phoneNumber = requireE164(args.countryIso, args.nationalNumber, locale);
   const name = args.name?.trim();
 
   const resolved = await resolvePhonePlayer(database, phoneNumber);
@@ -89,6 +95,7 @@ export async function addPlayerByPhone(
       groupId: group.id,
       userId: args.approverUserId,
       userIds: [invitee.id],
+      locale,
     });
     const refusal = refused[0];
     if (refusal) {
@@ -105,13 +112,14 @@ export async function addPlayerByPhone(
     let player;
     if (resolved.kind === "new") {
       if (!name) {
-        refuse("Enter their name");
+        refuse(messagesFor(locale).profile.errors.enterTheirName);
       }
       ({ user: player } = await createUnclaimedPlayer(tx, {
         phoneNumber,
         name,
         addedByUserId: args.approverUserId,
         startingLevel,
+        locale,
       }));
     } else {
       player = resolved.user;
@@ -127,7 +135,7 @@ export async function addPlayerByPhone(
     if (existing) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: `${player.name} is already in this Group`,
+        message: messagesFor(locale).group.errors.playerAlreadyIn(player.name),
       });
     }
 
@@ -171,5 +179,6 @@ export const addPlayerByPhoneProcedure = protectedProcedure
     return addPlayerByPhone(ctx.db, {
       ...input,
       approverUserId: appUser.id,
+      locale: ctx.locale,
     });
   });

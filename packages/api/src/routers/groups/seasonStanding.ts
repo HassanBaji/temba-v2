@@ -8,6 +8,8 @@ import {
   seasonStandingTable,
   standingDiffUnit,
 } from "@repo/domain/season-standing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -35,9 +37,11 @@ export async function seasonStanding(
     seasonId: string | null;
     userId: string;
     now?: Date;
+    locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   const now = args.now ?? new Date();
 
   const membership = await database.query.groupMembers.findFirst({
@@ -50,7 +54,7 @@ export async function seasonStanding(
   if (!membership) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Join the Group to see its Standing",
+      message: messagesFor(locale).group.errors.standingMembersOnly,
     });
   }
 
@@ -63,7 +67,10 @@ export async function seasonStanding(
       })
     : null;
   if (args.seasonId && !season) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.seasonNotFound,
+    });
   }
 
   const [memberRows, gameRows] = await Promise.all([
@@ -154,5 +161,6 @@ export const seasonStandingProcedure = protectedProcedure
       groupId: input.groupId,
       seasonId: input.seasonId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMembers, GroupMemberRoleEnum } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -20,10 +22,12 @@ export async function setOrganizer(
     approverUserId: string;
     userId: string;
     organizer: boolean;
+    locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  await assertGroupApprover(database, group, args.approverUserId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  await assertGroupApprover(database, group, args.approverUserId, locale);
 
   const membership = await database.query.groupMembers.findFirst({
     where: and(
@@ -36,20 +40,20 @@ export async function setOrganizer(
   if (!membership) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "This player is not in the Group",
+      message: messagesFor(locale).group.errors.playerNotInGroup,
     });
   }
 
   if (group.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The Group creator is always an Organizer",
+      message: messagesFor(locale).group.errors.alwaysOrganizer,
     });
   }
   if (args.organizer && isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Players not on Temba yet cannot be Organizers",
+      message: messagesFor(locale).group.errors.unclaimedOrganizer,
     });
   }
 
@@ -86,5 +90,6 @@ export const setOrganizerProcedure = protectedProcedure
       approverUserId: appUser.id,
       userId: input.userId,
       organizer: input.organizer,
+      locale: ctx.locale,
     });
   });
