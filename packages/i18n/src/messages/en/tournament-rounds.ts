@@ -19,7 +19,7 @@ export const tournamentRounds = {
   lead: {
     teams: "Every team in the draw, by Pool.",
     roundsEmpty: (roundCount: number, gamesPerRound: number) =>
-      `Everyone plays in ${rounds(roundCount)} of ${games(gamesPerRound)}. Make them all at once, one at a time, or by hand.`,
+      `Everyone plays in ${rounds(roundCount)} of ${games(gamesPerRound)}.`,
     roundsDrafted: (count: number) =>
       `${plural("en", count, { one: "1 Round drafted", other: "{n} Rounds drafted" })}. Swap any pairing; the others stay valid. Nothing is posted yet.`,
     roundsOrganizer:
@@ -37,29 +37,38 @@ export const tournamentRounds = {
       `${played} of ${total} Rounds played`,
   },
   ways: {
+    prompt: "How do you want to make the Rounds?",
     generateAllTitle: (count: number) =>
       plural("en", count, {
         one: "Generate the Round",
         other: "Generate all {n} Rounds",
       }),
     generateAllBody:
-      "A full round robin in one go. You can still swap any pairing before you post.",
+      "A full round-robin in one go. Swap any pairing, court or time before you post.",
+    generateAllNext: "Drafts first, nothing posted yet",
     oneAtATimeTitle: "One Round at a time",
     oneAtATimeBody:
-      "Generate Round 1 now, Round 2 when the scores are in. Good when teams drop out or arrive late.",
+      "Round 1 now, Round 2 when the scores are in. Good when teams drop out or arrive late.",
+    oneAtATimeNext: "Round 1 as a draft, nothing posted yet",
     byHandTitle: "Pair them yourself",
     byHandBody:
       "An empty Round 1. Tap two teams to make a game; Temba remembers who has played whom.",
+    byHandNext: "An empty Round 1, nothing posted yet",
     courts: "Courts",
     courtsValue: (count: number) =>
-      plural("en", count, { one: "1 Court", other: "{n} Courts at once" }),
-    slot: "Each game",
+      plural("en", count, {
+        one: "1 Court",
+        other: "1 to {n}, all {n} at once",
+      }),
+    slot: "Slot",
     slotValue: (minutes: number, time: string) =>
       `${minutes} minutes, from ${time}`,
     points: "Points",
     pointsValue: "Win 3, draw 1, loss 0",
     footer:
-      "Whatever you pick, every Round can be edited until its games start. Players see a Round only once you post it.",
+      "Whatever you pick, every Round can be edited until its games start, and you can switch ways later. Players see a Round only once you post it.",
+    continue: "Continue",
+    continuing: "Working…",
   },
   round: {
     code: (round: number) => `R${round}`,

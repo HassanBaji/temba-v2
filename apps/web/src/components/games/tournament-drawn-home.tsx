@@ -124,6 +124,9 @@ export function TournamentDrawnHome({
       ),
     [rounds?.pools, locale],
   );
+  const choosingWay =
+    rounds?.isOrganizer === true &&
+    rounds.rounds.every((round) => round.matches.length === 0);
   const showBracket = standings.groupsThenKnockout && data.knockout != null;
   const viewerPool = data.poolTables?.viewerPoolIndex;
   const chip = data.isOrganizer
@@ -201,7 +204,8 @@ export function TournamentDrawnHome({
           ) : null}
         </TabsList>
 
-        {rounds && (tab === "rounds" || tab === "standings") ? (
+        {rounds &&
+        (tab === "standings" || (tab === "rounds" && !choosingWay)) ? (
           <div className="pt-[18px]">
             <RoundProgressStrip
               rounds={rounds.rounds}
