@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { isForbiddenError } from "./is-forbidden-error";
 import {
-  groupTeamRowView,
   teamCardView,
   teamCreateFromGroupOptions,
   teamCreateInput,
@@ -388,44 +387,6 @@ describe("teamHomeView Group tag", () => {
     const view = teamHomeView(fixtures.home.footballTagged, "ar");
     expect(view.groupTag.line).toContain("Gooz of Arad");
     expect(view.rosterHero?.label).toBe("قائمة الفريق 12 من 20");
-  });
-});
-
-describe("groupTeamRowView", () => {
-  it("shows the Roster count and record on football", () => {
-    expect(
-      groupTeamRowView(
-        {
-          id: "team-1",
-          displayName: "Arad Lions",
-          sport: "football",
-          rosterCount: 12,
-          record: { gamesPlayed: 6, wins: 3, draws: 1, losses: 2 },
-        },
-        "en",
-      ),
-    ).toEqual({
-      id: "team-1",
-      title: "Arad Lions",
-      meta: "12 on the roster, 3–1–2",
-      accessibilityLabel:
-        "Open Arad Lions, 12 on the roster, Won 3, drew 1, lost 2",
-    });
-  });
-
-  it("shows only the record on padel", () => {
-    expect(
-      groupTeamRowView(
-        {
-          id: "team-2",
-          displayName: "Ada & Kim",
-          sport: "padel",
-          rosterCount: 2,
-          record: { gamesPlayed: 3, wins: 2, draws: 0, losses: 1 },
-        },
-        "en",
-      ).meta,
-    ).toBe("2–1");
   });
 });
 

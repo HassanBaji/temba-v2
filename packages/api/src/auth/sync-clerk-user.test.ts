@@ -23,7 +23,10 @@ import {
 } from "@repo/db/schema";
 
 import {
+  CLERK_EMAIL_HELD_UNVERIFIED,
   CLERK_PHONE_HELD_UNVERIFIED,
+  CLERK_USER_IDENTIFIER_REQUIRED,
+  ClerkUserSyncRejected,
   upsertUserFromClerk,
 } from "#src/auth/sync-clerk-user";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
@@ -1119,6 +1122,115 @@ describe("An existing account that verifies an Unclaimed player's phone", () => 
         await db.query.user.findFirst({ where: eq(user.id, holder.id) }),
       ).toMatchObject({ phoneNumber: UNCLAIMED_PHONE });
       expect(await db.select().from(userMerges)).toHaveLength(0);
+    } finally {
+      await close();
+    }
+  });
+});
+
+function withUnverifiedEmail(payload: ClerkUserPayload): ClerkUserPayload {
+  return {
+    ...payload,
+    email_addresses: payload.email_addresses.map((address) => ({
+      ...address,
+      verification: { status: "unverified" },
+    })),
+  } as ClerkUserPayload;
+}
+
+function updatedAt(payload: ClerkUserPayload, at: number): ClerkUserPayload {
+  return { ...payload, updated_at: at };
+}
+
+describe("Clerk webhook ordering and email linking", () => {
+  it("ignores a delivery older than the last one applied", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(
+        db,
+        updatedAt(clerkUser({ has_image: false, first_name: "Newer" }), 2_000),
+      );
+      await upsertUserFromClerk(
+        db,
+        updatedAt(clerkUser({ has_image: false, first_name: "Older" }), 1_000),
+      );
+      let row = await storedUser(db, "user_clerk_alex");
+      expect(row.firstName).toBe("Newer");
+      expect(row.clerkUpdatedAt).toEqual(new Date(2_000));
+
+      await upsertUserFromClerk(
+        db,
+        updatedAt(clerkUser({ has_image: false, first_name: "Latest" }), 3_000),
+      );
+      row = await storedUser(db, "user_clerk_alex");
+      expect(row.firstName).toBe("Latest");
+      expect(row.clerkUpdatedAt).toEqual(new Date(3_000));
+    } finally {
+      await close();
+    }
+  });
+
+  it("rejects a payload with neither email nor phone as a permanent error", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const attempt = upsertUserFromClerk(
+        db,
+        clerkUser({ has_image: false, email: null }),
+      );
+      await expect(attempt).rejects.toBeInstanceOf(ClerkUserSyncRejected);
+      await expect(attempt).rejects.toThrow(CLERK_USER_IDENTIFIER_REQUIRED);
+    } finally {
+      await close();
+    }
+  });
+
+  it("does not link an existing row by an unverified email", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const [legacy] = await db
+        .insert(user)
+        .values({ name: "Legacy", email: "alex@example.com" })
+        .returning();
+
+      await upsertUserFromClerk(
+        db,
+        withUnverifiedEmail(
+          clerkUser({ has_image: false, phone: "+97336000001" }),
+        ),
+      );
+
+      const row = await storedUser(db, "user_clerk_alex");
+      expect(row.id).not.toBe(legacy!.id);
+      expect(row.email).toBeNull();
+      expect(row.phoneNumber).toBe("+97336000001");
+      expect(
+        await db.query.user.findFirst({ where: eq(user.id, legacy!.id) }),
+      ).toMatchObject({ clerkId: null, email: "alex@example.com" });
+
+      await expect(
+        upsertUserFromClerk(
+          db,
+          withUnverifiedEmail(
+            clerkUser({ id: "user_clerk_email_only", has_image: false }),
+          ),
+        ),
+      ).rejects.toThrow(CLERK_EMAIL_HELD_UNVERIFIED);
+    } finally {
+      await close();
+    }
+  });
+
+  it("links an existing row by a verified email", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const [legacy] = await db
+        .insert(user)
+        .values({ name: "Legacy", email: "alex@example.com" })
+        .returning();
+
+      await upsertUserFromClerk(db, clerkUser({ has_image: false }));
+
+      expect((await storedUser(db, "user_clerk_alex")).id).toBe(legacy!.id);
     } finally {
       await close();
     }

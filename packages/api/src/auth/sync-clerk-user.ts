@@ -23,6 +23,17 @@ export const CLERK_USER_IDENTIFIER_REQUIRED =
 export const CLERK_PHONE_HELD_UNVERIFIED =
   "Phone number belongs to another User and is not verified";
 
+export const CLERK_EMAIL_HELD_UNVERIFIED =
+  "Email belongs to another User and is not verified";
+
+/**
+ * A Clerk payload that can never be applied, however often it is delivered.
+ * The webhook acknowledges it so Svix stops retrying.
+ */
+export class ClerkUserSyncRejected extends Error {
+  override name = "ClerkUserSyncRejected";
+}
+
 function clerkUsername(username: string | null) {
   if (!username || username.length === 0) {
     return null;
@@ -90,6 +101,29 @@ async function availablePhoneNumber(
   return taken ? null : phoneNumber;
 }
 
+async function availableEmail(
+  database: ClerkUserSyncDb,
+  email: string | null,
+  exceptUserId?: string,
+) {
+  if (!email) {
+    return null;
+  }
+  const taken = await database.query.user.findFirst({
+    where: exceptUserId
+      ? and(eq(user.email, email), ne(user.id, exceptUserId))
+      : eq(user.email, email),
+    columns: { id: true },
+  });
+  return taken ? null : email;
+}
+
+function clerkUpdatedAt(clerkUser: ClerkUserPayload): Date | null {
+  return typeof clerkUser.updated_at === "number"
+    ? new Date(clerkUser.updated_at)
+    : null;
+}
+
 async function unclaimedPhoneHolder(
   database: ClerkUserSyncDb,
   phoneNumber: string | null,
@@ -152,7 +186,11 @@ function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
  * phone: the SMS code is what proves the number belongs to the new account.
  * Linking an Unclaimed player claims its history (ADR-0042). An existing
  * account whose verified phone an Unclaimed player holds absorbs that player
- * instead of dropping the phone.
+ * instead of dropping the phone. The same holds for email: only a verified
+ * one links a row, and one another row holds is dropped.
+ *
+ * A delivery older than the last one applied, or for a deleted account,
+ * changes nothing and returns the row as it is.
  */
 export async function upsertUserFromClerk(
   database: ClerkUserSyncDb,
@@ -163,7 +201,7 @@ export async function upsertUserFromClerk(
   const email = primaryEmail ? primaryEmail.email_address.toLowerCase() : null;
 
   if (!email && !phoneNumber) {
-    throw new Error(CLERK_USER_IDENTIFIER_REQUIRED);
+    throw new ClerkUserSyncRejected(CLERK_USER_IDENTIFIER_REQUIRED);
   }
 
   const clerkId = clerkUser.id;
@@ -180,12 +218,27 @@ export async function upsertUserFromClerk(
     ? primaryEmail.verification?.status === "verified"
     : false;
   const image = clerkStoredImage(clerkUser);
+  const updatedAt = clerkUpdatedAt(clerkUser);
+
+  const deleted = await database.query.user.findFirst({
+    where: eq(user.deletedClerkId, clerkId),
+  });
+  if (deleted) {
+    return deleted;
+  }
 
   const byClerkId = await database.query.user.findFirst({
     where: eq(user.clerkId, clerkId),
   });
+  if (
+    byClerkId?.clerkUpdatedAt &&
+    updatedAt &&
+    updatedAt < byClerkId.clerkUpdatedAt
+  ) {
+    return byClerkId;
+  }
   const byEmail =
-    !byClerkId && email
+    !byClerkId && email && emailVerified
       ? await database.query.user.findFirst({
           where: eq(user.email, email),
         })
@@ -200,7 +253,7 @@ export async function upsertUserFromClerk(
 
   if (existing) {
     if (existing.clerkId && existing.clerkId !== clerkId) {
-      throw new Error(
+      throw new ClerkUserSyncRejected(
         byEmail
           ? "Email already belongs to a different Clerk user"
           : "Phone number already belongs to a different Clerk user",
@@ -229,6 +282,13 @@ export async function upsertUserFromClerk(
       nextPhoneNumber === phoneNumber
         ? phoneNumberVerified
         : existing.phoneNumberVerified;
+    const nextEmail =
+      email === null
+        ? null
+        : ((await availableEmail(database, email, existing.id)) ??
+          existing.email);
+    const nextEmailVerified =
+      nextEmail === email ? emailVerified : existing.emailVerified;
 
     const claiming = isUnclaimed(existing);
 
@@ -248,13 +308,14 @@ export async function upsertUserFromClerk(
           name,
           firstName,
           lastName,
-          email,
-          emailVerified,
+          email: nextEmail,
+          emailVerified: nextEmailVerified,
           username: nextUsername,
           phoneNumber: nextPhoneNumber,
           phoneNumberVerified: nextPhoneVerified,
           image,
           ...(claiming ? { claimedAt: now } : {}),
+          ...(updatedAt ? { clerkUpdatedAt: updatedAt } : {}),
           updatedAt: now,
         })
         .where(eq(user.id, existing.id))
@@ -273,9 +334,14 @@ export async function upsertUserFromClerk(
   }
 
   const insertUsername = await availableUsername(database, username);
+  const insertEmail = await availableEmail(database, email);
   const insertPhoneNumber = await availablePhoneNumber(database, phoneNumber);
-  if (!email && !insertPhoneNumber) {
-    throw new Error(CLERK_PHONE_HELD_UNVERIFIED);
+  if (!insertEmail && !insertPhoneNumber) {
+    throw new ClerkUserSyncRejected(
+      email && !insertEmail
+        ? CLERK_EMAIL_HELD_UNVERIFIED
+        : CLERK_PHONE_HELD_UNVERIFIED,
+    );
   }
 
   const [created] = await writeDb(database)
@@ -285,13 +351,14 @@ export async function upsertUserFromClerk(
       name,
       firstName,
       lastName,
-      email,
-      emailVerified,
+      email: insertEmail,
+      emailVerified: insertEmail === email ? emailVerified : false,
       username: insertUsername,
       phoneNumber: insertPhoneNumber,
       phoneNumberVerified:
         insertPhoneNumber === phoneNumber ? phoneNumberVerified : false,
       image,
+      clerkUpdatedAt: updatedAt,
     })
     .returning();
 

@@ -15,6 +15,7 @@ export const auth = {
     passwordIncorrect: "كلمة المرور غير صحيحة.",
     passwordPwned: "ظهرت كلمة المرور هذه في تسريب بيانات. اختر كلمة مرور أخرى.",
   },
+  deletedAccountName: "لاعب محذوف",
   country: {
     bh: "البحرين",
     kw: "الكويت",
