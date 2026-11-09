@@ -1,6 +1,6 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { gameMemberInvites } from "@repo/db";
+import { gameMemberInvites, games } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -23,13 +23,20 @@ export async function pendingLookupInvites(
       eq(gameMemberInvites.userId, args.userId),
       isNull(gameMemberInvites.acceptedAt),
       isNull(gameMemberInvites.revokedAt),
+      inArray(
+        gameMemberInvites.gameId,
+        database
+          .select({ id: games.id })
+          .from(games)
+          .where(isNull(games.cancelledAt)),
+      ),
     ),
     with: {
       game: {
         columns: { id: true, name: true },
       },
       invitedBy: {
-        columns: { id: true, name: true, email: true, image: true },
+        columns: { id: true, name: true, image: true },
       },
     },
     orderBy: (table, { desc }) => [desc(table.createdAt)],
@@ -53,7 +60,6 @@ export async function pendingLookupInvites(
       invitedBy: {
         id: row.invitedBy.id,
         name: row.invitedBy.name,
-        email: row.invitedBy.email,
         image: row.invitedBy.image,
       },
       createdAt: row.createdAt,
