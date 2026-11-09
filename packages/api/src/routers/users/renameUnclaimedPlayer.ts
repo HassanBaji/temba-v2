@@ -5,6 +5,8 @@ import { z } from "zod";
 import { gamePlayers, games, gameWaitlist, groupMembers, user } from "@repo/db";
 
 import { UNCLAIMED_PLAYER_NAME_MAX_LENGTH } from "@repo/domain/add-player-by-phone";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -96,11 +98,15 @@ async function approvesAGroupTheyAreIn(
 
 export async function renameUnclaimedPlayer(
   database: DbClient,
-  args: { callerUserId: string; userId: string; name: string },
+  args: { callerUserId: string; userId: string; name: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const name = args.name.trim();
   if (name.length === 0 || name.length > UNCLAIMED_PLAYER_NAME_MAX_LENGTH) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Enter their name" });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).profile.errors.enterTheirName,
+    });
   }
 
   const player = await database.query.user.findFirst({
@@ -114,13 +120,16 @@ export async function renameUnclaimedPlayer(
     },
   });
   if (!player) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).profile.errors.playerNotFound,
+    });
   }
 
   if (!isUnclaimed(player) || player.claimedAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only players not on Temba yet can have their name edited",
+      message: messagesFor(locale).profile.errors.onlyUnclaimedRenamable,
     });
   }
 
@@ -142,8 +151,7 @@ export async function renameUnclaimedPlayer(
   if (!allowed) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "Only an Organizer or Group approver where they were added can edit their name",
+      message: messagesFor(locale).profile.errors.renameNotAllowed,
     });
   }
 
@@ -155,7 +163,7 @@ export async function renameUnclaimedPlayer(
   if (!updated) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only players not on Temba yet can have their name edited",
+      message: messagesFor(locale).profile.errors.onlyUnclaimedRenamable,
     });
   }
 
@@ -170,5 +178,6 @@ export const renameUnclaimedPlayerProcedure = protectedProcedure
       callerUserId: appUser.id,
       userId: input.userId,
       name: input.name,
+      locale: ctx.locale,
     });
   });

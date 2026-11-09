@@ -10,6 +10,8 @@ import {
   footballRoleSchema,
 } from "@repo/validators/football";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -78,8 +80,9 @@ async function hasRating(database: DbClient, userId: string, sport: Sport) {
  */
 export async function markOnboardingComplete(
   database: DbClient,
-  args: { userId: string },
+  args: { userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const appUser = await database.query.user.findFirst({
     where: eq(user.id, args.userId),
     columns: {
@@ -94,7 +97,7 @@ export async function markOnboardingComplete(
   if (!appUser) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "User not found",
+      message: messagesFor(locale).profile.errors.userNotFound,
     });
   }
 
@@ -108,13 +111,13 @@ export async function markOnboardingComplete(
     if (!appUser.preferredPosition) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Choose a Preferred Position first",
+        message: messagesFor(locale).profile.errors.choosePosition,
       });
     }
     if (!(await hasRating(database, appUser.id, "padel"))) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Declare a Level first",
+        message: messagesFor(locale).profile.errors.declareLevel,
       });
     }
   }
@@ -123,13 +126,13 @@ export async function markOnboardingComplete(
     if (!appUser.preferredFootballRole) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Choose how you line up in football first",
+        message: messagesFor(locale).profile.errors.chooseFootballLineup,
       });
     }
     if (!(await hasRating(database, appUser.id, "football"))) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Declare a football Level first",
+        message: messagesFor(locale).profile.errors.declareFootballLevel,
       });
     }
   }
@@ -170,8 +173,9 @@ export async function markOnboardingComplete(
  */
 export async function submitOnboarding(
   database: typeof db,
-  args: { userId: string; answers: OnboardingAnswers },
+  args: { userId: string; answers: OnboardingAnswers; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { userId, answers } = args;
   const sports = [...new Set(answers.sports)];
   const padel = sports.includes("padel") ? answers.padel : undefined;
@@ -210,11 +214,11 @@ export async function submitOnboarding(
         !(await hasRating(tx, userId, sport)) &&
         !(await userHasRatedMatch(tx, userId, sport))
       ) {
-        await selfDeclareRating(tx, userId, sport, choice);
+        await selfDeclareRating(tx, userId, sport, choice, locale);
       }
     }
 
-    return markOnboardingComplete(tx, { userId });
+    return markOnboardingComplete(tx, { userId, locale });
   });
 }
 
@@ -223,7 +227,14 @@ export const completeOnboarding = protectedProcedure
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     if (input) {
-      return submitOnboarding(ctx.db, { userId: appUser.id, answers: input });
+      return submitOnboarding(ctx.db, {
+        userId: appUser.id,
+        answers: input,
+        locale: ctx.locale,
+      });
     }
-    return markOnboardingComplete(ctx.db, { userId: appUser.id });
+    return markOnboardingComplete(ctx.db, {
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });
