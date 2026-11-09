@@ -4,6 +4,10 @@ import { teamIsFull } from "@repo/domain/team-roster";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { inviteInApp } from "#src/routers/teams/inviteInApp";
 import { killTeamOpenSeatDoors } from "#src/teams/helpers/kill-team-open-seat-doors";
@@ -65,6 +69,7 @@ export async function addPlayerByPhone(
 export const addPlayerByPhoneProcedure = protectedProcedure
   .input(teamPhonePlayerSchema.extend({ teamId: z.string().uuid() }))
   .mutation(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.addByPhone, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return addPlayerByPhone(ctx.db, { ...input, userId: appUser.id });
   });

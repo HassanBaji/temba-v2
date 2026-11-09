@@ -6,8 +6,10 @@ import {
   ilike,
   inArray,
   isNotNull,
+  notInArray,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { z } from "zod";
 
@@ -17,14 +19,91 @@ import { type db } from "#src/db";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import {
   classifyLookupQuery,
-  searchLookupUsers,
+  containsPattern,
+  exactContactFilter,
+  LOOKUP_USER_SEARCH_LIMIT,
+  normalizedPhoneSql,
+  type ClassifiedLookupQuery,
 } from "#src/invites/search-lookup-users";
 import { protectedProcedure } from "#src/trpc";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
+import { notUnclaimedUserSql } from "#src/unclaimed-players/is-unclaimed";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
 type DbClient = typeof db;
 
 const GUEST_LIMIT = 10;
+
+const userColumns = {
+  id: true,
+  name: true,
+  username: true,
+  image: true,
+  phoneNumber: true,
+} as const;
+
+function customerTextFilter(classified: ClassifiedLookupQuery) {
+  const pattern = containsPattern(classified.query);
+  const filters: (SQL | undefined)[] = [
+    ilike(user.name, pattern),
+    ilike(user.username, pattern),
+    exactContactFilter(classified),
+  ];
+  if (classified.phoneStripped) {
+    filters.push(
+      ilike(
+        normalizedPhoneSql(user.phoneNumber),
+        containsPattern(classified.phoneStripped),
+      ),
+    );
+  }
+  return or(...filters);
+}
+
+/**
+ * This Venue's Customers match as its own records do, by name or part of a
+ * number. Anyone else on Temba is found only by their full phone number.
+ */
+async function matchingUsers(
+  database: DbClient,
+  classified: ClassifiedLookupQuery,
+  customerIds: string[],
+) {
+  const customers =
+    customerIds.length > 0
+      ? await database.query.user.findMany({
+          where: and(
+            inArray(user.id, customerIds),
+            notUnclaimedUserSql,
+            customerTextFilter(classified),
+          ),
+          columns: userColumns,
+          orderBy: (table, { asc }) => [asc(table.name), asc(table.username)],
+          limit: LOOKUP_USER_SEARCH_LIMIT,
+        })
+      : [];
+  const phoneMatch = exactContactFilter(classified, { email: false });
+  const remaining = LOOKUP_USER_SEARCH_LIMIT - customers.length;
+  const others =
+    phoneMatch && remaining > 0
+      ? await database.query.user.findMany({
+          where: and(
+            customerIds.length > 0
+              ? notInArray(user.id, customerIds)
+              : undefined,
+            notUnclaimedUserSql,
+            phoneMatch,
+          ),
+          columns: userColumns,
+          orderBy: (table, { asc }) => [asc(table.name), asc(table.username)],
+          limit: remaining,
+        })
+      : [];
+  return [...customers, ...others];
+}
 
 export async function searchVenueCustomers(
   database: DbClient,
@@ -48,33 +127,20 @@ export async function searchVenueCustomers(
     bookingCounts.map((row) => [row.userId!, row.bookingCount]),
   );
 
-  const users = await searchLookupUsers(database, {
-    query: args.query,
-    excludeUserIds: [],
-    boostUserIds: [...countByUserId.keys()],
-  });
-  const details = users.length
-    ? await database
-        .select({
-          id: user.id,
-          image: user.image,
-          phoneNumber: user.phoneNumber,
-        })
-        .from(user)
-        .where(
-          inArray(
-            user.id,
-            users.map((row) => row.id),
-          ),
-        )
-    : [];
-  const detailById = new Map(details.map((row) => [row.id, row]));
-
   const classified = classifyLookupQuery(args.query);
-  const guestFilters = [ilike(bookings.guestName, `%${classified.query}%`)];
+  const users = await matchingUsers(database, classified, [
+    ...countByUserId.keys(),
+  ]);
+
+  const guestFilters = [
+    ilike(bookings.guestName, containsPattern(classified.query)),
+  ];
   if (classified.phoneStripped) {
     guestFilters.push(
-      sql`regexp_replace(${bookings.guestPhone}, '[()[:space:]-]', '', 'g') ilike ${`%${classified.phoneStripped}%`}`,
+      ilike(
+        normalizedPhoneSql(bookings.guestPhone),
+        containsPattern(classified.phoneStripped),
+      ),
     );
   }
   const guests = await database
@@ -96,22 +162,17 @@ export async function searchVenueCustomers(
     .limit(GUEST_LIMIT);
 
   return [
-    ...users.map((row) => {
-      const bookingCount = countByUserId.get(row.id) ?? 0;
-      const detail = detailById.get(row.id);
-      return {
-        kind: "user" as const,
-        userId: row.id,
-        name: row.name,
-        username: row.username,
-        // A Customer of this Venue shows their phone; anyone else only when
-        // the manager already typed it.
-        phone:
-          bookingCount > 0 ? (detail?.phoneNumber ?? null) : row.phoneNumber,
-        image: detail?.image ?? null,
-        bookingCount,
-      };
-    }),
+    // A Customer of this Venue shows their phone; anyone else matched only on
+    // the number the manager typed in full.
+    ...users.map((row) => ({
+      kind: "user" as const,
+      userId: row.id,
+      name: row.name,
+      username: row.username,
+      phone: row.phoneNumber,
+      image: row.image,
+      bookingCount: countByUserId.get(row.id) ?? 0,
+    })),
     ...guests.map((row) => ({
       kind: "guest" as const,
       name: row.name,
@@ -129,6 +190,7 @@ export const searchCustomersProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.lookupSearch, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return searchVenueCustomers(ctx.db, {
       ...input,

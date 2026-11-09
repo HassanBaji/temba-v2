@@ -5,6 +5,10 @@ import { groupMemberInvites, groupMembers } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { requireGroupLookupSender } from "#src/groups/helpers/require-group-lookup-sender";
 import { searchLookupUsers as searchLookupUsersDoor } from "#src/invites/search-lookup-users";
@@ -54,6 +58,7 @@ export const searchLookupUsersProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.lookupSearch, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return searchLookupUsers(ctx.db, {
       groupId: input.groupId,

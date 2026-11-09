@@ -7,6 +7,10 @@ import { teamRosterRule } from "@repo/domain/team-roster";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { mintLookup } from "#src/invites/doors";
 import { notifyTeamInvite } from "#src/notifications/notify-team-invite";
@@ -120,6 +124,7 @@ export const inviteInAppProcedure = protectedProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.invite, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return inviteInApp(ctx.db, {
       teamId: input.teamId,

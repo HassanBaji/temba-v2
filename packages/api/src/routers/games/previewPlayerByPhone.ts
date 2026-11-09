@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
@@ -62,6 +66,7 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.phonePreview, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return previewPlayerByPhone(ctx.db, {
       gameId: input.gameId,
