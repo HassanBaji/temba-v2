@@ -1,6 +1,8 @@
 import { and, desc, eq } from "drizzle-orm";
 
 import { groupRatingEvents, ratingEvents } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 
@@ -24,6 +26,7 @@ export type WrongScoreReversalEligibility =
 export async function wrongScoreReversalEligibility(
   database: DbClient,
   matchId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<WrongScoreReversalEligibility> {
   const [matchEvents, groupEvents] = await Promise.all([
     database.query.ratingEvents.findMany({
@@ -48,8 +51,7 @@ export async function wrongScoreReversalEligibility(
     if (latest && latest.id !== event.id) {
       return {
         eligible: false,
-        reason:
-          "At least one player seated on this Match has a later rated Match — this needs manual support to correct",
+        reason: messagesFor(locale).game.errors.laterRatedMatch,
       };
     }
   }
@@ -70,8 +72,7 @@ export async function wrongScoreReversalEligibility(
     if (latest && latest.id !== event.id) {
       return {
         eligible: false,
-        reason:
-          "At least one player seated on this Match has a later rated Match — this needs manual support to correct",
+        reason: messagesFor(locale).game.errors.laterRatedMatch,
       };
     }
   }

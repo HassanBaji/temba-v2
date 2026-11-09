@@ -1,4 +1,5 @@
 import { type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { TRPCError } from "@trpc/server";
 
 import {
@@ -27,31 +28,31 @@ export async function assertCanRegisterWithPartner(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Register with a partner on a Friendly game or tournament",
+      message: messagesFor(locale).game.errors.partnerFriendlyOnly,
     });
   }
   assertGameHasSeats(game, locale);
   if (game.registrationMode !== "individual") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game is team-only; register a complete Team",
+      message: messagesFor(locale).game.errors.teamOnlyRegisterTeam,
     });
   }
 
-  assertRegistrationOpen(game, now);
+  assertRegistrationOpen(game, now, locale);
   await assertGameNotFrozen(database, game, now, locale);
-  await assertUserPassesJoinGate(database, game, userId);
+  await assertUserPassesJoinGate(database, game, userId, locale);
 
   if (await userAlreadyOnGame(database, game.id, userId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already registered on this Game",
+      message: messagesFor(locale).game.errors.alreadyRegistered,
     });
   }
   if (await userAlreadyWaitlisted(database, game.id, userId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already on the waitlist",
+      message: messagesFor(locale).game.errors.alreadyWaitlisted,
     });
   }
 }

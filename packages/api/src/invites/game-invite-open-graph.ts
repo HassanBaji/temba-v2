@@ -49,7 +49,7 @@ export async function gameInviteLinkOpenGraph(
   if (previewed.status !== "ready") {
     return genericOpenGraph(locale);
   }
-  const game = await requireGame(writeDb(database), link.gameId);
+  const game = await requireGame(writeDb(database), link.gameId, locale);
   if (game.cancelledAt) {
     return genericOpenGraph(locale);
   }

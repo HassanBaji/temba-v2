@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
 import { type Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { type db } from "#src/db";
@@ -13,12 +15,13 @@ export async function requireTagGroup(
   database: DbClient,
   groupId: string,
   sport: Sport,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  const group = await requireGroup(database, groupId);
+  const group = await requireGroup(database, groupId, locale);
   if (group.sport !== sport) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "A Team can only be tagged to a Group of its sport",
+      message: messagesFor(locale).team.errors.tagSport,
     });
   }
   return group;
@@ -32,11 +35,12 @@ export async function requireCaptainInTagGroup(
   database: DbClient,
   groupId: string,
   captainUserId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (!(await isGroupMember(database, groupId, captainUserId))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "A Team can only be tagged to a Group its Captain is in",
+      message: messagesFor(locale).team.errors.tagCaptainGroup,
     });
   }
 }

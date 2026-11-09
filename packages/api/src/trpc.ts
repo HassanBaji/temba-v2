@@ -175,7 +175,7 @@ export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
  */
 export const operatorProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
-    await requireOperator(ctx);
+    await requireOperator(ctx, ctx.locale);
     return next();
   },
 );
@@ -187,7 +187,7 @@ export const operatorProcedure = protectedProcedure.use(
  */
 export const levelSetterProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
-    await requireLevelSetter(ctx);
+    await requireLevelSetter(ctx, ctx.locale);
     return next();
   },
 );

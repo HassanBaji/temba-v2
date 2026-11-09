@@ -39,14 +39,18 @@ export const FRIENDLY_TEAMS_ALLOWED = 2;
 
 export type GameRow = typeof games.$inferSelect;
 
-export async function requireGame(database: DbOrTx, gameId: string) {
+export async function requireGame(
+  database: DbOrTx,
+  gameId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const game = await database.query.games.findFirst({
     where: eq(games.id, gameId),
   });
   if (!game) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Game not found",
+      message: messagesFor(locale).game.errors.notFound,
     });
   }
   return game;
@@ -56,7 +60,11 @@ export async function requireGame(database: DbOrTx, gameId: string) {
  * Locks the Game row until the transaction ends, so concurrent admits count
  * and fill its capacity one after another. Returns the row as locked.
  */
-export async function lockGameForAdmit(database: DbOrTx, gameId: string) {
+export async function lockGameForAdmit(
+  database: DbOrTx,
+  gameId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const [game] = await database
     .select()
     .from(games)
@@ -65,7 +73,7 @@ export async function lockGameForAdmit(database: DbOrTx, gameId: string) {
   if (!game) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Game not found",
+      message: messagesFor(locale).game.errors.notFound,
     });
   }
   return game;
@@ -151,6 +159,7 @@ export async function assertMayCreateGameOnGroup(
   database: DbOrTx,
   group: GroupForOrganize,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (await mayOrganizeGroupGames(database, group, userId)) {
     return;
@@ -158,8 +167,7 @@ export async function assertMayCreateGameOnGroup(
 
   throw new TRPCError({
     code: "FORBIDDEN",
-    message:
-      "Only the Group creator or an Organizer can create a Game on this Group",
+    message: messagesFor(locale).game.errors.groupCreatorOrOrganizerCreates,
   });
 }
 
@@ -265,13 +273,14 @@ export async function assertGameOrganizer(
   database: DbOrTx,
   game: GameRow,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (await isGameOrganizer(database, game, userId)) {
     return;
   }
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Only an organizer can do that",
+    message: messagesFor(locale).game.errors.organizerOnly,
   });
 }
 
@@ -331,6 +340,7 @@ export async function assertUserPassesJoinGate(
   database: DbOrTx,
   game: GameRow,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (await userPassesJoinGate(database, game, userId)) {
     return;
@@ -338,8 +348,8 @@ export async function assertUserPassesJoinGate(
   throw new TRPCError({
     code: "FORBIDDEN",
     message: game.groupId
-      ? "Only Group members can register on this Game"
-      : "Only the organizer can register on this Game",
+      ? messagesFor(locale).game.errors.groupMembersRegister
+      : messagesFor(locale).game.errors.organizerRegisters,
   });
 }
 
@@ -414,17 +424,21 @@ export function isRegistrationOpen(game: GameRow, now: Date) {
   return true;
 }
 
-export function assertRegistrationOpen(game: GameRow, now: Date) {
+export function assertRegistrationOpen(
+  game: GameRow,
+  now: Date,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is not open for registration",
+      message: messagesFor(locale).game.errors.notOpen,
     });
   }
   if (!isRegistrationOpen(game, now)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is not open for registration",
+      message: messagesFor(locale).game.errors.notOpen,
     });
   }
 }

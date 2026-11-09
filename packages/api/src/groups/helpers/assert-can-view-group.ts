@@ -8,6 +8,8 @@ import {
   venueManagers,
   type groups,
 } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { isOperatorPublicMetadata } from "#src/auth/require-operator";
 
@@ -90,9 +92,13 @@ export async function assertCanViewGroup(
   group: GroupForViewer,
   userId: string,
   getPublicMetadata?: () => Promise<Record<string, unknown> | undefined>,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (await canViewGroup(database, group, userId, getPublicMetadata)) {
     return;
   }
-  throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+  throw new TRPCError({
+    code: "NOT_FOUND",
+    message: messagesFor(locale).group.errors.notFound,
+  });
 }

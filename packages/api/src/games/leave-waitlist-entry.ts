@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, or } from "drizzle-orm";
 
 import { gameWaitlist, teamMembers } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 
@@ -11,6 +13,7 @@ export async function leaveWaitlistEntry(
   database: Tx | typeof db,
   gameId: string,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const memberships = await database.query.teamMembers.findMany({
     where: eq(teamMembers.userId, userId),
@@ -34,7 +37,7 @@ export async function leaveWaitlistEntry(
   if (deleted.length === 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not on the waitlist",
+      message: messagesFor(locale).game.errors.notWaitlisted,
     });
   }
 }

@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 
 import { bookings, venues } from "@repo/db";
 import type { DbTx } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
@@ -15,17 +17,26 @@ export async function requireManagedBooking(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const [booking] = await tx
     .select()
     .from(bookings)
     .where(eq(bookings.id, args.bookingId))
     .for("update");
   if (!booking) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).booking.errors.notFound,
+    });
   }
-  await requireVenueManager(tx, { venueId: booking.venueId, ...args.actor });
+  await requireVenueManager(tx, {
+    venueId: booking.venueId,
+    ...args.actor,
+    locale,
+  });
 
   const [venue] = await tx
     .select({ archivedAt: venues.archivedAt })

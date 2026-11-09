@@ -15,6 +15,8 @@ import {
 } from "@repo/domain/level-slider";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -30,12 +32,14 @@ export async function setLevelAsOperator(
     sport: Sport;
     levelTenths: number;
     reason?: LevelOverrideReason | null;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (args.targetUserId === args.operatorUserId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot set your own Level",
+      message: messagesFor(locale).level.errors.ownLevel,
     });
   }
   const target = await database.query.user.findFirst({
@@ -43,7 +47,10 @@ export async function setLevelAsOperator(
     columns: { id: true },
   });
   if (!target) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).profile.errors.playerNotFound,
+    });
   }
 
   return applyLevelOverride(database, {
@@ -53,6 +60,7 @@ export async function setLevelAsOperator(
     groupId: null,
     levelTenths: args.levelTenths,
     reason: args.reason,
+    locale,
   });
 }
 
@@ -73,5 +81,6 @@ export const setLevelAsOperatorProcedure = operatorProcedure
       sport: input.sport,
       levelTenths: input.levelTenths,
       reason: input.reason,
+      locale: ctx.locale,
     });
   });
