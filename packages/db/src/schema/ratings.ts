@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   doublePrecision,
+  index,
   pgEnum,
   pgTable,
   timestamp,
@@ -101,6 +102,7 @@ export const ratingEvents = pgTable(
       table.userId,
       table.matchId,
     ),
+    matchIdx: index("rating_events_match_id_idx").on(table.matchId),
   }),
 );
 

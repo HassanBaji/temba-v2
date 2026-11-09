@@ -21,7 +21,6 @@ import {
   GroupLinkRequestStatusEnum,
   groupMembers,
   groupRatings,
-  GroupTypeEnum,
   levelOverrides,
   MatchStatusEnum,
   ratingEvents,
@@ -394,7 +393,7 @@ export async function groupById(
   );
   const isApprover = await isGroupApprover(database, group, args.userId);
   const canSetRequiresApproval =
-    isApprover && group.type === GroupTypeEnum.PUBLIC;
+    isApprover && group.type === "public";
   const canDecideJoinRequests = canSetRequiresApproval;
   const pendingJoinRequestCount = canDecideJoinRequests
     ? ((

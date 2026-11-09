@@ -166,7 +166,7 @@ function newestFirst(left: CountedMatch, right: CountedMatch) {
 export async function loadCountedMatches(
   database: DbClient,
   userId: string,
-  sport: GameSportEnum,
+  sport: "padel" | "football",
 ): Promise<CountedMatch[]> {
   const seats = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),

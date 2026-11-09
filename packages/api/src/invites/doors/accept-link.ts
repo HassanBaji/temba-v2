@@ -8,7 +8,6 @@ import {
   GroupJoinRequestStatusEnum,
   groupMembers,
   groups,
-  GroupTypeEnum,
   teamInviteLinks,
   teamMembers,
 } from "@repo/db";
@@ -128,7 +127,7 @@ export async function acceptLink(
     if (await isBlockedFromGroup(database, host.id, args.userId)) {
       return { ok: false, reason: "blocked" };
     }
-    if (group.type === GroupTypeEnum.PUBLIC && group.requiresApproval) {
+    if (group.type === "public" && group.requiresApproval) {
       await requestGroupJoinFromLink(database, {
         group,
         userId: args.userId,

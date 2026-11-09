@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  index,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -38,6 +39,13 @@ export const gameTeamPlayers = pgTable(
     )
       .on(table.gameTeamId, table.position)
       .where(sql`${table.position} is not null`),
+    // A Game player sits on one Game team at most.
+    gameTeamIdx: index("game_team_players_game_team_id_idx").on(
+      table.gameTeamId,
+    ),
+    uniqueGamePlayer: uniqueIndex("game_team_players_game_player_id_unique").on(
+      table.gamePlayerId,
+    ),
   }),
 );
 

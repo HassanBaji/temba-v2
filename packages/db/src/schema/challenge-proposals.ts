@@ -56,6 +56,7 @@ export const challengeProposals = pgTable(
       table.challengeId,
       table.status,
     ),
+    teamIdx: index("proposals_team_id_idx").on(table.teamId),
   }),
 );
 
