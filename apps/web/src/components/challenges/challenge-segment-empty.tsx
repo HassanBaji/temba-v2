@@ -15,7 +15,7 @@ export function ChallengeSegmentEmpty({
   const m = useMessages();
   const copy = m.challenge[segment];
   return (
-    <div className="border-border space-y-4 rounded-lg border p-5">
+    <div className="border-rule p-4.5 space-y-4 rounded-xl border">
       <div className="flex items-center gap-3">
         <Hatch radius="md" className="block size-10 shrink-0" />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">

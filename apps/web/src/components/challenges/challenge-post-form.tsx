@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -9,57 +9,51 @@ import { toast } from "sonner";
 import { ErrorState } from "~/components/common/error-state";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldTitle,
-} from "~/components/ui/field";
-import { FormErrorSummary } from "~/components/ui/form-error-summary";
-import { Input } from "~/components/ui/input";
-import { Switch } from "~/components/ui/switch";
 import { challengeCardView } from "@repo/domain/challenge-card";
 import { challengeExpiresAt } from "@repo/domain/challenge-clock";
 import {
   CHALLENGE_MAX_SLOTS,
-  CHALLENGE_MAX_VENUES,
   CHALLENGE_NOTE_MAX,
+  challengeDaysHint,
+  challengeDraftWithTeam,
+  challengeFormatHelp,
   challengeFormatOptions,
+  challengeInitialDraft,
+  challengeLevelChips,
+  challengeLevelHint,
+  challengeLevelSelected,
+  challengeLevelTap,
   challengeNoteCount,
   challengeNudgeView,
-  challengeReviewLines,
-  challengeSlotDayOptions,
-  challengeSlotInstant,
-  challengeSlotTimeOptions,
+  challengePreviewCardInput,
+  challengeReviewRows,
+  challengeRosterHint,
+  challengeSlotLabel,
+  challengeTeamChoice,
   challengeTimingOptions,
+  challengeVenueChoice,
   challengeWeekdayOptions,
-  emptyChallengeDraft,
-  rematchChallengeDraft,
   validateChallengeDraft,
   type ChallengeDraft,
   type ChallengeDraftField,
   type ChallengePostInput,
 } from "@repo/domain/challenge-form";
-import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
-import { formatGameStart } from "@repo/domain/format-game-start";
-import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
+import { api } from "~/trpc/react";
+
 import {
-  LEVEL_BAND_SELECT_NONE,
-  type LevelBandSelectValue,
-} from "@repo/domain/level-range";
-import { formatsPlayable } from "@repo/domain/team-roster";
-import { api, type RouterOutputs } from "~/trpc/react";
+  ChallengePostChip,
+  ChallengePostFooter,
+  ChallengePostGrid,
+  ChallengePostHeader,
+  ChallengePostSection,
+  ChallengePostTeamCard,
+} from "./challenge-post-parts";
+import { ChallengePostReview } from "./challenge-post-review";
+import { ChallengePostSlotDialog } from "./challenge-post-slot-dialog";
 
-import { ChallengeCardBody } from "./challenge-card";
-import { ChallengeChips } from "./challenge-chips";
-
-type PostableTeam =
-  RouterOutputs["challenges"]["listPostOptions"]["teams"][number];
-
-const DEFAULT_SLOT_MINUTES = 19 * 60;
+const CHALLENGES_HREF = "/dashboard/challenges";
 
 function toggle<T>(values: readonly T[], value: T): T[] {
   return values.includes(value)
@@ -67,57 +61,24 @@ function toggle<T>(values: readonly T[], value: T): T[] {
     : [...values, value];
 }
 
-function draftTeam(team: PostableTeam) {
-  return {
-    id: team.id,
-    displayName: team.displayName,
-    sport: team.sport,
-    rosterCount: team.rosterCount,
-  };
-}
-
-function LevelBound({
-  bound,
-  value,
-  other,
-  onChange,
-}: {
-  bound: "min" | "max";
-  value: LevelBandSelectValue;
-  other: LevelBandSelectValue;
-  onChange: (value: LevelBandSelectValue) => void;
-}) {
-  const copy = useMessages().challenge.post;
-  const label = bound === "min" ? copy.levelMin : copy.levelMax;
+function PostFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <p className="text-meta text-muted-foreground">{label}</p>
-      <ChallengeChips
-        label={label}
-        chips={ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
-          value: band,
-          label: band,
-          accessibilityLabel:
-            bound === "min" ? copy.levelMinA11y(band) : copy.levelMaxA11y(band),
-          disabled: isLevelBoundDisabled(bound, band, other),
-        }))}
-        isSelected={(band) => band === value}
-        onSelect={(band) =>
-          onChange(band === value ? LEVEL_BAND_SELECT_NONE : band)
-        }
-      />
+    <div className="mx-auto flex w-full min-w-0 max-w-[560px] flex-col">
+      {children}
     </div>
   );
 }
 
 /**
  * 3a and 3b: the post form, then the card as it will appear before posting.
- * A Rematch opens it pre-filled from the Team played.
+ * A link may name the Team; a Rematch opens pre-filled from the Team played.
  */
 export function ChallengePostForm({
-  rematch = null,
+  teamId = null,
+  opponentTeamId = null,
 }: {
-  rematch?: { teamId: string; opponentTeamId: string } | null;
+  teamId?: string | null;
+  opponentTeamId?: string | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -126,37 +87,16 @@ export function ChallengePostForm({
   const copy = m.challenge.post;
   const [now] = React.useState(() => new Date());
   const options = api.challenges.listPostOptions.useQuery();
-  const [draft, setDraft] = React.useState<ChallengeDraft>(() =>
-    emptyChallengeDraft(),
-  );
+  const [draft, setDraft] = React.useState<ChallengeDraft | null>(null);
   const [errors, setErrors] = React.useState<
     Partial<Record<ChallengeDraftField, string>>
   >({});
   const [review, setReview] = React.useState<ChallengePostInput | null>(null);
-  const [slotDay, setSlotDay] = React.useState(
-    () => challengeSlotDayOptions(now, locale)[1]?.value ?? "",
-  );
-  const [slotMinutes, setSlotMinutes] = React.useState(DEFAULT_SLOT_MINUTES);
-  const [prefilled, setPrefilled] = React.useState(rematch == null);
-  const nudgeTitleId = React.useId();
-  const nudgeHintId = React.useId();
-  if (!prefilled && rematch && options.data) {
-    setPrefilled(true);
-    const team = options.data.teams.find(
-      (candidate) => candidate.id === rematch.teamId,
-    );
-    const opponent = team?.playedTeams.find(
-      (candidate) => candidate.id === rematch.opponentTeamId,
-    );
-    if (team && opponent) {
-      setDraft(
-        rematchChallengeDraft(
-          draftTeam(team),
-          opponent,
-          options.data.venues[team.sport].map((venue) => venue.id),
-        ),
-      );
-    }
+  const [slotOpen, setSlotOpen] = React.useState(false);
+  const noteId = React.useId();
+  const noteCountId = React.useId();
+  if (draft == null && options.data) {
+    setDraft(challengeInitialDraft(options.data, { teamId, opponentTeamId }));
   }
 
   const post = api.challenges.post.useMutation({
@@ -167,7 +107,7 @@ export function ChallengePostForm({
         utils.challenges.listMine.invalidate(),
         utils.challenges.listPostOptions.invalidate(),
       ]);
-      router.push(`/dashboard/challenges/${id}`);
+      router.push(`${CHALLENGES_HREF}/${id}`);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -176,64 +116,62 @@ export function ChallengePostForm({
 
   if (options.error) {
     return (
-      <ErrorState
-        headingLevel={2}
-        title={copy.errorTitle}
-        message={options.error.message}
-        onRetry={() => {
-          void options.refetch();
-        }}
-      />
+      <PostFrame>
+        <ChallengePostHeader title={copy.title} backHref={CHALLENGES_HREF} />
+        <div className="pt-[22px]">
+          <ErrorState
+            headingLevel={2}
+            title={copy.errorTitle}
+            message={options.error.message}
+            onRetry={() => {
+              void options.refetch();
+            }}
+          />
+        </div>
+      </PostFrame>
     );
   }
-  if (!options.data) {
-    return <DetailPageSkeleton />;
+  if (!options.data || !draft) {
+    return (
+      <PostFrame>
+        <ChallengePostHeader title={copy.title} backHref={CHALLENGES_HREF} />
+        <div className="pt-[22px]">
+          <DetailPageSkeleton />
+        </div>
+      </PostFrame>
+    );
   }
   const data = options.data;
   if (data.teams.length === 0) {
     return (
-      <Card variant="outlined" className="w-full space-y-2">
-        <h2 className="text-title font-semibold">{copy.noTeamsTitle}</h2>
-        <p className="text-body text-muted-foreground">{copy.noTeamsCopy}</p>
-      </Card>
+      <PostFrame>
+        <ChallengePostHeader title={copy.title} backHref={CHALLENGES_HREF} />
+        <div className="space-y-2 pt-[22px]">
+          <h2 className="text-title font-semibold">{copy.noTeamsTitle}</h2>
+          <p className="text-body text-muted-foreground">{copy.noTeamsCopy}</p>
+        </div>
+      </PostFrame>
     );
   }
 
-  const team = data.teams.find((candidate) => candidate.id === draft.teamId);
+  const current = draft;
+  const team = data.teams.find((candidate) => candidate.id === current.teamId);
   const venues = team ? data.venues[team.sport] : [];
-
-  function pickTeam(teamId: string) {
-    const next = data.teams.find((candidate) => candidate.id === teamId);
-    setDraft((current) => {
-      const previous = data.teams.find(
-        (candidate) => candidate.id === current.teamId,
-      );
-      const playable = next ? formatsPlayable(next.rosterCount) : [];
-      return {
-        ...current,
-        teamId,
-        sideSize:
-          next?.sport === "football" &&
-          playable.some((side) => side === current.sideSize)
-            ? current.sideSize
-            : null,
-        venueIds: previous?.sport === next?.sport ? current.venueIds : [],
-        nudgeTeamId: teamId === current.teamId ? current.nudgeTeamId : null,
-      };
-    });
-    setErrors({});
-  }
+  const update = (patch: Partial<ChallengeDraft>) =>
+    setDraft((previous) => (previous ? { ...previous, ...patch } : previous));
 
   function setNudge(nudgeTeamId: string | null) {
-    setDraft((current) => ({ ...current, nudgeTeamId }));
-    setReview((current) => (current ? { ...current, nudgeTeamId } : current));
+    update({ nudgeTeamId });
+    setReview((previous) =>
+      previous ? { ...previous, nudgeTeamId } : previous,
+    );
   }
 
   function onReview(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = validateChallengeDraft(
-      draft,
-      team ? draftTeam(team) : null,
+      current,
+      team ?? null,
       locale,
       new Date(),
     );
@@ -244,351 +182,302 @@ export function ChallengePostForm({
     setErrors({});
     post.reset();
     setReview(result.input);
+    window.scrollTo({ top: 0 });
   }
 
   if (review && team) {
-    const card = challengeCardView(
-      {
-        id: "preview",
-        sport: team.sport,
-        sideSize: review.sideSize,
-        levelMinTenths: review.levelMinTenths,
-        levelMaxTenths: review.levelMaxTenths,
-        days: review.days,
-        timings: review.timings,
-        exactSlots: review.exactSlots,
-        venues: venues.filter((venue) => review.venueIds.includes(venue.id)),
-        note: review.note,
-        proposalCount: 0,
-        expiresAt: challengeExpiresAt(now),
-        team: {
-          displayName: team.displayName,
-          rosterCount: team.rosterCount,
-          teamLevel: team.teamLevel,
-          members: team.members,
-        },
-        viewer: { ineligibleReason: null },
-      },
-      locale,
-      now,
-    );
-    const nudge = challengeNudgeView(
-      team.playedTeams,
-      review.nudgeTeamId,
-      locale,
-    );
     return (
-      <Card variant="outlined" className="w-full space-y-6">
-        <h2 className="text-title font-semibold">{m.challenge.review.title}</h2>
-        <div className="space-y-2">
-          <p className="text-eyebrow text-muted-foreground font-mono uppercase">
-            {m.challenge.review.cardTitle}
-          </p>
-          <div className="border-border space-y-3 rounded-lg border p-5">
-            <ChallengeCardBody card={card} />
-          </div>
-        </div>
-        <ul className="space-y-2">
-          {challengeReviewLines(draftTeam(team), review.sideSize, locale).map(
-            (line) => (
-              <li key={line.key} className="text-body">
-                {line.text}
-              </li>
+      <PostFrame>
+        <ChallengePostReview
+          card={challengeCardView(
+            challengePreviewCardInput(
+              team,
+              review,
+              venues,
+              challengeExpiresAt(now),
             ),
+            locale,
+            now,
+            { preview: true },
           )}
-          {nudge?.line ? <li className="text-body">{nudge.line}</li> : null}
-        </ul>
-        {nudge ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <p id={nudgeTitleId} className="text-body font-semibold">
-                  {nudge.title}
-                </p>
-                <p id={nudgeHintId} className="text-meta text-muted-foreground">
-                  {nudge.hint}
-                </p>
-              </div>
-              <Switch
-                aria-labelledby={nudgeTitleId}
-                aria-describedby={nudgeHintId}
-                checked={nudge.on}
-                onCheckedChange={(on) =>
-                  setNudge(on ? (nudge.options[0]?.value ?? null) : null)
-                }
-              />
-            </div>
-            {nudge.on ? (
-              <ChallengeChips
-                label={nudge.teamsLabel}
-                chips={nudge.options}
-                isSelected={(id) => id === nudge.selected}
-                onSelect={setNudge}
-              />
-            ) : null}
-          </div>
-        ) : null}
-        <FormErrorSummary message={post.error?.message ?? null} />
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setReview(null)}
-          >
-            {copy.back}
-          </Button>
-          <Button
-            type="button"
-            disabled={post.isPending}
-            onClick={() => post.mutate(review)}
-          >
-            {copy.submit}
-          </Button>
-        </div>
-      </Card>
+          rows={challengeReviewRows(
+            team,
+            review,
+            venues.filter((venue) => review.venueIds.includes(venue.id)),
+            locale,
+          )}
+          nudge={challengeNudgeView(
+            team.playedTeams,
+            review.nudgeTeamId,
+            locale,
+          )}
+          onNudge={setNudge}
+          error={post.error?.message ?? null}
+          pending={post.isPending}
+          onEdit={() => setReview(null)}
+          onPost={() => post.mutate(review)}
+        />
+      </PostFrame>
     );
   }
 
-  const venuesFull = draft.venueIds.length >= CHALLENGE_MAX_VENUES;
+  const venueChoice = challengeVenueChoice(venues, current.venueIds, locale);
+  const levelRange = { levelMin: current.levelMin, levelMax: current.levelMax };
   return (
-    <Card variant="outlined" className="w-full">
-      <form onSubmit={onReview} className="space-y-6">
-        <FieldGroup>
-          <Field>
-            <FieldTitle>{copy.team}</FieldTitle>
-            <ChallengeChips
-              label={copy.team}
-              chips={data.teams.map((option) => ({
-                value: option.id,
-                label: option.displayName,
-              }))}
-              isSelected={(id) => id === draft.teamId}
-              onSelect={pickTeam}
-            />
-            <FieldError>{errors.team}</FieldError>
-          </Field>
+    <PostFrame>
+      <form onSubmit={onReview} noValidate>
+        <ChallengePostHeader title={copy.title} backHref={CHALLENGES_HREF} />
+        <div className="flex flex-col gap-[26px] pt-[22px]">
+          <ChallengePostSection
+            title={copy.team}
+            hint={copy.teamHint}
+            error={errors.team}
+          >
+            <div
+              role="radiogroup"
+              aria-label={copy.team}
+              className="grid grid-cols-2 gap-2"
+            >
+              {data.teams.map((option) => {
+                const choice = challengeTeamChoice(option, locale);
+                return (
+                  <ChallengePostTeamCard
+                    key={choice.value}
+                    title={choice.title}
+                    detail={choice.detail}
+                    accessibilityLabel={choice.accessibilityLabel}
+                    selected={choice.value === current.teamId}
+                    onSelect={() => {
+                      setDraft((previous) =>
+                        previous
+                          ? challengeDraftWithTeam(
+                              previous,
+                              data.teams,
+                              option.id,
+                            )
+                          : previous,
+                      );
+                      setErrors({});
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </ChallengePostSection>
 
           {team?.sport === "football" ? (
-            <Field>
-              <FieldTitle>{copy.format}</FieldTitle>
-              <FieldDescription>{copy.formatHelp}</FieldDescription>
-              <ChallengeChips
-                label={copy.format}
-                chips={challengeFormatOptions(team.rosterCount, locale)}
-                isSelected={(side) => side === draft.sideSize}
-                onSelect={(sideSize) =>
-                  setDraft((current) => ({ ...current, sideSize }))
-                }
-              />
-              <FieldError>{errors.format}</FieldError>
-            </Field>
+            <ChallengePostSection
+              title={copy.format}
+              hint={challengeRosterHint(team.rosterCount, locale)}
+              error={errors.format}
+            >
+              <ChallengePostGrid label={copy.format} columns={3}>
+                {challengeFormatOptions(team.rosterCount, locale).map(
+                  (option) => (
+                    <ChallengePostChip
+                      key={option.value}
+                      label={option.label}
+                      aria-label={option.accessibilityLabel}
+                      selected={option.value === current.sideSize}
+                      disabled={option.disabled}
+                      onClick={() => update({ sideSize: option.value })}
+                    />
+                  ),
+                )}
+              </ChallengePostGrid>
+              <p className="text-eyebrow text-muted-foreground mt-2 leading-normal">
+                {challengeFormatHelp(team, current.sideSize, locale)}
+              </p>
+            </ChallengePostSection>
           ) : null}
 
           {team ? (
-            <Field>
-              <FieldTitle>{copy.venues}</FieldTitle>
-              <FieldDescription>
-                {copy.venuesHint(CHALLENGE_MAX_VENUES)}
-              </FieldDescription>
-              <ChallengeChips
-                label={copy.venues}
-                chips={venues.map((venue) => ({
-                  value: venue.id,
-                  label: venue.name,
-                  disabled: venuesFull && !draft.venueIds.includes(venue.id),
-                }))}
-                isSelected={(id) => draft.venueIds.includes(id)}
-                onSelect={(id) =>
-                  setDraft((current) => ({
-                    ...current,
-                    venueIds: toggle(current.venueIds, id),
-                  }))
-                }
-              />
-              <FieldError>{errors.venues}</FieldError>
-            </Field>
+            <ChallengePostSection
+              title={copy.venues}
+              hint={venueChoice.hint}
+              error={errors.venues}
+            >
+              <ChallengePostGrid label={copy.venues} columns={2} multiple>
+                {venueChoice.chips.map((chip) => (
+                  <ChallengePostChip
+                    key={chip.value}
+                    multiple
+                    label={chip.label}
+                    selected={current.venueIds.includes(chip.value)}
+                    disabled={chip.disabled}
+                    onClick={() =>
+                      update({
+                        venueIds: toggle(current.venueIds, chip.value),
+                      })
+                    }
+                  />
+                ))}
+                <ChallengePostChip
+                  multiple
+                  label={venueChoice.anywhere.label}
+                  selected={venueChoice.anywhere.selected}
+                  onClick={() => update({ venueIds: [] })}
+                />
+              </ChallengePostGrid>
+            </ChallengePostSection>
           ) : null}
 
-          <Field>
-            <FieldTitle>{copy.days}</FieldTitle>
-            <FieldDescription>{copy.daysHint}</FieldDescription>
-            <ChallengeChips
-              label={copy.days}
-              chips={challengeWeekdayOptions(locale)}
-              isSelected={(day) => draft.days.includes(day)}
-              onSelect={(day) =>
-                setDraft((current) => ({
-                  ...current,
-                  days: toggle(current.days, day),
-                }))
-              }
-            />
-          </Field>
+          <ChallengePostSection
+            title={copy.days}
+            hint={challengeDaysHint(current.days, locale)}
+          >
+            <ChallengePostGrid label={copy.days} columns={7} multiple>
+              {challengeWeekdayOptions(locale).map((day) => (
+                <ChallengePostChip
+                  key={day.value}
+                  multiple
+                  label={day.label}
+                  aria-label={day.accessibilityLabel}
+                  selected={current.days.includes(day.value)}
+                  onClick={() =>
+                    update({ days: toggle(current.days, day.value) })
+                  }
+                />
+              ))}
+            </ChallengePostGrid>
+          </ChallengePostSection>
 
-          <Field>
-            <FieldTitle>{copy.timings}</FieldTitle>
-            <FieldDescription>{copy.timingsHint}</FieldDescription>
-            <ChallengeChips
-              label={copy.timings}
-              chips={challengeTimingOptions(locale)}
-              isSelected={(timing) => draft.timings.includes(timing)}
-              onSelect={(timing) =>
-                setDraft((current) => ({
-                  ...current,
-                  timings: toggle(current.timings, timing),
-                }))
-              }
-            />
-            <FieldDescription>
-              {challengeTimingOptions(locale)
-                .map((timing) => copy.timingLine(timing.label, timing.detail))
-                .join(m.group.metaSeparator)}
-            </FieldDescription>
-          </Field>
-
-          <Field>
-            <FieldTitle>{copy.slots}</FieldTitle>
-            <FieldDescription>
-              {copy.slotsHint(CHALLENGE_MAX_SLOTS)}
-            </FieldDescription>
-            {draft.exactSlots.length > 0 ? (
-              <ul className="space-y-1">
-                {draft.exactSlots.map((slot) => {
-                  const label = formatGameStart(slot, locale);
-                  return (
-                    <li
-                      key={slot.toISOString()}
-                      className="flex items-center gap-2"
-                    >
-                      <span className="text-body flex-1">{label}</span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        aria-label={copy.removeSlot(label)}
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            exactSlots: current.exactSlots.filter(
-                              (each) => each.getTime() !== slot.getTime(),
-                            ),
-                          }))
-                        }
-                      >
-                        <X aria-hidden="true" />
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-            {draft.exactSlots.length < CHALLENGE_MAX_SLOTS ? (
-              <div className="flex flex-wrap items-end gap-2">
-                <label className="text-meta text-muted-foreground flex flex-col gap-1">
-                  {copy.slotDay}
-                  <select
-                    className="border-input bg-background text-body h-9 rounded-md border px-2"
-                    value={slotDay}
-                    onChange={(event) => setSlotDay(event.target.value)}
-                  >
-                    {challengeSlotDayOptions(now, locale).map((day) => (
-                      <option key={day.value} value={day.value}>
-                        {day.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-meta text-muted-foreground flex flex-col gap-1">
-                  {copy.slotTime}
-                  <select
-                    className="border-input bg-background text-body h-9 rounded-md border px-2"
-                    value={slotMinutes}
-                    onChange={(event) =>
-                      setSlotMinutes(Number(event.target.value))
+          <ChallengePostSection
+            title={copy.timings}
+            hint={copy.timingsHint}
+            error={errors.slots}
+          >
+            <ChallengePostGrid label={copy.timings} columns={3} multiple>
+              {challengeTimingOptions(locale).map((timing) => (
+                <ChallengePostChip
+                  key={timing.value}
+                  multiple
+                  label={timing.label}
+                  aria-label={timing.accessibilityLabel}
+                  selected={current.timings.includes(timing.value)}
+                  onClick={() =>
+                    update({ timings: toggle(current.timings, timing.value) })
+                  }
+                />
+              ))}
+            </ChallengePostGrid>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {current.exactSlots.map((slot) => {
+                const label = challengeSlotLabel(slot, now, locale);
+                return (
+                  <button
+                    key={slot.toISOString()}
+                    type="button"
+                    aria-label={copy.removeSlot(label)}
+                    onClick={() =>
+                      update({
+                        exactSlots: current.exactSlots.filter(
+                          (each) => each.getTime() !== slot.getTime(),
+                        ),
+                      })
                     }
+                    className="border-ink text-meta focus-visible:ring-ring/50 hover:bg-wash flex h-10 items-center gap-1.5 rounded-md border px-3 font-semibold outline-none focus-visible:ring-[3px]"
                   >
-                    {challengeSlotTimeOptions(locale).map((time) => (
-                      <option key={time.value} value={time.value}>
-                        {time.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const slot = challengeSlotInstant(slotDay, slotMinutes);
-                    setDraft((current) =>
-                      current.exactSlots.some(
-                        (each) => each.getTime() === slot.getTime(),
-                      )
-                        ? current
-                        : {
-                            ...current,
-                            exactSlots: [...current.exactSlots, slot],
-                          },
-                    );
-                  }}
+                    {label}
+                    <X
+                      aria-hidden="true"
+                      className="text-muted-foreground size-3.5"
+                    />
+                  </button>
+                );
+              })}
+              {current.exactSlots.length < CHALLENGE_MAX_SLOTS ? (
+                <ChoiceChip
+                  dashed
+                  className="text-meta h-10 min-h-10 px-3"
+                  onClick={() => setSlotOpen(true)}
                 >
+                  <Plus aria-hidden="true" className="size-3.5" />
                   {copy.addSlot}
-                </Button>
-              </div>
-            ) : null}
-            <FieldError>{errors.slots}</FieldError>
-          </Field>
-
-          <Field>
-            <FieldTitle>{copy.level}</FieldTitle>
-            <FieldDescription>{copy.levelHint}</FieldDescription>
-            <LevelBound
-              bound="min"
-              value={draft.levelMin}
-              other={draft.levelMax}
-              onChange={(levelMin) =>
-                setDraft((current) => ({ ...current, levelMin }))
+                </ChoiceChip>
+              ) : null}
+            </div>
+            <ChallengePostSlotDialog
+              open={slotOpen}
+              onOpenChange={setSlotOpen}
+              now={now}
+              onAdd={(slot) =>
+                update({
+                  exactSlots: current.exactSlots.some(
+                    (each) => each.getTime() === slot.getTime(),
+                  )
+                    ? current.exactSlots
+                    : [...current.exactSlots, slot],
+                })
               }
             />
-            <LevelBound
-              bound="max"
-              value={draft.levelMax}
-              other={draft.levelMin}
-              onChange={(levelMax) =>
-                setDraft((current) => ({ ...current, levelMax }))
-              }
-            />
-            <FieldError>{errors.level}</FieldError>
-          </Field>
+          </ChallengePostSection>
 
-          <Field>
-            <FieldTitle>{copy.note}</FieldTitle>
-            <Input
-              aria-label={copy.note}
-              value={draft.note}
-              placeholder={copy.notePlaceholder}
+          <ChallengePostSection
+            title={copy.level}
+            hint={challengeLevelHint(levelRange, locale)}
+            error={errors.level}
+          >
+            <ChallengePostGrid label={copy.level} columns={6} multiple>
+              {challengeLevelChips(
+                team?.teamLevel?.tenths ?? null,
+                levelRange,
+              ).map((band) => (
+                <ChallengePostChip
+                  key={band}
+                  multiple
+                  dir="ltr"
+                  label={band}
+                  selected={challengeLevelSelected(levelRange, band)}
+                  onClick={() => update(challengeLevelTap(levelRange, band))}
+                />
+              ))}
+            </ChallengePostGrid>
+          </ChallengePostSection>
+
+          <section>
+            <label
+              htmlFor={noteId}
+              className="font-expanded text-title text-ink block leading-tight"
+            >
+              {copy.note}
+            </label>
+            <textarea
+              id={noteId}
+              aria-describedby={noteCountId}
+              value={current.note}
               maxLength={CHALLENGE_NOTE_MAX}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  note: event.target.value,
-                }))
-              }
+              rows={3}
+              onChange={(event) => update({ note: event.target.value })}
+              className="border-rule bg-paper text-body focus-visible:ring-ring/50 mt-3 block min-h-[84px] w-full resize-none rounded-lg border px-4 py-3.5 leading-normal outline-none focus-visible:ring-[3px]"
             />
-            <FieldDescription>
-              {challengeNoteCount(draft.note, locale)}
-            </FieldDescription>
-            <FieldError>{errors.note}</FieldError>
-          </Field>
-        </FieldGroup>
-
-        <div className="flex items-center gap-3">
-          <Button type="submit">{copy.review}</Button>
-          <Button variant="outline" asChild>
-            <Link href="/dashboard/challenges">{m.common.cancel}</Link>
-          </Button>
+            <div className="text-eyebrow text-muted-foreground mt-1.5 flex justify-between gap-3">
+              <span>{copy.noteShown}</span>
+              <span id={noteCountId}>
+                {challengeNoteCount(current.note, locale)}
+              </span>
+            </div>
+            {errors.note ? (
+              <p role="alert" className="text-destructive text-meta mt-2">
+                {errors.note}
+              </p>
+            ) : null}
+          </section>
         </div>
+        <ChallengePostFooter>
+          <Button type="submit" size="lg" className="flex-1">
+            {copy.review}
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="text-muted-foreground w-[104px] font-normal"
+            asChild
+          >
+            <Link href={CHALLENGES_HREF}>{m.common.cancel}</Link>
+          </Button>
+        </ChallengePostFooter>
       </form>
-    </Card>
+    </PostFrame>
   );
 }

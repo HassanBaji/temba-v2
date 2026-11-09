@@ -142,6 +142,7 @@ export async function listPostOptions(
           userId: member.user.id,
           name: member.user.name,
           image: member.user.image,
+          isViewer: member.user.id === args.userId,
         })),
         teamLevel: levels.get(team.id) ?? null,
         record: teamRecordFromMatches(matches.get(team.id) ?? []),

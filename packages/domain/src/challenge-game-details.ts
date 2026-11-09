@@ -1,6 +1,8 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatDayMonth } from "./format-game-start";
+import { sideSizeLabel } from "./game-shape";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import {
   headToHeadLine,
@@ -15,6 +17,7 @@ export type ChallengeTeamSide = {
   record: HeadToHead;
   /** From this side's view; null when the Teams have not played a completed Match. */
   headToHead: HeadToHead | null;
+  viewerIsCaptain?: boolean;
 };
 
 const PADEL_PLAYERS = 4;
@@ -57,17 +60,22 @@ export function challengeTeamVsTeamView(
 ) {
   const m = messagesFor(locale);
   const teamCopy = m.challenge.teams;
+  const copy = m.challenge.gameDetails;
   const team = (side: ChallengeTeamSide | undefined) => {
     const name = opponentName(side?.name ?? null, locale);
     const record = side?.record ?? { wins: 0, draws: 0, losses: 0 };
+    const recordValue = headToHeadLine(record, sport ?? "padel", locale);
+    const spoken = recordSpoken(record, sport, locale);
+    const captain = side?.viewerIsCaptain === true;
     return {
       name,
       initials: side?.initials ?? "",
       recordLabel: isFootball(sport)
         ? teamCopy.recordWithDraws
         : teamCopy.record,
-      recordValue: headToHeadLine(record, sport ?? "padel", locale),
-      recordSpoken: recordSpoken(record, sport, locale),
+      recordValue,
+      recordLine: captain ? copy.recordYouCaptain(recordValue) : recordValue,
+      recordSpoken: captain ? copy.recordYouCaptain(spoken) : spoken,
     };
   };
   const home = team(sides[0]);
@@ -80,8 +88,13 @@ export function challengeTeamVsTeamView(
   return {
     home,
     away,
-    title: m.challenge.gameDetails.teamVsTeam(home.name, away.name),
+    title: copy.teamVsTeam(home.name, away.name),
     headToHeadLine: headToHeadLineText,
+    middleLine: headToHead
+      ? copy.headToHeadShort(
+          headToHeadLine(headToHead, sport ?? "padel", locale),
+        )
+      : copy.firstMeetingShort,
     accessibilityLabel: [
       m.challenge.gameDetails.teamVsTeam(home.name, away.name),
       `${home.name}${m.group.metaSeparator}${home.recordSpoken}`,
@@ -125,20 +138,55 @@ export function challengeCountsForLine(sport: string | null, locale: Locale) {
   return isFootball(sport) ? m.football : m.padel;
 }
 
+/** "Pitch 1, 6-a-side, 90 min. Confirmed by both teams" under a Challenge Game's day line. */
+export function challengeHeroSubLine(
+  input: {
+    pitchName: string | null;
+    sideSize: number | null;
+    windowStart: Date | string | null;
+    windowEnd: Date | string | null;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  const minutes =
+    input.windowStart && input.windowEnd
+      ? Math.round(
+          (new Date(input.windowEnd).getTime() -
+            new Date(input.windowStart).getTime()) /
+            60_000,
+        )
+      : 0;
+  const line = [
+    input.pitchName ? m.common.isolate(input.pitchName) : null,
+    input.sideSize ? sideSizeLabel(input.sideSize, locale) : null,
+    minutes > 0 ? m.dates.minutes(minutes) : null,
+  ]
+    .filter(Boolean)
+    .join(m.common.listSeparator);
+  const copy = m.challenge.gameDetails;
+  return line ? copy.subLineConfirmed(line) : copy.confirmedByBoth;
+}
+
 export type ChallengeDetailsRow = {
-  key: "from" | "agreed" | "place" | "cost" | "counts";
+  key: "from" | "proposed" | "place" | "cost" | "counts";
   label: string;
   value: string;
-  hint: string | null;
 };
 
-/** The details rows of a Challenge Game, in the mockup's order. */
+/**
+ * The details rows of a Challenge Game, in the design's order. Temba records
+ * no booking, so the place row says "Book it yourselves" rather than who
+ * booked it.
+ */
 export function challengeGameDetailsRows(
   input: {
     sport: string | null;
     postedByTeamName: string | null;
-    proposedByName: string | null;
+    postedAt: Date | string | null;
+    proposedByTeamName: string | null;
     confirmedByName: string | null;
+    confirmedByViewer: boolean;
     venueName: string | null;
     courtName: string | null;
     costLine: string;
@@ -149,38 +197,41 @@ export function challengeGameDetailsRows(
   const copy = m.challenge.gameDetails;
   const game = m.challenge.detail.game;
   const fallback = m.team.memberFallback;
+  const postedBy = opponentName(input.postedByTeamName, locale);
   const place =
     input.venueName && input.courtName
       ? game.place(input.venueName, input.courtName)
-      : (input.venueName ?? input.courtName ?? "");
+      : (input.venueName ?? input.courtName ?? null);
   return [
     {
       key: "from",
-      label: copy.from,
-      value: copy.fromChallenge(opponentName(input.postedByTeamName, locale)),
-      hint: null,
+      label: copy.fromChallenge,
+      value: input.postedAt
+        ? copy.postedByOn(postedBy, formatDayMonth(input.postedAt, locale))
+        : copy.postedBy(postedBy),
     },
     {
-      key: "agreed",
-      label: copy.agreed,
-      value: game.proposedConfirmed(
-        input.proposedByName ?? fallback,
-        input.confirmedByName ?? fallback,
+      key: "proposed",
+      label: copy.proposedBy,
+      value: copy.proposedConfirmed(
+        opponentName(input.proposedByTeamName, locale),
+        input.confirmedByViewer
+          ? copy.you
+          : (input.confirmedByName ?? fallback),
       ),
-      hint: null,
     },
     {
       key: "place",
       label: isFootball(input.sport) ? game.pitch : game.court,
-      value: place,
-      hint: game.bookYourselves,
+      value: place
+        ? copy.placeBook(place, game.bookYourselves)
+        : game.bookYourselves,
     },
-    { key: "cost", label: game.cost, value: input.costLine, hint: null },
+    { key: "cost", label: game.cost, value: input.costLine },
     {
       key: "counts",
       label: copy.countsFor,
       value: challengeCountsForLine(input.sport, locale),
-      hint: null,
     },
   ];
 }

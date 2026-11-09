@@ -49,10 +49,20 @@ describe("challenges.listProposeOptions", () => {
           {
             id: match.riffa.id,
             displayName: "Riffa Rackets",
+            face: {
+              sport: "padel",
+              rosterCount: 2,
+              teamLevel: null,
+              viewerOnRoster: true,
+            },
             pendingProposal: null,
           },
         ],
       });
+      expect(
+        options.teams[0]?.face?.members.filter((member) => member.isViewer),
+      ).toHaveLength(1);
+      expect(options.days).toEqual(expect.any(Array));
       expect(
         options.venues.map((venue) => [venue.name, venue.preferred]),
       ).toEqual([

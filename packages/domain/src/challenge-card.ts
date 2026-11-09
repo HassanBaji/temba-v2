@@ -66,7 +66,7 @@ export type ChallengeCardInput = {
   team: {
     displayName: string;
     rosterCount: number;
-    teamLevel: { level: string } | null;
+    teamLevel: { level: string; band?: string } | null;
     members: readonly { name: string | null }[];
   };
   viewer: { ineligibleReason: ChallengeIneligibleReason | null };
@@ -100,13 +100,17 @@ export function challengeLevelWanted(
   return m.anyLevel;
 }
 
-/** "Football, 6-a-side, avg 2.8, 12 on the roster. Wants C to B-". */
+/**
+ * "Football, 6-a-side, avg 2.8, 12 on the roster. Wants C to B-". The board
+ * leaves the Roster count out; the post form's review keeps it.
+ */
 export function challengeSportLine(
   input: Pick<
     ChallengeCardInput,
     "sport" | "sideSize" | "levelMinTenths" | "levelMaxTenths" | "team"
   >,
   locale: Locale,
+  withRoster = true,
 ) {
   const m = messagesFor(locale);
   const football = input.sport === "football";
@@ -118,7 +122,7 @@ export function challengeSportLine(
     input.team.teamLevel
       ? m.challenge.card.avg(input.team.teamLevel.level)
       : null,
-    football ? m.team.onRoster(input.team.rosterCount) : null,
+    football && withRoster ? m.team.onRoster(input.team.rosterCount) : null,
   ].filter((part): part is string => part != null);
   return m.challenge.card.sportLine(
     parts.join(m.challenge.card.partSeparator),
@@ -171,6 +175,41 @@ export function challengeWhenLine(
     daysLabel(days.filter(isChallengeWeekday), locale),
     timingsLabel(timings.filter(isChallengeTiming), locale),
   );
+}
+
+/** The card's days line: "Tue, Thu evenings", "Weekend mornings", "Weekdays", "Evenings". */
+export function challengeDaysLine(
+  days: readonly string[],
+  timings: readonly string[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge;
+  const pickedDays = days.filter(isChallengeWeekday);
+  const pickedTimings = timings.filter(isChallengeTiming);
+  const anyDay =
+    pickedDays.length === 0 || pickedDays.length === CHALLENGE_WEEKDAYS.length;
+  const anyTime =
+    pickedTimings.length === 0 ||
+    pickedTimings.length === CHALLENGE_TIMINGS.length;
+  if (anyTime) {
+    return anyDay
+      ? m.when.line(m.when.anyDay, m.when.anyTime)
+      : daysLabel(pickedDays, locale);
+  }
+  if (anyDay) {
+    return timingsLabel(pickedTimings, locale);
+  }
+  const dayPart = sameSet(pickedDays, WEEKDAYS)
+    ? m.tab.days.weekdays
+    : sameSet(pickedDays, WEEKEND)
+      ? m.tab.days.weekends
+      : daysLabel(pickedDays, locale);
+  const timingPart = CHALLENGE_TIMINGS.filter((timing) =>
+    pickedTimings.includes(timing),
+  )
+    .map((timing) => m.tab.days.timings[timing])
+    .join(m.when.listSeparator);
+  return m.tab.days.line(dayPart, timingPart);
 }
 
 /** "Or Fri 14 Nov, 7:00 PM", or null without exact slots. */
@@ -244,12 +283,24 @@ export function challengeIneligibleLine(
   }
 }
 
+/** Whether the viewer may press Accept: an eligible Team, or none yet (the detail asks for one). */
+function canAccept(reason: ChallengeIneligibleReason | null) {
+  return reason == null || reason === "no_team";
+}
+
+export type ChallengeCardOptions = {
+  /** The post form's review: the Roster count stays, "Open for 7 days", Accept inert. */
+  preview?: boolean;
+};
+
 /** One Challenge on the Open board, and the open state of its detail. */
 export function challengeCardView(
   input: ChallengeCardInput,
   locale: Locale,
   now: Date,
+  options: ChallengeCardOptions = {},
 ) {
+  const preview = options.preview === true;
   const m = messagesFor(locale);
   const reason = input.viewer.ineligibleReason;
   const tiles = input.team.members
@@ -262,8 +313,9 @@ export function challengeCardView(
     input.sport === "football"
       ? (input.sideSize ?? teamRosterRule("football").completeAt)
       : teamRosterRule("padel").max;
-  const sportLine = challengeSportLine(input, locale);
+  const sportLine = challengeSportLine(input, locale, preview);
   const whenLine = challengeWhenLine(input.days, input.timings, locale);
+  const daysLine = challengeDaysLine(input.days, input.timings, locale);
   const slotsLine = challengeSlotsLine(input.exactSlots, locale);
   const venuesLine = challengeVenuesLine(input.venues, locale);
   const proposalsLine = challengeProposalsLine(
@@ -279,15 +331,24 @@ export function challengeCardView(
     input.viewerTeamIsNudged && input.nudgedTeam
       ? m.challenge.card.nudged(input.nudgedTeam.displayName)
       : null;
+  const footerLine = preview
+    ? m.challenge.tab.openFor(challengeDaysLeft(input.expiresAt, now))
+    : proposalsLine;
   return {
     id: input.id,
+    sport: input.sport,
     title: input.team.displayName,
+    levelBand: input.team.teamLevel?.band ?? null,
     sportLine,
     whenLine,
+    daysLine,
     slotsLine,
     venuesLine,
     note: input.note,
     proposalsLine,
+    footerLine,
+    preview,
+    canAccept: !preview && canAccept(reason),
     tiles,
     opponentSeats: Math.min(side, CHALLENGE_CARD_TILES),
     opponentSeatsLabel: m.challenge.card.opponentSeats,
@@ -298,10 +359,10 @@ export function challengeCardView(
       m.challenge.card.open(input.team.displayName),
       nudgeLine,
       sportLine,
-      whenLine,
+      daysLine,
       slotsLine,
       venuesLine,
-      proposalsLine,
+      footerLine,
       greyedLine,
     ]
       .filter((part): part is string => part != null)
@@ -351,19 +412,19 @@ export function challengeBoardFilterGroups(
   locale: Locale,
 ) {
   const m = messagesFor(locale).challenge;
-  const any = { value: null, label: m.filters.any };
   const group = <T extends string>(
     key: ChallengeBoardFilterKey,
     label: string,
     options: { value: T; label: string }[],
   ) => {
     const selected = filters[key];
+    const anyLabel = key === "sport" ? m.tab.filterAll : m.filters.any;
+    const any = { value: null, label: anyLabel };
     return {
       key,
       label,
       summary:
-        options.find((option) => option.value === selected)?.label ??
-        m.filters.any,
+        options.find((option) => option.value === selected)?.label ?? anyLabel,
       options: [any, ...options].map((option) => ({
         ...option,
         selected: option.value === selected,

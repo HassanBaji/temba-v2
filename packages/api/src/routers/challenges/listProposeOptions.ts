@@ -10,6 +10,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { loadChallengeCards } from "#src/challenges/challenge-cards";
+import { loadTeamFaces } from "#src/challenges/challenge-proposals";
 import { liveVenuesOfferingSport } from "#src/challenges/venues-for-sport";
 import { type db } from "#src/db";
 import { protectedProcedure } from "#src/trpc";
@@ -20,7 +21,8 @@ type DbClient = typeof db;
  * For the Accept sheet: the viewer's Teams that may propose (with the pending
  * Proposal each already has here, for Change proposal), Venues with the sport
  * (the Challenge's preferred ones first) and their Courts, and the suggested
- * slots from the Challenge's days and timings plus its exact slots.
+ * slots from the Challenge's days and timings plus its exact slots. Each
+ * Team carries its face (sport, Team Level, Roster) for the Team cards.
  */
 export async function listProposeOptions(
   database: DbClient,
@@ -83,12 +85,18 @@ export async function listProposeOptions(
             ),
           )
           .orderBy(asc(courts.name), asc(courts.id));
+  const faces = await loadTeamFaces(database, eligibleIds, {
+    userId: args.userId,
+    now,
+  });
 
   return {
     challengeId: row.id,
     state: card.state,
     sport: row.sport,
     durationMinutes: row.durationMinutes,
+    days: row.days,
+    timings: row.timings,
     posterTeam: { id: card.team.id, displayName: card.team.displayName },
     teams: card.viewer.eligibleTeams.map((team) => {
       const proposal = pending.find(
@@ -96,6 +104,7 @@ export async function listProposeOptions(
       );
       return {
         ...team,
+        face: faces.find((face) => face.id === team.id) ?? null,
         pendingProposal: proposal
           ? {
               id: proposal.id,

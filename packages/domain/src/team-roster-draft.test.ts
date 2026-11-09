@@ -17,7 +17,16 @@ import {
   teamGroupMemberRows,
   teamPhoneCanSubmit,
   teamPhonePreviewLine,
+  teamCreateSubmitLabel,
+  teamGroupChoiceRows,
+  teamNewPlayerAddLabel,
+  teamNewPlayerFootball,
+  teamNewPlayerRoleChoices,
+  teamPhoneLookupCard,
   teamSportChoices,
+  teamSquadCountLine,
+  teamSquadPickRows,
+  toggleDraftGroupMember,
   toggleTeamGroupPick,
   type TeamRosterDraftPhone,
 } from "./team-roster-draft";
@@ -91,7 +100,7 @@ describe("team roster draft", () => {
 
     const view = rosterDraftView(
       withPhone,
-      { sport: "football", captainName: "Hassan", groupName: null },
+      { sport: "football", captain: { name: "Hassan" } },
       "en",
     );
     const hamadKey = view.rows.find((row) => row.name === "Hamad")?.key;
@@ -99,45 +108,117 @@ describe("team roster draft", () => {
     assert.equal(removeDraftRow(withPhone, hamadKey).phones.length, 0);
   });
 
-  it("shows the Roster with Invited and Added rows, the helper and the footer", () => {
+  it("shows the Roster with Invited and Added rows, the seat strip and the helper", () => {
     const draft = addDraftPhone(
       addDraftPhone(
         addDraftInvites(
           EMPTY_TEAM_ROSTER_DRAFT,
-          [{ userId: "u1", name: "Sara" }],
+          [
+            {
+              userId: "u1",
+              name: "Yousif Kadhem",
+              levelBand: "C1",
+              footballRole: "outfield",
+              footballPosition: "mid",
+              source: { kind: "group", groupName: "Thursday Padel" },
+            },
+          ],
           "football",
         ),
-        YUSUF,
+        HAMAD,
         "football",
       ),
-      AHMED,
+      { ...AHMED, levelBand: "C2", footballPosition: "fwd" },
       "football",
     );
     const view = rosterDraftView(
       draft,
-      { sport: "football", captainName: "Hassan", groupName: "Gooz of Arad" },
+      {
+        sport: "football",
+        captain: {
+          name: "Hassan Haji",
+          levelBand: "C1",
+          footballRole: "outfield",
+          footballPosition: "def",
+        },
+      },
       "en",
     );
     assert.equal(view.countLine, "4 of 20, you included");
     assert.deepEqual(
-      view.rows.map((row) => [row.name, row.status, row.detail]),
+      view.rows.map((row) => [
+        row.initials,
+        row.tile,
+        row.meta,
+        row.status,
+        row.statusDetail,
+      ]),
       [
-        ["Hassan", "Captain", null],
-        ["Sara", "Invited, waiting", null],
-        ["Yusuf", "Added, not on Temba", "+973 •••• 4402"],
-        ["Ahmed Ali", "Invited, waiting", null],
+        ["HH", "in", "DEF, C+", "captain", null],
+        [
+          "YK",
+          "invited",
+          "MID, C+. Invited from Thursday Padel",
+          "Invited",
+          "waiting",
+        ],
+        ["H", "added", "GK. +973 3612 4401", "Added by you", "not on Temba"],
+        ["AA", "invited", "FWD, C. Invited by phone", "Invited", "waiting"],
       ],
     );
     assert.equal(view.rows[0]?.removeLabel, null);
-    assert.equal(view.rows[1]?.removeLabel, "Remove Sara");
-    assert.deepEqual(view.addMore, {
-      title: "Add more",
-      detail: "By phone, on Temba, or from Gooz of Arad. Up to 20",
-    });
-    assert.equal(view.helper, "5 needed for 5-a-side, 7 for 7-a-side, 20 max");
+    assert.equal(view.rows[1]?.removeLabel, "Remove Yousif Kadhem");
+    assert.deepEqual(view.seats.slice(0, 5), [
+      "in",
+      "pending",
+      "pending",
+      "pending",
+      "open",
+    ]);
+    assert.equal(view.seats.length, 20);
+    assert.equal(view.stripHelper, "5 needed for 5-a-side, 7 for 7-a-side");
+    assert.equal(view.stripMax, "20 max");
+    assert.equal(view.addMore, "Add more. By phone, on Temba, or from a group");
+    assert.ok(view.footnote?.startsWith("Added players count for the roster"));
+  });
+
+  it("says the Roster is enough to post once it holds a side", () => {
+    const draft = addDraftInvites(
+      EMPTY_TEAM_ROSTER_DRAFT,
+      Array.from({ length: 5 }, (_, index) => ({
+        userId: `u${index}`,
+        name: `Player ${index}`,
+        source: { kind: "temba" as const },
+      })),
+      "football",
+    );
+    const view = rosterDraftView(
+      draft,
+      { sport: "football", captain: { name: "Hassan" } },
+      "en",
+    );
+    assert.equal(view.rows[1]?.meta, "Invited on Temba");
     assert.equal(
-      view.footer,
+      view.footnote,
       "Six is enough to post a 6-a-side challenge; the matchday squad is named per game, after it's confirmed.",
+    );
+    assert.equal(
+      teamCreateSubmitLabel(
+        { name: "Gooz FC", sport: "football", count: 6 },
+        "en",
+      ),
+      "Create Gooz FC",
+    );
+    assert.equal(
+      teamCreateSubmitLabel(
+        { name: "Gooz FC", sport: "football", count: 3 },
+        "en",
+      ),
+      "Create team",
+    );
+    assert.equal(
+      teamCreateSubmitLabel({ name: " ", sport: "padel", count: 2 }, "en"),
+      "Create team",
     );
   });
 
@@ -145,14 +226,16 @@ describe("team roster draft", () => {
     const padel = addDraftPhone(EMPTY_TEAM_ROSTER_DRAFT, YUSUF, "padel");
     const view = rosterDraftView(
       padel,
-      { sport: "padel", captainName: "Hassan", groupName: null },
+      { sport: "padel", captain: { name: "Hassan", levelBand: "C1" } },
       "en",
     );
     assert.equal(view.countLine, "2 of 2, you included");
+    assert.equal(view.rows[0]?.meta, "C+");
     assert.equal(view.addMore, null);
     assert.equal(view.fullLine, "The Roster is full at 2.");
-    assert.equal(view.helper, null);
-    assert.equal(view.footer, null);
+    assert.equal(view.stripHelper, null);
+    assert.equal(view.stripMax, "2 max");
+    assert.deepEqual(view.seats, ["in", "pending"]);
   });
 
   it("reads in Arabic with the names isolated", () => {
@@ -162,7 +245,7 @@ describe("team roster draft", () => {
         [{ userId: "u1", name: "Sara" }],
         "football",
       ),
-      { sport: "football", captainName: "Hassan", groupName: null },
+      { sport: "football", captain: { name: "Hassan" } },
       "ar",
     );
     assert.equal(view.countLine, "2 من 20، معك أنت");
@@ -172,7 +255,7 @@ describe("team roster draft", () => {
   it("offers Padel for two and a football Roster up to twenty", () => {
     assert.deepEqual(teamSportChoices("en"), [
       { value: "padel", name: "Padel", detail: "2 players" },
-      { value: "football", name: "Football", detail: "Roster up to 20" },
+      { value: "football", name: "Football", detail: "roster up to 20" },
     ]);
   });
 
@@ -385,5 +468,198 @@ describe("team From a group rows", () => {
     assert.equal(teamGroupAddLabel(2, "en"), "Add 2 players");
     assert.equal(teamAddPlayersSpotsLine(0, "en"), "The Roster is full.");
     assert.equal(teamAddPlayersSpotsLine(3, "en"), "3 spots left");
+  });
+});
+
+describe("team phone lookup card", () => {
+  const found = {
+    kind: "account" as const,
+    name: "Ali Mansoor",
+    alreadyOnTeam: false,
+    alreadyInvited: false,
+    levelBand: "C2" as const,
+    footballRole: "outfield" as const,
+    footballPosition: "fwd" as const,
+    gamesWithYou: 9,
+  };
+
+  it("shows someone on Temba with their Level, position and games with you", () => {
+    assert.deepEqual(
+      teamPhoneLookupCard(found, { listed: false, sport: "football" }, "en"),
+      {
+        kind: "found",
+        name: "Ali Mansoor",
+        initials: "AM",
+        line: "On Temba. Football C, FWD. 9 games with you",
+        note: "Ali gets the invite in the app. The seat shows as waiting until they accept; you can post challenges meanwhile.",
+        action: "Invite",
+        actionA11y: "Invite Ali Mansoor",
+      },
+    );
+    const bare = teamPhoneLookupCard(
+      { ...found, levelBand: null, footballPosition: null, gamesWithYou: 0 },
+      { listed: false, sport: "football" },
+      "en",
+    );
+    assert.equal(bare.kind === "found" ? bare.line : null, "On Temba");
+  });
+
+  it("offers a name for a number not on Temba, and blocks one already listed", () => {
+    assert.deepEqual(
+      teamPhoneLookupCard(
+        { ...found, kind: "new", name: null },
+        { listed: false, sport: "football" },
+        "en",
+      ),
+      {
+        kind: "new",
+        title: "Not on Temba yet",
+        line: "Add them anyway. They don't need the app to be on the team.",
+      },
+    );
+    assert.deepEqual(
+      teamPhoneLookupCard(found, { listed: true, sport: "football" }, "en"),
+      {
+        kind: "blocked",
+        name: "Ali Mansoor",
+        initials: "AM",
+        line: "Ali Mansoor is already on the list",
+      },
+    );
+    assert.equal(
+      teamNewPlayerAddLabel("Khalid R", "en"),
+      "Add Khalid to the team",
+    );
+    assert.equal(teamNewPlayerAddLabel("  ", "en"), "Add to the team");
+  });
+
+  it("maps the four position chips to a football role", () => {
+    assert.deepEqual(
+      teamNewPlayerRoleChoices("en").map((choice) => [
+        choice.code,
+        choice.name,
+      ]),
+      [
+        ["GK", "keeper"],
+        ["DEF", "defence"],
+        ["MID", "midfield"],
+        ["FWD", "attack"],
+      ],
+    );
+    assert.deepEqual(teamNewPlayerFootball("gk"), {
+      role: "keeper",
+      position: null,
+    });
+    assert.deepEqual(teamNewPlayerFootball("mid"), {
+      role: "outfield",
+      position: "mid",
+    });
+    assert.deepEqual(teamNewPlayerFootball(null), {
+      role: "outfield",
+      position: null,
+    });
+  });
+});
+
+describe("team from a group", () => {
+  const members = [
+    {
+      userId: "y",
+      name: "Yousif Kadhem",
+      unclaimed: false,
+      levelBand: "C1" as const,
+      footballRole: "outfield" as const,
+      footballPosition: "mid" as const,
+      invited: false,
+    },
+    {
+      userId: "k",
+      name: "Khalid R",
+      unclaimed: true,
+      levelBand: null,
+      footballRole: "keeper" as const,
+      footballPosition: null,
+      invited: false,
+    },
+  ];
+
+  it("describes each Group with its members and Teams", () => {
+    assert.deepEqual(
+      teamGroupChoiceRows(
+        [
+          {
+            id: "g1",
+            name: "Gooz of Arad",
+            sport: "football",
+            memberCount: 14,
+            teamCount: 0,
+          },
+          {
+            id: "g2",
+            name: "Thursday Padel",
+            sport: "padel",
+            memberCount: 9,
+            teamCount: 2,
+          },
+        ],
+        "en",
+      ).map((row) => row.meta),
+      [
+        "Football, 14 members. No team yet",
+        "Padel, 9 members. Has 2 teams already",
+      ],
+    );
+  });
+
+  it("ticks members onto the draft as invites from the Group", () => {
+    const picked = toggleDraftGroupMember(
+      EMPTY_TEAM_ROSTER_DRAFT,
+      members[0]!,
+      { groupName: "Gooz of Arad", sport: "football" },
+    );
+    assert.deepEqual(picked.invites, [
+      {
+        userId: "y",
+        name: "Yousif Kadhem",
+        levelBand: "C1",
+        footballRole: "outfield",
+        footballPosition: "mid",
+        source: { kind: "group", groupName: "Gooz of Arad" },
+      },
+    ]);
+    assert.equal(
+      toggleDraftGroupMember(picked, members[1]!, {
+        groupName: "Gooz of Arad",
+        sport: "football",
+      }),
+      picked,
+    );
+    assert.deepEqual(
+      teamSquadPickRows(
+        {
+          captainName: "Hassan Haji",
+          members,
+          draft: picked,
+          sport: "football",
+        },
+        "en",
+      ).map((row) => [row.initials, row.meta, row.picked, row.disabled]),
+      [
+        ["HH", "You, captain", true, true],
+        ["YK", "MID, C+", true, false],
+        ["KR", "Not on Temba yet. Add them by phone.", false, true],
+      ],
+    );
+    assert.equal(
+      teamSquadCountLine(picked, "football", "en"),
+      "2 of 20, football",
+    );
+    assert.equal(
+      toggleDraftGroupMember(picked, members[0]!, {
+        groupName: "Gooz of Arad",
+        sport: "football",
+      }).invites.length,
+      0,
+    );
   });
 });

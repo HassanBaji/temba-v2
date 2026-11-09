@@ -11,6 +11,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { ChallengeTag } from "./challenge-tag";
 import { HeroTopLine } from "./hero-top-line";
 
 const HERO_PADDING_BOTTOM = 22;
@@ -68,7 +69,7 @@ export function FootballHero({
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
-  /** "Challenge" on a Challenge Game. */
+  /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
@@ -91,17 +92,24 @@ export function FootballHero({
           <ScreenHeader
             nav="back"
             fallback={GAMES_FALLBACK}
-            actions={actions}
+            actions={
+              tag ? (
+                <>
+                  <ChallengeTag label={tag} />
+                  {actions}
+                </>
+              ) : (
+                actions
+              )
+            }
           />
           <View style={{ gap: 6 }}>
             <HeroTopLine
               left={lines.status}
               right={
-                tag || lines.sizeTag ? (
+                !tag && lines.sizeTag ? (
                   <Text size="eyebrow" tone="muted" mono>
-                    {[tag?.toLocaleUpperCase(), lines.sizeTag]
-                      .filter(Boolean)
-                      .join(" · ")}
+                    {lines.sizeTag}
                   </Text>
                 ) : null
               }

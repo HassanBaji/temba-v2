@@ -11,35 +11,38 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
 } from "~/components/common/action-menu";
-import { AvatarStack } from "~/components/common/avatar-stack";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EmptyState } from "~/components/common/empty-state";
 import { ErrorState } from "~/components/common/error-state";
-import { StatStrip } from "~/components/common/stat-strip";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { DetailPageSkeleton } from "~/components/common/page-skeleton";
-import { EntityHomeHeader } from "~/components/layout/entity-home-header";
-import { Section } from "~/components/layout/section";
 import { TeamFormLine } from "~/components/teams/team-form-line";
 import { TeamGamesList } from "~/components/teams/team-games-list";
 import { TeamRivalsList } from "~/components/teams/team-rivals-list";
 import { TeamAddPlayersDialog } from "~/components/teams/team-add-players-dialog";
+import {
+  TEAMS_HREF,
+  TeamDetailHero,
+} from "~/components/teams/team-detail-hero";
 import { TeamRosterList } from "~/components/teams/team-roster-list";
-import { SportBadge } from "~/components/temba/sport-badge";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { YouSection } from "~/components/you/you-section";
+import { shareLinkWithFeedback } from "~/lib/share-link";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { isForbiddenError } from "@repo/domain/is-forbidden-error";
 import { sportOrDefault } from "@repo/domain/sport";
+import { teamDetailView } from "@repo/domain/team-detail";
 import {
   teamDissolveConfirm,
-  teamHomeView,
   teamLeaveConfirm,
   teamLookupNote,
 } from "@repo/domain/teams";
 import { api } from "~/trpc/react";
+
+const MENU_ON_INK =
+  "border-dimrule text-on-focus hover:bg-raised hover:text-on-focus size-10 min-h-10 min-w-10 rounded-[10px] border bg-transparent";
 
 export default function TeamHomePage({
   params,
@@ -52,6 +55,7 @@ export default function TeamHomePage({
   const router = useRouter();
   const utils = api.useUtils();
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const [now] = useState(() => new Date());
   const [dissolveOpen, setDissolveOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -74,7 +78,7 @@ export default function TeamHomePage({
     onSuccess: async () => {
       toast.success(m.team.toast.dissolved);
       await utils.teams.mine.invalidate();
-      router.push("/dashboard/teams");
+      router.push(TEAMS_HREF);
     },
   });
 
@@ -97,7 +101,7 @@ export default function TeamHomePage({
     onSuccess: async () => {
       toast.success(m.team.toast.left);
       await utils.teams.mine.invalidate();
-      router.push("/dashboard/teams");
+      router.push(TEAMS_HREF);
     },
   });
 
@@ -122,9 +126,7 @@ export default function TeamHomePage({
           description={m.team.forbidden.description}
           action={
             <Button asChild>
-              <Link href="/dashboard/teams">
-                {m.webDashboard.team.backToTeams}
-              </Link>
+              <Link href={TEAMS_HREF}>{m.webDashboard.team.backToTeams}</Link>
             </Button>
           }
         />
@@ -132,25 +134,12 @@ export default function TeamHomePage({
     );
   }
 
-  if (team.error) {
+  if (team.error || !team.data) {
     return (
       <DashboardShell title={m.team.fallbackName} isSubPage>
         <ErrorState
           title={m.team.teamErrorTitle}
-          message={team.error.message}
-          onRetry={() => {
-            void team.refetch();
-          }}
-        />
-      </DashboardShell>
-    );
-  }
-
-  if (!team.data) {
-    return (
-      <DashboardShell title={m.team.fallbackName} isSubPage>
-        <ErrorState
-          title={m.team.teamErrorTitle}
+          message={team.error?.message}
           onRetry={() => {
             void team.refetch();
           }}
@@ -160,164 +149,151 @@ export default function TeamHomePage({
   }
 
   const data = team.data;
-  const view = teamHomeView(data, locale);
+  const detail = teamDetailView(data, now, locale);
+  const view = detail.home;
   const displayName = view.title;
 
-  return (
-    <DashboardShell title={m.team.fallbackName} hidePageHeader isSubPage>
-      <div className="space-y-6">
-        <EntityHomeHeader
-          leading={
-            <AvatarStack
-              people={view.people}
-              openSeats={view.openSeats}
-              size="lg"
-            />
+  const menu = (
+    <ActionMenu
+      triggerRef={menuTriggerRef}
+      label={m.webDashboard.team.actionsLabel}
+      triggerClassName={MENU_ON_INK}
+    >
+      <ActionMenuItem asChild>
+        <Link href={TEAMS_HREF}>{m.webDashboard.team.allTeams}</Link>
+      </ActionMenuItem>
+      {data.groupTag && detail.openGroupLabel ? (
+        <ActionMenuItem asChild>
+          <Link href={`/dashboard/groups/${data.groupTag.id}`}>
+            {detail.openGroupLabel}
+          </Link>
+        </ActionMenuItem>
+      ) : null}
+      {data.canInvite ? (
+        <ActionMenuItem onSelect={() => setInviteOpen(true)}>
+          {view.squad
+            ? m.team.squadInviteLabel
+            : m.webDashboard.team.invitePartner}
+        </ActionMenuItem>
+      ) : null}
+      {view.groupTag.options.map((option) => (
+        <ActionMenuItem
+          key={option.groupId}
+          disabled={setGroupTag.isPending}
+          onSelect={() =>
+            void changeGroupTag(option.groupId, option.toast).catch(
+              () => undefined,
+            )
           }
-          title={displayName}
-          badges={
-            <>
-              <SportBadge sport={data.sport} />
-              {view.badges.slice(1).map((badge) => (
-                <Badge key={badge} variant="outline">
-                  {badge}
-                </Badge>
-              ))}
-            </>
-          }
-          primaryAction={
-            view.primaryInvite ? (
-              <Button onClick={() => setInviteOpen(true)}>
-                {view.inviteLabel}
-              </Button>
-            ) : undefined
-          }
-          menu={
-            <ActionMenu
-              triggerRef={menuTriggerRef}
-              label={m.webDashboard.team.actionsLabel}
-            >
-              <ActionMenuItem asChild>
-                <Link href="/dashboard/teams">
-                  {m.webDashboard.team.allTeams}
-                </Link>
-              </ActionMenuItem>
-              {data.canInvite ? (
-                <ActionMenuItem onSelect={() => setInviteOpen(true)}>
-                  {view.squad
-                    ? m.team.squadInviteLabel
-                    : m.webDashboard.team.invitePartner}
-                </ActionMenuItem>
-              ) : null}
-              {view.groupTag.options.map((option) => (
-                <ActionMenuItem
-                  key={option.groupId}
-                  disabled={setGroupTag.isPending}
-                  onSelect={() =>
-                    void changeGroupTag(option.groupId, option.toast).catch(
-                      () => undefined,
-                    )
-                  }
-                >
-                  {option.label}
-                </ActionMenuItem>
-              ))}
-              {view.groupTag.remove ? (
-                <ActionMenuItem
-                  disabled={setGroupTag.isPending}
-                  onSelect={() => {
-                    const removed = view.groupTag.remove;
-                    if (removed) {
-                      void changeGroupTag(null, removed.toast).catch(
-                        () => undefined,
-                      );
-                    }
-                  }}
-                >
-                  {view.groupTag.remove.label}
-                </ActionMenuItem>
-              ) : null}
-              {view.canDissolve || view.canLeave ? (
-                <ActionMenuSeparator />
-              ) : null}
-              {view.canLeave ? (
-                <ActionMenuItem
-                  variant="destructive"
-                  onSelect={() => setLeaveOpen(true)}
-                >
-                  {m.team.leaveLabel}
-                </ActionMenuItem>
-              ) : null}
-              {data.canDissolve ? (
-                <ActionMenuItem
-                  variant="destructive"
-                  onSelect={() => setDissolveOpen(true)}
-                >
-                  {m.team.dissolveLabel}
-                </ActionMenuItem>
-              ) : null}
-            </ActionMenu>
-          }
-        />
-
-        {view.groupTag.line && data.groupTag ? (
-          <p className="text-body text-muted-foreground">
-            <Link
-              href={`/dashboard/groups/${data.groupTag.id}`}
-              className="underline-offset-4 hover:underline"
-            >
-              {view.groupTag.line}
-            </Link>
-          </p>
-        ) : null}
-
-        {view.waitingNote ? (
-          <p className="text-body text-muted-foreground">{view.waitingCopy}</p>
-        ) : null}
-
-        <div className="space-y-2">
-          <StatStrip items={view.recordTiles} />
-          {view.rosterHero ? (
-            <p className="text-meta text-muted-foreground">
-              {[
-                view.rosterHero.label,
-                view.roster.status,
-                view.rosterHero.plays,
-              ]
-                .filter(Boolean)
-                .join(m.common.listSeparator)}
-            </p>
-          ) : null}
-          {view.teamLevel ? (
-            <p className="text-meta text-muted-foreground">{view.teamLevel}</p>
-          ) : null}
-        </div>
-
-        <Section title={m.team.form.title}>
-          <TeamFormLine form={view.form} />
-        </Section>
-
-        <Section title={m.team.rivals.title}>
-          <TeamRivalsList view={view} teamId={id} />
-        </Section>
-
-        <Section title={m.team.roster.title}>
-          <TeamRosterList
-            view={view}
-            onAddMore={() => setAddOpen(true)}
-            onRemove={(remove) =>
-              setRemoving({
-                userId: remove.userId,
-                ...remove.confirm,
-                toast: remove.toast,
-              })
+        >
+          {option.label}
+        </ActionMenuItem>
+      ))}
+      {view.groupTag.remove ? (
+        <ActionMenuItem
+          disabled={setGroupTag.isPending}
+          onSelect={() => {
+            const removed = view.groupTag.remove;
+            if (removed) {
+              void changeGroupTag(null, removed.toast).catch(() => undefined);
             }
-          />
-        </Section>
+          }}
+        >
+          {view.groupTag.remove.label}
+        </ActionMenuItem>
+      ) : null}
+      {view.canDissolve || view.canLeave ? <ActionMenuSeparator /> : null}
+      {view.canLeave ? (
+        <ActionMenuItem
+          variant="destructive"
+          onSelect={() => setLeaveOpen(true)}
+        >
+          {m.team.leaveLabel}
+        </ActionMenuItem>
+      ) : null}
+      {data.canDissolve ? (
+        <ActionMenuItem
+          variant="destructive"
+          onSelect={() => setDissolveOpen(true)}
+        >
+          {m.team.dissolveLabel}
+        </ActionMenuItem>
+      ) : null}
+    </ActionMenu>
+  );
 
-        <Section title={m.team.games.title}>
-          <TeamGamesList view={view} />
-        </Section>
+  return (
+    <DashboardShell
+      title={displayName}
+      width="content"
+      hidePageHeader
+      hideMobileTopBar
+      isSubPage
+    >
+      <div className="mx-auto mt-6 w-full min-w-0 max-w-[1000px] lg:mt-2">
+        <div className="grid gap-[26px] lg:grid-cols-2 lg:items-start">
+          <div className="flex min-w-0 flex-col gap-[26px]">
+            <TeamDetailHero
+              hero={detail.hero}
+              postHref={`/dashboard/challenges/new?${new URLSearchParams({ team: id }).toString()}`}
+              onInvite={() => setInviteOpen(true)}
+              onShare={() => {
+                const share = detail.hero.share;
+                if (share) {
+                  void shareLinkWithFeedback(
+                    { text: share.text, url: share.url },
+                    share.copied,
+                    locale,
+                  );
+                }
+              }}
+              menu={menu}
+            />
+            {view.waitingNote ? (
+              <p className="text-meta text-muted-foreground">
+                {view.waitingCopy}
+              </p>
+            ) : null}
+            <YouSection title={m.team.form.title} meta={detail.form.scope}>
+              <TeamFormLine form={detail.form} />
+            </YouSection>
+            <YouSection
+              title={m.team.rivals.title}
+              meta={detail.rivals.subtitle}
+              note={detail.rivals.footnote ?? detail.rivals.empty?.closest}
+            >
+              <TeamRivalsList rivals={detail.rivals} teamId={id} />
+            </YouSection>
+          </div>
+          <div className="flex min-w-0 flex-col gap-[26px]">
+            <YouSection
+              title={detail.members.title}
+              meta={detail.members.count}
+              note={detail.members.footnote}
+            >
+              <TeamRosterList
+                members={detail.members}
+                onOpenSeat={() => {
+                  if (detail.members.openSeat?.action === "add") {
+                    setAddOpen(true);
+                  } else {
+                    setInviteOpen(true);
+                  }
+                }}
+                onRemove={(remove) =>
+                  setRemoving({
+                    userId: remove.userId,
+                    ...remove.confirm,
+                    toast: remove.toast,
+                  })
+                }
+              />
+            </YouSection>
+            <YouSection title={m.team.games.title} meta={detail.games.subtitle}>
+              <TeamGamesList games={detail.games} />
+            </YouSection>
+          </div>
+        </div>
       </div>
 
       <ConfirmDialog

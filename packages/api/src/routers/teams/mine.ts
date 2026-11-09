@@ -68,6 +68,7 @@ export async function mine(database: DbClient, args: { userId: string }) {
       members: members.map((member) => ({
         name: member.user.name,
         image: member.user.image,
+        you: member.user.id === args.userId,
       })),
       memberCount: members.length,
       rosterCount: members.length,

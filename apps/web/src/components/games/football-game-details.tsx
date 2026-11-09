@@ -25,7 +25,8 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { challengeInfoRows } from "~/components/games/challenge-details-block";
-import { ChallengeSquadGrid } from "~/components/games/challenge-squad-grid";
+import { ChallengeShareButton } from "~/components/games/challenge-share-button";
+import { ChallengeSquads } from "~/components/games/challenge-squad-grid";
 import { ChallengeTeamVsTeam } from "~/components/games/challenge-team-vs-team";
 import { NameSquadDialog } from "~/components/games/name-squad-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
@@ -58,6 +59,7 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { gamePlayersLink } from "~/lib/game-player-links";
+import { shareLinkWithFeedback } from "~/lib/share-link";
 import { cn } from "~/lib/utils";
 import {
   bibNames,
@@ -93,6 +95,7 @@ import {
 } from "@repo/domain/game-copy";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
+import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import {
   gameKickConfirmCopy,
   gameKickTarget,
@@ -163,7 +166,7 @@ export function FootballGameDetails({
   );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
-  const lines = footballHeroLines(
+  const baseLines = footballHeroLines(
     {
       windowStart: game.windowStart,
       windowEnd: game.windowEnd,
@@ -171,12 +174,26 @@ export function FootballGameDetails({
       sideSize: game.sideSize,
       venueName: game.venue?.name ?? null,
       pitchName: game.recordedCourts[0]?.name ?? null,
-      teamsSet: teams != null,
+      teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
     },
     now,
     locale,
   );
+  const lines = challenge
+    ? {
+        ...baseLines,
+        subLine: challengeHeroSubLine(
+          {
+            pitchName: game.recordedCourts[0]?.name ?? null,
+            sideSize: game.sideSize,
+            windowStart: game.windowStart,
+            windowEnd: game.windowEnd,
+          },
+          locale,
+        ),
+      }
+    : baseLines;
 
   const savedCustomName = gameCustomName(game);
 
@@ -279,6 +296,17 @@ export function FootballGameDetails({
         partnerRequired: false,
       })
     : { canManage: false, canSendLookup: false };
+  function shareGamePage() {
+    const text = utils.games.resultLink
+      .fetch({ gameId })
+      .then((result) => ({ text: inviteShareText(result.url) }))
+      .catch(() => null);
+    void shareLinkWithFeedback(
+      text,
+      m.webDashboard.game.toast.linkCopied,
+      locale,
+    );
+  }
   function inviteShareText(url: string) {
     return gameInviteClipboardText({
       format: game.format,
@@ -406,11 +434,16 @@ export function FootballGameDetails({
     },
   ];
   const infoRows: FootballInfoRow[] = challenge
-    ? challengeInfoRows(challenge, game.sport, m.group.metaSeparator, locale)
+    ? challengeInfoRows(challenge, game.sport, locale)
     : gameInfoRows;
   const squadSide = challenge?.sides.find(
     (side) => side.teamId === squadTeamId,
   );
+  const namableSide = challenge?.viewerCanNameSide
+    ? challenge.sides.find(
+        (side) => side.teamId === challenge.viewerCanNameSide,
+      )
+    : undefined;
   const onInk = model.hero.tone === "ink";
   const joinFamily =
     !game.isChallengeGame &&
@@ -539,11 +572,31 @@ export function FootballGameDetails({
     );
 
   const heroBody = challenge ? (
-    <ChallengeTeamVsTeam
-      sides={challenge.sides}
-      sport={game.sport}
-      muted={heroMuted}
-    />
+    <div
+      className={`border-t pt-[18px] ${onInk ? "border-dimrule" : "border-rule"}`}
+    >
+      <ChallengeTeamVsTeam
+        sides={challenge.sides}
+        sport={game.sport}
+        tone={model.hero.tone}
+      />
+      <ChallengeSquads
+        sides={challenge.sides}
+        tone={model.hero.tone}
+        action={
+          namableSide?.teamId
+            ? {
+                ...squadButtonCopy(
+                  namableSide.named.length,
+                  namableSide.name ?? m.team.memberFallback,
+                  locale,
+                ),
+                onClick: () => setSquadTeamId(namableSide.teamId),
+              }
+            : undefined
+        }
+      />
+    </div>
   ) : (
     gameHeroBody
   );
@@ -725,7 +778,19 @@ export function FootballGameDetails({
             tone={model.hero.tone}
             lines={lines}
             tag={challenge ? m.challenge.gameDetails.tag : undefined}
-            actions={menu}
+            actions={
+              challenge && !game.cancelledAt ? (
+                <>
+                  <ChallengeShareButton
+                    onShare={shareGamePage}
+                    tone={model.hero.tone}
+                  />
+                  {menu}
+                </>
+              ) : (
+                menu
+              )
+            }
           >
             {heroBody}
           </FootballGameHeroCard>
@@ -781,32 +846,6 @@ export function FootballGameDetails({
             <p className="text-muted-foreground text-meta">{t.positionsNote}</p>
           </section>
         ) : null}
-
-        {challenge && !playedModel
-          ? challenge.sides.map((side) => {
-              const title = side.name ?? m.team.memberFallback;
-              const button = squadButtonCopy(side.named.length, title, locale);
-              return (
-                <ChallengeSquadGrid
-                  key={side.gameTeamId}
-                  title={title}
-                  named={side.named}
-                  sideSize={side.sideSize}
-                  action={
-                    side.teamId &&
-                    side.viewerActs &&
-                    side.state !== "locked" &&
-                    !game.cancelledAt
-                      ? {
-                          ...button,
-                          onClick: () => setSquadTeamId(side.teamId),
-                        }
-                      : undefined
-                  }
-                />
-              );
-            })
-          : null}
 
         {teams && names && !playedModel ? (
           <FootballScoreCard

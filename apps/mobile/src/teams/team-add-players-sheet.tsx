@@ -24,8 +24,6 @@ import {
   teamPhoneCanSubmit,
   teamPhonePreviewLine,
   toggleTeamGroupPick,
-  type TeamRosterDraftInvite,
-  type TeamRosterDraftPhone,
 } from "@repo/domain/team-roster-draft";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -54,19 +52,12 @@ const SEGMENT_INSET = 4;
 const SEGMENT_HEIGHT = 38;
 const SEARCH_MIN_LENGTH = 2;
 
-/**
- * Before the Team exists the sheet only fills the New team draft; on a Team
- * it adds through the Team's own doors.
- */
-export type TeamAddPlayersTarget =
-  | {
-      kind: "draft";
-      listedUserIds: readonly string[];
-      listedPhones: readonly string[];
-      onAddPhone: (phone: TeamRosterDraftPhone) => void;
-      onAddInvites: (invites: TeamRosterDraftInvite[]) => void;
-    }
-  | { kind: "team"; teamId: string; onChanged: () => Promise<unknown> };
+/** Adds to an existing Team through its own doors. */
+export type TeamAddPlayersTarget = {
+  kind: "team";
+  teamId: string;
+  onChanged: () => Promise<unknown>;
+};
 
 function TabSwitch({
   tab,
@@ -143,7 +134,7 @@ export function TeamAddPlayersSheet({
   const toast = useToast();
   const utils = api.useUtils();
   const isFootball = sport === "football";
-  const teamId = target.kind === "team" ? target.teamId : undefined;
+  const teamId = target.teamId;
 
   const [tab, setTab] = useState<AddTab>("phone");
   const [countryIso, setCountryIso] = useState(DEFAULT_CALLING_COUNTRY_ISO);
@@ -177,7 +168,6 @@ export function TeamAddPlayersSheet({
   }, [visible]);
 
   const activeGroupId = groupId ?? groups[0]?.id ?? null;
-  const listedUserIds = target.kind === "draft" ? target.listedUserIds : [];
 
   function resetPhone() {
     setNational("");
@@ -194,10 +184,6 @@ export function TeamAddPlayersSheet({
     { enabled: visible && completePhone != null, retry: false },
   );
   const previewData = completePhone ? (preview.data ?? null) : null;
-  const listedPhone =
-    target.kind === "draft" && completePhone != null
-      ? target.listedPhones.includes(completePhone)
-      : false;
   const isNew = previewData?.kind === "new";
 
   const addByPhone = api.teams.addPlayerByPhone.useMutation({
@@ -206,7 +192,7 @@ export function TeamAddPlayersSheet({
       resetPhone();
       await Promise.all([
         utils.teams.previewPlayerByPhone.invalidate(),
-        target.kind === "team" ? target.onChanged() : null,
+        target.onChanged(),
       ]);
     },
   });
@@ -229,7 +215,7 @@ export function TeamAddPlayersSheet({
   const canSubmitPhone =
     !pending &&
     spotsLeft > 0 &&
-    teamPhoneCanSubmit({ preview: previewData, listed: listedPhone, name });
+    teamPhoneCanSubmit({ preview: previewData, listed: false, name });
 
   function submitPhone() {
     if (!canSubmitPhone || !previewData || completePhone == null) {
@@ -242,25 +228,6 @@ export function TeamAddPlayersSheet({
         ? footballLevel
         : level
       : undefined;
-    if (target.kind === "draft") {
-      target.onAddPhone({
-        e164: completePhone,
-        countryIso,
-        nationalNumber: national,
-        name: isNew ? name.trim() : (previewData.name ?? name.trim()),
-        kind: previewData.kind,
-        phoneMasked: previewData.phoneMasked,
-        level: pickedLevel,
-        football,
-      });
-      toast.show(
-        m.team.addPlayers.listed(
-          isNew ? name.trim() : (previewData.name ?? ""),
-        ),
-      );
-      resetPhone();
-      return;
-    }
     addByPhone.mutate({
       teamId: target.teamId,
       countryIso,
@@ -272,11 +239,6 @@ export function TeamAddPlayersSheet({
   }
 
   async function invite(user: { id: string; name: string }) {
-    if (target.kind === "draft") {
-      target.onAddInvites([{ userId: user.id, name: user.name }]);
-      toast.show(m.team.addPlayers.listed(user.name));
-      return;
-    }
     try {
       await inviteInApp.mutateAsync({ teamId: target.teamId, userId: user.id });
       toast.show(m.group.addPlayer.inviteSentToast(user.name));
@@ -295,7 +257,7 @@ export function TeamAddPlayersSheet({
       members,
       query: groupQuery,
       picked,
-      listedUserIds,
+      listedUserIds: [],
       spotsLeft,
       sport,
     },
@@ -308,14 +270,6 @@ export function TeamAddPlayersSheet({
       return;
     }
     setGroupError(null);
-    if (target.kind === "draft") {
-      target.onAddInvites(
-        chosen.map((member) => ({ userId: member.userId, name: member.name })),
-      );
-      toast.show(m.team.addPlayers.listedCount(chosen.length));
-      setPicked([]);
-      return;
-    }
     setGroupPending(true);
     let sent = 0;
     try {
@@ -399,7 +353,7 @@ export function TeamAddPlayersSheet({
                 ? {
                     line: teamPhonePreviewLine(
                       previewData,
-                      { listed: listedPhone },
+                      { listed: false },
                       locale,
                     ),
                     kind: previewData.kind,
@@ -467,51 +421,42 @@ export function TeamAddPlayersSheet({
             </Text>
           ) : null}
           <View>
-            {(search.data ?? []).map((row, index) => {
-              const listed = listedUserIds.includes(row.id);
-              return (
-                <View key={row.id}>
-                  {index > 0 ? <Hairline /> : null}
-                  <View
-                    style={{
-                      minHeight: 56,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 12,
-                      paddingVertical: spacing.compact / 2,
-                    }}
-                  >
-                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                      <Text weight="semibold" numberOfLines={1}>
-                        {row.name}
+            {(search.data ?? []).map((row, index) => (
+              <View key={row.id}>
+                {index > 0 ? <Hairline /> : null}
+                <View
+                  style={{
+                    minHeight: 56,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingVertical: spacing.compact / 2,
+                  }}
+                >
+                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                    <Text weight="semibold" numberOfLines={1}>
+                      {row.name}
+                    </Text>
+                    {row.username ? (
+                      <Text size="meta" tone="muted" numberOfLines={1}>
+                        {row.username}
                       </Text>
-                      {row.username ? (
-                        <Text size="meta" tone="muted" numberOfLines={1}>
-                          {row.username}
-                        </Text>
-                      ) : null}
-                    </View>
-                    {listed ? (
-                      <Text size="eyebrow" tone="muted">
-                        {m.team.addPlayers.invitedMark}
-                      </Text>
-                    ) : (
-                      <Button
-                        label={m.team.addPlayers.invite}
-                        accessibilityLabel={m.mobileHome.join.parts([
-                          m.team.addPlayers.invite,
-                          row.name,
-                        ])}
-                        variant="outline"
-                        size="sm"
-                        disabled={pending || spotsLeft === 0}
-                        onPress={() => void invite(row)}
-                      />
-                    )}
+                    ) : null}
                   </View>
+                  <Button
+                    label={m.team.addPlayers.invite}
+                    accessibilityLabel={m.mobileHome.join.parts([
+                      m.team.addPlayers.invite,
+                      row.name,
+                    ])}
+                    variant="outline"
+                    size="sm"
+                    disabled={pending || spotsLeft === 0}
+                    onPress={() => void invite(row)}
+                  />
                 </View>
-              );
-            })}
+              </View>
+            ))}
           </View>
         </View>
       ) : null}

@@ -3,6 +3,7 @@
 import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
+import { ChallengeTag } from "~/components/games/challenge-tag";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { Surface } from "~/components/ui/surface";
@@ -27,7 +28,7 @@ export function FootballGameHeroCard({
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
-  /** "Challenge" on a Challenge Game. */
+  /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
@@ -43,18 +44,26 @@ export function FootballGameHeroCard({
         tone === "paper" && "border-rule border-y md:border",
       )}
     >
-      <HeroNavRow tone={tone} actions={actions} />
+      <HeroNavRow
+        tone={tone}
+        actions={
+          tag ? (
+            <>
+              <ChallengeTag label={tag} tone={tone} />
+              {actions}
+            </>
+          ) : (
+            actions
+          )
+        }
+      />
       <div className="mt-6">
         <HeroTopLine
           tone={tone}
           left={lines.status}
           right={
-            tag || lines.sizeTag ? (
-              <p className="shrink-0 font-mono text-[11px]">
-                {tag ? <span className="uppercase">{tag}</span> : null}
-                {tag && lines.sizeTag ? " · " : null}
-                {lines.sizeTag}
-              </p>
+            !tag && lines.sizeTag ? (
+              <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
             ) : null
           }
         />

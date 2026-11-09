@@ -4,6 +4,11 @@ import {
   initialSquadSelection,
   squadButtonCopy,
   squadCounterLine,
+  squadCounterParts,
+  squadProgressSegments,
+  squadRosterOrder,
+  squadRosterPreview,
+  squadRosterRowMeta,
   squadSelectionChanged,
   squadPlayerMeta,
   squadSeatViews,
@@ -107,11 +112,13 @@ describe("matchday squad", () => {
       title: "Your squad for Friday",
       help: "6-a-side, so 6 plus up to 3 reserves. Name at least 6 to confirm.",
       counter: "6 of 9 named from 12 on the roster",
+      namedLine: "6 of 9 named",
+      rosterLine: "from 12 on the roster",
       sideCounter: "side, 6",
       reserveCounter: "reserves, up to 3",
       stateLine: null,
       footer:
-        "Everyone you add is told they are in the squad. Nobody is told when they come off it.",
+        "Named players are told and see the game in their Games tab. The rest of the roster sees it but isn't playing. You can change this until the score goes in.",
       confirmLabel: "Confirm squad, 6 named",
     });
     expect(
@@ -158,18 +165,28 @@ describe("matchday squad", () => {
       key: "a",
       kind: "side",
       label: "Side",
-      player: { userId: "a", name: "Ali", meta: "GK · C", unclaimed: false },
+      emptyLabel: "Open",
+      player: {
+        userId: "a",
+        name: "Ali",
+        initials: "A",
+        code: "GK",
+        meta: "GK · C",
+        unclaimed: false,
+      },
       accessibilityLabel: "Side: Ali, Keeper",
     });
-    expect(seats[1]?.player?.meta).toBe("FWD");
+    expect(seats[1]?.player).toMatchObject({ meta: "FWD", code: "FWD" });
     expect(seats[2]).toMatchObject({
       key: "seat-2",
       player: null,
+      emptyLabel: "Open",
       accessibilityLabel: "Side, not named yet",
     });
     expect(seats[7]).toMatchObject({
       kind: "reserve",
       label: "Reserve",
+      emptyLabel: "Reserve",
       accessibilityLabel: "Reserve, not named yet",
     });
     expect(
@@ -178,6 +195,90 @@ describe("matchday squad", () => {
         "en",
       ),
     ).toBe("");
+  });
+
+  it("splits the grid counter into its strong and muted halves", () => {
+    expect(squadCounterParts(6, 6, "en")).toEqual({
+      strong: "6 of 9 named",
+      muted: "6 + 3 reserves",
+    });
+    expect(squadCounterParts(4, 6, "en")).toEqual({
+      strong: "4 of 9",
+      muted: "4 + 5 to name",
+    });
+    expect(squadCounterParts(0, 6, "en")).toEqual({
+      strong: "0 of 9",
+      muted: "Nobody named yet",
+    });
+    expect(squadCounterParts(4, 6, "ar").strong).toBe("4 من 9");
+  });
+
+  it("fills the sheet's bar up to the selection, the last three Reserves", () => {
+    const segments = squadProgressSegments(7, 6);
+    expect(segments).toHaveLength(9);
+    expect(segments.filter((segment) => segment.filled)).toHaveLength(7);
+    expect(segments[5]).toEqual({ kind: "side", filled: true });
+    expect(segments[6]).toEqual({ kind: "reserve", filled: true });
+    expect(segments[7]).toEqual({ kind: "reserve", filled: false });
+  });
+
+  it("orders the Roster Captain first, then the named, then the rest", () => {
+    expect(
+      squadRosterOrder(["a", "b", "c", "d", "e"], "c", ["e", "b"]),
+    ).toEqual(["c", "e", "b", "a", "d"]);
+    expect(squadRosterOrder(["a", "b"], "z", ["b", "z"])).toEqual(["b", "a"]);
+  });
+
+  it("previews one row per seat and counts the rest", () => {
+    const rows = Array.from({ length: 12 }, (_, index) => index);
+    expect(squadRosterPreview(rows, 6, 6, false)).toEqual({
+      visible: rows.slice(0, 9),
+      hiddenCount: 3,
+    });
+    expect(squadRosterPreview(rows, 6, 6, true).hiddenCount).toBe(0);
+    expect(squadRosterPreview(rows.slice(0, 5), 6, 2, false).hiddenCount).toBe(
+      0,
+    );
+  });
+
+  it("writes each Roster row's line", () => {
+    const base = {
+      userId: "a",
+      name: "Hassan Haji",
+      role: "outfield" as const,
+      position: "def" as const,
+      levelBand: null,
+      isViewer: false,
+      isCaptain: false,
+    };
+    expect(
+      squadRosterRowMeta(
+        { ...base, isViewer: true, isCaptain: true },
+        true,
+        "en",
+      ),
+    ).toBe("You, captain. DEF");
+    expect(
+      squadRosterRowMeta(
+        { ...base, position: "mid", levelBand: "C1" },
+        true,
+        "en",
+      ),
+    ).toBe("MID, C+");
+    expect(
+      squadRosterRowMeta(
+        { ...base, role: "keeper", position: null, unclaimed: true },
+        true,
+        "en",
+      ),
+    ).toBe("GK. Added by you, not on Temba");
+    expect(
+      squadRosterRowMeta(
+        { ...base, role: null, position: null, unclaimed: true },
+        false,
+        "en",
+      ),
+    ).toBe("Added by the captain, not on Temba");
   });
 
   it("asks to name an empty side and to edit a named one", () => {

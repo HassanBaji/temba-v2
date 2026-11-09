@@ -4,9 +4,13 @@ import { Check } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { initials } from "@repo/domain/initials";
 import {
   initialSquadSelection,
-  squadPlayerMeta,
+  squadProgressSegments,
+  squadRosterOrder,
+  squadRosterPreview,
+  squadRosterRowMeta,
   squadSelectionIsFull,
   squadSheetCopy,
   toggleSquadSelection,
@@ -14,38 +18,69 @@ import {
 
 import {
   ResponsiveDialog,
-  ResponsiveDialogClose,
   ResponsiveDialogContent,
   ResponsiveDialogDescription,
-  ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
+import { CloseButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
-function PickMark({ selected }: { selected: boolean }) {
+function CheckMark({ selected }: { selected: boolean }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px]",
-        selected ? "border-ink bg-ink text-paper" : "border-input",
+        "flex size-[22px] shrink-0 items-center justify-center rounded-[6px]",
+        selected ? "bg-control text-on-control" : "border-input border",
       )}
     >
-      {selected ? <Check className="size-3.5" /> : null}
+      {selected ? <Check className="size-3.5" strokeWidth={2} /> : null}
     </span>
   );
 }
 
+/** One bar segment per seat: solid once someone is named into it, hatched while open. */
+function SquadProgress({
+  selectedCount,
+  sideSize,
+  label,
+}: {
+  selectedCount: number;
+  sideSize: number;
+  label: string;
+}) {
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      className="grid gap-1"
+      style={{
+        gridTemplateColumns: `repeat(${sideSize + 3}, minmax(0, 1fr))`,
+      }}
+    >
+      {squadProgressSegments(selectedCount, sideSize).map((segment, index) =>
+        segment.filled ? (
+          <span key={index} className="bg-control h-2 rounded-[4px]" />
+        ) : (
+          <span
+            key={index}
+            className="hatch border-input h-2 rounded-[4px] border"
+          />
+        ),
+      )}
+    </div>
+  );
+}
+
 /**
- * Name your squad (6b): the Team's Roster to pick from, Captain first when
- * nobody is named yet, with role, Level and "Not on Temba yet" per row.
+ * Name your squad (6b): the Team's Roster as a checklist, Captain first,
+ * then whoever is named, then the rest, with role, Level and "Added by you,
+ * not on Temba" per row, the seat bar over it, and "Confirm squad, N named".
  * Saving sends the whole list in naming order.
  */
 export function NameSquadDialog({
@@ -68,27 +103,33 @@ export function NameSquadDialog({
   onSaved: () => Promise<unknown>;
 }) {
   const m = useMessages();
+  const sheetCopy = m.challenge.squad.sheet;
   const locale = useLocale();
+  const rowIdPrefix = React.useId();
   const team = api.teams.byId.useQuery({ id: teamId }, { enabled: open });
-  const members = team.data?.members ?? [];
+  const members = React.useMemo(() => team.data?.members ?? [], [team.data]);
   const [selected, setSelected] = React.useState<string[]>([]);
+  const [order, setOrder] = React.useState<string[]>([]);
+  const [expanded, setExpanded] = React.useState(false);
   const [seeded, setSeeded] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
       setSeeded(false);
+      setExpanded(false);
       return;
     }
     if (seeded || !team.data) {
       return;
     }
-    setSelected(
-      initialSquadSelection(
-        namedUserIds,
-        team.data.captainUserId,
-        team.data.members.map((member) => member.userId),
-      ),
+    const rosterIds = team.data.members.map((member) => member.userId);
+    const initial = initialSquadSelection(
+      namedUserIds,
+      team.data.captainUserId,
+      rosterIds,
     );
+    setSelected(initial);
+    setOrder(squadRosterOrder(rosterIds, team.data.captainUserId, initial));
     setSeeded(true);
   }, [open, seeded, team.data, namedUserIds]);
 
@@ -110,10 +151,24 @@ export function NameSquadDialog({
     locale,
   );
   const full = squadSelectionIsFull(selected, sideSize);
+  const viewerIsCaptain = members.some(
+    (member) => member.isViewer && member.isCreator,
+  );
+  const rows = [
+    ...order.flatMap((userId) => {
+      const member = members.find((candidate) => candidate.userId === userId);
+      return member ? [member] : [];
+    }),
+    ...members.filter((member) => !order.includes(member.userId)),
+  ];
+  const preview = squadRosterPreview(rows, sideSize, selected.length, expanded);
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
+      <ResponsiveDialogContent
+        className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[460px]"
+        showCloseButton={false}
+      >
         <form
           className="contents"
           onSubmit={(event) => {
@@ -121,109 +176,151 @@ export function NameSquadDialog({
             save.mutate({ gameId, teamId, userIds: selected });
           }}
         >
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              {copy.help}
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
+          <div className="flex items-start justify-between gap-3 px-[22px] pt-[22px]">
+            <ResponsiveDialogHeader className="min-w-0 p-0 text-start group-data-[vaul-drawer-direction=bottom]/drawer-content:text-start">
+              <ResponsiveDialogTitle className="font-expanded text-h1 leading-none tracking-[-0.03em]">
+                {copy.title}
+              </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription className="text-meta text-muted-foreground mt-1 leading-normal">
+                {copy.help}
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <CloseButton
+              variant="boxed"
+              label={sheetCopy.close}
+              onClick={() => onOpenChange(false)}
+            />
+          </div>
 
-          <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 pb-4 md:px-0 md:pb-0">
-            <div className="space-y-1">
-              <p className="font-semibold" aria-live="polite">
-                {copy.counter}
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-[22px] py-5">
+            <div>
+              <p
+                className="flex items-baseline justify-between gap-3 pb-2"
+                aria-live="polite"
+              >
+                <span className="text-[14px] font-semibold">
+                  {copy.namedLine}
+                </span>
+                <span className="text-muted-foreground text-[12px]">
+                  {copy.rosterLine}
+                </span>
               </p>
-              <p className="text-meta text-muted-foreground">
-                {[copy.sideCounter, copy.reserveCounter].join(
-                  m.group.metaSeparator,
-                )}
+              <SquadProgress
+                selectedCount={selected.length}
+                sideSize={sideSize}
+                label={copy.counter}
+              />
+              <p className="text-muted-foreground mt-1.5 flex justify-between gap-3 text-[11px]">
+                <span>{copy.sideCounter}</span>
+                <span>{copy.reserveCounter}</span>
               </p>
               {copy.stateLine ? (
-                <p className="text-meta">{copy.stateLine}</p>
+                <p className="text-meta mt-2">{copy.stateLine}</p>
               ) : null}
             </div>
 
             {team.error ? (
               <p role="alert" className="text-meta font-medium">
-                {m.challenge.squad.sheet.rosterLoadFailed}
+                {sheetCopy.rosterLoadFailed}
               </p>
             ) : !team.data ? (
-              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full rounded-[14px]" />
             ) : (
-              <ul>
-                {members.map((member) => {
-                  const isSelected = selected.includes(member.userId);
-                  const blocked = full && !isSelected;
-                  const meta = [
-                    member.isCreator ? m.challenge.squad.sheet.captain : null,
-                    squadPlayerMeta(
+              <div className="border-rule bg-paper divide-rule divide-y overflow-hidden rounded-[14px] border">
+                <ul className="divide-rule divide-y">
+                  {preview.visible.map((member) => {
+                    const isSelected = selected.includes(member.userId);
+                    const blocked = full && !isSelected;
+                    const meta = squadRosterRowMeta(
                       {
                         userId: member.userId,
                         name: member.name,
                         role: member.footballRole,
                         position: member.footballPosition,
                         levelBand: member.levelBand,
+                        unclaimed: member.unclaimed,
+                        isViewer: member.isViewer,
+                        isCaptain: member.isCreator,
                       },
+                      viewerIsCaptain,
                       locale,
-                    ) || null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <li key={member.userId} className="border-rule border-b">
-                      <button
-                        type="button"
-                        role="checkbox"
-                        aria-checked={isSelected}
-                        aria-label={
-                          isSelected
-                            ? m.challenge.squad.sheet.deselect(member.name)
-                            : m.challenge.squad.sheet.select(member.name)
-                        }
-                        aria-description={meta || undefined}
-                        disabled={blocked || save.isPending}
-                        onClick={() =>
-                          setSelected((current) =>
-                            toggleSquadSelection(
-                              current,
-                              member.userId,
-                              sideSize,
-                            ),
-                          )
-                        }
-                        className={cn(
-                          "focus-visible:ring-ring/50 min-h-15.5 flex w-full items-center gap-3 py-2.5 text-start outline-none focus-visible:ring-[3px]",
-                          blocked
-                            ? "cursor-default opacity-45"
-                            : "hover:opacity-80",
-                        )}
-                      >
-                        <UserAvatar
-                          name={member.name}
-                          image={member.image}
-                          size="lg"
-                          className="rounded-md"
-                        />
-                        <span className="min-w-0 flex-1 space-y-0.5">
-                          <span className="block truncate font-semibold">
-                            {member.name}
+                    );
+                    return (
+                      <li key={member.userId}>
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={isSelected}
+                          aria-label={
+                            isSelected
+                              ? sheetCopy.deselect(member.name)
+                              : sheetCopy.select(member.name)
+                          }
+                          aria-describedby={
+                            meta ? `${rowIdPrefix}-${member.userId}` : undefined
+                          }
+                          disabled={blocked || save.isPending}
+                          onClick={() =>
+                            setSelected((current) =>
+                              toggleSquadSelection(
+                                current,
+                                member.userId,
+                                sideSize,
+                              ),
+                            )
+                          }
+                          className={cn(
+                            "focus-visible:ring-ring/50 flex min-h-14 w-full items-center gap-3 px-4 py-[11px] text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
+                            blocked
+                              ? "cursor-default opacity-45"
+                              : "hover:bg-wash",
+                          )}
+                        >
+                          <CheckMark selected={isSelected} />
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "flex size-[34px] shrink-0 items-center justify-center rounded-[9px] border text-[12px] font-semibold",
+                              member.isViewer
+                                ? "border-control-edge bg-control text-on-control"
+                                : "border-rule bg-paper text-ink",
+                            )}
+                          >
+                            {initials(member.name)}
                           </span>
-                          {member.unclaimed ? <NotOnTembaTag /> : null}
-                          {meta ? (
-                            <span className="text-eyebrow text-muted-foreground block truncate">
-                              {meta}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[14px] font-semibold">
+                              {member.name}
                             </span>
-                          ) : null}
-                        </span>
-                        <PickMark selected={isSelected} />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                            {meta ? (
+                              <span
+                                id={`${rowIdPrefix}-${member.userId}`}
+                                className="text-muted-foreground block truncate text-[12px]"
+                              >
+                                {meta}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {preview.hiddenCount > 0 ? (
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-ink focus-visible:ring-ring/50 block w-full px-4 py-3 text-start text-[12px] outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
+                    onClick={() => setExpanded(true)}
+                  >
+                    {sheetCopy.moreOnRoster(preview.hiddenCount)}
+                  </button>
+                ) : null}
+              </div>
             )}
 
-            <p className="text-meta text-muted-foreground">{copy.footer}</p>
+            <p className="text-muted-foreground text-[12px] leading-normal">
+              {copy.footer}
+            </p>
             {save.error ? (
               <p role="alert" className="text-meta font-medium">
                 {save.error.message}
@@ -231,26 +328,16 @@ export function NameSquadDialog({
             ) : null}
           </div>
 
-          <ResponsiveDialogFooter>
-            <ResponsiveDialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11"
-                disabled={save.isPending}
-              >
-                {m.common.cancel}
-              </Button>
-            </ResponsiveDialogClose>
+          <div className="mt-auto shrink-0 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-1">
             <Button
               type="submit"
-              className="min-h-11"
+              className="h-[52px] w-full rounded-lg text-[15px] font-semibold"
               disabled={!seeded || save.isPending}
               aria-busy={save.isPending}
             >
               {copy.confirmLabel}
             </Button>
-          </ResponsiveDialogFooter>
+          </div>
         </form>
       </ResponsiveDialogContent>
     </ResponsiveDialog>

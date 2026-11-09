@@ -1,25 +1,26 @@
 import { challengeCardView } from "@repo/domain/challenge-card";
 import { challengeExpiresAt } from "@repo/domain/challenge-clock";
 import {
+  challengeDraftWithTeam,
+  challengeInitialDraft,
+  challengeLevelTap,
   challengeNudgeView,
-  challengeReviewLines,
-  challengeSlotDayOptions,
-  challengeSlotInstant,
-  emptyChallengeDraft,
+  challengePreviewCardInput,
+  challengeReviewRows,
   validateChallengeDraft,
   type ChallengeDraft,
   type ChallengeDraftField,
   type ChallengePostInput,
 } from "@repo/domain/challenge-form";
-import { formatsPlayable } from "@repo/domain/team-roster";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { View, type ScrollView } from "react-native";
 
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
+import { useLeaveScreen } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
@@ -27,50 +28,58 @@ import { api } from "../trpc/react";
 import {
   CHALLENGES_PATH,
   challengePath,
-  draftTeam,
-  previewCardInput,
-  rematchDraft,
   toggleValue,
 } from "./challenges-model";
+import { PostChallengeHeader } from "./post-challenge-parts";
+import { PostChallengeSlotSheet } from "./post-challenge-slot-sheet";
 import { PostChallengeForm, PostChallengeReview } from "./post-challenge-view";
 
-const DEFAULT_SLOT_MINUTES = 19 * 60;
+const SECONDARY_WIDTH = 104;
 
-export function PostChallengeScreen({
-  rematch = null,
+/** The footer's way back out: Cancel on the form, Edit on the review. */
+function FooterSecondary({
+  label,
+  onPress,
 }: {
-  rematch?: { teamId: string; opponentTeamId: string } | null;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <View style={{ width: SECONDARY_WIDTH }}>
+      <Button label={label} variant="outline" size="lg" onPress={onPress} />
+    </View>
+  );
+}
+
+/**
+ * 3a and 3b on one route: the post form, then the review step. A link may
+ * name the Team; a Rematch opens pre-filled from the Team played.
+ */
+export function PostChallengeScreen({
+  teamId = null,
+  opponentTeamId = null,
+}: {
+  teamId?: string | null;
+  opponentTeamId?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
   const m = useMessages();
   const locale = useLocale();
   const utils = api.useUtils();
+  const leave = useLeaveScreen(CHALLENGES_PATH);
+  const scrollRef = useRef<ScrollView>(null);
   const now = useMemo(() => new Date(), []);
   const options = api.challenges.listPostOptions.useQuery();
-  const [draft, setDraft] = useState<ChallengeDraft>(() =>
-    emptyChallengeDraft(),
-  );
+  const [draft, setDraft] = useState<ChallengeDraft | null>(null);
   const [errors, setErrors] = useState<
     Partial<Record<ChallengeDraftField, string>>
   >({});
   const [formError, setFormError] = useState<string | null>(null);
   const [review, setReview] = useState<ChallengePostInput | null>(null);
-  const [slotDay, setSlotDay] = useState(
-    () => challengeSlotDayOptions(now, locale)[1]?.value ?? "",
-  );
-  const [slotMinutes, setSlotMinutes] = useState(DEFAULT_SLOT_MINUTES);
-  const [prefilled, setPrefilled] = useState(rematch == null);
-  if (!prefilled && rematch && options.data) {
-    setPrefilled(true);
-    const prefill = rematchDraft(
-      options.data,
-      rematch.teamId,
-      rematch.opponentTeamId,
-    );
-    if (prefill) {
-      setDraft(prefill);
-    }
+  const [slotOpen, setSlotOpen] = useState(false);
+  if (draft == null && options.data) {
+    setDraft(challengeInitialDraft(options.data, { teamId, opponentTeamId }));
   }
 
   const post = api.challenges.post.useMutation({
@@ -89,26 +98,19 @@ export function PostChallengeScreen({
     },
   });
 
+  const header = <PostChallengeHeader title={m.challenge.post.title} />;
   if (options.isLoading) {
     return (
       <Screen>
-        <ScreenHeader
-          nav="close"
-          fallback={CHALLENGES_PATH}
-          title={m.challenge.post.title}
-        />
+        {header}
         <Skeleton height={240} radius={16} />
       </Screen>
     );
   }
-  if (options.error || !options.data) {
+  if (options.error || !options.data || !draft) {
     return (
       <Screen>
-        <ScreenHeader
-          nav="close"
-          fallback={CHALLENGES_PATH}
-          title={m.challenge.post.title}
-        />
+        {header}
         <Notice
           alert
           title={m.challenge.post.errorTitle}
@@ -123,11 +125,7 @@ export function PostChallengeScreen({
   if (data.teams.length === 0) {
     return (
       <Screen>
-        <ScreenHeader
-          nav="close"
-          fallback={CHALLENGES_PATH}
-          title={m.challenge.post.title}
-        />
+        {header}
         <View style={{ gap: 8 }}>
           <Text size="title" weight="semibold" accessibilityRole="header">
             {m.challenge.post.noTeamsTitle}
@@ -138,79 +136,76 @@ export function PostChallengeScreen({
     );
   }
 
+  const current = draft;
   const team =
-    data.teams.find((candidate) => candidate.id === draft.teamId) ?? null;
+    data.teams.find((candidate) => candidate.id === current.teamId) ?? null;
   const venues = team ? data.venues[team.sport] : [];
-
-  function pickTeam(teamId: string) {
-    const next = data.teams.find((candidate) => candidate.id === teamId);
-    setDraft((current) => {
-      const sameSport = current.teamId
-        ? data.teams.find((candidate) => candidate.id === current.teamId)
-            ?.sport === next?.sport
-        : false;
-      const playable = next ? formatsPlayable(next.rosterCount) : [];
-      return {
-        ...current,
-        teamId,
-        sideSize:
-          next?.sport === "football" &&
-          current.sideSize != null &&
-          playable.some((side) => side === current.sideSize)
-            ? current.sideSize
-            : null,
-        venueIds: sameSport ? current.venueIds : [],
-        nudgeTeamId: teamId === current.teamId ? current.nudgeTeamId : null,
-      };
-    });
-    setErrors({});
-  }
+  const update = (patch: Partial<ChallengeDraft>) =>
+    setDraft((previous) => (previous ? { ...previous, ...patch } : previous));
 
   function setNudge(nudgeTeamId: string | null) {
-    setDraft((current) => ({ ...current, nudgeTeamId }));
-    setReview((current) => (current ? { ...current, nudgeTeamId } : current));
+    update({ nudgeTeamId });
+    setReview((previous) =>
+      previous ? { ...previous, nudgeTeamId } : previous,
+    );
+  }
+
+  function toTop() {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
 
   function openReview() {
     setFormError(null);
-    const result = validateChallengeDraft(
-      draft,
-      team ? draftTeam(team) : null,
-      locale,
-      new Date(),
-    );
+    const result = validateChallengeDraft(current, team, locale, new Date());
     if (!result.ok) {
       setErrors(result.errors);
       return;
     }
     setErrors({});
     setReview(result.input);
+    toTop();
+  }
+
+  function backToForm() {
+    setReview(null);
+    toTop();
   }
 
   if (review && team) {
     const card = challengeCardView(
-      previewCardInput(
-        team,
-        {
-          sideSize: review.sideSize,
-          levelMinTenths: review.levelMinTenths,
-          levelMaxTenths: review.levelMaxTenths,
-          days: review.days,
-          timings: review.timings,
-          exactSlots: review.exactSlots,
-          venues: venues.filter((venue) => review.venueIds.includes(venue.id)),
-          note: review.note,
-        },
-        challengeExpiresAt(now),
-      ),
+      challengePreviewCardInput(team, review, venues, challengeExpiresAt(now)),
       locale,
       now,
+      { preview: true },
     );
     return (
-      <Screen>
+      <Screen
+        scrollRef={scrollRef}
+        footer={
+          <>
+            <View style={{ flex: 1 }}>
+              <Button
+                label={m.challenge.post.submit}
+                size="lg"
+                pending={post.isPending}
+                onPress={() => post.mutate(review)}
+              />
+            </View>
+            <FooterSecondary
+              label={m.challenge.post.edit}
+              onPress={backToForm}
+            />
+          </>
+        }
+      >
         <PostChallengeReview
           card={card}
-          lines={challengeReviewLines(draftTeam(team), review.sideSize, locale)}
+          rows={challengeReviewRows(
+            team,
+            review,
+            venues.filter((venue) => review.venueIds.includes(venue.id)),
+            locale,
+          )}
           nudge={challengeNudgeView(
             team.playedTeams,
             review.nudgeTeamId,
@@ -218,75 +213,89 @@ export function PostChallengeScreen({
           )}
           onNudge={setNudge}
           formError={formError}
-          pending={post.isPending}
-          onBack={() => setReview(null)}
-          onSubmit={() => post.mutate(review)}
+          onBack={backToForm}
         />
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <PostChallengeForm
+    <>
+      <Screen
+        scrollRef={scrollRef}
+        footer={
+          <>
+            <View style={{ flex: 1 }}>
+              <Button
+                label={m.challenge.post.review}
+                size="lg"
+                onPress={openReview}
+              />
+            </View>
+            <FooterSecondary label={m.common.cancel} onPress={leave} />
+          </>
+        }
+      >
+        <PostChallengeForm
+          now={now}
+          teams={data.teams}
+          team={team}
+          venues={venues}
+          draft={current}
+          errors={errors}
+          formError={formError}
+          onTeam={(id) => {
+            setDraft((previous) =>
+              previous
+                ? challengeDraftWithTeam(previous, data.teams, id)
+                : previous,
+            );
+            setErrors({});
+          }}
+          onSideSize={(sideSize) => update({ sideSize })}
+          onToggleVenue={(venueId) =>
+            update({ venueIds: toggleValue(current.venueIds, venueId) })
+          }
+          onAnyVenue={() => update({ venueIds: [] })}
+          onToggleDay={(day) =>
+            update({ days: toggleValue(current.days, day) })
+          }
+          onToggleTiming={(timing) =>
+            update({ timings: toggleValue(current.timings, timing) })
+          }
+          onAddSlot={() => setSlotOpen(true)}
+          onRemoveSlot={(slot) =>
+            update({
+              exactSlots: current.exactSlots.filter(
+                (each) => each.getTime() !== slot.getTime(),
+              ),
+            })
+          }
+          onLevel={(band) =>
+            update(
+              challengeLevelTap(
+                { levelMin: current.levelMin, levelMax: current.levelMax },
+                band,
+              ),
+            )
+          }
+          onNote={(note) => update({ note })}
+        />
+      </Screen>
+      <PostChallengeSlotSheet
+        visible={slotOpen}
         now={now}
-        teams={data.teams}
-        team={team}
-        venues={venues}
-        draft={draft}
-        errors={errors}
-        formError={formError}
-        slotDay={slotDay}
-        slotMinutes={slotMinutes}
-        onSlotDay={setSlotDay}
-        onSlotMinutes={setSlotMinutes}
-        onAddSlot={() => {
-          const slot = challengeSlotInstant(slotDay, slotMinutes);
-          setDraft((current) =>
-            current.exactSlots.some((each) => each.getTime() === slot.getTime())
-              ? current
-              : { ...current, exactSlots: [...current.exactSlots, slot] },
-          );
-        }}
-        onRemoveSlot={(slot) =>
-          setDraft((current) => ({
-            ...current,
-            exactSlots: current.exactSlots.filter(
-              (each) => each.getTime() !== slot.getTime(),
-            ),
-          }))
+        onClose={() => setSlotOpen(false)}
+        onAdd={(slot) =>
+          update({
+            exactSlots: current.exactSlots.some(
+              (each) => each.getTime() === slot.getTime(),
+            )
+              ? current.exactSlots
+              : [...current.exactSlots, slot],
+          })
         }
-        onTeam={pickTeam}
-        onSideSize={(sideSize) =>
-          setDraft((current) => ({ ...current, sideSize }))
-        }
-        onToggleVenue={(venueId) =>
-          setDraft((current) => ({
-            ...current,
-            venueIds: toggleValue(current.venueIds, venueId),
-          }))
-        }
-        onToggleDay={(day) =>
-          setDraft((current) => ({
-            ...current,
-            days: toggleValue(current.days, day),
-          }))
-        }
-        onToggleTiming={(timing) =>
-          setDraft((current) => ({
-            ...current,
-            timings: toggleValue(current.timings, timing),
-          }))
-        }
-        onLevel={(bound, value) =>
-          setDraft((current) => ({
-            ...current,
-            [bound === "min" ? "levelMin" : "levelMax"]: value,
-          }))
-        }
-        onNote={(note) => setDraft((current) => ({ ...current, note }))}
-        onReview={openReview}
       />
-    </Screen>
+    </>
   );
 }

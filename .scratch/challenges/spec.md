@@ -4,6 +4,8 @@ Status: approved, ready for implementation. Every open question in section 15 wa
 
 Design: "Temba Sports Community App Challenges v2b" (the owner's mockup). Its copy is the source of truth for screens and states; where it conflicts with the glossary, `decisions.md` section 1 records the call.
 
+**Design v2.2 (2026-11-09)** supersedes v2b for screens, layout and copy: `.scratch/design/challenges-v2-2/Challenges v2.2.html`. The domain rules in this spec still hold; where v2.2 shows something the data cannot back (a Season lens on Team form, "who booked" the court, free-text times such as "after 8 PM"), the screens show the nearest honest version.
+
 Audited at `cb1776ef` on `claude/temba-challenges-flow-3898a4` (dev + the seat-tile join work).
 
 ## 1. Problem

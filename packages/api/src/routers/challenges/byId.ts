@@ -19,6 +19,7 @@ import { loadChallengeCards } from "#src/challenges/challenge-cards";
 import {
   loadProposalViews,
   loadTeamDisplayNames,
+  loadTeamFaces,
 } from "#src/challenges/challenge-proposals";
 import { type db } from "#src/db";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -34,6 +35,7 @@ type DbClient = typeof db;
 async function confirmedGame(
   database: DbClient,
   row: typeof challenges.$inferSelect,
+  userId: string,
 ) {
   if (row.status !== "confirmed" || !row.gameId) {
     return null;
@@ -88,8 +90,10 @@ async function confirmedGame(
     proposedBy: {
       name: nameOf(proposal?.proposedBy),
       teamId: proposal?.teamId ?? null,
+      isViewer: proposal?.proposedBy === userId,
     },
     confirmedBy: { name: nameOf(proposal?.decidedBy) },
+    confirmedAt: proposal?.decidedAt ?? null,
     sides: sides.map((side) => ({
       teamId: side.teamId,
       displayName: side.teamId ? (names.get(side.teamId) ?? null) : null,
@@ -106,7 +110,8 @@ async function confirmedGame(
  * Proposal count, and the viewer's Teams that may propose. Pending: the
  * viewer's Teams' Proposals, to change or withdraw. Who acts for the poster
  * also gets the Proposal queue, oldest first, to decide on. Confirmed: the
- * Challenge Game.
+ * Challenge Game. `teamFaces` draws every Team on the screen: the poster,
+ * each proposing Team and both sides of the Game.
  */
 export async function challengeById(
   database: DbClient,
@@ -151,6 +156,18 @@ export async function challengeById(
       : (await teamsUserActsFor(database, args.userId)).map((team) => team.id),
   );
   const proposals = await loadProposalViews(database, pendingRows);
+  const game = await confirmedGame(database, row, args.userId);
+  const teamFaces = await loadTeamFaces(
+    database,
+    [
+      row.teamId,
+      ...proposals.map((proposal) => proposal.team.id),
+      ...(game?.sides ?? []).flatMap((side) =>
+        side.teamId ? [side.teamId] : [],
+      ),
+    ],
+    { userId: args.userId, now },
+  );
   return {
     ...card,
     viewerEligibleTeams: card.viewer.eligibleTeams,
@@ -160,7 +177,8 @@ export async function challengeById(
     ),
     proposalQueue: card.viewer.actsForPoster ? proposals : [],
     viewerCanDecide: open && card.viewer.actsForPoster,
-    game: await confirmedGame(database, row),
+    game,
+    teamFaces,
   };
 }
 

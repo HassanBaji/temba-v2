@@ -6,6 +6,7 @@ import {
   challengeCountsForLine,
   challengeGameDetailsRows,
   challengeHeadToHeadLine,
+  challengeHeroSubLine,
   challengeTeamVsTeamView,
 } from "./challenge-game-details";
 
@@ -43,8 +44,17 @@ describe("challenge game details", () => {
       initials: "HU",
       recordLabel: "W–D–L",
       recordValue: "3–1–2",
+      recordLine: "3–1–2",
       recordSpoken: "Won 3, drew 1, lost 2",
     });
+    expect(view.middleLine).toBe("head-to-head 2–0–1");
+    expect(
+      challengeTeamVsTeamView(
+        [{ ...hidd, viewerIsCaptain: true }, arad],
+        "football",
+        "en",
+      ).home.recordLine,
+    ).toBe("3–1–2, you captain");
     expect(view.away.recordValue).toBe("1–0–4");
     expect(view.title).toBe("Hidd United v Arad Athletic");
     expect(view.headToHeadLine).toBe("Head-to-head 2–0–1");
@@ -62,6 +72,7 @@ describe("challenge game details", () => {
       ),
     ).toMatchObject({
       headToHeadLine: "First meeting",
+      middleLine: "first meeting",
       home: { recordLabel: "W–L", recordValue: "3–2" },
     });
   });
@@ -96,15 +107,17 @@ describe("challenge game details", () => {
     );
   });
 
-  it("lists the details rows in the mockup's order", () => {
+  it("lists the details rows in the design's order", () => {
     const rows = challengeGameDetailsRows(
       {
         sport: "football",
-        postedByTeamName: "Hidd United",
-        proposedByName: "Sara",
-        confirmedByName: "Ali",
-        venueName: "Pitch Park",
-        courtName: "Pitch 2",
+        postedByTeamName: "Gooz FC",
+        postedAt: "2026-11-04T09:00:00.000Z",
+        proposedByTeamName: "Hidd United",
+        confirmedByName: "Hassan Haji",
+        confirmedByViewer: true,
+        venueName: "Fantasy FC",
+        courtName: "Pitch 1",
         costLine: "1.500 BD each, pay at the venue",
       },
       "en",
@@ -112,48 +125,71 @@ describe("challenge game details", () => {
     expect(rows).toEqual([
       {
         key: "from",
-        label: "From",
-        value: "Hidd United's challenge",
-        hint: null,
+        label: "From challenge",
+        value: "Posted by Gooz FC, 4 Nov",
       },
       {
-        key: "agreed",
-        label: "Agreed",
-        value: "Proposed by Sara, confirmed by Ali",
-        hint: null,
+        key: "proposed",
+        label: "Proposed by",
+        value: "Hidd United, confirmed by you",
       },
       {
         key: "place",
         label: "Pitch",
-        value: "Pitch Park, Pitch 2",
-        hint: "Book it yourselves",
+        value: "Fantasy FC, Pitch 1. Book it yourselves",
       },
       {
         key: "cost",
         label: "Cost",
         value: "1.500 BD each, pay at the venue",
-        hint: null,
       },
       {
         key: "counts",
         label: "Counts for",
         value: "Both teams' records and the players named",
-        hint: null,
       },
     ]);
     const padel = challengeGameDetailsRows(
       {
         sport: "padel",
         postedByTeamName: "Seef Smashers",
-        proposedByName: null,
-        confirmedByName: null,
+        postedAt: null,
+        proposedByTeamName: "Riffa Duo",
+        confirmedByName: "Ali",
+        confirmedByViewer: false,
         venueName: "Padel Central",
         courtName: null,
         costLine: "Split four ways, pay at the venue",
       },
       "ar",
     );
-    expect(padel[0]?.value).toBe(`تحدي ${isolate("Seef Smashers")}`);
-    expect(padel[2]?.value).toBe("Padel Central");
+    expect(padel[0]?.value).toBe(`نشره ${isolate("Seef Smashers")}`);
+    expect(padel[1]?.value).toBe(
+      `${isolate("Riffa Duo")}، وأكّده ${isolate("Ali")}`,
+    );
+    expect(padel[2]).toMatchObject({
+      label: "الملعب الفرعي",
+      value: "Padel Central. احجزوه بأنفسكم",
+    });
+  });
+
+  it("writes the hero's pitch, format, length and confirmation", () => {
+    expect(
+      challengeHeroSubLine(
+        {
+          pitchName: "Pitch 1",
+          sideSize: 6,
+          windowStart: "2026-11-14T16:00:00.000Z",
+          windowEnd: "2026-11-14T17:30:00.000Z",
+        },
+        "en",
+      ),
+    ).toBe("Pitch 1, 6-a-side, 90 min. Confirmed by both teams");
+    expect(
+      challengeHeroSubLine(
+        { pitchName: null, sideSize: null, windowStart: null, windowEnd: null },
+        "en",
+      ),
+    ).toBe("Confirmed by both teams");
   });
 });

@@ -1,30 +1,31 @@
 "use client";
 
-import { type TeamHomeView } from "@repo/domain/teams";
+import { type TeamDetailView } from "@repo/domain/team-detail";
 
-import { useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 
-export function TeamFormLine({ form }: { form: TeamHomeView["form"] }) {
-  const m = useMessages();
+/** Ten result marks, oldest first, with the first and last days under them. */
+export function TeamFormLine({ form }: { form: TeamDetailView["form"] }) {
   return (
-    <div className="space-y-2">
-      <ol className="flex items-center gap-1.5">
+    <div>
+      <ol className="grid grid-cols-10 gap-1.5">
         {form.slots.map((slot) => (
-          <li key={slot.key} className="flex min-w-0 flex-1 justify-center">
+          <li key={slot.key}>
             <ResultMark
               variant={slot.variant}
-              className="aspect-square w-full max-w-7"
+              className="aspect-square w-full"
             />
           </li>
         ))}
       </ol>
-      <div className="text-eyebrow text-muted-foreground flex justify-between">
-        <span>{m.team.form.older}</span>
-        <span>{m.team.form.latest}</span>
-      </div>
+      {form.ends ? (
+        <div className="text-eyebrow text-muted-foreground mt-1.5 flex justify-between">
+          <span>{form.ends.oldest}</span>
+          <span>{form.ends.newest}</span>
+        </div>
+      ) : null}
       {form.emptyCopy ? (
-        <p className="text-body text-muted-foreground">{form.emptyCopy}</p>
+        <p className="text-meta text-muted-foreground mt-2">{form.emptyCopy}</p>
       ) : null}
     </div>
   );

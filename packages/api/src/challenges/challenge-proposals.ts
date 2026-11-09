@@ -11,6 +11,7 @@ import {
 } from "@repo/db";
 
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
+import { loadTeamLevels } from "#src/teams/team-level";
 
 type DbOrTx = DbClient | DbTx;
 
@@ -49,6 +50,57 @@ export async function loadTeamDisplayNames(
   }
   return names;
 }
+
+/** A face shows the first few Roster members, as the card's tiles do. */
+const TEAM_FACE_MEMBERS = 6;
+
+/**
+ * Each Team as the Challenge detail and the Accept sheet draw it: crest name,
+ * sport, Team Level, Roster size and its first members, with the viewer
+ * marked so the line can say "you".
+ */
+export async function loadTeamFaces(
+  database: DbOrTx,
+  teamIds: readonly string[],
+  args: { userId: string; now: Date },
+) {
+  const ids = [...new Set(teamIds)];
+  if (ids.length === 0) {
+    return [];
+  }
+  const teamRows = await database.query.teams.findMany({
+    where: inArray(teams.id, ids),
+    columns: { id: true, name: true, sport: true },
+  });
+  const memberRows = await database.query.teamMembers.findMany({
+    where: inArray(teamMembers.teamId, ids),
+    columns: { teamId: true, userId: true },
+    with: { user: { columns: { name: true } } },
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+  const levels = await loadTeamLevels(database, teamRows, args.now);
+  return teamRows.map((team) => {
+    const roster = memberRows.filter((member) => member.teamId === team.id);
+    const level = levels.get(team.id) ?? null;
+    return {
+      id: team.id,
+      displayName: teamDisplayName(
+        team.name,
+        roster.map((member) => member.user.name),
+      ),
+      sport: team.sport,
+      rosterCount: roster.length,
+      teamLevel: level ? { band: level.band, level: level.level } : null,
+      members: roster.slice(0, TEAM_FACE_MEMBERS).map((member) => ({
+        name: member.user.name,
+        isViewer: member.userId === args.userId,
+      })),
+      viewerOnRoster: roster.some((member) => member.userId === args.userId),
+    };
+  });
+}
+
+export type TeamFace = Awaited<ReturnType<typeof loadTeamFaces>>[number];
 
 /**
  * Proposals as the Challenge detail and Mine show them: the proposing Team,

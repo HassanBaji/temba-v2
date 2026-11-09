@@ -1,29 +1,36 @@
-import { spacing } from "@repo/design-tokens";
-import { challengeProposalView } from "@repo/domain/challenge-card";
+import { radii } from "@repo/design-tokens";
+import {
+  challengeProposalCard,
+  challengeProposalFootnote,
+} from "@repo/domain/challenge-detail";
+import { initials } from "@repo/domain/initials";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
-import { Button } from "../primitives/button";
-import { Section } from "../primitives/section";
-import { Surface } from "../primitives/surface";
-import { ProposalLines } from "./challenge-proposal";
+import { hairline } from "../primitives/hairline-width";
+import { Hatch } from "../primitives/hatch";
+import { useTonePalette } from "../primitives/surface-context";
+import { Text } from "../primitives/text";
+import { ChallengeFootnote, CrestTile } from "./challenge-detail-parts";
+import { ProposalCard } from "./challenge-proposal";
 import type { ChallengeDetail } from "./challenges-model";
 
 type Proposal = ChallengeDetail["proposalQueue"][number];
+
+const MARKER = 36;
 
 /** 2c: the viewer's Team's pending Proposal, to change or withdraw. */
 export function ViewerProposals({
   proposals,
   posterTeamName,
-  focus,
+  sport,
   withdrawingId,
   onChange,
   onWithdraw,
 }: {
   proposals: readonly Proposal[];
   posterTeamName: string;
-  /** The first Proposal is the screen's one focus. */
-  focus: boolean;
+  sport: string;
   withdrawingId: string | null;
   onChange: (proposal: Proposal) => void;
   onWithdraw: (proposal: Proposal) => void;
@@ -33,51 +40,56 @@ export function ViewerProposals({
   if (proposals.length === 0) {
     return null;
   }
+  const copy = m.challenge.detailScreen.proposal;
   const now = new Date();
   return (
-    <Section title={m.challenge.proposal.pendingTitle}>
-      <View style={{ gap: spacing.compact }}>
-        {proposals.map((proposal, index) => (
-          <Surface
+    <View>
+      <View style={{ gap: 12 }}>
+        {proposals.map((proposal) => (
+          <ProposalCard
             key={proposal.id}
-            tone={focus && index === 0 ? "ink" : "paper"}
-            style={{ gap: spacing.compact }}
-          >
-            <ProposalLines
-              view={challengeProposalView(proposal, now, locale)}
-              lead={m.challenge.proposal.waitingOn(posterTeamName)}
-            />
-            <View style={{ gap: 8 }}>
-              <Button
-                label={m.challenge.proposal.change}
-                onPress={() => onChange(proposal)}
-              />
-              <Button
-                label={m.challenge.proposal.withdraw}
-                variant={focus && index === 0 ? "outline-inverse" : "outline"}
-                pending={withdrawingId === proposal.id}
-                onPress={() => onWithdraw(proposal)}
-              />
-            </View>
-          </Surface>
+            focus
+            view={challengeProposalCard(
+              proposal,
+              { side: "proposer", posterName: posterTeamName },
+              now,
+              locale,
+            )}
+            marker={
+              <View style={{ width: MARKER, height: MARKER }}>
+                <Hatch radius={MARKER / 2} />
+              </View>
+            }
+            primary={{ label: copy.change, onPress: () => onChange(proposal) }}
+            secondary={{
+              label: copy.withdraw,
+              pending: withdrawingId === proposal.id,
+              onPress: () => onWithdraw(proposal),
+            }}
+          />
         ))}
       </View>
-    </Section>
+      <ChallengeFootnote>
+        {challengeProposalFootnote(sport, locale)}
+      </ChallengeFootnote>
+    </View>
   );
 }
 
 /**
  * The posting Team's queue: each pending Proposal, oldest first, with
- * "Confirm, make it a game" and Another time.
+ * Confirm and Another time. The oldest carries the ink edge.
  */
 export function ProposalQueue({
   proposals,
+  posterTeamName,
   confirmingId,
   decliningId,
   onConfirm,
   onDecline,
 }: {
   proposals: readonly Proposal[];
+  posterTeamName: string;
   confirmingId: string | null;
   decliningId: string | null;
   onConfirm: (proposal: Proposal) => void;
@@ -85,46 +97,84 @@ export function ProposalQueue({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  if (proposals.length === 0) {
-    return null;
-  }
+  const palette = useTonePalette();
+  const copy = m.challenge.detailScreen.queue;
   const now = new Date();
   return (
-    <Section title={m.challenge.proposal.queueTitle}>
-      <View style={{ gap: spacing.compact }}>
-        {proposals.map((proposal, index) => {
-          const view = challengeProposalView(proposal, now, locale);
-          const focus = index === 0;
-          return (
-            <Surface
-              key={proposal.id}
-              tone={focus ? "ink" : "paper"}
-              style={{ gap: spacing.compact }}
-            >
-              <ProposalLines view={view} lead={view.sentLine} />
-              <View style={{ gap: 8 }}>
-                <Button
-                  label={m.challenge.proposal.confirm}
-                  accessibilityLabel={m.challenge.proposal.confirmA11y(
-                    view.title,
-                  )}
-                  pending={confirmingId === proposal.id}
-                  onPress={() => onConfirm(proposal)}
-                />
-                <Button
-                  label={m.challenge.proposal.anotherTime}
-                  accessibilityLabel={m.challenge.proposal.anotherTimeA11y(
-                    view.title,
-                  )}
-                  variant={focus ? "outline-inverse" : "outline"}
-                  pending={decliningId === proposal.id}
-                  onPress={() => onDecline(proposal)}
-                />
-              </View>
-            </Surface>
-          );
-        })}
+    <View style={{ gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text size="meta" tone="muted" accessibilityRole="header">
+          {copy.title}
+        </Text>
+        {proposals.length > 0 ? (
+          <Text
+            size="eyebrow"
+            tone="muted"
+            style={{ flexShrink: 1, textAlign: "right" }}
+          >
+            {copy.hint}
+          </Text>
+        ) : null}
       </View>
-    </Section>
+      {proposals.length === 0 ? (
+        <View
+          style={{
+            borderWidth: hairline,
+            borderColor: palette.rule,
+            borderRadius: radii.card,
+            paddingVertical: 16,
+            paddingHorizontal: 18,
+          }}
+        >
+          <Text size="meta" tone="muted">
+            {copy.empty}
+          </Text>
+        </View>
+      ) : (
+        <View style={{ gap: 12 }}>
+          {proposals.map((proposal, index) => (
+            <ProposalCard
+              key={proposal.id}
+              focus={index === 0}
+              view={challengeProposalCard(
+                proposal,
+                { side: "poster", posterName: posterTeamName },
+                now,
+                locale,
+              )}
+              marker={
+                <CrestTile
+                  size="sm"
+                  initials={initials(proposal.team.displayName)}
+                />
+              }
+              primary={{
+                label: copy.confirm,
+                accessibilityLabel: m.challenge.proposal.confirmA11y(
+                  proposal.team.displayName,
+                ),
+                pending: confirmingId === proposal.id,
+                onPress: () => onConfirm(proposal),
+              }}
+              secondary={{
+                label: copy.another,
+                accessibilityLabel: m.challenge.proposal.anotherTimeA11y(
+                  proposal.team.displayName,
+                ),
+                pending: decliningId === proposal.id,
+                onPress: () => onDecline(proposal),
+              }}
+            />
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
