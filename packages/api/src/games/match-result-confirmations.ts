@@ -132,6 +132,27 @@ export async function recordMatchResultConfirmation(
 }
 
 /**
+ * Records a seated User's agreement with the score as it stands. A repeat
+ * keeps the first `confirmedAt`, which is when a tournament score stands from
+ * (ADR-0062), so a second tap cannot restart the other team's ten minutes.
+ */
+export async function keepMatchResultConfirmation(
+  database: DbClient,
+  matchId: string,
+  userId: string,
+): Promise<void> {
+  await database
+    .insert(matchResultConfirmations)
+    .values({ matchId, userId, confirmedAt: new Date() })
+    .onConflictDoNothing({
+      target: [
+        matchResultConfirmations.matchId,
+        matchResultConfirmations.userId,
+      ],
+    });
+}
+
+/**
  * Clears every Match result confirmation for a Match except the given
  * User's — used when a Set's games-won values change after at least one
  * confirmation already exists (a changed score requires re-agreement).

@@ -503,6 +503,8 @@ export const game = {
       }),
     decider: (set: number, score: string) =>
       `الشوط ${set} فقط إذا كانت النتيجة ${score}.`,
+    gamesRange: (min: number, max: number) =>
+      `الألعاب المكسوبة في الشوط من ${min} إلى ${max}.`,
     levelAt: (tally: string) => `تعادل ${tally}`,
     yourTeam: "فريقك",
     leads: (team: string, tally: string) => `${team} متقدم ${tally}`,

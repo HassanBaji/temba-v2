@@ -90,7 +90,7 @@ describe("marks.give", () => {
           actorUserId: game.a.id,
           gameId: game.gameId,
           markKind: "dynamo",
-          dedupeKey: `mark_received:${markId}`,
+          dedupeKey: `mark_received:${game.matchId}:${game.a.id}`,
         },
       ]);
       expect(await receivedNotifications(db, game.a.id)).toHaveLength(0);

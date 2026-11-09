@@ -76,6 +76,9 @@ export const groupRatingEvents = pgTable(
     muAfter: doublePrecision("mu_after").notNull(),
     phiAfter: doublePrecision("phi_after").notNull(),
     sigmaAfter: doublePrecision("sigma_after").notNull(),
+    /** As on `rating_events`: restored by a wrong-score reversal. */
+    levelBandBefore: ratingLevelBands("level_band_before"),
+    lastRatedAtBefore: timestamp("last_rated_at_before"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

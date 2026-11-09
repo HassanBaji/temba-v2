@@ -13,15 +13,15 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { addSet } from "#src/routers/games/addSet";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
-import { scoreSet } from "#src/routers/games/scoreSet";
 import { updateMatch } from "#src/routers/games/updateMatch";
+import { SCORED_MATCH_SIDES_MESSAGE } from "#src/games/update-tournament-match";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const NOW = new Date("2026-09-20T16:00:00.000Z");
@@ -267,15 +267,9 @@ describe("Pool Match play", () => {
         ? teams.slot2
         : teams.slot1;
 
-      const firstSet = await addSet(db, {
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: match.id,
-        userId: viewer.id,
-      });
-      await scoreSet(db, {
-        gameId: seeded.gameId,
-        matchId: match.id,
-        setId: firstSet.id,
         userId: viewer.id,
         slot1GamesWon: 6,
         slot2GamesWon: 2,
@@ -324,31 +318,12 @@ describe("Pool Match play", () => {
       const teams = occupants(match);
       const everyone = [...teams.slot1, ...teams.slot2];
 
-      const setOne = await addSet(db, {
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: match.id,
         userId: viewer.id,
-      });
-      await scoreSet(db, {
-        gameId: seeded.gameId,
-        matchId: match.id,
-        setId: setOne.id,
-        userId: viewer.id,
-        slot1GamesWon: 6,
-        slot2GamesWon: 4,
-      });
-      const setTwo = await addSet(db, {
-        gameId: seeded.gameId,
-        matchId: match.id,
-        userId: viewer.id,
-      });
-      await scoreSet(db, {
-        gameId: seeded.gameId,
-        matchId: match.id,
-        setId: setTwo.id,
-        userId: viewer.id,
-        slot1GamesWon: 4,
-        slot2GamesWon: 6,
+        slot1GamesWon: 5,
+        slot2GamesWon: 5,
       });
 
       const opponent = everyone.find(
@@ -426,6 +401,77 @@ describe("Pool Match play", () => {
         where: eq(games.id, seeded.gameId),
       });
       expect(game?.drawPostedAt).toBeInstanceOf(Date);
+    } finally {
+      await close();
+    }
+  });
+
+  it("changes only the fields an Organizer sends", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "patch");
+      const target = (
+        await db.query.matches.findMany({
+          where: eq(matches.gameId, seeded.gameId),
+        })
+      ).find((row) => row.roundNumber === 2)!;
+
+      await updateMatch(db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+        matchId: target.id,
+        courtId: seeded.courtB.id,
+      });
+
+      const updated = await db.query.matches.findFirst({
+        where: eq(matches.id, target.id),
+      });
+      expect(updated).toMatchObject({
+        courtId: seeded.courtB.id,
+        startTime: target.startTime,
+        endTime: target.endTime,
+        durationInMinutes: target.durationInMinutes,
+        slot1GameTeamId: target.slot1GameTeamId,
+        slot2GameTeamId: target.slot2GameTeamId,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps the teams of a scored Pool Match", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedTournament(db, "keep-sides");
+      const [scored, other] = (
+        await db.query.matches.findMany({
+          where: eq(matches.gameId, seeded.gameId),
+        })
+      ).filter((row) => row.roundNumber === 1);
+      await enterTournamentScore(db, {
+        gameId: seeded.gameId,
+        matchId: scored!.id,
+        userId: seeded.owner.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+
+      await expect(
+        updateMatch(db, {
+          gameId: seeded.gameId,
+          userId: seeded.owner.id,
+          matchId: scored!.id,
+          slot1GameTeamId: other!.slot1GameTeamId,
+        }),
+      ).rejects.toThrow(SCORED_MATCH_SIDES_MESSAGE);
+      const after = await db.query.matches.findFirst({
+        where: eq(matches.id, scored!.id),
+      });
+      expect(after).toMatchObject({
+        status: MatchStatusEnum.COMPLETED,
+        slot1GameTeamId: scored!.slot1GameTeamId,
+        slot2GameTeamId: scored!.slot2GameTeamId,
+      });
     } finally {
       await close();
     }

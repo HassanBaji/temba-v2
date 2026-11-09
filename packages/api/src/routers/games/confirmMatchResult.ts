@@ -8,31 +8,63 @@ import { MatchStatusEnum, matchSets } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isGameOrganizer, requireGame } from "#src/games/access";
+import { requireGame, type GameRow } from "#src/games/access";
+import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   knockoutLevelMessage,
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import {
+  confirmsBySide,
+  keepMatchResultConfirmation,
+  matchResultConfirmedUserIds,
   matchResultFullyConfirmed,
-  recordMatchResultConfirmation,
+  matchSideSeats,
+  matchSlotsConfirmed,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+import { seatedSlot } from "#src/games/tournament-score";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
+import { type MatchRow } from "#src/games/utils";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * On a Match agreed by one player from each side, a side that already agreed
+ * has nothing to add: another tap from it must not move the moment its score
+ * stands from (ADR-0062).
+ */
+async function sideAlreadyAgreed(
+  database: DbClient,
+  game: GameRow,
+  match: MatchRow,
+  userId: string,
+) {
+  if (!confirmsBySide(game)) {
+    return false;
+  }
+  const slot = seatedSlot(await matchSideSeats(database, match), userId);
+  if (slot == null) {
+    return false;
+  }
+  const agreed = await matchSlotsConfirmed(database, match);
+  return slot === 1 ? agreed.slot1 : agreed.slot2;
+}
 
 /**
  * A User's confirmation that a Match's entered Sets are correct (ADR-0011).
  * A seated User confirms for themselves, and the Match completes once the
  * result is agreed. An Organizer's confirmation is final: it completes the
- * Match at once, without waiting on the players (ADR-0044). `slot` is kept
- * for clients that still name the side an Organizer confirms for; it is
- * refused from anyone else. The Match must already have a result and must
- * not already be completed or cancelled. Idempotent per Match+User.
+ * Match at once, without waiting on the players (ADR-0044); the players of a
+ * padel Challenge Game organize it but confirm as players. `slot` is kept for
+ * clients that still name the side an Organizer confirms for; it is refused
+ * from anyone else. The Match must already have a result and must not be
+ * cancelled. Idempotent per Match+User: a repeat changes nothing, and a
+ * repeat after the Match completed succeeds when the caller's confirmation
+ * or Organizer's word already stands.
  */
 export async function confirmMatchResult(
   database: DbClient,
@@ -53,16 +85,20 @@ export async function confirmMatchResult(
       message: "Cannot confirm the result of a cancelled Match",
     });
   }
+  const [seated, organizer] = await Promise.all([
+    userIsOnMatchSlots(database, match, args.userId),
+    confirmsAsOrganizer(database, game, args.userId),
+  ]);
   if (match.status === MatchStatusEnum.COMPLETED) {
+    const confirmed = await matchResultConfirmedUserIds(database, match.id);
+    if (organizer || (seated && confirmed.includes(args.userId))) {
+      return { ok: true as const };
+    }
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This Match is already completed",
     });
   }
-  const [seated, organizer] = await Promise.all([
-    userIsOnMatchSlots(database, match, args.userId),
-    isGameOrganizer(database, game, args.userId),
-  ]);
   if (!organizer) {
     if (args.slot !== undefined) {
       throw new TRPCError({
@@ -97,8 +133,11 @@ export async function confirmMatchResult(
     });
   }
 
-  if (seated) {
-    await recordMatchResultConfirmation(database, match.id, args.userId);
+  if (
+    seated &&
+    !(await sideAlreadyAgreed(database, game, match, args.userId))
+  ) {
+    await keepMatchResultConfirmation(database, match.id, args.userId);
   }
 
   if (organizer || (await matchResultFullyConfirmed(database, match))) {

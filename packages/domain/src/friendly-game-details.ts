@@ -60,6 +60,7 @@ export type FriendlyGameDetailsConfirmation = {
   confirmedAt: Date | null;
   organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
   confirmedByOrganizer?: boolean;
+  viewerConfirmsAsOrganizer?: boolean;
 };
 
 export type FriendlyGameDetailsRatingImpact = {

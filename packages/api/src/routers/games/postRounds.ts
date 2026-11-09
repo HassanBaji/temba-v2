@@ -11,6 +11,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { matchTimes } from "#src/games/helpers/match-times";
+import { lockGame } from "#src/games/lock-rows";
 import {
   assertMakesPoolRounds,
   assertRoundInRange,
@@ -90,6 +91,9 @@ export async function postRounds(
   }
 
   await database.transaction(async (tx) => {
+    // The Game row lock serialises two posts of a Round, and a post with an
+    // undo of the draw, so the check below sees the other's Matches.
+    assertMakesPoolRounds(await lockGame(tx, game.id));
     const already = await tx.query.matches.findFirst({
       where: and(
         eq(matches.gameId, game.id),

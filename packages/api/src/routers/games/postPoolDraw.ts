@@ -28,6 +28,7 @@ import { type db } from "#src/db";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { matchTimes } from "#src/games/helpers/match-times";
+import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -424,8 +425,14 @@ export async function postPoolDraw(
 
   const now = new Date();
   await database.transaction(async (tx) => {
-    const locked = await requireGame(tx, game.id);
+    const locked = await lockGame(tx, game.id);
     assertPoolDrawNotPosted(locked);
+    if (locked.cancelledAt) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Cannot post the group draw on a cancelled Game",
+      });
+    }
     for (const match of toInsert) {
       const values = matchTimes({
         startTime: match.startTime,

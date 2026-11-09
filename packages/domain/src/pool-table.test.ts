@@ -51,6 +51,63 @@ describe("comparePoolRecords", () => {
     assert.deepEqual(ids(sortPoolRecords([loser, winner])), ["a", "b"]);
   });
 
+  it("orders a three-way head-to-head cycle the same way whatever the input order", () => {
+    const cycle = (id: string, sets: number, beat: string, lostTo: string) =>
+      record({
+        gameTeamId: id,
+        played: 2,
+        won: 1,
+        setDifference: sets,
+        gamesDifference: sets,
+        poolOrder: { a: 1, b: 2, c: 3 }[id] ?? 0,
+        headToHead: { [beat]: 1, [lostTo]: 0 },
+      });
+    const a = cycle("a", -5, "b", "c");
+    const b = cycle("b", 0, "c", "a");
+    const c = cycle("c", 5, "a", "b");
+    for (const input of [
+      [a, b, c],
+      [b, c, a],
+      [c, a, b],
+      [a, c, b],
+      [c, b, a],
+    ]) {
+      assert.deepEqual(ids(sortPoolRecords(input)), ["c", "b", "a"]);
+    }
+  });
+
+  it("uses head-to-head among every team level on points before Set difference", () => {
+    const a = record({
+      gameTeamId: "a",
+      won: 2,
+      setDifference: -2,
+      poolOrder: 3,
+      headToHead: { b: 1, c: 1 },
+    });
+    const b = record({
+      gameTeamId: "b",
+      won: 2,
+      setDifference: 4,
+      poolOrder: 1,
+      headToHead: { a: 0, c: 1 },
+    });
+    const c = record({
+      gameTeamId: "c",
+      won: 2,
+      setDifference: 6,
+      poolOrder: 2,
+      headToHead: { a: 0, b: 0 },
+    });
+    assert.deepEqual(ids(sortPoolRecords([c, b, a])), ["a", "b", "c"]);
+  });
+
+  it("falls back to the team id when everything else is level", () => {
+    const x = record({ gameTeamId: "x", won: 1, poolOrder: 1 });
+    const y = record({ gameTeamId: "y", won: 1, poolOrder: 1 });
+    assert.deepEqual(ids(sortPoolRecords([y, x])), ["x", "y"]);
+    assert.deepEqual(ids(sortPoolRecords([x, y])), ["x", "y"]);
+  });
+
   it("skips a drawn head-to-head and uses Set difference", () => {
     const betterSets = record({
       gameTeamId: "a",

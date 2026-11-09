@@ -17,6 +17,7 @@ import {
 } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
+import { type LevelBand } from "@repo/domain/level";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -31,6 +32,22 @@ import { suspendMvp } from "#src/marks/settle-mvp";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * The Level band and last rated time an event stored from before its Match.
+ * An event written before they were stored leaves both as they are.
+ */
+function bandAndRatedAtBefore(event: {
+  levelBandBefore: LevelBand | null;
+  lastRatedAtBefore: Date | null;
+}) {
+  return event.levelBandBefore == null
+    ? {}
+    : {
+        levelBand: event.levelBandBefore,
+        lastRatedAt: event.lastRatedAtBefore,
+      };
+}
 
 /**
  * Restores each Group Level to its before-values on this Match, unless an
@@ -79,6 +96,7 @@ async function reverseGroupRatingEvents(
         mu: event.muBefore,
         phi: event.phiBefore,
         sigma: event.sigmaBefore,
+        ...bandAndRatedAtBefore(event),
         updatedAt: now,
       })
       .where(
@@ -104,8 +122,9 @@ async function reverseGroupRatingEvents(
  * sequential, so restoring stored before-values would otherwise silently
  * erase legitimate later changes.
  *
- * When eligible, in one transaction: restores each Rating (μ, φ, σ) to the
- * before-values stored on this Match's rating events, deletes those four
+ * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
+ * band, last rated time) to the before-values stored on this Match's rating
+ * events, deletes those four
  * rating events, clears the Match's `match_result_confirmations`, and drops
  * `match.status` back to `pending`. No new status/phase is invented — this
  * re-derives the existing `needs_results` phase (`byId.ts`) and re-enters
@@ -213,6 +232,7 @@ export async function reportWrongScore(
           mu: event.muBefore,
           phi: event.phiBefore,
           sigma: event.sigmaBefore,
+          ...bandAndRatedAtBefore(event),
           updatedAt: now,
         })
         .where(

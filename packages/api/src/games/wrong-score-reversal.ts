@@ -17,7 +17,9 @@ export type WrongScoreReversalEligibility =
  * User, this Match's rating event is that User's most recent Rated Match for
  * the event's sport. Glicko-2 updates are sequential, so restoring stored
  * before-values is only correct when nothing has been built on top of them
- * since — checked per seated User, not just the caller/viewer.
+ * since — checked per seated User, not just the caller/viewer. A Match with
+ * no rating events (an Unrated Game) has nothing to reverse and just reopens
+ * (ADR-0062).
  */
 export async function wrongScoreReversalEligibility(
   database: DbClient,
@@ -31,13 +33,6 @@ export async function wrongScoreReversalEligibility(
       where: eq(groupRatingEvents.matchId, matchId),
     }),
   ]);
-  if (matchEvents.length === 0 && groupEvents.length === 0) {
-    return {
-      eligible: false,
-      reason: "This Match has no rating events to reverse",
-    };
-  }
-
   for (const event of matchEvents) {
     const [latest] = await database
       .select({ id: ratingEvents.id })

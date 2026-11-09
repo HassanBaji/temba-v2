@@ -11,6 +11,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
 import { clearMatchResultConfirmations } from "#src/games/match-result-confirmations";
+import { lockMatch } from "#src/games/lock-rows";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { removeJob } from "#src/jobs/enqueue";
@@ -44,15 +45,15 @@ export async function markMatchNotFinished(
       message: "Only the two teams or an organizer can do that",
     });
   }
-  if (match.status !== MatchStatusEnum.PENDING) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only a Match still being played can be marked not finished",
-    });
-  }
-
   const now = new Date();
   await database.transaction(async (tx) => {
+    const locked = await lockMatch(tx, match.id);
+    if (locked.status !== MatchStatusEnum.PENDING) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only a Match still being played can be marked not finished",
+      });
+    }
     await tx.delete(matchSets).where(eq(matchSets.matchId, match.id));
     await clearMatchResultConfirmations(tx, match.id);
     await tx

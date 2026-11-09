@@ -9,6 +9,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, requireGame } from "#src/games/access";
+import { withdrawUnseenMarkReceived } from "#src/marks/mark-received-notification";
 import { marksMatch } from "#src/marks/match-participants";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -17,7 +18,8 @@ const WINDOW_CLOSED: MarkRefusal = "window_closed";
 
 /**
  * A giver takes back the Mark they gave a receiver while the Marks window is
- * open, so a mistap is not permanent. The receiver's Notification stays.
+ * open, so a mistap is not permanent. The receiver's Notification goes too
+ * while it is unread and not emailed; once seen it stays.
  */
 export async function retract(
   database: DbClient,
@@ -59,6 +61,11 @@ export async function retract(
     if (removed.length === 0) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Mark not found" });
     }
+    await withdrawUnseenMarkReceived(tx, {
+      matchId: locked.id,
+      giverUserId: args.userId,
+      receiverUserId: args.receiverUserId,
+    });
   });
 
   return { ok: true };

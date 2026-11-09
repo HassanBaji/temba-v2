@@ -19,15 +19,13 @@ import {
   tournamentMatchRoundLabel,
   tournamentTeamsLine,
 } from "@repo/domain/tournament-card";
-import { addSet } from "#src/routers/games/addSet";
 import { cancelMatch } from "#src/routers/games/cancelMatch";
-import { completeMatch } from "#src/routers/games/completeMatch";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { listPublicHubRows } from "#src/routers/games/listPublicPickup";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
-import { scoreSet } from "#src/routers/games/scoreSet";
 import { groupById } from "#src/routers/groups/byId";
 import { listMyGamesHubRows } from "#src/games/list-my-games";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -602,24 +600,13 @@ async function settleFor(
   winnerSide: number,
 ) {
   const winner = seeded.sideOf(match.slot1GameTeamId) === winnerSide ? 1 : 2;
-  const set = await addSet(database, {
+  vi.setSystemTime(new Date(Date.now() + 1000));
+  await enterTournamentScore(database, {
     gameId: seeded.gameId,
     matchId: match.id,
-    userId: seeded.owner.id,
-  });
-  await scoreSet(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    setId: set.id,
     userId: seeded.owner.id,
     slot1GamesWon: winner === 1 ? 6 : 2,
     slot2GamesWon: winner === 1 ? 2 : 6,
-  });
-  vi.setSystemTime(new Date(Date.now() + 1000));
-  await completeMatch(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    userId: seeded.owner.id,
   });
 }
 

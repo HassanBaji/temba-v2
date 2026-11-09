@@ -9,6 +9,7 @@ import {
   games,
   groups,
   matches,
+  matchSets,
   user,
   venues,
 } from "@repo/db/schema";
@@ -17,7 +18,6 @@ import {
   addMatch,
   KNOCKOUT_MATCH_BY_HAND_MESSAGE,
 } from "#src/routers/games/addMatch";
-import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -688,11 +688,9 @@ describe("undoPoolDraw on Knockout only", () => {
     const { db, close } = await createPgliteDb();
     try {
       const seeded = await seedPosted(db, "undo-ko-set");
-      await addSet(db, {
-        gameId: seeded.gameId,
-        matchId: seeded.at(1, 2).id,
-        userId: seeded.owner.id,
-      });
+      await db
+        .insert(matchSets)
+        .values({ matchId: seeded.at(1, 2).id, setNumber: 1 });
       await expectRefused(
         () =>
           undoPoolDraw(db, {

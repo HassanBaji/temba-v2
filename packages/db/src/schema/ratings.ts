@@ -94,6 +94,13 @@ export const ratingEvents = pgTable(
     muAfter: doublePrecision("mu_after").notNull(),
     phiAfter: doublePrecision("phi_after").notNull(),
     sigmaAfter: doublePrecision("sigma_after").notNull(),
+    /**
+     * The Rating's Level band and last rated time before this Match, so a
+     * wrong-score reversal restores them too. Null on events written before
+     * these columns existed.
+     */
+    levelBandBefore: ratingLevelBands("level_band_before"),
+    lastRatedAtBefore: timestamp("last_rated_at_before"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

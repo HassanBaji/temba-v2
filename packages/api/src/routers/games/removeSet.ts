@@ -9,6 +9,8 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
 import { assertMayWriteSets } from "#src/games/assert-may-write-sets";
+import { settleConfirmationsAfterSetChange } from "#src/games/confirmations-after-set-change";
+import { lockMatch } from "#src/games/lock-rows";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -25,17 +27,34 @@ export async function removeSet(
   const game = await requireGame(database, args.gameId);
   const match = await requireMatchOnGame(database, game.id, args.matchId);
   const organizer = await isGameOrganizer(database, game, args.userId);
-  await assertMayWriteSets(database, game, match, args.userId, organizer);
-  const deleted = await database
-    .delete(matchSets)
-    .where(and(eq(matchSets.id, args.setId), eq(matchSets.matchId, match.id)))
-    .returning({ id: matchSets.id });
-  if (deleted.length === 0) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Set not found",
-    });
-  }
+  await database.transaction(async (tx) => {
+    const locked = await lockMatch(tx, match.id);
+    await assertMayWriteSets(tx, game, locked, args.userId, organizer);
+    const deleted = await tx
+      .delete(matchSets)
+      .where(
+        and(eq(matchSets.id, args.setId), eq(matchSets.matchId, locked.id)),
+      )
+      .returning({
+        slot1GamesWon: matchSets.slot1GamesWon,
+        slot2GamesWon: matchSets.slot2GamesWon,
+      });
+    const [removed] = deleted;
+    if (!removed) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Set not found",
+      });
+    }
+    if (removed.slot1GamesWon != null || removed.slot2GamesWon != null) {
+      await settleConfirmationsAfterSetChange(tx, {
+        game,
+        match: locked,
+        userId: args.userId,
+        scoreChanged: true,
+      });
+    }
+  });
   return { ok: true as const };
 }
 

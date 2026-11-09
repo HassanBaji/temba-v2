@@ -18,7 +18,6 @@ import {
   knockoutChampion,
   type KnockoutViewRound,
 } from "@repo/domain/tournament-knockout-view";
-import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { cancelGame } from "#src/routers/games/cancel";
 import {
@@ -26,16 +25,15 @@ import {
   POOL_MATCH_NOT_AWARDED_MESSAGE,
   cancelMatch,
 } from "#src/routers/games/cancelMatch";
-import { completeMatch } from "#src/routers/games/completeMatch";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { kick } from "#src/routers/games/kick";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
-import { scoreSet } from "#src/routers/games/scoreSet";
 import {
   POOL_CORRECTION_REFUSED_MESSAGE,
   WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
@@ -240,24 +238,13 @@ async function settle(
   match: { id: string },
   winner: 1 | 2,
 ) {
-  const set = await addSet(database, {
+  tick();
+  await enterTournamentScore(database, {
     gameId: seeded.gameId,
     matchId: match.id,
-    userId: seeded.owner.id,
-  });
-  await scoreSet(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    setId: set.id,
     userId: seeded.owner.id,
     slot1GamesWon: winner === 1 ? 6 : 2,
     slot2GamesWon: winner === 1 ? 2 : 6,
-  });
-  tick();
-  await completeMatch(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    userId: seeded.owner.id,
   });
 }
 

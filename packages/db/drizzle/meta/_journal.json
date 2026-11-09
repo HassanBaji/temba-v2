@@ -687,6 +687,13 @@
       "when": 1794241228822,
       "tag": "0097_booking_payment_refund_pending",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1794241917876,
+      "tag": "0098_rating_event_band_before",
+      "breakpoints": true
     }
   ]
 }

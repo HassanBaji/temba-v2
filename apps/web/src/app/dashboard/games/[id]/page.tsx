@@ -1323,7 +1323,10 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
-                  isOrganizer={data.isOrganizer}
+                  isOrganizer={
+                    data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
+                    false
+                  }
                   courtFull={vacantSeatCount === 0}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
