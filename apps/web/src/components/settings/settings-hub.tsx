@@ -31,6 +31,7 @@ import { profileCompletion } from "~/components/settings/settings-model";
 import {
   AVAILABILITY_PATH,
   DETAILS_PATH,
+  photoHref,
   SETTINGS_PATH,
   SettingsScreen,
 } from "~/components/settings/settings-screen";
@@ -62,7 +63,7 @@ const iconProps = {
 } as const;
 
 const COMPLETION_HREF = {
-  photo: profileTaskHref("photo", SETTINGS_PATH),
+  photo: photoHref(SETTINGS_PATH),
   email: profileTaskHref("email", SETTINGS_PATH),
   sports: SPORT_SETTINGS_HREF.padel,
   details: DETAILS_PATH,

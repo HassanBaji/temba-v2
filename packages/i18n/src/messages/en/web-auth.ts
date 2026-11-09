@@ -169,6 +169,7 @@ export const webAuth = {
       choose: "Choose a photo",
       saving: "Saving photo…",
       save: "Save photo",
+      unsupportedType: "Photo must be a JPEG, PNG, GIF or WebP image.",
     },
     email: {
       benefits: {
