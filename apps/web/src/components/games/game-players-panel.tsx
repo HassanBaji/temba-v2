@@ -66,7 +66,7 @@ function RosterPlayerRow({
   onRename?: (player: RenameTarget) => void;
 }) {
   const m = useMessages();
-  const canRename = onRename != null && player.unclaimed;
+  const canRename = onRename != null && player.canRename;
   return (
     <ListRow
       leading={<UserAvatar name={player.name} image={player.image} size="lg" />}

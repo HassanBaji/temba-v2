@@ -7,6 +7,8 @@ import {
   groupMembers,
   groups,
   matches,
+  matchResultConfirmations,
+  matchSets,
   notifications,
   tournamentDraftMatches,
   user,
@@ -18,6 +20,7 @@ import { type Db } from "@repo/db";
 import { handle as scoreStands } from "#src/jobs/handlers/match.score-stands";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { scoreStandsJobKey } from "#src/jobs/specs";
+import { addSet } from "#src/routers/games/addSet";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -28,7 +31,9 @@ import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { postRounds } from "#src/routers/games/postRounds";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { removeSet } from "#src/routers/games/removeSet";
 import { saveRoundPairings } from "#src/routers/games/saveRoundPairings";
+import { scoreSet } from "#src/routers/games/scoreSet";
 import { swapRoundPairing } from "#src/routers/games/swapRoundPairing";
 import { tournamentRounds } from "#src/routers/games/tournamentRounds";
 import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
@@ -458,6 +463,88 @@ describe("tournament scores", () => {
       const points = tables?.pools[0]?.rows.map((row) => row.points);
       expect(points?.filter((value) => value === 1)).toHaveLength(2);
       expect(tables?.finished).toBe(false);
+    });
+  });
+
+  it("keeps the ten minutes when the team that entered the score taps again", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const matchId = seeded.match.matchId!;
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+      vi.setSystemTime(new Date(NOW.getTime() + 5 * 60 * 1000));
+      for (const userId of [seeded.players[0]!.id, seeded.teammate.id]) {
+        await confirmMatchResult(database, {
+          gameId: seeded.gameId,
+          matchId,
+          userId,
+        });
+      }
+      vi.setSystemTime(NOW);
+      const rows = await database.query.matchResultConfirmations.findMany({
+        where: eq(matchResultConfirmations.matchId, matchId),
+      });
+      expect(rows.map((row) => [row.userId, row.confirmedAt])).toEqual([
+        [seeded.players[0]!.id, NOW],
+      ]);
+
+      await scoreStands(
+        database as unknown as Db,
+        { matchId },
+        undefined,
+        new Date(NOW.getTime() + 10 * 60 * 1000 + 1000),
+      );
+      const stood = await database.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(stood?.status).toBe("completed");
+    });
+  });
+
+  it("keeps a tournament score off the generic Set doors", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const matchId = seeded.match.matchId!;
+      await expect(
+        addSet(database, {
+          gameId: seeded.gameId,
+          matchId,
+          userId: seeded.owner.id,
+        }),
+      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+      const [set] = await database.query.matchSets.findMany({
+        where: eq(matchSets.matchId, matchId),
+      });
+      await expect(
+        scoreSet(database, {
+          gameId: seeded.gameId,
+          matchId,
+          setId: set!.id,
+          userId: seeded.opponent.id,
+          slot1GamesWon: 0,
+          slot2GamesWon: 6,
+        }),
+      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      await expect(
+        removeSet(database, {
+          gameId: seeded.gameId,
+          matchId,
+          setId: set!.id,
+          userId: seeded.opponent.id,
+        }),
+      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
     });
   });
 

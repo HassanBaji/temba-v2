@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { useLocale } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 /**
  * Mirrors the Locale the Web App shows onto the User's Stored Locale, so a
@@ -17,6 +18,7 @@ export function StoredLocaleSync() {
   const details = api.users.profileDetails.useQuery();
   const attempted = useRef<Locale | null>(null);
   const save = api.users.setLocale.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: ({ locale: stored }) => {
       utils.users.profileDetails.setData(undefined, (old) =>
         old ? { ...old, locale: stored } : old,

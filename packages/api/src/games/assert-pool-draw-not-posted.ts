@@ -1,16 +1,19 @@
 import { TRPCError } from "@trpc/server";
-
-export const POOL_DRAW_POSTED_MESSAGE = "The groups are drawn";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 export function isPoolDrawPosted(game: { drawPostedAt: Date | null }) {
   return game.drawPostedAt != null;
 }
 
-export function assertPoolDrawNotPosted(game: { drawPostedAt: Date | null }) {
+export function assertPoolDrawNotPosted(
+  game: { drawPostedAt: Date | null },
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (isPoolDrawPosted(game)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: POOL_DRAW_POSTED_MESSAGE,
+      message: messagesFor(locale).tournament.errors.groupsDrawn,
     });
   }
 }

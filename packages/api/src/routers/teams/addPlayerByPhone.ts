@@ -1,9 +1,14 @@
 import { z } from "zod";
 
 import { teamIsFull } from "@repo/domain/team-roster";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { inviteInApp } from "#src/routers/teams/inviteInApp";
 import { killTeamOpenSeatDoors } from "#src/teams/helpers/kill-team-open-seat-doors";
@@ -21,14 +26,20 @@ type DbClient = typeof db;
 
 export async function addPlayerByPhone(
   database: DbClient,
-  args: TeamPhonePlayerInput & { teamId: string; userId: string },
+  args: TeamPhonePlayerInput & {
+    teamId: string;
+    userId: string;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { team } = await requireIncompleteTeamCreator(
     database,
     args.teamId,
     args.userId,
+    locale,
   );
-  const player = parseTeamPhonePlayer(team, args);
+  const player = parseTeamPhonePlayer(team, args, locale);
 
   const resolved = await resolvePhonePlayer(database, player.phoneNumber);
   if (resolved.kind === "account") {
@@ -36,6 +47,7 @@ export async function addPlayerByPhone(
       teamId: team.id,
       userId: args.userId,
       inviteeUserId: resolved.user.id,
+      locale,
     });
     return {
       outcome: "invited" as const,
@@ -49,6 +61,7 @@ export async function addPlayerByPhone(
       team,
       captainUserId: args.userId,
       player,
+      locale,
     });
     const memberCount = (await listTeamMembers(tx, team.id)).length;
     if (teamIsFull(memberCount, team.sport)) {
@@ -65,6 +78,11 @@ export async function addPlayerByPhone(
 export const addPlayerByPhoneProcedure = protectedProcedure
   .input(teamPhonePlayerSchema.extend({ teamId: z.string().uuid() }))
   .mutation(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.addByPhone, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
-    return addPlayerByPhone(ctx.db, { ...input, userId: appUser.id });
+    return addPlayerByPhone(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

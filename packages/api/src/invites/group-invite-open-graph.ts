@@ -21,7 +21,18 @@ export async function loadGroupInviteOpenGraph(
   rawCode: string,
   locale: Locale,
 ) {
-  const link = await findGroupInviteLinkByShortCode(database, rawCode);
+  return groupInviteLinkOpenGraph(
+    database,
+    await findGroupInviteLinkByShortCode(database, rawCode),
+    locale,
+  );
+}
+
+export async function groupInviteLinkOpenGraph(
+  database: InviteDb,
+  link: { token: string; groupId: string; expiresAt: Date } | undefined,
+  locale: Locale,
+) {
   if (!link || !isInviteLinkLive(link.expiresAt)) {
     return genericOpenGraph(locale);
   }

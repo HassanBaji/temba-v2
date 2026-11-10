@@ -10,6 +10,8 @@ import {
   venues,
 } from "@repo/db";
 import type { DbClient } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { paymentProvider } from "#src/payments/index";
@@ -26,8 +28,10 @@ export async function managedVenueById(
     venueId: string;
     userId: string;
     publicMetadata: Record<string, unknown> | undefined;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   await requireVenueManager(database, args);
 
   const venue = await database.query.venues.findFirst({
@@ -76,7 +80,10 @@ export async function managedVenueById(
   });
 
   if (!venue) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
 
   const managerRows = await database.query.venueManagers.findMany({
@@ -172,5 +179,6 @@ export const managedById = protectedProcedure
       venueId: input.venueId,
       userId: appUser.id,
       publicMetadata: await ctx.getPublicMetadata(),
+      locale: ctx.locale,
     });
   });

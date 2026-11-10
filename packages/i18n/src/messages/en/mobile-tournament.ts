@@ -66,11 +66,11 @@ export const mobileTournament = {
   score: {
     sectionTitle: "Score your Matches",
     sectionNote:
-      "Enter the games each team won in every Set, then complete the Match.",
+      "Enter the games each team won. The other team gets a tap to confirm.",
     completeFailed: "Could not complete the Match",
     box: (team: string, set: string) => `${team}, ${set}`,
-    addASet: "Add a Set",
     saveScore: "Save score",
+    confirmScore: (score: string) => `Confirm ${score}`,
   },
   organizer: {
     roundsSaved: "Rounds saved",

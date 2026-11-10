@@ -23,6 +23,7 @@ import {
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
 import { sideSizeLabel } from "@repo/domain/game-shape";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,6 +38,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip } from "./football-bibs";
 import { sideMembers } from "./football-team-columns";
@@ -162,9 +164,19 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
-  const board = api.games.footballBoard.useQuery({ gameId });
+  const isFootball = game.data ? isFootballRosterGame(game.data) : null;
+  const board = api.games.footballBoard.useQuery(
+    { gameId },
+    { enabled: isFootball === true },
+  );
   const [draft, setDraft] = React.useState<ScoreDraft | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
+
+  React.useEffect(() => {
+    if (isFootball === false) {
+      router.replace(gameHref);
+    }
+  }, [isFootball, router, gameHref]);
 
   React.useEffect(() => {
     if (board.data && draft == null) {
@@ -183,6 +195,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   }, [board.data, draft]);
 
   const save = api.games.saveFootballScore.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(t.savedToast);
       await Promise.all([
@@ -219,12 +232,18 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
     .join(". ");
 
   let body: React.ReactNode;
-  if (board.error) {
+  const loadError = game.error ?? board.error;
+  if (loadError) {
     body = (
       <ErrorState
         title={t.loadFailed}
-        message={board.error.message}
-        onRetry={() => void board.refetch()}
+        error={loadError}
+        onRetry={() => {
+          void game.refetch();
+          if (isFootball) {
+            void board.refetch();
+          }
+        }}
       />
     );
   } else if (board.data && (!teams || !board.data.viewer.canEnterScore)) {

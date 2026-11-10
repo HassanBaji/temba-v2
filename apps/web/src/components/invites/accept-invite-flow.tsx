@@ -154,7 +154,7 @@ export function AcceptInviteFlow({
     return (
       <ErrorState
         title={m.webAuth.invites.couldNotJoin}
-        message={accept.error.message}
+        error={accept.error}
         headingLevel={1}
         onRetry={() => accept.mutate({ token })}
       />

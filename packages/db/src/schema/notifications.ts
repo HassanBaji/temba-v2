@@ -121,6 +121,9 @@ export const notifications = pgTable(
       table.recipientUserId,
       table.dedupeKey,
     ),
+    groupIdx: index("notifications_group_id_idx").on(table.groupId),
+    gameIdx: index("notifications_game_id_idx").on(table.gameId),
+    challengeIdx: index("notifications_challenge_id_idx").on(table.challengeId),
   }),
 );
 

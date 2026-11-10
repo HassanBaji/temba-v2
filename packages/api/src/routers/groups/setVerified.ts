@@ -3,20 +3,31 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groups, type DbClient } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { operatorProcedure } from "#src/trpc";
 
 export async function setVerified(
   database: DbClient,
-  args: { groupId: string; verified: boolean; operatorUserId: string },
+  args: {
+    groupId: string;
+    verified: boolean;
+    operatorUserId: string;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, args.groupId),
     columns: { id: true, verifiedAt: true },
   });
   if (!group) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.notFound,
+    });
   }
 
   if (args.verified === (group.verifiedAt !== null)) {
@@ -43,5 +54,6 @@ export const setVerifiedProcedure = operatorProcedure
       groupId: input.groupId,
       verified: input.verified,
       operatorUserId: operator.id,
+      locale: ctx.locale,
     });
   });

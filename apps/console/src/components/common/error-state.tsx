@@ -1,28 +1,34 @@
+"use client";
+
 import { CircleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-export function safeErrorMessage(message: string | undefined) {
+export function safeErrorMessage(
+  message: string | undefined,
+  fallback: string,
+) {
   if (!message) {
-    return "Something went wrong. Try again.";
+    return fallback;
   }
   if (
     message.includes("\n") ||
     message.includes("    at ") ||
     /digest/i.test(message)
   ) {
-    return "Something went wrong. Try again.";
+    return fallback;
   }
   return message;
 }
 
 export function ErrorState({
-  title = "Something went wrong",
+  title,
   message,
   onRetry,
-  retryLabel = "Try again",
+  retryLabel,
   secondaryAction,
   headingLevel = 2,
   variant = "page",
@@ -37,6 +43,10 @@ export function ErrorState({
   variant?: "page" | "inline";
   className?: string;
 }) {
+  const m = useMessages().consoleShell.errors;
+  const shownTitle = title ?? m.title;
+  const shownRetry = retryLabel ?? m.tryAgain;
+  const shownMessage = safeErrorMessage(message, m.generic);
   if (variant === "inline") {
     return (
       <div
@@ -52,10 +62,8 @@ export function ErrorState({
           strokeWidth={1.75}
         />
         <p className="min-w-0 flex-1">
-          <span className="font-semibold">{title}.</span>{" "}
-          <span className="text-muted-foreground">
-            {safeErrorMessage(message)}
-          </span>
+          <span className="font-semibold">{m.titleWithStop(shownTitle)}</span>{" "}
+          <span className="text-muted-foreground">{shownMessage}</span>
         </p>
         <Button
           variant="link"
@@ -64,7 +72,7 @@ export function ErrorState({
           onClick={onRetry}
           type="button"
         >
-          {retryLabel}
+          {shownRetry}
         </Button>
         {secondaryAction}
       </div>
@@ -85,12 +93,10 @@ export function ErrorState({
         className="text-muted-foreground size-8"
         strokeWidth={1.75}
       />
-      <Heading className="text-title font-semibold">{title}</Heading>
-      <p className="text-body text-muted-foreground">
-        {safeErrorMessage(message)}
-      </p>
+      <Heading className="text-title font-semibold">{shownTitle}</Heading>
+      <p className="text-body text-muted-foreground">{shownMessage}</p>
       <Button className="min-h-11" onClick={onRetry} type="button">
-        {retryLabel}
+        {shownRetry}
       </Button>
       {secondaryAction}
     </div>

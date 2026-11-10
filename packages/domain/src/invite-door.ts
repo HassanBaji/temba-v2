@@ -98,12 +98,18 @@ export function playersHeading(query: string, locale: Locale) {
   return query.trim() ? m.resultsHeading : m.suggestedHeading;
 }
 
+/** The lookup searches match nothing shorter than this. */
+export const LOOKUP_QUERY_MIN_LENGTH = 2;
+
 export function noPlayersMatchCopy(
   query: string,
   canLink: boolean,
   locale: Locale,
 ) {
   const m = messagesFor(locale).invite.door;
+  if (query.trim().length < LOOKUP_QUERY_MIN_LENGTH) {
+    return m.searchHint;
+  }
   return canLink
     ? m.noMatchTryOtherWays(query.trim())
     : m.noMatch(query.trim());

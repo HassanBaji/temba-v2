@@ -5,6 +5,8 @@ import { z } from "zod";
 import { teamMembers, teams, user, type GroupSportEnum } from "@repo/db";
 import { teamRosterRule } from "@repo/domain/team-roster";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -41,13 +43,14 @@ function optionalTeamName(name: string | undefined) {
 
 async function requireInvitees(
   database: DbClient,
-  args: { userIds: string[]; captainUserId: string },
+  args: { userIds: string[]; captainUserId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (new Set(args.userIds).size !== args.userIds.length) {
-    refuse("Someone is on the list twice");
+    refuse(messagesFor(locale).team.errors.listedTwice);
   }
   if (args.userIds.includes(args.captainUserId)) {
-    refuse("You cannot invite yourself");
+    refuse(messagesFor(locale).team.errors.inviteSelf);
   }
   if (args.userIds.length === 0) {
     return [];
@@ -57,7 +60,7 @@ async function requireInvitees(
     columns: { id: true, name: true, clerkId: true, addedAt: true },
   });
   if (rows.length !== args.userIds.length) {
-    refuse("User not found");
+    refuse(messagesFor(locale).profile.errors.userNotFound);
   }
   for (const row of rows) {
     if (isUnclaimed(row)) {
@@ -72,6 +75,7 @@ async function refuseReservedPair(
   sport: "padel" | "football",
   captainUserId: string,
   inviteeUserId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (
     teamRosterRule(sport).pairIsUnique &&
@@ -79,7 +83,7 @@ async function refuseReservedPair(
   ) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This pair already has a Team or a pending invite",
+      message: messagesFor(locale).team.errors.pairTaken,
     });
   }
 }
@@ -99,40 +103,47 @@ export async function createTeam(
     groupId?: string;
     inviteUserIds?: string[];
     phonePlayers?: TeamPhonePlayerInput[];
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const inviteUserIds = args.inviteUserIds ?? [];
   const phoneInputs = args.phonePlayers ?? [];
   const { max } = teamRosterRule(args.sport);
   if (1 + inviteUserIds.length + phoneInputs.length > max) {
-    refuse(
-      `A Team holds up to ${max} players, you included. Remove someone first`,
-    );
+    refuse(messagesFor(locale).team.errors.rosterLimit(max));
   }
 
   // The creator is the Captain, who may tag the new Team to a Group of its sport
   // that they are in.
   const tagGroup = args.groupId
-    ? await requireTagGroup(database, args.groupId, args.sport)
+    ? await requireTagGroup(database, args.groupId, args.sport, locale)
     : null;
   if (tagGroup) {
-    await requireCaptainInTagGroup(database, tagGroup.id, args.userId);
+    await requireCaptainInTagGroup(database, tagGroup.id, args.userId, locale);
   }
   const phonePlayers = phoneInputs.map((input) =>
-    parseTeamPhonePlayer({ sport: args.sport }, input),
+    parseTeamPhonePlayer({ sport: args.sport }, input, locale),
   );
   if (
     new Set(phonePlayers.map((player) => player.phoneNumber)).size !==
     phonePlayers.length
   ) {
-    refuse("A number is on the list twice");
+    refuse(messagesFor(locale).team.errors.numberListedTwice);
   }
   const invitees = await requireInvitees(database, {
     userIds: inviteUserIds,
     captainUserId: args.userId,
+    locale,
   });
   for (const invitee of invitees) {
-    await refuseReservedPair(database, args.sport, args.userId, invitee.id);
+    await refuseReservedPair(
+      database,
+      args.sport,
+      args.userId,
+      invitee.id,
+      locale,
+    );
   }
 
   const created = await database.transaction(async (tx) => {
@@ -165,6 +176,7 @@ export async function createTeam(
         team: { id: team.id, sport: args.sport },
         captainUserId: args.userId,
         player,
+        locale,
       });
       if (added.outcome === "added") {
         addedNames.push(added.user.name);
@@ -173,7 +185,13 @@ export async function createTeam(
       if (added.user.id === args.userId || inviteeIds.includes(added.user.id)) {
         refuse(`${added.user.name} is on the list twice`);
       }
-      await refuseReservedPair(tx, args.sport, args.userId, added.user.id);
+      await refuseReservedPair(
+        tx,
+        args.sport,
+        args.userId,
+        added.user.id,
+        locale,
+      );
       inviteeIds.push(added.user.id);
     }
 
@@ -239,5 +257,6 @@ export const create = protectedProcedure
       phonePlayers: input.phonePlayers,
       userId: appUser.id,
       userName: appUser.name,
+      locale: ctx.locale,
     });
   });

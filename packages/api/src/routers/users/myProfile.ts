@@ -41,6 +41,8 @@ import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import type { Sport } from "@repo/domain/sport";
 import { bestWinStreak } from "@repo/domain/win-streak";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 /** Points on the rating curve, and how far back "this week" reaches. */
 const HISTORY_POINT_LIMIT = 24;
@@ -221,6 +223,7 @@ async function assertGroupScope(
   userId: string,
   groupId: string,
   sport: Sport,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, groupId),
@@ -234,7 +237,10 @@ async function assertGroupScope(
     columns: { id: true },
   });
   if (!group || !member || (group.sport ?? "padel") !== sport) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.notFound,
+    });
   }
   return group;
 }
@@ -247,13 +253,26 @@ async function assertGroupScope(
  */
 export async function loadMyProfile(
   database: DbClient,
-  args: { userId: string; sport: Sport; groupId?: string; now?: Date },
+  args: {
+    userId: string;
+    sport: Sport;
+    groupId?: string;
+    now?: Date;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const ratingSport =
     args.sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
   const group = args.groupId
-    ? await assertGroupScope(database, args.userId, args.groupId, args.sport)
+    ? await assertGroupScope(
+        database,
+        args.userId,
+        args.groupId,
+        args.sport,
+        locale,
+      )
     : null;
   const scope: Scope = group
     ? { kind: "group", groupId: group.id, sport: ratingSport }
@@ -444,5 +463,6 @@ export const myProfile = protectedProcedure
       userId: appUser.id,
       sport: input.sport,
       groupId: input.groupId,
+      locale: ctx.locale,
     });
   });

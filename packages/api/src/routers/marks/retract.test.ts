@@ -10,6 +10,8 @@ import {
   matchCompletedAt,
   seatPadelFriendlyGame,
 } from "#src/marks/marks.test-support";
+import { recordJobs } from "#src/jobs/job-sink.test-support";
+import { JOB } from "#src/jobs/specs";
 import { give } from "#src/routers/marks/give";
 import { retract } from "#src/routers/marks/retract";
 
@@ -29,9 +31,23 @@ async function withCompletedGame(
   }
 }
 
+function markReceived(db: TestDatabase, userId: string) {
+  return db.query.notifications.findMany({
+    where: and(
+      eq(notifications.recipientUserId, userId),
+      eq(notifications.type, "mark_received"),
+    ),
+  });
+}
+
 describe("marks.retract", () => {
-  it("takes back the giver's own mark, frees the slot, and leaves the Notification", async () => {
+  const jobs = recordJobs();
+  const emailJobs = () =>
+    jobs.added.filter((job) => job.name === JOB.notificationEmail);
+
+  it("takes back the giver's own mark, frees the slot, and withdraws the unseen Notification", async () => {
     await withCompletedGame(async (db, game) => {
+      jobs.clear();
       await give(db, {
         gameId: game.gameId,
         userId: game.a.id,
@@ -48,14 +64,8 @@ describe("marks.retract", () => {
           where: eq(marks.matchId, game.matchId),
         }),
       ).toHaveLength(0);
-      expect(
-        await db.query.notifications.findMany({
-          where: and(
-            eq(notifications.recipientUserId, game.b.id),
-            eq(notifications.type, "mark_received"),
-          ),
-        }),
-      ).toMatchObject([{ markKind: "dynamo" }]);
+      expect(await markReceived(db, game.b.id)).toHaveLength(0);
+      expect(jobs.removed).toEqual(emailJobs().map((job) => job.key));
 
       await give(db, {
         gameId: game.gameId,
@@ -63,6 +73,32 @@ describe("marks.retract", () => {
         receiverUserId: game.b.id,
         kind: "clutch",
       });
+      expect(await markReceived(db, game.b.id)).toMatchObject([
+        { markKind: "clutch" },
+      ]);
+    });
+  });
+
+  it("tells the receiver once however often a mark is given and taken back after they saw it", async () => {
+    await withCompletedGame(async (db, game) => {
+      jobs.clear();
+      const args = {
+        gameId: game.gameId,
+        userId: game.a.id,
+        receiverUserId: game.b.id,
+      };
+      await give(db, { ...args, kind: "dynamo" });
+      await db
+        .update(notifications)
+        .set({ readAt: new Date() })
+        .where(eq(notifications.recipientUserId, game.b.id));
+      for (let round = 0; round < 3; round += 1) {
+        await retract(db, args);
+        await give(db, { ...args, kind: "clutch" });
+      }
+      expect(await markReceived(db, game.b.id)).toHaveLength(1);
+      expect(emailJobs()).toHaveLength(1);
+      expect(jobs.removed).toEqual([]);
     });
   });
 

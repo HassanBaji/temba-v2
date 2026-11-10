@@ -12,12 +12,14 @@ import { PageHeader } from "~/components/console/page-header";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
   formatDayMonth,
   formatGameClock,
 } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
 
 import {
   bookingTitle,
@@ -35,11 +37,16 @@ import { PaymentLedgerSection } from "./payment-ledger-section";
 
 const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN;
 
-function when(value: Date) {
-  return `${formatDayMonth(value, CONSOLE_LOCALE, { weekday: "short" })}, ${formatGameClock(value, CONSOLE_LOCALE)}`;
+function when(value: Date, locale: Locale) {
+  return messagesFor(locale).consoleBookings.details.dateAndTime(
+    formatDayMonth(value, locale, { weekday: "short" }),
+    formatGameClock(value, locale),
+  );
 }
 
 export function BookingDetails({ bookingId }: { bookingId: string }) {
+  const m = useMessages().consoleBookings;
+  const locale = useLocale();
   const booking = api.bookings.byId.useQuery({ bookingId });
 
   if (booking.isLoading) {
@@ -59,7 +66,7 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
   if (booking.error || !booking.data) {
     return (
       <ErrorState
-        title="Booking could not be loaded"
+        title={m.details.loadError}
         message={booking.error?.message}
         onRetry={() => {
           void booking.refetch();
@@ -71,8 +78,8 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
   if (!data.manager) {
     return (
       <ErrorState
-        title="Booking could not be loaded"
-        message="Only Venue managers can see this view"
+        title={m.details.loadError}
+        message={m.details.managersOnly}
         onRetry={() => {
           void booking.refetch();
         }}
@@ -83,8 +90,11 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
   return (
     <div className="flex flex-col gap-[22px]">
       <PageHeader
-        title={bookingTitle(data)}
-        description={`${holderName(data.manager.holder)} · ${statusText(data)}`}
+        title={bookingTitle(data, locale)}
+        description={m.details.headerDescription(
+          holderName(data.manager.holder, locale),
+          statusText(data, locale),
+        )}
         action={<BookingActions booking={data} />}
       />
       <div className="grid items-start gap-5 lg:grid-cols-2">
@@ -101,13 +111,8 @@ export function BookingDetails({ bookingId }: { bookingId: string }) {
   );
 }
 
-const ACTION_LABELS: Record<BookingAction, string> = {
-  edit: "Edit",
-  noShow: "Mark no-show",
-  cancel: "Cancel booking",
-};
-
 function BookingActions({ booking }: { booking: BookingView }) {
+  const m = useMessages().consoleBookings;
   const [action, setAction] = useState<BookingAction | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const allowed = booking.manager!.actions;
@@ -131,7 +136,7 @@ function BookingActions({ booking }: { booking: BookingView }) {
             setAction(key);
           }}
         >
-          {ACTION_LABELS[key]}
+          {m.actions[key]}
         </Button>
       ))}
       <BookingActionDialogs
@@ -144,57 +149,65 @@ function BookingActions({ booking }: { booking: BookingView }) {
   );
 }
 
-function statusText(booking: BookingView) {
+function statusText(booking: BookingView, locale: Locale) {
+  const m = messagesFor(locale).consoleBookings.details;
   if (booking.status === "pending_payment") {
     return booking.holdExpiresAt
-      ? `Awaiting payment, held until ${formatGameClock(booking.holdExpiresAt, CONSOLE_LOCALE)}`
-      : "Awaiting payment";
+      ? m.awaitingPaymentHeld(formatGameClock(booking.holdExpiresAt, locale))
+      : m.awaitingPayment;
   }
   return booking.statusLabel;
 }
 
 function BookingFacts({ booking }: { booking: BookingView }) {
+  const m = useMessages().consoleBookings.details;
+  const facts = m.facts;
+  const locale = useLocale();
   const manager = booking.manager!;
   const holder = manager.holder;
   return (
     <ConsoleCard>
-      <ConsoleCardHeader title="Booking" />
+      <ConsoleCardHeader title={m.bookingCard} />
       <dl className="divide-border divide-y text-[13px]">
-        <Fact label="Customer">
+        <Fact label={facts.customer}>
           <span className="flex items-center gap-2.5">
             <BookingMonogram holder={holder} />
             <span className="min-w-0">
-              <span className="block truncate">{holderName(holder)}</span>
+              <span className="block truncate">
+                {holderName(holder, locale)}
+              </span>
               <span className="text-muted-foreground block truncate">
                 {holder.kind === "guest"
-                  ? holder.phone || "Guest"
-                  : "Temba account"}
+                  ? holder.phone || facts.guest
+                  : facts.tembaAccount}
               </span>
             </span>
           </span>
         </Fact>
-        <Fact label="Court">{booking.court.name}</Fact>
-        <Fact label="Time">
-          {formatDayMonth(booking.startsAt, CONSOLE_LOCALE, {
-            weekday: "short",
-            year: true,
-          })}
-          , {timeRangeLabel(booking.startsAt, booking.endsAt)}
+        <Fact label={facts.court}>{booking.court.name}</Fact>
+        <Fact label={facts.time}>
+          {m.dateAndTime(
+            formatDayMonth(booking.startsAt, locale, {
+              weekday: "short",
+              year: true,
+            }),
+            timeRangeLabel(booking.startsAt, booking.endsAt, locale),
+          )}
         </Fact>
-        <Fact label="Duration">
-          {durationLabel(booking.startsAt, booking.endsAt)}
+        <Fact label={facts.duration}>
+          {durationLabel(booking.startsAt, booking.endsAt, locale)}
         </Fact>
-        <Fact label="Price">
+        <Fact label={facts.price}>
           <span className="tabular-nums">
-            {formatBookingPriceFils(booking.priceFils, CONSOLE_LOCALE)}
+            {formatBookingPriceFils(booking.priceFils, locale)}
           </span>
         </Fact>
-        <Fact label="Source">{sourceLabel(booking.source)}</Fact>
-        <Fact label="Status">{statusText(booking)}</Fact>
+        <Fact label={facts.source}>{sourceLabel(booking.source, locale)}</Fact>
+        <Fact label={facts.status}>{statusText(booking, locale)}</Fact>
         {manager.managerNotes ? (
-          <Fact label="Notes">{manager.managerNotes}</Fact>
+          <Fact label={facts.notes}>{manager.managerNotes}</Fact>
         ) : null}
-        <Fact label="Cancellation policy">
+        <Fact label={facts.cancellationPolicy}>
           <ul className="text-muted-foreground space-y-0.5">
             {booking.cancellationPolicyLines.map((line) => (
               <li key={line}>{line}</li>
@@ -216,14 +229,15 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function GameCard({ booking }: { booking: BookingView }) {
+  const m = useMessages().consoleBookings.details;
   const game = booking.game;
   return (
     <ConsoleCard>
-      <ConsoleCardHeader title="Game" />
+      <ConsoleCardHeader title={m.gameCard} />
       <div className="px-5 py-4 text-[13px]">
         {game ? (
           <div className="flex items-center justify-between gap-4">
-            <span className="min-w-0 truncate">{game.name ?? "Open Game"}</span>
+            <span className="min-w-0 truncate">{game.name ?? m.openGame}</span>
             {webOrigin ? (
               <a
                 href={`${webOrigin}/dashboard/games/${game.id}`}
@@ -231,54 +245,71 @@ function GameCard({ booking }: { booking: BookingView }) {
                 rel="noreferrer"
                 className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1.5 underline-offset-4 hover:underline"
               >
-                Open in Temba
+                {m.openInTemba}
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </a>
             ) : null}
           </div>
         ) : (
-          <p className="text-muted-foreground">No Game is attached.</p>
+          <p className="text-muted-foreground">{m.noGame}</p>
         )}
       </div>
     </ConsoleCard>
   );
 }
 
-function AuditTrail({ booking }: { booking: BookingView }) {
+function auditEntries(
+  booking: BookingView,
+  m: Messages["consoleBookings"]["details"],
+  locale: Locale,
+) {
   const manager = booking.manager!;
   const entries: { at: Date; text: string }[] = [
     {
       at: manager.createdAt,
-      text: `Created (${booking.source === "venue" ? "by the Venue" : "in the app"})`,
+      text: booking.source === "venue" ? m.createdByVenue : m.createdInApp,
     },
   ];
   if (booking.cancelledAt) {
     const parts = [
-      `Cancelled by ${booking.cancelledBy === "venue" ? "the Venue" : "the Customer"}`,
+      booking.cancelledBy === "venue"
+        ? m.cancelledByVenue
+        : m.cancelledByCustomer,
     ];
     if (booking.refundDueFils !== null) {
       parts.push(
-        `refund due ${formatBookingPriceFils(booking.refundDueFils, CONSOLE_LOCALE)}`,
+        m.refundDue(formatBookingPriceFils(booking.refundDueFils, locale)),
       );
     }
     if (booking.cancellationChargeFils) {
       parts.push(
-        `cancellation charge ${formatBookingPriceFils(booking.cancellationChargeFils, CONSOLE_LOCALE)} (information only)`,
+        m.cancellationCharge(
+          formatBookingPriceFils(booking.cancellationChargeFils, locale),
+        ),
       );
     }
     if (booking.cancelReason) {
       parts.push(booking.cancelReason);
     }
-    entries.push({ at: booking.cancelledAt, text: parts.join(" · ") });
+    entries.push({
+      at: booking.cancelledAt,
+      text: parts.join(m.historySeparator),
+    });
   }
   if (manager.noShowAt) {
-    entries.push({ at: manager.noShowAt, text: "Marked no-show" });
+    entries.push({ at: manager.noShowAt, text: m.markedNoShow });
   }
-  entries.sort((a, b) => a.at.getTime() - b.at.getTime());
+  return entries.sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+function AuditTrail({ booking }: { booking: BookingView }) {
+  const m = useMessages().consoleBookings.details;
+  const locale = useLocale();
+  const entries = auditEntries(booking, m, locale);
 
   return (
     <ConsoleCard>
-      <ConsoleCardHeader title="History" />
+      <ConsoleCardHeader title={m.historyCard} />
       <ol className="divide-border divide-y text-[13px]">
         {entries.map((entry) => (
           <li
@@ -286,7 +317,7 @@ function AuditTrail({ booking }: { booking: BookingView }) {
             className="grid grid-cols-[132px_1fr] gap-4 px-5 py-3"
           >
             <span className="text-muted-foreground tabular-nums">
-              {when(entry.at)}
+              {when(entry.at, locale)}
             </span>
             <span>{entry.text}</span>
           </li>

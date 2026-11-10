@@ -17,7 +17,10 @@ import {
 import { confirmPayment } from "#src/routers/bookings/confirmPayment";
 import { retryPayment } from "#src/routers/bookings/retryPayment";
 import { reserveBooking } from "#src/bookings/reserve";
-import { createBooking } from "#src/routers/bookings/create";
+import {
+  CUSTOMER_BOOKING_LIMITS,
+  createBooking,
+} from "#src/routers/bookings/create";
 
 const rejects = (promise: Promise<unknown>, message: string | RegExp) =>
   expect(promise).rejects.toThrow(message);
@@ -454,6 +457,76 @@ describe("bookings.create payment flow", () => {
           createHeldBooking(db, f, { userId: f.other }),
         ).rejects.toMatchObject({ code: "CONFLICT" });
         await expectLedgerConsistent(db, booking.id);
+      });
+    });
+
+    it("caps the live holds one Customer has at a Venue", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { liveHolds } = CUSTOMER_BOOKING_LIMITS;
+        for (let i = 0; i < liveHolds; i++) {
+          await createHeldBooking(db, f, { hour: 14 + i });
+        }
+        await expect(
+          createHeldBooking(db, f, { hour: 20 }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: `You already have ${liveHolds} Bookings waiting for payment at this Venue. Finish paying or wait for one to lapse`,
+        });
+        await expect(
+          createBooking(db, {
+            venueId: f.venueId,
+            courtId: f.court1,
+            startsAt: at(7, 20),
+            durationMinutes: 60,
+            userId: f.customer,
+            now: NOW,
+            locale: "ar",
+          }),
+        ).rejects.toThrow("بانتظار الدفع");
+        await expect(
+          createHeldBooking(db, f, { hour: 20, userId: f.other }),
+        ).resolves.toBeTruthy();
+
+        const later = new Date(NOW.getTime() + 11 * 60_000);
+        await expect(
+          createBooking(db, {
+            venueId: f.venueId,
+            courtId: f.court2,
+            startsAt: at(7, 21),
+            durationMinutes: 60,
+            userId: f.customer,
+            now: later,
+          }),
+        ).resolves.toBeTruthy();
+      });
+    });
+
+    it("caps the unpaid upcoming pay-at-the-Venue Bookings one Customer has at a Venue", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { unpaidAtVenue } = CUSTOMER_BOOKING_LIMITS;
+        const made = [];
+        for (let i = 0; i < unpaidAtVenue; i++) {
+          made.push(
+            await createHeldBooking(db, f, {
+              hour: 10 + i,
+              paymentMethod: "at_venue",
+            }),
+          );
+        }
+        await expect(
+          createHeldBooking(db, f, { hour: 20, paymentMethod: "at_venue" }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: `You already have ${unpaidAtVenue} upcoming Bookings to pay at this Venue. Cancel one to book another`,
+        });
+
+        await db
+          .update(bookings)
+          .set({ paymentStatus: "paid" })
+          .where(eq(bookings.id, made[0]!.booking.id));
+        await expect(
+          createHeldBooking(db, f, { hour: 20, paymentMethod: "at_venue" }),
+        ).resolves.toBeTruthy();
       });
     });
 

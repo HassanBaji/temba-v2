@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 
 import { venueManagers } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { isOperatorPublicMetadata } from "#src/auth/require-operator";
 
@@ -14,8 +16,10 @@ export async function requireVenueManager(
     venueId: string;
     userId: string;
     publicMetadata: Record<string, unknown> | undefined;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (isOperatorPublicMetadata(args.publicMetadata)) {
     return;
   }
@@ -31,7 +35,7 @@ export async function requireVenueManager(
   if (!row) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only Venue managers can manage this Venue",
+      message: messagesFor(locale).venue.errors.managerOnly,
     });
   }
 }

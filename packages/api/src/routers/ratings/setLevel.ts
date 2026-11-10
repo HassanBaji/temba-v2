@@ -18,6 +18,8 @@ import {
   LEVEL_OVERRIDE_REASONS,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,40 +47,42 @@ export async function setMemberLevel(
     targetUserId: string;
     levelTenths: number;
     reason?: LevelOverrideReason | null;
+    locale?: Locale;
   },
 ) {
-  assertLevelTenths(args.levelTenths);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  assertLevelTenths(args.levelTenths, locale);
 
-  const group = await requireGroup(database, args.groupId);
+  const group = await requireGroup(database, args.groupId, locale);
   const sport = group.sport;
   if (!sport) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Group has no sport, so it has no Levels",
+      message: messagesFor(locale).level.errors.noSport,
     });
   }
   if (sport === "football") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Levels arrive with results",
+      message: messagesFor(locale).level.errors.footballFromResults,
     });
   }
   if (!(await isGroupMember(database, group.id, args.setterUserId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only Group members can set a Level",
+      message: messagesFor(locale).level.errors.groupMembersSet,
     });
   }
   if (args.targetUserId === args.setterUserId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot set your own Level",
+      message: messagesFor(locale).level.errors.ownLevel,
     });
   }
   if (!(await isGroupMember(database, group.id, args.targetUserId))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That User is not a member of this Group",
+      message: messagesFor(locale).level.errors.notGroupMember,
     });
   }
 
@@ -90,6 +94,7 @@ export async function setMemberLevel(
       groupId: group.id,
       levelTenths: args.levelTenths,
       reason: args.reason,
+      locale,
     });
     await notify(tx, {
       type: "level_set",
@@ -120,5 +125,6 @@ export const setLevel = levelSetterProcedure
       targetUserId: input.userId,
       levelTenths: input.levelTenths,
       reason: input.reason,
+      locale: ctx.locale,
     });
   });

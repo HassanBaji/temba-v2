@@ -3,11 +3,12 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { teamMemberInvites } from "@repo/db";
+import { teamMemberInvites, teams } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
 import { acceptLookup } from "#src/invites/doors";
@@ -22,6 +23,7 @@ export async function acceptInAppInvite(
   database: DbClient,
   args: { inviteId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await database.query.teamMemberInvites.findFirst({
     where: eq(teamMemberInvites.id, args.inviteId),
   });
@@ -29,62 +31,68 @@ export async function acceptInAppInvite(
   if (!invite || invite.acceptedAt || invite.revokedAt) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team invite is not available",
+      message: messagesFor(locale).team.errors.inviteUnavailable,
     });
   }
 
   if (invite.userId !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This invite is for a different User",
+      message: messagesFor(locale).invite.errors.differentUser,
     });
   }
 
-  const team = await requireTeam(database, invite.teamId);
-  const memberRows = await listTeamMembers(database, team.id);
+  const team = await requireTeam(database, invite.teamId, locale);
 
-  const existing = memberRows.find((row) => row.userId === args.userId);
-  if (existing) {
-    await database
-      .update(teamMemberInvites)
-      .set({
-        acceptedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(teamMemberInvites.id, invite.id),
-          isNull(teamMemberInvites.acceptedAt),
-          isNull(teamMemberInvites.revokedAt),
-        ),
-      );
+  return database.transaction(async (tx) => {
+    await tx
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.id, team.id))
+      .for("update");
+    const memberRows = await listTeamMembers(tx, team.id);
 
-    return {
-      ok: true as const,
-      teamId: team.id,
-      alreadyMember: true as const,
-    };
-  }
+    const existing = memberRows.find((row) => row.userId === args.userId);
+    if (existing) {
+      await tx
+        .update(teamMemberInvites)
+        .set({
+          acceptedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(teamMemberInvites.id, invite.id),
+            isNull(teamMemberInvites.acceptedAt),
+            isNull(teamMemberInvites.revokedAt),
+          ),
+        );
 
-  if (teamIsFull(memberRows.length, team.sport)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "This Team is full",
-    });
-  }
+      return {
+        ok: true as const,
+        teamId: team.id,
+        alreadyMember: true as const,
+      };
+    }
 
-  const creatorId = memberRows[0]?.userId ?? team.createdBy;
-  if (
-    teamRosterRule(team.sport).pairIsUnique &&
-    (await unorderedPairIsReserved(database, creatorId, args.userId, invite.id))
-  ) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "This pair already has a Team or a pending invite",
-    });
-  }
+    if (teamIsFull(memberRows.length, team.sport)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).team.errors.full,
+      });
+    }
 
-  await database.transaction(async (tx) => {
+    const creatorId = memberRows[0]?.userId ?? team.createdBy;
+    if (
+      teamRosterRule(team.sport).pairIsUnique &&
+      (await unorderedPairIsReserved(tx, creatorId, args.userId, invite.id))
+    ) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: messagesFor(locale).team.errors.pairTaken,
+      });
+    }
+
     const accepted = await acceptLookup(
       tx,
       { kind: "team", id: team.id },
@@ -97,20 +105,20 @@ export async function acceptInAppInvite(
     if (!accepted.ok) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "Team invite is not available",
+        message: messagesFor(locale).team.errors.inviteUnavailable,
       });
     }
 
     if (teamIsFull(memberRows.length + 1, team.sport)) {
       await killTeamOpenSeatDoors(tx, team.id);
     }
-  });
 
-  return {
-    ok: true as const,
-    teamId: team.id,
-    alreadyMember: false as const,
-  };
+    return {
+      ok: true as const,
+      teamId: team.id,
+      alreadyMember: false as const,
+    };
+  });
 }
 
 export const acceptInAppInviteProcedure = protectedProcedure

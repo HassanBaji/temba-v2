@@ -17,6 +17,9 @@ import {
 } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
+import { type LevelBand } from "@repo/domain/level";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -31,6 +34,22 @@ import { suspendMvp } from "#src/marks/settle-mvp";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * The Level band and last rated time an event stored from before its Match.
+ * An event written before they were stored leaves both as they are.
+ */
+function bandAndRatedAtBefore(event: {
+  levelBandBefore: LevelBand | null;
+  lastRatedAtBefore: Date | null;
+}) {
+  return event.levelBandBefore == null
+    ? {}
+    : {
+        levelBand: event.levelBandBefore,
+        lastRatedAt: event.lastRatedAtBefore,
+      };
+}
 
 /**
  * Restores each Group Level to its before-values on this Match, unless an
@@ -79,6 +98,7 @@ async function reverseGroupRatingEvents(
         mu: event.muBefore,
         phi: event.phiBefore,
         sigma: event.sigmaBefore,
+        ...bandAndRatedAtBefore(event),
         updatedAt: now,
       })
       .where(
@@ -104,8 +124,9 @@ async function reverseGroupRatingEvents(
  * sequential, so restoring stored before-values would otherwise silently
  * erase legitimate later changes.
  *
- * When eligible, in one transaction: restores each Rating (μ, φ, σ) to the
- * before-values stored on this Match's rating events, deletes those four
+ * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
+ * band, last rated time) to the before-values stored on this Match's rating
+ * events, deletes those four
  * rating events, clears the Match's `match_result_confirmations`, and drops
  * `match.status` back to `pending`. No new status/phase is invented — this
  * re-derives the existing `needs_results` phase (`byId.ts`) and re-enters
@@ -118,11 +139,17 @@ async function reverseGroupRatingEvents(
  */
 export async function reportWrongScore(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string },
+  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
+  await assertGameOrganizer(database, game, args.userId, locale);
   // A football Challenge Game is Unrated, so nothing needs reversing: the
   // report clears its Score, which reopens both squads (ADR-0060).
   const clearsScore = game.challengeId != null && isFootballGame(game);
@@ -130,8 +157,7 @@ export async function reportWrongScore(
   if (match.status !== MatchStatusEnum.COMPLETED) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message:
-        "Only a completed Match can be reopened for a wrong-score reversal",
+      message: messagesFor(locale).game.errors.reopenCompletedOnly,
     });
   }
 
@@ -144,7 +170,7 @@ export async function reportWrongScore(
     if (!locked) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Match not found",
+        message: messagesFor(locale).game.errors.matchNotFound,
       });
     }
     // Re-checked under lock: guards a concurrent double-submission (or an
@@ -153,22 +179,21 @@ export async function reportWrongScore(
     if (locked.status !== MatchStatusEnum.COMPLETED) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message:
-          "Only a completed Match can be reopened for a wrong-score reversal",
+        message: messagesFor(locale).game.errors.reopenCompletedOnly,
       });
     }
 
     const eligibility = clearsScore
       ? null
-      : await wrongScoreReversalEligibility(tx, locked.id);
+      : await wrongScoreReversalEligibility(tx, locked.id, locale);
     if (eligibility && !eligibility.eligible) {
       throw new TRPCError({
         code: "CONFLICT",
         message: eligibility.reason,
       });
     }
-    await takeBackKnockoutWinner(tx, locked);
-    await takeBackKnockoutQualifiers(tx, game, locked);
+    await takeBackKnockoutWinner(tx, locked, locale);
+    await takeBackKnockoutQualifiers(tx, game, locked, locale);
 
     const matchEvents = await tx.query.ratingEvents.findMany({
       where: eq(ratingEvents.matchId, locked.id),
@@ -213,6 +238,7 @@ export async function reportWrongScore(
           mu: event.muBefore,
           phi: event.phiBefore,
           sigma: event.sigmaBefore,
+          ...bandAndRatedAtBefore(event),
           updatedAt: now,
         })
         .where(
@@ -259,5 +285,6 @@ export const reportWrongScoreProcedure = protectedProcedure
       gameId: input.gameId,
       matchId: input.matchId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

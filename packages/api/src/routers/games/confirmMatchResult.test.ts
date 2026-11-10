@@ -24,6 +24,7 @@ import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
+import { removeSet } from "#src/routers/games/removeSet";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
@@ -272,16 +273,132 @@ describe("Match result confirmation (ADR-0011)", () => {
         }),
       ).toHaveLength(4);
 
-      // A duplicate confirmation call after completion refuses rather than
+      // A duplicate confirmation after completion succeeds without
       // double-firing the rating effect.
       await expect(
         confirmMatchResult(db, { gameId: game.id, matchId, userId: d.id }),
-      ).rejects.toBeInstanceOf(TRPCError);
+      ).resolves.toEqual({ ok: true });
       expect(
         await db.query.ratingEvents.findMany({
           where: eq(ratingEvents.matchId, matchId),
         }),
       ).toHaveLength(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps the first confirmation time when a player confirms again", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, a, b } = await setUpSeatedFriendlyMatch(db);
+      await scoreSet(db, {
+        gameId: game.id,
+        matchId,
+        setId: sets[0]!.id,
+        userId: a.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: b.id });
+      const confirmedAt = async () =>
+        (
+          await db.query.matchResultConfirmations.findMany({
+            where: eq(matchResultConfirmations.matchId, matchId),
+          })
+        ).find((row) => row.userId === b.id)?.confirmedAt;
+      const first = await confirmedAt();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await confirmMatchResult(db, { gameId: game.id, matchId, userId: b.id });
+      expect(await confirmedAt()).toEqual(first);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a seated player who is not an Organizer completing the Match alone", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, a, b } = await setUpSeatedFriendlyMatch(db);
+      await scoreSet(db, {
+        gameId: game.id,
+        matchId,
+        setId: sets[0]!.id,
+        userId: b.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 0,
+      });
+
+      await expect(
+        completeMatch(db, { gameId: game.id, matchId, userId: b.id }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(match?.status).toBe(MatchStatusEnum.PENDING);
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, matchId),
+        }),
+      ).toHaveLength(0);
+
+      const detail = await gameById(db, { gameId: game.id, userId: b.id });
+      expect(detail.matches[0]?.canComplete).toBe(false);
+      const organizerView = await gameById(db, {
+        gameId: game.id,
+        userId: a.id,
+      });
+      expect(organizerView.matches[0]?.canComplete).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("clears the others' confirmations when a Set is removed, so the losing side cannot flip the result", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, b, c, d } =
+        await setUpSeatedFriendlyMatch(db);
+      const base = { gameId: game.id, matchId };
+      await scoreSet(db, {
+        ...base,
+        setId: sets[0]!.id,
+        userId: b.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+      await scoreSet(db, {
+        ...base,
+        setId: sets[1]!.id,
+        userId: b.id,
+        slot1GamesWon: 4,
+        slot2GamesWon: 6,
+      });
+      await scoreSet(db, {
+        ...base,
+        setId: sets[2]!.id,
+        userId: b.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+      // `a` organizes this Game, so only the other three confirm here.
+      await confirmMatchResult(db, { ...base, userId: c.id });
+      expect(await confirmedUserIds(db, matchId)).toEqual([b.id, c.id].sort());
+
+      await removeSet(db, { ...base, setId: sets[0]!.id, userId: d.id });
+      await removeSet(db, { ...base, setId: sets[2]!.id, userId: d.id });
+      expect(await confirmedUserIds(db, matchId)).toEqual([d.id]);
+
+      await confirmMatchResult(db, { ...base, userId: c.id });
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(match?.status).toBe(MatchStatusEnum.PENDING);
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, matchId),
+        }),
+      ).toHaveLength(0);
     } finally {
       await close();
     }

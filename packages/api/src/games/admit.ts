@@ -1,13 +1,16 @@
 import { and, eq } from "drizzle-orm";
 
 import { gamePlayers, gameTeams, teamMembers, teams } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
   FRIENDLY_PLAYERS_ALLOWED,
   FRIENDLY_TEAMS_ALLOWED,
   type GameRow,
   gameAdminUserIds,
+  gameFrozenReason,
   isRegistrationOpen,
+  lockGameForAdmit,
   registeredGameTeamCount,
   registeredUserCount,
 } from "#src/games/access";
@@ -93,6 +96,12 @@ async function refuseRegisterDoors(
   if (door === "register" && !isRegistrationOpen(game, now)) {
     return { ok: false, reason: "registration_closed" };
   }
+  if (
+    door !== "organizer_add" &&
+    (await gameFrozenReason(database, game, now))
+  ) {
+    return { ok: false, reason: "join_frozen" };
+  }
   return null;
 }
 
@@ -105,10 +114,13 @@ export async function admit(
     now?: Date;
     /** The Organizer behind an `organizer_add`, left out of the join fan-out. */
     addedByUserId?: string;
+    locale?: Locale;
   },
 ): Promise<AdmitResult> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const closed = await refuseRegisterDoors(database, args.game, args.door, now);
+  const game = await lockGameForAdmit(database, args.game.id, locale);
+  const closed = await refuseRegisterDoors(database, game, args.door, now);
   if (closed) {
     return closed;
   }
@@ -117,7 +129,7 @@ export async function admit(
     const userIds = await partyUserIdsForAdmit(database, args.party);
     if (userIds) {
       for (const userId of userIds) {
-        if (!(await userAllowedByLevelRange(database, args.game, userId))) {
+        if (!(await userAllowedByLevelRange(database, game, userId))) {
           return { ok: false, reason: "level_range" };
         }
       }
@@ -127,16 +139,17 @@ export async function admit(
   if (args.party.kind === "user") {
     return admitUser(
       database,
-      args.game,
+      game,
       args.door,
       args.party,
       args.addedByUserId,
+      locale,
     );
   }
   if (args.party.kind === "pair") {
-    return admitPair(database, args.game, args.door, args.party);
+    return admitPair(database, game, args.door, args.party, locale);
   }
-  return admitTeam(database, args.game, args.door, args.party);
+  return admitTeam(database, game, args.door, args.party, locale);
 }
 
 async function admitUser(
@@ -145,6 +158,7 @@ async function admitUser(
   door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "user" }>,
   addedByUserId?: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<AdmitResult> {
   if (await userOnGame(database, game.id, party.userId)) {
     return { ok: false, reason: "already_on_game" };
@@ -164,6 +178,8 @@ async function admitUser(
       party.userId,
       party.seat.sideIndex,
       party.seat.position,
+      undefined,
+      locale,
     );
     await notifyGameJoined(database, game, door, {
       userIds: [party.userId],
@@ -204,6 +220,7 @@ async function admitPair(
   game: GameRow,
   door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "pair" }>,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<AdmitResult> {
   for (const userId of party.userIds) {
     if (await userOnGame(database, game.id, userId)) {
@@ -219,6 +236,7 @@ async function admitPair(
     [party.userIds[0], party.userIds[1]],
     party.sideIndex,
     party.callerPosition,
+    locale,
   );
   await notifyGameJoined(database, game, door, { userIds: party.userIds });
   return {
@@ -236,6 +254,7 @@ async function admitTeam(
   game: GameRow,
   door: AdmitDoor,
   party: Extract<AdmitParty, { kind: "team" }>,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<AdmitResult> {
   const team = await database.query.teams.findFirst({
     where: eq(teams.id, party.teamId),
@@ -287,6 +306,8 @@ async function admitTeam(
       member.userId,
       sideIndex,
       position,
+      undefined,
+      locale,
     );
     occupiedTeamId = occupied.id;
   }

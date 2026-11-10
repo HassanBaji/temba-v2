@@ -82,11 +82,11 @@ export const mobileTournament = {
   score: {
     sectionTitle: "سجّل نتائج مبارياتك",
     sectionNote:
-      "أدخل عدد الألعاب التي فاز بها كل فريق في كل شوط، ثم أنهِ المباراة.",
+      "أدخل عدد الألعاب التي فاز بها كل فريق. يؤكّدها الفريق الآخر بضغطة.",
     completeFailed: "تعذّر إنهاء المباراة",
     box: (team: string, set: string) => `${team}، ${set}`,
-    addASet: "أضف شوطًا",
     saveScore: "حفظ النتيجة",
+    confirmScore: (score: string) => `أكّد ${score}`,
   },
   organizer: {
     roundsSaved: "تم حفظ الجولات",

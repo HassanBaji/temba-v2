@@ -21,10 +21,7 @@ import { teamById } from "./byId";
 import { createTeam } from "./create";
 import { inviteInApp } from "./inviteInApp";
 import { previewPlayerByPhone } from "./previewPlayerByPhone";
-import {
-  ONLY_UNCLAIMED_REMOVABLE_MESSAGE,
-  removeUnclaimedPlayer,
-} from "./removeUnclaimedPlayer";
+import { removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
 
 type Db = Parameters<typeof createTeam>[0];
 
@@ -302,6 +299,47 @@ describe("teams phone door", () => {
     });
   });
 
+  it("answers a stranger's number on New team with whether it is on Temba and its mask only", async () => {
+    await withDb(async (database, db) => {
+      const captain = await insertUser(database, { name: "Captain" });
+      const stranger = await insertUser(database, {
+        name: "Ali Mansoor",
+        phoneNumber: "+97333456610",
+      });
+      await database.insert(ratings).values({
+        userId: stranger,
+        sport: "football",
+        mu: 1400,
+        phi: 150,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+
+      await expect(
+        previewPlayerByPhone(db, {
+          userId: captain,
+          ...bahrain("3345 6610"),
+          sport: "football",
+        }),
+      ).resolves.toEqual({
+        kind: "account",
+        name: null,
+        alreadyOnTeam: false,
+        alreadyInvited: false,
+        phoneMasked: "+973 •••• 6610",
+      });
+
+      const teamId = await makeTeam(db, captain);
+      await expect(
+        previewPlayerByPhone(db, {
+          teamId,
+          userId: captain,
+          ...bahrain("3345 6610"),
+        }),
+      ).resolves.toMatchObject({ kind: "account", name: "Ali Mansoor" });
+    });
+  });
+
   it("writes a new football player's picked role to the User", async () => {
     await withDb(async (database, db) => {
       const captain = await insertUser(database, { name: "Captain" });
@@ -416,7 +454,9 @@ describe("teams phone door", () => {
           userId: holder,
         }),
       );
-      expect(account.message).toBe(ONLY_UNCLAIMED_REMOVABLE_MESSAGE);
+      expect(account.message).toBe(
+        "Only players not on Temba yet can be removed",
+      );
 
       await removeUnclaimedPlayer(db, {
         teamId,

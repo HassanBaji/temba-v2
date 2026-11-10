@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   pgTable,
   timestamp,
@@ -39,6 +40,8 @@ export const gameTeams = pgTable(
     uniqueLiveSide: uniqueIndex("game_teams_game_id_side_index_unique")
       .on(table.gameId, table.sideIndex)
       .where(sql`${table.sideIndex} is not null`),
+    gameIdx: index("game_teams_game_id_idx").on(table.gameId),
+    teamIdx: index("game_teams_team_id_idx").on(table.teamId),
   }),
 );
 

@@ -1,6 +1,8 @@
 import { and, desc, eq } from "drizzle-orm";
 
 import { groupRatingEvents, ratingEvents } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 
@@ -17,11 +19,14 @@ export type WrongScoreReversalEligibility =
  * User, this Match's rating event is that User's most recent Rated Match for
  * the event's sport. Glicko-2 updates are sequential, so restoring stored
  * before-values is only correct when nothing has been built on top of them
- * since — checked per seated User, not just the caller/viewer.
+ * since — checked per seated User, not just the caller/viewer. A Match with
+ * no rating events (an Unrated Game) has nothing to reverse and just reopens
+ * (ADR-0062).
  */
 export async function wrongScoreReversalEligibility(
   database: DbClient,
   matchId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<WrongScoreReversalEligibility> {
   const [matchEvents, groupEvents] = await Promise.all([
     database.query.ratingEvents.findMany({
@@ -31,13 +36,6 @@ export async function wrongScoreReversalEligibility(
       where: eq(groupRatingEvents.matchId, matchId),
     }),
   ]);
-  if (matchEvents.length === 0 && groupEvents.length === 0) {
-    return {
-      eligible: false,
-      reason: "This Match has no rating events to reverse",
-    };
-  }
-
   for (const event of matchEvents) {
     const [latest] = await database
       .select({ id: ratingEvents.id })
@@ -51,7 +49,10 @@ export async function wrongScoreReversalEligibility(
       .orderBy(desc(ratingEvents.createdAt), desc(ratingEvents.id))
       .limit(1);
     if (latest && latest.id !== event.id) {
-      return { eligible: false, reason: LATER_RATED_MATCH };
+      return {
+        eligible: false,
+        reason: messagesFor(locale).game.errors.laterRatedMatch,
+      };
     }
   }
 
@@ -69,12 +70,12 @@ export async function wrongScoreReversalEligibility(
       .orderBy(desc(groupRatingEvents.createdAt), desc(groupRatingEvents.id))
       .limit(1);
     if (latest && latest.id !== event.id) {
-      return { eligible: false, reason: LATER_RATED_MATCH };
+      return {
+        eligible: false,
+        reason: messagesFor(locale).game.errors.laterRatedMatch,
+      };
     }
   }
 
   return { eligible: true };
 }
-
-const LATER_RATED_MATCH =
-  "At least one player seated on this Match has a later rated Match — this needs manual support to correct";

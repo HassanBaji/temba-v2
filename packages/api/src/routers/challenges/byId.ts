@@ -80,7 +80,7 @@ async function confirmedGame(
   );
   return {
     id: game.id,
-    sport: game.sport ?? row.sport,
+    sport: game.sport,
     startsAt: game.windowStart,
     endsAt: game.windowEnd,
     cancelled: game.cancelledAt != null,

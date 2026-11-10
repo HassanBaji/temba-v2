@@ -34,7 +34,7 @@ export type ColorRole = keyof typeof colors;
 export type Palette = Record<ColorRole, string>;
 
 /**
- * The same roles with dark values (ADR-0055). Nothing here is #ffffff: ink is
+ * The same roles with dark values (ADR-0064). Nothing here is #ffffff: ink is
  * #e6e6e6, and the focused surface lifts to #141414 instead of inverting.
  * Depths run 000 page, 0f sheet, 14 focus, 1c raised, 26 control.
  */

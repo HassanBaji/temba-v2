@@ -13,6 +13,8 @@ import {
   type GameRow,
 } from "#src/games/access";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -20,11 +22,12 @@ async function updateGamePricePerPlayerOnGame(
   database: Tx,
   game: GameRow,
   pricePerPlayerFils: number | null,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
     });
   }
 
@@ -41,12 +44,19 @@ export async function updateGamePricePerPlayer(
     gameId: string;
     userId: string;
     pricePerPlayerFils: number | null;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   await database.transaction(async (tx) => {
-    await updateGamePricePerPlayerOnGame(tx, game, args.pricePerPlayerFils);
+    await updateGamePricePerPlayerOnGame(
+      tx,
+      game,
+      args.pricePerPlayerFils,
+      locale,
+    );
   });
   return { ok: true as const };
 }
@@ -69,5 +79,6 @@ export const updatePricePerPlayer = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       pricePerPlayerFils: input.pricePerPlayerFils,
+      locale: ctx.locale,
     });
   });

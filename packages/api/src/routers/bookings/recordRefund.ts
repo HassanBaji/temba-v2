@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { bookings } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -32,8 +34,10 @@ export async function recordBookingRefund(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -43,24 +47,30 @@ export async function recordBookingRefund(
       .where(eq(bookings.id, args.bookingId))
       .for("update");
     if (!booking) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).booking.errors.notFound,
+      });
     }
     await requireVenueManager(tx, {
       venueId: booking.venueId,
       ...args.actor,
+      locale,
     });
 
     const payment = await refundablePayment(tx, booking.id);
     if (!payment) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Nothing has been paid on this Booking",
+        message: messagesFor(locale).booking.errors.nothingPaid,
       });
     }
     if (args.amountFils <= 0 || args.amountFils > refundableFils(payment)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `At most ${refundableFils(payment)} fils can still be refunded`,
+        message: messagesFor(locale).booking.errors.refundAtMost(
+          refundableFils(payment),
+        ),
       });
     }
 
@@ -72,6 +82,7 @@ export async function recordBookingRefund(
         reference: args.reference ?? null,
         actorUserId: args.actor.userId,
         now,
+        locale,
       });
       await enqueueRefundRecorded(tx, {
         bookingId: booking.id,
@@ -79,7 +90,7 @@ export async function recordBookingRefund(
         amountFils: args.amountFils,
       });
       return {
-        ...(await bookingWithLedger(tx, booking.id)),
+        ...(await bookingWithLedger(tx, booking.id, locale)),
         refundInProgress: false,
       };
     }
@@ -95,7 +106,7 @@ export async function recordBookingRefund(
       }),
     );
     return {
-      ...(await bookingWithLedger(tx, booking.id)),
+      ...(await bookingWithLedger(tx, booking.id, locale)),
       refundInProgress: true,
     };
   });
@@ -117,5 +128,6 @@ export const recordRefundProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

@@ -8,6 +8,7 @@ import {
   gamePlayers,
   gameTeamPlayers,
   gameTeams,
+  games,
   groupMembers,
   groups,
   levelOverrides,
@@ -330,6 +331,12 @@ describe("reportWrongScore (Option A wrong-score reversal, TEM-185)", () => {
       const beforeByUser = new Map(
         eventsBeforeReversal.map((event) => [event.userId, event]),
       );
+      for (const event of eventsBeforeReversal) {
+        expect(event.levelBandBefore).not.toBeNull();
+      }
+      for (const seated of [a, b, c, d]) {
+        expect((await ratingRowFor(db, seated.id))?.lastRatedAt).not.toBeNull();
+      }
 
       await reportWrongScore(db, {
         gameId: game.id,
@@ -349,6 +356,9 @@ describe("reportWrongScore (Option A wrong-score reversal, TEM-185)", () => {
         expect(row.mu).toBeCloseTo(stored.muBefore, 10);
         expect(row.phi).toBeCloseTo(stored.phiBefore, 10);
         expect(row.sigma).toBeCloseTo(stored.sigmaBefore, 10);
+        expect(row.levelBand).toBe(stored.levelBandBefore);
+        expect(row.lastRatedAt).toEqual(stored.lastRatedAtBefore);
+        expect(row.lastRatedAt).toBeNull();
       }
 
       expect(await ratingEventsFor(db, matchId)).toHaveLength(0);
@@ -358,6 +368,43 @@ describe("reportWrongScore (Option A wrong-score reversal, TEM-185)", () => {
         where: eq(matches.id, matchId),
       });
       expect(match?.status).toBe(MatchStatusEnum.PENDING);
+    } finally {
+      await close();
+    }
+  });
+
+  it("reopens a confirmed Match on an Unrated Game, which has nothing to reverse", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, organizer, a, b, c, d } =
+        await setUpSeatedFriendlyMatch(db);
+      await db.update(games).set({ rated: false }).where(eq(games.id, game.id));
+      await completeAndRateViaConfirmation(db, {
+        gameId: game.id,
+        matchId,
+        setId: sets[0]!.id,
+        a,
+        b,
+        c,
+        d,
+      });
+      expect(
+        (await db.query.matches.findFirst({ where: eq(matches.id, matchId) }))
+          ?.status,
+      ).toBe(MatchStatusEnum.COMPLETED);
+      expect(await ratingEventsFor(db, matchId)).toHaveLength(0);
+
+      await reportWrongScore(db, {
+        gameId: game.id,
+        matchId,
+        userId: organizer.id,
+      });
+
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(match?.status).toBe(MatchStatusEnum.PENDING);
+      expect(await confirmationsFor(db, matchId)).toHaveLength(0);
     } finally {
       await close();
     }

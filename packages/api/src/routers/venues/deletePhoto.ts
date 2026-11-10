@@ -3,6 +3,8 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { venuePhotos, venues } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -21,12 +23,14 @@ type Actor = {
 /** A deleted main or details photo hands its place to the oldest photo left. */
 export async function deletePhoto(
   database: DbClient,
-  args: { venueId: string; photoId: string; actor: Actor },
+  args: { venueId: string; photoId: string; actor: Actor; locale?: Locale },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   const photo = await database.query.venuePhotos.findFirst({
@@ -37,7 +41,10 @@ export async function deletePhoto(
     columns: { id: true },
   });
   if (!photo) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Photo not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.photoNotFound,
+    });
   }
 
   await removeVenuePhotoObject(args.venueId, photo.id);
@@ -89,5 +96,6 @@ export const deletePhotoProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

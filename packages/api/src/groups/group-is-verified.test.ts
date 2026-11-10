@@ -51,8 +51,8 @@ async function insertGroup(
   return row;
 }
 
-const windowStart = new Date("2026-09-20T10:00:00");
-const windowEnd = new Date("2026-09-20T12:00:00");
+const windowStart = new Date("2027-09-20T10:00:00");
+const windowEnd = new Date("2027-09-20T12:00:00");
 
 function friendlyInput(args: {
   createdBy: string;

@@ -32,6 +32,7 @@ describe("homePath", () => {
       "/book?sport=football",
     );
     assert.equal(homePath({ kind: "invites" }), "/profile/invites");
+    assert.equal(homePath({ kind: "notifications" }), "/notifications");
     assert.equal(
       homePath({ kind: "profile-task", task: "email" }),
       "/complete-profile/email",

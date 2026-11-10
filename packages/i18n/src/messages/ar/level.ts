@@ -38,4 +38,17 @@ export const level = {
   },
   overrideCaption: (who: string, when: string) => `حدّده ${who}، ${when}`,
   overrideByYou: "أنت",
+  errors: {
+    pickFootball: "اختر مستوى كرة القدم",
+    pickPadel: "اختر مستوى البادل",
+    declareAfterRated: "لا يمكنك تحديد مستواك بعد مباراة مصنّفة",
+    alreadyDeclared: "حدّدت مستواك من قبل",
+    groupOrganizerSets: "لا يحدد مستوى المجموعة إلا أحد منظّميها",
+    ownGroupLevel: "لا يمكنك تحديد مستواك في المجموعة",
+    notGroupMember: "هذا اللاعب ليس عضوًا في هذه المجموعة",
+    noSport: "لا رياضة لهذه المجموعة، لذا لا مستويات فيها",
+    footballFromResults: "مستويات كرة القدم تأتي من النتائج",
+    groupMembersSet: "لا يحدد المستوى إلا أعضاء المجموعة",
+    ownLevel: "لا يمكنك تحديد مستواك بنفسك",
+  },
 } satisfies typeof source;

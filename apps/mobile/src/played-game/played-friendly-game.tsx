@@ -1,8 +1,9 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
-import type {
-  FriendlyGameDetails,
-  FriendlyGameDetailsMatch,
+import {
+  seatedPlayerCanRename,
+  type FriendlyGameDetails,
+  type FriendlyGameDetailsMatch,
 } from "@repo/domain/friendly-game-details";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import {
@@ -156,7 +157,11 @@ export function PlayedFriendlyGame({
         player={selected}
         canOpenProfile={Boolean(onOpenPlayer)}
         canKick={selected != null && kickable.includes(selected.userId)}
-        canRename={Boolean(onRenameUnclaimed)}
+        canRename={
+          selected != null &&
+          Boolean(onRenameUnclaimed) &&
+          seatedPlayerCanRename(game.sides, selected.userId)
+        }
         onClose={() => setSelected(null)}
         onOpenProfile={(userId) => {
           setSelected(null);

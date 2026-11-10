@@ -200,6 +200,32 @@ describe("football Team invites", () => {
     });
   });
 
+  it("lets only one of two concurrent link accepts take the last seat", async () => {
+    await withDb(async (database, db) => {
+      const ids = await makeUsers(database, 21);
+      const [creator, ...others] = ids as [string, ...string[]];
+      const teamId = await makeTeam(database, { id: creator }, "football");
+      const link = await createInviteLink(db, {
+        teamId,
+        userId: creator,
+        origin: "https://temba.test",
+      });
+      await addMembers(database, teamId, others.slice(0, 18));
+      const token = link.inviteUrl.split("/").pop()!;
+
+      const results = await Promise.allSettled([
+        acceptInviteLink(db, { token, userId: others[18]! }),
+        acceptInviteLink(db, { token, userId: others[19]! }),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      expect(
+        await database.query.teamMembers.findMany({
+          where: eq(teamMembers.teamId, teamId),
+        }),
+      ).toHaveLength(20);
+    });
+  });
+
   it("keeps a legacy Roster of 22 and refuses a 23rd", async () => {
     await withDb(async (database, db) => {
       const ids = await makeUsers(database, 23);

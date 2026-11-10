@@ -21,6 +21,7 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -76,10 +77,11 @@ async function assertSeatHoldAllowed(
   database: DbClient,
   game: GameRow,
   args: JoinGroupFromInviteLinkArgs,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  await assertGameInviteDoorsOpen(database, game);
+  await assertGameInviteDoorsOpen(database, game, undefined, locale);
   if (args.football?.role === "keeper") {
-    await assertKeeperSeatOpen(database, game.id);
+    await assertKeeperSeatOpen(database, game.id, undefined, locale);
   }
 }
 
@@ -92,6 +94,7 @@ async function assertSeatHoldAllowed(
 export async function joinGroupFromInviteLink(
   database: DbClient,
   args: JoinGroupFromInviteLinkArgs,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const now = args.now ?? new Date();
   const previewed = await previewLink(database, "game", args.token);
@@ -101,19 +104,22 @@ export async function joinGroupFromInviteLink(
   if (previewed.status !== "ready" || !link) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Invite link is invalid or expired",
+      message: messagesFor(locale).invite.errors.linkInvalid,
     });
   }
-  const game = await requireGame(database, link.gameId);
+  const game = await requireGame(database, link.gameId, locale);
   if (!game.groupId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game has no Group to join",
+      message: messagesFor(locale).game.errors.noGroupToJoin,
     });
   }
   const group = await loadGameInviteLinkGroup(database, game.groupId);
   if (!group) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.notFound,
+    });
   }
   const { mode, pending } = await gameInviteGroupJoinMode(
     database,
@@ -127,7 +133,7 @@ export async function joinGroupFromInviteLink(
   if (mode === "blocked") {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You can't join this Group",
+      message: messagesFor(locale).group.errors.cannotJoin,
     });
   }
 
@@ -135,8 +141,7 @@ export async function joinGroupFromInviteLink(
     if (args.holdSeat) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message:
-          "This Group lets anyone with the link in; take the seat instead",
+        message: messagesFor(locale).game.errors.openGroupTakeSeat,
       });
     }
     await database.transaction(async (tx) => {
@@ -159,7 +164,7 @@ export async function joinGroupFromInviteLink(
     heldSeat: args.holdSeat ? heldSeatOf(game, args) : null,
   };
   if (args.holdSeat) {
-    await assertSeatHoldAllowed(database, game, args);
+    await assertSeatHoldAllowed(database, game, args, locale);
   }
 
   if (mode === "requested" && pending) {
@@ -259,13 +264,17 @@ export const joinGroupFromInviteLinkProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return joinGroupFromInviteLink(ctx.db, {
-      token: input.token,
-      userId: appUser.id,
-      holdSeat: input.holdSeat,
-      sideIndex: input.sideIndex,
-      position: input.position,
-      football: input.football,
-      locale: ctx.locale,
-    });
+    return joinGroupFromInviteLink(
+      ctx.db,
+      {
+        token: input.token,
+        userId: appUser.id,
+        holdSeat: input.holdSeat,
+        sideIndex: input.sideIndex,
+        position: input.position,
+        football: input.football,
+        locale: ctx.locale,
+      },
+      ctx.locale,
+    );
   });

@@ -2,12 +2,14 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { matchSets } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
 import { assertMayWriteSets } from "#src/games/assert-may-write-sets";
+import { lockMatch } from "#src/games/lock-rows";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 
@@ -15,17 +17,28 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function addSet(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string },
+  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  const match = await requireMatchOnGame(database, game.id, args.matchId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  const match = await requireMatchOnGame(
+    database,
+    game.id,
+    args.matchId,
+    locale,
+  );
   const organizer = await isGameOrganizer(database, game, args.userId);
-  await assertMayWriteSets(database, game, match, args.userId, organizer);
-  const setNumber = await nextMatchSetNumber(database, match.id);
-  const [created] = await database
-    .insert(matchSets)
-    .values({ matchId: match.id, setNumber })
-    .returning();
+  // The Match row lock serialises two adds, so both cannot take one number.
+  const created = await database.transaction(async (tx) => {
+    const locked = await lockMatch(tx, match.id, locale);
+    await assertMayWriteSets(tx, game, locked, args.userId, organizer, locale);
+    const setNumber = await nextMatchSetNumber(tx, locked.id);
+    const [row] = await tx
+      .insert(matchSets)
+      .values({ matchId: locked.id, setNumber })
+      .returning();
+    return row;
+  });
   if (!created) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -48,5 +61,6 @@ export const addSetProcedure = protectedProcedure
       gameId: input.gameId,
       matchId: input.matchId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

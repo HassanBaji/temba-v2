@@ -13,17 +13,21 @@ import {
   gameTeams,
   gameWaitlist,
   games,
+  groupMemberInvites,
   groupMembers,
   groups,
+  GroupTypeEnum,
   matchSets,
   matches,
   ratingEvents,
   ratings,
   user,
+  venueManagers,
   venues,
 } from "@repo/db/schema";
 
 import { groupById } from "#src/routers/groups/byId";
+import { listSeasons } from "#src/routers/groups/listSeasons";
 import { loadRatingsMe } from "#src/routers/ratings/me";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
@@ -1152,6 +1156,10 @@ describe("groupById Level setter fields", () => {
           .viewerCanSetLevel,
       ).toBe(false);
       expect((await groupById(db, args)).viewerCanSetLevel).toBe(false);
+      await db
+        .update(groups)
+        .set({ type: GroupTypeEnum.PUBLIC })
+        .where(eq(groups.id, group.id));
       expect(
         (
           await groupById(db, {
@@ -1220,6 +1228,74 @@ describe("groupById Level setter fields", () => {
         levelProvisional: false,
         levelOverride: null,
       });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById on a Private Group", () => {
+  it("is NOT_FOUND to an outsider, and open to members, invitees, its Venue's managers and Operators", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "private-owner@example.com");
+      const member = await insertUser(db, "private-member@example.com");
+      const outsider = await insertUser(db, "private-outsider@example.com");
+      const invitee = await insertUser(db, "private-invitee@example.com");
+      const manager = await insertUser(db, "private-manager@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, owner.id, { members: [member.id] });
+      await db
+        .update(groups)
+        .set({ venueId: venue.id })
+        .where(eq(groups.id, group.id));
+      await db.insert(groupMemberInvites).values({
+        groupId: group.id,
+        userId: invitee.id,
+        invitedBy: owner.id,
+      });
+      await db
+        .insert(venueManagers)
+        .values({ venueId: venue.id, userId: manager.id });
+
+      const notFound = { code: "NOT_FOUND", message: "Group not found" };
+      await expect(
+        groupById(db, { groupId: group.id, userId: outsider.id }),
+      ).rejects.toMatchObject(notFound);
+      await expect(
+        groupById(db, {
+          groupId: group.id,
+          userId: outsider.id,
+          getPublicMetadata: async () => ({ levelSetter: true }),
+        }),
+      ).rejects.toMatchObject(notFound);
+      await expect(
+        listSeasons(db, { groupId: group.id, userId: outsider.id }),
+      ).rejects.toMatchObject(notFound);
+
+      for (const viewer of [owner, member, invitee, manager]) {
+        await expect(
+          groupById(db, { groupId: group.id, userId: viewer.id }),
+        ).resolves.toMatchObject({ id: group.id });
+      }
+      await expect(
+        groupById(db, {
+          groupId: group.id,
+          userId: outsider.id,
+          getPublicMetadata: async () => ({ operator: true }),
+        }),
+      ).resolves.toMatchObject({ id: group.id });
+      await expect(
+        listSeasons(db, { groupId: group.id, userId: member.id }),
+      ).resolves.toMatchObject({ groupId: group.id, isMember: true });
+
+      await db
+        .update(groups)
+        .set({ type: GroupTypeEnum.PUBLIC })
+        .where(eq(groups.id, group.id));
+      await expect(
+        groupById(db, { groupId: group.id, userId: outsider.id }),
+      ).resolves.toMatchObject({ id: group.id });
     } finally {
       await close();
     }

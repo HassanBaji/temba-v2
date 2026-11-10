@@ -166,6 +166,17 @@ export const mobileHome = {
         one: "Invites, 1 waiting",
         other: "Invites, {n} waiting",
       }),
+    notificationsUnread: "Notifications, unread",
+  },
+  notifications: {
+    loadFailed: "Notifications could not be loaded",
+    empty: {
+      title: "No notifications yet",
+      description:
+        "When someone joins a Group or Game you run, it shows up here.",
+    },
+    markAllRead: "Mark all as read",
+    unread: "Unread",
   },
   upNext: {
     title: "Up next",

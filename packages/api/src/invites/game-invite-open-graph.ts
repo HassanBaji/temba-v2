@@ -30,7 +30,18 @@ export async function loadGameInviteOpenGraph(
   rawCode: string,
   locale: Locale,
 ) {
-  const link = await findGameInviteLinkByShortCode(database, rawCode);
+  return gameInviteLinkOpenGraph(
+    database,
+    await findGameInviteLinkByShortCode(database, rawCode),
+    locale,
+  );
+}
+
+export async function gameInviteLinkOpenGraph(
+  database: InviteDb,
+  link: { token: string; gameId: string } | undefined,
+  locale: Locale,
+) {
   if (!link) {
     return genericOpenGraph(locale);
   }
@@ -38,7 +49,7 @@ export async function loadGameInviteOpenGraph(
   if (previewed.status !== "ready") {
     return genericOpenGraph(locale);
   }
-  const game = await requireGame(writeDb(database), link.gameId);
+  const game = await requireGame(writeDb(database), link.gameId, locale);
   if (game.cancelledAt) {
     return genericOpenGraph(locale);
   }

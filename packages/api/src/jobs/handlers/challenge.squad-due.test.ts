@@ -2,9 +2,11 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  MatchStatusEnum,
   gamePlayers,
   gameTeamPlayers,
   games,
+  matches,
   notifications,
 } from "@repo/db/schema";
 import type { TestDatabase } from "@repo/db/testing";
@@ -233,6 +235,10 @@ describe("challenge.squad-due", () => {
         sport: "football",
         playedAt: kickOff,
       });
+      await database
+        .update(matches)
+        .set({ status: MatchStatusEnum.PENDING })
+        .where(eq(matches.gameId, plainGameId));
       jobs.clear();
 
       for (const [gameId, userId] of [

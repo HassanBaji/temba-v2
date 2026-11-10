@@ -110,7 +110,7 @@ export function PlayerProfile({
     return (
       <ErrorState
         title={m.webUi.player.profileLoadError}
-        message={profile.error?.message}
+        error={profile.error}
         onRetry={() => {
           void profile.refetch();
         }}

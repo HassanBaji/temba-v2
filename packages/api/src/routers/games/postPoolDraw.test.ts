@@ -16,7 +16,7 @@ import {
 
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { acceptLookupInvite } from "#src/routers/games/acceptLookupInvite";
-import { addSet } from "#src/routers/games/addSet";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { gameById } from "#src/routers/games/byId";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -30,7 +30,6 @@ import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { reopenRegistration } from "#src/routers/games/reopenRegistration";
 import { sendLookupInvite } from "#src/routers/games/sendLookupInvite";
 import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
-import { POOL_DRAW_POSTED_MESSAGE } from "#src/games/assert-pool-draw-not-posted";
 import { mintLink } from "#src/invites/doors";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -886,7 +885,7 @@ describe("Pool draw freeze", () => {
             userId: seeded.players[0]!.id,
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
       await expectRefused(
         () =>
@@ -897,7 +896,7 @@ describe("Pool draw freeze", () => {
             position: "left",
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
       await expectRefused(
         () =>
@@ -908,7 +907,7 @@ describe("Pool draw freeze", () => {
             position: "left",
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
       await expectRefused(
         () =>
@@ -920,7 +919,7 @@ describe("Pool draw freeze", () => {
             position: "left",
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
       await expectRefused(
         () =>
@@ -929,7 +928,7 @@ describe("Pool draw freeze", () => {
             userId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
       await expectRefused(
         () =>
@@ -939,7 +938,7 @@ describe("Pool draw freeze", () => {
             shuffle: identityShuffle,
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
 
       await expectRefused(
@@ -951,7 +950,7 @@ describe("Pool draw freeze", () => {
             position: "left",
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
 
       await expectRefused(
@@ -963,7 +962,7 @@ describe("Pool draw freeze", () => {
             position: "left",
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
 
       await kick(db, {
@@ -993,7 +992,7 @@ describe("Pool draw freeze", () => {
             secondPosition: "right",
           }),
         "FORBIDDEN",
-        POOL_DRAW_POSTED_MESSAGE,
+        "The groups are drawn",
       );
     } finally {
       await close();
@@ -1065,10 +1064,12 @@ describe("undoPoolDraw", () => {
       if (!match) {
         throw new Error("Expected a Pool Match");
       }
-      await addSet(db, {
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: match.id,
         userId: seeded.owner.id,
+        slot1GamesWon: 3,
+        slot2GamesWon: 2,
       });
       await expectRefused(
         () =>

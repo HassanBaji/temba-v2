@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { z } from "zod";
 
 import { protectedProcedure } from "#src/trpc";
@@ -13,6 +14,7 @@ export async function acceptInviteLink(
   database: DbClient,
   args: { token: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const accepted = await database.transaction((tx) =>
     acceptLink(tx, "group", {
       token: args.token,
@@ -24,21 +26,21 @@ export async function acceptInviteLink(
     if (accepted.reason === "already_member") {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "You are already a member of this Group",
+        message: messagesFor(locale).group.errors.alreadyMember,
       });
     }
     if (accepted.reason === "blocked") {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "You can't join this Group",
+        message: messagesFor(locale).group.errors.cannotJoin,
       });
     }
     if (accepted.reason === "frozen") {
-      throwInviteFrozen({ kind: "group", id: "" }, "accept", "frozen");
+      throwInviteFrozen({ kind: "group", id: "" }, "accept", "frozen", locale);
     }
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Invite link is not available",
+      message: messagesFor(locale).invite.errors.linkUnavailable,
     });
   }
 

@@ -1,5 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { deleteS3Object, putS3Object } from "#src/storage/s3";
 
 export const VENUE_LOGO_MAX_BYTES = 2 * 1024 * 1024;
@@ -58,18 +61,21 @@ function venueLogoObjectPath(venueId: string): string {
   return `venue-logos/${venueId}/logo`;
 }
 
-export function decodeVenueLogoBase64(dataBase64: string): Buffer {
+export function decodeVenueLogoBase64(
+  dataBase64: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Buffer {
   const buffer = Buffer.from(dataBase64, "base64");
   if (buffer.length === 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Logo file is empty",
+      message: messagesFor(locale).venue.errors.logoEmpty,
     });
   }
   if (buffer.length > VENUE_LOGO_MAX_BYTES) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Logo must be at most 2 MB",
+      message: messagesFor(locale).createGame.image.logoTooLarge,
     });
   }
   return buffer;
@@ -78,12 +84,13 @@ export function decodeVenueLogoBase64(dataBase64: string): Buffer {
 export function assertVenueLogoType(
   bytes: Uint8Array,
   declaredType: VenueLogoContentType,
+  locale: Locale = DEFAULT_LOCALE,
 ): VenueLogoContentType {
   const detected = detectVenueLogoContentType(bytes);
   if (!detected || detected !== declaredType) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Logo must be a JPEG, PNG, or WebP image",
+      message: messagesFor(locale).createGame.image.logoType,
     });
   }
   return detected;

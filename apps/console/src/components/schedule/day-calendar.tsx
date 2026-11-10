@@ -6,7 +6,7 @@ import type { MouseEvent } from "react";
 import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { cn } from "~/lib/utils";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { formatGameClock } from "@repo/domain/format-game-start";
 
 import { BookingBlock } from "./booking-block";
@@ -57,6 +57,8 @@ export function DayCalendar({
   /** A click on open, empty grid time that has not ended. */
   onPickCell?: (courtId: string, startMinute: number) => void;
 }) {
+  const { consoleSchedule: m, consoleShell } = useMessages();
+  const locale = useLocale();
   const { grid, bookings } = data;
   const windows = grid.days.find((entry) => entry.day === day)?.windows ?? [];
   const todays = bookings.filter((booking) => overlapsDay(day, booking));
@@ -67,7 +69,7 @@ export function DayCalendar({
     bookings: todays,
   });
   const height = layout.endMinute - layout.startMinute;
-  const marks = hourMarks(layout);
+  const marks = hourMarks(layout, locale);
   const nowTop = nowOffset(layout, day, now);
   const draftSpan = draft
     ? rowSpan(layout, grid.slotMinutes, {
@@ -99,14 +101,14 @@ export function DayCalendar({
     return (
       <EmptyState
         icon={LayoutGrid}
-        title="No Courts yet"
-        description="Add a Court under Courts & pricing to see the day grid."
+        title={m.noCourtsTitle}
+        description={m.noCourtsDay}
       />
     );
   }
 
   return (
-    <div className="min-w-0 pr-7">
+    <div className="min-w-0 pe-7">
       <div
         className="border-rule bg-paper sticky top-0 z-20 grid border-b"
         style={{
@@ -122,14 +124,14 @@ export function DayCalendar({
             className="flex min-w-0 items-center px-2.5 text-[13px] font-semibold"
           >
             <span className="truncate">{court.name}</span>
-            <CourtSportBadge sport={court.sport} className="ml-2" />
+            <CourtSportBadge sport={court.sport} className="ms-2" />
           </div>
         ))}
       </div>
 
       {windows.length === 0 ? (
         <p className="text-muted-foreground px-2.5 pt-3 text-[13px]">
-          The Venue is closed this day.
+          {m.closedThisDay}
         </p>
       ) : null}
 
@@ -146,7 +148,7 @@ export function DayCalendar({
             {marks.map((mark) => (
               <span
                 key={mark.minute}
-                className="text-dim absolute left-0 -translate-y-1/2 text-[11px] tabular-nums"
+                className="text-dim absolute start-0 -translate-y-1/2 text-[11px] tabular-nums"
                 style={{ top: mark.minute - layout.startMinute }}
               >
                 {mark.label}
@@ -158,9 +160,9 @@ export function DayCalendar({
             <div
               key={mark.minute}
               aria-hidden="true"
-              className="border-rule pointer-events-none absolute right-0 border-t"
+              className="border-rule pointer-events-none absolute end-0 border-t"
               style={{
-                left: AXIS_WIDTH + COLUMN_GAP,
+                insetInlineStart: AXIS_WIDTH + COLUMN_GAP,
                 top: mark.minute - layout.startMinute,
               }}
             />
@@ -202,11 +204,11 @@ export function DayCalendar({
                   >
                     <div className="text-ink truncate font-semibold">
                       {closure.reason?.trim()
-                        ? `Closed, ${closure.reason.trim()}`
-                        : "Closed"}
+                        ? m.closedWithReason(closure.reason.trim())
+                        : m.closed}
                     </div>
                     <div className="truncate">
-                      {closureTimeLabel(placed, layout)}
+                      {closureTimeLabel(placed, layout, locale)}
                     </div>
                   </div>
                 ) : null;
@@ -254,12 +256,15 @@ export function DayCalendar({
                       draftSpan.height * grid.slotMinutes - BLOCK_INSET * 2,
                   }}
                 >
-                  <div className="truncate font-semibold">New booking</div>
+                  <div className="truncate font-semibold">{m.newBooking}</div>
                   <div className="text-muted-foreground truncate">
-                    {formatAxisClock(draft.startMinute, "meridiem")} to{" "}
-                    {formatAxisClock(
-                      draft.startMinute + draft.durationMinutes,
-                      "meridiem",
+                    {consoleShell.clock.range(
+                      formatAxisClock(draft.startMinute, "meridiem", locale),
+                      formatAxisClock(
+                        draft.startMinute + draft.durationMinutes,
+                        "meridiem",
+                        locale,
+                      ),
                     )}
                   </div>
                 </div>
@@ -270,11 +275,11 @@ export function DayCalendar({
           {nowTop !== null ? (
             <div
               aria-hidden="true"
-              className="border-ink pointer-events-none absolute right-0 z-10 border-t-2"
-              style={{ left: AXIS_WIDTH + COLUMN_GAP, top: nowTop }}
+              className="border-ink pointer-events-none absolute end-0 z-10 border-t-2"
+              style={{ insetInlineStart: AXIS_WIDTH + COLUMN_GAP, top: nowTop }}
             >
-              <span className="bg-ink text-paper absolute -top-[18px] right-0 rounded-[4px] px-[5px] py-0.5 font-mono text-[10px]">
-                {formatGameClock(now, CONSOLE_LOCALE)}
+              <span className="bg-ink text-paper absolute -top-[18px] end-0 rounded-[4px] px-[5px] py-0.5 font-mono text-[10px]">
+                {formatGameClock(now, locale)}
               </span>
             </div>
           ) : null}

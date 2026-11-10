@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { publicProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { findGroupInviteLinkByShortCode } from "#src/invites/doors";
-import { loadGroupInviteOpenGraph } from "#src/invites/group-invite-open-graph";
+import { groupInviteLinkOpenGraph } from "#src/invites/group-invite-open-graph";
 
 type DbClient = typeof db;
 
@@ -14,9 +14,9 @@ export async function inviteLinkByShortCode(
   args: { code: string; locale?: Locale },
 ) {
   const link = await findGroupInviteLinkByShortCode(database, args.code);
-  const openGraph = await loadGroupInviteOpenGraph(
+  const openGraph = await groupInviteLinkOpenGraph(
     database,
-    args.code,
+    link,
     args.locale ?? DEFAULT_LOCALE,
   );
   return {

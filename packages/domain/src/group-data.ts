@@ -94,6 +94,8 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
   joinedAt: Date | string | null;
   unclaimed: boolean;
   phoneMasked: string | null;
+  /** The viewer may fix this Unclaimed player's name here. */
+  canRename?: boolean;
 };
 
 export type GroupPlayedGameData = {

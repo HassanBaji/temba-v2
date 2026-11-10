@@ -40,13 +40,58 @@ describe("bookings.searchCustomers", () => {
           phone: "+973 3612 4408",
           bookingCount: 2,
         }),
-        expect.objectContaining({
-          kind: "user",
-          userId: f.other,
-          phone: null,
-          bookingCount: 0,
-        }),
       ]);
+
+      const byPartOfNumber = await searchVenueCustomers(db, {
+        venueId: f.venueId,
+        query: "36124",
+        actor: asManager(f.manager),
+      });
+      expect(
+        byPartOfNumber.map((row) => row.kind === "user" && row.userId),
+      ).toEqual([]);
+      const byCustomerDigits = await searchVenueCustomers(db, {
+        venueId: f.venueId,
+        query: "3612 440",
+        actor: asManager(f.manager),
+      });
+      expect(
+        byCustomerDigits.map((row) => row.kind === "user" && row.userId),
+      ).toEqual([f.customer]);
+    });
+  });
+
+  it("finds anyone else on Temba only by their full phone number", async () => {
+    await withBookableVenue(async (db, f) => {
+      await db
+        .update(user)
+        .set({ name: "Hassan Ali", phoneNumber: "+973 3900 1123" })
+        .where(eq(user.id, f.other));
+
+      for (const query of ["hassan", "39001", "3900112", "+97339001"]) {
+        const results = await searchVenueCustomers(db, {
+          venueId: f.venueId,
+          query,
+          actor: asManager(f.manager),
+        });
+        expect(results).toEqual([]);
+      }
+
+      for (const query of ["+973 3900 1123", "39001123", "0097339001123"]) {
+        const results = await searchVenueCustomers(db, {
+          venueId: f.venueId,
+          query,
+          actor: asManager(f.manager),
+        });
+        expect(results).toEqual([
+          expect.objectContaining({
+            kind: "user",
+            userId: f.other,
+            phone: "+973 3900 1123",
+            bookingCount: 0,
+          }),
+        ]);
+      }
     });
   });
 

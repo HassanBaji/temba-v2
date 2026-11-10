@@ -3,6 +3,8 @@ import { count, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { courts, venueOpeningHours, venuePricingRules, venues } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -45,11 +47,14 @@ export async function updateBookingSettings(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   if (
@@ -57,7 +62,7 @@ export async function updateBookingSettings(
     args.slotMinutes !== 30 &&
     args.slotMinutes !== 60
   ) {
-    badRequest("Slot length must be 30 or 60 minutes");
+    badRequest(messagesFor(locale).venue.errors.slotLength);
   }
   if (
     args.bookingHorizonDays !== undefined &&
@@ -65,7 +70,7 @@ export async function updateBookingSettings(
       args.bookingHorizonDays < 1 ||
       args.bookingHorizonDays > 90)
   ) {
-    badRequest("Booking horizon must be between 1 and 90 days");
+    badRequest(messagesFor(locale).venue.errors.horizonRange);
   }
   if (
     args.minLeadMinutes !== undefined &&
@@ -73,12 +78,12 @@ export async function updateBookingSettings(
       args.minLeadMinutes < 0 ||
       args.minLeadMinutes > 1440)
   ) {
-    badRequest("Minimum lead time must be between 0 and 1440 minutes");
+    badRequest(messagesFor(locale).venue.errors.leadTimeRange);
   }
   if (args.durationOptionsMinutes !== undefined) {
     const durations = args.durationOptionsMinutes;
     if (durations.length === 0) {
-      badRequest("Offer at least one duration");
+      badRequest(messagesFor(locale).venue.errors.durationRequired);
     }
     if (
       durations.some(
@@ -89,7 +94,10 @@ export async function updateBookingSettings(
       )
     ) {
       badRequest(
-        `Durations must be between ${MIN_DURATION} and ${MAX_DURATION} minutes`,
+        messagesFor(locale).venue.errors.durationRange(
+          MIN_DURATION,
+          MAX_DURATION,
+        ),
       );
     }
   }
@@ -107,7 +115,10 @@ export async function updateBookingSettings(
       .for("update");
 
     if (!venue) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).venue.errors.notFound,
+      });
     }
 
     const slotMinutes = args.slotMinutes ?? venue.slotMinutes;
@@ -116,7 +127,9 @@ export async function updateBookingSettings(
     ].sort((a, b) => a - b);
 
     if (durations.some((minutes) => minutes % slotMinutes !== 0)) {
-      badRequest(`Durations must be multiples of ${slotMinutes} minutes`);
+      badRequest(
+        messagesFor(locale).venue.errors.durationMultiple(slotMinutes),
+      );
     }
 
     if (
@@ -137,9 +150,7 @@ export async function updateBookingSettings(
             window.closesAtMinutes % slotMinutes !== 0,
         )
       ) {
-        badRequest(
-          `Opening hours are not on the ${slotMinutes}-minute grid. Adjust them first.`,
-        );
+        badRequest(messagesFor(locale).venue.errors.hoursOffGrid(slotMinutes));
       }
 
       const rules = await tx
@@ -157,21 +168,21 @@ export async function updateBookingSettings(
         )
       ) {
         badRequest(
-          `Pricing rules are not on the ${slotMinutes}-minute grid. Adjust them first.`,
+          messagesFor(locale).venue.errors.pricingOffGrid(slotMinutes),
         );
       }
     }
 
     if (args.acceptingBookings === true) {
       if (venue.archivedAt) {
-        badRequest("An archived Venue cannot accept bookings");
+        badRequest(messagesFor(locale).venue.errors.archivedNoBookings);
       }
       const [courtCount] = await tx
         .select({ value: count() })
         .from(courts)
         .where(eq(courts.venueId, args.venueId));
       if (!courtCount || courtCount.value === 0) {
-        badRequest("Add a Court before accepting bookings");
+        badRequest(messagesFor(locale).venue.errors.addCourtFirst);
       }
     }
 
@@ -251,5 +262,6 @@ export const updateBookingSettingsProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

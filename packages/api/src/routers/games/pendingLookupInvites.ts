@@ -1,6 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { gameMemberInvites } from "@repo/db";
+import { gameMemberInvites, games } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,27 +17,35 @@ type DbClient = typeof db;
 
 export async function pendingLookupInvites(
   database: DbClient,
-  args: { userId: string },
+  args: { userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const rows = await database.query.gameMemberInvites.findMany({
     where: and(
       eq(gameMemberInvites.userId, args.userId),
       isNull(gameMemberInvites.acceptedAt),
       isNull(gameMemberInvites.revokedAt),
+      inArray(
+        gameMemberInvites.gameId,
+        database
+          .select({ id: games.id })
+          .from(games)
+          .where(isNull(games.cancelledAt)),
+      ),
     ),
     with: {
       game: {
         columns: { id: true, name: true },
       },
       invitedBy: {
-        columns: { id: true, name: true, email: true, image: true },
+        columns: { id: true, name: true, image: true },
       },
     },
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
   const mapped = [];
   for (const row of rows) {
-    const game = await requireGame(database, row.gameId);
+    const game = await requireGame(database, row.gameId, locale);
     const needsSeatPick = isIndividualSeatGame(game);
     const sides = needsSeatPick ? await listGameSides(database, game) : [];
     mapped.push({
@@ -53,7 +62,6 @@ export async function pendingLookupInvites(
       invitedBy: {
         id: row.invitedBy.id,
         name: row.invitedBy.name,
-        email: row.invitedBy.email,
         image: row.invitedBy.image,
       },
       createdAt: row.createdAt,
@@ -74,6 +82,9 @@ export async function pendingLookupInvites(
 export const pendingLookupInvitesProcedure = protectedProcedure.query(
   async ({ ctx }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return pendingLookupInvites(ctx.db, { userId: appUser.id });
+    return pendingLookupInvites(ctx.db, {
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   },
 );

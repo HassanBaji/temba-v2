@@ -559,7 +559,7 @@ export default function EditGroupPage({
       <EditGroupFrame groupId={id} subtitle={null}>
         <ErrorState
           title={m.webDashboard.group.errorTitle}
-          message={group.error?.message}
+          error={group.error}
           onRetry={() => {
             void group.refetch();
           }}
@@ -572,8 +572,11 @@ export default function EditGroupPage({
     return (
       <EditGroupFrame groupId={id} subtitle={group.data.name}>
         <ErrorState
+          refusal="forbidden"
           title={m.webDashboard.group.edit.ownerOnly.title}
           message={m.webDashboard.group.edit.ownerOnly.message}
+          backHref={groupHref(id)}
+          backLabel={m.webDashboard.backToGroup}
           onRetry={() => {
             void group.refetch();
           }}
