@@ -4,7 +4,10 @@
   "private": true,
   "description": "30-second vertical product demo for Temba, built with Remotion",
   "scripts": {
+    "audio": "node scripts/make-audio.mjs",
+    "prestudio": "npm run audio",
     "studio": "remotion studio",
+    "prerender": "npm run audio",
     "render": "remotion render TembaDemo out/temba-demo.mp4 --codec=h264 --crf=18",
     "stills": "node scripts/stills.mjs",
     "typecheck": "tsc --noEmit"

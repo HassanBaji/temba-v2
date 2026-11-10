@@ -16,7 +16,7 @@ const local = (scene: { from: number; to: number }) => ({
   to: scene.to - base,
 });
 
-const S = {
+export const S = {
   group: local(scenes.group),
   game: local(scenes.game),
   teams: local(scenes.teams),
@@ -25,7 +25,7 @@ const S = {
 };
 
 /** Where the score hands over to the player's profile inside scene 5. */
-const PROFILE_AT = S.result.from + 62;
+export const PROFILE_AT = S.result.from + 62;
 
 /** Resting pose per scene and the swing the phone makes on the way there. */
 const POSES = [

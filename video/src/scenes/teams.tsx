@@ -7,9 +7,9 @@ import { Avatar } from "../primitives/avatar";
 import { Text } from "../primitives/text";
 import { c, radii, snap, snappy } from "../theme";
 
-const SPLIT_AT = 26;
-const SHUFFLE_AT = 58;
-const LOCK_AT = 86;
+export const SPLIT_AT = 26;
+export const SHUFFLE_AT = 58;
+export const LOCK_AT = 86;
 
 const WIDTH = 320;
 const COLUMN = 150;

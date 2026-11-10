@@ -8,10 +8,10 @@ import { Hairline, Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { c, snappy } from "../theme";
 
-const ROWS_FROM = 12;
-const ROW_EVERY = 5;
+export const ROWS_FROM = 12;
+export const ROW_EVERY = 5;
 const COUNT_FRAMES = 30;
-const FLIP_AT = 74;
+export const FLIP_AT = 74;
 const ROW = 50;
 
 const POSITION = 22;

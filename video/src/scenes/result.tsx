@@ -11,6 +11,13 @@ import { c, radii, snap } from "../theme";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
+export const SCORE_FROM = 8;
+export const A_EVERY = 5;
+export const B_EVERY = 7;
+export const SCORE = { a: 5, b: 3 };
+export const MARKS_AT = 36;
+export const CONFIRM_AT = 46;
+
 function tick(to: number, from: number, until: number, frame: number) {
   return Math.round(interpolate(frame, [from, until], [0, to], { ...clamp, easing: (t) => 1 - Math.pow(1 - t, 3) }));
 }
@@ -18,13 +25,13 @@ function tick(to: number, from: number, until: number, frame: number) {
 export function ScoreScreen() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const a = Math.min(5, Math.max(0, Math.floor((frame - 8) / 5)));
-  const b = Math.min(3, Math.max(0, Math.floor((frame - 8) / 7)));
-  const snapA = spring({ frame: frame - (8 + a * 5), fps, config: snap });
-  const snapB = spring({ frame: frame - (8 + b * 7), fps, config: snap });
-  const marks = spring({ frame: frame - 36, fps, config: snap });
-  const confirmed = frame >= 46;
-  const press = spring({ frame: frame - 46, fps, config: snap });
+  const a = Math.min(SCORE.a, Math.max(0, Math.floor((frame - SCORE_FROM) / A_EVERY)));
+  const b = Math.min(SCORE.b, Math.max(0, Math.floor((frame - SCORE_FROM) / B_EVERY)));
+  const snapA = spring({ frame: frame - (SCORE_FROM + a * A_EVERY), fps, config: snap });
+  const snapB = spring({ frame: frame - (SCORE_FROM + b * B_EVERY), fps, config: snap });
+  const marks = spring({ frame: frame - MARKS_AT, fps, config: snap });
+  const confirmed = frame >= CONFIRM_AT;
+  const press = spring({ frame: frame - CONFIRM_AT, fps, config: snap });
 
   const digit = (value: number, s: number) => (
     <Text size={132} expanded style={{ lineHeight: "132px", width: 112, textAlign: "center", transform: `scale(${0.9 + s * 0.1})` }}>
@@ -93,11 +100,11 @@ export function ScoreScreen() {
   );
 }
 
-const FORM_FROM = 12;
-const FORM_EVERY = 4;
+export const FORM_FROM = 12;
+export const FORM_EVERY = 4;
 const STATS_FROM = 16;
-const CHART_FROM = 26;
-const CHART_FRAMES = 44;
+export const CHART_FROM = 26;
+export const CHART_FRAMES = 44;
 
 function Chart({ frame }: { frame: number }) {
   const W = 288;

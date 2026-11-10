@@ -8,9 +8,10 @@ import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { c, radii, snap } from "../theme";
 
-const SEATS_FROM = 24;
-const SEAT_EVERY = 8.5;
-const seatAt = (index: number) => Math.round(SEATS_FROM + index * SEAT_EVERY);
+export const SEATS_FROM = 24;
+export const SEAT_EVERY = 8.5;
+export const seatAt = (index: number) => Math.round(SEATS_FROM + index * SEAT_EVERY);
+export const FULL_AT = seatAt(players.length - 1) + 8;
 
 function FieldGlyph({ color }: { color: string }) {
   return (
@@ -66,7 +67,7 @@ export function GameScreen() {
   const { fps } = useVideoConfig();
   const count = players.filter((_, index) => frame >= seatAt(index)).length;
   const tick = spring({ frame: frame - seatAt(Math.max(0, count - 1)), fps, config: snap });
-  const fullAt = seatAt(players.length - 1) + 8;
+  const fullAt = FULL_AT;
   const full = spring({ frame: frame - fullAt, fps, config: snap });
 
   return (

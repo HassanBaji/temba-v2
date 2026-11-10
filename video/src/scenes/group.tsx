@@ -9,10 +9,10 @@ import { Hairline, Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { c, radii, snap, snappy } from "../theme";
 
-const TYPE_FROM = 12;
-const FRAMES_PER_CHAR = 1.7;
-const MEMBERS_FROM = 50;
-const MEMBER_EVERY = 13;
+export const TYPE_FROM = 12;
+export const FRAMES_PER_CHAR = 1.7;
+export const MEMBERS_FROM = 50;
+export const MEMBER_EVERY = 13;
 const ROW = 54;
 
 function MemberRow({ index }: { index: number }) {
