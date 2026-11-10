@@ -11,6 +11,12 @@ import { cn } from "~/lib/utils";
 export const SETTINGS_PATH = "/dashboard/you/settings";
 export const DETAILS_PATH = `${SETTINGS_PATH}/details`;
 export const AVAILABILITY_PATH = `${SETTINGS_PATH}/availability`;
+export const PHOTO_PATH = `${SETTINGS_PATH}/photo`;
+
+/** The Settings photo screen, returning to `backPath` when done. */
+export function photoHref(backPath: string) {
+  return `${PHOTO_PATH}?${new URLSearchParams({ back: backPath }).toString()}`;
+}
 
 /** A Settings page: back, title, and a column as wide as the page asks for. */
 export function SettingsScreen({

@@ -18,6 +18,7 @@ import {
 } from "~/components/settings/settings-model";
 import {
   DETAILS_PATH,
+  photoHref,
   SETTINGS_PATH,
   SettingsScreen,
 } from "~/components/settings/settings-screen";
@@ -34,7 +35,6 @@ import {
 } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
-import { profileTaskHref } from "~/lib/onboarding-step";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import { productDayKey } from "@repo/domain/product-timezone";
@@ -217,7 +217,7 @@ function Form({
         />
         <div className="min-w-0">
           <Link
-            href={profileTaskHref("photo", DETAILS_PATH)}
+            href={photoHref(DETAILS_PATH)}
             className="text-body text-ink focus-visible:ring-ring/50 rounded-sm font-semibold underline underline-offset-4 outline-none focus-visible:ring-[3px]"
           >
             {copy.changePhoto}
