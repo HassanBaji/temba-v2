@@ -1,0 +1,26 @@
+{
+  "name": "temba-demo-video",
+  "version": "0.0.0",
+  "private": true,
+  "description": "30-second vertical product demo for Temba, built with Remotion",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render TembaDemo out/temba-demo.mp4 --codec=h264 --crf=18",
+    "stills": "node scripts/stills.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "5.2.8",
+    "@fontsource/ibm-plex-sans-arabic": "5.2.8",
+    "@fontsource/sora": "5.2.8",
+    "@remotion/cli": "4.0.538",
+    "lucide-react": "0.574.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.538"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}
