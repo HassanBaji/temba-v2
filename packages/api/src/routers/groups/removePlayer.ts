@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers } from "@repo/db";
+import { groupMembers, groupTierPoints } from "@repo/db";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -16,7 +16,8 @@ type DbClient = typeof db;
 
 /**
  * A Group approver removing any player. The creator stays. The player's Games
- * stay in history.
+ * stay in history; their Tier points here are cleared and the events that
+ * moved them stay in Rating history.
  */
 export async function removePlayer(
   database: DbClient,
@@ -58,7 +59,17 @@ export async function removePlayer(
     });
   }
 
-  await database.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+  await database.transaction(async (tx) => {
+    await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+    await tx
+      .delete(groupTierPoints)
+      .where(
+        and(
+          eq(groupTierPoints.groupId, group.id),
+          eq(groupTierPoints.userId, args.userId),
+        ),
+      );
+  });
 
   return { ok: true as const, groupId: group.id, userId: args.userId };
 }

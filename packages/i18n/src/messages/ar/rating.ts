@@ -125,4 +125,57 @@ export const rating = {
       belowZero: "لا يمكن أن تنزل نقاط الفئة تحت الصفر.",
     },
   },
+  history: {
+    title: "النقاط والسجل",
+    menuRow: "النقاط والسجل",
+    menuHint: "ما حرّك نقاط فئته، مباراة بمباراة",
+    groupGames: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مباريات في المجموعة",
+        one: "مباراة واحدة في المجموعة",
+        two: "مباراتان في المجموعة",
+        few: "{n} مباريات في المجموعة",
+        many: "{n} مباراة في المجموعة",
+        other: "{n} مباراة في المجموعة",
+      }),
+    toNextBand: (points: string, band: string) =>
+      `${isolate(points)} إلى ${band}`,
+    whatMovedIt: "ما الذي حرّكها",
+    lastCount: (n: number) => `آخر ${n}`,
+    empty: "لم يحرّك شيء هذه النقاط بعد. تتحرّك بعد كل مباراة في المجموعة.",
+    deltaSpoken: (delta: string) => `${isolate(delta)} نقطة`,
+    game: {
+      won: (score: string) => `فوز ${isolate(score)}`,
+      drew: (score: string) => `تعادل ${isolate(score)}`,
+      lost: (score: string) => `خسارة ${isolate(score)}`,
+      played: "مباراة في المجموعة",
+      rated: (title: string, rating: string) =>
+        `${title}، التقييم ${isolate(rating)}`,
+      parts: (date: string, result: string, performance: string) =>
+        `${date}. النتيجة ${isolate(result)}، الأداء ${isolate(performance)}`,
+      resultOnly: (date: string, result: string) =>
+        `${date}. النتيجة ${isolate(result)}`,
+    },
+    adjustment: {
+      title: "حدّدها منظّم",
+      detail: (date: string, from: string, to: string) =>
+        `${date}، من ${isolate(from)} إلى ${isolate(to)}`,
+      byline: (name: string, reason: string) => `${name}، ${reason}`,
+      bylineNote: (name: string, reason: string, note: string) =>
+        `${name}، ${reason}: «${note}»`,
+      quote: (name: string, note: string) => `${name}: «${note}»`,
+      you: "أنت",
+      someone: "منظّم",
+    },
+    footnote: {
+      other: (name: string) =>
+        `يرى ${name} هذه القائمة نفسها. لا شيء هنا يغيّر مستوى Temba.`,
+      self: "يرى منظّمو مجموعتك هذه القائمة نفسها. لا شيء هنا يغيّر مستواك في Temba.",
+    },
+    unnamed: "لاعب",
+    loadFailed: "تعذّر تحميل النقاط والسجل",
+    errors: {
+      forbidden: "لا يرى هذه النقاط إلا اللاعب ومنظّمو هذه المجموعة.",
+    },
+  },
 } satisfies typeof source;

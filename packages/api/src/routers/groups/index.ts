@@ -43,6 +43,7 @@ import { seasonStandingProcedure as seasonStanding } from "./seasonStanding";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
+import { tierHistoryProcedure as tierHistory } from "./tierHistory";
 import { transferOwnershipProcedure as transferOwnership } from "./transferOwnership";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./undoJoinRequestDecision";
@@ -98,4 +99,5 @@ export const groupsRouter = createTRPCRouter({
   closeSeason,
   seasonStanding,
   adjustTierPoints,
+  tierHistory,
 });

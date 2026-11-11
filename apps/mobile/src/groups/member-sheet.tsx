@@ -22,6 +22,7 @@ export function MemberSheet({
   groupLevelHint,
   onViewProfile,
   onAdjustTier,
+  onTierHistory,
   organizerLabel,
   organizerHint,
   onOrganizerAction,
@@ -37,6 +38,8 @@ export function MemberSheet({
   onViewProfile?: () => void;
   /** An Organizer of a tier Group moves this member's Tier points. */
   onAdjustTier?: () => void;
+  /** An Organizer of a tier Group reads what moved this member's points. */
+  onTierHistory?: () => void;
   organizerLabel?: string;
   organizerHint?: string;
   onOrganizerAction?: () => void;
@@ -52,6 +55,15 @@ export function MemberSheet({
             label={m.mobileGroup.members.sheet.viewProfile}
             trailing="chevron"
             onPress={onViewProfile}
+          />
+        ) : null,
+        onTierHistory ? (
+          <SheetMenuRow
+            key="tier-history"
+            label={m.rating.history.menuRow}
+            hint={m.rating.history.menuHint}
+            trailing="chevron"
+            onPress={onTierHistory}
           />
         ) : null,
         onAdjustTier ? (

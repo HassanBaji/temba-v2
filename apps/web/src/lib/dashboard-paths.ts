@@ -176,6 +176,14 @@ export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
 }
 
+/** Points and history (screen 2e); without `userId`, the viewer's own. */
+export function groupTierHistoryHref(groupId: string, userId?: string) {
+  const path = `/dashboard/groups/${groupId}/points`;
+  return userId
+    ? `${path}?${new URLSearchParams({ member: userId }).toString()}`
+    : path;
+}
+
 export function groupMemberSetLevelHref(groupId: string, userId: string) {
   return `/dashboard/groups/${groupId}/members/${userId}`;
 }

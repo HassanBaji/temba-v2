@@ -59,6 +59,7 @@ import { groupEditPath } from "./group-edit-model";
 import { RequestJoinSheet } from "./request-join-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
+import { groupTierHistoryPath } from "./groups-model";
 import { Notice } from "./notice";
 import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
@@ -458,6 +459,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}
         onSetLevel={openSetLevelScreen}
         onSetGroupLevel={openSetGroupLevelScreen}
+        onOpenTierHistory={(userId) =>
+          router.push(groupTierHistoryPath(groupId, userId))
+        }
         saved={saved}
         onDismissSaved={dismissSaved}
         games={{

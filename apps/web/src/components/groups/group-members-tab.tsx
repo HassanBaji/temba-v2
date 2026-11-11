@@ -35,6 +35,7 @@ import { Input } from "~/components/ui/input";
 import { Surface } from "~/components/ui/surface";
 import {
   groupMemberSetLevelHref,
+  groupTierHistoryHref,
   playerProfilePath,
 } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
@@ -180,6 +181,7 @@ function MemberActionsMenu({
   setLevelHref,
   onSetGroupLevel,
   profileHref,
+  tierHistoryHref,
   onAdjustTier,
   organizerAction,
   onOrganizerAction,
@@ -190,6 +192,7 @@ function MemberActionsMenu({
   setLevelHref?: string;
   onSetGroupLevel?: () => void;
   profileHref?: string;
+  tierHistoryHref?: string;
   onAdjustTier?: () => void;
   organizerAction?: GroupMemberOrganizerAction;
   onOrganizerAction?: () => void;
@@ -215,6 +218,11 @@ function MemberActionsMenu({
           <Link href={profileHref}>{m.webGroup.viewProfile}</Link>
         </ActionMenuItem>
       ) : null}
+      {tierHistoryHref ? (
+        <ActionMenuItem asChild>
+          <Link href={tierHistoryHref}>{m.rating.history.menuRow}</Link>
+        </ActionMenuItem>
+      ) : null}
       {onAdjustTier ? (
         <ActionMenuItem onSelect={onAdjustTier}>
           {m.rating.adjust.menuRow}
@@ -235,6 +243,7 @@ function MemberActionsMenu({
           {setLevelHref ||
           onSetGroupLevel ||
           profileHref ||
+          tierHistoryHref ||
           onAdjustTier ||
           organizerAction ||
           onRename ? (
@@ -684,6 +693,10 @@ export function GroupMembersTab({
       canAdjustTier && !member.isViewer && member.tier != null
         ? () => setAdjustingUserId(member.userId)
         : undefined;
+    const tierHistoryHref =
+      canAdjustTier && !member.isViewer && member.tier != null
+        ? groupTierHistoryHref(groupId, member.userId)
+        : undefined;
     const onRename =
       canAddPlayers && member.canRename === true && onRenameUnclaimed
         ? () => onRenameUnclaimed(target)
@@ -696,6 +709,7 @@ export function GroupMembersTab({
       !setLevelHref &&
       !setGroupLevel &&
       !profileHref &&
+      !tierHistoryHref &&
       !onAdjustTier &&
       !organizerAction &&
       !onRename &&
@@ -709,6 +723,7 @@ export function GroupMembersTab({
         setLevelHref={setLevelHref}
         onSetGroupLevel={setGroupLevel}
         profileHref={profileHref}
+        tierHistoryHref={tierHistoryHref}
         onAdjustTier={onAdjustTier}
         organizerAction={organizerAction}
         onOrganizerAction={

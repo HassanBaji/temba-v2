@@ -368,6 +368,7 @@ export function MembersTab({
   tierSummary,
   groupName = "",
   canAdjustTier = false,
+  onOpenTierHistory,
   onSetLevel,
   onSetGroupLevel,
   onOpenMember,
@@ -395,6 +396,8 @@ export function MembersTab({
   groupName?: string;
   /** An Organizer of a tier Group adjusts members' Tier points (screen 2d). */
   canAdjustTier?: boolean;
+  /** Points and history (screen 2e), for an Organizer of a tier Group. */
+  onOpenTierHistory?: (userId: string) => void;
   onSetLevel: (userId: string) => void;
   /** Given to an Organizer of the Group, who sets members' Group Levels. */
   onSetGroupLevel?: (userId: string) => void;
@@ -648,6 +651,17 @@ export function MembersTab({
                   levelSliderStartTenths(selected.groupLevel.level),
                 ),
               )
+            : undefined
+        }
+        onTierHistory={
+          selected &&
+          canAdjustTier &&
+          selected.tier != null &&
+          onOpenTierHistory
+            ? () => {
+                setSelectedUserId(null);
+                onOpenTierHistory(selected.userId);
+              }
             : undefined
         }
         onAdjustTier={

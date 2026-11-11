@@ -11,6 +11,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the member's own Points and history for a Tier adjustment", () => {
+    assert.equal(
+      notificationHref({ type: "tier_points_adjusted", group: { id: "g1" } }),
+      "/dashboard/groups/g1/points",
+    );
+    assert.equal(
+      notificationHref({ type: "tier_band_changed", group: { id: "g1" } }),
+      "/dashboard/groups/g1",
+    );
+  });
+
   it("opens the Game a Game join is about", () => {
     assert.equal(
       notificationHref({

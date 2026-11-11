@@ -32,6 +32,15 @@ export function groupSeasonsPath(groupId: string) {
   return { pathname: "/groups/seasons", params: { groupId } } as const;
 }
 
+/** Points and history (screen 2e); without `userId`, the viewer's own. */
+export function groupTierHistoryPath(groupId: string, userId?: string) {
+  const query = new URLSearchParams({ groupId });
+  if (userId) {
+    query.set("userId", userId);
+  }
+  return `/groups/tier-history?${query.toString()}`;
+}
+
 export function groupNewSeasonPath(groupId: string) {
   return { pathname: "/groups/new-season", params: { groupId } } as const;
 }

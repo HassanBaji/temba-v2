@@ -12,6 +12,15 @@ describe("notificationPath", () => {
       "/groups/g1",
     );
     expect(notificationPath({ type: "level_set", group })).toBe("/groups/g1");
+    expect(notificationPath({ type: "tier_band_changed", group })).toBe(
+      "/groups/g1",
+    );
+  });
+
+  it("opens the member's own Points and history for a Tier adjustment", () => {
+    expect(notificationPath({ type: "tier_points_adjusted", group })).toBe(
+      "/groups/tier-history?groupId=g1",
+    );
     expect(
       notificationPath({ type: "group_join_approved", group, game: null }),
     ).toBe("/groups/g1");

@@ -91,6 +91,7 @@ export type GroupHomeViewProps = {
   onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
   onSetGroupLevel: (userId: string) => void;
+  onOpenTierHistory?: (userId: string) => void;
   saved: SavedLevel | null;
   onDismissSaved: () => void;
   games: Omit<
@@ -301,6 +302,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
             hasTier: data.hasTier,
             leaderboard: data.standing.leaderboard,
           })}
+          onOpenTierHistory={props.onOpenTierHistory}
           onSetLevel={props.onSetLevel}
           onSetGroupLevel={
             viewerMaySetGroupLevel({

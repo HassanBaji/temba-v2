@@ -1822,6 +1822,19 @@ async function seedThursdayTier(u: Users, groupId: string) {
     rankedCount: table.rankedCount,
     createdAt: new Date(Date.now() - 36 * DAY),
   });
+  // Screen 2e's manual change, so Points and history shows who and why.
+  await db.insert(groupTierEvents).values({
+    groupId,
+    userId: u.diego!.id,
+    kind: "adjustment",
+    delta: 40,
+    pointsBefore: 1180,
+    pointsAfter: 1220,
+    setByUserId: u.me!.id,
+    reason: "new_to_group",
+    note: "New to the group but plays Div 1. Starting him near his Level.",
+    createdAt: new Date(Date.now() - 14 * DAY),
+  });
 }
 
 /**

@@ -2,11 +2,11 @@ import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
 import { gamePath } from "../games/games-model";
+import { groupTierHistoryPath } from "../groups/groups-model";
 
 const GROUP_TYPES = new Set([
   "group_member_joined",
   "level_set",
-  "tier_points_adjusted",
   "tier_band_changed",
 ]);
 
@@ -53,6 +53,9 @@ export function notificationPath(item: {
   game?: { id: string } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  if (item.group && item.type === "tier_points_adjusted") {
+    return groupTierHistoryPath(item.group.id);
+  }
   if (
     item.group &&
     (GROUP_TYPES.has(item.type) ||

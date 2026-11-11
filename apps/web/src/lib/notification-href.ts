@@ -1,16 +1,20 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
+import { groupTierHistoryHref } from "~/lib/dashboard-paths";
+
 export function notificationHref(item: {
   type: string;
   group: { id: string } | null;
   game?: { id: string } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  if (item.type === "tier_points_adjusted" && item.group) {
+    return groupTierHistoryHref(item.group.id);
+  }
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||
-      item.type === "tier_points_adjusted" ||
       item.type === "tier_band_changed" ||
       ((item.type === "group_join_requested" ||
         item.type === "group_join_approved" ||

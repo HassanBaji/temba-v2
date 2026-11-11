@@ -1,0 +1,341 @@
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { z } from "zod";
+
+import {
+  groupMembers,
+  groupTierEvents,
+  groupTierPoints,
+  matches,
+  user,
+} from "@repo/db";
+import { groupHasTier } from "@repo/domain/game-rating-scope";
+import type {
+  RatingHistoryEntryData,
+  TierHistoryData,
+  TierHistoryStandingData,
+} from "@repo/domain/rating-history";
+import {
+  scoredSetsFromMatch,
+  seatedUserSlotOnMatch,
+} from "@repo/domain/match-slots";
+import { tierTable } from "@repo/domain/tier-bands";
+import { TIER_POINTS_START } from "@repo/domain/tier-points";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
+import { protectedProcedure } from "#src/trpc";
+import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { type db } from "#src/db";
+import { isGroupMember } from "#src/games/access";
+import { groupIsVerified } from "#src/groups/group-is-verified";
+import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
+import { requireGroup } from "#src/groups/helpers/require-group";
+
+type DbClient = typeof db;
+
+const DEFAULT_PAGE_SIZE = 20;
+
+export type TierHistoryCursor = { createdAt: Date; id: string };
+
+type TierEventRow = typeof groupTierEvents.$inferSelect;
+
+/**
+ * Points and history (screen 2e): what moved one member's Tier points in a
+ * Group, newest first, Tier adjustments with who and why included (ADR-0073).
+ * Only that member and the Group's Organizers may read it. The events outlive
+ * the points row, so a member who left and came back still sees them.
+ */
+export async function tierHistory(
+  database: DbClient,
+  args: {
+    groupId: string;
+    viewerUserId: string;
+    /** Defaults to the viewer. */
+    userId?: string;
+    cursor?: TierHistoryCursor;
+    limit?: number;
+    locale?: Locale;
+  },
+): Promise<
+  TierHistoryData & {
+    group: { id: string; name: string | null };
+    viewerUserId: string;
+    nextCursor: TierHistoryCursor | null;
+  }
+> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const m = messagesFor(locale);
+  const group = await requireGroup(database, args.groupId, locale);
+  const userId = args.userId ?? args.viewerUserId;
+  const isViewer = userId === args.viewerUserId;
+  const allowed = isViewer
+    ? await isGroupMember(database, group.id, userId)
+    : await mayOrganizeGroupGames(database, group, args.viewerUserId);
+  if (!allowed) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: m.rating.history.errors.forbidden,
+    });
+  }
+
+  const member = await database.query.user.findFirst({
+    where: eq(user.id, userId),
+    columns: { id: true, name: true, image: true },
+  });
+  if (!member) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: m.rating.adjust.errors.notMember,
+    });
+  }
+
+  const limit = args.limit ?? DEFAULT_PAGE_SIZE;
+  const { cursor } = args;
+  const rows = await database
+    .select()
+    .from(groupTierEvents)
+    .where(
+      and(
+        eq(groupTierEvents.groupId, group.id),
+        eq(groupTierEvents.userId, userId),
+        inArray(groupTierEvents.kind, ["game", "adjustment"]),
+        cursor
+          ? or(
+              lt(groupTierEvents.createdAt, cursor.createdAt),
+              and(
+                eq(groupTierEvents.createdAt, cursor.createdAt),
+                lt(groupTierEvents.id, cursor.id),
+              ),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(desc(groupTierEvents.createdAt), desc(groupTierEvents.id))
+    .limit(limit + 1);
+  if (
+    !isViewer &&
+    !cursor &&
+    rows.length === 0 &&
+    !(await isGroupMember(database, group.id, userId))
+  ) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: m.rating.adjust.errors.notMember,
+    });
+  }
+  const page = rows.slice(0, limit);
+  const last = page.at(-1);
+
+  const hasTier = groupHasTier({
+    sport: group.sport,
+    verified: groupIsVerified(group),
+  });
+
+  return {
+    group: { id: group.id, name: group.name },
+    viewerUserId: args.viewerUserId,
+    member: {
+      userId: member.id,
+      name: member.name,
+      image: member.image,
+      isViewer,
+    },
+    tier: hasTier ? await memberStanding(database, group.id, userId) : null,
+    entries: await historyEntries(database, userId, page),
+    nextCursor:
+      rows.length > limit && last
+        ? { createdAt: last.createdAt, id: last.id }
+        : null,
+  };
+}
+
+/** The member's place among the Group's current members, as Members cuts it. */
+async function memberStanding(
+  database: DbClient,
+  groupId: string,
+  userId: string,
+): Promise<TierHistoryStandingData | null> {
+  const members = await database
+    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
+    .from(groupMembers)
+    .where(eq(groupMembers.groupId, groupId));
+  if (!members.some((entry) => entry.userId === userId)) {
+    return null;
+  }
+  const points = await database
+    .select()
+    .from(groupTierPoints)
+    .where(eq(groupTierPoints.groupId, groupId));
+  const rowByUser = new Map(points.map((row) => [row.userId, row]));
+  const table = tierTable(
+    members.map((entry) => {
+      const row = rowByUser.get(entry.userId);
+      return {
+        userId: entry.userId,
+        points: row?.points ?? TIER_POINTS_START,
+        gamesCounted: row?.gamesCounted ?? 0,
+        adjusted: row?.confirmedAt != null,
+        joinedAt: entry.joinedAt,
+      };
+    }),
+  );
+  const self = table.rows.find((row) => row.userId === userId);
+  if (!self) {
+    return null;
+  }
+  return {
+    band: self.band,
+    place: self.place,
+    rankedCount: table.rankedCount,
+    points: self.points,
+    provisional: self.provisional,
+    gamesOfFive: self.gamesOfFive,
+    gamesCounted: self.gamesCounted,
+    nextBand: self.nextBand,
+    pointsToNextBand: self.pointsToNextBand,
+  };
+}
+
+async function historyEntries(
+  database: DbClient,
+  userId: string,
+  events: readonly TierEventRow[],
+): Promise<RatingHistoryEntryData[]> {
+  const matchIds = [
+    ...new Set(
+      events.flatMap((event) =>
+        event.kind === "game" && event.matchId ? [event.matchId] : [],
+      ),
+    ),
+  ];
+  const setByIds = [
+    ...new Set(events.flatMap((event) => event.setByUserId ?? [])),
+  ];
+
+  const sideRoster = {
+    columns: {},
+    with: {
+      players: {
+        columns: {},
+        with: { gamePlayer: { columns: { userId: true } } },
+      },
+    },
+  } as const;
+  const matchRows =
+    matchIds.length === 0
+      ? []
+      : await database.query.matches.findMany({
+          where: inArray(matches.id, matchIds),
+          columns: { id: true, startTime: true },
+          with: {
+            game: { columns: { windowStart: true } },
+            sets: {
+              columns: { slot1GamesWon: true, slot2GamesWon: true },
+              orderBy: (table, { asc }) => [asc(table.setNumber)],
+            },
+            slot1GameTeam: sideRoster,
+            slot2GameTeam: sideRoster,
+          },
+        });
+  const matchById = new Map(matchRows.map((row) => [row.id, row]));
+
+  const setters =
+    setByIds.length === 0
+      ? []
+      : await database.query.user.findMany({
+          where: inArray(user.id, setByIds),
+          columns: { id: true, name: true },
+        });
+  const setterById = new Map(setters.map((row) => [row.id, row]));
+
+  return events.map((event): RatingHistoryEntryData => {
+    if (event.kind === "adjustment") {
+      const setter = event.setByUserId
+        ? setterById.get(event.setByUserId)
+        : undefined;
+      return {
+        kind: "tier_adjustment",
+        id: event.id,
+        at: event.createdAt,
+        delta: event.delta,
+        pointsBefore: event.pointsBefore,
+        pointsAfter: event.pointsAfter,
+        setBy: setter ? { userId: setter.id, name: setter.name } : null,
+        reason: event.reason,
+        note: event.note,
+      };
+    }
+    const match = event.matchId ? matchById.get(event.matchId) : undefined;
+    return {
+      kind: "tier_game",
+      id: event.id,
+      at: event.createdAt,
+      playedAt: match?.game?.windowStart ?? match?.startTime ?? null,
+      delta: event.delta,
+      resultDelta: event.resultDelta,
+      performanceDelta: event.performanceDelta,
+      ratingHundredths: event.ratingHundredths,
+      pointsBefore: event.pointsBefore,
+      pointsAfter: event.pointsAfter,
+      score: match ? scoreFor(match, userId) : null,
+    };
+  });
+}
+
+type SideRoster = {
+  players: { gamePlayer: { userId: string | null } | null }[];
+} | null;
+
+/** The Match's goals read from the member's side; null when not on one. */
+function scoreFor(
+  match: {
+    sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
+    slot1GameTeam: SideRoster;
+    slot2GameTeam: SideRoster;
+  },
+  userId: string,
+) {
+  const [set] = scoredSetsFromMatch(match.sets);
+  if (!set) {
+    return null;
+  }
+  const userIdsOf = (team: SideRoster) =>
+    (team?.players ?? []).flatMap((link) => link.gamePlayer?.userId ?? []);
+  const slot = seatedUserSlotOnMatch(
+    {
+      slot1UserIds: userIdsOf(match.slot1GameTeam),
+      slot2UserIds: userIdsOf(match.slot2GameTeam),
+    },
+    userId,
+  );
+  if (slot == null) {
+    return null;
+  }
+  return slot === 1
+    ? { own: set.slot1GamesWon, opponent: set.slot2GamesWon }
+    : { own: set.slot2GamesWon, opponent: set.slot1GamesWon };
+}
+
+export const tierHistoryProcedure = protectedProcedure
+  .input(
+    z.object({
+      groupId: z.string().uuid(),
+      userId: z.string().uuid().optional(),
+      cursor: z
+        .object({ createdAt: z.date(), id: z.string().uuid() })
+        .optional(),
+      limit: z.number().int().min(1).max(50).optional(),
+    }),
+  )
+  .query(async ({ ctx, input }) => {
+    const appUser = await resolveAppUser(ctx.userId);
+    return tierHistory(ctx.db, {
+      groupId: input.groupId,
+      viewerUserId: appUser.id,
+      userId: input.userId,
+      cursor: input.cursor,
+      limit: input.limit,
+      locale: ctx.locale,
+    });
+  });

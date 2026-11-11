@@ -113,4 +113,52 @@ export const rating = {
       belowZero: "Tier points can’t go below zero.",
     },
   },
+  history: {
+    title: "Points and history",
+    menuRow: "Points and history",
+    menuHint: "What moved their tier points, game by game",
+    groupGames: (n: number) =>
+      plural("en", n, {
+        one: "1 group game",
+        other: "{n} group games",
+      }),
+    toNextBand: (points: string, band: string) => `${points} to ${band}`,
+    whatMovedIt: "What moved it",
+    lastCount: (n: number) => `last ${n}`,
+    empty:
+      "Nothing has moved these points yet. They move after each group game.",
+    deltaSpoken: (delta: string) => `${delta} points`,
+    game: {
+      won: (score: string) => `Won ${score}`,
+      drew: (score: string) => `Drew ${score}`,
+      lost: (score: string) => `Lost ${score}`,
+      played: "Group game",
+      rated: (title: string, rating: string) => `${title}, rated ${rating}`,
+      parts: (date: string, result: string, performance: string) =>
+        `${date}. Result ${result}, performance ${performance}`,
+      resultOnly: (date: string, result: string) => `${date}. Result ${result}`,
+    },
+    adjustment: {
+      title: "Set by an organizer",
+      detail: (date: string, from: string, to: string) =>
+        `${date}, ${from} to ${to}`,
+      byline: (name: string, reason: string) => `${name}, ${reason}`,
+      bylineNote: (name: string, reason: string, note: string) =>
+        `${name}, ${reason}: “${note}”`,
+      quote: (name: string, note: string) => `${name}: “${note}”`,
+      you: "You",
+      someone: "An organizer",
+    },
+    footnote: {
+      other: (name: string) =>
+        `${name} sees this same list. Nothing here changes a Temba Level.`,
+      self: "Your group’s organizers see this same list. Nothing here changes your Temba Level.",
+    },
+    unnamed: "Player",
+    loadFailed: "Couldn’t load points and history",
+    errors: {
+      forbidden:
+        "Only the player and this group’s organizers can see these points.",
+    },
+  },
 };
