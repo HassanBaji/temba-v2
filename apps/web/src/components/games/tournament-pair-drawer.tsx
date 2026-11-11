@@ -380,11 +380,11 @@ export function TournamentPairDrawer({
             ) : null}
           </div>
 
-          <div className="border-rule flex shrink-0 gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+          <div className="border-rule flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
             <Button
               type="button"
               size="lg"
-              className="flex-1 font-semibold"
+              className="w-full font-semibold"
               disabled={busy || left > 0}
               aria-busy={actions.post.isPending}
               onClick={() => void post()}
@@ -398,6 +398,7 @@ export function TournamentPairDrawer({
                 type="button"
                 size="lg"
                 variant="outline"
+                className="w-full font-semibold"
                 disabled={busy}
                 aria-busy={actions.save.isPending}
                 onClick={() => void store(pairings, true)}
