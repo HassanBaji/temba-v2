@@ -6,6 +6,7 @@ import {
   levelChangeView,
   parseLevelHistory,
   type LevelChangeDirection,
+  type LevelHistoryStep,
 } from "./home-level-chart";
 import {
   displayLabelFromStoredBand,
@@ -19,6 +20,8 @@ export type HomeLevelInput = {
   provisional: boolean;
   ratedMatchesRemaining: number;
   history: readonly string[];
+  /** One per history point after the first: what moved the Level there. */
+  historySteps: readonly LevelHistoryStep[];
   /** Rated Matches among the history's changes; Level sets are not Matches. */
   historyMatchCount: number;
   progressPercent: number | null;

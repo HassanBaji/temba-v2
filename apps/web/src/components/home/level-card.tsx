@@ -7,11 +7,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { hatch } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import {
-  gaugeArc,
-  parseLevelHistory,
-  sparklinePoints,
-} from "@repo/domain/home-level-chart";
+import { gaugeArc } from "@repo/domain/home-level-chart";
 import { nextDistinctDisplayRung } from "@repo/domain/level-bands";
 import type { Sport } from "@repo/domain/sport";
 
@@ -21,8 +17,6 @@ import { SectionTitle } from "./section-title";
 const VIEWBOX = 120;
 const RADIUS = 50;
 const STROKE = 10;
-const SPARK_WIDTH = 60;
-const SPARK_HEIGHT = 18;
 
 function Gauge({ percent, band }: { percent: number; band: string }) {
   const patternId = `gauge-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -79,33 +73,6 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
         {band}
       </span>
     </span>
-  );
-}
-
-function Sparkline({ values }: { values: readonly number[] }) {
-  const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
-  if (!points) {
-    return null;
-  }
-  const [x = 0, y = 0] = points.split(" ").at(-1)?.split(",").map(Number) ?? [];
-  return (
-    <svg
-      aria-hidden="true"
-      width={SPARK_WIDTH}
-      height={SPARK_HEIGHT}
-      className="shrink-0"
-    >
-      <g transform="translate(2 2)">
-        <polyline
-          points={points}
-          fill="none"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-          className="stroke-ink"
-        />
-        <circle cx={x} cy={y} r={2.5} className="fill-ink" />
-      </g>
-    </svg>
   );
 }
 
@@ -170,7 +137,6 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
   const locale = useLocale();
   const view = homeLevelView(input, locale);
   const next = nextDistinctDisplayRung(input.band);
-  const values = parseLevelHistory(input.history)?.values ?? [];
   const percent = view.progress?.percent ?? 100;
   const copy = m.home.levelSection;
 
@@ -193,8 +159,7 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
             {view.level}
           </p>
           {view.change ? (
-            <p className="mt-1 flex items-center gap-2">
-              <Sparkline values={values} />
+            <p className="mt-1 flex items-baseline gap-2">
               <span className="font-expanded tabular-nums">
                 {view.change.signedAmount}
               </span>

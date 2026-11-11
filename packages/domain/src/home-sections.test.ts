@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { gaugeArc, sparklinePoints } from "./home-level-chart";
+import { gaugeArc } from "./home-level-chart";
 import { lastTenOrder } from "./home-recent-form";
 
 describe("gaugeArc", () => {
@@ -9,19 +9,6 @@ describe("gaugeArc", () => {
     assert.equal(gaugeArc(50, 10), Math.PI * 10);
     assert.equal(gaugeArc(-5, 10), 0);
     assert.equal(gaugeArc(140, 10), 2 * Math.PI * 10);
-  });
-});
-
-describe("sparklinePoints", () => {
-  it("draws nothing for fewer than two points", () => {
-    assert.equal(sparklinePoints([3.1], 60, 20), "");
-  });
-
-  it("puts the lowest value on the floor and the highest on the ceiling", () => {
-    assert.equal(
-      sparklinePoints([2.9, 3.1, 3.0], 60, 20),
-      "0.0,20.0 30.0,0.0 60.0,10.0",
-    );
   });
 });
 

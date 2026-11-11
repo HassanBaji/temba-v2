@@ -302,6 +302,44 @@ export const home = {
     gaugeSpoken: (band: string, percent: number, next: string) =>
       `الفئة ${isolate(band)}، قطعت ${percent}% من الطريق إلى ${isolate(next)}`,
   },
+  trend: {
+    title: "الاتجاه",
+    lastMatches: (n: number) =>
+      plural("ar", n, {
+        one: "آخر مباراة",
+        two: "آخر مباراتين",
+        few: "آخر {n} مباريات",
+        many: "آخر {n} مباراة",
+        other: "آخر {n} مباراة",
+      }),
+    from: (from: string) => `من ${isolate(from)} إلى `,
+    matchesAgo: (n: number) =>
+      plural("ar", n, {
+        one: "قبل مباراة",
+        two: "قبل مباراتين",
+        few: "قبل {n} مباريات",
+        many: "قبل {n} مباراة",
+        other: "قبل {n} مباراة",
+      }),
+    changesAgo: (n: number) =>
+      plural("ar", n, {
+        one: "قبل تغيير واحد",
+        two: "قبل تغييرين",
+        few: "قبل {n} تغييرات",
+        many: "قبل {n} تغييرًا",
+        other: "قبل {n} تغيير",
+      }),
+    latest: "الأحدث",
+    legend: {
+      won: "الممتلئ فوز",
+      drawn: "النصفي تعادل",
+      lost: "المفرغ خسارة",
+      set: "الرمادي تحديد",
+    },
+    legendSeparator: "، ",
+    spoken: (from: string, to: string, window: string) =>
+      `انتقل المستوى من ${isolate(from)} إلى ${isolate(to)}، ${window}`,
+  },
   lastTen: {
     title: "آخر 10",
     oldestFirst: "الأقدم أولًا",
