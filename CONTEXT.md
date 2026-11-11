@@ -132,7 +132,7 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once.
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any other member: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once.
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
 **Group owner**:
@@ -533,7 +533,7 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it, and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
+Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it, and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group. The Organizers of a tier Group also make Tier adjustments for its other members, never for themselves.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
@@ -695,6 +695,10 @@ _Avoid_: Elo, group Elo, rating points, Standing points
 **Tier band**:
 Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until four are. Pure in `@repo/domain/tier-bands`.
 _Avoid_: badge, rank, Level band, league
+
+**Tier adjustment**:
+An Organizer's manual change to another member's Tier points in a tier Group (ADR-0073): at most 400 points from where they stand, with a required reason from the five Level override reasons and an optional note of up to 140 characters. Written as an `adjustment` event in `group_tier_events`, on top of what the Games did. It moves points, never the fish directly: the Group's places are cut again, and the member and everyone whose fish moved are told at once. It ends a Provisional tier. There is no undo; a mistake is corrected by another Tier adjustment.
+_Avoid_: override (that is a Level's), penalty, reset
 
 **Match history visibility**:
 Who sees a User's form, stats and partners on their Player profile: everyone who may open it (default), Group members, or only them. A viewer it excludes sees Level and Preferred Position only.
