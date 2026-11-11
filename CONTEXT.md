@@ -689,7 +689,7 @@ A football Group member's strength inside one tier Group, a football Group that 
 _Avoid_: group level, group rating, local level, badge
 
 **Tier points**:
-The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves once per Match by a result part, an expected-score step on the mean Tier points of the two Football sides, and a performance part; an Organizer may adjust it. Every move is an event in an append-only ledger (`group_tier_events`). Carries across Seasons (ADR-0067).
+The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves once per Match by a result part, an expected-score step on the mean Tier points of the two Football sides, and a performance part; an Organizer may adjust it. Every move is an event in an append-only ledger (`group_tier_events`). Carries across Seasons (ADR-0067). Leaving or being removed from the Group deletes the member's points; the events stay, and a member who comes back starts again at 1,200, Provisional.
 _Avoid_: Elo, group Elo, rating points, Standing points
 
 **Tier band**:
@@ -699,6 +699,10 @@ _Avoid_: badge, rank, Level band, league
 **Tier adjustment**:
 An Organizer's manual change to another member's Tier points in a tier Group (ADR-0073): at most 400 points from where they stand, with a required reason from the five Level override reasons and an optional note of up to 140 characters. Written as an `adjustment` event in `group_tier_events`, on top of what the Games did. It moves points, never the fish directly: the Group's places are cut again, and the member and everyone whose fish moved are told at once. It ends a Provisional tier. There is no undo; a mistake is corrected by another Tier adjustment.
 _Avoid_: override (that is a Level's), penalty, reset
+
+**Rating history**:
+The list of everything that moved a User's Group Tier, newest first (ADR-0073): each Game with its result part and performance part, and each Tier adjustment with the Organizer's name, the reason and the note. A read over `group_tier_events`, not a table of its own; band changes are not lines in it. In a Group it is "Points and history" (`groups.tierHistory`), which only the member and the Group's Organizers may read.
+_Avoid_: activity, audit log, feed
 
 **Match history visibility**:
 Who sees a User's form, stats and partners on their Player profile: everyone who may open it (default), Group members, or only them. A viewer it excludes sees Level and Preferred Position only.
