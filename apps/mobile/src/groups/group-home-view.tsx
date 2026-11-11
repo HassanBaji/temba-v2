@@ -261,6 +261,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               ? props.onOpenMember
               : undefined
           }
+          onOpenMembers={() => props.onTabChange("members")}
         />
       ) : null}
       {props.tab === "games" ? (

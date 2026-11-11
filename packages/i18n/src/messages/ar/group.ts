@@ -497,6 +497,13 @@ export const group = {
         many: "العب {n} مباراة لتُرتَّب.",
         other: "العب {n} مباراة لتُرتَّب.",
       }),
+    tierFootnote: {
+      season:
+        "يحتسب الترتيب مباريات هذا الموسم ويبدأ من جديد في الموسم القادم.",
+      before: "قوة كل لاعب في المجموعة، أي فئته، تجدها في ",
+      membersLink: "الأعضاء",
+      after: ".",
+    },
   },
   settings: {
     sportSublabel: {

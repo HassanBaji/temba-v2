@@ -187,6 +187,8 @@ export type GroupHomeData = {
   /** A football Group that is not Verified (ADR-0066). */
   hasTier?: boolean;
   tierSummary?: GroupTierSummaryData | null;
+  /** How ratings work in a tier Group; null on any other Group. */
+  ratingSettingsLine?: string | null;
   venue: { id: string; name: string } | null;
   pendingLinkRequestCount: number | null;
   canUnlinkFromVenue: boolean;

@@ -150,9 +150,50 @@ describe("groups.byId on a tier Group (screen 2b)", () => {
       const result = await groupById(db, { groupId, userId: ids.owner! });
       expect(result.hasTier).toBe(false);
       expect(result.tierSummary).toBeNull();
+      expect(result.ratingSettingsLine).toBeNull();
       expect(
         result.standing.leaderboard.every((entry) => entry.tier === null),
       ).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("says how ratings work in the Group for the Standing tab (screen 2a)", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { groupId, ids } = await seedTierGroup(db);
+      const asMember = await groupById(db, { groupId, userId: ids.safi! });
+      expect(asMember.ratingSettingsLine).toBe(
+        "Results only: tier points move on wins, draws and losses.",
+      );
+      const inArabic = await groupById(db, {
+        groupId,
+        userId: ids.safi!,
+        locale: "ar",
+      });
+      expect(inArabic.ratingSettingsLine).toBe(
+        "النتائج فقط: تتحرّك نقاط الفئة بالفوز والتعادل والخسارة.",
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("has no tier and no rating settings line on a padel Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "owner");
+      const [group] = await db
+        .insert(groups)
+        .values({ name: "Padel", createdBy: owner, sport: "padel" })
+        .returning({ id: groups.id });
+      await db
+        .insert(groupMembers)
+        .values({ groupId: group!.id, userId: owner });
+      const result = await groupById(db, { groupId: group!.id, userId: owner });
+      expect(result.hasTier).toBe(false);
+      expect(result.ratingSettingsLine).toBeNull();
     } finally {
       await close();
     }

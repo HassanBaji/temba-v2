@@ -395,6 +395,12 @@ export const group = {
     },
     oneGameRanks: "One game ranks you.",
     playGamesToRank: (n: number) => `Play ${n} games to be ranked.`,
+    tierFootnote: {
+      season: "Counts this season’s games and starts again next season.",
+      before: "How strong each player is in the group, their tier, is on ",
+      membersLink: "Members",
+      after: ".",
+    },
   },
   settings: {
     sportSublabel: {

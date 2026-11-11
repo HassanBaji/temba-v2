@@ -23,6 +23,7 @@ import {
   standingRecordLabel,
   standingRulesLine,
   standingShowsDraws,
+  standingTierFootnote,
   unrankedNote,
 } from "@repo/domain/season-standing";
 import { isRtl } from "@repo/i18n/locale";
@@ -865,16 +866,58 @@ function TableSkeleton() {
   );
 }
 
+function TierFootnote({
+  hasTier,
+  seasonInView,
+  ratingSettingsLine,
+  onOpenMembers,
+}: {
+  hasTier: boolean;
+  seasonInView: boolean;
+  ratingSettingsLine: string | null;
+  onOpenMembers?: () => void;
+}) {
+  const locale = useLocale();
+  const footnote = standingTierFootnote({ hasTier, seasonInView }, locale);
+  if (!footnote) {
+    return null;
+  }
+  return (
+    <View style={{ gap: 6, paddingHorizontal: spacing.surface }}>
+      <Text size="meta" tone="muted">
+        {footnote.before}
+        <Text
+          size="meta"
+          accessibilityRole="link"
+          onPress={onOpenMembers}
+          style={{ textDecorationLine: "underline" }}
+        >
+          {footnote.membersLink}
+        </Text>
+        {footnote.after}
+      </Text>
+      {ratingSettingsLine ? (
+        <Text size="meta" tone="muted">
+          {ratingSettingsLine}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 export function StandingTab({
   data,
   apiOrigin,
   onOpenMember,
+  onOpenMembers,
   onInvite,
   createGameHref,
 }: {
   data: GroupHomeData;
   apiOrigin: string;
   onOpenMember?: (userId: string) => void;
+  /** Switches to the Members tab, where the Group Tier lives. */
+  onOpenMembers?: () => void;
   onInvite?: () => void;
   createGameHref?: Href;
 }) {
@@ -1003,6 +1046,12 @@ export function StandingTab({
         <Podium rows={rows} season={season} />
       ) : null}
       {table}
+      <TierFootnote
+        hasTier={data.hasTier ?? false}
+        seasonInView={season != null}
+        ratingSettingsLine={data.ratingSettingsLine ?? null}
+        onOpenMembers={onOpenMembers}
+      />
       {seasons.length === 0 ? <StatPair data={data} /> : null}
       {manageSeasons}
     </View>

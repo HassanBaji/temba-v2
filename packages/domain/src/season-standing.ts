@@ -331,6 +331,33 @@ function rankedAfterLine(minRankedGames: number, locale: Locale) {
     : m.playGamesToRank(minRankedGames);
 }
 
+export type StandingTierFootnote = {
+  /** Text before the link to the Members tab. */
+  before: string;
+  membersLink: string;
+  after: string;
+};
+
+/**
+ * Screen 2a: on a tier Group the Standing says it is the season and points to
+ * Members, where the Group Tier lives (ADR-0066). The season sentence drops
+ * out when no Season is in view, since the table then counts every game.
+ */
+export function standingTierFootnote(
+  view: { hasTier: boolean; seasonInView: boolean },
+  locale: Locale,
+): StandingTierFootnote | null {
+  if (!view.hasTier) {
+    return null;
+  }
+  const m = messagesFor(locale).group.standing.tierFootnote;
+  return {
+    before: view.seasonInView ? `${m.season} ${m.before}` : m.before,
+    membersLink: m.membersLink,
+    after: m.after,
+  };
+}
+
 /** `"5–2–1"`: wins, draws, losses. */
 export function standingRecordLabel(record: {
   wins: number;

@@ -711,6 +711,9 @@ export default function GroupHomePage({
               canInvite={canManageInvites}
               onInvite={() => setInvitesOpen(true)}
               canManageSeasons={data.canManageSeasons}
+              hasTier={data.hasTier}
+              ratingSettingsLine={data.ratingSettingsLine}
+              onOpenMembers={() => setTab("members")}
             />
           </TabsContent>
           <TabsContent value="games" forceMount className={TAB_PANEL}>

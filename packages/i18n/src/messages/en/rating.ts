@@ -38,6 +38,9 @@ export const rating = {
     footnote:
       "Tier and points are this group’s own: Hamour is the top 15% after the Shark, Kanaad the next 35%, Safi everyone else. Points come from this group’s games only.",
   },
+  settingsLine: {
+    resultsOnly: "Results only: tier points move on wins, draws and losses.",
+  },
   adjust: {
     menuRow: "Adjust rating",
     menuHint: "Move their tier points by hand, with a reason they can see",

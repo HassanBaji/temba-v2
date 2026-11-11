@@ -12,6 +12,7 @@ import {
 import { z } from "zod";
 
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   games,
@@ -984,6 +985,10 @@ export async function groupById(
     verified: groupIsVerified(group),
     hasTier,
     tierSummary: groupTiers?.summary ?? null,
+    /** How ratings work in a tier Group, read-only under Standing (screen 3a). */
+    ratingSettingsLine: hasTier
+      ? messagesFor(locale).rating.settingsLine.resultsOnly
+      : null,
     venue: venue ? { id: venue.id, name: venue.name } : null,
     pendingLinkRequestCount,
     canUnlinkFromVenue,
