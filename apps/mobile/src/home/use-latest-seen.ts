@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 
-import { LATEST_SEEN_KEY } from "./latest-model";
+const LATEST_SEEN_KEY = "temba.home.latestSeen";
 
 /** The Latest row's key once opened, remembered per device so it disappears. */
 export function useLatestSeen() {

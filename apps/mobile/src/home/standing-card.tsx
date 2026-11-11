@@ -1,6 +1,7 @@
 import { sizes, spacing } from "@repo/design-tokens";
 import {
   homeStandingRowView,
+  standingSplit,
   type HomeStandingRow,
 } from "@repo/domain/home-standing";
 import { ArrowRight } from "lucide-react-native";
@@ -12,7 +13,6 @@ import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { standingSplit } from "./home-model";
 import type { HomeNavTarget } from "./home-target";
 import { SectionTitle } from "./section-title";
 
@@ -32,7 +32,7 @@ export function StandingCard({
   if (counted.length === 0) {
     return null;
   }
-  const copy = m.mobileHome.standingSection;
+  const copy = m.home.standingSection;
 
   return (
     <View style={{ gap: 12 }}>

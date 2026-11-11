@@ -46,7 +46,7 @@ export function SportSwitch({
             accessibilityState={{ checked: selected }}
             accessibilityLabel={
               band
-                ? m.mobileHome.sportSwitch.spoken(m.common[sport], band)
+                ? m.home.sportSwitch.spoken(m.common[sport], band)
                 : m.common[sport]
             }
             onPress={() => onSelect(sport)}

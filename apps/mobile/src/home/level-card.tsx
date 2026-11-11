@@ -1,6 +1,10 @@
 import { hatch, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import { parseLevelHistory } from "@repo/domain/home-level-chart";
+import {
+  gaugeArc,
+  parseLevelHistory,
+  sparklinePoints,
+} from "@repo/domain/home-level-chart";
 import { nextDistinctDisplayRung } from "@repo/domain/level-bands";
 import { type Sport } from "@repo/domain/sport";
 import { Check } from "lucide-react-native";
@@ -16,7 +20,6 @@ import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { noLevelCopy, type HomeLevel } from "./home-model";
-import { gaugeArc, sparklinePoints } from "./home-sections-model";
 import { SectionTitle } from "./section-title";
 
 const GAUGE = 104;
@@ -148,8 +151,8 @@ function Status({ provisional }: { provisional: boolean }) {
       )}
       <Text size="meta" tone={provisional ? "muted" : "default"}>
         {provisional
-          ? m.mobileHome.levelSection.provisional
-          : m.mobileHome.levelSection.confirmed}
+          ? m.home.levelSection.provisional
+          : m.home.levelSection.confirmed}
       </Text>
     </View>
   );
@@ -166,7 +169,7 @@ export function LevelCard({
   return (
     <View style={{ gap: 12 }}>
       <SectionTitle
-        title={m.mobileHome.levelSection.title[sport]}
+        title={m.home.levelSection.title[sport]}
         status={
           level.kind === "rated" ? (
             <Status provisional={level.input.provisional} />
@@ -224,7 +227,7 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
   const next = nextDistinctDisplayRung(input.band);
   const values = parseLevelHistory(input.history)?.values ?? [];
   const percent = view.progress?.percent ?? 100;
-  const copy = m.mobileHome.levelSection;
+  const copy = m.home.levelSection;
 
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>

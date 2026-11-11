@@ -27,16 +27,15 @@ import { initialsFor } from "../primitives/initials";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import type { HomeNavTarget } from "./home-target";
-import {
-  upNextCardView,
-  type CardAction,
-  type CardActionIcon,
-  type CardPerson,
-  type CardSeat,
-  type CardStepIcon,
-  type CardTarget,
-  type CardWho,
-} from "./up-next-card-model";
+import type {
+  CardAction,
+  CardActionIcon,
+  CardPerson,
+  CardSeat,
+  CardStepIcon,
+  CardWho,
+} from "@repo/domain/home-up-next-card";
+import { upNextCardView, type MobileCardTarget } from "./up-next-card-model";
 import type { UpNextItem } from "./up-next-model";
 
 type Navigate = (target: HomeNavTarget) => void;
@@ -162,14 +161,14 @@ function SeatRow({ seat }: { seat: CardSeat }) {
     ? seat.isViewer
       ? m.common.you
       : seat.name
-    : m.mobileHome.card.open;
+    : m.home.upNextCard.open;
   return (
     <View
       accessible
       accessibilityLabel={
         seat.filled
-          ? m.mobileHome.card.seatSpoken(name, seat.sideLabel)
-          : m.mobileHome.card.openSeatSpoken(seat.sideLabel)
+          ? m.home.upNextCard.seatSpoken(name, seat.sideLabel)
+          : m.home.upNextCard.openSeatSpoken(seat.sideLabel)
       }
       style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
     >
@@ -286,7 +285,7 @@ function Who({ who }: { who: CardWho }) {
             ))}
           </View>
           <Text size="eyebrow" tone="muted">
-            {m.mobileHome.card.vs}
+            {m.home.upNextCard.vs}
           </Text>
           <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
             {who.sides[1].map((seat) => (
@@ -336,7 +335,7 @@ function Who({ who }: { who: CardWho }) {
           <View
             key={team.key}
             accessible
-            accessibilityLabel={m.mobileHome.card.teamSpoken(
+            accessibilityLabel={m.home.upNextCard.teamSpoken(
               team.label,
               team.members.map((member) =>
                 member.isViewer ? m.common.you : member.name,
@@ -369,7 +368,7 @@ function ActionButton({
   primary,
   onPress,
 }: {
-  action: CardAction;
+  action: CardAction<MobileCardTarget>;
   primary: boolean;
   onPress: () => void;
 }) {
@@ -418,7 +417,7 @@ export function UpNextCard({
   const view = upNextCardView(item, now, locale);
   const StepIcon = STEP_ICONS[view.step.icon];
 
-  const run = (target: CardTarget) => {
+  const run = (target: MobileCardTarget) => {
     if (target.kind === "directions") {
       if (item.kind === "game" && item.game.venue) {
         void Linking.openURL(
@@ -454,7 +453,7 @@ export function UpNextCard({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={view.spoken}
-        onPress={() => onNavigate(view.open)}
+        onPress={() => run(view.open)}
         style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
       >
         <View

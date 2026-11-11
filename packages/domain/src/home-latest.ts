@@ -1,15 +1,34 @@
-import type { CoinKind } from "@repo/domain/marks";
-import { markName } from "@repo/domain/marks";
-import type { Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { cabinetGameLabel } from "../marks/cabinet-model";
-import type { RouterOutputs } from "../trpc/react";
+import {
+  gameCustomName,
+  gameDisplayName,
+  type GameDisplayNameInput,
+} from "./game-custom-name";
+import { markName, type CoinKind } from "./marks";
+import type { Sport } from "./sport";
 
-type ApiCabinet = RouterOutputs["marks"]["cabinet"];
-
-export const LATEST_SEEN_KEY = "temba.home.latestSeen";
+/** What Home reads from `marks.cabinet` for the signed-in User. */
+export type LatestCabinet =
+  | { hidden: true }
+  | {
+      hidden: false;
+      perSport: Record<
+        Sport,
+        {
+          kinds: readonly {
+            kind: CoinKind;
+            lastFrom: {
+              giverName: string | null;
+              gameId: string;
+              game: GameDisplayNameInput & { groupName: string | null };
+              playedAt: Date | string;
+            } | null;
+          }[];
+        }
+      >;
+    };
 
 /** A mark older than this is not news any more. */
 const LATEST_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
@@ -28,7 +47,7 @@ function firstName(name: string): string {
 
 /** The newest mark the User received in their sports, unless it is old news. */
 export function latestMark(
-  cabinet: ApiCabinet | undefined,
+  cabinet: LatestCabinet | undefined,
   sports: readonly Sport[],
   now: Date,
   locale: Locale,
@@ -36,7 +55,7 @@ export function latestMark(
   if (!cabinet || cabinet.hidden) {
     return null;
   }
-  const m = messagesFor(locale).mobileHome.latest;
+  const m = messagesFor(locale).home.latest;
   const newest = sports
     .flatMap((sport) =>
       cabinet.perSport[sport].kinds.flatMap((kind) =>
@@ -57,7 +76,9 @@ export function latestMark(
       : m.newMark,
     line: m.line(
       markName(newest.kind.kind, locale),
-      cabinetGameLabel(newest.from.game, locale),
+      gameCustomName(newest.from.game) ??
+        newest.from.game.groupName ??
+        gameDisplayName(newest.from.game, locale),
     ),
   };
 }

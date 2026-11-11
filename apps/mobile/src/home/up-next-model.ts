@@ -104,7 +104,7 @@ export function upNextWeekLabel(
   now: Date,
   locale: Locale,
 ): string {
-  const card = messagesFor(locale).mobileHome.card;
+  const card = messagesFor(locale).home.upNextCard;
   const count = items.filter(
     (item) => productDaysBetween(now, gameDayStart(item.startsAt)) < WEEK_DAYS,
   ).length;
@@ -219,63 +219,4 @@ export function upNextRowView(
       locale,
     ),
   };
-}
-
-export type OpenWeekGame = RouterOutputs["games"]["listMyGames"][number];
-
-export type OpenWeekRow = {
-  key: string;
-  gameId: string;
-  day: string;
-  time: string;
-  title: string;
-  detail: string | null;
-  sport: Sport;
-};
-
-const OPEN_WEEK_ROWS = 2;
-
-/** Games this week in the User's Groups that still have a seat to take. */
-export function openWeekRows(
-  games: readonly OpenWeekGame[],
-  now: Date,
-  locale: Locale,
-): OpenWeekRow[] {
-  const m = messagesFor(locale).mobileHome;
-  return games
-    .filter((game) => {
-      const startsAt = new Date(game.startTime);
-      return (
-        game.canRegister &&
-        !game.isRegistered &&
-        startsAt.getTime() > now.getTime() &&
-        productDaysBetween(now, gameDayStart(startsAt)) < WEEK_DAYS
-      );
-    })
-    .sort(
-      (a, b) =>
-        new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
-    )
-    .slice(0, OPEN_WEEK_ROWS)
-    .map((game) => {
-      const startsAt = new Date(game.startTime);
-      const { title } = homeGameRowLines(game, locale);
-      const seats =
-        game.playersAllowed != null
-          ? m.card.whoIn(game.registeredUserCount, game.playersAllowed)
-          : null;
-      const place = game.venue?.name ?? null;
-      return {
-        key: game.id,
-        gameId: game.id,
-        day: upNextDayLabel(startsAt, now, locale),
-        time: formatGameClock(startsAt, locale),
-        title,
-        detail:
-          place && seats
-            ? m.card.openRowDetail(place, seats)
-            : (place ?? seats),
-        sport: sportOrDefault(game.sport),
-      };
-    });
 }

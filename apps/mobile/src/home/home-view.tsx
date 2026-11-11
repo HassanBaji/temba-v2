@@ -104,7 +104,7 @@ export function HomeView({
       ) : null}
       <Block
         slot={model.level}
-        title={m.mobileHome.levelSection.title[model.sport]}
+        title={m.home.levelSection.title[model.sport]}
         skeletonHeight={220}
         onRetry={onRetry}
       >
@@ -112,7 +112,7 @@ export function HomeView({
       </Block>
       <Block
         slot={model.recentForm}
-        title={m.mobileHome.lastTen.title}
+        title={m.home.lastTen.title}
         skeletonHeight={160}
         onRetry={onRetry}
       >
@@ -122,7 +122,7 @@ export function HomeView({
       </Block>
       <Block
         slot={model.stats}
-        title={m.mobileHome.stats.title}
+        title={m.home.stats.title}
         skeletonHeight={140}
         onRetry={onRetry}
       >

@@ -44,6 +44,8 @@ function schemeLines(palette: Palette, scheme: ColorScheme): string[] {
     `--control-edge: ${palette.controlEdge};`,
     `--focus-control: ${palette.focusControl};`,
     `--on-focus-control: ${palette.onFocusControl};`,
+    `--lifted: ${palette.lifted};`,
+    `--lifted-control: ${palette.liftedControl};`,
     `--sheet: ${palette.sheet};`,
     `--scrim: ${palette.scrim};`,
     `--hatch-stroke-paper: ${palette.hatchStroke};`,
@@ -94,6 +96,8 @@ export function renderThemeCss(): string {
     "--color-control-edge: var(--control-edge);",
     "--color-focus-control: var(--focus-control);",
     "--color-on-focus-control: var(--on-focus-control);",
+    "--color-lifted: var(--lifted);",
+    "--color-lifted-control: var(--lifted-control);",
     "--color-sheet: var(--sheet);",
     "--color-scrim: var(--scrim);",
   ]);

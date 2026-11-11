@@ -1,7 +1,11 @@
 import { useUser } from "@clerk/expo";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
+import { latestMark } from "@repo/domain/home-latest";
 import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
+import { openWeekRows } from "@repo/domain/home-open-week";
+import { homeSport, homeSports } from "@repo/domain/home-sports";
+import { homeStats } from "@repo/domain/home-stats";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { Sport } from "@repo/domain/sport";
 import { useRouter, type Href } from "expo-router";
@@ -14,19 +18,15 @@ import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
 import {
   homeChecklist,
-  homeSport,
-  homeSports,
   levelFromApi,
   recentFormFromHistory,
   standingInSport,
-  statsFromProfile,
   type HomeModel,
   type Slot,
 } from "./home-model";
 import { homePath, type HomeNavTarget } from "./home-target";
 import { HomeView } from "./home-view";
-import { latestMark } from "./latest-model";
-import { openWeekRows, upNextItems } from "./up-next-model";
+import { upNextItems } from "./up-next-model";
 import { useChecklistSkipped } from "./use-checklist-skipped";
 import { useLatestSeen } from "./use-latest-seen";
 
@@ -166,7 +166,7 @@ export function HomeScreen() {
       : {},
     level: slotOf(rating, levelFromApi),
     recentForm: slotOf(history, (rows) => recentFormFromHistory(rows, locale)),
-    stats: slotOf(profile, (data) => statsFromProfile(data, locale)),
+    stats: slotOf(profile, (data) => homeStats(data, locale)),
     standing: slotOf(home, (data) => standingInSport(data.standing, sport)),
   };
 

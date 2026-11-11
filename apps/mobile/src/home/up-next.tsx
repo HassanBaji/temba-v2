@@ -16,9 +16,10 @@ import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import type { HomeNavTarget } from "./home-target";
 import { SectionTitle } from "./section-title";
+import type { OpenWeekRow } from "@repo/domain/home-open-week";
+
 import {
   upNextRowView,
-  type OpenWeekRow,
   type UpNextItem,
   type UpNextRowView,
 } from "./up-next-model";
@@ -114,7 +115,7 @@ function AllGamesRow({ onNavigate }: { onNavigate: Navigate }) {
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Text weight="semibold">{m.mobileHome.card.allGames}</Text>
+      <Text weight="semibold">{m.home.upNextCard.allGames}</Text>
       <ArrowRight
         size={ARROW_ICON}
         color={palette.foreground}
@@ -257,7 +258,7 @@ function OpenGameRow({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={m.mobileHome.card.joinSpoken(row.title)}
+        accessibilityLabel={m.home.upNextCard.joinSpoken(row.title)}
         hitSlop={(sizes.touchTarget - JOIN_HEIGHT) / 2}
         onPress={() => onNavigate(open)}
         style={({ pressed }) => ({
@@ -271,7 +272,7 @@ function OpenGameRow({
         })}
       >
         <Text size="meta" weight="semibold" style={{ color: colors.paper }}>
-          {m.mobileHome.card.join}
+          {m.home.upNextCard.join}
         </Text>
       </Pressable>
     </View>
@@ -305,7 +306,7 @@ export function UpNextEmpty({
         </Text>
         <Text size="meta" tone="muted">
           {openGames.length > 0
-            ? m.mobileHome.card.openWeekBody(openGames.length)
+            ? m.home.upNextCard.openWeekBody(openGames.length)
             : m.mobileHome.upNext.emptyBody}
         </Text>
       </View>

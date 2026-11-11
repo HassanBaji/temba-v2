@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { gameCardView } from "./up-next-card-model";
-import type { UpNextGame, UpNextItem } from "./up-next-model";
+import {
+  gameCardView,
+  type HomeCardGame,
+  type HomeCardItem,
+} from "./home-up-next-card";
 
 const NOW = new Date("2026-11-11T09:00:00.000Z");
 
@@ -10,7 +13,7 @@ function occupant(userId: string, name: string, isViewer = false) {
   return { userId, name, image: null, isViewer };
 }
 
-function game(overrides: Partial<UpNextGame> = {}): UpNextGame {
+function game(overrides: Partial<HomeCardGame> = {}): HomeCardGame {
   return {
     id: "game-1",
     name: "Tuesday Night Padel",
@@ -44,12 +47,11 @@ function game(overrides: Partial<UpNextGame> = {}): UpNextGame {
     canAddResults: false,
     viewerIsOrganizer: false,
     ...overrides,
-  } as UpNextGame;
+  } as HomeCardGame;
 }
 
-function item(value: UpNextGame): Extract<UpNextItem, { kind: "game" }> {
+function item(value: HomeCardGame): HomeCardItem {
   return {
-    kind: "game",
     key: `game:${value.id}`,
     startsAt: new Date(value.startTime),
     sport: value.sport === "football" ? "football" : "padel",

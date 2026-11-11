@@ -36,3 +36,17 @@ export function homeStandingRowView(
       row.position == null ? m.noCountedGames : m.ofCount(row.memberCount),
   };
 }
+
+/** Groups where the User has counted games, and how many fold into one row. */
+export function standingSplit(rows: readonly HomeStandingRow[]): {
+  counted: HomeStandingRow[];
+  uncounted: number;
+  total: number;
+} {
+  const counted = rows.filter((row) => row.position != null);
+  return {
+    counted,
+    uncounted: rows.length - counted.length,
+    total: rows.length,
+  };
+}

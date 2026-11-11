@@ -47,6 +47,8 @@
   --color-control-edge: var(--control-edge);
   --color-focus-control: var(--focus-control);
   --color-on-focus-control: var(--on-focus-control);
+  --color-lifted: var(--lifted);
+  --color-lifted-control: var(--lifted-control);
   --color-sheet: var(--sheet);
   --color-scrim: var(--scrim);
 }
@@ -76,6 +78,8 @@
   --control-edge: #0a0a0a;
   --focus-control: #ffffff;
   --on-focus-control: #0a0a0a;
+  --lifted: #f4f4f4;
+  --lifted-control: #ffffff;
   --sheet: #ffffff;
   --scrim: rgba(10, 10, 10, 0.5);
   --hatch-stroke-paper: #dcdcdc;
@@ -113,6 +117,8 @@
   --control-edge: #3a3a3a;
   --focus-control: #262626;
   --on-focus-control: #e6e6e6;
+  --lifted: #141414;
+  --lifted-control: #262626;
   --sheet: #0f0f0f;
   --scrim: rgba(0, 0, 0, 0.72);
   --hatch-stroke-paper: #2e2e2e;

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { gaugeArc, lastTenOrder, sparklinePoints } from "./home-sections-model";
+import { gaugeArc, sparklinePoints } from "./home-level-chart";
+import { lastTenOrder } from "./home-recent-form";
 
 describe("gaugeArc", () => {
   it("runs the share of the ring toward the next band, kept inside 0 to 100", () => {

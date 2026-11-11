@@ -1,5 +1,8 @@
 import { spacing } from "@repo/design-tokens";
-import type { RecentFormView } from "@repo/domain/home-recent-form";
+import {
+  lastTenOrder,
+  type RecentFormView,
+} from "@repo/domain/home-recent-form";
 import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
 import { View } from "react-native";
 
@@ -9,7 +12,6 @@ import { ResultMark } from "../primitives/result-mark";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { lastTenOrder } from "./home-sections-model";
 import { SectionTitle } from "./section-title";
 
 const MARK = 22;
@@ -60,7 +62,7 @@ function SplitBar({ form }: { form: RecentFormView }) {
 export function RecentFormCard({ form }: { form: RecentFormView }) {
   const m = useMessages();
   const colors = useColors();
-  const copy = m.mobileHome.lastTen;
+  const copy = m.home.lastTen;
   const showRate = form.playedCount >= WIN_RATE_MIN_MATCHES;
 
   return (

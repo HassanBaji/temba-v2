@@ -7,7 +7,7 @@ import { MarkCoin } from "../marks/mark-coin";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import type { LatestMark } from "./latest-model";
+import type { LatestMark } from "@repo/domain/home-latest";
 
 const ARROW_ICON = 16;
 

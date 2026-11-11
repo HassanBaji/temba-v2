@@ -9,7 +9,6 @@ import {
   levelFromApi,
   noLevelCopy,
   slotOf,
-  standingCountLabel,
   standingInSport,
 } from "./home-model";
 
@@ -105,8 +104,6 @@ describe("per-sport sections", () => {
       standingInSport(rows, "football").map((row) => row.groupId),
       ["b"],
     );
-    assert.equal(standingCountLabel(1, "en"), "1 group");
-    assert.equal(standingCountLabel(7, "en"), "7 groups");
   });
 });
 

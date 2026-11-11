@@ -5,7 +5,7 @@ import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import type { HomeStats, StatMark, StatTile } from "./home-model";
+import type { HomeStats, StatMark, StatTile } from "@repo/domain/home-stats";
 import { SectionTitle } from "./section-title";
 
 const MARK_HEIGHT = 4;
@@ -58,7 +58,7 @@ function Tile({ tile }: { tile: StatTile }) {
       padded={false}
       radius="card"
       accessible
-      accessibilityLabel={m.mobileHome.stats.tileSpoken(
+      accessibilityLabel={m.home.stats.tileSpoken(
         tile.label,
         tile.value,
         tile.caption,
@@ -88,7 +88,7 @@ export function StatsCard({ stats }: { stats: HomeStats }) {
   const m = useMessages();
   return (
     <View style={{ gap: 12 }}>
-      <SectionTitle title={m.mobileHome.stats.title} meta={stats.meta} />
+      <SectionTitle title={m.home.stats.title} meta={stats.meta} />
       <View style={{ flexDirection: "row", gap: 8 }}>
         {stats.tiles.map((tile) => (
           <Tile key={tile.key} tile={tile} />

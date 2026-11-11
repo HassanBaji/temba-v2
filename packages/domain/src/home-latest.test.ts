@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import type { RouterOutputs } from "../trpc/react";
-import { latestMark } from "./latest-model";
+import { latestMark, type LatestCabinet } from "./home-latest";
 
-type ApiCabinet = RouterOutputs["marks"]["cabinet"];
+type ApiCabinet = LatestCabinet;
 
 const NOW = new Date("2026-11-11T09:00:00.000Z");
 
