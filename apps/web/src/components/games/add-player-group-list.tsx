@@ -75,7 +75,9 @@ function CompactChoices<T extends string>({
                 <span
                   className={cn(
                     "text-eyebrow truncate",
-                    selected ? "text-dim" : "text-muted-foreground",
+                    selected
+                      ? "text-on-control-muted"
+                      : "text-muted-foreground",
                   )}
                 >
                   {choice.detail}

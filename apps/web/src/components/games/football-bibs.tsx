@@ -22,10 +22,10 @@ import { cn } from "~/lib/utils";
 export function bibStyle(bib: FootballBib): React.CSSProperties {
   const { fill, on } = bibColors[bib];
   const edge =
-    fill === colors.paper
+    bib === "white"
       ? colors.inputBorder
-      : fill === colors.ink
-        ? colors.dimrule
+      : bib === "black"
+        ? colors.controlRule
         : fill;
   return { backgroundColor: fill, color: on, borderColor: edge };
 }

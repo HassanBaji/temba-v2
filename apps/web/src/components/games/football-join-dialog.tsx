@@ -67,7 +67,7 @@ function Choice({
       <span
         className={cn(
           "relative text-[12px]",
-          selected ? "text-dim" : "text-muted-foreground",
+          selected ? "text-on-control-muted" : "text-muted-foreground",
         )}
       >
         {note}

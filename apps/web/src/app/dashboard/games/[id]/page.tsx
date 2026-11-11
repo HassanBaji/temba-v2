@@ -850,7 +850,7 @@ export default function GameHomePage({
           size="icon"
           variant="ghost"
           aria-label={g.shareGame}
-          className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
+          className="border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md border"
           onClick={
             shareLink === "invite_link" ? shareInviteLink : shareGamePage
           }

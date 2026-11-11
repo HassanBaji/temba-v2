@@ -149,7 +149,7 @@ export function ChallengePostTeamCard({
       className={cn(
         "focus-visible:ring-ring/50 flex min-h-16 items-center gap-2.5 rounded-lg border px-3.5 py-3 text-start outline-none transition-colors focus-visible:ring-[3px]",
         selected
-          ? "surface-ink border-ink bg-control text-on-control"
+          ? "surface-control border-ink bg-control text-on-control"
           : "border-rule bg-paper text-ink hover:bg-wash",
       )}
     >
@@ -163,7 +163,7 @@ export function ChallengePostTeamCard({
         <span
           className={cn(
             "text-eyebrow",
-            selected ? "text-dim" : "text-muted-foreground",
+            selected ? "text-on-control-muted" : "text-muted-foreground",
           )}
         >
           {detail}
