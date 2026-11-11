@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sum } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -11,6 +11,7 @@ import {
   groupRatings,
   groups,
   levelOverrides,
+  matchGoals,
   ratingEvents,
   ratings,
   user,
@@ -175,6 +176,72 @@ function ownerOutcome(match: CountedMatch): MatchOutcome {
   return (
     outcomeForSlot(match.userSlot, matchOutcome(match.sets).result) ?? "draw"
   );
+}
+
+/** The Score is a football Match's one Set, read from the owner's side. */
+function ownerGoalsAgainst(match: CountedMatch): number | null {
+  const set = match.sets[0];
+  if (set?.slot1GamesWon == null || set.slot2GamesWon == null) {
+    return null;
+  }
+  return match.userSlot === 1 ? set.slot2GamesWon : set.slot1GamesWon;
+}
+
+/** Matches without a loss, newest first: the run going now and the longest one. */
+export function unbeatenRuns(newest: readonly CountedMatch[]) {
+  let current = 0;
+  let best = 0;
+  let run = 0;
+  let broken = false;
+  for (const match of newest) {
+    if (ownerOutcome(match) === "lost") {
+      broken = true;
+      run = 0;
+      continue;
+    }
+    run += 1;
+    best = Math.max(best, run);
+    if (!broken) {
+      current = run;
+    }
+  }
+  return { current, best };
+}
+
+async function goalsIn(
+  database: DbClient,
+  userId: string,
+  matches: readonly CountedMatch[],
+) {
+  if (matches.length === 0) {
+    return 0;
+  }
+  const [row] = await database
+    .select({ goals: sum(matchGoals.goals) })
+    .from(matchGoals)
+    .where(
+      and(
+        eq(matchGoals.userId, userId),
+        inArray(
+          matchGoals.matchId,
+          matches.map((match) => match.matchId),
+        ),
+      ),
+    );
+  return Number(row?.goals ?? 0);
+}
+
+async function footballTally(
+  database: DbClient,
+  userId: string,
+  matches: readonly CountedMatch[],
+) {
+  return {
+    goals: await goalsIn(database, userId, matches),
+    cleanSheets: matches.filter((match) => ownerGoalsAgainst(match) === 0)
+      .length,
+    unbeaten: unbeatenRuns(matches),
+  };
 }
 
 function setsTally(matches: readonly CountedMatch[]) {
@@ -425,6 +492,10 @@ export async function loadMyProfile(
       longestStreak: best.count > 0 ? best : null,
     },
     lastTen,
+    football:
+      args.sport === "football"
+        ? await footballTally(database, args.userId, matches)
+        : null,
     partners: partnersFrom(args.userId, matches, playersOf),
     recent,
     hideRoasts: owner?.hideRoasts ?? false,

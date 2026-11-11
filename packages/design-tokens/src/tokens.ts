@@ -26,6 +26,10 @@ export const colors = {
   // A control that sits on the focused surface, such as its Vote button.
   focusControl: "#ffffff",
   onFocusControl: "#0a0a0a",
+  // A card lifted off the page in both schemes (Home's Up next), and the
+  // quiet controls that sit on it. Its one main button is plain ink.
+  lifted: "#f4f4f4",
+  liftedControl: "#ffffff",
   sheet: "#ffffff",
   scrim: "rgba(10, 10, 10, 0.5)",
 } as const;
@@ -63,6 +67,8 @@ export const darkColors: Palette = {
   controlEdge: "#3a3a3a",
   focusControl: "#262626",
   onFocusControl: "#e6e6e6",
+  lifted: "#141414",
+  liftedControl: "#262626",
   sheet: "#0f0f0f",
   scrim: "rgba(0, 0, 0, 0.72)",
 };

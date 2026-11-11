@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  homeSport,
+  homeSports,
   levelFromApi,
   noLevelCopy,
-  standingCountLabel,
   standingInSport,
-  venueCountLabel,
+  standingSplit,
+  statsFromProfile,
 } from "./home-model";
 import type { RouterOutputs } from "../trpc/react";
 
@@ -84,15 +86,38 @@ describe("per-sport sections", () => {
       standingInSport(rows, "football").map((row) => row.groupId),
       ["b"],
     );
-    assert.equal(standingCountLabel(1, "en"), "1 group");
-    assert.equal(standingCountLabel(7, "en"), "7 groups");
   });
 
-  it("counts bookable Venues for the empty Up next", () => {
-    assert.equal(venueCountLabel(null, "en"), null);
-    assert.equal(venueCountLabel(0, "en"), "No venues yet");
-    assert.equal(venueCountLabel(1, "en"), "1 venue nearby");
-    assert.equal(venueCountLabel(3, "en"), "3 venues nearby");
+  it("lists only Groups with counted games and folds the rest into one row", () => {
+    const split = standingSplit([
+      {
+        groupId: "a",
+        groupName: "A",
+        sport: "padel",
+        position: 1,
+        memberCount: 6,
+      },
+      {
+        groupId: "b",
+        groupName: "B",
+        sport: "padel",
+        position: null,
+        memberCount: 4,
+      },
+      {
+        groupId: "c",
+        groupName: "C",
+        sport: "padel",
+        position: null,
+        memberCount: 9,
+      },
+    ]);
+    assert.deepEqual(
+      split.counted.map((row) => row.groupId),
+      ["a"],
+    );
+    assert.equal(split.uncounted, 2);
+    assert.equal(split.total, 3);
   });
 
   it("reads its labels from the Arabic catalog", () => {
@@ -100,7 +125,101 @@ describe("per-sport sections", () => {
       noLevelCopy("padel", "ar"),
       "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
     );
-    assert.equal(standingCountLabel(2, "ar"), "مجموعتان");
-    assert.equal(venueCountLabel(3, "ar"), "3 أندية قريبة");
+  });
+});
+
+describe("one sport or two", () => {
+  it("shows only the sport on a one-sport profile", () => {
+    assert.deepEqual(homeSports(["football"]), ["football"]);
+    assert.deepEqual(homeSports(["padel"]), ["padel"]);
+    assert.equal(homeSport(null, ["football"], "padel"), "football");
+    assert.equal(homeSport("padel", ["football"], null), "football");
+  });
+
+  it("shows both sports when both are played, or none is picked yet", () => {
+    assert.deepEqual(homeSports(["football", "padel"]), ["padel", "football"]);
+    assert.deepEqual(homeSports([]), ["padel", "football"]);
+    assert.deepEqual(homeSports(null), ["padel", "football"]);
+  });
+
+  it("opens on the sport of the next game until one is chosen", () => {
+    const both = ["padel", "football"] as const;
+    assert.equal(homeSport(null, both, "football"), "football");
+    assert.equal(homeSport(null, both, null), "padel");
+    assert.equal(homeSport("padel", both, "football"), "padel");
+  });
+});
+
+type ApiProfile = RouterOutputs["users"]["myProfile"];
+
+describe("statsFromProfile", () => {
+  it("counts win rate, the current run and the best run for padel", () => {
+    const profile = {
+      stats: {
+        played: 31,
+        won: 21,
+        lost: 10,
+        drawn: 0,
+        winRatePercent: 68,
+        run: { outcome: "won", count: 4 },
+        longestStreak: {
+          count: 5,
+          reachedAt: new Date("2026-10-14T18:00:00Z"),
+        },
+      },
+      football: null,
+    } as unknown as ApiProfile;
+    const stats = statsFromProfile(profile, "en");
+    assert.equal(stats?.meta, "31 matches");
+    assert.deepEqual(
+      stats?.tiles.map((tile) => [tile.label, tile.value, tile.caption]),
+      [
+        ["Win rate", "68%", "31 played"],
+        ["Wins in a row", "4", "best is 5"],
+        ["Best run", "5", "wins, in October"],
+      ],
+    );
+    assert.deepEqual(stats?.tiles[1]?.mark, {
+      kind: "dots",
+      filled: 4,
+      total: 5,
+    });
+  });
+
+  it("counts goals, clean sheets and the unbeaten run for football", () => {
+    const profile = {
+      stats: {
+        played: 12,
+        won: 5,
+        lost: 3,
+        drawn: 4,
+        winRatePercent: 42,
+        run: null,
+        longestStreak: { count: 2, reachedAt: null },
+      },
+      football: { goals: 5, cleanSheets: 3, unbeaten: { current: 3, best: 5 } },
+    } as unknown as ApiProfile;
+    const stats = statsFromProfile(profile, "en");
+    assert.deepEqual(
+      stats?.tiles.map((tile) => [tile.label, tile.value, tile.caption]),
+      [
+        ["Goals", "5", "0.4 a game"],
+        ["Clean sheets", "3", "of 12 matches"],
+        ["Unbeaten", "3", "best is 5"],
+      ],
+    );
+  });
+
+  it("has no tiles before the first counted match", () => {
+    const profile = {
+      stats: {
+        played: 0,
+        run: null,
+        longestStreak: null,
+        winRatePercent: null,
+      },
+      football: null,
+    } as unknown as ApiProfile;
+    assert.equal(statsFromProfile(profile, "en"), null);
   });
 });

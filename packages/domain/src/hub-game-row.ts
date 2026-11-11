@@ -35,6 +35,8 @@ export type HubGameFootballSide = {
 export type HubGameFootball = {
   sideSize: number | null;
   sides: HubGameFootballSide[] | null;
+  /** Who is in so far: keepers by role, outfield players by Position. */
+  positions?: { keepers: number; def: number; mid: number; fwd: number };
   viewer: {
     sideIndex: 1 | 2 | null;
     role: "outfield" | "keeper" | null;

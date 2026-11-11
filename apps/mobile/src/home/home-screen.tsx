@@ -1,26 +1,34 @@
 import { useUser } from "@clerk/expo";
+import { formatDayMonth } from "@repo/domain/format-game-start";
 import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
 import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
-import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import type { Sport } from "@repo/domain/sport";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 
+import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
 import {
   homeChecklist,
+  homeSport,
+  homeSports,
   levelFromApi,
   recentFormFromHistory,
   standingInSport,
+  statsFromProfile,
   type HomeModel,
   type Slot,
 } from "./home-model";
 import { homePath, type HomeNavTarget } from "./home-target";
 import { HomeView } from "./home-view";
-import { upNextItems } from "./up-next-model";
+import { latestMark } from "./latest-model";
+import { openWeekRows, upNextItems } from "./up-next-model";
 import { useChecklistSkipped } from "./use-checklist-skipped";
+import { useLatestSeen } from "./use-latest-seen";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 const UP_NEXT_BOOKING_LIMIT = 20;
@@ -42,17 +50,35 @@ function slotOf<T, U>(
   return { status: "ready", value: map(query.data) };
 }
 
+type RatingData = { rating: { levelBand: string } | null } | undefined;
+
+function bandOf(data: RatingData): string | null {
+  return data?.rating
+    ? displayLabelFromStoredBand(
+        data.rating.levelBand as Parameters<
+          typeof displayLabelFromStoredBand
+        >[0],
+      )
+    : null;
+}
+
 export function HomeScreen() {
   const m = useMessages();
   const locale = useLocale();
+  const now = useNow();
   const { user } = useUser();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [sport, setSport] = useState<Sport>(DEFAULT_SPORT);
+  const [chosenSport, setChosenSport] = useState<Sport | null>(null);
   const { skipped, setChecklistSkipped } = useChecklistSkipped();
+  const { seen, ready: seenReady, markSeen } = useLatestSeen();
 
   const home = api.users.home.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const onboarding = api.users.onboardingState.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
+  const details = api.users.profileDetails.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
   );
@@ -60,25 +86,9 @@ export function HomeScreen() {
     { scope: "upcoming", limit: UP_NEXT_BOOKING_LIMIT },
     REFETCH_ON_FOREGROUND,
   );
-  const rating = api.ratings.me.useQuery({ sport }, REFETCH_ON_FOREGROUND);
-  const history = api.games.listMyMatchHistory.useQuery(
-    { limit: RECENT_FORM_MATCH_COUNT, sport },
-    REFETCH_ON_FOREGROUND,
-  );
   const createGroups = api.games.listCreateGroups.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
-  );
-
-  const nothingNext =
-    home.data?.carouselGames.length === 0 && bookings.data?.items.length === 0;
-  const padelVenues = api.bookings.listBookableVenues.useQuery(
-    { sport: "padel" },
-    { enabled: nothingNext },
-  );
-  const footballVenues = api.bookings.listBookableVenues.useQuery(
-    { sport: "football" },
-    { enabled: nothingNext },
   );
 
   const upNextSource = {
@@ -89,6 +99,46 @@ export function HomeScreen() {
     error: home.error ?? bookings.error,
     isLoading: home.isLoading || bookings.isLoading,
   };
+  const upNext = slotOf(upNextSource, (data) =>
+    upNextItems(data.games, data.bookings),
+  );
+  const nextSport =
+    upNext.status === "ready" ? (upNext.value[0]?.sport ?? null) : null;
+
+  const sports = homeSports(onboarding.data?.sports);
+  const sport = homeSport(chosenSport, sports, nextSport);
+  const twoSports = sports.length > 1;
+
+  const padelRating = api.ratings.me.useQuery(
+    { sport: "padel" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sports.includes("padel") },
+  );
+  const footballRating = api.ratings.me.useQuery(
+    { sport: "football" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sports.includes("football") },
+  );
+  const rating = sport === "football" ? footballRating : padelRating;
+  const history = api.games.listMyMatchHistory.useQuery(
+    { limit: RECENT_FORM_MATCH_COUNT, sport },
+    REFETCH_ON_FOREGROUND,
+  );
+  const profile = api.users.myProfile.useQuery(
+    { sport },
+    REFETCH_ON_FOREGROUND,
+  );
+  const cabinet = api.marks.cabinet.useQuery(
+    { userId: details.data?.id ?? "" },
+    { ...REFETCH_ON_FOREGROUND, enabled: !!details.data },
+  );
+
+  const nothingNext = upNext.status === "ready" && upNext.value.length === 0;
+  const myGames = api.games.listMyGames.useQuery(undefined, {
+    enabled: nothingNext,
+  });
+
+  const latest = seenReady
+    ? latestMark(cabinet.data, sports, now, locale)
+    : null;
 
   const model: HomeModel = {
     name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
@@ -98,20 +148,25 @@ export function HomeScreen() {
       checklistFrom(user, onboarding.data, locale),
       skipped,
     ),
-    upNext: slotOf(upNextSource, (data) =>
-      upNextItems(data.games, data.bookings),
-    ),
+    upNext,
     noGamesAction: homeNoGamesCreateAction({
       createGroupCount: createGroups.data?.length,
       locale,
     }),
-    venueCounts: {
-      padel: padelVenues.data?.length ?? null,
-      football: footballVenues.data?.length ?? null,
-    },
+    openGames: myGames.data ? openWeekRows(myGames.data, now, locale) : [],
+    latest: latest && latest.key !== seen ? latest : null,
+    dateLine: formatDayMonth(now, locale, { weekday: "long", month: "long" }),
+    sports: twoSports ? sports : [sport],
     sport,
+    bands: twoSports
+      ? {
+          padel: bandOf(padelRating.data),
+          football: bandOf(footballRating.data),
+        }
+      : {},
     level: slotOf(rating, levelFromApi),
     recentForm: slotOf(history, (rows) => recentFormFromHistory(rows, locale)),
+    stats: slotOf(profile, (data) => statsFromProfile(data, locale)),
     standing: slotOf(home, (data) => standingInSport(data.standing, sport)),
   };
 
@@ -120,13 +175,29 @@ export function HomeScreen() {
       Promise.all([
         home.refetch(),
         bookings.refetch(),
-        rating.refetch(),
+        padelRating.refetch(),
+        footballRating.refetch(),
         history.refetch(),
+        profile.refetch(),
+        cabinet.refetch(),
         createGroups.refetch(),
         onboarding.refetch(),
+        details.refetch(),
         user?.reload(),
       ]),
-    [home, bookings, rating, history, createGroups, onboarding, user],
+    [
+      home,
+      bookings,
+      padelRating,
+      footballRating,
+      history,
+      profile,
+      cabinet,
+      createGroups,
+      onboarding,
+      details,
+      user,
+    ],
   );
 
   const onRefresh = useCallback(async () => {
@@ -143,12 +214,21 @@ export function HomeScreen() {
     [router],
   );
 
+  const onOpenLatest = useCallback(() => {
+    if (!latest || !details.data) {
+      return;
+    }
+    markSeen(latest.key);
+    onNavigate({ kind: "marks", userId: details.data.id, sport: latest.sport });
+  }, [latest, details.data, markSeen, onNavigate]);
+
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <HomeView
         model={model}
         onNavigate={onNavigate}
-        onSport={setSport}
+        onSport={setChosenSport}
+        onOpenLatest={onOpenLatest}
         onRetry={() => void refetchAll()}
         onSkipChecklist={() => setChecklistSkipped(true)}
         onShowChecklist={() => setChecklistSkipped(false)}

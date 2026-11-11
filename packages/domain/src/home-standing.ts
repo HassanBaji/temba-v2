@@ -10,6 +10,8 @@ export type HomeStandingRow = {
   /** Null until the User has a counted Match in the Season. */
   position: number | null;
   memberCount: number;
+  /** The User's counted Matches in the Group's Season. */
+  countedGames?: number;
 };
 
 export type HomeStandingRowView = {

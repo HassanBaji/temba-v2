@@ -59,6 +59,7 @@ function profile(overrides: Partial<MyProfile> = {}): MyProfile {
       longestStreak: { count: 5, reachedAt: new Date("2026-08-14T10:00:00Z") },
     },
     lastTen: [],
+    football: null,
     partners: [],
     recent: [],
     hideRoasts: false,
