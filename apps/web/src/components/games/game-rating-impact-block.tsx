@@ -89,9 +89,15 @@ export function GameRatingImpactBlock({
   );
 }
 
-export function GameRatingScopeBlock({ scope }: { scope: GameRatingScope }) {
+export function GameRatingScopeBlock({
+  scope,
+  sport,
+}: {
+  scope: GameRatingScope;
+  sport?: string | null;
+}) {
   const locale = useLocale();
-  const notice = ratingScopeNotice(scope, locale);
+  const notice = ratingScopeNotice(scope, locale, sport);
   if (!notice) {
     return null;
   }

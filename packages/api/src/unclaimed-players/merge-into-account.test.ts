@@ -14,6 +14,8 @@ import {
   groupJoinRequests,
   gameMvpVotes,
   groupMembers,
+  groupTierEvents,
+  groupTierPoints,
   groups,
   levelOverrides,
   marks,
@@ -674,6 +676,68 @@ describe("mergeIntoAccount", () => {
           where: eq(ratingEvents.userId, people.survivor.id),
         }),
       ).toHaveLength(2);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps the Tier points with more games in a shared Group and moves the rest", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const shared = await insertGroup(db, people);
+      const own = await insertGroup(db, people);
+      const tier = (
+        userId: string,
+        groupId: string,
+        points: number,
+        gamesCounted: number,
+      ) => ({ userId, groupId, points, gamesCounted });
+      await db
+        .insert(groupTierPoints)
+        .values([
+          tier(people.survivor.id, shared, 1250, 2),
+          tier(people.unclaimed.id, shared, 1180, 7),
+          tier(people.unclaimed.id, own, 1230, 5),
+        ]);
+      await db.insert(groupTierEvents).values([
+        {
+          groupId: shared,
+          userId: people.survivor.id,
+          kind: "game",
+          pointsBefore: 1234,
+          pointsAfter: 1250,
+          delta: 16,
+        },
+        {
+          groupId: shared,
+          userId: people.unclaimed.id,
+          kind: "game",
+          pointsBefore: 1196,
+          pointsAfter: 1180,
+          delta: -16,
+        },
+      ]);
+
+      await merge(db, people);
+
+      const kept = await db
+        .select()
+        .from(groupTierPoints)
+        .where(eq(groupTierPoints.userId, people.survivor.id));
+      expect(
+        kept.map((row) => [row.groupId, row.points, row.gamesCounted]).sort(),
+      ).toEqual(
+        [
+          [shared, 1180, 7],
+          [own, 1230, 5],
+        ].sort(),
+      );
+      const events = await db
+        .select()
+        .from(groupTierEvents)
+        .where(eq(groupTierEvents.userId, people.survivor.id));
+      expect(events.map((row) => row.pointsAfter)).toEqual([1180]);
     } finally {
       await close();
     }

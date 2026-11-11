@@ -573,7 +573,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "qualifiersPerPool": null,
   "rated": false,
   "ratingImpact": null,
-  "ratingScope": "unrated",
+  "ratingScope": "group",
   "recordedCourts": [
     {
       "id": "<id 7>",
@@ -720,7 +720,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "qualifiersPerPool": null,
   "rated": false,
   "ratingImpact": null,
-  "ratingScope": "unrated",
+  "ratingScope": "group",
   "recordedCourts": [
     {
       "id": "<id 7>",

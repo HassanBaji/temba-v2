@@ -746,6 +746,7 @@ export default function GroupHomePage({
                   canSetGroupLevel ? setSettingGroupLevel : undefined
                 }
                 showLevel={groupShowsLevel(data.sport)}
+                tierSummary={data.hasTier ? data.tierSummary : null}
                 savedUserId={savedUserId}
                 onDismissSaved={() =>
                   router.replace(groupMembersTabHref(id), { scroll: false })
@@ -765,6 +766,7 @@ export default function GroupHomePage({
                   ratedMatchCount: entry.ratedMatchCount,
                   levelOverride: entry.levelOverride,
                   groupLevel: entry.groupLevel,
+                  tier: entry.tier,
                   unclaimed: entry.unclaimed,
                   phoneMasked: entry.phoneMasked,
                   canRename: entry.canRename,

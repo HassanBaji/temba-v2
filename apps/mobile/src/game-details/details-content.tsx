@@ -157,7 +157,7 @@ export function GameDetailsContent({
       {game.booking ? (
         <BookedCard booking={game.booking} ratingScope={ratingScopeOf(game)} />
       ) : (
-        <RatingScopeCard scope={ratingScopeOf(game)} />
+        <RatingScopeCard scope={ratingScopeOf(game)} sport={game.sport} />
       )}
       {levelCard ? (
         <LevelRequestCard

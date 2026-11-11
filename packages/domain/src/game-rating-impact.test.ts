@@ -184,6 +184,16 @@ describe("ratingScopeTag", () => {
     );
     assert.equal(ratingScopeTag({ rated: false }, "en"), "Unrated");
   });
+
+  it("tags a football group scope as the group tier", () => {
+    assert.equal(
+      ratingScopeTag(
+        { rated: false, ratingScope: "group", sport: "football" },
+        "en",
+      ),
+      "Counts for group tier",
+    );
+  });
 });
 
 describe("ratingScopeNotice", () => {
@@ -196,6 +206,13 @@ describe("ratingScopeNotice", () => {
     assert.deepEqual(ratingScopeNotice("unrated", "en"), {
       title: "Unrated",
       line: "This Game doesn't change anyone's Level.",
+    });
+  });
+
+  it("explains a football group scope as tier points", () => {
+    assert.deepEqual(ratingScopeNotice("group", "en", "football"), {
+      title: "Counts for group tier",
+      line: "Moves tier points in this group only. Temba levels move in verified groups.",
     });
   });
 });

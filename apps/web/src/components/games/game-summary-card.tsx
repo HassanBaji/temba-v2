@@ -372,7 +372,7 @@ export function GameSummaryCard({
   const [startAtPartner, setStartAtPartner] = React.useState(false);
   const [now, setNow] = React.useState(() => new Date());
   const startDate = startTime instanceof Date ? startTime : new Date(startTime);
-  const ratingTag = ratingScopeTag({ rated, ratingScope }, locale);
+  const ratingTag = ratingScopeTag({ rated, ratingScope, sport }, locale);
 
   React.useEffect(() => {
     const timer = window.setInterval(() => {

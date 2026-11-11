@@ -91,7 +91,8 @@ export async function createFootballGame(
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         sport: GameSportEnum.Football,
         sideSize: input.sideSize,
-        rated: false,
+        rated: input.rated ?? false,
+        groupRated: input.groupRated ?? false,
         mvpMode: input.mvpMode ?? "vote",
         createdBy: input.createdBy,
       })

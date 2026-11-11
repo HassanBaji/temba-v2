@@ -2,7 +2,10 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth } from "./format-game-start";
+import type { GroupMemberTierData, GroupTierSummaryData } from "./group-data";
 import { groupHomeShowsMemberSearch } from "./group-home-chrome";
+import { tierBandLabel, type TierBand } from "./tier-bands";
+import { TIER_PROVISIONAL_GAMES } from "./tier-points";
 
 /**
  * The Members tab table (design "Group members" 2a–2f, Seasons revision):
@@ -68,23 +71,54 @@ export function groupMemberTableCaption(
     : null;
 }
 
-export type GroupMemberSort = "recent" | "joined" | "name" | "level";
+export type GroupMemberSort = "recent" | "joined" | "name" | "level" | "tier";
 
-/** The sorts the Members tab offers; Level only on a Group that shows Levels. */
-export function groupMemberSorts(showLevel: boolean): GroupMemberSort[] {
+/**
+ * The sorts the Members tab offers: Level only on a Group that shows Levels,
+ * Tier only on a tier Group.
+ */
+export function groupMemberSorts(
+  showLevel: boolean,
+  showTier = false,
+): GroupMemberSort[] {
+  if (showTier) {
+    return ["tier", "recent", "joined", "name"];
+  }
   return showLevel
     ? ["recent", "joined", "name", "level"]
     : ["recent", "joined", "name"];
 }
 
-export function defaultGroupMemberSort(showLevel: boolean): GroupMemberSort {
+export function defaultGroupMemberSort(
+  showLevel: boolean,
+  showTier = false,
+): GroupMemberSort {
+  if (showTier) {
+    return "tier";
+  }
   return showLevel ? "level" : "recent";
 }
 
 type DatedMember = SortableMember & {
   lastPlayedAt: Date | string | null | undefined;
   joinedAt: Date | string | null | undefined;
+  tier?: GroupMemberTierData | null;
 };
+
+/** Ranked members by place, then Provisional ones by games played. */
+function byTier(
+  left: { tier?: GroupMemberTierData | null },
+  right: { tier?: GroupMemberTierData | null },
+) {
+  const rank = (tier: GroupMemberTierData | null | undefined) =>
+    tier?.place ?? Number.POSITIVE_INFINITY;
+  const leftRank = rank(left.tier);
+  const rightRank = rank(right.tier);
+  if (leftRank !== rightRank) {
+    return leftRank < rightRank ? -1 : 1;
+  }
+  return (right.tier?.gamesOfFive ?? -1) - (left.tier?.gamesOfFive ?? -1);
+}
 
 function newestFirst(
   left: Date | string | null | undefined,
@@ -115,6 +149,9 @@ export function sortGroupMembersBy<T extends DatedMember>(
       sensitivity: "base",
     });
   const compare = (left: T, right: T) => {
+    if (sort === "tier") {
+      return byTier(left, right);
+    }
     if (sort === "recent") {
       return (
         newestFirst(left.lastPlayedAt, right.lastPlayedAt) ||
@@ -198,7 +235,7 @@ export function groupMemberSortCaption(
   sort: GroupMemberSort,
   locale: Locale,
 ) {
-  if (sort === "name" || sort === "level") {
+  if (sort === "name" || sort === "level" || sort === "tier") {
     return groupMemberTableCaption(member, locale);
   }
   const m = messagesFor(locale).group.members;
@@ -224,7 +261,13 @@ export function groupMemberSortCaption(
     : m.joined(day(joined));
 }
 
-const SORTS: readonly GroupMemberSort[] = ["recent", "joined", "name", "level"];
+const SORTS: readonly GroupMemberSort[] = [
+  "recent",
+  "joined",
+  "name",
+  "level",
+  "tier",
+];
 const FILTERS: readonly GroupMemberFilter[] = [
   "all",
   "organizers",
@@ -254,6 +297,8 @@ export type GroupMembersLensInput = {
   sort: GroupMemberSort | null;
   filter: GroupMemberFilter | null;
   showLevel: boolean;
+  /** A tier Group orders by tier first. */
+  showTier?: boolean;
   /** Offers the Not on Temba filter. */
   canManage: boolean;
   now: Date;
@@ -272,12 +317,12 @@ export function groupMembersLens<T extends LensMember>(
   const m = messagesFor(input.locale).group;
   const lens = m.members.lens;
   const showControls = groupHomeShowsMemberSearch(members.length);
-  const sorts = groupMemberSorts(input.showLevel);
+  const sorts = groupMemberSorts(input.showLevel, input.showTier);
   const filters = groupMemberFilters(input.canManage);
   const sort =
     showControls && input.sort && sorts.includes(input.sort)
       ? input.sort
-      : defaultGroupMemberSort(input.showLevel);
+      : defaultGroupMemberSort(input.showLevel, input.showTier);
   const filter =
     showControls && input.filter && filters.includes(input.filter)
       ? input.filter
@@ -335,13 +380,134 @@ export type GroupMembersLens = ReturnType<typeof groupMembersLens>;
 export type GroupMemberSortOption = GroupMembersLens["sorts"][number];
 export type GroupMemberFilterChip = GroupMembersLens["filters"][number];
 
-/** The table footer; nothing to explain on a Group without Levels. */
+/** The table footer; nothing to explain on a Group without Levels or a tier. */
 export function groupMembersLegend(input: {
   showLevel: boolean;
+  showTier?: boolean;
   locale: Locale;
 }) {
-  return input.showLevel
-    ? messagesFor(input.locale).group.members.legend
+  const m = messagesFor(input.locale);
+  if (input.showTier) {
+    return m.rating.tier.footnote;
+  }
+  return input.showLevel ? m.group.members.legend : null;
+}
+
+/** Tier points with thousands grouped, always in Latin digits. */
+export function formatTierPoints(points: number) {
+  return String(Math.round(points)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+export type GroupMemberTierCell =
+  | { kind: "fish"; band: TierBand; label: string }
+  | { kind: "place"; label: string }
+  | { kind: "provisional"; label: string };
+
+export type GroupMemberTierView = {
+  cell: GroupMemberTierCell;
+  caption: string | null;
+  points: string;
+  /** "no tier" reads muted, as on screen 2b. */
+  pointsMuted: boolean;
+  /** The tier cell and the points, for a row whose caption says something else. */
+  spoken: string;
+  /** The points alone, for a row whose caption already names the tier. */
+  pointsSpoken: string;
+};
+
+/**
+ * A Members row on a tier Group (screen 2b): the fish, or the place while
+ * fewer than four are ranked, or a hatched Provisional slot; the band and
+ * role as the caption; the points, or "no tier" while Provisional.
+ */
+export function groupMemberTierView(
+  member: {
+    tier?: GroupMemberTierData | null;
+    isOrganizer: boolean;
+  },
+  locale: Locale,
+): GroupMemberTierView | null {
+  const tier = member.tier;
+  if (!tier) {
+    return null;
+  }
+  const m = messagesFor(locale);
+  const copy = m.rating.tier;
+  if (tier.provisional || tier.place == null) {
+    const caption = copy.provisionalGames(
+      tier.gamesOfFive,
+      TIER_PROVISIONAL_GAMES,
+    );
+    return {
+      cell: { kind: "provisional", label: m.rating.provisional },
+      caption,
+      points: copy.noTier,
+      pointsMuted: true,
+      spoken: [caption, copy.noTier].join(". "),
+      pointsSpoken: copy.noTier,
+    };
+  }
+  const points = formatTierPoints(tier.points ?? 0);
+  if (tier.band) {
+    const band = tierBandLabel(tier.band, locale);
+    const caption = member.isOrganizer ? copy.withOrganizer(band) : band;
+    return {
+      cell: { kind: "fish", band: tier.band, label: band },
+      caption,
+      points,
+      pointsMuted: false,
+      spoken: [band, copy.pointsSpoken(points)].join(". "),
+      pointsSpoken: copy.pointsSpoken(points),
+    };
+  }
+  const place = copy.place(tier.place);
+  const caption = member.isOrganizer ? m.group.members.organizer : null;
+  return {
+    cell: { kind: "place", label: place },
+    caption,
+    points,
+    pointsMuted: false,
+    spoken: [place, copy.pointsSpoken(points)].join(". "),
+    pointsSpoken: copy.pointsSpoken(points),
+  };
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The Shark card above a tier Group's Members table, null without fish. */
+export function groupTierSharkCard(
+  summary: GroupTierSummaryData | null | undefined,
+  now: Date,
+  locale: Locale,
+) {
+  const shark = summary?.shark;
+  if (!shark) {
+    return null;
+  }
+  const m = messagesFor(locale);
+  const points = formatTierPoints(shark.points);
+  const since = asValidDate(shark.since);
+  const weeks = since
+    ? Math.floor((now.getTime() - since.getTime()) / WEEK_MS)
+    : 0;
+  return {
+    title: m.rating.tier.theShark,
+    name: shark.name,
+    line:
+      weeks >= 1
+        ? m.rating.tier.sharkFor(points, weeks)
+        : m.rating.tier.points(points),
+    fishLabel: tierBandLabel("shark", locale),
+  };
+}
+
+/** "2 still provisional" under a tier Group's table; null when nobody is. */
+export function groupTierProvisionalLine(
+  summary: GroupTierSummaryData | null | undefined,
+  locale: Locale,
+) {
+  return summary && summary.provisionalCount > 0
+    ? messagesFor(locale).rating.tier.stillProvisional(summary.provisionalCount)
     : null;
 }
 

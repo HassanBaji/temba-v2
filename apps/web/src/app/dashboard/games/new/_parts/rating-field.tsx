@@ -4,20 +4,23 @@ import { FieldDescription } from "~/components/ui/field";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { SelectCard } from "~/components/ui/select-card";
 import { createRatingChoice } from "@repo/domain/create-game-flow";
+import type { Sport } from "@repo/domain/sport";
 
 export function RatingField({
   idPrefix,
   groupVerified,
+  sport,
   rated,
   onRated,
 }: {
   idPrefix: string;
   groupVerified: boolean;
+  sport?: Sport;
   rated: boolean;
   onRated: (rated: boolean) => void;
 }) {
   const locale = useLocale();
-  const choice = createRatingChoice({ groupVerified, rated, locale });
+  const choice = createRatingChoice({ groupVerified, rated, locale, sport });
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading id={`${idPrefix}-rating-label`} title={choice.title} />

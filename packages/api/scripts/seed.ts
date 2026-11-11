@@ -20,6 +20,8 @@ import {
   games,
   gameMemberInvites,
   groupMemberInvites,
+  groupTierEvents,
+  groupTierPoints,
   matches,
   matchSets,
   teamMemberInvites,
@@ -87,6 +89,7 @@ import { updateCancellationPolicy } from "#src/routers/venues/updateCancellation
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
 import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
+import { tierTable } from "@repo/domain/tier-bands";
 import type { Sport } from "@repo/domain/sport";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
@@ -1761,9 +1764,72 @@ function keeper(key: string): Footballer {
 }
 
 /**
+ * Thursday Football's Group Tier as screen 2b draws it: eleven ranked members
+ * (1 Shark, 2 Hamour, 4 Kanaad, 4 Safi) and two still Provisional. The
+ * Shark has been top for five weeks.
+ */
+const THURSDAY_TIER: Record<string, { points: number; games: number }> = {
+  omar: { points: 1412, games: 31 },
+  lina: { points: 1356, games: 28 },
+  maya: { points: 1301, games: 24 },
+  diego: { points: 1248, games: 31 },
+  sofia: { points: 1214, games: 19 },
+  me: { points: 1201, games: 22 },
+  priya: { points: 1187, games: 17 },
+  jonas: { points: 1160, games: 14 },
+  emma: { points: 1122, games: 12 },
+  ben: { points: 1098, games: 20 },
+  hana: { points: 1064, games: 9 },
+  tom: { points: 1200, games: 3 },
+  yusuf: { points: 1200, games: 1 },
+};
+
+async function seedThursdayTier(u: Users, groupId: string) {
+  const members = await db.query.groupMembers.findMany({
+    where: (table, { eq: equals }) => equals(table.groupId, groupId),
+    columns: { userId: true, createdAt: true },
+  });
+  const joinedAt = new Map(members.map((row) => [row.userId, row.createdAt]));
+  const rows = Object.entries(THURSDAY_TIER).map(([key, tier]) => ({
+    userId: u[key]!.id,
+    points: tier.points,
+    gamesCounted: tier.games,
+  }));
+  const table = tierTable(
+    rows.map((row) => ({
+      ...row,
+      adjusted: false,
+      joinedAt: joinedAt.get(row.userId) ?? null,
+    })),
+  );
+  const bandOf = new Map(table.rows.map((row) => [row.userId, row.band]));
+  await db
+    .insert(groupTierPoints)
+    .values(
+      rows.map((row) => ({ groupId, ...row, band: bandOf.get(row.userId) })),
+    );
+  const shark = u.omar!.id;
+  const points = THURSDAY_TIER.omar!.points;
+  await db.insert(groupTierEvents).values({
+    groupId,
+    userId: shark,
+    kind: "band_change",
+    pointsBefore: points,
+    pointsAfter: points,
+    bandBefore: "hamour",
+    bandAfter: "shark",
+    placeAfter: 1,
+    rankedCount: table.rankedCount,
+    createdAt: new Date(Date.now() - 36 * DAY),
+  });
+}
+
+/**
  * Sam organizes all three Games, so signing in as `me` reaches the team
  * picker and the score sheet. Each Game is created in the future, filled,
  * then moved so it has kicked off: the score only opens at kick-off.
+ * Thursday Football is a tier Group of thirteen; last week's Game moves the
+ * Tier points of the ten who played.
  */
 async function seedFootball(u: Users, v: Venues) {
   for (const [key, level] of Object.entries(FOOTBALL_LEVELS)) {
@@ -1776,15 +1842,22 @@ async function seedFootball(u: Users, v: Venues) {
     sport: "football",
     userId: u.me!.id,
   });
-  for (const key of Object.keys(FOOTBALL_LEVELS)) {
+  for (const key of Object.keys(THURSDAY_TIER)) {
     if (key === "me") continue;
     await joinPublic(db, { groupId: group.id, userId: u[key]!.id });
   }
+  await setOrganizer(db, {
+    groupId: group.id,
+    approverUserId: u.me!.id,
+    userId: u.maya!.id,
+    organizer: true,
+  });
+  await seedThursdayTier(u, group.id);
 
   const pitch = v.pitches;
   const footballGame = async (args: {
     name: string;
-    sideSize: 5 | 7;
+    sideSize: 5 | 6;
     start: Date;
     players: Footballer[];
   }) => {
@@ -1817,9 +1890,9 @@ async function seedFootball(u: Users, v: Venues) {
   const ids = (keys: string[]) => keys.map((key) => u[key]!.id);
 
   // Kicked off, teams not picked: try "Balanced by level" and manual.
-  const sevens = await footballGame({
-    name: "Thursday seven-a-side",
-    sideSize: 7,
+  const sixes = await footballGame({
+    name: "Thursday six-a-side",
+    sideSize: 6,
     start: at(20, 19),
     players: [
       keeper("ben"),
@@ -1835,10 +1908,9 @@ async function seedFootball(u: Users, v: Venues) {
       outfield("sofia", "fwd"),
       outfield("yusuf", "mid"),
       outfield("emma", "def"),
-      outfield("marco", "fwd"),
     ],
   });
-  await moveIntoPast(sevens, new Date(Date.now() - 20 * 60 * 1000));
+  await moveIntoPast(sixes, new Date(Date.now() - 20 * 60 * 1000));
 
   // Kicked off, teams published, no score yet: enter goals and scorers.
   const fives = await footballGame({
@@ -1846,16 +1918,16 @@ async function seedFootball(u: Users, v: Venues) {
     sideSize: 5,
     start: at(21, 19),
     players: [
-      keeper("aisha"),
-      keeper("leo"),
+      keeper("ben"),
+      keeper("hana"),
       outfield("me", "fwd"),
-      outfield("zara", "mid"),
+      outfield("lina", "mid"),
       outfield("diego", "def"),
       outfield("yusuf", "fwd"),
       outfield("omar", "mid"),
       outfield("maya", "fwd"),
       outfield("tom", "def"),
-      outfield("marco", "mid"),
+      outfield("sofia", "mid"),
     ],
   });
   await publishFootballTeams(db, {
@@ -1863,8 +1935,8 @@ async function seedFootball(u: Users, v: Venues) {
     userId: u.me!.id,
     method: "manual",
     bibs: { slot1: "black", slot2: "white" },
-    slot1: ids(["aisha", "me", "zara", "diego", "yusuf"]),
-    slot2: ids(["leo", "omar", "maya", "tom", "marco"]),
+    slot1: ids(["ben", "me", "lina", "diego", "yusuf"]),
+    slot2: ids(["hana", "omar", "maya", "tom", "sofia"]),
   });
   await moveIntoPast(fives, new Date(Date.now() - 45 * 60 * 1000));
 

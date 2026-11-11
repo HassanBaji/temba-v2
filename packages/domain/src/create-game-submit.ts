@@ -215,10 +215,7 @@ export function validateFriendlyGameSubmit(
   };
 }
 
-export type FootballGameFields = Omit<
-  GameFields,
-  "levelMin" | "levelMax" | "rated"
-> & {
+export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
   sideSize: number;
   playersAllowed: number;
 };
@@ -279,6 +276,7 @@ export function validateFootballGameSubmit(
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       sideSize: draft.sideSize,
       playersAllowed: draft.playersAllowed,
+      ...ratedInput(draft),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
     },

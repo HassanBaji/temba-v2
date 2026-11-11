@@ -18,6 +18,7 @@ import {
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
 import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
+import { applyTierMatch } from "#src/ratings/apply-tier-match";
 import {
   initialRatingFromChoice,
   type LevelBand,
@@ -207,7 +208,8 @@ async function persistRatedUser(args: {
 
 /**
  * Rate the four Users on a completed Match: their Temba Ratings when the Game
- * is Temba rated, their Group Levels when it is group rated (ADR-0053). Skips
+ * is Temba rated, their Group Levels when it is group rated (ADR-0053). A
+ * football Match moves Tier points instead, for every seated player. Skips
  * when the Match is not a Rated Match (cancelled or Unrated Game, missing
  * sides, not four Users). Idempotent per User+Match. Group Levels go first so
  * a first Group Level starts from the Temba Rating before this Match.
@@ -238,6 +240,27 @@ export async function applyRatedMatch(
   const ratesTemba = gameRates(liveGame);
   const ratesGroup = gameRatesGroup(liveGame);
   if (!ratesTemba && !ratesGroup) {
+    return;
+  }
+
+  if (liveGame.sport === "football") {
+    // A football Game's group scope moves Tier points (ADR-0066); football
+    // has no Glicko-2 step for either Level.
+    if (
+      ratesGroup &&
+      liveGame.groupId &&
+      match.slot1GameTeamId &&
+      match.slot2GameTeamId
+    ) {
+      await applyTierMatch(database, {
+        groupId: liveGame.groupId,
+        matchId: match.id,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
+        result,
+        now: new Date(),
+      });
+    }
     return;
   }
 

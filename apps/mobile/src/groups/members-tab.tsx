@@ -1,5 +1,8 @@
 import { radii, sizes } from "@repo/design-tokens";
-import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
+import type {
+  GroupLeaderboardEntryData,
+  GroupTierSummaryData,
+} from "@repo/domain/group-data";
 import {
   groupMemberOrganizerActionHint,
   groupMemberOrganizerActionLabel,
@@ -8,6 +11,8 @@ import {
 import {
   groupMembersLegend,
   groupPendingInvitesTitle,
+  groupTierProvisionalLine,
+  groupTierSharkCard,
 } from "@repo/domain/group-members-table";
 import {
   ChevronRight,
@@ -45,9 +50,12 @@ import { LevelCell } from "./level-cell";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
 import { Notice } from "./notice";
+import { TierCell, TierFish } from "./tier-fish";
 import { useMemberLens } from "./use-member-lens";
 
 const LEVEL_WIDTH = 52;
+const TIER_WIDTH = 44;
+const POINTS_WIDTH = 52;
 const ACTION_WIDTH = 44;
 const ROW_PADDING_START = 16;
 const ROW_PADDING_END = 10;
@@ -86,9 +94,16 @@ function MemberRow({
 }) {
   const m = useMessages();
   const colors = useColors();
+  const tier = row.tier;
   const content = (
     <>
-      <Avatar name={row.name} uri={row.imageUri} />
+      {tier ? (
+        <View style={{ width: TIER_WIDTH, alignItems: "center" }}>
+          <TierCell cell={tier.cell} />
+        </View>
+      ) : (
+        <Avatar name={row.name} uri={row.imageUri} />
+      )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
           <Text weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -103,7 +118,16 @@ function MemberRow({
           </Text>
         ) : null}
       </View>
-      {showLevel ? (
+      {tier ? (
+        <Text
+          size={tier.pointsMuted ? "eyebrow" : "body"}
+          weight={tier.pointsMuted ? "regular" : "bold"}
+          tone={tier.pointsMuted ? "muted" : undefined}
+          style={{ width: POINTS_WIDTH, textAlign: "right" }}
+        >
+          {tier.points}
+        </Text>
+      ) : showLevel ? (
         <View style={{ width: LEVEL_WIDTH, alignItems: "center" }}>
           <LevelCell view={row.level} />
         </View>
@@ -176,14 +200,17 @@ function MemberRow({
 function TableHeader({
   managing,
   showLevel,
+  showTier,
   countLine,
 }: {
   managing: boolean;
   showLevel: boolean;
+  showTier: boolean;
   countLine: string;
 }) {
   const m = useMessages();
   const colors = useColors();
+  const tierCopy = m.rating.tier;
   return (
     <View
       style={{
@@ -196,13 +223,30 @@ function TableHeader({
         backgroundColor: colors.wash,
       }}
     >
+      {showTier ? (
+        <Text
+          size="eyebrow"
+          tone="muted"
+          style={{ width: TIER_WIDTH, textAlign: "center" }}
+        >
+          {tierCopy.columnTier}
+        </Text>
+      ) : null}
       <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
-        {m.mobileGroup.members.columnMember}
+        {showTier ? tierCopy.columnPlayer : m.mobileGroup.members.columnMember}
       </Text>
       <Text size="eyebrow" tone="muted" mono>
         {countLine}
       </Text>
-      {showLevel ? (
+      {showTier ? (
+        <Text
+          size="eyebrow"
+          tone="muted"
+          style={{ width: POINTS_WIDTH, textAlign: "right" }}
+        >
+          {tierCopy.columnPoints}
+        </Text>
+      ) : showLevel ? (
         <Text
           size="eyebrow"
           tone="muted"
@@ -214,6 +258,50 @@ function TableHeader({
         </Text>
       ) : null}
       {managing ? <View style={{ width: ACTION_WIDTH }} /> : null}
+    </View>
+  );
+}
+
+function SharkCard({ summary }: { summary: GroupTierSummaryData | null }) {
+  const locale = useLocale();
+  const colors = useColors();
+  const card = groupTierSharkCard(summary, new Date(), locale);
+  if (!card) {
+    return null;
+  }
+  return (
+    <View
+      accessible
+      accessibilityLabel={[card.title, card.name, card.line].join(". ")}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        borderRadius: radii.card,
+        borderWidth: hairline,
+        borderColor: colors.rule,
+        backgroundColor: colors.wash,
+      }}
+    >
+      <TierFish
+        band="shark"
+        label={card.fishLabel}
+        size="card"
+        cutout={colors.wash}
+      />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text size="eyebrow" tone="muted">
+          {card.title}
+        </Text>
+        <Text size="title" weight="bold" width="expanded" numberOfLines={1}>
+          {card.name}
+        </Text>
+        <Text size="meta" tone="muted">
+          {card.line}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -275,6 +363,7 @@ export function MembersTab({
   apiOrigin,
   canSetLevel,
   showLevel = true,
+  tierSummary,
   onSetLevel,
   onSetGroupLevel,
   onOpenMember,
@@ -297,6 +386,8 @@ export function MembersTab({
   apiOrigin: string;
   canSetLevel: boolean;
   showLevel?: boolean;
+  /** A tier Group's Members (screen 2b): fish, points and the Shark. */
+  tierSummary?: GroupTierSummaryData | null;
   onSetLevel: (userId: string) => void;
   /** Given to an Organizer of the Group, who sets members' Group Levels. */
   onSetGroupLevel?: (userId: string) => void;
@@ -335,7 +426,9 @@ export function MembersTab({
     canRemovePlayers ||
     canAppointOrganizers;
   const isManaging = canManage && managing;
-  const legend = groupMembersLegend({ showLevel, locale });
+  const showTier = tierSummary != null;
+  const legend = groupMembersLegend({ showLevel, showTier, locale });
+  const provisionalLine = groupTierProvisionalLine(tierSummary, locale);
   const list = memberList(
     leaderboard,
     query,
@@ -344,7 +437,7 @@ export function MembersTab({
     canSetLevel,
     canRemovePlayers,
     canAppointOrganizers,
-    { ...lens, showLevel, canManage, now: new Date() },
+    { ...lens, showLevel, showTier, canManage, now: new Date() },
     canSetGroupLevel,
   );
   const rowWindow = useRowWindow(
@@ -377,6 +470,7 @@ export function MembersTab({
   return (
     <View style={{ gap: 14 }}>
       {top}
+      {showTier ? <SharkCard summary={tierSummary} /> : null}
       {list.showSearch || canManage ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -421,6 +515,7 @@ export function MembersTab({
         <TableHeader
           managing={isManaging}
           showLevel={showLevel}
+          showTier={showTier}
           countLine={list.countLine}
         />
         {list.rows.length === 0 ? (
@@ -478,13 +573,18 @@ export function MembersTab({
         {legend ? (
           <>
             <Hairline />
-            <Text
-              size="eyebrow"
-              tone="muted"
-              style={{ paddingHorizontal: 18, paddingVertical: 12 }}
+            <View
+              style={{ paddingHorizontal: 18, paddingVertical: 12, gap: 6 }}
             >
-              {legend}
-            </Text>
+              <Text size="eyebrow" tone="muted">
+                {legend}
+              </Text>
+              {provisionalLine ? (
+                <Text size="eyebrow" weight="semibold">
+                  {provisionalLine}
+                </Text>
+              ) : null}
+            </View>
           </>
         ) : null}
       </Surface>

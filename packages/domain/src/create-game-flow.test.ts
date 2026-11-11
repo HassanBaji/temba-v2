@@ -1090,13 +1090,29 @@ describe("football create flow", () => {
 });
 
 describe("Rating choice", () => {
-  it("shows only for a padel Game on a Group", () => {
+  it("shows for a padel Game on a Group and a football Game on a tier Group", () => {
     assert.equal(
       createRatingChoiceShown({ sport: "padel", hasGroup: true }),
       true,
     );
     assert.equal(
-      createRatingChoiceShown({ sport: "football", hasGroup: true }),
+      createRatingChoiceShown({
+        sport: "football",
+        hasGroup: true,
+        groupVerified: false,
+      }),
+      true,
+    );
+    assert.equal(
+      createRatingChoiceShown({
+        sport: "football",
+        hasGroup: true,
+        groupVerified: true,
+      }),
+      false,
+    );
+    assert.equal(
+      createRatingChoiceShown({ sport: "football", hasGroup: false }),
       false,
     );
     assert.equal(
@@ -1144,6 +1160,19 @@ describe("Rating choice", () => {
     assert.equal(unrated.scope, "unrated");
     assert.equal(unrated.scopeLabel, "Unrated");
     assert.equal(unrated.note, messagesFor("en").you.ratingScope.unrated_note);
+  });
+
+  it("describes Rated on a tier Group as the group tier", () => {
+    const choice = createRatingChoice({
+      groupVerified: false,
+      rated: true,
+      locale: "en",
+      sport: "football",
+    });
+    assert.equal(choice.scope, "group");
+    assert.equal(choice.scopeLabel, "Counts for group tier");
+    assert.equal(choice.options[0]?.description, "Counts for group tier");
+    assert.equal(choice.note, messagesFor("en").rating.scope.groupNote);
   });
 
   it("reads in Arabic", () => {

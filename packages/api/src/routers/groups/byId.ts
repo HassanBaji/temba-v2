@@ -21,6 +21,8 @@ import {
   GroupLinkRequestStatusEnum,
   groupMembers,
   groupRatings,
+  groupTierEvents,
+  groupTierPoints,
   levelOverrides,
   MatchStatusEnum,
   ratingEvents,
@@ -32,7 +34,14 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import type {
+  GroupMemberTierData,
+  GroupTierSummaryData,
+} from "@repo/domain/group-data";
+import { groupHasTier } from "@repo/domain/game-rating-scope";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { tierTable } from "@repo/domain/tier-bands";
+import { TIER_POINTS_START } from "@repo/domain/tier-points";
 import { levelFromMu } from "@repo/domain/level";
 import { protectedProcedure } from "#src/trpc";
 import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
@@ -324,6 +333,98 @@ async function loadTaggedTeams(database: DbClient, groupId: string) {
   });
 }
 
+/**
+ * Every member's Group Tier in a tier Group (ADR-0067). A member with no Tier
+ * points yet is Provisional at the start. Points of a Provisional member are
+ * shown only to that member and the Group's Organizers.
+ */
+async function loadGroupTiers(
+  database: DbClient,
+  args: {
+    groupId: string;
+    members: readonly { userId: string; createdAt: Date; name: string }[];
+    viewerUserId: string;
+    viewerOrganizes: boolean;
+  },
+): Promise<{
+  tierByUserId: Map<string, GroupMemberTierData>;
+  summary: GroupTierSummaryData;
+}> {
+  const memberIds = args.members.map((member) => member.userId);
+  const rows =
+    memberIds.length === 0
+      ? []
+      : await database.query.groupTierPoints.findMany({
+          where: and(
+            eq(groupTierPoints.groupId, args.groupId),
+            inArray(groupTierPoints.userId, memberIds),
+          ),
+        });
+  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
+  const table = tierTable(
+    args.members.map((member) => {
+      const row = rowByUser.get(member.userId);
+      return {
+        userId: member.userId,
+        points: row?.points ?? TIER_POINTS_START,
+        gamesCounted: row?.gamesCounted ?? 0,
+        adjusted: row?.confirmedAt != null,
+        joinedAt: member.createdAt,
+      };
+    }),
+  );
+
+  const tierByUserId = new Map<string, GroupMemberTierData>();
+  for (const row of table.rows) {
+    const seesPoints =
+      !row.provisional ||
+      args.viewerOrganizes ||
+      row.userId === args.viewerUserId;
+    tierByUserId.set(row.userId, {
+      band: row.band,
+      place: row.place,
+      points: seesPoints ? row.points : null,
+      provisional: row.provisional,
+      gamesOfFive: row.gamesOfFive,
+    });
+  }
+
+  const sharkRow = table.rows.find((row) => row.band === "shark");
+  let shark: GroupTierSummaryData["shark"] = null;
+  if (sharkRow) {
+    const [became] = await database
+      .select({ createdAt: groupTierEvents.createdAt })
+      .from(groupTierEvents)
+      .where(
+        and(
+          eq(groupTierEvents.groupId, args.groupId),
+          eq(groupTierEvents.userId, sharkRow.userId),
+          eq(groupTierEvents.kind, "band_change"),
+          eq(groupTierEvents.bandAfter, "shark"),
+        ),
+      )
+      .orderBy(desc(groupTierEvents.createdAt))
+      .limit(1);
+    shark = {
+      userId: sharkRow.userId,
+      name:
+        args.members.find((member) => member.userId === sharkRow.userId)
+          ?.name ?? "",
+      points: sharkRow.points,
+      since: became?.createdAt ?? null,
+    };
+  }
+
+  return {
+    tierByUserId,
+    summary: {
+      shark,
+      rankedCount: table.rankedCount,
+      provisionalCount: table.provisionalCount,
+    },
+  };
+}
+
 export async function groupById(
   database: DbClient,
   args: {
@@ -474,6 +575,24 @@ export async function groupById(
       }),
     ),
   );
+
+  const hasTier = groupHasTier({
+    sport: group.sport,
+    verified: groupIsVerified(group),
+  });
+  const groupTiers = hasTier
+    ? await loadGroupTiers(database, {
+        groupId: group.id,
+        members: memberRows.map((row) => ({
+          userId: row.userId,
+          createdAt: row.createdAt,
+          name: row.user.name,
+        })),
+        viewerUserId: args.userId,
+        viewerOrganizes:
+          group.createdBy === args.userId || viewerIsAppointedOrganizer,
+      })
+    : null;
 
   const now = args.now ?? new Date();
   const groupStanding = (
@@ -793,6 +912,8 @@ export async function groupById(
       groupLevel: groupLevelByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
+      /** The member's Group Tier; null outside a tier Group (ADR-0067). */
+      tier: groupTiers?.tierByUserId.get(entry.userId) ?? null,
       joinedAt: memberRowByUserId.get(entry.userId)?.createdAt ?? null,
       isOrganizer:
         entry.userId === group.createdBy || appointedUserIds.has(entry.userId),
@@ -860,6 +981,8 @@ export async function groupById(
     joinMode,
     requiresApproval: group.requiresApproval,
     verified: groupIsVerified(group),
+    hasTier,
+    tierSummary: groupTiers?.summary ?? null,
     venue: venue ? { id: venue.id, name: venue.name } : null,
     pendingLinkRequestCount,
     canUnlinkFromVenue,

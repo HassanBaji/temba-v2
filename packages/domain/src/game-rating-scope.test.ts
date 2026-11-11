@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   gameRatingScope,
   gameRatingScopeLabel,
+  groupHasTier,
   ratedScopeForGroup,
   ratingFlagsAtCreate,
 } from "./game-rating-scope";
@@ -66,7 +67,17 @@ describe("ratingFlagsAtCreate", () => {
     ).toEqual({ rated: false, groupRated: false });
   });
 
-  it("rates nothing for football", () => {
+  it("moves Tier points for football on a Group that is not Verified", () => {
+    expect(
+      ratingFlagsAtCreate({
+        ...padelOnGroup,
+        sport: "football",
+        groupVerified: false,
+      }),
+    ).toEqual({ rated: false, groupRated: true });
+  });
+
+  it("moves nothing for football on a Verified Group", () => {
     expect(
       ratingFlagsAtCreate({
         ...padelOnGroup,
@@ -74,6 +85,31 @@ describe("ratingFlagsAtCreate", () => {
         groupVerified: true,
       }),
     ).toEqual({ rated: false, groupRated: false });
+  });
+
+  it("moves nothing for an Unrated or groupless football Game", () => {
+    const football = {
+      ...padelOnGroup,
+      sport: "football" as const,
+      groupVerified: false,
+    };
+    expect(ratingFlagsAtCreate({ ...football, rated: false })).toEqual({
+      rated: false,
+      groupRated: false,
+    });
+    expect(ratingFlagsAtCreate({ ...football, hasGroup: false })).toEqual({
+      rated: false,
+      groupRated: false,
+    });
+  });
+});
+
+describe("groupHasTier", () => {
+  it("is a football Group that is not Verified", () => {
+    expect(groupHasTier({ sport: "football", verified: false })).toBe(true);
+    expect(groupHasTier({ sport: "football", verified: true })).toBe(false);
+    expect(groupHasTier({ sport: "padel", verified: false })).toBe(false);
+    expect(groupHasTier({ sport: null, verified: false })).toBe(false);
   });
 });
 
@@ -89,5 +125,14 @@ describe("gameRatingScopeLabel", () => {
     expect(gameRatingScopeLabel("temba", "en")).toBe("Counts for Temba rating");
     expect(gameRatingScopeLabel("group", "en")).toBe("Counts for group rating");
     expect(gameRatingScopeLabel("unrated", "en")).toBe("Unrated");
+  });
+
+  it("names the group scope a group tier on football", () => {
+    expect(gameRatingScopeLabel("group", "en", "football")).toBe(
+      "Counts for group tier",
+    );
+    expect(gameRatingScopeLabel("group", "en", "padel")).toBe(
+      "Counts for group rating",
+    );
   });
 });

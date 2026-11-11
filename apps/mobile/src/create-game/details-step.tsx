@@ -3,6 +3,7 @@ import {
   createFlowPriceChips,
   createFlowSeatsLabel,
   createRatingChoice,
+  createRatingChoiceShown,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   gameTeamOfTwoCopy,
@@ -14,6 +15,7 @@ import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
 import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
+import type { Sport } from "@repo/domain/sport";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   groupsThenKnockoutReviewValue,
@@ -144,6 +146,11 @@ function customNameReviewRows(customName: string, locale: Locale): ReviewRow[] {
 export function FootballDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
+  const tierShown = createRatingChoiceShown({
+    sport: "football",
+    hasGroup: Boolean(draft.groupId),
+    groupVerified: props.groupVerified,
+  });
   const locale = useLocale();
   const m = useMessages();
   const review = m.mobileCreateGame.review;
@@ -160,6 +167,7 @@ export function FootballDetailsStep(props: DetailsProps) {
       <FootballSizeFields {...props} />
       <PriceField {...props} />
       <FriendlyMvpField {...props} />
+      {tierShown ? <DetailsRatingField {...props} sport="football" /> : null}
       <ReviewCard
         rows={[
           ...customNameReviewRows(draft.customName, locale),
@@ -175,7 +183,9 @@ export function FootballDetailsStep(props: DetailsProps) {
             label: review.size,
             value: createFlowSeatsLabel("football", draft, locale),
           },
-          { label: review.rating, value: unratedLabel(locale) },
+          tierShown
+            ? ratingReviewRow(props, locale, "football")
+            : { label: review.rating, value: unratedLabel(locale) },
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -183,10 +193,16 @@ export function FootballDetailsStep(props: DetailsProps) {
   );
 }
 
-function DetailsRatingField({ state, dispatch, groupVerified }: DetailsProps) {
+function DetailsRatingField({
+  state,
+  dispatch,
+  groupVerified,
+  sport,
+}: DetailsProps & { sport?: Sport }) {
   return (
     <RatingField
       groupVerified={groupVerified}
+      sport={sport}
       rated={state.draft.rated}
       onRated={(rated) => dispatch({ kind: "setRated", rated })}
     />
@@ -196,11 +212,13 @@ function DetailsRatingField({ state, dispatch, groupVerified }: DetailsProps) {
 function ratingReviewRow(
   { state, groupVerified }: DetailsProps,
   locale: Locale,
+  sport?: Sport,
 ): ReviewRow {
   const choice = createRatingChoice({
     groupVerified,
     rated: state.draft.rated,
     locale,
+    sport,
   });
   return {
     label: messagesFor(locale).mobileCreateGame.review.rating,

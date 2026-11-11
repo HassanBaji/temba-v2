@@ -179,6 +179,24 @@ describe("validateFootballGameSubmit", () => {
     }
   });
 
+  it("sends only the Unrated choice", () => {
+    const unrated = validateFootballGameSubmit(
+      { ...football, rated: false },
+      NOW,
+      "en",
+    );
+    const rated = validateFootballGameSubmit(
+      { ...football, rated: true },
+      NOW,
+      "en",
+    );
+    assert.ok(unrated.ok && rated.ok);
+    if (unrated.ok && rated.ok) {
+      assert.equal(unrated.input.rated, false);
+      assert.equal("rated" in rated.input, false);
+    }
+  });
+
   it("leaves the pitch out when none is picked", () => {
     const result = validateFootballGameSubmit(football, NOW, "en");
     assert.ok(result.ok);

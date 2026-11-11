@@ -4,15 +4,19 @@ import {
   asGroupMemberFilter,
   asGroupMemberSort,
   defaultGroupMemberSort,
+  formatTierPoints,
   groupMemberFilters,
   groupMemberMatchesFilter,
   groupMemberSortCaption,
   groupMemberSorts,
   groupMemberTableCaption,
+  groupMemberTierView,
   groupMembersLegend,
   groupMembersLens,
   groupPendingInviteCaption,
   groupPendingInvitesTitle,
+  groupTierProvisionalLine,
+  groupTierSharkCard,
   sortGroupMembers,
   sortGroupMembersBy,
 } from "./group-members-table";
@@ -389,5 +393,148 @@ describe("stored lens values", () => {
     expect(asGroupMemberSort("wins")).toBeNull();
     expect(asGroupMemberFilter("noGames")).toBe("noGames");
     expect(asGroupMemberFilter(3)).toBeNull();
+  });
+});
+
+describe("a tier Group's Members table (screen 2b)", () => {
+  const ranked = (place: number, band: "shark" | "hamour" | null) => ({
+    band,
+    place,
+    points: 1412,
+    provisional: false,
+    gamesOfFive: 5,
+  });
+
+  it("orders by tier by default: places first, then Provisional by games", () => {
+    expect(groupMemberSorts(false, true)).toEqual([
+      "tier",
+      "recent",
+      "joined",
+      "name",
+    ]);
+    expect(defaultGroupMemberSort(false, true)).toBe("tier");
+    const rows = sortGroupMembersBy(
+      [
+        {
+          name: "Majed",
+          level: null,
+          lastPlayedAt: null,
+          joinedAt: null,
+          tier: {
+            ...ranked(0, null),
+            place: null,
+            provisional: true,
+            gamesOfFive: 1,
+          },
+        },
+        {
+          name: "Ali",
+          level: null,
+          lastPlayedAt: null,
+          joinedAt: null,
+          tier: ranked(2, "hamour"),
+        },
+        {
+          name: "Khalid",
+          level: null,
+          lastPlayedAt: null,
+          joinedAt: null,
+          tier: {
+            ...ranked(0, null),
+            place: null,
+            provisional: true,
+            gamesOfFive: 3,
+          },
+        },
+        {
+          name: "Hussain",
+          level: null,
+          lastPlayedAt: null,
+          joinedAt: null,
+          tier: ranked(1, "shark"),
+        },
+      ],
+      "tier",
+      "en",
+    );
+    expect(names(rows)).toEqual(["Hussain", "Ali", "Khalid", "Majed"]);
+  });
+
+  it("reads a fish, a place or a hatched Provisional slot", () => {
+    expect(
+      groupMemberTierView(
+        { tier: ranked(1, "shark"), isOrganizer: true },
+        "en",
+      ),
+    ).toMatchObject({
+      cell: { kind: "fish", band: "shark", label: "Shark" },
+      caption: "Shark, organizer",
+      points: "1,412",
+      pointsMuted: false,
+    });
+    expect(
+      groupMemberTierView({ tier: ranked(2, null), isOrganizer: false }, "en"),
+    ).toMatchObject({ cell: { kind: "place", label: "#2" }, caption: null });
+    expect(
+      groupMemberTierView(
+        {
+          tier: {
+            band: null,
+            place: null,
+            points: null,
+            provisional: true,
+            gamesOfFive: 3,
+          },
+          isOrganizer: false,
+        },
+        "en",
+      ),
+    ).toMatchObject({
+      cell: { kind: "provisional" },
+      caption: "Provisional, 3 of 5 games",
+      points: "no tier",
+      pointsMuted: true,
+    });
+    expect(groupMemberTierView({ isOrganizer: false }, "en")).toBeNull();
+  });
+
+  it("shows the Shark card and the footnote", () => {
+    const now = new Date("2026-11-12T12:00:00Z");
+    const summary = {
+      shark: {
+        userId: "hussain",
+        name: "Hussain A",
+        points: 1412,
+        since: new Date(now.getTime() - 36 * 24 * 60 * 60 * 1000),
+      },
+      rankedCount: 11,
+      provisionalCount: 2,
+    };
+    expect(groupTierSharkCard(summary, now, "en")).toEqual({
+      title: "The Shark",
+      name: "Hussain A",
+      line: "1,412 points, top for 5 weeks",
+      fishLabel: "Shark",
+    });
+    expect(
+      groupTierSharkCard(
+        { ...summary, shark: { ...summary.shark, since: null } },
+        now,
+        "en",
+      )?.line,
+    ).toBe("1,412 points");
+    expect(
+      groupTierSharkCard({ ...summary, shark: null }, now, "en"),
+    ).toBeNull();
+    expect(groupTierProvisionalLine(summary, "en")).toBe("2 still provisional");
+    expect(
+      groupMembersLegend({ showLevel: false, showTier: true, locale: "en" }),
+    ).toMatch(/^Tier and points are this group’s own/);
+  });
+
+  it("groups thousands in Latin digits", () => {
+    expect(formatTierPoints(1064)).toBe("1,064");
+    expect(formatTierPoints(980)).toBe("980");
+    expect(formatTierPoints(12_345)).toBe("12,345");
   });
 });

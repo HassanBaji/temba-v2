@@ -48,6 +48,8 @@ import {
 } from "./game-shape";
 import {
   gameRatingScopeLabel,
+  groupHasTier,
+  groupRatingScopeNote,
   ratedScopeForGroup,
   type GameRatingScope,
 } from "./game-rating-scope";
@@ -153,14 +155,21 @@ export function changeFootballPlayersAllowed<
 
 /** A court price split across `players`, rounded up so the cap covers it. */
 /**
- * The Rating choice on create (ADR-0053). Only a padel Game on a Group
- * rates, so football and groupless Games skip it and stay Unrated.
+ * The Rating choice on create (ADR-0053, ADR-0066). A padel Game on a Group
+ * rates, and a football Game on a tier Group moves Tier points; every other
+ * Game skips the choice and stays Unrated.
  */
 export function createRatingChoiceShown(args: {
   sport: Sport;
   hasGroup: boolean;
+  groupVerified?: boolean;
 }) {
-  return args.hasGroup && args.sport === "padel";
+  if (!args.hasGroup) {
+    return false;
+  }
+  return args.sport === "football"
+    ? groupHasTier({ sport: args.sport, verified: args.groupVerified ?? false })
+    : true;
 }
 
 export type CreateRatingOption = {
@@ -173,6 +182,7 @@ export function createRatingChoice(args: {
   groupVerified: boolean;
   rated: boolean;
   locale: Locale;
+  sport?: Sport;
 }): {
   title: string;
   scope: GameRatingScope;
@@ -185,19 +195,19 @@ export function createRatingChoice(args: {
   const scope = args.rated ? ratedScope : "unrated";
   const notes: Record<GameRatingScope, string> = {
     temba: m.temba_note,
-    group: m.group_note,
+    group: groupRatingScopeNote(args.locale, args.sport),
     unrated: m.unrated_note,
   };
   return {
     title: m.title,
     scope,
-    scopeLabel: gameRatingScopeLabel(scope, args.locale),
+    scopeLabel: gameRatingScopeLabel(scope, args.locale, args.sport),
     note: notes[scope],
     options: [
       {
         rated: true,
         label: m.rated,
-        description: gameRatingScopeLabel(ratedScope, args.locale),
+        description: gameRatingScopeLabel(ratedScope, args.locale, args.sport),
       },
       { rated: false, label: m.unrated, description: null },
     ],

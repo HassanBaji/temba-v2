@@ -191,6 +191,9 @@ export type CreateFootballGameInput = {
   playersAllowed: number;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** From `ratingFlagsAtCreate`. Omitted = moves nothing. */
+  rated?: boolean;
+  groupRated?: boolean;
 };
 
 export type CreateFriendlyGameResult = {

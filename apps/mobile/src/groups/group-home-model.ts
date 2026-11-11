@@ -22,8 +22,10 @@ import {
   groupMemberSortCaption,
   groupMembersLens,
   groupMemberTableCaption,
+  groupMemberTierView,
   type GroupMemberSort,
   type GroupMembersLensInput,
+  type GroupMemberTierView,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
@@ -157,6 +159,8 @@ export type MemberRowView = {
   caption: string | null;
   level: LevelCellView;
   levelText: string | null;
+  /** Set on a tier Group's rows (screen 2b). */
+  tier: GroupMemberTierView | null;
   selectable: boolean;
   accessibilityLabel: string;
 };
@@ -201,8 +205,11 @@ export function memberRowView(
 ): MemberRowView {
   const m = messagesFor(locale);
   const name = entry.name ?? m.mobileGroup.unnamedMember;
+  const tier = groupMemberTierView(entry, locale);
   const caption = [
-    groupMemberSortCaption(entry, sort, locale),
+    tier && sort === "tier"
+      ? tier.caption
+      : groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
@@ -220,6 +227,7 @@ export function memberRowView(
     caption: caption || null,
     level,
     levelText: entry.level,
+    tier,
     selectable:
       ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
@@ -228,7 +236,11 @@ export function memberRowView(
       entry.isViewer ? m.mobileGroup.members.rowYou(name) : name,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
       caption || null,
-      levelSpokenLabel(level, entry.level, locale),
+      tier
+        ? sort === "tier"
+          ? tier.pointsSpoken
+          : tier.spoken
+        : levelSpokenLabel(level, entry.level, locale),
     ]
       .filter(Boolean)
       .join(". "),

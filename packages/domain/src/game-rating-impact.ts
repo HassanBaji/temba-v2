@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import {
   gameRatingScopeLabel,
+  groupRatingScopeNote,
   type GameRatingScope,
 } from "./game-rating-scope";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -28,28 +29,34 @@ export function ratingScopeOf(game: {
 
 /** The tag a Game card or row carries: its scope, none when Temba rated. */
 export function ratingScopeTag(
-  game: { rated: boolean; ratingScope?: GameRatingScope | null },
+  game: {
+    rated: boolean;
+    ratingScope?: GameRatingScope | null;
+    sport?: string | null;
+  },
   locale: Locale,
 ): string | null {
   const scope = ratingScopeOf(game);
-  return scope === "temba" ? null : gameRatingScopeLabel(scope, locale);
+  return scope === "temba"
+    ? null
+    : gameRatingScopeLabel(scope, locale, game.sport);
 }
 
 /** The Game details notice for a Game that does not move the Temba Level. */
 export function ratingScopeNotice(
   scope: GameRatingScope,
   locale: Locale,
+  sport?: string | null,
 ): { title: string; line: string } | null {
   if (scope === "temba") {
     return null;
   }
-  const m = messagesFor(locale);
   return {
-    title: gameRatingScopeLabel(scope, locale),
+    title: gameRatingScopeLabel(scope, locale, sport),
     line:
       scope === "group"
-        ? m.you.ratingScope.group_note
-        : m.game.rating.unratedGameLine,
+        ? groupRatingScopeNote(locale, sport)
+        : messagesFor(locale).game.rating.unratedGameLine,
   };
 }
 

@@ -419,3 +419,69 @@ describe("memberList with a sort and filter", () => {
     );
   });
 });
+
+describe("memberList on a tier Group (screen 2b)", () => {
+  const base = home.member.standing.leaderboard[0]!;
+  const lens = {
+    sort: null,
+    filter: null,
+    showLevel: false,
+    showTier: true,
+    canManage: false,
+    now: new Date("2026-11-04T12:00:00Z"),
+  };
+  const member = (
+    userId: string,
+    name: string,
+    tier: NonNullable<typeof base.tier>,
+    isOrganizer = false,
+  ) => ({ ...base, userId, name, isViewer: false, isOrganizer, tier });
+
+  it("orders by tier and reads the fish, the band and the points", () => {
+    const list = memberList(
+      [
+        member("khalid", "Khalid R", {
+          band: null,
+          place: null,
+          points: null,
+          provisional: true,
+          gamesOfFive: 3,
+        }),
+        member(
+          "hussain",
+          "Hussain A",
+          {
+            band: "shark",
+            place: 1,
+            points: 1412,
+            provisional: false,
+            gamesOfFive: 5,
+          },
+          true,
+        ),
+      ],
+      "",
+      ORIGIN,
+      "en",
+      false,
+      false,
+      false,
+      lens,
+    );
+    expect(list.sort).toBe("tier");
+    expect(
+      list.rows.map((row) => [row.name, row.caption, row.tier?.points]),
+    ).toEqual([
+      ["Hussain A", "Shark, organizer", "1,412"],
+      ["Khalid R", "Provisional, 3 of 5 games", "no tier"],
+    ]);
+    expect(list.rows[0]?.tier?.cell).toEqual({
+      kind: "fish",
+      band: "shark",
+      label: "Shark",
+    });
+    expect(list.rows[0]?.accessibilityLabel).toBe(
+      "Hussain A. Shark, organizer. 1,412 tier points",
+    );
+  });
+});

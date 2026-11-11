@@ -4,9 +4,10 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { Sport } from "./sport";
 
 /**
- * Rating scope (ADR-0053): what a Game's completed Matches rate. `temba`
- * moves the Temba Level and the Group Level, `group` the Group Level only,
- * `unrated` neither. Stored as `games.rated` and `games.group_rated`.
+ * Rating scope (ADR-0053, ADR-0066): what a Game's completed Matches move.
+ * `temba` moves the Temba Level, `group` a padel Group Level or, on football,
+ * Tier points, `unrated` neither. Stored as `games.rated` and
+ * `games.group_rated`.
  */
 export const GAME_RATING_SCOPES = ["temba", "group", "unrated"] as const;
 
@@ -22,10 +23,19 @@ export function gameRatingScope(game: {
   return game.groupRated ? "group" : "unrated";
 }
 
+/** A tier Group is a football Group that is not Verified (ADR-0066). */
+export function groupHasTier(group: {
+  sport: string | null | undefined;
+  verified: boolean;
+}) {
+  return group.sport === "football" && !group.verified;
+}
+
 /**
- * The two stored flags for a new Game. Only a padel Game on a Group rates;
- * a Verified Group's also moves the Temba Level. `rated` is the creator's
- * choice, false for Unrated.
+ * The two stored flags for a new Game. A padel Game on a Group rates its
+ * Group Level, and a Verified Group's also moves the Temba Level. A football
+ * Game on a tier Group moves Tier points. `rated` is the creator's choice,
+ * false for Unrated.
  */
 export function ratingFlagsAtCreate(args: {
   hasGroup: boolean;
@@ -33,7 +43,13 @@ export function ratingFlagsAtCreate(args: {
   sport: Sport;
   rated: boolean;
 }): { rated: boolean; groupRated: boolean } {
-  const groupRated = args.hasGroup && args.sport === "padel" && args.rated;
+  if (args.sport === "football") {
+    const tier =
+      args.hasGroup &&
+      groupHasTier({ sport: args.sport, verified: args.groupVerified });
+    return { rated: false, groupRated: tier && args.rated };
+  }
+  const groupRated = args.hasGroup && args.rated;
   return { rated: groupRated && args.groupVerified, groupRated };
 }
 
@@ -42,6 +58,26 @@ export function ratedScopeForGroup(groupVerified: boolean): GameRatingScope {
   return groupVerified ? "temba" : "group";
 }
 
-export function gameRatingScopeLabel(scope: GameRatingScope, locale: Locale) {
-  return messagesFor(locale).you.ratingScope[scope];
+/** The `group` scope reads as a group tier on football. */
+export function gameRatingScopeLabel(
+  scope: GameRatingScope,
+  locale: Locale,
+  sport?: string | null,
+) {
+  const m = messagesFor(locale);
+  if (scope === "group" && sport === "football") {
+    return m.rating.scope.group;
+  }
+  return m.you.ratingScope[scope];
+}
+
+/** The line under a `group` scope, which differs by sport. */
+export function groupRatingScopeNote(
+  locale: Locale,
+  sport?: string | null,
+): string {
+  const m = messagesFor(locale);
+  return sport === "football"
+    ? m.rating.scope.groupNote
+    : m.you.ratingScope.group_note;
 }

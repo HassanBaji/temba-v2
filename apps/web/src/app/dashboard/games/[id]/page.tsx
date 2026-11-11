@@ -1102,7 +1102,7 @@ export default function GameHomePage({
 
         {usesDrawnTournamentChrome ? (
           <>
-            <GameRatingScopeBlock scope={data.ratingScope} />
+            <GameRatingScopeBlock scope={data.ratingScope} sport={data.sport} />
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}
@@ -1271,7 +1271,10 @@ export default function GameHomePage({
                 ratingScope={data.ratingScope}
               />
             ) : (
-              <GameRatingScopeBlock scope={data.ratingScope} />
+              <GameRatingScopeBlock
+                scope={data.ratingScope}
+                sport={data.sport}
+              />
             )}
             <GameLineupSection
               sides={data.sides}

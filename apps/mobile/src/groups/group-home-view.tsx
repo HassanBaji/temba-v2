@@ -294,6 +294,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           apiOrigin={props.apiOrigin}
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
           showLevel={groupShowsLevel(data.sport)}
+          tierSummary={data.hasTier ? (data.tierSummary ?? null) : null}
           onSetLevel={props.onSetLevel}
           onSetGroupLevel={
             viewerMaySetGroupLevel({

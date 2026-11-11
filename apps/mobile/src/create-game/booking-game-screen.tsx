@@ -154,11 +154,13 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
   const ratingShown = createRatingChoiceShown({
     sport,
     hasGroup: Boolean(selectedGroup),
+    groupVerified,
   });
   const ratingScope = createRatingChoice({
     groupVerified,
     rated: ratingShown && state.draft.rated,
     locale,
+    sport,
   }).scope;
 
   const createGame = api.bookings.createGame.useMutation({
@@ -263,6 +265,7 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
         {ratingShown ? (
           <RatingField
             groupVerified={groupVerified}
+            sport={sport}
             rated={state.draft.rated}
             onRated={(rated) => onDispatch({ kind: "setRated", rated })}
           />

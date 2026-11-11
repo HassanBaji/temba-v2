@@ -247,6 +247,26 @@ describe("a football Booking Game", () => {
     });
   });
 
+  it("sends the Unrated choice for a Group", () => {
+    expect(
+      bookingGameRequest(
+        "booking-1",
+        { ...open, groupId: "group-1", rated: false },
+        "en",
+        "football",
+      ),
+    ).toEqual({
+      ok: true,
+      input: {
+        bookingId: "booking-1",
+        groupId: "group-1",
+        rated: false,
+        sideSize: 7,
+        playersAllowed: 16,
+      },
+    });
+  });
+
   it("refuses a cap below twice the side size or past forty", () => {
     for (const playersAllowed of [13, 41]) {
       const result = bookingGameRequest(

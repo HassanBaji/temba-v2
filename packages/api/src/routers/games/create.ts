@@ -192,6 +192,7 @@ function friendlyGameNameFields(
 async function createFootballGameOnGroup(
   database: DbClient,
   input: CreateGameInput,
+  flags: { rated: boolean; groupRated: boolean },
   locale: Locale = DEFAULT_LOCALE,
 ) {
   if (input.format !== "friendly_game") {
@@ -221,6 +222,7 @@ async function createFootballGameOnGroup(
       sideSize,
       playersAllowed: input.playersAllowed ?? 2 * sideSize,
       mvpMode: input.mvpMode,
+      ...flags,
     },
     locale,
   );
@@ -271,7 +273,12 @@ async function createGameOnGroup(
   });
 
   if (sportOrDefault(group.sport) === "football") {
-    return createFootballGameOnGroup(database, input, locale);
+    return createFootballGameOnGroup(
+      database,
+      input,
+      { rated, groupRated },
+      locale,
+    );
   }
 
   if (!isAmericano && !isTournament) {

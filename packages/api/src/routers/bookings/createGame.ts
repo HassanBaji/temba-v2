@@ -175,6 +175,12 @@ export async function createBookingGame(
           pricePerPlayerFils: args.pricePerPlayerFils ?? null,
           sideSize,
           playersAllowed: args.playersAllowed ?? 2 * sideSize,
+          ...ratingFlagsAtCreate({
+            hasGroup: groupId !== null,
+            groupVerified,
+            sport: "football",
+            rated: args.rated ?? true,
+          }),
         },
         locale,
       );

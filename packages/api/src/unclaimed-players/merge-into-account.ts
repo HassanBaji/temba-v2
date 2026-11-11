@@ -25,6 +25,8 @@ import {
   groupLevelOverrides,
   groupRatingEvents,
   groupRatings,
+  groupTierEvents,
+  groupTierPoints,
   groupLinkRequests,
   groupMemberInvites,
   groupMembers,
@@ -132,6 +134,11 @@ const groupRatingUserReferences: PgColumn[] = [
   groupLevelOverrides.userId,
 ];
 
+const groupTierUserReferences: PgColumn[] = [
+  groupTierPoints.userId,
+  groupTierEvents.userId,
+];
+
 const plainUserReferences: PgColumn[] = [
   account.userId,
   session.userId,
@@ -178,6 +185,7 @@ const plainUserReferences: PgColumn[] = [
   bookingPayments.refundedByUserId,
   levelOverrides.setByUserId,
   groupLevelOverrides.setByUserId,
+  groupTierEvents.setByUserId,
 ];
 
 /** Every column referencing `user.id` that the merge reassigns or resolves. */
@@ -185,6 +193,7 @@ export const mergedUserReferenceColumns: readonly PgColumn[] = [
   ...uniqueUserReferences.map((reference) => reference.column),
   ...ratingUserReferences,
   ...groupRatingUserReferences,
+  ...groupTierUserReferences,
   ...plainUserReferences,
 ];
 
@@ -451,6 +460,58 @@ async function resolveGroupRatings(tx: DbTx, ids: MergeIds) {
   }
 }
 
+/**
+ * Per tier Group, the Tier points with more games counted stay and the
+ * account's win a tie; the other side's points row and ledger there go. The
+ * merged side's remaining tiers move with the plain reassignment.
+ */
+async function resolveGroupTiers(tx: DbTx, ids: MergeIds) {
+  const rows = await tx
+    .select({
+      userId: groupTierPoints.userId,
+      groupId: groupTierPoints.groupId,
+      gamesCounted: groupTierPoints.gamesCounted,
+    })
+    .from(groupTierPoints)
+    .where(
+      inArray(groupTierPoints.userId, [ids.survivorUserId, ids.mergedUserId]),
+    );
+  const survivorGames = new Map(
+    rows
+      .filter((row) => row.userId === ids.survivorUserId)
+      .map((row) => [row.groupId, row.gamesCounted]),
+  );
+  for (const row of rows) {
+    const survivorGamesCounted = survivorGames.get(row.groupId);
+    if (row.userId !== ids.mergedUserId || survivorGamesCounted === undefined) {
+      continue;
+    }
+    const dropped =
+      row.gamesCounted > survivorGamesCounted
+        ? ids.survivorUserId
+        : ids.mergedUserId;
+    await tx
+      .delete(groupTierPoints)
+      .where(
+        and(
+          eq(groupTierPoints.userId, dropped),
+          eq(groupTierPoints.groupId, row.groupId),
+        ),
+      );
+    await tx
+      .delete(groupTierEvents)
+      .where(
+        and(
+          eq(groupTierEvents.userId, dropped),
+          eq(groupTierEvents.groupId, row.groupId),
+        ),
+      );
+  }
+  for (const column of groupTierUserReferences) {
+    await reassign(tx, column, ids);
+  }
+}
+
 async function seatAndMembershipCounts(tx: DbTx, ids: MergeIds) {
   const both = [ids.survivorUserId, ids.mergedUserId];
   const [seatRows, groupRows] = await Promise.all([
@@ -542,6 +603,7 @@ export async function mergeIntoAccount(
     const counts = await seatAndMembershipCounts(tx, ids);
     const ratingKeptBySport = await resolveRatings(tx, ids);
     await resolveGroupRatings(tx, ids);
+    await resolveGroupTiers(tx, ids);
     await dropMarksBetween(tx, ids);
     await dropMvpVotesBetween(tx, ids);
 

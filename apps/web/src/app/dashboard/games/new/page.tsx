@@ -667,6 +667,7 @@ function NewGameForm() {
           sideSize,
           playersAllowed,
           customName,
+          rated,
         },
         session.now,
         locale,

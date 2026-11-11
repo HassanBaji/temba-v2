@@ -114,7 +114,11 @@ export function bookingGameReviewRows(
     },
     {
       label: m.review.rating,
-      value: gameRatingScopeLabel(group?.ratingScope ?? "unrated", locale),
+      value: gameRatingScopeLabel(
+        group?.ratingScope ?? "unrated",
+        locale,
+        sport,
+      ),
     },
   ];
 }
@@ -150,6 +154,8 @@ export function bookingGameRequest(
     return { ok: false, errors: { pricePerPlayerFils: price.message } };
   }
   const group = draft.groupId ? { groupId: draft.groupId } : {};
+  const unrated =
+    draft.groupId && draft.rated === false ? { rated: false as const } : {};
   if (sport === "football") {
     const { sideSize, playersAllowed } = draft;
     if (!isFootballSideSize(sideSize)) {
@@ -174,6 +180,7 @@ export function bookingGameRequest(
       input: {
         bookingId,
         ...group,
+        ...unrated,
         sideSize,
         playersAllowed,
         ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
@@ -197,9 +204,7 @@ export function bookingGameRequest(
     input: {
       bookingId,
       ...group,
-      ...(draft.groupId && draft.rated === false
-        ? { rated: false as const }
-        : {}),
+      ...unrated,
       ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
       ...(levelMinTenths !== null ? { levelMinTenths } : {}),
       ...(levelMaxTenths !== null ? { levelMaxTenths } : {}),

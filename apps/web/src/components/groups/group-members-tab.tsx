@@ -16,6 +16,7 @@ import {
   useMemberLens,
 } from "~/components/groups/group-members-lens";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
+import { TierCell, TierFish } from "~/components/groups/tier-fish";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -45,13 +46,20 @@ import {
 } from "@repo/domain/group-home-chrome";
 import {
   groupMemberSortCaption,
+  groupMemberTierView,
   groupMembersLegend,
   groupMembersLens,
   groupPendingInviteCaption,
   groupPendingInvitesTitle,
+  groupTierProvisionalLine,
+  groupTierSharkCard,
   type GroupMemberSort,
 } from "@repo/domain/group-members-table";
-import type { GroupLevelOverrideData } from "@repo/domain/group-data";
+import type {
+  GroupLevelOverrideData,
+  GroupMemberTierData,
+  GroupTierSummaryData,
+} from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
 import type { Locale } from "@repo/i18n/locale";
 import {
@@ -76,6 +84,7 @@ type GroupMember = {
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
   groupLevel?: { level: string } | null;
+  tier?: GroupMemberTierData | null;
   unclaimed: boolean;
   phoneMasked: string | null;
   canRename?: boolean;
@@ -110,8 +119,9 @@ function memberCaption(
   sort: GroupMemberSort,
   locale: Locale,
 ) {
+  const tier = sort === "tier" ? groupMemberTierView(member, locale) : null;
   const parts = [
-    groupMemberSortCaption(member, sort, locale),
+    tier ? tier.caption : groupMemberSortCaption(member, sort, locale),
     member.phoneMasked,
     canSetLevel && member.levelOverride
       ? levelOverrideCaption({ ...member.levelOverride, locale })
@@ -224,7 +234,35 @@ function MemberActionsMenu({
 }
 
 const COL_LEVEL = "w-14 px-0";
+const COL_TIER = "w-14 ps-4 pe-0";
+const COL_POINTS = "w-16 pe-4 ps-0 text-end";
 const COL_ACTION = "w-11 px-0";
+
+function SharkCard({ summary }: { summary: GroupTierSummaryData }) {
+  const locale = useLocale();
+  const card = groupTierSharkCard(summary, new Date(), locale);
+  if (!card) {
+    return null;
+  }
+  return (
+    <section
+      aria-label={card.title}
+      className="border-rule rounded-card bg-wash flex items-center gap-4 border px-5 py-[18px]"
+    >
+      <TierFish
+        band="shark"
+        label={card.fishLabel}
+        size="card"
+        cutout="var(--color-wash)"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-eyebrow text-muted-foreground">{card.title}</p>
+        <p className="text-h2 truncate font-bold tracking-tight">{card.name}</p>
+        <p className="text-meta text-muted-foreground mt-0.5">{card.line}</p>
+      </div>
+    </section>
+  );
+}
 
 function GroupMemberRow({
   member,
@@ -245,16 +283,26 @@ function GroupMemberRow({
 }) {
   const locale = useLocale();
   const caption = memberCaption(member, canSetLevel, sort, locale);
+  const tier = groupMemberTierView(member, locale);
   const linkHref = managing ? undefined : profileHref;
   const cells = (
     <>
-      <td className="py-3 pe-2 ps-4">
+      {tier ? (
+        <td className={COL_TIER}>
+          <span className="flex justify-center">
+            <TierCell cell={tier.cell} />
+          </span>
+        </td>
+      ) : null}
+      <td className={cn("py-3 pe-2", tier ? "ps-3" : "ps-4")}>
         <span className="flex min-w-0 items-center gap-2.5">
-          <UserAvatar
-            name={member.name}
-            image={member.image}
-            className="size-8 shrink-0"
-          />
+          {tier ? null : (
+            <UserAvatar
+              name={member.name}
+              image={member.image}
+              className="size-8 shrink-0"
+            />
+          )}
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center gap-1.5">
               {linkHref ? (
@@ -280,7 +328,18 @@ function GroupMemberRow({
           </span>
         </span>
       </td>
-      {showLevel ? (
+      {tier ? (
+        <td
+          className={cn(
+            COL_POINTS,
+            tier.pointsMuted
+              ? "text-eyebrow text-muted-foreground"
+              : "text-body font-bold tabular-nums",
+          )}
+        >
+          {tier.points}
+        </td>
+      ) : showLevel ? (
         <td className={COL_LEVEL}>
           <LevelCell
             band={member.levelBand}
@@ -458,6 +517,7 @@ export function GroupMembersTab({
   canAppointOrganizers = false,
   onOrganizerAction,
   showLevel = true,
+  tierSummary,
   pendingInvites = [],
   revokeInvitePendingId,
   onRevokeInvite,
@@ -465,6 +525,8 @@ export function GroupMembersTab({
   afterTable,
 }: {
   showLevel?: boolean;
+  /** A tier Group's Members (screen 2b): fish, points and the Shark. */
+  tierSummary?: GroupTierSummaryData | null;
   canAppointOrganizers?: boolean;
   onOrganizerAction?: (
     member: { userId: string; name: string },
@@ -517,18 +579,23 @@ export function GroupMembersTab({
     canAddPlayers ||
     canRemovePlayers;
   const isManaging = canManage && managing;
+  const showTier = tierSummary != null;
   const view = groupMembersLens(members, {
     ...lens,
     query,
     showLevel,
+    showTier,
     canManage,
     now: new Date(),
     locale,
   });
   const showSearch = view.showControls;
   const visible = view.rows;
-  const columnCount = 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
-  const legend = groupMembersLegend({ showLevel, locale });
+  const columnCount = showTier
+    ? 3 + (isManaging ? 1 : 0)
+    : 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
+  const legend = groupMembersLegend({ showLevel, showTier, locale });
+  const provisionalLine = groupTierProvisionalLine(tierSummary, locale);
   const addPlayerButton =
     canAddPlayers && onAddPlayer ? (
       <Button
@@ -630,6 +697,7 @@ export function GroupMembersTab({
     <div className="flex flex-col gap-[26px]">
       {saved ? <SavedBanner saved={saved} onDismiss={onDismissSaved} /> : null}
       {top}
+      {tierSummary ? <SharkCard summary={tierSummary} /> : null}
 
       <div className="flex flex-col gap-3.5">
         {showSearch || manageButton ? (
@@ -666,18 +734,44 @@ export function GroupMembersTab({
             </caption>
             <thead className="bg-wash">
               <tr>
+                {showTier ? (
+                  <th
+                    scope="col"
+                    className={cn(
+                      COL_TIER,
+                      "text-eyebrow text-muted-foreground h-10 text-center font-normal",
+                    )}
+                  >
+                    {m.rating.tier.columnTier}
+                  </th>
+                ) : null}
                 <th
                   scope="col"
-                  className="text-eyebrow text-muted-foreground py-0 pe-2.5 ps-4 text-start font-normal"
+                  className={cn(
+                    "text-eyebrow text-muted-foreground py-0 pe-2.5 text-start font-normal",
+                    showTier ? "ps-3" : "ps-4",
+                  )}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    {m.webGroup.members.memberColumn}
+                    {showTier
+                      ? m.rating.tier.columnPlayer
+                      : m.webGroup.members.memberColumn}
                     <span className="font-mono text-[11px]">
                       {view.countLine}
                     </span>
                   </span>
                 </th>
-                {showLevel ? (
+                {showTier ? (
+                  <th
+                    scope="col"
+                    className={cn(
+                      COL_POINTS,
+                      "text-eyebrow text-muted-foreground h-10 font-normal",
+                    )}
+                  >
+                    {m.rating.tier.columnPoints}
+                  </th>
+                ) : showLevel ? (
                   <th
                     scope="col"
                     title={m.common.level}
@@ -740,9 +834,12 @@ export function GroupMembersTab({
             </tbody>
           </table>
           {legend ? (
-            <p className="border-rule text-eyebrow text-muted-foreground border-t px-[18px] py-3">
-              {legend}
-            </p>
+            <div className="border-rule flex flex-col gap-1.5 border-t px-[18px] py-3">
+              <p className="text-eyebrow text-muted-foreground">{legend}</p>
+              {provisionalLine ? (
+                <p className="text-eyebrow font-semibold">{provisionalLine}</p>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

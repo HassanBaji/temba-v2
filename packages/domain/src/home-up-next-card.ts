@@ -165,7 +165,7 @@ function scopeLine(game: Game, locale: Locale): string | null {
   const rating =
     scope === "temba"
       ? m.you.ratingScope.rated
-      : gameRatingScopeLabel(scope, locale);
+      : gameRatingScopeLabel(scope, locale, game.sport);
   return m.home.upNextCard.scope([rating, range].filter(isPresent));
 }
 

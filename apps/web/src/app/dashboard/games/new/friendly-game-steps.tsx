@@ -211,11 +211,13 @@ export function FriendlyGameSteps({
   const ratingShown = createRatingChoiceShown({
     sport,
     hasGroup: Boolean(selectedGroupId),
+    groupVerified,
   });
   const ratingChoice = createRatingChoice({
     groupVerified,
     rated: ratingShown && rated,
     locale,
+    sport,
   });
 
   function selectDay(next: string) {
@@ -719,6 +721,7 @@ export function FriendlyGameSteps({
             <RatingField
               idPrefix="game"
               groupVerified={groupVerified}
+              sport={sport}
               rated={rated}
               onRated={onRated}
             />
