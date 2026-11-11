@@ -22,6 +22,7 @@ export type NotificationEmailInput = Pick<
   | "challenge"
   | "game"
   | "levelSet"
+  | "tier"
 >;
 
 export type NotificationEmail = { subject: string; html: string; text: string };
@@ -50,6 +51,8 @@ export function notificationEmailDestination(
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||
+      item.type === "tier_points_adjusted" ||
+      item.type === "tier_band_changed" ||
       ((item.type === "group_join_requested" ||
         item.type === "group_join_approved" ||
         item.type === "group_join_declined") &&

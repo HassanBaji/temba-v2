@@ -2,6 +2,7 @@ import type {
   NotificationTitlePart,
   notification as source,
 } from "../en/notification";
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 
 function strong(text: string): NotificationTitlePart {
@@ -103,6 +104,18 @@ export const notification = {
       strong(actor),
       plain(" مستواك عند "),
       strong(level),
+    ],
+    tierPointsAdjusted: (actor: string, group: string) => [
+      plain("عدّل "),
+      strong(actor),
+      plain(" نقاط فئتك في "),
+      strong(group),
+    ],
+    tierBandChanged: (band: string, group: string) => [
+      plain("صرت الآن "),
+      strong(band),
+      plain(" في "),
+      strong(group),
     ],
     gameFinished: (game: string) => [plain("انتهت "), strong(game)],
     markReceived: (actor: string, kind: string, game: string) => [
@@ -257,6 +270,15 @@ export const notification = {
     kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
     seeWhoIsNamed: "اطّلع على المباراة ومن سُمّي معك.",
     acceptRematch: "اقبله لتقترح وقتًا وملعبًا.",
+    tierAdjusted: (reason: string, from: string, to: string) =>
+      `${reason}. من ${isolate(from)} إلى ${isolate(to)}.`,
+    tierAdjustedWithNote: (
+      reason: string,
+      note: string,
+      from: string,
+      to: string,
+    ) => `${reason}: «${note}» من ${isolate(from)} إلى ${isolate(to)}.`,
+    tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

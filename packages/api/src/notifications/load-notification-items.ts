@@ -6,6 +6,7 @@ import { displayedLevelFromMu } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
 import { marksWindow, type MarkKind } from "@repo/domain/marks";
+import { type TierBand } from "@repo/domain/tier-bands";
 
 type NotificationPerson = { id: string; name: string; image: string | null };
 
@@ -39,6 +40,14 @@ export type NotificationItem = {
     level: string;
     levelBand: LevelBand;
     reason: LevelOverrideReason | null;
+  } | null;
+  /** The Tier adjustment or band change a Tier Notification is about. */
+  tier: {
+    bandAfter: TierBand | null;
+    pointsBefore: number;
+    pointsAfter: number;
+    reason: LevelOverrideReason | null;
+    note: string | null;
   } | null;
 };
 
@@ -111,11 +120,27 @@ export async function loadNotificationItems(
       levelOverride: {
         columns: { muAfter: true, levelBandAfter: true, reason: true },
       },
+      groupTierEvent: {
+        columns: {
+          bandAfter: true,
+          pointsBefore: true,
+          pointsAfter: true,
+          reason: true,
+          note: true,
+        },
+      },
     },
   });
 
   return rows.map(
-    ({ levelOverride, game, recipientUserId, emailedAt, ...item }) => ({
+    ({
+      levelOverride,
+      groupTierEvent,
+      game,
+      recipientUserId,
+      emailedAt,
+      ...item
+    }) => ({
       recipientUserId,
       emailedAt,
       item: {
@@ -138,6 +163,7 @@ export async function loadNotificationItems(
               reason: levelOverride.reason,
             }
           : null,
+        tier: groupTierEvent ?? null,
       },
     }),
   );

@@ -209,6 +209,8 @@ export function tierAdjustPreview(
     band: self?.band ?? null,
     rankedCount: next.rankedCount,
     others,
+    /** The whole Group after the change, for who passes whom. */
+    table: next,
   };
 }
 

@@ -7,6 +7,7 @@ import {
 } from "@repo/domain/group-home-cta";
 import {
   groupShowsLevel,
+  viewerMayAdjustTier,
   viewerMaySetGroupLevel,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
@@ -16,7 +17,7 @@ import {
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
-import type { GroupJoinDoor } from "@repo/domain/group-join";
+import { groupDisplayName, type GroupJoinDoor } from "@repo/domain/group-join";
 import type { GroupMenuItem } from "@repo/domain/group-settings";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { EllipsisVertical, UserRoundPlus } from "lucide-react-native";
@@ -295,6 +296,11 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
           showLevel={groupShowsLevel(data.sport)}
           tierSummary={data.hasTier ? (data.tierSummary ?? null) : null}
+          groupName={groupDisplayName(data.name, locale)}
+          canAdjustTier={viewerMayAdjustTier({
+            hasTier: data.hasTier,
+            leaderboard: data.standing.leaderboard,
+          })}
           onSetLevel={props.onSetLevel}
           onSetGroupLevel={
             viewerMaySetGroupLevel({

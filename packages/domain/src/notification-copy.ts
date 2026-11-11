@@ -10,7 +10,9 @@ import {
   type LevelOverrideReason,
 } from "./level-slider";
 import { formatMarksClose, isMarkKind, markName } from "./marks";
+import { formatTierPoints } from "./group-members-table";
 import { productDaysBetween, zonedParts } from "./product-timezone";
+import { isTierBand, tierBandLabel } from "./tier-bands";
 
 export type NotificationTitlePart = { text: string; strong: boolean };
 
@@ -30,6 +32,7 @@ export type NotificationCopyInput = {
   game?: NotificationGame | null;
   gameCount?: number | null;
   levelSet?: NotificationLevelSet | null;
+  tier?: NotificationTier | null;
   markKind?: string | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
   actorIsRecipient?: boolean;
@@ -39,6 +42,15 @@ type NotificationLevelSet = {
   level: string;
   levelBand: LevelBand;
   reason: LevelOverrideReason | null;
+};
+
+/** The Tier event a `tier_points_adjusted` or `tier_band_changed` row is about. */
+type NotificationTier = {
+  bandAfter: string | null;
+  pointsBefore: number;
+  pointsAfter: number;
+  reason: LevelOverrideReason | null;
+  note: string | null;
 };
 
 type NotificationGame = {
@@ -239,6 +251,39 @@ export function notificationCopy(
         `${displayLabelFromStoredBand(levelBand)} ${level}`,
       ),
       subline: reason ? levelOverrideReasonLabel(reason, locale) : null,
+    };
+  }
+  if (
+    item.type === "tier_points_adjusted" &&
+    item.audience === "player" &&
+    item.tier?.reason
+  ) {
+    const { reason, note, pointsBefore, pointsAfter } = item.tier;
+    const label = messagesFor(locale).rating.adjust.reasons[reason];
+    const from = formatTierPoints(pointsBefore);
+    const to = formatTierPoints(pointsAfter);
+    return {
+      title: m.tierPointsAdjusted(
+        actorName(item.actor, locale),
+        groupName(item.group, locale),
+      ),
+      subline: note
+        ? sub.tierAdjustedWithNote(label, userName(note, locale), from, to)
+        : sub.tierAdjusted(label, from, to),
+    };
+  }
+  const bandAfter = item.tier?.bandAfter;
+  if (
+    item.type === "tier_band_changed" &&
+    item.audience === "player" &&
+    isTierBand(bandAfter)
+  ) {
+    return {
+      title: m.tierBandChanged(
+        tierBandLabel(bandAfter, locale),
+        groupName(item.group, locale),
+      ),
+      subline: sub.tierPlaces,
     };
   }
   if (

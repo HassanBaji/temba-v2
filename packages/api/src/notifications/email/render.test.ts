@@ -35,6 +35,7 @@ function item(
     challenge: null,
     game: null,
     levelSet: null,
+    tier: null,
     ...overrides,
   };
 }

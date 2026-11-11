@@ -3,7 +3,12 @@ import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
 import { gamePath } from "../games/games-model";
 
-const GROUP_TYPES = new Set(["group_member_joined", "level_set"]);
+const GROUP_TYPES = new Set([
+  "group_member_joined",
+  "level_set",
+  "tier_points_adjusted",
+  "tier_band_changed",
+]);
 
 const GROUP_JOIN_TYPES = new Set([
   "group_join_requested",

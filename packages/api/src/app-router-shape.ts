@@ -187,7 +187,8 @@ type ExpectedGroups =
   | "listSeasons"
   | "createSeason"
   | "closeSeason"
-  | "seasonStanding";
+  | "seasonStanding"
+  | "adjustTierPoints";
 
 type ExpectedMarks =
   | "forGame"

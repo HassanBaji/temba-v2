@@ -386,6 +386,7 @@ async function loadGroupTiers(
       points: seesPoints ? row.points : null,
       provisional: row.provisional,
       gamesOfFive: row.gamesOfFive,
+      gamesCounted: row.gamesCounted,
     });
   }
 

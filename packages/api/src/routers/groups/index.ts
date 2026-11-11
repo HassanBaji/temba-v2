@@ -3,6 +3,7 @@ import { createTRPCRouter } from "#src/trpc";
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
 import { acceptLinkRequestProcedure as acceptLinkRequest } from "./acceptLinkRequest";
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
+import { adjustTierPointsProcedure as adjustTierPoints } from "./adjustTierPoints";
 import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoinRequest";
 import { byId } from "./byId";
@@ -96,4 +97,5 @@ export const groupsRouter = createTRPCRouter({
   createSeason,
   closeSeason,
   seasonStanding,
+  adjustTierPoints,
 });

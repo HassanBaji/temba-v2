@@ -31,6 +31,7 @@ import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import {
   groupMemberOrganizerToast,
   groupShowsLevel,
+  viewerMayAdjustTier,
   viewerMaySetGroupLevel,
 } from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
@@ -747,6 +748,11 @@ export default function GroupHomePage({
                 }
                 showLevel={groupShowsLevel(data.sport)}
                 tierSummary={data.hasTier ? data.tierSummary : null}
+                groupName={data.name ?? m.webGroup.groupFallback}
+                canAdjustTier={viewerMayAdjustTier({
+                  hasTier: data.hasTier,
+                  leaderboard: data.standing.leaderboard,
+                })}
                 savedUserId={savedUserId}
                 onDismissSaved={() =>
                   router.replace(groupMembersTabHref(id), { scroll: false })

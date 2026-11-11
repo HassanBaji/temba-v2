@@ -88,6 +88,8 @@ export type GroupMemberTierData = {
   points: number | null;
   provisional: boolean;
   gamesOfFive: number;
+  /** Every tier Game counted, which breaks a tie on points. */
+  gamesCounted?: number;
 };
 
 export type GroupTierSummaryData = {

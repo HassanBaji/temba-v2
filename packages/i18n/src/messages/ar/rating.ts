@@ -46,4 +46,83 @@ export const rating = {
     footnote:
       "الفئة والنقاط خاصة بهذه المجموعة: الهامور هم أعلى 15% بعد القرش، والكنعد الـ35% التالية، والصافي البقية. النقاط تأتي من مباريات هذه المجموعة فقط.",
   },
+  adjust: {
+    menuRow: "تعديل التقييم",
+    menuHint: "حرّك نقاط فئته يدويًا، مع سبب يراه",
+    title: "تعديل التقييم",
+    subtitle: (group: string) =>
+      `${group}. تغيير يدوي، فوق ما فعلته المباريات.`,
+    placeOf: (place: number, of: number) => `#${place} من ${of}`,
+    now: (points: string, standing: string) =>
+      `الآن ${isolate(points)}، ${standing}`,
+    nowRanked: (band: string, placeOf: string) => `${band}، ${placeOf}`,
+    nowProvisional: (games: number, of: number) =>
+      `مبدئي، ${games} من ${of} مباريات`,
+    newPoints: "النقاط الجديدة",
+    noChange: "بلا تغيير",
+    place: "المركز",
+    noFish: "لا سمكة بعد",
+    step: (delta: string) => `غيّر بمقدار ${isolate(delta)}`,
+    orJump: "أو انتقل:",
+    into: (band: string) => `إلى ${band}`,
+    reset: "إعادة",
+    tierAfter: "الفئة بعد التغيير",
+    effect: {
+      none: "لا تغيير بعد. الفئات مراكز في المجموعة، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
+      stays: (band: string, placeOf: string) =>
+        `ما زال ${band}، الآن ${placeOf}.`,
+      nobodyElse: "لا يتغيّر أحد غيره في الفئة.",
+      ranked: (name: string, band: string, placeOf: string) =>
+        `صار ${name} مصنّفًا ${placeOf}، ${band}.`,
+      rankedNoFish: (name: string, placeOf: string) =>
+        `صار ${name} مصنّفًا ${placeOf}.`,
+      passes: (name: string, names: string, band: string) =>
+        `يتجاوز ${name} ${names} ويأخذ مكانًا في ${band}.`,
+      dropsBelow: (name: string, names: string, band: string) =>
+        `ينزل ${name} تحت ${names} إلى ${band}.`,
+      movesUp: (name: string, band: string) => `يصعد ${name} إلى ${band}.`,
+      movesDown: (name: string, band: string) => `ينزل ${name} إلى ${band}.`,
+      noFish: (placeOf: string) =>
+        `الآن ${placeOf}. لا أسماك حتى يُصنَّف أربعة لاعبين.`,
+      otherUp: (name: string, band: string) => `يصعد ${name} إلى ${band}.`,
+      otherBecomes: (name: string, band: string) => `يصبح ${name} ${band}.`,
+      andMore: (n: number) =>
+        plural("ar", n, {
+          zero: "لا يتغيّر غيرهم.",
+          one: "ويتغيّر لاعب آخر في الفئة.",
+          two: "ويتغيّر لاعبان آخران في الفئة.",
+          few: "ويتغيّر {n} لاعبين آخرين في الفئة.",
+          many: "ويتغيّر {n} لاعبًا آخر في الفئة.",
+          other: "ويتغيّر {n} لاعب آخر في الفئة.",
+        }),
+      twoNames: (first: string, last: string) => `${first} و${last}`,
+      nameSeparator: "، ",
+    },
+    why: (name: string) => `لماذا؟ سيرى ${name} هذا.`,
+    reasons: {
+      new_to_group: "جديد هنا، مستواه معروف",
+      back_from_injury: "عائد بعد انقطاع",
+      plays_above_results: "يلعب أفضل من هذا",
+      plays_below_results: "يلعب أقل من هذا",
+      correcting_a_mistake: "تصحيح خطأ",
+    },
+    notePlaceholder: "أضف ملاحظة (اختياري)",
+    noteLabel: "ملاحظة",
+    saveMoveFirst: "حرّك النقاط أولًا",
+    savePickReason: "اختر سببًا للحفظ",
+    save: (delta: string) => `احفظ ${isolate(delta)} وسجّله`,
+    saved: (name: string) => `حُفظ وسُجّل في سجل ${name}`,
+    errors: {
+      organizerOnly: "منظّمو هذه المجموعة وحدهم يعدّلون نقاط الفئة.",
+      notYourOwn: "لا يمكنك تعديل نقاط فئتك.",
+      noTier:
+        "لا فئات في هذه المجموعة. الفئات لمجموعات كرة القدم غير الموثّقة.",
+      notMember: "هذا اللاعب ليس في هذه المجموعة.",
+      reasonRequired: "اختر سببًا. سيراه اللاعب.",
+      noChange: "حرّك النقاط أولًا.",
+      tooFar: (max: number) =>
+        `يمكن للتعديل أن يحرّك نقاط الفئة ${max} على الأكثر.`,
+      belowZero: "لا يمكن أن تنزل نقاط الفئة تحت الصفر.",
+    },
+  },
 } satisfies typeof source;

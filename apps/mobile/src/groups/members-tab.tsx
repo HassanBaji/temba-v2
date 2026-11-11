@@ -28,6 +28,7 @@ import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
+import { mediaUrl } from "../lib/media-url";
 import { useRowWindow, windowedRows } from "../lib/row-window";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -46,6 +47,7 @@ import {
   memberSheetView,
   type MemberRowView,
 } from "./group-home-model";
+import { AdjustTierSheet } from "./adjust-tier-sheet";
 import { LevelCell } from "./level-cell";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
@@ -364,6 +366,8 @@ export function MembersTab({
   canSetLevel,
   showLevel = true,
   tierSummary,
+  groupName = "",
+  canAdjustTier = false,
   onSetLevel,
   onSetGroupLevel,
   onOpenMember,
@@ -388,6 +392,9 @@ export function MembersTab({
   showLevel?: boolean;
   /** A tier Group's Members (screen 2b): fish, points and the Shark. */
   tierSummary?: GroupTierSummaryData | null;
+  groupName?: string;
+  /** An Organizer of a tier Group adjusts members' Tier points (screen 2d). */
+  canAdjustTier?: boolean;
   onSetLevel: (userId: string) => void;
   /** Given to an Organizer of the Group, who sets members' Group Levels. */
   onSetGroupLevel?: (userId: string) => void;
@@ -415,6 +422,7 @@ export function MembersTab({
   const m = useMessages();
   const colors = useColors();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
@@ -422,6 +430,7 @@ export function MembersTab({
   const canManage =
     canSetLevel ||
     canSetGroupLevel ||
+    canAdjustTier ||
     canAddPlayers ||
     canRemovePlayers ||
     canAppointOrganizers;
@@ -439,6 +448,7 @@ export function MembersTab({
     canAppointOrganizers,
     { ...lens, showLevel, showTier, canManage, now: new Date() },
     canSetGroupLevel,
+    canAdjustTier,
   );
   const rowWindow = useRowWindow(
     [query, lens.sort, lens.filter].join("\u0000"),
@@ -449,6 +459,7 @@ export function MembersTab({
       entry.userId === selectedUserId &&
       !entry.isViewer &&
       (canSetLevel ||
+        (canAdjustTier && entry.tier != null) ||
         (canAddPlayers && entry.canRename === true) ||
         memberIsRemovable(entry, canRemovePlayers) ||
         memberOrganizerAction(entry, canAppointOrganizers) != null),
@@ -456,6 +467,14 @@ export function MembersTab({
   const organizerAction = selected
     ? memberOrganizerAction(selected, canAppointOrganizers)
     : null;
+  const adjusting = canAdjustTier
+    ? leaderboard.find(
+        (entry) =>
+          entry.userId === adjustingUserId &&
+          !entry.isViewer &&
+          entry.tier != null,
+      )
+    : undefined;
 
   if (list.isEmpty) {
     return (
@@ -631,6 +650,14 @@ export function MembersTab({
               )
             : undefined
         }
+        onAdjustTier={
+          selected && canAdjustTier && selected.tier != null
+            ? () => {
+                setSelectedUserId(null);
+                setAdjustingUserId(selected.userId);
+              }
+            : undefined
+        }
         onViewProfile={
           onOpenMember
             ? () => {
@@ -693,6 +720,27 @@ export function MembersTab({
             : undefined
         }
       />
+      {canAdjustTier ? (
+        <AdjustTierSheet
+          groupId={groupId}
+          groupName={groupName}
+          members={leaderboard.map((entry) => ({
+            userId: entry.userId,
+            name: entry.name ?? m.mobileGroup.unnamedMember,
+            joinedAt: entry.joinedAt,
+            tier: entry.tier,
+          }))}
+          member={
+            adjusting
+              ? {
+                  userId: adjusting.userId,
+                  imageUri: mediaUrl(adjusting.image, apiOrigin),
+                }
+              : null
+          }
+          onClose={() => setAdjustingUserId(null)}
+        />
+      ) : null}
     </View>
   );
 }

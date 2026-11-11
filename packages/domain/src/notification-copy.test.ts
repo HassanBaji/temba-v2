@@ -1115,3 +1115,109 @@ describe("notificationCopy for a Proposal", () => {
     );
   });
 });
+
+describe("notificationCopy for a Tier adjustment", () => {
+  const tier = {
+    bandAfter: "hamour",
+    pointsBefore: 1248,
+    pointsAfter: 1310,
+    reason: "correcting_a_mistake" as const,
+    note: null,
+  };
+
+  it("names the Organizer and the Group, with the reason and the move", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "tier_points_adjusted",
+          audience: "player",
+          actor: { name: "Hussain A" },
+          group: { name: "Thursday Football" },
+          tier,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Hussain A", strong: true },
+          { text: " adjusted your tier points in ", strong: false },
+          { text: "Thursday Football", strong: true },
+        ],
+        subline: "Fixing a mistake. 1,248 to 1,310.",
+      },
+    );
+  });
+
+  it("quotes the Organizer's note", () => {
+    assert.equal(
+      notificationCopy(
+        {
+          type: "tier_points_adjusted",
+          audience: "player",
+          actor: { name: "Hussain A" },
+          group: { name: "Thursday Football" },
+          tier: { ...tier, note: "Plays Div 1" },
+        },
+        "en",
+      )?.subline,
+      "Fixing a mistake: “Plays Div 1” 1,248 to 1,310.",
+    );
+  });
+
+  it("tells a player their fish moved", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "tier_band_changed",
+          audience: "player",
+          actor: { name: "Hussain A" },
+          group: { name: "Thursday Football" },
+          tier: { ...tier, bandAfter: "kanaad", reason: null },
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "You’re now a ", strong: false },
+          { text: "Kanaad", strong: true },
+          { text: " in ", strong: false },
+          { text: "Thursday Football", strong: true },
+        ],
+        subline:
+          "Tiers are places, so when one player moves, someone moves the other way.",
+      },
+    );
+  });
+
+  it("returns null without the Tier event", () => {
+    for (const type of ["tier_points_adjusted", "tier_band_changed"]) {
+      assert.equal(
+        notificationCopy(
+          {
+            type,
+            audience: "player",
+            actor: null,
+            group: { name: "Thursday Football" },
+            tier: null,
+          },
+          "en",
+        ),
+        null,
+      );
+    }
+  });
+
+  it("reads in Arabic", () => {
+    const copy = notificationCopy(
+      {
+        type: "tier_band_changed",
+        audience: "player",
+        actor: null,
+        group: { name: "Thursday Football" },
+        tier: { ...tier, bandAfter: "shark" },
+      },
+      "ar",
+    );
+    assert.equal(copy?.title[1]?.text, "قرش");
+  });
+});

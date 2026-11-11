@@ -11,6 +11,7 @@ import { type db } from "#src/db";
 import {
   tierIsProvisional,
   tierTable,
+  type TierBand,
   type TierTable,
 } from "@repo/domain/tier-bands";
 import {
@@ -22,6 +23,14 @@ import {
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 type TierPointsRow = typeof groupTierPoints.$inferSelect;
+
+export type TierBandChange = {
+  userId: string;
+  /** The `band_change` event written for it. */
+  eventId: string;
+  from: TierBand | null;
+  to: TierBand | null;
+};
 
 function adjusted(row: TierPointsRow) {
   return row.confirmedAt !== null;
@@ -215,7 +224,7 @@ export async function rewriteTierBands(
     rowByUser: Map<string, TierPointsRow>;
     now: Date;
   },
-): Promise<TierTable> {
+): Promise<TierTable & { bandChanges: TierBandChange[] }> {
   const members = await database
     .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
     .from(groupMembers)
@@ -236,24 +245,36 @@ export async function rewriteTierBands(
   });
   const table = tierTable(standings);
 
+  const bandChanges: TierBandChange[] = [];
   for (const entry of table.rows) {
     const row = args.rowByUser.get(entry.userId);
     if (!row || row.band === entry.band) {
       continue;
     }
-    await database.insert(groupTierEvents).values({
-      groupId: args.groupId,
-      userId: entry.userId,
-      kind: "band_change",
-      matchId: args.matchId,
-      pointsBefore: row.points,
-      pointsAfter: row.points,
-      bandBefore: row.band,
-      bandAfter: entry.band,
-      placeAfter: entry.place,
-      rankedCount: table.rankedCount,
-      createdAt: args.now,
-    });
+    const [event] = await database
+      .insert(groupTierEvents)
+      .values({
+        groupId: args.groupId,
+        userId: entry.userId,
+        kind: "band_change",
+        matchId: args.matchId,
+        pointsBefore: row.points,
+        pointsAfter: row.points,
+        bandBefore: row.band,
+        bandAfter: entry.band,
+        placeAfter: entry.place,
+        rankedCount: table.rankedCount,
+        createdAt: args.now,
+      })
+      .returning({ id: groupTierEvents.id });
+    if (event) {
+      bandChanges.push({
+        userId: entry.userId,
+        eventId: event.id,
+        from: row.band,
+        to: entry.band,
+      });
+    }
     const [updated] = await database
       .update(groupTierPoints)
       .set({ band: entry.band, updatedAt: args.now })
@@ -263,5 +284,5 @@ export async function rewriteTierBands(
       args.rowByUser.set(updated.userId, updated);
     }
   }
-  return table;
+  return { ...table, bandChanges };
 }

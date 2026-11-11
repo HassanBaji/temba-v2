@@ -13,6 +13,7 @@ import {
   groupShowsLevel,
   groupStandingRecordLabel,
   levelCellView,
+  viewerMayAdjustTier,
   viewerMaySetGroupLevel,
 } from "./group-home-chrome";
 
@@ -270,6 +271,25 @@ describe("viewerMaySetGroupLevel", () => {
         canCreateGame: true,
         leaderboard: [organizer],
       }),
+      false,
+    );
+  });
+});
+
+describe("viewerMayAdjustTier", () => {
+  it("lets an Organizer of a tier Group adjust Tier points", () => {
+    const organizer = { isViewer: true, isOrganizer: true };
+    const member = { isViewer: true, isOrganizer: false };
+    assert.equal(
+      viewerMayAdjustTier({ hasTier: true, leaderboard: [organizer] }),
+      true,
+    );
+    assert.equal(
+      viewerMayAdjustTier({ hasTier: true, leaderboard: [member] }),
+      false,
+    );
+    assert.equal(
+      viewerMayAdjustTier({ hasTier: false, leaderboard: [organizer] }),
       false,
     );
   });

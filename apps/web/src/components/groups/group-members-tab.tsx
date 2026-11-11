@@ -16,6 +16,7 @@ import {
   useMemberLens,
 } from "~/components/groups/group-members-lens";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
+import { AdjustTierDialog } from "~/components/groups/adjust-tier-dialog";
 import { TierCell, TierFish } from "~/components/groups/tier-fish";
 import {
   ResponsiveDialog,
@@ -107,6 +108,13 @@ function savedLevelOf(member: GroupMember | undefined): SavedLevel | null {
   };
 }
 
+function adjustingMember(members: GroupMember[], userId: string | null) {
+  const member = members.find(
+    (entry) => entry.userId === userId && !entry.isViewer && entry.tier,
+  );
+  return member ? { userId: member.userId, image: member.image } : null;
+}
+
 export type GroupPendingInvite = {
   id: string;
   name: string;
@@ -172,6 +180,7 @@ function MemberActionsMenu({
   setLevelHref,
   onSetGroupLevel,
   profileHref,
+  onAdjustTier,
   organizerAction,
   onOrganizerAction,
   onRename,
@@ -181,6 +190,7 @@ function MemberActionsMenu({
   setLevelHref?: string;
   onSetGroupLevel?: () => void;
   profileHref?: string;
+  onAdjustTier?: () => void;
   organizerAction?: GroupMemberOrganizerAction;
   onOrganizerAction?: () => void;
   onRename?: () => void;
@@ -205,6 +215,11 @@ function MemberActionsMenu({
           <Link href={profileHref}>{m.webGroup.viewProfile}</Link>
         </ActionMenuItem>
       ) : null}
+      {onAdjustTier ? (
+        <ActionMenuItem onSelect={onAdjustTier}>
+          {m.rating.adjust.menuRow}
+        </ActionMenuItem>
+      ) : null}
       {organizerAction && onOrganizerAction ? (
         <ActionMenuItem onSelect={onOrganizerAction}>
           {groupMemberOrganizerActionLabel(organizerAction, locale)}
@@ -220,6 +235,7 @@ function MemberActionsMenu({
           {setLevelHref ||
           onSetGroupLevel ||
           profileHref ||
+          onAdjustTier ||
           organizerAction ||
           onRename ? (
             <ActionMenuSeparator />
@@ -518,6 +534,8 @@ export function GroupMembersTab({
   onOrganizerAction,
   showLevel = true,
   tierSummary,
+  groupName = "",
+  canAdjustTier = false,
   pendingInvites = [],
   revokeInvitePendingId,
   onRevokeInvite,
@@ -527,6 +545,9 @@ export function GroupMembersTab({
   showLevel?: boolean;
   /** A tier Group's Members (screen 2b): fish, points and the Shark. */
   tierSummary?: GroupTierSummaryData | null;
+  groupName?: string;
+  /** An Organizer of a tier Group adjusts members' Tier points (screen 2d). */
+  canAdjustTier?: boolean;
   canAppointOrganizers?: boolean;
   onOrganizerAction?: (
     member: { userId: string; name: string },
@@ -568,6 +589,7 @@ export function GroupMembersTab({
   const [managing, setManaging] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
   const saved = canSetLevel
     ? savedLevelOf(members.find((member) => member.userId === savedUserId))
@@ -575,6 +597,7 @@ export function GroupMembersTab({
   const canManage =
     canSetLevel ||
     onSetGroupLevel != null ||
+    canAdjustTier ||
     canAppointOrganizers ||
     canAddPlayers ||
     canRemovePlayers;
@@ -657,6 +680,10 @@ export function GroupMembersTab({
               groupLevel: member.groupLevel?.level ?? null,
             })
         : undefined;
+    const onAdjustTier =
+      canAdjustTier && !member.isViewer && member.tier != null
+        ? () => setAdjustingUserId(member.userId)
+        : undefined;
     const onRename =
       canAddPlayers && member.canRename === true && onRenameUnclaimed
         ? () => onRenameUnclaimed(target)
@@ -669,6 +696,7 @@ export function GroupMembersTab({
       !setLevelHref &&
       !setGroupLevel &&
       !profileHref &&
+      !onAdjustTier &&
       !organizerAction &&
       !onRename &&
       !onRemove
@@ -681,6 +709,7 @@ export function GroupMembersTab({
         setLevelHref={setLevelHref}
         onSetGroupLevel={setGroupLevel}
         profileHref={profileHref}
+        onAdjustTier={onAdjustTier}
         organizerAction={organizerAction}
         onOrganizerAction={
           organizerAction && onOrganizerAction
@@ -852,6 +881,16 @@ export function GroupMembersTab({
           />
         ) : null}
       </div>
+
+      {canAdjustTier ? (
+        <AdjustTierDialog
+          groupId={groupId}
+          groupName={groupName}
+          members={members}
+          target={adjustingMember(members, adjustingUserId)}
+          onClose={() => setAdjustingUserId(null)}
+        />
+      ) : null}
 
       <GroupMembersSortDialog
         open={sortOpen}

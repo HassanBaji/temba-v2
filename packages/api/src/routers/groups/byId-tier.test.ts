@@ -101,6 +101,7 @@ describe("groups.byId on a tier Group (screen 2b)", () => {
         points: 1412,
         provisional: false,
         gamesOfFive: 5,
+        gamesCounted: 8,
       });
       expect(tierOf(result, ids.owner!)).toMatchObject({
         place: 4,
@@ -112,6 +113,7 @@ describe("groups.byId on a tier Group (screen 2b)", () => {
         points: 1240,
         provisional: true,
         gamesOfFive: 3,
+        gamesCounted: 3,
       });
       expect(tierOf(result, ids.silent!)).toEqual({
         band: null,
@@ -119,6 +121,7 @@ describe("groups.byId on a tier Group (screen 2b)", () => {
         points: 1200,
         provisional: true,
         gamesOfFive: 0,
+        gamesCounted: 0,
       });
     } finally {
       await close();

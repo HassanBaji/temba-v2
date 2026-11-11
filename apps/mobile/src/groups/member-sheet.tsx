@@ -21,6 +21,7 @@ export function MemberSheet({
   onSetGroupLevel,
   groupLevelHint,
   onViewProfile,
+  onAdjustTier,
   organizerLabel,
   organizerHint,
   onOrganizerAction,
@@ -34,6 +35,8 @@ export function MemberSheet({
   /** The member's Group Level, shown to an Organizer on that row. */
   groupLevelHint?: string;
   onViewProfile?: () => void;
+  /** An Organizer of a tier Group moves this member's Tier points. */
+  onAdjustTier?: () => void;
   organizerLabel?: string;
   organizerHint?: string;
   onOrganizerAction?: () => void;
@@ -49,6 +52,15 @@ export function MemberSheet({
             label={m.mobileGroup.members.sheet.viewProfile}
             trailing="chevron"
             onPress={onViewProfile}
+          />
+        ) : null,
+        onAdjustTier ? (
+          <SheetMenuRow
+            key="adjust-tier"
+            label={m.rating.adjust.menuRow}
+            hint={m.rating.adjust.menuHint}
+            trailing="chevron"
+            onPress={onAdjustTier}
           />
         ) : null,
         onSetLevel ? (

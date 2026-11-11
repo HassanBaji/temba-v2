@@ -18,6 +18,7 @@ import { games } from "./games";
 import { levelOverrides } from "./level-overrides";
 import { markKinds } from "./marks";
 import { challenges } from "./challenges";
+import { groupTierEvents } from "./group-tiers";
 
 export const NOTIFICATION_TYPE_VALUES = [
   "group_member_joined",
@@ -49,6 +50,8 @@ export const NOTIFICATION_TYPE_VALUES = [
   "challenge_rematch_nudge",
   "match_score_to_confirm",
   "game_moved_to_waitlist",
+  "tier_points_adjusted",
+  "tier_band_changed",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];
@@ -99,6 +102,11 @@ export const notifications = pgTable(
     challengeId: uuid("challenge_id").references(() => challenges.id, {
       onDelete: "cascade",
     }),
+    /** The Tier adjustment or band change a Tier Notification is about. */
+    groupTierEventId: uuid("group_tier_event_id").references(
+      () => groupTierEvents.id,
+      { onDelete: "cascade" },
+    ),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
     gameCount: integer("game_count"),
     markKind: markKinds("mark_kind"),
@@ -125,6 +133,9 @@ export const notifications = pgTable(
     groupIdx: index("notifications_group_id_idx").on(table.groupId),
     gameIdx: index("notifications_game_id_idx").on(table.gameId),
     challengeIdx: index("notifications_challenge_id_idx").on(table.challengeId),
+    groupTierEventIdx: index("notifications_group_tier_event_id_idx").on(
+      table.groupTierEventId,
+    ),
   }),
 );
 
@@ -163,5 +174,9 @@ export const notificationRelations = relations(notifications, ({ one }) => ({
   challenge: one(challenges, {
     fields: [notifications.challengeId],
     references: [challenges.id],
+  }),
+  groupTierEvent: one(groupTierEvents, {
+    fields: [notifications.groupTierEventId],
+    references: [groupTierEvents.id],
   }),
 }));

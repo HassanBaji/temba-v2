@@ -167,6 +167,21 @@ export function viewerMaySetGroupLevel(group: {
   );
 }
 
+/**
+ * An Organizer of a tier Group adjusts other members' Tier points
+ * (ADR-0073). The viewer's own Organizer mark is the check: the Group
+ * creator or an Appointed Organizer, as the server's.
+ */
+export function viewerMayAdjustTier(group: {
+  hasTier: boolean | undefined;
+  leaderboard: readonly { isViewer: boolean; isOrganizer: boolean }[];
+}) {
+  return (
+    group.hasTier === true &&
+    group.leaderboard.some((entry) => entry.isViewer && entry.isOrganizer)
+  );
+}
+
 /** The Standing W-L column: `{wins}–{losses}`, drawn even at `0–0`. */
 export function groupStandingRecordLabel(wins: number, losses: number) {
   return `${wins}–${losses}`;

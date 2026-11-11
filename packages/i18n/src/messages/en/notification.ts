@@ -81,6 +81,17 @@ export const notification = {
       plain(" set your Level to "),
       strong(level),
     ],
+    tierPointsAdjusted: (actor: string, group: string) => [
+      strong(actor),
+      plain(" adjusted your tier points in "),
+      strong(group),
+    ],
+    tierBandChanged: (band: string, group: string) => [
+      plain("You’re now a "),
+      strong(band),
+      plain(" in "),
+      strong(group),
+    ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
@@ -232,6 +243,16 @@ export const notification = {
     kickOffTomorrow: "Kick-off is in 24 hours.",
     seeWhoIsNamed: "See the Game and who else is named.",
     acceptRematch: "Accept it to propose a time and a venue.",
+    tierAdjusted: (reason: string, from: string, to: string) =>
+      `${reason}. ${from} to ${to}.`,
+    tierAdjustedWithNote: (
+      reason: string,
+      note: string,
+      from: string,
+      to: string,
+    ) => `${reason}: “${note}” ${from} to ${to}.`,
+    tierPlaces:
+      "Tiers are places, so when one player moves, someone moves the other way.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,
