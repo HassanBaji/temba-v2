@@ -57,6 +57,7 @@ export type GameEditDraft = {
   levelMax: LevelBandSelectValue;
   roundCount: number | null;
   seasonId: string | null;
+  courtId: string | null;
 };
 
 export type GameEditSource = {
@@ -71,7 +72,26 @@ export type GameEditSource = {
   levelMaxTenths: number | null;
   roundCount: number | null;
   seasonId: string | null;
+  matches?: readonly { status: string | null; courtId: string | null }[] | null;
+  recordedCourts?: readonly { id: string }[] | null;
 };
+
+/**
+ * A Friendly game's one Court: on the Match for padel, recorded on the Game
+ * for football until its teams are published and the Match carries it too.
+ */
+export function gameEditCourtId(
+  game: Pick<GameEditSource, "matches" | "recordedCourts">,
+): string | null {
+  const match = game.matches?.find((row) => row.status !== "cancelled");
+  return match?.courtId ?? game.recordedCourts?.[0]?.id ?? null;
+}
+
+/** Football calls its Court a Pitch; a football Game always has a side size. */
+export function gameEditCourtCopy(sideSize: number | null, locale: Locale) {
+  const m = messagesFor(locale).createGame.edit;
+  return sideSize != null ? m.pitch : m.court;
+}
 
 export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
   const window = splitGameWindow(game.windowStart, game.windowEnd);
@@ -87,12 +107,14 @@ export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
     levelMax: tenthsToLevelBandSelectValue(game.levelMaxTenths),
     roundCount: game.roundCount,
     seasonId: game.seasonId,
+    courtId: gameEditCourtId(game),
   };
 }
 
 export const GAME_EDIT_SECTION_KEYS = [
   "name",
   "window",
+  "court",
   "caps",
   "price",
   "level",
@@ -110,12 +132,17 @@ export function gameEditSectionsFor(game: {
   sport?: string | null;
   groupId: string | null;
   tournamentRounds: boolean;
+  /** A Game made from a Booking keeps the Booking's Court. */
+  booked?: boolean;
+  /** A Challenge Game plays where its Challenge confirmed. */
+  challenge?: boolean;
 }): GameEditSections {
   const friendly = game.format === "friendly_game";
   const football = game.sport === "football";
   return {
     name: friendly,
     window: true,
+    court: friendly && !game.booked && !game.challenge,
     caps: friendly && football,
     price: true,
     level: !football,
@@ -133,6 +160,7 @@ export type GameEditStep =
       windowEnd: Date;
       seasonId?: string | null;
     }
+  | { kind: "court"; courtId: string | null }
   | { kind: "caps"; playersAllowed?: number; sideSize?: number }
   | { kind: "price"; pricePerPlayerFils: number | null }
   | {
@@ -176,6 +204,9 @@ export function gameEditChangedSections(
       saved.finishTime !== draft.finishTime)
   ) {
     changed.push("window");
+  }
+  if (sections.court && saved.courtId !== draft.courtId) {
+    changed.push("court");
   }
   if (
     sections.caps &&
@@ -244,6 +275,9 @@ export function gameEditPlan(
       ...(has("season") ? { seasonId: draft.seasonId } : {}),
     });
   }
+  if (has("court")) {
+    steps.push({ kind: "court", courtId: draft.courtId });
+  }
   if (has("caps")) {
     steps.push({
       kind: "caps",
@@ -295,6 +329,8 @@ function changePhrase(
       return [m.name];
     case "window":
       return [saved.day !== draft.day ? m.dayMoved : m.timeChanged];
+    case "court":
+      return [draft.sideSize != null ? m.pitch : m.court];
     case "caps": {
       const phrases: string[] = [];
       if (saved.playersAllowed !== draft.playersAllowed) {

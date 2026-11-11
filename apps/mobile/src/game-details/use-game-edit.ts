@@ -17,6 +17,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { gameEditMvp, gameEditMvpChanged } from "./game-edit-mvp";
+import { slotOf } from "../lib/slot-of";
 import { useErrorMessage } from "../lib/use-error-message";
 
 export type GameEditField = GameEditStep["kind"] | "mvp";
@@ -75,6 +76,11 @@ export function useGameEdit({
 
   const updateName = api.games.updateName.useMutation();
   const updateWindow = api.games.updateWindow.useMutation();
+  const updateCourt = api.games.updateCourt.useMutation();
+  const courts = api.games.listCourts.useQuery(
+    { gameId },
+    { enabled: open && sections.court },
+  );
   const updateCaps = api.games.updateCaps.useMutation();
   const updatePrice = api.games.updatePricePerPlayer.useMutation();
   const updateLevel = api.games.updateLevelRange.useMutation();
@@ -95,6 +101,9 @@ export function useGameEdit({
           windowEnd: step.windowEnd,
           ...(step.seasonId !== undefined ? { seasonId: step.seasonId } : {}),
         });
+        return 0;
+      case "court":
+        await updateCourt.mutateAsync({ gameId, courtId: step.courtId });
         return 0;
       case "caps": {
         const result = await updateCaps.mutateAsync({
@@ -216,6 +225,7 @@ export function useGameEdit({
     update,
     mvp,
     pickMvpMode,
+    courts: slotOf(courts),
     changed,
     note,
     seasonFix,

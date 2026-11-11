@@ -271,6 +271,33 @@ describe("notificationCopy for an Organizer's add", () => {
       null,
     );
   });
+
+  it("tells a Player the Organizer moved them to the Waitlist", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "game_moved_to_waitlist",
+          audience: "player",
+          actor: { name: "Sara" },
+          group: { name: "Night Crew" },
+          game,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Sara", strong: true },
+          { text: " lowered the players on ", strong: false },
+          { text: "Thursday Padel", strong: true },
+          {
+            text: ". You're on the Waitlist and get your spot back when one opens",
+            strong: false,
+          },
+        ],
+        subline: null,
+      },
+    );
+  });
 });
 
 describe("notificationCopy for a claimed history", () => {

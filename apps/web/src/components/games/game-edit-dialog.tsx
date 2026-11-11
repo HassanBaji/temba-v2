@@ -24,12 +24,20 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { cn } from "~/lib/utils";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
+  gameEditCourtCopy,
   joinedCountLabel,
   playersAllowedForSideSize,
   playersCapWaitNote,
@@ -463,6 +471,57 @@ function SeasonSection({
   );
 }
 
+const NO_COURT = "none";
+
+function CourtSection({
+  edit,
+  error,
+}: {
+  edit: GameEditController;
+  error: string | undefined;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = gameEditCourtCopy(edit.draft.sideSize, locale);
+  const { list, loading, error: loadError } = edit.courts;
+  return (
+    <section className="space-y-3">
+      <SectionHead title={copy.title} meta={m.common.optional} />
+      <Field>
+        <FieldLabel htmlFor="edit-court" className="sr-only">
+          {copy.title}
+        </FieldLabel>
+        <Select
+          value={edit.draft.courtId ?? NO_COURT}
+          disabled={loading}
+          onValueChange={(value) =>
+            edit.update({ courtId: value === NO_COURT ? null : value })
+          }
+        >
+          <SelectTrigger
+            id="edit-court"
+            className="w-full"
+            aria-invalid={error ? true : undefined}
+            aria-describedby="edit-court-copy"
+          >
+            <SelectValue placeholder={loading ? copy.loading : copy.none} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_COURT}>{copy.none}</SelectItem>
+            {list.map((court) => (
+              <SelectItem key={court.id} value={court.id}>
+                {court.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <FieldDescription id="edit-court-copy">{copy.hint}</FieldDescription>
+        <FieldError id="edit-court-error">{error ?? loadError}</FieldError>
+      </Field>
+    </section>
+  );
+}
+
 function MvpSection({
   mvp,
   onPick,
@@ -599,7 +658,11 @@ export function GameEditDialog({
               </div>
               <ResponsiveDialogDescription className="flex items-center gap-1.5">
                 <Lock aria-hidden="true" className="size-3.5 shrink-0" />
-                {venueLockedLine(context.venueName, context.courtName, locale)}
+                {venueLockedLine(
+                  context.venueName,
+                  sections.court ? null : context.courtName,
+                  locale,
+                )}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <form
@@ -663,6 +726,9 @@ export function GameEditDialog({
                   description={m.createGame.edit.whenHint}
                 />
               </section>
+              {sections.court ? (
+                <CourtSection edit={edit} error={errorFor("court")} />
+              ) : null}
               <section className="space-y-3">
                 <SectionHead
                   title={

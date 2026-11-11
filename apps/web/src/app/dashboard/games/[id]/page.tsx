@@ -584,6 +584,8 @@ export default function GameHomePage({
     sport: data?.sport,
     groupId: data?.groupId ?? null,
     tournamentRounds: data?.format === "friendly_tournament",
+    booked: data?.booking != null,
+    challenge: data?.challenge != null,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -1478,7 +1480,8 @@ export default function GameHomePage({
           sections={{ ...editSections, rounds: roundsPlan != null }}
           context={{
             venueName: data.venue?.name ?? null,
-            courtName: data.recordedCourts[0]?.name ?? null,
+            courtName:
+              data.booking?.courtName ?? data.recordedCourts[0]?.name ?? null,
             groupName: data.groupName,
             joined: data.registeredUserCount,
             seasons: data.groupSeasons,

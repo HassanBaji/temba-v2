@@ -1,0 +1,1 @@
+ALTER TYPE "public"."notification_type" ADD VALUE 'game_moved_to_waitlist';
