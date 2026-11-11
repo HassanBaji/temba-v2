@@ -40,6 +40,7 @@ import { registrationStatusFromState } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
 import type {
   HubListFootball,
+  HubListMyTournament,
   HubListPoolMatch,
   HubListRow,
   HubListSide,
@@ -717,6 +718,7 @@ export function toHubListRow(
     courtName: null,
     poolMatch: null,
     knockoutMatch: null,
+    myTournament: myTournamentFromRow(row, viewer.userId, viewer.locale),
     football: footballFromRow(row, viewer.userId),
     challenge: row.challengeId != null,
   };
@@ -758,12 +760,12 @@ function isOpenMatch(match: HubQueryRow["matches"][number]) {
   return match.status !== "completed" && match.status !== "cancelled";
 }
 
-function viewerPoolMatch(
+function poolTablesFromRow(
   row: HubQueryRow,
   viewerUserId: string,
   locale: Locale,
-): HubListPoolMatch | null {
-  const tables = computePoolTables({
+) {
+  return computePoolTables({
     format: row.format,
     poolCount: row.poolCount,
     viewerUserId,
@@ -781,6 +783,14 @@ function viewerPoolMatch(
     })),
     matches: row.matches,
   });
+}
+
+function viewerPoolMatch(
+  row: HubQueryRow,
+  viewerUserId: string,
+  locale: Locale,
+): HubListPoolMatch | null {
+  const tables = poolTablesFromRow(row, viewerUserId, locale);
   const pool = tables?.pools.find(
     (item) => item.poolIndex === tables.viewerPoolIndex,
   );
@@ -793,6 +803,69 @@ function viewerPoolMatch(
     poolSize: pool.rows.length,
     viewerPosition: viewerRow?.played != null ? viewerRow.position : null,
     lastResult: lastSettledRound(pool.viewerRounds),
+  };
+}
+
+/**
+ * The viewer's side of a posted Groups only tournament, for the one-card
+ * Games list (ADR-0074). Null for every other Game, and when the viewer has
+ * no Game team in a Pool.
+ */
+export function myTournamentFromRow(
+  row: HubQueryRow,
+  viewerUserId: string,
+  locale: Locale,
+): HubListMyTournament | null {
+  if (
+    row.drawPostedAt == null ||
+    !hasPools(row.format, row.poolCount) ||
+    hasKnockout(row.format, row.tournamentShape)
+  ) {
+    return null;
+  }
+  const tables = poolTablesFromRow(row, viewerUserId, locale);
+  const pool = tables?.pools.find(
+    (item) => item.poolIndex === tables.viewerPoolIndex,
+  );
+  const viewerTeam = row.teams.find((team) =>
+    team.players.some((link) => link.gamePlayer?.user?.id === viewerUserId),
+  );
+  if (!tables || !pool || !viewerTeam || pool.viewerRounds.length === 0) {
+    return null;
+  }
+  const teamsById = new Map(row.teams.map((team) => [team.id, team]));
+  const matchesById = new Map(row.matches.map((match) => [match.id, match]));
+  const viewerRow = pool.rows.find((item) => item.isViewer);
+  const winner =
+    pool.finished && pool.winnerGameTeamId
+      ? teamOccupants(teamsById.get(pool.winnerGameTeamId), viewerUserId)
+      : null;
+  return {
+    viewerTeam: teamOccupants(viewerTeam, viewerUserId),
+    poolLabel: poolLetter(pool.poolIndex),
+    poolSize: pool.rows.length,
+    poolCount: tables.pools.length,
+    viewerPosition: viewerRow?.played != null ? viewerRow.position : null,
+    poolFinished: pool.finished,
+    winner,
+    rounds: pool.viewerRounds.map((round) => ({
+      matchId: round.matchId,
+      roundNumber: round.roundNumber,
+      startTime: round.startTime,
+      courtName: matchesById.get(round.matchId)?.court?.name ?? null,
+      completed: round.status === "completed",
+      cancelled: round.cancelled,
+      outcome: round.viewerOutcome,
+      viewerSets: round.sets.flatMap((set) =>
+        set.viewerGamesWon != null && set.opponentGamesWon != null
+          ? [{ viewer: set.viewerGamesWon, opponent: set.opponentGamesWon }]
+          : [],
+      ),
+      opponent: teamOccupants(
+        teamsById.get(round.opponentGameTeamId),
+        viewerUserId,
+      ),
+    })),
   };
 }
 

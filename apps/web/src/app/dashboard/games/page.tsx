@@ -16,6 +16,10 @@ import {
 } from "~/components/games/games-hub-empty";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
 import {
+  TournamentGamesCard,
+  TournamentPlayedCard,
+} from "~/components/games/tournament-games-card";
+import {
   TournamentMatchCard,
   TournamentSummaryCard,
 } from "~/components/games/tournament-summary-card";
@@ -46,6 +50,7 @@ import {
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
+import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import {
   isDrawnTournament,
   poolRoundLabel,
@@ -206,9 +211,18 @@ function GamesHubTabPanel({
 
   return (
     <ul className="flex flex-col gap-3">
-      {games.map((game) => {
+      {games.map((game, index) => {
         if (game.football) {
           return footballCard(game);
+        }
+        if (isTournamentGamesCardRow(game)) {
+          return (
+            <TournamentGamesCard
+              key={game.id}
+              game={{ ...game, myTournament: game.myTournament }}
+              lifted={index === 0}
+            />
+          );
         }
         if (isTournamentMatchRow(game)) {
           return (
@@ -358,9 +372,16 @@ function HistoryTabPanel({
   return (
     <>
       <ul className="flex flex-col gap-3">
-        {rows.map((row) => (
-          <MatchHistoryCard key={row.matchId} row={row} />
-        ))}
+        {rows.map((row) =>
+          isTournamentGamesCardRow(row) ? (
+            <TournamentPlayedCard
+              key={row.matchId}
+              game={{ ...row, myTournament: row.myTournament }}
+            />
+          ) : (
+            <MatchHistoryCard key={row.matchId} row={row} />
+          ),
+        )}
       </ul>
       <LoadMoreSentinel
         hasNextPage={hasNextPage}
@@ -451,9 +472,9 @@ export default function GamesHubPage({
     });
   }
 
-  const myGames = api.games.listMyGames.useQuery();
+  const myGames = api.games.listMyGames.useQuery({ groupTournaments: true });
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE },
+    { limit: HISTORY_PAGE_SIZE, groupTournaments: true },
     {
       getNextPageParam: nextHistoryCursor,
     },
