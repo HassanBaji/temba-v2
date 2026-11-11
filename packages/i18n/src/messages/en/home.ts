@@ -248,6 +248,26 @@ export const home = {
     gaugeSpoken: (band: string, percent: number, next: string) =>
       `Band ${band}, ${percent}% of the way to ${next}`,
   },
+  trend: {
+    title: "Trend",
+    lastMatches: (n: number) =>
+      plural("en", n, { one: "last match", other: "last {n} matches" }),
+    from: (from: string) => `from ${from} to `,
+    matchesAgo: (n: number) =>
+      plural("en", n, { one: "1 match ago", other: "{n} matches ago" }),
+    changesAgo: (n: number) =>
+      plural("en", n, { one: "1 change ago", other: "{n} changes ago" }),
+    latest: "latest",
+    legend: {
+      won: "solid won",
+      drawn: "half drawn",
+      lost: "open lost",
+      set: "grey set",
+    },
+    legendSeparator: ", ",
+    spoken: (from: string, to: string, window: string) =>
+      `Level went from ${from} to ${to}, ${window}`,
+  },
   lastTen: {
     title: "Last 10",
     oldestFirst: "oldest first",

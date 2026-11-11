@@ -14,6 +14,7 @@ import { Block } from "./slot-block";
 import { SportSwitch } from "./sport-switch";
 import { StandingCard } from "./standing-card";
 import { StatsCard } from "./stats-card";
+import { TrendCard } from "./trend-card";
 import { UpNextCard } from "./up-next-card";
 import { UpNextEmpty, UpNextHeading, UpNextList } from "./up-next";
 import { upNextWeekLabel } from "./up-next-model";
@@ -111,6 +112,9 @@ export function HomeView({
       >
         {(level) => <LevelCard level={level} sport={model.sport} />}
       </Block>
+      {model.level.status === "ready" && model.level.value.kind === "rated" ? (
+        <TrendCard input={model.level.value.input} />
+      ) : null}
       <Block
         slot={model.recentForm}
         title={m.home.lastTen.title}
