@@ -414,7 +414,7 @@ _Avoid_: MVP setting, MVP type
 
 **Giver group**:
 Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.
-_Avoid_: category, tier
+_Avoid_: category, tier (that is a Group Tier)
 
 **Cabinet**:
 The Marks and MVPs a User has collected, shown on their Player profile per sport: a summary row, every kind with its count or "Not yet", and per kind the Games it came from. A Mark counts on the sport of the Game it was given in, an MVP on the sport it was won in, once it has settled. Follows Match history visibility; when the owner hides Roasts, other viewers see no trace of them.
@@ -637,7 +637,7 @@ The Web App page at `/dashboard/notifications`, opened from the bell, listing th
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
-A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with no result in the lens is listed Unranked, below the ranked rows, without a position; one result is enough to hold a rank. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
+A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with no result in the lens is listed Unranked, below the ranked rows, without a position; one result is enough to hold a rank. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, a Rating or a Group Tier.
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
 
 **Season**:
@@ -657,7 +657,7 @@ The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highe
 _Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
-UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling). A Level override clears Provisional.
+Per ladder. A Level is Provisional while its Rating's deviation φ is above the product threshold (confidence still settling); a Level override clears it. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Level override**:
@@ -669,11 +669,11 @@ A completed, non-cancelled Match on a Game that rates, which produced rating eve
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
+A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game outside a tier Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
 
 **Rating scope**:
-What a Game's completed Matches rate, fixed at create (ADR-0053). `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. `group`, shown "Counts for group rating", moves the Group Level only: a padel Game on a Group that is not Verified. `unrated`, shown "Unrated", moves neither. Pure in `@repo/domain/game-rating-scope`.
+What a Game's completed Matches move, fixed at create (ADR-0053, ADR-0066). One Game feeds one ladder. `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. `group` moves a ladder of the Group only: on football, shown "Counts for group tier", it moves Tier points (a football Game on a tier Group); on padel, shown "Counts for group rating", the Group Level (a padel Game on a Group that is not Verified). `unrated`, shown "Unrated", moves nothing. The creator may choose Unrated wherever a scope is offered. Pure in `@repo/domain/game-rating-scope`.
 _Avoid_: rated (bare, when the scope matters), ranked, verified game
 
 **Group Level**:
@@ -683,6 +683,18 @@ _Avoid_: group rating (when you mean the face), local level, club level
 **Group Level override**:
 A Group Level an Organizer of the Group set by hand, and its audit record (`group_level_overrides`). Works like a Level override, inside one Group. Never moves the Temba Level.
 _Avoid_: group rating override
+
+**Group Tier**:
+A football Group member's strength inside one tier Group, a football Group that is not Verified (ADR-0066): Tier points, a place and a Tier band. Moved by that Group's Games and its Organizers. Never moves a Level and is never moved by one. Shown on the Group's Members tab, not on the Standing.
+_Avoid_: group level, group rating, local level, badge
+
+**Tier points**:
+The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves once per Match by a result part, an expected-score step on the mean Tier points of the two Football sides, and a performance part; an Organizer may adjust it. Every move is an event in an append-only ledger (`group_tier_events`). Carries across Seasons (ADR-0067).
+_Avoid_: Elo, group Elo, rating points, Standing points
+
+**Tier band**:
+Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until four are. Pure in `@repo/domain/tier-bands`.
+_Avoid_: badge, rank, Level band, league
 
 **Match history visibility**:
 Who sees a User's form, stats and partners on their Player profile: everyone who may open it (default), Group members, or only them. A viewer it excludes sees Level and Preferred Position only.

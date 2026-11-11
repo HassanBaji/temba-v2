@@ -1,6 +1,6 @@
 # Tier points are an additive ledger and a Tier band is a place
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0011](./0011-match-result-confirmation.md) for additive ladders. Reverses the per-Group rating option [ADR-0045](./0045-a-standing-counts-unrated-games.md) declined, for football.
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0011](./0011-match-result-confirmation.md) for additive ladders. Reverses the per-Group rating option [ADR-0045](./0045-a-standing-counts-unrated-games.md) declined, for football.
 
 A Group Tier has to be explainable on one line of a phone: "Won 5–3, rated 8.1. Result +10, performance +9." It has to accept an Organizer's adjustment "on top of what the games did", and it has to give exactly one Shark.
 

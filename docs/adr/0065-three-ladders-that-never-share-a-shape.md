@@ -1,6 +1,6 @@
 # Three ladders that never share a shape
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Lifts the glossary's bans on "tier" and "rank" for two named terms.
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Lifts the glossary's bans on "tier" and "rank" for two named terms.
 
 Temba used one idea, a Level, for three questions: how good a player is, where they stand in their group, and what they have won. Padel showed a Temba Level and a Group Level with the same band letters, and players could not tell them apart. Football had neither. The owner's design names three ladders and gives each its own shape, feed and controller.
 
