@@ -389,7 +389,7 @@ export function FriendlyGamePartnerPicker({
         ) : suggestions.error ? (
           <ErrorState
             title={m.webGame.partnerPicker.suggestionsError}
-            message={suggestions.error.message}
+            error={suggestions.error}
             headingLevel={3}
             className="py-4"
             onRetry={() => {

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { and, eq } from "drizzle-orm";
 
 import { gamePlayers, gameTeams } from "@repo/db";
@@ -9,10 +9,11 @@ import type {
   FootballRole,
 } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
 import { admit } from "#src/games/admit";
-import type { GameRow } from "#src/games/access";
+import { type GameRow, lockGameForAdmit } from "#src/games/access";
 import { assertKeeperSeatOpen } from "#src/games/football-lineup";
 import { throwIfAdmitRefused } from "#src/games/helpers/throw-if-admit-refused";
 import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
@@ -42,6 +43,7 @@ async function tournamentSideSeat(
   tx: Tx,
   game: GameRow,
   sideIndex: number,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<{ sideIndex: number; position: SeatPosition }> {
   const team = await tx.query.gameTeams.findFirst({
     where: and(
@@ -57,7 +59,10 @@ async function tournamentSideSeat(
   if (!taken.has("right")) {
     return { sideIndex, position: "right" };
   }
-  throw new TRPCError({ code: "CONFLICT", message: "That side is full" });
+  throw new TRPCError({
+    code: "CONFLICT",
+    message: messagesFor(locale).game.errors.sideFull,
+  });
 }
 
 /**
@@ -70,6 +75,7 @@ async function organizerAddSeat(
   game: GameRow,
   placement: OrganizerAddPlacement,
   fillVacant = false,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const seats =
     game.format === "friendly_tournament" ||
@@ -78,7 +84,7 @@ async function organizerAddSeat(
     return undefined;
   }
   if (game.format === "friendly_tournament" && placement.side) {
-    return tournamentSideSeat(tx, game, placement.side.sideIndex);
+    return tournamentSideSeat(tx, game, placement.side.sideIndex, locale);
   }
   if (game.format === "friendly_game" && placement.seat) {
     return placement.seat;
@@ -86,12 +92,15 @@ async function organizerAddSeat(
   if (fillVacant) {
     const vacant = await firstVacantPosition(tx, game);
     if (!vacant) {
-      throw new TRPCError({ code: "CONFLICT", message: "This Game is full" });
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: messagesFor(locale).game.errors.full,
+      });
     }
     return vacant;
   }
   if (game.format === "friendly_tournament") {
-    refuse("Pick a side");
+    refuse(messagesFor(locale).game.sides.pickASide);
   }
   return undefined;
 }
@@ -111,21 +120,23 @@ export async function organizerAddPlayer(
     locale: Locale;
   },
 ) {
-  const { game, player } = args;
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const { player } = args;
+  const game = await lockGameForAdmit(tx, args.game.id, locale);
   if (await userAlreadyOnGame(tx, game.id, player.id)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: `${player.name} is already on this Game`,
+      message: messagesFor(locale).game.errors.playerAlreadyOn(player.name),
     });
   }
   if (await userAlreadyWaitlisted(tx, game.id, player.id)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: `${player.name} is on the waitlist`,
+      message: messagesFor(locale).game.errors.playerWaitlisted(player.name),
     });
   }
   if (args.football?.role === "keeper") {
-    await assertKeeperSeatOpen(tx, game.id);
+    await assertKeeperSeatOpen(tx, game.id, undefined, locale);
   }
 
   const admitted = await admit(tx, {
@@ -134,14 +145,21 @@ export async function organizerAddPlayer(
     party: {
       kind: "user",
       userId: player.id,
-      seat: await organizerAddSeat(tx, game, args.placement, args.fillVacant),
+      seat: await organizerAddSeat(
+        tx,
+        game,
+        args.placement,
+        args.fillVacant,
+        locale,
+      ),
     },
     addedByUserId: args.organizerUserId,
+    locale,
   });
   if (!admitted.ok && admitted.reason === "full") {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This Game is full",
+      message: messagesFor(locale).game.errors.full,
     });
   }
   throwIfAdmitRefused(admitted, args.locale);

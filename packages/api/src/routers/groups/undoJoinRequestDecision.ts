@@ -1,12 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  gamePlayers,
+  games,
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
 } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,6 +20,7 @@ import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
+type Tx = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
 
 const UNDOABLE_STATUSES: string[] = [
   GroupJoinRequestStatusEnum.APPROVED,
@@ -23,10 +28,28 @@ const UNDOABLE_STATUSES: string[] = [
   GroupJoinRequestStatusEnum.BLOCKED,
 ];
 
+/** A seat on any Game of the Group that was not cancelled, played or still to play. */
+async function hasGroupGameSeat(tx: Tx, groupId: string, userId: string) {
+  const [seat] = await tx
+    .select({ id: gamePlayers.id })
+    .from(gamePlayers)
+    .innerJoin(games, eq(games.id, gamePlayers.gameId))
+    .where(
+      and(
+        eq(games.groupId, groupId),
+        isNull(games.cancelledAt),
+        eq(gamePlayers.userId, userId),
+      ),
+    )
+    .limit(1);
+  return seat != null;
+}
+
 export async function undoJoinRequestDecision(
   database: DbClient,
-  args: { requestId: string; userId: string },
+  args: { requestId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const request = await database.query.groupJoinRequests.findFirst({
     where: eq(groupJoinRequests.id, args.requestId),
   });
@@ -34,18 +57,18 @@ export async function undoJoinRequestDecision(
   if (!request) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Join request not found",
+      message: messagesFor(locale).group.errors.joinRequestNotFound,
     });
   }
 
-  const group = await requireGroup(database, request.groupId);
+  const group = await requireGroup(database, request.groupId, locale);
 
-  await assertGroupApprover(database, group, args.userId);
+  await assertGroupApprover(database, group, args.userId, locale);
 
   if (!UNDOABLE_STATUSES.includes(request.status)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Join request has not been decided",
+      message: messagesFor(locale).group.errors.joinRequestNotDecided,
     });
   }
 
@@ -56,19 +79,19 @@ export async function undoJoinRequestDecision(
           eq(groupMembers.groupId, group.id),
           eq(groupMembers.userId, request.userId),
         ),
-        columns: { id: true, totalGamesPlayed: true },
+        columns: { id: true },
       });
       if (membership) {
-        if (membership.totalGamesPlayed > 0) {
+        if (await hasGroupGameSeat(tx, group.id, request.userId)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "They have already played in this Group",
+            message: messagesFor(locale).group.errors.alreadyPlayed,
           });
         }
         if (await isAppointedOrganizer(tx, group, request.userId)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "They are an Organizer of this Group",
+            message: messagesFor(locale).group.errors.isOrganizer,
           });
         }
         await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
@@ -95,5 +118,6 @@ export const undoJoinRequestDecisionProcedure = protectedProcedure
     return undoJoinRequestDecision(ctx.db, {
       requestId: input.requestId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

@@ -107,7 +107,7 @@ const noStaticPalette = [
         name: "@repo/design-tokens",
         importNames: ["colors", "darkColors"],
         message:
-          "Read colors with useColors() so dark mode follows (ADR-0055). Output that stays light in both schemes reads palettes.light.",
+          "Read colors with useColors() so dark mode follows (ADR-0064). Output that stays light in both schemes reads palettes.light.",
       },
     ],
   },

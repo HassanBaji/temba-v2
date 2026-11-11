@@ -5,6 +5,8 @@ import { z } from "zod";
 import { courts } from "@repo/db";
 import { type Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -20,20 +22,25 @@ type Actor = {
 
 export async function setCourtSport(
   database: DbClient,
-  args: { courtId: string; sport: Sport; actor: Actor },
+  args: { courtId: string; sport: Sport; actor: Actor; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const existing = await database.query.courts.findFirst({
     where: eq(courts.id, args.courtId),
     columns: { id: true, venueId: true },
   });
 
   if (!existing) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Court not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.courtNotFound,
+    });
   }
 
   await requireVenueManager(database, {
     venueId: existing.venueId,
     ...args.actor,
+    locale,
   });
 
   const [updated] = await database
@@ -70,5 +77,6 @@ export const setCourtSportProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

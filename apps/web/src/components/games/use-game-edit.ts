@@ -23,6 +23,7 @@ import {
 } from "~/components/games/game-edit-mvp";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 export type GameEditField = GameEditStep["kind"] | "mvp";
 
@@ -80,14 +81,24 @@ export function useGameEdit({
     }
   }, [open, saved]);
 
-  const updateName = api.games.updateName.useMutation();
-  const updateWindow = api.games.updateWindow.useMutation();
-  const updateCaps = api.games.updateCaps.useMutation();
-  const updatePrice = api.games.updatePricePerPlayer.useMutation();
-  const updateLevel = api.games.updateLevelRange.useMutation();
-  const updateRounds = api.games.updateRoundCount.useMutation();
-  const updateSeason = api.games.updateSeason.useMutation();
-  const setMvpMode = api.marks.setMvpMode.useMutation();
+  const updateName = api.games.updateName.useMutation({ meta: OWN_ERROR_UI });
+  const updateWindow = api.games.updateWindow.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateCaps = api.games.updateCaps.useMutation({ meta: OWN_ERROR_UI });
+  const updatePrice = api.games.updatePricePerPlayer.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateLevel = api.games.updateLevelRange.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateRounds = api.games.updateRoundCount.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateSeason = api.games.updateSeason.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const setMvpMode = api.marks.setMvpMode.useMutation({ meta: OWN_ERROR_UI });
 
   async function runStep(step: GameEditStep): Promise<number> {
     switch (step.kind) {

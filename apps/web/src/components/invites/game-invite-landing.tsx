@@ -134,6 +134,7 @@ export function InviteSeatCourt({
   court: InviteSeatCourtModel[];
   onSit: ((seat: InviteSeatTile) => void) | null;
 }) {
+  const m = useMessages();
   return (
     <div className="space-y-2">
       {court.map((side, index) => (
@@ -141,8 +142,8 @@ export function InviteSeatCourt({
           {index > 0 ? (
             <div className="flex items-center gap-3">
               <span className="bg-dimrule h-px flex-1" />
-              <span className="text-dim text-[11px] font-semibold tracking-[0.08em]">
-                VS
+              <span className="text-dim text-[11px] font-semibold uppercase tracking-[0.08em]">
+                {m.webGame.joinSheet.versus}
               </span>
               <span className="bg-dimrule h-px flex-1" />
             </div>

@@ -1,4 +1,10 @@
-import { pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgTable,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
 import { user } from "./user";
@@ -28,6 +34,7 @@ export const gameMemberInvites = pgTable(
     )
       .on(table.gameId, table.userId)
       .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
+    gameIdx: index("game_member_invites_game_id_idx").on(table.gameId),
   }),
 );
 

@@ -365,6 +365,18 @@ function footballSideMembers(
   });
 }
 
+function footballPositionCounts(players: HubQueryRow["players"]) {
+  const counts = { keepers: 0, def: 0, mid: 0, fwd: 0 };
+  for (const player of players) {
+    if (player.footballRole === "keeper") {
+      counts.keepers += 1;
+    } else if (player.footballPosition) {
+      counts[player.footballPosition] += 1;
+    }
+  }
+  return counts;
+}
+
 /**
  * A football row's teams and Score. The Score waits on the viewer when it is
  * in, unconfirmed, and nobody on the viewer's side has confirmed it yet.
@@ -416,6 +428,7 @@ function footballFromRow(
   return {
     sideSize: row.sideSize,
     sides,
+    positions: footballPositionCounts(row.players),
     viewer: {
       sideIndex: viewerSide,
       role: viewerPlayer?.footballRole ?? null,

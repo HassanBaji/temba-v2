@@ -66,10 +66,6 @@ export function standingInSport(
   return rows.filter((row) => sportOrDefault(row.sport) === sport);
 }
 
-export function standingCountLabel(count: number, locale: Locale): string {
-  return messagesFor(locale).webAuth.home.groupsCount(count);
-}
-
 export function gameHref(target: HomeTarget): string {
   return target.intent
     ? gameHomeIntentHref(target.gameId, target.intent)
@@ -80,4 +76,11 @@ export function createHref(action: HomeNoGamesCreateAction): string {
   return action.kind === "group"
     ? "/dashboard/groups/new"
     : "/dashboard/games/new";
+}
+
+/** Google Maps directions to a Venue by name and city; it opens the maps app on phones. */
+export function directionsHref(venue: { name: string; city: string }): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    `${venue.name}, ${venue.city}`,
+  )}`;
 }

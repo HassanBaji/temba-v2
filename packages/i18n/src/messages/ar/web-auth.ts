@@ -232,21 +232,6 @@ export const webAuth = {
   },
   home: {
     upNext: "مبارياتك القادمة",
-    nothingThisWeek: "لا شيء هذا الأسبوع",
-    thisWeekCount: (n: number) =>
-      plural("ar", n, {
-        one: "مباراة واحدة هذا الأسبوع",
-        two: "مباراتان هذا الأسبوع",
-        few: "{n} مباريات هذا الأسبوع",
-        many: "{n} مباراة هذا الأسبوع",
-        other: "{n} مباراة هذا الأسبوع",
-      }),
-    onNow: "جارية الآن",
-    withEmphasis: (emphasis: string) => `، ${emphasis}`,
-    inMinutes: (minutes: number) => `بعد ${minutes} د`,
-    inHours: (hours: number) => `بعد ${hours} س`,
-    inHoursMinutes: (hours: number, minutes: number) =>
-      `بعد ${hours} س ${minutes} د`,
     rosterOf: (registered: number, allowed: number) =>
       `${registered} من ${allowed}`,
     rosterPlayers: (registered: number, allowed: number) =>
@@ -257,20 +242,8 @@ export const webAuth = {
         many: `${registered} من {n} لاعبًا`,
         other: `${registered} من {n} لاعب`,
       }),
-    kind: {
-      game: "مباراة",
-      tournament: "بطولة",
-    },
     toTime: (time: string) => `حتى ${time}`,
-    nextUpSpoken: (title: string, day: string, time: string) =>
-      `التالي، ${title}، ${day} ${time}`,
-    nextUpSpokenAt: (title: string, day: string, time: string, place: string) =>
-      `التالي، ${title}، ${day} ${time}، ${place}`,
-    details: "التفاصيل",
-    allGames: "كل المباريات",
     empty: {
-      thisWeek: "هذا الأسبوع",
-      free: "فارغ",
       headline: "أسبوعك\nمفتوح.",
       description: "انضم إلى مباراة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
       findAGame: "ابحث عن مباراة",
@@ -279,15 +252,6 @@ export const webAuth = {
       padel: "العب مباراة بادل مصنّفة ليظهر مستواك في البادل.",
       football: "العب مباراة كرة قدم مصنّفة ليظهر مستواك في كرة القدم.",
     },
-    levelBandSpoken: "الفئة",
-    groupsCount: (n: number) =>
-      plural("ar", n, {
-        one: "مجموعة واحدة",
-        two: "مجموعتان",
-        few: "{n} مجموعات",
-        many: "{n} مجموعة",
-        other: "{n} مجموعة",
-      }),
     standing: "ترتيبك",
     recentForm: {
       title: "الأداء الأخير",

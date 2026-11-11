@@ -25,6 +25,7 @@ export function DeleteGroupSheet({
   memberCount,
   seasonCount,
   pending,
+  error,
   onDelete,
   onOpenChange,
   restoreFocusRef,
@@ -35,6 +36,7 @@ export function DeleteGroupSheet({
   memberCount: number;
   seasonCount: number;
   pending: boolean;
+  error?: string | null;
   onDelete: () => void;
   onOpenChange: (open: boolean) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
@@ -118,6 +120,11 @@ export function DeleteGroupSheet({
                 className={FORM_INPUT}
               />
             </div>
+            {error ? (
+              <p role="alert" className="text-meta font-medium">
+                {error}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-col gap-2 px-4 pb-4 md:px-0 md:pb-0">
             <Button

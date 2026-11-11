@@ -165,4 +165,22 @@ export const football = {
   },
   sizeLine: (sideSize: string, players: number) =>
     `${sideSize} · ${players} players`,
+  errors: {
+    notFootball: "Only a football Game has teams and a Score",
+    roleOnFootball: "Only a football Game takes a role and position",
+    friendlyOnly: "Football Games are Friendly games",
+    noLevelRange: "Football Games have no Level range",
+    keeperSeatsTaken: "Both keeper seats are taken",
+    oneTeamOnly: "A player can be on one team only",
+    registeredOnly: "Only registered players can be placed on a team",
+    differentBibs: "Pick two different bib colours",
+    teamsFixed: "The score is in, so the teams are fixed",
+    publishTeamsFirst: "Publish the teams before entering a score",
+    scoreLocked: "This score is confirmed; it can no longer change",
+    scoreOpensAtKickOff: "The score opens at kick-off",
+    scoreOrganizerOrPlayers:
+      "Only the organizer or players on the teams can enter the score",
+    scorerOnce: "Name each scorer once",
+    scorersOnTeams: "Scorers must be on one of the teams",
+  },
 };

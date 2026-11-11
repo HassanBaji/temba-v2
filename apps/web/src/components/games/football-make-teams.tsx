@@ -21,6 +21,7 @@ import {
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react";
 import Link from "next/link";
@@ -36,6 +37,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
 import { BibRow } from "./football-team-columns";
@@ -355,9 +357,19 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
-  const board = api.games.footballBoard.useQuery({ gameId });
+  const isFootball = game.data ? isFootballRosterGame(game.data) : null;
+  const board = api.games.footballBoard.useQuery(
+    { gameId },
+    { enabled: isFootball === true },
+  );
   const [draft, setDraft] = React.useState<TeamsDraft | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
+
+  React.useEffect(() => {
+    if (isFootball === false) {
+      router.replace(gameHref);
+    }
+  }, [isFootball, router, gameHref]);
 
   React.useEffect(() => {
     if (board.data && draft == null) {
@@ -366,6 +378,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   }, [board.data, draft]);
 
   const publish = api.games.publishFootballTeams.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(t.publishedToast);
       await Promise.all([
@@ -390,7 +403,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     body = (
       <ErrorState
         title={t.poolLoadFailed}
-        message={board.error.message}
+        error={board.error}
         onRetry={() => void board.refetch()}
       />
     );

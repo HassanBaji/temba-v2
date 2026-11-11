@@ -213,7 +213,9 @@ export function CreateTeamPhoneLookup({
       return;
     }
     const isNew = previewData.kind === "new";
-    const listedName = isNew ? name.trim() : (previewData.name ?? "");
+    const listedName = isNew
+      ? name.trim()
+      : (previewData.name ?? previewData.phoneMasked ?? "");
     if (listedName.length === 0) {
       return;
     }

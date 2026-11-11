@@ -18,11 +18,7 @@ import {
 import { listCreateGroups } from "#src/routers/games/listCreateGroups";
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
-import {
-  ALWAYS_ORGANIZER_MESSAGE,
-  setOrganizer,
-  UNCLAIMED_ORGANIZER_MESSAGE,
-} from "#src/routers/groups/setOrganizer";
+import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(
@@ -245,8 +241,8 @@ describe("groups.setOrganizer", () => {
           organizer: false,
         }),
       );
-      expect(creator.message).toBe(ALWAYS_ORGANIZER_MESSAGE);
-      expect(ALWAYS_ORGANIZER_MESSAGE).toBe(
+      expect(creator.message).toBe("The Group creator is always an Organizer");
+      expect("The Group creator is always an Organizer").toBe(
         "The Group creator is always an Organizer",
       );
 
@@ -258,7 +254,9 @@ describe("groups.setOrganizer", () => {
           organizer: true,
         }),
       );
-      expect(unclaimed.message).toBe(UNCLAIMED_ORGANIZER_MESSAGE);
+      expect(unclaimed.message).toBe(
+        "Players not on Temba yet cannot be Organizers",
+      );
 
       const stranger = await insertUser(db, { name: "Stranger" });
       const missing = await rejection(
@@ -299,7 +297,7 @@ describe("groups.setOrganizer", () => {
           organizer: true,
         }),
       );
-      expect(creator.message).toBe(ALWAYS_ORGANIZER_MESSAGE);
+      expect(creator.message).toBe("The Group creator is always an Organizer");
 
       await setOrganizer(db, {
         groupId: f.groupId,

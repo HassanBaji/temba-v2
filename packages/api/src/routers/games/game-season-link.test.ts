@@ -90,15 +90,20 @@ function dayAt(iso: string) {
 }
 
 async function createOn(f: Fixture, iso: string) {
-  const created = await createGame(f.db, {
-    createdBy: f.owner.id,
-    groupId: f.group.id,
-    venueId: f.venue.id,
-    isPublic: false,
-    format: "friendly_game",
-    registrationMode: "individual",
-    ...dayAt(iso),
-  });
+  const window = dayAt(iso);
+  const created = await createGame(
+    f.db,
+    {
+      createdBy: f.owner.id,
+      groupId: f.group.id,
+      venueId: f.venue.id,
+      isPublic: false,
+      format: "friendly_game",
+      registrationMode: "individual",
+      ...window,
+    },
+    { now: window.windowStart },
+  );
   return created.id;
 }
 

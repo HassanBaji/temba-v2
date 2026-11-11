@@ -12,7 +12,7 @@ Temba is written in English only, as string literals spread over the Web App, th
 
 One typed Message catalog in the new `@repo/i18n` Package, in English and Arabic, read by property access. A `Locale` value flows into every function that produces copy. The Web App reads it from a cookie and sets `lang` and `dir` on `<html>`; the Mobile App stores it in AsyncStorage, defaults to the device language and mirrors layout through `I18nManager`. A two-way language switch sits on the sign-in screens and in Settings on both Apps.
 
-The Venue console App (`apps/console`) is out of scope: Venue managers get Arabic in a later ticket. Legal text (`terms.ts`) stays in English with a note that the English text governs. Server error messages from the API still arrive in English (later ticket: `Accept-Language` on the API context).
+The Venue console App (`apps/console`) is wired the same way as the Web App: the `temba-locale` cookie, `lang` and `dir` on `<html>`, its own `console-*` catalogs, and a language switch on its sign-in screen and in the account menu. Legal text (`terms.ts`) stays in English with a note that the English text governs. Server error messages from the API still arrive in English (later ticket: `Accept-Language` on the API context).
 
 ## Architecture (already in place)
 

@@ -154,7 +154,9 @@ function PadelSide({
 }
 
 function PadelStory({ card }: { card: PadelResultCard }) {
-  const tag = useMessages().game.played.tag;
+  const messages = useMessages();
+  const tag = messages.game.played.tag;
+  const story = messages.webUi.shareResult;
   return (
     <StoryFrame card={card}>
       <StoryHead typeLine={card.typeLine} />
@@ -183,7 +185,7 @@ function PadelStory({ card }: { card: PadelResultCard }) {
               tracking={0.14}
               className="text-muted-foreground flex-1"
             >
-              SETS
+              {story.storySets}
             </Label>
             <Label
               px={24}
@@ -293,13 +295,14 @@ function FootballScoreRow({
 }
 
 function ScorerSheet({ card }: { card: FootballResultCard }) {
+  const story = useMessages().webUi.shareResult;
   return (
     <div
       className="flex flex-1 flex-col justify-evenly"
       style={{ gap: 16, marginTop: -8 }}
     >
       <Label px={26} tracking={0.14} className="text-muted-foreground pb-1.5">
-        SCORERS
+        {story.storyScorers}
       </Label>
       {card.scorers.slice(0, MAX_SCORERS).map((scorer) => {
         const ink = scorer.isYou
@@ -324,7 +327,7 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
             </Big>
             {scorer.isYou ? (
               <Label px={26} className="text-muted-foreground">
-                YOU
+                {story.storyYou}
               </Label>
             ) : null}
             <Big
@@ -352,6 +355,7 @@ function LineupGrid({
   people: ResultCardPerson[];
   strong: boolean;
 }) {
+  const story = useMessages().webUi.shareResult;
   const itemWidth = (STORY_WIDTH - 2 * PAD_X - 24) / 2;
   return (
     <div className="flex flex-col" style={{ gap: 16 }}>
@@ -408,7 +412,7 @@ function LineupGrid({
               </Big>
               {you ? (
                 <Label px={20} className="text-muted-foreground">
-                  YOU
+                  {story.storyYou}
                 </Label>
               ) : null}
             </div>

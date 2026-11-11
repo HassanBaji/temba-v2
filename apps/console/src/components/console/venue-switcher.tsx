@@ -11,14 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { useMessages } from "~/components/locale-provider";
 import { venuePath } from "~/lib/console-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { initials } from "@repo/domain/initials";
-
-function courtsLabel(count: number) {
-  return `${count} ${count === 1 ? "court" : "courts"}`;
-}
 
 export function VenueSwitcher({
   venueId,
@@ -31,18 +28,19 @@ export function VenueSwitcher({
   city: string;
   courtCount: number;
 }) {
+  const m = useMessages().consoleShell.venueSwitcher;
   const venues = api.venues.listManaged.useQuery();
   const others = (venues.data ?? []).filter((venue) => venue.id !== venueId);
 
   const card = (
-    <span className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+    <span className="flex min-w-0 flex-1 items-center gap-2.5 text-start">
       <span className="bg-control-raised text-paper rounded-block flex size-[30px] shrink-0 items-center justify-center text-xs font-semibold">
         {initials(name)}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-semibold">{name}</span>
         <span className="text-on-control-muted block truncate text-[11px]">
-          {courtsLabel(courtCount)}, {city}
+          {m.courtsAndCity(m.courtCount(courtCount), city)}
         </span>
       </span>
     </span>
@@ -60,10 +58,10 @@ export function VenueSwitcher({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "border-control-rule surface-ink rounded-control mt-[26px] flex w-full items-center gap-2.5 border px-2.5 py-3 text-left",
+          "border-control-rule surface-ink rounded-control mt-[26px] flex w-full items-center gap-2.5 border px-2.5 py-3 text-start",
           "hover:bg-control-raised focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
         )}
-        aria-label="Switch Venue"
+        aria-label={m.label}
       >
         {card}
         <ChevronsUpDown
@@ -72,7 +70,7 @@ export function VenueSwitcher({
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[212px]">
-        <DropdownMenuLabel>Your Venues</DropdownMenuLabel>
+        <DropdownMenuLabel>{m.yourVenues}</DropdownMenuLabel>
         <DropdownMenuItem disabled className="justify-between">
           {name}
           <Check aria-hidden="true" className="size-4" />

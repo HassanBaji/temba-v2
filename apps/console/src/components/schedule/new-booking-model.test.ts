@@ -86,7 +86,7 @@ describe("quotedPriceFils", () => {
 
 describe("draftToInput", () => {
   it("books a Guest at the rules' price with payment left for later", () => {
-    expect(draftToInput(VENUE, draft(), 16_000)).toEqual({
+    expect(draftToInput(VENUE, draft(), 16_000, "en")).toEqual({
       ok: true,
       input: {
         venueId: VENUE,
@@ -114,6 +114,7 @@ describe("draftToInput", () => {
         notes: " Brings own balls ",
       }),
       16_000,
+      "en",
     );
     expect(result).toMatchObject({
       ok: true,
@@ -126,16 +127,36 @@ describe("draftToInput", () => {
   });
 
   it("waives without a method", () => {
-    const result = draftToInput(VENUE, draft({ payment: "waived" }), 16_000);
+    const result = draftToInput(
+      VENUE,
+      draft({ payment: "waived" }),
+      16_000,
+      "en",
+    );
     expect(result.ok && result.input.payment).toEqual({ status: "waived" });
   });
 
   it("sends a typed price only when it differs from the quote", () => {
-    const same = draftToInput(VENUE, draft({ priceInput: "16.000" }), 16_000);
+    const same = draftToInput(
+      VENUE,
+      draft({ priceInput: "16.000" }),
+      16_000,
+      "en",
+    );
     expect(same.ok && "priceFils" in same.input).toBe(false);
-    const typed = draftToInput(VENUE, draft({ priceInput: "12" }), 16_000);
+    const typed = draftToInput(
+      VENUE,
+      draft({ priceInput: "12" }),
+      16_000,
+      "en",
+    );
     expect(typed.ok && typed.input.priceFils).toBe(12_000);
-    const unpriced = draftToInput(VENUE, draft({ priceInput: "9.500" }), null);
+    const unpriced = draftToInput(
+      VENUE,
+      draft({ priceInput: "9.500" }),
+      null,
+      "en",
+    );
     expect(unpriced.ok && unpriced.input.priceFils).toBe(9_500);
   });
 
@@ -148,11 +169,14 @@ describe("draftToInput", () => {
     [draft({ startMinute: null }), "Pick a start time"],
     [draft({ priceInput: "abc" }), "Enter the price in BD, like 18.000"],
   ])("refuses an incomplete draft", (value, message) => {
-    expect(draftToInput(VENUE, value, 16_000)).toEqual({ ok: false, message });
+    expect(draftToInput(VENUE, value, 16_000, "en")).toEqual({
+      ok: false,
+      message,
+    });
   });
 
   it("asks for a price when no rate covers the time", () => {
-    expect(draftToInput(VENUE, draft(), null)).toEqual({
+    expect(draftToInput(VENUE, draft(), null, "en")).toEqual({
       ok: false,
       message: "No rate covers this time. Type a price",
     });

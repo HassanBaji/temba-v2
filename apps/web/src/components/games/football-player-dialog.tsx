@@ -37,10 +37,12 @@ export function FootballPlayerDialog({
   canOpenProfile,
   onOpenChange,
   onRemove,
+  canRename,
   onRename,
 }: {
   player: BoardPlayer | null;
   canOpenProfile: boolean;
+  canRename: boolean;
   onOpenChange: (open: boolean) => void;
   onRemove: (userId: string) => void;
   onRename?: (player: { userId: string; name: string }) => void;
@@ -82,7 +84,7 @@ export function FootballPlayerDialog({
                   </Link>
                 </Button>
               ) : null}
-              {onRename && player.unclaimed ? (
+              {onRename && canRename ? (
                 <Button
                   variant="outline"
                   aria-label={m.webTournament.footballPlayer.renameLabel(

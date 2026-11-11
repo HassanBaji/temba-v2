@@ -14,6 +14,7 @@ import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Surface } from "~/components/ui/surface";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
 import {
@@ -112,6 +113,7 @@ export function SetLevelForm({
 }) {
   const utils = api.useUtils();
   const setLevel = api.ratings.setLevel.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       await utils.groups.byId.invalidate({ id: groupId });
       await onSaved();

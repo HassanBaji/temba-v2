@@ -9,29 +9,24 @@ import {
   groups,
   matches,
   matchResultConfirmations,
+  matchSets,
   ratingEvents,
   user,
   venues,
 } from "@repo/db/schema";
 
-import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
-import { removeSet } from "#src/routers/games/removeSet";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
-import { scoreSet } from "#src/routers/games/scoreSet";
 import { requireGame } from "#src/games/access";
-import {
-  KNOCKOUT_EMPTY_SIDE_MESSAGE,
-  KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE,
-  knockoutLevelMessage,
-} from "#src/games/knockout-advance";
+import { knockoutLevelMessage } from "#src/games/knockout-advance";
 import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
 import { knockoutChampion } from "@repo/domain/tournament-knockout-view";
 import { messagesFor } from "@repo/i18n/messages";
@@ -189,23 +184,29 @@ async function matchAt(
   return row;
 }
 
-async function scoreNewSet(
+/**
+ * A tournament score is one Set (ADR-0062); a level Match of several Sets,
+ * as older Matches hold, can only be seeded straight into the table.
+ */
+async function insertScoredSet(
   database: TestDatabase,
-  args: {
-    gameId: string;
-    matchId: string;
-    userId: string;
-    slot1GamesWon: number;
-    slot2GamesWon: number;
-  },
+  matchId: string,
+  slot1GamesWon: number,
+  slot2GamesWon: number,
 ) {
-  const set = await addSet(database, {
-    gameId: args.gameId,
-    matchId: args.matchId,
-    userId: args.userId,
+  const existing = await database.query.matchSets.findMany({
+    where: eq(matchSets.matchId, matchId),
   });
-  await scoreSet(database, { ...args, setId: set.id });
-  return set;
+  const [set] = await database
+    .insert(matchSets)
+    .values({
+      matchId,
+      setNumber: existing.length + 1,
+      slot1GamesWon,
+      slot2GamesWon,
+    })
+    .returning();
+  return set!;
 }
 
 async function forceComplete(
@@ -216,17 +217,12 @@ async function forceComplete(
   winner: 1 | 2,
 ) {
   const match = await matchAt(database, seeded.gameId, round, position);
-  await scoreNewSet(database, {
+  await enterTournamentScore(database, {
     gameId: seeded.gameId,
     matchId: match.id,
     userId: seeded.owner.id,
     slot1GamesWon: winner === 1 ? 6 : 2,
     slot2GamesWon: winner === 1 ? 2 : 6,
-  });
-  await completeMatch(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    userId: seeded.owner.id,
   });
   return match;
 }
@@ -249,7 +245,7 @@ describe("Knockout advance on completion", () => {
       const [side4Left, side4Right] = seeded.players(4);
       const [side5Left] = seeded.players(5);
 
-      await scoreNewSet(db, {
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: q2.id,
         userId: side4Left!,
@@ -307,7 +303,7 @@ describe("Knockout advance on completion", () => {
       const q2 = await matchAt(db, seeded.gameId, 1, 2);
       const [side4Left, side4Right] = seeded.players(4);
       const [side5Left, side5Right] = seeded.players(5);
-      await scoreNewSet(db, {
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: q2.id,
         userId: side4Left!,
@@ -348,22 +344,9 @@ describe("a level Knockout Match", () => {
   async function seedLevel(database: TestDatabase, prefix: string) {
     const seeded = await seedPostedKnockout(database, prefix);
     const q2 = await matchAt(database, seeded.gameId, 1, 2);
-    const [side4Left] = seeded.players(4);
-    await scoreNewSet(database, {
-      gameId: seeded.gameId,
-      matchId: q2.id,
-      userId: side4Left!,
-      slot1GamesWon: 6,
-      slot2GamesWon: 4,
-    });
-    const second = await scoreNewSet(database, {
-      gameId: seeded.gameId,
-      matchId: q2.id,
-      userId: side4Left!,
-      slot1GamesWon: 3,
-      slot2GamesWon: 6,
-    });
-    return { seeded, q2, secondSetId: second.id };
+    await insertScoredSet(database, q2.id, 6, 4);
+    await insertScoredSet(database, q2.id, 3, 6);
+    return { seeded, q2 };
   }
 
   it("refuses Organizer force-complete with the deciding Set message", async () => {
@@ -432,22 +415,13 @@ describe("a level Knockout Match", () => {
   it("does not complete automatically on a Set write even when every seat had confirmed", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const { seeded, q2, secondSetId } = await seedLevel(db, "level-auto");
+      const { seeded, q2 } = await seedLevel(db, "level-auto");
       await db.insert(matchResultConfirmations).values(
         [...seeded.players(4), ...seeded.players(5)].map((userId) => ({
           matchId: q2.id,
           userId,
         })),
       );
-      const [, side5Right] = seeded.players(5);
-      await scoreSet(db, {
-        gameId: seeded.gameId,
-        matchId: q2.id,
-        setId: secondSetId,
-        userId: side5Right!,
-        slot1GamesWon: 3,
-        slot2GamesWon: 6,
-      });
       await runMatchCompletionEffect(
         db,
         await requireGame(db, seeded.gameId),
@@ -470,15 +444,9 @@ describe("a level Knockout Match", () => {
     const { db, close } = await createPgliteDb();
     try {
       const { seeded, q2 } = await seedLevel(db, "level-decider");
-      const [side4Left, side4Right] = seeded.players(4);
+      const [, side4Right] = seeded.players(4);
       const [side5Left] = seeded.players(5);
-      await scoreNewSet(db, {
-        gameId: seeded.gameId,
-        matchId: q2.id,
-        userId: side4Left!,
-        slot1GamesWon: 7,
-        slot2GamesWon: 5,
-      });
+      await insertScoredSet(db, q2.id, 7, 5);
       for (const userId of [side4Right!, side5Left!]) {
         await confirmMatchResult(db, {
           gameId: seeded.gameId,
@@ -509,13 +477,15 @@ describe("a Knockout Match with an empty side", () => {
       for (const match of [semi, final]) {
         await expectRefused(
           () =>
-            addSet(db, {
+            enterTournamentScore(db, {
               gameId: seeded.gameId,
               matchId: match.id,
               userId: seeded.owner.id,
+              slot1GamesWon: 6,
+              slot2GamesWon: 2,
             }),
           "FORBIDDEN",
-          KNOCKOUT_EMPTY_SIDE_MESSAGE,
+          "Both teams need two players before a score",
         );
       }
 
@@ -604,11 +574,7 @@ describe("a wrong-score report on a Knockout Match", () => {
       const seeded = await seedPostedKnockout(db, "take-back-refused");
       const q2 = await forceComplete(db, seeded, 1, 2, 1);
       const semi = await matchAt(db, seeded.gameId, 2, 1);
-      const set = await addSet(db, {
-        gameId: seeded.gameId,
-        matchId: semi.id,
-        userId: seeded.owner.id,
-      });
+      const set = await insertScoredSet(db, semi.id, 1, 0);
 
       await expectRefused(
         () =>
@@ -618,7 +584,7 @@ describe("a wrong-score report on a Knockout Match", () => {
             userId: seeded.owner.id,
           }),
         "CONFLICT",
-        KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE,
+        "The Match this result feeds has started, so this result can no longer be reversed",
       );
       expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
         MatchStatusEnum.COMPLETED,
@@ -628,12 +594,7 @@ describe("a wrong-score report on a Knockout Match", () => {
       );
       expect(await ratingEventCount(db, q2.id)).toBe(4);
 
-      await removeSet(db, {
-        gameId: seeded.gameId,
-        matchId: semi.id,
-        setId: set.id,
-        userId: seeded.owner.id,
-      });
+      await db.delete(matchSets).where(eq(matchSets.id, set.id));
       await reportWrongScore(db, {
         gameId: seeded.gameId,
         matchId: q2.id,
@@ -667,6 +628,78 @@ describe("a wrong-score report on a Knockout Match", () => {
       expect((await matchAt(db, seeded.gameId, 2, 1)).slot2GameTeamId).toBe(
         seeded.team(4),
       );
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("an Organizer's correction of a confirmed Knockout score", () => {
+  it("leaves the confirmed score, its ratings and the advanced winner when the correction is refused", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedKnockout(db, "refused-correction");
+      const q2 = await matchAt(db, seeded.gameId, 1, 2);
+      await enterTournamentScore(db, {
+        gameId: seeded.gameId,
+        matchId: q2.id,
+        userId: seeded.owner.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+      expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      const fedBefore = (await matchAt(db, seeded.gameId, 2, 1))
+        .slot2GameTeamId;
+      expect(fedBefore).not.toBeNull();
+      expect(await ratingEventCount(db, q2.id)).toBe(4);
+
+      await expect(
+        enterTournamentScore(db, {
+          gameId: seeded.gameId,
+          matchId: q2.id,
+          userId: seeded.owner.id,
+          slot1GamesWon: 5,
+          slot2GamesWon: 5,
+        }),
+      ).rejects.toThrow("A knockout Match needs a winner");
+
+      expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      expect((await matchAt(db, seeded.gameId, 2, 1)).slot2GameTeamId).toBe(
+        fedBefore,
+      );
+      expect(await ratingEventCount(db, q2.id)).toBe(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it("reopens and rescores in one step when the correction is accepted", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedKnockout(db, "accepted-correction");
+      const q2 = await matchAt(db, seeded.gameId, 1, 2);
+      const score = (slot1GamesWon: number, slot2GamesWon: number) =>
+        enterTournamentScore(db, {
+          gameId: seeded.gameId,
+          matchId: q2.id,
+          userId: seeded.owner.id,
+          slot1GamesWon,
+          slot2GamesWon,
+        });
+      await score(6, 2);
+      await score(2, 6);
+
+      expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      expect((await matchAt(db, seeded.gameId, 2, 1)).slot2GameTeamId).toBe(
+        q2.slot2GameTeamId,
+      );
+      expect(await ratingEventCount(db, q2.id)).toBe(4);
     } finally {
       await close();
     }

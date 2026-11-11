@@ -286,6 +286,7 @@ function detailMatches(
       bothSidesComplete: bothSlotsFilled,
       canAddSet: !frozen,
       canScoreSets: !frozen,
+      canConfirmScore: false,
       canComplete: !frozen && outcome.result !== "none",
       outcome,
       sets: scoredSets,
@@ -738,6 +739,7 @@ function knockoutTournament(args: {
       bothSidesComplete: bothSlotsFilled,
       canAddSet: !frozen && bothSlotsFilled && onSides,
       canScoreSets: !frozen && bothSlotsFilled && onSides,
+      canConfirmScore: false,
       canComplete:
         !frozen &&
         bothSlotsFilled &&

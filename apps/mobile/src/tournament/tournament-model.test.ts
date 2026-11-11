@@ -29,6 +29,51 @@ describe("scorableMatches", () => {
     expect(level?.heading).toBe("Semi-finals, S1");
   });
 
+  it("offers the other team's pending score to confirm", () => {
+    const [first, ...rest] = pool.postedMid.matches;
+    if (!first) {
+      throw new Error("expected a posted Match");
+    }
+    const pending = {
+      ...pool.postedMid,
+      matches: [
+        {
+          ...first,
+          canScoreSets: false,
+          canConfirmScore: true,
+          sets: [{ id: "set-1", slot1GamesWon: 6, slot2GamesWon: 4, wins: [] }],
+        },
+        ...rest.map((match) => ({ ...match, canConfirmScore: false })),
+      ],
+    };
+    const matches = scorableMatches(pending, "en");
+    const confirming = matches.find((match) => match.id === first.id);
+    expect(confirming?.scoreToConfirm).toBe("6–4");
+    expect(confirming?.canEnter).toBe(false);
+    expect(
+      matches
+        .filter((match) => match.id !== first.id)
+        .every((match) => match.scoreToConfirm == null && match.canEnter),
+    ).toBe(true);
+  });
+
+  it("has nothing to confirm before a score is in", () => {
+    const [first, ...rest] = pool.postedMid.matches;
+    if (!first) {
+      throw new Error("expected a posted Match");
+    }
+    const unscored = {
+      ...pool.postedMid,
+      matches: [
+        { ...first, canScoreSets: false, canConfirmScore: true, sets: [] },
+        ...rest,
+      ],
+    };
+    expect(
+      scorableMatches(unscored, "en").some((match) => match.id === first.id),
+    ).toBe(false);
+  });
+
   it("shows nothing to score once everything is final", () => {
     expect(scorableMatches(knockout.knockoutOnlyChampion, "en")).toEqual([]);
   });

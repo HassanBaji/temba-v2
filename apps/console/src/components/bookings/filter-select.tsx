@@ -27,7 +27,7 @@ export function FilterSelect({
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="border-border bg-paper rounded-control hover:bg-wash focus-visible:ring-ring/50 h-10 w-full appearance-none border py-0 pl-3 pr-8 text-[13px] outline-none transition-colors focus-visible:ring-[3px]"
+        className="border-border bg-paper rounded-control hover:bg-wash focus-visible:ring-ring/50 h-10 w-full appearance-none border py-0 pe-8 ps-3 text-[13px] outline-none transition-colors focus-visible:ring-[3px]"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -37,7 +37,7 @@ export function FilterSelect({
       </select>
       <ChevronDown
         aria-hidden="true"
-        className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2"
+        className="text-muted-foreground pointer-events-none absolute end-3 top-1/2 size-3.5 -translate-y-1/2"
       />
     </span>
   );

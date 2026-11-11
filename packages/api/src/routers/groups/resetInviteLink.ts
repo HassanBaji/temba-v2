@@ -3,25 +3,31 @@ import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupInviteLinks } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { requireGroupInviteLinkMinter } from "#src/groups/helpers/require-group-invite-link-minter";
+import { assertGroupOwner } from "#src/groups/helpers/group-owner";
+import { requireGroup } from "#src/groups/helpers/require-group";
 import { mintLink } from "#src/invites/doors";
 import { groupInviteLinkUrl, groupInviteShortUrl } from "#src/invites/tokens";
 
 type DbClient = typeof db;
 
-/** Every live link stops working; a fresh one takes its place. */
+/** Every live link stops working; a fresh one takes its place. The owner's door. */
 export async function resetInviteLink(
   database: DbClient,
-  args: { groupId: string; userId: string; origin: string },
+  args: { groupId: string; userId: string; origin: string; locale?: Locale },
 ) {
-  const group = await requireGroupInviteLinkMinter(
-    database,
-    args.groupId,
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  assertGroupOwner(
+    group,
     args.userId,
+    messagesFor(args.locale ?? DEFAULT_LOCALE).group.settings
+      .linkResetOwnerOnly,
   );
 
   const now = new Date();
@@ -66,5 +72,6 @@ export const resetInviteLinkProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

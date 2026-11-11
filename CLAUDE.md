@@ -95,7 +95,7 @@ apps/api               ──► @repo/api, @repo/db
 
 - **Clients never import server code.** `apps/web/src`, `apps/console/src` and `apps/mobile` may import `@repo/api/types` with `import type` and nothing else from `@repo/api`. They never import `@repo/db`. Scripts under `apps/web/scripts` are exempt.
 - **Every user-facing string comes from `@repo/i18n`** (ADR-0052). No English literal in JSX, props, toasts, `aria-*` or accessibility labels. Client Components call `useMessages()`; Server Components call `getRequestMessages()`; domain copy functions take `locale` as their last required parameter. Add keys to the catalog file your feature owns in both `en/` and `ar/`; counts go through `plural()`.
-- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. Its one Workspace import is `@repo/i18n`. The one exception is `friendly-game-partner` and `tournament-join`, which keep their routes until Phase 6 (spec section 9). A function goes there only if a client uses it, or two or more server callers do.
+- **`@repo/domain` is pure.** No database, React, Next, DOM, `node:` modules or web route strings. Its one Workspace import is `@repo/i18n`. Where a rule decides where a link lands, it returns a typed target (such as `GameHomeTarget` in `friendly-game-partner`) and each App maps it to its own route. A function goes there only if a client uses it, or two or more server callers do.
 - **`@repo/validators` is for shared schemas only.** A schema used by one procedure stays inline in that procedure file.
 - **`@repo/api` is host-neutral.** No `next/*`, `@clerk/nextjs`, `react` or `server-only`. Auth, role metadata and the web origin arrive through the context.
 - **`apps/api` holds no business logic.** It verifies the session, builds the context and mounts routes.
@@ -115,11 +115,11 @@ apps/api               ──► @repo/api, @repo/db
 
 The design system is locked. See section 4 of the spec for values.
 
-- Black and white only. No accent color. Light and dark schemes share Color roles (ADR-0055, `.scratch/dark-mode/spec.md`): name the role, never branch on the scheme, and nothing in dark is `#ffffff`.
+- Black and white only. No accent color. Light and dark schemes share Color roles (ADR-0064, `.scratch/dark-mode/spec.md`): name the role, never branch on the scheme, and nothing in dark is `#ffffff`.
 - Read colors with `useColors()` from `src/theme/theme-provider`. Import `colors` statically only for output that stays light in both schemes (share images).
 - Hairline borders, never shadows.
 - Colors, spacing, radii and type sizes come from `@repo/design-tokens`. No hex literals in screens.
 - Text goes through the `Text` primitive, which sets the font family and tabular figures. Never set `fontFamily` or `fontWeight` directly.
-- `Surface tone="ink"` marks the one upcoming focus on a screen. Finished things are `paper`.
+- `Surface tone="ink"` marks the one upcoming focus on a screen. Finished things are `paper`. Home's Up next card is the exception: it is the Palette v2 lifted card (ADR-0066), read from `palettes` until the rest of the mobile App moves off `invertedFocusPalettes` (ADR-0067).
 - `Hatch` means "not yet". `ResultMark` and `FormSlot` are solid for a win, outline for a loss, hatched for not played.
 - At most two mount animations per screen, through `MountFill` and `MountDraw`, both honouring reduce-motion.

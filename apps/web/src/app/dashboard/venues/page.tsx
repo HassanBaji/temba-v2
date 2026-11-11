@@ -32,7 +32,7 @@ export default function VenuesPage() {
         {venues.error ? (
           <ErrorState
             title={v.errorTitle}
-            message={venues.error.message}
+            error={venues.error}
             onRetry={() => {
               void venues.refetch();
             }}

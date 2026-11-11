@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import {
-  levelFromApi,
-  noLevelCopy,
-  standingCountLabel,
-  standingInSport,
-  venueCountLabel,
-} from "./home-model";
+import { levelFromApi, noLevelCopy, standingInSport } from "./home-model";
 import type { RouterOutputs } from "../trpc/react";
 
 type ApiRating = RouterOutputs["ratings"]["me"];
@@ -84,15 +78,6 @@ describe("per-sport sections", () => {
       standingInSport(rows, "football").map((row) => row.groupId),
       ["b"],
     );
-    assert.equal(standingCountLabel(1, "en"), "1 group");
-    assert.equal(standingCountLabel(7, "en"), "7 groups");
-  });
-
-  it("counts bookable Venues for the empty Up next", () => {
-    assert.equal(venueCountLabel(null, "en"), null);
-    assert.equal(venueCountLabel(0, "en"), "No venues yet");
-    assert.equal(venueCountLabel(1, "en"), "1 venue nearby");
-    assert.equal(venueCountLabel(3, "en"), "3 venues nearby");
   });
 
   it("reads its labels from the Arabic catalog", () => {
@@ -100,7 +85,5 @@ describe("per-sport sections", () => {
       noLevelCopy("padel", "ar"),
       "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
     );
-    assert.equal(standingCountLabel(2, "ar"), "مجموعتان");
-    assert.equal(venueCountLabel(3, "ar"), "3 أندية قريبة");
   });
 });

@@ -4,12 +4,13 @@ import { type Config } from "drizzle-kit";
 
 config({ path: resolve(process.cwd(), ".env") });
 
+const databaseUrl = process.env.DATABASE_URL;
+
 export default {
   schema: "./src/schema/index.ts",
+  out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: {
-    url: process.env.DATABASE_URL!,
-  },
+  ...(databaseUrl ? { dbCredentials: { url: databaseUrl } } : {}),
   tablesFilter: ["temba_*"],
   schemaFilter: ["public"],
 } satisfies Config;

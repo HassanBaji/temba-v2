@@ -31,23 +31,22 @@ export type ConsoleSegment = (typeof CONSOLE_SEGMENTS)[number];
 
 export type ConsoleNavItem = {
   segment: ConsoleSegment;
-  label: string;
   icon: LucideIcon;
 };
 
 /** Sidebar order follows the design (A1 to A8); Photos and Venue details are the console's own additions. */
 export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
-  { segment: "schedule", label: "Schedule", icon: CalendarDays },
-  { segment: "bookings", label: "Bookings", icon: List },
-  { segment: "courts", label: "Courts & pricing", icon: LayoutGrid },
-  { segment: "hours", label: "Hours & closures", icon: Clock },
-  { segment: "customers", label: "Customers", icon: Users },
-  { segment: "staff", label: "Staff & roles", icon: Shield },
-  { segment: "reports", label: "Reports", icon: BarChart3 },
-  { segment: "payouts", label: "Payouts", icon: Wallet },
-  { segment: "photos", label: "Photos", icon: Images },
-  { segment: "groups", label: "Groups", icon: UsersRound },
-  { segment: "details", label: "Venue details", icon: Building2 },
+  { segment: "schedule", icon: CalendarDays },
+  { segment: "bookings", icon: List },
+  { segment: "courts", icon: LayoutGrid },
+  { segment: "hours", icon: Clock },
+  { segment: "customers", icon: Users },
+  { segment: "staff", icon: Shield },
+  { segment: "reports", icon: BarChart3 },
+  { segment: "payouts", icon: Wallet },
+  { segment: "photos", icon: Images },
+  { segment: "groups", icon: UsersRound },
+  { segment: "details", icon: Building2 },
 ];
 
 export function venuePath(
@@ -69,11 +68,4 @@ export function segmentFromPathname(
     ? pathname.slice(venueId.length + 2).split("/")[0]
     : undefined;
   return CONSOLE_SEGMENTS.find((segment) => segment === rest);
-}
-
-export function titleForSegment(segment: ConsoleSegment | undefined) {
-  return (
-    CONSOLE_NAV.find((item) => item.segment === segment)?.label ??
-    "Venue console"
-  );
 }

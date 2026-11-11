@@ -1,7 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
-  GroupSportEnum,
   gameTeamPlayers,
   games,
   groups,
@@ -54,9 +53,7 @@ export type SlotUsers = {
 };
 
 function ratingSportFromGame(sport: GameRow["sport"]): "padel" | "football" {
-  return sport === GroupSportEnum.FOOTBALL
-    ? GroupSportEnum.FOOTBALL
-    : GroupSportEnum.PADEL;
+  return sport;
 }
 
 function defaultRatingState(): RatingGlickoState {
@@ -354,6 +351,8 @@ async function applyTembaRatedMatch(
           muAfter: after.mu,
           phiAfter: after.phi,
           sigmaAfter: after.sigma,
+          levelBandBefore: playerInput(player.userId).state.levelBand,
+          lastRatedAtBefore: rowByUser.get(player.userId)?.lastRatedAt ?? null,
           createdAt: now,
         })
         .onConflictDoNothing({

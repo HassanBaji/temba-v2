@@ -170,23 +170,22 @@ export const mobileHome = {
         many: "الدعوات، {n} بانتظارك",
         other: "الدعوات، {n} بانتظارك",
       }),
+    notificationsUnread: "الإشعارات، غير مقروءة",
+  },
+  notifications: {
+    loadFailed: "تعذّر تحميل الإشعارات",
+    empty: {
+      title: "لا توجد إشعارات بعد",
+      description: "عندما ينضم أحد إلى مجموعة أو مباراة تديرها، يظهر ذلك هنا.",
+    },
+    markAllRead: "تحديد الكل كمقروء",
+    unread: "غير مقروء",
   },
   upNext: {
     title: "مبارياتك القادمة",
-    nothingThisWeek: "لا شيء هذا الأسبوع",
-    thisWeek: (n: number) =>
-      plural("ar", n, {
-        one: "مباراة واحدة هذا الأسبوع",
-        two: "مباراتان هذا الأسبوع",
-        few: "{n} مباريات هذا الأسبوع",
-        many: "{n} مباراة هذا الأسبوع",
-        other: "{n} مباراة هذا الأسبوع",
-      }),
     kind: {
       booking: "حجز",
-      tournament: "بطولة",
     },
-    withEmphasis: (emphasis: string) => `، ${emphasis}`,
     bookingDetail: (court: string, minutes: number) => `${court}، ${minutes} د`,
     bookingHeroSpoken: (
       day: string,
@@ -194,45 +193,17 @@ export const mobileHome = {
       court: string,
       venue: string,
     ) => `التالي، حجز، ${day} ${time}، ${court}، ${venue}`,
-    heroSpoken: (title: string, day: string, time: string) =>
-      `التالي، ${title}، ${day} ${time}`,
     gameHeroSpoken: (title: string, day: string, time: string, place: string) =>
       `التالي، ${title}، ${day} ${time}، ${place}`,
     invite: "دعوة",
     details: "التفاصيل",
-    allBookingsAndGames: "كل الحجوزات والمباريات",
-    book: {
-      padel: "احجز بادل",
-      football: "احجز كرة قدم",
-    },
-    thisWeekTag: "هذا الأسبوع",
-    free: "فارغ",
     weekOpen: "أسبوعك\nمفتوح.",
     emptyBody:
       "احجز ملعبًا، أو انضم إلى مباراة مفتوحة، أو ابدأ واحدة مع مجموعتك.",
     findAGame: "ابحث عن مباراة",
   },
-  venues: {
-    none: "لا أندية بعد",
-    nearby: (n: number) =>
-      plural("ar", n, {
-        one: "نادٍ واحد قريب",
-        two: "ناديان قريبان",
-        few: "{n} أندية قريبة",
-        many: "{n} ناديًا قريبًا",
-        other: "{n} نادٍ قريب",
-      }),
-  },
   standing: {
     title: "ترتيبك",
-    groupCount: (n: number) =>
-      plural("ar", n, {
-        one: "مجموعة واحدة",
-        two: "مجموعتان",
-        few: "{n} مجموعات",
-        many: "{n} مجموعة",
-        other: "{n} مجموعة",
-      }),
     rowSpoken: (group: string, rank: string, ofCount: string) =>
       `${group}، ${rank} ${ofCount}`,
   },
@@ -246,13 +217,6 @@ export const mobileHome = {
       `الفئة ${band}، التقييم ${level}`,
     changeSpoken: (spoken: string, amount: string, window: string) =>
       `${spoken} ${amount}، ${window}`,
-  },
-  recentForm: {
-    title: "الأداء الأخير",
-    lastTen: "آخر 10 مباريات",
-    played: "مباريات",
-    won: "فوز",
-    lost: "خسارة",
   },
   allTime: {
     matches: (n: number) =>

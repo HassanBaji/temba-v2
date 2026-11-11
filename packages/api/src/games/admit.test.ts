@@ -534,7 +534,7 @@ describe("Game admit invite accept and promote", () => {
     }
   });
 
-  it("seats promote-door when registration is closed or the window ended", async () => {
+  it("seats promote-door when registration is closed, never once the window ended", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const owner = await insertUser(db, "promote-owner@example.com");
@@ -590,7 +590,7 @@ describe("Game admit invite accept and promote", () => {
           party: { kind: "user", userId: windowPlayer.id },
           now,
         }),
-      ).toMatchObject({ ok: true });
+      ).toEqual({ ok: false, reason: "join_frozen" });
     } finally {
       await close();
     }

@@ -21,6 +21,7 @@ import {
   assertRegistrationOpen,
   getRegistrationStatus,
   isGroupMember,
+  lockGameForAdmit,
   userPassesJoinGate,
 } from "#src/games/access";
 import { admit, type AdmitResult } from "#src/games/admit";
@@ -34,7 +35,7 @@ import {
   type SeatChoice,
   vacantPositionsFromSides,
 } from "#src/games/seats";
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -44,16 +45,18 @@ export async function assertGameInviteDoorsOpen(
   database: DbClient,
   game: GameRow,
   now = new Date(),
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   // Closed includes organizer-close, ended window and cancel (TEM-43). Mint
   // and accept share this door.
-  assertRegistrationOpen(game, now);
+  assertRegistrationOpen(game, now, locale);
 }
 
 export async function assertInviteeAllowedOnGame(
   database: DbClient,
   game: GameRow,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.isPublic) {
     return;
@@ -62,7 +65,7 @@ export async function assertInviteeAllowedOnGame(
     if (!(await isGroupMember(database, game.groupId, userId))) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only Group members can use invites on this Game",
+        message: messagesFor(locale).game.errors.groupMembersInvites,
       });
     }
     return;
@@ -100,7 +103,7 @@ export async function admitInviteeToGroup(
     }
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You can't join this Group",
+      message: messagesFor(locale).group.errors.cannotJoin,
     });
   }
   const group = await database.query.groups.findFirst({
@@ -113,7 +116,10 @@ export async function admitInviteeToGroup(
     },
   });
   if (!group) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.notFound,
+    });
   }
   if (groupDecidesJoins(group)) {
     if (game.isPublic) {
@@ -149,7 +155,7 @@ async function userAlreadyOnGame(
 function throwIfInviteAdmitRefused(
   result: AdmitResult,
   locale: Locale,
-  alreadyOnGameMessage = "You are already registered on this Game",
+  onGame: "self" | "partner" = "self",
 ) {
   if (result.ok || result.reason === "full") {
     return;
@@ -158,11 +164,7 @@ function throwIfInviteAdmitRefused(
     const level = messagesFor(locale).level;
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        alreadyOnGameMessage ===
-        "A Team partner is already registered on this Game"
-          ? level.rangeTeam
-          : level.rangeOutside,
+      message: onGame === "partner" ? level.rangeTeam : level.rangeOutside,
     });
   }
   if (
@@ -171,60 +173,64 @@ function throwIfInviteAdmitRefused(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is not open for registration",
+      message: messagesFor(locale).game.errors.notOpen,
     });
   }
   if (result.reason === "team_already_on_game") {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That Team is already registered on this Game",
+      message: messagesFor(locale).game.errors.teamAlreadyRegistered,
     });
   }
   if (result.reason === "already_on_game") {
     throw new TRPCError({
       code: "CONFLICT",
-      message: alreadyOnGameMessage,
+      message:
+        onGame === "partner"
+          ? messagesFor(locale).game.errors.partnerAlreadyRegistered
+          : messagesFor(locale).game.errors.alreadyRegistered,
     });
   }
   if (result.reason === "seat_required") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick a vacant Position",
+      message: messagesFor(locale).game.errors.pickVacantPosition,
     });
   }
   if (result.reason === "no_vacant_side") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "No fully vacant side; pick a seat",
+      message: messagesFor(locale).game.errors.noVacantSide,
     });
   }
   if (result.reason === "team_not_found") {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team not found",
+      message: messagesFor(locale).team.notFound.title,
     });
   }
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Incomplete Teams cannot register",
+    message: messagesFor(locale).game.errors.incompleteTeams,
   });
 }
 
 export async function admitIndividualUser(
   database: Tx,
-  game: GameRow,
+  gameToAdmit: GameRow,
   userId: string,
   locale: Locale,
   now = new Date(),
   seat?: { sideIndex: number; position: SeatChoice },
 ): Promise<{ waitlisted: boolean }> {
+  const game = await lockGameForAdmit(database, gameToAdmit.id, locale);
   if (seat) {
     assertGameHasSeats(game, locale);
   }
   if (await userAlreadyOnGame(database, game.id, userId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already registered on this Game",
+      message: messagesFor(locale).game.errors.alreadyRegistered,
     });
   }
   const waitlisted = await database.query.gameWaitlist.findFirst({
@@ -237,7 +243,7 @@ export async function admitIndividualUser(
   if (waitlisted) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already on the waitlist",
+      message: messagesFor(locale).game.errors.alreadyWaitlisted,
     });
   }
 
@@ -260,7 +266,7 @@ export async function admitIndividualUser(
     if (!seat) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Pick a vacant Position",
+        message: messagesFor(locale).game.errors.pickVacantPosition,
       });
     }
     const admitted = await admit(database, {
@@ -268,6 +274,7 @@ export async function admitIndividualUser(
       door: "register",
       party: { kind: "user", userId, seat },
       now,
+      locale,
     });
     if (!admitted.ok) {
       if (admitted.reason === "full") {
@@ -284,6 +291,7 @@ export async function admitIndividualUser(
     door: "register",
     party: { kind: "user", userId },
     now,
+    locale,
   });
   if (!admitted.ok) {
     if (admitted.reason === "full") {
@@ -307,6 +315,7 @@ export async function admitCompleteTeam(
     door: "register",
     party: { kind: "team", teamId },
     now,
+    locale,
   });
   if (admitted.ok) {
     return { waitlisted: false };
@@ -315,11 +324,7 @@ export async function admitCompleteTeam(
     await enqueueWaitlistTeam(database, game.id, teamId);
     return { waitlisted: true };
   }
-  throwIfInviteAdmitRefused(
-    admitted,
-    locale,
-    "A Team partner is already registered on this Game",
-  );
+  throwIfInviteAdmitRefused(admitted, locale, "partner");
   return { waitlisted: false };
 }
 
@@ -384,6 +389,7 @@ export async function recordTeamInviteLinkConsent(
   | { outcome: "waiting_for_partner" }
   | { outcome: "registered"; waitlisted: boolean }
 > {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!(await userAllowedByLevelRange(database, args.game, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -399,23 +405,21 @@ export async function recordTeamInviteLinkConsent(
   if (eligible.length !== 1) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "You must have exactly one complete Team that is allowed on this Game",
+      message: messagesFor(locale).game.errors.oneCompleteTeam,
     });
   }
   const team = eligible[0];
   if (!team) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "You must have exactly one complete Team that is allowed on this Game",
+      message: messagesFor(locale).game.errors.oneCompleteTeam,
     });
   }
   const partnerId = team.memberIds.find((id) => id !== args.userId);
   if (!partnerId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Incomplete Teams cannot register",
+      message: messagesFor(locale).game.errors.incompleteTeams,
     });
   }
 
@@ -434,13 +438,13 @@ export async function recordTeamInviteLinkConsent(
     if (otherConsent && otherConsent.teamId !== team.id) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Your Team partner must accept this Invite link",
+        message: messagesFor(locale).game.errors.partnerMustAccept,
       });
     }
     if (otherConsent && otherConsent.userId !== partnerId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Your Team partner must accept this Invite link",
+        message: messagesFor(locale).game.errors.partnerMustAccept,
       });
     }
     await database.insert(gameInviteLinkConsents).values({

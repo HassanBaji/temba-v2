@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sum } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -11,6 +11,7 @@ import {
   groupRatings,
   groups,
   levelOverrides,
+  matchGoals,
   ratingEvents,
   ratings,
   user,
@@ -41,6 +42,8 @@ import { setWinsForGames } from "@repo/domain/set-wins-for-games";
 import type { Sport } from "@repo/domain/sport";
 import { bestWinStreak } from "@repo/domain/win-streak";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 /** Points on the rating curve, and how far back "this week" reaches. */
 const HISTORY_POINT_LIMIT = 24;
@@ -177,6 +180,72 @@ function ownerOutcome(match: CountedMatch): MatchOutcome {
   );
 }
 
+/** The Score is a football Match's one Set, read from the owner's side. */
+function ownerGoalsAgainst(match: CountedMatch): number | null {
+  const set = match.sets[0];
+  if (set?.slot1GamesWon == null || set.slot2GamesWon == null) {
+    return null;
+  }
+  return match.userSlot === 1 ? set.slot2GamesWon : set.slot1GamesWon;
+}
+
+/** Matches without a loss, newest first: the run going now and the longest one. */
+export function unbeatenRuns(newest: readonly CountedMatch[]) {
+  let current = 0;
+  let best = 0;
+  let run = 0;
+  let broken = false;
+  for (const match of newest) {
+    if (ownerOutcome(match) === "lost") {
+      broken = true;
+      run = 0;
+      continue;
+    }
+    run += 1;
+    best = Math.max(best, run);
+    if (!broken) {
+      current = run;
+    }
+  }
+  return { current, best };
+}
+
+async function goalsIn(
+  database: DbClient,
+  userId: string,
+  matches: readonly CountedMatch[],
+) {
+  if (matches.length === 0) {
+    return 0;
+  }
+  const [row] = await database
+    .select({ goals: sum(matchGoals.goals) })
+    .from(matchGoals)
+    .where(
+      and(
+        eq(matchGoals.userId, userId),
+        inArray(
+          matchGoals.matchId,
+          matches.map((match) => match.matchId),
+        ),
+      ),
+    );
+  return Number(row?.goals ?? 0);
+}
+
+async function footballTally(
+  database: DbClient,
+  userId: string,
+  matches: readonly CountedMatch[],
+) {
+  return {
+    goals: await goalsIn(database, userId, matches),
+    cleanSheets: matches.filter((match) => ownerGoalsAgainst(match) === 0)
+      .length,
+    unbeaten: unbeatenRuns(matches),
+  };
+}
+
 function setsTally(matches: readonly CountedMatch[]) {
   let won = 0;
   let lost = 0;
@@ -221,6 +290,7 @@ async function assertGroupScope(
   userId: string,
   groupId: string,
   sport: Sport,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, groupId),
@@ -234,7 +304,10 @@ async function assertGroupScope(
     columns: { id: true },
   });
   if (!group || !member || (group.sport ?? "padel") !== sport) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.notFound,
+    });
   }
   return group;
 }
@@ -247,13 +320,26 @@ async function assertGroupScope(
  */
 export async function loadMyProfile(
   database: DbClient,
-  args: { userId: string; sport: Sport; groupId?: string; now?: Date },
+  args: {
+    userId: string;
+    sport: Sport;
+    groupId?: string;
+    now?: Date;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const ratingSport =
     args.sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
   const group = args.groupId
-    ? await assertGroupScope(database, args.userId, args.groupId, args.sport)
+    ? await assertGroupScope(
+        database,
+        args.userId,
+        args.groupId,
+        args.sport,
+        locale,
+      )
     : null;
   const scope: Scope = group
     ? { kind: "group", groupId: group.id, sport: ratingSport }
@@ -425,6 +511,10 @@ export async function loadMyProfile(
       longestStreak: best.count > 0 ? best : null,
     },
     lastTen,
+    football:
+      args.sport === "football"
+        ? await footballTally(database, args.userId, matches)
+        : null,
     partners: partnersFrom(args.userId, matches, playersOf),
     recent,
     hideRoasts: owner?.hideRoasts ?? false,
@@ -444,5 +534,6 @@ export const myProfile = protectedProcedure
       userId: appUser.id,
       sport: input.sport,
       groupId: input.groupId,
+      locale: ctx.locale,
     });
   });

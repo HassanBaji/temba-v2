@@ -30,6 +30,7 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { levelSliderLabel } from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
@@ -83,6 +84,7 @@ export default function OperatorLevelsPage() {
   const rows = players.data?.pages.flatMap((page) => page.items) ?? [];
 
   const setLevel = api.ratings.setLevelAsOperator.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (_result, variables) => {
       toast.success(
         o.setToast(
@@ -124,7 +126,7 @@ export default function OperatorLevelsPage() {
         {players.error ? (
           <ErrorState
             title={o.errorTitle}
-            message={players.error.message}
+            error={players.error}
             onRetry={() => {
               void players.refetch();
             }}

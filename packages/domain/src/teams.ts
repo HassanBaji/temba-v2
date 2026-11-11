@@ -3,7 +3,6 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { isFootballPosition } from "./football-lineup";
 import { formatGameDay } from "./format-game-start";
-import type { GroupTeamData } from "./group-data";
 import { groupHomeSportLabel } from "./group-home-chrome";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { historyScoreLine } from "./match-history-card";
@@ -492,32 +491,3 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
 }
 
 export type TeamHomeView = ReturnType<typeof teamHomeView>;
-
-/** One Team on its Group's page: name, Roster count on football, record. */
-export function groupTeamRowView(team: GroupTeamData, locale: Locale) {
-  const m = messagesFor(locale);
-  const squad = team.sport === "football";
-  const record = headToHeadLine(team.record, team.sport, locale);
-  const spoken = squad
-    ? m.team.recordSpokenWithDraws(
-        team.record.wins,
-        team.record.draws,
-        team.record.losses,
-      )
-    : m.team.recordSpoken(team.record.wins, team.record.losses);
-  const roster = squad ? m.team.onRoster(team.rosterCount) : null;
-  return {
-    id: team.id,
-    title: team.displayName ?? m.team.fallbackName,
-    meta: [roster, record]
-      .filter((part): part is string => part != null)
-      .join(m.group.metaSeparator),
-    accessibilityLabel: [
-      m.group.teams.openTeam(team.displayName ?? m.team.fallbackName),
-      roster,
-      spoken,
-    ]
-      .filter((part): part is string => part != null)
-      .join(m.group.metaSeparator),
-  };
-}

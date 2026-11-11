@@ -36,4 +36,17 @@ export const level = {
   },
   overrideCaption: (who: string, when: string) => `Set by ${who}, ${when}`,
   overrideByYou: "you",
+  errors: {
+    pickFootball: "Pick a football Level",
+    pickPadel: "Pick a padel Level",
+    declareAfterRated: "You cannot declare a Level after a Rated Match",
+    alreadyDeclared: "You have already declared a Level",
+    groupOrganizerSets: "Only an Organizer of this Group can set a Group Level",
+    ownGroupLevel: "You cannot set your own Group Level",
+    notGroupMember: "That User is not a member of this Group",
+    noSport: "This Group has no sport, so it has no Levels",
+    footballFromResults: "Football Levels arrive with results",
+    groupMembersSet: "Only Group members can set a Level",
+    ownLevel: "You cannot set your own Level",
+  },
 };

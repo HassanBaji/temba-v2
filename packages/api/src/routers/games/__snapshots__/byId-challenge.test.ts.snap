@@ -25,6 +25,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "knockoutSeed": null,
       "members": [
         {
+          "canRename": false,
           "id": "<id 4>",
           "image": null,
           "name": "Owner",
@@ -33,6 +34,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
           "unclaimed": false,
         },
         {
+          "canRename": false,
           "id": "<id 11>",
           "image": null,
           "name": "Bea",
@@ -51,6 +53,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "knockoutSeed": null,
       "members": [
         {
+          "canRename": false,
           "id": "<id 12>",
           "image": null,
           "name": "Cal",
@@ -91,6 +94,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "<id 11>",
       "<id 12>",
     ],
+    "viewerConfirmsAsOrganizer": true,
     "viewerHasConfirmed": false,
   },
   "matches": [
@@ -99,6 +103,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "bothSlotsFilled": true,
       "canAddSet": true,
       "canComplete": false,
+      "canConfirmScore": false,
       "canScoreSets": false,
       "courtId": null,
       "courtName": null,
@@ -155,6 +160,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "recordedCourts": [],
   "registeredPlayers": [
     {
+      "canRename": false,
       "id": "<id 4>",
       "image": null,
       "name": "Owner",
@@ -162,6 +168,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 11>",
       "image": null,
       "name": "Bea",
@@ -169,6 +176,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 12>",
       "image": null,
       "name": "Cal",
@@ -190,6 +198,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     {
       "gameTeamId": "<id 6>",
       "left": {
+        "canRename": false,
         "eitherSide": false,
         "image": null,
         "levelBand": null,
@@ -200,6 +209,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
         "userId": "<id 4>",
       },
       "right": {
+        "canRename": false,
         "eitherSide": false,
         "image": null,
         "levelBand": null,
@@ -214,6 +224,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     {
       "gameTeamId": "<id 7>",
       "left": {
+        "canRename": false,
         "eitherSide": false,
         "image": null,
         "levelBand": null,
@@ -276,6 +287,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "knockoutSeed": null,
       "members": [
         {
+          "canRename": false,
           "id": "<id 4>",
           "image": null,
           "name": "Owner",
@@ -284,6 +296,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
           "unclaimed": false,
         },
         {
+          "canRename": false,
           "id": "<id 12>",
           "image": null,
           "name": "Bea",
@@ -302,6 +315,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "knockoutSeed": null,
       "members": [
         {
+          "canRename": false,
           "id": "<id 13>",
           "image": null,
           "name": "Cal",
@@ -342,6 +356,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "<id 12>",
       "<id 13>",
     ],
+    "viewerConfirmsAsOrganizer": false,
     "viewerHasConfirmed": false,
   },
   "matches": [
@@ -350,6 +365,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "bothSlotsFilled": true,
       "canAddSet": false,
       "canComplete": false,
+      "canConfirmScore": false,
       "canScoreSets": false,
       "courtId": null,
       "courtName": null,
@@ -406,6 +422,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "recordedCourts": [],
   "registeredPlayers": [
     {
+      "canRename": false,
       "id": "<id 4>",
       "image": null,
       "name": "Owner",
@@ -413,6 +430,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 12>",
       "image": null,
       "name": "Bea",
@@ -420,6 +438,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 13>",
       "image": null,
       "name": "Cal",
@@ -441,6 +460,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     {
       "gameTeamId": "<id 7>",
       "left": {
+        "canRename": false,
         "eitherSide": false,
         "image": null,
         "levelBand": null,
@@ -451,6 +471,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
         "userId": "<id 4>",
       },
       "right": {
+        "canRename": false,
         "eitherSide": false,
         "image": null,
         "levelBand": null,
@@ -465,6 +486,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     {
       "gameTeamId": "<id 8>",
       "left": {
+        "canRename": false,
         "eitherSide": false,
         "image": null,
         "levelBand": null,
@@ -560,6 +582,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   ],
   "registeredPlayers": [
     {
+      "canRename": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -567,6 +590,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",
@@ -584,6 +608,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     "count": 2,
     "users": [
       {
+        "canRename": false,
         "id": "<id 5>",
         "image": null,
         "name": "Bea",
@@ -591,6 +616,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
         "unclaimed": false,
       },
       {
+        "canRename": false,
         "id": "<id 6>",
         "image": null,
         "name": "Cal",
@@ -609,6 +635,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "tournamentShape": null,
   "unseatedPlayers": [
     {
+      "canRename": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -616,6 +643,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",
@@ -701,6 +729,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   ],
   "registeredPlayers": [
     {
+      "canRename": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -708,6 +737,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",
@@ -725,6 +755,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     "count": 2,
     "users": [
       {
+        "canRename": false,
         "id": "<id 5>",
         "image": null,
         "name": "Bea",
@@ -732,6 +763,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
         "unclaimed": false,
       },
       {
+        "canRename": false,
         "id": "<id 6>",
         "image": null,
         "name": "Cal",
@@ -750,6 +782,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "tournamentShape": null,
   "unseatedPlayers": [
     {
+      "canRename": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -757,6 +790,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "unclaimed": false,
     },
     {
+      "canRename": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",

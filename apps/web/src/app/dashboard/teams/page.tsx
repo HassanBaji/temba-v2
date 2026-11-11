@@ -65,7 +65,7 @@ export default function TeamsIndexPage() {
       {teams.error ? (
         <ErrorState
           title={m.team.errorTitle}
-          message={teams.error.message}
+          error={teams.error}
           onRetry={() => {
             void teams.refetch();
           }}

@@ -7,6 +7,7 @@ import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
 import { footballRoleView } from "@repo/domain/player-profile-football";
+import { shownWinRatePercent } from "@repo/domain/win-rate";
 
 import { DifferenceBox } from "./group-levels-card";
 import { LastTenStrip } from "./last-ten-strip";
@@ -24,7 +25,6 @@ import {
   footballLevelLabel,
   goalBars,
   recordShares,
-  winRatePercent,
   type FootballProfile,
 } from "./you-football-model";
 import { formRecord, lastTenSlots, partnerRows } from "./you-form-model";
@@ -76,7 +76,10 @@ function FootballHero({ profile }: { profile: FootballProfile }) {
   if (!rating) {
     return null;
   }
-  const winRate = winRatePercent(profile.overall);
+  const winRate = shownWinRatePercent(
+    profile.overall.won,
+    profile.overall.played,
+  );
   const levelLabel = footballLevelLabel(rating.levelBand, locale);
   const role = footballRoleView(profile.role, locale);
 
@@ -231,7 +234,7 @@ export function FootballTab({ userId }: { userId: string }) {
         variant="inline"
         className="rounded-card px-5"
         title={m.webAuth.you.level.failed}
-        message={profile.error.message}
+        error={profile.error}
         onRetry={() => {
           void profile.refetch();
         }}

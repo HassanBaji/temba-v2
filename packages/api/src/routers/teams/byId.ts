@@ -23,6 +23,7 @@ import {
   teamIsSquad,
   teamRosterRule,
 } from "@repo/domain/team-roster";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import { userActsForTeam } from "#src/teams/acts-for-team";
@@ -151,12 +152,11 @@ async function groupTagView(
   const canClear = tagged
     ? isCaptain || (await mayOrganizeGroupGames(database, tagged, userId))
     : false;
-  const organized =
-    tagged && !canClear
-      ? []
-      : (await organizedGroups(database, sport, userId)).filter(
-          (group) => group.id !== tagged?.id,
-        );
+  const organized = isCaptain
+    ? (await organizedGroups(database, sport, userId)).filter(
+        (group) => group.id !== tagged?.id,
+      )
+    : [];
   const captainIn = await captainGroupIds(
     database,
     team.createdBy,
@@ -221,9 +221,10 @@ async function loadChallengeGames(database: DbClient, teamId: string) {
  */
 export async function teamById(
   database: DbClient,
-  args: { teamId: string; userId: string; origin?: string },
+  args: { teamId: string; userId: string; origin?: string; locale?: Locale },
 ) {
-  const team = await requireTeam(database, args.teamId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const team = await requireTeam(database, args.teamId, locale);
   const sport = team.sport as GroupSportEnum;
 
   const membership = await database.query.teamMembers.findFirst({
@@ -395,5 +396,6 @@ export const byId = protectedProcedure
       teamId: input.id,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

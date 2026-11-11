@@ -5,7 +5,7 @@ import { LayoutGrid } from "lucide-react";
 import { CourtSportBadge } from "~/components/courts/court-sport-badge";
 import { EmptyState } from "~/components/common/empty-state";
 import { cn } from "~/lib/utils";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 
 import { BookingBlock } from "./booking-block";
@@ -37,6 +37,8 @@ export function WeekCalendar({
   onSelect: (bookingId: string) => void;
   onOpenDay: (day: string) => void;
 }) {
+  const m = useMessages().consoleSchedule;
+  const locale = useLocale();
   const days = weekDays(day);
   const { grid, bookings } = data;
 
@@ -44,14 +46,14 @@ export function WeekCalendar({
     return (
       <EmptyState
         icon={LayoutGrid}
-        title="No Courts yet"
-        description="Add a Court under Courts & pricing to see the week."
+        title={m.noCourtsTitle}
+        description={m.noCourtsWeek}
       />
     );
   }
 
   return (
-    <div className="min-w-0 pr-7">
+    <div className="min-w-0 pe-7">
       <div
         className="border-rule bg-paper sticky top-0 z-20 grid border-b"
         style={{ gridTemplateColumns: COLUMNS, height: HEADER_HEIGHT }}
@@ -65,12 +67,14 @@ export function WeekCalendar({
               key={entry}
               type="button"
               onClick={() => onOpenDay(entry)}
-              aria-label={`Open ${formatDayMonth(date, CONSOLE_LOCALE, { weekday: "long" })}`}
-              className="hover:bg-wash flex min-w-0 items-center gap-1.5 px-2.5 text-left text-[13px] transition-colors"
+              aria-label={m.openDay(
+                formatDayMonth(date, locale, { weekday: "long" }),
+              )}
+              className="hover:bg-wash flex min-w-0 items-center gap-1.5 px-2.5 text-start text-[13px] transition-colors"
             >
               <span className="text-muted-foreground">
                 {
-                  formatDayMonth(date, CONSOLE_LOCALE, {
+                  formatDayMonth(date, locale, {
                     weekday: "short",
                   }).split(" ")[0]
                 }
@@ -81,7 +85,7 @@ export function WeekCalendar({
                   isToday && "bg-ink text-paper rounded-[4px] px-1.5",
                 )}
               >
-                {formatDayMonth(date, CONSOLE_LOCALE)}
+                {formatDayMonth(date, locale)}
               </span>
             </button>
           );
@@ -97,7 +101,7 @@ export function WeekCalendar({
           >
             <div className="border-rule flex min-w-0 items-start border-b px-2.5 py-2.5 text-[13px] font-semibold">
               <span className="truncate">{court.name}</span>
-              <CourtSportBadge sport={court.sport} className="ml-2" />
+              <CourtSportBadge sport={court.sport} className="ms-2" />
             </div>
             {days.map((entry) => {
               const closures = closuresForCourt(grid.closures, court.id, entry);
@@ -112,7 +116,7 @@ export function WeekCalendar({
                 <div
                   key={entry}
                   className={cn(
-                    "border-rule relative flex min-h-24 min-w-0 flex-col gap-1 border-b border-l p-1.5",
+                    "border-rule relative flex min-h-24 min-w-0 flex-col gap-1 border-b border-s p-1.5",
                     closed && "hatch",
                   )}
                 >
@@ -122,8 +126,8 @@ export function WeekCalendar({
                       className="hatch rounded-block text-muted-foreground truncate px-2 py-1 text-[11px]"
                     >
                       {closure.reason?.trim()
-                        ? `Closed, ${closure.reason.trim()}`
-                        : "Closed"}
+                        ? m.closedWithReason(closure.reason.trim())
+                        : m.closed}
                     </div>
                   ))}
                   {cell.map((booking) => (

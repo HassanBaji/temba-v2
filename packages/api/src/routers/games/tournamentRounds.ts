@@ -14,6 +14,8 @@ import {
   type TournamentRoundState,
 } from "@repo/domain/tournament-round-state";
 import { tournamentMatchMinutes } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -25,7 +27,10 @@ import {
   teamPoints,
   type PostedPoolMatch,
 } from "#src/games/tournament-round-context";
-import { enteredScore } from "#src/games/tournament-score";
+import {
+  enteredScore,
+  mayConfirmEnteredScore,
+} from "#src/games/tournament-score";
 import { matchSideSeats } from "#src/games/match-result-confirmations";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -74,14 +79,18 @@ export type TournamentRound = {
  */
 export async function tournamentRounds(
   database: DbClient,
-  args: { gameId: string; userId: string; now?: Date },
+  args: { gameId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
-  assertMakesPoolRounds(game);
+  assertMakesPoolRounds(game, locale);
   const organizer = await isGameOrganizer(database, game, args.userId);
   const context = await loadTournamentRoundContext(database, game);
 
@@ -192,10 +201,12 @@ export async function tournamentRounds(
       canEnterScore:
         (organizer && (live || state === "confirmed")) ||
         (viewerSlot != null && live),
-      canConfirm:
-        state === "awaiting_confirmation" &&
-        ((viewerSlot != null && entered?.slot !== viewerSlot) ||
-          (organizer && viewerSlot == null)),
+      canConfirm: mayConfirmEnteredScore({
+        state,
+        viewerSlot,
+        enteredSlot: entered?.slot ?? null,
+        organizer,
+      }),
       canMarkNotFinished:
         (organizer || viewerSlot != null) &&
         (state === "on_court" || state === "awaiting_confirmation"),
@@ -288,5 +299,6 @@ export const tournamentRoundsProcedure = protectedProcedure
     return tournamentRounds(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

@@ -8,72 +8,88 @@ import {
   isDrawnTournament,
   isKnockoutOnly,
 } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
+import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-export const UNDO_AFTER_SET_MESSAGE =
-  "Cannot undo the group draw after a Set has been played";
-export const UNDO_KNOCKOUT_AFTER_SET_MESSAGE =
-  "Cannot undo the draw after a Set has been played";
 
 function drawNoun(game: { format: string; tournamentShape: string | null }) {
   return isKnockoutOnly(game.format, game.tournamentShape)
     ? "draw"
-    : "group draw";
+    : "groupDraw";
 }
 
 export async function undoPoolDraw(
   database: DbClient,
-  args: { gameId: string; organizerUserId: string },
+  args: { gameId: string; organizerUserId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
 
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Cannot undo the ${drawNoun(game)} on a cancelled Game`,
+      message:
+        messagesFor(locale).tournament.errors.undoCancelled[drawNoun(game)],
     });
   }
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Undo the group draw on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.undoFriendly,
     });
   }
   if (game.drawPostedAt == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `The ${drawNoun(game)} has not been posted`,
-    });
-  }
-
-  const matchRows = await database.query.matches.findMany({
-    where: eq(matches.gameId, game.id),
-    with: { sets: { columns: { id: true } } },
-  });
-  if (
-    matchRows.some(
-      (match) =>
-        match.sets.length > 0 ||
-        match.status === "completed" ||
-        match.notFinishedAt != null,
-    )
-  ) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: isKnockoutOnly(game.format, game.tournamentShape)
-        ? UNDO_KNOCKOUT_AFTER_SET_MESSAGE
-        : UNDO_AFTER_SET_MESSAGE,
+      message: messagesFor(locale).tournament.errors.notPosted[drawNoun(game)],
     });
   }
 
   const now = new Date();
   await database.transaction(async (tx) => {
+    // The Game lock serialises this with a post of the draw or a Round; the
+    // Match locks wait out a score being written, so the check sees it.
+    const locked = await lockGame(tx, game.id, locale);
+    if (locked.drawPostedAt == null) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          messagesFor(locale).tournament.errors.notPosted[drawNoun(game)],
+      });
+    }
+    await tx
+      .select({ id: matches.id })
+      .from(matches)
+      .where(eq(matches.gameId, game.id))
+      .orderBy(matches.id)
+      .for("update");
+    const matchRows = await tx.query.matches.findMany({
+      where: eq(matches.gameId, game.id),
+      with: { sets: { columns: { id: true } } },
+    });
+    if (
+      matchRows.some(
+        (match) =>
+          match.sets.length > 0 ||
+          match.status === "completed" ||
+          match.notFinishedAt != null,
+      )
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: isKnockoutOnly(game.format, game.tournamentShape)
+          ? messagesFor(locale).tournament.errors.undoKnockoutAfterSet
+          : messagesFor(locale).tournament.errors.undoAfterSet,
+      });
+    }
+
     await tx.delete(matches).where(eq(matches.gameId, game.id));
     await tx
       .delete(tournamentDraftMatches)
@@ -102,5 +118,6 @@ export const undoPoolDrawProcedure = protectedProcedure
     return undoPoolDraw(ctx.db, {
       gameId: input.gameId,
       organizerUserId: appUser.id,
+      locale: ctx.locale,
     });
   });

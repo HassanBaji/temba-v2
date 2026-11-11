@@ -129,6 +129,9 @@ export async function applyGroupRatedMatch(
           muAfter: after.mu,
           phiAfter: after.phi,
           sigmaAfter: after.sigma,
+          levelBandBefore: stateOf(player.userId).levelBand,
+          lastRatedAtBefore:
+            groupRowByUser.get(player.userId)?.lastRatedAt ?? null,
           createdAt: args.now,
         })
         .onConflictDoNothing({

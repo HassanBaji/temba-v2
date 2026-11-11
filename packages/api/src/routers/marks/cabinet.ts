@@ -12,6 +12,8 @@ import {
   type MvpDecidedBy,
 } from "@repo/domain/marks";
 import { SPORTS, type Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -57,8 +59,11 @@ export type Cabinet =
       perSport: Record<Sport, CabinetSport>;
     };
 
-const notFound = () =>
-  new TRPCError({ code: "NOT_FOUND", message: "Player not found" });
+const notFound = (locale: Locale) =>
+  new TRPCError({
+    code: "NOT_FOUND",
+    message: messagesFor(locale).profile.errors.playerNotFound,
+  });
 
 /**
  * A User's Marks and MVPs per sport, for their Player profile. Whoever may
@@ -69,10 +74,11 @@ const notFound = () =>
  */
 export async function cabinet(
   database: DbClient,
-  args: { viewerId: string; playerId: string },
+  args: { viewerId: string; playerId: string; locale?: Locale },
 ): Promise<Cabinet> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!(await mayViewPlayer(database, args))) {
-    throw notFound();
+    throw notFound(locale);
   }
   const owner = await database.query.user.findFirst({
     where: eq(user.id, args.playerId),
@@ -84,7 +90,7 @@ export async function cabinet(
     },
   });
   if (!owner) {
-    throw notFound();
+    throw notFound(locale);
   }
   if (
     await matchHistoryHidden(database, {
@@ -152,5 +158,9 @@ export const cabinetProcedure = protectedProcedure
   .input(z.object({ userId: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return cabinet(ctx.db, { viewerId: appUser.id, playerId: input.userId });
+    return cabinet(ctx.db, {
+      viewerId: appUser.id,
+      playerId: input.userId,
+      locale: ctx.locale,
+    });
   });

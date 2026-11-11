@@ -342,6 +342,14 @@ export const challenge = {
       "Your Team already has a pending proposal here. Change it instead.",
     proposalNotFound: "Proposal not found",
     proposalNotPending: "This proposal is no longer pending",
+    confirmOwnProposal:
+      "You act for both Teams, so the other Team has to confirm this proposal",
+    changeLimit: (max: number) =>
+      plural("en", max, {
+        one: "A proposal can be changed once. Withdraw it and send a new one.",
+        other:
+          "A proposal can be changed {n} times. Withdraw it and send a new one.",
+      }),
     setByChallenge: "Teams are set by the challenge; captains name the squads",
     nameBothSquads: "Name both squads first",
     squad: {

@@ -2,7 +2,7 @@ import { CircleDot, Goal } from "lucide-react";
 
 import { sportLabel, type Sport } from "@repo/domain/sport";
 
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function CourtSportBadge({
@@ -12,6 +12,7 @@ export function CourtSportBadge({
   sport: Sport;
   className?: string;
 }) {
+  const locale = useLocale();
   const Glyph = sport === "football" ? Goal : CircleDot;
   return (
     <span
@@ -21,7 +22,7 @@ export function CourtSportBadge({
       )}
     >
       <Glyph aria-hidden="true" className="size-3" />
-      {sportLabel(sport, CONSOLE_LOCALE)}
+      {sportLabel(sport, locale)}
     </span>
   );
 }

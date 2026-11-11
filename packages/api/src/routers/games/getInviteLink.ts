@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -15,10 +17,11 @@ type DbClient = typeof db;
 
 export async function getInviteLink(
   database: DbClient,
-  args: { gameId: string; userId: string; origin: string },
+  args: { gameId: string; userId: string; origin: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   if (!isRegistrationOpen(game, new Date())) {
     return null;
   }
@@ -46,5 +49,6 @@ export const getInviteLinkProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

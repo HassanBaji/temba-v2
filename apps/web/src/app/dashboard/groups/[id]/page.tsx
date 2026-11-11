@@ -45,12 +45,14 @@ import {
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
-import { GroupTeamsRow } from "~/components/groups/group-teams-row";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { groupMembersTabHref } from "~/lib/dashboard-paths";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import {
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
   addGroupPlayerIsFootball,
@@ -99,6 +101,7 @@ import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
@@ -264,6 +267,7 @@ export default function GroupHomePage({
   });
 
   const leaveGroup = api.groups.leave.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(groupLeaveToast(locale));
       await utils.groups.byId.invalidate({ id });
@@ -281,6 +285,7 @@ export default function GroupHomePage({
   });
 
   const unlinkFromVenue = api.groups.unlinkFromVenue.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(
         groupLeftVenueToast(
@@ -297,6 +302,7 @@ export default function GroupHomePage({
   });
 
   const deleteGroup = api.groups.delete.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.group.admin.deletedToast);
       await utils.groups.mine.invalidate();
@@ -324,6 +330,7 @@ export default function GroupHomePage({
   });
 
   const clearImage = api.groups.clearImage.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.group.admin.imageRemovedToast);
       await invalidateGroupImage();
@@ -338,6 +345,7 @@ export default function GroupHomePage({
   }
 
   const removePlayer = api.groups.removePlayer.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       await utils.groups.byId.invalidate({ id });
     },
@@ -494,7 +502,7 @@ export default function GroupHomePage({
       <DashboardShell title={m.invite.kind.group}>
         <ErrorState
           title={m.webDashboard.group.errorTitle}
-          message={group.error.message}
+          error={group.error}
           onRetry={() => {
             void group.refetch();
           }}
@@ -610,6 +618,7 @@ export default function GroupHomePage({
       }}
       onDelete={() => {
         setRestoreFocus(which);
+        deleteGroup.reset();
         setDeleteOpen(true);
       }}
     />
@@ -664,13 +673,6 @@ export default function GroupHomePage({
               {groupPartOfVenueLine(data.venue.name, locale)}
             </p>
           ) : null}
-
-          <GroupTeamsRow
-            groupId={id}
-            teams={data.teams}
-            isMember={data.membership != null}
-            canCreateTeam={data.canCreateTeam}
-          />
 
           {ctaFamily.kind === "join_group" ? (
             <Button
@@ -765,6 +767,7 @@ export default function GroupHomePage({
                   groupLevel: entry.groupLevel,
                   unclaimed: entry.unclaimed,
                   phoneMasked: entry.phoneMasked,
+                  canRename: entry.canRename,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
@@ -964,6 +967,7 @@ export default function GroupHomePage({
         memberCount={data.standing.memberCount}
         seasonCount={groupSeasonCount(data.createdAt)}
         pending={deleteGroup.isPending}
+        error={globalFormErrorMessage(deleteGroup.error)}
         restoreFocusRef={restoreFocusRef}
         onDelete={() => deleteGroup.mutate({ groupId: id })}
         onOpenChange={setDeleteOpen}

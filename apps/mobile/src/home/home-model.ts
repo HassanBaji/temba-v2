@@ -12,6 +12,10 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "../trpc/react";
+import type { LatestMark } from "@repo/domain/home-latest";
+import type { HomeStats } from "@repo/domain/home-stats";
+import type { OpenWeekRow } from "@repo/domain/home-open-week";
+
 import type { UpNextItem } from "./up-next-model";
 
 export type Slot<T> =
@@ -30,13 +34,19 @@ export type HomeModel = {
   name: string;
   imageUri: string | null;
   pendingInviteCount: number;
+  unreadNotificationCount: number;
   checklist: HomeChecklist | null;
   upNext: Slot<UpNextItem[]>;
   noGamesAction: HomeNoGamesCreateAction;
-  venueCounts: Record<Sport, number | null>;
+  openGames: OpenWeekRow[];
+  latest: LatestMark | null;
+  dateLine: string;
+  sports: Sport[];
   sport: Sport;
+  bands: Partial<Record<Sport, string | null>>;
   level: Slot<HomeLevel>;
   recentForm: Slot<RecentFormView>;
+  stats: Slot<HomeStats | null>;
   standing: Slot<HomeStandingRow[]>;
 };
 
@@ -83,19 +93,4 @@ export function homeChecklist(
   skipped: boolean,
 ): HomeChecklist | null {
   return list && !list.complete ? { list, skipped } : null;
-}
-
-export function standingCountLabel(count: number, locale: Locale): string {
-  return messagesFor(locale).mobileHome.standing.groupCount(count);
-}
-
-export function venueCountLabel(
-  count: number | null,
-  locale: Locale,
-): string | null {
-  if (count == null) {
-    return null;
-  }
-  const m = messagesFor(locale).mobileHome.venues;
-  return count === 0 ? m.none : m.nearby(count);
 }

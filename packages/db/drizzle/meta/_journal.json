@@ -666,6 +666,41 @@
       "when": 1794224310186,
       "tag": "0094_team_image",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794238756468,
+      "tag": "0095_clerk_user_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794240934344,
+      "tag": "0096_proposal_change_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794241228822,
+      "tag": "0097_booking_payment_refund_pending",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1794241917876,
+      "tag": "0098_rating_event_band_before",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794242063334,
+      "tag": "0099_audit_indexes_constraints",
+      "breakpoints": true
     }
   ]
 }

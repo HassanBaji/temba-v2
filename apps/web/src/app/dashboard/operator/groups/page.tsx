@@ -76,7 +76,7 @@ export default function OperatorGroupsPage() {
         {groups.error ? (
           <ErrorState
             title={m.webDashboard.groups.errorTitle}
-            message={groups.error.message}
+            error={groups.error}
             onRetry={() => {
               void groups.refetch();
             }}

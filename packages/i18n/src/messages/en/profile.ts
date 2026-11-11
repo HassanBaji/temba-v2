@@ -267,4 +267,20 @@ export const profile = {
   chrome: {
     settingsPending: (n: number) => `Settings, ${n} pending invites`,
   },
+  errors: {
+    userNotFound: "User not found",
+    playerNotFound: "Player not found",
+    enterYourName: "Enter your name",
+    enterTheirName: "Enter their name",
+    choosePosition: "Choose a Preferred Position first",
+    declareLevel: "Declare a Level first",
+    chooseFootballLineup: "Choose how you line up in football first",
+    declareFootballLevel: "Declare a football Level first",
+    renameNotAllowed:
+      "Only an Organizer or Group approver where they were added can edit their name",
+    onlyUnclaimedRenamable:
+      "Only players not on Temba yet can have their name edited",
+    unknownCountry: "Pick a supported country code",
+    malformedPhone: "Enter the full phone number",
+  },
 };

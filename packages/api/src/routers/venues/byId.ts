@@ -3,13 +3,19 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { groups, venues } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { operatorProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 
 type DbClient = typeof db;
 
-export async function venueById(database: DbClient, args: { venueId: string }) {
+export async function venueById(
+  database: DbClient,
+  args: { venueId: string; locale?: Locale },
+) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const venue = await database.query.venues.findFirst({
     where: eq(venues.id, args.venueId),
     columns: {
@@ -39,7 +45,10 @@ export async function venueById(database: DbClient, args: { venueId: string }) {
   });
 
   if (!venue) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
 
   const linkedGroups = await database.query.groups.findMany({
@@ -61,5 +70,5 @@ export async function venueById(database: DbClient, args: { venueId: string }) {
 export const byId = operatorProcedure
   .input(z.object({ id: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
-    return venueById(ctx.db, { venueId: input.id });
+    return venueById(ctx.db, { venueId: input.id, locale: ctx.locale });
   });

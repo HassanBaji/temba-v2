@@ -166,16 +166,23 @@ export const mobileHome = {
         one: "Invites, 1 waiting",
         other: "Invites, {n} waiting",
       }),
+    notificationsUnread: "Notifications, unread",
+  },
+  notifications: {
+    loadFailed: "Notifications could not be loaded",
+    empty: {
+      title: "No notifications yet",
+      description:
+        "When someone joins a Group or Game you run, it shows up here.",
+    },
+    markAllRead: "Mark all as read",
+    unread: "Unread",
   },
   upNext: {
     title: "Up next",
-    nothingThisWeek: "Nothing this week",
-    thisWeek: (n: number) => `${n} this week`,
     kind: {
       booking: "Booking",
-      tournament: "Tournament",
     },
-    withEmphasis: (emphasis: string) => `, ${emphasis}`,
     bookingDetail: (court: string, minutes: number) =>
       `${court}, ${minutes} min`,
     bookingHeroSpoken: (
@@ -184,32 +191,16 @@ export const mobileHome = {
       court: string,
       venue: string,
     ) => `Next up, booking, ${day} ${time}, ${court}, ${venue}`,
-    heroSpoken: (title: string, day: string, time: string) =>
-      `Next up, ${title}, ${day} ${time}`,
     gameHeroSpoken: (title: string, day: string, time: string, place: string) =>
       `Next up, ${title}, ${day} ${time}, ${place}`,
     invite: "Invite",
     details: "Details",
-    allBookingsAndGames: "All bookings and games",
-    book: {
-      padel: "Book padel",
-      football: "Book football",
-    },
-    thisWeekTag: "This week",
-    free: "Free",
     weekOpen: "Your week\nis open.",
     emptyBody: "Book a court, join an open game, or start one with your group.",
     findAGame: "Find a game",
   },
-  venues: {
-    none: "No venues yet",
-    nearby: (n: number) =>
-      plural("en", n, { one: "1 venue nearby", other: "{n} venues nearby" }),
-  },
   standing: {
     title: "Standing",
-    groupCount: (n: number) =>
-      plural("en", n, { one: "1 group", other: "{n} groups" }),
     rowSpoken: (group: string, rank: string, ofCount: string) =>
       `${group}, ${rank} ${ofCount}`,
   },
@@ -223,13 +214,6 @@ export const mobileHome = {
       `Level band ${band}, Level ${level}`,
     changeSpoken: (spoken: string, amount: string, window: string) =>
       `${spoken} ${amount}, ${window}`,
-  },
-  recentForm: {
-    title: "Recent form",
-    lastTen: "Last 10 matches",
-    played: "Played",
-    won: "Won",
-    lost: "Lost",
   },
   allTime: {
     matches: (n: number) => plural("en", n, { one: "match", other: "matches" }),

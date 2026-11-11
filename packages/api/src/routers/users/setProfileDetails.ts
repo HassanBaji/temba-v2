@@ -15,7 +15,7 @@ import {
   NATIONALITIES,
   birthDateProblem,
 } from "@repo/domain/profile-details";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -33,15 +33,17 @@ export async function writeProfileDetails(
   args: z.infer<typeof setProfileDetailsSchema> & {
     userId: string;
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (args.birthDate !== null) {
     const problem = birthDateProblem(
       args.birthDate,
       productDayKey(args.now ?? new Date()),
     );
     if (problem) {
-      const m = messagesFor(DEFAULT_LOCALE).you.details;
+      const m = messagesFor(locale).you.details;
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: problem === "tooYoung" ? m.tooYoung : m.birthDateInvalid,
@@ -54,6 +56,7 @@ export async function writeProfileDetails(
       userId: args.userId,
       firstName: args.firstName,
       lastName: args.lastName,
+      locale,
     });
     await tx
       .update(user)
@@ -73,5 +76,9 @@ export const setProfileDetails = protectedProcedure
   .input(setProfileDetailsSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return writeProfileDetails(ctx.db, { ...input, userId: appUser.id });
+    return writeProfileDetails(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

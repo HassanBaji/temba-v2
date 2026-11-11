@@ -1,8 +1,10 @@
 "use client";
 
 import { cn } from "~/lib/utils";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { formatGameClock } from "@repo/domain/format-game-start";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   blockDetailLine,
@@ -12,8 +14,11 @@ import {
 } from "./booking-model";
 import { holderName, type VenueBooking } from "./booking-types";
 
-export function bookingTimeLabel(booking: VenueBooking) {
-  return `${formatGameClock(booking.startsAt, CONSOLE_LOCALE)} to ${formatGameClock(booking.endsAt, CONSOLE_LOCALE)}`;
+export function bookingTimeLabel(booking: VenueBooking, locale: Locale) {
+  return messagesFor(locale).consoleShell.clock.range(
+    formatGameClock(booking.startsAt, locale),
+    formatGameClock(booking.endsAt, locale),
+  );
 }
 
 const TONE_CLASS: Record<BlockTone, { block: string; detail: string }> = {
@@ -43,11 +48,17 @@ export function BookingBlock({
   style?: React.CSSProperties;
   onSelect: (bookingId: string) => void;
 }) {
+  const { consoleSchedule: m, consoleBookings } = useMessages();
+  const locale = useLocale();
   const tone = TONE_CLASS[blockTone(booking, now)];
+  const detailLine = blockDetailLine(booking, locale);
   const detail =
     layout === "week"
-      ? `${formatGameClock(booking.startsAt, CONSOLE_LOCALE)}, ${durationMinutes(booking)} min`
-      : blockDetailLine(booking);
+      ? m.weekBlockDetail(
+          formatGameClock(booking.startsAt, locale),
+          consoleBookings.minutes(durationMinutes(booking)),
+        )
+      : detailLine;
 
   return (
     <button
@@ -55,9 +66,14 @@ export function BookingBlock({
       style={style}
       onClick={() => onSelect(booking.id)}
       aria-pressed={selected}
-      aria-label={`${holderName(booking.holder)}, ${bookingTimeLabel(booking)}, ${booking.courtName}, ${blockDetailLine(booking)}`}
+      aria-label={m.blockLabel(
+        holderName(booking.holder, locale),
+        bookingTimeLabel(booking, locale),
+        booking.courtName,
+        detailLine,
+      )}
       className={cn(
-        "rounded-block focus-visible:ring-ink focus-visible:ring-offset-paper flex min-w-0 flex-col items-start overflow-hidden text-left text-xs leading-4 outline-none transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-offset-2",
+        "rounded-block focus-visible:ring-ink focus-visible:ring-offset-paper flex min-w-0 flex-col items-start overflow-hidden text-start text-xs leading-4 outline-none transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-offset-2",
         layout === "day" ? "gap-0.5 px-2.5 py-2" : "w-full px-2 py-1.5",
         tone.block,
         selected && "ring-ink ring-offset-paper ring-2 ring-offset-2",
@@ -65,7 +81,7 @@ export function BookingBlock({
       )}
     >
       <span className="w-full truncate font-semibold">
-        {holderName(booking.holder)}
+        {holderName(booking.holder, locale)}
       </span>
       {layout === "dense" ? null : (
         <span

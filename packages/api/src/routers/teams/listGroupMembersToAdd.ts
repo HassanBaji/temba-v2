@@ -9,6 +9,8 @@ import type {
 } from "@repo/domain/football-lineup";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { sportOrDefault } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -39,27 +41,30 @@ export type TeamGroupMemberToAdd = {
  */
 export async function listGroupMembersToAdd(
   database: DbClient,
-  args: { groupId: string; teamId?: string; userId: string },
+  args: { groupId: string; teamId?: string; userId: string; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   if (!(await mayOrganizeGroupGames(database, group, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Group's Organizers can add its members",
+      message: messagesFor(locale).team.errors.groupOrganizersAdd,
     });
   }
 
-  const team = args.teamId ? await requireTeam(database, args.teamId) : null;
+  const team = args.teamId
+    ? await requireTeam(database, args.teamId, locale)
+    : null;
   if (team && team.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Captain can add players",
+      message: messagesFor(locale).team.errors.captainAdds,
     });
   }
   if (team && team.sport !== group.sport) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick a Group of the Team's sport",
+      message: messagesFor(locale).team.errors.groupSport,
     });
   }
 
@@ -144,5 +149,6 @@ export const listGroupMembersToAddProcedure = protectedProcedure
       groupId: input.groupId,
       teamId: input.teamId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

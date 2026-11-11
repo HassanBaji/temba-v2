@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { venueOpeningHours, venues } from "@repo/db";
 import type { DbClient } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -22,26 +24,30 @@ function badRequest(message: string): never {
   throw new TRPCError({ code: "BAD_REQUEST", message });
 }
 
-function validateWindows(windows: Window[], slotMinutes: number) {
+function validateWindows(
+  windows: Window[],
+  slotMinutes: number,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   for (const window of windows) {
     if (
       !Number.isInteger(window.opensAtMinutes) ||
       !Number.isInteger(window.closesAtMinutes) ||
       window.opensAtMinutes < 0
     ) {
-      badRequest("Opening hours must be whole minutes from midnight");
+      badRequest(messagesFor(locale).venue.errors.hoursWholeMinutes);
     }
     if (window.closesAtMinutes <= window.opensAtMinutes) {
-      badRequest("Closing time must be after opening time");
+      badRequest(messagesFor(locale).consoleHours.weekly.closeAfterOpen);
     }
     if (window.closesAtMinutes > MAX_CLOSE_MINUTES) {
-      badRequest("Closing time cannot be later than 06:00 the next day");
+      badRequest(messagesFor(locale).venue.errors.hoursLatestClose);
     }
     if (
       window.opensAtMinutes % slotMinutes !== 0 ||
       window.closesAtMinutes % slotMinutes !== 0
     ) {
-      badRequest(`Times must fall on the ${slotMinutes}-minute grid`);
+      badRequest(messagesFor(locale).venue.errors.onGrid(slotMinutes));
     }
   }
 
@@ -50,7 +56,7 @@ function validateWindows(windows: Window[], slotMinutes: number) {
   );
   for (let index = 1; index < sorted.length; index += 1) {
     if (sorted[index]!.opensAtMinutes < sorted[index - 1]!.closesAtMinutes) {
-      badRequest("Opening windows on the same day must not overlap");
+      badRequest(messagesFor(locale).consoleHours.weekly.overlap);
     }
   }
   return sorted;
@@ -63,15 +69,18 @@ export async function setOpeningHours(
     weekday: number;
     windows: Window[];
     actor: Actor;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (!Number.isInteger(args.weekday) || args.weekday < 0 || args.weekday > 6) {
-    badRequest("Weekday must be between 0 (Sunday) and 6 (Saturday)");
+    badRequest(messagesFor(locale).venue.errors.weekdayRange);
   }
 
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   return database.transaction(async (tx) => {
@@ -82,10 +91,13 @@ export async function setOpeningHours(
       .for("update");
 
     if (!venue) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).venue.errors.notFound,
+      });
     }
 
-    const sorted = validateWindows(args.windows, venue.slotMinutes);
+    const sorted = validateWindows(args.windows, venue.slotMinutes, locale);
 
     await tx
       .delete(venueOpeningHours)
@@ -153,5 +165,6 @@ export const setOpeningHoursProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

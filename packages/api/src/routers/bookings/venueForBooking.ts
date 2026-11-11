@@ -5,6 +5,7 @@ import { z } from "zod";
 import { venues } from "@repo/db";
 import { describeCancellationPolicy } from "@repo/domain/booking-refund";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 
 import {
@@ -22,10 +23,14 @@ export async function venueForBooking(
   database: DbClient,
   args: { venueId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const context = await loadVenueSlotContext(database, args.venueId, now);
   if (!context || !isBookableVenue(context)) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
 
   const venue = await database.query.venues.findFirst({
@@ -48,7 +53,10 @@ export async function venueForBooking(
     },
   });
   if (!venue) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
 
   const { coverPhotoId, detailPhotoId, ...details } = venue;

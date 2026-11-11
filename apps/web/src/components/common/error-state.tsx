@@ -1,10 +1,16 @@
 "use client";
 
 import { CircleAlert } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import {
+  errorRefusal,
+  type ErrorRefusal,
+  type ErrorWithCode,
+} from "~/lib/error-refusal";
 import { cn } from "~/lib/utils";
 
 export function safeErrorMessage(
@@ -24,11 +30,19 @@ export function safeErrorMessage(
   return message;
 }
 
+/**
+ * A FORBIDDEN or NOT_FOUND `error` (or an explicit `refusal`) renders as a
+ * refusal: its own heading, no retry, and a way back instead.
+ */
 export function ErrorState({
   title,
   message,
+  error,
+  refusal: refusalProp,
   onRetry,
   retryLabel,
+  backHref = "/dashboard",
+  backLabel,
   secondaryAction,
   headingLevel = 2,
   variant = "page",
@@ -36,17 +50,45 @@ export function ErrorState({
 }: {
   title?: string;
   message?: string;
+  error?: ErrorWithCode | null;
+  refusal?: ErrorRefusal;
   onRetry: () => void;
   retryLabel?: string;
+  backHref?: string;
+  backLabel?: string;
   secondaryAction?: ReactNode;
   headingLevel?: 1 | 2 | 3;
   variant?: "page" | "inline";
   className?: string;
 }) {
   const m = useMessages();
-  const heading = title ?? m.webUi.errorState.title;
+  const copy = m.webUi.errorState;
+  const refusal = refusalProp ?? errorRefusal(error);
+  const text = message ?? error?.message;
+  if (refusal) {
+    return (
+      <RefusalState
+        heading={
+          (refusalProp ? title : undefined) ??
+          (refusal === "forbidden" ? copy.forbiddenTitle : copy.notFoundTitle)
+        }
+        body={safeErrorMessage(
+          text,
+          refusal === "forbidden"
+            ? copy.forbiddenFallback
+            : copy.notFoundFallback,
+        )}
+        backHref={backHref}
+        backLabel={backLabel ?? m.webDashboard.backToHome}
+        headingLevel={headingLevel}
+        variant={variant}
+        className={className}
+      />
+    );
+  }
+  const heading = title ?? copy.title;
   const retry = retryLabel ?? m.common.tryAgain;
-  const body = safeErrorMessage(message, m.webUi.errorState.fallback);
+  const body = safeErrorMessage(text, copy.fallback);
   if (variant === "inline") {
     return (
       <div
@@ -99,6 +141,68 @@ export function ErrorState({
         {retry}
       </Button>
       {secondaryAction}
+    </div>
+  );
+}
+
+function RefusalState({
+  heading,
+  body,
+  backHref,
+  backLabel,
+  headingLevel,
+  variant,
+  className,
+}: {
+  heading: string;
+  body: string;
+  backHref: string;
+  backLabel: string;
+  headingLevel: 1 | 2 | 3;
+  variant: "page" | "inline";
+  className?: string;
+}) {
+  if (variant === "inline") {
+    return (
+      <div
+        role="alert"
+        className={cn(
+          "border-rule bg-paper text-meta flex items-center gap-3 rounded-xl border px-[22px] py-4",
+          className,
+        )}
+      >
+        <CircleAlert
+          aria-hidden="true"
+          className="text-muted-foreground size-4 shrink-0"
+          strokeWidth={1.75}
+        />
+        <p className="min-w-0 flex-1">
+          <span className="font-semibold">{heading}.</span>{" "}
+          <span className="text-muted-foreground">{body}</span>
+        </p>
+      </div>
+    );
+  }
+
+  const Heading = ({ 1: "h1", 2: "h2", 3: "h3" } as const)[headingLevel];
+  return (
+    <div
+      role="alert"
+      className={cn(
+        "mx-auto flex w-full max-w-md flex-col items-center gap-3 py-12 text-center",
+        className,
+      )}
+    >
+      <CircleAlert
+        aria-hidden="true"
+        className="text-muted-foreground size-8"
+        strokeWidth={1.75}
+      />
+      <Heading className="text-title font-semibold">{heading}</Heading>
+      <p className="text-body text-muted-foreground">{body}</p>
+      <Button asChild variant="outline" className="min-h-11">
+        <Link href={backHref}>{backLabel}</Link>
+      </Button>
     </div>
   );
 }

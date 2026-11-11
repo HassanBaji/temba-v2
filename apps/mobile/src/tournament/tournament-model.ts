@@ -19,7 +19,22 @@ export type ScorableMatch = {
   sets: TournamentDetailsMatch["sets"];
   needsDecidingSet: boolean;
   note: string | null;
+  canEnter: boolean;
+  /** The other team's pending score, for the viewer to confirm (ADR-0062). */
+  scoreToConfirm: string | null;
 };
+
+function pendingScore(match: TournamentDetailsMatch) {
+  const [set] = match.sets;
+  if (
+    !match.canConfirmScore ||
+    set?.slot1GamesWon == null ||
+    set.slot2GamesWon == null
+  ) {
+    return null;
+  }
+  return `${set.slot1GamesWon}–${set.slot2GamesWon}`;
+}
 
 function teamLabel(
   game: TournamentDetails,
@@ -80,7 +95,7 @@ export function scorableMatches(
 ): ScorableMatch[] {
   const decidingSet = messagesFor(locale).tournament.knockoutView.decidingSet;
   return game.matches
-    .filter((match) => match.canScoreSets)
+    .filter((match) => match.canScoreSets || pendingScore(match) != null)
     .map((match) => {
       const needsDecidingSet =
         match.knockoutRound != null && match.outcome.result === "draw";
@@ -92,8 +107,8 @@ export function scorableMatches(
         sets: match.sets,
         needsDecidingSet,
         note: needsDecidingSet ? decidingSet : null,
+        canEnter: match.canScoreSets,
+        scoreToConfirm: pendingScore(match),
       };
     });
 }
-
-export const COMPLETE_FAILED_FALLBACK = "Could not complete the Match";

@@ -21,6 +21,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 import type { GameRow } from "#src/games/access";
 import { isGameFinishedByResults } from "#src/notifications/notify-game-finished";
 import { addMatch } from "#src/routers/games/addMatch";
@@ -30,6 +31,7 @@ import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
@@ -223,6 +225,21 @@ async function forceComplete(
   database: TestDatabase,
   args: { gameId: string; matchId: string; userId: string },
 ) {
+  const game = await database.query.games.findFirst({
+    where: eq(games.id, args.gameId),
+  });
+  if (
+    game &&
+    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
+  ) {
+    tick();
+    await enterTournamentScore(database, {
+      ...args,
+      slot1GamesWon: 6,
+      slot2GamesWon: 3,
+    });
+    return;
+  }
   await scoreMatch(database, args);
   tick();
   await completeMatch(database, args);

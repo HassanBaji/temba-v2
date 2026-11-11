@@ -686,6 +686,12 @@ describe("football rows in My Games", () => {
         role: null,
         position: "mid",
       });
+      expect(row?.football?.positions).toEqual({
+        keepers: 0,
+        def: 0,
+        mid: 1,
+        fwd: 0,
+      });
       expect(row?.football?.needsViewerConfirmation).toBe(false);
 
       await saveFootballScore(

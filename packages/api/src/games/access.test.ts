@@ -476,6 +476,7 @@ describe("a Challenge Game's Organizers, viewers and closed doors", () => {
         windowStart: kickOff,
         windowEnd,
         name: "",
+        now: sentAt,
       });
       await cancelGame(db, { gameId, userId: hiddCaptain });
       expect(await requireGame(database, gameId)).toMatchObject({

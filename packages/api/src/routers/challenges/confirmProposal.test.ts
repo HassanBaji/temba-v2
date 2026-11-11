@@ -7,13 +7,16 @@ import {
   games,
   gameTeamPlayers,
   gameTeams,
+  groups,
   matches,
   matchSets,
   notifications,
   ratingEvents,
   teamMembers,
+  teams,
   user,
 } from "@repo/db/schema";
+import { messagesFor } from "@repo/i18n/messages";
 
 import {
   addPendingProposal,
@@ -226,11 +229,25 @@ describe("challenges.confirmProposal", () => {
           slot2GamesWon: 3,
         });
       }
+      // Every player acts for their Team, so none of them settles the score
+      // alone: it rates once all four agree.
       await confirmMatchResult(db, {
         gameId,
         matchId: gameMatch!.id,
         userId: match.proposer.rafi,
       });
+      expect(
+        await database.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, gameMatch!.id),
+        }),
+      ).toHaveLength(0);
+      for (const userId of [match.poster.omar, match.proposer.saad]) {
+        await confirmMatchResult(db, {
+          gameId,
+          matchId: gameMatch!.id,
+          userId,
+        });
+      }
 
       const events = await database.query.ratingEvents.findMany({
         where: eq(ratingEvents.matchId, gameMatch!.id),
@@ -538,6 +555,46 @@ describe("challenges.confirmProposal", () => {
           where: eq(matchSets.setNumber, 1),
         }),
       ).toHaveLength(1);
+    });
+  });
+
+  it("refuses an Organizer who acts for both tagged Teams, and lets the poster's Captain confirm", async () => {
+    await withDb(async ({ db, database }) => {
+      const match = await footballMatchup(database, sentAt, { sideSize: 5 });
+      const [organizer] = await makeUsers(database, "Organizer", 1);
+      const [group] = await database
+        .insert(groups)
+        .values({ name: "Gooz", sport: "football", createdBy: organizer! })
+        .returning({ id: groups.id });
+      await database
+        .update(teams)
+        .set({ groupId: group!.id })
+        .where(inArray(teams.id, [match.hidd.id, match.arad.id]));
+      const { id: proposalId } = await proposeOnChallenge(db, {
+        challengeId: match.challenge.id,
+        teamId: match.arad.id,
+        venueId: match.venue.id,
+        startsAt: kickOff,
+        userId: organizer!,
+        now: sentAt,
+      });
+
+      expect(
+        await refusal(
+          confirmProposal(db, { proposalId, userId: organizer!, now: sentAt }),
+        ),
+      ).toEqual({
+        code: "FORBIDDEN",
+        message: messagesFor("en").challenge.errors.confirmOwnProposal,
+      });
+      expect(await database.query.games.findMany()).toHaveLength(0);
+
+      await confirmProposal(db, {
+        proposalId,
+        userId: match.hiddIds[0]!,
+        now: sentAt,
+      });
+      expect(await database.query.games.findMany()).toHaveLength(1);
     });
   });
 });

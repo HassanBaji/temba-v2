@@ -8,6 +8,8 @@
     "src",
     "*.d.ts",
     "vitest.config.ts",
+    "app.config.ts",
+    "app.config.test.ts",
     "nativewind-env.d.ts"
   ],
   "exclude": ["node_modules", "dist"]

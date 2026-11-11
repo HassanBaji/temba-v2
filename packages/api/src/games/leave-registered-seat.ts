@@ -15,6 +15,8 @@ import {
 import { type db } from "#src/db";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -22,8 +24,11 @@ export async function leaveRegisteredSeat(
   database: Tx,
   game: GameRow,
   userId: string,
-  notRegisteredMessage = "You are not registered on this Game",
+  notRegisteredMessage?: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
+  const notRegistered =
+    notRegisteredMessage ?? messagesFor(locale).game.errors.notRegistered;
   if (isPartnerRequiredGame(game) && !isPoolDrawPosted(game)) {
     const player = await database.query.gamePlayers.findFirst({
       where: and(
@@ -34,7 +39,7 @@ export async function leaveRegisteredSeat(
     if (!player) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: notRegisteredMessage,
+        message: notRegistered,
       });
     }
     const link = await database.query.gameTeamPlayers.findFirst({
@@ -49,16 +54,11 @@ export async function leaveRegisteredSeat(
   }
 
   if (isIndividualSeatGame(game)) {
-    const vacated = await vacateSeat(
-      database,
-      game,
-      userId,
-      notRegisteredMessage,
-    );
+    const vacated = await vacateSeat(database, game, userId, notRegistered);
     if (!game.cancelledAt) {
       const target =
         vacated ?? (await firstVacantPosition(database, game)) ?? undefined;
-      await promoteWaitlist(database, game, target);
+      await promoteWaitlist(database, game, target, locale);
     }
     return;
   }
@@ -69,7 +69,7 @@ export async function leaveRegisteredSeat(
   if (!player) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: notRegisteredMessage,
+      message: notRegistered,
     });
   }
 
@@ -102,6 +102,6 @@ export async function leaveRegisteredSeat(
   }
 
   if (!game.cancelledAt) {
-    await promoteWaitlist(database, game);
+    await promoteWaitlist(database, game, undefined, locale);
   }
 }

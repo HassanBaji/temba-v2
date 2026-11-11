@@ -4,6 +4,7 @@ import {
   generateRounds as pairRounds,
   roundRepeats,
 } from "@repo/domain/tournament-pairing";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -36,11 +37,13 @@ export async function generateRounds(
     organizerUserId: string;
     scope: GenerateRoundsScope;
     random?: () => number;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertMakesPoolRounds(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertMakesPoolRounds(game, locale);
   const context = await loadTournamentRoundContext(database, game);
 
   const made = madeRounds(context);
@@ -92,5 +95,6 @@ export const generateRoundsProcedure = protectedProcedure
       gameId: input.gameId,
       organizerUserId: appUser.id,
       scope: input.scope,
+      locale: ctx.locale,
     });
   });

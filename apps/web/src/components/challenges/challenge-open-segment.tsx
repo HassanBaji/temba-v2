@@ -127,7 +127,7 @@ export function ChallengeOpenSegment({
       <ErrorState
         headingLevel={2}
         title={m.challenge.open.errorTitle}
-        message={error.message}
+        error={error}
         onRetry={onRetry}
       />
     );

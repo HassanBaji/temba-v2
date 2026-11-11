@@ -49,6 +49,10 @@ export const webUi = {
   errorState: {
     title: "حدث خطأ ما",
     fallback: "حدث خطأ ما. حاول مرة أخرى.",
+    forbiddenTitle: "لا يمكنك فتح هذا",
+    forbiddenFallback: "ليس لديك صلاحية الوصول إلى هذا.",
+    notFoundTitle: "غير موجود",
+    notFoundFallback: "هذا غير موجود أو تمت إزالته.",
   },
   entityImage: {
     addImage: "إضافة صورة",
@@ -167,6 +171,9 @@ export const webUi = {
     yourPhoto: "صورتك",
     copyLink: "نسخ الرابط",
     message: "رسالة",
+    storySets: "الأشواط",
+    storyScorers: "المسجّلون",
+    storyYou: "أنت",
     goalsTag: (n: number) =>
       plural("ar", n, {
         zero: "بلا أهداف",

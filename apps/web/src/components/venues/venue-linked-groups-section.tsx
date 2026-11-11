@@ -108,7 +108,7 @@ export function VenueLinkedGroupsSection({
         <ErrorState
           headingLevel={3}
           title={m.loadError}
-          message={linked.error.message}
+          error={linked.error}
           onRetry={() => {
             void linked.refetch();
           }}

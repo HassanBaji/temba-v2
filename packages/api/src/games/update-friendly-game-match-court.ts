@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { MatchStatusEnum, matches } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type GameRow } from "#src/games/access";
 import { assertCourtAssignable } from "#src/games/assert-court-assignable";
@@ -14,17 +16,18 @@ export async function updateFriendlyGameMatchCourt(
   game: GameRow,
   matchId: string,
   courtId: string | null,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a Match on a cancelled Game",
+      message: messagesFor(locale).game.errors.matchOnCancelledGame,
     });
   }
   if (game.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Court-only Match edit is for Friendly game",
+      message: messagesFor(locale).game.errors.courtEditFriendlyOnly,
     });
   }
 
@@ -34,17 +37,17 @@ export async function updateFriendlyGameMatchCourt(
   if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Match not found",
+      message: messagesFor(locale).game.errors.matchNotFound,
     });
   }
   if (match.status === MatchStatusEnum.CANCELLED) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Match",
+      message: messagesFor(locale).game.errors.matchCancelledEdit,
     });
   }
   if (courtId) {
-    await assertCourtAssignable(database, game, courtId);
+    await assertCourtAssignable(database, game, courtId, locale);
   }
   await database
     .update(matches)
